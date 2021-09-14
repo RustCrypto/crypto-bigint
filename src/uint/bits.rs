@@ -3,7 +3,7 @@ use crate::{Limb, UInt};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Calculate the number of bits needed to represent this number
-    pub const fn bits(self) -> Inner {
+    pub(crate) const fn bits(self) -> Inner {
         let mut i = LIMBS - 1;
         while i > 0 && self.limbs[i].0 == 0 {
             i -= 1;
