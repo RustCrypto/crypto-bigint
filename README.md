@@ -15,27 +15,18 @@ using const generics.
 
 [Documentation][docs-link]
 
-# Minimum Supported Rust Version
-
-**Rust 1.51** at a minimum.
-
 ## Goals
 
-- No heap allocations (`no_std`-friendly)
-- Constant-time by default. We may add variable-time operations in the future
-  but they will be secondary and explicitly marked as such.
+- No heap allocations. `no_std`-friendly.
+- Constant-time by default. Variable-time functions are explicitly marked as such.
 - Leverage what is possible today with const generics on `stable` rust.
 - Support `const fn` as much as possible, including decoding big integers from
   bytes/hex and performing arithmetic operations on them, with the goal of
   being able to compute values at compile-time.
 
-## Status
+## Minimum Supported Rust Version
 
-This library presently provides only a baseline level of functionality.
-It's new, unaudited, and may contain bugs. We recommend that it only be
-used in an experimental capacity for now.
-
-Please see the [feature wishlist tracking ticket] for more information.
+**Rust 1.51** at a minimum.
 
 ## License
 
@@ -65,7 +56,6 @@ dual licensed as above, without any additional terms or conditions.
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/300602-crypto-bigint
 
-[//]: # (general links)
+[//]: # (links)
 
 [RustCrypto]: https://github.com/rustcrypto
-[feature wishlist tracking ticket]: https://github.com/RustCrypto/crypto-bigint/issues/1
