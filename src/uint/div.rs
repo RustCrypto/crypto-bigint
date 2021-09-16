@@ -101,7 +101,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// Wrapped division is just normal division i.e. `self` / `rhs`
     /// There’s no way wrapping could ever happen.
     /// This function exists, so that all operations are accounted for in the wrapping operations.
-    pub const fn wrapping_div(self, rhs: &Self) -> Self {
+    pub const fn wrapping_div(&self, rhs: &Self) -> Self {
         let (q, _, c) = self.ct_div_rem(rhs);
         const_assert!(c == 1, "divide by zero");
         q
@@ -109,7 +109,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
 
     /// Perform checked division, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
-    pub fn checked_div(self, rhs: &Self) -> CtOption<Self> {
+    pub fn checked_div(&self, rhs: &Self) -> CtOption<Self> {
         let (q, _, c) = self.ct_div_rem(rhs);
         CtOption::new(q, Choice::from(c))
     }
@@ -117,7 +117,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// Wrapped (modular) remainder calculation is just `self` % `rhs`.
     /// There’s no way wrapping could ever happen.
     /// This function exists, so that all operations are accounted for in the wrapping operations.
-    pub const fn wrapping_rem(self, rhs: &Self) -> Self {
+    pub const fn wrapping_rem(&self, rhs: &Self) -> Self {
         let (r, c) = self.ct_reduce(rhs);
         const_assert!(c == 1, "modulo zero");
         r
@@ -125,7 +125,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
 
     /// Perform checked reduction, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
-    pub fn checked_rem(self, rhs: &Self) -> CtOption<Self> {
+    pub fn checked_rem(&self, rhs: &Self) -> CtOption<Self> {
         let (r, c) = self.ct_reduce(rhs);
         CtOption::new(r, Choice::from(c))
     }

@@ -127,4 +127,13 @@ proptest! {
             assert_eq!(expected, actual);
         }
     }
+
+    #[test]
+    fn wrapping_sqrt(a in uint()) {
+        let a_bi = to_biguint(&a);
+        let expected = to_uint(a_bi.sqrt());
+        let actual = a.wrapping_sqrt();
+
+        assert_eq!(expected, actual);
+    }
 }
