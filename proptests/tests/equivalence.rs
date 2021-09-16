@@ -109,7 +109,7 @@ proptest! {
 
         if !b_bi.is_zero() {
             let expected = to_uint(a_bi / b_bi);
-            let actual = a.wrapping_div(b);
+            let actual = a.wrapping_div(&b);
 
             assert_eq!(expected, actual);
         }
@@ -122,7 +122,7 @@ proptest! {
 
         if b_bi.is_zero() {
             let expected = to_uint(a_bi % b_bi);
-            let actual = a.wrapping_rem(b);
+            let actual = a.wrapping_rem(&b);
 
             assert_eq!(expected, actual);
         }
