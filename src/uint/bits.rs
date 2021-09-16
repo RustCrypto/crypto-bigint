@@ -8,15 +8,12 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         while i > 0 && self.limbs[i].0 == 0 {
             i -= 1;
         }
-        let mut bits = BIT_SIZE * i;
-        let mut limb = self.limbs[i].0;
-        while limb != 0 {
-            limb >>= 1;
-            bits += 1;
-        }
+
+        let limb = self.limbs[i].0;
+        let bits = (BIT_SIZE * (i + 1)) as Inner - limb.leading_zeros() as Inner;
 
         Limb::ct_select(
-            Limb(bits as Inner),
+            Limb(bits),
             Limb::ZERO,
             !self.limbs[0].is_nonzero() & !Limb(i as Inner).is_nonzero(),
         )
