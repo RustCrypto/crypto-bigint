@@ -1,6 +1,6 @@
 //! Limb comparisons
 
-use super::{Inner, Limb, SignedInner, HI_BIT};
+use super::{Inner, Limb, SignedInner, SignedWide, BIT_SIZE, HI_BIT};
 use core::cmp::Ordering;
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
@@ -37,6 +37,15 @@ impl Limb {
     pub(crate) const fn is_nonzero(self) -> Inner {
         let inner = self.0 as SignedInner;
         ((inner | inner.saturating_neg()) >> HI_BIT) as Inner
+    }
+
+    #[inline]
+    pub(crate) const fn ct_cmp(lhs: Self, rhs: Self) -> SignedInner {
+        let a = lhs.0 as SignedWide;
+        let b = rhs.0 as SignedWide;
+        let gt = ((b - a) >> BIT_SIZE) & 1;
+        let lt = ((a - b) >> BIT_SIZE) & 1 & !gt;
+        (gt as SignedInner) - (lt as SignedInner)
     }
 }
 

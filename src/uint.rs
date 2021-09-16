@@ -19,6 +19,7 @@ mod mul;
 mod neg_mod;
 mod shl;
 mod shr;
+mod sqrt;
 mod sub;
 mod sub_mod;
 
