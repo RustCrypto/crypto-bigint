@@ -18,15 +18,13 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub(crate) const fn ct_div_rem(&self, rhs: Self) -> (Self, Self, u8) {
+    pub(crate) const fn ct_div_rem(&self, rhs: &Self) -> (Self, Self, u8) {
         let mut bd = self.bits().saturating_sub(rhs.bits()) as usize;
-        let mut e = Self::ONE;
         let mut rem = *self;
-        let mut c = rhs;
         let mut quo = Self::ZERO;
 
-        c = c.shl_vartime(bd);
-        e = e.shl_vartime(bd);
+        let mut c = rhs.shl_vartime(bd);
+        let mut e = Self::ONE.shl_vartime(bd);
 
         loop {
             let mut r: Self = rem.wrapping_sub(&c);
@@ -60,12 +58,11 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub(crate) const fn ct_reduce(&self, rhs: Self) -> (Self, u8) {
+    pub(crate) const fn ct_reduce(&self, rhs: &Self) -> (Self, u8) {
         let mut bd = self.bits().saturating_sub(rhs.bits()) as usize;
-        let mut c = rhs;
         let mut rem = *self;
 
-        c = c.shl_vartime(bd);
+        let mut c = rhs.shl_vartime(bd);
 
         loop {
             let r: Self = rem.wrapping_sub(&c);
@@ -89,14 +86,14 @@ impl<const LIMBS: usize> UInt<LIMBS> {
 
     /// Computes self / rhs, returns the quotient, remainder
     /// if rhs != 0
-    pub fn div_rem(&self, rhs: Self) -> CtOption<(Self, Self)> {
+    pub fn div_rem(&self, rhs: &Self) -> CtOption<(Self, Self)> {
         let (q, r, c) = self.ct_div_rem(rhs);
         CtOption::new((q, r), Choice::from(c))
     }
 
     /// Computes self % rhs, returns the remainder
     /// if rhs != 0
-    pub fn reduce(&self, rhs: Self) -> CtOption<Self> {
+    pub fn reduce(&self, rhs: &Self) -> CtOption<Self> {
         let (r, c) = self.ct_reduce(rhs);
         CtOption::new(r, Choice::from(c))
     }
@@ -104,7 +101,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// Wrapped division is just normal division i.e. `self` / `rhs`
     /// There’s no way wrapping could ever happen.
     /// This function exists, so that all operations are accounted for in the wrapping operations.
-    pub const fn wrapping_div(self, rhs: Self) -> Self {
+    pub const fn wrapping_div(self, rhs: &Self) -> Self {
         let (q, _, c) = self.ct_div_rem(rhs);
         const_assert!(c == 1, "divide by zero");
         q
@@ -112,7 +109,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
 
     /// Perform checked division, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
-    pub fn checked_div(self, rhs: Self) -> CtOption<Self> {
+    pub fn checked_div(self, rhs: &Self) -> CtOption<Self> {
         let (q, _, c) = self.ct_div_rem(rhs);
         CtOption::new(q, Choice::from(c))
     }
@@ -120,7 +117,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// Wrapped (modular) remainder calculation is just `self` % `rhs`.
     /// There’s no way wrapping could ever happen.
     /// This function exists, so that all operations are accounted for in the wrapping operations.
-    pub const fn wrapping_rem(self, rhs: Self) -> Self {
+    pub const fn wrapping_rem(self, rhs: &Self) -> Self {
         let (r, c) = self.ct_reduce(rhs);
         const_assert!(c == 1, "modulo zero");
         r
@@ -128,7 +125,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
 
     /// Perform checked reduction, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
-    pub fn checked_rem(self, rhs: Self) -> CtOption<Self> {
+    pub fn checked_rem(self, rhs: &Self) -> CtOption<Self> {
         let (r, c) = self.ct_reduce(rhs);
         CtOption::new(r, Choice::from(c))
     }
@@ -162,13 +159,13 @@ impl<const LIMBS: usize> Div for Wrapping<UInt<LIMBS>> {
     type Output = Wrapping<UInt<LIMBS>>;
 
     fn div(self, rhs: Self) -> Self::Output {
-        Wrapping(self.0.checked_div(rhs.0).unwrap())
+        Wrapping(self.0.checked_div(&rhs.0).unwrap())
     }
 }
 
 impl<const LIMBS: usize> DivAssign<&Wrapping<UInt<LIMBS>>> for Wrapping<UInt<LIMBS>> {
     fn div_assign(&mut self, rhs: &Wrapping<UInt<LIMBS>>) {
-        *self = Wrapping(self.0.checked_div(rhs.0).unwrap())
+        *self = Wrapping(self.0.checked_div(&rhs.0).unwrap())
     }
 }
 
@@ -206,13 +203,13 @@ impl<const LIMBS: usize> Rem for Wrapping<UInt<LIMBS>> {
     type Output = Wrapping<UInt<LIMBS>>;
 
     fn rem(self, rhs: Wrapping<UInt<LIMBS>>) -> Self::Output {
-        Wrapping(self.0.checked_rem(rhs.0).unwrap())
+        Wrapping(self.0.checked_rem(&rhs.0).unwrap())
     }
 }
 
 impl<const LIMBS: usize> RemAssign<&Wrapping<UInt<LIMBS>>> for Wrapping<UInt<LIMBS>> {
     fn rem_assign(&mut self, rhs: &Wrapping<UInt<LIMBS>>) {
-        *self = Wrapping(self.0.checked_rem(rhs.0).unwrap())
+        *self = Wrapping(self.0.checked_rem(&rhs.0).unwrap())
     }
 }
 
@@ -242,7 +239,7 @@ mod tests {
             let lhs = U256::from(*n);
             let rhs = U256::from(*d);
             let expected = U256::from(*e);
-            let (q, r, is_some) = lhs.ct_div_rem(rhs);
+            let (q, r, is_some) = lhs.ct_div_rem(&rhs);
             assert_eq!(is_some, 1);
             assert_eq!(expected, q);
             assert_eq!(U256::default(), r);
@@ -257,7 +254,7 @@ mod tests {
             let den = U256::random(&mut rng).shr_vartime(128);
             let n = num.checked_mul(&den);
             if n.is_some().unwrap_u8() == 1 {
-                let (q, _, is_some) = n.unwrap().ct_div_rem(den);
+                let (q, _, is_some) = n.unwrap().ct_div_rem(&den);
                 assert_eq!(is_some, 1);
                 assert_eq!(q, num);
             }
@@ -269,23 +266,23 @@ mod tests {
         let mut a = U256::ZERO;
         let mut b = U256::ZERO;
         b.limbs[b.limbs.len() - 1] = Limb(Inner::MAX);
-        let q = a.wrapping_div(b);
+        let q = a.wrapping_div(&b);
         assert_eq!(q, UInt::ZERO);
         a.limbs[a.limbs.len() - 1] = Limb(1 << HI_BIT - 7);
         b.limbs[b.limbs.len() - 1] = Limb(0x82 << HI_BIT - 7);
-        let q = a.wrapping_div(b);
+        let q = a.wrapping_div(&b);
         assert_eq!(q, UInt::ZERO);
     }
 
     #[test]
     fn div_zero() {
-        let (_, _, is_some) = U256::ONE.ct_div_rem(U256::ZERO);
+        let (_, _, is_some) = U256::ONE.ct_div_rem(&U256::ZERO);
         assert_eq!(is_some, 0);
     }
 
     #[test]
     fn div_one() {
-        let (q, r, is_some) = U256::from(10u8).ct_div_rem(U256::ONE);
+        let (q, r, is_some) = U256::from(10u8).ct_div_rem(&U256::ONE);
         assert_eq!(is_some, 1);
         assert_eq!(q, U256::from(10u8));
         assert_eq!(r, U256::ZERO);
@@ -293,26 +290,26 @@ mod tests {
 
     #[test]
     fn reduce_one() {
-        let (r, is_some) = U256::from(10u8).ct_reduce(U256::ONE);
+        let (r, is_some) = U256::from(10u8).ct_reduce(&U256::ONE);
         assert_eq!(is_some, 1);
         assert_eq!(r, U256::ZERO);
     }
 
     #[test]
     fn reduce_zero() {
-        let (_, is_some) = U256::from(10u8).ct_reduce(U256::ZERO);
+        let (_, is_some) = U256::from(10u8).ct_reduce(&U256::ZERO);
         assert_eq!(is_some, 0);
     }
 
     #[test]
     fn reduce_tests() {
-        let (r, is_some) = U256::from(10u8).ct_reduce(U256::from(2u8));
+        let (r, is_some) = U256::from(10u8).ct_reduce(&U256::from(2u8));
         assert_eq!(is_some, 1);
         assert_eq!(r, U256::ZERO);
-        let (r, is_some) = U256::from(10u8).ct_reduce(U256::from(3u8));
+        let (r, is_some) = U256::from(10u8).ct_reduce(&U256::from(3u8));
         assert_eq!(is_some, 1);
         assert_eq!(r, U256::ONE);
-        let (r, is_some) = U256::from(10u8).ct_reduce(U256::from(7u8));
+        let (r, is_some) = U256::from(10u8).ct_reduce(&U256::from(7u8));
         assert_eq!(is_some, 1);
         assert_eq!(r, U256::from(3u8));
     }
@@ -322,11 +319,11 @@ mod tests {
         let mut a = U256::ZERO;
         let mut b = U256::ZERO;
         b.limbs[b.limbs.len() - 1] = Limb(Inner::MAX);
-        let r = a.wrapping_rem(b);
+        let r = a.wrapping_rem(&b);
         assert_eq!(r, UInt::ZERO);
         a.limbs[a.limbs.len() - 1] = Limb(1 << HI_BIT - 7);
         b.limbs[b.limbs.len() - 1] = Limb(0x82 << HI_BIT - 7);
-        let r = a.wrapping_rem(b);
+        let r = a.wrapping_rem(&b);
         assert_eq!(r, UInt::ZERO);
     }
 }

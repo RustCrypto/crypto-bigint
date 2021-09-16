@@ -31,7 +31,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     ///
     /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
     #[inline]
-    pub(crate) const fn ct_select(a: UInt<LIMBS>, b: UInt<LIMBS>, c: Inner) -> UInt<LIMBS> {
+    pub(crate) const fn ct_select(a: UInt<LIMBS>, b: UInt<LIMBS>, c: Inner) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
 
         let mut i = 0;
@@ -63,7 +63,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     ///
     /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
     #[inline]
-    pub(crate) const fn ct_cmp(&self, rhs: Self) -> SignedInner {
+    pub(crate) const fn ct_cmp(&self, rhs: &Self) -> SignedInner {
         let mut gt = 0;
         let mut lt = 0;
         let mut i = LIMBS;
