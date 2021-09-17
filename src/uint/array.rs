@@ -1,7 +1,7 @@
 //! `generic-array` integration with `UInt`.
 // TODO(tarcieri): completely phase out `generic-array` when const generics are powerful enough
 
-use crate::{ArrayEncoding, ByteArray};
+use crate::{ArrayDecoding, ArrayEncoding, ByteArray};
 use generic_array::{typenum, GenericArray};
 
 macro_rules! impl_uint_array_encoding {
@@ -35,6 +35,15 @@ macro_rules! impl_uint_array_encoding {
                     result
                 }
             }
+
+            #[cfg_attr(docsrs, doc(cfg(feature = "generic-array")))]
+            impl ArrayDecoding for GenericArray<u8, $bytes> {
+                type Output = super::$uint;
+
+                fn to_bigint(self) -> Self::Output {
+                    Self::Output::from_le_byte_array(self)
+                }
+            }
         )+
      };
 }
@@ -63,7 +72,7 @@ impl_uint_array_encoding! {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ArrayEncoding, Limb};
+    use crate::{ArrayDecoding, ArrayEncoding, Limb};
     use hex_literal::hex;
 
     #[cfg(target_pointer_width = "32")]
@@ -138,6 +147,22 @@ mod tests {
     fn to_le_byte_array() {
         let expected_bytes = ByteArray::from(hex!("ffeeddccbbaa99887766554433221100"));
         let actual_bytes = UIntEx::from_le_byte_array(expected_bytes).to_le_byte_array();
+        assert_eq!(expected_bytes, actual_bytes);
+    }
+
+    #[test]
+    #[cfg(target_pointer_width = "32")]
+    fn to_bigint() {
+        let expected_bytes = ByteArray::from(hex!("7766554433221100"));
+        let actual_bytes = expected_bytes.to_bigint().to_le_byte_array();
+        assert_eq!(expected_bytes, actual_bytes);
+    }
+
+    #[test]
+    #[cfg(target_pointer_width = "64")]
+    fn to_bigint() {
+        let expected_bytes = ByteArray::from(hex!("ffeeddccbbaa99887766554433221100"));
+        let actual_bytes = expected_bytes.to_bigint().to_le_byte_array();
         assert_eq!(expected_bytes, actual_bytes);
     }
 }

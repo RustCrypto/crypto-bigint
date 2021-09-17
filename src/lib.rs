@@ -54,7 +54,7 @@ pub use subtle;
 
 #[cfg(feature = "generic-array")]
 pub use {
-    self::array::{ArrayEncoding, ByteArray},
+    self::array::{ArrayDecoding, ArrayEncoding, ByteArray},
     generic_array::{self, typenum::consts},
 };
 

@@ -1,6 +1,6 @@
 //! Interop support for `generic-array`
 
-use crate::Encoding;
+use crate::{Encoding, Integer};
 use core::ops::Add;
 use generic_array::{typenum::Unsigned, ArrayLength, GenericArray};
 
@@ -25,4 +25,14 @@ pub trait ArrayEncoding: Encoding {
 
     /// Serialize to a little-endian byte array.
     fn to_le_byte_array(&self) -> ByteArray<Self>;
+}
+
+/// Support for decoding a `GenericArray` as a big integer.
+#[cfg_attr(docsrs, doc(cfg(feature = "generic-array")))]
+pub trait ArrayDecoding {
+    /// Big integer which decodes a `GenericArray`.
+    type Output: Integer;
+
+    /// Deserialize from a `GenericArray`.
+    fn to_bigint(self) -> Self::Output;
 }
