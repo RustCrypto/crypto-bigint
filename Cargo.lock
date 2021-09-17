@@ -10,7 +10,7 @@ checksum = "c4872d67bab6358e59559027aa3b9157c53d9358c51423c17554809a8858e0f8"
 
 [[package]]
 name = "crypto-bigint"
-version = "0.2.8"
+version = "0.2.9"
 dependencies = [
  "generic-array",
  "hex-literal",
