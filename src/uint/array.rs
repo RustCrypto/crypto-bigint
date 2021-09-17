@@ -154,7 +154,7 @@ mod tests {
     #[cfg(target_pointer_width = "32")]
     fn to_bigint() {
         let expected_bytes = ByteArray::from(hex!("7766554433221100"));
-        let actual_bytes = expected_bytes.to_bigint().to_le_byte_array();
+        let actual_bytes = expected_bytes.into_bigint().to_le_byte_array();
         assert_eq!(expected_bytes, actual_bytes);
     }
 
