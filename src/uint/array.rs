@@ -40,7 +40,7 @@ macro_rules! impl_uint_array_encoding {
             impl ArrayDecoding for GenericArray<u8, $bytes> {
                 type Output = super::$uint;
 
-                fn to_bigint(self) -> Self::Output {
+                fn into_bigint(self) -> Self::Output {
                     Self::Output::from_le_byte_array(self)
                 }
             }
@@ -162,7 +162,7 @@ mod tests {
     #[cfg(target_pointer_width = "64")]
     fn to_bigint() {
         let expected_bytes = ByteArray::from(hex!("ffeeddccbbaa99887766554433221100"));
-        let actual_bytes = expected_bytes.to_bigint().to_le_byte_array();
+        let actual_bytes = expected_bytes.into_bigint().to_le_byte_array();
         assert_eq!(expected_bytes, actual_bytes);
     }
 }

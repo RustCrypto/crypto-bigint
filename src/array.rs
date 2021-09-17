@@ -34,5 +34,5 @@ pub trait ArrayDecoding {
     type Output: Integer;
 
     /// Deserialize from a `GenericArray`.
-    fn to_bigint(self) -> Self::Output;
+    fn into_bigint(self) -> Self::Output;
 }
