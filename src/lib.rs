@@ -45,11 +45,14 @@ mod macros;
 mod array;
 mod checked;
 pub mod limb;
+mod non_zero;
 mod traits;
 mod uint;
 mod wrapping;
 
-pub use crate::{checked::Checked, limb::Limb, traits::*, uint::*, wrapping::Wrapping};
+pub use crate::{
+    checked::Checked, limb::Limb, non_zero::NonZero, traits::*, uint::*, wrapping::Wrapping,
+};
 pub use subtle;
 
 #[cfg(feature = "generic-array")]
