@@ -48,7 +48,8 @@ use zeroize::DefaultIsZeroes;
 ///
 /// Optional crate features for encoding (off-by-default):
 /// - `generic-array`: enables [`ArrayEncoding`][`crate::ArrayEncoding`] trait which can be used to
-///   [`UInt`] as `GenericArray<u8, N>`.
+///   [`UInt`] as `GenericArray<u8, N>` and a [`ArrayDecoding`][`crate::ArrayDecoding`] trait which
+///   can be used to `GenericArray<u8, N>` as [`UInt`].
 /// - `rlp`: support for [Recursive Length Prefix (RLP)][RLP] encoding.
 ///
 /// [RLP]: https://eth.wiki/fundamentals/rlp
