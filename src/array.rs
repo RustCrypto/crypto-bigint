@@ -33,6 +33,9 @@ pub trait ArrayDecoding {
     /// Big integer which decodes a `GenericArray`.
     type Output: Integer;
 
-    /// Deserialize from a `GenericArray`.
-    fn into_bigint(self) -> Self::Output;
+    /// Deserialize from a big-endian `GenericArray`.
+    fn into_bigint_be(self) -> Self::Output;
+
+    /// Deserialize from a little-endian `GenericArray`.
+    fn into_bigint_le(self) -> Self::Output;
 }
