@@ -67,10 +67,14 @@ impl<const LIMBS: usize> UInt<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::U512;
     use crate::{Limb, U256};
-    use rand_chacha::ChaChaRng;
-    use rand_core::{RngCore, SeedableRng};
+
+    #[cfg(feature = "rand")]
+    use {
+        crate::U512,
+        rand_chacha::ChaChaRng,
+        rand_core::{RngCore, SeedableRng},
+    };
 
     #[test]
     fn edge() {
@@ -120,6 +124,7 @@ mod tests {
         assert_eq!(U256::from(10u8).sqrt(), U256::from(3u8));
     }
 
+    #[cfg(feature = "rand")]
     #[test]
     fn fuzz() {
         let mut rng = ChaChaRng::from_seed([7u8; 32]);
