@@ -40,11 +40,11 @@ macro_rules! impl_uint_array_encoding {
             impl ArrayDecoding for GenericArray<u8, $bytes> {
                 type Output = super::$uint;
 
-                fn into_bigint_be(self) -> Self::Output {
+                fn into_uint_be(self) -> Self::Output {
                     Self::Output::from_be_byte_array(self)
                 }
 
-                fn into_bigint_le(self) -> Self::Output {
+                fn into_uint_le(self) -> Self::Output {
                     Self::Output::from_le_byte_array(self)
                 }
             }
@@ -156,33 +156,33 @@ mod tests {
 
     #[test]
     #[cfg(target_pointer_width = "32")]
-    fn into_bigint_be() {
+    fn into_uint_be() {
         let expected_bytes = ByteArray::from(hex!("0011223344556677"));
-        let actual_bytes = expected_bytes.into_bigint_be().to_be_byte_array();
+        let actual_bytes = expected_bytes.into_uint_be().to_be_byte_array();
         assert_eq!(expected_bytes, actual_bytes);
     }
 
     #[test]
     #[cfg(target_pointer_width = "64")]
-    fn into_bigint_be() {
+    fn into_uint_be() {
         let expected_bytes = ByteArray::from(hex!("00112233445566778899aabbccddeeff"));
-        let actual_bytes = expected_bytes.into_bigint_be().to_be_byte_array();
+        let actual_bytes = expected_bytes.into_uint_be().to_be_byte_array();
         assert_eq!(expected_bytes, actual_bytes);
     }
 
     #[test]
     #[cfg(target_pointer_width = "32")]
-    fn into_bigint_le() {
+    fn into_uint_le() {
         let expected_bytes = ByteArray::from(hex!("7766554433221100"));
-        let actual_bytes = expected_bytes.into_bigint_le().to_le_byte_array();
+        let actual_bytes = expected_bytes.into_uint_le().to_le_byte_array();
         assert_eq!(expected_bytes, actual_bytes);
     }
 
     #[test]
     #[cfg(target_pointer_width = "64")]
-    fn into_bigint_le() {
+    fn into_uint_le() {
         let expected_bytes = ByteArray::from(hex!("ffeeddccbbaa99887766554433221100"));
-        let actual_bytes = expected_bytes.into_bigint_le().to_le_byte_array();
+        let actual_bytes = expected_bytes.into_uint_le().to_le_byte_array();
         assert_eq!(expected_bytes, actual_bytes);
     }
 }
