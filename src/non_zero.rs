@@ -1,6 +1,8 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{Encoding, Integer, Random};
+#[cfg(feature = "rand")]
+use crate::Random;
+use crate::{Encoding, Integer};
 use core::{fmt, ops::Deref};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
