@@ -353,8 +353,9 @@ mod tests {
     use crate::limb::HI_BIT;
     use crate::Limb;
     use crate::U256;
-    use rand_chacha::ChaChaRng;
-    use rand_core::SeedableRng;
+
+    #[cfg(feature = "rand")]
+    use {rand_chacha::ChaChaRng, rand_core::SeedableRng};
 
     #[test]
     fn div_word() {
@@ -374,6 +375,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "rand")]
     #[test]
     fn div() {
         let mut rng = ChaChaRng::from_seed([7u8; 32]);

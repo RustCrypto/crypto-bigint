@@ -33,9 +33,12 @@ jobs:
           target: ${{ matrix.target }}
           override: true
       - run: cargo build --target ${{ matrix.target }} --release --no-default-features
-      - run: cargo build --target ${{ matrix.target }} --release
-      - run: cargo build --target ${{ matrix.target }} --release --features generic-array
-      - run: cargo build --target ${{ matrix.target }} --release --features zeroize
+      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features alloc
+      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features generic-array
+      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features rand
+      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features rlp
+      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features zeroize
+      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features alloc,generic-array,rand,rlp,zeroize
 
   test:
     runs-on: ubuntu-latest
@@ -64,9 +67,8 @@ jobs:
           profile: minimal
           override: true
       - run: ${{ matrix.deps }}
+      - run: cargo test --target ${{ matrix.target }} --release --no-default-features
       - run: cargo test --target ${{ matrix.target }} --release
-      - run: cargo test --target ${{ matrix.target }} --release --features generic-array
-      - run: cargo test --target ${{ matrix.target }} --release --features zeroize
       - run: cargo test --target ${{ matrix.target }} --release --all-features
 
   proptests:
@@ -111,9 +113,8 @@ jobs:
           profile: minimal
           override: true
       - run: cargo install cross
+      - run: cross test --target ${{ matrix.target }} --release --no-default-features
       - run: cross test --target ${{ matrix.target }} --release
-      - run: cross test --target ${{ matrix.target }} --release --features generic-array
-      - run: cross test --target ${{ matrix.target }} --release --features zeroize
       - run: cross test --target ${{ matrix.target }} --release --all-features
 
   clippy:
