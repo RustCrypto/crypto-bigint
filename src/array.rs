@@ -1,7 +1,7 @@
 //! Interop support for `generic-array`
 
-use crate::{Encoding, Integer, NonZero};
-use core::ops::{Add, Rem};
+use crate::{Encoding, Integer};
+use core::ops::Add;
 use generic_array::{typenum::Unsigned, ArrayLength, GenericArray};
 
 /// Alias for a byte array whose size is defined by [`ArrayEncoding::ByteSize`].
@@ -31,7 +31,7 @@ pub trait ArrayEncoding: Encoding {
 #[cfg_attr(docsrs, doc(cfg(feature = "generic-array")))]
 pub trait ArrayDecoding {
     /// Big integer which decodes a `GenericArray`.
-    type Output: ArrayEncoding + Integer + Rem<NonZero<Self::Output>, Output = Self::Output>;
+    type Output: ArrayEncoding + Integer;
 
     /// Deserialize from a big-endian `GenericArray`.
     fn into_bigint_be(self) -> Self::Output;
