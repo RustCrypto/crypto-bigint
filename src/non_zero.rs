@@ -2,8 +2,12 @@
 
 #[cfg(feature = "rand")]
 use crate::Random;
-use crate::{Encoding, Integer};
-use core::{fmt, ops::Deref};
+use crate::{Encoding, Integer, UInt};
+use core::{
+    fmt,
+    num::{NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8},
+    ops::Deref,
+};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "generic-array")]
@@ -63,6 +67,41 @@ where
         T: ArrayEncoding,
     {
         Self::new(T::from_be_byte_array(bytes))
+    }
+}
+
+impl<const LIMBS: usize> NonZero<UInt<LIMBS>>
+where
+    UInt<LIMBS>: Integer,
+{
+    /// Create a [`NonZero<UInt>`] from a [`NonZeroU8`] (const-friendly)
+    // TODO(tarcieri): replace with `const impl From<NonZeroU8>` when stable
+    pub const fn from_u8(n: NonZeroU8) -> Self {
+        Self(UInt::from_u8(n.get()))
+    }
+
+    /// Create a [`NonZero<UInt>`] from a [`NonZeroU16`] (const-friendly)
+    // TODO(tarcieri): replace with `const impl From<NonZeroU16>` when stable
+    pub const fn from_u16(n: NonZeroU16) -> Self {
+        Self(UInt::from_u16(n.get()))
+    }
+
+    /// Create a [`NonZero<UInt>`] from a [`NonZeroU32`] (const-friendly)
+    // TODO(tarcieri): replace with `const impl From<NonZeroU32>` when stable
+    pub const fn from_u32(n: NonZeroU32) -> Self {
+        Self(UInt::from_u32(n.get()))
+    }
+
+    /// Create a [`NonZero<UInt>`] from a [`NonZeroU64`] (const-friendly)
+    // TODO(tarcieri): replace with `const impl From<NonZeroU64>` when stable
+    pub const fn from_u64(n: NonZeroU64) -> Self {
+        Self(UInt::from_u64(n.get()))
+    }
+
+    /// Create a [`NonZero<UInt>`] from a [`NonZeroU128`] (const-friendly)
+    // TODO(tarcieri): replace with `const impl From<NonZeroU128>` when stable
+    pub const fn from_u128(n: NonZeroU128) -> Self {
+        Self(UInt::from_u128(n.get()))
     }
 }
 
@@ -165,5 +204,50 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::UpperHex::fmt(&self.0, f)
+    }
+}
+
+impl<const LIMBS: usize> From<NonZeroU8> for NonZero<UInt<LIMBS>>
+where
+    UInt<LIMBS>: Integer,
+{
+    fn from(integer: NonZeroU8) -> Self {
+        Self::from_u8(integer)
+    }
+}
+
+impl<const LIMBS: usize> From<NonZeroU16> for NonZero<UInt<LIMBS>>
+where
+    UInt<LIMBS>: Integer,
+{
+    fn from(integer: NonZeroU16) -> Self {
+        Self::from_u16(integer)
+    }
+}
+
+impl<const LIMBS: usize> From<NonZeroU32> for NonZero<UInt<LIMBS>>
+where
+    UInt<LIMBS>: Integer,
+{
+    fn from(integer: NonZeroU32) -> Self {
+        Self::from_u32(integer)
+    }
+}
+
+impl<const LIMBS: usize> From<NonZeroU64> for NonZero<UInt<LIMBS>>
+where
+    UInt<LIMBS>: Integer,
+{
+    fn from(integer: NonZeroU64) -> Self {
+        Self::from_u64(integer)
+    }
+}
+
+impl<const LIMBS: usize> From<NonZeroU128> for NonZero<UInt<LIMBS>>
+where
+    UInt<LIMBS>: Integer,
+{
+    fn from(integer: NonZeroU128) -> Self {
+        Self::from_u128(integer)
     }
 }
