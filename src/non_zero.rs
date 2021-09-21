@@ -206,3 +206,48 @@ where
         fmt::UpperHex::fmt(&self.0, f)
     }
 }
+
+impl<const LIMBS: usize> From<NonZeroU8> for NonZero<UInt<LIMBS>>
+where
+    UInt<LIMBS>: Integer,
+{
+    fn from(integer: NonZeroU8) -> Self {
+        Self::from_u8(integer)
+    }
+}
+
+impl<const LIMBS: usize> From<NonZeroU16> for NonZero<UInt<LIMBS>>
+where
+    UInt<LIMBS>: Integer,
+{
+    fn from(integer: NonZeroU16) -> Self {
+        Self::from_u16(integer)
+    }
+}
+
+impl<const LIMBS: usize> From<NonZeroU32> for NonZero<UInt<LIMBS>>
+where
+    UInt<LIMBS>: Integer,
+{
+    fn from(integer: NonZeroU32) -> Self {
+        Self::from_u32(integer)
+    }
+}
+
+impl<const LIMBS: usize> From<NonZeroU64> for NonZero<UInt<LIMBS>>
+where
+    UInt<LIMBS>: Integer,
+{
+    fn from(integer: NonZeroU64) -> Self {
+        Self::from_u64(integer)
+    }
+}
+
+impl<const LIMBS: usize> From<NonZeroU128> for NonZero<UInt<LIMBS>>
+where
+    UInt<LIMBS>: Integer,
+{
+    fn from(integer: NonZeroU128) -> Self {
+        Self::from_u128(integer)
+    }
+}
