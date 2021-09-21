@@ -279,8 +279,8 @@ where
     type Output = UInt<LIMBS>;
 
     fn rem(self, rhs: NonZero<UInt<LIMBS>>) -> Self::Output {
-        let (q, _, _) = self.ct_div_rem(&rhs);
-        q
+        let (r, _) = self.ct_reduce(&rhs);
+        r
     }
 }
 
@@ -289,8 +289,8 @@ where
     UInt<LIMBS>: Integer,
 {
     fn rem_assign(&mut self, rhs: &NonZero<UInt<LIMBS>>) {
-        let (q, _, _) = self.ct_div_rem(rhs);
-        *self = q
+        let (r, _) = self.ct_reduce(&rhs);
+        *self = r
     }
 }
 
