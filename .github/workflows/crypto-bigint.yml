@@ -32,6 +32,7 @@ jobs:
           toolchain: ${{ matrix.rust }}
           target: ${{ matrix.target }}
           override: true
+      - run: cargo build --target ${{ matrix.target }} --release --no-default-features
       - run: cargo build --target ${{ matrix.target }} --release
       - run: cargo build --target ${{ matrix.target }} --release --features generic-array
       - run: cargo build --target ${{ matrix.target }} --release --features zeroize
@@ -63,6 +64,7 @@ jobs:
           profile: minimal
           override: true
       - run: ${{ matrix.deps }}
+      - run: cargo test --target ${{ matrix.target }} --release --no-default-features
       - run: cargo test --target ${{ matrix.target }} --release
       - run: cargo test --target ${{ matrix.target }} --release --features generic-array
       - run: cargo test --target ${{ matrix.target }} --release --features zeroize
@@ -110,6 +112,7 @@ jobs:
           profile: minimal
           override: true
       - run: cargo install cross
+      - run: cross test --target ${{ matrix.target }} --release --no-default-features
       - run: cross test --target ${{ matrix.target }} --release
       - run: cross test --target ${{ matrix.target }} --release --features generic-array
       - run: cross test --target ${{ matrix.target }} --release --features zeroize
