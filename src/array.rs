@@ -31,7 +31,7 @@ pub trait ArrayEncoding: Encoding {
 #[cfg_attr(docsrs, doc(cfg(feature = "generic-array")))]
 pub trait ArrayDecoding {
     /// Big integer which decodes a `GenericArray`.
-    type Output: Integer;
+    type Output: ArrayEncoding + Integer;
 
     /// Deserialize from a big-endian `GenericArray`.
     fn into_uint_be(self) -> Self::Output;

@@ -1,7 +1,8 @@
 //! Traits provided by this crate
 
-use crate::Limb;
+use crate::{Limb, NonZero};
 use core::fmt::Debug;
+use core::ops::{Div, Rem};
 use subtle::{
     Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
 };
@@ -20,10 +21,12 @@ pub trait Integer:
     + ConstantTimeLess
     + Debug
     + Default
+    + Div<NonZero<Self>, Output = Self>
     + Encoding
     + Eq
     + From<u64>
     + Ord
+    + Rem<NonZero<Self>, Output = Self>
     + Send
     + Sized
     + Sync
