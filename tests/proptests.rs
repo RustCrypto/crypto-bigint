@@ -30,8 +30,7 @@ prop_compose! {
 }
 prop_compose! {
     fn uint_mod_p(p: U256)(a in uint()) -> U256 {
-        // TODO: replace with mod operation on U256
-        to_uint(to_biguint(&a) % to_biguint(&p))
+        a.wrapping_rem(&p)
     }
 }
 
@@ -52,7 +51,23 @@ proptest! {
         assert_eq!(expected, actual);
     }
 
-     // TODO(tarcieri): add_mod proptests
+    #[test]
+    fn add_mod_nist_p256(a in uint_mod_p(P), b in uint_mod_p(P)) {
+        assert!(a < P);
+        assert!(b < P);
+
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+        let p_bi = to_biguint(&P);
+
+        let expected = to_uint((a_bi + b_bi) % p_bi);
+        let actual = a.add_mod(&b, &P);
+
+        assert!(expected < P);
+        assert!(actual < P);
+
+        assert_eq!(expected, actual);
+    }
 
     #[test]
     fn sub_mod_nist_p256(mut a in uint_mod_p(P), mut b in uint_mod_p(P)) {
