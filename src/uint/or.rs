@@ -67,16 +67,14 @@ impl<const LIMBS: usize> BitOr<&Wrapping<UInt<LIMBS>>> for &Wrapping<UInt<LIMBS>
 }
 
 impl<const LIMBS: usize> BitOrAssign for Wrapping<UInt<LIMBS>> {
-    #[allow(clippy::assign_op_pattern)]
     fn bitor_assign(&mut self, other: Self) {
-        *self = *self & other;
+        *self = *self | other;
     }
 }
 
 impl<const LIMBS: usize> BitOrAssign<&Wrapping<UInt<LIMBS>>> for Wrapping<UInt<LIMBS>> {
-    #[allow(clippy::assign_op_pattern)]
     fn bitor_assign(&mut self, other: &Self) {
-        *self = *self & other;
+        *self = *self | other;
     }
 }
 
