@@ -27,8 +27,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         self.bitor(rhs)
     }
 
-    /// Perform checked addition, returning a [`CtOption`] which `is_some` only
-    /// if the operation did not overflow.
+    /// Perform checked bitwise or, returning a [`CtOption`] which `is_some` always
     pub fn checked_or(&self, rhs: &Self) -> CtOption<Self> {
         let result = self.bitor(rhs);
         CtOption::new(result, Choice::from(1))
