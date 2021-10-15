@@ -11,12 +11,14 @@ mod macros;
 
 mod add;
 mod add_mod;
+mod and;
 mod cmp;
 mod div;
 mod encoding;
 mod from;
 mod mul;
 mod neg_mod;
+mod or;
 mod shl;
 mod shr;
 mod sqrt;
