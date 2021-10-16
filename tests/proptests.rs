@@ -151,4 +151,31 @@ proptest! {
 
         assert_eq!(expected, actual);
     }
+
+    #[test]
+    fn wrapping_or(a in uint(), b in uint()) {
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+
+        if !b_bi.is_zero() {
+            let expected = to_uint(a_bi | b_bi);
+            let actual = a.wrapping_or(&b);
+
+            assert_eq!(expected, actual);
+        }
+    }
+
+    #[test]
+    fn wrapping_and(a in uint(), b in uint()) {
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+
+        if !b_bi.is_zero() {
+            let expected = to_uint(a_bi & b_bi);
+            let actual = a.wrapping_and(&b);
+
+            assert_eq!(expected, actual);
+        }
+    }
+
 }
