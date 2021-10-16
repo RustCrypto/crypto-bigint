@@ -82,7 +82,7 @@ impl<const LIMBS: usize> BitAndAssign<&Wrapping<UInt<LIMBS>>> for Wrapping<UInt<
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, U128};
+    use crate::U128;
 
     #[test]
     fn checked_and_ok() {
