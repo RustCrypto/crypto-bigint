@@ -11,21 +11,21 @@ mod macros;
 
 mod add;
 mod add_mod;
-mod and;
+mod bit_and;
+mod bit_not;
+mod bit_or;
+mod bit_xor;
 mod cmp;
 mod div;
 mod encoding;
 mod from;
 mod mul;
 mod neg_mod;
-mod not;
-mod or;
 mod shl;
 mod shr;
 mod sqrt;
 mod sub;
 mod sub_mod;
-mod xor;
 
 #[cfg(feature = "generic-array")]
 mod array;
