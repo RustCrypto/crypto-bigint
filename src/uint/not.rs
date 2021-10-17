@@ -33,7 +33,6 @@ mod tests {
     use crate::U128;
 
     #[test]
-    #[test]
     fn bitnot_ok() {
         assert_eq!(U128::ZERO.bitnot(), U128::MAX);
         assert_eq!(U128::MAX.bitnot(), U128::ZERO);
