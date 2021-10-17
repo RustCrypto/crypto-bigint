@@ -5,7 +5,9 @@
 
 mod add;
 mod bit_and;
+mod bit_not;
 mod bit_or;
+mod bit_xor;
 mod cmp;
 mod encoding;
 mod from;
