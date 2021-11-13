@@ -15,6 +15,7 @@ mod bit_and;
 mod bit_not;
 mod bit_or;
 mod bit_xor;
+mod bits;
 mod cmp;
 mod div;
 mod encoding;
@@ -30,11 +31,10 @@ mod sub_mod;
 #[cfg(feature = "generic-array")]
 mod array;
 
-mod bits;
 #[cfg(feature = "rand")]
 mod rand;
 
-use crate::{Concat, Encoding, Integer, Limb, Split};
+use crate::{Concat, Encoding, Integer, Limb, Split, Zero};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
 
@@ -126,17 +126,17 @@ impl<const LIMBS: usize> Default for UInt<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Integer for UInt<LIMBS>
-where
-    Self: Encoding,
-{
-    const ZERO: Self = Self::ZERO;
+impl<const LIMBS: usize> Integer for UInt<LIMBS> {
     const ONE: Self = Self::ONE;
     const MAX: Self = Self::MAX;
 
     fn is_odd(&self) -> Choice {
         self.is_odd()
     }
+}
+
+impl<const LIMBS: usize> Zero for UInt<LIMBS> {
+    const ZERO: Self = Self::ZERO;
 }
 
 impl<const LIMBS: usize> fmt::Display for UInt<LIMBS> {

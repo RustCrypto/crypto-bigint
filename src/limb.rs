@@ -17,6 +17,7 @@ mod sub;
 #[cfg(feature = "rand")]
 mod rand;
 
+use crate::Zero;
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
 
@@ -112,6 +113,10 @@ impl ConditionallySelectable for Limb {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         Self(Inner::conditional_select(&a.0, &b.0, choice))
     }
+}
+
+impl Zero for Limb {
+    const ZERO: Self = Self::ZERO;
 }
 
 impl fmt::Display for Limb {

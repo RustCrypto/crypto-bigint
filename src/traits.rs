@@ -22,7 +22,6 @@ pub trait Integer:
     + Debug
     + Default
     + Div<NonZero<Self>, Output = Self>
-    + Encoding
     + Eq
     + From<u64>
     + Ord
@@ -30,20 +29,13 @@ pub trait Integer:
     + Send
     + Sized
     + Sync
+    + Zero
 {
-    /// The value `0`.
-    const ZERO: Self;
-
     /// The value `1`.
     const ONE: Self;
 
     /// Maximum value this integer can express.
     const MAX: Self;
-
-    /// Is this integer value equal to zero?
-    fn is_zero(&self) -> Choice {
-        self.ct_eq(&Self::ZERO)
-    }
 
     /// Is this integer value an odd number?
     fn is_odd(&self) -> Choice;
@@ -51,6 +43,17 @@ pub trait Integer:
     /// Is this integer value an even number?
     fn is_even(&self) -> Choice {
         !self.is_odd()
+    }
+}
+
+/// Zero values.
+pub trait Zero: ConstantTimeEq + Sized {
+    /// The value `0`.
+    const ZERO: Self;
+
+    /// Is this integer value equal to zero?
+    fn is_zero(&self) -> Choice {
+        self.ct_eq(&Self::ZERO)
     }
 }
 
