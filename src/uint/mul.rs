@@ -7,6 +7,16 @@ use subtle::CtOption;
 
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Compute "wide" multiplication, with a product twice the size of the input.
+    ///
+    /// Returns a tuple containing the `(lo, hi)` components of the product.
+    ///
+    /// # Ordering note
+    ///
+    /// Releases of `crypto-bigint` prior to v0.3 used `(hi, lo)` ordering
+    /// instead. This has been changed for better consistency with the rest of
+    /// the APIs in this crate.
+    ///
+    /// For more info see: <https://github.com/RustCrypto/crypto-bigint/issues/4>
     // TODO(tarcieri): use `concat` (or similar) when const trait is stable
     pub const fn mul_wide(&self, rhs: &Self) -> (Self, Self) {
         let mut i = 0;
@@ -39,18 +49,18 @@ impl<const LIMBS: usize> UInt<LIMBS> {
             i += 1;
         }
 
-        (hi, lo)
+        (lo, hi)
     }
 
     /// Perform wrapping multiplication, discarding overflow.
     pub const fn wrapping_mul(&self, rhs: &Self) -> Self {
-        self.mul_wide(rhs).1
+        self.mul_wide(rhs).0
     }
 
     /// Perform checked multiplication, returning a [`CtOption`] which `is_some`
     /// only if the operation did not overflow.
     pub fn checked_mul(&self, rhs: &Self) -> CtOption<Self> {
-        let (hi, lo) = self.mul_wide(rhs);
+        let (lo, hi) = self.mul_wide(rhs);
         CtOption::new(lo, hi.is_zero())
     }
 
@@ -59,7 +69,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     where
         Self: Concat,
     {
-        let (hi, lo) = self.mul_wide(self);
+        let (lo, hi) = self.mul_wide(self);
         hi.concat(&lo)
     }
 }
@@ -118,7 +128,7 @@ mod tests {
         assert_eq!(U64::ZERO.mul_wide(&U64::ZERO), (U64::ZERO, U64::ZERO));
         assert_eq!(U64::ZERO.mul_wide(&U64::ONE), (U64::ZERO, U64::ZERO));
         assert_eq!(U64::ONE.mul_wide(&U64::ZERO), (U64::ZERO, U64::ZERO));
-        assert_eq!(U64::ONE.mul_wide(&U64::ONE), (U64::ZERO, U64::ONE));
+        assert_eq!(U64::ONE.mul_wide(&U64::ONE), (U64::ONE, U64::ZERO));
     }
 
     // TODO(tarcieri): add proptests for multiplication
@@ -128,7 +138,7 @@ mod tests {
 
         for &a_int in primes {
             for &b_int in primes {
-                let (hi, lo) = U64::from_u32(a_int).mul_wide(&U64::from_u32(b_int));
+                let (lo, hi) = U64::from_u32(a_int).mul_wide(&U64::from_u32(b_int));
                 let expected = U64::from_u64(a_int as u64 * b_int as u64);
                 assert_eq!(lo, expected);
                 assert!(bool::from(hi.is_zero()));
