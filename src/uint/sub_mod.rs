@@ -45,18 +45,18 @@ impl_sub_mod!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
 
 #[cfg(all(test, feature = "rand"))]
 mod tests {
-    use crate::UInt;
+    use crate::{Limb, NonZero, Random, UInt};
+    use rand_core::SeedableRng;
 
     macro_rules! test_sub_mod {
         ($size:expr, $test_name:ident) => {
             #[test]
             fn $test_name() {
-                use crate::Limb;
-                use rand_core::SeedableRng;
-
                 let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
-
-                let moduli = [UInt::<$size>::random(&mut rng), UInt::random(&mut rng)];
+                let moduli = [
+                    NonZero::<UInt<$size>>::random(&mut rng),
+                    NonZero::<UInt<$size>>::random(&mut rng),
+                ];
 
                 for p in &moduli {
                     let base_cases = [
@@ -79,7 +79,7 @@ mod tests {
                             let (a, b) = if a < b { (b, a) } else { (a, b) };
 
                             let c = a.sub_mod(&b, p);
-                            assert!(c < *p, "not reduced");
+                            assert!(c < **p, "not reduced");
                             assert_eq!(c, a.wrapping_sub(&b), "result incorrect");
                         }
                     }
@@ -89,10 +89,10 @@ mod tests {
                         let b = UInt::<$size>::random_mod(&mut rng, p);
 
                         let c = a.sub_mod(&b, p);
-                        assert!(c < *p, "not reduced: {} >= {} ", c, p);
+                        assert!(c < **p, "not reduced: {} >= {} ", c, p);
 
                         let x = a.wrapping_sub(&b);
-                        if a >= b && x < *p {
+                        if a >= b && x < **p {
                             assert_eq!(c, x, "incorrect result");
                         }
                     }

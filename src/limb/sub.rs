@@ -1,7 +1,7 @@
 //! Limb subtraction
 
 use super::{Inner, Limb, Wide};
-use crate::{Encoding, Wrapping};
+use crate::Wrapping;
 use core::ops::{Sub, SubAssign};
 use subtle::CtOption;
 
@@ -16,19 +16,25 @@ impl Limb {
         (Limb(ret as Inner), Limb((ret >> Self::BIT_SIZE) as Inner))
     }
 
-    /// Perform wrapping subtraction, discarding underflow and wrapping around
-    /// the boundary of the type.
-    #[inline(always)]
-    pub const fn wrapping_sub(&self, rhs: Self) -> Self {
-        Limb(self.0.wrapping_sub(rhs.0))
-    }
-
     /// Perform checked subtraction, returning a [`CtOption`] which `is_some`
     /// only if the operation did not overflow.
     #[inline]
     pub fn checked_sub(&self, rhs: Self) -> CtOption<Self> {
         let (result, underflow) = self.sbb(rhs, Limb::ZERO);
         CtOption::new(result, underflow.is_zero())
+    }
+
+    /// Perform saturating subtraction.
+    #[inline]
+    pub fn saturating_sub(&self, rhs: Self) -> Self {
+        Limb(self.0.saturating_sub(rhs.0))
+    }
+
+    /// Perform wrapping subtraction, discarding underflow and wrapping around
+    /// the boundary of the type.
+    #[inline(always)]
+    pub const fn wrapping_sub(&self, rhs: Self) -> Self {
+        Limb(self.0.wrapping_sub(rhs.0))
     }
 }
 

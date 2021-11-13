@@ -1,7 +1,7 @@
 //! Limb multiplication
 
 use super::{Inner, Limb, Wide};
-use crate::{Encoding, Wrapping};
+use crate::Wrapping;
 use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
 

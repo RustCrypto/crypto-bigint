@@ -8,6 +8,7 @@ mod bit_and;
 mod bit_not;
 mod bit_or;
 mod bit_xor;
+mod bits;
 mod cmp;
 mod encoding;
 mod from;
@@ -98,6 +99,12 @@ impl Limb {
 
     /// Maximum value this [`Limb`] can express.
     pub const MAX: Self = Limb(Inner::MAX);
+
+    /// Size of the inner integer in bits.
+    pub const BIT_SIZE: usize = BIT_SIZE;
+
+    /// Size of the inner integer in bytes.
+    pub const BYTE_SIZE: usize = BYTE_SIZE;
 
     /// Return `a` if `c`!=0 or `b` if `c`==0.
     ///

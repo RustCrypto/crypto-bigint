@@ -1,7 +1,7 @@
 //! Limb addition
 
 use super::{Inner, Limb, Wide};
-use crate::{Encoding, Wrapping};
+use crate::Wrapping;
 use core::ops::{Add, AddAssign};
 use subtle::CtOption;
 
@@ -16,18 +16,24 @@ impl Limb {
         (Limb(ret as Inner), Limb((ret >> Self::BIT_SIZE) as Inner))
     }
 
-    /// Perform wrapping addition, discarding overflow.
-    #[inline(always)]
-    pub const fn wrapping_add(&self, rhs: Self) -> Self {
-        Limb(self.0.wrapping_add(rhs.0))
-    }
-
     /// Perform checked addition, returning a [`CtOption`] which `is_some` only
     /// if the operation did not overflow.
     #[inline]
     pub fn checked_add(&self, rhs: Self) -> CtOption<Self> {
         let (result, carry) = self.adc(rhs, Limb::ZERO);
         CtOption::new(result, carry.is_zero())
+    }
+
+    /// Perform saturating addition.
+    #[inline]
+    pub fn saturating_add(&self, rhs: Self) -> Self {
+        Limb(self.0.saturating_add(rhs.0))
+    }
+
+    /// Perform wrapping addition, discarding overflow.
+    #[inline(always)]
+    pub const fn wrapping_add(&self, rhs: Self) -> Self {
+        Limb(self.0.wrapping_add(rhs.0))
     }
 }
 
