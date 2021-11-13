@@ -6,7 +6,7 @@
 //! of modern formulas implemented using const generics.
 //!
 //! # Minimum Supported Rust Version
-//! **Rust 1.51** at a minimum.
+//! **Rust 1.56** at a minimum.
 //!
 //! # Goals
 //! - No heap allocations i.e. `no_std`-friendly.
@@ -30,7 +30,7 @@
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
-    html_root_url = "https://docs.rs/crypto-bigint/0.2.11"
+    html_root_url = "https://docs.rs/crypto-bigint/0.3.0-pre"
 )]
 #![forbid(unsafe_code, clippy::unwrap_used)]
 #![warn(missing_docs, rust_2018_idioms, unused_qualifications)]
