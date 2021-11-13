@@ -68,7 +68,7 @@ pub trait Random: Sized {
 /// Modular random number generation support.
 #[cfg(feature = "rand")]
 #[cfg_attr(docsrs, doc(cfg(feature = "rand")))]
-pub trait RandomMod: Sized {
+pub trait RandomMod: Sized + Zero {
     /// Generate a cryptographically secure random number which is less than
     /// a given `modulus`.
     ///
@@ -80,7 +80,7 @@ pub trait RandomMod: Sized {
     /// issue so long as the underlying random number generator is truly a
     /// [`CryptoRng`], where previous outputs are unrelated to subsequent
     /// outputs and do not reveal information about the RNG's internal state.
-    fn random_mod(rng: impl CryptoRng + RngCore, modulus: &Self) -> Self;
+    fn random_mod(rng: impl CryptoRng + RngCore, modulus: &NonZero<Self>) -> Self;
 }
 
 /// Compute `self + rhs mod p`.
