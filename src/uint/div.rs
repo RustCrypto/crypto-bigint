@@ -289,7 +289,7 @@ where
     UInt<LIMBS>: Integer,
 {
     fn rem_assign(&mut self, rhs: &NonZero<UInt<LIMBS>>) {
-        let (r, _) = self.ct_reduce(&rhs);
+        let (r, _) = self.ct_reduce(rhs);
         *self = r
     }
 }

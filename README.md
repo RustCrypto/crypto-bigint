@@ -26,7 +26,7 @@ using const generics.
 
 ## Minimum Supported Rust Version
 
-**Rust 1.51** at a minimum.
+**Rust 1.56** at a minimum.
 
 ## License
 
@@ -52,7 +52,7 @@ dual licensed as above, without any additional terms or conditions.
 [build-image]: https://github.com/RustCrypto/crypto-bigint/actions/workflows/crypto-bigint.yml/badge.svg
 [build-link]: https://github.com/RustCrypto/crypto-bigint/actions/workflows/crypto-bigint.yml
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
-[rustc-image]: https://img.shields.io/badge/rustc-1.51+-blue.svg
+[rustc-image]: https://img.shields.io/badge/rustc-1.56+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
 [chat-link]: https://rustcrypto.zulipchat.com/#narrow/stream/300602-crypto-bigint
 
