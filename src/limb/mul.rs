@@ -1,7 +1,7 @@
 //! Limb multiplication
 
 use super::{Inner, Limb, Wide};
-use crate::Wrapping;
+use crate::{Checked, Wrapping};
 use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
 
@@ -77,6 +77,62 @@ impl MulAssign for Wrapping<Limb> {
 }
 
 impl MulAssign<&Wrapping<Limb>> for Wrapping<Limb> {
+    fn mul_assign(&mut self, other: &Self) {
+        *self = *self * other;
+    }
+}
+
+impl Mul for Checked<Limb> {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Checked<Limb> {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_mul(rhs))),
+        )
+    }
+}
+
+impl Mul<&Checked<Limb>> for Checked<Limb> {
+    type Output = Checked<Limb>;
+
+    fn mul(self, rhs: &Checked<Limb>) -> Checked<Limb> {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_mul(rhs))),
+        )
+    }
+}
+
+impl Mul<Checked<Limb>> for &Checked<Limb> {
+    type Output = Checked<Limb>;
+
+    fn mul(self, rhs: Checked<Limb>) -> Checked<Limb> {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_mul(rhs))),
+        )
+    }
+}
+
+impl Mul<&Checked<Limb>> for &Checked<Limb> {
+    type Output = Checked<Limb>;
+
+    fn mul(self, rhs: &Checked<Limb>) -> Checked<Limb> {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_mul(rhs))),
+        )
+    }
+}
+
+impl MulAssign for Checked<Limb> {
+    fn mul_assign(&mut self, other: Self) {
+        *self = *self * other;
+    }
+}
+
+impl MulAssign<&Checked<Limb>> for Checked<Limb> {
     fn mul_assign(&mut self, other: &Self) {
         *self = *self * other;
     }

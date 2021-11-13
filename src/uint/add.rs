@@ -1,7 +1,7 @@
 //! [`UInt`] addition operations.
 
 use super::UInt;
-use crate::{Limb, Wrapping};
+use crate::{Checked, Limb, Wrapping};
 use core::ops::{Add, AddAssign};
 use subtle::CtOption;
 
@@ -74,6 +74,62 @@ impl<const LIMBS: usize> AddAssign for Wrapping<UInt<LIMBS>> {
 }
 
 impl<const LIMBS: usize> AddAssign<&Wrapping<UInt<LIMBS>>> for Wrapping<UInt<LIMBS>> {
+    fn add_assign(&mut self, other: &Self) {
+        *self = *self + other;
+    }
+}
+
+impl<const LIMBS: usize> Add for Checked<UInt<LIMBS>> {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Checked<UInt<LIMBS>> {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(&rhs))),
+        )
+    }
+}
+
+impl<const LIMBS: usize> Add<&Checked<UInt<LIMBS>>> for Checked<UInt<LIMBS>> {
+    type Output = Checked<UInt<LIMBS>>;
+
+    fn add(self, rhs: &Checked<UInt<LIMBS>>) -> Checked<UInt<LIMBS>> {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(&rhs))),
+        )
+    }
+}
+
+impl<const LIMBS: usize> Add<Checked<UInt<LIMBS>>> for &Checked<UInt<LIMBS>> {
+    type Output = Checked<UInt<LIMBS>>;
+
+    fn add(self, rhs: Checked<UInt<LIMBS>>) -> Checked<UInt<LIMBS>> {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(&rhs))),
+        )
+    }
+}
+
+impl<const LIMBS: usize> Add<&Checked<UInt<LIMBS>>> for &Checked<UInt<LIMBS>> {
+    type Output = Checked<UInt<LIMBS>>;
+
+    fn add(self, rhs: &Checked<UInt<LIMBS>>) -> Checked<UInt<LIMBS>> {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(&rhs))),
+        )
+    }
+}
+
+impl<const LIMBS: usize> AddAssign for Checked<UInt<LIMBS>> {
+    fn add_assign(&mut self, other: Self) {
+        *self = *self + other;
+    }
+}
+
+impl<const LIMBS: usize> AddAssign<&Checked<UInt<LIMBS>>> for Checked<UInt<LIMBS>> {
     fn add_assign(&mut self, other: &Self) {
         *self = *self + other;
     }
