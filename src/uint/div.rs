@@ -195,46 +195,46 @@ where
     }
 }
 
-impl<const LIMBS: usize> Div<&Wrapping<UInt<LIMBS>>> for &Wrapping<UInt<LIMBS>> {
+impl<const LIMBS: usize> Div<NonZero<UInt<LIMBS>>> for Wrapping<UInt<LIMBS>> {
     type Output = Wrapping<UInt<LIMBS>>;
 
-    fn div(self, rhs: &Wrapping<UInt<LIMBS>>) -> Self::Output {
-        *self / *rhs
+    fn div(self, rhs: NonZero<UInt<LIMBS>>) -> Self::Output {
+        Wrapping(self.0.wrapping_div(rhs.as_ref()))
     }
 }
 
-impl<const LIMBS: usize> Div<&Wrapping<UInt<LIMBS>>> for Wrapping<UInt<LIMBS>> {
+impl<const LIMBS: usize> Div<NonZero<UInt<LIMBS>>> for &Wrapping<UInt<LIMBS>> {
     type Output = Wrapping<UInt<LIMBS>>;
 
-    fn div(self, rhs: &Wrapping<UInt<LIMBS>>) -> Self::Output {
-        self / *rhs
-    }
-}
-
-impl<const LIMBS: usize> Div<Wrapping<UInt<LIMBS>>> for &Wrapping<UInt<LIMBS>> {
-    type Output = Wrapping<UInt<LIMBS>>;
-
-    fn div(self, rhs: Wrapping<UInt<LIMBS>>) -> Self::Output {
+    fn div(self, rhs: NonZero<UInt<LIMBS>>) -> Self::Output {
         *self / rhs
     }
 }
 
-impl<const LIMBS: usize> Div for Wrapping<UInt<LIMBS>> {
+impl<const LIMBS: usize> Div<&NonZero<UInt<LIMBS>>> for &Wrapping<UInt<LIMBS>> {
     type Output = Wrapping<UInt<LIMBS>>;
 
-    fn div(self, rhs: Self) -> Self::Output {
-        Wrapping(self.0.checked_div(&rhs.0).unwrap())
+    fn div(self, rhs: &NonZero<UInt<LIMBS>>) -> Self::Output {
+        *self / *rhs
     }
 }
 
-impl<const LIMBS: usize> DivAssign<&Wrapping<UInt<LIMBS>>> for Wrapping<UInt<LIMBS>> {
-    fn div_assign(&mut self, rhs: &Wrapping<UInt<LIMBS>>) {
-        *self = Wrapping(self.0.checked_div(&rhs.0).unwrap())
+impl<const LIMBS: usize> Div<&NonZero<UInt<LIMBS>>> for Wrapping<UInt<LIMBS>> {
+    type Output = Wrapping<UInt<LIMBS>>;
+
+    fn div(self, rhs: &NonZero<UInt<LIMBS>>) -> Self::Output {
+        self / *rhs
     }
 }
 
-impl<const LIMBS: usize> DivAssign for Wrapping<UInt<LIMBS>> {
-    fn div_assign(&mut self, rhs: Self) {
+impl<const LIMBS: usize> DivAssign<&NonZero<UInt<LIMBS>>> for Wrapping<UInt<LIMBS>> {
+    fn div_assign(&mut self, rhs: &NonZero<UInt<LIMBS>>) {
+        *self = Wrapping(self.0.wrapping_div(rhs.as_ref()))
+    }
+}
+
+impl<const LIMBS: usize> DivAssign<NonZero<UInt<LIMBS>>> for Wrapping<UInt<LIMBS>> {
+    fn div_assign(&mut self, rhs: NonZero<UInt<LIMBS>>) {
         *self /= &rhs;
     }
 }
@@ -303,47 +303,47 @@ where
     }
 }
 
-impl<const LIMBS: usize> Rem<&Wrapping<UInt<LIMBS>>> for &Wrapping<UInt<LIMBS>> {
+impl<const LIMBS: usize> Rem<NonZero<UInt<LIMBS>>> for Wrapping<UInt<LIMBS>> {
     type Output = Wrapping<UInt<LIMBS>>;
 
-    fn rem(self, rhs: &Wrapping<UInt<LIMBS>>) -> Self::Output {
-        *self % *rhs
+    fn rem(self, rhs: NonZero<UInt<LIMBS>>) -> Self::Output {
+        Wrapping(self.0.wrapping_rem(rhs.as_ref()))
     }
 }
 
-impl<const LIMBS: usize> Rem<&Wrapping<UInt<LIMBS>>> for Wrapping<UInt<LIMBS>> {
+impl<const LIMBS: usize> Rem<NonZero<UInt<LIMBS>>> for &Wrapping<UInt<LIMBS>> {
     type Output = Wrapping<UInt<LIMBS>>;
 
-    fn rem(self, rhs: &Wrapping<UInt<LIMBS>>) -> Self::Output {
-        self % *rhs
-    }
-}
-
-impl<const LIMBS: usize> Rem<Wrapping<UInt<LIMBS>>> for &Wrapping<UInt<LIMBS>> {
-    type Output = Wrapping<UInt<LIMBS>>;
-
-    fn rem(self, rhs: Wrapping<UInt<LIMBS>>) -> Self::Output {
+    fn rem(self, rhs: NonZero<UInt<LIMBS>>) -> Self::Output {
         *self % rhs
     }
 }
 
-impl<const LIMBS: usize> Rem for Wrapping<UInt<LIMBS>> {
+impl<const LIMBS: usize> Rem<&NonZero<UInt<LIMBS>>> for &Wrapping<UInt<LIMBS>> {
     type Output = Wrapping<UInt<LIMBS>>;
 
-    fn rem(self, rhs: Wrapping<UInt<LIMBS>>) -> Self::Output {
-        Wrapping(self.0.checked_rem(&rhs.0).unwrap())
+    fn rem(self, rhs: &NonZero<UInt<LIMBS>>) -> Self::Output {
+        *self % *rhs
     }
 }
 
-impl<const LIMBS: usize> RemAssign<&Wrapping<UInt<LIMBS>>> for Wrapping<UInt<LIMBS>> {
-    fn rem_assign(&mut self, rhs: &Wrapping<UInt<LIMBS>>) {
-        *self = Wrapping(self.0.checked_rem(&rhs.0).unwrap())
+impl<const LIMBS: usize> Rem<&NonZero<UInt<LIMBS>>> for Wrapping<UInt<LIMBS>> {
+    type Output = Wrapping<UInt<LIMBS>>;
+
+    fn rem(self, rhs: &NonZero<UInt<LIMBS>>) -> Self::Output {
+        self % *rhs
     }
 }
 
-impl<const LIMBS: usize> RemAssign for Wrapping<UInt<LIMBS>> {
-    fn rem_assign(&mut self, rhs: Self) {
+impl<const LIMBS: usize> RemAssign<NonZero<UInt<LIMBS>>> for Wrapping<UInt<LIMBS>> {
+    fn rem_assign(&mut self, rhs: NonZero<UInt<LIMBS>>) {
         *self %= &rhs;
+    }
+}
+
+impl<const LIMBS: usize> RemAssign<&NonZero<UInt<LIMBS>>> for Wrapping<UInt<LIMBS>> {
+    fn rem_assign(&mut self, rhs: &NonZero<UInt<LIMBS>>) {
+        *self = Wrapping(self.0.wrapping_rem(rhs.as_ref()))
     }
 }
 
