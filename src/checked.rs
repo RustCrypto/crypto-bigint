@@ -1,7 +1,6 @@
 //! Checked arithmetic.
 
-use crate::UInt;
-use core::ops::{Add, AddAssign, Deref, Mul, MulAssign, Sub, SubAssign};
+use core::ops::Deref;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 /// Provides intentionally-checked arithmetic on `T`.
@@ -49,44 +48,20 @@ impl<T: ConstantTimeEq> ConstantTimeEq for Checked<T> {
     }
 }
 
-impl<const LIMBS: usize> Add for Checked<UInt<LIMBS>> {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Checked<UInt<LIMBS>> {
-        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_add(&b))))
+impl<T> From<Checked<T>> for CtOption<T> {
+    fn from(checked: Checked<T>) -> CtOption<T> {
+        checked.0
     }
 }
 
-impl<const LIMBS: usize> AddAssign for Checked<UInt<LIMBS>> {
-    fn add_assign(&mut self, other: Self) {
-        *self = *self + other;
+impl<T> From<CtOption<T>> for Checked<T> {
+    fn from(ct_option: CtOption<T>) -> Checked<T> {
+        Checked(ct_option)
     }
 }
 
-impl<const LIMBS: usize> Sub for Checked<UInt<LIMBS>> {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Checked<UInt<LIMBS>> {
-        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_sub(&b))))
-    }
-}
-
-impl<const LIMBS: usize> SubAssign for Checked<UInt<LIMBS>> {
-    fn sub_assign(&mut self, other: Self) {
-        *self = *self - other;
-    }
-}
-
-impl<const LIMBS: usize> Mul for Checked<UInt<LIMBS>> {
-    type Output = Self;
-
-    fn mul(self, rhs: Self) -> Checked<UInt<LIMBS>> {
-        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
-    }
-}
-
-impl<const LIMBS: usize> MulAssign for Checked<UInt<LIMBS>> {
-    fn mul_assign(&mut self, other: Self) {
-        *self = *self * other;
+impl<T> From<Checked<T>> for Option<T> {
+    fn from(checked: Checked<T>) -> Option<T> {
+        checked.0.into()
     }
 }

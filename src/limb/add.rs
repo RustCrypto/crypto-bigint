@@ -1,7 +1,7 @@
 //! Limb addition
 
 use super::{Inner, Limb, Wide};
-use crate::Wrapping;
+use crate::{Checked, Wrapping};
 use core::ops::{Add, AddAssign};
 use subtle::CtOption;
 
@@ -76,6 +76,62 @@ impl AddAssign for Wrapping<Limb> {
 }
 
 impl AddAssign<&Wrapping<Limb>> for Wrapping<Limb> {
+    fn add_assign(&mut self, other: &Self) {
+        *self = *self + other;
+    }
+}
+
+impl Add for Checked<Limb> {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Checked<Limb> {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(rhs))),
+        )
+    }
+}
+
+impl Add<&Checked<Limb>> for Checked<Limb> {
+    type Output = Checked<Limb>;
+
+    fn add(self, rhs: &Checked<Limb>) -> Checked<Limb> {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(rhs))),
+        )
+    }
+}
+
+impl Add<Checked<Limb>> for &Checked<Limb> {
+    type Output = Checked<Limb>;
+
+    fn add(self, rhs: Checked<Limb>) -> Checked<Limb> {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(rhs))),
+        )
+    }
+}
+
+impl Add<&Checked<Limb>> for &Checked<Limb> {
+    type Output = Checked<Limb>;
+
+    fn add(self, rhs: &Checked<Limb>) -> Checked<Limb> {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(rhs))),
+        )
+    }
+}
+
+impl AddAssign for Checked<Limb> {
+    fn add_assign(&mut self, other: Self) {
+        *self = *self + other;
+    }
+}
+
+impl AddAssign<&Checked<Limb>> for Checked<Limb> {
     fn add_assign(&mut self, other: &Self) {
         *self = *self + other;
     }

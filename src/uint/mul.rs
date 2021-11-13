@@ -1,7 +1,7 @@
 //! [`UInt`] addition operations.
 
 use super::UInt;
-use crate::{Concat, Limb, Wrapping};
+use crate::{Checked, Concat, Limb, Wrapping};
 use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
 
@@ -113,6 +113,50 @@ impl<const LIMBS: usize> MulAssign for Wrapping<UInt<LIMBS>> {
 }
 
 impl<const LIMBS: usize> MulAssign<&Wrapping<UInt<LIMBS>>> for Wrapping<UInt<LIMBS>> {
+    fn mul_assign(&mut self, other: &Self) {
+        *self = *self * other;
+    }
+}
+
+impl<const LIMBS: usize> Mul for Checked<UInt<LIMBS>> {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Checked<UInt<LIMBS>> {
+        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
+    }
+}
+
+impl<const LIMBS: usize> Mul<&Checked<UInt<LIMBS>>> for Checked<UInt<LIMBS>> {
+    type Output = Checked<UInt<LIMBS>>;
+
+    fn mul(self, rhs: &Checked<UInt<LIMBS>>) -> Checked<UInt<LIMBS>> {
+        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
+    }
+}
+
+impl<const LIMBS: usize> Mul<Checked<UInt<LIMBS>>> for &Checked<UInt<LIMBS>> {
+    type Output = Checked<UInt<LIMBS>>;
+
+    fn mul(self, rhs: Checked<UInt<LIMBS>>) -> Checked<UInt<LIMBS>> {
+        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
+    }
+}
+
+impl<const LIMBS: usize> Mul<&Checked<UInt<LIMBS>>> for &Checked<UInt<LIMBS>> {
+    type Output = Checked<UInt<LIMBS>>;
+
+    fn mul(self, rhs: &Checked<UInt<LIMBS>>) -> Checked<UInt<LIMBS>> {
+        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
+    }
+}
+
+impl<const LIMBS: usize> MulAssign for Checked<UInt<LIMBS>> {
+    fn mul_assign(&mut self, other: Self) {
+        *self = *self * other;
+    }
+}
+
+impl<const LIMBS: usize> MulAssign<&Checked<UInt<LIMBS>>> for Checked<UInt<LIMBS>> {
     fn mul_assign(&mut self, other: &Self) {
         *self = *self * other;
     }
