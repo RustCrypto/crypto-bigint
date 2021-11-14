@@ -1,7 +1,6 @@
 //! [`UInt`] addition operations.
 
-use super::UInt;
-use crate::{Checked, Limb, Wrapping};
+use crate::{Checked, CheckedAdd, Limb, UInt, Wrapping};
 use core::ops::{Add, AddAssign};
 use subtle::CtOption;
 
@@ -26,10 +25,12 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     pub const fn wrapping_add(&self, rhs: &Self) -> Self {
         self.adc(rhs, Limb::ZERO).0
     }
+}
 
-    /// Perform checked addition, returning a [`CtOption`] which `is_some` only
-    /// if the operation did not overflow.
-    pub fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
+impl<const LIMBS: usize> CheckedAdd<&UInt<LIMBS>> for UInt<LIMBS> {
+    type Output = Self;
+
+    fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
         let (result, carry) = self.adc(rhs, Limb::ZERO);
         CtOption::new(result, carry.is_zero())
     }
@@ -137,7 +138,7 @@ impl<const LIMBS: usize> AddAssign<&Checked<UInt<LIMBS>>> for Checked<UInt<LIMBS
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, U128};
+    use crate::{CheckedAdd, Limb, U128};
 
     #[test]
     fn adc_no_carry() {

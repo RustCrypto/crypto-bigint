@@ -1,7 +1,6 @@
 //! Limb subtraction
 
-use super::{Limb, LimbUInt, WideLimbUInt};
-use crate::{Checked, Wrapping};
+use crate::{Checked, CheckedSub, Limb, LimbUInt, WideLimbUInt, Wrapping};
 use core::ops::{Sub, SubAssign};
 use subtle::CtOption;
 
@@ -19,14 +18,6 @@ impl Limb {
         )
     }
 
-    /// Perform checked subtraction, returning a [`CtOption`] which `is_some`
-    /// only if the operation did not overflow.
-    #[inline]
-    pub fn checked_sub(&self, rhs: Self) -> CtOption<Self> {
-        let (result, underflow) = self.sbb(rhs, Limb::ZERO);
-        CtOption::new(result, underflow.is_zero())
-    }
-
     /// Perform saturating subtraction.
     #[inline]
     pub fn saturating_sub(&self, rhs: Self) -> Self {
@@ -38,6 +29,16 @@ impl Limb {
     #[inline(always)]
     pub const fn wrapping_sub(&self, rhs: Self) -> Self {
         Limb(self.0.wrapping_sub(rhs.0))
+    }
+}
+
+impl CheckedSub for Limb {
+    type Output = Self;
+
+    #[inline]
+    fn checked_sub(&self, rhs: Self) -> CtOption<Self> {
+        let (result, underflow) = self.sbb(rhs, Limb::ZERO);
+        CtOption::new(result, underflow.is_zero())
     }
 }
 
@@ -143,7 +144,7 @@ impl SubAssign<&Checked<Limb>> for Checked<Limb> {
 
 #[cfg(test)]
 mod tests {
-    use crate::Limb;
+    use crate::{CheckedSub, Limb};
 
     #[test]
     fn sbb_no_borrow() {

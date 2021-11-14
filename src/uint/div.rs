@@ -350,12 +350,14 @@ impl<const LIMBS: usize> RemAssign<&NonZero<UInt<LIMBS>>> for Wrapping<UInt<LIMB
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::limb::HI_BIT;
-    use crate::Limb;
-    use crate::U256;
+    use crate::{limb::HI_BIT, Limb, U256};
 
     #[cfg(feature = "rand")]
-    use {rand_chacha::ChaChaRng, rand_core::SeedableRng};
+    use {
+        crate::{CheckedMul, Random},
+        rand_chacha::ChaChaRng,
+        rand_core::SeedableRng,
+    };
 
     #[test]
     fn div_word() {

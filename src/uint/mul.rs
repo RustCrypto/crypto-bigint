@@ -1,7 +1,7 @@
 //! [`UInt`] addition operations.
 
 use super::UInt;
-use crate::{Checked, Concat, Limb, Wrapping};
+use crate::{Checked, CheckedMul, Concat, Limb, Wrapping};
 use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
 
@@ -57,13 +57,6 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         self.mul_wide(rhs).0
     }
 
-    /// Perform checked multiplication, returning a [`CtOption`] which `is_some`
-    /// only if the operation did not overflow.
-    pub fn checked_mul(&self, rhs: &Self) -> CtOption<Self> {
-        let (lo, hi) = self.mul_wide(rhs);
-        CtOption::new(lo, hi.is_zero())
-    }
-
     /// Square self, returning a "wide" result.
     pub fn square(&self) -> <Self as Concat>::Output
     where
@@ -71,6 +64,15 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     {
         let (lo, hi) = self.mul_wide(self);
         hi.concat(&lo)
+    }
+}
+
+impl<const LIMBS: usize> CheckedMul<&UInt<LIMBS>> for UInt<LIMBS> {
+    type Output = Self;
+
+    fn checked_mul(&self, rhs: &Self) -> CtOption<Self> {
+        let (lo, hi) = self.mul_wide(rhs);
+        CtOption::new(lo, hi.is_zero())
     }
 }
 
@@ -164,8 +166,7 @@ impl<const LIMBS: usize> MulAssign<&Checked<UInt<LIMBS>>> for Checked<UInt<LIMBS
 
 #[cfg(test)]
 mod tests {
-    use crate::Split;
-    use crate::U64;
+    use crate::{CheckedMul, Split, U64};
 
     #[test]
     fn mul_wide_zero_and_one() {

@@ -1,7 +1,6 @@
 //! Limb multiplication
 
-use super::{Limb, LimbUInt, WideLimbUInt};
-use crate::{Checked, Wrapping};
+use crate::{Checked, CheckedMul, Limb, LimbUInt, WideLimbUInt, Wrapping};
 use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
 
@@ -26,18 +25,20 @@ impl Limb {
         Limb(self.0.wrapping_mul(rhs.0))
     }
 
-    /// Perform checked multiplication, returning a [`CtOption`] which `is_some`
-    /// only if the operation did not overflow.
-    #[inline]
-    pub fn checked_mul(&self, rhs: Self) -> CtOption<Self> {
-        let result = self.mul_wide(rhs);
-        let overflow = Limb((result >> Self::BIT_SIZE) as LimbUInt);
-        CtOption::new(Limb(result as LimbUInt), overflow.is_zero())
-    }
-
     /// Compute "wide" multiplication, with a product twice the size of the input.
     pub(crate) const fn mul_wide(&self, rhs: Self) -> WideLimbUInt {
         (self.0 as WideLimbUInt) * (rhs.0 as WideLimbUInt)
+    }
+}
+
+impl CheckedMul for Limb {
+    type Output = Self;
+
+    #[inline]
+    fn checked_mul(&self, rhs: Self) -> CtOption<Self> {
+        let result = self.mul_wide(rhs);
+        let overflow = Limb((result >> Self::BIT_SIZE) as LimbUInt);
+        CtOption::new(Limb(result as LimbUInt), overflow.is_zero())
     }
 }
 
@@ -143,7 +144,7 @@ impl MulAssign<&Checked<Limb>> for Checked<Limb> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Limb, WideLimbUInt};
+    use super::{CheckedMul, Limb, WideLimbUInt};
 
     #[test]
     fn mul_wide_zero_and_one() {

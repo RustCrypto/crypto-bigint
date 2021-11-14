@@ -1,8 +1,7 @@
 //! [`UInt`] square root operations.
 
 use super::UInt;
-use crate::limb::LimbUInt;
-use crate::Limb;
+use crate::{Limb, LimbUInt};
 use subtle::{ConstantTimeEq, CtOption};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
@@ -71,7 +70,7 @@ mod tests {
 
     #[cfg(feature = "rand")]
     use {
-        crate::U512,
+        crate::{CheckedMul, Random, U512},
         rand_chacha::ChaChaRng,
         rand_core::{RngCore, SeedableRng},
     };

@@ -5,6 +5,7 @@ use core::fmt::Debug;
 use core::ops::{Div, Rem};
 use subtle::{
     Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
+    CtOption,
 };
 
 #[cfg(feature = "rand")]
@@ -14,6 +15,9 @@ use rand_core::{CryptoRng, RngCore};
 pub trait Integer:
     'static
     + AsRef<[Limb]>
+    + for<'a> CheckedAdd<&'a Self, Output = Self>
+    + for<'a> CheckedSub<&'a Self, Output = Self>
+    + for<'a> CheckedMul<&'a Self, Output = Self>
     + Copy
     + ConditionallySelectable
     + ConstantTimeEq
@@ -126,6 +130,36 @@ pub trait MulMod<Rhs = Self> {
     ///
     /// Requires `p_inv = -(p^{-1} mod 2^{BITS}) mod 2^{BITS}` to be provided for efficiency.
     fn mul_mod(&self, rhs: &Rhs, p: &Self, p_inv: Limb) -> Self::Output;
+}
+
+/// Checked addition.
+pub trait CheckedAdd<Rhs = Self>: Sized {
+    /// Output type.
+    type Output;
+
+    /// Perform checked subtraction, returning a [`CtOption`] which `is_some`
+    /// only if the operation did not overflow.
+    fn checked_add(&self, rhs: Rhs) -> CtOption<Self>;
+}
+
+/// Checked multiplication.
+pub trait CheckedMul<Rhs = Self>: Sized {
+    /// Output type.
+    type Output;
+
+    /// Perform checked multiplication, returning a [`CtOption`] which `is_some`
+    /// only if the operation did not overflow.
+    fn checked_mul(&self, rhs: Rhs) -> CtOption<Self>;
+}
+
+/// Checked substraction.
+pub trait CheckedSub<Rhs = Self>: Sized {
+    /// Output type.
+    type Output;
+
+    /// Perform checked subtraction, returning a [`CtOption`] which `is_some`
+    /// only if the operation did not underflow.
+    fn checked_sub(&self, rhs: Rhs) -> CtOption<Self>;
 }
 
 /// Concatenate two numbers into a "wide" twice-width value, using the `rhs`
