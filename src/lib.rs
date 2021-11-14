@@ -167,7 +167,7 @@ pub(crate) use limb::{LimbInt, WideLimbInt};
 
 #[cfg(feature = "generic-array")]
 pub use {
-    self::array::{ArrayDecoding, ArrayEncoding, ByteArray},
+    crate::array::{ArrayDecoding, ArrayEncoding, ByteArray},
     generic_array::{self, typenum::consts},
 };
 
@@ -179,3 +179,11 @@ pub use rlp;
 
 #[cfg(feature = "zeroize")]
 pub use zeroize;
+
+/// Import prelude for this crate: includes important traits.
+pub mod prelude {
+    pub use crate::traits::*;
+
+    #[cfg(feature = "generic-array")]
+    pub use crate::array::{ArrayDecoding, ArrayEncoding};
+}
