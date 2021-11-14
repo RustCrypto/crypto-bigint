@@ -194,7 +194,6 @@ mod tests {
         assert_eq!(U64::ONE.mul_wide(&U64::ONE), (U64::ONE, U64::ZERO));
     }
 
-    // TODO(tarcieri): add proptests for multiplication
     #[test]
     fn mul_wide_lo_only() {
         let primes: &[u32] = &[3, 5, 17, 256, 65537];
