@@ -4,7 +4,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.2.11 (2011-10-16)
+## 0.3.0 (2021-11-14)
+### Added
+- Bitwise `Xor`/`Not` operations ([#27])
+- `Zero` trait ([#35])
+- `Checked*` traits ([#41])
+- `prelude` module ([#45])
+- `saturating_*` ops ([#47])
+
+### Changed
+- Rust 2021 edition upgrade; MSRV 1.56 ([#33])
+- Reverse ordering of `UInt::mul_wide` return tuple ([#34])
+- Have `Div` and `Rem` impls always take `NonZero` args ([#39])
+- Rename `limb::Inner` to `LimbUInt` ([#40])
+- Make `limb` module private ([#40])
+- Use `Zero`/`Integer` traits for `is_zero`, `is_odd`, and `is_even` ([#46])
+
+### Fixed
+- `random_mod` performance for small moduli ([#36])
+- `NonZero` moduli ([#36])
+
+### Removed
+- Deprecated `LIMB_BYTES` constant ([#43])
+
+[#27]: https://github.com/RustCrypto/crypto-bigint/pull/27
+[#33]: https://github.com/RustCrypto/crypto-bigint/pull/33
+[#34]: https://github.com/RustCrypto/crypto-bigint/pull/34
+[#35]: https://github.com/RustCrypto/crypto-bigint/pull/35
+[#36]: https://github.com/RustCrypto/crypto-bigint/pull/36
+[#39]: https://github.com/RustCrypto/crypto-bigint/pull/39
+[#40]: https://github.com/RustCrypto/crypto-bigint/pull/40
+[#41]: https://github.com/RustCrypto/crypto-bigint/pull/41
+[#43]: https://github.com/RustCrypto/crypto-bigint/pull/43
+[#45]: https://github.com/RustCrypto/crypto-bigint/pull/45
+[#46]: https://github.com/RustCrypto/crypto-bigint/pull/46
+[#47]: https://github.com/RustCrypto/crypto-bigint/pull/47
+
+## 0.2.11 (2021-10-16)
 ### Added
 - `AddMod` proptests ([#24])
 - Bitwise `And`/`Or` operations ([#25])
