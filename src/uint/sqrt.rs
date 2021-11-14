@@ -10,7 +10,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     ///
     /// Callers can check if `self` is a square by squaring the result
     pub const fn sqrt(&self) -> Self {
-        let max_bits = ((self.bits() + 1) >> 1) as usize;
+        let max_bits = (self.bits() + 1) >> 1;
         let cap = Self::ONE.shl_vartime(max_bits);
         let mut guess = cap; // ≥ √(`self`)
         let mut xn = {

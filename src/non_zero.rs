@@ -17,7 +17,7 @@ use crate::{ArrayEncoding, ByteArray};
 use rand_core::{CryptoRng, RngCore};
 
 /// Wrapper type for non-zero integers.
-#[derive(Copy, Clone, Default, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub struct NonZero<T: Zero>(T);
 
 impl<T> NonZero<T>

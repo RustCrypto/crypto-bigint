@@ -18,6 +18,7 @@ impl Limb {
     /// Create a [`Limb`] from a `u32` integer (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u32>` when stable
     pub const fn from_u32(n: u32) -> Self {
+        #[allow(trivial_numeric_casts)]
         Limb(n as LimbUInt)
     }
 
