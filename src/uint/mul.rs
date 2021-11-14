@@ -51,6 +51,25 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         (lo, hi)
     }
 
+    /// Perform saturating multiplication, returning `MAX` on overflow.
+    pub const fn saturating_mul(&self, rhs: &Self) -> Self {
+        let (res, overflow) = self.mul_wide(rhs);
+
+        let mut i = 0;
+        let mut accumulator = 0;
+
+        while i < LIMBS {
+            accumulator |= overflow.limbs[i].0;
+            i += 1;
+        }
+
+        if accumulator == 0 {
+            res
+        } else {
+            Self::MAX
+        }
+    }
+
     /// Perform wrapping multiplication, discarding overflow.
     pub const fn wrapping_mul(&self, rhs: &Self) -> Self {
         self.mul_wide(rhs).0
@@ -203,6 +222,19 @@ mod tests {
     fn checked_mul_overflow() {
         let n = U64::from_u64(0xffff_ffff_ffff_ffff);
         assert!(bool::from(n.checked_mul(&n).is_none()));
+    }
+
+    #[test]
+    fn saturating_mul_no_overflow() {
+        let n = U64::from_u8(8);
+        assert_eq!(n.saturating_mul(&n), U64::from_u8(64));
+    }
+
+    #[test]
+    fn saturating_mul_overflow() {
+        let a = U64::from(0xffff_ffff_ffff_ffffu64);
+        let b = U64::from(2u8);
+        assert_eq!(a.saturating_mul(&b), U64::MAX);
     }
 
     #[test]

@@ -20,7 +20,7 @@ impl Limb {
 
     /// Perform saturating subtraction.
     #[inline]
-    pub fn saturating_sub(&self, rhs: Self) -> Self {
+    pub const fn saturating_sub(&self, rhs: Self) -> Self {
         Limb(self.0.saturating_sub(rhs.0))
     }
 
