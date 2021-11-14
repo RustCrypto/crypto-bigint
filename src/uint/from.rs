@@ -23,6 +23,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
 
     /// Create a [`UInt`] from a `u32` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u32>` when stable
+    #[allow(trivial_numeric_casts)]
     pub const fn from_u32(n: u32) -> Self {
         const_assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         let mut limbs = [Limb::ZERO; LIMBS];
@@ -47,7 +48,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     pub const fn from_u64(n: u64) -> Self {
         const_assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         let mut limbs = [Limb::ZERO; LIMBS];
-        limbs[0].0 = n as LimbUInt;
+        limbs[0].0 = n;
         Self { limbs }
     }
 

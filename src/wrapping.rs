@@ -8,7 +8,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 ///
 /// This is analogous to [`core::num::Wrapping`] but allows this crate to
 /// define trait impls for this type.
-#[derive(Copy, Clone, Default, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Wrapping<T>(pub T);
 
 impl<T: Zero> Zero for Wrapping<T> {

@@ -33,7 +33,15 @@
     html_root_url = "https://docs.rs/crypto-bigint/0.3.0-pre"
 )]
 #![forbid(unsafe_code, clippy::unwrap_used)]
-#![warn(missing_docs, rust_2018_idioms, unused_qualifications)]
+#![warn(
+    missing_docs,
+    missing_debug_implementations,
+    missing_copy_implementations,
+    rust_2018_idioms,
+    trivial_casts,
+    trivial_numeric_casts,
+    unused_qualifications
+)]
 
 #[cfg(all(feature = "alloc", test))]
 extern crate alloc;

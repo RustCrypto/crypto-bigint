@@ -2,6 +2,7 @@ use crate::{Limb, LimbUInt, UInt};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Calculate the number of bits needed to represent this number.
+    #[allow(trivial_numeric_casts)]
     pub const fn bits(self) -> usize {
         let mut i = LIMBS - 1;
         while i > 0 && self.limbs[i].0 == 0 {
