@@ -19,6 +19,12 @@ impl Limb {
         )
     }
 
+    /// Perform saturating multiplication.
+    #[inline]
+    pub const fn saturating_mul(&self, rhs: Self) -> Self {
+        Limb(self.0.saturating_mul(rhs.0))
+    }
+
     /// Perform wrapping multiplication, discarding overflow.
     #[inline(always)]
     pub const fn wrapping_mul(&self, rhs: Self) -> Self {

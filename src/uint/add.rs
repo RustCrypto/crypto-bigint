@@ -21,6 +21,17 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         (Self { limbs }, carry)
     }
 
+    /// Perform saturating addition, returning `MAX` on overflow.
+    pub const fn saturating_add(&self, rhs: &Self) -> Self {
+        let (res, overflow) = self.adc(rhs, Limb::ZERO);
+
+        if overflow.0 == 0 {
+            res
+        } else {
+            Self::MAX
+        }
+    }
+
     /// Perform wrapping addition, discarding overflow.
     pub const fn wrapping_add(&self, rhs: &Self) -> Self {
         self.adc(rhs, Limb::ZERO).0

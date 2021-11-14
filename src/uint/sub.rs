@@ -22,6 +22,17 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         (Self { limbs }, borrow)
     }
 
+    /// Perform saturating subtraction, returning `ZERO` on underflow.
+    pub const fn saturating_sub(&self, rhs: &Self) -> Self {
+        let (res, underflow) = self.sbb(rhs, Limb::ZERO);
+
+        if underflow.0 == 0 {
+            res
+        } else {
+            Self::ZERO
+        }
+    }
+
     /// Perform wrapping subtraction, discarding underflow and wrapping around
     /// the boundary of the type.
     pub const fn wrapping_sub(&self, rhs: &Self) -> Self {
