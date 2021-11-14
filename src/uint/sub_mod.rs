@@ -45,7 +45,7 @@ impl_sub_mod!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
 
 #[cfg(all(test, feature = "rand"))]
 mod tests {
-    use crate::{Limb, NonZero, Random, UInt};
+    use crate::{Limb, NonZero, Random, RandomMod, UInt};
     use rand_core::SeedableRng;
 
     macro_rules! test_sub_mod {

@@ -1,7 +1,6 @@
 //! Limb addition
 
-use super::{Limb, LimbUInt, WideLimbUInt};
-use crate::{Checked, Wrapping};
+use crate::{Checked, CheckedAdd, Limb, LimbUInt, WideLimbUInt, Wrapping};
 use core::ops::{Add, AddAssign};
 use subtle::CtOption;
 
@@ -19,14 +18,6 @@ impl Limb {
         )
     }
 
-    /// Perform checked addition, returning a [`CtOption`] which `is_some` only
-    /// if the operation did not overflow.
-    #[inline]
-    pub fn checked_add(&self, rhs: Self) -> CtOption<Self> {
-        let (result, carry) = self.adc(rhs, Limb::ZERO);
-        CtOption::new(result, carry.is_zero())
-    }
-
     /// Perform saturating addition.
     #[inline]
     pub fn saturating_add(&self, rhs: Self) -> Self {
@@ -37,6 +28,16 @@ impl Limb {
     #[inline(always)]
     pub const fn wrapping_add(&self, rhs: Self) -> Self {
         Limb(self.0.wrapping_add(rhs.0))
+    }
+}
+
+impl CheckedAdd for Limb {
+    type Output = Self;
+
+    #[inline]
+    fn checked_add(&self, rhs: Self) -> CtOption<Self> {
+        let (result, carry) = self.adc(rhs, Limb::ZERO);
+        CtOption::new(result, carry.is_zero())
     }
 }
 
@@ -142,7 +143,7 @@ impl AddAssign<&Checked<Limb>> for Checked<Limb> {
 
 #[cfg(test)]
 mod tests {
-    use crate::Limb;
+    use crate::{CheckedAdd, Limb};
 
     #[test]
     fn adc_no_carry() {

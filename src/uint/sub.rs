@@ -1,7 +1,7 @@
 //! [`UInt`] addition operations.
 
 use super::UInt;
-use crate::{Checked, Limb, Wrapping};
+use crate::{Checked, CheckedSub, Limb, Wrapping};
 use core::ops::{Sub, SubAssign};
 use subtle::CtOption;
 
@@ -27,10 +27,12 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     pub const fn wrapping_sub(&self, rhs: &Self) -> Self {
         self.sbb(rhs, Limb::ZERO).0
     }
+}
 
-    /// Perform checked subtraction, returning a [`CtOption`] which `is_some`
-    /// only if the operation did not overflow.
-    pub fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
+impl<const LIMBS: usize> CheckedSub<&UInt<LIMBS>> for UInt<LIMBS> {
+    type Output = Self;
+
+    fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
         let (result, underflow) = self.sbb(rhs, Limb::ZERO);
         CtOption::new(result, underflow.is_zero())
     }
@@ -138,7 +140,7 @@ impl<const LIMBS: usize> SubAssign<&Checked<UInt<LIMBS>>> for Checked<UInt<LIMBS
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, U128};
+    use crate::{CheckedSub, Limb, U128};
 
     #[test]
     fn sbb_no_borrow() {

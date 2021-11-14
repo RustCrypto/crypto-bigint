@@ -6,11 +6,10 @@ use crate::{Limb, NonZero, Random, RandomMod};
 use rand_core::{CryptoRng, RngCore};
 use subtle::ConstantTimeLess;
 
-// TODO(tarcieri): replace this `impl` block with `impl Random`/`impl RandomMod`
 #[cfg_attr(docsrs, doc(cfg(feature = "rand")))]
-impl<const LIMBS: usize> UInt<LIMBS> {
+impl<const LIMBS: usize> Random for UInt<LIMBS> {
     /// Generate a cryptographically secure random [`UInt`].
-    pub fn random(mut rng: impl CryptoRng + RngCore) -> Self {
+    fn random(mut rng: impl CryptoRng + RngCore) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
 
         for limb in &mut limbs {
@@ -19,7 +18,10 @@ impl<const LIMBS: usize> UInt<LIMBS> {
 
         limbs.into()
     }
+}
 
+#[cfg_attr(docsrs, doc(cfg(feature = "rand")))]
+impl<const LIMBS: usize> RandomMod for UInt<LIMBS> {
     /// Generate a cryptographically secure random [`UInt`] which is less than
     /// a given `modulus`.
     ///
@@ -31,7 +33,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// issue so long as the underlying random number generator is truly a
     /// [`CryptoRng`], where previous outputs are unrelated to subsequent
     /// outputs and do not reveal information about the RNG's internal state.
-    pub fn random_mod(mut rng: impl CryptoRng + RngCore, modulus: &NonZero<Self>) -> Self {
+    fn random_mod(mut rng: impl CryptoRng + RngCore, modulus: &NonZero<Self>) -> Self {
         let mut n = Self::ZERO;
 
         // TODO(tarcieri): use `div_ceil` when available
@@ -64,23 +66,9 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "rand")))]
-impl<const LIMBS: usize> Random for UInt<LIMBS> {
-    fn random(rng: impl CryptoRng + RngCore) -> Self {
-        Self::random(rng)
-    }
-}
-
-#[cfg_attr(docsrs, doc(cfg(feature = "rand")))]
-impl<const LIMBS: usize> RandomMod for UInt<LIMBS> {
-    fn random_mod(rng: impl CryptoRng + RngCore, modulus: &NonZero<Self>) -> Self {
-        Self::random_mod(rng, modulus)
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::{NonZero, U256};
+    use crate::{NonZero, RandomMod, U256};
     use rand_core::SeedableRng;
 
     #[test]
