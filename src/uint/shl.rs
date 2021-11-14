@@ -1,8 +1,6 @@
 //! [`UInt`] bitwise left shift operations.
 
-use super::UInt;
-use crate::limb::{Inner, BIT_SIZE};
-use crate::Limb;
+use crate::{Limb, LimbUInt, UInt};
 use core::ops::{Shl, ShlAssign};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
@@ -16,15 +14,16 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     pub const fn shl_vartime(&self, n: usize) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
 
-        if n >= BIT_SIZE * LIMBS {
+        if n >= Limb::BIT_SIZE * LIMBS {
             return Self { limbs };
         }
 
-        let shift_num = n / BIT_SIZE;
-        let rem = n % BIT_SIZE;
-        let nz = Limb(rem as Inner).is_nonzero();
-        let lshift_rem = rem as Inner;
-        let rshift_rem = Limb::ct_select(Limb::ZERO, Limb((BIT_SIZE - rem) as Inner), nz).0;
+        let shift_num = n / Limb::BIT_SIZE;
+        let rem = n % Limb::BIT_SIZE;
+        let nz = Limb(rem as LimbUInt).is_nonzero();
+        let lshift_rem = rem as LimbUInt;
+        let rshift_rem =
+            Limb::ct_select(Limb::ZERO, Limb((Limb::BIT_SIZE - rem) as LimbUInt), nz).0;
 
         let mut i = LIMBS - 1;
         while i > shift_num {

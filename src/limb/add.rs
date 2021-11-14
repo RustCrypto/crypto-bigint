@@ -1,6 +1,6 @@
 //! Limb addition
 
-use super::{Inner, Limb, Wide};
+use super::{Limb, LimbUInt, WideLimbUInt};
 use crate::{Checked, Wrapping};
 use core::ops::{Add, AddAssign};
 use subtle::CtOption;
@@ -9,11 +9,14 @@ impl Limb {
     /// Computes `self + rhs + carry`, returning the result along with the new carry.
     #[inline(always)]
     pub const fn adc(self, rhs: Limb, carry: Limb) -> (Limb, Limb) {
-        let a = self.0 as Wide;
-        let b = rhs.0 as Wide;
-        let carry = carry.0 as Wide;
+        let a = self.0 as WideLimbUInt;
+        let b = rhs.0 as WideLimbUInt;
+        let carry = carry.0 as WideLimbUInt;
         let ret = a + b + carry;
-        (Limb(ret as Inner), Limb((ret >> Self::BIT_SIZE) as Inner))
+        (
+            Limb(ret as LimbUInt),
+            Limb((ret >> Self::BIT_SIZE) as LimbUInt),
+        )
     }
 
     /// Perform checked addition, returning a [`CtOption`] which `is_some` only

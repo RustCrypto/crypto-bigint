@@ -1,6 +1,6 @@
 //! Random number generator support
 
-use super::{Limb, BYTE_SIZE};
+use super::Limb;
 use crate::{Encoding, NonZero, Random, RandomMod};
 use rand_core::{CryptoRng, RngCore};
 use subtle::ConstantTimeLess;
@@ -29,7 +29,7 @@ impl RandomMod for Limb {
 
         // Ensure the randomly generated value can always be larger than
         // the modulus in order to ensure a uniform distribution
-        if n_bytes < BYTE_SIZE {
+        if n_bytes < Self::BYTE_SIZE {
             n_bytes += 1;
         }
 

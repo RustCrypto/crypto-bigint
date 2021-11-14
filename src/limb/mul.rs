@@ -1,6 +1,6 @@
 //! Limb multiplication
 
-use super::{Inner, Limb, Wide};
+use super::{Limb, LimbUInt, WideLimbUInt};
 use crate::{Checked, Wrapping};
 use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
@@ -9,12 +9,15 @@ impl Limb {
     /// Computes `self + (b * c) + carry`, returning the result along with the new carry.
     #[inline(always)]
     pub const fn mac(self, b: Limb, c: Limb, carry: Limb) -> (Limb, Limb) {
-        let a = self.0 as Wide;
-        let b = b.0 as Wide;
-        let c = c.0 as Wide;
-        let carry = carry.0 as Wide;
+        let a = self.0 as WideLimbUInt;
+        let b = b.0 as WideLimbUInt;
+        let c = c.0 as WideLimbUInt;
+        let carry = carry.0 as WideLimbUInt;
         let ret = a + (b * c) + carry;
-        (Limb(ret as Inner), Limb((ret >> Self::BIT_SIZE) as Inner))
+        (
+            Limb(ret as LimbUInt),
+            Limb((ret >> Self::BIT_SIZE) as LimbUInt),
+        )
     }
 
     /// Perform wrapping multiplication, discarding overflow.
@@ -28,13 +31,13 @@ impl Limb {
     #[inline]
     pub fn checked_mul(&self, rhs: Self) -> CtOption<Self> {
         let result = self.mul_wide(rhs);
-        let overflow = Limb((result >> Self::BIT_SIZE) as Inner);
-        CtOption::new(Limb(result as Inner), overflow.is_zero())
+        let overflow = Limb((result >> Self::BIT_SIZE) as LimbUInt);
+        CtOption::new(Limb(result as LimbUInt), overflow.is_zero())
     }
 
     /// Compute "wide" multiplication, with a product twice the size of the input.
-    pub(crate) const fn mul_wide(&self, rhs: Self) -> Wide {
-        (self.0 as Wide) * (rhs.0 as Wide)
+    pub(crate) const fn mul_wide(&self, rhs: Self) -> WideLimbUInt {
+        (self.0 as WideLimbUInt) * (rhs.0 as WideLimbUInt)
     }
 }
 
@@ -140,7 +143,7 @@ impl MulAssign<&Checked<Limb>> for Checked<Limb> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Limb, Wide};
+    use super::{Limb, WideLimbUInt};
 
     #[test]
     fn mul_wide_zero_and_one() {
@@ -158,7 +161,7 @@ mod tests {
         for &a_int in primes {
             for &b_int in primes {
                 let actual = Limb::from_u32(a_int).mul_wide(Limb::from_u32(b_int));
-                let expected = a_int as Wide * b_int as Wide;
+                let expected = a_int as WideLimbUInt * b_int as WideLimbUInt;
                 assert_eq!(actual, expected);
             }
         }

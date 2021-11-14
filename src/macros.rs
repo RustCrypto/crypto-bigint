@@ -14,7 +14,7 @@ macro_rules! const_assert {
 #[macro_export]
 macro_rules! nlimbs {
     ($bits:expr) => {
-        $bits / $crate::limb::BIT_SIZE
+        $bits / $crate::Limb::BIT_SIZE
     };
 }
 

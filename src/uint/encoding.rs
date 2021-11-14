@@ -6,21 +6,21 @@ mod decoder;
 mod rlp;
 
 use super::UInt;
-use crate::{limb, Encoding};
+use crate::{Encoding, Limb};
 use decoder::Decoder;
 
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Create a new [`UInt`] from the provided big endian bytes.
     pub const fn from_be_slice(bytes: &[u8]) -> Self {
         const_assert!(
-            bytes.len() == limb::BYTE_SIZE * LIMBS,
+            bytes.len() == Limb::BYTE_SIZE * LIMBS,
             "bytes are not the expected size"
         );
 
         let mut decoder = Decoder::new();
         let mut i = 0;
 
-        while i < limb::BYTE_SIZE * LIMBS {
+        while i < Limb::BYTE_SIZE * LIMBS {
             i += 1;
             decoder = decoder.add_byte(bytes[bytes.len() - i]);
         }
@@ -33,14 +33,14 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         let bytes = hex.as_bytes();
 
         const_assert!(
-            bytes.len() == limb::BYTE_SIZE * LIMBS * 2,
+            bytes.len() == Limb::BYTE_SIZE * LIMBS * 2,
             "hex string is not the expected size"
         );
 
         let mut decoder = Decoder::new();
         let mut i = 0;
 
-        while i < limb::BYTE_SIZE * LIMBS * 2 {
+        while i < Limb::BYTE_SIZE * LIMBS * 2 {
             i += 2;
             let offset = bytes.len() - i;
             let byte = decode_hex_byte([bytes[offset], bytes[offset + 1]]);
@@ -53,14 +53,14 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// Create a new [`UInt`] from the provided little endian bytes.
     pub const fn from_le_slice(bytes: &[u8]) -> Self {
         const_assert!(
-            bytes.len() == limb::BYTE_SIZE * LIMBS,
+            bytes.len() == Limb::BYTE_SIZE * LIMBS,
             "bytes are not the expected size"
         );
 
         let mut decoder = Decoder::new();
         let mut i = 0;
 
-        while i < limb::BYTE_SIZE * LIMBS {
+        while i < Limb::BYTE_SIZE * LIMBS {
             decoder = decoder.add_byte(bytes[i]);
             i += 1;
         }
@@ -73,14 +73,14 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         let bytes = hex.as_bytes();
 
         const_assert!(
-            bytes.len() == limb::BYTE_SIZE * LIMBS * 2,
+            bytes.len() == Limb::BYTE_SIZE * LIMBS * 2,
             "bytes are not the expected size"
         );
 
         let mut decoder = Decoder::new();
         let mut i = 0;
 
-        while i < limb::BYTE_SIZE * LIMBS * 2 {
+        while i < Limb::BYTE_SIZE * LIMBS * 2 {
             let byte = decode_hex_byte([bytes[i], bytes[i + 1]]);
             decoder = decoder.add_byte(byte);
             i += 2;
@@ -94,14 +94,14 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     #[inline]
     #[cfg_attr(docsrs, doc(cfg(feature = "generic-array")))]
     pub(crate) fn write_be_bytes(&self, out: &mut [u8]) {
-        debug_assert_eq!(out.len(), limb::BYTE_SIZE * LIMBS);
+        debug_assert_eq!(out.len(), Limb::BYTE_SIZE * LIMBS);
 
         for (src, dst) in self
             .limbs
             .iter()
             .rev()
             .cloned()
-            .zip(out.chunks_exact_mut(limb::BYTE_SIZE))
+            .zip(out.chunks_exact_mut(Limb::BYTE_SIZE))
         {
             dst.copy_from_slice(&src.to_be_bytes());
         }
@@ -112,13 +112,13 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     #[inline]
     #[cfg_attr(docsrs, doc(cfg(feature = "generic-array")))]
     pub(crate) fn write_le_bytes(&self, out: &mut [u8]) {
-        debug_assert_eq!(out.len(), limb::BYTE_SIZE * LIMBS);
+        debug_assert_eq!(out.len(), Limb::BYTE_SIZE * LIMBS);
 
         for (src, dst) in self
             .limbs
             .iter()
             .cloned()
-            .zip(out.chunks_exact_mut(limb::BYTE_SIZE))
+            .zip(out.chunks_exact_mut(Limb::BYTE_SIZE))
         {
             dst.copy_from_slice(&src.to_le_bytes());
         }

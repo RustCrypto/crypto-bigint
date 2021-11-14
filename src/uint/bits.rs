@@ -1,5 +1,4 @@
-use crate::limb::{Inner, BIT_SIZE};
-use crate::{Limb, UInt};
+use crate::{Limb, LimbUInt, UInt};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Calculate the number of bits needed to represent this number.
@@ -10,12 +9,12 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         }
 
         let limb = self.limbs[i].0;
-        let bits = (BIT_SIZE * (i + 1)) as Inner - limb.leading_zeros() as Inner;
+        let bits = (Limb::BIT_SIZE * (i + 1)) as LimbUInt - limb.leading_zeros() as LimbUInt;
 
         Limb::ct_select(
             Limb(bits),
             Limb::ZERO,
-            !self.limbs[0].is_nonzero() & !Limb(i as Inner).is_nonzero(),
+            !self.limbs[0].is_nonzero() & !Limb(i as LimbUInt).is_nonzero(),
         )
         .0 as usize
     }
