@@ -30,12 +30,13 @@ hex-literal = "0.3"
 num-bigint = "0.4"
 num-traits = "0.2"
 proptest = "1"
+rand_core = { version = "0.6", features = ["std"] }
 rand_chacha = "0.3"
 
 [features]
 default = ["rand"]
 alloc = []
-rand = ["rand_core"]
+rand = ["rand_core/std"]
 
 [package.metadata.docs.rs]
 all-features = true

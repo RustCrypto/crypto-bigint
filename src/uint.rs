@@ -31,7 +31,7 @@ mod sub_mod;
 #[cfg(feature = "generic-array")]
 mod array;
 
-#[cfg(feature = "rand")]
+#[cfg(feature = "rand_core")]
 mod rand;
 
 use crate::{Concat, Encoding, Integer, Limb, Split, Zero};

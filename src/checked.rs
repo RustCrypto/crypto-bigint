@@ -1,6 +1,5 @@
 //! Checked arithmetic.
 
-use core::ops::Deref;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 /// Provides intentionally-checked arithmetic on `T`.
@@ -23,14 +22,6 @@ where
 {
     fn default() -> Self {
         Self::new(T::default())
-    }
-}
-
-impl<T> Deref for Checked<T> {
-    type Target = CtOption<T>;
-
-    fn deref(&self) -> &CtOption<T> {
-        &self.0
     }
 }
 

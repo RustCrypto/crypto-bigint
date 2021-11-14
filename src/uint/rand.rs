@@ -6,7 +6,7 @@ use crate::{Limb, NonZero, Random, RandomMod};
 use rand_core::{CryptoRng, RngCore};
 use subtle::ConstantTimeLess;
 
-#[cfg_attr(docsrs, doc(cfg(feature = "rand")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
 impl<const LIMBS: usize> Random for UInt<LIMBS> {
     /// Generate a cryptographically secure random [`UInt`].
     fn random(mut rng: impl CryptoRng + RngCore) -> Self {
@@ -20,7 +20,7 @@ impl<const LIMBS: usize> Random for UInt<LIMBS> {
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "rand")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
 impl<const LIMBS: usize> RandomMod for UInt<LIMBS> {
     /// Generate a cryptographically secure random [`UInt`] which is less than
     /// a given `modulus`.

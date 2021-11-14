@@ -15,7 +15,7 @@ mod from;
 mod mul;
 mod sub;
 
-#[cfg(feature = "rand")]
+#[cfg(feature = "rand_core")]
 mod rand;
 
 use crate::Zero;

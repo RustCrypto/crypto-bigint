@@ -5,20 +5,20 @@ use crate::{Encoding, NonZero, Random, RandomMod};
 use rand_core::{CryptoRng, RngCore};
 use subtle::ConstantTimeLess;
 
+#[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
 impl Random for Limb {
     #[cfg(target_pointer_width = "32")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "rand")))]
     fn random(mut rng: impl CryptoRng + RngCore) -> Self {
         Self(rng.next_u32())
     }
 
     #[cfg(target_pointer_width = "64")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "rand")))]
     fn random(mut rng: impl CryptoRng + RngCore) -> Self {
         Self(rng.next_u64())
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
 impl RandomMod for Limb {
     fn random_mod(mut rng: impl CryptoRng + RngCore, modulus: &NonZero<Self>) -> Self {
         let mut bytes = <Self as Encoding>::Repr::default();
