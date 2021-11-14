@@ -81,13 +81,3 @@ pub use rlp;
 
 #[cfg(feature = "zeroize")]
 pub use zeroize;
-
-/// Number of bytes in a [`Limb`].
-#[cfg(target_pointer_width = "32")]
-#[deprecated(since = "0.2.2", note = "use `Limb::BYTE_SIZE` instead")]
-pub const LIMB_BYTES: usize = 4;
-
-/// Number of bytes in a [`Limb`].
-#[cfg(target_pointer_width = "64")]
-#[deprecated(since = "0.2.2", note = "use `Limb::BYTE_SIZE` instead")]
-pub const LIMB_BYTES: usize = 8;
