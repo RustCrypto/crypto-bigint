@@ -8,7 +8,7 @@ use subtle::{
     CtOption,
 };
 
-#[cfg(feature = "rand")]
+#[cfg(feature = "rand_core")]
 use rand_core::{CryptoRng, RngCore};
 
 /// Integer type.
@@ -62,16 +62,16 @@ pub trait Zero: ConstantTimeEq + Sized {
 }
 
 /// Random number generation support.
-#[cfg(feature = "rand")]
-#[cfg_attr(docsrs, doc(cfg(feature = "rand")))]
+#[cfg(feature = "rand_core")]
+#[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
 pub trait Random: Sized {
     /// Generate a cryptographically secure random value.
     fn random(rng: impl CryptoRng + RngCore) -> Self;
 }
 
 /// Modular random number generation support.
-#[cfg(feature = "rand")]
-#[cfg_attr(docsrs, doc(cfg(feature = "rand")))]
+#[cfg(feature = "rand_core")]
+#[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
 pub trait RandomMod: Sized + Zero {
     /// Generate a cryptographically secure random number which is less than
     /// a given `modulus`.

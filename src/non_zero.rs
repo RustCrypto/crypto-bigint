@@ -1,7 +1,5 @@
 //! Wrapper type for non-zero integers.
 
-#[cfg(feature = "rand")]
-use crate::Random;
 use crate::{Encoding, Integer, Limb, UInt, Zero};
 use core::{
     fmt,
@@ -13,8 +11,11 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 #[cfg(feature = "generic-array")]
 use crate::{ArrayEncoding, ByteArray};
 
-#[cfg(feature = "rand")]
-use rand_core::{CryptoRng, RngCore};
+#[cfg(feature = "rand_core")]
+use {
+    crate::Random,
+    rand_core::{CryptoRng, RngCore},
+};
 
 /// Wrapper type for non-zero integers.
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
@@ -112,8 +113,8 @@ where
     }
 }
 
-#[cfg(feature = "rand")]
-#[cfg_attr(docsrs, doc(cfg(feature = "rand")))]
+#[cfg(feature = "rand_core")]
+#[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
 impl<T> Random for NonZero<T>
 where
     T: Random + Zero,
