@@ -1,7 +1,7 @@
 //! [`UInt`] bitwise right shift operations.
 
 use super::UInt;
-use crate::{limb, Limb};
+use crate::Limb;
 use core::ops::{Shr, ShrAssign};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
@@ -13,11 +13,11 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// to `self`.
     #[inline(always)]
     pub const fn shr_vartime(&self, shift: usize) -> Self {
-        let full_shifts = shift / limb::BIT_SIZE;
-        let small_shift = shift & (limb::BIT_SIZE - 1);
+        let full_shifts = shift / Limb::BIT_SIZE;
+        let small_shift = shift & (Limb::BIT_SIZE - 1);
         let mut limbs = [Limb::ZERO; LIMBS];
 
-        if shift > limb::BIT_SIZE * LIMBS {
+        if shift > Limb::BIT_SIZE * LIMBS {
             return Self { limbs };
         }
 
@@ -34,7 +34,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
                 let mut lo = self.limbs[i + full_shifts].0 >> small_shift;
 
                 if i < (LIMBS - 1) - full_shifts {
-                    lo |= self.limbs[i + full_shifts + 1].0 << (limb::BIT_SIZE - small_shift);
+                    lo |= self.limbs[i + full_shifts + 1].0 << (Limb::BIT_SIZE - small_shift);
                 }
 
                 limbs[i] = Limb(lo);

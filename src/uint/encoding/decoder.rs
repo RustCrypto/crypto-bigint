@@ -1,4 +1,4 @@
-use crate::{limb, Limb, UInt};
+use crate::{Limb, LimbUInt, UInt};
 
 /// [`UInt`] decoder.
 #[derive(Clone, Debug)]
@@ -27,13 +27,13 @@ impl<const LIMBS: usize> Decoder<LIMBS> {
 
     /// Add a byte onto the [`UInt`] being decoded.
     pub const fn add_byte(mut self, byte: u8) -> Self {
-        if self.bytes == limb::BYTE_SIZE {
+        if self.bytes == Limb::BYTE_SIZE {
             const_assert!(self.index < LIMBS, "too many bytes in UInt");
             self.index += 1;
             self.bytes = 0;
         }
 
-        self.limbs[self.index].0 |= (byte as limb::Inner) << (self.bytes * 8);
+        self.limbs[self.index].0 |= (byte as LimbUInt) << (self.bytes * 8);
         self.bytes += 1;
         self
     }
@@ -43,7 +43,7 @@ impl<const LIMBS: usize> Decoder<LIMBS> {
     pub const fn finish(self) -> UInt<LIMBS> {
         const_assert!(self.index == LIMBS - 1, "decoded UInt is missing limbs");
         const_assert!(
-            self.bytes == limb::BYTE_SIZE,
+            self.bytes == Limb::BYTE_SIZE,
             "decoded UInt is missing bytes"
         );
         UInt { limbs: self.limbs }

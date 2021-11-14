@@ -1,6 +1,6 @@
 //! Limb subtraction
 
-use super::{Inner, Limb, Wide};
+use super::{Limb, LimbUInt, WideLimbUInt};
 use crate::{Checked, Wrapping};
 use core::ops::{Sub, SubAssign};
 use subtle::CtOption;
@@ -9,11 +9,14 @@ impl Limb {
     /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
     #[inline(always)]
     pub const fn sbb(self, rhs: Limb, borrow: Limb) -> (Limb, Limb) {
-        let a = self.0 as Wide;
-        let b = rhs.0 as Wide;
-        let borrow = (borrow.0 >> (Self::BIT_SIZE - 1)) as Wide;
+        let a = self.0 as WideLimbUInt;
+        let b = rhs.0 as WideLimbUInt;
+        let borrow = (borrow.0 >> (Self::BIT_SIZE - 1)) as WideLimbUInt;
         let ret = a.wrapping_sub(b + borrow);
-        (Limb(ret as Inner), Limb((ret >> Self::BIT_SIZE) as Inner))
+        (
+            Limb(ret as LimbUInt),
+            Limb((ret >> Self::BIT_SIZE) as LimbUInt),
+        )
     }
 
     /// Perform checked subtraction, returning a [`CtOption`] which `is_some`

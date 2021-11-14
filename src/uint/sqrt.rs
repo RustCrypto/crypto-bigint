@@ -1,7 +1,7 @@
 //! [`UInt`] square root operations.
 
 use super::UInt;
-use crate::limb::Inner;
+use crate::limb::LimbUInt;
 use crate::Limb;
 use subtle::{ConstantTimeEq, CtOption};
 
@@ -26,8 +26,8 @@ impl<const LIMBS: usize> UInt<LIMBS> {
             // Sometimes an increase is too far, especially with large
             // powers, and then takes a long time to walk back.  The upper
             // bound is based on bit size, so saturate on that.
-            let res = Limb::ct_cmp(Limb(xn.bits() as Inner), Limb(max_bits as Inner)) - 1;
-            let le = Limb::is_nonzero(Limb(res as Inner));
+            let res = Limb::ct_cmp(Limb(xn.bits() as LimbUInt), Limb(max_bits as LimbUInt)) - 1;
+            let le = Limb::is_nonzero(Limb(res as LimbUInt));
             guess = Self::ct_select(cap, xn, le);
             xn = {
                 let q = self.wrapping_div(&guess);
@@ -37,7 +37,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         }
 
         // Repeat while guess decreases.
-        while guess.ct_cmp(&xn) == 1 && xn.ct_is_nonzero() == Inner::MAX {
+        while guess.ct_cmp(&xn) == 1 && xn.ct_is_nonzero() == LimbUInt::MAX {
             guess = xn;
             xn = {
                 let q = self.wrapping_div(&guess);

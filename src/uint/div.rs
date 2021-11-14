@@ -1,12 +1,12 @@
 //! [`UInt`] division operations.
 
 use super::UInt;
-use crate::limb::{Inner, SignedInner, BIT_SIZE};
+use crate::limb::{LimbInt, LimbUInt};
 use crate::{Integer, Limb, NonZero, Wrapping};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::{Choice, CtOption};
 
-const BIT_SIZE_M_1: usize = BIT_SIZE - 1;
+const LIMB_BIT_SIZE_M_1: usize = Limb::BIT_SIZE - 1;
 
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Computes `self` / `rhs`, returns the quotient (q), remainder (r)
@@ -28,8 +28,8 @@ impl<const LIMBS: usize> UInt<LIMBS> {
 
         loop {
             let mut r: Self = rem.wrapping_sub(&c);
-            let d = -(((1 - (r.limbs[LIMBS - 1].0 >> BIT_SIZE_M_1)) & 1) as SignedInner);
-            let d = d as Inner;
+            let d = -(((1 - (r.limbs[LIMBS - 1].0 >> LIMB_BIT_SIZE_M_1)) & 1) as LimbInt);
+            let d = d as LimbUInt;
             rem = Self::ct_select(rem, r, d);
             r = quo;
             r = r.wrapping_add(&e);
@@ -44,7 +44,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         // If `self`<rhs
         // set quo and rem to Self::ZERO
         let res = self.ct_cmp(rhs) + 1;
-        let gt = Limb::is_nonzero(Limb(res as Inner));
+        let gt = Limb::is_nonzero(Limb(res as LimbUInt));
         quo = Self::ct_select(Self::ZERO, quo, gt);
         rem = Self::ct_select(Self::ZERO, rem, gt);
         let is_some = rhs.ct_is_nonzero() & 1;
@@ -66,8 +66,8 @@ impl<const LIMBS: usize> UInt<LIMBS> {
 
         loop {
             let r: Self = rem.wrapping_sub(&c);
-            let d = -(((1 - (r.limbs[LIMBS - 1].0 >> BIT_SIZE_M_1)) & 1) as SignedInner);
-            let d = d as Inner;
+            let d = -(((1 - (r.limbs[LIMBS - 1].0 >> LIMB_BIT_SIZE_M_1)) & 1) as LimbInt);
+            let d = d as LimbUInt;
             rem = Self::ct_select(rem, r, d);
             if bd == 0 {
                 break;
@@ -78,7 +78,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         // If `self`<rhs
         // set rem to Self::ZERO
         let res = self.ct_cmp(rhs) + 1;
-        let gt = Limb::is_nonzero(Limb(res as Inner));
+        let gt = Limb::is_nonzero(Limb(res as LimbUInt));
         rem = Self::ct_select(Self::ZERO, rem, gt);
         let is_some = rhs.ct_is_nonzero() & 1;
         (rem, is_some as u8)
@@ -395,7 +395,7 @@ mod tests {
     fn div_max() {
         let mut a = U256::ZERO;
         let mut b = U256::ZERO;
-        b.limbs[b.limbs.len() - 1] = Limb(Inner::MAX);
+        b.limbs[b.limbs.len() - 1] = Limb(LimbUInt::MAX);
         let q = a.wrapping_div(&b);
         assert_eq!(q, UInt::ZERO);
         a.limbs[a.limbs.len() - 1] = Limb(1 << HI_BIT - 7);
@@ -448,7 +448,7 @@ mod tests {
     fn reduce_max() {
         let mut a = U256::ZERO;
         let mut b = U256::ZERO;
-        b.limbs[b.limbs.len() - 1] = Limb(Inner::MAX);
+        b.limbs[b.limbs.len() - 1] = Limb(LimbUInt::MAX);
         let r = a.wrapping_rem(&b);
         assert_eq!(r, UInt::ZERO);
         a.limbs[a.limbs.len() - 1] = Limb(1 << HI_BIT - 7);

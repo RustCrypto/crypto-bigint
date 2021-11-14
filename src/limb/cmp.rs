@@ -1,6 +1,6 @@
 //! Limb comparisons
 
-use super::{Inner, Limb, SignedInner, SignedWide, BIT_SIZE, HI_BIT};
+use super::{Limb, LimbInt, LimbUInt, WideLimbInt, HI_BIT};
 use core::cmp::Ordering;
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
@@ -34,18 +34,18 @@ impl Limb {
     ///
     /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
     #[inline]
-    pub(crate) const fn is_nonzero(self) -> Inner {
-        let inner = self.0 as SignedInner;
-        ((inner | inner.saturating_neg()) >> HI_BIT) as Inner
+    pub(crate) const fn is_nonzero(self) -> LimbUInt {
+        let inner = self.0 as LimbInt;
+        ((inner | inner.saturating_neg()) >> HI_BIT) as LimbUInt
     }
 
     #[inline]
-    pub(crate) const fn ct_cmp(lhs: Self, rhs: Self) -> SignedInner {
-        let a = lhs.0 as SignedWide;
-        let b = rhs.0 as SignedWide;
-        let gt = ((b - a) >> BIT_SIZE) & 1;
-        let lt = ((a - b) >> BIT_SIZE) & 1 & !gt;
-        (gt as SignedInner) - (lt as SignedInner)
+    pub(crate) const fn ct_cmp(lhs: Self, rhs: Self) -> LimbInt {
+        let a = lhs.0 as WideLimbInt;
+        let b = rhs.0 as WideLimbInt;
+        let gt = ((b - a) >> Limb::BIT_SIZE) & 1;
+        let lt = ((a - b) >> Limb::BIT_SIZE) & 1 & !gt;
+        (gt as LimbInt) - (lt as LimbInt)
     }
 }
 

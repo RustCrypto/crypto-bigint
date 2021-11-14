@@ -29,66 +29,50 @@ compile_error!("this crate builds on 32-bit and 64-bit platforms only");
 // 32-bit definitions
 //
 
-/// Size of the inner integer in bits.
-#[cfg(target_pointer_width = "32")]
-pub const BIT_SIZE: usize = 32;
-
-/// Size of the inner integer in bytes.
-#[cfg(target_pointer_width = "32")]
-pub const BYTE_SIZE: usize = 4;
-
 /// Inner integer type that the [`Limb`] newtype wraps.
 #[cfg(target_pointer_width = "32")]
-pub type Inner = u32;
+pub type LimbUInt = u32;
 
-/// SignedInner integer type that the [`Limb`] newtype wraps.
+/// Signed integer type that corresponds to [`LimbUInt`].
 #[cfg(target_pointer_width = "32")]
-pub(crate) type SignedInner = i32;
+pub(crate) type LimbInt = i32;
 
-/// Wide integer type: double the width of [`Inner`].
+/// Unsigned wide integer type: double the width of [`LimbUInt`].
 #[cfg(target_pointer_width = "32")]
-pub type Wide = u64;
+pub type WideLimbUInt = u64;
 
-/// SignedInner integer type: double the width of [`Limb`].
+/// Signed wide integer type: double the width of [`Limb`].
 #[cfg(target_pointer_width = "32")]
-pub(crate) type SignedWide = i64;
+pub(crate) type WideLimbInt = i64;
 
 //
 // 64-bit definitions
 //
 
-/// Size of the inner integer in bits.
+/// Unsigned integer type that the [`Limb`] newtype wraps.
 #[cfg(target_pointer_width = "64")]
-pub const BIT_SIZE: usize = 64;
+pub type LimbUInt = u64;
 
-/// Size of the inner integer in bytes.
+/// Signed integer type that corresponds to [`LimbUInt`].
 #[cfg(target_pointer_width = "64")]
-pub const BYTE_SIZE: usize = 8;
+pub(crate) type LimbInt = i64;
 
-/// Inner integer type that the [`Limb`] newtype wraps.
+/// Wide integer type: double the width of [`LimbUInt`].
 #[cfg(target_pointer_width = "64")]
-pub type Inner = u64;
+pub type WideLimbUInt = u128;
 
-/// SignedInner integer type that the [`Limb`] newtype wraps.
+/// Signed wide integer type: double the width of [`Limb`].
 #[cfg(target_pointer_width = "64")]
-pub(crate) type SignedInner = i64;
-
-/// Wide integer type: double the width of [`Inner`].
-#[cfg(target_pointer_width = "64")]
-pub type Wide = u128;
-
-/// SignedInner integer type: double the width of [`Limb`].
-#[cfg(target_pointer_width = "64")]
-pub(crate) type SignedWide = i128;
+pub(crate) type WideLimbInt = i128;
 
 /// Highest bit in a [`Limb`].
-pub(crate) const HI_BIT: usize = BIT_SIZE - 1;
+pub(crate) const HI_BIT: usize = Limb::BIT_SIZE - 1;
 
 /// Big integers are represented as an array of smaller CPU word-size integers
 /// called "limbs".
 #[derive(Copy, Clone, Debug, Default, Hash)]
 #[repr(transparent)]
-pub struct Limb(pub Inner);
+pub struct Limb(pub LimbUInt);
 
 impl Limb {
     /// The value `0`.
@@ -98,19 +82,31 @@ impl Limb {
     pub const ONE: Self = Limb(1);
 
     /// Maximum value this [`Limb`] can express.
-    pub const MAX: Self = Limb(Inner::MAX);
+    pub const MAX: Self = Limb(LimbUInt::MAX);
+
+    // 32-bit
 
     /// Size of the inner integer in bits.
-    pub const BIT_SIZE: usize = BIT_SIZE;
-
+    #[cfg(target_pointer_width = "32")]
+    pub const BIT_SIZE: usize = 32;
     /// Size of the inner integer in bytes.
-    pub const BYTE_SIZE: usize = BYTE_SIZE;
+    #[cfg(target_pointer_width = "32")]
+    pub const BYTE_SIZE: usize = 4;
+
+    // 64-bit
+
+    /// Size of the inner integer in bits.
+    #[cfg(target_pointer_width = "64")]
+    pub const BIT_SIZE: usize = 64;
+    /// Size of the inner integer in bytes.
+    #[cfg(target_pointer_width = "64")]
+    pub const BYTE_SIZE: usize = 8;
 
     /// Return `a` if `c`!=0 or `b` if `c`==0.
     ///
     /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
     #[inline]
-    pub(crate) const fn ct_select(a: Self, b: Self, c: Inner) -> Self {
+    pub(crate) const fn ct_select(a: Self, b: Self, c: LimbUInt) -> Self {
         Self(a.0 ^ (c & (a.0 ^ b.0)))
     }
 }
@@ -118,7 +114,7 @@ impl Limb {
 impl ConditionallySelectable for Limb {
     #[inline]
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Self(Inner::conditional_select(&a.0, &b.0, choice))
+        Self(LimbUInt::conditional_select(&a.0, &b.0, choice))
     }
 }
 
