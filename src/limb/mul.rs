@@ -160,7 +160,6 @@ mod tests {
         assert_eq!(Limb::ONE.mul_wide(Limb::ONE), 1);
     }
 
-    // TODO(tarcieri): add proptests for multiplication
     #[test]
     fn mul_wide() {
         let primes: &[u32] = &[3, 5, 17, 256, 65537];

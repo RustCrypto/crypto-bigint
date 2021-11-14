@@ -1,5 +1,4 @@
 //! Random number generator support
-// TODO(tarcieri): use `Random` and `RandomMod` impls exclusively in next breaking release
 
 use super::UInt;
 use crate::{Limb, NonZero, Random, RandomMod};
