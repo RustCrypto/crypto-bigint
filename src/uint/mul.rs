@@ -1,7 +1,6 @@
 //! [`UInt`] addition operations.
 
-use super::UInt;
-use crate::{Checked, CheckedMul, Concat, Limb, Wrapping};
+use crate::{Checked, CheckedMul, Concat, Limb, UInt, Wrapping, Zero};
 use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
 
@@ -166,7 +165,7 @@ impl<const LIMBS: usize> MulAssign<&Checked<UInt<LIMBS>>> for Checked<UInt<LIMBS
 
 #[cfg(test)]
 mod tests {
-    use crate::{CheckedMul, Split, U64};
+    use crate::{CheckedMul, Split, Zero, U64};
 
     #[test]
     fn mul_wide_zero_and_one() {

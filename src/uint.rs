@@ -131,7 +131,10 @@ impl<const LIMBS: usize> Integer for UInt<LIMBS> {
     const MAX: Self = Self::MAX;
 
     fn is_odd(&self) -> Choice {
-        self.is_odd()
+        self.limbs
+            .first()
+            .map(|limb| limb.is_odd())
+            .unwrap_or_else(|| Choice::from(0))
     }
 }
 

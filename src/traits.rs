@@ -42,9 +42,17 @@ pub trait Integer:
     const MAX: Self;
 
     /// Is this integer value an odd number?
+    ///
+    /// # Returns
+    ///
+    /// If odd, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
     fn is_odd(&self) -> Choice;
 
     /// Is this integer value an even number?
+    ///
+    /// # Returns
+    ///
+    /// If even, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
     fn is_even(&self) -> Choice {
         !self.is_odd()
     }
@@ -55,7 +63,11 @@ pub trait Zero: ConstantTimeEq + Sized {
     /// The value `0`.
     const ZERO: Self;
 
-    /// Is this integer value equal to zero?
+    /// Determine if this value is equal to zero.
+    ///
+    /// # Returns
+    ///
+    /// If zero, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
     fn is_zero(&self) -> Choice {
         self.ct_eq(&Self::ZERO)
     }

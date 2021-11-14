@@ -5,12 +5,6 @@ use core::cmp::Ordering;
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
 impl Limb {
-    /// Is this limb equal to zero?
-    #[inline]
-    pub fn is_zero(&self) -> Choice {
-        self.ct_eq(&Self::ZERO)
-    }
-
     /// Is this limb an odd number?
     #[inline]
     pub fn is_odd(&self) -> Choice {
@@ -106,7 +100,7 @@ impl PartialEq for Limb {
 
 #[cfg(test)]
 mod tests {
-    use crate::Limb;
+    use crate::{Limb, Zero};
     use core::cmp::Ordering;
     use subtle::{ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 

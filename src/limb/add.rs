@@ -1,6 +1,6 @@
 //! Limb addition
 
-use crate::{Checked, CheckedAdd, Limb, LimbUInt, WideLimbUInt, Wrapping};
+use crate::{Checked, CheckedAdd, Limb, LimbUInt, WideLimbUInt, Wrapping, Zero};
 use core::ops::{Add, AddAssign};
 use subtle::CtOption;
 

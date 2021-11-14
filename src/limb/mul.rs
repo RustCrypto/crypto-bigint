@@ -1,6 +1,6 @@
 //! Limb multiplication
 
-use crate::{Checked, CheckedMul, Limb, LimbUInt, WideLimbUInt, Wrapping};
+use crate::{Checked, CheckedMul, Limb, LimbUInt, WideLimbUInt, Wrapping, Zero};
 use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
 
