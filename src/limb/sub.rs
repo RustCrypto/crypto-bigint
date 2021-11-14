@@ -1,6 +1,6 @@
 //! Limb subtraction
 
-use crate::{Checked, CheckedSub, Limb, LimbUInt, WideLimbUInt, Wrapping};
+use crate::{Checked, CheckedSub, Limb, LimbUInt, WideLimbUInt, Wrapping, Zero};
 use core::ops::{Sub, SubAssign};
 use subtle::CtOption;
 

@@ -1,7 +1,7 @@
 //! [`UInt`] addition operations.
 
 use super::UInt;
-use crate::{Checked, CheckedSub, Limb, Wrapping};
+use crate::{Checked, CheckedSub, Limb, Wrapping, Zero};
 use core::ops::{Sub, SubAssign};
 use subtle::CtOption;
 

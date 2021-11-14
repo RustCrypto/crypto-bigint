@@ -3,29 +3,11 @@
 //! By default these are all constant-time and use the `subtle` crate.
 
 use super::UInt;
-use crate::{Limb, LimbInt, LimbUInt, WideLimbInt};
+use crate::{Limb, LimbInt, LimbUInt, WideLimbInt, Zero};
 use core::cmp::Ordering;
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
-    /// Determine if this [`UInt`] is equal to zero.
-    ///
-    /// # Returns
-    ///
-    /// If zero, return `Choice(1)`.  Otherwise, return `Choice(0)`.
-    pub fn is_zero(&self) -> Choice {
-        self.ct_eq(&Self::ZERO)
-    }
-
-    /// Is this [`UInt`] an odd number?
-    #[inline]
-    pub fn is_odd(&self) -> Choice {
-        self.limbs
-            .first()
-            .map(|limb| limb.is_odd())
-            .unwrap_or_else(|| Choice::from(0))
-    }
-
     /// Return `a` if `c`!=0 or `b` if `c`==0.
     ///
     /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
@@ -135,7 +117,7 @@ impl<const LIMBS: usize> PartialEq for UInt<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::U128;
+    use crate::{Integer, Zero, U128};
     use subtle::{ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
     #[test]
