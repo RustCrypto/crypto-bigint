@@ -37,13 +37,13 @@ impl<const LIMBS: usize> RandomMod for UInt<LIMBS> {
 
         let n_bits = modulus.bits();
         let n_limbs = (n_bits + Limb::BIT_SIZE - 1) / Limb::BIT_SIZE;
-        let mask = Limb::MAX >> (Limb::BIT_SIZE * n_limbs - n_bits);
+        let mask = Limb(Limb::MAX.0 >> (Limb::BIT_SIZE * n_limbs - n_bits));
 
         loop {
             for i in 0..n_limbs {
                 n.limbs[i] = Limb::random(&mut rng);
             }
-            n.limbs[n_limbs - 1] = n.limbs[n_limbs - 1] & mask;
+            n.limbs[n_limbs - 1] = n.limbs[n_limbs - 1].bitand(mask);
 
             if n.ct_lt(modulus).into() {
                 return n;
