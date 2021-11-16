@@ -35,28 +35,15 @@ impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
     fn random_mod(mut rng: impl CryptoRng + RngCore, modulus: &NonZero<Self>) -> Self {
         let mut n = Self::ZERO;
 
-        // TODO(tarcieri): use `div_ceil` when available
-        // See: https://github.com/rust-lang/rust/issues/88581
-        let mut n_limbs = modulus.bits_vartime() / Limb::BIT_SIZE;
-        if n_limbs < LIMBS {
-            n_limbs += 1;
-        }
-
-        // Compute the highest limb of `modulus` as a `NonZero`.
-        // Add one to ensure `Limb::random_mod` returns values inclusive of this limb.
-        let modulus_hi =
-            NonZero::new(modulus.limbs[n_limbs.saturating_sub(1)].saturating_add(Limb::ONE))
-                .unwrap(); // Always at least one due to `saturating_add`
+        let n_bits = modulus.as_ref().bits_vartime();
+        let n_limbs = (n_bits + Limb::BIT_SIZE - 1) / Limb::BIT_SIZE;
+        let mask = Limb::MAX >> (Limb::BIT_SIZE * n_limbs - n_bits);
 
         loop {
             for i in 0..n_limbs {
-                n.limbs[i] = if (i + 1 == n_limbs) && (*modulus_hi != Limb::MAX) {
-                    // Highest limb
-                    Limb::random_mod(&mut rng, &modulus_hi)
-                } else {
-                    Limb::random(&mut rng)
-                }
+                n.limbs[i] = Limb::random(&mut rng);
             }
+            n.limbs[n_limbs - 1] = n.limbs[n_limbs - 1] & mask;
 
             if n.ct_lt(modulus).into() {
                 return n;
