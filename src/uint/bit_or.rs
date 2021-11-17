@@ -20,17 +20,62 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         Self { limbs }
     }
 
-    /// Perform wrapping bitwise or.
+    /// Perform wrapping bitwise `OR`.
+    ///
     /// There's no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations
     pub const fn wrapping_or(&self, rhs: &Self) -> Self {
         self.bitor(rhs)
     }
 
-    /// Perform checked bitwise or, returning a [`CtOption`] which `is_some` always
+    /// Perform checked bitwise `OR`, returning a [`CtOption`] which `is_some` always
     pub fn checked_or(&self, rhs: &Self) -> CtOption<Self> {
         let result = self.bitor(rhs);
         CtOption::new(result, Choice::from(1))
+    }
+}
+
+impl<const LIMBS: usize> BitOr for UInt<LIMBS> {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> UInt<LIMBS> {
+        self.bitor(&rhs)
+    }
+}
+
+impl<const LIMBS: usize> BitOr<&UInt<LIMBS>> for UInt<LIMBS> {
+    type Output = UInt<LIMBS>;
+
+    fn bitor(self, rhs: &UInt<LIMBS>) -> UInt<LIMBS> {
+        (&self).bitor(rhs)
+    }
+}
+
+impl<const LIMBS: usize> BitOr<UInt<LIMBS>> for &UInt<LIMBS> {
+    type Output = UInt<LIMBS>;
+
+    fn bitor(self, rhs: UInt<LIMBS>) -> UInt<LIMBS> {
+        self.bitor(&rhs)
+    }
+}
+
+impl<const LIMBS: usize> BitOr<&UInt<LIMBS>> for &UInt<LIMBS> {
+    type Output = UInt<LIMBS>;
+
+    fn bitor(self, rhs: &UInt<LIMBS>) -> UInt<LIMBS> {
+        self.bitor(rhs)
+    }
+}
+
+impl<const LIMBS: usize> BitOrAssign for UInt<LIMBS> {
+    fn bitor_assign(&mut self, other: Self) {
+        *self = *self | other;
+    }
+}
+
+impl<const LIMBS: usize> BitOrAssign<&UInt<LIMBS>> for UInt<LIMBS> {
+    fn bitor_assign(&mut self, other: &Self) {
+        *self = *self | other;
     }
 }
 

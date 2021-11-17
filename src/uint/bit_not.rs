@@ -20,6 +20,14 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     }
 }
 
+impl<const LIMBS: usize> Not for UInt<LIMBS> {
+    type Output = Self;
+
+    fn not(self) -> <Self as Not>::Output {
+        (&self).not()
+    }
+}
+
 impl<const LIMBS: usize> Not for Wrapping<UInt<LIMBS>> {
     type Output = Self;
 
