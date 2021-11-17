@@ -2,7 +2,7 @@
 
 use crate::{Limb, NonZero};
 use core::fmt::Debug;
-use core::ops::{Div, Rem};
+use core::ops::{BitAnd, BitOr, BitXor, Div, Not, Rem, Shl, Shr};
 use subtle::{
     Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
     CtOption,
@@ -15,6 +15,9 @@ use rand_core::{CryptoRng, RngCore};
 pub trait Integer:
     'static
     + AsRef<[Limb]>
+    + BitAnd
+    + BitOr
+    + BitXor
     + for<'a> CheckedAdd<&'a Self, Output = Self>
     + for<'a> CheckedSub<&'a Self, Output = Self>
     + for<'a> CheckedMul<&'a Self, Output = Self>
@@ -28,10 +31,13 @@ pub trait Integer:
     + Div<NonZero<Self>, Output = Self>
     + Eq
     + From<u64>
+    + Not
     + Ord
     + Rem<NonZero<Self>, Output = Self>
     + Send
     + Sized
+    + Shl<usize>
+    + Shr<usize>
     + Sync
     + Zero
 {

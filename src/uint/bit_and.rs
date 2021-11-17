@@ -20,17 +20,64 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         Self { limbs }
     }
 
-    /// Perform wrapping bitwise and.
+    /// Perform wrapping bitwise `AND`.
+    ///
     /// There's no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations
     pub const fn wrapping_and(&self, rhs: &Self) -> Self {
         self.bitand(rhs)
     }
 
-    /// Perform checked bitwise and, returning a [`CtOption`] which `is_some` always
+    /// Perform checked bitwise `AND`, returning a [`CtOption`] which `is_some` always
     pub fn checked_and(&self, rhs: &Self) -> CtOption<Self> {
         let result = self.bitand(rhs);
         CtOption::new(result, Choice::from(1))
+    }
+}
+
+impl<const LIMBS: usize> BitAnd for UInt<LIMBS> {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> UInt<LIMBS> {
+        self.bitand(&rhs)
+    }
+}
+
+impl<const LIMBS: usize> BitAnd<&UInt<LIMBS>> for UInt<LIMBS> {
+    type Output = UInt<LIMBS>;
+
+    fn bitand(self, rhs: &UInt<LIMBS>) -> UInt<LIMBS> {
+        (&self).bitand(rhs)
+    }
+}
+
+impl<const LIMBS: usize> BitAnd<UInt<LIMBS>> for &UInt<LIMBS> {
+    type Output = UInt<LIMBS>;
+
+    fn bitand(self, rhs: UInt<LIMBS>) -> UInt<LIMBS> {
+        self.bitand(&rhs)
+    }
+}
+
+impl<const LIMBS: usize> BitAnd<&UInt<LIMBS>> for &UInt<LIMBS> {
+    type Output = UInt<LIMBS>;
+
+    fn bitand(self, rhs: &UInt<LIMBS>) -> UInt<LIMBS> {
+        self.bitand(rhs)
+    }
+}
+
+impl<const LIMBS: usize> BitAndAssign for UInt<LIMBS> {
+    #[allow(clippy::assign_op_pattern)]
+    fn bitand_assign(&mut self, other: Self) {
+        *self = *self & other;
+    }
+}
+
+impl<const LIMBS: usize> BitAndAssign<&UInt<LIMBS>> for UInt<LIMBS> {
+    #[allow(clippy::assign_op_pattern)]
+    fn bitand_assign(&mut self, other: &Self) {
+        *self = *self & other;
     }
 }
 

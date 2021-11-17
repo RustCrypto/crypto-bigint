@@ -20,17 +20,62 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         Self { limbs }
     }
 
-    /// Perform wrapping bitwise xor.
+    /// Perform wrapping bitwise `XOR``.
+    ///
     /// There's no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations
     pub const fn wrapping_xor(&self, rhs: &Self) -> Self {
         self.bitxor(rhs)
     }
 
-    /// Perform checked bitwise xor, returning a [`CtOption`] which `is_some` always
+    /// Perform checked bitwise `XOR`, returning a [`CtOption`] which `is_some` always
     pub fn checked_xor(&self, rhs: &Self) -> CtOption<Self> {
         let result = self.bitxor(rhs);
         CtOption::new(result, Choice::from(1))
+    }
+}
+
+impl<const LIMBS: usize> BitXor for UInt<LIMBS> {
+    type Output = Self;
+
+    fn bitxor(self, rhs: Self) -> UInt<LIMBS> {
+        self.bitxor(&rhs)
+    }
+}
+
+impl<const LIMBS: usize> BitXor<&UInt<LIMBS>> for UInt<LIMBS> {
+    type Output = UInt<LIMBS>;
+
+    fn bitxor(self, rhs: &UInt<LIMBS>) -> UInt<LIMBS> {
+        (&self).bitxor(rhs)
+    }
+}
+
+impl<const LIMBS: usize> BitXor<UInt<LIMBS>> for &UInt<LIMBS> {
+    type Output = UInt<LIMBS>;
+
+    fn bitxor(self, rhs: UInt<LIMBS>) -> UInt<LIMBS> {
+        self.bitxor(&rhs)
+    }
+}
+
+impl<const LIMBS: usize> BitXor<&UInt<LIMBS>> for &UInt<LIMBS> {
+    type Output = UInt<LIMBS>;
+
+    fn bitxor(self, rhs: &UInt<LIMBS>) -> UInt<LIMBS> {
+        self.bitxor(rhs)
+    }
+}
+
+impl<const LIMBS: usize> BitXorAssign for UInt<LIMBS> {
+    fn bitxor_assign(&mut self, other: Self) {
+        *self = *self ^ other;
+    }
+}
+
+impl<const LIMBS: usize> BitXorAssign<&UInt<LIMBS>> for UInt<LIMBS> {
+    fn bitxor_assign(&mut self, other: &Self) {
+        *self = *self ^ other;
     }
 }
 
