@@ -15,9 +15,9 @@ use rand_core::{CryptoRng, RngCore};
 pub trait Integer:
     'static
     + AsRef<[Limb]>
-    + BitAnd
-    + BitOr
-    + BitXor
+    + BitAnd<Output = Self>
+    + BitOr<Output = Self>
+    + BitXor<Output = Self>
     + for<'a> CheckedAdd<&'a Self, Output = Self>
     + for<'a> CheckedSub<&'a Self, Output = Self>
     + for<'a> CheckedMul<&'a Self, Output = Self>
@@ -36,8 +36,8 @@ pub trait Integer:
     + Rem<NonZero<Self>, Output = Self>
     + Send
     + Sized
-    + Shl<usize>
-    + Shr<usize>
+    + Shl<usize, Output = Self>
+    + Shr<usize, Output = Self>
     + Sync
     + Zero
 {
