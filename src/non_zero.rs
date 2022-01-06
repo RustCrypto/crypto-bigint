@@ -232,6 +232,20 @@ impl From<NonZeroU64> for NonZero<Limb> {
 }
 
 impl<const LIMBS: usize> NonZero<UInt<LIMBS>> {
+    /// Create a [`NonZero<UInt>`] from a [`UInt`] (const-friendly)
+    pub const fn from_uint(n: UInt<LIMBS>) -> Self {
+        let mut i = 0;
+        let mut found_non_zero = false;
+        while i < LIMBS {
+            if n.limbs()[i].0 != 0 {
+                found_non_zero = true;
+            }
+            i += 1;
+        }
+        const_assert!(found_non_zero, "found zero");
+        Self(n)
+    }
+
     /// Create a [`NonZero<UInt>`] from a [`NonZeroU8`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU8>` when stable
     pub const fn from_u8(n: NonZeroU8) -> Self {
