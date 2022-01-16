@@ -1,16 +1,5 @@
-//! Macros
-
-/// Constant panicking assertion.
-// TODO(tarcieri): use const panic when stable.
-// See: https://github.com/rust-lang/rust/issues/51999
-macro_rules! const_assert {
-    ($bool:expr, $msg:expr) => {
-        [$msg][!$bool as usize]
-    };
-}
-
 /// Calculate the number of limbs required to represent the given number of bits.
-// TODO(tarcieri): replace with `const_evaluatable_checked` (e.g. a `const fn`) when stable
+// TODO(tarcieri): replace with `generic_const_exprs` (rust-lang/rust#76560) when stable
 #[macro_export]
 macro_rules! nlimbs {
     ($bits:expr) => {

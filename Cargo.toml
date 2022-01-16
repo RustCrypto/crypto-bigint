@@ -1,6 +1,6 @@
 [package]
 name = "crypto-bigint"
-version = "0.3.2" # Also update html_root_url in lib.rs when bumping this
+version = "0.4.0-pre" # Also update html_root_url in lib.rs when bumping this
 description = """
 Pure Rust implementation of a big integer library which has been designed from
 the ground-up for use in cryptographic applications. Provides constant-time,
@@ -14,7 +14,7 @@ keywords = ["arbitrary", "crypto", "bignum", "integer", "precision"]
 readme = "README.md"
 resolver = "2"
 edition = "2021"
-rust-version = "1.56"
+rust-version = "1.57"
 
 [dependencies]
 subtle = { version = "2.4", default-features = false }

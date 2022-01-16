@@ -28,7 +28,7 @@ impl<const LIMBS: usize> Decoder<LIMBS> {
     /// Add a byte onto the [`UInt`] being decoded.
     pub const fn add_byte(mut self, byte: u8) -> Self {
         if self.bytes == Limb::BYTE_SIZE {
-            const_assert!(self.index < LIMBS, "too many bytes in UInt");
+            assert!(self.index < LIMBS, "too many bytes in UInt");
             self.index += 1;
             self.bytes = 0;
         }
@@ -41,8 +41,8 @@ impl<const LIMBS: usize> Decoder<LIMBS> {
     /// Finish decoding a [`UInt`], returning a decoded value only if we've
     /// received the expected number of bytes.
     pub const fn finish(self) -> UInt<LIMBS> {
-        const_assert!(self.index == LIMBS - 1, "decoded UInt is missing limbs");
-        const_assert!(
+        assert!(self.index == LIMBS - 1, "decoded UInt is missing limbs");
+        assert!(
             self.bytes == Limb::BYTE_SIZE,
             "decoded UInt is missing bytes"
         );

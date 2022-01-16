@@ -12,7 +12,7 @@ use decoder::Decoder;
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Create a new [`UInt`] from the provided big endian bytes.
     pub const fn from_be_slice(bytes: &[u8]) -> Self {
-        const_assert!(
+        assert!(
             bytes.len() == Limb::BYTE_SIZE * LIMBS,
             "bytes are not the expected size"
         );
@@ -32,7 +32,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     pub const fn from_be_hex(hex: &str) -> Self {
         let bytes = hex.as_bytes();
 
-        const_assert!(
+        assert!(
             bytes.len() == Limb::BYTE_SIZE * LIMBS * 2,
             "hex string is not the expected size"
         );
@@ -52,7 +52,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
 
     /// Create a new [`UInt`] from the provided little endian bytes.
     pub const fn from_le_slice(bytes: &[u8]) -> Self {
-        const_assert!(
+        assert!(
             bytes.len() == Limb::BYTE_SIZE * LIMBS,
             "bytes are not the expected size"
         );
@@ -72,7 +72,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     pub const fn from_le_hex(hex: &str) -> Self {
         let bytes = hex.as_bytes();
 
-        const_assert!(
+        assert!(
             bytes.len() == Limb::BYTE_SIZE * LIMBS * 2,
             "bytes are not the expected size"
         );
@@ -137,7 +137,7 @@ const fn decode_hex_byte(bytes: [u8; 2]) -> u8 {
             b @ b'a'..=b'f' => 10 + b - b'a',
             b @ b'A'..=b'F' => 10 + b - b'A',
             b => {
-                const_assert!(
+                assert!(
                     matches!(b, b'0'..=b'9' | b'a' ..= b'f' | b'A'..=b'F'),
                     "invalid hex byte"
                 );
