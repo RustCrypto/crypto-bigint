@@ -6,7 +6,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// Create a [`UInt`] from a `u8` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u8>` when stable
     pub const fn from_u8(n: u8) -> Self {
-        const_assert!(LIMBS >= 1, "number of limbs must be greater than zero");
+        assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         let mut limbs = [Limb::ZERO; LIMBS];
         limbs[0].0 = n as LimbUInt;
         Self { limbs }
@@ -15,7 +15,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// Create a [`UInt`] from a `u16` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u16>` when stable
     pub const fn from_u16(n: u16) -> Self {
-        const_assert!(LIMBS >= 1, "number of limbs must be greater than zero");
+        assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         let mut limbs = [Limb::ZERO; LIMBS];
         limbs[0].0 = n as LimbUInt;
         Self { limbs }
@@ -25,7 +25,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     // TODO(tarcieri): replace with `const impl From<u32>` when stable
     #[allow(trivial_numeric_casts)]
     pub const fn from_u32(n: u32) -> Self {
-        const_assert!(LIMBS >= 1, "number of limbs must be greater than zero");
+        assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         let mut limbs = [Limb::ZERO; LIMBS];
         limbs[0].0 = n as LimbUInt;
         Self { limbs }
@@ -35,7 +35,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     // TODO(tarcieri): replace with `const impl From<u64>` when stable
     #[cfg(target_pointer_width = "32")]
     pub const fn from_u64(n: u64) -> Self {
-        const_assert!(LIMBS >= 2, "number of limbs must be two or greater");
+        assert!(LIMBS >= 2, "number of limbs must be two or greater");
         let mut limbs = [Limb::ZERO; LIMBS];
         limbs[0].0 = (n & 0xFFFFFFFF) as u32;
         limbs[1].0 = (n >> 32) as u32;
@@ -46,7 +46,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     // TODO(tarcieri): replace with `const impl From<u64>` when stable
     #[cfg(target_pointer_width = "64")]
     pub const fn from_u64(n: u64) -> Self {
-        const_assert!(LIMBS >= 1, "number of limbs must be greater than zero");
+        assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         let mut limbs = [Limb::ZERO; LIMBS];
         limbs[0].0 = n;
         Self { limbs }
@@ -55,7 +55,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// Create a [`UInt`] from a `u128` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u128>` when stable
     pub const fn from_u128(n: u128) -> Self {
-        const_assert!(
+        assert!(
             LIMBS >= (128 / Limb::BIT_SIZE),
             "number of limbs must be greater than zero"
         );

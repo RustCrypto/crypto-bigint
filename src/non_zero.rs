@@ -242,7 +242,7 @@ impl<const LIMBS: usize> NonZero<UInt<LIMBS>> {
             }
             i += 1;
         }
-        const_assert!(found_non_zero, "found zero");
+        assert!(found_non_zero, "found zero");
         Self(n)
     }
 
