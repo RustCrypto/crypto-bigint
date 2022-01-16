@@ -125,7 +125,7 @@
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
-    html_root_url = "https://docs.rs/crypto-bigint/0.3.2"
+    html_root_url = "https://docs.rs/crypto-bigint/0.4.0-pre"
 )]
 #![forbid(unsafe_code, clippy::unwrap_used)]
 #![warn(
@@ -142,7 +142,7 @@
 extern crate alloc;
 
 #[macro_use]
-mod macros;
+mod nlimbs;
 
 #[cfg(feature = "generic-array")]
 mod array;

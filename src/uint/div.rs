@@ -103,7 +103,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// This function exists, so that all operations are accounted for in the wrapping operations.
     pub const fn wrapping_div(&self, rhs: &Self) -> Self {
         let (q, _, c) = self.ct_div_rem(rhs);
-        const_assert!(c == 1, "divide by zero");
+        assert!(c == 1, "divide by zero");
         q
     }
 
@@ -119,7 +119,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// This function exists, so that all operations are accounted for in the wrapping operations.
     pub const fn wrapping_rem(&self, rhs: &Self) -> Self {
         let (r, c) = self.ct_reduce(rhs);
-        const_assert!(c == 1, "modulo zero");
+        assert!(c == 1, "modulo zero");
         r
     }
 
