@@ -2,6 +2,9 @@
 
 mod decoder;
 
+#[cfg(all(feature = "der", feature = "generic-array"))]
+mod der;
+
 #[cfg(feature = "rlp")]
 mod rlp;
 
