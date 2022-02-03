@@ -17,42 +17,22 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     ///
     /// For more info see: <https://github.com/RustCrypto/crypto-bigint/issues/4>
     // TODO(tarcieri): use `concat` (or similar) when const trait is stable
-    pub const fn mul_wide(&self, rhs: &Self) -> (Self, Self) {
-        let mut i = 0;
-        let mut lo = Self::ZERO;
-        let mut hi = Self::ZERO;
+    pub fn mul_wide(&self, rhs: &Self) -> (Self, Self) {
+        let zero = Self::ZERO;
+        let mut r = [zero.limbs, zero.limbs].concat();
+        let mut s = [zero.limbs, zero.limbs, zero.limbs, zero.limbs].concat();
 
-        // Schoolbook multiplication.
-        // TODO(tarcieri): use Karatsuba for better performance?
-        while i < LIMBS {
-            let mut j = 0;
-            let mut carry = Limb::ZERO;
+        toom22(&self.limbs, &rhs.limbs, &mut r, &mut s);
+        let (lo, hi) = r.split_at(LIMBS);
 
-            while j < LIMBS {
-                let k = i + j;
-
-                if k >= LIMBS {
-                    let (n, c) = hi.limbs[k - LIMBS].mac(self.limbs[i], rhs.limbs[j], carry);
-                    hi.limbs[k - LIMBS] = n;
-                    carry = c;
-                } else {
-                    let (n, c) = lo.limbs[k].mac(self.limbs[i], rhs.limbs[j], carry);
-                    lo.limbs[k] = n;
-                    carry = c;
-                }
-
-                j += 1;
-            }
-
-            hi.limbs[i + j - LIMBS] = carry;
-            i += 1;
-        }
-
-        (lo, hi)
+        (
+            Self::new(lo.try_into().unwrap()),
+            Self::new(hi.try_into().unwrap()),
+        )
     }
 
     /// Perform saturating multiplication, returning `MAX` on overflow.
-    pub const fn saturating_mul(&self, rhs: &Self) -> Self {
+    pub fn saturating_mul(&self, rhs: &Self) -> Self {
         let (res, overflow) = self.mul_wide(rhs);
 
         let mut i = 0;
@@ -71,7 +51,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     }
 
     /// Perform wrapping multiplication, discarding overflow.
-    pub const fn wrapping_mul(&self, rhs: &Self) -> Self {
+    pub fn wrapping_mul(&self, rhs: &Self) -> Self {
         self.mul_wide(rhs).0
     }
 
@@ -179,6 +159,204 @@ impl<const LIMBS: usize> MulAssign for Checked<UInt<LIMBS>> {
 impl<const LIMBS: usize> MulAssign<&Checked<UInt<LIMBS>>> for Checked<UInt<LIMBS>> {
     fn mul_assign(&mut self, other: &Self) {
         *self = *self * other;
+    }
+}
+
+// preconditions:
+// a.len() == b.len()
+// r.len() >= a.len()
+// stores the result of |a - b| in the lower a.len() limbs of r
+// returns true if a >= b
+#[inline(always)]
+fn diff_same(a: &[Limb], b: &[Limb], r: &mut [Limb]) -> bool {
+    for i in (0..b.len()).rev() {
+        if a[i] == b[i] {
+            r[i] = Limb::ZERO;
+        } else if a[i] > b[i] {
+            let mut borrow = Limb::ZERO;
+            for j in 0..i + 1 {
+                let (w, b) = a[j].sbb(b[j], borrow);
+                r[j] = w;
+                borrow = b;
+            }
+            return true;
+        } else {
+            let mut borrow = Limb::ZERO;
+            for j in 0..i + 1 {
+                let (w, b) = b[j].sbb(a[j], borrow);
+                r[j] = w;
+                borrow = b;
+            }
+            return false;
+        }
+    }
+    true
+}
+
+// preconditions:
+// a.len() == b.len() || a.len() == b.len() + 1
+// if initially toom22 operands have same
+// number of limbs then the above condition always holds
+// r.len() >= a.len()
+// stores the result of |a - b| in the lower a.len() limbs of r
+// returns true if a >= b
+#[inline(always)]
+fn diff(a: &[Limb], b: &[Limb], r: &mut [Limb]) -> bool {
+    for i in b.len()..a.len() {
+        r[i] = Limb::ZERO;
+    }
+    if a.len() == b.len() {
+        return diff_same(a, b, r);
+    } else {
+        if a[a.len() - 1] != Limb::ZERO {
+            let mut borrow = Limb::ZERO;
+            for i in 0..b.len() {
+                let (w, b) = a[i].sbb(b[i], borrow);
+                r[i] = w;
+                borrow = b;
+            }
+
+            let (w, _) = a[a.len() - 1].sbb(Limb::ZERO, borrow);
+            r[r.len() - 1] = w;
+            true
+        } else {
+            let (a, _) = a.split_at(b.len());
+            return diff_same(a, b, r);
+        }
+    }
+}
+
+// input:
+// a, b -> numbers to be multiplied given as &[Limb]
+// r -> array to store the result
+// s -> scratch space used to compute the result
+// Output:
+// computes a*b and stores result in r
+// Preconditions:
+// a.len() >= b.len()
+// r.len() == a.len() + b.len()
+// s.len() == 2*(a.len() + b.len())
+pub fn toom22(a: &[Limb], b: &[Limb], r: &mut [Limb], s: &mut [Limb]) {
+    let x = a.len() - (a.len() >> 1);
+
+    // use schoolbook multiplication if one of the operands
+    // has less than 32 limbs
+    if a.len() < 32 {
+        for i in 0..r.len() {
+            r[i] = Limb::ZERO;
+        }
+        for i in 0..b.len() {
+            let mut carry = Limb::ZERO;
+            for j in 0..a.len() {
+                let k = i + j;
+                let (w, c) = r[k].mac(a[j], b[i], carry);
+                r[k] = w;
+                carry = c;
+            }
+            r[i + a.len()] = carry;
+        }
+    } else {
+        // split lower and upper halfs of r
+        // rlo => r[0..2x]
+        // rhi => r[2x..]
+        let (rlo, rhi) = r.split_at_mut(2 * x);
+
+        // split lower half of r to store result of |a0-a1| and |b0-b1|
+        let (a_diff, b_diff) = rlo.split_at_mut(x);
+
+        // split lower and upper half of a
+        let (a0, a1) = a.split_at(x);
+
+        // split lower and upper half of b
+        let (b0, b1) = b.split_at(x);
+
+        // stores whether result of (a0-a1)*(b0-b1) is positive or zero
+        let mut is_positive = true;
+
+        // compute |a0-a1| in r[0..x]
+        is_positive ^= diff(a0, a1, a_diff);
+
+        // compute |b0-b1| in r[x..2x]
+        is_positive ^= diff(b0, b1, b_diff);
+
+        // split scratch space into slo => s[0..2x], shi => s[2x..]
+        let (slo, shi) = s.split_at_mut(2 * x);
+
+        // store result of |a0-a1| * |b0-b1| in lower half of s
+        // using upper half of s as scratch space
+        toom22(a_diff, b_diff, slo, shi);
+
+        // recursively compute multiplication
+        // a0*b0 with result in r[0..2x]
+        toom22(a0, b0, rlo, shi);
+
+        // a1*b1 with result in r[2x..]
+        toom22(a1, b1, rhi, shi);
+
+        // save a0*b0 in the upper half of scratch space
+        for i in 0..2 * x {
+            shi[i] = rlo[i];
+        }
+
+        // denotes final carry left at position 3*x
+        let mut cf = Limb::ZERO;
+
+        // carry when a1*b1 is added to r[x..3x]
+        let mut c11 = Limb::ZERO;
+        for i in x..3 * x {
+            let h = if i + x < r.len() {
+                r[i + x]
+            } else {
+                Limb::ZERO
+            };
+            let (w, c) = r[i].adc(h, c11);
+            r[i] = w;
+            c11 = c;
+        }
+
+        // carry when a0*b0 is added to r[x..3x]
+        let mut c00 = Limb::ZERO;
+        for i in x..3 * x {
+            let (w, c) = r[i].adc(shi[i - x], c00);
+            r[i] = w;
+            c00 = c;
+        }
+
+        // add intermediate carry
+        cf = cf.adc(c00, c11).0;
+
+        // if result of (a0-a1)*(b0-b1) is positive we subtract
+        // else add to the final result
+        match is_positive {
+            true => {
+                let mut borrow = Limb::ZERO;
+                for i in x..3 * x {
+                    let (w, b) = r[i].sbb(slo[i - x], borrow);
+                    r[i] = w;
+                    borrow = b;
+                }
+                cf = cf.sbb(Limb::ZERO, borrow).0;
+            }
+            false => {
+                let mut carry = Limb::ZERO;
+                for i in x..3 * x {
+                    let (w, c) = r[i].adc(slo[i - x], carry);
+                    r[i] = w;
+                    carry = c;
+                }
+                cf = cf.adc(Limb::ZERO, carry).0;
+            }
+        }
+
+        // propagate the final carry
+        for i in 3 * x..r.len() {
+            let (w, c) = r[i].adc(cf, Limb::ZERO);
+            r[i] = w;
+            if c == Limb::ZERO {
+                break;
+            }
+            cf = c;
+        }
     }
 }
 
