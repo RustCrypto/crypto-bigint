@@ -66,9 +66,9 @@ dependencies = [
 
 [[package]]
 name = "der"
-version = "0.6.0-pre.1"
+version = "0.6.0-pre.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "344815b9f2f6e19514015c00a970297a1c60f27be34896e28a9120707995b1ef"
+checksum = "b3ed717eef39a802bcfbfefed277ffe0639c53ad7720753646d21d2bd6074fe1"
 
 [[package]]
 name = "fnv"
