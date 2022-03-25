@@ -24,9 +24,12 @@ der = { version = "=0.6.0-pre.3", optional = true, default-features = false }
 generic-array = { version = "0.14", optional = true }
 rand_core = { version = "0.6", optional = true }
 rlp = { version = "0.5", optional = true, default-features = false }
+serde_ = { version = "1", package = "serde", optional = true, default-features = false }
+serde-big-array = { version = "0.4", optional = true }
 zeroize = { version = "1", optional = true,  default-features = false }
 
 [dev-dependencies]
+bincode = "1"
 hex-literal = "0.3"
 num-bigint = "0.4"
 num-traits = "0.2"
@@ -38,6 +41,7 @@ rand_chacha = "0.3"
 default = ["rand"]
 alloc = []
 rand = ["rand_core/std"]
+serde = ["serde_", "serde-big-array"]
 
 [package.metadata.docs.rs]
 all-features = true
