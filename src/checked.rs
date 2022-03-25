@@ -2,6 +2,9 @@
 
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 /// Provides intentionally-checked arithmetic on `T`.
 ///
 /// Internally this leverages the [`CtOption`] type from the [`subtle`] crate
@@ -54,5 +57,80 @@ impl<T> From<CtOption<T>> for Checked<T> {
 impl<T> From<Checked<T>> for Option<T> {
     fn from(checked: Checked<T>) -> Option<T> {
         checked.0.into()
+    }
+}
+
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+impl<'de, T: Default + Deserialize<'de>> Deserialize<'de> for Checked<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = Option::<T>::deserialize(deserializer)?;
+
+        Ok(Self(match value {
+            Some(value) => CtOption::new(value, Choice::from(1)),
+            None => CtOption::new(T::default(), Choice::from(0)),
+        }))
+    }
+}
+
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+impl<'de, T: Copy + Serialize> Serialize for Checked<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        Option::<T>::from(self.0).serialize(serializer)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Checked, U64};
+    use subtle::{Choice, ConstantTimeEq, CtOption};
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn serde() {
+        let test = Checked::new(U64::from_u64(0x0011223344556677));
+
+        let serialized = bincode::serialize(&test).unwrap();
+        let deserialized: Checked<U64> = bincode::deserialize(&serialized).unwrap();
+
+        assert!(bool::from(test.ct_eq(&deserialized)));
+
+        let test = Checked::new(U64::ZERO) - Checked::new(U64::ONE);
+        assert!(bool::from(
+            test.ct_eq(&Checked(CtOption::new(U64::ZERO, Choice::from(0))))
+        ));
+
+        let serialized = bincode::serialize(&test).unwrap();
+        let deserialized: Checked<U64> = bincode::deserialize(&serialized).unwrap();
+
+        assert!(bool::from(test.ct_eq(&deserialized)));
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn serde_owned() {
+        let test = Checked::new(U64::from_u64(0x0011223344556677));
+
+        let serialized = bincode::serialize(&test).unwrap();
+        let deserialized: Checked<U64> = bincode::deserialize_from(serialized.as_slice()).unwrap();
+
+        assert!(bool::from(test.ct_eq(&deserialized)));
+
+        let test = Checked::new(U64::ZERO) - Checked::new(U64::ONE);
+        assert!(bool::from(
+            test.ct_eq(&Checked(CtOption::new(U64::ZERO, Choice::from(0))))
+        ));
+
+        let serialized = bincode::serialize(&test).unwrap();
+        let deserialized: Checked<U64> = bincode::deserialize_from(serialized.as_slice()).unwrap();
+
+        assert!(bool::from(test.ct_eq(&deserialized)));
     }
 }
