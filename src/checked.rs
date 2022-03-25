@@ -87,13 +87,12 @@ impl<'de, T: Copy + Serialize> Serialize for Checked<T> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "serde"))]
 mod tests {
     use crate::{Checked, U64};
     use subtle::{Choice, ConstantTimeEq, CtOption};
 
     #[test]
-    #[cfg(feature = "serde")]
     fn serde() {
         let test = Checked::new(U64::from_u64(0x0011223344556677));
 
@@ -114,7 +113,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "serde")]
     fn serde_owned() {
         let test = Checked::new(U64::from_u64(0x0011223344556677));
 

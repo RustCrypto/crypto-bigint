@@ -82,12 +82,11 @@ impl<'de, T: Serialize> Serialize for Wrapping<T> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "serde"))]
 mod tests {
     use crate::{Wrapping, U64};
 
     #[test]
-    #[cfg(feature = "serde")]
     fn serde() {
         const TEST: Wrapping<U64> = Wrapping(U64::from_u64(0x0011223344556677));
 
@@ -98,7 +97,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "serde")]
     fn serde_owned() {
         const TEST: Wrapping<U64> = Wrapping(U64::from_u64(0x0011223344556677));
 

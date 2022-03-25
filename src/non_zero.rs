@@ -344,14 +344,12 @@ impl<'de, T: Serialize + Zero> Serialize for NonZero<T> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "serde"))]
 mod tests {
     use crate::{NonZero, U64};
-    #[cfg(feature = "serde")]
     use bincode::ErrorKind;
 
     #[test]
-    #[cfg(feature = "serde")]
     fn serde() {
         let test =
             Option::<NonZero<U64>>::from(NonZero::new(U64::from_u64(0x0011223344556677))).unwrap();
@@ -369,7 +367,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "serde")]
     fn serde_owned() {
         let test =
             Option::<NonZero<U64>>::from(NonZero::new(U64::from_u64(0x0011223344556677))).unwrap();
