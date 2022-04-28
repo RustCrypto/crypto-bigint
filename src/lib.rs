@@ -120,7 +120,7 @@
 //! [`Sub`]: core::ops::Sub
 //! [`CryptoRng`]: rand_core::CryptoRng
 
-#![no_std]
+//#![no_std]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",

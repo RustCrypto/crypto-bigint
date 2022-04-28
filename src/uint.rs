@@ -245,6 +245,18 @@ mod tests {
 
         use alloc::string::ToString;
         assert_eq!(hex, n.to_string());
+
+        let hex = "AAAAAAAABBBBBBBB0000000000000000";
+        let n = U128::from_be_hex(hex);
+        assert_eq!(hex, n.to_string());
+
+        let hex = "AAAAAAAABBBBBBBB00000000DDDDDDDD";
+        let n = U128::from_be_hex(hex);
+        assert_eq!(hex, n.to_string());
+
+        let hex = "AAAAAAAABBBBBBBB0CCCCCCCDDDDDDDD";
+        let n = U128::from_be_hex(hex);
+        assert_eq!(hex, n.to_string());
     }
 
     #[test]
