@@ -132,14 +132,14 @@ impl fmt::Display for Limb {
 impl fmt::LowerHex for Limb {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::LowerHex::fmt(&self.0, f)
+        write!(f, "{:0width$x}", &self.0, width = Self::BYTE_SIZE * 2)
     }
 }
 
 impl fmt::UpperHex for Limb {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::UpperHex::fmt(&self.0, f)
+        write!(f, "{:0width$X}", &self.0, width = Self::BYTE_SIZE * 2)
     }
 }
 
