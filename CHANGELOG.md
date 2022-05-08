@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.4.0 (2022-05-08)
+### Added
+- Const-friendly `NonZero` from `UInt` ([#56])
+- Optional `der` feature ([#61], [#80])
+
+### Changed
+- Use `const_panic`; MSRV 1.57 ([#60])
+- 2021 edition ([#60])
+
+### Fixed
+- Pad limbs with zeros when displaying hexadecimal representation ([#74])
+
+[#56]: https://github.com/RustCrypto/crypto-bigint/pull/56
+[#60]: https://github.com/RustCrypto/crypto-bigint/pull/60
+[#61]: https://github.com/RustCrypto/crypto-bigint/pull/61
+[#74]: https://github.com/RustCrypto/crypto-bigint/pull/74
+[#80]: https://github.com/RustCrypto/crypto-bigint/pull/80
+
 ## 0.3.2 (2021-11-17)
 ### Added
 - `Output = Self` to all bitwise ops on `Integer` trait ([#53])

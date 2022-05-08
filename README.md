@@ -35,8 +35,8 @@ version bump.
 
 Licensed under either of:
 
- * [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
- * [MIT license](http://opensource.org/licenses/MIT)
+- [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+- [MIT license](http://opensource.org/licenses/MIT)
 
 at your option.
 
@@ -48,7 +48,7 @@ dual licensed as above, without any additional terms or conditions.
 
 [//]: # (badges)
 
-[crate-image]: https://img.shields.io/crates/v/crypto-bigint.svg
+[crate-image]: https://buildstats.info/crate/crypto-bigint
 [crate-link]: https://crates.io/crates/crypto-bigint
 [docs-image]: https://docs.rs/crypto-bigint/badge.svg
 [docs-link]: https://docs.rs/crypto-bigint/
