@@ -49,7 +49,7 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "crypto-bigint"
-version = "0.4.0-pre.0"
+version = "0.4.0-pre.1"
 dependencies = [
  "der",
  "generic-array",
@@ -66,9 +66,9 @@ dependencies = [
 
 [[package]]
 name = "der"
-version = "0.6.0-pre.4"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0daf09ee3ea2f7e4f5761deb921bd4c4e46861ee4b218349a40eccfa9d7fa6a5"
+checksum = "13dd2ae565c0a381dde7fade45fce95984c568bdcb4700a4fdbe3175e0380b2f"
 
 [[package]]
 name = "fnv"
