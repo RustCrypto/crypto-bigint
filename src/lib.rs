@@ -1,4 +1,21 @@
+#![no_std]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
+#![doc(
+    html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
+    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg"
+)]
+#![forbid(unsafe_code)]
+#![warn(
+    clippy::unwrap_used,
+    missing_docs,
+    missing_debug_implementations,
+    missing_copy_implementations,
+    rust_2018_idioms,
+    trivial_casts,
+    trivial_numeric_casts,
+    unused_qualifications
+)]
 
 //! ## Usage
 //!
@@ -119,24 +136,6 @@
 //! [`Rem`]: core::ops::Rem
 //! [`Sub`]: core::ops::Sub
 //! [`CryptoRng`]: rand_core::CryptoRng
-
-#![no_std]
-#![cfg_attr(docsrs, feature(doc_cfg))]
-#![doc(
-    html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
-    html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
-    html_root_url = "https://docs.rs/crypto-bigint/0.4.0-pre"
-)]
-#![forbid(unsafe_code, clippy::unwrap_used)]
-#![warn(
-    missing_docs,
-    missing_debug_implementations,
-    missing_copy_implementations,
-    rust_2018_idioms,
-    trivial_casts,
-    trivial_numeric_casts,
-    unused_qualifications
-)]
 
 #[cfg(all(feature = "alloc", test))]
 extern crate alloc;
