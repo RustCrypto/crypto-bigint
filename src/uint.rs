@@ -234,7 +234,7 @@ impl_split! {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Concat, Split, U128, U64};
+    use crate::{Concat, Encoding, Split, U128, U64};
     use subtle::ConditionallySelectable;
 
     #[test]
@@ -257,6 +257,22 @@ mod tests {
         let hex = "AAAAAAAABBBBBBBB0CCCCCCCDDDDDDDD";
         let n = U128::from_be_hex(hex);
         assert_eq!(hex, n.to_string());
+    }
+
+    #[test]
+    fn from_bytes() {
+        let a = U128::from_be_hex("AAAAAAAABBBBBBBB0CCCCCCCDDDDDDDD");
+
+        let be_bytes = a.to_be_bytes();
+        let le_bytes = a.to_le_bytes();
+        for i in 0..16 {
+            assert_eq!(le_bytes[i], be_bytes[15 - i]);
+        }
+
+        let a_from_be = U128::from_be_bytes(be_bytes);
+        let a_from_le = U128::from_le_bytes(le_bytes);
+        assert_eq!(a_from_be, a_from_le);
+        assert_eq!(a_from_be, a);
     }
 
     #[test]

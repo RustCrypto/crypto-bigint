@@ -20,7 +20,7 @@ macro_rules! impl_uint_aliases {
                 }
 
                 fn from_le_bytes(bytes: Self::Repr) -> Self {
-                    Self::from_be_slice(&bytes)
+                    Self::from_le_slice(&bytes)
                 }
 
                 #[inline]
