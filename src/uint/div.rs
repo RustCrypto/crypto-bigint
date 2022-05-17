@@ -42,11 +42,11 @@ impl<const LIMBS: usize> UInt<LIMBS> {
             e = e.shr_vartime(1);
         }
         // If `self`<rhs
-        // set quo and rem to Self::ZERO
+        // set quo to zero and and rem to self
         let res = self.ct_cmp(rhs) + 1;
         let gt = Limb::is_nonzero(Limb(res as LimbUInt));
         quo = Self::ct_select(Self::ZERO, quo, gt);
-        rem = Self::ct_select(Self::ZERO, rem, gt);
+        rem = Self::ct_select(*self, rem, gt);
         let is_some = rhs.ct_is_nonzero() & 1;
         (quo, rem, is_some as u8)
     }
@@ -76,10 +76,10 @@ impl<const LIMBS: usize> UInt<LIMBS> {
             c = c.shr_vartime(1);
         }
         // If `self`<rhs
-        // set rem to Self::ZERO
+        // set rem to self
         let res = self.ct_cmp(rhs) + 1;
         let gt = Limb::is_nonzero(Limb(res as LimbUInt));
-        rem = Self::ct_select(Self::ZERO, rem, gt);
+        rem = Self::ct_select(*self, rem, gt);
         let is_some = rhs.ct_is_nonzero() & 1;
         (rem, is_some as u8)
     }
@@ -361,19 +361,24 @@ mod tests {
 
     #[test]
     fn div_word() {
-        for (n, d, e) in &[
-            (200u64, 2u64, 100u64),
-            (100u64, 25u64, 4u64),
-            (100u64, 10u64, 10u64),
-            (1024u64, 8u64, 128u64),
+        for (n, d, e, ee) in &[
+            (200u64, 2u64, 100u64, 0),
+            (100u64, 25u64, 4u64, 0),
+            (100u64, 10u64, 10u64, 0),
+            (1024u64, 8u64, 128u64, 0),
+            (27u64, 13u64, 2u64, 1u64),
+            (26u64, 13u64, 2u64, 0u64),
+            (14u64, 13u64, 1u64, 1u64),
+            (13u64, 13u64, 1u64, 0u64),
+            (12u64, 13u64, 0u64, 12u64),
+            (1u64, 13u64, 0u64, 1u64),
         ] {
             let lhs = U256::from(*n);
             let rhs = U256::from(*d);
-            let expected = U256::from(*e);
             let (q, r, is_some) = lhs.ct_div_rem(&rhs);
             assert_eq!(is_some, 1);
-            assert_eq!(expected, q);
-            assert_eq!(U256::default(), r);
+            assert_eq!(U256::from(*e), q);
+            assert_eq!(U256::from(*ee), r);
         }
     }
 
@@ -456,6 +461,6 @@ mod tests {
         a.limbs[a.limbs.len() - 1] = Limb(1 << HI_BIT - 7);
         b.limbs[b.limbs.len() - 1] = Limb(0x82 << HI_BIT - 7);
         let r = a.wrapping_rem(&b);
-        assert_eq!(r, UInt::ZERO);
+        assert_eq!(r, a);
     }
 }
