@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.4.2 (2022-05-18)
+### Added
+- `UInt::inv_mod2k` ([#86])
+
+### Fixed
+- Wrong results for remainder ([#84])
+
+[#84]: https://github.com/RustCrypto/crypto-bigint/pull/84
+[#86]: https://github.com/RustCrypto/crypto-bigint/pull/86
+
 ## 0.4.1 (2022-05-10)
 ### Fixed
 - Bug in `from_le_slice` ([#82])
