@@ -1,12 +1,10 @@
 //! [`UInt`] division operations.
 
 use super::UInt;
-use crate::limb::{LimbInt, LimbUInt};
+use crate::limb::{LimbInt, LimbUInt, HI_BIT};
 use crate::{Integer, Limb, NonZero, Wrapping};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::{Choice, CtOption};
-
-const LIMB_BIT_SIZE_M_1: usize = Limb::BIT_SIZE - 1;
 
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Computes `self` / `rhs`, returns the quotient (q), remainder (r)
@@ -28,7 +26,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
 
         loop {
             let mut r: Self = rem.wrapping_sub(&c);
-            let d = -(((1 - (r.limbs[LIMBS - 1].0 >> LIMB_BIT_SIZE_M_1)) & 1) as LimbInt);
+            let d = -(((1 - (r.limbs[LIMBS - 1].0 >> HI_BIT)) & 1) as LimbInt);
             let d = d as LimbUInt;
             rem = Self::ct_select(rem, r, d);
             r = quo;
@@ -66,7 +64,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
 
         loop {
             let r: Self = rem.wrapping_sub(&c);
-            let d = -(((1 - (r.limbs[LIMBS - 1].0 >> LIMB_BIT_SIZE_M_1)) & 1) as LimbInt);
+            let d = -(((1 - (r.limbs[LIMBS - 1].0 >> HI_BIT)) & 1) as LimbInt);
             let d = d as LimbUInt;
             rem = Self::ct_select(rem, r, d);
             if bd == 0 {
@@ -76,12 +74,38 @@ impl<const LIMBS: usize> UInt<LIMBS> {
             c = c.shr_vartime(1);
         }
         // If `self`<rhs
-        // set rem to self
+        // set rem to `self`
         let res = self.ct_cmp(rhs) + 1;
         let gt = Limb::is_nonzero(Limb(res as LimbUInt));
         rem = Self::ct_select(*self, rem, gt);
         let is_some = rhs.ct_is_nonzero() & 1;
         (rem, is_some as u8)
+    }
+
+    /// Computes `self` % 2^k. Faster than reduce since its a power of 2.
+    /// Limited to 2^16-1 since UInt doesn't support higher.
+    pub const fn reduce2k(&self, k: usize) -> Self {
+        let highest = (LIMBS - 1) as u32;
+        let index = k as u32 / (Limb::BIT_SIZE as u32);
+        let res = Limb::ct_cmp(Limb::from_u32(index), Limb::from_u32(highest)) - 1;
+        let le = Limb::is_nonzero(Limb(res as LimbUInt));
+        let word = Limb::ct_select(Limb::from_u32(highest), Limb::from_u32(index), le).0 as usize;
+
+        let base = k % Limb::BIT_SIZE;
+        let mask = (1 << base) - 1;
+        let mut out = *self;
+
+        let outmask = Limb(out.limbs[word].0 & mask);
+
+        out.limbs[word] = Limb::ct_select(out.limbs[word], outmask, le);
+
+        let mut i = word + 1;
+        while i < LIMBS {
+            out.limbs[i] = Limb::ZERO;
+            i += 1;
+        }
+
+        out
     }
 
     /// Computes self / rhs, returns the quotient, remainder
@@ -356,6 +380,7 @@ mod tests {
     use {
         crate::{CheckedMul, Random},
         rand_chacha::ChaChaRng,
+        rand_core::RngCore,
         rand_core::SeedableRng,
     };
 
@@ -462,5 +487,20 @@ mod tests {
         b.limbs[b.limbs.len() - 1] = Limb(0x82 << HI_BIT - 7);
         let r = a.wrapping_rem(&b);
         assert_eq!(r, a);
+    }
+
+    #[cfg(feature = "rand")]
+    #[test]
+    fn reduce2krand() {
+        let mut rng = ChaChaRng::from_seed([7u8; 32]);
+        for _ in 0..25 {
+            let num = U256::random(&mut rng);
+            let k = (rng.next_u32() % 256) as usize;
+            let den = U256::ONE.shl_vartime(k);
+
+            let a = num.reduce2k(k);
+            let e = num.wrapping_rem(&den);
+            assert_eq!(a, e);
+        }
     }
 }
