@@ -183,7 +183,7 @@ impl<const LIMBS: usize> From<[LimbUInt; LIMBS]> for UInt<LIMBS> {
 
 impl<const LIMBS: usize> From<UInt<LIMBS>> for [LimbUInt; LIMBS] {
     fn from(n: UInt<LIMBS>) -> [LimbUInt; LIMBS] {
-        n.to_uint_array()
+        *n.as_ref()
     }
 }
 
