@@ -36,7 +36,7 @@ mod array;
 mod rand;
 
 use crate::{Concat, Encoding, Integer, Limb, LimbUInt, Split, Zero};
-use core::fmt;
+use core::{fmt, mem};
 use subtle::{Choice, ConditionallySelectable};
 
 #[cfg(feature = "zeroize")]
@@ -82,6 +82,16 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         Self { limbs }
     }
 
+    /// Borrow the inner limbs array as an array of [`LimbUInt`]s.
+    pub const fn as_uint_array(&self) -> &[LimbUInt; LIMBS] {
+        // SAFETY: `Limb` is a `repr(transparent)` newtype for `LimbUInt`
+        #[allow(unsafe_code)]
+        unsafe {
+            // TODO(tarcieri): use &*((&self.limbs as *const _) as *const [LimbUInt; LIMBS])
+            mem::transmute(&self.limbs)
+        }
+    }
+
     /// Convert this [`UInt`] into its inner limbs.
     pub const fn into_limbs(self) -> [Limb; LIMBS] {
         self.limbs
@@ -100,11 +110,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
 
 impl<const LIMBS: usize> AsRef<[LimbUInt; LIMBS]> for UInt<LIMBS> {
     fn as_ref(&self) -> &[LimbUInt; LIMBS] {
-        // SAFETY: `Limb` is a `repr(transparent)` newtype for `LimbUInt`
-        #[allow(trivial_casts, unsafe_code)]
-        unsafe {
-            &*((&self.limbs as *const _) as *const [LimbUInt; LIMBS])
-        }
+        self.as_uint_array()
     }
 }
 
