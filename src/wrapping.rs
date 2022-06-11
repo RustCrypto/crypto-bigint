@@ -4,6 +4,9 @@ use crate::Zero;
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
+#[cfg(feature = "serde")]
+use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 /// Provides intentionally-wrapped arithmetic on `T`.
 ///
 /// This is analogous to [`core::num::Wrapping`] but allows this crate to
@@ -54,5 +57,52 @@ impl<T: ConditionallySelectable> ConditionallySelectable for Wrapping<T> {
 impl<T: ConstantTimeEq> ConstantTimeEq for Wrapping<T> {
     fn ct_eq(&self, other: &Self) -> Choice {
         self.0.ct_eq(&other.0)
+    }
+}
+
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+impl<'de, T: Deserialize<'de>> Deserialize<'de> for Wrapping<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(Self(T::deserialize(deserializer)?))
+    }
+}
+
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+impl<'de, T: Serialize> Serialize for Wrapping<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
+#[cfg(all(test, feature = "serde"))]
+mod tests {
+    use crate::{Wrapping, U64};
+
+    #[test]
+    fn serde() {
+        const TEST: Wrapping<U64> = Wrapping(U64::from_u64(0x0011223344556677));
+
+        let serialized = bincode::serialize(&TEST).unwrap();
+        let deserialized: Wrapping<U64> = bincode::deserialize(&serialized).unwrap();
+
+        assert_eq!(TEST, deserialized);
+    }
+
+    #[test]
+    fn serde_owned() {
+        const TEST: Wrapping<U64> = Wrapping(U64::from_u64(0x0011223344556677));
+
+        let serialized = bincode::serialize(&TEST).unwrap();
+        let deserialized: Wrapping<U64> = bincode::deserialize_from(serialized.as_slice()).unwrap();
+
+        assert_eq!(TEST, deserialized);
     }
 }

@@ -39,6 +39,9 @@ use crate::{Concat, Encoding, Integer, Limb, LimbUInt, Split, Zero};
 use core::{fmt, mem};
 use subtle::{Choice, ConditionallySelectable};
 
+#[cfg(feature = "serde")]
+use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 #[cfg(feature = "zeroize")]
 use zeroize::DefaultIsZeroes;
 
@@ -196,6 +199,37 @@ impl<const LIMBS: usize> fmt::UpperHex for UInt<LIMBS> {
     }
 }
 
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+impl<'de, const LIMBS: usize> Deserialize<'de> for UInt<LIMBS>
+where
+    UInt<LIMBS>: Encoding,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let mut buffer = Self::ZERO.to_le_bytes();
+        serdect::array::deserialize_hex_or_bin(buffer.as_mut(), deserializer)?;
+
+        Ok(Self::from_le_bytes(buffer))
+    }
+}
+
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+impl<'de, const LIMBS: usize> Serialize for UInt<LIMBS>
+where
+    UInt<LIMBS>: Encoding,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serdect::array::serialize_hex_lower_or_bin(&Encoding::to_le_bytes(self), serializer)
+    }
+}
+
 #[cfg(feature = "zeroize")]
 #[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
 impl<const LIMBS: usize> DefaultIsZeroes for UInt<LIMBS> {}
@@ -332,5 +366,27 @@ mod tests {
         let (hi, lo) = U128::from_be_hex("00112233445566778899aabbccddeeff").split();
         assert_eq!(hi, U64::from_u64(0x0011223344556677));
         assert_eq!(lo, U64::from_u64(0x8899aabbccddeeff));
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn serde() {
+        const TEST: U64 = U64::from_u64(0x0011223344556677);
+
+        let serialized = bincode::serialize(&TEST).unwrap();
+        let deserialized: U64 = bincode::deserialize(&serialized).unwrap();
+
+        assert_eq!(TEST, deserialized);
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn serde_owned() {
+        const TEST: U64 = U64::from_u64(0x0011223344556677);
+
+        let serialized = bincode::serialize(&TEST).unwrap();
+        let deserialized: U64 = bincode::deserialize_from(serialized.as_slice()).unwrap();
+
+        assert_eq!(TEST, deserialized);
     }
 }

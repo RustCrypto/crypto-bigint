@@ -17,6 +17,12 @@ use {
     rand_core::{CryptoRng, RngCore},
 };
 
+#[cfg(feature = "serde")]
+use serdect::serde::{
+    de::{Error, Unexpected},
+    Deserialize, Deserializer, Serialize, Serializer,
+};
+
 /// Wrapper type for non-zero integers.
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub struct NonZero<T: Zero>(T);
@@ -304,5 +310,76 @@ impl<const LIMBS: usize> From<NonZeroU64> for NonZero<UInt<LIMBS>> {
 impl<const LIMBS: usize> From<NonZeroU128> for NonZero<UInt<LIMBS>> {
     fn from(integer: NonZeroU128) -> Self {
         Self::from_u128(integer)
+    }
+}
+
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+impl<'de, T: Deserialize<'de> + Zero> Deserialize<'de> for NonZero<T> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value: T = T::deserialize(deserializer)?;
+
+        if bool::from(value.is_zero()) {
+            Err(D::Error::invalid_value(
+                Unexpected::Other("zero"),
+                &"a non-zero value",
+            ))
+        } else {
+            Ok(Self(value))
+        }
+    }
+}
+
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+impl<'de, T: Serialize + Zero> Serialize for NonZero<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
+#[cfg(all(test, feature = "serde"))]
+mod tests {
+    use crate::{NonZero, U64};
+    use bincode::ErrorKind;
+
+    #[test]
+    fn serde() {
+        let test =
+            Option::<NonZero<U64>>::from(NonZero::new(U64::from_u64(0x0011223344556677))).unwrap();
+
+        let serialized = bincode::serialize(&test).unwrap();
+        let deserialized: NonZero<U64> = bincode::deserialize(&serialized).unwrap();
+
+        assert_eq!(test, deserialized);
+
+        let serialized = bincode::serialize(&U64::ZERO).unwrap();
+        assert!(matches!(
+            *bincode::deserialize::<NonZero<U64>>(&serialized).unwrap_err(),
+            ErrorKind::Custom(message) if message == "invalid value: zero, expected a non-zero value"
+        ));
+    }
+
+    #[test]
+    fn serde_owned() {
+        let test =
+            Option::<NonZero<U64>>::from(NonZero::new(U64::from_u64(0x0011223344556677))).unwrap();
+
+        let serialized = bincode::serialize(&test).unwrap();
+        let deserialized: NonZero<U64> = bincode::deserialize_from(serialized.as_slice()).unwrap();
+
+        assert_eq!(test, deserialized);
+
+        let serialized = bincode::serialize(&U64::ZERO).unwrap();
+        assert!(matches!(
+            *bincode::deserialize_from::<_, NonZero<U64>>(serialized.as_slice()).unwrap_err(),
+            ErrorKind::Custom(message) if message == "invalid value: zero, expected a non-zero value"
+        ));
     }
 }
