@@ -141,9 +141,6 @@
 #[cfg(all(feature = "alloc", test))]
 extern crate alloc;
 
-#[cfg(feature = "serde")]
-extern crate serde_ as serde;
-
 #[macro_use]
 mod nlimbs;
 

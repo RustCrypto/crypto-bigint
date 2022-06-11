@@ -18,7 +18,7 @@ use {
 };
 
 #[cfg(feature = "serde")]
-use serde::{
+use serdect::serde::{
     de::{Error, Unexpected},
     Deserialize, Deserializer, Serialize, Serializer,
 };

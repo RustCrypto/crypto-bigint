@@ -9,6 +9,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
+name = "base16ct"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "349a06037c7bf932dd7e7d1f653678b2038b9ad46a74102f1fc7bd7872678cce"
+
+[[package]]
 name = "bincode"
 version = "1.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -70,8 +76,7 @@ dependencies = [
  "rand_chacha",
  "rand_core",
  "rlp",
- "serde",
- "serde-big-array",
+ "serdect",
  "subtle",
  "zeroize",
 ]
@@ -303,11 +308,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ce31e24b01e1e524df96f1c2fdd054405f8d7376249a5110886fb4b658484789"
 
 [[package]]
-name = "serde-big-array"
-version = "0.4.0"
+name = "serdect"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "01890a6856e9a7fbb42f3bc847957b61aeaf024fe99f6abc76d137ed1799dc80"
+checksum = "038fce1bf4d74b9b30ea7dcd59df75ba8ec669a5dcb3cc64fbfcef7334ced32c"
 dependencies = [
+ "base16ct",
  "serde",
 ]
 

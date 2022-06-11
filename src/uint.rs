@@ -39,10 +39,7 @@ use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
 
 #[cfg(feature = "serde")]
-use ::{
-    serde::{Deserialize, Deserializer, Serialize, Serializer},
-    serde_big_array::BigArray,
-};
+use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[cfg(feature = "zeroize")]
 use zeroize::DefaultIsZeroes;
@@ -174,25 +171,32 @@ impl<const LIMBS: usize> fmt::UpperHex for UInt<LIMBS> {
 
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
-impl<'de, const LIMBS: usize> Deserialize<'de> for UInt<LIMBS> {
+impl<'de, const LIMBS: usize> Deserialize<'de> for UInt<LIMBS>
+where
+    UInt<LIMBS>: Encoding,
+{
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        Ok(Self {
-            limbs: BigArray::deserialize(deserializer)?,
-        })
+        let mut buffer = Self::ZERO.to_le_bytes();
+        serdect::array::deserialize_hex_or_bin(buffer.as_mut(), deserializer)?;
+
+        Ok(Self::from_le_bytes(buffer))
     }
 }
 
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
-impl<'de, const LIMBS: usize> Serialize for UInt<LIMBS> {
+impl<'de, const LIMBS: usize> Serialize for UInt<LIMBS>
+where
+    UInt<LIMBS>: Encoding,
+{
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        BigArray::serialize(&self.limbs, serializer)
+        serdect::array::serialize_hex_lower_or_bin(&Encoding::to_le_bytes(self), serializer)
     }
 }
 

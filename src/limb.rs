@@ -23,7 +23,7 @@ use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
 
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[cfg(not(any(target_pointer_width = "32", target_pointer_width = "64")))]
 compile_error!("this crate builds on 32-bit and 64-bit platforms only");

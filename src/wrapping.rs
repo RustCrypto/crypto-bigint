@@ -5,7 +5,7 @@ use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// Provides intentionally-wrapped arithmetic on `T`.
 ///

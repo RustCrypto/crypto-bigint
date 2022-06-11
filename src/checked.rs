@@ -3,7 +3,7 @@
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "serde")]
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// Provides intentionally-checked arithmetic on `T`.
 ///
@@ -68,11 +68,8 @@ impl<'de, T: Default + Deserialize<'de>> Deserialize<'de> for Checked<T> {
         D: Deserializer<'de>,
     {
         let value = Option::<T>::deserialize(deserializer)?;
-
-        Ok(Self(match value {
-            Some(value) => CtOption::new(value, Choice::from(1)),
-            None => CtOption::new(T::default(), Choice::from(0)),
-        }))
+        let choice = Choice::from(value.is_some() as u8);
+        Ok(Self(CtOption::new(value.unwrap_or_default(), choice)))
     }
 }
 
