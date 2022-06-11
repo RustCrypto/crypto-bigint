@@ -51,4 +51,17 @@ mod test {
             assert_eq!(a, Limb::from_le_bytes(a.to_le_bytes()));
         }
     }
+
+    proptest! {
+        #[test]
+        fn reverse(a in limb()) {
+            let mut bytes = a.to_be_bytes();
+            bytes.reverse();
+            assert_eq!(a, Limb::from_le_bytes(bytes));
+
+            let mut bytes = a.to_le_bytes();
+            bytes.reverse();
+            assert_eq!(a, Limb::from_be_bytes(bytes));
+        }
+    }
 }
