@@ -6,7 +6,7 @@ macro_rules! impl_uint_aliases {
     ($(($name:ident, $bits:expr, $doc:expr)),+) => {
         $(
             #[doc = $doc]
-            #[doc="unsigned big integer"]
+            #[doc="unsigned big integer."]
             pub type $name = UInt<{nlimbs!($bits)}>;
 
             impl Encoding for $name {
