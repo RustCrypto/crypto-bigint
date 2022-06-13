@@ -51,19 +51,11 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     }
 }
 
-macro_rules! impl_neg_mod {
-    ($($size:expr),+) => {
-        $(
-            impl NegMod for UInt<$size> {
-                type Output = Self;
+impl<const LIMBS: usize> NegMod for UInt<LIMBS> {
+    type Output = Self;
 
-                fn neg_mod(&self, p: &Self) -> Self {
-                    debug_assert!(self < p);
-                    self.neg_mod(p)
-                }
-            }
-        )+
-    };
+    fn neg_mod(&self, p: &Self) -> Self {
+        debug_assert!(self < p);
+        self.neg_mod(p)
+    }
 }
-
-impl_neg_mod!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
