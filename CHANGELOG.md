@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.4.7 (2022-06-12)
+### Added
+- `Encoding` tests ([#93])
+
+### Changed
+- Use const generic impls of `*Mod` traits ([#98])
+
+[#93]: https://github.com/RustCrypto/crypto-bigint/pull/93
+[#98]: https://github.com/RustCrypto/crypto-bigint/pull/98
+
 ## 0.4.6 (2022-06-12)
 ### Added
 - Impl `ArrayEncoding` for `U576` ([#96])
