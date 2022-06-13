@@ -25,23 +25,15 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     }
 }
 
-macro_rules! impl_sub_mod {
-    ($($size:expr),+) => {
-        $(
-            impl SubMod for UInt<$size> {
-                type Output = Self;
+impl<const LIMBS: usize> SubMod for UInt<LIMBS> {
+    type Output = Self;
 
-                fn sub_mod(&self, rhs: &Self, p: &Self) -> Self {
-                    debug_assert!(self < p);
-                    debug_assert!(rhs < p);
-                    self.sub_mod(rhs, p)
-                }
-            }
-        )+
-    };
+    fn sub_mod(&self, rhs: &Self, p: &Self) -> Self {
+        debug_assert!(self < p);
+        debug_assert!(rhs < p);
+        self.sub_mod(rhs, p)
+    }
 }
-
-impl_sub_mod!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
 
 #[cfg(all(test, feature = "rand"))]
 mod tests {

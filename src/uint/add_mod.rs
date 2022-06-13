@@ -32,23 +32,15 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     }
 }
 
-macro_rules! impl_add_mod {
-    ($($size:expr),+) => {
-        $(
-            impl AddMod for UInt<$size> {
-                type Output = Self;
+impl<const LIMBS: usize> AddMod for UInt<LIMBS> {
+    type Output = Self;
 
-                fn add_mod(&self, rhs: &Self, p: &Self) -> Self {
-                    debug_assert!(self < p);
-                    debug_assert!(rhs < p);
-                    self.add_mod(rhs, p)
-                }
-            }
-        )+
-    };
+    fn add_mod(&self, rhs: &Self, p: &Self) -> Self {
+        debug_assert!(self < p);
+        debug_assert!(rhs < p);
+        self.add_mod(rhs, p)
+    }
 }
-
-impl_add_mod!(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
 
 #[cfg(test)]
 mod tests {
