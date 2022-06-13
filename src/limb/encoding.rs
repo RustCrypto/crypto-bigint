@@ -32,3 +32,36 @@ impl Encoding for Limb {
         self.0.to_le_bytes()
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use proptest::prelude::*;
+
+    prop_compose! {
+        fn limb()(inner in any::<LimbUInt>()) -> Limb {
+            Limb(inner)
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn roundtrip(a in limb()) {
+            assert_eq!(a, Limb::from_be_bytes(a.to_be_bytes()));
+            assert_eq!(a, Limb::from_le_bytes(a.to_le_bytes()));
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn reverse(a in limb()) {
+            let mut bytes = a.to_be_bytes();
+            bytes.reverse();
+            assert_eq!(a, Limb::from_le_bytes(bytes));
+
+            let mut bytes = a.to_le_bytes();
+            bytes.reverse();
+            assert_eq!(a, Limb::from_be_bytes(bytes));
+        }
+    }
+}
