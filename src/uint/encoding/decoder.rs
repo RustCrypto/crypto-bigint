@@ -1,4 +1,4 @@
-use crate::{Limb, LimbUInt, UInt};
+use crate::{Limb, UInt, Word};
 
 /// [`UInt`] decoder.
 #[derive(Clone, Debug)]
@@ -33,7 +33,7 @@ impl<const LIMBS: usize> Decoder<LIMBS> {
             self.bytes = 0;
         }
 
-        self.limbs[self.index].0 |= (byte as LimbUInt) << (self.bytes * 8);
+        self.limbs[self.index].0 |= (byte as Word) << (self.bytes * 8);
         self.bytes += 1;
         self
     }

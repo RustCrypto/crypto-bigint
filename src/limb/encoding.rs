@@ -1,6 +1,6 @@
 //! Limb encoding
 
-use super::{Limb, LimbUInt};
+use super::{Limb, Word};
 use crate::Encoding;
 
 impl Encoding for Limb {
@@ -14,12 +14,12 @@ impl Encoding for Limb {
 
     #[inline]
     fn from_be_bytes(bytes: Self::Repr) -> Self {
-        Limb(LimbUInt::from_be_bytes(bytes))
+        Limb(Word::from_be_bytes(bytes))
     }
 
     #[inline]
     fn from_le_bytes(bytes: Self::Repr) -> Self {
-        Limb(LimbUInt::from_le_bytes(bytes))
+        Limb(Word::from_le_bytes(bytes))
     }
 
     #[inline]
@@ -39,7 +39,7 @@ mod test {
     use proptest::prelude::*;
 
     prop_compose! {
-        fn limb()(inner in any::<LimbUInt>()) -> Limb {
+        fn limb()(inner in any::<Word>()) -> Limb {
             Limb(inner)
         }
     }

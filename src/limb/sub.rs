@@ -1,6 +1,6 @@
 //! Limb subtraction
 
-use crate::{Checked, CheckedSub, Limb, LimbUInt, WideLimbUInt, Wrapping, Zero};
+use crate::{Checked, CheckedSub, Limb, WideWord, Word, Wrapping, Zero};
 use core::ops::{Sub, SubAssign};
 use subtle::CtOption;
 
@@ -8,14 +8,11 @@ impl Limb {
     /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
     #[inline(always)]
     pub const fn sbb(self, rhs: Limb, borrow: Limb) -> (Limb, Limb) {
-        let a = self.0 as WideLimbUInt;
-        let b = rhs.0 as WideLimbUInt;
-        let borrow = (borrow.0 >> (Self::BIT_SIZE - 1)) as WideLimbUInt;
+        let a = self.0 as WideWord;
+        let b = rhs.0 as WideWord;
+        let borrow = (borrow.0 >> (Self::BIT_SIZE - 1)) as WideWord;
         let ret = a.wrapping_sub(b + borrow);
-        (
-            Limb(ret as LimbUInt),
-            Limb((ret >> Self::BIT_SIZE) as LimbUInt),
-        )
+        (Limb(ret as Word), Limb((ret >> Self::BIT_SIZE) as Word))
     }
 
     /// Perform saturating subtraction.

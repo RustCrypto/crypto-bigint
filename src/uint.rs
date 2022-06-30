@@ -35,7 +35,7 @@ mod array;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Concat, Encoding, Integer, Limb, LimbUInt, Split, Zero};
+use crate::{Concat, Encoding, Integer, Limb, Split, Word, Zero};
 use core::{fmt, mem};
 use subtle::{Choice, ConditionallySelectable};
 
@@ -85,45 +85,101 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         Self { limbs }
     }
 
-    /// Borrow the inner limbs array as an array of [`LimbUInt`]s.
-    pub const fn as_uint_array(&self) -> &[LimbUInt; LIMBS] {
-        // SAFETY: `Limb` is a `repr(transparent)` newtype for `LimbUInt`
+    /// Create a [`UInt`] from an array of [`Word`]s (i.e. word-sized unsigned
+    /// integers).
+    #[inline]
+    pub const fn from_words(arr: [Word; LIMBS]) -> Self {
+        let mut limbs = [Limb::ZERO; LIMBS];
+        let mut i = 0;
+
+        while i < LIMBS {
+            limbs[i] = Limb(arr[i]);
+            i += 1;
+        }
+
+        Self { limbs }
+    }
+
+    /// Create an array of [`Word`]s (i.e. word-sized unsigned integers) from
+    /// a [`UInt`].
+    #[inline]
+    pub const fn to_words(self) -> [Word; LIMBS] {
+        let mut arr = [0; LIMBS];
+        let mut i = 0;
+
+        while i < LIMBS {
+            arr[i] = self.limbs[i].0;
+            i += 1;
+        }
+
+        arr
+    }
+
+    /// Borrow the inner limbs as an array of [`Word`]s.
+    pub const fn as_words(&self) -> &[Word; LIMBS] {
+        // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
         #[allow(unsafe_code)]
         unsafe {
-            // TODO(tarcieri): use &*((&self.limbs as *const _) as *const [LimbUInt; LIMBS])
+            // TODO(tarcieri): use &*((&self.limbs as *const _) as *const [Word; LIMBS])
             mem::transmute(&self.limbs)
         }
     }
 
-    /// Convert this [`UInt`] into its inner limbs.
-    pub const fn into_limbs(self) -> [Limb; LIMBS] {
-        self.limbs
+    /// Borrow the inner limbs as a mutable array of [`Word`]s.
+    pub fn as_words_mut(&mut self) -> &mut [Word; LIMBS] {
+        // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
+        #[allow(trivial_casts, unsafe_code)]
+        unsafe {
+            &mut *((&mut self.limbs as *mut _) as *mut [Word; LIMBS])
+        }
+    }
+
+    /// Deprecated: borrow the inner limbs as an array of [`Word`]s.
+    #[deprecated(since = "0.4.8", note = "please use `as_words` instead")]
+    pub const fn as_uint_array(&self) -> &[Word; LIMBS] {
+        self.as_words()
+    }
+
+    /// Deprecated: create a [`UInt`] from an array of [`Word`]s.
+    #[deprecated(since = "0.4.8", note = "please use `from_words` instead")]
+    pub const fn from_uint_array(words: [Word; LIMBS]) -> Self {
+        Self::from_words(words)
+    }
+
+    /// Deprecated: create an array of [`Word`]s from a [`UInt`].
+    #[deprecated(since = "0.4.8", note = "please use `to_words` instead")]
+    pub const fn to_uint_array(self) -> [Word; LIMBS] {
+        self.to_words()
     }
 
     /// Borrow the limbs of this [`UInt`].
+    // TODO(tarcieri): rename to `as_limbs` for consistency with `as_words`
     pub const fn limbs(&self) -> &[Limb; LIMBS] {
         &self.limbs
     }
 
     /// Borrow the limbs of this [`UInt`] mutably.
+    // TODO(tarcieri): rename to `as_limbs_mut` for consistency with `as_words_mut`
     pub fn limbs_mut(&mut self) -> &mut [Limb; LIMBS] {
         &mut self.limbs
     }
-}
 
-impl<const LIMBS: usize> AsRef<[LimbUInt; LIMBS]> for UInt<LIMBS> {
-    fn as_ref(&self) -> &[LimbUInt; LIMBS] {
-        self.as_uint_array()
+    /// Convert this [`UInt`] into its inner limbs.
+    // TODO(tarcieri): rename to `to_limbs` for consistency with `to_words`
+    pub const fn into_limbs(self) -> [Limb; LIMBS] {
+        self.limbs
     }
 }
 
-impl<const LIMBS: usize> AsMut<[LimbUInt; LIMBS]> for UInt<LIMBS> {
-    fn as_mut(&mut self) -> &mut [LimbUInt; LIMBS] {
-        // SAFETY: `Limb` is a `repr(transparent)` newtype for `LimbUInt`
-        #[allow(trivial_casts, unsafe_code)]
-        unsafe {
-            &mut *((&mut self.limbs as *mut _) as *mut [LimbUInt; LIMBS])
-        }
+impl<const LIMBS: usize> AsRef<[Word; LIMBS]> for UInt<LIMBS> {
+    fn as_ref(&self) -> &[Word; LIMBS] {
+        self.as_words()
+    }
+}
+
+impl<const LIMBS: usize> AsMut<[Word; LIMBS]> for UInt<LIMBS> {
+    fn as_mut(&mut self) -> &mut [Word; LIMBS] {
+        self.as_words_mut()
     }
 }
 

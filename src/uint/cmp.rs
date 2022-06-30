@@ -3,7 +3,7 @@
 //! By default these are all constant-time and use the `subtle` crate.
 
 use super::UInt;
-use crate::{Limb, LimbInt, LimbUInt, WideLimbInt, Zero};
+use crate::{Limb, SignedWord, WideSignedWord, Word, Zero};
 use core::cmp::Ordering;
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
@@ -12,7 +12,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     ///
     /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
     #[inline]
-    pub(crate) const fn ct_select(a: UInt<LIMBS>, b: UInt<LIMBS>, c: LimbUInt) -> Self {
+    pub(crate) const fn ct_select(a: UInt<LIMBS>, b: UInt<LIMBS>, c: Word) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
 
         let mut i = 0;
@@ -28,7 +28,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     ///
     /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
     #[inline]
-    pub(crate) const fn ct_is_nonzero(&self) -> LimbUInt {
+    pub(crate) const fn ct_is_nonzero(&self) -> Word {
         let mut b = 0;
         let mut i = 0;
         while i < LIMBS {
@@ -44,19 +44,19 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     ///
     /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
     #[inline]
-    pub(crate) const fn ct_cmp(&self, rhs: &Self) -> LimbInt {
+    pub(crate) const fn ct_cmp(&self, rhs: &Self) -> SignedWord {
         let mut gt = 0;
         let mut lt = 0;
         let mut i = LIMBS;
 
         while i > 0 {
-            let a = self.limbs[i - 1].0 as WideLimbInt;
-            let b = rhs.limbs[i - 1].0 as WideLimbInt;
+            let a = self.limbs[i - 1].0 as WideSignedWord;
+            let b = rhs.limbs[i - 1].0 as WideSignedWord;
             gt |= ((b - a) >> Limb::BIT_SIZE) & 1 & !lt;
             lt |= ((a - b) >> Limb::BIT_SIZE) & 1 & !gt;
             i -= 1;
         }
-        (gt as LimbInt) - (lt as LimbInt)
+        (gt as SignedWord) - (lt as SignedWord)
     }
 }
 

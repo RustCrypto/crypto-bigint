@@ -34,19 +34,19 @@ compile_error!("this crate builds on 32-bit and 64-bit platforms only");
 
 /// Inner integer type that the [`Limb`] newtype wraps.
 #[cfg(target_pointer_width = "32")]
-pub type LimbUInt = u32;
+pub type Word = u32;
 
-/// Signed integer type that corresponds to [`LimbUInt`].
+/// Signed integer type that corresponds to [`Word`].
 #[cfg(target_pointer_width = "32")]
-pub(crate) type LimbInt = i32;
+pub(crate) type SignedWord = i32;
 
-/// Unsigned wide integer type: double the width of [`LimbUInt`].
+/// Unsigned wide integer type: double the width of [`Word`].
 #[cfg(target_pointer_width = "32")]
-pub type WideLimbUInt = u64;
+pub type WideWord = u64;
 
 /// Signed wide integer type: double the width of [`Limb`].
 #[cfg(target_pointer_width = "32")]
-pub(crate) type WideLimbInt = i64;
+pub(crate) type WideSignedWord = i64;
 
 //
 // 64-bit definitions
@@ -54,19 +54,33 @@ pub(crate) type WideLimbInt = i64;
 
 /// Unsigned integer type that the [`Limb`] newtype wraps.
 #[cfg(target_pointer_width = "64")]
-pub type LimbUInt = u64;
+pub type Word = u64;
 
-/// Signed integer type that corresponds to [`LimbUInt`].
+/// Signed integer type that corresponds to [`Word`].
 #[cfg(target_pointer_width = "64")]
-pub(crate) type LimbInt = i64;
+pub(crate) type SignedWord = i64;
 
-/// Wide integer type: double the width of [`LimbUInt`].
+/// Wide integer type: double the width of [`Word`].
 #[cfg(target_pointer_width = "64")]
-pub type WideLimbUInt = u128;
+pub type WideWord = u128;
 
-/// Signed wide integer type: double the width of [`Limb`].
+/// Signed wide integer type: double the width of [`SignedWord`].
 #[cfg(target_pointer_width = "64")]
-pub(crate) type WideLimbInt = i128;
+pub(crate) type WideSignedWord = i128;
+
+//
+// Deprecated legacy names
+//
+
+// TODO(tarcieri): remove these in the next breaking release
+
+/// Deprecated: unsigned integer type that the [`Limb`] newtype wraps.
+#[deprecated(since = "0.4.8", note = "please use `Word` instead")]
+pub type LimbUInt = Word;
+
+/// Deprecated: wide integer type which is double the width of [`Word`].
+#[deprecated(since = "0.4.8", note = "please use `WideWord` instead")]
+pub type WideLimbUInt = WideWord;
 
 /// Highest bit in a [`Limb`].
 pub(crate) const HI_BIT: usize = Limb::BIT_SIZE - 1;
@@ -75,7 +89,7 @@ pub(crate) const HI_BIT: usize = Limb::BIT_SIZE - 1;
 /// called "limbs".
 #[derive(Copy, Clone, Debug, Default, Hash)]
 #[repr(transparent)]
-pub struct Limb(pub LimbUInt);
+pub struct Limb(pub Word);
 
 impl Limb {
     /// The value `0`.
@@ -85,7 +99,7 @@ impl Limb {
     pub const ONE: Self = Limb(1);
 
     /// Maximum value this [`Limb`] can express.
-    pub const MAX: Self = Limb(LimbUInt::MAX);
+    pub const MAX: Self = Limb(Word::MAX);
 
     // 32-bit
 
@@ -109,7 +123,7 @@ impl Limb {
     ///
     /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
     #[inline]
-    pub(crate) const fn ct_select(a: Self, b: Self, c: LimbUInt) -> Self {
+    pub(crate) const fn ct_select(a: Self, b: Self, c: Word) -> Self {
         Self(a.0 ^ (c & (a.0 ^ b.0)))
     }
 }
@@ -117,7 +131,7 @@ impl Limb {
 impl ConditionallySelectable for Limb {
     #[inline]
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Self(LimbUInt::conditional_select(&a.0, &b.0, choice))
+        Self(Word::conditional_select(&a.0, &b.0, choice))
     }
 }
 
@@ -153,7 +167,7 @@ impl<'de> Deserialize<'de> for Limb {
     where
         D: Deserializer<'de>,
     {
-        Ok(Self(LimbUInt::deserialize(deserializer)?))
+        Ok(Self(Word::deserialize(deserializer)?))
     }
 }
 

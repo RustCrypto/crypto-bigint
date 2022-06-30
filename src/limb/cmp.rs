@@ -1,6 +1,6 @@
 //! Limb comparisons
 
-use super::{Limb, LimbInt, LimbUInt, WideLimbInt, HI_BIT};
+use super::{Limb, SignedWord, WideSignedWord, Word, HI_BIT};
 use core::cmp::Ordering;
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
@@ -28,18 +28,18 @@ impl Limb {
     ///
     /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
     #[inline]
-    pub(crate) const fn is_nonzero(self) -> LimbUInt {
-        let inner = self.0 as LimbInt;
-        ((inner | inner.saturating_neg()) >> HI_BIT) as LimbUInt
+    pub(crate) const fn is_nonzero(self) -> Word {
+        let inner = self.0 as SignedWord;
+        ((inner | inner.saturating_neg()) >> HI_BIT) as Word
     }
 
     #[inline]
-    pub(crate) const fn ct_cmp(lhs: Self, rhs: Self) -> LimbInt {
-        let a = lhs.0 as WideLimbInt;
-        let b = rhs.0 as WideLimbInt;
+    pub(crate) const fn ct_cmp(lhs: Self, rhs: Self) -> SignedWord {
+        let a = lhs.0 as WideSignedWord;
+        let b = rhs.0 as WideSignedWord;
         let gt = ((b - a) >> Limb::BIT_SIZE) & 1;
         let lt = ((a - b) >> Limb::BIT_SIZE) & 1 & !gt;
-        (gt as LimbInt) - (lt as LimbInt)
+        (gt as SignedWord) - (lt as SignedWord)
     }
 }
 
