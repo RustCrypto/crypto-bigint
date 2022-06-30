@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.4.8 (2022-06-30)
+### Added
+- `Word` as a replacement for `LimbUInt` ([#88])
+- `WideWord` as a replacement for `WideLimbUInt` ([#88])
+- `UInt::*_words` as a replacement for `UInt::*_uint_array` ([#88])
+
+### Changed
+- Deprecated `*LimbUInt` and `UInt::*_uint_array` ([#88])
+
+[#88]: https://github.com/RustCrypto/crypto-bigint/pull/88
+
 ## 0.4.7 (2022-06-12)
 ### Added
 - `Encoding` tests ([#93])
