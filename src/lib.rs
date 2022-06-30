@@ -154,7 +154,7 @@ mod wrapping;
 
 pub use crate::{
     checked::Checked,
-    limb::{Limb, LimbUInt, WideLimbUInt},
+    limb::{Limb, WideWord, Word},
     non_zero::NonZero,
     traits::*,
     uint::*,
@@ -162,7 +162,11 @@ pub use crate::{
 };
 pub use subtle;
 
-pub(crate) use limb::{LimbInt, WideLimbInt};
+// TODO(tarcieri): remove these in the next breaking release
+#[allow(deprecated)]
+pub use crate::limb::{LimbUInt, WideLimbUInt};
+
+pub(crate) use limb::{SignedWord, WideSignedWord};
 
 #[cfg(feature = "generic-array")]
 pub use {

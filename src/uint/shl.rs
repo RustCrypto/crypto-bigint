@@ -1,6 +1,6 @@
 //! [`UInt`] bitwise left shift operations.
 
-use crate::{Limb, LimbUInt, UInt};
+use crate::{Limb, UInt, Word};
 use core::ops::{Shl, ShlAssign};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
@@ -20,10 +20,9 @@ impl<const LIMBS: usize> UInt<LIMBS> {
 
         let shift_num = n / Limb::BIT_SIZE;
         let rem = n % Limb::BIT_SIZE;
-        let nz = Limb(rem as LimbUInt).is_nonzero();
-        let lshift_rem = rem as LimbUInt;
-        let rshift_rem =
-            Limb::ct_select(Limb::ZERO, Limb((Limb::BIT_SIZE - rem) as LimbUInt), nz).0;
+        let nz = Limb(rem as Word).is_nonzero();
+        let lshift_rem = rem as Word;
+        let rshift_rem = Limb::ct_select(Limb::ZERO, Limb((Limb::BIT_SIZE - rem) as Word), nz).0;
 
         let mut i = LIMBS - 1;
         while i > shift_num {
