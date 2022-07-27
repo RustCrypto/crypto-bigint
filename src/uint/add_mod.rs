@@ -5,7 +5,7 @@ use crate::{AddMod, Limb, UInt};
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Computes `self + rhs mod p` in constant time.
     ///
-    /// Assumes `self` and `rhs` are `< p`.
+    /// Assumes `self + rhs` as unbounded integer is `< 2p`.
     pub const fn add_mod(&self, rhs: &UInt<LIMBS>, p: &UInt<LIMBS>) -> UInt<LIMBS> {
         let (w, carry) = self.adc(rhs, Limb::ZERO);
 

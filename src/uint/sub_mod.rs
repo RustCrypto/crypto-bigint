@@ -5,7 +5,7 @@ use crate::{Limb, SubMod, UInt};
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Computes `self - rhs mod p` in constant time.
     ///
-    /// Assumes `self` and `rhs` are `< p`.
+    /// Assumes `self - rhs` as unbounded signed integer is in `[-p, p)`.
     pub const fn sub_mod(&self, rhs: &UInt<LIMBS>, p: &UInt<LIMBS>) -> UInt<LIMBS> {
         let (mut out, borrow) = self.sbb(rhs, Limb::ZERO);
 
