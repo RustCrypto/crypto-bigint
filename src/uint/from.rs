@@ -1,6 +1,6 @@
 //! `From`-like conversions for [`UInt`].
 
-use crate::{Limb, Split, UInt, Word, U128, U64};
+use crate::{Limb, Split, UInt, WideWord, Word, U128, U64};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Create a [`UInt`] from a `u8` (const-friendly)
@@ -77,6 +77,25 @@ impl<const LIMBS: usize> UInt<LIMBS> {
             j += 1;
         }
 
+        Self { limbs }
+    }
+
+    /// Create a [`UInt`] from a `Word` (const-friendly)
+    // TODO(tarcieri): replace with `const impl From<Word>` when stable
+    pub const fn from_word(n: Word) -> Self {
+        assert!(LIMBS >= 1, "number of limbs must be greater than zero");
+        let mut limbs = [Limb::ZERO; LIMBS];
+        limbs[0].0 = n;
+        Self { limbs }
+    }
+
+    /// Create a [`UInt`] from a `WideWord` (const-friendly)
+    // TODO(tarcieri): replace with `const impl From<WideWord>` when stable
+    pub const fn from_wide_word(n: WideWord) -> Self {
+        assert!(LIMBS >= 2, "number of limbs must be two or greater");
+        let mut limbs = [Limb::ZERO; LIMBS];
+        limbs[0].0 = n as Word;
+        limbs[1].0 = (n >> Limb::BIT_SIZE) as Word;
         Self { limbs }
     }
 }
