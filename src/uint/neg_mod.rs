@@ -1,11 +1,17 @@
-//! [`UInt`] subtraction modulus operations.
+//! [`UInt`] negation modulus operations.
 
-use crate::{NegMod, UInt};
+use crate::{Limb, NegMod, UInt};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Computes `-a mod p` in constant time.
     pub const fn neg_mod(&self, p: &Self) -> Self {
         Self::ZERO.sub_mod(self, p)
+    }
+
+    /// Computes `-a mod p` in constant time for the special modulus
+    /// `p = MAX+1-c` where `c` is small enough to fit in a single [`Limb`].
+    pub const fn neg_mod_special(&self, c: Limb) -> Self {
+        Self::ZERO.sub_mod_special(self, c)
     }
 }
 
