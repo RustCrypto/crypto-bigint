@@ -16,11 +16,11 @@ macro_rules! impl_uint_aliases {
                 type Repr = [u8; $bits / 8];
 
                 fn from_be_bytes(bytes: Self::Repr) -> Self {
-                    Self::from_be_slice(&bytes)
+                    $crate::uint::encoding::uint_from_be_bytes(&bytes)
                 }
 
                 fn from_le_bytes(bytes: Self::Repr) -> Self {
-                    Self::from_le_slice(&bytes)
+                    $crate::uint::encoding::uint_from_le_bytes(&bytes)
                 }
 
                 #[inline]

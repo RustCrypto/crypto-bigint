@@ -154,8 +154,45 @@ const fn decode_hex_byte(bytes: [u8; 2]) -> u8 {
     result
 }
 
+/// Create a new [`UInt`] from the provided big endian byte array.
+pub(crate) fn uint_from_be_bytes<const N: usize, const LIMBS: usize>(
+    bytes: &[u8; N],
+) -> UInt<LIMBS> {
+    assert!(
+        N == Limb::BYTE_SIZE * LIMBS,
+        "bytes are not the expected size",
+    );
+    let mut limbs = [Limb::ZERO; LIMBS];
+    for (chunk, limb) in bytes.rchunks_exact(Limb::BYTE_SIZE).zip(limbs.iter_mut()) {
+        *limb = Limb::from_be_bytes(match chunk.try_into() {
+            Ok(c) => c,
+            Err(_) => unreachable!(),
+        });
+    }
+    UInt { limbs }
+}
+
+/// Create a new [`UInt`] from the provided big endian byte array.
+pub(crate) fn uint_from_le_bytes<const N: usize, const LIMBS: usize>(
+    bytes: &[u8; N],
+) -> UInt<LIMBS> {
+    assert!(
+        N == Limb::BYTE_SIZE * LIMBS,
+        "bytes are not the expected size",
+    );
+    let mut limbs = [Limb::ZERO; LIMBS];
+    for (chunk, limb) in bytes.chunks_exact(Limb::BYTE_SIZE).zip(limbs.iter_mut()) {
+        *limb = Limb::from_le_bytes(match chunk.try_into() {
+            Ok(c) => c,
+            Err(_) => unreachable!(),
+        });
+    }
+    UInt { limbs }
+}
+
 #[cfg(test)]
 mod tests {
+    use super::{uint_from_be_bytes, uint_from_le_bytes};
     use crate::Limb;
     use hex_literal::hex;
 
@@ -170,7 +207,7 @@ mod tests {
 
     #[test]
     #[cfg(target_pointer_width = "32")]
-    fn from_be_bytes() {
+    fn from_be_slice() {
         let bytes = hex!("0011223344556677");
         let n = UIntEx::from_be_slice(&bytes);
         assert_eq!(n.limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
@@ -178,7 +215,7 @@ mod tests {
 
     #[test]
     #[cfg(target_pointer_width = "64")]
-    fn from_be_bytes() {
+    fn from_be_slice() {
         let bytes = hex!("00112233445566778899aabbccddeeff");
         let n = UIntEx::from_be_slice(&bytes);
         assert_eq!(
@@ -189,7 +226,7 @@ mod tests {
 
     #[test]
     #[cfg(target_pointer_width = "32")]
-    fn from_le_bytes() {
+    fn from_le_slice() {
         let bytes = hex!("7766554433221100");
         let n = UIntEx::from_le_slice(&bytes);
         assert_eq!(n.limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
@@ -197,9 +234,47 @@ mod tests {
 
     #[test]
     #[cfg(target_pointer_width = "64")]
-    fn from_le_bytes() {
+    fn from_le_slice() {
         let bytes = hex!("ffeeddccbbaa99887766554433221100");
         let n = UIntEx::from_le_slice(&bytes);
+        assert_eq!(
+            n.limbs(),
+            &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
+        );
+    }
+
+    #[test]
+    #[cfg(target_pointer_width = "32")]
+    fn from_be_bytes() {
+        let bytes = hex!("0011223344556677");
+        let n: UIntEx = uint_from_be_bytes(&bytes);
+        assert_eq!(n.limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
+    }
+
+    #[test]
+    #[cfg(target_pointer_width = "64")]
+    fn from_be_bytes() {
+        let bytes = hex!("00112233445566778899aabbccddeeff");
+        let n: UIntEx = uint_from_be_bytes(&bytes);
+        assert_eq!(
+            n.limbs(),
+            &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
+        );
+    }
+
+    #[test]
+    #[cfg(target_pointer_width = "32")]
+    fn from_le_bytes() {
+        let bytes = hex!("7766554433221100");
+        let n: UIntEx = uint_from_le_bytes(&bytes);
+        assert_eq!(n.limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
+    }
+
+    #[test]
+    #[cfg(target_pointer_width = "64")]
+    fn from_le_bytes() {
+        let bytes = hex!("ffeeddccbbaa99887766554433221100");
+        let n: UIntEx = uint_from_le_bytes(&bytes);
         assert_eq!(
             n.limbs(),
             &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
