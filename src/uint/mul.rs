@@ -16,7 +16,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// the APIs in this crate.
     ///
     /// For more info see: <https://github.com/RustCrypto/crypto-bigint/issues/4>
-    // TODO(tarcieri): use `concat` (or similar) when const trait is stable
+    // TODO(tarcieri): use `concat` to construct a wide output
     pub const fn mul_wide(&self, rhs: &Self) -> (Self, Self) {
         let mut i = 0;
         let mut lo = Self::ZERO;
@@ -184,7 +184,7 @@ impl<const LIMBS: usize> MulAssign<&Checked<UInt<LIMBS>>> for Checked<UInt<LIMBS
 
 #[cfg(test)]
 mod tests {
-    use crate::{CheckedMul, Split, Zero, U64};
+    use crate::{CheckedMul, Zero, U64};
 
     #[test]
     fn mul_wide_zero_and_one() {

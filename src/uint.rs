@@ -7,7 +7,9 @@
 )]
 
 #[macro_use]
-mod macros;
+mod concat;
+#[macro_use]
+mod split;
 
 mod add;
 mod add_mod;
@@ -292,6 +294,46 @@ where
 impl<const LIMBS: usize> DefaultIsZeroes for UInt<LIMBS> {}
 
 // TODO(tarcieri): use `const_evaluatable_checked` when stable to make generic around bits.
+macro_rules! impl_uint_aliases {
+    ($(($name:ident, $bits:expr, $doc:expr)),+) => {
+        $(
+            #[doc = $doc]
+            #[doc="unsigned big integer."]
+            pub type $name = UInt<{nlimbs!($bits)}>;
+
+            impl Encoding for $name {
+                const BIT_SIZE: usize = $bits;
+                const BYTE_SIZE: usize = $bits / 8;
+
+                type Repr = [u8; $bits / 8];
+
+                fn from_be_bytes(bytes: Self::Repr) -> Self {
+                    $crate::uint::encoding::uint_from_be_bytes(&bytes)
+                }
+
+                fn from_le_bytes(bytes: Self::Repr) -> Self {
+                    $crate::uint::encoding::uint_from_le_bytes(&bytes)
+                }
+
+                #[inline]
+                fn to_be_bytes(&self) -> Self::Repr {
+                    let mut result = [0u8; $bits / 8];
+                    self.write_be_bytes(&mut result);
+                    result
+                }
+
+                #[inline]
+                fn to_le_bytes(&self) -> Self::Repr {
+                    let mut result = [0u8; $bits / 8];
+                    self.write_le_bytes(&mut result);
+                    result
+                }
+            }
+        )+
+     };
+}
+
+// TODO(tarcieri): use `const_evaluatable_checked` when stable to make generic around bits.
 impl_uint_aliases! {
     (U64, 64, "64-bit"),
     (U128, 128, "128-bit"),
@@ -356,8 +398,11 @@ impl_split! {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Concat, Encoding, Split, U128, U64};
+    use crate::{Encoding, U128};
     use subtle::ConditionallySelectable;
+
+    #[cfg(feature = "serde")]
+    use crate::U64;
 
     #[test]
     #[cfg(feature = "alloc")]
@@ -407,23 +452,6 @@ mod tests {
 
         let select_1 = U128::conditional_select(&a, &b, 1.into());
         assert_eq!(b, select_1);
-    }
-
-    #[test]
-    fn concat() {
-        let hi = U64::from_u64(0x0011223344556677);
-        let lo = U64::from_u64(0x8899aabbccddeeff);
-        assert_eq!(
-            hi.concat(&lo),
-            U128::from_be_hex("00112233445566778899aabbccddeeff")
-        );
-    }
-
-    #[test]
-    fn split() {
-        let (hi, lo) = U128::from_be_hex("00112233445566778899aabbccddeeff").split();
-        assert_eq!(hi, U64::from_u64(0x0011223344556677));
-        assert_eq!(lo, U64::from_u64(0x8899aabbccddeeff));
     }
 
     #[test]
