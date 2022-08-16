@@ -1,6 +1,6 @@
 //! `From`-like conversions for [`UInt`].
 
-use crate::{Limb, Split, UInt, WideWord, Word, U128, U64};
+use crate::{Limb, UInt, WideWord, Word, U128, U64};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Create a [`UInt`] from a `u8` (const-friendly)

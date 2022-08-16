@@ -186,8 +186,8 @@ pub trait Concat<Rhs = Self> {
     /// Concatenated output: twice the width of `Self`.
     type Output;
 
-    /// Concate the two values, with `self` as most significant and `rhs` as
-    /// the least significant.
+    /// Concatenate the two values, with `self` as most significant and `rhs`
+    /// as the least significant.
     fn concat(&self, rhs: &Self) -> Self::Output;
 }
 
