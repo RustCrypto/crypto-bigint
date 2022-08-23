@@ -430,8 +430,8 @@ mod tests {
         b.limbs[b.limbs.len() - 1] = Limb(Word::MAX);
         let q = a.wrapping_div(&b);
         assert_eq!(q, UInt::ZERO);
-        a.limbs[a.limbs.len() - 1] = Limb(1 << HI_BIT - 7);
-        b.limbs[b.limbs.len() - 1] = Limb(0x82 << HI_BIT - 7);
+        a.limbs[a.limbs.len() - 1] = Limb(1 << (HI_BIT - 7));
+        b.limbs[b.limbs.len() - 1] = Limb(0x82 << (HI_BIT - 7));
         let q = a.wrapping_div(&b);
         assert_eq!(q, UInt::ZERO);
     }
@@ -483,8 +483,8 @@ mod tests {
         b.limbs[b.limbs.len() - 1] = Limb(Word::MAX);
         let r = a.wrapping_rem(&b);
         assert_eq!(r, UInt::ZERO);
-        a.limbs[a.limbs.len() - 1] = Limb(1 << HI_BIT - 7);
-        b.limbs[b.limbs.len() - 1] = Limb(0x82 << HI_BIT - 7);
+        a.limbs[a.limbs.len() - 1] = Limb(1 << (HI_BIT - 7));
+        b.limbs[b.limbs.len() - 1] = Limb(0x82 << (HI_BIT - 7));
         let r = a.wrapping_rem(&b);
         assert_eq!(r, a);
     }

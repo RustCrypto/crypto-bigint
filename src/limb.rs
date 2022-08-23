@@ -13,6 +13,8 @@ mod cmp;
 mod encoding;
 mod from;
 mod mul;
+mod shl;
+mod shr;
 mod sub;
 
 #[cfg(feature = "rand_core")]
