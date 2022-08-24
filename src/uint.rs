@@ -78,6 +78,9 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// The value `1`.
     pub const ONE: Self = Self::from_u8(1);
 
+    /// The number of limbs used on this platform.
+    pub const LIMBS: usize = LIMBS;
+
     /// Maximum value this [`UInt`] can express.
     pub const MAX: Self = Self {
         limbs: [Limb::MAX; LIMBS],
