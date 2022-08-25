@@ -36,11 +36,9 @@ impl<const LIMBS: usize> UInt<LIMBS> {
             quo = quo.shl_vartime(1);
         }
 
-        let is_some = if mb == 0 { 0 } else { 1 };
-        if is_some == 0 {
-            quo = Self::ZERO;
-        }
-        (quo, rem, is_some as u8)
+        let is_some = Limb(mb as Word).is_nonzero();
+        quo = Self::ct_select(Self::ZERO, quo, is_some);
+        (quo, rem, (is_some & 1) as u8)
     }
 
     /// Computes `self` % `rhs`, returns the remainder and
@@ -66,8 +64,8 @@ impl<const LIMBS: usize> UInt<LIMBS> {
             c = c.shr_vartime(1);
         }
 
-        let is_some = if mb == 0 { 0 } else { 1 };
-        (rem, is_some)
+        let is_some = Limb(mb as Word).is_nonzero();
+        (rem, (is_some & 1) as u8)
     }
 
     /// Computes `self` % 2^k. Faster than reduce since its a power of 2.
