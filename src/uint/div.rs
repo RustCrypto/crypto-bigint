@@ -1,7 +1,7 @@
 //! [`UInt`] division operations.
 
 use super::UInt;
-use crate::limb::{SignedWord, Word, HI_BIT};
+use crate::limb::Word;
 use crate::{Integer, Limb, NonZero, Wrapping};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::{Choice, CtOption};
@@ -17,35 +17,29 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
     pub(crate) const fn ct_div_rem(&self, rhs: &Self) -> (Self, Self, u8) {
-        let mut bd = self.bits().saturating_sub(rhs.bits());
+        let mb = rhs.bits();
+        let mut bd = (LIMBS * Limb::BIT_SIZE) - mb;
         let mut rem = *self;
         let mut quo = Self::ZERO;
-
         let mut c = rhs.shl_vartime(bd);
-        let mut e = Self::ONE.shl_vartime(bd);
 
         loop {
-            let mut r: Self = rem.wrapping_sub(&c);
-            let d = -(((1 - (r.limbs[LIMBS - 1].0 >> HI_BIT)) & 1) as SignedWord);
-            let d = d as Word;
-            rem = Self::ct_select(rem, r, d);
-            r = quo;
-            r = r.wrapping_add(&e);
-            quo = Self::ct_select(quo, r, d);
+            let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
+            rem = Self::ct_select(r, rem, borrow.0);
+            r = quo.bitor(&Self::ONE);
+            quo = Self::ct_select(r, quo, borrow.0);
             if bd == 0 {
                 break;
             }
             bd -= 1;
             c = c.shr_vartime(1);
-            e = e.shr_vartime(1);
+            quo = quo.shl_vartime(1);
         }
-        // If `self`<rhs
-        // set quo to zero and and rem to self
-        let res = self.ct_cmp(rhs) + 1;
-        let gt = Limb::is_nonzero(Limb(res as Word));
-        quo = Self::ct_select(Self::ZERO, quo, gt);
-        rem = Self::ct_select(*self, rem, gt);
-        let is_some = rhs.ct_is_nonzero() & 1;
+
+        let is_some = if mb == 0 { 0 } else { 1 };
+        if is_some == 0 {
+            quo = Self::ZERO;
+        }
         (quo, rem, is_some as u8)
     }
 
@@ -57,29 +51,23 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
     pub(crate) const fn ct_reduce(&self, rhs: &Self) -> (Self, u8) {
-        let mut bd = self.bits().saturating_sub(rhs.bits());
+        let mb = rhs.bits();
+        let mut bd = (LIMBS * Limb::BIT_SIZE) - mb;
         let mut rem = *self;
-
         let mut c = rhs.shl_vartime(bd);
 
         loop {
-            let r: Self = rem.wrapping_sub(&c);
-            let d = -(((1 - (r.limbs[LIMBS - 1].0 >> HI_BIT)) & 1) as SignedWord);
-            let d = d as Word;
-            rem = Self::ct_select(rem, r, d);
+            let (r, borrow) = rem.sbb(&c, Limb::ZERO);
+            rem = Self::ct_select(r, rem, borrow.0);
             if bd == 0 {
                 break;
             }
             bd -= 1;
             c = c.shr_vartime(1);
         }
-        // If `self`<rhs
-        // set rem to `self`
-        let res = self.ct_cmp(rhs) + 1;
-        let gt = Limb::is_nonzero(Limb(res as Word));
-        rem = Self::ct_select(*self, rem, gt);
-        let is_some = rhs.ct_is_nonzero() & 1;
-        (rem, is_some as u8)
+
+        let is_some = if mb == 0 { 0 } else { 1 };
+        (rem, is_some)
     }
 
     /// Computes `self` % 2^k. Faster than reduce since its a power of 2.
@@ -438,8 +426,10 @@ mod tests {
 
     #[test]
     fn div_zero() {
-        let (_, _, is_some) = U256::ONE.ct_div_rem(&U256::ZERO);
+        let (q, r, is_some) = U256::ONE.ct_div_rem(&U256::ZERO);
         assert_eq!(is_some, 0);
+        assert_eq!(q, U256::ZERO);
+        assert_eq!(r, U256::ONE);
     }
 
     #[test]
@@ -459,8 +449,10 @@ mod tests {
 
     #[test]
     fn reduce_zero() {
-        let (_, is_some) = U256::from(10u8).ct_reduce(&U256::ZERO);
+        let u = U256::from(10u8);
+        let (r, is_some) = u.ct_reduce(&U256::ZERO);
         assert_eq!(is_some, 0);
+        assert_eq!(r, u);
     }
 
     #[test]
