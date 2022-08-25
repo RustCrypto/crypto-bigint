@@ -121,7 +121,7 @@ impl Limb {
     #[cfg(target_pointer_width = "64")]
     pub const BYTE_SIZE: usize = 8;
 
-    /// Return `a` if `c`!=0 or `b` if `c`==0.
+    /// Return `a` if `c`==0 or `b` if `c`==`Word::MAX`.
     ///
     /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
     #[inline]
