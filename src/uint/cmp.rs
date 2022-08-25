@@ -8,7 +8,7 @@ use core::cmp::Ordering;
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
-    /// Return `a` if `c`!=0 or `b` if `c`==0.
+    /// Return `a` if `c`==0 or `b` if `c`==`Word::MAX`.
     ///
     /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
     #[inline]
