@@ -101,6 +101,21 @@ jobs:
       - run: cross test --target ${{ matrix.target }} --release
       - run: cross test --target ${{ matrix.target }} --release --all-features
 
+  # dudect benchmarks: check for constant-time operation
+  dudect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+      - run: cargo run --release
+          | tee /dev/stderr
+          | perl -n -e '/max t = [+-](\d*\.?\d*)/; if ($1 >= 100) { exit 1 }'
+        working-directory: dudect
+
   clippy:
     runs-on: ubuntu-latest
     steps:
