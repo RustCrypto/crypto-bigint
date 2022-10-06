@@ -2,15 +2,19 @@ use crate::{Limb, UInt, Word};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Get the value of the bit at position `index`, as a 0- or 1-valued Word.
-    #[inline]
-    pub const fn bit(self, index: usize) -> Word {
-        assert!(index < LIMBS * Limb::BIT_SIZE);
-        (self.limbs[index / Limb::BIT_SIZE].0 >> (index % Limb::BIT_SIZE)) & 1
+    /// Returns 0 for indices out of range.
+    #[inline(always)]
+    pub const fn bit_vartime(self, index: usize) -> Word {
+        if index >= LIMBS * Limb::BIT_SIZE {
+            0
+        } else {
+            (self.limbs[index / Limb::BIT_SIZE].0 >> (index % Limb::BIT_SIZE)) & 1
+        }
     }
 
     /// Calculate the number of bits needed to represent this number.
     #[allow(trivial_numeric_casts)]
-    pub const fn bits(self) -> usize {
+    pub const fn bits_vartime(self) -> usize {
         let mut i = LIMBS - 1;
         while i > 0 && self.limbs[i].0 == 0 {
             i -= 1;
@@ -30,13 +34,15 @@ impl<const LIMBS: usize> UInt<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::U64;
+    use crate::U128;
 
     #[test]
-    fn bit_get_ok() {
-        let u = U64::from_be_hex("d201000000010000");
-        assert_eq!(u.bit(0), 0);
-        assert_eq!(u.bit(1), 0);
-        assert_eq!(u.bit(16), 1);
+    fn bit_vartime_ok() {
+        let u = U128::from_be_hex("f0010000000000000001000000010000");
+        assert_eq!(u.bit_vartime(0), 0);
+        assert_eq!(u.bit_vartime(1), 0);
+        assert_eq!(u.bit_vartime(16), 1);
+        assert_eq!(u.bit_vartime(127), 1);
+        assert_eq!(u.bit_vartime(130), 0);
     }
 }

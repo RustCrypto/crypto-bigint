@@ -37,7 +37,7 @@ impl<const LIMBS: usize> RandomMod for UInt<LIMBS> {
 
         // TODO(tarcieri): use `div_ceil` when available
         // See: https://github.com/rust-lang/rust/issues/88581
-        let mut n_limbs = modulus.bits() / Limb::BIT_SIZE;
+        let mut n_limbs = modulus.bits_vartime() / Limb::BIT_SIZE;
         if n_limbs < LIMBS {
             n_limbs += 1;
         }
