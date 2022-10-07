@@ -3,7 +3,7 @@
 //! By default these are all constant-time and use the `subtle` crate.
 
 use super::UInt;
-use crate::{Limb, SignedWord, WideSignedWord, Word, Zero};
+use crate::{limb::HI_BIT, Limb, SignedWord, WideSignedWord, Word, Zero};
 use core::cmp::Ordering;
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
@@ -58,18 +58,32 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         }
         (gt as SignedWord) - (lt as SignedWord)
     }
+
+    /// Returns 0 if self == rhs or Word::MAX if self != rhs.
+    /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
+    #[inline]
+    pub(crate) const fn ct_not_eq(&self, rhs: &Self) -> Word {
+        let mut acc = 0;
+        let mut i = 0;
+
+        while i < LIMBS {
+            acc |= self.limbs[i].0 ^ rhs.limbs[i].0;
+            i += 1;
+        }
+        let acc = acc as SignedWord;
+        ((acc | acc.wrapping_neg()) >> HI_BIT) as Word
+    }
 }
 
 impl<const LIMBS: usize> ConstantTimeEq for UInt<LIMBS> {
+    #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
-        self.limbs
-            .iter()
-            .zip(other.limbs.iter())
-            .fold(Choice::from(1), |acc, (a, b)| acc & a.ct_eq(b))
+        Choice::from((!self.ct_not_eq(other) as u8) & 1)
     }
 }
 
 impl<const LIMBS: usize> ConstantTimeGreater for UInt<LIMBS> {
+    #[inline]
     fn ct_gt(&self, other: &Self) -> Choice {
         let underflow = other.sbb(self, Limb::ZERO).1;
         !underflow.is_zero()
@@ -77,6 +91,7 @@ impl<const LIMBS: usize> ConstantTimeGreater for UInt<LIMBS> {
 }
 
 impl<const LIMBS: usize> ConstantTimeLess for UInt<LIMBS> {
+    #[inline]
     fn ct_lt(&self, other: &Self) -> Choice {
         let underflow = self.sbb(other, Limb::ZERO).1;
         !underflow.is_zero()
@@ -87,14 +102,10 @@ impl<const LIMBS: usize> Eq for UInt<LIMBS> {}
 
 impl<const LIMBS: usize> Ord for UInt<LIMBS> {
     fn cmp(&self, other: &Self) -> Ordering {
-        let mut n = 0i8;
-        n -= self.ct_lt(other).unwrap_u8() as i8;
-        n += self.ct_gt(other).unwrap_u8() as i8;
-
-        match n {
+        match self.ct_cmp(other) {
             -1 => Ordering::Less,
             1 => Ordering::Greater,
-            _ => {
+            n => {
                 debug_assert_eq!(n, 0);
                 debug_assert!(bool::from(self.ct_eq(other)));
                 Ordering::Equal
