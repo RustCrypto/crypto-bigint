@@ -17,7 +17,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
     pub(crate) const fn ct_div_rem(&self, rhs: &Self) -> (Self, Self, u8) {
-        let mb = rhs.bits();
+        let mb = rhs.bits_vartime();
         let mut bd = (LIMBS * Limb::BIT_SIZE) - mb;
         let mut rem = *self;
         let mut quo = Self::ZERO;
@@ -49,7 +49,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
     pub(crate) const fn ct_reduce(&self, rhs: &Self) -> (Self, u8) {
-        let mb = rhs.bits();
+        let mb = rhs.bits_vartime();
         let mut bd = (LIMBS * Limb::BIT_SIZE) - mb;
         let mut rem = *self;
         let mut c = rhs.shl_vartime(bd);
