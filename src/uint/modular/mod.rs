@@ -36,7 +36,7 @@ where
             .split();
 
         let modulus_neg_inv =
-            Limb(0u64.wrapping_sub(modulus.inv_mod2k(Word::BITS as usize).limbs[0].0));
+            Limb(Word::MIN.wrapping_sub(modulus.inv_mod2k(Word::BITS as usize).limbs[0].0));
 
         MontgomeryParams {
             modulus,
