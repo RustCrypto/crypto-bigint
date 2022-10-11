@@ -82,7 +82,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{UInt, U1024, U256};
+    use crate::{U1024, U256, U64};
 
     #[test]
     fn inv_mod2k() {
@@ -126,18 +126,18 @@ mod tests {
 
     #[test]
     fn test_invert_small() {
-        let a = UInt::<1>::from(3u64);
-        let m = UInt::from(13u64);
+        let a = U64::from(3u64);
+        let m = U64::from(13u64);
 
         let res = a.inv_mod(&m);
 
-        assert_eq!(UInt::from(9u64), res.unwrap());
+        assert_eq!(U64::from(9u64), res.unwrap());
     }
 
     #[test]
     fn test_no_inverse_small() {
-        let a = UInt::<1>::from(14u64);
-        let m = UInt::from(49u64);
+        let a = U64::from(14u64);
+        let m = U64::from(49u64);
 
         let res = a.inv_mod(&m);
 

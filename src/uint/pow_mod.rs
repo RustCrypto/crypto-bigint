@@ -26,17 +26,17 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::UInt;
+    use crate::U64;
 
     #[test]
     fn test_powmod_mini() {
-        let b = UInt::<1>::from(3u64);
-        let e = UInt::from(7u64);
-        let m = UInt::from(11u64);
+        let b = U64::from(3u64);
+        let e = U64::from(7u64);
+        let m = U64::from(11u64);
 
         let res = b.pow_mod(&e, &m);
 
-        let expected = UInt::from(9u64);
+        let expected = U64::from(9u64);
         assert_eq!(res, expected);
     }
 }

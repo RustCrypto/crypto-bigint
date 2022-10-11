@@ -144,38 +144,27 @@ impl<const LIMBS: usize> ConditionallySelectable for Modular<LIMBS> {
 mod tests {
     use crate::{
         uint::modular::{montgomery_reduction, Modular, MontgomeryParams},
-        Limb, UInt, U256,
+        UInt, U256, U64,
     };
 
     #[test]
     fn test_montgomery_params() {
-        let modulus = U256::new([
-            Limb(0xffffffff00000001),
-            Limb(0x53bda402fffe5bfe),
-            Limb(0x3339d80809a1d805),
-            Limb(0x73eda753299d7d48),
-        ]);
+        let modulus =
+            U256::from_be_hex("73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001");
         let modulus_params = MontgomeryParams::new(modulus);
 
         assert_eq!(
-            modulus_params.montgomery_r.limbs,
-            [
-                Limb(0x00000001fffffffe),
-                Limb(0x5884b7fa00034802),
-                Limb(0x998c4fefecbc4ff5),
-                Limb(0x1824b159acc5056f)
-            ]
+            modulus_params.montgomery_r,
+            U256::from_be_hex("1824b159acc5056f998c4fefecbc4ff55884b7fa0003480200000001fffffffe")
         );
         assert_eq!(
-            modulus_params.montgomery_r2.limbs,
-            [
-                Limb(0xc999e990f3f29c6d),
-                Limb(0x2b6cedcb87925c23),
-                Limb(0x05d314967254398f),
-                Limb(0x0748d9d99f59ff11)
-            ]
+            modulus_params.montgomery_r2,
+            U256::from_be_hex("0748d9d99f59ff1105d314967254398f2b6cedcb87925c23c999e990f3f29c6d")
         );
-        assert_eq!(modulus_params.modulus_neg_inv, Limb(0xfffffffeffffffff));
+        assert_eq!(
+            modulus_params.modulus_neg_inv,
+            U64::from_be_hex("fffffffeffffffff").limbs[0]
+        );
     }
 
     #[test]
@@ -245,7 +234,7 @@ mod tests {
         // Computing xR mod modulus without Montgomery reduction
         let (lo, hi) = x.mul_wide(&modulus_params.montgomery_r);
         let c = hi.concat(&lo);
-        let red = c.reduce(&UInt::<4>::ZERO.concat(&modulus)).unwrap();
+        let red = c.reduce(&U256::ZERO.concat(&modulus)).unwrap();
         let (hi, lo) = red.split();
         assert_eq!(hi, UInt::ZERO);
 

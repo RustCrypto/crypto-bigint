@@ -45,38 +45,38 @@ where
 mod tests {
     use crate::{
         uint::modular::{Modular, MontgomeryParams},
-        UInt, U1024,
+        U1024, U64,
     };
 
     #[test]
     fn test_powmod_specific_mini() {
-        let modulus = UInt::<1>::from(11u64);
+        let modulus = U64::from(11u64);
         let modulus_params = MontgomeryParams::new(modulus);
 
-        let base = UInt::from(3u64);
+        let base = U64::from(3u64);
         let base_mod = Modular::new(base, modulus_params);
 
-        let exponent = UInt::from(7u64);
+        let exponent = U64::from(7u64);
 
         let res = base_mod.pow_specific(&exponent, 3);
 
-        let expected = UInt::from(9u64);
+        let expected = U64::from(9u64);
         assert_eq!(res.retrieve(), expected);
     }
 
     #[test]
     fn test_powmod_mini() {
-        let modulus = UInt::<1>::from(11u64);
+        let modulus = U64::from(11u64);
         let modulus_params = MontgomeryParams::new(modulus);
 
-        let base = UInt::from(3u64);
+        let base = U64::from(3u64);
         let base_mod = Modular::new(base, modulus_params);
 
-        let exponent = UInt::from(7u64);
+        let exponent = U64::from(7u64);
 
         let res = base_mod.pow(&exponent);
 
-        let expected = UInt::from(9u64);
+        let expected = U64::from(9u64);
         assert_eq!(res.retrieve(), expected);
     }
 
@@ -92,7 +92,7 @@ mod tests {
 
         let res = base_mod.pow(&exponent);
 
-        let expected = UInt::from_be_hex("84FADE244D8A183FD9D209B07312E017F53BBDF4377108EDB4FEAD2AEB1DFF83B6CE604A2DACF49E52574E69055C6E2D30980938CF259421E17AB277C67663712B185C565C97D3200659D83B287C1D8325BFD258C7DBA4BB2766A57C5F2A7EE3FA784A8669C54839F3D29E73215E7939B16E8293524D871D56F67759D553A242");
+        let expected = U1024::from_be_hex("84FADE244D8A183FD9D209B07312E017F53BBDF4377108EDB4FEAD2AEB1DFF83B6CE604A2DACF49E52574E69055C6E2D30980938CF259421E17AB277C67663712B185C565C97D3200659D83B287C1D8325BFD258C7DBA4BB2766A57C5F2A7EE3FA784A8669C54839F3D29E73215E7939B16E8293524D871D56F67759D553A242");
         assert_eq!(res.retrieve(), expected);
     }
 
@@ -108,7 +108,7 @@ mod tests {
 
         let res = base_mod.pow(&exponent);
 
-        let expected = UInt::from_be_hex("6B717DC3571BEC59C1E370780630280B05F13D9BB69E192DA75EAE2A817B270840881034B0AB9EE6B47382C58424AE00F90B88DFA7DFF7C9417B28E4C9DF170BCDFC4689140E9BA067FDB224831A33E2E18232655D15EA985EC0C8FB774BFA967B734A60DD8FC1F9214B7C262050F269C248F3255D5D1E7BD63626707232FF72");
+        let expected = U1024::from_be_hex("6B717DC3571BEC59C1E370780630280B05F13D9BB69E192DA75EAE2A817B270840881034B0AB9EE6B47382C58424AE00F90B88DFA7DFF7C9417B28E4C9DF170BCDFC4689140E9BA067FDB224831A33E2E18232655D15EA985EC0C8FB774BFA967B734A60DD8FC1F9214B7C262050F269C248F3255D5D1E7BD63626707232FF72");
         assert_eq!(res.retrieve(), expected);
     }
 }
