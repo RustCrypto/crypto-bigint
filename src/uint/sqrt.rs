@@ -10,7 +10,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     ///
     /// Callers can check if `self` is a square by squaring the result
     pub const fn sqrt(&self) -> Self {
-        let max_bits = (self.bits() + 1) >> 1;
+        let max_bits = (self.bits_vartime() + 1) >> 1;
         let cap = Self::ONE.shl_vartime(max_bits);
         let mut guess = cap; // ≥ √(`self`)
         let mut xn = {
@@ -25,7 +25,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
             // Sometimes an increase is too far, especially with large
             // powers, and then takes a long time to walk back.  The upper
             // bound is based on bit size, so saturate on that.
-            let res = Limb::ct_cmp(Limb(xn.bits() as Word), Limb(max_bits as Word)) - 1;
+            let res = Limb::ct_cmp(Limb(xn.bits_vartime() as Word), Limb(max_bits as Word)) - 1;
             let le = Limb::is_nonzero(Limb(res as Word));
             guess = Self::ct_select(cap, xn, le);
             xn = {

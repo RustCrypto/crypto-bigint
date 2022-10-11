@@ -4,8 +4,18 @@ use crate::{Limb, NegMod, UInt};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Computes `-a mod p` in constant time.
+    /// Assumes `self` is in `[0, p)`.
     pub const fn neg_mod(&self, p: &Self) -> Self {
-        Self::ZERO.sub_mod(self, p)
+        let z = self.ct_is_nonzero();
+        let mut ret = p.sbb(self, Limb::ZERO).0;
+        let mut i = 0;
+        while i < LIMBS {
+            // Set ret to 0 if the original value was 0, in which
+            // case ret would be p.
+            ret.limbs[i].0 &= z;
+            i += 1;
+        }
+        ret
     }
 
     /// Computes `-a mod p` in constant time for the special modulus
