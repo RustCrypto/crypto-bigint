@@ -2,7 +2,7 @@
 
 use crate::{Checked, CheckedAdd, Limb, UInt, Wrapping, Zero};
 use core::ops::{Add, AddAssign};
-use subtle::CtOption;
+use subtle::{Choice, ConditionallySelectable, CtOption};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Computes `a + b + carry`, returning the result along with the new carry.
@@ -35,6 +35,15 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// Perform wrapping addition, discarding overflow.
     pub const fn wrapping_add(&self, rhs: &Self) -> Self {
         self.adc(rhs, Limb::ZERO).0
+    }
+
+    /// Perform wrapping addition, returning the overflow bit as a `Choice`.
+    pub fn conditional_wrapping_add(&mut self, rhs: &Self, choice: Choice) -> Choice {
+        let actual_rhs = UInt::conditional_select(&UInt::ZERO, rhs, choice);
+        let (sum, carry) = self.adc(&actual_rhs, Limb::ZERO);
+        *self = sum;
+
+        Choice::from(carry.0 as u8)
     }
 }
 

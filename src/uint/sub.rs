@@ -3,7 +3,7 @@
 use super::UInt;
 use crate::{Checked, CheckedSub, Limb, Wrapping, Zero};
 use core::ops::{Sub, SubAssign};
-use subtle::CtOption;
+use subtle::{Choice, ConditionallySelectable, CtOption};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Computes `a - (b + borrow)`, returning the result along with the new borrow.
@@ -37,6 +37,15 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// the boundary of the type.
     pub const fn wrapping_sub(&self, rhs: &Self) -> Self {
         self.sbb(rhs, Limb::ZERO).0
+    }
+
+    /// Perform wrapping subtraction, returning the underflow bit as a `Choice`.
+    pub fn conditional_wrapping_sub(&mut self, rhs: &Self, choice: Choice) -> Choice {
+        let actual_rhs = UInt::conditional_select(&UInt::ZERO, rhs, choice);
+        let (sum, borrow) = self.sbb(&actual_rhs, Limb::ZERO);
+        *self = sum;
+
+        Choice::from((borrow.0 != 0) as u8)
     }
 }
 

@@ -1,10 +1,24 @@
 //! [`UInt`] bitwise right shift operations.
 
+use subtle::Choice;
+
 use super::UInt;
 use crate::Limb;
 use core::ops::{Shr, ShrAssign};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
+    pub fn shr_1(&mut self) -> Choice {
+        let shifted_bits = self.limbs.map(|x| x >> 1);
+        let carry_bits = self.limbs.map(|x| x << 63);
+
+        for i in 0..(LIMBS - 1) {
+            self.limbs[i] = shifted_bits[i] | carry_bits[i + 1]
+        }
+        self.limbs[LIMBS - 1] = shifted_bits[LIMBS - 1];
+
+        Choice::from((carry_bits[0] >> 63).0 as u8)
+    }
+
     /// Computes `self >> n`.
     ///
     /// NOTE: this operation is variable time with respect to `n` *ONLY*.

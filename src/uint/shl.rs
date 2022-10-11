@@ -1,9 +1,23 @@
 //! [`UInt`] bitwise left shift operations.
 
+use subtle::Choice;
+
 use crate::{Limb, UInt, Word};
 use core::ops::{Shl, ShlAssign};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
+    pub fn shl_1(&mut self) -> Choice {
+        let shifted_bits = self.limbs.map(|x| x << 1);
+        let carry_bits = self.limbs.map(|x| x >> 63);
+
+        self.limbs[0] = shifted_bits[0];
+        for i in 1..LIMBS {
+            self.limbs[i] = shifted_bits[i] | carry_bits[i - 1]
+        }
+
+        Choice::from(carry_bits[LIMBS - 1].0 as u8)
+    }
+
     /// Computes `self << shift`.
     ///
     /// NOTE: this operation is variable time with respect to `n` *ONLY*.

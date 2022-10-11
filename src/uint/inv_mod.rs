@@ -1,5 +1,7 @@
+use subtle::ConditionallySelectable;
+
 use super::UInt;
-use crate::Limb;
+use crate::{Integer, Limb, Wrapping};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Computes 1/`self` mod 2^k as specified in Algorithm 4 from
@@ -24,6 +26,56 @@ impl<const LIMBS: usize> UInt<LIMBS> {
             i += 1;
         }
         x
+    }
+
+    pub fn inv_mod(mut self, modulus: &UInt<LIMBS>) -> Option<UInt<LIMBS>> {
+        debug_assert!(modulus.is_odd().unwrap_u8() == 1);
+
+        let mut u = UInt::ONE;
+        let mut v = UInt::ZERO;
+
+        let mut b = *modulus;
+
+        // TODO: This can be lower if `self` is known to be small.
+        let bit_size = 2 * LIMBS * 64;
+
+        let mut m1hp = modulus.clone();
+        let carry = m1hp.shr_1();
+        debug_assert!(carry.unwrap_u8() == 1);
+        let mut m1hp = Wrapping(m1hp);
+        m1hp += &Wrapping(UInt::ONE);
+
+        for _ in 0..bit_size {
+            debug_assert!(b.is_odd().unwrap_u8() == 1);
+
+            let self_odd = self.is_odd();
+
+            // Set `self -= b` if `self` is odd.
+            let swap = self.conditional_wrapping_sub(&b, self_odd);
+            // Set `b += self` if `swap` is true.
+            b = UInt::conditional_select(&b, &(b.wrapping_add(&self)), swap);
+            // Negate `self` if `swap` is true.
+            self = self.conditional_wrapping_neg(swap);
+
+            UInt::conditional_swap(&mut u, &mut v, swap);
+            let cy = u.conditional_wrapping_sub(&v, self_odd);
+            let cyy = u.conditional_wrapping_add(modulus, cy);
+            debug_assert_eq!(cy.unwrap_u8(), cyy.unwrap_u8());
+
+            let overflow = self.shr_1();
+            debug_assert!(overflow.unwrap_u8() == 0);
+            let cy = u.shr_1();
+            let cy = u.conditional_wrapping_add(&m1hp.0, cy);
+            debug_assert!(cy.unwrap_u8() == 0);
+        }
+
+        debug_assert_eq!(self, UInt::ZERO);
+
+        if b != UInt::ONE {
+            None
+        } else {
+            Some(v)
+        }
     }
 }
 
