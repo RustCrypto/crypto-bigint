@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.4.9 (2022-10-11)
+### Added
+- `UInt::from_word` and `::from_wide_word` ([#105])
+- `UInt` modulo operations for special moduli ([#108])
+- Non-const `UInt` decoding from an array ([#110])
+- `const fn` impls of `concat` and `split` ([#111])
+- `Limb` left/right bitshifts ([#112])
+- `UInt::LIMBS` constant ([#114])
+
+### Changed
+- Optimize `UInt::neg_mod` by simply calling `::sub_mod` ([#106])
+- Relax bounds for `UInt::add_mod` and `::sub_mod` ([#104])
+- Always inline `Limb::bitand` ([#109])
+- Faster const decoding of UInt ([#113])
+- Optimize `UInt::neg_mod` ([#127])
+- Faster comparisons ([#128])
+- `UInt::resize` ([#129])
+- `UInt::bit` accessor methods ([#122])
+
+### Fixed
+- Constant-time behaviour for `ct_reduce`/`ct_div_rem` ([#117])
+
+[#104]: https://github.com/RustCrypto/crypto-bigint/pull/104
+[#105]: https://github.com/RustCrypto/crypto-bigint/pull/105
+[#106]: https://github.com/RustCrypto/crypto-bigint/pull/106
+[#108]: https://github.com/RustCrypto/crypto-bigint/pull/108
+[#109]: https://github.com/RustCrypto/crypto-bigint/pull/109
+[#110]: https://github.com/RustCrypto/crypto-bigint/pull/110
+[#111]: https://github.com/RustCrypto/crypto-bigint/pull/111
+[#112]: https://github.com/RustCrypto/crypto-bigint/pull/112
+[#113]: https://github.com/RustCrypto/crypto-bigint/pull/113
+[#114]: https://github.com/RustCrypto/crypto-bigint/pull/114
+[#117]: https://github.com/RustCrypto/crypto-bigint/pull/117
+[#122]: https://github.com/RustCrypto/crypto-bigint/pull/122
+[#127]: https://github.com/RustCrypto/crypto-bigint/pull/127
+[#128]: https://github.com/RustCrypto/crypto-bigint/pull/128
+[#129]: https://github.com/RustCrypto/crypto-bigint/pull/129
+
 ## 0.4.8 (2022-06-30)
 ### Added
 - `Word` as a replacement for `LimbUInt` ([#88])
