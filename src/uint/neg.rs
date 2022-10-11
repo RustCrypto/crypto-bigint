@@ -9,7 +9,7 @@ impl<const LIMBS: usize> Neg for Wrapping<UInt<LIMBS>> {
 
     fn neg(self) -> Self::Output {
         let shifted = Wrapping(self.0.shl_vartime(1));
-        &self - shifted
+        self - shifted
     }
 }
 

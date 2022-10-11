@@ -46,6 +46,7 @@ impl<const LIMBS: usize> BitAnd for UInt<LIMBS> {
 impl<const LIMBS: usize> BitAnd<&UInt<LIMBS>> for UInt<LIMBS> {
     type Output = UInt<LIMBS>;
 
+    #[allow(clippy::needless_borrow)]
     fn bitand(self, rhs: &UInt<LIMBS>) -> UInt<LIMBS> {
         (&self).bitand(rhs)
     }

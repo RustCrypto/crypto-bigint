@@ -7,6 +7,7 @@ use crate::Limb;
 use core::ops::{Shr, ShrAssign};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
+    /// Computes `self >> 1` in constant-time, returning the overflowing bit as a `Choice`.
     pub fn shr_1(&mut self) -> Choice {
         let shifted_bits = self.limbs.map(|x| x >> 1);
         let carry_bits = self.limbs.map(|x| x << 63);

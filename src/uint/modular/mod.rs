@@ -120,7 +120,8 @@ fn montgomery_reduction<const LIMBS: usize>(
 
     // Division is simply taking the upper half of the limbs
     // Final reduction (at this point, the value is at most 2 * modulus)
-    let must_reduce = Choice::from(meta_carry as u8);
+    let must_reduce =
+        Choice::from(meta_carry as u8) | Choice::from((upper >= modulus_params.modulus) as u8);
     upper = upper.wrapping_sub(&UInt::conditional_select(
         &UInt::ZERO,
         &modulus_params.modulus,

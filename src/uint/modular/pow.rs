@@ -16,7 +16,7 @@ where
     /// Perform modular exponentiation using Montgomery's ladder. `exponent_bits` represents the number of bits to take into account for the exponent. Note that this value is leaked in the time pattern.
     pub fn pow_specific(&self, exponent: &UInt<LIMBS>, exponent_bits: usize) -> Modular<LIMBS> {
         let mut x1: Modular<LIMBS> = Modular::one(self.modulus_params);
-        let mut x2: Modular<LIMBS> = self.clone();
+        let mut x2: Modular<LIMBS> = *self;
 
         // Shift the exponent all the way to the left so the leftmost bit is the MSB of the `UInt`
         let mut n: UInt<LIMBS> =
@@ -27,7 +27,7 @@ where
             // Peel off one bit at a time from the left side
             let overflow = n.shl_1();
 
-            let mut product: Modular<LIMBS> = x1.clone();
+            let mut product: Modular<LIMBS> = x1;
             product *= x2;
 
             let mut square = Modular::conditional_select(&x1, &x2, overflow);
