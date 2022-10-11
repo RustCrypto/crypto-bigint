@@ -4,6 +4,7 @@ use crate::{CheckedAdd, Concat, Limb, Split, UInt, WideWord, Word};
 
 mod add;
 mod mul;
+mod pow;
 
 #[derive(Debug, Clone, Copy)]
 pub struct MontgomeryParams<const LIMBS: usize> {
@@ -47,6 +48,7 @@ where
 }
 
 // TODO: We should consider taking modulus_params as a reference
+#[derive(Debug, Clone, Copy)]
 pub struct Modular<const LIMBS: usize> {
     value: UInt<LIMBS>,
     modulus_params: MontgomeryParams<LIMBS>,
@@ -59,12 +61,21 @@ impl<const LIMBS: usize> Modular<LIMBS> {
             modulus_params,
         };
 
-        modular_integer *= &modulus_params.montgomery_r2;
+        let product = integer.mul_wide(&modulus_params.montgomery_r2);
+        modular_integer.value = montgomery_reduction(product, &modulus_params);
+
         modular_integer
     }
 
     pub fn retrieve(&self) -> UInt<LIMBS> {
         montgomery_reduction((self.value, UInt::ZERO), &self.modulus_params)
+    }
+
+    pub fn one(modulus_params: MontgomeryParams<LIMBS>) -> Self {
+        Modular {
+            value: modulus_params.montgomery_r,
+            modulus_params,
+        }
     }
 }
 
@@ -117,6 +128,15 @@ fn montgomery_reduction<const LIMBS: usize>(
     ));
 
     upper
+}
+
+impl<const LIMBS: usize> ConditionallySelectable for Modular<LIMBS> {
+    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
+        Modular {
+            value: UInt::conditional_select(&a.value, &b.value, choice),
+            modulus_params: a.modulus_params,
+        }
+    }
 }
 
 #[cfg(test)]
