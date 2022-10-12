@@ -1,23 +1,39 @@
 //! [`UInt`] bitwise right shift operations.
 
-use subtle::Choice;
-
 use super::UInt;
-use crate::Limb;
+use crate::{limb::HI_BIT, Limb, Word};
 use core::ops::{Shr, ShrAssign};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
-    /// Computes `self >> 1` in constant-time, returning the overflowing bit as a `Choice`.
-    pub fn shr_1(&mut self) -> Choice {
-        let shifted_bits = self.limbs.map(|x| x >> 1);
-        let carry_bits = self.limbs.map(|x| x << 63);
-
-        for i in 0..(LIMBS - 1) {
-            self.limbs[i] = shifted_bits[i] | carry_bits[i + 1]
+    /// Computes `self >> 1` in constant-time, returning the overflowing bit as a `Word` that is either 0...0 or 1...1.
+    pub(crate) const fn shr_1(&self) -> (Self, Word) {
+        let mut shifted_bits = [0; LIMBS];
+        let mut i = 0;
+        while i < LIMBS {
+            shifted_bits[i] = self.limbs[i].0 >> 1;
+            i += 1;
         }
-        self.limbs[LIMBS - 1] = shifted_bits[LIMBS - 1];
 
-        Choice::from((carry_bits[0] >> 63).0 as u8)
+        let mut carry_bits = [0; LIMBS];
+        let mut i = 0;
+        while i < LIMBS {
+            carry_bits[i] = self.limbs[i].0 << HI_BIT;
+            i += 1;
+        }
+
+        let mut limbs = [Limb(0); LIMBS];
+
+        let mut i = 0;
+        while i < (LIMBS - 1) {
+            limbs[i] = Limb(shifted_bits[i] | carry_bits[i + 1]);
+            i += 1;
+        }
+        limbs[LIMBS - 1] = Limb(shifted_bits[LIMBS - 1]);
+
+        (
+            UInt::new(limbs),
+            (carry_bits[0] >> HI_BIT).wrapping_mul(Word::MAX),
+        )
     }
 
     /// Computes `self >> n`.

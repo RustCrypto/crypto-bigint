@@ -1,5 +1,3 @@
-use subtle::ConditionallySelectable;
-
 use crate::{Concat, Split, UInt, Word};
 
 use super::Modular;
@@ -25,16 +23,17 @@ where
         for _ in 0..exponent_bits {
             // TODO: Remove one of the squares and instead conditionally select x1 or x2 to square
             // Peel off one bit at a time from the left side
-            let overflow = n.shl_1();
+            let (next_n, overflow) = n.shl_1();
+            n = next_n;
 
             let mut product: Modular<LIMBS> = x1;
             product *= x2;
 
-            let mut square = Modular::conditional_select(&x1, &x2, overflow);
+            let mut square = Modular::ct_select(x1, x2, overflow);
             square.square();
 
-            x1 = Modular::conditional_select(&square, &product, overflow);
-            x2 = Modular::conditional_select(&product, &square, overflow);
+            x1 = Modular::ct_select(square, product, overflow);
+            x2 = Modular::ct_select(product, square, overflow);
         }
 
         x1

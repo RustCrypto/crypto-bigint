@@ -1,8 +1,8 @@
 //! [`UInt`] addition operations.
 
-use crate::{Checked, CheckedAdd, Limb, UInt, Wrapping, Zero};
+use crate::{Checked, CheckedAdd, Limb, UInt, Word, Wrapping, Zero};
 use core::ops::{Add, AddAssign};
-use subtle::{Choice, ConditionallySelectable, CtOption};
+use subtle::CtOption;
 
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Computes `a + b + carry`, returning the result along with the new carry.
@@ -37,13 +37,12 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         self.adc(rhs, Limb::ZERO).0
     }
 
-    /// Perform wrapping addition, returning the overflow bit as a `Choice`.
-    pub fn conditional_wrapping_add(&mut self, rhs: &Self, choice: Choice) -> Choice {
-        let actual_rhs = UInt::conditional_select(&UInt::ZERO, rhs, choice);
+    /// Perform wrapping addition, returning the overflow bit as a `Word` that is either 0...0 or 1...1.
+    pub(crate) const fn conditional_wrapping_add(&self, rhs: &Self, choice: Word) -> (Self, Word) {
+        let actual_rhs = UInt::ct_select(UInt::ZERO, *rhs, choice);
         let (sum, carry) = self.adc(&actual_rhs, Limb::ZERO);
-        *self = sum;
 
-        Choice::from(carry.0 as u8)
+        (sum, carry.0.wrapping_mul(Word::MAX))
     }
 }
 

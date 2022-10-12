@@ -1,9 +1,9 @@
 //! [`UInt`] addition operations.
 
 use super::UInt;
-use crate::{Checked, CheckedSub, Limb, Wrapping, Zero};
+use crate::{Checked, CheckedSub, Limb, Word, Wrapping, Zero};
 use core::ops::{Sub, SubAssign};
-use subtle::{Choice, ConditionallySelectable, CtOption};
+use subtle::CtOption;
 
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Computes `a - (b + borrow)`, returning the result along with the new borrow.
@@ -39,13 +39,13 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         self.sbb(rhs, Limb::ZERO).0
     }
 
-    /// Perform wrapping subtraction, returning the underflow bit as a `Choice`.
-    pub fn conditional_wrapping_sub(&mut self, rhs: &Self, choice: Choice) -> Choice {
-        let actual_rhs = UInt::conditional_select(&UInt::ZERO, rhs, choice);
-        let (sum, borrow) = self.sbb(&actual_rhs, Limb::ZERO);
-        *self = sum;
+    /// Perform wrapping subtraction, returning the underflow bit as a `Word` that is either 0...0 or 1...1.
+    pub(crate) const fn conditional_wrapping_sub(&self, rhs: &Self, choice: Word) -> (Self, Word) {
+        let actual_rhs = UInt::ct_select(UInt::ZERO, *rhs, choice);
+        let (res, borrow) = self.sbb(&actual_rhs, Limb::ZERO);
 
-        Choice::from((borrow.0 != 0) as u8)
+        // Here we do not use a multiplication because the result is already 0...0 or 1...1
+        (res, borrow.0)
     }
 }
 

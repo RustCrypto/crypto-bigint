@@ -1,7 +1,7 @@
-use subtle::ConditionallySelectable;
+use subtle::{Choice, CtOption};
 
 use super::UInt;
-use crate::{Integer, Limb, Wrapping};
+use crate::{Limb, Word};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
     /// Computes 1/`self` mod 2^k as specified in Algorithm 4 from
@@ -28,9 +28,11 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         x
     }
 
-    /// Computes the multiplicative inverse of `self` mod `modulus`. In other words `self^-1 mod modulus`. Returns `None` if an inverse does not exist. The algorithm is the same as in GMP 6.2.1's `mpn_sec_invert`.
-    pub fn inv_mod(mut self, modulus: &UInt<LIMBS>) -> Option<UInt<LIMBS>> {
-        debug_assert!(modulus.is_odd().unwrap_u8() == 1);
+    /// Computes the multiplicative inverse of `self` mod `modulus`. In other words `self^-1 mod modulus`. Returns `(inverse, 1...1)` if an inverse exists, otherwise `(undefined, 0...0)`. The algorithm is the same as in GMP 6.2.1's `mpn_sec_invert`.
+    pub const fn ct_inv_mod(self, modulus: &UInt<LIMBS>) -> (Self, Word) {
+        debug_assert!(modulus.ct_is_odd() == Word::MAX);
+
+        let mut a = self;
 
         let mut u = UInt::ONE;
         let mut v = UInt::ZERO;
@@ -41,42 +43,50 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         let bit_size = 2 * LIMBS * 64;
 
         let mut m1hp = *modulus;
-        let carry = m1hp.shr_1();
-        debug_assert!(carry.unwrap_u8() == 1);
-        let mut m1hp = Wrapping(m1hp);
-        m1hp += &Wrapping(UInt::ONE);
+        let (m1hp_new, carry) = m1hp.shr_1();
+        debug_assert!(carry == Word::MAX);
+        m1hp = m1hp_new.wrapping_add(&UInt::ONE);
 
-        for _ in 0..bit_size {
-            debug_assert!(b.is_odd().unwrap_u8() == 1);
+        let mut i = 0;
+        while i < bit_size {
+            debug_assert!(b.ct_is_odd() == Word::MAX);
 
-            let self_odd = self.is_odd();
+            let self_odd = a.ct_is_odd();
 
             // Set `self -= b` if `self` is odd.
-            let swap = self.conditional_wrapping_sub(&b, self_odd);
+            let (new_a, swap) = a.conditional_wrapping_sub(&b, self_odd);
             // Set `b += self` if `swap` is true.
-            b = UInt::conditional_select(&b, &(b.wrapping_add(&self)), swap);
+            b = UInt::ct_select(b, b.wrapping_add(&new_a), swap);
             // Negate `self` if `swap` is true.
-            self = self.conditional_wrapping_neg(swap);
+            a = new_a.conditional_wrapping_neg(swap);
 
-            UInt::conditional_swap(&mut u, &mut v, swap);
-            let cy = u.conditional_wrapping_sub(&v, self_odd);
-            let cyy = u.conditional_wrapping_add(modulus, cy);
-            debug_assert_eq!(cy.unwrap_u8(), cyy.unwrap_u8());
+            let (new_u, new_v) = UInt::ct_swap(u, v, swap);
+            let (new_u, cy) = new_u.conditional_wrapping_sub(&new_v, self_odd);
+            let (new_u, cyy) = new_u.conditional_wrapping_add(modulus, cy);
+            debug_assert!(cy == cyy);
 
-            let overflow = self.shr_1();
-            debug_assert!(overflow.unwrap_u8() == 0);
-            let cy = u.shr_1();
-            let cy = u.conditional_wrapping_add(&m1hp.0, cy);
-            debug_assert!(cy.unwrap_u8() == 0);
+            let (new_a, overflow) = a.shr_1();
+            debug_assert!(overflow == 0);
+            let (new_u, cy) = new_u.shr_1();
+            let (new_u, cy) = new_u.conditional_wrapping_add(&m1hp, cy);
+            debug_assert!(cy == 0);
+
+            a = new_a;
+            u = new_u;
+            v = new_v;
+
+            i += 1;
         }
 
-        debug_assert_eq!(self, UInt::ZERO);
+        debug_assert!(a.ct_cmp(&UInt::ZERO) == 0);
 
-        if b != UInt::ONE {
-            None
-        } else {
-            Some(v)
-        }
+        (v, b.ct_not_eq(&UInt::ONE) ^ Word::MAX)
+    }
+
+    /// Computes the multiplicative inverse of `self` mod `modulus`. In other words `self^-1 mod modulus`. Returns `None` if the inverse does not exist. The algorithm is the same as in GMP 6.2.1's `mpn_sec_invert`.
+    pub fn inv_mod(self, modulus: &UInt<LIMBS>) -> CtOption<Self> {
+        let (inverse, exists) = self.ct_inv_mod(modulus);
+        CtOption::new(inverse, Choice::from((exists == Word::MAX) as u8))
     }
 }
 
@@ -141,6 +151,6 @@ mod tests {
 
         let res = a.inv_mod(&m);
 
-        assert!(res.is_none());
+        assert!(res.is_none().unwrap_u8() == 1);
     }
 }

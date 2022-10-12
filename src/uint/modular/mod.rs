@@ -77,6 +77,17 @@ impl<const LIMBS: usize> Modular<LIMBS> {
             modulus_params,
         }
     }
+
+    /// Return `a` if `c`==0 or `b` if `c`==`Word::MAX`.
+    ///
+    /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
+    #[inline]
+    pub(crate) const fn ct_select(a: Self, b: Self, c: Word) -> Self {
+        Modular {
+            value: UInt::ct_select(a.value, b.value, c),
+            modulus_params: a.modulus_params,
+        }
+    }
 }
 
 /// Algorithm 14.32 in Handbook of Applied Cryptography (https://cacr.uwaterloo.ca/hac/about/chap14.pdf)
