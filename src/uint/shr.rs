@@ -129,7 +129,7 @@ impl<const LIMBS: usize> ShrAssign<usize> for UInt<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{U256, UInt, U128};
+    use crate::{UInt, U128, U256};
 
     const N: U256 =
         U256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
@@ -144,16 +144,25 @@ mod tests {
 
     #[test]
     fn shr_wide_1_1_128() {
-        assert_eq!(UInt::shr_vartime_wide((U128::ONE, U128::ONE), 128), (U128::ONE, U128::ZERO));
+        assert_eq!(
+            UInt::shr_vartime_wide((U128::ONE, U128::ONE), 128),
+            (U128::ONE, U128::ZERO)
+        );
     }
 
     #[test]
     fn shr_wide_0_max_1() {
-        assert_eq!(UInt::shr_vartime_wide((U128::ZERO, U128::MAX), 1), (U128::ONE << 127, U128::MAX >> 1));
+        assert_eq!(
+            UInt::shr_vartime_wide((U128::ZERO, U128::MAX), 1),
+            (U128::ONE << 127, U128::MAX >> 1)
+        );
     }
 
     #[test]
     fn shr_wide_max_max_256() {
-        assert_eq!(UInt::shr_vartime_wide((U128::MAX, U128::MAX), 256), (U128::ZERO, U128::ZERO));
+        assert_eq!(
+            UInt::shr_vartime_wide((U128::MAX, U128::MAX), 256),
+            (U128::ZERO, U128::ZERO)
+        );
     }
 }
