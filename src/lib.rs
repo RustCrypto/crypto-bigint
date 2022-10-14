@@ -17,8 +17,8 @@
     unused_qualifications
 )]
 // FIXME: This does not work in stable rust
-#![feature(const_eval_limit)]
-#![const_eval_limit = "0"]
+// #![feature(const_eval_limit)]
+// #![const_eval_limit = "0"]
 
 //! ## Usage
 //!

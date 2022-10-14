@@ -1,8 +1,20 @@
-use core::ops::MulAssign;
+use core::{marker::PhantomData, ops::MulAssign};
 
 use crate::{Concat, Split, UInt};
 
 use super::{montgomery_reduction, Residue, ResidueParams};
+
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
+    pub const fn mul(&self, rhs: &Self) -> Self {
+        let product = self.montgomery_form.mul_wide(&rhs.montgomery_form);
+        let montgomery_form = montgomery_reduction::<MOD, LIMBS>(product);
+
+        Self {
+            montgomery_form,
+            phantom: PhantomData,
+        }
+    }
+}
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize, const DLIMBS: usize> Residue<MOD, LIMBS>
 where
@@ -17,7 +29,6 @@ where
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> MulAssign for Residue<MOD, LIMBS> {
     fn mul_assign(&mut self, rhs: Self) {
-        let product = self.montgomery_form.mul_wide(&rhs.montgomery_form);
-        self.montgomery_form = montgomery_reduction::<MOD, LIMBS>(product);
+        *self = self.mul(&rhs)
     }
 }

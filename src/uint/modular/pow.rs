@@ -1,18 +1,14 @@
-use crate::{Concat, Split, UInt, Word};
+use crate::{UInt, Word};
 
 use super::{Residue, ResidueParams};
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize, const DLIMBS: usize> Residue<MOD, LIMBS>
-where
-    UInt<LIMBS>: Concat<Output = UInt<DLIMBS>>,
-    UInt<DLIMBS>: Split<Output = UInt<LIMBS>>,
-{
-    pub fn pow(&self, exponent: &UInt<LIMBS>) -> Residue<MOD, LIMBS> {
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
+    pub const fn pow(&self, exponent: &UInt<LIMBS>) -> Residue<MOD, LIMBS> {
         self.pow_specific(exponent, LIMBS * Word::BITS as usize)
     }
 
     /// Perform modular exponentiation using Montgomery's ladder. `exponent_bits` represents the number of bits to take into account for the exponent. Note that this value is leaked in the time pattern.
-    pub fn pow_specific(
+    pub const fn pow_specific(
         &self,
         exponent: &UInt<LIMBS>,
         exponent_bits: usize,
@@ -24,20 +20,23 @@ where
         let mut n: UInt<LIMBS> =
             exponent.shl_vartime((LIMBS * Word::BITS as usize) - exponent_bits);
 
-        for _ in 0..exponent_bits {
+        let mut i = 0;
+        while i < exponent_bits {
             // TODO: Remove one of the squares and instead conditionally select x1 or x2 to square
             // Peel off one bit at a time from the left side
             let (next_n, overflow) = n.shl_1();
             n = next_n;
 
             let mut product: Residue<MOD, LIMBS> = x1;
-            product *= x2;
+            product = product.mul(&x2);
 
             let mut square = Residue::ct_select(x1, x2, overflow);
-            square.square();
+            square = square.mul(&square);
 
             x1 = Residue::ct_select(square, product, overflow);
             x2 = Residue::ct_select(product, square, overflow);
+
+            i += 1;
         }
 
         x1
