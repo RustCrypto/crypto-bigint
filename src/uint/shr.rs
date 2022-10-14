@@ -75,6 +75,26 @@ impl<const LIMBS: usize> UInt<LIMBS> {
 
         Self { limbs }
     }
+
+    /// Computes a right shift on a wide input as `(lo, hi)`.
+    ///
+    /// NOTE: this operation is variable time with respect to `n` *ONLY*.
+    ///
+    /// When used with a fixed `n`, this function is constant-time with respect
+    /// to `self`.
+    #[inline(always)]
+    pub const fn shr_vartime_wide(lower_upper: (Self, Self), n: usize) -> (Self, Self) {
+        let (mut lower, upper) = lower_upper;
+        let new_upper = upper.shr_vartime(n);
+        lower = lower.shr_vartime(n);
+        if n >= LIMBS * Limb::BIT_SIZE {
+            lower = lower.bitor(&upper.shr_vartime(n - LIMBS * Limb::BIT_SIZE));
+        } else {
+            lower = lower.bitor(&upper.shl_vartime(LIMBS * Limb::BIT_SIZE - n));
+        }
+
+        (lower, new_upper)
+    }
 }
 
 impl<const LIMBS: usize> Shr<usize> for UInt<LIMBS> {
@@ -109,7 +129,7 @@ impl<const LIMBS: usize> ShrAssign<usize> for UInt<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::U256;
+    use crate::{U256, UInt, U128};
 
     const N: U256 =
         U256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
@@ -120,5 +140,20 @@ mod tests {
     #[test]
     fn shr1() {
         assert_eq!(N >> 1, N_2);
+    }
+
+    #[test]
+    fn shr_wide_1_1_128() {
+        assert_eq!(UInt::shr_vartime_wide((U128::ONE, U128::ONE), 128), (U128::ONE, U128::ZERO));
+    }
+
+    #[test]
+    fn shr_wide_0_max_1() {
+        assert_eq!(UInt::shr_vartime_wide((U128::ZERO, U128::MAX), 1), (U128::ONE << 127, U128::MAX >> 1));
+    }
+
+    #[test]
+    fn shr_wide_max_max_256() {
+        assert_eq!(UInt::shr_vartime_wide((U128::MAX, U128::MAX), 256), (U128::ZERO, U128::ZERO));
     }
 }

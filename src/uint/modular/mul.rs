@@ -2,22 +2,22 @@ use core::ops::MulAssign;
 
 use crate::{Concat, Split, UInt};
 
-use super::{montgomery_reduction, Modular};
+use super::{montgomery_reduction, Residue, ResidueParams};
 
-impl<const LIMBS: usize, const DLIMBS: usize> Modular<LIMBS>
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize, const DLIMBS: usize> Residue<MOD, LIMBS>
 where
     UInt<LIMBS>: Concat<Output = UInt<DLIMBS>>,
     UInt<DLIMBS>: Split<Output = UInt<LIMBS>>,
 {
     pub fn square(&mut self) {
-        let (hi, lo) = self.value.square().split();
-        self.value = montgomery_reduction((lo, hi), &self.modulus_params);
+        let (hi, lo) = self.montgomery_form.square().split();
+        self.montgomery_form = montgomery_reduction::<MOD, LIMBS>((lo, hi));
     }
 }
 
-impl<const LIMBS: usize> MulAssign for Modular<LIMBS> {
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> MulAssign for Residue<MOD, LIMBS> {
     fn mul_assign(&mut self, rhs: Self) {
-        let product = self.value.mul_wide(&rhs.value);
-        self.value = montgomery_reduction(product, &self.modulus_params);
+        let product = self.montgomery_form.mul_wide(&rhs.montgomery_form);
+        self.montgomery_form = montgomery_reduction::<MOD, LIMBS>(product);
     }
 }

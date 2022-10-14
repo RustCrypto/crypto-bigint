@@ -44,8 +44,8 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         let actual_rhs = UInt::ct_select(UInt::ZERO, *rhs, choice);
         let (res, borrow) = self.sbb(&actual_rhs, Limb::ZERO);
 
-        // Here we do not use a multiplication because the result is already 0...0 or 1...1
-        (res, borrow.0)
+        // Here we use a saturating multiplication to get the result to 0...0 or 1...1
+        (res, borrow.0.saturating_mul(Word::MAX))
     }
 }
 

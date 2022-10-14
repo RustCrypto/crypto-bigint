@@ -68,6 +68,42 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         (rem, (is_some & 1) as u8)
     }
 
+    /// Computes `self` % `rhs`, returns the remainder and
+    /// and 1 for is_some or 0 for is_none. The results can be wrapped in [`CtOption`].
+    /// NOTE: Use only if you need to access const fn. Otherwise use `reduce`
+    /// This is variable only with respect to `rhs`.
+    ///
+    /// When used with a fixed `rhs`, this function is constant-time with respect
+    /// to `self`.
+    pub(crate) const fn ct_reduce_wide(lower_upper: (Self, Self), rhs: &Self) -> (Self, u8) {
+        let mb = rhs.bits_vartime();
+
+        // The number of bits to consider is two sets of limbs * BIT_SIZE - mb (modulus bitcount)
+        let mut bd = (2 * LIMBS * Limb::BIT_SIZE) - mb;
+
+        // The wide integer to reduce, split into two halves
+        let (mut lower, mut upper) = lower_upper;
+
+        // Factor of the modulus, split into two halves
+        let mut c = Self::shl_vartime_wide((*rhs, UInt::ZERO), bd);
+
+        loop {
+            let (lower_sub, borrow) = lower.sbb(&c.0, Limb::ZERO);
+            let (upper_sub, borrow) = upper.sbb(&c.1, borrow);
+
+            lower = Self::ct_select(lower_sub, lower, borrow.0);
+            upper = Self::ct_select(upper_sub, upper, borrow.0);
+            if bd == 0 {
+                break;
+            }
+            bd -= 1;
+            c = Self::shr_vartime_wide(c, 1);
+        }
+
+        let is_some = Limb(mb as Word).is_nonzero();
+        (lower, (is_some & 1) as u8)
+    }
+
     /// Computes `self` % 2^k. Faster than reduce since its a power of 2.
     /// Limited to 2^16-1 since UInt doesn't support higher.
     pub const fn reduce2k(&self, k: usize) -> Self {
@@ -462,6 +498,19 @@ mod tests {
         assert_eq!(is_some, 1);
         assert_eq!(r, U256::ONE);
         let (r, is_some) = U256::from(10u8).ct_reduce(&U256::from(7u8));
+        assert_eq!(is_some, 1);
+        assert_eq!(r, U256::from(3u8));
+    }
+
+    #[test]
+    fn reduce_tests_wide_zero_padded() {
+        let (r, is_some) = U256::ct_reduce_wide((U256::from(10u8), U256::ZERO), &U256::from(2u8));
+        assert_eq!(is_some, 1);
+        assert_eq!(r, U256::ZERO);
+        let (r, is_some) = U256::ct_reduce_wide((U256::from(10u8), U256::ZERO), &U256::from(3u8));
+        assert_eq!(is_some, 1);
+        assert_eq!(r, U256::ONE);
+        let (r, is_some) = U256::ct_reduce_wide((U256::from(10u8), U256::ZERO), &U256::from(7u8));
         assert_eq!(is_some, 1);
         assert_eq!(r, U256::from(3u8));
     }
