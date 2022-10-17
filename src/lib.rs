@@ -51,7 +51,7 @@
 //! The current way to deal with this problem is to either simplify this computation,
 //! or increase the compiler's limit (currently a nightly feature).
 //! One can completely remove the compiler's limit using:
-//! ```
+//! ```ignore
 //! #![feature(const_eval_limit)]
 //! #![const_eval_limit = "0"]
 //! ```

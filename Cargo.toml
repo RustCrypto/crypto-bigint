@@ -14,7 +14,7 @@ keywords = ["arbitrary", "crypto", "bignum", "integer", "precision"]
 readme = "README.md"
 resolver = "2"
 edition = "2021"
-rust-version = "1.57"
+rust-version = "1.61"
 
 [dependencies]
 subtle = { version = "2.4", default-features = false }
