@@ -1,10 +1,9 @@
 // TODO: Use `adt_const_params` once stabilized to make a `Residue` generic around a modulus rather than having to implement a ZST + trait
 #[macro_export]
+/// Implements a modulus with the given name, type, and value, in that specific order. Please `use crypto_bigint::traits::Encoding` to make this work.
+/// For example, `impl_modulus!(MyModulus, U256, "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001");` implements a 256-bit modulus named `MyModulus`.
 macro_rules! impl_modulus {
     ($name:ident, $uint_type:ty, $value:expr) => {
-        // use $crate::traits::{Encoding, Concat, Split};
-        // use $crate::{Limb, Word};
-
         #[derive(Clone, Copy, PartialEq, Eq, Debug)]
         pub struct $name {}
         impl<const DLIMBS: usize> ResidueParams<{ nlimbs!(<$uint_type>::BIT_SIZE) }> for $name
@@ -31,6 +30,8 @@ macro_rules! impl_modulus {
 }
 
 #[macro_export]
+/// Creates a `Residue` with the given value for a specific modulus.
+/// For example, `residue!(U256::from(105u64), MyModulus);` creates a `Residue` for 105 mod `MyModulus`.
 macro_rules! residue {
     ($variable:ident, $modulus:ident) => {
         $crate::uint::modular::Residue::<$modulus, { $modulus::LIMBS }>::new($variable)

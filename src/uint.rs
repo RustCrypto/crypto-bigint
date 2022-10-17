@@ -23,7 +23,6 @@ mod div;
 mod encoding;
 mod from;
 mod inv_mod;
-mod modular;
 mod mul;
 mod mul_mod;
 mod neg;
@@ -35,6 +34,9 @@ mod shr;
 mod sqrt;
 mod sub;
 mod sub_mod;
+
+/// Implements modular arithmetic for constant moduli.
+pub mod modular;
 
 #[cfg(feature = "generic-array")]
 mod array;

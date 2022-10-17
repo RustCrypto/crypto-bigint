@@ -75,6 +75,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
+    #[allow(dead_code)]
     pub(crate) const fn ct_reduce_wide(lower_upper: (Self, Self), rhs: &Self) -> (Self, u8) {
         let mb = rhs.bits_vartime();
 

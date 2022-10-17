@@ -16,9 +16,6 @@
     trivial_numeric_casts,
     unused_qualifications
 )]
-// FIXME: This does not work in stable rust
-// #![feature(const_eval_limit)]
-// #![const_eval_limit = "0"]
 
 //! ## Usage
 //!
@@ -48,6 +45,15 @@
 //!
 //! // Compute `MODULUS` shifted right by 1 at compile time
 //! pub const MODULUS_SHR1: U256 = MODULUS.shr_vartime(1);
+//! ```
+//!
+//! Note that large constant computations may accidentally trigger a the `const_eval_limit` of the compiler.
+//! The current way to deal with this problem is to either simplify this computation,
+//! or increase the compiler's limit (currently a nightly feature).
+//! One can completely remove the compiler's limit using:
+//! ```
+//! #![feature(const_eval_limit)]
+//! #![const_eval_limit = "0"]
 //! ```
 //!
 //! ### Trait-based usage
@@ -87,6 +93,7 @@
 //! This library has initial support for modular arithmetic in the form of the
 //! [`AddMod`], [`SubMod`], [`NegMod`], and [`MulMod`] traits, as well as the
 //! support for the [`Rem`] trait when used with a [`NonZero`] operand.
+//! It also supports modular arithmetic over constant moduli using `Residue`.
 //!
 //! ```
 //! use crypto_bigint::{AddMod, U256};

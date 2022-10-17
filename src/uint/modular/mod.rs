@@ -5,26 +5,35 @@ use subtle::{Choice, ConditionallySelectable};
 use crate::{Limb, UInt, WideWord, Word};
 
 #[macro_use]
-mod macros;
-
+/// Macros to remove the boilerplate code when dealing with constant moduli.
+pub mod macros;
+/// Additions between residues
 mod add;
+/// Multiplications between residues
 mod mul;
+/// Exponentiation of residues
 mod pow;
 
 /// The parameters to efficiently go to and from the Montgomery form for a given modulus. An easy way to generate these parameters is using the `impl_modulus!` macro.
 ///
 /// Unfortunately, `LIMBS` must be generic for now until const generics are stabilized.
 pub trait ResidueParams<const LIMBS: usize>: Copy {
+    /// Number of limbs required to encode a residue
     const LIMBS: usize;
+
+    /// The constant modulus
     const MODULUS: UInt<LIMBS>;
+    /// Parameter used in Montgomery reduction
     const R: UInt<LIMBS>;
+    /// R^2, used to move into Montgomery form
     const R2: UInt<LIMBS>;
+    /// The lowest limbs of -(MODULUS^-1) mod R
     // We only need the LSB because during reduction this value is multiplied modulo 2**64.
     const MOD_NEG_INV: Limb;
 }
 
-// TODO: We should consider taking modulus_params as a reference
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// A residue mod `MOD`, represented using `LIMBS` limbs.
 pub struct Residue<MOD, const LIMBS: usize>
 where
     MOD: ResidueParams<LIMBS>,
@@ -34,11 +43,13 @@ where
 }
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
+    /// The representation of 1 mod `MOD`.
     pub const ONE: Self = Self {
         montgomery_form: MOD::R,
         phantom: PhantomData,
     };
 
+    /// Instantiates a new `Residue` that represents this `integer` mod `MOD`.
     pub const fn new(integer: UInt<LIMBS>) -> Self {
         let mut modular_integer = Residue {
             montgomery_form: integer,
@@ -51,6 +62,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
         modular_integer
     }
 
+    /// Retrieves the `integer` currently encoded in this `Residue`, guaranteed to be reduced.
     pub const fn retrieve(&self) -> UInt<LIMBS> {
         montgomery_reduction::<MOD, LIMBS>((self.montgomery_form, UInt::ZERO))
     }

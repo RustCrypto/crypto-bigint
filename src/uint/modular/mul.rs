@@ -5,6 +5,7 @@ use crate::{Concat, Split, UInt};
 use super::{montgomery_reduction, Residue, ResidueParams};
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
+    /// Computes the (reduced) product between two residues.
     pub const fn mul(&self, rhs: &Self) -> Self {
         let product = self.montgomery_form.mul_wide(&rhs.montgomery_form);
         let montgomery_form = montgomery_reduction::<MOD, LIMBS>(product);
@@ -21,6 +22,7 @@ where
     UInt<LIMBS>: Concat<Output = UInt<DLIMBS>>,
     UInt<DLIMBS>: Split<Output = UInt<LIMBS>>,
 {
+    /// Computes the (reduced) square of a residue.
     pub fn square(&mut self) {
         let (hi, lo) = self.montgomery_form.square().split();
         self.montgomery_form = montgomery_reduction::<MOD, LIMBS>((lo, hi));
