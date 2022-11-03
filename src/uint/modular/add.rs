@@ -26,7 +26,6 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> AddAssign<&UInt<LIMBS>>
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> AddAssign<&Self> for Residue<MOD, LIMBS> {
     fn add_assign(&mut self, rhs: &Self) {
-        // TODO: Can we easily verify that these have the same MontgomeryParams? (e.g. using a debug_assert)
         *self = self.add(rhs);
     }
 }

@@ -23,7 +23,6 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
 
         let mut i = 0;
         while i < exponent_bits {
-            // TODO: Remove one of the squares and instead conditionally select x1 or x2 to square
             // Peel off one bit at a time from the left side
             let (next_n, overflow) = n.shl_1();
             n = next_n;
@@ -32,7 +31,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
             product = product.mul(&x2);
 
             let mut square = Residue::ct_select(x1, x2, overflow);
-            square = square.mul(&square);
+            square = square.square();
 
             x1 = Residue::ct_select(square, product, overflow);
             x2 = Residue::ct_select(product, square, overflow);

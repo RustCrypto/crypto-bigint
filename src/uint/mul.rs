@@ -80,7 +80,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     where
         Self: Concat,
     {
-        let (lo, hi) = self.mul_wide(self);
+        let (lo, hi) = self.square_wide();
         hi.concat(&lo)
     }
 

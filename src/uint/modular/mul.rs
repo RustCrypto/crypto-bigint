@@ -1,7 +1,5 @@
 use core::{marker::PhantomData, ops::MulAssign};
 
-use crate::{Concat, Split, UInt};
-
 use super::{montgomery_reduction, Residue, ResidueParams};
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
@@ -17,15 +15,15 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize, const DLIMBS: usize> Residue<MOD, LIMBS>
-where
-    UInt<LIMBS>: Concat<Output = UInt<DLIMBS>>,
-    UInt<DLIMBS>: Split<Output = UInt<LIMBS>>,
-{
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// Computes the (reduced) square of a residue.
-    pub fn square(&mut self) {
-        let (hi, lo) = self.montgomery_form.square().split();
-        self.montgomery_form = montgomery_reduction::<MOD, LIMBS>((lo, hi));
+    pub const fn square(&self) -> Self {
+        let lo_hi = self.montgomery_form.square_wide();
+
+        Self {
+            montgomery_form: montgomery_reduction::<MOD, LIMBS>(lo_hi),
+            phantom: PhantomData,
+        }
     }
 }
 
