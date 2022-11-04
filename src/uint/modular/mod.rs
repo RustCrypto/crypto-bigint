@@ -4,15 +4,18 @@ use self::{add::AddResidue, mul::MulResidue, pow::PowResidue};
 
 mod reduction;
 
+/// Implements `ConstResidue`s, supporting modular arithmetic with a constant modulus.
 pub mod constant_mod;
+/// Implements `Residue`s, supporting modular arithmetic with a modulus set at runtime.
 pub mod runtime_mod;
 
 mod add;
 mod mul;
 mod pow;
 
+/// The `GenericResidue` trait provides a consistent API for dealing with residues with a constant modulus and those with a modulus chosen at runtime.
 pub trait GenericResidue<const LIMBS: usize>: AddResidue + MulResidue + PowResidue<LIMBS> {
-    /// Retrieves the `integer` currently encoded in this `Residue`, guaranteed to be reduced.
+    /// Retrieves the integer currently encoded in this `Residue`, guaranteed to be reduced.
     fn retrieve(&self) -> UInt<LIMBS>;
 }
 

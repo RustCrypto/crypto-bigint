@@ -14,6 +14,7 @@ impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> AddResidue for ConstRes
 }
 
 impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> ConstResidue<MOD, LIMBS> {
+    /// Adds two residues together.
     pub const fn add(&self, rhs: &Self) -> Self {
         ConstResidue {
             montgomery_form: add_montgomery_form(

@@ -9,6 +9,7 @@ mod runtime_mul;
 /// Exponentiation of residues with a modulus set at runtime
 mod runtime_pow;
 
+/// The parameters to efficiently go to and from the Montgomery form for a modulus provided at runtime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ResidueParams<const LIMBS: usize> {
     // The constant modulus
@@ -22,6 +23,7 @@ pub struct ResidueParams<const LIMBS: usize> {
     mod_neg_inv: Limb,
 }
 
+/// A residue represented using `LIMBS` limbs. The modulus of this residue is set at runtime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Residue<const LIMBS: usize> {
     montgomery_form: UInt<LIMBS>,
@@ -43,7 +45,7 @@ impl<const LIMBS: usize> Residue<LIMBS> {
         modular_integer
     }
 
-    /// Retrieves the `integer` currently encoded in this `Residue`, guaranteed to be reduced.
+    /// Retrieves the integer currently encoded in this `Residue`, guaranteed to be reduced.
     pub const fn retrieve(&self) -> UInt<LIMBS> {
         montgomery_reduction(
             (self.montgomery_form, UInt::ZERO),

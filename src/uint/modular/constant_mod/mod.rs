@@ -66,6 +66,7 @@ impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> ConstResidue<MOD, LIMBS
         modular_integer
     }
 
+    /// Retrieves the integer currently encoded in this `Residue`, guaranteed to be reduced.
     pub const fn retrieve(&self) -> UInt<LIMBS> {
         montgomery_reduction::<LIMBS>(
             (self.montgomery_form, UInt::ZERO),
