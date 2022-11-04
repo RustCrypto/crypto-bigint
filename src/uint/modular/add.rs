@@ -6,7 +6,7 @@ use super::{Residue, ResidueParams};
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// Computes the (reduced) sum of two residues.
-    pub fn add(&self, rhs: &Self) -> Self {
+    pub const fn add(&self, rhs: &Self) -> Self {
         Residue {
             montgomery_form: self
                 .montgomery_form
