@@ -1,34 +1,34 @@
-use core::{marker::PhantomData, ops::MulAssign};
+use crate::{Limb, UInt};
 
-use super::{montgomery_reduction, Residue, ResidueParams};
+use super::reduction::montgomery_reduction;
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
-    /// Computes the (reduced) product between two residues.
-    pub const fn mul(&self, rhs: &Self) -> Self {
-        let product = self.montgomery_form.mul_wide(&rhs.montgomery_form);
-        let montgomery_form = montgomery_reduction::<MOD, LIMBS>(product);
+pub trait MulResidue
+where
+    Self: Sized,
+{
+    /// Computes the (reduced) product of two residues.
+    fn mul(&self, rhs: &Self) -> Self;
 
-        Self {
-            montgomery_form,
-            phantom: PhantomData,
-        }
+    fn square(&self) -> Self {
+        self.mul(self)
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
-    /// Computes the (reduced) square of a residue.
-    pub const fn square(&self) -> Self {
-        let lo_hi = self.montgomery_form.square_wide();
-
-        Self {
-            montgomery_form: montgomery_reduction::<MOD, LIMBS>(lo_hi),
-            phantom: PhantomData,
-        }
-    }
+pub(crate) const fn mul_montgomery_form<const LIMBS: usize>(
+    a: &UInt<LIMBS>,
+    b: &UInt<LIMBS>,
+    modulus: UInt<LIMBS>,
+    mod_neg_inv: Limb,
+) -> UInt<LIMBS> {
+    let product = a.mul_wide(b);
+    montgomery_reduction::<LIMBS>(product, modulus, mod_neg_inv)
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> MulAssign for Residue<MOD, LIMBS> {
-    fn mul_assign(&mut self, rhs: Self) {
-        *self = self.mul(&rhs)
-    }
+pub(crate) const fn square_montgomery_form<const LIMBS: usize>(
+    a: &UInt<LIMBS>,
+    modulus: UInt<LIMBS>,
+    mod_neg_inv: Limb,
+) -> UInt<LIMBS> {
+    let product = a.square_wide();
+    montgomery_reduction::<LIMBS>(product, modulus, mod_neg_inv)
 }
