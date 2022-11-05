@@ -1,6 +1,6 @@
 use crate::UInt;
 
-use self::{add::AddResidue, mul::MulResidue, pow::PowResidue};
+use self::{add::AddResidue, inv::InvResidue, mul::MulResidue, pow::PowResidue};
 
 mod reduction;
 
@@ -10,11 +10,14 @@ pub mod constant_mod;
 pub mod runtime_mod;
 
 mod add;
+mod inv;
 mod mul;
 mod pow;
 
 /// The `GenericResidue` trait provides a consistent API for dealing with residues with a constant modulus and those with a modulus chosen at runtime.
-pub trait GenericResidue<const LIMBS: usize>: AddResidue + MulResidue + PowResidue<LIMBS> {
+pub trait GenericResidue<const LIMBS: usize>:
+    AddResidue + MulResidue + PowResidue<LIMBS> + InvResidue
+{
     /// Retrieves the integer currently encoded in this `Residue`, guaranteed to be reduced.
     fn retrieve(&self) -> UInt<LIMBS>;
 }

@@ -25,6 +25,12 @@ macro_rules! impl_modulus {
                 $crate::Word::MIN
                     .wrapping_sub(Self::MODULUS.inv_mod2k($crate::Word::BITS as usize).limbs[0].0),
             );
+            const R3: $crate::UInt<{ nlimbs!(<$uint_type>::BIT_SIZE) }> =
+                $crate::uint::modular::reduction::montgomery_reduction(
+                    Self::R2.square_wide(),
+                    Self::MODULUS,
+                    Self::MOD_NEG_INV,
+                );
         }
     };
 }

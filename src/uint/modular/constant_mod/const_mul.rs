@@ -1,4 +1,7 @@
-use core::{marker::PhantomData, ops::MulAssign};
+use core::{
+    marker::PhantomData,
+    ops::{Mul, MulAssign},
+};
 
 use crate::modular::{
     mul::{mul_montgomery_form, MulResidue},
@@ -42,8 +45,18 @@ impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> ConstResidue<MOD, LIMBS
     }
 }
 
-impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> MulAssign for ConstResidue<MOD, LIMBS> {
-    fn mul_assign(&mut self, rhs: Self) {
-        *self = self.mul(&rhs)
+impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> MulAssign<&Self>
+    for ConstResidue<MOD, LIMBS>
+{
+    fn mul_assign(&mut self, rhs: &Self) {
+        *self = self.mul(rhs)
+    }
+}
+
+impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> Mul for &ConstResidue<MOD, LIMBS> {
+    type Output = ConstResidue<MOD, LIMBS>;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        self.mul(rhs)
     }
 }
