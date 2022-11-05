@@ -12,7 +12,7 @@ mod inv;
 mod mul;
 mod pow;
 
-/// The `GenericResidue` trait provides a consistent API for dealing with residues with a constant modulus and those with a modulus chosen at runtime.
+/// The `GenericResidue` trait provides a consistent API for dealing with residues with a constant modulus.
 pub trait GenericResidue<const LIMBS: usize>:
     AddResidue + MulResidue + PowResidue<LIMBS> + InvResidue
 {

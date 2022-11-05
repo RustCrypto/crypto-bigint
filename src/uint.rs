@@ -34,7 +34,7 @@ mod sqrt;
 mod sub;
 mod sub_mod;
 
-/// Implements modular arithmetic for constant moduli and moduli set at runtime.
+/// Implements modular arithmetic for constant moduli.
 pub mod modular;
 
 #[cfg(feature = "generic-array")]
