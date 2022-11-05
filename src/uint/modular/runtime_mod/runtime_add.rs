@@ -1,6 +1,9 @@
 use core::ops::{Add, AddAssign};
 
-use crate::{modular::add::{add_montgomery_form, AddResidue}, UInt};
+use crate::{
+    modular::add::{add_montgomery_form, AddResidue},
+    UInt,
+};
 
 use super::Residue;
 
@@ -49,11 +52,16 @@ impl<const LIMBS: usize> Add for Residue<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{modular::runtime_mod::{ResidueParams, Residue}, U256};
+    use crate::{
+        modular::runtime_mod::{Residue, ResidueParams},
+        U256,
+    };
 
     #[test]
     fn add_overflow() {
-        let params = ResidueParams::new(U256::from_be_hex("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"));
+        let params = ResidueParams::new(U256::from_be_hex(
+            "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551",
+        ));
 
         let x =
             U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
