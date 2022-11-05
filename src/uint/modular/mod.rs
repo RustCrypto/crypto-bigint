@@ -6,8 +6,6 @@ mod reduction;
 
 /// Implements `ConstResidue`s, supporting modular arithmetic with a constant modulus.
 pub mod constant_mod;
-/// Implements `Residue`s, supporting modular arithmetic with a modulus set at runtime.
-pub mod runtime_mod;
 
 mod add;
 mod inv;
