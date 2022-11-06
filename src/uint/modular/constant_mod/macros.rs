@@ -6,7 +6,7 @@ macro_rules! impl_modulus {
     ($name:ident, $uint_type:ty, $value:expr) => {
         #[derive(Clone, Copy, PartialEq, Eq, Debug)]
         pub struct $name {}
-        impl<const DLIMBS: usize> ConstResidueParams<{ nlimbs!(<$uint_type>::BIT_SIZE) }> for $name
+        impl<const DLIMBS: usize> ResidueParams<{ nlimbs!(<$uint_type>::BIT_SIZE) }> for $name
         where
             $crate::UInt<{ nlimbs!(<$uint_type>::BIT_SIZE) }>:
                 $crate::traits::Concat<Output = $crate::UInt<DLIMBS>>,
@@ -40,7 +40,7 @@ macro_rules! impl_modulus {
 /// For example, `residue!(U256::from(105u64), MyModulus);` creates a `Residue` for 105 mod `MyModulus`.
 macro_rules! const_residue {
     ($variable:ident, $modulus:ident) => {
-        $crate::uint::modular::constant_mod::ConstResidue::<$modulus, { $modulus::LIMBS }>::new(
+        $crate::uint::modular::constant_mod::Residue::<$modulus, { $modulus::LIMBS }>::new(
             $variable,
         )
     };

@@ -8,9 +8,9 @@ use crate::modular::{
     reduction::montgomery_reduction,
 };
 
-use super::{ConstResidue, ConstResidueParams};
+use super::{Residue, ResidueParams};
 
-impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> MulResidue for ConstResidue<MOD, LIMBS> {
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> MulResidue for Residue<MOD, LIMBS> {
     fn mul(&self, rhs: &Self) -> Self {
         self.mul(rhs)
     }
@@ -20,7 +20,7 @@ impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> MulResidue for ConstRes
     }
 }
 
-impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> ConstResidue<MOD, LIMBS> {
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// Computes the (reduced) product between two residues.
     pub const fn mul(&self, rhs: &Self) -> Self {
         Self {
@@ -45,16 +45,14 @@ impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> ConstResidue<MOD, LIMBS
     }
 }
 
-impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> MulAssign<&Self>
-    for ConstResidue<MOD, LIMBS>
-{
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> MulAssign<&Self> for Residue<MOD, LIMBS> {
     fn mul_assign(&mut self, rhs: &Self) {
         *self = self.mul(rhs)
     }
 }
 
-impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> Mul for &ConstResidue<MOD, LIMBS> {
-    type Output = ConstResidue<MOD, LIMBS>;
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Mul for &Residue<MOD, LIMBS> {
+    type Output = Residue<MOD, LIMBS>;
 
     fn mul(self, rhs: Self) -> Self::Output {
         self.mul(rhs)

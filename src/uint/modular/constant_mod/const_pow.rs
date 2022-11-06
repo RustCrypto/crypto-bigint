@@ -3,19 +3,17 @@ use crate::{
     UInt, Word,
 };
 
-use super::{ConstResidue, ConstResidueParams};
+use super::{Residue, ResidueParams};
 
-impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> PowResidue<LIMBS>
-    for ConstResidue<MOD, LIMBS>
-{
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> PowResidue<LIMBS> for Residue<MOD, LIMBS> {
     fn pow_specific(self, exponent: &UInt<LIMBS>, exponent_bits: usize) -> Self {
         self.pow_specific(exponent, exponent_bits)
     }
 }
 
-impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> ConstResidue<MOD, LIMBS> {
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// Performs modular exponentiation using Montgomery's ladder.
-    pub const fn pow(self, exponent: &UInt<LIMBS>) -> ConstResidue<MOD, LIMBS> {
+    pub const fn pow(self, exponent: &UInt<LIMBS>) -> Residue<MOD, LIMBS> {
         self.pow_specific(exponent, LIMBS * Word::BITS as usize)
     }
 
@@ -24,7 +22,7 @@ impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> ConstResidue<MOD, LIMBS
         self,
         exponent: &UInt<LIMBS>,
         exponent_bits: usize,
-    ) -> ConstResidue<MOD, LIMBS> {
+    ) -> Residue<MOD, LIMBS> {
         Self {
             montgomery_form: pow_montgomery_form(
                 self.montgomery_form,
@@ -42,8 +40,7 @@ impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> ConstResidue<MOD, LIMBS
 #[cfg(test)]
 mod tests {
     use crate::{
-        const_residue, impl_modulus, modular::constant_mod::ConstResidueParams, traits::Encoding,
-        U256,
+        const_residue, impl_modulus, modular::constant_mod::ResidueParams, traits::Encoding, U256,
     };
 
     impl_modulus!(

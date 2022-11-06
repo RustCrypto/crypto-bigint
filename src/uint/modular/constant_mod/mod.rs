@@ -22,7 +22,7 @@ pub mod macros;
 /// The parameters to efficiently go to and from the Montgomery form for a given odd modulus. An easy way to generate these parameters is using the `impl_modulus!` macro. These parameters are constant, so they cannot be set at runtime.
 ///
 /// Unfortunately, `LIMBS` must be generic for now until const generics are stabilized.
-pub trait ConstResidueParams<const LIMBS: usize>: Copy {
+pub trait ResidueParams<const LIMBS: usize>: Copy {
     /// Number of limbs required to encode a residue
     const LIMBS: usize;
 
@@ -41,15 +41,15 @@ pub trait ConstResidueParams<const LIMBS: usize>: Copy {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// A residue mod `MOD`, represented using `LIMBS` limbs. The modulus of this residue is constant, so it cannot be set at runtime.
-pub struct ConstResidue<MOD, const LIMBS: usize>
+pub struct Residue<MOD, const LIMBS: usize>
 where
-    MOD: ConstResidueParams<LIMBS>,
+    MOD: ResidueParams<LIMBS>,
 {
     montgomery_form: UInt<LIMBS>,
     phantom: PhantomData<MOD>,
 }
 
-impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> ConstResidue<MOD, LIMBS> {
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// The representation of 1 mod `MOD`.
     pub const ONE: Self = Self {
         montgomery_form: MOD::R,
@@ -58,7 +58,7 @@ impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> ConstResidue<MOD, LIMBS
 
     /// Instantiates a new `Residue` that represents this `integer` mod `MOD`.
     pub const fn new(integer: UInt<LIMBS>) -> Self {
-        let mut modular_integer = ConstResidue {
+        let mut modular_integer = Residue {
             montgomery_form: integer,
             phantom: PhantomData,
         };
@@ -80,19 +80,17 @@ impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> ConstResidue<MOD, LIMBS
     }
 }
 
-impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> GenericResidue<LIMBS>
-    for ConstResidue<MOD, LIMBS>
-{
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> GenericResidue<LIMBS> for Residue<MOD, LIMBS> {
     fn retrieve(&self) -> UInt<LIMBS> {
         self.retrieve()
     }
 }
 
-impl<MOD: ConstResidueParams<LIMBS> + Copy, const LIMBS: usize> ConditionallySelectable
-    for ConstResidue<MOD, LIMBS>
+impl<MOD: ResidueParams<LIMBS> + Copy, const LIMBS: usize> ConditionallySelectable
+    for Residue<MOD, LIMBS>
 {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        ConstResidue {
+        Residue {
             montgomery_form: UInt::conditional_select(
                 &a.montgomery_form,
                 &b.montgomery_form,

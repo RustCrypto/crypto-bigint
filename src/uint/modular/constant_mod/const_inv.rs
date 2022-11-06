@@ -2,15 +2,15 @@ use core::marker::PhantomData;
 
 use crate::modular::inv::{inv_montgomery_form, InvResidue};
 
-use super::{ConstResidue, ConstResidueParams};
+use super::{Residue, ResidueParams};
 
-impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> InvResidue for ConstResidue<MOD, LIMBS> {
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> InvResidue for Residue<MOD, LIMBS> {
     fn inv(self) -> Self {
         self.inv()
     }
 }
 
-impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> ConstResidue<MOD, LIMBS> {
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// Computes the residue `self^-1` representing the multiplicative inverse of `self`. I.e. `self * self^-1 = 1`.
     pub const fn inv(self) -> Self {
         Self {
@@ -28,8 +28,7 @@ impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> ConstResidue<MOD, LIMBS
 #[cfg(test)]
 mod tests {
     use crate::{
-        const_residue, impl_modulus, modular::constant_mod::ConstResidueParams, traits::Encoding,
-        U256,
+        const_residue, impl_modulus, modular::constant_mod::ResidueParams, traits::Encoding, U256,
     };
 
     impl_modulus!(

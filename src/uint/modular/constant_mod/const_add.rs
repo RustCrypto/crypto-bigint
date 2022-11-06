@@ -5,18 +5,18 @@ use crate::{
     UInt,
 };
 
-use super::{ConstResidue, ConstResidueParams};
+use super::{Residue, ResidueParams};
 
-impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> AddResidue for ConstResidue<MOD, LIMBS> {
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> AddResidue for Residue<MOD, LIMBS> {
     fn add(&self, rhs: &Self) -> Self {
         self.add(rhs)
     }
 }
 
-impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> ConstResidue<MOD, LIMBS> {
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// Adds two residues together.
     pub const fn add(&self, rhs: &Self) -> Self {
-        ConstResidue {
+        Residue {
             montgomery_form: add_montgomery_form(
                 &self.montgomery_form,
                 &rhs.montgomery_form,
@@ -27,17 +27,15 @@ impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> ConstResidue<MOD, LIMBS
     }
 }
 
-impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> AddAssign<&UInt<LIMBS>>
-    for ConstResidue<MOD, LIMBS>
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> AddAssign<&UInt<LIMBS>>
+    for Residue<MOD, LIMBS>
 {
     fn add_assign(&mut self, rhs: &UInt<LIMBS>) {
-        *self += &ConstResidue::new(*rhs);
+        *self += &Residue::new(*rhs);
     }
 }
 
-impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> AddAssign<&Self>
-    for ConstResidue<MOD, LIMBS>
-{
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> AddAssign<&Self> for Residue<MOD, LIMBS> {
     fn add_assign(&mut self, rhs: &Self) {
         *self = self.add(rhs);
     }
@@ -46,8 +44,7 @@ impl<MOD: ConstResidueParams<LIMBS>, const LIMBS: usize> AddAssign<&Self>
 #[cfg(test)]
 mod tests {
     use crate::{
-        const_residue, impl_modulus, modular::constant_mod::ConstResidueParams, traits::Encoding,
-        U256,
+        const_residue, impl_modulus, modular::constant_mod::ResidueParams, traits::Encoding, U256,
     };
 
     impl_modulus!(
