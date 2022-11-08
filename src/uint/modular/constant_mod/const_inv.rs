@@ -1,25 +1,46 @@
 use core::marker::PhantomData;
 
-use crate::modular::inv::{inv_montgomery_form, InvResidue};
+use subtle::{Choice, CtOption};
+
+use crate::{
+    modular::inv::{inv_montgomery_form, InvResidue},
+    Word,
+};
 
 use super::{Residue, ResidueParams};
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> InvResidue for Residue<MOD, LIMBS> {
-    fn inv(self) -> Self {
-        self.inv()
+    fn inv(self) -> CtOption<Self> {
+        let (montgomery_form, error) = inv_montgomery_form(
+            self.montgomery_form,
+            MOD::MODULUS,
+            &MOD::R3,
+            MOD::MOD_NEG_INV,
+        );
+
+        let value = Self {
+            montgomery_form,
+            phantom: PhantomData,
+        };
+
+        CtOption::new(value, Choice::from((error == Word::MAX) as u8))
     }
 }
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
-    /// Computes the residue `self^-1` representing the multiplicative inverse of `self`. I.e. `self * self^-1 = 1`.
+    /// Computes the residue `self^-1` representing the multiplicative inverse of `self`. I.e. `self * self^-1 = 1`. Panics if `self` was not invertible.
     pub const fn inv(self) -> Self {
+        let (montgomery_form, error) = inv_montgomery_form(
+            self.montgomery_form,
+            MOD::MODULUS,
+            &MOD::R3,
+            MOD::MOD_NEG_INV,
+        );
+
+        assert!(error == Word::MAX);
+
         Self {
-            montgomery_form: inv_montgomery_form(
-                self.montgomery_form,
-                MOD::MODULUS,
-                &MOD::R3,
-                MOD::MOD_NEG_INV,
-            ),
+            montgomery_form,
             phantom: PhantomData,
         }
     }
