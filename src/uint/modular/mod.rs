@@ -4,7 +4,7 @@ use self::{add::AddResidue, inv::InvResidue, mul::MulResidue, pow::PowResidue};
 
 mod reduction;
 
-/// Implements `ConstResidue`s, supporting modular arithmetic with a constant modulus.
+/// Implements `Residue`s, supporting modular arithmetic with a constant modulus.
 pub mod constant_mod;
 
 mod add;
