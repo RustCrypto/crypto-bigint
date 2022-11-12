@@ -46,6 +46,7 @@ impl<const LIMBS: usize> BitOr for UInt<LIMBS> {
 impl<const LIMBS: usize> BitOr<&UInt<LIMBS>> for UInt<LIMBS> {
     type Output = UInt<LIMBS>;
 
+    #[allow(clippy::needless_borrow)]
     fn bitor(self, rhs: &UInt<LIMBS>) -> UInt<LIMBS> {
         (&self).bitor(rhs)
     }

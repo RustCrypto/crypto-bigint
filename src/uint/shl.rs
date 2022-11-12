@@ -1,9 +1,40 @@
 //! [`UInt`] bitwise left shift operations.
 
-use crate::{Limb, UInt, Word};
+use crate::{limb::HI_BIT, Limb, UInt, Word};
 use core::ops::{Shl, ShlAssign};
 
 impl<const LIMBS: usize> UInt<LIMBS> {
+    /// Computes `self << 1` in constant-time, returning the overflowing bit as a `Word` that is either 0...0 or 1...1.
+    pub(crate) const fn shl_1(&self) -> (Self, Word) {
+        let mut shifted_bits = [0; LIMBS];
+        let mut i = 0;
+        while i < LIMBS {
+            shifted_bits[i] = self.limbs[i].0 << 1;
+            i += 1;
+        }
+
+        let mut carry_bits = [0; LIMBS];
+        let mut i = 0;
+        while i < LIMBS {
+            carry_bits[i] = self.limbs[i].0 >> HI_BIT;
+            i += 1;
+        }
+
+        let mut limbs = [Limb(0); LIMBS];
+
+        limbs[0] = Limb(shifted_bits[0]);
+        let mut i = 1;
+        while i < LIMBS {
+            limbs[i] = Limb(shifted_bits[i] | carry_bits[i - 1]);
+            i += 1;
+        }
+
+        (
+            UInt::new(limbs),
+            carry_bits[LIMBS - 1].wrapping_mul(Word::MAX),
+        )
+    }
+
     /// Computes `self << shift`.
     ///
     /// NOTE: this operation is variable time with respect to `n` *ONLY*.
@@ -35,6 +66,26 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         limbs[shift_num] = Limb(self.limbs[0].0 << lshift_rem);
 
         Self { limbs }
+    }
+
+    /// Computes a left shift on a wide input as `(lo, hi)`.
+    ///
+    /// NOTE: this operation is variable time with respect to `n` *ONLY*.
+    ///
+    /// When used with a fixed `n`, this function is constant-time with respect
+    /// to `self`.
+    #[inline(always)]
+    pub const fn shl_vartime_wide(lower_upper: (Self, Self), n: usize) -> (Self, Self) {
+        let (lower, mut upper) = lower_upper;
+        let new_lower = lower.shl_vartime(n);
+        upper = upper.shl_vartime(n);
+        if n >= LIMBS * Limb::BIT_SIZE {
+            upper = upper.bitor(&lower.shl_vartime(n - LIMBS * Limb::BIT_SIZE));
+        } else {
+            upper = upper.bitor(&lower.shr_vartime(LIMBS * Limb::BIT_SIZE - n));
+        }
+
+        (new_lower, upper)
     }
 }
 
@@ -74,7 +125,7 @@ impl<const LIMBS: usize> ShlAssign<usize> for UInt<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::U256;
+    use crate::{Limb, UInt, U128, U256};
 
     const N: U256 =
         U256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
@@ -130,5 +181,29 @@ mod tests {
     #[test]
     fn shl64() {
         assert_eq!(N << 64, SIXTY_FOUR);
+    }
+
+    #[test]
+    fn shl_wide_1_1_128() {
+        assert_eq!(
+            UInt::shl_vartime_wide((U128::ONE, U128::ONE), 128),
+            (U128::ZERO, U128::ONE)
+        );
+    }
+
+    #[test]
+    fn shl_wide_max_0_1() {
+        assert_eq!(
+            UInt::shl_vartime_wide((U128::MAX, U128::ZERO), 1),
+            (U128::MAX.sbb(&U128::ONE, Limb::ZERO).0, U128::ONE)
+        );
+    }
+
+    #[test]
+    fn shl_wide_max_max_256() {
+        assert_eq!(
+            UInt::shl_vartime_wide((U128::MAX, U128::MAX), 256),
+            (U128::ZERO, U128::ZERO)
+        );
     }
 }

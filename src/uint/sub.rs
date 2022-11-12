@@ -1,7 +1,7 @@
 //! [`UInt`] addition operations.
 
 use super::UInt;
-use crate::{Checked, CheckedSub, Limb, Wrapping, Zero};
+use crate::{Checked, CheckedSub, Limb, Word, Wrapping, Zero};
 use core::ops::{Sub, SubAssign};
 use subtle::CtOption;
 
@@ -37,6 +37,15 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// the boundary of the type.
     pub const fn wrapping_sub(&self, rhs: &Self) -> Self {
         self.sbb(rhs, Limb::ZERO).0
+    }
+
+    /// Perform wrapping subtraction, returning the underflow bit as a `Word` that is either 0...0 or 1...1.
+    pub(crate) const fn conditional_wrapping_sub(&self, rhs: &Self, choice: Word) -> (Self, Word) {
+        let actual_rhs = UInt::ct_select(UInt::ZERO, *rhs, choice);
+        let (res, borrow) = self.sbb(&actual_rhs, Limb::ZERO);
+
+        // Here we use a saturating multiplication to get the result to 0...0 or 1...1
+        (res, borrow.0.saturating_mul(Word::MAX))
     }
 }
 

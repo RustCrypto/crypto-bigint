@@ -75,13 +75,18 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         self.mul_wide(rhs).0
     }
 
-    /// Square self, returning a "wide" result.
+    /// Square self, returning a concatenated "wide" result.
     pub fn square(&self) -> <Self as Concat>::Output
     where
         Self: Concat,
     {
-        let (lo, hi) = self.mul_wide(self);
+        let (lo, hi) = self.square_wide();
         hi.concat(&lo)
+    }
+
+    /// Square self, returning a "wide" result in two parts as (lo, hi).
+    pub const fn square_wide(&self) -> (Self, Self) {
+        self.mul_wide(self)
     }
 }
 

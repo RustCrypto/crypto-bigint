@@ -24,6 +24,14 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         UInt { limbs }
     }
 
+    #[inline]
+    pub(crate) const fn ct_swap(a: UInt<LIMBS>, b: UInt<LIMBS>, c: Word) -> (Self, Self) {
+        let new_a = Self::ct_select(a, b, c);
+        let new_b = Self::ct_select(b, a, c);
+
+        (new_a, new_b)
+    }
+
     /// Returns all 1's if `self`!=0 or 0 if `self`==0.
     ///
     /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
@@ -36,6 +44,10 @@ impl<const LIMBS: usize> UInt<LIMBS> {
             i += 1;
         }
         Limb::is_nonzero(Limb(b))
+    }
+
+    pub(crate) const fn ct_is_odd(&self) -> Word {
+        (self.limbs[0].0 & 1).wrapping_mul(Word::MAX)
     }
 
     /// Returns -1 if self < rhs

@@ -46,6 +46,7 @@ impl<const LIMBS: usize> BitXor for UInt<LIMBS> {
 impl<const LIMBS: usize> BitXor<&UInt<LIMBS>> for UInt<LIMBS> {
     type Output = UInt<LIMBS>;
 
+    #[allow(clippy::needless_borrow)]
     fn bitxor(self, rhs: &UInt<LIMBS>) -> UInt<LIMBS> {
         (&self).bitxor(rhs)
     }
