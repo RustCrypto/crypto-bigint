@@ -25,6 +25,12 @@ macro_rules! impl_modulus {
                 $crate::Word::MIN
                     .wrapping_sub(Self::MODULUS.inv_mod2k($crate::Word::BITS as usize).limbs[0].0),
             );
+            const R3: $crate::UInt<{ nlimbs!(<$uint_type>::BIT_SIZE) }> =
+                $crate::uint::modular::reduction::montgomery_reduction(
+                    Self::R2.square_wide(),
+                    Self::MODULUS,
+                    Self::MOD_NEG_INV,
+                );
         }
     };
 }
@@ -32,8 +38,10 @@ macro_rules! impl_modulus {
 #[macro_export]
 /// Creates a `Residue` with the given value for a specific modulus.
 /// For example, `residue!(U256::from(105u64), MyModulus);` creates a `Residue` for 105 mod `MyModulus`.
-macro_rules! residue {
+macro_rules! const_residue {
     ($variable:ident, $modulus:ident) => {
-        $crate::uint::modular::Residue::<$modulus, { $modulus::LIMBS }>::new($variable)
+        $crate::uint::modular::constant_mod::Residue::<$modulus, { $modulus::LIMBS }>::new(
+            $variable,
+        )
     };
 }
