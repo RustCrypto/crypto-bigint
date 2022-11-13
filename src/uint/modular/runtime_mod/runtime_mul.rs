@@ -1,6 +1,9 @@
 use core::ops::{Mul, MulAssign};
 
-use crate::modular::mul::{mul_montgomery_form, square_montgomery_form, MulResidue};
+use crate::modular::{
+    mul::{mul_montgomery_form, square_montgomery_form},
+    MulResidue,
+};
 
 use super::DynResidue;
 

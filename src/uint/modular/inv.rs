@@ -1,14 +1,4 @@
-use subtle::CtOption;
-
 use crate::{modular::reduction::montgomery_reduction, Limb, UInt, Word};
-
-pub trait InvResidue
-where
-    Self: Sized,
-{
-    /// Computes the (reduced) multiplicative inverse of the residue. Returns CtOption, which is None if the residue was not invertible.
-    fn inv(self) -> CtOption<Self>;
-}
 
 pub const fn inv_montgomery_form<const LIMBS: usize>(
     x: UInt<LIMBS>,

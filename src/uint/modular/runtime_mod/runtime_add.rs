@@ -1,7 +1,7 @@
 use core::ops::{Add, AddAssign};
 
 use crate::{
-    modular::add::{add_montgomery_form, AddResidue},
+    modular::{add::add_montgomery_form, AddResidue},
     UInt,
 };
 

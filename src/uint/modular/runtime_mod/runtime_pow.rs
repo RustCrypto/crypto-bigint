@@ -1,5 +1,5 @@
 use crate::{
-    modular::pow::{pow_montgomery_form, PowResidue},
+    modular::{pow::pow_montgomery_form, PowResidue},
     UInt,
 };
 

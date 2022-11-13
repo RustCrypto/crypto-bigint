@@ -3,10 +3,7 @@ use core::{
     ops::{Mul, MulAssign},
 };
 
-use crate::modular::{
-    mul::{mul_montgomery_form, MulResidue},
-    reduction::montgomery_reduction,
-};
+use crate::modular::{mul::mul_montgomery_form, reduction::montgomery_reduction, MulResidue};
 
 use super::{Residue, ResidueParams};
 

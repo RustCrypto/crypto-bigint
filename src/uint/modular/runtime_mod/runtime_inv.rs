@@ -1,7 +1,7 @@
 use subtle::{Choice, CtOption};
 
 use crate::{
-    modular::inv::{inv_montgomery_form, InvResidue},
+    modular::{inv::inv_montgomery_form, InvResidue},
     Word,
 };
 
