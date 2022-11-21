@@ -1,16 +1,61 @@
-use crate::UInt;
+use subtle::CtOption;
 
-use self::{add::AddResidue, inv::InvResidue, mul::MulResidue, pow::PowResidue};
+use crate::{UInt, Word};
 
 mod reduction;
 
 /// Implements `Residue`s, supporting modular arithmetic with a constant modulus.
 pub mod constant_mod;
+/// Implements `DynResidue`s, supporting modular arithmetic with a modulus set at runtime.
+pub mod runtime_mod;
 
 mod add;
 mod inv;
 mod mul;
 mod pow;
+
+/// Provides a consistent interface to add two residues of the same type together.
+pub trait AddResidue {
+    /// Computes the (reduced) sum of two residues.
+    fn add(&self, rhs: &Self) -> Self;
+}
+
+/// Provides a consistent interface to multiply two residues of the same type together.
+pub trait MulResidue
+where
+    Self: Sized,
+{
+    /// Computes the (reduced) product of two residues.
+    fn mul(&self, rhs: &Self) -> Self;
+
+    /// Computes the same as `self.mul(self)`, but may be more efficient.
+    fn square(&self) -> Self {
+        self.mul(self)
+    }
+}
+
+/// Provides a consistent interface to exponentiate a residue.
+pub trait PowResidue<const LIMBS: usize>
+where
+    Self: Sized,
+{
+    /// Computes the (reduced) exponentiation of a residue.
+    fn pow(self, exponent: &UInt<LIMBS>) -> Self {
+        self.pow_specific(exponent, LIMBS * Word::BITS as usize)
+    }
+
+    /// Computes the (reduced) exponentiation of a residue, here `exponent_bits` represents the number of bits to take into account for the exponent. Note that this value is leaked in the time pattern.
+    fn pow_specific(self, exponent: &UInt<LIMBS>, exponent_bits: usize) -> Self;
+}
+
+/// Provides a consistent interface to invert a residue.
+pub trait InvResidue
+where
+    Self: Sized,
+{
+    /// Computes the (reduced) multiplicative inverse of the residue. Returns CtOption, which is `None` if the residue was not invertible.
+    fn inv(self) -> CtOption<Self>;
+}
 
 /// The `GenericResidue` trait provides a consistent API for dealing with residues with a constant modulus.
 pub trait GenericResidue<const LIMBS: usize>:

@@ -2,19 +2,6 @@ use crate::{Limb, UInt, Word};
 
 use super::mul::{mul_montgomery_form, square_montgomery_form};
 
-pub trait PowResidue<const LIMBS: usize>
-where
-    Self: Sized,
-{
-    /// Computes the (reduced) exponentiation of a residue.
-    fn pow(self, exponent: &UInt<LIMBS>) -> Self {
-        self.pow_specific(exponent, LIMBS * Word::BITS as usize)
-    }
-
-    /// Computes the (reduced) exponentiation of a residue, here `exponent_bits` represents the number of bits to take into account for the exponent. Note that this value is leaked in the time pattern.
-    fn pow_specific(self, exponent: &UInt<LIMBS>, exponent_bits: usize) -> Self;
-}
-
 /// Performs modular exponentiation using Montgomery's ladder. `exponent_bits` represents the number of bits to take into account for the exponent. Note that this value is leaked in the time pattern.
 pub const fn pow_montgomery_form<const LIMBS: usize>(
     x: UInt<LIMBS>,
