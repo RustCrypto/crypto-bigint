@@ -76,6 +76,14 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
             self.residue_params.mod_neg_inv,
         )
     }
+
+    /// Instantiates a new `Residue` that represents zero.
+    pub const fn zero(residue_params: DynResidueParams<LIMBS>) -> Self {
+        Self {
+            montgomery_form: UInt::<LIMBS>::ZERO,
+            residue_params,
+        }
+    }
 }
 
 impl<const LIMBS: usize> GenericResidue<LIMBS> for DynResidue<LIMBS> {

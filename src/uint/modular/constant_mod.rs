@@ -1,8 +1,8 @@
 use core::marker::PhantomData;
 
-use subtle::{Choice, ConditionallySelectable};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
-use crate::{Limb, UInt};
+use crate::{Limb, UInt, Zero};
 
 use super::{reduction::montgomery_reduction, GenericResidue};
 
@@ -50,6 +50,12 @@ where
 }
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
+    /// The representation of 0 mod `MOD`.
+    pub const ZERO: Self = Self {
+        montgomery_form: UInt::<LIMBS>::ZERO,
+        phantom: PhantomData,
+    };
+
     /// The representation of 1 mod `MOD`.
     pub const ONE: Self = Self {
         montgomery_form: MOD::R,
@@ -99,4 +105,20 @@ impl<MOD: ResidueParams<LIMBS> + Copy, const LIMBS: usize> ConditionallySelectab
             phantom: PhantomData,
         }
     }
+}
+
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> ConstantTimeEq for Residue<MOD, LIMBS> {
+    fn ct_eq(&self, other: &Self) -> Choice {
+        self.montgomery_form.ct_eq(&other.montgomery_form)
+    }
+}
+
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Default for Residue<MOD, LIMBS> {
+    fn default() -> Self {
+        Self::ZERO
+    }
+}
+
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Zero for Residue<MOD, LIMBS> {
+    const ZERO: Self = Self::ZERO;
 }
