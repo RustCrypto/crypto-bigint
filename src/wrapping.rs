@@ -1,6 +1,6 @@
 //! Wrapping arithmetic.
 
-use crate::Zero;
+use crate::{Random, Zero};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
@@ -57,6 +57,12 @@ impl<T: ConditionallySelectable> ConditionallySelectable for Wrapping<T> {
 impl<T: ConstantTimeEq> ConstantTimeEq for Wrapping<T> {
     fn ct_eq(&self, other: &Self) -> Choice {
         self.0.ct_eq(&other.0)
+    }
+}
+
+impl<T: Random> Random for Wrapping<T> {
+    fn random(rng: impl rand_core::CryptoRng + rand_core::RngCore) -> Self {
+        Wrapping(Random::random(rng))
     }
 }
 

@@ -3,13 +3,13 @@ use core::marker::PhantomData;
 use subtle::{Choice, CtOption};
 
 use crate::{
-    modular::{inv::inv_montgomery_form, InvResidue},
+    modular::{inv::inv_montgomery_form, Inv},
     Word,
 };
 
 use super::{Residue, ResidueParams};
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> InvResidue for Residue<MOD, LIMBS> {
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Inv for Residue<MOD, LIMBS> {
     fn inv(self) -> CtOption<Self> {
         let (montgomery_form, error) = inv_montgomery_form(
             self.montgomery_form,
@@ -65,7 +65,7 @@ mod tests {
         let x_mod = const_residue!(x, Modulus);
 
         let inv = x_mod.inv();
-        let res = &x_mod * &inv;
+        let res = x_mod * inv;
 
         assert_eq!(res.retrieve(), U256::ONE);
     }

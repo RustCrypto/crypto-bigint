@@ -1,11 +1,11 @@
 use crate::{
-    modular::{pow::pow_montgomery_form, PowResidue},
+    modular::{pow::pow_montgomery_form, Pow},
     UInt, Word,
 };
 
 use super::{Residue, ResidueParams};
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> PowResidue<LIMBS> for Residue<MOD, LIMBS> {
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Pow<LIMBS> for Residue<MOD, LIMBS> {
     fn pow_specific(self, exponent: &UInt<LIMBS>, exponent_bits: usize) -> Self {
         self.pow_specific(exponent, exponent_bits)
     }
@@ -13,17 +13,15 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> PowResidue<LIMBS> for Residu
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// Performs modular exponentiation using Montgomery's ladder.
-    pub const fn pow(self, exponent: &UInt<LIMBS>) -> Residue<MOD, LIMBS> {
+    pub const fn pow(self, exponent: &UInt<LIMBS>) -> Self {
         self.pow_specific(exponent, LIMBS * Word::BITS as usize)
     }
 
-    /// Performs modular exponentiation using Montgomery's ladder. `exponent_bits` represents the number of bits to take into account for the exponent. Note that this value is leaked in the time pattern.
-    pub const fn pow_specific(
-        self,
-        exponent: &UInt<LIMBS>,
-        exponent_bits: usize,
-    ) -> Residue<MOD, LIMBS> {
-        Self {
+    /// Performs modular exponentiation using Montgomery's ladder. `exponent_bits` represents the
+    /// number of bits to take into account for the exponent. Note that this value is leaked in the
+    /// time pattern.
+    pub const fn pow_specific(self, exponent: &UInt<LIMBS>, exponent_bits: usize) -> Self {
+        Residue {
             montgomery_form: pow_montgomery_form(
                 self.montgomery_form,
                 exponent,

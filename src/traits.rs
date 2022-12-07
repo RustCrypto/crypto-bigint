@@ -1,8 +1,8 @@
 //! Traits provided by this crate
 
-use crate::{Limb, NonZero};
+use crate::{Limb, NonZero, UInt, Word};
 use core::fmt::Debug;
-use core::ops::{BitAnd, BitOr, BitXor, Div, Not, Rem, Shl, Shr};
+use core::ops::{BitAnd, BitOr, BitXor, Div, Mul, Not, Rem, Shl, Shr};
 use subtle::{
     Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
     CtOption,
@@ -224,4 +224,40 @@ pub trait Encoding: Sized {
 
     /// Encode to little endian bytes.
     fn to_le_bytes(&self) -> Self::Repr;
+}
+
+/// Provides a consistent interface to square a number.
+pub trait Square: Mul<Output = Self> + Copy
+where
+    Self: Sized,
+{
+    /// Computes the same as `self.mul(self)`, but may be more efficient.
+    fn square(self) -> Self {
+        self * self
+    }
+}
+
+/// Provides a consistent interface to exponentiate a number.
+pub trait Pow<const LIMBS: usize>
+where
+    Self: Sized,
+{
+    /// Computes the (reduced) exponentiation of a number.
+    fn pow(self, exponent: &UInt<LIMBS>) -> Self {
+        self.pow_specific(exponent, LIMBS * Word::BITS as usize)
+    }
+
+    /// Computes the (reduced) exponentiation of a number. Here `exponent_bits` represents the
+    /// number of bits to take into account for the exponent. Note that this value is leaked in the
+    /// time pattern.
+    fn pow_specific(self, exponent: &UInt<LIMBS>, exponent_bits: usize) -> Self;
+}
+
+/// Provides a consistent interface to invert an element of an algebraic structure.
+pub trait Inv
+where
+    Self: Sized,
+{
+    /// Computes the (reduced) multiplicative inverse of the element. Returns CtOption, which is `None` if the element was not invertible.
+    fn inv(self) -> CtOption<Self>;
 }

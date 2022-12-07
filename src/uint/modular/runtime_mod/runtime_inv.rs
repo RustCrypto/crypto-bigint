@@ -1,13 +1,13 @@
 use subtle::{Choice, CtOption};
 
 use crate::{
-    modular::{inv::inv_montgomery_form, InvResidue},
+    modular::{inv::inv_montgomery_form, Inv},
     Word,
 };
 
 use super::DynResidue;
 
-impl<const LIMBS: usize> InvResidue for DynResidue<LIMBS> {
+impl<const LIMBS: usize> Inv for DynResidue<LIMBS> {
     fn inv(self) -> CtOption<Self> {
         let (montgomery_form, error) = inv_montgomery_form(
             self.montgomery_form,
@@ -16,7 +16,7 @@ impl<const LIMBS: usize> InvResidue for DynResidue<LIMBS> {
             self.residue_params.mod_neg_inv,
         );
 
-        let value = Self {
+        let value = DynResidue {
             montgomery_form,
             residue_params: self.residue_params,
         };

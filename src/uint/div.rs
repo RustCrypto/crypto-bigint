@@ -48,7 +48,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub(crate) const fn ct_reduce(&self, rhs: &Self) -> (Self, u8) {
+    pub const fn ct_reduce(&self, rhs: &Self) -> (Self, u8) {
         let mb = rhs.bits_vartime();
         let mut bd = (LIMBS * Limb::BIT_SIZE) - mb;
         let mut rem = *self;
@@ -76,7 +76,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
     #[allow(dead_code)]
-    pub(crate) const fn ct_reduce_wide(lower_upper: (Self, Self), rhs: &Self) -> (Self, u8) {
+    pub const fn ct_reduce_wide(lower_upper: (Self, Self), rhs: &Self) -> (Self, u8) {
         let mb = rhs.bits_vartime();
 
         // The number of bits to consider is two sets of limbs * BIT_SIZE - mb (modulus bitcount)

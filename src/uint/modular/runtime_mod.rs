@@ -1,3 +1,5 @@
+use subtle::{Choice, ConstantTimeEq};
+
 use crate::{Limb, UInt, Word};
 
 use super::{reduction::montgomery_reduction, GenericResidue};
@@ -8,8 +10,14 @@ mod runtime_add;
 mod runtime_inv;
 /// Multiplications between residues with a modulus set at runtime
 mod runtime_mul;
+/// Negation of residues with a modulus set at runtime
+mod runtime_neg;
 /// Exponentiation of residues with a modulus set at runtime
 mod runtime_pow;
+/// Squares of residues with a modulus set at runtime
+mod runtime_square;
+/// Subtractions between residues with a modulus set at runtime
+mod runtime_sub;
 
 /// The parameters to efficiently go to and from the Montgomery form for a modulus provided at runtime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -75,6 +83,14 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
             self.residue_params.modulus,
             self.residue_params.mod_neg_inv,
         )
+    }
+}
+
+impl<const LIMBS: usize> ConstantTimeEq for DynResidue<LIMBS> {
+    #[inline]
+    fn ct_eq(&self, other: &Self) -> Choice {
+        debug_assert_eq!(self.residue_params, other.residue_params);
+        self.montgomery_form.ct_eq(&other.montgomery_form)
     }
 }
 

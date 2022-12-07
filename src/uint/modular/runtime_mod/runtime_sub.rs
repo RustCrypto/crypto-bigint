@@ -1,16 +1,16 @@
-use core::ops::{Add, AddAssign};
+use core::ops::{Sub, SubAssign};
 
-use crate::modular::add::add_montgomery_form;
+use crate::modular::sub::sub_montgomery_form;
 
 use super::DynResidue;
 
-impl<const LIMBS: usize> Add for DynResidue<LIMBS> {
+impl<const LIMBS: usize> Sub for DynResidue<LIMBS> {
     type Output = Self;
 
-    fn add(self, rhs: Self) -> Self {
+    fn sub(self, rhs: Self) -> Self {
         debug_assert_eq!(self.residue_params, rhs.residue_params);
         DynResidue {
-            montgomery_form: add_montgomery_form(
+            montgomery_form: sub_montgomery_form(
                 &self.montgomery_form,
                 &rhs.montgomery_form,
                 &self.residue_params.modulus,
@@ -20,9 +20,9 @@ impl<const LIMBS: usize> Add for DynResidue<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> AddAssign for DynResidue<LIMBS> {
-    fn add_assign(&mut self, rhs: Self) {
-        *self = *self + rhs;
+impl<const LIMBS: usize> SubAssign for DynResidue<LIMBS> {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
     }
 }
 
