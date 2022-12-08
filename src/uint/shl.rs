@@ -35,6 +35,34 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         )
     }
 
+    /// Computes `self << shift` where `0 <= shift < Limb::BIT_SIZE`,
+    /// returning the result and the carry.
+    #[inline(always)]
+    pub(crate) const fn shl_limb(&self, n: usize) -> (Self, Limb) {
+        let mut limbs = [Limb::ZERO; LIMBS];
+
+        let nz = Limb(n as Word).is_nonzero();
+        let lshift = n as Word;
+        let rshift = Limb::ct_select(Limb::ZERO, Limb((Limb::BIT_SIZE - n) as Word), nz).0;
+        let carry = Limb::ct_select(
+            Limb::ZERO,
+            Limb(self.limbs[LIMBS - 1].0.wrapping_shr(Word::BITS - n as u32)),
+            nz,
+        );
+
+        let mut i = LIMBS - 1;
+        while i > 0 {
+            let mut limb = self.limbs[i].0 << lshift;
+            let hi = self.limbs[i - 1].0 >> rshift;
+            limb |= hi & nz;
+            limbs[i] = Limb(limb);
+            i -= 1
+        }
+        limbs[0] = Limb(self.limbs[0].0 << lshift);
+
+        (Uint::<LIMBS>::new(limbs), carry)
+    }
+
     /// Computes `self << shift`.
     ///
     /// NOTE: this operation is variable time with respect to `n` *ONLY*.
@@ -51,21 +79,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         let shift_num = n / Limb::BIT_SIZE;
         let rem = n % Limb::BIT_SIZE;
-        let nz = Limb(rem as Word).is_nonzero();
-        let lshift_rem = rem as Word;
-        let rshift_rem = Limb::ct_select(Limb::ZERO, Limb((Limb::BIT_SIZE - rem) as Word), nz).0;
 
-        let mut i = LIMBS - 1;
+        let mut i = LIMBS;
         while i > shift_num {
-            let mut limb = self.limbs[i - shift_num].0 << lshift_rem;
-            let hi = self.limbs[i - shift_num - 1].0 >> rshift_rem;
-            limb |= hi & nz;
-            limbs[i] = Limb(limb);
-            i -= 1
+            i -= 1;
+            limbs[i] = self.limbs[i - shift_num];
         }
-        limbs[shift_num] = Limb(self.limbs[0].0 << lshift_rem);
 
-        Self { limbs }
+        let (new_lower, _carry) = (Self { limbs }).shl_limb(rem);
+        new_lower
     }
 
     /// Computes a left shift on a wide input as `(lo, hi)`.

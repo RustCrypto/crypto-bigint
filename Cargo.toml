@@ -29,8 +29,10 @@ zeroize = { version = "1", optional = true,  default-features = false }
 
 [dev-dependencies]
 bincode = "1"
+criterion = { version = "0.4", features = ["html_reports"] }
 hex-literal = "0.3"
 num-bigint = "0.4"
+num-integer = "0.1"
 num-traits = "0.2"
 proptest = "1"
 rand_core = { version = "0.6", features = ["std"] }
@@ -45,3 +47,10 @@ serde = ["serdect"]
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
+
+[[bench]]
+name = "bench"
+harness = false
+
+[profile.bench]
+opt-level = 3

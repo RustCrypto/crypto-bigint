@@ -1,5 +1,6 @@
 //! [`Uint`] division operations.
 
+use super::div_limb::{div_rem_limb_with_reciprocal, Reciprocal};
 use super::Uint;
 use crate::limb::Word;
 use crate::{Integer, Limb, NonZero, Wrapping};
@@ -7,6 +8,41 @@ use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::{Choice, CtOption};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
+    /// Computes `self` / `rhs` using a pre-made reciprocal,
+    /// returns the quotient (q) and remainder (r).
+    pub const fn ct_div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb) {
+        div_rem_limb_with_reciprocal(self, reciprocal)
+    }
+
+    /// Computes `self` / `rhs` using a pre-made reciprocal,
+    /// returns the quotient (q) and remainder (r).
+    pub fn div_rem_limb_with_reciprocal(
+        &self,
+        reciprocal: &CtOption<Reciprocal>,
+    ) -> CtOption<(Self, Limb)> {
+        reciprocal.map(|r| div_rem_limb_with_reciprocal(self, &r))
+    }
+
+    /// Computes `self` / `rhs`, returns the quotient (q) and remainder (r).
+    pub fn div_rem_limb(&self, rhs: NonZero<Limb>) -> (Self, Limb) {
+        let (reciprocal, is_some) = Reciprocal::new_const(*rhs);
+        // Guaranteed to succeed since `rhs` is nonzero.
+        debug_assert!(is_some == 1);
+        div_rem_limb_with_reciprocal(self, &reciprocal)
+    }
+
+    /// Computes `self` / `rhs`, returns the quotient (q).
+    pub fn div_limb(&self, rhs: NonZero<Limb>) -> Self {
+        let (q, _r) = self.div_rem_limb(rhs);
+        q
+    }
+
+    /// Computes `self` / `rhs`, returns the remainder (r).
+    pub fn rem_limb(&self, rhs: NonZero<Limb>) -> Limb {
+        let (_q, r) = self.div_rem_limb(rhs);
+        r
+    }
+
     /// Computes `self` / `rhs`, returns the quotient (q), remainder (r)
     /// and 1 for is_some or 0 for is_none. The results can be wrapped in [`CtOption`].
     /// NOTE: Use only if you need to access const fn. Otherwise use `div_rem` because
