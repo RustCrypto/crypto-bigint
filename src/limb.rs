@@ -70,20 +70,6 @@ pub type WideWord = u128;
 #[cfg(target_pointer_width = "64")]
 pub(crate) type WideSignedWord = i128;
 
-//
-// Deprecated legacy names
-//
-
-// TODO(tarcieri): remove these in the next breaking release
-
-/// Deprecated: unsigned integer type that the [`Limb`] newtype wraps.
-#[deprecated(since = "0.4.8", note = "please use `Word` instead")]
-pub type LimbUInt = Word;
-
-/// Deprecated: wide integer type which is double the width of [`Word`].
-#[deprecated(since = "0.4.8", note = "please use `WideWord` instead")]
-pub type WideLimbUInt = WideWord;
-
 /// Highest bit in a [`Limb`].
 pub(crate) const HI_BIT: usize = Limb::BIT_SIZE - 1;
 

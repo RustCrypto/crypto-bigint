@@ -177,10 +177,6 @@ pub use crate::{
 };
 pub use subtle;
 
-// TODO(tarcieri): remove these in the next breaking release
-#[allow(deprecated)]
-pub use crate::limb::{LimbUInt, WideLimbUInt};
-
 pub(crate) use limb::{SignedWord, WideSignedWord};
 
 #[cfg(feature = "generic-array")]

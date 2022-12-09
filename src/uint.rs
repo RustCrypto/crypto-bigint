@@ -145,24 +145,6 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         }
     }
 
-    /// Deprecated: borrow the inner limbs as an array of [`Word`]s.
-    #[deprecated(since = "0.4.8", note = "please use `as_words` instead")]
-    pub const fn as_uint_array(&self) -> &[Word; LIMBS] {
-        self.as_words()
-    }
-
-    /// Deprecated: create a [`UInt`] from an array of [`Word`]s.
-    #[deprecated(since = "0.4.8", note = "please use `from_words` instead")]
-    pub const fn from_uint_array(words: [Word; LIMBS]) -> Self {
-        Self::from_words(words)
-    }
-
-    /// Deprecated: create an array of [`Word`]s from a [`UInt`].
-    #[deprecated(since = "0.4.8", note = "please use `to_words` instead")]
-    pub const fn to_uint_array(self) -> [Word; LIMBS] {
-        self.to_words()
-    }
-
     /// Borrow the limbs of this [`UInt`].
     // TODO(tarcieri): rename to `as_limbs` for consistency with `as_words`
     pub const fn limbs(&self) -> &[Limb; LIMBS] {

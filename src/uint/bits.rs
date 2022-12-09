@@ -13,13 +13,6 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     }
 
     /// Calculate the number of bits needed to represent this number.
-    #[deprecated(note = "please use `bits_vartime` instead")]
-    #[inline(always)]
-    pub const fn bits(self) -> usize {
-        self.bits_vartime()
-    }
-
-    /// Calculate the number of bits needed to represent this number.
     #[allow(trivial_numeric_casts)]
     pub const fn bits_vartime(self) -> usize {
         let mut i = LIMBS - 1;
