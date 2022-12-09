@@ -243,7 +243,7 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
         let mut i = 0;
         let mut found_non_zero = false;
         while i < LIMBS {
-            if n.limbs()[i].0 != 0 {
+            if n.as_limbs()[i].0 != 0 {
                 found_non_zero = true;
             }
             i += 1;

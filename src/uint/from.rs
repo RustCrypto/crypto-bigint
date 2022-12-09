@@ -206,25 +206,25 @@ mod tests {
     #[test]
     fn from_u8() {
         let n = UintEx::from(42u8);
-        assert_eq!(n.limbs(), &[Limb(42), Limb(0)]);
+        assert_eq!(n.as_limbs(), &[Limb(42), Limb(0)]);
     }
 
     #[test]
     fn from_u16() {
         let n = UintEx::from(42u16);
-        assert_eq!(n.limbs(), &[Limb(42), Limb(0)]);
+        assert_eq!(n.as_limbs(), &[Limb(42), Limb(0)]);
     }
 
     #[test]
     fn from_u64() {
         let n = UintEx::from(42u64);
-        assert_eq!(n.limbs(), &[Limb(42), Limb(0)]);
+        assert_eq!(n.as_limbs(), &[Limb(42), Limb(0)]);
     }
 
     #[test]
     fn from_u128() {
         let n = U128::from(42u128);
-        assert_eq!(&n.limbs()[..2], &[Limb(42), Limb(0)]);
+        assert_eq!(&n.as_limbs()[..2], &[Limb(42), Limb(0)]);
         assert_eq!(u128::from(n), 42u128);
     }
 
