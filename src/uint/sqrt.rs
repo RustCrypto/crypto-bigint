@@ -1,10 +1,10 @@
-//! [`UInt`] square root operations.
+//! [`Uint`] square root operations.
 
-use super::UInt;
+use super::Uint;
 use crate::{Limb, Word};
 use subtle::{ConstantTimeEq, CtOption};
 
-impl<const LIMBS: usize> UInt<LIMBS> {
+impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes √(`self`)
     /// Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13
     ///

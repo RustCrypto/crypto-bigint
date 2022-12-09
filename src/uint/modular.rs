@@ -1,6 +1,6 @@
 use subtle::CtOption;
 
-use crate::{UInt, Word};
+use crate::{Uint, Word};
 
 mod reduction;
 
@@ -40,12 +40,12 @@ where
     Self: Sized,
 {
     /// Computes the (reduced) exponentiation of a residue.
-    fn pow(self, exponent: &UInt<LIMBS>) -> Self {
+    fn pow(self, exponent: &Uint<LIMBS>) -> Self {
         self.pow_specific(exponent, LIMBS * Word::BITS as usize)
     }
 
     /// Computes the (reduced) exponentiation of a residue, here `exponent_bits` represents the number of bits to take into account for the exponent. Note that this value is leaked in the time pattern.
-    fn pow_specific(self, exponent: &UInt<LIMBS>, exponent_bits: usize) -> Self;
+    fn pow_specific(self, exponent: &Uint<LIMBS>, exponent_bits: usize) -> Self;
 }
 
 /// Provides a consistent interface to invert a residue.
@@ -62,7 +62,7 @@ pub trait GenericResidue<const LIMBS: usize>:
     AddResidue + MulResidue + PowResidue<LIMBS> + InvResidue
 {
     /// Retrieves the integer currently encoded in this `Residue`, guaranteed to be reduced.
-    fn retrieve(&self) -> UInt<LIMBS>;
+    fn retrieve(&self) -> Uint<LIMBS>;
 }
 
 #[cfg(test)]
@@ -73,7 +73,7 @@ mod tests {
             constant_mod::Residue, constant_mod::ResidueParams, reduction::montgomery_reduction,
         },
         traits::Encoding,
-        UInt, U256, U64,
+        Uint, U256, U64,
     };
 
     impl_modulus!(
@@ -109,11 +109,11 @@ mod tests {
         // Divide the value R by R, which should equal 1
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(
-                (Modulus2::R, UInt::ZERO),
+                (Modulus2::R, Uint::ZERO),
                 Modulus2::MODULUS,
                 Modulus2::MOD_NEG_INV
             ),
-            UInt::ONE
+            Uint::ONE
         );
     }
 
@@ -122,7 +122,7 @@ mod tests {
         // Divide the value R^2 by R, which should equal R
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(
-                (Modulus2::R2, UInt::ZERO),
+                (Modulus2::R2, Uint::ZERO),
                 Modulus2::MODULUS,
                 Modulus2::MOD_NEG_INV
             ),
@@ -172,7 +172,7 @@ mod tests {
         let c = hi.concat(&lo);
         let red = c.reduce(&U256::ZERO.concat(&Modulus2::MODULUS)).unwrap();
         let (hi, lo) = red.split();
-        assert_eq!(hi, UInt::ZERO);
+        assert_eq!(hi, Uint::ZERO);
 
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(

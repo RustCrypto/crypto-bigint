@@ -1,11 +1,11 @@
-use crate::{modular::reduction::montgomery_reduction, Limb, UInt, Word};
+use crate::{modular::reduction::montgomery_reduction, Limb, Uint, Word};
 
 pub const fn inv_montgomery_form<const LIMBS: usize>(
-    x: UInt<LIMBS>,
-    modulus: UInt<LIMBS>,
-    r3: &UInt<LIMBS>,
+    x: Uint<LIMBS>,
+    modulus: Uint<LIMBS>,
+    r3: &Uint<LIMBS>,
     mod_neg_inv: Limb,
-) -> (UInt<LIMBS>, Word) {
+) -> (Uint<LIMBS>, Word) {
     let (inverse, error) = x.inv_odd_mod(modulus);
     (
         montgomery_reduction(inverse.mul_wide(r3), modulus, mod_neg_inv),

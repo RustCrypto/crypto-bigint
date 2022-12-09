@@ -20,7 +20,7 @@
 
 //! ## Usage
 //!
-//! This crate defines a [`UInt`] type which is const generic around an inner
+//! This crate defines a [`Uint`] type which is const generic around an inner
 //! [`Limb`] array, where a [`Limb`] is a newtype for a word-sized integer.
 //! Thus large integers are represented as a arrays of smaller integers which
 //! are sized appropriately for the CPU, giving us some assurances of how
@@ -33,7 +33,7 @@
 //!
 //! ### `const fn` usage
 //!
-//! The [`UInt`] type provides a number of `const fn` inherent methods which
+//! The [`Uint`] type provides a number of `const fn` inherent methods which
 //! can be used for initializing and performing arithmetic on big integers in
 //! const contexts:
 //!
@@ -59,7 +59,7 @@
 //!
 //! ### Trait-based usage
 //!
-//! The [`UInt`] type itself does not implement the standard arithmetic traits
+//! The [`Uint`] type itself does not implement the standard arithmetic traits
 //! such as [`Add`], [`Sub`], [`Mul`], and [`Div`].
 //!
 //! To use these traits you must first pick a wrapper type which determines

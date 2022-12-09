@@ -1,10 +1,10 @@
 //! Recursive Length Prefix (RLP) encoding support.
 
-use crate::{Encoding, UInt};
+use crate::{Encoding, Uint};
 use rlp::{DecoderError, Rlp, RlpStream};
 
 #[cfg_attr(docsrs, doc(cfg(feature = "rlp")))]
-impl<const LIMBS: usize> rlp::Encodable for UInt<LIMBS>
+impl<const LIMBS: usize> rlp::Encodable for Uint<LIMBS>
 where
     Self: Encoding,
 {
@@ -21,7 +21,7 @@ where
 }
 
 #[cfg_attr(docsrs, doc(cfg(feature = "rlp")))]
-impl<const LIMBS: usize> rlp::Decodable for UInt<LIMBS>
+impl<const LIMBS: usize> rlp::Decodable for Uint<LIMBS>
 where
     Self: Encoding,
     <Self as Encoding>::Repr: Default,

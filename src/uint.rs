@@ -60,23 +60,23 @@ use zeroize::DefaultIsZeroes;
 /// # Encoding support
 /// This type supports many different types of encodings, either via the
 /// [`Encoding`][`crate::Encoding`] trait or various `const fn` decoding and
-/// encoding functions that can be used with [`UInt`] constants.
+/// encoding functions that can be used with [`Uint`] constants.
 ///
 /// Optional crate features for encoding (off-by-default):
 /// - `generic-array`: enables [`ArrayEncoding`][`crate::ArrayEncoding`] trait which can be used to
-///   [`UInt`] as `GenericArray<u8, N>` and a [`ArrayDecoding`][`crate::ArrayDecoding`] trait which
-///   can be used to `GenericArray<u8, N>` as [`UInt`].
+///   [`Uint`] as `GenericArray<u8, N>` and a [`ArrayDecoding`][`crate::ArrayDecoding`] trait which
+///   can be used to `GenericArray<u8, N>` as [`Uint`].
 /// - `rlp`: support for [Recursive Length Prefix (RLP)][RLP] encoding.
 ///
 /// [RLP]: https://eth.wiki/fundamentals/rlp
 // TODO(tarcieri): make generic around a specified number of bits.
 #[derive(Copy, Clone, Debug, Hash)]
-pub struct UInt<const LIMBS: usize> {
+pub struct Uint<const LIMBS: usize> {
     /// Inner limb array. Stored from least significant to most significant.
     limbs: [Limb; LIMBS],
 }
 
-impl<const LIMBS: usize> UInt<LIMBS> {
+impl<const LIMBS: usize> Uint<LIMBS> {
     /// The value `0`.
     pub const ZERO: Self = Self::from_u8(0);
 
@@ -86,17 +86,17 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// The number of limbs used on this platform.
     pub const LIMBS: usize = LIMBS;
 
-    /// Maximum value this [`UInt`] can express.
+    /// Maximum value this [`Uint`] can express.
     pub const MAX: Self = Self {
         limbs: [Limb::MAX; LIMBS],
     };
 
-    /// Const-friendly [`UInt`] constructor.
+    /// Const-friendly [`Uint`] constructor.
     pub const fn new(limbs: [Limb; LIMBS]) -> Self {
         Self { limbs }
     }
 
-    /// Create a [`UInt`] from an array of [`Word`]s (i.e. word-sized unsigned
+    /// Create a [`Uint`] from an array of [`Word`]s (i.e. word-sized unsigned
     /// integers).
     #[inline]
     pub const fn from_words(arr: [Word; LIMBS]) -> Self {
@@ -112,7 +112,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     }
 
     /// Create an array of [`Word`]s (i.e. word-sized unsigned integers) from
-    /// a [`UInt`].
+    /// a [`Uint`].
     #[inline]
     pub const fn to_words(self) -> [Word; LIMBS] {
         let mut arr = [0; LIMBS];
@@ -145,52 +145,52 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         }
     }
 
-    /// Borrow the limbs of this [`UInt`].
+    /// Borrow the limbs of this [`Uint`].
     // TODO(tarcieri): rename to `as_limbs` for consistency with `as_words`
     pub const fn limbs(&self) -> &[Limb; LIMBS] {
         &self.limbs
     }
 
-    /// Borrow the limbs of this [`UInt`] mutably.
+    /// Borrow the limbs of this [`Uint`] mutably.
     // TODO(tarcieri): rename to `as_limbs_mut` for consistency with `as_words_mut`
     pub fn limbs_mut(&mut self) -> &mut [Limb; LIMBS] {
         &mut self.limbs
     }
 
-    /// Convert this [`UInt`] into its inner limbs.
+    /// Convert this [`Uint`] into its inner limbs.
     // TODO(tarcieri): rename to `to_limbs` for consistency with `to_words`
     pub const fn into_limbs(self) -> [Limb; LIMBS] {
         self.limbs
     }
 }
 
-impl<const LIMBS: usize> AsRef<[Word; LIMBS]> for UInt<LIMBS> {
+impl<const LIMBS: usize> AsRef<[Word; LIMBS]> for Uint<LIMBS> {
     fn as_ref(&self) -> &[Word; LIMBS] {
         self.as_words()
     }
 }
 
-impl<const LIMBS: usize> AsMut<[Word; LIMBS]> for UInt<LIMBS> {
+impl<const LIMBS: usize> AsMut<[Word; LIMBS]> for Uint<LIMBS> {
     fn as_mut(&mut self) -> &mut [Word; LIMBS] {
         self.as_words_mut()
     }
 }
 
 // TODO(tarcieri): eventually phase this out in favor of `limbs()`?
-impl<const LIMBS: usize> AsRef<[Limb]> for UInt<LIMBS> {
+impl<const LIMBS: usize> AsRef<[Limb]> for Uint<LIMBS> {
     fn as_ref(&self) -> &[Limb] {
         self.limbs()
     }
 }
 
 // TODO(tarcieri): eventually phase this out in favor of `limbs_mut()`?
-impl<const LIMBS: usize> AsMut<[Limb]> for UInt<LIMBS> {
+impl<const LIMBS: usize> AsMut<[Limb]> for Uint<LIMBS> {
     fn as_mut(&mut self) -> &mut [Limb] {
         self.limbs_mut()
     }
 }
 
-impl<const LIMBS: usize> ConditionallySelectable for UInt<LIMBS> {
+impl<const LIMBS: usize> ConditionallySelectable for Uint<LIMBS> {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
 
@@ -202,13 +202,13 @@ impl<const LIMBS: usize> ConditionallySelectable for UInt<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Default for UInt<LIMBS> {
+impl<const LIMBS: usize> Default for Uint<LIMBS> {
     fn default() -> Self {
         Self::ZERO
     }
 }
 
-impl<const LIMBS: usize> Integer for UInt<LIMBS> {
+impl<const LIMBS: usize> Integer for Uint<LIMBS> {
     const ONE: Self = Self::ONE;
     const MAX: Self = Self::MAX;
 
@@ -220,17 +220,17 @@ impl<const LIMBS: usize> Integer for UInt<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Zero for UInt<LIMBS> {
+impl<const LIMBS: usize> Zero for Uint<LIMBS> {
     const ZERO: Self = Self::ZERO;
 }
 
-impl<const LIMBS: usize> fmt::Display for UInt<LIMBS> {
+impl<const LIMBS: usize> fmt::Display for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::UpperHex::fmt(self, f)
     }
 }
 
-impl<const LIMBS: usize> fmt::LowerHex for UInt<LIMBS> {
+impl<const LIMBS: usize> fmt::LowerHex for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for limb in self.limbs.iter().rev() {
             fmt::LowerHex::fmt(limb, f)?;
@@ -239,7 +239,7 @@ impl<const LIMBS: usize> fmt::LowerHex for UInt<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> fmt::UpperHex for UInt<LIMBS> {
+impl<const LIMBS: usize> fmt::UpperHex for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for limb in self.limbs.iter().rev() {
             fmt::UpperHex::fmt(limb, f)?;
@@ -250,9 +250,9 @@ impl<const LIMBS: usize> fmt::UpperHex for UInt<LIMBS> {
 
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
-impl<'de, const LIMBS: usize> Deserialize<'de> for UInt<LIMBS>
+impl<'de, const LIMBS: usize> Deserialize<'de> for Uint<LIMBS>
 where
-    UInt<LIMBS>: Encoding,
+    Uint<LIMBS>: Encoding,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -267,9 +267,9 @@ where
 
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
-impl<'de, const LIMBS: usize> Serialize for UInt<LIMBS>
+impl<'de, const LIMBS: usize> Serialize for Uint<LIMBS>
 where
-    UInt<LIMBS>: Encoding,
+    Uint<LIMBS>: Encoding,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -281,7 +281,7 @@ where
 
 #[cfg(feature = "zeroize")]
 #[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
-impl<const LIMBS: usize> DefaultIsZeroes for UInt<LIMBS> {}
+impl<const LIMBS: usize> DefaultIsZeroes for Uint<LIMBS> {}
 
 // TODO(tarcieri): use `const_evaluatable_checked` when stable to make generic around bits.
 macro_rules! impl_uint_aliases {
@@ -289,7 +289,7 @@ macro_rules! impl_uint_aliases {
         $(
             #[doc = $doc]
             #[doc="unsigned big integer."]
-            pub type $name = UInt<{nlimbs!($bits)}>;
+            pub type $name = Uint<{nlimbs!($bits)}>;
 
             impl Encoding for $name {
                 const BIT_SIZE: usize = $bits;

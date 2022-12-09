@@ -1,9 +1,9 @@
 use subtle::{Choice, CtOption};
 
-use super::UInt;
+use super::Uint;
 use crate::{Limb, Word};
 
-impl<const LIMBS: usize> UInt<LIMBS> {
+impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes 1/`self` mod 2^k as specified in Algorithm 4 from
     /// A Secure Algorithm for Inversion Modulo 2k by
     /// Sadiel de la Fe and Carles Ferrer. See
@@ -29,13 +29,13 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`. In other words `self^-1 mod modulus`. Returns `(inverse, 1...1)` if an inverse exists, otherwise `(undefined, 0...0)`. The algorithm is the same as in GMP 6.2.1's `mpn_sec_invert`.
-    pub const fn inv_odd_mod(self, modulus: UInt<LIMBS>) -> (Self, Word) {
+    pub const fn inv_odd_mod(self, modulus: Uint<LIMBS>) -> (Self, Word) {
         debug_assert!(modulus.ct_is_odd() == Word::MAX);
 
         let mut a = self;
 
-        let mut u = UInt::ONE;
-        let mut v = UInt::ZERO;
+        let mut u = Uint::ONE;
+        let mut v = Uint::ZERO;
 
         let mut b = modulus;
 
@@ -45,7 +45,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         let mut m1hp = modulus;
         let (m1hp_new, carry) = m1hp.shr_1();
         debug_assert!(carry == Word::MAX);
-        m1hp = m1hp_new.wrapping_add(&UInt::ONE);
+        m1hp = m1hp_new.wrapping_add(&Uint::ONE);
 
         let mut i = 0;
         while i < bit_size {
@@ -56,11 +56,11 @@ impl<const LIMBS: usize> UInt<LIMBS> {
             // Set `self -= b` if `self` is odd.
             let (new_a, swap) = a.conditional_wrapping_sub(&b, self_odd);
             // Set `b += self` if `swap` is true.
-            b = UInt::ct_select(b, b.wrapping_add(&new_a), swap);
+            b = Uint::ct_select(b, b.wrapping_add(&new_a), swap);
             // Negate `self` if `swap` is true.
             a = new_a.conditional_wrapping_neg(swap);
 
-            let (new_u, new_v) = UInt::ct_swap(u, v, swap);
+            let (new_u, new_v) = Uint::ct_swap(u, v, swap);
             let (new_u, cy) = new_u.conditional_wrapping_sub(&new_v, self_odd);
             let (new_u, cyy) = new_u.conditional_wrapping_add(&modulus, cy);
             debug_assert!(cy == cyy);
@@ -78,13 +78,13 @@ impl<const LIMBS: usize> UInt<LIMBS> {
             i += 1;
         }
 
-        debug_assert!(a.ct_cmp(&UInt::ZERO) == 0);
+        debug_assert!(a.ct_cmp(&Uint::ZERO) == 0);
 
-        (v, b.ct_not_eq(&UInt::ONE) ^ Word::MAX)
+        (v, b.ct_not_eq(&Uint::ONE) ^ Word::MAX)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`. In other words `self^-1 mod modulus`. Returns `None` if the inverse does not exist. The algorithm is the same as in GMP 6.2.1's `mpn_sec_invert`.
-    pub fn inv_odd_mod_option(self, modulus: UInt<LIMBS>) -> CtOption<Self> {
+    pub fn inv_odd_mod_option(self, modulus: Uint<LIMBS>) -> CtOption<Self> {
         let (inverse, exists) = self.inv_odd_mod(modulus);
         CtOption::new(inverse, Choice::from((exists == Word::MAX) as u8))
     }

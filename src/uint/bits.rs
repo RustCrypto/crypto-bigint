@@ -1,6 +1,6 @@
-use crate::{Limb, UInt, Word};
+use crate::{Limb, Uint, Word};
 
-impl<const LIMBS: usize> UInt<LIMBS> {
+impl<const LIMBS: usize> Uint<LIMBS> {
     /// Get the value of the bit at position `index`, as a 0- or 1-valued Word.
     /// Returns 0 for indices out of range.
     #[inline(always)]

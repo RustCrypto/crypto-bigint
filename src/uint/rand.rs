@@ -1,13 +1,13 @@
 //! Random number generator support
 
-use super::UInt;
+use super::Uint;
 use crate::{Limb, NonZero, Random, RandomMod};
 use rand_core::{CryptoRng, RngCore};
 use subtle::ConstantTimeLess;
 
 #[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
-impl<const LIMBS: usize> Random for UInt<LIMBS> {
-    /// Generate a cryptographically secure random [`UInt`].
+impl<const LIMBS: usize> Random for Uint<LIMBS> {
+    /// Generate a cryptographically secure random [`Uint`].
     fn random(mut rng: impl CryptoRng + RngCore) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
 
@@ -20,8 +20,8 @@ impl<const LIMBS: usize> Random for UInt<LIMBS> {
 }
 
 #[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
-impl<const LIMBS: usize> RandomMod for UInt<LIMBS> {
-    /// Generate a cryptographically secure random [`UInt`] which is less than
+impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
+    /// Generate a cryptographically secure random [`Uint`] which is less than
     /// a given `modulus`.
     ///
     /// This function uses rejection sampling, a method which produces an
