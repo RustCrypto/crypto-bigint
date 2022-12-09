@@ -93,7 +93,7 @@ mod tests {
     #[cfg(target_pointer_width = "32")]
     fn from_be_byte_array() {
         let n = UintEx::from_be_byte_array(hex!("0011223344556677").into());
-        assert_eq!(n.limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
+        assert_eq!(n.as_limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
     }
 
     #[test]
@@ -101,7 +101,7 @@ mod tests {
     fn from_be_byte_array() {
         let n = UintEx::from_be_byte_array(hex!("00112233445566778899aabbccddeeff").into());
         assert_eq!(
-            n.limbs(),
+            n.as_limbs(),
             &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
         );
     }
@@ -110,7 +110,7 @@ mod tests {
     #[cfg(target_pointer_width = "32")]
     fn from_le_byte_array() {
         let n = UintEx::from_le_byte_array(hex!("7766554433221100").into());
-        assert_eq!(n.limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
+        assert_eq!(n.as_limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
     }
 
     #[test]
@@ -118,7 +118,7 @@ mod tests {
     fn from_le_byte_array() {
         let n = UintEx::from_le_byte_array(hex!("ffeeddccbbaa99887766554433221100").into());
         assert_eq!(
-            n.limbs(),
+            n.as_limbs(),
             &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
         );
     }

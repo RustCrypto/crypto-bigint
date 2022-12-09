@@ -44,7 +44,7 @@ mod array;
 mod rand;
 
 use crate::{Concat, Encoding, Integer, Limb, Split, Word, Zero};
-use core::{fmt, mem};
+use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
 
 #[cfg(feature = "serde")]
@@ -129,10 +129,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Borrow the inner limbs as an array of [`Word`]s.
     pub const fn as_words(&self) -> &[Word; LIMBS] {
         // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
-        #[allow(unsafe_code)]
+        #[allow(trivial_casts, unsafe_code)]
         unsafe {
-            // TODO(tarcieri): use &*((&self.limbs as *const _) as *const [Word; LIMBS])
-            mem::transmute(&self.limbs)
+            &*((&self.limbs as *const _) as *const [Word; LIMBS])
         }
     }
 
@@ -146,20 +145,17 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Borrow the limbs of this [`Uint`].
-    // TODO(tarcieri): rename to `as_limbs` for consistency with `as_words`
-    pub const fn limbs(&self) -> &[Limb; LIMBS] {
+    pub const fn as_limbs(&self) -> &[Limb; LIMBS] {
         &self.limbs
     }
 
     /// Borrow the limbs of this [`Uint`] mutably.
-    // TODO(tarcieri): rename to `as_limbs_mut` for consistency with `as_words_mut`
-    pub fn limbs_mut(&mut self) -> &mut [Limb; LIMBS] {
+    pub fn as_limbs_mut(&mut self) -> &mut [Limb; LIMBS] {
         &mut self.limbs
     }
 
     /// Convert this [`Uint`] into its inner limbs.
-    // TODO(tarcieri): rename to `to_limbs` for consistency with `to_words`
-    pub const fn into_limbs(self) -> [Limb; LIMBS] {
+    pub const fn to_limbs(self) -> [Limb; LIMBS] {
         self.limbs
     }
 }
@@ -176,17 +172,15 @@ impl<const LIMBS: usize> AsMut<[Word; LIMBS]> for Uint<LIMBS> {
     }
 }
 
-// TODO(tarcieri): eventually phase this out in favor of `limbs()`?
 impl<const LIMBS: usize> AsRef<[Limb]> for Uint<LIMBS> {
     fn as_ref(&self) -> &[Limb] {
-        self.limbs()
+        self.as_limbs()
     }
 }
 
-// TODO(tarcieri): eventually phase this out in favor of `limbs_mut()`?
 impl<const LIMBS: usize> AsMut<[Limb]> for Uint<LIMBS> {
     fn as_mut(&mut self) -> &mut [Limb] {
-        self.limbs_mut()
+        self.as_limbs_mut()
     }
 }
 
