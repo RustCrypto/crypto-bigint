@@ -1,21 +1,21 @@
-use crate::{Limb, UInt, Word};
+use crate::{Limb, Uint, Word};
 
 use super::mul::{mul_montgomery_form, square_montgomery_form};
 
 /// Performs modular exponentiation using Montgomery's ladder. `exponent_bits` represents the number of bits to take into account for the exponent. Note that this value is leaked in the time pattern.
 pub const fn pow_montgomery_form<const LIMBS: usize>(
-    x: UInt<LIMBS>,
-    exponent: &UInt<LIMBS>,
+    x: Uint<LIMBS>,
+    exponent: &Uint<LIMBS>,
     exponent_bits: usize,
-    modulus: UInt<LIMBS>,
-    r: UInt<LIMBS>,
+    modulus: Uint<LIMBS>,
+    r: Uint<LIMBS>,
     mod_neg_inv: Limb,
-) -> UInt<LIMBS> {
-    let mut x1: UInt<LIMBS> = r;
-    let mut x2: UInt<LIMBS> = x;
+) -> Uint<LIMBS> {
+    let mut x1: Uint<LIMBS> = r;
+    let mut x2: Uint<LIMBS> = x;
 
-    // Shift the exponent all the way to the left so the leftmost bit is the MSB of the `UInt`
-    let mut n: UInt<LIMBS> = exponent.shl_vartime((LIMBS * Word::BITS as usize) - exponent_bits);
+    // Shift the exponent all the way to the left so the leftmost bit is the MSB of the `Uint`
+    let mut n: Uint<LIMBS> = exponent.shl_vartime((LIMBS * Word::BITS as usize) - exponent_bits);
 
     let mut i = 0;
     while i < exponent_bits {
@@ -23,14 +23,14 @@ pub const fn pow_montgomery_form<const LIMBS: usize>(
         let (next_n, overflow) = n.shl_1();
         n = next_n;
 
-        let mut product: UInt<LIMBS> = x1;
+        let mut product: Uint<LIMBS> = x1;
         product = mul_montgomery_form(&product, &x2, modulus, mod_neg_inv);
 
-        let mut square = UInt::ct_select(x1, x2, overflow);
+        let mut square = Uint::ct_select(x1, x2, overflow);
         square = square_montgomery_form(&square, modulus, mod_neg_inv);
 
-        x1 = UInt::<LIMBS>::ct_select(square, product, overflow);
-        x2 = UInt::<LIMBS>::ct_select(product, square, overflow);
+        x1 = Uint::<LIMBS>::ct_select(square, product, overflow);
+        x2 = Uint::<LIMBS>::ct_select(product, square, overflow);
 
         i += 1;
     }

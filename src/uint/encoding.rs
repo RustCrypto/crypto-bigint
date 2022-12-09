@@ -1,4 +1,4 @@
-//! Const-friendly decoding operations for [`UInt`]
+//! Const-friendly decoding operations for [`Uint`]
 
 #[cfg(all(feature = "der", feature = "generic-array"))]
 mod der;
@@ -6,11 +6,11 @@ mod der;
 #[cfg(feature = "rlp")]
 mod rlp;
 
-use super::UInt;
+use super::Uint;
 use crate::{Encoding, Limb, Word};
 
-impl<const LIMBS: usize> UInt<LIMBS> {
-    /// Create a new [`UInt`] from the provided big endian bytes.
+impl<const LIMBS: usize> Uint<LIMBS> {
+    /// Create a new [`Uint`] from the provided big endian bytes.
     pub const fn from_be_slice(bytes: &[u8]) -> Self {
         assert!(
             bytes.len() == Limb::BYTE_SIZE * LIMBS,
@@ -31,10 +31,10 @@ impl<const LIMBS: usize> UInt<LIMBS> {
             i += 1;
         }
 
-        UInt::new(res)
+        Uint::new(res)
     }
 
-    /// Create a new [`UInt`] from the provided big endian hex string.
+    /// Create a new [`Uint`] from the provided big endian hex string.
     pub const fn from_be_hex(hex: &str) -> Self {
         let bytes = hex.as_bytes();
 
@@ -58,10 +58,10 @@ impl<const LIMBS: usize> UInt<LIMBS> {
             i += 1;
         }
 
-        UInt::new(res)
+        Uint::new(res)
     }
 
-    /// Create a new [`UInt`] from the provided little endian bytes.
+    /// Create a new [`Uint`] from the provided little endian bytes.
     pub const fn from_le_slice(bytes: &[u8]) -> Self {
         assert!(
             bytes.len() == Limb::BYTE_SIZE * LIMBS,
@@ -82,10 +82,10 @@ impl<const LIMBS: usize> UInt<LIMBS> {
             i += 1;
         }
 
-        UInt::new(res)
+        Uint::new(res)
     }
 
-    /// Create a new [`UInt`] from the provided little endian hex string.
+    /// Create a new [`Uint`] from the provided little endian hex string.
     pub const fn from_le_hex(hex: &str) -> Self {
         let bytes = hex.as_bytes();
 
@@ -109,10 +109,10 @@ impl<const LIMBS: usize> UInt<LIMBS> {
             i += 1;
         }
 
-        UInt::new(res)
+        Uint::new(res)
     }
 
-    /// Serialize this [`UInt`] as big-endian, writing it into the provided
+    /// Serialize this [`Uint`] as big-endian, writing it into the provided
     /// byte slice.
     #[inline]
     #[cfg_attr(docsrs, doc(cfg(feature = "generic-array")))]
@@ -130,7 +130,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         }
     }
 
-    /// Serialize this [`UInt`] as little-endian, writing it into the provided
+    /// Serialize this [`Uint`] as little-endian, writing it into the provided
     /// byte slice.
     #[inline]
     #[cfg_attr(docsrs, doc(cfg(feature = "generic-array")))]
@@ -183,16 +183,16 @@ mod tests {
     use {crate::U128, alloc::format};
 
     #[cfg(target_pointer_width = "32")]
-    use crate::U64 as UIntEx;
+    use crate::U64 as UintEx;
 
     #[cfg(target_pointer_width = "64")]
-    use crate::U128 as UIntEx;
+    use crate::U128 as UintEx;
 
     #[test]
     #[cfg(target_pointer_width = "32")]
     fn from_be_slice() {
         let bytes = hex!("0011223344556677");
-        let n = UIntEx::from_be_slice(&bytes);
+        let n = UintEx::from_be_slice(&bytes);
         assert_eq!(n.limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
     }
 
@@ -200,7 +200,7 @@ mod tests {
     #[cfg(target_pointer_width = "64")]
     fn from_be_slice() {
         let bytes = hex!("00112233445566778899aabbccddeeff");
-        let n = UIntEx::from_be_slice(&bytes);
+        let n = UintEx::from_be_slice(&bytes);
         assert_eq!(
             n.limbs(),
             &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
@@ -211,7 +211,7 @@ mod tests {
     #[cfg(target_pointer_width = "32")]
     fn from_le_slice() {
         let bytes = hex!("7766554433221100");
-        let n = UIntEx::from_le_slice(&bytes);
+        let n = UintEx::from_le_slice(&bytes);
         assert_eq!(n.limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
     }
 
@@ -219,7 +219,7 @@ mod tests {
     #[cfg(target_pointer_width = "64")]
     fn from_le_slice() {
         let bytes = hex!("ffeeddccbbaa99887766554433221100");
-        let n = UIntEx::from_le_slice(&bytes);
+        let n = UintEx::from_le_slice(&bytes);
         assert_eq!(
             n.limbs(),
             &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
@@ -229,14 +229,14 @@ mod tests {
     #[test]
     #[cfg(target_pointer_width = "32")]
     fn from_be_hex() {
-        let n = UIntEx::from_be_hex("0011223344556677");
+        let n = UintEx::from_be_hex("0011223344556677");
         assert_eq!(n.limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
     }
 
     #[test]
     #[cfg(target_pointer_width = "64")]
     fn from_be_hex() {
-        let n = UIntEx::from_be_hex("00112233445566778899aabbccddeeff");
+        let n = UintEx::from_be_hex("00112233445566778899aabbccddeeff");
         assert_eq!(
             n.limbs(),
             &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
@@ -246,14 +246,14 @@ mod tests {
     #[test]
     #[cfg(target_pointer_width = "32")]
     fn from_le_hex() {
-        let n = UIntEx::from_le_hex("7766554433221100");
+        let n = UintEx::from_le_hex("7766554433221100");
         assert_eq!(n.limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
     }
 
     #[test]
     #[cfg(target_pointer_width = "64")]
     fn from_le_hex() {
-        let n = UIntEx::from_le_hex("ffeeddccbbaa99887766554433221100");
+        let n = UintEx::from_le_hex("ffeeddccbbaa99887766554433221100");
         assert_eq!(
             n.limbs(),
             &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]

@@ -2,7 +2,7 @@ use core::ops::{Add, AddAssign};
 
 use crate::{
     modular::{add::add_montgomery_form, AddResidue},
-    UInt,
+    Uint,
 };
 
 use super::DynResidue;
@@ -31,8 +31,8 @@ impl<const LIMBS: usize> AddAssign for DynResidue<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> AddAssign<UInt<LIMBS>> for DynResidue<LIMBS> {
-    fn add_assign(&mut self, rhs: UInt<LIMBS>) {
+impl<const LIMBS: usize> AddAssign<Uint<LIMBS>> for DynResidue<LIMBS> {
+    fn add_assign(&mut self, rhs: Uint<LIMBS>) {
         self.montgomery_form = add_montgomery_form(
             &self.montgomery_form,
             &DynResidue::new(rhs, self.residue_params).montgomery_form,

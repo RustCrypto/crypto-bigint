@@ -1,4 +1,4 @@
-use crate::{Limb, UInt, Word};
+use crate::{Limb, Uint, Word};
 
 use super::{reduction::montgomery_reduction, GenericResidue};
 
@@ -15,13 +15,13 @@ mod runtime_pow;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DynResidueParams<const LIMBS: usize> {
     // The constant modulus
-    modulus: UInt<LIMBS>,
+    modulus: Uint<LIMBS>,
     // Parameter used in Montgomery reduction
-    r: UInt<LIMBS>,
+    r: Uint<LIMBS>,
     // R^2, used to move into Montgomery form
-    r2: UInt<LIMBS>,
+    r2: Uint<LIMBS>,
     // R^3, used to compute the multiplicative inverse
-    r3: UInt<LIMBS>,
+    r3: Uint<LIMBS>,
     // The lowest limbs of -(MODULUS^-1) mod R
     // We only need the LSB because during reduction this value is multiplied modulo 2**64.
     mod_neg_inv: Limb,
@@ -29,9 +29,9 @@ pub struct DynResidueParams<const LIMBS: usize> {
 
 impl<const LIMBS: usize> DynResidueParams<LIMBS> {
     /// Instantiates a new set of `ResidueParams` representing the given `modulus`.
-    pub fn new(modulus: UInt<LIMBS>) -> Self {
-        let r = UInt::MAX.ct_reduce(&modulus).0.wrapping_add(&UInt::ONE);
-        let r2 = UInt::ct_reduce_wide(r.square_wide(), &modulus).0;
+    pub fn new(modulus: Uint<LIMBS>) -> Self {
+        let r = Uint::MAX.ct_reduce(&modulus).0.wrapping_add(&Uint::ONE);
+        let r2 = Uint::ct_reduce_wide(r.square_wide(), &modulus).0;
         let mod_neg_inv =
             Limb(Word::MIN.wrapping_sub(modulus.inv_mod2k(Word::BITS as usize).limbs[0].0));
         let r3 = montgomery_reduction(r2.square_wide(), modulus, mod_neg_inv);
@@ -49,13 +49,13 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
 /// A residue represented using `LIMBS` limbs. The odd modulus of this residue is set at runtime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DynResidue<const LIMBS: usize> {
-    montgomery_form: UInt<LIMBS>,
+    montgomery_form: Uint<LIMBS>,
     residue_params: DynResidueParams<LIMBS>,
 }
 
 impl<const LIMBS: usize> DynResidue<LIMBS> {
     /// Instantiates a new `Residue` that represents this `integer` mod `MOD`.
-    pub const fn new(integer: UInt<LIMBS>, residue_params: DynResidueParams<LIMBS>) -> Self {
+    pub const fn new(integer: Uint<LIMBS>, residue_params: DynResidueParams<LIMBS>) -> Self {
         let mut modular_integer = Self {
             montgomery_form: integer,
             residue_params,
@@ -69,9 +69,9 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
     }
 
     /// Retrieves the integer currently encoded in this `Residue`, guaranteed to be reduced.
-    pub const fn retrieve(&self) -> UInt<LIMBS> {
+    pub const fn retrieve(&self) -> Uint<LIMBS> {
         montgomery_reduction(
-            (self.montgomery_form, UInt::ZERO),
+            (self.montgomery_form, Uint::ZERO),
             self.residue_params.modulus,
             self.residue_params.mod_neg_inv,
         )
@@ -80,14 +80,14 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
     /// Instantiates a new `Residue` that represents zero.
     pub const fn zero(residue_params: DynResidueParams<LIMBS>) -> Self {
         Self {
-            montgomery_form: UInt::<LIMBS>::ZERO,
+            montgomery_form: Uint::<LIMBS>::ZERO,
             residue_params,
         }
     }
 }
 
 impl<const LIMBS: usize> GenericResidue<LIMBS> for DynResidue<LIMBS> {
-    fn retrieve(&self) -> UInt<LIMBS> {
+    fn retrieve(&self) -> Uint<LIMBS> {
         self.retrieve()
     }
 }

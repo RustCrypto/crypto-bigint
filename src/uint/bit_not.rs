@@ -1,10 +1,10 @@
-//! [`UInt`] bitwise not operations.
+//! [`Uint`] bitwise not operations.
 
-use super::UInt;
+use super::Uint;
 use crate::{Limb, Wrapping};
 use core::ops::Not;
 
-impl<const LIMBS: usize> UInt<LIMBS> {
+impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes bitwise `!a`.
     #[inline(always)]
     pub const fn not(&self) -> Self {
@@ -20,7 +20,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Not for UInt<LIMBS> {
+impl<const LIMBS: usize> Not for Uint<LIMBS> {
     type Output = Self;
 
     #[allow(clippy::needless_borrow)]
@@ -29,7 +29,7 @@ impl<const LIMBS: usize> Not for UInt<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Not for Wrapping<UInt<LIMBS>> {
+impl<const LIMBS: usize> Not for Wrapping<Uint<LIMBS>> {
     type Output = Self;
 
     fn not(self) -> <Self as Not>::Output {

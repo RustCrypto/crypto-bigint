@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
-use crate::{Limb, UInt, Zero};
+use crate::{Limb, Uint, Zero};
 
 use super::{reduction::montgomery_reduction, GenericResidue};
 
@@ -27,13 +27,13 @@ pub trait ResidueParams<const LIMBS: usize>: Copy {
     const LIMBS: usize;
 
     /// The constant modulus
-    const MODULUS: UInt<LIMBS>;
+    const MODULUS: Uint<LIMBS>;
     /// Parameter used in Montgomery reduction
-    const R: UInt<LIMBS>;
+    const R: Uint<LIMBS>;
     /// R^2, used to move into Montgomery form
-    const R2: UInt<LIMBS>;
+    const R2: Uint<LIMBS>;
     /// R^3, used to perform a multiplicative inverse
-    const R3: UInt<LIMBS>;
+    const R3: Uint<LIMBS>;
     /// The lowest limbs of -(MODULUS^-1) mod R
     // We only need the LSB because during reduction this value is multiplied modulo 2**64.
     const MOD_NEG_INV: Limb;
@@ -45,14 +45,14 @@ pub struct Residue<MOD, const LIMBS: usize>
 where
     MOD: ResidueParams<LIMBS>,
 {
-    montgomery_form: UInt<LIMBS>,
+    montgomery_form: Uint<LIMBS>,
     phantom: PhantomData<MOD>,
 }
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// The representation of 0 mod `MOD`.
     pub const ZERO: Self = Self {
-        montgomery_form: UInt::<LIMBS>::ZERO,
+        montgomery_form: Uint::<LIMBS>::ZERO,
         phantom: PhantomData,
     };
 
@@ -63,7 +63,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     };
 
     /// Instantiates a new `Residue` that represents this `integer` mod `MOD`.
-    pub const fn new(integer: UInt<LIMBS>) -> Self {
+    pub const fn new(integer: Uint<LIMBS>) -> Self {
         let mut modular_integer = Residue {
             montgomery_form: integer,
             phantom: PhantomData,
@@ -77,9 +77,9 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     }
 
     /// Retrieves the integer currently encoded in this `Residue`, guaranteed to be reduced.
-    pub const fn retrieve(&self) -> UInt<LIMBS> {
+    pub const fn retrieve(&self) -> Uint<LIMBS> {
         montgomery_reduction::<LIMBS>(
-            (self.montgomery_form, UInt::ZERO),
+            (self.montgomery_form, Uint::ZERO),
             MOD::MODULUS,
             MOD::MOD_NEG_INV,
         )
@@ -87,7 +87,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
 }
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> GenericResidue<LIMBS> for Residue<MOD, LIMBS> {
-    fn retrieve(&self) -> UInt<LIMBS> {
+    fn retrieve(&self) -> Uint<LIMBS> {
         self.retrieve()
     }
 }
@@ -97,7 +97,7 @@ impl<MOD: ResidueParams<LIMBS> + Copy, const LIMBS: usize> ConditionallySelectab
 {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         Residue {
-            montgomery_form: UInt::conditional_select(
+            montgomery_form: Uint::conditional_select(
                 &a.montgomery_form,
                 &b.montgomery_form,
                 choice,

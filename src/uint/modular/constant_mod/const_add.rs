@@ -2,7 +2,7 @@ use core::ops::AddAssign;
 
 use crate::{
     modular::{add::add_montgomery_form, AddResidue},
-    UInt,
+    Uint,
 };
 
 use super::{Residue, ResidueParams};
@@ -27,10 +27,10 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> AddAssign<&UInt<LIMBS>>
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> AddAssign<&Uint<LIMBS>>
     for Residue<MOD, LIMBS>
 {
-    fn add_assign(&mut self, rhs: &UInt<LIMBS>) {
+    fn add_assign(&mut self, rhs: &Uint<LIMBS>) {
         *self += &Residue::new(*rhs);
     }
 }
