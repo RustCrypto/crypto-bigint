@@ -25,7 +25,7 @@ fn bench_division<'a, M: Measurement>(group: &mut BenchmarkGroup<'a, M>) {
         b.iter(|| {
             xs.iter()
                 .zip(ys.iter())
-                .map(|(x, y)| x.reduce(&y))
+                .map(|(x, y)| x.rem(&y))
                 .for_each(drop)
         })
     });

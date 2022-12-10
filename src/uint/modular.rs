@@ -73,7 +73,7 @@ mod tests {
             constant_mod::Residue, constant_mod::ResidueParams, reduction::montgomery_reduction,
         },
         traits::Encoding,
-        Uint, U256, U64,
+        NonZero, Uint, U256, U64,
     };
 
     impl_modulus!(
@@ -170,7 +170,7 @@ mod tests {
         // Computing xR mod modulus without Montgomery reduction
         let (lo, hi) = x.mul_wide(&Modulus2::R);
         let c = hi.concat(&lo);
-        let red = c.reduce(&U256::ZERO.concat(&Modulus2::MODULUS)).unwrap();
+        let red = c.rem(&NonZero::new(U256::ZERO.concat(&Modulus2::MODULUS)).unwrap());
         let (hi, lo) = red.split();
         assert_eq!(hi, Uint::ZERO);
 

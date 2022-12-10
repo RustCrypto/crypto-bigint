@@ -34,7 +34,7 @@ fn reduce(runner: &mut CtRunner, mut rng: &mut BenchRng) {
     for (class, input) in inputs {
         runner.run_one(class, || {
             for _ in 0..ITERATIONS_INNER {
-                input.reduce(&modulus);
+                input.rem(&modulus);
             }
         })
     }
