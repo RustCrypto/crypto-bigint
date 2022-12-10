@@ -172,6 +172,7 @@ pub use crate::{
     limb::{Limb, WideWord, Word},
     non_zero::NonZero,
     traits::*,
+    uint::div_limb::Reciprocal,
     uint::*,
     wrapping::Wrapping,
 };

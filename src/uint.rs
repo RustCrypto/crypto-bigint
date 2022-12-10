@@ -20,6 +20,7 @@ mod bit_xor;
 mod bits;
 mod cmp;
 mod div;
+pub(crate) mod div_limb;
 mod encoding;
 mod from;
 mod inv_mod;

@@ -41,6 +41,24 @@ impl Limb {
         let lt = ((a - b) >> Limb::BIT_SIZE) & 1 & !gt;
         (gt as SignedWord) - (lt as SignedWord)
     }
+
+    /// Returns `Word::MAX` if `lhs < rhs` and `0` otherwise.
+    #[inline]
+    pub(crate) const fn ct_lt(lhs: Self, rhs: Self) -> Word {
+        let x = lhs.0;
+        let y = rhs.0;
+        let bit = (((!x) & y) | (((!x) | y) & (x.wrapping_sub(y)))) >> (Limb::BIT_SIZE - 1);
+        bit.wrapping_neg()
+    }
+
+    /// Returns `Word::MAX` if `lhs <= rhs` and `0` otherwise.
+    #[inline]
+    pub(crate) const fn ct_le(lhs: Self, rhs: Self) -> Word {
+        let x = lhs.0;
+        let y = rhs.0;
+        let bit = (((!x) | y) & ((x ^ y) | !(y.wrapping_sub(x)))) >> (Limb::BIT_SIZE - 1);
+        bit.wrapping_neg()
+    }
 }
 
 impl ConstantTimeEq for Limb {

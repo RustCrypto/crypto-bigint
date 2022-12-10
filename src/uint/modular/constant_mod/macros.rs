@@ -16,11 +16,11 @@ macro_rules! impl_modulus {
             const MODULUS: $crate::Uint<{ nlimbs!(<$uint_type>::BIT_SIZE) }> =
                 <$uint_type>::from_be_hex($value);
             const R: $crate::Uint<{ nlimbs!(<$uint_type>::BIT_SIZE) }> = $crate::Uint::MAX
-                .ct_reduce(&Self::MODULUS)
+                .ct_rem(&Self::MODULUS)
                 .0
                 .wrapping_add(&$crate::Uint::ONE);
             const R2: $crate::Uint<{ nlimbs!(<$uint_type>::BIT_SIZE) }> =
-                $crate::Uint::ct_reduce_wide(Self::R.square_wide(), &Self::MODULUS).0;
+                $crate::Uint::ct_rem_wide(Self::R.square_wide(), &Self::MODULUS).0;
             const MOD_NEG_INV: $crate::Limb = $crate::Limb(
                 $crate::Word::MIN
                     .wrapping_sub(Self::MODULUS.inv_mod2k($crate::Word::BITS as usize).limbs[0].0),

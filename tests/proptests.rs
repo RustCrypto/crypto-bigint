@@ -1,7 +1,8 @@
 //! Equivalence tests between `num-bigint` and `crypto-bigint`
 
-use crypto_bigint::{Encoding, U256};
+use crypto_bigint::{Encoding, Limb, NonZero, Word, U256};
 use num_bigint::BigUint;
+use num_integer::Integer;
 use num_traits::identities::Zero;
 use proptest::prelude::*;
 use std::mem;
@@ -33,11 +34,26 @@ prop_compose! {
         a.wrapping_rem(&p)
     }
 }
+prop_compose! {
+    fn nonzero_limb()(x in any::<Word>()) -> Limb {
+        if x == 0 { Limb::from(1u32) } else {Limb::from(x)}
+    }
+}
 
 proptest! {
     #[test]
     fn roundtrip(a in uint()) {
         assert_eq!(a, to_uint(to_biguint(&a)));
+    }
+
+    #[test]
+    fn shl_vartime(a in uint(), shift in any::<u8>()) {
+        let a_bi = to_biguint(&a);
+
+        let expected = to_uint(a_bi << shift);
+        let actual = a.shl_vartime(shift as usize);
+
+        assert_eq!(expected, actual);
     }
 
     #[test]
@@ -127,6 +143,30 @@ proptest! {
             let actual = a.wrapping_div(&b);
 
             assert_eq!(expected, actual);
+        }
+    }
+
+    #[test]
+    fn div_rem_limb(a in uint(), b in nonzero_limb()) {
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&U256::from(b));
+
+        let (expected_quo, expected_rem) = a_bi.div_rem(&b_bi);
+        let (actual_quo, actual_rem) = a.div_rem_limb(NonZero::new(b).unwrap());
+        assert_eq!(to_uint(expected_quo), actual_quo);
+        assert_eq!(to_uint(expected_rem), U256::from(actual_rem));
+    }
+
+    #[test]
+    fn div_rem_limb_min_max(a in uint()) {
+        let a_bi = to_biguint(&a);
+
+        for b in [Limb::from(1u32), Limb::MAX] {
+            let b_bi = to_biguint(&U256::from(b));
+            let (expected_quo, expected_rem) = a_bi.div_rem(&b_bi);
+            let (actual_quo, actual_rem) = a.div_rem_limb(NonZero::new(b).unwrap());
+            assert_eq!(to_uint(expected_quo), actual_quo);
+            assert_eq!(to_uint(expected_rem), U256::from(actual_rem));
         }
     }
 
