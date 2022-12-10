@@ -24,7 +24,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes `self` / `rhs`, returns the quotient (q) and remainder (r).
-    pub fn ct_div_rem_limb(&self, rhs: Limb) -> (Self, Limb, u8) {
+    pub(crate) fn ct_div_rem_limb(&self, rhs: Limb) -> (Self, Limb, u8) {
         let (reciprocal, is_some) = Reciprocal::new_const(rhs);
         let (quo, rem) = div_rem_limb_with_reciprocal(self, &reciprocal);
         (quo, rem, is_some)
@@ -36,18 +36,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Guaranteed to succeed since `rhs` is nonzero.
         debug_assert!(is_some == 1);
         (quo, rem)
-    }
-
-    /// Computes `self` / `rhs`, returns the quotient (q).
-    pub fn div_limb(&self, rhs: NonZero<Limb>) -> Self {
-        let (q, _r) = self.div_rem_limb(rhs);
-        q
-    }
-
-    /// Computes `self` / `rhs`, returns the remainder (r).
-    pub fn rem_limb(&self, rhs: NonZero<Limb>) -> Limb {
-        let (_q, r) = self.div_rem_limb(rhs);
-        r
     }
 
     /// Computes `self` / `rhs`, returns the quotient (q), remainder (r)
