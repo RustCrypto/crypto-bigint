@@ -3,7 +3,7 @@
 use super::div_limb::{div_rem_limb_with_reciprocal, Reciprocal};
 use super::Uint;
 use crate::limb::Word;
-use crate::{Integer, Limb, NonZero, Wrapping};
+use crate::{Limb, NonZero, Wrapping};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::{Choice, CtOption};
 
@@ -258,15 +258,13 @@ impl<const LIMBS: usize> Div<NonZero<Limb>> for Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> DivAssign<&NonZero<Limb>> for Uint<LIMBS>
-{
+impl<const LIMBS: usize> DivAssign<&NonZero<Limb>> for Uint<LIMBS> {
     fn div_assign(&mut self, rhs: &NonZero<Limb>) {
         *self /= *rhs;
     }
 }
 
-impl<const LIMBS: usize> DivAssign<NonZero<Limb>> for Uint<LIMBS>
-{
+impl<const LIMBS: usize> DivAssign<NonZero<Limb>> for Uint<LIMBS> {
     fn div_assign(&mut self, rhs: NonZero<Limb>) {
         *self = *self / rhs;
     }
@@ -409,10 +407,7 @@ impl<const LIMBS: usize> RemAssign<&NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
 // Division by an Uint
 //
 
-impl<const LIMBS: usize> Div<&NonZero<Uint<LIMBS>>> for &Uint<LIMBS>
-where
-    Uint<LIMBS>: Integer,
-{
+impl<const LIMBS: usize> Div<&NonZero<Uint<LIMBS>>> for &Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn div(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
@@ -420,10 +415,7 @@ where
     }
 }
 
-impl<const LIMBS: usize> Div<&NonZero<Uint<LIMBS>>> for Uint<LIMBS>
-where
-    Uint<LIMBS>: Integer,
-{
+impl<const LIMBS: usize> Div<&NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn div(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
@@ -431,10 +423,7 @@ where
     }
 }
 
-impl<const LIMBS: usize> Div<NonZero<Uint<LIMBS>>> for &Uint<LIMBS>
-where
-    Uint<LIMBS>: Integer,
-{
+impl<const LIMBS: usize> Div<NonZero<Uint<LIMBS>>> for &Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn div(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
@@ -442,10 +431,7 @@ where
     }
 }
 
-impl<const LIMBS: usize> Div<NonZero<Uint<LIMBS>>> for Uint<LIMBS>
-where
-    Uint<LIMBS>: Integer,
-{
+impl<const LIMBS: usize> Div<NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn div(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
@@ -454,22 +440,15 @@ where
     }
 }
 
-impl<const LIMBS: usize> DivAssign<&NonZero<Uint<LIMBS>>> for Uint<LIMBS>
-where
-    Uint<LIMBS>: Integer,
-{
+impl<const LIMBS: usize> DivAssign<&NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
     fn div_assign(&mut self, rhs: &NonZero<Uint<LIMBS>>) {
-        let (q, _, _) = self.ct_div_rem(rhs);
-        *self = q
+        *self /= *rhs
     }
 }
 
-impl<const LIMBS: usize> DivAssign<NonZero<Uint<LIMBS>>> for Uint<LIMBS>
-where
-    Uint<LIMBS>: Integer,
-{
+impl<const LIMBS: usize> DivAssign<NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
     fn div_assign(&mut self, rhs: NonZero<Uint<LIMBS>>) {
-        *self /= &rhs;
+        *self = *self / rhs;
     }
 }
 
@@ -517,10 +496,7 @@ impl<const LIMBS: usize> DivAssign<NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS
     }
 }
 
-impl<const LIMBS: usize> Rem<&NonZero<Uint<LIMBS>>> for &Uint<LIMBS>
-where
-    Uint<LIMBS>: Integer,
-{
+impl<const LIMBS: usize> Rem<&NonZero<Uint<LIMBS>>> for &Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn rem(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
@@ -528,10 +504,7 @@ where
     }
 }
 
-impl<const LIMBS: usize> Rem<&NonZero<Uint<LIMBS>>> for Uint<LIMBS>
-where
-    Uint<LIMBS>: Integer,
-{
+impl<const LIMBS: usize> Rem<&NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn rem(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
@@ -539,10 +512,7 @@ where
     }
 }
 
-impl<const LIMBS: usize> Rem<NonZero<Uint<LIMBS>>> for &Uint<LIMBS>
-where
-    Uint<LIMBS>: Integer,
-{
+impl<const LIMBS: usize> Rem<NonZero<Uint<LIMBS>>> for &Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn rem(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
@@ -550,10 +520,7 @@ where
     }
 }
 
-impl<const LIMBS: usize> Rem<NonZero<Uint<LIMBS>>> for Uint<LIMBS>
-where
-    Uint<LIMBS>: Integer,
-{
+impl<const LIMBS: usize> Rem<NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn rem(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
@@ -562,20 +529,14 @@ where
     }
 }
 
-impl<const LIMBS: usize> RemAssign<&NonZero<Uint<LIMBS>>> for Uint<LIMBS>
-where
-    Uint<LIMBS>: Integer,
-{
+impl<const LIMBS: usize> RemAssign<&NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
     fn rem_assign(&mut self, rhs: &NonZero<Uint<LIMBS>>) {
         let (r, _) = self.ct_reduce(rhs);
         *self = r
     }
 }
 
-impl<const LIMBS: usize> RemAssign<NonZero<Uint<LIMBS>>> for Uint<LIMBS>
-where
-    Uint<LIMBS>: Integer,
-{
+impl<const LIMBS: usize> RemAssign<NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
     fn rem_assign(&mut self, rhs: NonZero<Uint<LIMBS>>) {
         *self %= &rhs;
     }
