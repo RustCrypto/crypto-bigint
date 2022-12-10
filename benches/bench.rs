@@ -57,14 +57,6 @@ fn bench_division<'a, M: Measurement>(group: &mut BenchmarkGroup<'a, M>) {
                 .for_each(drop)
         })
     });
-    group.bench_function("rem, 4/1, single limb", |b| {
-        b.iter(|| {
-            xs.iter()
-                .zip(ys_limb.iter())
-                .map(|(x, y)| x.rem_limb(*y))
-                .for_each(drop)
-        })
-    });
 
     let reciprocals = ys_limb
         .iter()
