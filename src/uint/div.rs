@@ -10,12 +10,14 @@ use subtle::{Choice, CtOption};
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self` / `rhs` using a pre-made reciprocal,
     /// returns the quotient (q) and remainder (r).
+    #[inline(always)]
     pub const fn ct_div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb) {
         div_rem_limb_with_reciprocal(self, reciprocal)
     }
 
     /// Computes `self` / `rhs` using a pre-made reciprocal,
     /// returns the quotient (q) and remainder (r).
+    #[inline(always)]
     pub fn div_rem_limb_with_reciprocal(
         &self,
         reciprocal: &CtOption<Reciprocal>,
@@ -24,6 +26,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes `self` / `rhs`, returns the quotient (q) and remainder (r).
+    #[inline(always)]
     pub(crate) fn ct_div_rem_limb(&self, rhs: Limb) -> (Self, Limb, u8) {
         let (reciprocal, is_some) = Reciprocal::new_const(rhs);
         let (quo, rem) = div_rem_limb_with_reciprocal(self, &reciprocal);
@@ -31,6 +34,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes `self` / `rhs`, returns the quotient (q) and remainder (r).
+    #[inline(always)]
     pub fn div_rem_limb(&self, rhs: NonZero<Limb>) -> (Self, Limb) {
         let (quo, rem, is_some) = self.ct_div_rem_limb(*rhs);
         // Guaranteed to succeed since `rhs` is nonzero.
