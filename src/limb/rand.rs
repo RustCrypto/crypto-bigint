@@ -29,9 +29,9 @@ impl RandomMod for Limb {
 
         loop {
             rng.fill_bytes(&mut bytes[..n_bytes]);
-            bytes[0] = bytes[0] & mask;
+            bytes[n_bytes - 1] &= mask;
 
-            let n = Limb::from_be_bytes(bytes);
+            let n = Limb::from_le_bytes(bytes);
             if n.ct_lt(modulus).into() {
                 return n;
             }
