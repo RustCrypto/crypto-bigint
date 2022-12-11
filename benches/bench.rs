@@ -10,7 +10,7 @@ fn bench_division<'a, M: Measurement>(group: &mut BenchmarkGroup<'a, M>) {
         .map(|_| Uint::<4>::random(&mut OsRng))
         .collect::<Vec<_>>();
     let ys = (0..TEST_SET)
-        .map(|_| Uint::<2>::ZERO.concat(&Uint::<2>::random(&mut OsRng)))
+        .map(|_| NonZero::new(Uint::<2>::ZERO.concat(&Uint::<2>::random(&mut OsRng))).unwrap())
         .collect::<Vec<_>>();
     group.bench_function("div/rem, 4/2, full size", |b| {
         b.iter(|| {
@@ -35,7 +35,7 @@ fn bench_division<'a, M: Measurement>(group: &mut BenchmarkGroup<'a, M>) {
         .collect::<Vec<_>>();
     let ys_full = ys
         .iter()
-        .map(|y| Uint::<4>::from(y.as_limbs()[0]))
+        .map(|y| NonZero::new(Uint::<4>::from(y.as_limbs()[0])).unwrap())
         .collect::<Vec<_>>();
     let ys_limb = ys
         .iter()
