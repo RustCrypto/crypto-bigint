@@ -42,6 +42,24 @@ impl Limb {
         (gt as SignedWord) - (lt as SignedWord)
     }
 
+    /// Returns `Word::MAX` if `lhs == rhs` and `0` otherwise.
+    #[inline]
+    pub(crate) const fn ct_eq(lhs: Self, rhs: Self) -> Word {
+        let x = lhs.0;
+        let y = rhs.0;
+
+        // c == 0 if and only if x == y
+        let c = x ^ y;
+
+        // If c == 0, then c and -c are both equal to zero;
+        // otherwise, one or both will have its high bit set.
+        let d = (c | c.wrapping_neg()) >> (Limb::BIT_SIZE - 1);
+
+        // Result is the opposite of the high bit (now shifted to low).
+        // Convert 1 to Word::MAX.
+        (d ^ 1).wrapping_neg()
+    }
+
     /// Returns `Word::MAX` if `lhs < rhs` and `0` otherwise.
     #[inline]
     pub(crate) const fn ct_lt(lhs: Self, rhs: Self) -> Word {

@@ -44,7 +44,10 @@ where
         self.pow_specific(exponent, LIMBS * Word::BITS as usize)
     }
 
-    /// Computes the (reduced) exponentiation of a residue, here `exponent_bits` represents the number of bits to take into account for the exponent. Note that this value is leaked in the time pattern.
+    /// Computes the (reduced) exponentiation of a residue,
+    /// here `exponent_bits` represents the number of bits to take into account for the exponent.
+    ///
+    /// NOTE: `exponent_bits` is leaked in the time pattern.
     fn pow_specific(self, exponent: &Uint<LIMBS>, exponent_bits: usize) -> Self;
 }
 
@@ -53,11 +56,13 @@ pub trait InvResidue
 where
     Self: Sized,
 {
-    /// Computes the (reduced) multiplicative inverse of the residue. Returns CtOption, which is `None` if the residue was not invertible.
+    /// Computes the (reduced) multiplicative inverse of the residue. Returns CtOption,
+    /// which is `None` if the residue was not invertible.
     fn inv(self) -> CtOption<Self>;
 }
 
-/// The `GenericResidue` trait provides a consistent API for dealing with residues with a constant modulus.
+/// The `GenericResidue` trait provides a consistent API
+/// for dealing with residues with a constant modulus.
 pub trait GenericResidue<const LIMBS: usize>:
     AddResidue + MulResidue + PowResidue<LIMBS> + InvResidue
 {

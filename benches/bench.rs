@@ -1,7 +1,13 @@
 use criterion::{
     criterion_group, criterion_main, measurement::Measurement, BenchmarkGroup, Criterion,
 };
-use crypto_bigint::{NonZero, Random, Reciprocal, Uint};
+use crypto_bigint::{
+    modular::{
+        runtime_mod::{DynResidue, DynResidueParams},
+        PowResidue,
+    },
+    Encoding, NonZero, Random, Reciprocal, Uint, U256,
+};
 use rand_core::OsRng;
 
 fn bench_division<'a, M: Measurement>(group: &mut BenchmarkGroup<'a, M>) {
@@ -72,9 +78,42 @@ fn bench_division<'a, M: Measurement>(group: &mut BenchmarkGroup<'a, M>) {
     });
 }
 
+fn bench_modpow<'a, M: Measurement>(group: &mut BenchmarkGroup<'a, M>) {
+    const TEST_SET: usize = 10;
+    let xs = (0..TEST_SET)
+        .map(|_| U256::random(&mut OsRng))
+        .collect::<Vec<_>>();
+    let moduli = (0..TEST_SET)
+        .map(|_| U256::random(&mut OsRng) | U256::ONE)
+        .collect::<Vec<_>>();
+    let powers = (0..TEST_SET)
+        .map(|_| U256::random(&mut OsRng) | (U256::ONE << (U256::BIT_SIZE - 1)))
+        .collect::<Vec<_>>();
+
+    let params = moduli
+        .iter()
+        .map(|modulus| DynResidueParams::new(*modulus))
+        .collect::<Vec<_>>();
+    let xs_m = xs
+        .iter()
+        .zip(params.iter())
+        .map(|(x, p)| DynResidue::new(*x, *p))
+        .collect::<Vec<_>>();
+
+    group.bench_function("modpow, 4^4", |b| {
+        b.iter(|| {
+            xs_m.iter()
+                .zip(powers.iter())
+                .map(|(x, p)| x.pow(&p))
+                .for_each(drop)
+        })
+    });
+}
+
 fn bench_wrapping_ops(c: &mut Criterion) {
     let mut group = c.benchmark_group("wrapping ops");
     bench_division(&mut group);
+    bench_modpow(&mut group);
     group.finish();
 }
 
