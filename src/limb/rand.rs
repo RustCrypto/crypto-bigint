@@ -23,20 +23,15 @@ impl RandomMod for Limb {
     fn random_mod(mut rng: impl CryptoRng + RngCore, modulus: &NonZero<Self>) -> Self {
         let mut bytes = <Self as Encoding>::Repr::default();
 
-        // TODO(tarcieri): use `div_ceil` when available
-        // See: https://github.com/rust-lang/rust/issues/88581
-        let mut n_bytes = modulus.bits() / 8;
-
-        // Ensure the randomly generated value can always be larger than
-        // the modulus in order to ensure a uniform distribution
-        if n_bytes < Self::BYTE_SIZE {
-            n_bytes += 1;
-        }
+        let n_bits = modulus.bits();
+        let n_bytes = (n_bits + 7) / 8;
+        let mask = 0xff >> (8 * n_bytes - n_bits);
 
         loop {
             rng.fill_bytes(&mut bytes[..n_bytes]);
-            let n = Limb::from_le_bytes(bytes);
+            bytes[n_bytes - 1] &= mask;
 
+            let n = Limb::from_le_bytes(bytes);
             if n.ct_lt(modulus).into() {
                 return n;
             }
