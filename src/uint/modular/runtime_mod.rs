@@ -84,6 +84,14 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
             residue_params,
         }
     }
+
+    /// Instantiates a new `Residue` that represents 1.
+    pub const fn one(residue_params: DynResidueParams<LIMBS>) -> Self {
+        Self {
+            montgomery_form: residue_params.r,
+            residue_params,
+        }
+    }
 }
 
 impl<const LIMBS: usize> GenericResidue<LIMBS> for DynResidue<LIMBS> {
