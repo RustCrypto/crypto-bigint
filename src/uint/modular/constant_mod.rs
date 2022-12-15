@@ -14,6 +14,8 @@ mod const_inv;
 mod const_mul;
 /// Exponentiation of residues with a constant modulus
 mod const_pow;
+/// Subtractions between residues with a constant modulus
+mod const_sub;
 
 /// Macros to remove the boilerplate code when dealing with constant moduli.
 #[macro_use]

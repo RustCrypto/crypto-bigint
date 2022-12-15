@@ -10,6 +10,8 @@ mod runtime_inv;
 mod runtime_mul;
 /// Exponentiation of residues with a modulus set at runtime
 mod runtime_pow;
+/// Subtractions between residues with a modulus set at runtime
+mod runtime_sub;
 
 /// The parameters to efficiently go to and from the Montgomery form for a modulus provided at runtime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

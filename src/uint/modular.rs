@@ -13,11 +13,18 @@ mod add;
 mod inv;
 mod mul;
 mod pow;
+mod sub;
 
 /// Provides a consistent interface to add two residues of the same type together.
 pub trait AddResidue {
     /// Computes the (reduced) sum of two residues.
     fn add(&self, rhs: &Self) -> Self;
+}
+
+/// Provides a consistent interface to subtract two residues of the same type.
+pub trait SubResidue {
+    /// Computes the (reduced) difference of two residues.
+    fn sub(&self, rhs: &Self) -> Self;
 }
 
 /// Provides a consistent interface to multiply two residues of the same type together.
