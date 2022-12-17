@@ -15,9 +15,11 @@ mod const_mul;
 /// Exponentiation of residues with a constant modulus
 mod const_pow;
 
-#[macro_use]
 /// Macros to remove the boilerplate code when dealing with constant moduli.
-pub mod macros;
+#[macro_use]
+mod macros;
+
+pub use macros::*;
 
 /// The parameters to efficiently go to and from the Montgomery form for a given odd modulus. An easy way to generate these parameters is using the `impl_modulus!` macro. These parameters are constant, so they cannot be set at runtime.
 ///
