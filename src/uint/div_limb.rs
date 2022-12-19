@@ -75,7 +75,7 @@ const fn ct_lt(a: u32, b: u32) -> u32 {
     bit.wrapping_neg()
 }
 
-/// Returns `a` if `c == 0` and `b` if `c == u16::MAX`.
+/// Returns `a` if `c == 0` and `b` if `c == u32::MAX`.
 #[inline(always)]
 const fn ct_select(a: u32, b: u32, c: u32) -> u32 {
     a ^ (c & (a ^ b))
