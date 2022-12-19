@@ -1,6 +1,6 @@
 //! Implementation of constant-time division via reciprocal precomputation, as described in
 //! "Improved Division by Invariant Integers" by Niels Möller and Torbjorn Granlund
-//! (DOI: 10.1109/TC.2010.143, https://gmplib.org/~tege/division-paper.pdf).
+//! (DOI: 10.1109/TC.2010.143, <https://gmplib.org/~tege/division-paper.pdf>).
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
 use crate::{Limb, Uint, WideWord, Word};
