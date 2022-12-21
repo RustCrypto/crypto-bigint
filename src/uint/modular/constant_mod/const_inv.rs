@@ -2,16 +2,17 @@ use core::marker::PhantomData;
 
 use subtle::{Choice, CtOption};
 
-use crate::{
-    modular::{inv::inv_montgomery_form, InvResidue},
-    Word,
-};
+use crate::{modular::inv::inv_montgomery_form, traits::Inv};
 
 use super::{Residue, ResidueParams};
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> InvResidue for Residue<MOD, LIMBS> {
-    fn inv(self) -> CtOption<Self> {
-        let (montgomery_form, error) = inv_montgomery_form(
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
+    /// Computes the residue `self^-1` representing the multiplicative inverse of `self`.
+    /// I.e. `self * self^-1 = 1`.
+    /// If the number was invertible, the second element of the tuple is `1`,
+    /// otherwise it is `0` (in which case the first element's value is unspecified).
+    pub const fn inv(&self) -> (Self, u8) {
+        let (montgomery_form, is_some) = inv_montgomery_form(
             self.montgomery_form,
             MOD::MODULUS,
             &MOD::R3,
@@ -23,26 +24,14 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> InvResidue for Residue<MOD, 
             phantom: PhantomData,
         };
 
-        CtOption::new(value, Choice::from((error == Word::MAX) as u8))
+        (value, (is_some & 1) as u8)
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
-    /// Computes the residue `self^-1` representing the multiplicative inverse of `self`. I.e. `self * self^-1 = 1`. Panics if `self` was not invertible.
-    pub const fn inv(self) -> Self {
-        let (montgomery_form, error) = inv_montgomery_form(
-            self.montgomery_form,
-            MOD::MODULUS,
-            &MOD::R3,
-            MOD::MOD_NEG_INV,
-        );
-
-        assert!(error == Word::MAX);
-
-        Self {
-            montgomery_form,
-            phantom: PhantomData,
-        }
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Inv for Residue<MOD, LIMBS> {
+    fn inv(&self) -> CtOption<Self> {
+        let (value, is_some) = self.inv();
+        CtOption::new(value, Choice::from(is_some))
     }
 }
 
@@ -62,7 +51,7 @@ mod tests {
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
         let x_mod = const_residue!(x, Modulus);
 
-        let inv = x_mod.inv();
+        let (inv, _is_some) = x_mod.inv();
         let res = &x_mod * &inv;
 
         assert_eq!(res.retrieve(), U256::ONE);

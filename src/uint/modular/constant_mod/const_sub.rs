@@ -1,21 +1,14 @@
-use core::ops::SubAssign;
+use core::ops::{Sub, SubAssign};
 
-use crate::{
-    modular::{sub::sub_montgomery_form, SubResidue},
-    Uint,
-};
+use crate::modular::sub::sub_montgomery_form;
 
 use super::{Residue, ResidueParams};
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> SubResidue for Residue<MOD, LIMBS> {
-    fn sub(&self, rhs: &Self) -> Self {
-        self.sub(rhs)
-    }
-}
-
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
-    /// Adds two residues together.
-    pub const fn sub(&self, rhs: &Self) -> Self {
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Sub<&Residue<MOD, LIMBS>>
+    for &Residue<MOD, LIMBS>
+{
+    type Output = Residue<MOD, LIMBS>;
+    fn sub(self, rhs: &Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
         Residue {
             montgomery_form: sub_montgomery_form(
                 &self.montgomery_form,
@@ -24,14 +17,6 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
             ),
             phantom: core::marker::PhantomData,
         }
-    }
-}
-
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> SubAssign<&Uint<LIMBS>>
-    for Residue<MOD, LIMBS>
-{
-    fn sub_assign(&mut self, rhs: &Uint<LIMBS>) {
-        *self -= &Residue::new(*rhs);
     }
 }
 
@@ -59,8 +44,9 @@ mod tests {
 
         let y =
             U256::from_be_hex("d5777c45019673125ad240f83094d4252d829516fac8601ed01979ec1ec1a251");
+        let y_mod = const_residue!(y, Modulus);
 
-        x_mod -= &y;
+        x_mod -= &y_mod;
 
         let expected =
             U256::from_be_hex("6f357a71e1d5a03167f34879d469352add829491c6df41ddff65387d7ed56f56");

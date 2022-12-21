@@ -4,7 +4,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 use crate::{Limb, Uint, Zero};
 
-use super::{reduction::montgomery_reduction, GenericResidue};
+use super::reduction::montgomery_reduction;
 
 /// Additions between residues with a constant modulus
 mod const_add;
@@ -87,12 +87,6 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
             MOD::MODULUS,
             MOD::MOD_NEG_INV,
         )
-    }
-}
-
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> GenericResidue<LIMBS> for Residue<MOD, LIMBS> {
-    fn retrieve(&self) -> Uint<LIMBS> {
-        self.retrieve()
     }
 }
 

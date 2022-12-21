@@ -225,3 +225,31 @@ pub trait Encoding: Sized {
     /// Encode to little endian bytes.
     fn to_le_bytes(&self) -> Self::Repr;
 }
+
+/// Support for optimized squaring
+pub trait Square {
+    /// Computes the same as `self.mul(self)`, but may be more efficient.
+    fn square(&self) -> Self;
+    // TODO: can we provide a default implementation by depending on `Mul`?
+}
+
+/// Constant-time exponentiation.
+pub trait Pow<Exponent> {
+    /// Raises to the `exponent` power.
+    fn pow(&self, exponent: &Exponent) -> Self;
+    // TODO: can express via `pow_specific()` if there is a trait containing the integer's bit size
+
+    /// Raises to the `exponent` power,
+    /// with `exponent_bits` representing the number of (least significant) bits
+    /// to take into account for the exponent.
+    ///
+    /// NOTE: `exponent_bits` may be leaked in the time pattern.
+    fn pow_specific(&self, exponent: &Exponent, exponent_bits: usize) -> Self;
+}
+
+/// Constant-time inversion.
+pub trait Inv: Sized {
+    /// Computes the inverse. Returns [`CtOption`] that evaluates to `None`
+    /// if the number is not invertible.
+    fn inv(&self) -> CtOption<Self>;
+}

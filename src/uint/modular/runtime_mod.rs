@@ -1,6 +1,6 @@
 use crate::{Limb, Uint, Word};
 
-use super::{reduction::montgomery_reduction, GenericResidue};
+use super::reduction::montgomery_reduction;
 
 /// Additions between residues with a modulus set at runtime
 mod runtime_add;
@@ -93,11 +93,5 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
             montgomery_form: residue_params.r,
             residue_params,
         }
-    }
-}
-
-impl<const LIMBS: usize> GenericResidue<LIMBS> for DynResidue<LIMBS> {
-    fn retrieve(&self) -> Uint<LIMBS> {
-        self.retrieve()
     }
 }

@@ -1,10 +1,7 @@
 //! Equivalence tests between `num-bigint` and `crypto-bigint`
 
 use crypto_bigint::{
-    modular::{
-        runtime_mod::{DynResidue, DynResidueParams},
-        PowResidue,
-    },
+    modular::runtime_mod::{DynResidue, DynResidueParams},
     Encoding, Limb, NonZero, Word, U256,
 };
 use num_bigint::BigUint;
