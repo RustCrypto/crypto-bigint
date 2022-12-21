@@ -4,11 +4,10 @@ use crate::modular::add::add_montgomery_form;
 
 use super::DynResidue;
 
-impl<const LIMBS: usize> Add<&DynResidue<LIMBS>> for &DynResidue<LIMBS> {
-    type Output = DynResidue<LIMBS>;
-    fn add(self, rhs: &DynResidue<LIMBS>) -> DynResidue<LIMBS> {
-        debug_assert_eq!(self.residue_params, rhs.residue_params);
-        DynResidue {
+impl<const LIMBS: usize> DynResidue<LIMBS> {
+    /// Adds `rhs`.
+    pub const fn add(&self, rhs: &Self) -> Self {
+        Self {
             montgomery_form: add_montgomery_form(
                 &self.montgomery_form,
                 &rhs.montgomery_form,
@@ -19,9 +18,46 @@ impl<const LIMBS: usize> Add<&DynResidue<LIMBS>> for &DynResidue<LIMBS> {
     }
 }
 
+impl<const LIMBS: usize> Add<&DynResidue<LIMBS>> for &DynResidue<LIMBS> {
+    type Output = DynResidue<LIMBS>;
+    fn add(self, rhs: &DynResidue<LIMBS>) -> DynResidue<LIMBS> {
+        debug_assert_eq!(self.residue_params, rhs.residue_params);
+        self.add(rhs)
+    }
+}
+
+impl<const LIMBS: usize> Add<DynResidue<LIMBS>> for &DynResidue<LIMBS> {
+    type Output = DynResidue<LIMBS>;
+    #[allow(clippy::op_ref)]
+    fn add(self, rhs: DynResidue<LIMBS>) -> DynResidue<LIMBS> {
+        self + &rhs
+    }
+}
+
+impl<const LIMBS: usize> Add<&DynResidue<LIMBS>> for DynResidue<LIMBS> {
+    type Output = DynResidue<LIMBS>;
+    #[allow(clippy::op_ref)]
+    fn add(self, rhs: &DynResidue<LIMBS>) -> DynResidue<LIMBS> {
+        &self + rhs
+    }
+}
+
+impl<const LIMBS: usize> Add<DynResidue<LIMBS>> for DynResidue<LIMBS> {
+    type Output = DynResidue<LIMBS>;
+    fn add(self, rhs: DynResidue<LIMBS>) -> DynResidue<LIMBS> {
+        &self + &rhs
+    }
+}
+
 impl<const LIMBS: usize> AddAssign<&DynResidue<LIMBS>> for DynResidue<LIMBS> {
     fn add_assign(&mut self, rhs: &DynResidue<LIMBS>) {
-        *self = self.add(rhs);
+        *self = *self + rhs;
+    }
+}
+
+impl<const LIMBS: usize> AddAssign<DynResidue<LIMBS>> for DynResidue<LIMBS> {
+    fn add_assign(&mut self, rhs: DynResidue<LIMBS>) {
+        *self += &rhs;
     }
 }
 
