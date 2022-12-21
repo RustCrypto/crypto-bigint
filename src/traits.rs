@@ -227,10 +227,14 @@ pub trait Encoding: Sized {
 }
 
 /// Support for optimized squaring
-pub trait Square {
+pub trait Square: Sized
+where
+    for<'a> &'a Self: core::ops::Mul<&'a Self, Output = Self>,
+{
     /// Computes the same as `self.mul(self)`, but may be more efficient.
-    fn square(&self) -> Self;
-    // TODO: can we provide a default implementation by depending on `Mul`?
+    fn square(&self) -> Self {
+        self * self
+    }
 }
 
 /// Constant-time exponentiation.
