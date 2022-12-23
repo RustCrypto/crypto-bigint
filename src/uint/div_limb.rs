@@ -146,8 +146,12 @@ const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Word, Word) {
     let q1 = Limb::ct_select(Limb(q1), Limb(q1.wrapping_sub(1)), r_gt_q0).0;
     let r = Limb::ct_select(Limb(r), Limb(r.wrapping_add(d)), r_gt_q0).0;
 
+    // If this was a normal `if`, we wouldn't need wrapping ops, because there would be no overflow.
+    // But since we caluculate both results either way, have to wrap.
+    // Added an assert to still check the lack of overflow in debug mode.
+    debug_assert!(r < d || q1 < Word::MAX);
     let r_ge_d = Limb::ct_le(Limb(d), Limb(r));
-    let q1 = Limb::ct_select(Limb(q1), Limb(q1 + 1), r_ge_d).0;
+    let q1 = Limb::ct_select(Limb(q1), Limb(q1.wrapping_add(1)), r_ge_d).0;
     let r = Limb::ct_select(Limb(r), Limb(r.wrapping_sub(d)), r_ge_d).0;
 
     (q1, r)
@@ -262,4 +266,21 @@ pub(crate) const fn div_rem_limb_with_reciprocal<const L: usize>(
         r = rj;
     }
     (Uint::<L>::new(q), Limb(r >> reciprocal.shift))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{div2by1, Reciprocal};
+    use crate::{Limb, Word};
+    #[test]
+    fn div2by1_overflow() {
+        // A regression test for a situation when in div2by1() an operation (`q1 + 1`)
+        // that is protected from overflowing by a condition in the original paper (`r >= d`)
+        // still overflows because we're calculating the results for both branches.
+        let r = Reciprocal::new(Limb(Word::MAX - 1)).unwrap();
+        assert_eq!(
+            div2by1(Word::MAX - 2, Word::MAX - 63, &r),
+            (Word::MAX, Word::MAX - 65)
+        );
+    }
 }
