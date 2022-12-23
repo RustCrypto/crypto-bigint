@@ -287,8 +287,8 @@ macro_rules! impl_uint_aliases {
             pub type $name = Uint<{nlimbs!($bits)}>;
 
             impl Encoding for $name {
-                const BIT_SIZE: usize = $bits;
-                const BYTE_SIZE: usize = $bits / 8;
+                const BITS: usize = $bits;
+                const BYTES: usize = $bits / 8;
 
                 type Repr = [u8; $bits / 8];
 

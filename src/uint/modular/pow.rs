@@ -30,8 +30,8 @@ pub const fn pow_montgomery_form<const LIMBS: usize>(
         i += 1;
     }
 
-    let starting_limb = (exponent_bits - 1) / Limb::BIT_SIZE;
-    let starting_bit_in_limb = (exponent_bits - 1) % Limb::BIT_SIZE;
+    let starting_limb = (exponent_bits - 1) / Limb::BITS;
+    let starting_bit_in_limb = (exponent_bits - 1) % Limb::BITS;
     let starting_window = starting_bit_in_limb / WINDOW;
     let starting_window_mask = (1 << (starting_bit_in_limb % WINDOW + 1)) - 1;
 
@@ -45,7 +45,7 @@ pub const fn pow_montgomery_form<const LIMBS: usize>(
         let mut window_num = if limb_num == starting_limb {
             starting_window + 1
         } else {
-            Limb::BIT_SIZE / WINDOW
+            Limb::BITS / WINDOW
         };
         while window_num > 0 {
             window_num -= 1;

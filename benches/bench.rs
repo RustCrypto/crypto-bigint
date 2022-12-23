@@ -87,7 +87,7 @@ fn bench_modpow<'a, M: Measurement>(group: &mut BenchmarkGroup<'a, M>) {
         .map(|_| U256::random(&mut OsRng) | U256::ONE)
         .collect::<Vec<_>>();
     let powers = (0..TEST_SET)
-        .map(|_| U256::random(&mut OsRng) | (U256::ONE << (U256::BIT_SIZE - 1)))
+        .map(|_| U256::random(&mut OsRng) | (U256::ONE << (U256::BITS - 1)))
         .collect::<Vec<_>>();
 
     let params = moduli

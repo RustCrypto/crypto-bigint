@@ -37,8 +37,8 @@ impl Limb {
     pub(crate) const fn ct_cmp(lhs: Self, rhs: Self) -> SignedWord {
         let a = lhs.0 as WideSignedWord;
         let b = rhs.0 as WideSignedWord;
-        let gt = ((b - a) >> Limb::BIT_SIZE) & 1;
-        let lt = ((a - b) >> Limb::BIT_SIZE) & 1 & !gt;
+        let gt = ((b - a) >> Limb::BITS) & 1;
+        let lt = ((a - b) >> Limb::BITS) & 1 & !gt;
         (gt as SignedWord) - (lt as SignedWord)
     }
 
@@ -53,7 +53,7 @@ impl Limb {
 
         // If c == 0, then c and -c are both equal to zero;
         // otherwise, one or both will have its high bit set.
-        let d = (c | c.wrapping_neg()) >> (Limb::BIT_SIZE - 1);
+        let d = (c | c.wrapping_neg()) >> (Limb::BITS - 1);
 
         // Result is the opposite of the high bit (now shifted to low).
         // Convert 1 to Word::MAX.
@@ -65,7 +65,7 @@ impl Limb {
     pub(crate) const fn ct_lt(lhs: Self, rhs: Self) -> Word {
         let x = lhs.0;
         let y = rhs.0;
-        let bit = (((!x) & y) | (((!x) | y) & (x.wrapping_sub(y)))) >> (Limb::BIT_SIZE - 1);
+        let bit = (((!x) & y) | (((!x) | y) & (x.wrapping_sub(y)))) >> (Limb::BITS - 1);
         bit.wrapping_neg()
     }
 
@@ -74,7 +74,7 @@ impl Limb {
     pub(crate) const fn ct_le(lhs: Self, rhs: Self) -> Word {
         let x = lhs.0;
         let y = rhs.0;
-        let bit = (((!x) | y) & ((x ^ y) | !(y.wrapping_sub(x)))) >> (Limb::BIT_SIZE - 1);
+        let bit = (((!x) | y) & ((x ^ y) | !(y.wrapping_sub(x)))) >> (Limb::BITS - 1);
         bit.wrapping_neg()
     }
 }

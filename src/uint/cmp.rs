@@ -64,8 +64,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         while i > 0 {
             let a = self.limbs[i - 1].0 as WideSignedWord;
             let b = rhs.limbs[i - 1].0 as WideSignedWord;
-            gt |= ((b - a) >> Limb::BIT_SIZE) & 1 & !lt;
-            lt |= ((a - b) >> Limb::BIT_SIZE) & 1 & !gt;
+            gt |= ((b - a) >> Limb::BITS) & 1 & !lt;
+            lt |= ((a - b) >> Limb::BITS) & 1 & !gt;
             i -= 1;
         }
         (gt as SignedWord) - (lt as SignedWord)

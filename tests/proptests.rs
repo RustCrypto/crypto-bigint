@@ -22,9 +22,9 @@ fn to_biguint(uint: &U256) -> BigUint {
 }
 
 fn to_uint(big_uint: BigUint) -> U256 {
-    let mut input = [0u8; U256::BYTE_SIZE];
+    let mut input = [0u8; U256::BYTES];
     let encoded = big_uint.to_bytes_le();
-    let l = encoded.len().min(U256::BYTE_SIZE);
+    let l = encoded.len().min(U256::BYTES);
     input[..l].copy_from_slice(&encoded[..l]);
 
     U256::from_le_slice(&input)

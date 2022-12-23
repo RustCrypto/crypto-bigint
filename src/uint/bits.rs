@@ -5,10 +5,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Returns 0 for indices out of range.
     #[inline(always)]
     pub const fn bit_vartime(self, index: usize) -> Word {
-        if index >= LIMBS * Limb::BIT_SIZE {
+        if index >= LIMBS * Limb::BITS {
             0
         } else {
-            (self.limbs[index / Limb::BIT_SIZE].0 >> (index % Limb::BIT_SIZE)) & 1
+            (self.limbs[index / Limb::BITS].0 >> (index % Limb::BITS)) & 1
         }
     }
 
@@ -21,7 +21,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         let limb = self.limbs[i].0;
-        let bits = (Limb::BIT_SIZE * (i + 1)) as Word - limb.leading_zeros() as Word;
+        let bits = (Limb::BITS * (i + 1)) as Word - limb.leading_zeros() as Word;
 
         Limb::ct_select(
             Limb(bits),
@@ -69,14 +69,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Calculate the number of bits needed to represent this number.
     pub const fn bits(self) -> usize {
-        LIMBS * Limb::BIT_SIZE - self.leading_zeros()
+        LIMBS * Limb::BITS - self.leading_zeros()
     }
 
     /// Get the value of the bit at position `index`, as a 0- or 1-valued Word.
     /// Returns 0 for indices out of range.
     pub const fn bit(self, index: usize) -> Word {
-        let limb_num = Limb((index / Limb::BIT_SIZE) as Word);
-        let index_in_limb = index % Limb::BIT_SIZE;
+        let limb_num = Limb((index / Limb::BITS) as Word);
+        let index_in_limb = index % Limb::BITS;
         let index_mask = 1 << index_in_limb;
 
         let limbs = self.as_words();

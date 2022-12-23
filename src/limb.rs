@@ -71,7 +71,7 @@ pub type WideWord = u128;
 pub(crate) type WideSignedWord = i128;
 
 /// Highest bit in a [`Limb`].
-pub(crate) const HI_BIT: usize = Limb::BIT_SIZE - 1;
+pub(crate) const HI_BIT: usize = Limb::BITS - 1;
 
 /// Big integers are represented as an array of smaller CPU word-size integers
 /// called "limbs".
@@ -93,19 +93,19 @@ impl Limb {
 
     /// Size of the inner integer in bits.
     #[cfg(target_pointer_width = "32")]
-    pub const BIT_SIZE: usize = 32;
+    pub const BITS: usize = 32;
     /// Size of the inner integer in bytes.
     #[cfg(target_pointer_width = "32")]
-    pub const BYTE_SIZE: usize = 4;
+    pub const BYTES: usize = 4;
 
     // 64-bit
 
     /// Size of the inner integer in bits.
     #[cfg(target_pointer_width = "64")]
-    pub const BIT_SIZE: usize = 64;
+    pub const BITS: usize = 64;
     /// Size of the inner integer in bytes.
     #[cfg(target_pointer_width = "64")]
-    pub const BYTE_SIZE: usize = 8;
+    pub const BYTES: usize = 8;
 
     /// Return `a` if `c`==0 or `b` if `c`==`Word::MAX`.
     ///
@@ -137,14 +137,14 @@ impl fmt::Display for Limb {
 impl fmt::LowerHex for Limb {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:0width$x}", &self.0, width = Self::BYTE_SIZE * 2)
+        write!(f, "{:0width$x}", &self.0, width = Self::BYTES * 2)
     }
 }
 
 impl fmt::UpperHex for Limb {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:0width$X}", &self.0, width = Self::BYTE_SIZE * 2)
+        write!(f, "{:0width$X}", &self.0, width = Self::BYTES * 2)
     }
 }
 
