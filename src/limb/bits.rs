@@ -5,4 +5,14 @@ impl Limb {
     pub const fn bits(self) -> usize {
         Limb::BIT_SIZE - (self.0.leading_zeros() as usize)
     }
+
+    /// Calculate the number of leading zeros in the binary representation of this number.
+    pub const fn leading_zeros(self) -> usize {
+        self.0.leading_zeros() as usize
+    }
+
+    /// Calculate the number of trailing zeros in the binary representation of this number.
+    pub const fn trailing_zeros(self) -> usize {
+        self.0.trailing_zeros() as usize
+    }
 }
