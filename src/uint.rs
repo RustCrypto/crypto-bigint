@@ -92,6 +92,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         limbs: [Limb::MAX; LIMBS],
     };
 
+    /// Total size of the represented integer in bits.
+    pub const BITS: usize = LIMBS * Limb::BITS;
+
+    /// Total size of the represented integer in bytes.
+    pub const BYTES: usize = LIMBS * Limb::BYTES;
+
     /// Const-friendly [`Uint`] constructor.
     pub const fn new(limbs: [Limb; LIMBS]) -> Self {
         Self { limbs }
@@ -287,8 +293,8 @@ macro_rules! impl_uint_aliases {
             pub type $name = Uint<{nlimbs!($bits)}>;
 
             impl Encoding for $name {
-                const BITS: usize = $bits;
-                const BYTES: usize = $bits / 8;
+                const BITS: usize = Self::BITS;
+                const BYTES: usize = Self::BYTES;
 
                 type Repr = [u8; $bits / 8];
 

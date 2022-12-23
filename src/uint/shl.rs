@@ -101,10 +101,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let (lower, mut upper) = lower_upper;
         let new_lower = lower.shl_vartime(n);
         upper = upper.shl_vartime(n);
-        if n >= LIMBS * Limb::BITS {
-            upper = upper.bitor(&lower.shl_vartime(n - LIMBS * Limb::BITS));
+        if n >= Self::BITS {
+            upper = upper.bitor(&lower.shl_vartime(n - Self::BITS));
         } else {
-            upper = upper.bitor(&lower.shr_vartime(LIMBS * Limb::BITS - n));
+            upper = upper.bitor(&lower.shr_vartime(Self::BITS - n));
         }
 
         (new_lower, upper)

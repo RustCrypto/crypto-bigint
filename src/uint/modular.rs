@@ -84,7 +84,6 @@ mod tests {
         modular::{
             constant_mod::Residue, constant_mod::ResidueParams, reduction::montgomery_reduction,
         },
-        traits::Encoding,
         NonZero, Uint, U256, U64,
     };
 

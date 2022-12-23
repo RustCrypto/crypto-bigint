@@ -5,7 +5,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Returns 0 for indices out of range.
     #[inline(always)]
     pub const fn bit_vartime(self, index: usize) -> Word {
-        if index >= LIMBS * Limb::BITS {
+        if index >= Self::BITS {
             0
         } else {
             (self.limbs[index / Limb::BITS].0 >> (index % Limb::BITS)) & 1
@@ -69,7 +69,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Calculate the number of bits needed to represent this number.
     pub const fn bits(self) -> usize {
-        LIMBS * Limb::BITS - self.leading_zeros()
+        Self::BITS - self.leading_zeros()
     }
 
     /// Get the value of the bit at position `index`, as a 0- or 1-valued Word.

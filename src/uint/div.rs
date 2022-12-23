@@ -53,7 +53,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// to `self`.
     pub(crate) const fn ct_div_rem(&self, rhs: &Self) -> (Self, Self, u8) {
         let mb = rhs.bits_vartime();
-        let mut bd = (LIMBS * Limb::BITS) - mb;
+        let mut bd = Self::BITS - mb;
         let mut rem = *self;
         let mut quo = Self::ZERO;
         let mut c = rhs.shl_vartime(bd);
@@ -85,7 +85,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// to `self`.
     pub(crate) const fn ct_rem(&self, rhs: &Self) -> (Self, u8) {
         let mb = rhs.bits_vartime();
-        let mut bd = (LIMBS * Limb::BITS) - mb;
+        let mut bd = Self::BITS - mb;
         let mut rem = *self;
         let mut c = rhs.shl_vartime(bd);
 
@@ -115,7 +115,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mb = rhs.bits_vartime();
 
         // The number of bits to consider is two sets of limbs * BITS - mb (modulus bitcount)
-        let mut bd = (2 * LIMBS * Limb::BITS) - mb;
+        let mut bd = (2 * Self::BITS) - mb;
 
         // The wide integer to reduce, split into two halves
         let (mut lower, mut upper) = lower_upper;

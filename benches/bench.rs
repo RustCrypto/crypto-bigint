@@ -6,7 +6,7 @@ use crypto_bigint::{
         runtime_mod::{DynResidue, DynResidueParams},
         PowResidue,
     },
-    Encoding, NonZero, Random, Reciprocal, Uint, U256,
+    NonZero, Random, Reciprocal, Uint, U256,
 };
 use rand_core::OsRng;
 
