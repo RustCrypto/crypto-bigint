@@ -44,11 +44,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// to `self`.
     #[inline(always)]
     pub const fn shr_vartime(&self, shift: usize) -> Self {
-        let full_shifts = shift / Limb::BIT_SIZE;
-        let small_shift = shift & (Limb::BIT_SIZE - 1);
+        let full_shifts = shift / Limb::BITS;
+        let small_shift = shift & (Limb::BITS - 1);
         let mut limbs = [Limb::ZERO; LIMBS];
 
-        if shift > Limb::BIT_SIZE * LIMBS {
+        if shift > Limb::BITS * LIMBS {
             return Self { limbs };
         }
 
@@ -65,7 +65,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 let mut lo = self.limbs[i + full_shifts].0 >> small_shift;
 
                 if i < (LIMBS - 1) - full_shifts {
-                    lo |= self.limbs[i + full_shifts + 1].0 << (Limb::BIT_SIZE - small_shift);
+                    lo |= self.limbs[i + full_shifts + 1].0 << (Limb::BITS - small_shift);
                 }
 
                 limbs[i] = Limb(lo);
@@ -87,10 +87,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let (mut lower, upper) = lower_upper;
         let new_upper = upper.shr_vartime(n);
         lower = lower.shr_vartime(n);
-        if n >= LIMBS * Limb::BIT_SIZE {
-            lower = lower.bitor(&upper.shr_vartime(n - LIMBS * Limb::BIT_SIZE));
+        if n >= Self::BITS {
+            lower = lower.bitor(&upper.shr_vartime(n - Self::BITS));
         } else {
-            lower = lower.bitor(&upper.shl_vartime(LIMBS * Limb::BIT_SIZE - n));
+            lower = lower.bitor(&upper.shl_vartime(Self::BITS - n));
         }
 
         (lower, new_upper)

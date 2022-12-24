@@ -53,7 +53,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// to `self`.
     pub(crate) const fn ct_div_rem(&self, rhs: &Self) -> (Self, Self, u8) {
         let mb = rhs.bits_vartime();
-        let mut bd = (LIMBS * Limb::BIT_SIZE) - mb;
+        let mut bd = Self::BITS - mb;
         let mut rem = *self;
         let mut quo = Self::ZERO;
         let mut c = rhs.shl_vartime(bd);
@@ -85,7 +85,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// to `self`.
     pub(crate) const fn ct_rem(&self, rhs: &Self) -> (Self, u8) {
         let mb = rhs.bits_vartime();
-        let mut bd = (LIMBS * Limb::BIT_SIZE) - mb;
+        let mut bd = Self::BITS - mb;
         let mut rem = *self;
         let mut c = rhs.shl_vartime(bd);
 
@@ -114,8 +114,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub(crate) const fn ct_rem_wide(lower_upper: (Self, Self), rhs: &Self) -> (Self, u8) {
         let mb = rhs.bits_vartime();
 
-        // The number of bits to consider is two sets of limbs * BIT_SIZE - mb (modulus bitcount)
-        let mut bd = (2 * LIMBS * Limb::BIT_SIZE) - mb;
+        // The number of bits to consider is two sets of limbs * BITS - mb (modulus bitcount)
+        let mut bd = (2 * Self::BITS) - mb;
 
         // The wide integer to reduce, split into two halves
         let (mut lower, mut upper) = lower_upper;
@@ -144,12 +144,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Limited to 2^16-1 since Uint doesn't support higher.
     pub const fn rem2k(&self, k: usize) -> Self {
         let highest = (LIMBS - 1) as u32;
-        let index = k as u32 / (Limb::BIT_SIZE as u32);
+        let index = k as u32 / (Limb::BITS as u32);
         let res = Limb::ct_cmp(Limb::from_u32(index), Limb::from_u32(highest)) - 1;
         let le = Limb::is_nonzero(Limb(res as Word));
         let word = Limb::ct_select(Limb::from_u32(highest), Limb::from_u32(index), le).0 as usize;
 
-        let base = k % Limb::BIT_SIZE;
+        let base = k % Limb::BITS;
         let mask = (1 << base) - 1;
         let mut out = *self;
 

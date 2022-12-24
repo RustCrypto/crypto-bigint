@@ -4,8 +4,8 @@ use super::{Limb, Word};
 use crate::Encoding;
 
 impl Encoding for Limb {
-    const BIT_SIZE: usize = Self::BIT_SIZE;
-    const BYTE_SIZE: usize = Self::BYTE_SIZE;
+    const BITS: usize = Self::BITS;
+    const BYTES: usize = Self::BYTES;
 
     #[cfg(target_pointer_width = "32")]
     type Repr = [u8; 4];

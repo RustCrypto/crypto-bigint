@@ -36,8 +36,8 @@ impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
         let mut n = Self::ZERO;
 
         let n_bits = modulus.as_ref().bits_vartime();
-        let n_limbs = (n_bits + Limb::BIT_SIZE - 1) / Limb::BIT_SIZE;
-        let mask = Limb::MAX >> (Limb::BIT_SIZE * n_limbs - n_bits);
+        let n_limbs = (n_bits + Limb::BITS - 1) / Limb::BITS;
+        let mask = Limb::MAX >> (Limb::BITS * n_limbs - n_bits);
 
         loop {
             for i in 0..n_limbs {

@@ -35,7 +35,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         )
     }
 
-    /// Computes `self << shift` where `0 <= shift < Limb::BIT_SIZE`,
+    /// Computes `self << shift` where `0 <= shift < Limb::BITS`,
     /// returning the result and the carry.
     #[inline(always)]
     pub(crate) const fn shl_limb(&self, n: usize) -> (Self, Limb) {
@@ -43,7 +43,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         let nz = Limb(n as Word).is_nonzero();
         let lshift = n as Word;
-        let rshift = Limb::ct_select(Limb::ZERO, Limb((Limb::BIT_SIZE - n) as Word), nz).0;
+        let rshift = Limb::ct_select(Limb::ZERO, Limb((Limb::BITS - n) as Word), nz).0;
         let carry = Limb::ct_select(
             Limb::ZERO,
             Limb(self.limbs[LIMBS - 1].0.wrapping_shr(Word::BITS - n as u32)),
@@ -73,12 +73,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn shl_vartime(&self, n: usize) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
 
-        if n >= Limb::BIT_SIZE * LIMBS {
+        if n >= Limb::BITS * LIMBS {
             return Self { limbs };
         }
 
-        let shift_num = n / Limb::BIT_SIZE;
-        let rem = n % Limb::BIT_SIZE;
+        let shift_num = n / Limb::BITS;
+        let rem = n % Limb::BITS;
 
         let mut i = LIMBS;
         while i > shift_num {
@@ -101,10 +101,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let (lower, mut upper) = lower_upper;
         let new_lower = lower.shl_vartime(n);
         upper = upper.shl_vartime(n);
-        if n >= LIMBS * Limb::BIT_SIZE {
-            upper = upper.bitor(&lower.shl_vartime(n - LIMBS * Limb::BIT_SIZE));
+        if n >= Self::BITS {
+            upper = upper.bitor(&lower.shl_vartime(n - Self::BITS));
         } else {
-            upper = upper.bitor(&lower.shr_vartime(LIMBS * Limb::BIT_SIZE - n));
+            upper = upper.bitor(&lower.shr_vartime(Self::BITS - n));
         }
 
         (new_lower, upper)
