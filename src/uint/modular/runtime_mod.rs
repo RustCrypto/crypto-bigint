@@ -8,6 +8,8 @@ mod runtime_add;
 mod runtime_inv;
 /// Multiplications between residues with a modulus set at runtime
 mod runtime_mul;
+/// Negations of residues with a modulus set at runtime
+mod runtime_neg;
 /// Exponentiation of residues with a modulus set at runtime
 mod runtime_pow;
 /// Subtractions between residues with a modulus set at runtime

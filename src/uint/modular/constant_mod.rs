@@ -12,6 +12,8 @@ mod const_add;
 mod const_inv;
 /// Multiplications between residues with a constant modulus
 mod const_mul;
+/// Negations of residues with a constant modulus
+mod const_neg;
 /// Exponentiation of residues with a constant modulus
 mod const_pow;
 /// Subtractions between residues with a constant modulus
