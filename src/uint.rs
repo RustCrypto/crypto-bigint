@@ -44,7 +44,7 @@ mod array;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Concat, Encoding, Integer, Limb, Split, Word, Zero};
+use crate::{Bounded, Concat, Encoding, Integer, Limb, Split, Word, Zero};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
 
@@ -225,6 +225,11 @@ impl<const LIMBS: usize> Zero for Uint<LIMBS> {
     const ZERO: Self = Self::ZERO;
 }
 
+impl<const LIMBS: usize> Bounded for Uint<LIMBS> {
+    const BITS: usize = Self::BITS;
+    const BYTES: usize = Self::BYTES;
+}
+
 impl<const LIMBS: usize> fmt::Display for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::UpperHex::fmt(self, f)
@@ -293,8 +298,6 @@ macro_rules! impl_uint_aliases {
             pub type $name = Uint<{nlimbs!($bits)}>;
 
             impl Encoding for $name {
-                const BITS: usize = Self::BITS;
-                const BYTES: usize = Self::BYTES;
 
                 type Repr = [u8; $bits / 8];
 

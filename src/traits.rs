@@ -202,14 +202,17 @@ pub trait Split<Rhs = Self> {
     fn split(&self) -> (Self::Output, Self::Output);
 }
 
-/// Encoding support.
-pub trait Encoding: Sized {
+/// Integers whose representation takes a bounded amount of space.
+pub trait Bounded {
     /// Size of this integer in bits.
     const BITS: usize;
 
     /// Size of this integer in bytes.
     const BYTES: usize;
+}
 
+/// Encoding support.
+pub trait Encoding: Sized {
     /// Byte array representation.
     type Repr: AsRef<[u8]> + AsMut<[u8]> + Copy + Clone + Sized;
 
@@ -241,14 +244,22 @@ where
 pub trait Pow<Exponent> {
     /// Raises to the `exponent` power.
     fn pow(&self, exponent: &Exponent) -> Self;
-    // TODO: can express via `pow_specific()` if there is a trait containing the integer's bit size
+}
 
+impl<T: PowBoundedExp<Exponent>, Exponent: Bounded> Pow<Exponent> for T {
+    fn pow(&self, exponent: &Exponent) -> Self {
+        self.pow_bounded_exp(exponent, Exponent::BITS)
+    }
+}
+
+/// Constant-time exponentiation with exponent of a bounded bit size.
+pub trait PowBoundedExp<Exponent> {
     /// Raises to the `exponent` power,
     /// with `exponent_bits` representing the number of (least significant) bits
     /// to take into account for the exponent.
     ///
     /// NOTE: `exponent_bits` may be leaked in the time pattern.
-    fn pow_specific(&self, exponent: &Exponent, exponent_bits: usize) -> Self;
+    fn pow_bounded_exp(&self, exponent: &Exponent, exponent_bits: usize) -> Self;
 }
 
 /// Constant-time inversion.

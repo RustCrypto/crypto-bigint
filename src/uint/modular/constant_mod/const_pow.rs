@@ -1,11 +1,11 @@
-use crate::{modular::pow::pow_montgomery_form, traits::Pow, Uint, Word};
+use crate::{modular::pow::pow_montgomery_form, PowBoundedExp, Uint};
 
 use super::{Residue, ResidueParams};
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// Raises to the `exponent` power.
     pub const fn pow(&self, exponent: &Uint<LIMBS>) -> Residue<MOD, LIMBS> {
-        self.pow_specific(exponent, LIMBS * Word::BITS as usize)
+        self.pow_bounded_exp(exponent, Uint::<LIMBS>::BITS)
     }
 
     /// Raises to the `exponent` power,
@@ -13,7 +13,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// to take into account for the exponent.
     ///
     /// NOTE: `exponent_bits` may be leaked in the time pattern.
-    pub const fn pow_specific(
+    pub const fn pow_bounded_exp(
         &self,
         exponent: &Uint<LIMBS>,
         exponent_bits: usize,
@@ -32,12 +32,11 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Pow<Uint<LIMBS>> for Residue<MOD, LIMBS> {
-    fn pow(&self, exponent: &Uint<LIMBS>) -> Self {
-        self.pow(exponent)
-    }
-    fn pow_specific(&self, exponent: &Uint<LIMBS>, exponent_bits: usize) -> Self {
-        self.pow_specific(exponent, exponent_bits)
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> PowBoundedExp<Uint<LIMBS>>
+    for Residue<MOD, LIMBS>
+{
+    fn pow_bounded_exp(&self, exponent: &Uint<LIMBS>, exponent_bits: usize) -> Self {
+        self.pow_bounded_exp(exponent, exponent_bits)
     }
 }
 
