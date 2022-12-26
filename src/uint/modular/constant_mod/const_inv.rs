@@ -2,7 +2,7 @@ use core::marker::PhantomData;
 
 use subtle::{Choice, CtOption};
 
-use crate::{modular::inv::inv_montgomery_form, traits::Inv};
+use crate::{modular::inv::inv_montgomery_form, traits::Invert, NonZero};
 
 use super::{Residue, ResidueParams};
 
@@ -11,7 +11,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// I.e. `self * self^-1 = 1`.
     /// If the number was invertible, the second element of the tuple is `1`,
     /// otherwise it is `0` (in which case the first element's value is unspecified).
-    pub const fn inv(&self) -> (Self, u8) {
+    pub const fn invert(&self) -> (Self, u8) {
         let (montgomery_form, is_some) = inv_montgomery_form(
             self.montgomery_form,
             MOD::MODULUS,
@@ -28,10 +28,20 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Inv for Residue<MOD, LIMBS> {
-    fn inv(&self) -> CtOption<Self> {
-        let (value, is_some) = self.inv();
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Invert for Residue<MOD, LIMBS> {
+    type Output = CtOption<Self>;
+    fn invert(&self) -> Self::Output {
+        let (value, is_some) = self.invert();
         CtOption::new(value, Choice::from(is_some))
+    }
+}
+
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Invert for NonZero<Residue<MOD, LIMBS>> {
+    type Output = Self;
+    fn invert(&self) -> Self::Output {
+        // Always succeeds for a non-zero argument
+        let (value, _is_some) = self.as_ref().invert();
+        NonZero::new(value).unwrap()
     }
 }
 
@@ -51,7 +61,7 @@ mod tests {
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
         let x_mod = const_residue!(x, Modulus);
 
-        let (inv, _is_some) = x_mod.inv();
+        let (inv, _is_some) = x_mod.invert();
         let res = &x_mod * &inv;
 
         assert_eq!(res.retrieve(), U256::ONE);

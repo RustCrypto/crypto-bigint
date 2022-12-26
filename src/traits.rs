@@ -263,8 +263,10 @@ pub trait PowBoundedExp<Exponent> {
 }
 
 /// Constant-time inversion.
-pub trait Inv: Sized {
-    /// Computes the inverse. Returns [`CtOption`] that evaluates to `None`
-    /// if the number is not invertible.
-    fn inv(&self) -> CtOption<Self>;
+pub trait Invert: Sized {
+    /// Output of the inversion.
+    type Output;
+
+    /// Computes the inverse.
+    fn invert(&self) -> Self::Output;
 }

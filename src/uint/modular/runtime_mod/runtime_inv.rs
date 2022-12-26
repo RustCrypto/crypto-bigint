@@ -1,6 +1,6 @@
 use subtle::{Choice, CtOption};
 
-use crate::{modular::inv::inv_montgomery_form, traits::Inv};
+use crate::{modular::inv::inv_montgomery_form, traits::Invert};
 
 use super::DynResidue;
 
@@ -9,7 +9,7 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
     /// I.e. `self * self^-1 = 1`.
     /// If the number was invertible, the second element of the tuple is `1`,
     /// otherwise it is `0` (in which case the first element's value is unspecified).
-    pub const fn inv(&self) -> (Self, u8) {
+    pub const fn invert(&self) -> (Self, u8) {
         let (montgomery_form, is_some) = inv_montgomery_form(
             self.montgomery_form,
             self.residue_params.modulus,
@@ -26,9 +26,10 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Inv for DynResidue<LIMBS> {
-    fn inv(&self) -> CtOption<Self> {
-        let (value, is_some) = self.inv();
+impl<const LIMBS: usize> Invert for DynResidue<LIMBS> {
+    type Output = CtOption<Self>;
+    fn invert(&self) -> Self::Output {
+        let (value, is_some) = self.invert();
         CtOption::new(value, Choice::from(is_some))
     }
 }
