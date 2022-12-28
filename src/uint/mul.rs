@@ -90,7 +90,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         //
         // Permission to relicense the resulting translation as Apache 2.0 + MIT was given
         // by the original author Sam Kumar: https://github.com/RustCrypto/crypto-bigint/pull/133#discussion_r1056870411
-        
         let mut lo = Self::ZERO;
         let mut hi = Self::ZERO;
 
