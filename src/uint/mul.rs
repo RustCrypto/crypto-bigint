@@ -86,7 +86,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Square self, returning a "wide" result in two parts as (lo, hi).
     pub const fn square_wide(&self) -> (Self, Self) {
-        // This is a re-implementation from https://github.com/ucbrise/jedi-pairing/blob/c4bf151b8d2b560973cb3805f9b5f4a144597f7e/include/core/bigint.hpp#L410.
+        // Translated from https://github.com/ucbrise/jedi-pairing/blob/c4bf151/include/core/bigint.hpp#L410
+        //
+        // Permission to relicense the resulting translation as Apache 2.0 + MIT was given
+        // by the original author Sam Kumar: https://github.com/RustCrypto/crypto-bigint/pull/133#discussion_r1056870411
+        
         let mut lo = Self::ZERO;
         let mut hi = Self::ZERO;
 
