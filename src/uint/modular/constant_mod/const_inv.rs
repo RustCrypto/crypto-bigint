@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 use subtle::{Choice, CtOption};
 
 use crate::{
-    modular::inv::{inv_montgomery_form, InvResidue},
+    modular::{inv::inv_montgomery_form, InvResidue},
     Word,
 };
 
@@ -48,9 +48,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        const_residue, impl_modulus, modular::constant_mod::ResidueParams, traits::Encoding, U256,
-    };
+    use crate::{const_residue, impl_modulus, modular::constant_mod::ResidueParams, U256};
 
     impl_modulus!(
         Modulus,

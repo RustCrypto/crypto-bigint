@@ -5,7 +5,7 @@ macro_rules! impl_concat {
             impl $name {
                 /// Concatenate the two values, with `self` as most significant and `rhs`
                 /// as the least significant.
-                pub const fn concat(&self, rhs: &Self) -> UInt<{nlimbs!($bits) * 2}> {
+                pub const fn concat(&self, rhs: &Self) -> Uint<{nlimbs!($bits) * 2}> {
                     let mut limbs = [Limb::ZERO; nlimbs!($bits) * 2];
                     let mut i = 0;
                     let mut j = 0;
@@ -23,20 +23,20 @@ macro_rules! impl_concat {
                         j += 1;
                     }
 
-                    UInt { limbs }
+                    Uint { limbs }
                 }
             }
 
             impl Concat for $name {
-                type Output = UInt<{nlimbs!($bits) * 2}>;
+                type Output = Uint<{nlimbs!($bits) * 2}>;
 
                 fn concat(&self, rhs: &Self) -> Self::Output {
                     self.concat(rhs)
                 }
             }
 
-            impl From<($name, $name)> for UInt<{nlimbs!($bits) * 2}> {
-                fn from(nums: ($name, $name)) -> UInt<{nlimbs!($bits) * 2}> {
+            impl From<($name, $name)> for Uint<{nlimbs!($bits) * 2}> {
+                fn from(nums: ($name, $name)) -> Uint<{nlimbs!($bits) * 2}> {
                     nums.0.concat(&nums.1)
                 }
             }

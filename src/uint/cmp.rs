@@ -1,18 +1,18 @@
-//! [`UInt`] comparisons.
+//! [`Uint`] comparisons.
 //!
 //! By default these are all constant-time and use the `subtle` crate.
 
-use super::UInt;
+use super::Uint;
 use crate::{limb::HI_BIT, Limb, SignedWord, WideSignedWord, Word, Zero};
 use core::cmp::Ordering;
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
-impl<const LIMBS: usize> UInt<LIMBS> {
+impl<const LIMBS: usize> Uint<LIMBS> {
     /// Return `a` if `c`==0 or `b` if `c`==`Word::MAX`.
     ///
     /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
     #[inline]
-    pub(crate) const fn ct_select(a: UInt<LIMBS>, b: UInt<LIMBS>, c: Word) -> Self {
+    pub(crate) const fn ct_select(a: Uint<LIMBS>, b: Uint<LIMBS>, c: Word) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
 
         let mut i = 0;
@@ -21,11 +21,11 @@ impl<const LIMBS: usize> UInt<LIMBS> {
             i += 1;
         }
 
-        UInt { limbs }
+        Uint { limbs }
     }
 
     #[inline]
-    pub(crate) const fn ct_swap(a: UInt<LIMBS>, b: UInt<LIMBS>, c: Word) -> (Self, Self) {
+    pub(crate) const fn ct_swap(a: Uint<LIMBS>, b: Uint<LIMBS>, c: Word) -> (Self, Self) {
         let new_a = Self::ct_select(a, b, c);
         let new_b = Self::ct_select(b, a, c);
 
@@ -64,8 +64,8 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         while i > 0 {
             let a = self.limbs[i - 1].0 as WideSignedWord;
             let b = rhs.limbs[i - 1].0 as WideSignedWord;
-            gt |= ((b - a) >> Limb::BIT_SIZE) & 1 & !lt;
-            lt |= ((a - b) >> Limb::BIT_SIZE) & 1 & !gt;
+            gt |= ((b - a) >> Limb::BITS) & 1 & !lt;
+            lt |= ((a - b) >> Limb::BITS) & 1 & !gt;
             i -= 1;
         }
         (gt as SignedWord) - (lt as SignedWord)
@@ -87,14 +87,14 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> ConstantTimeEq for UInt<LIMBS> {
+impl<const LIMBS: usize> ConstantTimeEq for Uint<LIMBS> {
     #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
         Choice::from((!self.ct_not_eq(other) as u8) & 1)
     }
 }
 
-impl<const LIMBS: usize> ConstantTimeGreater for UInt<LIMBS> {
+impl<const LIMBS: usize> ConstantTimeGreater for Uint<LIMBS> {
     #[inline]
     fn ct_gt(&self, other: &Self) -> Choice {
         let underflow = other.sbb(self, Limb::ZERO).1;
@@ -102,7 +102,7 @@ impl<const LIMBS: usize> ConstantTimeGreater for UInt<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> ConstantTimeLess for UInt<LIMBS> {
+impl<const LIMBS: usize> ConstantTimeLess for Uint<LIMBS> {
     #[inline]
     fn ct_lt(&self, other: &Self) -> Choice {
         let underflow = self.sbb(other, Limb::ZERO).1;
@@ -110,9 +110,9 @@ impl<const LIMBS: usize> ConstantTimeLess for UInt<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Eq for UInt<LIMBS> {}
+impl<const LIMBS: usize> Eq for Uint<LIMBS> {}
 
-impl<const LIMBS: usize> Ord for UInt<LIMBS> {
+impl<const LIMBS: usize> Ord for Uint<LIMBS> {
     fn cmp(&self, other: &Self) -> Ordering {
         match self.ct_cmp(other) {
             -1 => Ordering::Less,
@@ -126,13 +126,13 @@ impl<const LIMBS: usize> Ord for UInt<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> PartialOrd for UInt<LIMBS> {
+impl<const LIMBS: usize> PartialOrd for Uint<LIMBS> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl<const LIMBS: usize> PartialEq for UInt<LIMBS> {
+impl<const LIMBS: usize> PartialEq for Uint<LIMBS> {
     fn eq(&self, other: &Self) -> bool {
         self.ct_eq(other).into()
     }

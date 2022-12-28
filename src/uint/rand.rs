@@ -1,13 +1,13 @@
 //! Random number generator support
 
-use super::UInt;
+use super::Uint;
 use crate::{Limb, NonZero, Random, RandomMod};
 use rand_core::{CryptoRng, RngCore};
 use subtle::ConstantTimeLess;
 
 #[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
-impl<const LIMBS: usize> Random for UInt<LIMBS> {
-    /// Generate a cryptographically secure random [`UInt`].
+impl<const LIMBS: usize> Random for Uint<LIMBS> {
+    /// Generate a cryptographically secure random [`Uint`].
     fn random(mut rng: impl CryptoRng + RngCore) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
 
@@ -20,8 +20,8 @@ impl<const LIMBS: usize> Random for UInt<LIMBS> {
 }
 
 #[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
-impl<const LIMBS: usize> RandomMod for UInt<LIMBS> {
-    /// Generate a cryptographically secure random [`UInt`] which is less than
+impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
+    /// Generate a cryptographically secure random [`Uint`] which is less than
     /// a given `modulus`.
     ///
     /// This function uses rejection sampling, a method which produces an
@@ -35,28 +35,15 @@ impl<const LIMBS: usize> RandomMod for UInt<LIMBS> {
     fn random_mod(mut rng: impl CryptoRng + RngCore, modulus: &NonZero<Self>) -> Self {
         let mut n = Self::ZERO;
 
-        // TODO(tarcieri): use `div_ceil` when available
-        // See: https://github.com/rust-lang/rust/issues/88581
-        let mut n_limbs = modulus.bits_vartime() / Limb::BIT_SIZE;
-        if n_limbs < LIMBS {
-            n_limbs += 1;
-        }
-
-        // Compute the highest limb of `modulus` as a `NonZero`.
-        // Add one to ensure `Limb::random_mod` returns values inclusive of this limb.
-        let modulus_hi =
-            NonZero::new(modulus.limbs[n_limbs.saturating_sub(1)].saturating_add(Limb::ONE))
-                .unwrap(); // Always at least one due to `saturating_add`
+        let n_bits = modulus.as_ref().bits_vartime();
+        let n_limbs = (n_bits + Limb::BITS - 1) / Limb::BITS;
+        let mask = Limb::MAX >> (Limb::BITS * n_limbs - n_bits);
 
         loop {
             for i in 0..n_limbs {
-                n.limbs[i] = if (i + 1 == n_limbs) && (*modulus_hi != Limb::MAX) {
-                    // Highest limb
-                    Limb::random_mod(&mut rng, &modulus_hi)
-                } else {
-                    Limb::random(&mut rng)
-                }
+                n.limbs[i] = Limb::random(&mut rng);
             }
+            n.limbs[n_limbs - 1] = n.limbs[n_limbs - 1] & mask;
 
             if n.ct_lt(modulus).into() {
                 return n;

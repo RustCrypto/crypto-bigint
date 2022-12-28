@@ -1,23 +1,80 @@
-use crate::UInt;
+use subtle::CtOption;
 
-use self::{add::AddResidue, inv::InvResidue, mul::MulResidue, pow::PowResidue};
+use crate::{Uint, Word};
 
 mod reduction;
 
 /// Implements `Residue`s, supporting modular arithmetic with a constant modulus.
 pub mod constant_mod;
+/// Implements `DynResidue`s, supporting modular arithmetic with a modulus set at runtime.
+pub mod runtime_mod;
 
 mod add;
 mod inv;
 mod mul;
 mod pow;
+mod sub;
 
-/// The `GenericResidue` trait provides a consistent API for dealing with residues with a constant modulus.
+/// Provides a consistent interface to add two residues of the same type together.
+pub trait AddResidue {
+    /// Computes the (reduced) sum of two residues.
+    fn add(&self, rhs: &Self) -> Self;
+}
+
+/// Provides a consistent interface to subtract two residues of the same type.
+pub trait SubResidue {
+    /// Computes the (reduced) difference of two residues.
+    fn sub(&self, rhs: &Self) -> Self;
+}
+
+/// Provides a consistent interface to multiply two residues of the same type together.
+pub trait MulResidue
+where
+    Self: Sized,
+{
+    /// Computes the (reduced) product of two residues.
+    fn mul(&self, rhs: &Self) -> Self;
+
+    /// Computes the same as `self.mul(self)`, but may be more efficient.
+    fn square(&self) -> Self {
+        self.mul(self)
+    }
+}
+
+/// Provides a consistent interface to exponentiate a residue.
+pub trait PowResidue<const LIMBS: usize>
+where
+    Self: Sized,
+{
+    /// Computes the (reduced) exponentiation of a residue.
+    fn pow(self, exponent: &Uint<LIMBS>) -> Self {
+        self.pow_specific(exponent, LIMBS * Word::BITS as usize)
+    }
+
+    /// Computes the (reduced) exponentiation of a residue,
+    /// here `exponent_bits` represents the number of bits to take into account for the exponent.
+    ///
+    /// NOTE: `exponent_bits` is leaked in the time pattern.
+    fn pow_specific(self, exponent: &Uint<LIMBS>, exponent_bits: usize) -> Self;
+}
+
+/// Provides a consistent interface to invert a residue.
+pub trait InvResidue
+where
+    Self: Sized,
+{
+    /// Computes the (reduced) multiplicative inverse of the residue. Returns CtOption,
+    /// which is `None` if the residue was not invertible.
+    fn inv(self) -> CtOption<Self>;
+}
+
+/// The `GenericResidue` trait provides a consistent API
+/// for dealing with residues with a constant modulus.
 pub trait GenericResidue<const LIMBS: usize>:
     AddResidue + MulResidue + PowResidue<LIMBS> + InvResidue
 {
     /// Retrieves the integer currently encoded in this `Residue`, guaranteed to be reduced.
-    fn retrieve(&self) -> UInt<LIMBS>;
+    fn retrieve(&self) -> Uint<LIMBS>;
 }
 
 #[cfg(test)]
@@ -27,8 +84,7 @@ mod tests {
         modular::{
             constant_mod::Residue, constant_mod::ResidueParams, reduction::montgomery_reduction,
         },
-        traits::Encoding,
-        UInt, U256, U64,
+        NonZero, Uint, U256, U64,
     };
 
     impl_modulus!(
@@ -64,11 +120,11 @@ mod tests {
         // Divide the value R by R, which should equal 1
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(
-                (Modulus2::R, UInt::ZERO),
+                (Modulus2::R, Uint::ZERO),
                 Modulus2::MODULUS,
                 Modulus2::MOD_NEG_INV
             ),
-            UInt::ONE
+            Uint::ONE
         );
     }
 
@@ -77,7 +133,7 @@ mod tests {
         // Divide the value R^2 by R, which should equal R
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(
-                (Modulus2::R2, UInt::ZERO),
+                (Modulus2::R2, Uint::ZERO),
                 Modulus2::MODULUS,
                 Modulus2::MOD_NEG_INV
             ),
@@ -125,9 +181,9 @@ mod tests {
         // Computing xR mod modulus without Montgomery reduction
         let (lo, hi) = x.mul_wide(&Modulus2::R);
         let c = hi.concat(&lo);
-        let red = c.reduce(&U256::ZERO.concat(&Modulus2::MODULUS)).unwrap();
+        let red = c.rem(&NonZero::new(U256::ZERO.concat(&Modulus2::MODULUS)).unwrap());
         let (hi, lo) = red.split();
-        assert_eq!(hi, UInt::ZERO);
+        assert_eq!(hi, Uint::ZERO);
 
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(

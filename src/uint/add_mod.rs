@@ -1,12 +1,12 @@
-//! [`UInt`] addition modulus operations.
+//! [`Uint`] addition modulus operations.
 
-use crate::{AddMod, Limb, UInt};
+use crate::{AddMod, Limb, Uint};
 
-impl<const LIMBS: usize> UInt<LIMBS> {
+impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self + rhs mod p` in constant time.
     ///
     /// Assumes `self + rhs` as unbounded integer is `< 2p`.
-    pub const fn add_mod(&self, rhs: &UInt<LIMBS>, p: &UInt<LIMBS>) -> UInt<LIMBS> {
+    pub const fn add_mod(&self, rhs: &Uint<LIMBS>, p: &Uint<LIMBS>) -> Uint<LIMBS> {
         let (w, carry) = self.adc(rhs, Limb::ZERO);
 
         // Attempt to subtract the modulus, to ensure the result is in the field.
@@ -36,19 +36,19 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     ///
     /// Assumes `self + rhs` as unbounded integer is `< 2p`.
     pub const fn add_mod_special(&self, rhs: &Self, c: Limb) -> Self {
-        // `UInt::adc` also works with a carry greater than 1.
+        // `Uint::adc` also works with a carry greater than 1.
         let (out, carry) = self.adc(rhs, c);
 
         // If overflow occurred, then above addition of `c` already accounts
         // for the overflow. Otherwise, we need to subtract `c` again, which
         // in that case cannot underflow.
         let l = carry.0.wrapping_sub(1) & c.0;
-        let (out, _) = out.sbb(&UInt::from_word(l), Limb::ZERO);
+        let (out, _) = out.sbb(&Uint::from_word(l), Limb::ZERO);
         out
     }
 }
 
-impl<const LIMBS: usize> AddMod for UInt<LIMBS> {
+impl<const LIMBS: usize> AddMod for Uint<LIMBS> {
     type Output = Self;
 
     fn add_mod(&self, rhs: &Self, p: &Self) -> Self {
@@ -60,7 +60,7 @@ impl<const LIMBS: usize> AddMod for UInt<LIMBS> {
 
 #[cfg(all(test, feature = "rand"))]
 mod tests {
-    use crate::{Limb, NonZero, Random, RandomMod, UInt, U256};
+    use crate::{Limb, NonZero, Random, RandomMod, Uint, U256};
     use rand_core::SeedableRng;
 
     // TODO(tarcieri): additional tests + proptests
@@ -92,17 +92,17 @@ mod tests {
                 ];
 
                 for special in &moduli {
-                    let p = &NonZero::new(UInt::ZERO.wrapping_sub(&UInt::from_word(special.0)))
+                    let p = &NonZero::new(Uint::ZERO.wrapping_sub(&Uint::from_word(special.0)))
                         .unwrap();
 
-                    let minus_one = p.wrapping_sub(&UInt::ONE);
+                    let minus_one = p.wrapping_sub(&Uint::ONE);
 
                     let base_cases = [
-                        (UInt::ZERO, UInt::ZERO, UInt::ZERO),
-                        (UInt::ONE, UInt::ZERO, UInt::ONE),
-                        (UInt::ZERO, UInt::ONE, UInt::ONE),
-                        (minus_one, UInt::ONE, UInt::ZERO),
-                        (UInt::ONE, minus_one, UInt::ZERO),
+                        (Uint::ZERO, Uint::ZERO, Uint::ZERO),
+                        (Uint::ONE, Uint::ZERO, Uint::ONE),
+                        (Uint::ZERO, Uint::ONE, Uint::ONE),
+                        (minus_one, Uint::ONE, Uint::ZERO),
+                        (Uint::ONE, minus_one, Uint::ZERO),
                     ];
                     for (a, b, c) in &base_cases {
                         let x = a.add_mod_special(b, *special.as_ref());
@@ -110,8 +110,8 @@ mod tests {
                     }
 
                     for _i in 0..100 {
-                        let a = UInt::<$size>::random_mod(&mut rng, p);
-                        let b = UInt::<$size>::random_mod(&mut rng, p);
+                        let a = Uint::<$size>::random_mod(&mut rng, p);
+                        let b = Uint::<$size>::random_mod(&mut rng, p);
 
                         let c = a.add_mod_special(&b, *special.as_ref());
                         assert!(c < **p, "not reduced: {} >= {} ", c, p);

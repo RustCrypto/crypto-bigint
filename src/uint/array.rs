@@ -1,4 +1,4 @@
-//! `generic-array` integration with `UInt`.
+//! `generic-array` integration with `Uint`.
 // TODO(tarcieri): completely phase out `generic-array` when const generics are powerful enough
 
 use crate::{ArrayDecoding, ArrayEncoding, ByteArray};
@@ -81,27 +81,27 @@ mod tests {
     use hex_literal::hex;
 
     #[cfg(target_pointer_width = "32")]
-    use crate::U64 as UIntEx;
+    use crate::U64 as UintEx;
 
     #[cfg(target_pointer_width = "64")]
-    use crate::U128 as UIntEx;
+    use crate::U128 as UintEx;
 
-    /// Byte array that corresponds to `UIntEx`
-    type ByteArray = crate::ByteArray<UIntEx>;
+    /// Byte array that corresponds to `UintEx`
+    type ByteArray = crate::ByteArray<UintEx>;
 
     #[test]
     #[cfg(target_pointer_width = "32")]
     fn from_be_byte_array() {
-        let n = UIntEx::from_be_byte_array(hex!("0011223344556677").into());
-        assert_eq!(n.limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
+        let n = UintEx::from_be_byte_array(hex!("0011223344556677").into());
+        assert_eq!(n.as_limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
     }
 
     #[test]
     #[cfg(target_pointer_width = "64")]
     fn from_be_byte_array() {
-        let n = UIntEx::from_be_byte_array(hex!("00112233445566778899aabbccddeeff").into());
+        let n = UintEx::from_be_byte_array(hex!("00112233445566778899aabbccddeeff").into());
         assert_eq!(
-            n.limbs(),
+            n.as_limbs(),
             &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
         );
     }
@@ -109,16 +109,16 @@ mod tests {
     #[test]
     #[cfg(target_pointer_width = "32")]
     fn from_le_byte_array() {
-        let n = UIntEx::from_le_byte_array(hex!("7766554433221100").into());
-        assert_eq!(n.limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
+        let n = UintEx::from_le_byte_array(hex!("7766554433221100").into());
+        assert_eq!(n.as_limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
     }
 
     #[test]
     #[cfg(target_pointer_width = "64")]
     fn from_le_byte_array() {
-        let n = UIntEx::from_le_byte_array(hex!("ffeeddccbbaa99887766554433221100").into());
+        let n = UintEx::from_le_byte_array(hex!("ffeeddccbbaa99887766554433221100").into());
         assert_eq!(
-            n.limbs(),
+            n.as_limbs(),
             &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
         );
     }
@@ -127,7 +127,7 @@ mod tests {
     #[cfg(target_pointer_width = "32")]
     fn to_be_byte_array() {
         let expected_bytes = ByteArray::from(hex!("0011223344556677"));
-        let actual_bytes = UIntEx::from_be_byte_array(expected_bytes).to_be_byte_array();
+        let actual_bytes = UintEx::from_be_byte_array(expected_bytes).to_be_byte_array();
         assert_eq!(expected_bytes, actual_bytes);
     }
 
@@ -135,7 +135,7 @@ mod tests {
     #[cfg(target_pointer_width = "64")]
     fn to_be_byte_array() {
         let expected_bytes = ByteArray::from(hex!("00112233445566778899aabbccddeeff"));
-        let actual_bytes = UIntEx::from_be_byte_array(expected_bytes).to_be_byte_array();
+        let actual_bytes = UintEx::from_be_byte_array(expected_bytes).to_be_byte_array();
         assert_eq!(expected_bytes, actual_bytes);
     }
 
@@ -143,7 +143,7 @@ mod tests {
     #[cfg(target_pointer_width = "32")]
     fn to_le_byte_array() {
         let expected_bytes = ByteArray::from(hex!("7766554433221100"));
-        let actual_bytes = UIntEx::from_le_byte_array(expected_bytes).to_le_byte_array();
+        let actual_bytes = UintEx::from_le_byte_array(expected_bytes).to_le_byte_array();
         assert_eq!(expected_bytes, actual_bytes);
     }
 
@@ -151,7 +151,7 @@ mod tests {
     #[cfg(target_pointer_width = "64")]
     fn to_le_byte_array() {
         let expected_bytes = ByteArray::from(hex!("ffeeddccbbaa99887766554433221100"));
-        let actual_bytes = UIntEx::from_le_byte_array(expected_bytes).to_le_byte_array();
+        let actual_bytes = UintEx::from_le_byte_array(expected_bytes).to_le_byte_array();
         assert_eq!(expected_bytes, actual_bytes);
     }
 

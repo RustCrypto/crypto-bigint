@@ -7,6 +7,7 @@
 )]
 #![deny(unsafe_code)]
 #![warn(
+    clippy::mod_module_files,
     clippy::unwrap_used,
     missing_docs,
     missing_debug_implementations,
@@ -19,7 +20,7 @@
 
 //! ## Usage
 //!
-//! This crate defines a [`UInt`] type which is const generic around an inner
+//! This crate defines a [`Uint`] type which is const generic around an inner
 //! [`Limb`] array, where a [`Limb`] is a newtype for a word-sized integer.
 //! Thus large integers are represented as a arrays of smaller integers which
 //! are sized appropriately for the CPU, giving us some assurances of how
@@ -32,7 +33,7 @@
 //!
 //! ### `const fn` usage
 //!
-//! The [`UInt`] type provides a number of `const fn` inherent methods which
+//! The [`Uint`] type provides a number of `const fn` inherent methods which
 //! can be used for initializing and performing arithmetic on big integers in
 //! const contexts:
 //!
@@ -58,7 +59,7 @@
 //!
 //! ### Trait-based usage
 //!
-//! The [`UInt`] type itself does not implement the standard arithmetic traits
+//! The [`Uint`] type itself does not implement the standard arithmetic traits
 //! such as [`Add`], [`Sub`], [`Mul`], and [`Div`].
 //!
 //! To use these traits you must first pick a wrapper type which determines
@@ -109,7 +110,8 @@
 //! assert_eq!(b, U256::ZERO);
 //! ```
 //!
-//! It also supports modular arithmetic over constant moduli using `Residue`.
+//! It also supports modular arithmetic over constant moduli using `Residue`,
+//! and over moduli set at runtime using `DynResidue`.
 //! That includes modular exponentiation and multiplicative inverses.
 //! These features are described in the [`modular`] module.
 //!
@@ -170,14 +172,11 @@ pub use crate::{
     limb::{Limb, WideWord, Word},
     non_zero::NonZero,
     traits::*,
+    uint::div_limb::Reciprocal,
     uint::*,
     wrapping::Wrapping,
 };
 pub use subtle;
-
-// TODO(tarcieri): remove these in the next breaking release
-#[allow(deprecated)]
-pub use crate::limb::{LimbUInt, WideLimbUInt};
 
 pub(crate) use limb::{SignedWord, WideSignedWord};
 

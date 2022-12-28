@@ -1,10 +1,10 @@
-//! [`UInt`] bitwise right shift operations.
+//! [`Uint`] bitwise right shift operations.
 
-use super::UInt;
+use super::Uint;
 use crate::{limb::HI_BIT, Limb, Word};
 use core::ops::{Shr, ShrAssign};
 
-impl<const LIMBS: usize> UInt<LIMBS> {
+impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self >> 1` in constant-time, returning the overflowing bit as a `Word` that is either 0...0 or 1...1.
     pub(crate) const fn shr_1(&self) -> (Self, Word) {
         let mut shifted_bits = [0; LIMBS];
@@ -31,7 +31,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         limbs[LIMBS - 1] = Limb(shifted_bits[LIMBS - 1]);
 
         (
-            UInt::new(limbs),
+            Uint::new(limbs),
             (carry_bits[0] >> HI_BIT).wrapping_mul(Word::MAX),
         )
     }
@@ -44,11 +44,11 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     /// to `self`.
     #[inline(always)]
     pub const fn shr_vartime(&self, shift: usize) -> Self {
-        let full_shifts = shift / Limb::BIT_SIZE;
-        let small_shift = shift & (Limb::BIT_SIZE - 1);
+        let full_shifts = shift / Limb::BITS;
+        let small_shift = shift & (Limb::BITS - 1);
         let mut limbs = [Limb::ZERO; LIMBS];
 
-        if shift > Limb::BIT_SIZE * LIMBS {
+        if shift > Limb::BITS * LIMBS {
             return Self { limbs };
         }
 
@@ -65,7 +65,7 @@ impl<const LIMBS: usize> UInt<LIMBS> {
                 let mut lo = self.limbs[i + full_shifts].0 >> small_shift;
 
                 if i < (LIMBS - 1) - full_shifts {
-                    lo |= self.limbs[i + full_shifts + 1].0 << (Limb::BIT_SIZE - small_shift);
+                    lo |= self.limbs[i + full_shifts + 1].0 << (Limb::BITS - small_shift);
                 }
 
                 limbs[i] = Limb(lo);
@@ -87,41 +87,41 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         let (mut lower, upper) = lower_upper;
         let new_upper = upper.shr_vartime(n);
         lower = lower.shr_vartime(n);
-        if n >= LIMBS * Limb::BIT_SIZE {
-            lower = lower.bitor(&upper.shr_vartime(n - LIMBS * Limb::BIT_SIZE));
+        if n >= Self::BITS {
+            lower = lower.bitor(&upper.shr_vartime(n - Self::BITS));
         } else {
-            lower = lower.bitor(&upper.shl_vartime(LIMBS * Limb::BIT_SIZE - n));
+            lower = lower.bitor(&upper.shl_vartime(Self::BITS - n));
         }
 
         (lower, new_upper)
     }
 }
 
-impl<const LIMBS: usize> Shr<usize> for UInt<LIMBS> {
-    type Output = UInt<LIMBS>;
+impl<const LIMBS: usize> Shr<usize> for Uint<LIMBS> {
+    type Output = Uint<LIMBS>;
 
     /// NOTE: this operation is variable time with respect to `rhs` *ONLY*.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    fn shr(self, rhs: usize) -> UInt<LIMBS> {
+    fn shr(self, rhs: usize) -> Uint<LIMBS> {
         self.shr_vartime(rhs)
     }
 }
 
-impl<const LIMBS: usize> Shr<usize> for &UInt<LIMBS> {
-    type Output = UInt<LIMBS>;
+impl<const LIMBS: usize> Shr<usize> for &Uint<LIMBS> {
+    type Output = Uint<LIMBS>;
 
     /// NOTE: this operation is variable time with respect to `rhs` *ONLY*.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    fn shr(self, rhs: usize) -> UInt<LIMBS> {
+    fn shr(self, rhs: usize) -> Uint<LIMBS> {
         self.shr_vartime(rhs)
     }
 }
 
-impl<const LIMBS: usize> ShrAssign<usize> for UInt<LIMBS> {
+impl<const LIMBS: usize> ShrAssign<usize> for Uint<LIMBS> {
     fn shr_assign(&mut self, rhs: usize) {
         *self = self.shr_vartime(rhs);
     }
@@ -129,7 +129,7 @@ impl<const LIMBS: usize> ShrAssign<usize> for UInt<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{UInt, U128, U256};
+    use crate::{Uint, U128, U256};
 
     const N: U256 =
         U256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
@@ -145,7 +145,7 @@ mod tests {
     #[test]
     fn shr_wide_1_1_128() {
         assert_eq!(
-            UInt::shr_vartime_wide((U128::ONE, U128::ONE), 128),
+            Uint::shr_vartime_wide((U128::ONE, U128::ONE), 128),
             (U128::ONE, U128::ZERO)
         );
     }
@@ -153,7 +153,7 @@ mod tests {
     #[test]
     fn shr_wide_0_max_1() {
         assert_eq!(
-            UInt::shr_vartime_wide((U128::ZERO, U128::MAX), 1),
+            Uint::shr_vartime_wide((U128::ZERO, U128::MAX), 1),
             (U128::ONE << 127, U128::MAX >> 1)
         );
     }
@@ -161,7 +161,7 @@ mod tests {
     #[test]
     fn shr_wide_max_max_256() {
         assert_eq!(
-            UInt::shr_vartime_wide((U128::MAX, U128::MAX), 256),
+            Uint::shr_vartime_wide((U128::MAX, U128::MAX), 256),
             (U128::ZERO, U128::ZERO)
         );
     }

@@ -205,10 +205,10 @@ pub trait Split<Rhs = Self> {
 /// Encoding support.
 pub trait Encoding: Sized {
     /// Size of this integer in bits.
-    const BIT_SIZE: usize;
+    const BITS: usize;
 
     /// Size of this integer in bytes.
-    const BYTE_SIZE: usize;
+    const BYTES: usize;
 
     /// Byte array representation.
     type Repr: AsRef<[u8]> + AsMut<[u8]> + Copy + Clone + Sized;

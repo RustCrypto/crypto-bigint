@@ -1,9 +1,9 @@
-//! [`UInt`] bitwise left shift operations.
+//! [`Uint`] bitwise left shift operations.
 
-use crate::{limb::HI_BIT, Limb, UInt, Word};
+use crate::{limb::HI_BIT, Limb, Uint, Word};
 use core::ops::{Shl, ShlAssign};
 
-impl<const LIMBS: usize> UInt<LIMBS> {
+impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self << 1` in constant-time, returning the overflowing bit as a `Word` that is either 0...0 or 1...1.
     pub(crate) const fn shl_1(&self) -> (Self, Word) {
         let mut shifted_bits = [0; LIMBS];
@@ -30,9 +30,37 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         }
 
         (
-            UInt::new(limbs),
+            Uint::new(limbs),
             carry_bits[LIMBS - 1].wrapping_mul(Word::MAX),
         )
+    }
+
+    /// Computes `self << shift` where `0 <= shift < Limb::BITS`,
+    /// returning the result and the carry.
+    #[inline(always)]
+    pub(crate) const fn shl_limb(&self, n: usize) -> (Self, Limb) {
+        let mut limbs = [Limb::ZERO; LIMBS];
+
+        let nz = Limb(n as Word).is_nonzero();
+        let lshift = n as Word;
+        let rshift = Limb::ct_select(Limb::ZERO, Limb((Limb::BITS - n) as Word), nz).0;
+        let carry = Limb::ct_select(
+            Limb::ZERO,
+            Limb(self.limbs[LIMBS - 1].0.wrapping_shr(Word::BITS - n as u32)),
+            nz,
+        );
+
+        let mut i = LIMBS - 1;
+        while i > 0 {
+            let mut limb = self.limbs[i].0 << lshift;
+            let hi = self.limbs[i - 1].0 >> rshift;
+            limb |= hi & nz;
+            limbs[i] = Limb(limb);
+            i -= 1
+        }
+        limbs[0] = Limb(self.limbs[0].0 << lshift);
+
+        (Uint::<LIMBS>::new(limbs), carry)
     }
 
     /// Computes `self << shift`.
@@ -45,27 +73,21 @@ impl<const LIMBS: usize> UInt<LIMBS> {
     pub const fn shl_vartime(&self, n: usize) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
 
-        if n >= Limb::BIT_SIZE * LIMBS {
+        if n >= Limb::BITS * LIMBS {
             return Self { limbs };
         }
 
-        let shift_num = n / Limb::BIT_SIZE;
-        let rem = n % Limb::BIT_SIZE;
-        let nz = Limb(rem as Word).is_nonzero();
-        let lshift_rem = rem as Word;
-        let rshift_rem = Limb::ct_select(Limb::ZERO, Limb((Limb::BIT_SIZE - rem) as Word), nz).0;
+        let shift_num = n / Limb::BITS;
+        let rem = n % Limb::BITS;
 
-        let mut i = LIMBS - 1;
+        let mut i = LIMBS;
         while i > shift_num {
-            let mut limb = self.limbs[i - shift_num].0 << lshift_rem;
-            let hi = self.limbs[i - shift_num - 1].0 >> rshift_rem;
-            limb |= hi & nz;
-            limbs[i] = Limb(limb);
-            i -= 1
+            i -= 1;
+            limbs[i] = self.limbs[i - shift_num];
         }
-        limbs[shift_num] = Limb(self.limbs[0].0 << lshift_rem);
 
-        Self { limbs }
+        let (new_lower, _carry) = (Self { limbs }).shl_limb(rem);
+        new_lower
     }
 
     /// Computes a left shift on a wide input as `(lo, hi)`.
@@ -79,41 +101,41 @@ impl<const LIMBS: usize> UInt<LIMBS> {
         let (lower, mut upper) = lower_upper;
         let new_lower = lower.shl_vartime(n);
         upper = upper.shl_vartime(n);
-        if n >= LIMBS * Limb::BIT_SIZE {
-            upper = upper.bitor(&lower.shl_vartime(n - LIMBS * Limb::BIT_SIZE));
+        if n >= Self::BITS {
+            upper = upper.bitor(&lower.shl_vartime(n - Self::BITS));
         } else {
-            upper = upper.bitor(&lower.shr_vartime(LIMBS * Limb::BIT_SIZE - n));
+            upper = upper.bitor(&lower.shr_vartime(Self::BITS - n));
         }
 
         (new_lower, upper)
     }
 }
 
-impl<const LIMBS: usize> Shl<usize> for UInt<LIMBS> {
-    type Output = UInt<LIMBS>;
+impl<const LIMBS: usize> Shl<usize> for Uint<LIMBS> {
+    type Output = Uint<LIMBS>;
 
     /// NOTE: this operation is variable time with respect to `rhs` *ONLY*.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    fn shl(self, rhs: usize) -> UInt<LIMBS> {
+    fn shl(self, rhs: usize) -> Uint<LIMBS> {
         self.shl_vartime(rhs)
     }
 }
 
-impl<const LIMBS: usize> Shl<usize> for &UInt<LIMBS> {
-    type Output = UInt<LIMBS>;
+impl<const LIMBS: usize> Shl<usize> for &Uint<LIMBS> {
+    type Output = Uint<LIMBS>;
 
     /// NOTE: this operation is variable time with respect to `rhs` *ONLY*.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    fn shl(self, rhs: usize) -> UInt<LIMBS> {
+    fn shl(self, rhs: usize) -> Uint<LIMBS> {
         self.shl_vartime(rhs)
     }
 }
 
-impl<const LIMBS: usize> ShlAssign<usize> for UInt<LIMBS> {
+impl<const LIMBS: usize> ShlAssign<usize> for Uint<LIMBS> {
     /// NOTE: this operation is variable time with respect to `rhs` *ONLY*.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
@@ -125,7 +147,7 @@ impl<const LIMBS: usize> ShlAssign<usize> for UInt<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, UInt, U128, U256};
+    use crate::{Limb, Uint, U128, U256};
 
     const N: U256 =
         U256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
@@ -186,7 +208,7 @@ mod tests {
     #[test]
     fn shl_wide_1_1_128() {
         assert_eq!(
-            UInt::shl_vartime_wide((U128::ONE, U128::ONE), 128),
+            Uint::shl_vartime_wide((U128::ONE, U128::ONE), 128),
             (U128::ZERO, U128::ONE)
         );
     }
@@ -194,7 +216,7 @@ mod tests {
     #[test]
     fn shl_wide_max_0_1() {
         assert_eq!(
-            UInt::shl_vartime_wide((U128::MAX, U128::ZERO), 1),
+            Uint::shl_vartime_wide((U128::MAX, U128::ZERO), 1),
             (U128::MAX.sbb(&U128::ONE, Limb::ZERO).0, U128::ONE)
         );
     }
@@ -202,7 +224,7 @@ mod tests {
     #[test]
     fn shl_wide_max_max_256() {
         assert_eq!(
-            UInt::shl_vartime_wide((U128::MAX, U128::MAX), 256),
+            Uint::shl_vartime_wide((U128::MAX, U128::MAX), 256),
             (U128::ZERO, U128::ZERO)
         );
     }
