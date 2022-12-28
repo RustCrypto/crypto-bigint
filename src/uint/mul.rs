@@ -1,6 +1,6 @@
 //! [`Uint`] addition operations.
 
-use crate::{Checked, CheckedMul, Concat, Limb, UInt, WideWord, Word, Wrapping, Zero};
+use crate::{Checked, CheckedMul, Concat, Limb, Uint, WideWord, Word, Wrapping, Zero};
 use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
 
