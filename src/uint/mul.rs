@@ -1,6 +1,6 @@
 //! [`Uint`] addition operations.
 
-use crate::{Checked, CheckedMul, Concat, Limb, Uint, Wrapping, Zero};
+use crate::{Checked, CheckedMul, Concat, Limb, Uint, WideWord, Word, Wrapping, Zero};
 use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
 
@@ -86,7 +86,76 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Square self, returning a "wide" result in two parts as (lo, hi).
     pub const fn square_wide(&self) -> (Self, Self) {
-        self.mul_wide(self)
+        // Translated from https://github.com/ucbrise/jedi-pairing/blob/c4bf151/include/core/bigint.hpp#L410
+        //
+        // Permission to relicense the resulting translation as Apache 2.0 + MIT was given
+        // by the original author Sam Kumar: https://github.com/RustCrypto/crypto-bigint/pull/133#discussion_r1056870411
+        let mut lo = Self::ZERO;
+        let mut hi = Self::ZERO;
+
+        // Schoolbook multiplication, but only considering half of the multiplication grid
+        let mut i = 1;
+        while i < LIMBS {
+            let mut j = 0;
+            let mut carry = Limb::ZERO;
+
+            while j < i {
+                let k = i + j;
+
+                if k >= LIMBS {
+                    let (n, c) = hi.limbs[k - LIMBS].mac(self.limbs[i], self.limbs[j], carry);
+                    hi.limbs[k - LIMBS] = n;
+                    carry = c;
+                } else {
+                    let (n, c) = lo.limbs[k].mac(self.limbs[i], self.limbs[j], carry);
+                    lo.limbs[k] = n;
+                    carry = c;
+                }
+
+                j += 1;
+            }
+
+            if (2 * i) < LIMBS {
+                lo.limbs[2 * i] = carry;
+            } else {
+                hi.limbs[2 * i - LIMBS] = carry;
+            }
+
+            i += 1;
+        }
+
+        // Double the current result, this accounts for the other half of the multiplication grid.
+        // TODO: The top word is empty so we can also use a special purpose shl.
+        (lo, hi) = Self::shl_vartime_wide((lo, hi), 1);
+
+        // Handle the diagonal of the multiplication grid, which finishes the multiplication grid.
+        let mut carry = Limb::ZERO;
+        let mut i = 0;
+        while i < LIMBS {
+            if (i * 2) < LIMBS {
+                let (n, c) = lo.limbs[i * 2].mac(self.limbs[i], self.limbs[i], carry);
+                lo.limbs[i * 2] = n;
+                carry = c;
+            } else {
+                let (n, c) = hi.limbs[i * 2 - LIMBS].mac(self.limbs[i], self.limbs[i], carry);
+                hi.limbs[i * 2 - LIMBS] = n;
+                carry = c;
+            }
+
+            if (i * 2 + 1) < LIMBS {
+                let n = lo.limbs[i * 2 + 1].0 as WideWord + carry.0 as WideWord;
+                lo.limbs[i * 2 + 1] = Limb(n as Word);
+                carry = Limb((n >> Word::BITS) as Word);
+            } else {
+                let n = hi.limbs[i * 2 + 1 - LIMBS].0 as WideWord + carry.0 as WideWord;
+                hi.limbs[i * 2 + 1 - LIMBS] = Limb(n as Word);
+                carry = Limb((n >> Word::BITS) as Word);
+            }
+
+            i += 1;
+        }
+
+        (lo, hi)
     }
 }
 
@@ -189,7 +258,7 @@ impl<const LIMBS: usize> MulAssign<&Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS
 
 #[cfg(test)]
 mod tests {
-    use crate::{CheckedMul, Zero, U64};
+    use crate::{CheckedMul, Zero, U256, U64};
 
     #[test]
     fn mul_wide_zero_and_one() {
@@ -247,5 +316,13 @@ mod tests {
         let (hi, lo) = n.square().split();
         assert_eq!(lo, U64::from_u64(1));
         assert_eq!(hi, U64::from_u64(0xffff_ffff_ffff_fffe));
+    }
+
+    #[test]
+    fn square_larger() {
+        let n = U256::MAX;
+        let (hi, lo) = n.square().split();
+        assert_eq!(lo, U256::ONE);
+        assert_eq!(hi, U256::MAX.wrapping_sub(&U256::ONE));
     }
 }
