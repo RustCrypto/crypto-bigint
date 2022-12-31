@@ -1,22 +1,19 @@
-use crate::{
-    modular::{pow::pow_montgomery_form, PowResidue},
-    Uint,
-};
+use crate::{modular::pow::pow_montgomery_form, PowBoundedExp, Uint};
 
 use super::DynResidue;
 
-impl<const LIMBS: usize> PowResidue<LIMBS> for DynResidue<LIMBS> {
-    fn pow_specific(self, exponent: &Uint<LIMBS>, exponent_bits: usize) -> Self {
-        self.pow_specific(exponent, exponent_bits)
-    }
-}
-
 impl<const LIMBS: usize> DynResidue<LIMBS> {
-    /// Computes the (reduced) exponentiation of a residue,
-    /// here `exponent_bits` represents the number of bits to take into account for the exponent.
+    /// Raises to the `exponent` power.
+    pub const fn pow(&self, exponent: &Uint<LIMBS>) -> DynResidue<LIMBS> {
+        self.pow_bounded_exp(exponent, Uint::<LIMBS>::BITS)
+    }
+
+    /// Raises to the `exponent` power,
+    /// with `exponent_bits` representing the number of (least significant) bits
+    /// to take into account for the exponent.
     ///
-    /// NOTE: `exponent_bits` is leaked in the time pattern.
-    pub const fn pow_specific(self, exponent: &Uint<LIMBS>, exponent_bits: usize) -> Self {
+    /// NOTE: `exponent_bits` may be leaked in the time pattern.
+    pub const fn pow_bounded_exp(&self, exponent: &Uint<LIMBS>, exponent_bits: usize) -> Self {
         Self {
             montgomery_form: pow_montgomery_form(
                 self.montgomery_form,
@@ -28,5 +25,11 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
             ),
             residue_params: self.residue_params,
         }
+    }
+}
+
+impl<const LIMBS: usize> PowBoundedExp<Uint<LIMBS>> for DynResidue<LIMBS> {
+    fn pow_bounded_exp(&self, exponent: &Uint<LIMBS>, exponent_bits: usize) -> Self {
+        self.pow_bounded_exp(exponent, exponent_bits)
     }
 }

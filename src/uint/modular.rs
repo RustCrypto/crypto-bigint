@@ -1,7 +1,3 @@
-use subtle::CtOption;
-
-use crate::{Uint, Word};
-
 mod reduction;
 
 /// Implements `Residue`s, supporting modular arithmetic with a constant modulus.
@@ -15,66 +11,14 @@ mod mul;
 mod pow;
 mod sub;
 
-/// Provides a consistent interface to add two residues of the same type together.
-pub trait AddResidue {
-    /// Computes the (reduced) sum of two residues.
-    fn add(&self, rhs: &Self) -> Self;
-}
+/// A generalization for numbers kept in optimized representations (e.g. Montgomery)
+/// that can be converted back to the original form.
+pub trait Retrieve {
+    /// The original type.
+    type Output;
 
-/// Provides a consistent interface to subtract two residues of the same type.
-pub trait SubResidue {
-    /// Computes the (reduced) difference of two residues.
-    fn sub(&self, rhs: &Self) -> Self;
-}
-
-/// Provides a consistent interface to multiply two residues of the same type together.
-pub trait MulResidue
-where
-    Self: Sized,
-{
-    /// Computes the (reduced) product of two residues.
-    fn mul(&self, rhs: &Self) -> Self;
-
-    /// Computes the same as `self.mul(self)`, but may be more efficient.
-    fn square(&self) -> Self {
-        self.mul(self)
-    }
-}
-
-/// Provides a consistent interface to exponentiate a residue.
-pub trait PowResidue<const LIMBS: usize>
-where
-    Self: Sized,
-{
-    /// Computes the (reduced) exponentiation of a residue.
-    fn pow(self, exponent: &Uint<LIMBS>) -> Self {
-        self.pow_specific(exponent, LIMBS * Word::BITS as usize)
-    }
-
-    /// Computes the (reduced) exponentiation of a residue,
-    /// here `exponent_bits` represents the number of bits to take into account for the exponent.
-    ///
-    /// NOTE: `exponent_bits` is leaked in the time pattern.
-    fn pow_specific(self, exponent: &Uint<LIMBS>, exponent_bits: usize) -> Self;
-}
-
-/// Provides a consistent interface to invert a residue.
-pub trait InvResidue
-where
-    Self: Sized,
-{
-    /// Computes the (reduced) multiplicative inverse of the residue. Returns CtOption,
-    /// which is `None` if the residue was not invertible.
-    fn inv(self) -> CtOption<Self>;
-}
-
-/// The `GenericResidue` trait provides a consistent API
-/// for dealing with residues with a constant modulus.
-pub trait GenericResidue<const LIMBS: usize>:
-    AddResidue + MulResidue + PowResidue<LIMBS> + InvResidue
-{
-    /// Retrieves the integer currently encoded in this `Residue`, guaranteed to be reduced.
-    fn retrieve(&self) -> Uint<LIMBS>;
+    /// Convert the number back from the optimized representation.
+    fn retrieve(&self) -> Self::Output;
 }
 
 #[cfg(test)]

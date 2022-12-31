@@ -202,14 +202,17 @@ pub trait Split<Rhs = Self> {
     fn split(&self) -> (Self::Output, Self::Output);
 }
 
-/// Encoding support.
-pub trait Encoding: Sized {
+/// Integers whose representation takes a bounded amount of space.
+pub trait Bounded {
     /// Size of this integer in bits.
     const BITS: usize;
 
     /// Size of this integer in bytes.
     const BYTES: usize;
+}
 
+/// Encoding support.
+pub trait Encoding: Sized {
     /// Byte array representation.
     type Repr: AsRef<[u8]> + AsMut<[u8]> + Copy + Clone + Sized;
 
@@ -224,4 +227,46 @@ pub trait Encoding: Sized {
 
     /// Encode to little endian bytes.
     fn to_le_bytes(&self) -> Self::Repr;
+}
+
+/// Support for optimized squaring
+pub trait Square: Sized
+where
+    for<'a> &'a Self: core::ops::Mul<&'a Self, Output = Self>,
+{
+    /// Computes the same as `self.mul(self)`, but may be more efficient.
+    fn square(&self) -> Self {
+        self * self
+    }
+}
+
+/// Constant-time exponentiation.
+pub trait Pow<Exponent> {
+    /// Raises to the `exponent` power.
+    fn pow(&self, exponent: &Exponent) -> Self;
+}
+
+impl<T: PowBoundedExp<Exponent>, Exponent: Bounded> Pow<Exponent> for T {
+    fn pow(&self, exponent: &Exponent) -> Self {
+        self.pow_bounded_exp(exponent, Exponent::BITS)
+    }
+}
+
+/// Constant-time exponentiation with exponent of a bounded bit size.
+pub trait PowBoundedExp<Exponent> {
+    /// Raises to the `exponent` power,
+    /// with `exponent_bits` representing the number of (least significant) bits
+    /// to take into account for the exponent.
+    ///
+    /// NOTE: `exponent_bits` may be leaked in the time pattern.
+    fn pow_bounded_exp(&self, exponent: &Exponent, exponent_bits: usize) -> Self;
+}
+
+/// Constant-time inversion.
+pub trait Invert: Sized {
+    /// Output of the inversion.
+    type Output;
+
+    /// Computes the inverse.
+    fn invert(&self) -> Self::Output;
 }

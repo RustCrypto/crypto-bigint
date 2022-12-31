@@ -4,7 +4,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 use crate::{Limb, Uint, Zero};
 
-use super::{reduction::montgomery_reduction, GenericResidue};
+use super::{reduction::montgomery_reduction, Retrieve};
 
 /// Additions between residues with a constant modulus
 mod const_add;
@@ -12,6 +12,8 @@ mod const_add;
 mod const_inv;
 /// Multiplications between residues with a constant modulus
 mod const_mul;
+/// Negations of residues with a constant modulus
+mod const_neg;
 /// Exponentiation of residues with a constant modulus
 mod const_pow;
 /// Subtractions between residues with a constant modulus
@@ -90,12 +92,6 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> GenericResidue<LIMBS> for Residue<MOD, LIMBS> {
-    fn retrieve(&self) -> Uint<LIMBS> {
-        self.retrieve()
-    }
-}
-
 impl<MOD: ResidueParams<LIMBS> + Copy, const LIMBS: usize> ConditionallySelectable
     for Residue<MOD, LIMBS>
 {
@@ -125,4 +121,11 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Default for Residue<MOD, LIM
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Zero for Residue<MOD, LIMBS> {
     const ZERO: Self = Self::ZERO;
+}
+
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Retrieve for Residue<MOD, LIMBS> {
+    type Output = Uint<LIMBS>;
+    fn retrieve(&self) -> Self::Output {
+        self.retrieve()
+    }
 }

@@ -20,7 +20,7 @@ mod sub;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::Zero;
+use crate::{Bounded, Zero};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
 
@@ -114,6 +114,11 @@ impl Limb {
     pub(crate) const fn ct_select(a: Self, b: Self, c: Word) -> Self {
         Self(a.0 ^ (c & (a.0 ^ b.0)))
     }
+}
+
+impl Bounded for Limb {
+    const BITS: usize = Self::BITS;
+    const BYTES: usize = Self::BYTES;
 }
 
 impl ConditionallySelectable for Limb {

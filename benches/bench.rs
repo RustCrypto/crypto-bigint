@@ -2,10 +2,7 @@ use criterion::{
     criterion_group, criterion_main, measurement::Measurement, BenchmarkGroup, Criterion,
 };
 use crypto_bigint::{
-    modular::{
-        runtime_mod::{DynResidue, DynResidueParams},
-        PowResidue,
-    },
+    modular::runtime_mod::{DynResidue, DynResidueParams},
     NonZero, Random, Reciprocal, Uint, U256,
 };
 use rand_core::OsRng;

@@ -1,22 +1,13 @@
-use core::ops::AddAssign;
+use core::ops::{Add, AddAssign};
 
-use crate::{
-    modular::{add::add_montgomery_form, AddResidue},
-    Uint,
-};
+use crate::modular::add::add_montgomery_form;
 
 use super::{Residue, ResidueParams};
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> AddResidue for Residue<MOD, LIMBS> {
-    fn add(&self, rhs: &Self) -> Self {
-        self.add(rhs)
-    }
-}
-
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
-    /// Adds two residues together.
-    pub const fn add(&self, rhs: &Self) -> Self {
-        Residue {
+    /// Adds `rhs`.
+    pub const fn add(&self, rhs: &Residue<MOD, LIMBS>) -> Self {
+        Self {
             montgomery_form: add_montgomery_form(
                 &self.montgomery_form,
                 &rhs.montgomery_form,
@@ -27,17 +18,53 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> AddAssign<&Uint<LIMBS>>
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Add<&Residue<MOD, LIMBS>>
+    for &Residue<MOD, LIMBS>
+{
+    type Output = Residue<MOD, LIMBS>;
+    fn add(self, rhs: &Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+        self.add(rhs)
+    }
+}
+
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Add<Residue<MOD, LIMBS>>
+    for &Residue<MOD, LIMBS>
+{
+    type Output = Residue<MOD, LIMBS>;
+    #[allow(clippy::op_ref)]
+    fn add(self, rhs: Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+        self + &rhs
+    }
+}
+
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Add<&Residue<MOD, LIMBS>>
     for Residue<MOD, LIMBS>
 {
-    fn add_assign(&mut self, rhs: &Uint<LIMBS>) {
-        *self += &Residue::new(*rhs);
+    type Output = Residue<MOD, LIMBS>;
+    #[allow(clippy::op_ref)]
+    fn add(self, rhs: &Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+        &self + rhs
+    }
+}
+
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Add<Residue<MOD, LIMBS>>
+    for Residue<MOD, LIMBS>
+{
+    type Output = Residue<MOD, LIMBS>;
+    fn add(self, rhs: Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+        &self + &rhs
     }
 }
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> AddAssign<&Self> for Residue<MOD, LIMBS> {
     fn add_assign(&mut self, rhs: &Self) {
-        *self = self.add(rhs);
+        *self = *self + rhs;
+    }
+}
+
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> AddAssign<Self> for Residue<MOD, LIMBS> {
+    fn add_assign(&mut self, rhs: Self) {
+        *self += &rhs;
     }
 }
 
@@ -59,8 +86,9 @@ mod tests {
 
         let y =
             U256::from_be_hex("d5777c45019673125ad240f83094d4252d829516fac8601ed01979ec1ec1a251");
+        let y_mod = const_residue!(y, Modulus);
 
-        x_mod += &y;
+        x_mod += &y_mod;
 
         let expected =
             U256::from_be_hex("1a2472fde50286541d97ca6a3592dd75beb9c9646e40c511b82496cfc3926956");
