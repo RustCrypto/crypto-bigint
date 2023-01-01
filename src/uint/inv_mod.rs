@@ -40,7 +40,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut b = modulus;
 
         // TODO: This can be lower if `self` is known to be small.
-        let bit_size = 2 * LIMBS * 64;
+        let bit_size = 2 * Uint::<LIMBS>::BITS;
 
         let mut m1hp = modulus;
         let (m1hp_new, carry) = m1hp.shr_1();
