@@ -27,7 +27,7 @@ pub struct DynResidueParams<const LIMBS: usize> {
     // R^3, used to compute the multiplicative inverse
     r3: Uint<LIMBS>,
     // The lowest limbs of -(MODULUS^-1) mod R
-    // We only need the LSB because during reduction this value is multiplied modulo 2**64.
+    // We only need the LSB because during reduction this value is multiplied modulo 2**Limb::BITS.
     mod_neg_inv: Limb,
 }
 

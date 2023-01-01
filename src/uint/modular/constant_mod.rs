@@ -41,7 +41,7 @@ pub trait ResidueParams<const LIMBS: usize>: Copy {
     /// R^3, used to perform a multiplicative inverse
     const R3: Uint<LIMBS>;
     /// The lowest limbs of -(MODULUS^-1) mod R
-    // We only need the LSB because during reduction this value is multiplied modulo 2**64.
+    // We only need the LSB because during reduction this value is multiplied modulo 2**Limb::BITS.
     const MOD_NEG_INV: Limb;
 }
 
