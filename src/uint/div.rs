@@ -29,7 +29,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Returns `Word::MAX` as the third element of the tuple if `rhs != 0`, and `0` otherwise.
     #[inline(always)]
     pub(crate) const fn ct_div_rem_limb(&self, rhs: Limb) -> (Self, Limb, Word) {
-        let (reciprocal, is_some) = Reciprocal::new_const(rhs);
+        let (reciprocal, is_some) = Reciprocal::ct_new(rhs);
         let (quo, rem) = div_rem_limb_with_reciprocal(self, &reciprocal);
         (quo, rem, is_some)
     }

@@ -173,7 +173,7 @@ impl Reciprocal {
     /// Note: if the returned flag is `0`, the returned reciprocal object is still self-consistent
     /// and can be passed to functions here without causing them to panic,
     /// but the results are naturally not to be used.
-    pub const fn new_const(divisor: Limb) -> (Self, Word) {
+    pub const fn ct_new(divisor: Limb) -> (Self, Word) {
         // Assuming this is constant-time for primitive types.
         let shift = divisor.0.leading_zeros();
 
@@ -220,7 +220,7 @@ impl Reciprocal {
 
     /// A non-const-fn version of `new_const()`, wrapping the result in a `CtOption`.
     pub fn new(divisor: Limb) -> CtOption<Self> {
-        let (rec, is_some) = Self::new_const(divisor);
+        let (rec, is_some) = Self::ct_new(divisor);
         CtOption::new(rec, Choice::from((is_some & 1) as u8))
     }
 }
