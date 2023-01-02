@@ -46,8 +46,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Limb::is_nonzero(Limb(b))
     }
 
+    /// Returns all 1's if `self` is odd or 0 otherwise.
     pub(crate) const fn ct_is_odd(&self) -> Word {
-        (self.limbs[0].0 & 1).wrapping_mul(Word::MAX)
+        (self.limbs[0].0 & 1).wrapping_neg()
     }
 
     /// Returns -1 if self < rhs
