@@ -168,12 +168,12 @@ pub struct Reciprocal {
 impl Reciprocal {
     /// Pre-calculates a reciprocal for a known divisor,
     /// to be used in the single-limb division later.
-    /// Returns the reciprocal, and `1` if `divisor != 0` and `0` otherwise.
+    /// Returns the reciprocal, and `Word::MAX` if `divisor != 0` and `0` otherwise.
     ///
     /// Note: if the returned flag is `0`, the returned reciprocal object is still self-consistent
     /// and can be passed to functions here without causing them to panic,
     /// but the results are naturally not to be used.
-    pub const fn new_const(divisor: Limb) -> (Self, u8) {
+    pub const fn new_const(divisor: Limb) -> (Self, Word) {
         // Assuming this is constant-time for primitive types.
         let shift = divisor.0.leading_zeros();
 
@@ -199,7 +199,7 @@ impl Reciprocal {
                 shift,
                 reciprocal: reciprocal(divisor_normalized),
             },
-            (is_some & 1) as u8,
+            is_some,
         )
     }
 
@@ -221,7 +221,7 @@ impl Reciprocal {
     /// A non-const-fn version of `new_const()`, wrapping the result in a `CtOption`.
     pub fn new(divisor: Limb) -> CtOption<Self> {
         let (rec, is_some) = Self::new_const(divisor);
-        CtOption::new(rec, Choice::from(is_some))
+        CtOption::new(rec, Choice::from((is_some & 1) as u8))
     }
 }
 
