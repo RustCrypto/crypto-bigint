@@ -42,7 +42,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let actual_rhs = Uint::ct_select(Uint::ZERO, *rhs, choice);
         let (sum, carry) = self.adc(&actual_rhs, Limb::ZERO);
 
-        (sum, carry.0.wrapping_mul(Word::MAX))
+        debug_assert!(carry.0 == 0 || carry.0 == 1);
+        (sum, carry.0.wrapping_neg())
     }
 }
 

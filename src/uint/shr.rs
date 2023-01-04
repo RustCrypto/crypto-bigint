@@ -30,9 +30,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
         limbs[LIMBS - 1] = Limb(shifted_bits[LIMBS - 1]);
 
+        debug_assert!(carry_bits[LIMBS - 1] == 0 || carry_bits[LIMBS - 1] == (1 << HI_BIT));
         (
             Uint::new(limbs),
-            (carry_bits[0] >> HI_BIT).wrapping_mul(Word::MAX),
+            (carry_bits[0] >> HI_BIT).wrapping_neg(),
         )
     }
 

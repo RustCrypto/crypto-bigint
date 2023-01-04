@@ -29,9 +29,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             i += 1;
         }
 
+        debug_assert!(carry_bits[LIMBS - 1] == 0 || carry_bits[LIMBS - 1] == 1);
         (
             Uint::new(limbs),
-            carry_bits[LIMBS - 1].wrapping_mul(Word::MAX),
+            carry_bits[LIMBS - 1].wrapping_neg(),
         )
     }
 

@@ -8,7 +8,7 @@ pub(crate) const fn montgomery_reduction<const LIMBS: usize>(
 ) -> Uint<LIMBS> {
     let (mut lower, mut upper) = lower_upper;
 
-    let mut meta_carry = 0;
+    let mut meta_carry: WideWord = 0;
 
     let mut i = 0;
     while i < LIMBS {
@@ -49,8 +49,9 @@ pub(crate) const fn montgomery_reduction<const LIMBS: usize>(
 
     // Division is simply taking the upper half of the limbs
     // Final reduction (at this point, the value is at most 2 * modulus)
-    let must_reduce = (meta_carry as Word).saturating_mul(Word::MAX)
-        | ((upper.ct_cmp(&modulus) != -1) as Word).saturating_mul(Word::MAX);
+    debug_assert!(meta_carry == 0 || meta_carry == 1);
+    let must_reduce = (meta_carry as Word).wrapping_neg()
+        | ((upper.ct_cmp(&modulus) != -1) as Word).wrapping_neg();
     upper = upper.wrapping_sub(&Uint::ct_select(Uint::ZERO, modulus, must_reduce));
 
     upper
