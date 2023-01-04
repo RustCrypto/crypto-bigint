@@ -73,6 +73,12 @@ pub(crate) type WideSignedWord = i128;
 /// Highest bit in a [`Limb`].
 pub(crate) const HI_BIT: usize = Limb::BITS - 1;
 
+/// A boolean value returned by constant-time `const fn`s.
+/// `Word::MAX` signifies `true`, and `0` signifies `false`.
+// TODO: should be replaced by `subtle::Choice` or `CtOption`
+// when `subtle` starts supporting const fns.
+pub type CtChoice = Word;
+
 /// Big integers are represented as an array of smaller CPU word-size integers
 /// called "limbs".
 #[derive(Copy, Clone, Debug, Default, Hash)]
@@ -107,11 +113,9 @@ impl Limb {
     #[cfg(target_pointer_width = "64")]
     pub const BYTES: usize = 8;
 
-    /// Return `a` if `c`==0 or `b` if `c`==`Word::MAX`.
-    ///
-    /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
+    /// Return `b` if `c` is truthy, otherwise return `a`.
     #[inline]
-    pub(crate) const fn ct_select(a: Self, b: Self, c: Word) -> Self {
+    pub(crate) const fn ct_select(a: Self, b: Self, c: CtChoice) -> Self {
         Self(a.0 ^ (c & (a.0 ^ b.0)))
     }
 }

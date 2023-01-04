@@ -3,7 +3,7 @@
 //! (DOI: 10.1109/TC.2010.143, <https://gmplib.org/~tege/division-paper.pdf>).
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
-use crate::{Limb, Uint, WideWord, Word};
+use crate::{CtChoice, Limb, Uint, WideWord, Word};
 
 /// Calculates the reciprocal of the given 32-bit divisor with the highmost bit set.
 #[cfg(target_pointer_width = "32")]
@@ -168,12 +168,13 @@ pub struct Reciprocal {
 impl Reciprocal {
     /// Pre-calculates a reciprocal for a known divisor,
     /// to be used in the single-limb division later.
-    /// Returns the reciprocal, and `Word::MAX` if `divisor != 0` and `0` otherwise.
+    /// Returns the reciprocal, and the truthy value if `divisor != 0`
+    /// and the falsy value otherwise.
     ///
-    /// Note: if the returned flag is `0`, the returned reciprocal object is still self-consistent
+    /// Note: if the returned flag is falsy, the returned reciprocal object is still self-consistent
     /// and can be passed to functions here without causing them to panic,
     /// but the results are naturally not to be used.
-    pub const fn ct_new(divisor: Limb) -> (Self, Word) {
+    pub const fn ct_new(divisor: Limb) -> (Self, CtChoice) {
         // Assuming this is constant-time for primitive types.
         let shift = divisor.0.leading_zeros();
 

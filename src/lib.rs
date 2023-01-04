@@ -169,7 +169,7 @@ mod wrapping;
 
 pub use crate::{
     checked::Checked,
-    limb::{Limb, WideWord, Word},
+    limb::{CtChoice, Limb, WideWord, Word},
     non_zero::NonZero,
     traits::*,
     uint::div_limb::Reciprocal,

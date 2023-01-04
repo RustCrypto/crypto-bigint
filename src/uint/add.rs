@@ -1,6 +1,6 @@
 //! [`Uint`] addition operations.
 
-use crate::{Checked, CheckedAdd, Limb, Uint, Word, Wrapping, Zero};
+use crate::{Checked, CheckedAdd, CtChoice, Limb, Uint, Wrapping, Zero};
 use core::ops::{Add, AddAssign};
 use subtle::CtOption;
 
@@ -37,8 +37,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         self.adc(rhs, Limb::ZERO).0
     }
 
-    /// Perform wrapping addition, returning the overflow bit as a `Word` that is either 0...0 or 1...1.
-    pub(crate) const fn conditional_wrapping_add(&self, rhs: &Self, choice: Word) -> (Self, Word) {
+    /// Perform wrapping addition, returning the truthy value as the second element of the tuple
+    /// if an overflow has occurred.
+    pub(crate) const fn conditional_wrapping_add(
+        &self,
+        rhs: &Self,
+        choice: CtChoice,
+    ) -> (Self, CtChoice) {
         let actual_rhs = Uint::ct_select(Uint::ZERO, *rhs, choice);
         let (sum, carry) = self.adc(&actual_rhs, Limb::ZERO);
 

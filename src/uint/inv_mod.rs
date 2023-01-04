@@ -1,5 +1,5 @@
 use super::Uint;
-use crate::{Limb, Word};
+use crate::{CtChoice, Limb, Word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes 1/`self` mod 2^k as specified in Algorithm 4 from
@@ -31,7 +31,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// `bits` and `modulus_bits` are the bounds on the bit size
     /// of `self` and `modulus`, respectively
     /// (the inversion speed will be proportional to `bits + modulus_bits`).
-    /// Returns `(inverse, Limb::MAX)` if an inverse exists, otherwise `(undefined, Limb::ZERO)`.
+    /// The second element of the tuple is the truthy value if an inverse exists,
+    /// otherwise it is a falsy value.
     ///
     /// **Note:** variable time in `bits` and `modulus_bits`.
     ///
@@ -41,7 +42,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         modulus: Uint<LIMBS>,
         bits: usize,
         modulus_bits: usize,
-    ) -> (Self, Word) {
+    ) -> (Self, CtChoice) {
         debug_assert!(modulus.ct_is_odd() == Word::MAX);
 
         let mut a = *self;
@@ -97,7 +98,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     /// Returns `(inverse, Word::MAX)` if an inverse exists, otherwise `(undefined, Word::ZERO)`.
-    pub const fn inv_odd_mod(&self, modulus: Uint<LIMBS>) -> (Self, Word) {
+    pub const fn inv_odd_mod(&self, modulus: Uint<LIMBS>) -> (Self, CtChoice) {
         self.inv_odd_mod_bounded(modulus, Uint::<LIMBS>::BITS, Uint::<LIMBS>::BITS)
     }
 }

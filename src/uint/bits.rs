@@ -1,14 +1,14 @@
-use crate::{Limb, Uint, Word};
+use crate::{CtChoice, Limb, Uint, Word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Get the value of the bit at position `index`, as a 0- or 1-valued Word.
-    /// Returns 0 for indices out of range.
+    /// Get the value of the bit at position `index`, as a truthy or falsy `CtChoice`.
+    /// Returns the falsy value for indices out of range.
     #[inline(always)]
-    pub const fn bit_vartime(self, index: usize) -> Word {
+    pub const fn bit_vartime(self, index: usize) -> CtChoice {
         if index >= Self::BITS {
             0
         } else {
-            (self.limbs[index / Limb::BITS].0 >> (index % Limb::BITS)) & 1
+            ((self.limbs[index / Limb::BITS].0 >> (index % Limb::BITS)) & 1).wrapping_neg()
         }
     }
 
@@ -72,9 +72,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Self::BITS - self.leading_zeros()
     }
 
-    /// Get the value of the bit at position `index`, as a 0- or 1-valued Word.
-    /// Returns 0 for indices out of range.
-    pub const fn bit(self, index: usize) -> Word {
+    /// Get the value of the bit at position `index`, as a truthy or falsy `CtChoice`.
+    /// Returns the falsy value for indices out of range.
+    pub const fn bit(self, index: usize) -> CtChoice {
         let limb_num = Limb((index / Limb::BITS) as Word);
         let index_in_limb = index % Limb::BITS;
         let index_mask = 1 << index_in_limb;
@@ -90,13 +90,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             i += 1;
         }
 
-        result >> index_in_limb
+        (result >> index_in_limb).wrapping_neg()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::U256;
+    use crate::{Word, U256};
 
     fn uint_with_bits_at(positions: &[usize]) -> U256 {
         let mut result = U256::ZERO;
@@ -111,9 +111,9 @@ mod tests {
         let u = uint_with_bits_at(&[16, 48, 112, 127, 255]);
         assert_eq!(u.bit_vartime(0), 0);
         assert_eq!(u.bit_vartime(1), 0);
-        assert_eq!(u.bit_vartime(16), 1);
-        assert_eq!(u.bit_vartime(127), 1);
-        assert_eq!(u.bit_vartime(255), 1);
+        assert_eq!(u.bit_vartime(16), Word::MAX);
+        assert_eq!(u.bit_vartime(127), Word::MAX);
+        assert_eq!(u.bit_vartime(255), Word::MAX);
         assert_eq!(u.bit_vartime(256), 0);
         assert_eq!(u.bit_vartime(260), 0);
     }
@@ -123,9 +123,9 @@ mod tests {
         let u = uint_with_bits_at(&[16, 48, 112, 127, 255]);
         assert_eq!(u.bit(0), 0);
         assert_eq!(u.bit(1), 0);
-        assert_eq!(u.bit(16), 1);
-        assert_eq!(u.bit(127), 1);
-        assert_eq!(u.bit(255), 1);
+        assert_eq!(u.bit(16), Word::MAX);
+        assert_eq!(u.bit(127), Word::MAX);
+        assert_eq!(u.bit(255), Word::MAX);
         assert_eq!(u.bit(256), 0);
         assert_eq!(u.bit(260), 0);
     }

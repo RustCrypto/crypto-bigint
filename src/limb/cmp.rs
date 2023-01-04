@@ -1,6 +1,6 @@
 //! Limb comparisons
 
-use super::{Limb, SignedWord, WideSignedWord, Word, HI_BIT};
+use super::{CtChoice, Limb, SignedWord, WideSignedWord, Word, HI_BIT};
 use core::cmp::Ordering;
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
@@ -24,11 +24,9 @@ impl Limb {
         self.0 == other.0
     }
 
-    /// Returns all 1's if `a`!=0 or 0 if `a`==0.
-    ///
-    /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
+    /// Returns the truthy value if `self != 0` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn is_nonzero(self) -> Word {
+    pub(crate) const fn is_nonzero(self) -> CtChoice {
         let inner = self.0 as SignedWord;
         ((inner | inner.saturating_neg()) >> HI_BIT) as Word
     }
@@ -42,9 +40,9 @@ impl Limb {
         (gt as SignedWord) - (lt as SignedWord)
     }
 
-    /// Returns `Word::MAX` if `lhs == rhs` and `0` otherwise.
+    /// Returns the truthy value if `lhs == rhs` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn ct_eq(lhs: Self, rhs: Self) -> Word {
+    pub(crate) const fn ct_eq(lhs: Self, rhs: Self) -> CtChoice {
         let x = lhs.0;
         let y = rhs.0;
 
@@ -60,18 +58,18 @@ impl Limb {
         (d ^ 1).wrapping_neg()
     }
 
-    /// Returns `Word::MAX` if `lhs < rhs` and `0` otherwise.
+    /// Returns the truthy value if `lhs < rhs` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn ct_lt(lhs: Self, rhs: Self) -> Word {
+    pub(crate) const fn ct_lt(lhs: Self, rhs: Self) -> CtChoice {
         let x = lhs.0;
         let y = rhs.0;
         let bit = (((!x) & y) | (((!x) | y) & (x.wrapping_sub(y)))) >> (Limb::BITS - 1);
         bit.wrapping_neg()
     }
 
-    /// Returns `Word::MAX` if `lhs <= rhs` and `0` otherwise.
+    /// Returns the truthy value if `lhs <= rhs` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn ct_le(lhs: Self, rhs: Self) -> Word {
+    pub(crate) const fn ct_le(lhs: Self, rhs: Self) -> CtChoice {
         let x = lhs.0;
         let y = rhs.0;
         let bit = (((!x) | y) & ((x ^ y) | !(y.wrapping_sub(x)))) >> (Limb::BITS - 1);

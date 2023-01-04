@@ -1,9 +1,7 @@
 //! [`Uint`] division operations.
 
 use super::div_limb::{div_rem_limb_with_reciprocal, Reciprocal};
-use super::Uint;
-use crate::limb::Word;
-use crate::{Limb, NonZero, Wrapping};
+use crate::{CtChoice, Limb, NonZero, Uint, Word, Wrapping};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::CtOption;
 
@@ -26,9 +24,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes `self` / `rhs`, returns the quotient (q) and remainder (r).
-    /// Returns `Word::MAX` as the third element of the tuple if `rhs != 0`, and `0` otherwise.
+    /// Returns the truthy value as the third element of the tuple if `rhs != 0`,
+    /// and the falsy value otherwise.
     #[inline(always)]
-    pub(crate) const fn ct_div_rem_limb(&self, rhs: Limb) -> (Self, Limb, Word) {
+    pub(crate) const fn ct_div_rem_limb(&self, rhs: Limb) -> (Self, Limb, CtChoice) {
         let (reciprocal, is_some) = Reciprocal::ct_new(rhs);
         let (quo, rem) = div_rem_limb_with_reciprocal(self, &reciprocal);
         (quo, rem, is_some)
@@ -44,7 +43,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes `self` / `rhs`, returns the quotient (q), remainder (r)
-    /// and `Word::MAX` for is_some or `0` for is_none.
+    /// and the truthy value for is_some or the falsy value for is_none.
     ///
     /// NOTE: Use only if you need to access const fn. Otherwise use [`div_rem`] because
     /// the value for is_some needs to be checked before using `q` and `r`.
@@ -53,7 +52,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub(crate) const fn ct_div_rem(&self, rhs: &Self) -> (Self, Self, Word) {
+    pub(crate) const fn ct_div_rem(&self, rhs: &Self) -> (Self, Self, CtChoice) {
         let mb = rhs.bits_vartime();
         let mut bd = Self::BITS - mb;
         let mut rem = *self;
@@ -79,14 +78,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes `self` % `rhs`, returns the remainder and
-    /// and `Word::MAX` for is_some or `0` for is_none.
+    /// and the truthy value for is_some or the falsy value for is_none.
     ///
     /// NOTE: Use only if you need to access const fn. Otherwise use [`rem`].
     /// This is variable only with respect to `rhs`.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub(crate) const fn ct_rem(&self, rhs: &Self) -> (Self, Word) {
+    pub(crate) const fn ct_rem(&self, rhs: &Self) -> (Self, CtChoice) {
         let mb = rhs.bits_vartime();
         let mut bd = Self::BITS - mb;
         let mut rem = *self;
@@ -107,13 +106,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes `self` % `rhs`, returns the remainder and
-    /// and `Word::MAX` for is_some or `0` for is_none.
+    /// and the truthy value for is_some or the falsy value for is_none.
     ///
     /// This is variable only with respect to `rhs`.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub(crate) const fn ct_rem_wide(lower_upper: (Self, Self), rhs: &Self) -> (Self, Word) {
+    pub(crate) const fn ct_rem_wide(lower_upper: (Self, Self), rhs: &Self) -> (Self, CtChoice) {
         let mb = rhs.bits_vartime();
 
         // The number of bits to consider is two sets of limbs * BITS - mb (modulus bitcount)
