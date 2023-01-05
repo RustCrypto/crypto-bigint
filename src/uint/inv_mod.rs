@@ -91,9 +91,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             i += 1;
         }
 
-        debug_assert!(a.ct_cmp(&Uint::ZERO) == 0);
+        debug_assert!(a.ct_is_nonzero() == 0);
 
-        (v, b.ct_not_eq(&Uint::ONE) ^ Word::MAX)
+        (v, b.ct_eq(&Uint::ONE))
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.

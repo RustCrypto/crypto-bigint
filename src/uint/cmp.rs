@@ -3,7 +3,7 @@
 //! By default these are all constant-time and use the `subtle` crate.
 
 use super::Uint;
-use crate::{limb::HI_BIT, CtChoice, Limb, SignedWord, WideSignedWord, Word, Zero};
+use crate::{CtChoice, Limb, Word};
 use core::cmp::Ordering;
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
@@ -39,7 +39,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             b |= self.limbs[i].0;
             i += 1;
         }
-        Limb::is_nonzero(Limb(b))
+        Limb(b).is_nonzero()
     }
 
     /// Returns the truthy value if `self` is odd or the falsy value otherwise.
@@ -47,30 +47,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         (self.limbs[0].0 & 1).wrapping_neg()
     }
 
-    /// Returns -1 if self < rhs
-    ///          0 if self == rhs
-    ///          1 if self > rhs
-    ///
-    /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
+    /// Returns the truthy value if `self == rhs` or the falsy value otherwise.
     #[inline]
-    pub(crate) const fn ct_cmp(&self, rhs: &Self) -> SignedWord {
-        let mut gt = 0;
-        let mut lt = 0;
-        let mut i = LIMBS;
-
-        while i > 0 {
-            let a = self.limbs[i - 1].0 as WideSignedWord;
-            let b = rhs.limbs[i - 1].0 as WideSignedWord;
-            gt |= ((b - a) >> Limb::BITS) & 1 & !lt;
-            lt |= ((a - b) >> Limb::BITS) & 1 & !gt;
-            i -= 1;
-        }
-        (gt as SignedWord) - (lt as SignedWord)
-    }
-
-    /// Returns the truthy value if `self != rhs` or the falsy value otherwise.
-    #[inline]
-    pub(crate) const fn ct_not_eq(&self, rhs: &Self) -> CtChoice {
+    pub(crate) const fn ct_eq(&self, rhs: &Self) -> CtChoice {
         let mut acc = 0;
         let mut i = 0;
 
@@ -78,31 +57,47 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             acc |= self.limbs[i].0 ^ rhs.limbs[i].0;
             i += 1;
         }
-        let acc = acc as SignedWord;
-        ((acc | acc.wrapping_neg()) >> HI_BIT) as Word
+
+        // acc == 0 if and only if self == rhs
+        !Limb(acc).is_nonzero()
+    }
+
+    /// Returns the truthy value if `self <= rhs` and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn ct_lt(&self, rhs: &Self) -> CtChoice {
+        // We could use the same approach as in Limb::ct_lt(),
+        // but since we have to use Uint::wrapping_sub(), which calls `sbb()`,
+        // there are no savings compared to just calling `sbb()` directly.
+        let (_res, borrow) = self.sbb(rhs, Limb::ZERO);
+        borrow.0
+    }
+
+    /// Returns the truthy value if `self <= rhs` and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn ct_gt(&self, rhs: &Self) -> CtChoice {
+        let (_res, borrow) = rhs.sbb(self, Limb::ZERO);
+        borrow.0
     }
 }
 
 impl<const LIMBS: usize> ConstantTimeEq for Uint<LIMBS> {
     #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
-        Choice::from((!self.ct_not_eq(other) as u8) & 1)
+        Choice::from(self.ct_eq(other) as u8 & 1)
     }
 }
 
 impl<const LIMBS: usize> ConstantTimeGreater for Uint<LIMBS> {
     #[inline]
     fn ct_gt(&self, other: &Self) -> Choice {
-        let underflow = other.sbb(self, Limb::ZERO).1;
-        !underflow.is_zero()
+        Choice::from(self.ct_gt(other) as u8 & 1)
     }
 }
 
 impl<const LIMBS: usize> ConstantTimeLess for Uint<LIMBS> {
     #[inline]
     fn ct_lt(&self, other: &Self) -> Choice {
-        let underflow = self.sbb(other, Limb::ZERO).1;
-        !underflow.is_zero()
+        Choice::from(self.ct_lt(other) as u8 & 1)
     }
 }
 
@@ -110,14 +105,15 @@ impl<const LIMBS: usize> Eq for Uint<LIMBS> {}
 
 impl<const LIMBS: usize> Ord for Uint<LIMBS> {
     fn cmp(&self, other: &Self) -> Ordering {
-        match self.ct_cmp(other) {
-            -1 => Ordering::Less,
-            1 => Ordering::Greater,
-            n => {
-                debug_assert_eq!(n, 0);
-                debug_assert!(bool::from(self.ct_eq(other)));
-                Ordering::Equal
-            }
+        let is_lt = self.ct_lt(other);
+        let is_eq = self.ct_eq(other);
+
+        if is_lt == Word::MAX {
+            Ordering::Less
+        } else if is_eq == Word::MAX {
+            Ordering::Equal
+        } else {
+            Ordering::Greater
         }
     }
 }
@@ -130,7 +126,7 @@ impl<const LIMBS: usize> PartialOrd for Uint<LIMBS> {
 
 impl<const LIMBS: usize> PartialEq for Uint<LIMBS> {
     fn eq(&self, other: &Self) -> bool {
-        self.ct_eq(other).into()
+        self.ct_eq(other) == Word::MAX
     }
 }
 
@@ -158,10 +154,10 @@ mod tests {
         let a = U128::ZERO;
         let b = U128::MAX;
 
-        assert!(bool::from(a.ct_eq(&a)));
-        assert!(!bool::from(a.ct_eq(&b)));
-        assert!(!bool::from(b.ct_eq(&a)));
-        assert!(bool::from(b.ct_eq(&b)));
+        assert!(bool::from(ConstantTimeEq::ct_eq(&a, &a)));
+        assert!(!bool::from(ConstantTimeEq::ct_eq(&a, &b)));
+        assert!(!bool::from(ConstantTimeEq::ct_eq(&b, &a)));
+        assert!(bool::from(ConstantTimeEq::ct_eq(&b, &b)));
     }
 
     #[test]
@@ -170,17 +166,17 @@ mod tests {
         let b = U128::ONE;
         let c = U128::MAX;
 
-        assert!(bool::from(b.ct_gt(&a)));
-        assert!(bool::from(c.ct_gt(&a)));
-        assert!(bool::from(c.ct_gt(&b)));
+        assert!(bool::from(ConstantTimeGreater::ct_gt(&b, &a)));
+        assert!(bool::from(ConstantTimeGreater::ct_gt(&c, &a)));
+        assert!(bool::from(ConstantTimeGreater::ct_gt(&c, &b)));
 
-        assert!(!bool::from(a.ct_gt(&a)));
-        assert!(!bool::from(b.ct_gt(&b)));
-        assert!(!bool::from(c.ct_gt(&c)));
+        assert!(!bool::from(ConstantTimeGreater::ct_gt(&a, &a)));
+        assert!(!bool::from(ConstantTimeGreater::ct_gt(&b, &b)));
+        assert!(!bool::from(ConstantTimeGreater::ct_gt(&c, &c)));
 
-        assert!(!bool::from(a.ct_gt(&b)));
-        assert!(!bool::from(a.ct_gt(&c)));
-        assert!(!bool::from(b.ct_gt(&c)));
+        assert!(!bool::from(ConstantTimeGreater::ct_gt(&a, &b)));
+        assert!(!bool::from(ConstantTimeGreater::ct_gt(&a, &c)));
+        assert!(!bool::from(ConstantTimeGreater::ct_gt(&b, &c)));
     }
 
     #[test]
@@ -189,16 +185,16 @@ mod tests {
         let b = U128::ONE;
         let c = U128::MAX;
 
-        assert!(bool::from(a.ct_lt(&b)));
-        assert!(bool::from(a.ct_lt(&c)));
-        assert!(bool::from(b.ct_lt(&c)));
+        assert!(bool::from(ConstantTimeLess::ct_lt(&a, &b)));
+        assert!(bool::from(ConstantTimeLess::ct_lt(&a, &c)));
+        assert!(bool::from(ConstantTimeLess::ct_lt(&b, &c)));
 
-        assert!(!bool::from(a.ct_lt(&a)));
-        assert!(!bool::from(b.ct_lt(&b)));
-        assert!(!bool::from(c.ct_lt(&c)));
+        assert!(!bool::from(ConstantTimeLess::ct_lt(&a, &a)));
+        assert!(!bool::from(ConstantTimeLess::ct_lt(&b, &b)));
+        assert!(!bool::from(ConstantTimeLess::ct_lt(&c, &c)));
 
-        assert!(!bool::from(b.ct_lt(&a)));
-        assert!(!bool::from(c.ct_lt(&a)));
-        assert!(!bool::from(c.ct_lt(&b)));
+        assert!(!bool::from(ConstantTimeLess::ct_lt(&b, &a)));
+        assert!(!bool::from(ConstantTimeLess::ct_lt(&c, &a)));
+        assert!(!bool::from(ConstantTimeLess::ct_lt(&c, &b)));
     }
 }

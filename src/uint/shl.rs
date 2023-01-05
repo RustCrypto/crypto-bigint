@@ -30,10 +30,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         debug_assert!(carry_bits[LIMBS - 1] == 0 || carry_bits[LIMBS - 1] == 1);
-        (
-            Uint::new(limbs),
-            carry_bits[LIMBS - 1].wrapping_neg(),
-        )
+        (Uint::new(limbs), carry_bits[LIMBS - 1].wrapping_neg())
     }
 
     /// Computes `self << shift` where `0 <= shift < Limb::BITS`,

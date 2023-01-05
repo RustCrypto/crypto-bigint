@@ -146,8 +146,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn rem2k(&self, k: usize) -> Self {
         let highest = (LIMBS - 1) as u32;
         let index = k as u32 / (Limb::BITS as u32);
-        let res = Limb::ct_cmp(Limb::from_u32(index), Limb::from_u32(highest)) - 1;
-        let le = Limb::is_nonzero(Limb(res as Word));
+        let le = Limb::ct_le(Limb::from_u32(index), Limb::from_u32(highest));
         let word = Limb::ct_select(Limb::from_u32(highest), Limb::from_u32(index), le).0 as usize;
 
         let base = k % Limb::BITS;

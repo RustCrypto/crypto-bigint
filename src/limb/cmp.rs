@@ -1,6 +1,6 @@
 //! Limb comparisons
 
-use super::{CtChoice, Limb, SignedWord, WideSignedWord, Word, HI_BIT};
+use super::{CtChoice, Limb, HI_BIT};
 use core::cmp::Ordering;
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
@@ -26,18 +26,9 @@ impl Limb {
 
     /// Returns the truthy value if `self != 0` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn is_nonzero(self) -> CtChoice {
-        let inner = self.0 as SignedWord;
-        ((inner | inner.saturating_neg()) >> HI_BIT) as Word
-    }
-
-    #[inline]
-    pub(crate) const fn ct_cmp(lhs: Self, rhs: Self) -> SignedWord {
-        let a = lhs.0 as WideSignedWord;
-        let b = rhs.0 as WideSignedWord;
-        let gt = ((b - a) >> Limb::BITS) & 1;
-        let lt = ((a - b) >> Limb::BITS) & 1 & !gt;
-        (gt as SignedWord) - (lt as SignedWord)
+    pub(crate) const fn is_nonzero(&self) -> CtChoice {
+        let inner = self.0;
+        ((inner | inner.wrapping_neg()) >> HI_BIT).wrapping_neg()
     }
 
     /// Returns the truthy value if `lhs == rhs` and the falsy value otherwise.
@@ -46,16 +37,8 @@ impl Limb {
         let x = lhs.0;
         let y = rhs.0;
 
-        // c == 0 if and only if x == y
-        let c = x ^ y;
-
-        // If c == 0, then c and -c are both equal to zero;
-        // otherwise, one or both will have its high bit set.
-        let d = (c | c.wrapping_neg()) >> (Limb::BITS - 1);
-
-        // Result is the opposite of the high bit (now shifted to low).
-        // Convert 1 to Word::MAX.
-        (d ^ 1).wrapping_neg()
+        // x ^ y == 0 if and only if x == y
+        !Self(x ^ y).is_nonzero()
     }
 
     /// Returns the truthy value if `lhs < rhs` and the falsy value otherwise.

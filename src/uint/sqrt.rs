@@ -21,12 +21,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         // If guess increased, the initial guess was low.
         // Repeat until reverse course.
-        while guess.ct_cmp(&xn) == -1 {
+        while guess.ct_lt(&xn) == Word::MAX {
             // Sometimes an increase is too far, especially with large
             // powers, and then takes a long time to walk back.  The upper
             // bound is based on bit size, so saturate on that.
-            let res = Limb::ct_cmp(Limb(xn.bits_vartime() as Word), Limb(max_bits as Word)) - 1;
-            let le = Limb::is_nonzero(Limb(res as Word));
+            let le = Limb::ct_le(Limb(xn.bits_vartime() as Word), Limb(max_bits as Word));
             guess = Self::ct_select(cap, xn, le);
             xn = {
                 let q = self.wrapping_div(&guess);
@@ -36,7 +35,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         // Repeat while guess decreases.
-        while guess.ct_cmp(&xn) == 1 && xn.ct_is_nonzero() == Word::MAX {
+        while guess.ct_gt(&xn) == Word::MAX && xn.ct_is_nonzero() == Word::MAX {
             guess = xn;
             xn = {
                 let q = self.wrapping_div(&guess);
@@ -60,7 +59,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub fn checked_sqrt(&self) -> CtOption<Self> {
         let r = self.sqrt();
         let s = r.wrapping_mul(&r);
-        CtOption::new(r, self.ct_eq(&s))
+        CtOption::new(r, ConstantTimeEq::ct_eq(self, &s))
     }
 }
 

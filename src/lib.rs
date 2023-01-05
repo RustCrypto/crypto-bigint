@@ -178,8 +178,6 @@ pub use crate::{
 };
 pub use subtle;
 
-pub(crate) use limb::{SignedWord, WideSignedWord};
-
 #[cfg(feature = "generic-array")]
 pub use {
     crate::array::{ArrayDecoding, ArrayEncoding, ByteArray},

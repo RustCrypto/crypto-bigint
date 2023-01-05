@@ -109,7 +109,7 @@ impl<MOD: ResidueParams<LIMBS> + Copy, const LIMBS: usize> ConditionallySelectab
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> ConstantTimeEq for Residue<MOD, LIMBS> {
     fn ct_eq(&self, other: &Self) -> Choice {
-        self.montgomery_form.ct_eq(&other.montgomery_form)
+        ConstantTimeEq::ct_eq(&self.montgomery_form, &other.montgomery_form)
     }
 }
 

@@ -50,8 +50,7 @@ pub(crate) const fn montgomery_reduction<const LIMBS: usize>(
     // Division is simply taking the upper half of the limbs
     // Final reduction (at this point, the value is at most 2 * modulus)
     debug_assert!(meta_carry == 0 || meta_carry == 1);
-    let must_reduce = (meta_carry as Word).wrapping_neg()
-        | ((upper.ct_cmp(&modulus) != -1) as Word).wrapping_neg();
+    let must_reduce = (meta_carry as Word).wrapping_neg() | !Uint::ct_gt(&modulus, &upper);
     upper = upper.wrapping_sub(&Uint::ct_select(Uint::ZERO, modulus, must_reduce));
 
     upper
