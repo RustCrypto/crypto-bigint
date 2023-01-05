@@ -33,7 +33,7 @@ pub const fn reciprocal(d: Word) -> Word {
     // Hence the `ct_select()`.
     let x = v2.wrapping_add(1);
     let (hi, _lo) = mulhilo(x, d);
-    let hi = Limb::ct_select(Limb(d), Limb(hi), Limb(x).is_nonzero()).0;
+    let hi = Limb::ct_select(Limb(d), Limb(hi), Limb(x).ct_is_nonzero()).0;
 
     v2.wrapping_sub(hi).wrapping_sub(d)
 }
@@ -63,7 +63,7 @@ pub const fn reciprocal(d: Word) -> Word {
     // Hence the `ct_select()`.
     let x = v3.wrapping_add(1);
     let (hi, _lo) = mulhilo(x, d);
-    let hi = Limb::ct_select(Limb(d), Limb(hi), Limb(x).is_nonzero()).0;
+    let hi = Limb::ct_select(Limb(d), Limb(hi), Limb(x).ct_is_nonzero()).0;
 
     v3.wrapping_sub(hi).wrapping_sub(d)
 }
@@ -179,7 +179,7 @@ impl Reciprocal {
         let shift = divisor.0.leading_zeros();
 
         #[allow(trivial_numeric_casts)]
-        let is_some = Limb((Word::BITS - shift) as Word).is_nonzero();
+        let is_some = Limb((Word::BITS - shift) as Word).ct_is_nonzero();
 
         // If `divisor = 0`, shifting `divisor` by `leading_zeros == Word::BITS` will cause a panic.
         // Have to substitute a "bogus" shift in that case.

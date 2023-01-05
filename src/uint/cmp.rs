@@ -39,7 +39,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             b |= self.limbs[i].0;
             i += 1;
         }
-        Limb(b).is_nonzero()
+        Limb(b).ct_is_nonzero()
     }
 
     /// Returns the truthy value if `self` is odd or the falsy value otherwise.
@@ -59,7 +59,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         // acc == 0 if and only if self == rhs
-        !Limb(acc).is_nonzero()
+        !Limb(acc).ct_is_nonzero()
     }
 
     /// Returns the truthy value if `self <= rhs` and the falsy value otherwise.

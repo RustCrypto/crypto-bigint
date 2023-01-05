@@ -39,7 +39,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub(crate) const fn shl_limb(&self, n: usize) -> (Self, Limb) {
         let mut limbs = [Limb::ZERO; LIMBS];
 
-        let nz = Limb(n as Word).is_nonzero();
+        let nz = Limb(n as Word).ct_is_nonzero();
         let lshift = n as Word;
         let rshift = Limb::ct_select(Limb::ZERO, Limb((Limb::BITS - n) as Word), nz).0;
         let carry = Limb::ct_select(

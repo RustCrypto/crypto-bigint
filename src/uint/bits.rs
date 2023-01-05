@@ -26,7 +26,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Limb::ct_select(
             Limb(bits),
             Limb::ZERO,
-            !self.limbs[0].is_nonzero() & !Limb(i as Word).is_nonzero(),
+            !self.limbs[0].ct_is_nonzero() & !Limb(i as Word).ct_is_nonzero(),
         )
         .0 as usize
     }
@@ -43,7 +43,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let l = limbs[i];
             let z = l.leading_zeros() as Word;
             count += z & mask;
-            mask &= !l.is_nonzero();
+            mask &= !l.ct_is_nonzero();
         }
 
         count as usize
@@ -60,7 +60,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let l = limbs[i];
             let z = l.trailing_zeros() as Word;
             count += z & mask;
-            mask &= !l.is_nonzero();
+            mask &= !l.ct_is_nonzero();
             i += 1;
         }
 

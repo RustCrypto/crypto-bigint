@@ -72,7 +72,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             quo = quo.shl_vartime(1);
         }
 
-        let is_some = Limb(mb as Word).is_nonzero();
+        let is_some = Limb(mb as Word).ct_is_nonzero();
         quo = Self::ct_select(Self::ZERO, quo, is_some);
         (quo, rem, is_some)
     }
@@ -101,7 +101,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             c = c.shr_vartime(1);
         }
 
-        let is_some = Limb(mb as Word).is_nonzero();
+        let is_some = Limb(mb as Word).ct_is_nonzero();
         (rem, is_some)
     }
 
@@ -137,7 +137,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             c = Self::shr_vartime_wide(c, 1);
         }
 
-        let is_some = Limb(mb as Word).is_nonzero();
+        let is_some = Limb(mb as Word).ct_is_nonzero();
         (lower, is_some)
     }
 

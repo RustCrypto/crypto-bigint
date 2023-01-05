@@ -26,7 +26,7 @@ impl Limb {
 
     /// Returns the truthy value if `self != 0` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn is_nonzero(&self) -> CtChoice {
+    pub(crate) const fn ct_is_nonzero(&self) -> CtChoice {
         let inner = self.0;
         ((inner | inner.wrapping_neg()) >> HI_BIT).wrapping_neg()
     }
@@ -38,7 +38,7 @@ impl Limb {
         let y = rhs.0;
 
         // x ^ y == 0 if and only if x == y
-        !Self(x ^ y).is_nonzero()
+        !Self(x ^ y).ct_is_nonzero()
     }
 
     /// Returns the truthy value if `lhs < rhs` and the falsy value otherwise.
