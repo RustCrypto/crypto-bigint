@@ -1,20 +1,20 @@
 use core::marker::PhantomData;
 
-use subtle::{Choice, CtOption};
+use subtle::CtOption;
 
-use crate::{modular::inv::inv_montgomery_form, traits::Invert, NonZero};
+use crate::{modular::inv::inv_montgomery_form, traits::Invert, CtChoice, NonZero};
 
 use super::{Residue, ResidueParams};
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// Computes the residue `self^-1` representing the multiplicative inverse of `self`.
     /// I.e. `self * self^-1 = 1`.
-    /// If the number was invertible, the second element of the tuple is `1`,
-    /// otherwise it is `0` (in which case the first element's value is unspecified).
-    pub const fn invert(&self) -> (Self, u8) {
+    /// If the number was invertible, the second element of the tuple is the truthy value,
+    /// otherwise it is the falsy value (in which case the first element's value is unspecified).
+    pub const fn invert(&self) -> (Self, CtChoice) {
         let (montgomery_form, is_some) = inv_montgomery_form(
-            self.montgomery_form,
-            MOD::MODULUS,
+            &self.montgomery_form,
+            &MOD::MODULUS,
             &MOD::R3,
             MOD::MOD_NEG_INV,
         );
@@ -24,7 +24,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
             phantom: PhantomData,
         };
 
-        (value, (is_some & 1) as u8)
+        (value, is_some)
     }
 }
 
@@ -32,7 +32,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Invert for Residue<MOD, LIMB
     type Output = CtOption<Self>;
     fn invert(&self) -> Self::Output {
         let (value, is_some) = self.invert();
-        CtOption::new(value, Choice::from(is_some))
+        CtOption::new(value, is_some.into())
     }
 }
 

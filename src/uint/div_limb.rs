@@ -3,7 +3,7 @@
 //! (DOI: 10.1109/TC.2010.143, <https://gmplib.org/~tege/division-paper.pdf>).
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
-use crate::{Limb, Uint, WideWord, Word};
+use crate::{CtChoice, Limb, Uint, WideWord, Word};
 
 /// Calculates the reciprocal of the given 32-bit divisor with the highmost bit set.
 #[cfg(target_pointer_width = "32")]
@@ -33,7 +33,7 @@ pub const fn reciprocal(d: Word) -> Word {
     // Hence the `ct_select()`.
     let x = v2.wrapping_add(1);
     let (hi, _lo) = mulhilo(x, d);
-    let hi = Limb::ct_select(Limb(d), Limb(hi), Limb(x).is_nonzero()).0;
+    let hi = Limb::ct_select(Limb(d), Limb(hi), Limb(x).ct_is_nonzero()).0;
 
     v2.wrapping_sub(hi).wrapping_sub(d)
 }
@@ -63,7 +63,7 @@ pub const fn reciprocal(d: Word) -> Word {
     // Hence the `ct_select()`.
     let x = v3.wrapping_add(1);
     let (hi, _lo) = mulhilo(x, d);
-    let hi = Limb::ct_select(Limb(d), Limb(hi), Limb(x).is_nonzero()).0;
+    let hi = Limb::ct_select(Limb(d), Limb(hi), Limb(x).ct_is_nonzero()).0;
 
     v3.wrapping_sub(hi).wrapping_sub(d)
 }
@@ -168,17 +168,18 @@ pub struct Reciprocal {
 impl Reciprocal {
     /// Pre-calculates a reciprocal for a known divisor,
     /// to be used in the single-limb division later.
-    /// Returns the reciprocal, and `1` if `divisor != 0` and `0` otherwise.
+    /// Returns the reciprocal, and the truthy value if `divisor != 0`
+    /// and the falsy value otherwise.
     ///
-    /// Note: if the returned flag is `0`, the returned reciprocal object is still self-consistent
+    /// Note: if the returned flag is falsy, the returned reciprocal object is still self-consistent
     /// and can be passed to functions here without causing them to panic,
     /// but the results are naturally not to be used.
-    pub const fn new_const(divisor: Limb) -> (Self, u8) {
+    pub const fn ct_new(divisor: Limb) -> (Self, CtChoice) {
         // Assuming this is constant-time for primitive types.
         let shift = divisor.0.leading_zeros();
 
         #[allow(trivial_numeric_casts)]
-        let is_some = Limb((Word::BITS - shift) as Word).is_nonzero();
+        let is_some = Limb((Word::BITS - shift) as Word).ct_is_nonzero();
 
         // If `divisor = 0`, shifting `divisor` by `leading_zeros == Word::BITS` will cause a panic.
         // Have to substitute a "bogus" shift in that case.
@@ -199,7 +200,7 @@ impl Reciprocal {
                 shift,
                 reciprocal: reciprocal(divisor_normalized),
             },
-            (is_some & 1) as u8,
+            is_some,
         )
     }
 
@@ -220,8 +221,8 @@ impl Reciprocal {
 
     /// A non-const-fn version of `new_const()`, wrapping the result in a `CtOption`.
     pub fn new(divisor: Limb) -> CtOption<Self> {
-        let (rec, is_some) = Self::new_const(divisor);
-        CtOption::new(rec, Choice::from(is_some))
+        let (rec, is_some) = Self::ct_new(divisor);
+        CtOption::new(rec, is_some.into())
     }
 }
 

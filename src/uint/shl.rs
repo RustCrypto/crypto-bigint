@@ -1,11 +1,11 @@
 //! [`Uint`] bitwise left shift operations.
 
-use crate::{limb::HI_BIT, Limb, Uint, Word};
+use crate::{limb::HI_BIT, CtChoice, Limb, Uint, Word};
 use core::ops::{Shl, ShlAssign};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Computes `self << 1` in constant-time, returning the overflowing bit as a `Word` that is either 0...0 or 1...1.
-    pub(crate) const fn shl_1(&self) -> (Self, Word) {
+    /// Computes `self << 1` in constant-time, returning the overflowing bit as a `CtChoice`.
+    pub(crate) const fn shl_1(&self) -> (Self, CtChoice) {
         let mut shifted_bits = [0; LIMBS];
         let mut i = 0;
         while i < LIMBS {
@@ -29,10 +29,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             i += 1;
         }
 
-        (
-            Uint::new(limbs),
-            carry_bits[LIMBS - 1].wrapping_mul(Word::MAX),
-        )
+        (Uint::new(limbs), CtChoice::from_lsb(carry_bits[LIMBS - 1]))
     }
 
     /// Computes `self << shift` where `0 <= shift < Limb::BITS`,
@@ -41,7 +38,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub(crate) const fn shl_limb(&self, n: usize) -> (Self, Limb) {
         let mut limbs = [Limb::ZERO; LIMBS];
 
-        let nz = Limb(n as Word).is_nonzero();
+        let nz = Limb(n as Word).ct_is_nonzero();
         let lshift = n as Word;
         let rshift = Limb::ct_select(Limb::ZERO, Limb((Limb::BITS - n) as Word), nz).0;
         let carry = Limb::ct_select(
@@ -54,7 +51,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         while i > 0 {
             let mut limb = self.limbs[i].0 << lshift;
             let hi = self.limbs[i - 1].0 >> rshift;
-            limb |= hi & nz;
+            limb |= nz.if_true(hi);
             limbs[i] = Limb(limb);
             i -= 1
         }

@@ -1,12 +1,12 @@
 //! [`Uint`] bitwise right shift operations.
 
 use super::Uint;
-use crate::{limb::HI_BIT, Limb, Word};
+use crate::{limb::HI_BIT, CtChoice, Limb};
 use core::ops::{Shr, ShrAssign};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self >> 1` in constant-time, returning the overflowing bit as a `Word` that is either 0...0 or 1...1.
-    pub(crate) const fn shr_1(&self) -> (Self, Word) {
+    pub(crate) const fn shr_1(&self) -> (Self, CtChoice) {
         let mut shifted_bits = [0; LIMBS];
         let mut i = 0;
         while i < LIMBS {
@@ -30,9 +30,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
         limbs[LIMBS - 1] = Limb(shifted_bits[LIMBS - 1]);
 
+        debug_assert!(carry_bits[LIMBS - 1] == 0 || carry_bits[LIMBS - 1] == (1 << HI_BIT));
         (
             Uint::new(limbs),
-            (carry_bits[0] >> HI_BIT).wrapping_mul(Word::MAX),
+            CtChoice::from_lsb(carry_bits[0] >> HI_BIT),
         )
     }
 

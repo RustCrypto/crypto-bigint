@@ -1,6 +1,7 @@
 //! Limb comparisons
 
-use super::{Limb, SignedWord, WideSignedWord, Word, HI_BIT};
+use super::HI_BIT;
+use crate::{CtChoice, Limb};
 use core::cmp::Ordering;
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
@@ -24,58 +25,45 @@ impl Limb {
         self.0 == other.0
     }
 
-    /// Returns all 1's if `a`!=0 or 0 if `a`==0.
-    ///
-    /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
+    /// Return `b` if `c` is truthy, otherwise return `a`.
     #[inline]
-    pub(crate) const fn is_nonzero(self) -> Word {
-        let inner = self.0 as SignedWord;
-        ((inner | inner.saturating_neg()) >> HI_BIT) as Word
+    pub(crate) const fn ct_select(a: Self, b: Self, c: CtChoice) -> Self {
+        Self(c.select(a.0, b.0))
     }
 
+    /// Returns the truthy value if `self != 0` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn ct_cmp(lhs: Self, rhs: Self) -> SignedWord {
-        let a = lhs.0 as WideSignedWord;
-        let b = rhs.0 as WideSignedWord;
-        let gt = ((b - a) >> Limb::BITS) & 1;
-        let lt = ((a - b) >> Limb::BITS) & 1 & !gt;
-        (gt as SignedWord) - (lt as SignedWord)
+    pub(crate) const fn ct_is_nonzero(&self) -> CtChoice {
+        let inner = self.0;
+        CtChoice::from_lsb((inner | inner.wrapping_neg()) >> HI_BIT)
     }
 
-    /// Returns `Word::MAX` if `lhs == rhs` and `0` otherwise.
+    /// Returns the truthy value if `lhs == rhs` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn ct_eq(lhs: Self, rhs: Self) -> Word {
+    pub(crate) const fn ct_eq(lhs: Self, rhs: Self) -> CtChoice {
         let x = lhs.0;
         let y = rhs.0;
 
-        // c == 0 if and only if x == y
-        let c = x ^ y;
-
-        // If c == 0, then c and -c are both equal to zero;
-        // otherwise, one or both will have its high bit set.
-        let d = (c | c.wrapping_neg()) >> (Limb::BITS - 1);
-
-        // Result is the opposite of the high bit (now shifted to low).
-        // Convert 1 to Word::MAX.
-        (d ^ 1).wrapping_neg()
+        // x ^ y == 0 if and only if x == y
+        Self(x ^ y).ct_is_nonzero().not()
     }
 
-    /// Returns `Word::MAX` if `lhs < rhs` and `0` otherwise.
+    /// Returns the truthy value if `lhs < rhs` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn ct_lt(lhs: Self, rhs: Self) -> Word {
+    pub(crate) const fn ct_lt(lhs: Self, rhs: Self) -> CtChoice {
         let x = lhs.0;
         let y = rhs.0;
         let bit = (((!x) & y) | (((!x) | y) & (x.wrapping_sub(y)))) >> (Limb::BITS - 1);
-        bit.wrapping_neg()
+        CtChoice::from_lsb(bit)
     }
 
-    /// Returns `Word::MAX` if `lhs <= rhs` and `0` otherwise.
+    /// Returns the truthy value if `lhs <= rhs` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn ct_le(lhs: Self, rhs: Self) -> Word {
+    pub(crate) const fn ct_le(lhs: Self, rhs: Self) -> CtChoice {
         let x = lhs.0;
         let y = rhs.0;
         let bit = (((!x) | y) & ((x ^ y) | !(y.wrapping_sub(x)))) >> (Limb::BITS - 1);
-        bit.wrapping_neg()
+        CtChoice::from_lsb(bit)
     }
 }
 

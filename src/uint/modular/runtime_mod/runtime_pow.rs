@@ -16,11 +16,11 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
     pub const fn pow_bounded_exp(&self, exponent: &Uint<LIMBS>, exponent_bits: usize) -> Self {
         Self {
             montgomery_form: pow_montgomery_form(
-                self.montgomery_form,
+                &self.montgomery_form,
                 exponent,
                 exponent_bits,
-                self.residue_params.modulus,
-                self.residue_params.r,
+                &self.residue_params.modulus,
+                &self.residue_params.r,
                 self.residue_params.mod_neg_inv,
             ),
             residue_params: self.residue_params,

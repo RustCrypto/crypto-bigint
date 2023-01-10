@@ -14,7 +14,7 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
             montgomery_form: mul_montgomery_form(
                 &self.montgomery_form,
                 &rhs.montgomery_form,
-                self.residue_params.modulus,
+                &self.residue_params.modulus,
                 self.residue_params.mod_neg_inv,
             ),
             residue_params: self.residue_params,
@@ -70,7 +70,7 @@ impl<const LIMBS: usize> Square for DynResidue<LIMBS> {
         Self {
             montgomery_form: square_montgomery_form(
                 &self.montgomery_form,
-                self.residue_params.modulus,
+                &self.residue_params.modulus,
                 self.residue_params.mod_neg_inv,
             ),
             residue_params: self.residue_params,

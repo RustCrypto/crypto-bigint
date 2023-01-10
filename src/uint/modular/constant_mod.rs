@@ -41,7 +41,7 @@ pub trait ResidueParams<const LIMBS: usize>: Copy {
     /// R^3, used to perform a multiplicative inverse
     const R3: Uint<LIMBS>;
     /// The lowest limbs of -(MODULUS^-1) mod R
-    // We only need the LSB because during reduction this value is multiplied modulo 2**64.
+    // We only need the LSB because during reduction this value is multiplied modulo 2**Limb::BITS.
     const MOD_NEG_INV: Limb;
 }
 
@@ -69,24 +69,22 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     };
 
     /// Instantiates a new `Residue` that represents this `integer` mod `MOD`.
-    pub const fn new(integer: Uint<LIMBS>) -> Self {
-        let mut modular_integer = Residue {
-            montgomery_form: integer,
-            phantom: PhantomData,
-        };
-
+    pub const fn new(integer: &Uint<LIMBS>) -> Self {
         let product = integer.mul_wide(&MOD::R2);
-        modular_integer.montgomery_form =
-            montgomery_reduction::<LIMBS>(product, MOD::MODULUS, MOD::MOD_NEG_INV);
+        let montgomery_form =
+            montgomery_reduction::<LIMBS>(&product, &MOD::MODULUS, MOD::MOD_NEG_INV);
 
-        modular_integer
+        Self {
+            montgomery_form,
+            phantom: PhantomData,
+        }
     }
 
     /// Retrieves the integer currently encoded in this `Residue`, guaranteed to be reduced.
     pub const fn retrieve(&self) -> Uint<LIMBS> {
         montgomery_reduction::<LIMBS>(
-            (self.montgomery_form, Uint::ZERO),
-            MOD::MODULUS,
+            &(self.montgomery_form, Uint::ZERO),
+            &MOD::MODULUS,
             MOD::MOD_NEG_INV,
         )
     }
@@ -109,7 +107,7 @@ impl<MOD: ResidueParams<LIMBS> + Copy, const LIMBS: usize> ConditionallySelectab
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> ConstantTimeEq for Residue<MOD, LIMBS> {
     fn ct_eq(&self, other: &Self) -> Choice {
-        self.montgomery_form.ct_eq(&other.montgomery_form)
+        ConstantTimeEq::ct_eq(&self.montgomery_form, &other.montgomery_form)
     }
 }
 

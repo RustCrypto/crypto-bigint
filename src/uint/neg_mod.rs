@@ -12,7 +12,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         while i < LIMBS {
             // Set ret to 0 if the original value was 0, in which
             // case ret would be p.
-            ret.limbs[i].0 &= z;
+            ret.limbs[i].0 = z.if_true(ret.limbs[i].0);
             i += 1;
         }
         ret

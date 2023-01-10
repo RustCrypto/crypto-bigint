@@ -3,16 +3,14 @@
 //! By default these are all constant-time and use the `subtle` crate.
 
 use super::Uint;
-use crate::{limb::HI_BIT, Limb, SignedWord, WideSignedWord, Word, Zero};
+use crate::{CtChoice, Limb};
 use core::cmp::Ordering;
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Return `a` if `c`==0 or `b` if `c`==`Word::MAX`.
-    ///
-    /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
+    /// Return `b` if `c` is truthy, otherwise return `a`.
     #[inline]
-    pub(crate) const fn ct_select(a: Uint<LIMBS>, b: Uint<LIMBS>, c: Word) -> Self {
+    pub(crate) const fn ct_select(a: &Self, b: &Self, c: CtChoice) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
 
         let mut i = 0;
@@ -25,88 +23,81 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     #[inline]
-    pub(crate) const fn ct_swap(a: Uint<LIMBS>, b: Uint<LIMBS>, c: Word) -> (Self, Self) {
+    pub(crate) const fn ct_swap(a: &Self, b: &Self, c: CtChoice) -> (Self, Self) {
         let new_a = Self::ct_select(a, b, c);
         let new_b = Self::ct_select(b, a, c);
 
         (new_a, new_b)
     }
 
-    /// Returns all 1's if `self`!=0 or 0 if `self`==0.
-    ///
-    /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
+    /// Returns the truthy value if `self`!=0 or the falsy value otherwise.
     #[inline]
-    pub(crate) const fn ct_is_nonzero(&self) -> Word {
+    pub(crate) const fn ct_is_nonzero(&self) -> CtChoice {
         let mut b = 0;
         let mut i = 0;
         while i < LIMBS {
             b |= self.limbs[i].0;
             i += 1;
         }
-        Limb::is_nonzero(Limb(b))
+        Limb(b).ct_is_nonzero()
     }
 
-    pub(crate) const fn ct_is_odd(&self) -> Word {
-        (self.limbs[0].0 & 1).wrapping_mul(Word::MAX)
+    /// Returns the truthy value if `self` is odd or the falsy value otherwise.
+    pub(crate) const fn ct_is_odd(&self) -> CtChoice {
+        CtChoice::from_lsb(self.limbs[0].0 & 1)
     }
 
-    /// Returns -1 if self < rhs
-    ///          0 if self == rhs
-    ///          1 if self > rhs
-    ///
-    /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
+    /// Returns the truthy value if `self == rhs` or the falsy value otherwise.
     #[inline]
-    pub(crate) const fn ct_cmp(&self, rhs: &Self) -> SignedWord {
-        let mut gt = 0;
-        let mut lt = 0;
-        let mut i = LIMBS;
-
-        while i > 0 {
-            let a = self.limbs[i - 1].0 as WideSignedWord;
-            let b = rhs.limbs[i - 1].0 as WideSignedWord;
-            gt |= ((b - a) >> Limb::BITS) & 1 & !lt;
-            lt |= ((a - b) >> Limb::BITS) & 1 & !gt;
-            i -= 1;
-        }
-        (gt as SignedWord) - (lt as SignedWord)
-    }
-
-    /// Returns 0 if self == rhs or Word::MAX if self != rhs.
-    /// Const-friendly: we can't yet use `subtle` in `const fn` contexts.
-    #[inline]
-    pub(crate) const fn ct_not_eq(&self, rhs: &Self) -> Word {
+    pub(crate) const fn ct_eq(lhs: &Self, rhs: &Self) -> CtChoice {
         let mut acc = 0;
         let mut i = 0;
 
         while i < LIMBS {
-            acc |= self.limbs[i].0 ^ rhs.limbs[i].0;
+            acc |= lhs.limbs[i].0 ^ rhs.limbs[i].0;
             i += 1;
         }
-        let acc = acc as SignedWord;
-        ((acc | acc.wrapping_neg()) >> HI_BIT) as Word
+
+        // acc == 0 if and only if self == rhs
+        Limb(acc).ct_is_nonzero().not()
+    }
+
+    /// Returns the truthy value if `self <= rhs` and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn ct_lt(lhs: &Self, rhs: &Self) -> CtChoice {
+        // We could use the same approach as in Limb::ct_lt(),
+        // but since we have to use Uint::wrapping_sub(), which calls `sbb()`,
+        // there are no savings compared to just calling `sbb()` directly.
+        let (_res, borrow) = lhs.sbb(rhs, Limb::ZERO);
+        CtChoice::from_mask(borrow.0)
+    }
+
+    /// Returns the truthy value if `self <= rhs` and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn ct_gt(lhs: &Self, rhs: &Self) -> CtChoice {
+        let (_res, borrow) = rhs.sbb(lhs, Limb::ZERO);
+        CtChoice::from_mask(borrow.0)
     }
 }
 
 impl<const LIMBS: usize> ConstantTimeEq for Uint<LIMBS> {
     #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
-        Choice::from((!self.ct_not_eq(other) as u8) & 1)
+        Uint::ct_eq(self, other).into()
     }
 }
 
 impl<const LIMBS: usize> ConstantTimeGreater for Uint<LIMBS> {
     #[inline]
     fn ct_gt(&self, other: &Self) -> Choice {
-        let underflow = other.sbb(self, Limb::ZERO).1;
-        !underflow.is_zero()
+        Uint::ct_gt(self, other).into()
     }
 }
 
 impl<const LIMBS: usize> ConstantTimeLess for Uint<LIMBS> {
     #[inline]
     fn ct_lt(&self, other: &Self) -> Choice {
-        let underflow = self.sbb(other, Limb::ZERO).1;
-        !underflow.is_zero()
+        Uint::ct_lt(self, other).into()
     }
 }
 
@@ -114,14 +105,15 @@ impl<const LIMBS: usize> Eq for Uint<LIMBS> {}
 
 impl<const LIMBS: usize> Ord for Uint<LIMBS> {
     fn cmp(&self, other: &Self) -> Ordering {
-        match self.ct_cmp(other) {
-            -1 => Ordering::Less,
-            1 => Ordering::Greater,
-            n => {
-                debug_assert_eq!(n, 0);
-                debug_assert!(bool::from(self.ct_eq(other)));
-                Ordering::Equal
-            }
+        let is_lt = self.ct_lt(other);
+        let is_eq = self.ct_eq(other);
+
+        if is_lt.into() {
+            Ordering::Less
+        } else if is_eq.into() {
+            Ordering::Equal
+        } else {
+            Ordering::Greater
         }
     }
 }

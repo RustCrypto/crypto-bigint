@@ -1,9 +1,7 @@
 //! [`Uint`] division operations.
 
 use super::div_limb::{div_rem_limb_with_reciprocal, Reciprocal};
-use super::Uint;
-use crate::limb::Word;
-use crate::{Limb, NonZero, Wrapping};
+use crate::{CtChoice, Limb, NonZero, Uint, Word, Wrapping};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::CtOption;
 
@@ -26,9 +24,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes `self` / `rhs`, returns the quotient (q) and remainder (r).
+    /// Returns the truthy value as the third element of the tuple if `rhs != 0`,
+    /// and the falsy value otherwise.
     #[inline(always)]
-    pub(crate) fn ct_div_rem_limb(&self, rhs: Limb) -> (Self, Limb, u8) {
-        let (reciprocal, is_some) = Reciprocal::new_const(rhs);
+    pub(crate) const fn ct_div_rem_limb(&self, rhs: Limb) -> (Self, Limb, CtChoice) {
+        let (reciprocal, is_some) = Reciprocal::ct_new(rhs);
         let (quo, rem) = div_rem_limb_with_reciprocal(self, &reciprocal);
         (quo, rem, is_some)
     }
@@ -36,22 +36,22 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self` / `rhs`, returns the quotient (q) and remainder (r).
     #[inline(always)]
     pub fn div_rem_limb(&self, rhs: NonZero<Limb>) -> (Self, Limb) {
-        let (quo, rem, is_some) = self.ct_div_rem_limb(*rhs);
         // Guaranteed to succeed since `rhs` is nonzero.
-        debug_assert!(is_some == 1);
+        let (quo, rem, _is_some) = self.ct_div_rem_limb(*rhs);
         (quo, rem)
     }
 
     /// Computes `self` / `rhs`, returns the quotient (q), remainder (r)
-    /// and 1 for is_some or 0 for is_none. The results can be wrapped in [`CtOption`].
-    /// NOTE: Use only if you need to access const fn. Otherwise use `div_rem` because
+    /// and the truthy value for is_some or the falsy value for is_none.
+    ///
+    /// NOTE: Use only if you need to access const fn. Otherwise use [`div_rem`] because
     /// the value for is_some needs to be checked before using `q` and `r`.
     ///
     /// This is variable only with respect to `rhs`.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub(crate) const fn ct_div_rem(&self, rhs: &Self) -> (Self, Self, u8) {
+    pub(crate) const fn ct_div_rem(&self, rhs: &Self) -> (Self, Self, CtChoice) {
         let mb = rhs.bits_vartime();
         let mut bd = Self::BITS - mb;
         let mut rem = *self;
@@ -60,9 +60,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         loop {
             let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::ct_select(r, rem, borrow.0);
+            rem = Self::ct_select(&r, &rem, CtChoice::from_mask(borrow.0));
             r = quo.bitor(&Self::ONE);
-            quo = Self::ct_select(r, quo, borrow.0);
+            quo = Self::ct_select(&r, &quo, CtChoice::from_mask(borrow.0));
             if bd == 0 {
                 break;
             }
@@ -71,19 +71,20 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             quo = quo.shl_vartime(1);
         }
 
-        let is_some = Limb(mb as Word).is_nonzero();
-        quo = Self::ct_select(Self::ZERO, quo, is_some);
-        (quo, rem, (is_some & 1) as u8)
+        let is_some = Limb(mb as Word).ct_is_nonzero();
+        quo = Self::ct_select(&Self::ZERO, &quo, is_some);
+        (quo, rem, is_some)
     }
 
     /// Computes `self` % `rhs`, returns the remainder and
-    /// and 1 for is_some or 0 for is_none. The results can be wrapped in [`CtOption`].
-    /// NOTE: Use only if you need to access const fn. Otherwise use `reduce`
+    /// and the truthy value for is_some or the falsy value for is_none.
+    ///
+    /// NOTE: Use only if you need to access const fn. Otherwise use [`rem`].
     /// This is variable only with respect to `rhs`.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub(crate) const fn ct_rem(&self, rhs: &Self) -> (Self, u8) {
+    pub(crate) const fn ct_rem(&self, rhs: &Self) -> (Self, CtChoice) {
         let mb = rhs.bits_vartime();
         let mut bd = Self::BITS - mb;
         let mut rem = *self;
@@ -91,7 +92,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         loop {
             let (r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::ct_select(r, rem, borrow.0);
+            rem = Self::ct_select(&r, &rem, CtChoice::from_mask(borrow.0));
             if bd == 0 {
                 break;
             }
@@ -99,19 +100,18 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             c = c.shr_vartime(1);
         }
 
-        let is_some = Limb(mb as Word).is_nonzero();
-        (rem, (is_some & 1) as u8)
+        let is_some = Limb(mb as Word).ct_is_nonzero();
+        (rem, is_some)
     }
 
     /// Computes `self` % `rhs`, returns the remainder and
-    /// and 1 for is_some or 0 for is_none. The results can be wrapped in [`CtOption`].
-    /// NOTE: Use only if you need to access const fn. Otherwise use `reduce`
+    /// and the truthy value for is_some or the falsy value for is_none.
+    ///
     /// This is variable only with respect to `rhs`.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    #[allow(dead_code)]
-    pub(crate) const fn ct_rem_wide(lower_upper: (Self, Self), rhs: &Self) -> (Self, u8) {
+    pub(crate) const fn ct_rem_wide(lower_upper: (Self, Self), rhs: &Self) -> (Self, CtChoice) {
         let mb = rhs.bits_vartime();
 
         // The number of bits to consider is two sets of limbs * BITS - mb (modulus bitcount)
@@ -127,8 +127,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let (lower_sub, borrow) = lower.sbb(&c.0, Limb::ZERO);
             let (upper_sub, borrow) = upper.sbb(&c.1, borrow);
 
-            lower = Self::ct_select(lower_sub, lower, borrow.0);
-            upper = Self::ct_select(upper_sub, upper, borrow.0);
+            lower = Self::ct_select(&lower_sub, &lower, CtChoice::from_mask(borrow.0));
+            upper = Self::ct_select(&upper_sub, &upper, CtChoice::from_mask(borrow.0));
             if bd == 0 {
                 break;
             }
@@ -136,8 +136,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             c = Self::shr_vartime_wide(c, 1);
         }
 
-        let is_some = Limb(mb as Word).is_nonzero();
-        (lower, (is_some & 1) as u8)
+        let is_some = Limb(mb as Word).ct_is_nonzero();
+        (lower, is_some)
     }
 
     /// Computes `self` % 2^k. Faster than reduce since its a power of 2.
@@ -145,8 +145,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn rem2k(&self, k: usize) -> Self {
         let highest = (LIMBS - 1) as u32;
         let index = k as u32 / (Limb::BITS as u32);
-        let res = Limb::ct_cmp(Limb::from_u32(index), Limb::from_u32(highest)) - 1;
-        let le = Limb::is_nonzero(Limb(res as Word));
+        let le = Limb::ct_le(Limb::from_u32(index), Limb::from_u32(highest));
         let word = Limb::ct_select(Limb::from_u32(highest), Limb::from_u32(index), le).0 as usize;
 
         let base = k % Limb::BITS;
@@ -168,17 +167,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes self / rhs, returns the quotient, remainder.
     pub fn div_rem(&self, rhs: &NonZero<Self>) -> (Self, Self) {
-        let (q, r, c) = self.ct_div_rem(rhs);
         // Since `rhs` is nonzero, this should always hold.
-        debug_assert!(c == 1);
+        let (q, r, _c) = self.ct_div_rem(rhs);
         (q, r)
     }
 
     /// Computes self % rhs, returns the remainder.
     pub fn rem(&self, rhs: &NonZero<Self>) -> Self {
-        let (r, c) = self.ct_rem(rhs);
         // Since `rhs` is nonzero, this should always hold.
-        debug_assert!(c == 1);
+        let (r, _c) = self.ct_rem(rhs);
         r
     }
 
@@ -189,7 +186,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Panics if `rhs == 0`.
     pub const fn wrapping_div(&self, rhs: &Self) -> Self {
         let (q, _, c) = self.ct_div_rem(rhs);
-        assert!(c == 1, "divide by zero");
+        assert!(c.is_true_vartime(), "divide by zero");
         q
     }
 
@@ -209,7 +206,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Panics if `rhs == 0`.
     pub const fn wrapping_rem(&self, rhs: &Self) -> Self {
         let (r, c) = self.ct_rem(rhs);
-        assert!(c == 1, "modulo zero");
+        assert!(c.is_true_vartime(), "modulo zero");
         r
     }
 
@@ -613,7 +610,7 @@ mod tests {
             let lhs = U256::from(*n);
             let rhs = U256::from(*d);
             let (q, r, is_some) = lhs.ct_div_rem(&rhs);
-            assert_eq!(is_some, 1);
+            assert!(is_some.is_true_vartime());
             assert_eq!(U256::from(*e), q);
             assert_eq!(U256::from(*ee), r);
         }
@@ -627,9 +624,9 @@ mod tests {
             let num = U256::random(&mut rng).shr_vartime(128);
             let den = U256::random(&mut rng).shr_vartime(128);
             let n = num.checked_mul(&den);
-            if n.is_some().unwrap_u8() == 1 {
+            if n.is_some().into() {
                 let (q, _, is_some) = n.unwrap().ct_div_rem(&den);
-                assert_eq!(is_some, 1);
+                assert!(is_some.is_true_vartime());
                 assert_eq!(q, num);
             }
         }
@@ -651,7 +648,7 @@ mod tests {
     #[test]
     fn div_zero() {
         let (q, r, is_some) = U256::ONE.ct_div_rem(&U256::ZERO);
-        assert_eq!(is_some, 0);
+        assert!(!is_some.is_true_vartime());
         assert_eq!(q, U256::ZERO);
         assert_eq!(r, U256::ONE);
     }
@@ -659,7 +656,7 @@ mod tests {
     #[test]
     fn div_one() {
         let (q, r, is_some) = U256::from(10u8).ct_div_rem(&U256::ONE);
-        assert_eq!(is_some, 1);
+        assert!(is_some.is_true_vartime());
         assert_eq!(q, U256::from(10u8));
         assert_eq!(r, U256::ZERO);
     }
@@ -667,7 +664,7 @@ mod tests {
     #[test]
     fn reduce_one() {
         let (r, is_some) = U256::from(10u8).ct_rem(&U256::ONE);
-        assert_eq!(is_some, 1);
+        assert!(is_some.is_true_vartime());
         assert_eq!(r, U256::ZERO);
     }
 
@@ -675,33 +672,33 @@ mod tests {
     fn reduce_zero() {
         let u = U256::from(10u8);
         let (r, is_some) = u.ct_rem(&U256::ZERO);
-        assert_eq!(is_some, 0);
+        assert!(!is_some.is_true_vartime());
         assert_eq!(r, u);
     }
 
     #[test]
     fn reduce_tests() {
         let (r, is_some) = U256::from(10u8).ct_rem(&U256::from(2u8));
-        assert_eq!(is_some, 1);
+        assert!(is_some.is_true_vartime());
         assert_eq!(r, U256::ZERO);
         let (r, is_some) = U256::from(10u8).ct_rem(&U256::from(3u8));
-        assert_eq!(is_some, 1);
+        assert!(is_some.is_true_vartime());
         assert_eq!(r, U256::ONE);
         let (r, is_some) = U256::from(10u8).ct_rem(&U256::from(7u8));
-        assert_eq!(is_some, 1);
+        assert!(is_some.is_true_vartime());
         assert_eq!(r, U256::from(3u8));
     }
 
     #[test]
     fn reduce_tests_wide_zero_padded() {
         let (r, is_some) = U256::ct_rem_wide((U256::from(10u8), U256::ZERO), &U256::from(2u8));
-        assert_eq!(is_some, 1);
+        assert!(is_some.is_true_vartime());
         assert_eq!(r, U256::ZERO);
         let (r, is_some) = U256::ct_rem_wide((U256::from(10u8), U256::ZERO), &U256::from(3u8));
-        assert_eq!(is_some, 1);
+        assert!(is_some.is_true_vartime());
         assert_eq!(r, U256::ONE);
         let (r, is_some) = U256::ct_rem_wide((U256::from(10u8), U256::ZERO), &U256::from(7u8));
-        assert_eq!(is_some, 1);
+        assert!(is_some.is_true_vartime());
         assert_eq!(r, U256::from(3u8));
     }
 

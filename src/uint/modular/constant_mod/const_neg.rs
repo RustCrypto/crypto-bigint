@@ -12,7 +12,14 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Neg for Residue<MOD, LIMBS> {
     type Output = Self;
     fn neg(self) -> Self {
-        (&self).neg()
+        Residue::neg(&self)
+    }
+}
+
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Neg for &Residue<MOD, LIMBS> {
+    type Output = Residue<MOD, LIMBS>;
+    fn neg(self) -> Residue<MOD, LIMBS> {
+        Residue::neg(self)
     }
 }
 

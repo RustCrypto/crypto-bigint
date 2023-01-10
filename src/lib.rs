@@ -161,6 +161,7 @@ mod nlimbs;
 #[cfg(feature = "generic-array")]
 mod array;
 mod checked;
+mod ct_choice;
 mod limb;
 mod non_zero;
 mod traits;
@@ -169,6 +170,7 @@ mod wrapping;
 
 pub use crate::{
     checked::Checked,
+    ct_choice::CtChoice,
     limb::{Limb, WideWord, Word},
     non_zero::NonZero,
     traits::*,
@@ -177,8 +179,6 @@ pub use crate::{
     wrapping::Wrapping,
 };
 pub use subtle;
-
-pub(crate) use limb::{SignedWord, WideSignedWord};
 
 #[cfg(feature = "generic-array")]
 pub use {
