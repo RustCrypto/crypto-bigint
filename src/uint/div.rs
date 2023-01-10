@@ -36,9 +36,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self` / `rhs`, returns the quotient (q) and remainder (r).
     #[inline(always)]
     pub fn div_rem_limb(&self, rhs: NonZero<Limb>) -> (Self, Limb) {
-        let (quo, rem, is_some) = self.ct_div_rem_limb(*rhs);
         // Guaranteed to succeed since `rhs` is nonzero.
-        debug_assert!(is_some == Word::MAX);
+        let (quo, rem, _is_some) = self.ct_div_rem_limb(*rhs);
         (quo, rem)
     }
 
@@ -61,9 +60,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         loop {
             let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::ct_select(&r, &rem, borrow.0);
+            rem = Self::ct_select(&r, &rem, CtChoice::from_mask(borrow.0));
             r = quo.bitor(&Self::ONE);
-            quo = Self::ct_select(&r, &quo, borrow.0);
+            quo = Self::ct_select(&r, &quo, CtChoice::from_mask(borrow.0));
             if bd == 0 {
                 break;
             }
@@ -93,7 +92,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         loop {
             let (r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::ct_select(&r, &rem, borrow.0);
+            rem = Self::ct_select(&r, &rem, CtChoice::from_mask(borrow.0));
             if bd == 0 {
                 break;
             }
@@ -128,8 +127,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let (lower_sub, borrow) = lower.sbb(&c.0, Limb::ZERO);
             let (upper_sub, borrow) = upper.sbb(&c.1, borrow);
 
-            lower = Self::ct_select(&lower_sub, &lower, borrow.0);
-            upper = Self::ct_select(&upper_sub, &upper, borrow.0);
+            lower = Self::ct_select(&lower_sub, &lower, CtChoice::from_mask(borrow.0));
+            upper = Self::ct_select(&upper_sub, &upper, CtChoice::from_mask(borrow.0));
             if bd == 0 {
                 break;
             }
@@ -168,17 +167,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes self / rhs, returns the quotient, remainder.
     pub fn div_rem(&self, rhs: &NonZero<Self>) -> (Self, Self) {
-        let (q, r, c) = self.ct_div_rem(rhs);
         // Since `rhs` is nonzero, this should always hold.
-        debug_assert!(c == Word::MAX);
+        let (q, r, _c) = self.ct_div_rem(rhs);
         (q, r)
     }
 
     /// Computes self % rhs, returns the remainder.
     pub fn rem(&self, rhs: &NonZero<Self>) -> Self {
-        let (r, c) = self.ct_rem(rhs);
         // Since `rhs` is nonzero, this should always hold.
-        debug_assert!(c == Word::MAX);
+        let (r, _c) = self.ct_rem(rhs);
         r
     }
 
@@ -189,7 +186,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Panics if `rhs == 0`.
     pub const fn wrapping_div(&self, rhs: &Self) -> Self {
         let (q, _, c) = self.ct_div_rem(rhs);
-        assert!(c == Word::MAX, "divide by zero");
+        assert!(c.is_true_vartime(), "divide by zero");
         q
     }
 
@@ -209,7 +206,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Panics if `rhs == 0`.
     pub const fn wrapping_rem(&self, rhs: &Self) -> Self {
         let (r, c) = self.ct_rem(rhs);
-        assert!(c == Word::MAX, "modulo zero");
+        assert!(c.is_true_vartime(), "modulo zero");
         r
     }
 
@@ -613,7 +610,7 @@ mod tests {
             let lhs = U256::from(*n);
             let rhs = U256::from(*d);
             let (q, r, is_some) = lhs.ct_div_rem(&rhs);
-            assert_eq!(is_some, Word::MAX);
+            assert!(is_some.is_true_vartime());
             assert_eq!(U256::from(*e), q);
             assert_eq!(U256::from(*ee), r);
         }
@@ -629,7 +626,7 @@ mod tests {
             let n = num.checked_mul(&den);
             if n.is_some().into() {
                 let (q, _, is_some) = n.unwrap().ct_div_rem(&den);
-                assert_eq!(is_some, Word::MAX);
+                assert!(is_some.is_true_vartime());
                 assert_eq!(q, num);
             }
         }
@@ -651,7 +648,7 @@ mod tests {
     #[test]
     fn div_zero() {
         let (q, r, is_some) = U256::ONE.ct_div_rem(&U256::ZERO);
-        assert_eq!(is_some, 0);
+        assert!(!is_some.is_true_vartime());
         assert_eq!(q, U256::ZERO);
         assert_eq!(r, U256::ONE);
     }
@@ -659,7 +656,7 @@ mod tests {
     #[test]
     fn div_one() {
         let (q, r, is_some) = U256::from(10u8).ct_div_rem(&U256::ONE);
-        assert_eq!(is_some, Word::MAX);
+        assert!(is_some.is_true_vartime());
         assert_eq!(q, U256::from(10u8));
         assert_eq!(r, U256::ZERO);
     }
@@ -667,7 +664,7 @@ mod tests {
     #[test]
     fn reduce_one() {
         let (r, is_some) = U256::from(10u8).ct_rem(&U256::ONE);
-        assert_eq!(is_some, Word::MAX);
+        assert!(is_some.is_true_vartime());
         assert_eq!(r, U256::ZERO);
     }
 
@@ -675,33 +672,33 @@ mod tests {
     fn reduce_zero() {
         let u = U256::from(10u8);
         let (r, is_some) = u.ct_rem(&U256::ZERO);
-        assert_eq!(is_some, 0);
+        assert!(!is_some.is_true_vartime());
         assert_eq!(r, u);
     }
 
     #[test]
     fn reduce_tests() {
         let (r, is_some) = U256::from(10u8).ct_rem(&U256::from(2u8));
-        assert_eq!(is_some, Word::MAX);
+        assert!(is_some.is_true_vartime());
         assert_eq!(r, U256::ZERO);
         let (r, is_some) = U256::from(10u8).ct_rem(&U256::from(3u8));
-        assert_eq!(is_some, Word::MAX);
+        assert!(is_some.is_true_vartime());
         assert_eq!(r, U256::ONE);
         let (r, is_some) = U256::from(10u8).ct_rem(&U256::from(7u8));
-        assert_eq!(is_some, Word::MAX);
+        assert!(is_some.is_true_vartime());
         assert_eq!(r, U256::from(3u8));
     }
 
     #[test]
     fn reduce_tests_wide_zero_padded() {
         let (r, is_some) = U256::ct_rem_wide((U256::from(10u8), U256::ZERO), &U256::from(2u8));
-        assert_eq!(is_some, Word::MAX);
+        assert!(is_some.is_true_vartime());
         assert_eq!(r, U256::ZERO);
         let (r, is_some) = U256::ct_rem_wide((U256::from(10u8), U256::ZERO), &U256::from(3u8));
-        assert_eq!(is_some, Word::MAX);
+        assert!(is_some.is_true_vartime());
         assert_eq!(r, U256::ONE);
         let (r, is_some) = U256::ct_rem_wide((U256::from(10u8), U256::ZERO), &U256::from(7u8));
-        assert_eq!(is_some, Word::MAX);
+        assert!(is_some.is_true_vartime());
         assert_eq!(r, U256::from(3u8));
     }
 

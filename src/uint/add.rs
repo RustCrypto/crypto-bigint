@@ -46,9 +46,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ) -> (Self, CtChoice) {
         let actual_rhs = Uint::ct_select(&Uint::ZERO, rhs, choice);
         let (sum, carry) = self.adc(&actual_rhs, Limb::ZERO);
-
-        debug_assert!(carry.0 == 0 || carry.0 == 1);
-        (sum, carry.0.wrapping_neg())
+        (sum, CtChoice::from_lsb(carry.0))
     }
 }
 

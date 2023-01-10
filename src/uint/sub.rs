@@ -1,7 +1,7 @@
 //! [`Uint`] addition operations.
 
 use super::Uint;
-use crate::{Checked, CheckedSub, CtChoice, Limb, Word, Wrapping, Zero};
+use crate::{Checked, CheckedSub, CtChoice, Limb, Wrapping, Zero};
 use core::ops::{Sub, SubAssign};
 use subtle::CtOption;
 
@@ -48,9 +48,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ) -> (Self, CtChoice) {
         let actual_rhs = Uint::ct_select(&Uint::ZERO, rhs, choice);
         let (res, borrow) = self.sbb(&actual_rhs, Limb::ZERO);
-
-        debug_assert!(borrow.0 == 0 || borrow.0 == Word::MAX);
-        (res, borrow.0)
+        (res, CtChoice::from_mask(borrow.0))
     }
 }
 

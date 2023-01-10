@@ -1,14 +1,13 @@
 use crate::{CtChoice, Limb, Uint, Word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Get the value of the bit at position `index`, as a truthy or falsy `CtChoice`.
-    /// Returns the falsy value for indices out of range.
+    /// Returns `true` if the bit at position `index` is set, `false` otherwise.
     #[inline(always)]
-    pub const fn bit_vartime(self, index: usize) -> CtChoice {
+    pub const fn bit_vartime(self, index: usize) -> bool {
         if index >= Self::BITS {
-            0
+            false
         } else {
-            ((self.limbs[index / Limb::BITS].0 >> (index % Limb::BITS)) & 1).wrapping_neg()
+            (self.limbs[index / Limb::BITS].0 >> (index % Limb::BITS)) & 1 == 1
         }
     }
 
@@ -21,14 +20,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         let limb = self.limbs[i].0;
-        let bits = (Limb::BITS * (i + 1)) as Word - limb.leading_zeros() as Word;
-
-        Limb::ct_select(
-            Limb(bits),
-            Limb::ZERO,
-            !self.limbs[0].ct_is_nonzero() & !Limb(i as Word).ct_is_nonzero(),
-        )
-        .0 as usize
+        Limb::BITS * (i + 1) - limb.leading_zeros() as usize
     }
 
     /// Calculate the number of leading zeros in the binary representation of this number.
@@ -37,13 +29,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         let mut count: Word = 0;
         let mut i = LIMBS;
-        let mut mask = Word::MAX;
+        let mut nonzero_limb_not_encountered = CtChoice::TRUE;
         while i > 0 {
             i -= 1;
             let l = limbs[i];
             let z = l.leading_zeros() as Word;
-            count += z & mask;
-            mask &= !l.ct_is_nonzero();
+            count += nonzero_limb_not_encountered.if_true(z);
+            nonzero_limb_not_encountered =
+                nonzero_limb_not_encountered.and(l.ct_is_nonzero().not());
         }
 
         count as usize
@@ -55,12 +48,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         let mut count: Word = 0;
         let mut i = 0;
-        let mut mask = Word::MAX;
+        let mut nonzero_limb_not_encountered = CtChoice::TRUE;
         while i < LIMBS {
             let l = limbs[i];
             let z = l.trailing_zeros() as Word;
-            count += z & mask;
-            mask &= !l.ct_is_nonzero();
+            count += nonzero_limb_not_encountered.if_true(z);
+            nonzero_limb_not_encountered =
+                nonzero_limb_not_encountered.and(l.ct_is_nonzero().not());
             i += 1;
         }
 
@@ -86,17 +80,17 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         while i < LIMBS {
             let bit = limbs[i] & index_mask;
             let is_right_limb = Limb::ct_eq(limb_num, Limb(i as Word));
-            result |= bit & is_right_limb;
+            result |= is_right_limb.if_true(bit);
             i += 1;
         }
 
-        (result >> index_in_limb).wrapping_neg()
+        CtChoice::from_lsb(result >> index_in_limb)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Word, U256};
+    use crate::U256;
 
     fn uint_with_bits_at(positions: &[usize]) -> U256 {
         let mut result = U256::ZERO;
@@ -109,25 +103,25 @@ mod tests {
     #[test]
     fn bit_vartime() {
         let u = uint_with_bits_at(&[16, 48, 112, 127, 255]);
-        assert_eq!(u.bit_vartime(0), 0);
-        assert_eq!(u.bit_vartime(1), 0);
-        assert_eq!(u.bit_vartime(16), Word::MAX);
-        assert_eq!(u.bit_vartime(127), Word::MAX);
-        assert_eq!(u.bit_vartime(255), Word::MAX);
-        assert_eq!(u.bit_vartime(256), 0);
-        assert_eq!(u.bit_vartime(260), 0);
+        assert!(!u.bit_vartime(0));
+        assert!(!u.bit_vartime(1));
+        assert!(u.bit_vartime(16));
+        assert!(u.bit_vartime(127));
+        assert!(u.bit_vartime(255));
+        assert!(!u.bit_vartime(256));
+        assert!(!u.bit_vartime(260));
     }
 
     #[test]
     fn bit() {
         let u = uint_with_bits_at(&[16, 48, 112, 127, 255]);
-        assert_eq!(u.bit(0), 0);
-        assert_eq!(u.bit(1), 0);
-        assert_eq!(u.bit(16), Word::MAX);
-        assert_eq!(u.bit(127), Word::MAX);
-        assert_eq!(u.bit(255), Word::MAX);
-        assert_eq!(u.bit(256), 0);
-        assert_eq!(u.bit(260), 0);
+        assert!(!u.bit(0).is_true_vartime());
+        assert!(!u.bit(1).is_true_vartime());
+        assert!(u.bit(16).is_true_vartime());
+        assert!(u.bit(127).is_true_vartime());
+        assert!(u.bit(255).is_true_vartime());
+        assert!(!u.bit(256).is_true_vartime());
+        assert!(!u.bit(260).is_true_vartime());
     }
 
     #[test]

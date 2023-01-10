@@ -1,4 +1,4 @@
-use crate::{Limb, Uint, WideWord, Word};
+use crate::{CtChoice, Limb, Uint, WideWord, Word};
 
 /// Algorithm 14.32 in Handbook of Applied Cryptography (https://cacr.uwaterloo.ca/hac/about/chap14.pdf)
 pub(crate) const fn montgomery_reduction<const LIMBS: usize>(
@@ -49,8 +49,7 @@ pub(crate) const fn montgomery_reduction<const LIMBS: usize>(
 
     // Division is simply taking the upper half of the limbs
     // Final reduction (at this point, the value is at most 2 * modulus)
-    debug_assert!(meta_carry == 0 || meta_carry == 1);
-    let must_reduce = (meta_carry as Word).wrapping_neg() | !Uint::ct_gt(modulus, &upper);
+    let must_reduce = CtChoice::from_lsb(meta_carry as Word).or(Uint::ct_gt(modulus, &upper).not());
     upper = upper.wrapping_sub(&Uint::ct_select(&Uint::ZERO, modulus, must_reduce));
 
     upper

@@ -20,7 +20,7 @@ mod sub;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Bounded, Zero};
+use crate::{Bounded, CtChoice, Zero};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
 
@@ -56,12 +56,6 @@ pub type WideWord = u128;
 
 /// Highest bit in a [`Limb`].
 pub(crate) const HI_BIT: usize = Limb::BITS - 1;
-
-/// A boolean value returned by constant-time `const fn`s.
-/// `Word::MAX` signifies `true`, and `0` signifies `false`.
-// TODO: should be replaced by `subtle::Choice` or `CtOption`
-// when `subtle` starts supporting const fns.
-pub type CtChoice = Word;
 
 /// Big integers are represented as an array of smaller CPU word-size integers
 /// called "limbs".
@@ -100,7 +94,7 @@ impl Limb {
     /// Return `b` if `c` is truthy, otherwise return `a`.
     #[inline]
     pub(crate) const fn ct_select(a: Self, b: Self, c: CtChoice) -> Self {
-        Self(a.0 ^ (c & (a.0 ^ b.0)))
+        Self(c.select(a.0, b.0))
     }
 }
 

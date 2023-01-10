@@ -1,6 +1,7 @@
 //! Limb comparisons
 
-use super::{CtChoice, Limb, HI_BIT};
+use super::HI_BIT;
+use crate::{CtChoice, Limb};
 use core::cmp::Ordering;
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
@@ -28,7 +29,7 @@ impl Limb {
     #[inline]
     pub(crate) const fn ct_is_nonzero(&self) -> CtChoice {
         let inner = self.0;
-        ((inner | inner.wrapping_neg()) >> HI_BIT).wrapping_neg()
+        CtChoice::from_lsb((inner | inner.wrapping_neg()) >> HI_BIT)
     }
 
     /// Returns the truthy value if `lhs == rhs` and the falsy value otherwise.
@@ -38,7 +39,7 @@ impl Limb {
         let y = rhs.0;
 
         // x ^ y == 0 if and only if x == y
-        !Self(x ^ y).ct_is_nonzero()
+        Self(x ^ y).ct_is_nonzero().not()
     }
 
     /// Returns the truthy value if `lhs < rhs` and the falsy value otherwise.
@@ -47,7 +48,7 @@ impl Limb {
         let x = lhs.0;
         let y = rhs.0;
         let bit = (((!x) & y) | (((!x) | y) & (x.wrapping_sub(y)))) >> (Limb::BITS - 1);
-        bit.wrapping_neg()
+        CtChoice::from_lsb(bit)
     }
 
     /// Returns the truthy value if `lhs <= rhs` and the falsy value otherwise.
@@ -56,7 +57,7 @@ impl Limb {
         let x = lhs.0;
         let y = rhs.0;
         let bit = (((!x) | y) & ((x ^ y) | !(y.wrapping_sub(x)))) >> (Limb::BITS - 1);
-        bit.wrapping_neg()
+        CtChoice::from_lsb(bit)
     }
 }
 

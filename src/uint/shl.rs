@@ -29,8 +29,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             i += 1;
         }
 
-        debug_assert!(carry_bits[LIMBS - 1] == 0 || carry_bits[LIMBS - 1] == 1);
-        (Uint::new(limbs), carry_bits[LIMBS - 1].wrapping_neg())
+        (Uint::new(limbs), CtChoice::from_lsb(carry_bits[LIMBS - 1]))
     }
 
     /// Computes `self << shift` where `0 <= shift < Limb::BITS`,
@@ -52,7 +51,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         while i > 0 {
             let mut limb = self.limbs[i].0 << lshift;
             let hi = self.limbs[i - 1].0 >> rshift;
-            limb |= hi & nz;
+            limb |= nz.if_true(hi);
             limbs[i] = Limb(limb);
             i -= 1
         }

@@ -1,5 +1,5 @@
 use super::Uint;
-use crate::{CtChoice, Limb, Word};
+use crate::{CtChoice, Limb};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes 1/`self` mod 2^k as specified in Algorithm 4 from
@@ -20,7 +20,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             x = x.bitor(&x_i.shl_vartime(i));
 
             let t = b.wrapping_sub(self);
-            b = Self::ct_select(&b, &t, j.wrapping_neg()).shr_vartime(1);
+            b = Self::ct_select(&b, &t, CtChoice::from_lsb(j)).shr_vartime(1);
             i += 1;
         }
         x
@@ -43,7 +43,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         bits: usize,
         modulus_bits: usize,
     ) -> (Self, CtChoice) {
-        debug_assert!(modulus.ct_is_odd() == Word::MAX);
+        debug_assert!(modulus.ct_is_odd().is_true_vartime());
 
         let mut a = *self;
 
@@ -57,12 +57,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         let mut m1hp = *modulus;
         let (m1hp_new, carry) = m1hp.shr_1();
-        debug_assert!(carry == Word::MAX);
+        debug_assert!(carry.is_true_vartime());
         m1hp = m1hp_new.wrapping_add(&Uint::ONE);
 
         let mut i = 0;
         while i < bit_size {
-            debug_assert!(b.ct_is_odd() == Word::MAX);
+            debug_assert!(b.ct_is_odd().is_true_vartime());
 
             let self_odd = a.ct_is_odd();
 
@@ -76,13 +76,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let (new_u, new_v) = Uint::ct_swap(&u, &v, swap);
             let (new_u, cy) = new_u.conditional_wrapping_sub(&new_v, self_odd);
             let (new_u, cyy) = new_u.conditional_wrapping_add(modulus, cy);
-            debug_assert!(cy == cyy);
+            debug_assert!(cy.is_true_vartime() == cyy.is_true_vartime());
 
             let (new_a, overflow) = a.shr_1();
-            debug_assert!(overflow == 0);
+            debug_assert!(!overflow.is_true_vartime());
             let (new_u, cy) = new_u.shr_1();
             let (new_u, cy) = new_u.conditional_wrapping_add(&m1hp, cy);
-            debug_assert!(cy == 0);
+            debug_assert!(!cy.is_true_vartime());
 
             a = new_a;
             u = new_u;
@@ -91,7 +91,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             i += 1;
         }
 
-        debug_assert!(a.ct_is_nonzero() == 0);
+        debug_assert!(!a.ct_is_nonzero().is_true_vartime());
 
         (v, b.ct_eq(&Uint::ONE))
     }
@@ -105,7 +105,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Word, U1024, U256, U64};
+    use crate::{U1024, U256, U64};
 
     #[test]
     fn inv_mod2k() {
@@ -147,7 +147,7 @@ mod tests {
             "88D93DA5EB8EDC391EE3726CDCF4613C539F7D23E8702200CB31B5ED5B06E5CA",
             "3E520968399B4017BF98A864FABA2B647EFC4998B56774D4F2CB026BC024A336"
         ]);
-        assert_eq!(is_some, Word::MAX);
+        assert!(is_some.is_true_vartime());
         assert_eq!(res, expected);
     }
 
@@ -174,7 +174,7 @@ mod tests {
             "0DCC94E2FE509E6EBBA0825645A38E73EF85D5927C79C1AD8FFE7C8DF9A822FA",
             "09EB396A21B1EF05CBE51E1A8EF284EF01EBDD36A9A4EA17039D8EEFDD934768"
         ]);
-        assert_eq!(is_some, Word::MAX);
+        assert!(is_some.is_true_vartime());
         assert_eq!(res, expected);
     }
 
@@ -185,7 +185,7 @@ mod tests {
 
         let (res, is_some) = a.inv_odd_mod(&m);
 
-        assert_eq!(is_some, Word::MAX);
+        assert!(is_some.is_true_vartime());
         assert_eq!(U64::from(9u64), res);
     }
 
@@ -196,6 +196,6 @@ mod tests {
 
         let (_res, is_some) = a.inv_odd_mod(&m);
 
-        assert_eq!(is_some, 0);
+        assert!(!is_some.is_true_vartime());
     }
 }

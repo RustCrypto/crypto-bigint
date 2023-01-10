@@ -222,7 +222,7 @@ impl Reciprocal {
     /// A non-const-fn version of `new_const()`, wrapping the result in a `CtOption`.
     pub fn new(divisor: Limb) -> CtOption<Self> {
         let (rec, is_some) = Self::ct_new(divisor);
-        CtOption::new(rec, Choice::from((is_some & 1) as u8))
+        CtOption::new(rec, is_some.into())
     }
 }
 

@@ -21,7 +21,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         // If guess increased, the initial guess was low.
         // Repeat until reverse course.
-        while guess.ct_lt(&xn) == Word::MAX {
+        while guess.ct_lt(&xn).is_true_vartime() {
             // Sometimes an increase is too far, especially with large
             // powers, and then takes a long time to walk back.  The upper
             // bound is based on bit size, so saturate on that.
@@ -35,7 +35,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         // Repeat while guess decreases.
-        while guess.ct_gt(&xn) == Word::MAX && xn.ct_is_nonzero() == Word::MAX {
+        while guess.ct_gt(&xn).is_true_vartime() && xn.ct_is_nonzero().is_true_vartime() {
             guess = xn;
             xn = {
                 let q = self.wrapping_div(&guess);

@@ -1,4 +1,4 @@
-use subtle::{Choice, CtOption};
+use subtle::CtOption;
 
 use crate::{modular::inv::inv_montgomery_form, traits::Invert, CtChoice};
 
@@ -30,6 +30,6 @@ impl<const LIMBS: usize> Invert for DynResidue<LIMBS> {
     type Output = CtOption<Self>;
     fn invert(&self) -> Self::Output {
         let (value, is_some) = self.invert();
-        CtOption::new(value, Choice::from((is_some & 1) as u8))
+        CtOption::new(value, is_some.into())
     }
 }
