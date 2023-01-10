@@ -10,7 +10,7 @@ use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Return `b` if `c` is truthy, otherwise return `a`.
     #[inline]
-    pub(crate) const fn ct_select(a: Uint<LIMBS>, b: Uint<LIMBS>, c: CtChoice) -> Self {
+    pub(crate) const fn ct_select(a: &Self, b: &Self, c: CtChoice) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
 
         let mut i = 0;
@@ -23,7 +23,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     #[inline]
-    pub(crate) const fn ct_swap(a: Uint<LIMBS>, b: Uint<LIMBS>, c: CtChoice) -> (Self, Self) {
+    pub(crate) const fn ct_swap(a: &Self, b: &Self, c: CtChoice) -> (Self, Self) {
         let new_a = Self::ct_select(a, b, c);
         let new_b = Self::ct_select(b, a, c);
 

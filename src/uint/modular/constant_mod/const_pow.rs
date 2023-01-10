@@ -20,11 +20,11 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     ) -> Residue<MOD, LIMBS> {
         Self {
             montgomery_form: pow_montgomery_form(
-                self.montgomery_form,
+                &self.montgomery_form,
                 exponent,
                 exponent_bits,
-                MOD::MODULUS,
-                MOD::R,
+                &MOD::MODULUS,
+                &MOD::R,
                 MOD::MOD_NEG_INV,
             ),
             phantom: core::marker::PhantomData,

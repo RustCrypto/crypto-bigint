@@ -258,8 +258,8 @@ proptest! {
 
         let expected = to_uint(a_bi.modpow(&b_bi, &p_bi));
 
-        let params = DynResidueParams::new(P);
-        let a_m = DynResidue::new(a, params);
+        let params = DynResidueParams::new(&P);
+        let a_m = DynResidue::new(&a, params);
         let actual = a_m.pow(&b).retrieve();
 
         assert_eq!(expected, actual);
@@ -276,8 +276,8 @@ proptest! {
 
         let expected = to_uint(a_bi.modpow(&b_bi, &p_bi));
 
-        let params = DynResidueParams::new(P);
-        let a_m = DynResidue::new(a, params);
+        let params = DynResidueParams::new(&P);
+        let a_m = DynResidue::new(&a, params);
         let actual = a_m.pow_bounded_exp(&b, exponent_bits.into()).retrieve();
 
         assert_eq!(expected, actual);

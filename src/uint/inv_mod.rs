@@ -20,7 +20,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             x = x.bitor(&x_i.shl_vartime(i));
 
             let t = b.wrapping_sub(self);
-            b = Self::ct_select(b, t, j.wrapping_neg()).shr_vartime(1);
+            b = Self::ct_select(&b, &t, j.wrapping_neg()).shr_vartime(1);
             i += 1;
         }
         x
@@ -39,7 +39,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// The algorithm is the same as in GMP 6.2.1's `mpn_sec_invert`.
     pub const fn inv_odd_mod_bounded(
         &self,
-        modulus: Uint<LIMBS>,
+        modulus: &Self,
         bits: usize,
         modulus_bits: usize,
     ) -> (Self, CtChoice) {
@@ -50,12 +50,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut u = Uint::ONE;
         let mut v = Uint::ZERO;
 
-        let mut b = modulus;
+        let mut b = *modulus;
 
         // `bit_size` can be anything >= `self.bits()` + `modulus.bits()`, setting to the minimum.
         let bit_size = bits + modulus_bits;
 
-        let mut m1hp = modulus;
+        let mut m1hp = *modulus;
         let (m1hp_new, carry) = m1hp.shr_1();
         debug_assert!(carry == Word::MAX);
         m1hp = m1hp_new.wrapping_add(&Uint::ONE);
@@ -69,13 +69,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             // Set `self -= b` if `self` is odd.
             let (new_a, swap) = a.conditional_wrapping_sub(&b, self_odd);
             // Set `b += self` if `swap` is true.
-            b = Uint::ct_select(b, b.wrapping_add(&new_a), swap);
+            b = Uint::ct_select(&b, &b.wrapping_add(&new_a), swap);
             // Negate `self` if `swap` is true.
             a = new_a.conditional_wrapping_neg(swap);
 
-            let (new_u, new_v) = Uint::ct_swap(u, v, swap);
+            let (new_u, new_v) = Uint::ct_swap(&u, &v, swap);
             let (new_u, cy) = new_u.conditional_wrapping_sub(&new_v, self_odd);
-            let (new_u, cyy) = new_u.conditional_wrapping_add(&modulus, cy);
+            let (new_u, cyy) = new_u.conditional_wrapping_add(modulus, cy);
             debug_assert!(cy == cyy);
 
             let (new_a, overflow) = a.shr_1();
@@ -98,7 +98,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     /// Returns `(inverse, Word::MAX)` if an inverse exists, otherwise `(undefined, Word::ZERO)`.
-    pub const fn inv_odd_mod(&self, modulus: Uint<LIMBS>) -> (Self, CtChoice) {
+    pub const fn inv_odd_mod(&self, modulus: &Self) -> (Self, CtChoice) {
         self.inv_odd_mod_bounded(modulus, Uint::<LIMBS>::BITS, Uint::<LIMBS>::BITS)
     }
 }
@@ -139,7 +139,7 @@ mod tests {
             "558D0B64E37CD0775C0D0104AE7D98BA23C815185DD43CD8B16292FD94156767"
         ]);
 
-        let (res, is_some) = a.inv_odd_mod(m);
+        let (res, is_some) = a.inv_odd_mod(&m);
 
         let expected = U1024::from_be_hex(concat![
             "B03623284B0EBABCABD5C5881893320281460C0A8E7BF4BFDCFFCBCCBF436A55",
@@ -166,7 +166,7 @@ mod tests {
             "558D0B64E37CD0775C0D0104AE7D98BA23C815185DD43CD8B16292FD94156767"
         ]);
 
-        let (res, is_some) = a.inv_odd_mod_bounded(m, 768, 512);
+        let (res, is_some) = a.inv_odd_mod_bounded(&m, 768, 512);
 
         let expected = U1024::from_be_hex(concat![
             "0000000000000000000000000000000000000000000000000000000000000000",
@@ -183,7 +183,7 @@ mod tests {
         let a = U64::from(3u64);
         let m = U64::from(13u64);
 
-        let (res, is_some) = a.inv_odd_mod(m);
+        let (res, is_some) = a.inv_odd_mod(&m);
 
         assert_eq!(is_some, Word::MAX);
         assert_eq!(U64::from(9u64), res);
@@ -194,7 +194,7 @@ mod tests {
         let a = U64::from(14u64);
         let m = U64::from(49u64);
 
-        let (_res, is_some) = a.inv_odd_mod(m);
+        let (_res, is_some) = a.inv_odd_mod(&m);
 
         assert_eq!(is_some, 0);
     }

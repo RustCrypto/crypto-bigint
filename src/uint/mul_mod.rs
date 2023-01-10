@@ -20,7 +20,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let (lo, hi) = self.mul_wide(rhs);
 
         // Now use Algorithm 14.47 for the reduction
-        let (lo, carry) = mac_by_limb(lo, hi, c, Limb::ZERO);
+        let (lo, carry) = mac_by_limb(&lo, &hi, c, Limb::ZERO);
 
         let (lo, carry) = {
             let rhs = (carry.0 + 1) as WideWord * c.0 as WideWord;
@@ -38,12 +38,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
 /// Computes `a + (b * c) + carry`, returning the result along with the new carry.
 const fn mac_by_limb<const LIMBS: usize>(
-    mut a: Uint<LIMBS>,
-    b: Uint<LIMBS>,
+    a: &Uint<LIMBS>,
+    b: &Uint<LIMBS>,
     c: Limb,
-    mut carry: Limb,
+    carry: Limb,
 ) -> (Uint<LIMBS>, Limb) {
     let mut i = 0;
+    let mut a = *a;
+    let mut carry = carry;
 
     while i < LIMBS {
         let (n, c) = a.limbs[i].mac(b.limbs[i], c, carry);

@@ -26,7 +26,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             // powers, and then takes a long time to walk back.  The upper
             // bound is based on bit size, so saturate on that.
             let le = Limb::ct_le(Limb(xn.bits_vartime() as Word), Limb(max_bits as Word));
-            guess = Self::ct_select(cap, xn, le);
+            guess = Self::ct_select(&cap, &xn, le);
             xn = {
                 let q = self.wrapping_div(&guess);
                 let t = guess.wrapping_add(&q);
@@ -44,7 +44,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             };
         }
 
-        Self::ct_select(Self::ZERO, guess, self.ct_is_nonzero())
+        Self::ct_select(&Self::ZERO, &guess, self.ct_is_nonzero())
     }
 
     /// Wrapped sqrt is just normal √(`self`)

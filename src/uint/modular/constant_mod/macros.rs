@@ -27,8 +27,8 @@ macro_rules! impl_modulus {
             );
             const R3: $crate::Uint<{ nlimbs!(<$uint_type>::BITS) }> =
                 $crate::uint::modular::reduction::montgomery_reduction(
-                    Self::R2.square_wide(),
-                    Self::MODULUS,
+                    &Self::R2.square_wide(),
+                    &Self::MODULUS,
                     Self::MOD_NEG_INV,
                 );
         }
@@ -41,7 +41,7 @@ macro_rules! impl_modulus {
 macro_rules! const_residue {
     ($variable:ident, $modulus:ident) => {
         $crate::uint::modular::constant_mod::Residue::<$modulus, { $modulus::LIMBS }>::new(
-            $variable,
+            &$variable,
         )
     };
 }

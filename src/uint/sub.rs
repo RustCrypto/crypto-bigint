@@ -46,7 +46,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         rhs: &Self,
         choice: CtChoice,
     ) -> (Self, CtChoice) {
-        let actual_rhs = Uint::ct_select(Uint::ZERO, *rhs, choice);
+        let actual_rhs = Uint::ct_select(&Uint::ZERO, rhs, choice);
         let (res, borrow) = self.sbb(&actual_rhs, Limb::ZERO);
 
         debug_assert!(borrow.0 == 0 || borrow.0 == Word::MAX);

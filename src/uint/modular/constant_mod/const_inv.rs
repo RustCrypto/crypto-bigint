@@ -13,8 +13,8 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
     pub const fn invert(&self) -> (Self, CtChoice) {
         let (montgomery_form, is_some) = inv_montgomery_form(
-            self.montgomery_form,
-            MOD::MODULUS,
+            &self.montgomery_form,
+            &MOD::MODULUS,
             &MOD::R3,
             MOD::MOD_NEG_INV,
         );

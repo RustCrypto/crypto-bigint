@@ -12,6 +12,13 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
 impl<const LIMBS: usize> Neg for DynResidue<LIMBS> {
     type Output = Self;
     fn neg(self) -> Self {
-        (&self).neg()
+        DynResidue::neg(&self)
+    }
+}
+
+impl<const LIMBS: usize> Neg for &DynResidue<LIMBS> {
+    type Output = DynResidue<LIMBS>;
+    fn neg(self) -> DynResidue<LIMBS> {
+        DynResidue::neg(self)
     }
 }

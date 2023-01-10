@@ -64,8 +64,8 @@ mod tests {
         // Divide the value R by R, which should equal 1
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(
-                (Modulus2::R, Uint::ZERO),
-                Modulus2::MODULUS,
+                &(Modulus2::R, Uint::ZERO),
+                &Modulus2::MODULUS,
                 Modulus2::MOD_NEG_INV
             ),
             Uint::ONE
@@ -77,8 +77,8 @@ mod tests {
         // Divide the value R^2 by R, which should equal R
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(
-                (Modulus2::R2, Uint::ZERO),
-                Modulus2::MODULUS,
+                &(Modulus2::R2, Uint::ZERO),
+                &Modulus2::MODULUS,
                 Modulus2::MOD_NEG_INV
             ),
             Modulus2::R
@@ -91,8 +91,8 @@ mod tests {
         let (hi, lo) = Modulus2::R.square().split();
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(
-                (lo, hi),
-                Modulus2::MODULUS,
+                &(lo, hi),
+                &Modulus2::MODULUS,
                 Modulus2::MOD_NEG_INV
             ),
             Modulus2::R
@@ -107,8 +107,8 @@ mod tests {
         let product = x.mul_wide(&Modulus2::R);
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(
-                product,
-                Modulus2::MODULUS,
+                &product,
+                &Modulus2::MODULUS,
                 Modulus2::MOD_NEG_INV
             ),
             x
@@ -131,8 +131,8 @@ mod tests {
 
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(
-                product,
-                Modulus2::MODULUS,
+                &product,
+                &Modulus2::MODULUS,
                 Modulus2::MOD_NEG_INV
             ),
             lo
@@ -143,7 +143,7 @@ mod tests {
     fn test_new_retrieve() {
         let x =
             U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
-        let x_mod = Residue::<Modulus2, { Modulus2::LIMBS }>::new(x);
+        let x_mod = Residue::<Modulus2, { Modulus2::LIMBS }>::new(&x);
 
         // Confirm that when creating a Modular and retrieving the value, that it equals the original
         assert_eq!(x, x_mod.retrieve());
@@ -154,7 +154,7 @@ mod tests {
         let x =
             U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
         assert_eq!(
-            Residue::<Modulus2, { Modulus2::LIMBS }>::new(x),
+            Residue::<Modulus2, { Modulus2::LIMBS }>::new(&x),
             const_residue!(x, Modulus2)
         );
     }

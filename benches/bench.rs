@@ -89,12 +89,12 @@ fn bench_modpow<'a, M: Measurement>(group: &mut BenchmarkGroup<'a, M>) {
 
     let params = moduli
         .iter()
-        .map(|modulus| DynResidueParams::new(*modulus))
+        .map(|modulus| DynResidueParams::new(modulus))
         .collect::<Vec<_>>();
     let xs_m = xs
         .iter()
         .zip(params.iter())
-        .map(|(x, p)| DynResidue::new(*x, *p))
+        .map(|(x, p)| DynResidue::new(x, *p))
         .collect::<Vec<_>>();
 
     group.bench_function("modpow, 4^4", |b| {

@@ -61,9 +61,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         loop {
             let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::ct_select(r, rem, borrow.0);
+            rem = Self::ct_select(&r, &rem, borrow.0);
             r = quo.bitor(&Self::ONE);
-            quo = Self::ct_select(r, quo, borrow.0);
+            quo = Self::ct_select(&r, &quo, borrow.0);
             if bd == 0 {
                 break;
             }
@@ -73,7 +73,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         let is_some = Limb(mb as Word).ct_is_nonzero();
-        quo = Self::ct_select(Self::ZERO, quo, is_some);
+        quo = Self::ct_select(&Self::ZERO, &quo, is_some);
         (quo, rem, is_some)
     }
 
@@ -93,7 +93,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         loop {
             let (r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::ct_select(r, rem, borrow.0);
+            rem = Self::ct_select(&r, &rem, borrow.0);
             if bd == 0 {
                 break;
             }
@@ -128,8 +128,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let (lower_sub, borrow) = lower.sbb(&c.0, Limb::ZERO);
             let (upper_sub, borrow) = upper.sbb(&c.1, borrow);
 
-            lower = Self::ct_select(lower_sub, lower, borrow.0);
-            upper = Self::ct_select(upper_sub, upper, borrow.0);
+            lower = Self::ct_select(&lower_sub, &lower, borrow.0);
+            upper = Self::ct_select(&upper_sub, &upper, borrow.0);
             if bd == 0 {
                 break;
             }

@@ -11,8 +11,8 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
     pub const fn invert(&self) -> (Self, CtChoice) {
         let (montgomery_form, is_some) = inv_montgomery_form(
-            self.montgomery_form,
-            self.residue_params.modulus,
+            &self.montgomery_form,
+            &self.residue_params.modulus,
             &self.residue_params.r3,
             self.residue_params.mod_neg_inv,
         );
