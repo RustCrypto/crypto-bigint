@@ -49,12 +49,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Returns the truthy value if `self == rhs` or the falsy value otherwise.
     #[inline]
-    pub(crate) const fn ct_eq(&self, rhs: &Self) -> CtChoice {
+    pub(crate) const fn ct_eq(lhs: &Self, rhs: &Self) -> CtChoice {
         let mut acc = 0;
         let mut i = 0;
 
         while i < LIMBS {
-            acc |= self.limbs[i].0 ^ rhs.limbs[i].0;
+            acc |= lhs.limbs[i].0 ^ rhs.limbs[i].0;
             i += 1;
         }
 
@@ -64,18 +64,18 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Returns the truthy value if `self <= rhs` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn ct_lt(&self, rhs: &Self) -> CtChoice {
+    pub(crate) const fn ct_lt(lhs: &Self, rhs: &Self) -> CtChoice {
         // We could use the same approach as in Limb::ct_lt(),
         // but since we have to use Uint::wrapping_sub(), which calls `sbb()`,
         // there are no savings compared to just calling `sbb()` directly.
-        let (_res, borrow) = self.sbb(rhs, Limb::ZERO);
+        let (_res, borrow) = lhs.sbb(rhs, Limb::ZERO);
         CtChoice::from_mask(borrow.0)
     }
 
     /// Returns the truthy value if `self <= rhs` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn ct_gt(&self, rhs: &Self) -> CtChoice {
-        let (_res, borrow) = rhs.sbb(self, Limb::ZERO);
+    pub(crate) const fn ct_gt(lhs: &Self, rhs: &Self) -> CtChoice {
+        let (_res, borrow) = rhs.sbb(lhs, Limb::ZERO);
         CtChoice::from_mask(borrow.0)
     }
 }
@@ -83,21 +83,21 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 impl<const LIMBS: usize> ConstantTimeEq for Uint<LIMBS> {
     #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
-        self.ct_eq(other).into()
+        Uint::ct_eq(self, other).into()
     }
 }
 
 impl<const LIMBS: usize> ConstantTimeGreater for Uint<LIMBS> {
     #[inline]
     fn ct_gt(&self, other: &Self) -> Choice {
-        self.ct_gt(other).into()
+        Uint::ct_gt(self, other).into()
     }
 }
 
 impl<const LIMBS: usize> ConstantTimeLess for Uint<LIMBS> {
     #[inline]
     fn ct_lt(&self, other: &Self) -> Choice {
-        self.ct_lt(other).into()
+        Uint::ct_lt(self, other).into()
     }
 }
 
@@ -154,10 +154,10 @@ mod tests {
         let a = U128::ZERO;
         let b = U128::MAX;
 
-        assert!(bool::from(ConstantTimeEq::ct_eq(&a, &a)));
-        assert!(!bool::from(ConstantTimeEq::ct_eq(&a, &b)));
-        assert!(!bool::from(ConstantTimeEq::ct_eq(&b, &a)));
-        assert!(bool::from(ConstantTimeEq::ct_eq(&b, &b)));
+        assert!(bool::from(a.ct_eq(&a)));
+        assert!(!bool::from(a.ct_eq(&b)));
+        assert!(!bool::from(b.ct_eq(&a)));
+        assert!(bool::from(b.ct_eq(&b)));
     }
 
     #[test]
@@ -166,17 +166,17 @@ mod tests {
         let b = U128::ONE;
         let c = U128::MAX;
 
-        assert!(bool::from(ConstantTimeGreater::ct_gt(&b, &a)));
-        assert!(bool::from(ConstantTimeGreater::ct_gt(&c, &a)));
-        assert!(bool::from(ConstantTimeGreater::ct_gt(&c, &b)));
+        assert!(bool::from(b.ct_gt(&a)));
+        assert!(bool::from(c.ct_gt(&a)));
+        assert!(bool::from(c.ct_gt(&b)));
 
-        assert!(!bool::from(ConstantTimeGreater::ct_gt(&a, &a)));
-        assert!(!bool::from(ConstantTimeGreater::ct_gt(&b, &b)));
-        assert!(!bool::from(ConstantTimeGreater::ct_gt(&c, &c)));
+        assert!(!bool::from(a.ct_gt(&a)));
+        assert!(!bool::from(b.ct_gt(&b)));
+        assert!(!bool::from(c.ct_gt(&c)));
 
-        assert!(!bool::from(ConstantTimeGreater::ct_gt(&a, &b)));
-        assert!(!bool::from(ConstantTimeGreater::ct_gt(&a, &c)));
-        assert!(!bool::from(ConstantTimeGreater::ct_gt(&b, &c)));
+        assert!(!bool::from(a.ct_gt(&b)));
+        assert!(!bool::from(a.ct_gt(&c)));
+        assert!(!bool::from(b.ct_gt(&c)));
     }
 
     #[test]
@@ -185,16 +185,16 @@ mod tests {
         let b = U128::ONE;
         let c = U128::MAX;
 
-        assert!(bool::from(ConstantTimeLess::ct_lt(&a, &b)));
-        assert!(bool::from(ConstantTimeLess::ct_lt(&a, &c)));
-        assert!(bool::from(ConstantTimeLess::ct_lt(&b, &c)));
+        assert!(bool::from(a.ct_lt(&b)));
+        assert!(bool::from(a.ct_lt(&c)));
+        assert!(bool::from(b.ct_lt(&c)));
 
-        assert!(!bool::from(ConstantTimeLess::ct_lt(&a, &a)));
-        assert!(!bool::from(ConstantTimeLess::ct_lt(&b, &b)));
-        assert!(!bool::from(ConstantTimeLess::ct_lt(&c, &c)));
+        assert!(!bool::from(a.ct_lt(&a)));
+        assert!(!bool::from(b.ct_lt(&b)));
+        assert!(!bool::from(c.ct_lt(&c)));
 
-        assert!(!bool::from(ConstantTimeLess::ct_lt(&b, &a)));
-        assert!(!bool::from(ConstantTimeLess::ct_lt(&c, &a)));
-        assert!(!bool::from(ConstantTimeLess::ct_lt(&c, &b)));
+        assert!(!bool::from(b.ct_lt(&a)));
+        assert!(!bool::from(c.ct_lt(&a)));
+        assert!(!bool::from(c.ct_lt(&b)));
     }
 }

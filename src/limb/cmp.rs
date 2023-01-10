@@ -25,6 +25,12 @@ impl Limb {
         self.0 == other.0
     }
 
+    /// Return `b` if `c` is truthy, otherwise return `a`.
+    #[inline]
+    pub(crate) const fn ct_select(a: Self, b: Self, c: CtChoice) -> Self {
+        Self(c.select(a.0, b.0))
+    }
+
     /// Returns the truthy value if `self != 0` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn ct_is_nonzero(&self) -> CtChoice {

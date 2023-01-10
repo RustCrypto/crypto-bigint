@@ -45,7 +45,7 @@ impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
             }
             n.limbs[n_limbs - 1] = n.limbs[n_limbs - 1] & mask;
 
-            if ConstantTimeLess::ct_lt(&n, modulus).into() {
+            if n.ct_lt(modulus).into() {
                 return n;
             }
         }

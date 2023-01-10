@@ -93,7 +93,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         debug_assert!(!a.ct_is_nonzero().is_true_vartime());
 
-        (v, b.ct_eq(&Uint::ONE))
+        (v, Uint::ct_eq(&b, &Uint::ONE))
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.

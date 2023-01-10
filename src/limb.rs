@@ -20,7 +20,7 @@ mod sub;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Bounded, CtChoice, Zero};
+use crate::{Bounded, Zero};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
 
@@ -90,12 +90,6 @@ impl Limb {
     /// Size of the inner integer in bytes.
     #[cfg(target_pointer_width = "64")]
     pub const BYTES: usize = 8;
-
-    /// Return `b` if `c` is truthy, otherwise return `a`.
-    #[inline]
-    pub(crate) const fn ct_select(a: Self, b: Self, c: CtChoice) -> Self {
-        Self(c.select(a.0, b.0))
-    }
 }
 
 impl Bounded for Limb {
