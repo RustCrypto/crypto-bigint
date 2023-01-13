@@ -84,9 +84,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// The value `1`.
     pub const ONE: Self = Self::from_u8(1);
 
-    /// The number of limbs used on this platform.
-    pub const LIMBS: usize = LIMBS;
-
     /// Maximum value this [`Uint`] can express.
     pub const MAX: Self = Self {
         limbs: [Limb::MAX; LIMBS],
@@ -97,6 +94,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Total size of the represented integer in bytes.
     pub const BYTES: usize = LIMBS * Limb::BYTES;
+
+    /// The number of limbs used on this platform.
+    pub const LIMBS: usize = LIMBS;
 
     /// Const-friendly [`Uint`] constructor.
     pub const fn new(limbs: [Limb; LIMBS]) -> Self {
@@ -212,6 +212,9 @@ impl<const LIMBS: usize> Default for Uint<LIMBS> {
 impl<const LIMBS: usize> Integer for Uint<LIMBS> {
     const ONE: Self = Self::ONE;
     const MAX: Self = Self::MAX;
+    const BITS: usize = Self::BITS;
+    const BYTES: usize = Self::BYTES;
+    const LIMBS: usize = Self::LIMBS;
 
     fn is_odd(&self) -> Choice {
         self.limbs
