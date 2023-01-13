@@ -47,6 +47,15 @@ pub trait Integer:
     /// Maximum value this integer can express.
     const MAX: Self;
 
+    /// Total size of the represented integer in bits.
+    const BITS: usize;
+
+    /// Total size of the represented integer in bytes.
+    const BYTES: usize;
+
+    /// The number of limbs used on this platform.
+    const LIMBS: usize;
+
     /// Is this integer value an odd number?
     ///
     /// # Returns
