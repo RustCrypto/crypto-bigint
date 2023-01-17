@@ -20,6 +20,18 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
             residue_params: self.residue_params,
         }
     }
+
+    /// Computes the (reduced) square of a residue.
+    pub const fn square(&self) -> Self {
+        Self {
+            montgomery_form: square_montgomery_form(
+                &self.montgomery_form,
+                &self.residue_params.modulus,
+                self.residue_params.mod_neg_inv,
+            ),
+            residue_params: self.residue_params,
+        }
+    }
 }
 
 impl<const LIMBS: usize> Mul<&DynResidue<LIMBS>> for &DynResidue<LIMBS> {
@@ -67,13 +79,6 @@ impl<const LIMBS: usize> MulAssign<DynResidue<LIMBS>> for DynResidue<LIMBS> {
 
 impl<const LIMBS: usize> Square for DynResidue<LIMBS> {
     fn square(&self) -> Self {
-        Self {
-            montgomery_form: square_montgomery_form(
-                &self.montgomery_form,
-                &self.residue_params.modulus,
-                self.residue_params.mod_neg_inv,
-            ),
-            residue_params: self.residue_params,
-        }
+        DynResidue::square(self)
     }
 }
