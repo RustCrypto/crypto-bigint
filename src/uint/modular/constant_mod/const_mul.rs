@@ -23,6 +23,18 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
             phantom: PhantomData,
         }
     }
+
+    /// Computes the (reduced) square of a residue.
+    pub const fn square(&self) -> Self {
+        Self {
+            montgomery_form: square_montgomery_form(
+                &self.montgomery_form,
+                &MOD::MODULUS,
+                MOD::MOD_NEG_INV,
+            ),
+            phantom: PhantomData,
+        }
+    }
 }
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Mul<&Residue<MOD, LIMBS>>
@@ -77,13 +89,6 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> MulAssign<Self> for Residue<
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Square for Residue<MOD, LIMBS> {
     fn square(&self) -> Self {
-        Self {
-            montgomery_form: square_montgomery_form(
-                &self.montgomery_form,
-                &MOD::MODULUS,
-                MOD::MOD_NEG_INV,
-            ),
-            phantom: PhantomData,
-        }
+        Residue::square(self)
     }
 }
