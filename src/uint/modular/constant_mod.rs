@@ -6,6 +6,9 @@ use crate::{Limb, Uint, Zero};
 
 use super::{reduction::montgomery_reduction, Retrieve};
 
+#[cfg(feature = "rand_core")]
+use crate::{rand_core::CryptoRngCore, NonZero, Random, RandomMod};
+
 /// Additions between residues with a constant modulus
 mod const_add;
 /// Multiplicative inverses of residues with a constant modulus
@@ -119,6 +122,17 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Default for Residue<MOD, LIM
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Zero for Residue<MOD, LIMBS> {
     const ZERO: Self = Self::ZERO;
+}
+
+#[cfg(feature = "rand_core")]
+impl<MOD, const LIMBS: usize> Random for Residue<MOD, LIMBS>
+where
+    MOD: ResidueParams<LIMBS>,
+{
+    #[inline]
+    fn random(rng: &mut impl CryptoRngCore) -> Self {
+        Self::new(&Uint::random_mod(rng, &NonZero::from_uint(MOD::MODULUS)))
+    }
 }
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Retrieve for Residue<MOD, LIMBS> {
