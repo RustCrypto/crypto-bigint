@@ -1,5 +1,5 @@
 #![no_std]
-#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![doc = include_str!("../README.md")]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
@@ -118,7 +118,7 @@
 //! ### Random number generation
 //!
 //! When the `rand_core` or `rand` features of this crate are enabled, it's
-//! possible to generate random numbers using any [`CryptoRng`] by using the
+//! possible to generate random numbers using any CSRNG by using the
 //! [`Random`] trait:
 //!
 //! ```
@@ -150,7 +150,6 @@
 //! [`Mul`]: core::ops::Mul
 //! [`Rem`]: core::ops::Rem
 //! [`Sub`]: core::ops::Sub
-//! [`CryptoRng`]: rand_core::CryptoRng
 
 #[cfg(all(feature = "alloc", test))]
 extern crate alloc;

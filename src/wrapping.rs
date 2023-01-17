@@ -61,7 +61,6 @@ impl<T: ConstantTimeEq> ConstantTimeEq for Wrapping<T> {
 }
 
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for Wrapping<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -72,7 +71,6 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for Wrapping<T> {
 }
 
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<'de, T: Serialize> Serialize for Wrapping<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

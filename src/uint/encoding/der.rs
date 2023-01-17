@@ -6,7 +6,6 @@ use ::der::{
     DecodeValue, EncodeValue, FixedTag, Length, Tag,
 };
 
-#[cfg_attr(docsrs, doc(cfg(feature = "der")))]
 impl<'a, const LIMBS: usize> TryFrom<AnyRef<'a>> for Uint<LIMBS>
 where
     Uint<LIMBS>: ArrayEncoding,
@@ -18,7 +17,6 @@ where
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "der")))]
 impl<'a, const LIMBS: usize> TryFrom<UIntRef<'a>> for Uint<LIMBS>
 where
     Uint<LIMBS>: ArrayEncoding,
@@ -33,7 +31,6 @@ where
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "der")))]
 impl<'a, const LIMBS: usize> DecodeValue<'a> for Uint<LIMBS>
 where
     Uint<LIMBS>: ArrayEncoding,
@@ -43,7 +40,6 @@ where
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "der")))]
 impl<const LIMBS: usize> EncodeValue for Uint<LIMBS>
 where
     Uint<LIMBS>: ArrayEncoding,
@@ -60,7 +56,6 @@ where
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "der")))]
 impl<const LIMBS: usize> FixedTag for Uint<LIMBS>
 where
     Uint<LIMBS>: ArrayEncoding,

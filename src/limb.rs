@@ -130,7 +130,6 @@ impl fmt::UpperHex for Limb {
 }
 
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<'de> Deserialize<'de> for Limb {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -141,7 +140,6 @@ impl<'de> Deserialize<'de> for Limb {
 }
 
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<'de> Serialize for Limb {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -152,5 +150,4 @@ impl<'de> Serialize for Limb {
 }
 
 #[cfg(feature = "zeroize")]
-#[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
 impl zeroize::DefaultIsZeroes for Limb {}

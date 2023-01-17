@@ -62,7 +62,6 @@ where
 }
 
 #[cfg(feature = "generic-array")]
-#[cfg_attr(docsrs, doc(cfg(feature = "generic-array")))]
 impl<T> NonZero<T>
 where
     T: ArrayEncoding + Zero,
@@ -117,7 +116,6 @@ where
 }
 
 #[cfg(feature = "rand_core")]
-#[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
 impl<T> Random for NonZero<T>
 where
     T: Random + Zero,
@@ -126,7 +124,7 @@ where
     fn random(mut rng: &mut impl CryptoRngCore) -> Self {
         // Use rejection sampling to eliminate zero values.
         // While this method isn't constant-time, the attacker shouldn't learn
-        // anything about unrelated outputs so long as `rng` is a secure `CryptoRng`.
+        // anything about unrelated outputs so long as `rng` is a CSRNG.
         loop {
             if let Some(result) = Self::new(T::random(&mut rng)).into() {
                 break result;
@@ -202,7 +200,6 @@ impl NonZero<Limb> {
     /// Create a [`NonZero<Limb>`] from a [`NonZeroU64`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU64>` when stable
     #[cfg(target_pointer_width = "64")]
-    #[cfg_attr(docsrs, doc(cfg(target_pointer_width = "64")))]
     pub const fn from_u64(n: NonZeroU64) -> Self {
         Self(Limb::from_u64(n.get()))
     }
@@ -227,7 +224,6 @@ impl From<NonZeroU32> for NonZero<Limb> {
 }
 
 #[cfg(target_pointer_width = "64")]
-#[cfg_attr(docsrs, doc(cfg(target_pointer_width = "64")))]
 impl From<NonZeroU64> for NonZero<Limb> {
     fn from(integer: NonZeroU64) -> Self {
         Self::from_u64(integer)
@@ -311,7 +307,6 @@ impl<const LIMBS: usize> From<NonZeroU128> for NonZero<Uint<LIMBS>> {
 }
 
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<'de, T: Deserialize<'de> + Zero> Deserialize<'de> for NonZero<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -331,7 +326,6 @@ impl<'de, T: Deserialize<'de> + Zero> Deserialize<'de> for NonZero<T> {
 }
 
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<'de, T: Serialize + Zero> Serialize for NonZero<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where

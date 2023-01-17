@@ -258,7 +258,6 @@ impl<const LIMBS: usize> fmt::UpperHex for Uint<LIMBS> {
 }
 
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<'de, const LIMBS: usize> Deserialize<'de> for Uint<LIMBS>
 where
     Uint<LIMBS>: Encoding,
@@ -275,7 +274,6 @@ where
 }
 
 #[cfg(feature = "serde")]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 impl<'de, const LIMBS: usize> Serialize for Uint<LIMBS>
 where
     Uint<LIMBS>: Encoding,
@@ -289,7 +287,6 @@ where
 }
 
 #[cfg(feature = "zeroize")]
-#[cfg_attr(docsrs, doc(cfg(feature = "zeroize")))]
 impl<const LIMBS: usize> DefaultIsZeroes for Uint<LIMBS> {}
 
 // TODO(tarcieri): use `const_evaluatable_checked` when stable to make generic around bits.
