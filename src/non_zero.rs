@@ -12,10 +12,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use crate::{ArrayEncoding, ByteArray};
 
 #[cfg(feature = "rand_core")]
-use {
-    crate::Random,
-    rand_core::{CryptoRng, RngCore},
-};
+use {crate::Random, rand_core::CryptoRngCore};
 
 #[cfg(feature = "serde")]
 use serdect::serde::{
@@ -126,7 +123,7 @@ where
     T: Random + Zero,
 {
     /// Generate a random `NonZero<T>`.
-    fn random(mut rng: impl CryptoRng + RngCore) -> Self {
+    fn random(mut rng: &mut impl CryptoRngCore) -> Self {
         // Use rejection sampling to eliminate zero values.
         // While this method isn't constant-time, the attacker shouldn't learn
         // anything about unrelated outputs so long as `rng` is a secure `CryptoRng`.

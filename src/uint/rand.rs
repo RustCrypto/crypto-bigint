@@ -2,13 +2,13 @@
 
 use super::Uint;
 use crate::{Limb, NonZero, Random, RandomMod};
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRngCore;
 use subtle::ConstantTimeLess;
 
 #[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
 impl<const LIMBS: usize> Random for Uint<LIMBS> {
     /// Generate a cryptographically secure random [`Uint`].
-    fn random(mut rng: impl CryptoRng + RngCore) -> Self {
+    fn random(mut rng: &mut impl CryptoRngCore) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
 
         for limb in &mut limbs {
@@ -32,7 +32,7 @@ impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
     /// issue so long as the underlying random number generator is truly a
     /// [`CryptoRng`], where previous outputs are unrelated to subsequent
     /// outputs and do not reveal information about the RNG's internal state.
-    fn random_mod(mut rng: impl CryptoRng + RngCore, modulus: &NonZero<Self>) -> Self {
+    fn random_mod(mut rng: &mut impl CryptoRngCore, modulus: &NonZero<Self>) -> Self {
         let mut n = Self::ZERO;
 
         let n_bits = modulus.as_ref().bits_vartime();
