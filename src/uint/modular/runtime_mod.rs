@@ -1,3 +1,5 @@
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
+
 use crate::{Limb, Uint, Word};
 
 use super::{reduction::montgomery_reduction, Retrieve};
@@ -96,6 +98,27 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
             montgomery_form: residue_params.r,
             residue_params,
         }
+    }
+}
+
+impl<const LIMBS: usize> ConditionallySelectable for DynResidue<LIMBS> {
+    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
+        debug_assert_eq!(a.residue_params, b.residue_params);
+        Self {
+            montgomery_form: Uint::conditional_select(
+                &a.montgomery_form,
+                &b.montgomery_form,
+                choice,
+            ),
+            residue_params: a.residue_params,
+        }
+    }
+}
+
+impl<const LIMBS: usize> ConstantTimeEq for DynResidue<LIMBS> {
+    fn ct_eq(&self, other: &Self) -> Choice {
+        debug_assert_eq!(self.residue_params, other.residue_params);
+        self.montgomery_form.ct_eq(&other.montgomery_form)
     }
 }
 

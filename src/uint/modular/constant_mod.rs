@@ -99,7 +99,7 @@ impl<MOD: ResidueParams<LIMBS> + Copy, const LIMBS: usize> ConditionallySelectab
     for Residue<MOD, LIMBS>
 {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Residue {
+        Self {
             montgomery_form: Uint::conditional_select(
                 &a.montgomery_form,
                 &b.montgomery_form,
