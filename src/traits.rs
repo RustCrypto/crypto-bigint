@@ -9,7 +9,7 @@ use subtle::{
 };
 
 #[cfg(feature = "rand_core")]
-use rand_core::{CryptoRng, RngCore};
+use rand_core::CryptoRngCore;
 
 /// Integer type.
 pub trait Integer:
@@ -93,7 +93,7 @@ pub trait Zero: ConstantTimeEq + Sized {
 #[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
 pub trait Random: Sized {
     /// Generate a cryptographically secure random value.
-    fn random(rng: impl CryptoRng + RngCore) -> Self;
+    fn random(rng: &mut impl CryptoRngCore) -> Self;
 }
 
 /// Modular random number generation support.
@@ -111,7 +111,7 @@ pub trait RandomMod: Sized + Zero {
     /// issue so long as the underlying random number generator is truly a
     /// [`CryptoRng`], where previous outputs are unrelated to subsequent
     /// outputs and do not reveal information about the RNG's internal state.
-    fn random_mod(rng: impl CryptoRng + RngCore, modulus: &NonZero<Self>) -> Self;
+    fn random_mod(rng: &mut impl CryptoRngCore, modulus: &NonZero<Self>) -> Self;
 }
 
 /// Compute `self + rhs mod p`.
