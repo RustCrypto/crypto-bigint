@@ -115,7 +115,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Serialize this [`Uint`] as big-endian, writing it into the provided
     /// byte slice.
     #[inline]
-    #[cfg_attr(docsrs, doc(cfg(feature = "generic-array")))]
     pub(crate) fn write_be_bytes(&self, out: &mut [u8]) {
         debug_assert_eq!(out.len(), Limb::BYTES * LIMBS);
 
@@ -133,7 +132,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Serialize this [`Uint`] as little-endian, writing it into the provided
     /// byte slice.
     #[inline]
-    #[cfg_attr(docsrs, doc(cfg(feature = "generic-array")))]
     pub(crate) fn write_le_bytes(&self, out: &mut [u8]) {
         debug_assert_eq!(out.len(), Limb::BYTES * LIMBS);
 

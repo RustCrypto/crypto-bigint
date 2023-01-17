@@ -5,7 +5,6 @@ use crate::{Limb, NonZero, Random, RandomMod};
 use rand_core::CryptoRngCore;
 use subtle::ConstantTimeLess;
 
-#[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
 impl<const LIMBS: usize> Random for Uint<LIMBS> {
     /// Generate a cryptographically secure random [`Uint`].
     fn random(mut rng: &mut impl CryptoRngCore) -> Self {
@@ -19,18 +18,17 @@ impl<const LIMBS: usize> Random for Uint<LIMBS> {
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
 impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
     /// Generate a cryptographically secure random [`Uint`] which is less than
     /// a given `modulus`.
     ///
     /// This function uses rejection sampling, a method which produces an
     /// unbiased distribution of in-range values provided the underlying
-    /// [`CryptoRng`] is unbiased, but runs in variable-time.
+    /// CSRNG is unbiased, but runs in variable-time.
     ///
     /// The variable-time nature of the algorithm should not pose a security
     /// issue so long as the underlying random number generator is truly a
-    /// [`CryptoRng`], where previous outputs are unrelated to subsequent
+    /// CSRNG, where previous outputs are unrelated to subsequent
     /// outputs and do not reveal information about the RNG's internal state.
     fn random_mod(mut rng: &mut impl CryptoRngCore, modulus: &NonZero<Self>) -> Self {
         let mut n = Self::ZERO;

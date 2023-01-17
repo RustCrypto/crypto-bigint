@@ -3,7 +3,6 @@
 use crate::{Encoding, Uint};
 use rlp::{DecoderError, Rlp, RlpStream};
 
-#[cfg_attr(docsrs, doc(cfg(feature = "rlp")))]
 impl<const LIMBS: usize> rlp::Encodable for Uint<LIMBS>
 where
     Self: Encoding,
@@ -20,7 +19,6 @@ where
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "rlp")))]
 impl<const LIMBS: usize> rlp::Decodable for Uint<LIMBS>
 where
     Self: Encoding,

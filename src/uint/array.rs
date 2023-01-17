@@ -7,7 +7,6 @@ use generic_array::{typenum, GenericArray};
 macro_rules! impl_uint_array_encoding {
     ($(($uint:ident, $bytes:path)),+) => {
         $(
-            #[cfg_attr(docsrs, doc(cfg(feature = "generic-array")))]
             impl ArrayEncoding for super::$uint {
                 type ByteSize = $bytes;
 
@@ -36,7 +35,6 @@ macro_rules! impl_uint_array_encoding {
                 }
             }
 
-            #[cfg_attr(docsrs, doc(cfg(feature = "generic-array")))]
             impl ArrayDecoding for GenericArray<u8, $bytes> {
                 type Output = super::$uint;
 

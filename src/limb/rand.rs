@@ -5,7 +5,6 @@ use crate::{Encoding, NonZero, Random, RandomMod};
 use rand_core::CryptoRngCore;
 use subtle::ConstantTimeLess;
 
-#[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
 impl Random for Limb {
     #[cfg(target_pointer_width = "32")]
     fn random(rng: &mut impl CryptoRngCore) -> Self {
@@ -18,7 +17,6 @@ impl Random for Limb {
     }
 }
 
-#[cfg_attr(docsrs, doc(cfg(feature = "rand_core")))]
 impl RandomMod for Limb {
     fn random_mod(rng: &mut impl CryptoRngCore, modulus: &NonZero<Self>) -> Self {
         let mut bytes = <Self as Encoding>::Repr::default();
