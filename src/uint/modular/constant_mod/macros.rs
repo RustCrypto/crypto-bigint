@@ -4,7 +4,7 @@
 /// For example, `impl_modulus!(MyModulus, U256, "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001");` implements a 256-bit modulus named `MyModulus`.
 macro_rules! impl_modulus {
     ($name:ident, $uint_type:ty, $value:expr) => {
-        #[derive(Clone, Copy, PartialEq, Eq, Debug)]
+        #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
         pub struct $name {}
         impl<const DLIMBS: usize> ResidueParams<{ nlimbs!(<$uint_type>::BITS) }> for $name
         where

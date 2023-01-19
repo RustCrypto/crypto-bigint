@@ -1,4 +1,4 @@
-use core::marker::PhantomData;
+use core::{fmt::Debug, marker::PhantomData};
 
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
@@ -31,7 +31,9 @@ pub use macros::*;
 /// The parameters to efficiently go to and from the Montgomery form for a given odd modulus. An easy way to generate these parameters is using the `impl_modulus!` macro. These parameters are constant, so they cannot be set at runtime.
 ///
 /// Unfortunately, `LIMBS` must be generic for now until const generics are stabilized.
-pub trait ResidueParams<const LIMBS: usize>: Copy {
+pub trait ResidueParams<const LIMBS: usize>:
+    Copy + Debug + Default + Eq + Send + Sync + 'static
+{
     /// Number of limbs required to encode a residue
     const LIMBS: usize;
 
