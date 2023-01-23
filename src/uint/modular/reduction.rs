@@ -1,7 +1,7 @@
 use crate::{CtChoice, Limb, Uint, WideWord, Word};
 
-/// Algorithm 14.32 in Handbook of Applied Cryptography (https://cacr.uwaterloo.ca/hac/about/chap14.pdf)
-pub(crate) const fn montgomery_reduction<const LIMBS: usize>(
+/// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
+pub const fn montgomery_reduction<const LIMBS: usize>(
     lower_upper: &(Uint<LIMBS>, Uint<LIMBS>),
     modulus: &Uint<LIMBS>,
     mod_neg_inv: Limb,

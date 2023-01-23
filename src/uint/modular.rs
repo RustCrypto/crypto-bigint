@@ -11,6 +11,8 @@ mod mul;
 mod pow;
 mod sub;
 
+pub use reduction::montgomery_reduction;
+
 /// A generalization for numbers kept in optimized representations (e.g. Montgomery)
 /// that can be converted back to the original form.
 pub trait Retrieve {
