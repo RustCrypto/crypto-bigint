@@ -6,27 +6,32 @@ macro_rules! impl_modulus {
     ($name:ident, $uint_type:ty, $value:expr) => {
         #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
         pub struct $name {}
-        impl<const DLIMBS: usize> ResidueParams<{ nlimbs!(<$uint_type>::BITS) }> for $name
+        impl<const DLIMBS: usize>
+            $crate::modular::constant_mod::ResidueParams<{ $crate::nlimbs!(<$uint_type>::BITS) }>
+            for $name
         where
-            $crate::Uint<{ nlimbs!(<$uint_type>::BITS) }>:
-                $crate::traits::Concat<Output = $crate::Uint<DLIMBS>>,
-            $crate::Uint<DLIMBS>: $crate::traits::Split<Output = $uint_type>,
+            $crate::Uint<{ $crate::nlimbs!(<$uint_type>::BITS) }>:
+                $crate::Concat<Output = $crate::Uint<DLIMBS>>,
         {
-            const LIMBS: usize = { nlimbs!(<$uint_type>::BITS) };
-            const MODULUS: $crate::Uint<{ nlimbs!(<$uint_type>::BITS) }> =
+            const LIMBS: usize = { $crate::nlimbs!(<$uint_type>::BITS) };
+            const MODULUS: $crate::Uint<{ $crate::nlimbs!(<$uint_type>::BITS) }> =
                 <$uint_type>::from_be_hex($value);
-            const R: $crate::Uint<{ nlimbs!(<$uint_type>::BITS) }> = $crate::Uint::MAX
-                .ct_rem(&Self::MODULUS)
+            const R: $crate::Uint<{ $crate::nlimbs!(<$uint_type>::BITS) }> = $crate::Uint::MAX
+                .const_rem(&Self::MODULUS)
                 .0
                 .wrapping_add(&$crate::Uint::ONE);
-            const R2: $crate::Uint<{ nlimbs!(<$uint_type>::BITS) }> =
-                $crate::Uint::ct_rem_wide(Self::R.square_wide(), &Self::MODULUS).0;
+            const R2: $crate::Uint<{ $crate::nlimbs!(<$uint_type>::BITS) }> =
+                $crate::Uint::const_rem_wide(Self::R.square_wide(), &Self::MODULUS).0;
             const MOD_NEG_INV: $crate::Limb = $crate::Limb(
-                $crate::Word::MIN
-                    .wrapping_sub(Self::MODULUS.inv_mod2k($crate::Word::BITS as usize).limbs[0].0),
+                $crate::Word::MIN.wrapping_sub(
+                    Self::MODULUS
+                        .inv_mod2k($crate::Word::BITS as usize)
+                        .as_limbs()[0]
+                        .0,
+                ),
             );
-            const R3: $crate::Uint<{ nlimbs!(<$uint_type>::BITS) }> =
-                $crate::uint::modular::reduction::montgomery_reduction(
+            const R3: $crate::Uint<{ $crate::nlimbs!(<$uint_type>::BITS) }> =
+                $crate::modular::montgomery_reduction(
                     &Self::R2.square_wide(),
                     &Self::MODULUS,
                     Self::MOD_NEG_INV,
