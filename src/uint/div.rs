@@ -520,7 +520,7 @@ impl<const LIMBS: usize> Rem<NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn rem(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
-        self.rem(&rhs)
+        Self::rem(&self, &rhs)
     }
 }
 
@@ -728,5 +728,17 @@ mod tests {
             let e = num.wrapping_rem(&den);
             assert_eq!(a, e);
         }
+    }
+
+    #[test]
+    fn rem_trait() {
+        let a = U256::from(10u64);
+        let b = NonZero::new(U256::from(3u64)).unwrap();
+        let c = U256::from(1u64);
+
+        assert_eq!(a % b, c);
+        assert_eq!(a % &b, c);
+        assert_eq!(&a % b, c);
+        assert_eq!(&a % &b, c);
     }
 }
