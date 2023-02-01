@@ -270,7 +270,7 @@ mod tests {
 
     #[test]
     fn mul_wide_lo_only() {
-        let primes: &[u32] = &[3, 5, 17, 256, 65537];
+        let primes: &[u32] = &[3, 5, 17, 257, 65537];
 
         for &a_int in primes {
             for &b_int in primes {
