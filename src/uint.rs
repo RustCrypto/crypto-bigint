@@ -355,6 +355,12 @@ impl_uint_aliases! {
     (U8192, 8192, "8192-bit")
 }
 
+#[cfg(target_pointer_width = "32")]
+impl_uint_aliases! {
+    (U224, 224, "224-bit"), // For NIST P-224
+    (U544, 544, "544-bit")  // For NIST P-521
+}
+
 // TODO(tarcieri): use `const_evaluatable_checked` when stable to make generic around bits.
 impl_concat! {
     (U64, 64),
