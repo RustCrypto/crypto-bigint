@@ -22,7 +22,7 @@
 //!
 //! This crate defines a [`Uint`] type which is const generic around an inner
 //! [`Limb`] array, where a [`Limb`] is a newtype for a word-sized integer.
-//! Thus large integers are represented as a arrays of smaller integers which
+//! Thus large integers are represented as arrays of smaller integers which
 //! are sized appropriately for the CPU, giving us some assurances of how
 //! arithmetic operations over those smaller integers will behave.
 //!
