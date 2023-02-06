@@ -73,6 +73,12 @@ impl_uint_array_encoding! {
     (U8192, typenum::U1024)
 }
 
+#[cfg(target_pointer_width = "32")]
+impl_uint_array_encoding! {
+    (U224, typenum::U28), // For NIST P-224
+    (U544, typenum::U68)  // For NIST P-521
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{ArrayDecoding, ArrayEncoding, Limb};
