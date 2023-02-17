@@ -37,7 +37,7 @@ macro_rules! impl_concat {
 
             impl From<($name, $name)> for Uint<{nlimbs!($bits) * 2}> {
                 fn from(nums: ($name, $name)) -> Uint<{nlimbs!($bits) * 2}> {
-                    nums.0.concat(&nums.1)
+                    nums.1.concat(&nums.0)
                 }
             }
         )+
@@ -56,5 +56,14 @@ mod tests {
             hi.concat(&lo),
             U128::from_be_hex("00112233445566778899aabbccddeeff")
         );
+    }
+
+    #[test]
+    fn convert() {
+        let res: U128 = U64::ONE.mul_wide(&U64::ONE).into();
+        assert_eq!(res, U128::ONE);
+
+        let res: U128 = U64::ONE.square_wide().into();
+        assert_eq!(res, U128::ONE);
     }
 }
