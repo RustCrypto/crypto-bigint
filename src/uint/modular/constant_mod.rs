@@ -175,7 +175,7 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<'de, MOD, const LIMBS: usize> Serialize for Residue<MOD, LIMBS>
+impl<MOD, const LIMBS: usize> Serialize for Residue<MOD, LIMBS>
 where
     MOD: ResidueParams<LIMBS>,
     Uint<LIMBS>: Encoding,

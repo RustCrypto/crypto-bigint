@@ -140,7 +140,7 @@ impl<'de> Deserialize<'de> for Limb {
 }
 
 #[cfg(feature = "serde")]
-impl<'de> Serialize for Limb {
+impl Serialize for Limb {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

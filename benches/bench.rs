@@ -19,7 +19,7 @@ fn bench_division<'a, M: Measurement>(group: &mut BenchmarkGroup<'a, M>) {
         b.iter(|| {
             xs.iter()
                 .zip(ys.iter())
-                .map(|(x, y)| x.div_rem(&y))
+                .map(|(x, y)| x.div_rem(y))
                 .for_each(drop)
         })
     });
@@ -28,7 +28,7 @@ fn bench_division<'a, M: Measurement>(group: &mut BenchmarkGroup<'a, M>) {
         b.iter(|| {
             xs.iter()
                 .zip(ys.iter())
-                .map(|(x, y)| x.rem(&y))
+                .map(|(x, y)| x.rem(y))
                 .for_each(drop)
         })
     });
@@ -48,7 +48,7 @@ fn bench_division<'a, M: Measurement>(group: &mut BenchmarkGroup<'a, M>) {
         b.iter(|| {
             xs.iter()
                 .zip(ys_full.iter())
-                .map(|(x, y)| x.div_rem(&y))
+                .map(|(x, y)| x.div_rem(y))
                 .for_each(drop)
         })
     });
@@ -87,10 +87,7 @@ fn bench_modpow<'a, M: Measurement>(group: &mut BenchmarkGroup<'a, M>) {
         .map(|_| U256::random(&mut OsRng) | (U256::ONE << (U256::BITS - 1)))
         .collect::<Vec<_>>();
 
-    let params = moduli
-        .iter()
-        .map(|modulus| DynResidueParams::new(modulus))
-        .collect::<Vec<_>>();
+    let params = moduli.iter().map(DynResidueParams::new).collect::<Vec<_>>();
     let xs_m = xs
         .iter()
         .zip(params.iter())
@@ -101,7 +98,7 @@ fn bench_modpow<'a, M: Measurement>(group: &mut BenchmarkGroup<'a, M>) {
         b.iter(|| {
             xs_m.iter()
                 .zip(powers.iter())
-                .map(|(x, p)| x.pow(&p))
+                .map(|(x, p)| x.pow(p))
                 .for_each(drop)
         })
     });
