@@ -326,7 +326,7 @@ impl<'de, T: Deserialize<'de> + Zero> Deserialize<'de> for NonZero<T> {
 }
 
 #[cfg(feature = "serde")]
-impl<'de, T: Serialize + Zero> Serialize for NonZero<T> {
+impl<T: Serialize + Zero> Serialize for NonZero<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

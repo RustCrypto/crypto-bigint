@@ -274,7 +274,7 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<'de, const LIMBS: usize> Serialize for Uint<LIMBS>
+impl<const LIMBS: usize> Serialize for Uint<LIMBS>
 where
     Uint<LIMBS>: Encoding,
 {

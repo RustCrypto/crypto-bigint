@@ -73,7 +73,7 @@ impl<'de, T: Default + Deserialize<'de>> Deserialize<'de> for Checked<T> {
 }
 
 #[cfg(feature = "serde")]
-impl<'de, T: Copy + Serialize> Serialize for Checked<T> {
+impl<T: Copy + Serialize> Serialize for Checked<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

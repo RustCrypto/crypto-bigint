@@ -81,7 +81,7 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for Wrapping<T> {
 }
 
 #[cfg(feature = "serde")]
-impl<'de, T: Serialize> Serialize for Wrapping<T> {
+impl<T: Serialize> Serialize for Wrapping<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
