@@ -45,8 +45,6 @@ macro_rules! impl_modulus {
 /// For example, `residue!(U256::from(105u64), MyModulus);` creates a `Residue` for 105 mod `MyModulus`.
 macro_rules! const_residue {
     ($variable:ident, $modulus:ident) => {
-        $crate::uint::modular::constant_mod::Residue::<$modulus, { $modulus::LIMBS }>::new(
-            &$variable,
-        )
+        $crate::modular::constant_mod::Residue::<$modulus, { $modulus::LIMBS }>::new(&$variable)
     };
 }
