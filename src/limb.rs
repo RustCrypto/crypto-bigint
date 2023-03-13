@@ -59,7 +59,7 @@ pub(crate) const HI_BIT: usize = Limb::BITS - 1;
 
 /// Big integers are represented as an array of smaller CPU word-size integers
 /// called "limbs".
-#[derive(Copy, Clone, Debug, Default, Hash)]
+#[derive(Copy, Clone, Default, Hash)]
 #[repr(transparent)]
 pub struct Limb(pub Word);
 
@@ -108,6 +108,12 @@ impl Zero for Limb {
     const ZERO: Self = Self::ZERO;
 }
 
+impl fmt::Debug for Limb {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Limb(0x{self:X})")
+    }
+}
+
 impl fmt::Display for Limb {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -151,3 +157,19 @@ impl Serialize for Limb {
 
 #[cfg(feature = "zeroize")]
 impl zeroize::DefaultIsZeroes for Limb {}
+
+#[cfg(test)]
+mod tests {
+    #[cfg(feature = "alloc")]
+    use {super::Limb, alloc::format};
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn debug() {
+        #[cfg(target_pointer_width = "32")]
+        assert_eq!(format!("{:?}", Limb(42)), "Limb(0x0000002A)");
+
+        #[cfg(target_pointer_width = "64")]
+        assert_eq!(format!("{:?}", Limb(42)), "Limb(0x000000000000002A)");
+    }
+}

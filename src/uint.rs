@@ -71,7 +71,7 @@ use zeroize::DefaultIsZeroes;
 ///
 /// [RLP]: https://eth.wiki/fundamentals/rlp
 // TODO(tarcieri): make generic around a specified number of bits.
-#[derive(Copy, Clone, Debug, Hash)]
+#[derive(Copy, Clone, Hash)]
 pub struct Uint<const LIMBS: usize> {
     /// Inner limb array. Stored from least significant to most significant.
     limbs: [Limb; LIMBS],
@@ -231,6 +231,12 @@ impl<const LIMBS: usize> Zero for Uint<LIMBS> {
 impl<const LIMBS: usize> Bounded for Uint<LIMBS> {
     const BITS: usize = Self::BITS;
     const BYTES: usize = Self::BYTES;
+}
+
+impl<const LIMBS: usize> fmt::Debug for Uint<LIMBS> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Uint(0x{self:X})")
+    }
 }
 
 impl<const LIMBS: usize> fmt::Display for Uint<LIMBS> {
@@ -408,11 +414,26 @@ mod tests {
     use crate::{Encoding, U128};
     use subtle::ConditionallySelectable;
 
+    #[cfg(feature = "alloc")]
+    use alloc::format;
+
     #[cfg(feature = "serde")]
     use crate::U64;
 
-    #[test]
     #[cfg(feature = "alloc")]
+    #[test]
+    fn debug() {
+        let hex = "AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD";
+        let n = U128::from_be_hex(hex);
+
+        assert_eq!(
+            format!("{:?}", n),
+            "Uint(0xAAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD)"
+        );
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
     fn display() {
         let hex = "AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD";
         let n = U128::from_be_hex(hex);
@@ -461,8 +482,8 @@ mod tests {
         assert_eq!(b, select_1);
     }
 
-    #[test]
     #[cfg(feature = "serde")]
+    #[test]
     fn serde() {
         const TEST: U64 = U64::from_u64(0x0011223344556677);
 
@@ -472,8 +493,8 @@ mod tests {
         assert_eq!(TEST, deserialized);
     }
 
-    #[test]
     #[cfg(feature = "serde")]
+    #[test]
     fn serde_owned() {
         const TEST: U64 = U64::from_u64(0x0011223344556677);
 
