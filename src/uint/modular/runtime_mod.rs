@@ -48,6 +48,11 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
             mod_neg_inv,
         }
     }
+
+    /// Returns the modulus which was used to initialize these parameters.
+    pub const fn modulus(&self) -> &Uint<LIMBS> {
+        &self.modulus
+    }
 }
 
 /// A residue represented using `LIMBS` limbs. The odd modulus of this residue is set at runtime.
@@ -96,6 +101,11 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
             montgomery_form: residue_params.r,
             residue_params,
         }
+    }
+
+    /// Returns the parameter struct used to initialize this residue.
+    pub const fn params(&self) -> &DynResidueParams<LIMBS> {
+        &self.residue_params
     }
 }
 
