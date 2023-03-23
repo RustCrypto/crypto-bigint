@@ -9,10 +9,10 @@ use crate::Word;
 pub struct CtChoice(Word);
 
 impl CtChoice {
-    /// The falsy vaue.
+    /// The falsy value.
     pub const FALSE: Self = Self(0);
 
-    /// The truthy vaue.
+    /// The truthy value.
     pub const TRUE: Self = Self(Word::MAX);
 
     /// Returns the truthy value if `value == Word::MAX`, and the falsy value if `value == 0`.
