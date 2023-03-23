@@ -177,7 +177,7 @@ pub trait CheckedMul<Rhs = Self>: Sized {
     fn checked_mul(&self, rhs: Rhs) -> CtOption<Self>;
 }
 
-/// Checked substraction.
+/// Checked subtraction.
 pub trait CheckedSub<Rhs = Self>: Sized {
     /// Output type.
     type Output;

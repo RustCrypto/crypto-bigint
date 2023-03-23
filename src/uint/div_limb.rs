@@ -147,7 +147,7 @@ const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Word, Word) {
     let r = Limb::ct_select(Limb(r), Limb(r.wrapping_add(d)), r_gt_q0).0;
 
     // If this was a normal `if`, we wouldn't need wrapping ops, because there would be no overflow.
-    // But since we caluculate both results either way, have to wrap.
+    // But since we calculate both results either way, we have to wrap.
     // Added an assert to still check the lack of overflow in debug mode.
     debug_assert!(r < d || q1 < Word::MAX);
     let r_ge_d = Limb::ct_le(Limb(d), Limb(r));
