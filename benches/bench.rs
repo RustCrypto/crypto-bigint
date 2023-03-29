@@ -104,10 +104,45 @@ fn bench_modpow<'a, M: Measurement>(group: &mut BenchmarkGroup<'a, M>) {
     });
 }
 
+fn bench_montgomery<'a, M: Measurement>(group: &mut BenchmarkGroup<'a, M>) {
+    const TEST_SET: usize = 10;
+    let xs = (0..TEST_SET)
+        .map(|_| U256::random(&mut OsRng))
+        .collect::<Vec<_>>();
+    let ys = (0..TEST_SET)
+        .map(|_| U256::random(&mut OsRng))
+        .collect::<Vec<_>>();
+    let moduli = (0..TEST_SET)
+        .map(|_| U256::random(&mut OsRng) | U256::ONE)
+        .collect::<Vec<_>>();
+
+    let params = moduli.iter().map(DynResidueParams::new).collect::<Vec<_>>();
+    let xs_m = xs
+        .iter()
+        .zip(params.iter())
+        .map(|(x, p)| DynResidue::new(x, *p))
+        .collect::<Vec<_>>();
+    let ys_m = ys
+        .iter()
+        .zip(params.iter())
+        .map(|(y, p)| DynResidue::new(y, *p))
+        .collect::<Vec<_>>();
+
+    group.bench_function("Montgomery multiplication", |b| {
+        b.iter(|| {
+            xs_m.iter()
+                .zip(ys_m.iter())
+                .map(|(x, y)| x * y)
+                .for_each(drop)
+        })
+    });
+}
+
 fn bench_wrapping_ops(c: &mut Criterion) {
     let mut group = c.benchmark_group("wrapping ops");
     bench_division(&mut group);
     bench_modpow(&mut group);
+    bench_montgomery(&mut group);
     group.finish();
 }
 
