@@ -37,10 +37,6 @@ impl CtChoice {
         Self(self.0 & other.0)
     }
 
-    pub(crate) const fn or(&self, other: Self) -> Self {
-        Self(self.0 | other.0)
-    }
-
     /// Return `b` if `self` is truthy, otherwise return `a`.
     pub(crate) const fn select(&self, a: Word, b: Word) -> Word {
         a ^ (self.0 & (a ^ b))

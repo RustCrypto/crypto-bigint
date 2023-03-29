@@ -16,19 +16,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the
         // modulus.
-        let mut i = 0;
-        let mut res = Self::ZERO;
-        let mut carry = Limb::ZERO;
+        let mask = Uint::from_words([borrow.0; LIMBS]);
 
-        while i < LIMBS {
-            let rhs = p.limbs[i].bitand(borrow);
-            let (limb, c) = w.limbs[i].adc(rhs, carry);
-            res.limbs[i] = limb;
-            carry = c;
-            i += 1;
-        }
-
-        res
+        w.wrapping_add(&p.bitand(&mask))
     }
 
     /// Computes `self + rhs mod p` in constant time for the special modulus
@@ -43,8 +33,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // for the overflow. Otherwise, we need to subtract `c` again, which
         // in that case cannot underflow.
         let l = carry.0.wrapping_sub(1) & c.0;
-        let (out, _) = out.sbb(&Uint::from_word(l), Limb::ZERO);
-        out
+        out.wrapping_sub(&Uint::from_word(l))
     }
 }
 
