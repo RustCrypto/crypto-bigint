@@ -136,6 +136,15 @@ fn bench_montgomery<'a, M: Measurement>(group: &mut BenchmarkGroup<'a, M>) {
                 .for_each(drop)
         })
     });
+
+    group.bench_function("DynResidue creation", |b| {
+        b.iter(|| {
+            moduli
+                .iter()
+                .map(|m| DynResidueParams::new(m))
+                .for_each(drop)
+        })
+    });
 }
 
 fn bench_wrapping_ops(c: &mut Criterion) {
