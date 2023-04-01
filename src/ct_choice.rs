@@ -25,7 +25,7 @@ impl CtChoice {
     /// Returns the truthy value if `value == 1`, and the falsy value if `value == 0`.
     /// Panics for other values.
     pub(crate) const fn from_lsb(value: Word) -> Self {
-        debug_assert!(value == Self::FALSE.0 || value == 1);
+        debug_assert!(value == 0 || value == 1);
         Self(value.wrapping_neg())
     }
 
