@@ -10,31 +10,6 @@ const fn muladdcarry(x: Word, y: Word, z: Word, w: Word) -> (Word, Word) {
     ((res >> Word::BITS) as Word, res as Word)
 }
 
-/// Returns `(x..., x_hi) - (y...) mod (m...)`.
-/// Assumes `-(m...) <= (x..., x_hi) - (y...) < (m...)`.
-#[inline(always)]
-pub(crate) const fn sub_mod_with_hi<const LIMBS: usize>(
-    x_hi: Limb,
-    x: &Uint<LIMBS>,
-    y: &Uint<LIMBS>,
-    m: &Uint<LIMBS>,
-) -> Uint<LIMBS> {
-    // Note: this is pretty much `Uint::sub_mod()`, but with `x_hi` added.
-
-    debug_assert!(x_hi.0 <= 1);
-
-    let (w, borrow) = x.sbb(y, Limb::ZERO);
-
-    // The new `borrow = Word::MAX` iff `x_hi == 0` and `borrow == Word::MAX`.
-    let borrow = (!x_hi.0.wrapping_neg()) & borrow.0;
-
-    // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
-    // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-    let mask = Uint::from_words([borrow; LIMBS]);
-
-    w.wrapping_add(&m.bitand(&mask))
-}
-
 /// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
 pub const fn montgomery_reduction<const LIMBS: usize>(
     lower_upper: &(Uint<LIMBS>, Uint<LIMBS>),
@@ -76,5 +51,5 @@ pub const fn montgomery_reduction<const LIMBS: usize>(
     // Final reduction (at this point, the value is at most 2 * modulus,
     // so `meta_carry` is either 0 or 1)
 
-    sub_mod_with_hi(meta_carry, &upper, modulus, modulus)
+    upper.sub_mod_with_carry(meta_carry, modulus, modulus)
 }
