@@ -67,6 +67,12 @@ where
     phantom: PhantomData<MOD>,
 }
 
+#[cfg(feature = "zeroize")]
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> zeroize::DefaultIsZeroes
+    for Residue<MOD, LIMBS>
+{
+}
+
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// The representation of 0 mod `MOD`.
     pub const ZERO: Self = Self {
