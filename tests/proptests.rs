@@ -282,4 +282,25 @@ proptest! {
 
         assert_eq!(expected, actual);
     }
+
+    #[test]
+    fn residue_div_by_2(a in uint_mod_p(P)) {
+        let a_bi = to_biguint(&a);
+        let p_bi = to_biguint(&P);
+        let two = BigUint::from(2u32);
+
+        let expected = if a_bi.is_even() {
+            &a_bi / two
+        }
+        else {
+            (&a_bi + &p_bi) / two
+        };
+        let expected = to_uint(expected);
+
+        let params = DynResidueParams::new(&P);
+        let a_m = DynResidue::new(&a, params);
+        let actual = a_m.div_by_2().retrieve();
+
+        assert_eq!(expected, actual);
+    }
 }

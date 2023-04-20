@@ -1,6 +1,6 @@
 use crate::{Limb, Uint, Word};
 
-use super::{reduction::montgomery_reduction, Retrieve};
+use super::{div_by_2::div_by_2, reduction::montgomery_reduction, Retrieve};
 
 /// Additions between residues with a modulus set at runtime
 mod runtime_add;
@@ -111,6 +111,18 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
     /// Returns the parameter struct used to initialize this residue.
     pub const fn params(&self) -> &DynResidueParams<LIMBS> {
         &self.residue_params
+    }
+
+    /// Performs the modular division by 2, that is for given `x` returns `y`
+    /// such that `y * 2 = x mod p`. This means:
+    /// - if `x` is even, returns `x / 2`,
+    /// - if `x` is odd, returns `(x + p) / 2`
+    ///   (since the modulus `p` in Montgomery form is always odd, this divides entirely).
+    pub fn div_by_2(&self) -> Self {
+        Self {
+            montgomery_form: div_by_2(&self.montgomery_form, &self.residue_params.modulus),
+            residue_params: self.residue_params,
+        }
     }
 }
 
