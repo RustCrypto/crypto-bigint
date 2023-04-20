@@ -5,7 +5,8 @@ use crate::{limb::HI_BIT, CtChoice, Limb};
 use core::ops::{Shr, ShrAssign};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Computes `self >> 1` in constant-time, returning the overflowing bit as a `Word` that is either 0...0 or 1...1.
+    /// Computes `self >> 1` in constant-time, returning [`CtChoice::TRUE`] if the overflowing bit
+    /// was set, and [`CtChoice::FALSE`] otherwise.
     pub(crate) const fn shr_1(&self) -> (Self, CtChoice) {
         let mut shifted_bits = [0; LIMBS];
         let mut i = 0;
