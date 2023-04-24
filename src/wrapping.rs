@@ -2,9 +2,7 @@
 
 use crate::Zero;
 use core::fmt;
-use core::ops::{Add, Div, Mul, Rem, Sub};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
-use num_traits::{Num, NumOps, One};
 
 #[cfg(feature = "rand_core")]
 use {crate::Random, rand_core::CryptoRngCore};
