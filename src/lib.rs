@@ -166,7 +166,6 @@ mod non_zero;
 mod traits;
 mod uint;
 mod wrapping;
-mod ff_natural;
 
 pub use crate::{
     checked::Checked,
