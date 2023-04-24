@@ -42,6 +42,7 @@ impl<const LIMBS: usize> Rem<Wrapping<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
 impl<const LIMBS: usize> Num for Wrapping<Uint<LIMBS>> {
     type FromStrRadixErr = ();
 
+    // TODO: what's the best way to do this?
     fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
         todo!()
     }
@@ -90,6 +91,7 @@ impl<const LIMBS: usize> Rem<DynResidue<LIMBS>> for DynResidue<LIMBS> {
 impl<const LIMBS: usize> Num for DynResidue<LIMBS> {
     type FromStrRadixErr = ();
 
+    // TODO: what's the best way to do this?
     fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
         todo!()
     }
