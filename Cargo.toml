@@ -18,6 +18,7 @@ rust-version = "1.65"
 
 [dependencies]
 subtle = { version = "2.4", default-features = false }
+paste = "1.0.12"
 
 # optional dependencies
 der = { version = "0.7", optional = true, default-features = false }

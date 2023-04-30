@@ -1,9 +1,14 @@
 macro_rules! impl_convert {
-    ($from_name:ident, $to_name:ident, $from_bits:expr, $to_bits:expr) => {
-        impl $from_name {
-            pub fn to_$to_name -> $to_name {
-                todo!()
-            }
+    (($from_type:ident, $from_bits:expr), ($(($target_type:ident, $target_bits:expr)),+ $(,)?)) => {
+        impl $from_type {
+            $(
+                paste::paste! {
+                    pub fn [<to_ $target_type:lower>](&self) -> $target_type {
+                        let a = $target_bits;
+                        unimplemented!()
+                    }
+                }
+            )+
         }
-     };
+    };
 }
