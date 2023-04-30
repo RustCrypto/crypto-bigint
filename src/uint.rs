@@ -10,6 +10,8 @@
 mod concat;
 #[macro_use]
 mod split;
+#[macro_use]
+mod convert;
 
 mod add;
 mod add_mod;
@@ -390,6 +392,26 @@ impl_concat! {
 
 // TODO(tarcieri): use `const_evaluatable_checked` when stable to make generic around bits.
 impl_split! {
+    (U128, 128),
+    (U256, 256),
+    (U384, 384),
+    (U512, 512),
+    (U640, 640),
+    (U768, 768),
+    (U896, 896),
+    (U1024, 1024),
+    (U1280, 1280),
+    (U1536, 1536),
+    (U1792, 1792),
+    (U2048, 2048),
+    (U3072, 3072),
+    (U3584, 3584),
+    (U4096, 4096),
+    (U6144, 6144),
+    (U8192, 8192)
+}
+
+impl_convert! {
     (U128, 128),
     (U256, 256),
     (U384, 384),
