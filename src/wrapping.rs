@@ -5,11 +5,11 @@ use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "num-traits")]
-use num_traits::{Num};
-#[cfg(feature = "num-traits")]
-use core::ops::{Div, Rem, Mul, Add, Sub};
-#[cfg(feature = "num-traits")]
 use crate::{Integer, NonZero};
+#[cfg(feature = "num-traits")]
+use core::ops::{Add, Div, Mul, Rem, Sub};
+#[cfg(feature = "num-traits")]
+use num_traits::Num;
 
 #[cfg(feature = "rand_core")]
 use {crate::Random, rand_core::CryptoRngCore};
@@ -72,22 +72,22 @@ impl<T: ConstantTimeEq> ConstantTimeEq for Wrapping<T> {
 
 #[cfg(feature = "num-traits")]
 impl<T: Zero> num_traits::Zero for Wrapping<T>
-    where Wrapping<T>:
-    Add<Wrapping<T>, Output = Wrapping<T>>
-    + PartialEq<Wrapping<T>>
+where
+    Wrapping<T>: Add<Wrapping<T>, Output = Wrapping<T>> + PartialEq<Wrapping<T>>,
 {
     fn zero() -> Self {
         Self::ZERO
     }
 
-    fn is_zero(&self) -> bool { self == &Self::ZERO }
+    fn is_zero(&self) -> bool {
+        self == &Self::ZERO
+    }
 }
 
 #[cfg(feature = "num-traits")]
 impl<T: Integer> num_traits::One for Wrapping<T>
-    where Wrapping<T>:
-    Add<Wrapping<T>, Output = Wrapping<T>>
-    + Mul<Wrapping<T>, Output = Wrapping<T>>
+where
+    Wrapping<T>: Add<Wrapping<T>, Output = Wrapping<T>> + Mul<Wrapping<T>, Output = Wrapping<T>>,
 {
     fn one() -> Self {
         Wrapping(T::ONE)
@@ -96,7 +96,8 @@ impl<T: Integer> num_traits::One for Wrapping<T>
 
 #[cfg(feature = "num-traits")]
 impl<T: Zero> Div<Wrapping<T>> for Wrapping<T>
-    where Wrapping<T>: Div<NonZero<T>, Output = Wrapping<T>>
+where
+    Wrapping<T>: Div<NonZero<T>, Output = Wrapping<T>>,
 {
     type Output = Wrapping<T>;
 
@@ -107,7 +108,8 @@ impl<T: Zero> Div<Wrapping<T>> for Wrapping<T>
 
 #[cfg(feature = "num-traits")]
 impl<T: Zero> Rem<Wrapping<T>> for Wrapping<T>
-    where Wrapping<T>: Rem<NonZero<T>, Output = Wrapping<T>>
+where
+    Wrapping<T>: Rem<NonZero<T>, Output = Wrapping<T>>,
 {
     type Output = Wrapping<T>;
 
@@ -118,12 +120,12 @@ impl<T: Zero> Rem<Wrapping<T>> for Wrapping<T>
 
 #[cfg(feature = "num-traits")]
 impl<T: Integer + Zero> Num for Wrapping<T>
-    where Wrapping<T>:
-    Add<Wrapping<T>, Output = Wrapping<T>>
-    + Sub<Wrapping<T>, Output = Wrapping<T>>
-    + Mul<Wrapping<T>, Output = Wrapping<T>>
-    + Div<NonZero<T>, Output = Wrapping<T>>
-    + Rem<NonZero<T>, Output = Wrapping<T>>
+where
+    Wrapping<T>: Add<Wrapping<T>, Output = Wrapping<T>>
+        + Sub<Wrapping<T>, Output = Wrapping<T>>
+        + Mul<Wrapping<T>, Output = Wrapping<T>>
+        + Div<NonZero<T>, Output = Wrapping<T>>
+        + Rem<NonZero<T>, Output = Wrapping<T>>,
 {
     type FromStrRadixErr = ();
 
@@ -161,9 +163,9 @@ impl<T: Serialize> Serialize for Wrapping<T> {
 
 #[cfg(all(test, feature = "num-traits"))]
 mod tests {
-    use num_traits::{Num, NumOps, Zero, One};
-    use core::ops::{Div, Rem, Mul, Add, Sub};
     use crate::{Integer, NonZero};
+    use core::ops::{Add, Div, Mul, Rem, Sub};
+    use num_traits::{Num, NumOps, One, Zero};
 
     use crate::{Wrapping, U64};
 
