@@ -43,7 +43,6 @@ mod array;
 
 #[cfg(feature = "rand_core")]
 mod rand;
-mod num;
 
 use crate::{Bounded, Concat, Encoding, Integer, Limb, Split, Word, Zero};
 use core::fmt;
