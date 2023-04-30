@@ -88,14 +88,6 @@ pub trait Zero: ConstantTimeEq + Sized {
     }
 }
 
-pub trait AsNaturalNumber<N: num_traits::Num + Clone> {
-    fn as_natural_number(&self) -> N;
-}
-
-pub trait AsRingElement<F: num_traits::Num + num_traits::Pow<F, Output = F> + Clone> {
-    fn as_ring_element(&self, p: &Self) -> F;
-}
-
 /// Random number generation support.
 #[cfg(feature = "rand_core")]
 pub trait Random: Sized {

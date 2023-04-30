@@ -44,7 +44,6 @@ mod array;
 #[cfg(feature = "rand_core")]
 mod rand;
 mod num;
-mod ring_natural;
 
 use crate::{Bounded, Concat, Encoding, Integer, Limb, Split, Word, Zero};
 use core::fmt;
