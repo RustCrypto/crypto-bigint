@@ -416,11 +416,11 @@ impl_mul! {
     (U128, 128)
 }
 
-// impl_mul_cross_sizes! {
-//     (U128, 128), (
-//         (U128, 128)
-//     )
-// }
+impl_mul_cross_sizes! {
+    (U128, 128), (
+        (U256, 256)
+    )
+}
 
 #[cfg(test)]
 mod tests {

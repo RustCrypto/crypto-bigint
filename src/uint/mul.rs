@@ -328,10 +328,10 @@ macro_rules! impl_mul_cross_sizes {
                 }
             }
 
-            impl Mul<$rhs_type> for &$self_type {
+            impl Mul<&$rhs_type> for &$self_type {
                 type Output = Uint<{nlimbs!($self_bits) + nlimbs!($rhs_bits)}>;
 
-                fn mul(self, &rhs: $rhs_type) -> Uint<{nlimbs!($self_bits) + nlimbs!($rhs_bits)}> {
+                fn mul(self, rhs: &$rhs_type) -> Uint<{nlimbs!($self_bits) + nlimbs!($rhs_bits)}> {
                     let (lo, hi) = self.mul_wide(rhs);
 
                     hi.concat(&lo)
@@ -340,25 +340,6 @@ macro_rules! impl_mul_cross_sizes {
         )+
     };
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use crate::{U128, U384, U64};
-//
-//     #[test]
-//     fn concat_zero_equals_convert() {
-//         let x = U64::from_u64(0x0011223344556677);
-//
-//         assert_eq!(U128::from(&x), U128::from_u64(0x0011223344556677));
-//         assert_eq!(U128::from(x), U128::from_u64(0x0011223344556677));
-//     }
-//
-//     #[test]
-//     fn converts_non_concatable_types() {
-//         assert_eq!(U384::ONE, U384::from(&U128::ONE));
-//         assert_eq!(U384::ONE, U384::from(U128::ONE));
-//     }
-// }
 
 #[cfg(test)]
 mod tests {
