@@ -437,23 +437,23 @@ mod tests {
 
     #[test]
     fn mul_wide_different_sizes() {
-        let x = U128::from_le_hex("ffffffffffffffffffffffffffffffff");
+        let x = U128::from_be_hex("ffffffffffffffffffffffffffffffff");
         let y =
-            U256::from_le_hex("0fffffffffffffffffffffafffffffffffffffffffffffffffffffffffffffff");
+            U256::from_be_hex("0fffffffffffffffffffffafffffffffffffffffffffffffffffffffffffffff");
         let (hi, lo) = x.mul_wide(&y);
 
-        assert_eq!(lo, U128::from_le_hex("0fffffffffffffffffffffafffffffff"));
+        assert_eq!(lo, U128::from_be_hex("0fffffffffffffffffffffafffffffff"));
 
         assert_eq!(
             hi,
-            U256::from_le_hex("f0000000000000000000004fffffffff00000000000000000000000000000001")
+            U256::from_be_hex("f0000000000000000000004fffffffff00000000000000000000000000000001")
         );
     }
 
     #[test]
     fn mul() {
-        let x = U128::from_le_hex("ffffffffffffffffffffffffffffffff");
-        let y = U128::from_le_hex("0fffffffffffffffffffffafffffffff");
+        let x = U128::from_be_hex("ffffffffffffffffffffffffffffffff");
+        let y = U128::from_be_hex("0fffffffffffffffffffffafffffffff");
 
         let (lo, hi) = x.mul_wide(&y);
 
@@ -461,7 +461,7 @@ mod tests {
 
         assert_eq!(
             x * y,
-            U256::from_le_hex("0fffffffffffffffffffffaffffffffef0000000000000000000005000000001")
+            U256::from_be_hex("0fffffffffffffffffffffaffffffffef0000000000000000000005000000001")
         );
     }
 }
