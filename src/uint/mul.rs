@@ -17,9 +17,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// For more info see: <https://github.com/RustCrypto/crypto-bigint/issues/4>
     // TODO(tarcieri): use `concat` to construct a wide output
-    pub const fn mul_wide(&self, rhs: &Self) -> (Self, Self) {
+    pub const fn mul_wide<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> (Uint<RHS_LIMBS>, Self) {
         let mut i = 0;
-        let mut lo = Self::ZERO;
+        let mut lo = Uint::<RHS_LIMBS>::ZERO;
         let mut hi = Self::ZERO;
 
         // Schoolbook multiplication.
@@ -28,12 +31,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let mut j = 0;
             let mut carry = Limb::ZERO;
 
-            while j < LIMBS {
+            while j < RHS_LIMBS {
                 let k = i + j;
 
-                if k >= LIMBS {
-                    let (n, c) = hi.limbs[k - LIMBS].mac(self.limbs[i], rhs.limbs[j], carry);
-                    hi.limbs[k - LIMBS] = n;
+                if k >= RHS_LIMBS {
+                    let (n, c) = hi.limbs[k - RHS_LIMBS].mac(self.limbs[i], rhs.limbs[j], carry);
+                    hi.limbs[k - RHS_LIMBS] = n;
                     carry = c;
                 } else {
                     let (n, c) = lo.limbs[k].mac(self.limbs[i], rhs.limbs[j], carry);
@@ -44,7 +47,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 j += 1;
             }
 
-            hi.limbs[i + j - LIMBS] = carry;
+            hi.limbs[i + j - RHS_LIMBS] = carry;
             i += 1;
         }
 
@@ -258,7 +261,7 @@ impl<const LIMBS: usize> MulAssign<&Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS
 
 #[cfg(test)]
 mod tests {
-    use crate::{CheckedMul, Zero, U256, U64};
+    use crate::{CheckedMul, Zero, U128, U256, U64};
 
     #[test]
     fn mul_wide_zero_and_one() {
@@ -266,6 +269,11 @@ mod tests {
         assert_eq!(U64::ZERO.mul_wide(&U64::ONE), (U64::ZERO, U64::ZERO));
         assert_eq!(U64::ONE.mul_wide(&U64::ZERO), (U64::ZERO, U64::ZERO));
         assert_eq!(U64::ONE.mul_wide(&U64::ONE), (U64::ONE, U64::ZERO));
+
+        assert_eq!(U128::ZERO.mul_wide(&U256::ZERO), (U256::ZERO, U128::ZERO));
+        assert_eq!(U128::ZERO.mul_wide(&U256::ONE), (U256::ZERO, U128::ZERO));
+        assert_eq!(U128::ONE.mul_wide(&U256::ZERO), (U256::ZERO, U128::ZERO));
+        assert_eq!(U128::ONE.mul_wide(&U256::ONE), (U256::ONE, U128::ZERO));
     }
 
     #[test]
@@ -324,5 +332,20 @@ mod tests {
         let (hi, lo) = n.square().split();
         assert_eq!(lo, U256::ONE);
         assert_eq!(hi, U256::MAX.wrapping_sub(&U256::ONE));
+    }
+
+    #[test]
+    fn mul_different_sizes() {
+        let x = U128::from_le_hex("ffffffffffffffffffffffffffffffff");
+        let y =
+            U256::from_le_hex("0fffffffffffffffffffffafffffffffffffffffffffffffffffffffffffffff");
+        let (hi, lo) = x.mul_wide(&y);
+
+        assert_eq!(lo, U128::from_le_hex("0fffffffffffffffffffffafffffffff"));
+
+        assert_eq!(
+            hi,
+            U256::from_le_hex("f0000000000000000000004fffffffff00000000000000000000000000000001")
+        );
     }
 }
