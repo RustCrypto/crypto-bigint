@@ -259,6 +259,107 @@ impl<const LIMBS: usize> MulAssign<&Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS
     }
 }
 
+macro_rules! impl_mul {
+    ($(($self_type:ident, $self_bits:expr)),+) => {
+        $(
+            impl Mul<$self_type> for $self_type {
+                type Output = Uint<{nlimbs!($self_bits) * 2}>;
+
+                fn mul(self, rhs: $self_type) -> Uint<{nlimbs!($self_bits) * 2}> {
+                    let (lo, hi) = self.mul_wide(&rhs);
+
+                    hi.concat(&lo)
+                }
+            }
+
+            impl Mul<&$self_type> for $self_type  {
+                type Output = Uint<{nlimbs!($self_bits) * 2}>;
+
+                fn mul(self, rhs: &$self_type) -> Uint<{nlimbs!($self_bits) * 2}> {
+                    let (lo, hi) = self.mul_wide(rhs);
+
+                    hi.concat(&lo)
+                }
+            }
+
+            impl Mul<$self_type> for &$self_type  {
+                type Output = Uint<{nlimbs!($self_bits) * 2}>;
+
+                fn mul(self, rhs: $self_type) -> Uint<{nlimbs!($self_bits) * 2}> {
+                    let (lo, hi) = self.mul_wide(&rhs);
+
+                    hi.concat(&lo)
+                }
+            }
+        )+
+    };
+}
+
+macro_rules! impl_mul_cross_sizes {
+    (($self_type:ident, $self_bits:expr), ($(($rhs_type:ident, $rhs_bits:expr)),+ $(,)?)) => {
+        $(
+            impl Mul<$rhs_type> for $self_type {
+                type Output = Uint<{nlimbs!($self_bits) + nlimbs!($rhs_bits)}>;
+
+                fn mul(self, rhs: $rhs_type) -> Uint<{nlimbs!($self_bits) + nlimbs!($rhs_bits)}> {
+                    let (lo, hi) = self.mul_wide(&rhs);
+
+                    hi.concat(&lo)
+                }
+            }
+
+            impl Mul<&$rhs_type> for $self_type  {
+                type Output = Uint<{nlimbs!($self_bits) + nlimbs!($rhs_bits)}>;
+
+                fn mul(self, rhs: &$rhs_type) -> Uint<{nlimbs!($self_bits) + nlimbs!($rhs_bits)}> {
+                    let (lo, hi) = self.mul_wide(rhs);
+
+                    hi.concat(&lo)
+                }
+            }
+
+            impl Mul<$rhs_type> for &$self_type  {
+                type Output = Uint<{nlimbs!($self_bits) + nlimbs!($rhs_bits)}>;
+
+                fn mul(self, rhs: $rhs_type) -> Uint<{nlimbs!($self_bits) + nlimbs!($rhs_bits)}> {
+                    let (lo, hi) = self.mul_wide(&rhs);
+
+                    hi.concat(&lo)
+                }
+            }
+
+            impl Mul<$rhs_type> for &$self_type {
+                type Output = Uint<{nlimbs!($self_bits) + nlimbs!($rhs_bits)}>;
+
+                fn mul(self, &rhs: $rhs_type) -> Uint<{nlimbs!($self_bits) + nlimbs!($rhs_bits)}> {
+                    let (lo, hi) = self.mul_wide(rhs);
+
+                    hi.concat(&lo)
+                }
+            }
+        )+
+    };
+}
+
+// #[cfg(test)]
+// mod tests {
+//     use crate::{U128, U384, U64};
+//
+//     #[test]
+//     fn concat_zero_equals_convert() {
+//         let x = U64::from_u64(0x0011223344556677);
+//
+//         assert_eq!(U128::from(&x), U128::from_u64(0x0011223344556677));
+//         assert_eq!(U128::from(x), U128::from_u64(0x0011223344556677));
+//     }
+//
+//     #[test]
+//     fn converts_non_concatable_types() {
+//         assert_eq!(U384::ONE, U384::from(&U128::ONE));
+//         assert_eq!(U384::ONE, U384::from(U128::ONE));
+//     }
+// }
+
 #[cfg(test)]
 mod tests {
     use crate::{CheckedMul, Zero, U128, U256, U64};
@@ -335,7 +436,7 @@ mod tests {
     }
 
     #[test]
-    fn mul_different_sizes() {
+    fn mul_wide_different_sizes() {
         let x = U128::from_le_hex("ffffffffffffffffffffffffffffffff");
         let y =
             U256::from_le_hex("0fffffffffffffffffffffafffffffffffffffffffffffffffffffffffffffff");
@@ -346,6 +447,21 @@ mod tests {
         assert_eq!(
             hi,
             U256::from_le_hex("f0000000000000000000004fffffffff00000000000000000000000000000001")
+        );
+    }
+
+    #[test]
+    fn mul() {
+        let x = U128::from_le_hex("ffffffffffffffffffffffffffffffff");
+        let y = U128::from_le_hex("0fffffffffffffffffffffafffffffff");
+
+        let (lo, hi) = x.mul_wide(&y);
+
+        assert_eq!(hi.concat(&lo), x * y);
+
+        assert_eq!(
+            x * y,
+            U256::from_le_hex("0fffffffffffffffffffffaffffffffef0000000000000000000005000000001")
         );
     }
 }

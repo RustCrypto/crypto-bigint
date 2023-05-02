@@ -24,6 +24,7 @@ pub(crate) mod div_limb;
 mod encoding;
 mod from;
 mod inv_mod;
+#[macro_use]
 mod mul;
 mod mul_mod;
 mod neg;
@@ -34,6 +35,8 @@ mod shr;
 mod sqrt;
 mod sub;
 mod sub_mod;
+
+use core::ops::{Mul, MulAssign};
 
 /// Implements modular arithmetic for constant moduli.
 pub mod modular;
@@ -408,6 +411,16 @@ impl_split! {
     (U6144, 6144),
     (U8192, 8192)
 }
+
+impl_mul! {
+    (U128, 128)
+}
+
+// impl_mul_cross_sizes! {
+//     (U128, 128), (
+//         (U128, 128)
+//     )
+// }
 
 #[cfg(test)]
 mod tests {
