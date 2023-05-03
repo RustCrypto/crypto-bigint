@@ -1,0 +1,7 @@
+project: crypto-bigint
+target: add_256
+duration: 90
+
+cmds:
+    - cmd: /add_256
+

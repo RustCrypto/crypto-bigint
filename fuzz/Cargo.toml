@@ -1,0 +1,38 @@
+[package]
+name = "crypto-bigint-fuzz"
+version = "0.1.0"
+authors = ["Automatically generated"]
+publish = false
+edition = "2018"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+arbitrary = { version = "1", features = ["derive"] }
+
+[dependencies.crypto-bigint]
+path = ".."
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "add"
+path = "fuzz_targets/add.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "add_256"
+path = "fuzz_targets/add_256.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "add_512"
+path = "fuzz_targets/add_512.rs"
+test = false
+doc = false

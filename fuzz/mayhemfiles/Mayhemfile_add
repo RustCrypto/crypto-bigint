@@ -1,0 +1,7 @@
+project: crypto-bigint
+target: add
+duration: 90
+
+cmds:
+    - cmd: /add
+

@@ -1,0 +1,7 @@
+project: crypto-bigint
+target: add_512
+duration: 90
+
+cmds:
+    - cmd: /add_512
+
