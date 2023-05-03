@@ -44,6 +44,7 @@ macro_rules! impl_concat {
      };
 }
 
+#[cfg(feature = "cross-size")]
 macro_rules! impl_concat_cross_sizes {
     (($first_type:ident, $first_bits:expr), ($(($second_type:ident, $second_bits:expr)),+ $(,)?)) => {
         $(
@@ -126,6 +127,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "cross-size")]
     #[test]
     fn concat_other() {
         let hi = U64::from_u64(0x0011223344556677);

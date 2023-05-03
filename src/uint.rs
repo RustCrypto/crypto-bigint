@@ -388,6 +388,7 @@ impl_concat! {
     (U4096, 4096)
 }
 
+#[cfg(feature = "cross-size")]
 impl_concat_cross_sizes! {
     (U64, 64),
     (
@@ -411,6 +412,7 @@ impl_concat_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_concat_cross_sizes! {
     (U128, 128),
     (
@@ -433,6 +435,7 @@ impl_concat_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_concat_cross_sizes! {
     (U256, 256),
     (
@@ -454,6 +457,7 @@ impl_concat_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_concat_cross_sizes! {
     (U384, 384),
     (
@@ -473,6 +477,8 @@ impl_concat_cross_sizes! {
         (U8192, 8192)
     )
 }
+
+#[cfg(feature = "cross-size")]
 impl_concat_cross_sizes! {
     (U512, 512),
     (
@@ -491,6 +497,8 @@ impl_concat_cross_sizes! {
         (U8192, 8192)
     )
 }
+
+#[cfg(feature = "cross-size")]
 impl_concat_cross_sizes! {
     (U640, 640),
     (
@@ -508,6 +516,8 @@ impl_concat_cross_sizes! {
         (U8192, 8192)
     )
 }
+
+#[cfg(feature = "cross-size")]
 impl_concat_cross_sizes! {
     (U768, 768),
     (
@@ -525,6 +535,7 @@ impl_concat_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_concat_cross_sizes! {
     (U896, 896),
     (
@@ -541,6 +552,7 @@ impl_concat_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_concat_cross_sizes! {
     (U1024, 1024),
     (
@@ -556,6 +568,7 @@ impl_concat_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_concat_cross_sizes! {
     (U1280, 1280),
     (
@@ -570,6 +583,7 @@ impl_concat_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_concat_cross_sizes! {
     (U1536, 1536),
     (
@@ -583,6 +597,7 @@ impl_concat_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_concat_cross_sizes! {
     (U2048, 2048),
     (
@@ -594,6 +609,7 @@ impl_concat_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_concat_cross_sizes! {
     (U3072, 3072),
     (
@@ -604,6 +620,7 @@ impl_concat_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_concat_cross_sizes! {
     (U3584, 3584),
     (
@@ -613,6 +630,7 @@ impl_concat_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_concat_cross_sizes! {
     (U4096, 4096),
     (
@@ -621,6 +639,7 @@ impl_concat_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_concat_cross_sizes! {
     (U6144, 6144),
     (
