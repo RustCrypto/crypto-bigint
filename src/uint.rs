@@ -36,7 +36,7 @@ mod sqrt;
 mod sub;
 mod sub_mod;
 
-use core::ops::{Mul, MulAssign};
+use core::ops::Mul;
 
 /// Implements modular arithmetic for constant moduli.
 pub mod modular;
