@@ -116,8 +116,8 @@ macro_rules! impl_concat_cross_sizes {
 #[cfg(test)]
 mod tests {
     #[cfg(feature = "cross-size")]
-    use crate::ConcatOther;
-    use crate::{U128, U192, U64};
+    use crate::{ConcatOther, U192};
+    use crate::{U128, U64};
 
     #[test]
     fn concat() {
