@@ -302,9 +302,7 @@ macro_rules! impl_mul_cross_sizes {
                 type Output = Uint<{nlimbs!($self_bits) + nlimbs!($rhs_bits)}>;
 
                 fn mul(self, rhs: $rhs_type) -> Uint<{nlimbs!($self_bits) + nlimbs!($rhs_bits)}> {
-                    let (lo, hi) = self.mul_wide(&rhs);
-
-                    hi.concat(&lo)
+                    self.mul_wide(&rhs).into()
                 }
             }
 
@@ -312,9 +310,7 @@ macro_rules! impl_mul_cross_sizes {
                 type Output = Uint<{nlimbs!($self_bits) + nlimbs!($rhs_bits)}>;
 
                 fn mul(self, rhs: &$rhs_type) -> Uint<{nlimbs!($self_bits) + nlimbs!($rhs_bits)}> {
-                    let (lo, hi) = self.mul_wide(rhs);
-
-                    hi.concat(&lo)
+                    self.mul_wide(rhs).into()
                 }
             }
 
@@ -322,9 +318,7 @@ macro_rules! impl_mul_cross_sizes {
                 type Output = Uint<{nlimbs!($self_bits) + nlimbs!($rhs_bits)}>;
 
                 fn mul(self, rhs: $rhs_type) -> Uint<{nlimbs!($self_bits) + nlimbs!($rhs_bits)}> {
-                    let (lo, hi) = self.mul_wide(&rhs);
-
-                    hi.concat(&lo)
+                    self.mul_wide(&rhs).into()
                 }
             }
 
@@ -332,9 +326,7 @@ macro_rules! impl_mul_cross_sizes {
                 type Output = Uint<{nlimbs!($self_bits) + nlimbs!($rhs_bits)}>;
 
                 fn mul(self, rhs: &$rhs_type) -> Uint<{nlimbs!($self_bits) + nlimbs!($rhs_bits)}> {
-                    let (lo, hi) = self.mul_wide(rhs);
-
-                    hi.concat(&lo)
+                    self.mul_wide(rhs).into()
                 }
             }
         )+
@@ -343,7 +335,7 @@ macro_rules! impl_mul_cross_sizes {
 
 #[cfg(test)]
 mod tests {
-    use crate::{CheckedMul, Zero, U128, U256, U64};
+    use crate::{CheckedMul, Zero, U128, U256, U384, U64};
 
     #[test]
     fn mul_wide_zero_and_one() {
@@ -417,7 +409,7 @@ mod tests {
     }
 
     #[test]
-    fn mul_wide_different_sizes() {
+    fn mul_wide_cross_sizes() {
         let x = U128::from_be_hex("ffffffffffffffffffffffffffffffff");
         let y =
             U256::from_be_hex("0fffffffffffffffffffffafffffffffffffffffffffffffffffffffffffffff");
@@ -435,14 +427,28 @@ mod tests {
     fn mul() {
         let x = U128::from_be_hex("ffffffffffffffffffffffffffffffff");
         let y = U128::from_be_hex("0fffffffffffffffffffffafffffffff");
+        let xy: U256 = x.mul_wide(&y).into();
 
-        let (lo, hi) = x.mul_wide(&y);
-
-        assert_eq!(hi.concat(&lo), x * y);
+        assert_eq!(xy, x * y);
 
         assert_eq!(
-            x * y,
+            xy,
             U256::from_be_hex("0fffffffffffffffffffffaffffffffef0000000000000000000005000000001")
+        );
+    }
+
+    #[test]
+    fn mul_cross_sizes() {
+        let x = U128::from_be_hex("ffffffffffffffffffffffffffffffff");
+        let y =
+            U256::from_be_hex("0fffffffffffffffffffffafffffffffffffffffffffffffffffffffffffffff");
+        let xy: U384 = x.mul_wide(&y).into();
+
+        assert_eq!(xy, x * y);
+
+        assert_eq!(
+            xy,
+            U384::from_be_hex("0fffffffffffffffffffffaffffffffff0000000000000000000004fffffffff00000000000000000000000000000001")
         );
     }
 }
