@@ -156,6 +156,7 @@ mod tests {
         assert_eq!(res, U128::ONE);
     }
 
+    #[cfg(feature = "cross-size")]
     #[test]
     fn convert_cross_sizes() {
         let res: U192 = U64::ONE.mul_wide(&U128::ONE).into();

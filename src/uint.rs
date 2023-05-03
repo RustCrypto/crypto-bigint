@@ -691,6 +691,7 @@ impl_mul! {
     (U4096, 4096)
 }
 
+#[cfg(feature = "cross-size")]
 impl_mul_cross_sizes! {
     (U64, 64),
     (
@@ -713,6 +714,7 @@ impl_mul_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_mul_cross_sizes! {
     (U128, 128),
     (
@@ -734,6 +736,7 @@ impl_mul_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_mul_cross_sizes! {
     (U256, 256),
     (
@@ -754,6 +757,7 @@ impl_mul_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_mul_cross_sizes! {
     (U384, 384),
     (
@@ -772,6 +776,8 @@ impl_mul_cross_sizes! {
         (U6144, 6144)
     )
 }
+
+#[cfg(feature = "cross-size")]
 impl_mul_cross_sizes! {
     (U512, 512),
     (
@@ -789,6 +795,8 @@ impl_mul_cross_sizes! {
         (U6144, 6144)
     )
 }
+
+#[cfg(feature = "cross-size")]
 impl_mul_cross_sizes! {
     (U640, 640),
     (
@@ -805,6 +813,8 @@ impl_mul_cross_sizes! {
         (U6144, 6144)
     )
 }
+
+#[cfg(feature = "cross-size")]
 impl_mul_cross_sizes! {
     (U768, 768),
     (
@@ -821,6 +831,7 @@ impl_mul_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_mul_cross_sizes! {
     (U896, 896),
     (
@@ -836,6 +847,7 @@ impl_mul_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_mul_cross_sizes! {
     (U1024, 1024),
     (
@@ -850,6 +862,7 @@ impl_mul_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_mul_cross_sizes! {
     (U1280, 1280),
     (
@@ -863,6 +876,7 @@ impl_mul_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_mul_cross_sizes! {
     (U1536, 1536),
     (
@@ -875,6 +889,7 @@ impl_mul_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_mul_cross_sizes! {
     (U2048, 2048),
     (
@@ -885,6 +900,7 @@ impl_mul_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_mul_cross_sizes! {
     (U3072, 3072),
     (
@@ -893,6 +909,7 @@ impl_mul_cross_sizes! {
     )
 }
 
+#[cfg(feature = "cross-size")]
 impl_mul_cross_sizes! {
     (U3584, 3584),
     (
