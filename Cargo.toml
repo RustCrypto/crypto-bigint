@@ -40,7 +40,7 @@ rand_chacha = "0.3"
 
 [features]
 default = ["rand"]
-alloc = []
+alloc = ["serdect?/alloc"]
 rand = ["rand_core/std"]
 serde = ["dep:serdect"]
 
