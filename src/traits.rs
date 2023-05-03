@@ -195,18 +195,6 @@ pub trait Concat<Rhs = Self> {
 
     /// Concatenate the two values, with `self` as most significant and `rhs`
     /// as the least significant.
-    fn concat(&self, rhs: &Self) -> Self::Output;
-}
-
-#[cfg(feature = "cross-size")]
-/// Concatenate two numbers into a value of a size equaling the sum of their sizes, using the `rhs`
-/// value as the least significant value.
-pub trait ConcatOther<Rhs> {
-    /// Concatenated output: sum of the widths of `Self` and `Rhs`.
-    type Output;
-
-    /// Concatenate the two values, with `self` as most significant and `rhs`
-    /// as the least significant.
     fn concat(&self, rhs: &Rhs) -> Self::Output;
 }
 

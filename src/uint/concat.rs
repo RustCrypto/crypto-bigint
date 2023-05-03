@@ -48,7 +48,7 @@ macro_rules! impl_concat {
 macro_rules! impl_concat_cross_sizes {
     (($first_type:ident, $first_bits:expr), ($(($second_type:ident, $second_bits:expr)),+ $(,)?)) => {
         $(
-            impl ConcatOther<$second_type> for $first_type {
+            impl Concat<$second_type> for $first_type {
                 type Output = Uint<{nlimbs!($first_bits) + nlimbs!($second_bits)}>;
 
                 fn concat(&self, rhs: &$second_type) -> Self::Output {
@@ -75,11 +75,11 @@ macro_rules! impl_concat_cross_sizes {
 
             impl From<($first_type, $second_type)> for Uint<{nlimbs!($first_bits) + nlimbs!($second_bits)}> {
                 fn from(nums: ($first_type, $second_type)) -> Uint<{nlimbs!($first_bits) + nlimbs!($second_bits)}> {
-                    <$second_type as ConcatOther<$first_type>>::concat(&nums.1, &nums.0)
+                    <$second_type as Concat<$first_type>>::concat(&nums.1, &nums.0)
                 }
             }
 
-            impl ConcatOther<$first_type> for $second_type {
+            impl Concat<$first_type> for $second_type {
                 type Output = Uint<{nlimbs!($second_bits) + nlimbs!($first_bits)}>;
 
                 fn concat(&self, rhs: &$first_type) -> Self::Output {
@@ -106,7 +106,7 @@ macro_rules! impl_concat_cross_sizes {
 
             impl From<($second_type, $first_type)> for Uint<{nlimbs!($second_bits) + nlimbs!($first_bits)}> {
                 fn from(nums: ($second_type, $first_type)) -> Uint<{nlimbs!($second_bits) + nlimbs!($first_bits)}> {
-                    <$first_type as ConcatOther<$second_type>>::concat(&nums.1, &nums.0)
+                    <$first_type as Concat<$second_type>>::concat(&nums.1, &nums.0)
                 }
             }
         )+
@@ -116,7 +116,7 @@ macro_rules! impl_concat_cross_sizes {
 #[cfg(test)]
 mod tests {
     #[cfg(feature = "cross-size")]
-    use crate::{ConcatOther, U192};
+    use crate::{Concat, U192};
     use crate::{U128, U64};
 
     #[test]
@@ -136,7 +136,7 @@ mod tests {
         let lo = U128::from_be_hex("00112233445566778899aabbccddeeff");
 
         assert_eq!(
-            <U64 as ConcatOther<U128>>::concat(&hi, &lo),
+            <U64 as Concat<U128>>::concat(&hi, &lo),
             U192::from_be_hex("001122334455667700112233445566778899aabbccddeeff")
         );
 
@@ -144,7 +144,7 @@ mod tests {
         let lo = U64::from_u64(0x0011223344556677);
 
         assert_eq!(
-            <U128 as ConcatOther<U64>>::concat(&hi, &lo),
+            <U128 as Concat<U64>>::concat(&hi, &lo),
             U192::from_be_hex("00112233445566778899aabbccddeeff0011223344556677")
         );
     }
