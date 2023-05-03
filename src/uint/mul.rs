@@ -413,14 +413,14 @@ mod tests {
         let x = U128::from_be_hex("ffffffffffffffffffffffffffffffff");
         let y =
             U256::from_be_hex("0fffffffffffffffffffffafffffffffffffffffffffffffffffffffffffffff");
-        let (hi, lo) = x.mul_wide(&y);
-
-        assert_eq!(lo, U128::from_be_hex("0fffffffffffffffffffffafffffffff"));
+        let (lo, hi) = x.mul_wide(&y);
 
         assert_eq!(
-            hi,
+            lo,
             U256::from_be_hex("f0000000000000000000004fffffffff00000000000000000000000000000001")
         );
+
+        assert_eq!(hi, U128::from_be_hex("0fffffffffffffffffffffafffffffff"));
     }
 
     #[test]
