@@ -295,6 +295,7 @@ macro_rules! impl_mul {
     };
 }
 
+#[cfg(feature = "cross-size")]
 macro_rules! impl_mul_cross_sizes {
     (($first_type:ident, $first_bits:expr), ($(($second_type:ident, $second_bits:expr)),+ $(,)?)) => {
         $(
@@ -440,6 +441,7 @@ mod tests {
         assert_eq!(hi, U256::MAX.wrapping_sub(&U256::ONE));
     }
 
+    #[cfg(feature = "cross-size")]
     #[test]
     fn mul_wide_cross_sizes() {
         let x = U128::from_be_hex("ffffffffffffffffffffffffffffffff");
@@ -469,6 +471,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "cross-size")]
     #[test]
     fn mul_cross_sizes() {
         let x = U128::from_be_hex("ffffffffffffffffffffffffffffffff");

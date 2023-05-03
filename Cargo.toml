@@ -43,6 +43,7 @@ default = ["rand"]
 alloc = ["serdect?/alloc"]
 rand = ["rand_core/std"]
 serde = ["dep:serdect"]
+cross-size = []
 
 [package.metadata.docs.rs]
 all-features = true
