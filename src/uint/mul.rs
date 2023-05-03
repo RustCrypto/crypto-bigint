@@ -368,6 +368,8 @@ macro_rules! impl_mul_cross_sizes {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "cross-size")]
+    use crate::U384;
     use crate::{CheckedMul, Zero, U128, U256, U384, U64};
 
     #[test]
