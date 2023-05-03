@@ -198,6 +198,17 @@ pub trait Concat<Rhs = Self> {
     fn concat(&self, rhs: &Self) -> Self::Output;
 }
 
+/// Concatenate two numbers into a value of a size equaling the sum of their sizes, using the `rhs`
+/// value as the least significant value.
+pub trait ConcatOther<Rhs> {
+    /// Concatenated output: sum of the widths of `Self` and `Rhs`.
+    type Output;
+
+    /// Concatenate the two values, with `self` as most significant and `rhs`
+    /// as the least significant.
+    fn concat(&self, rhs: &Rhs) -> Self::Output;
+}
+
 /// Split a number in half, returning the most significant half followed by
 /// the least significant.
 pub trait Split<Rhs = Self> {
