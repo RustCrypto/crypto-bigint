@@ -47,7 +47,9 @@ mod array;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Bounded, Concat, ConcatOther, Encoding, Integer, Limb, Split, Word, Zero};
+#[cfg(feature = "cross-size")]
+use crate::ConcatOther;
+use crate::{Bounded, Concat, Encoding, Integer, Limb, Split, Word, Zero};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
 
