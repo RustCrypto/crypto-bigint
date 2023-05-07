@@ -43,6 +43,7 @@ default = ["rand"]
 alloc = []
 rand = ["rand_core/std"]
 serde = ["dep:serdect"]
+extra-trait-impls = []
 
 [package.metadata.docs.rs]
 all-features = true
