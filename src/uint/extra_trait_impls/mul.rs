@@ -422,7 +422,7 @@ impl_mul_cross_sizes! {
 
 #[cfg(test)]
 mod tests {
-    use crate::{CheckedMul, Zero, U128, U256, U384, U64};
+    use crate::{U128, U256, U384};
 
     #[test]
     fn mul_wide_zero_and_one_cross_sizes() {
