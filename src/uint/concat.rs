@@ -1,3 +1,26 @@
+macro_rules! concat_internal {
+    ($first_value:ident, $first_bits:expr, $second_value:ident, $second_bits:expr) => {{
+        let mut limbs = [Limb::ZERO; nlimbs!($first_bits) + nlimbs!($second_bits)];
+        let mut i = 0;
+        let mut j = 0;
+
+        while j < nlimbs!($second_bits) {
+            limbs[i] = $second_value.limbs[j];
+            i += 1;
+            j += 1;
+        }
+
+        j = 0;
+        while j < nlimbs!($first_bits) {
+            limbs[i] = $first_value.limbs[j];
+            i += 1;
+            j += 1;
+        }
+
+        Uint { limbs }
+    }};
+}
+
 // TODO(tarcieri): use `const_evaluatable_checked` when stable to make generic around bits.
 macro_rules! impl_concat {
     ($(($name:ident, $bits:expr)),+) => {
@@ -6,24 +29,7 @@ macro_rules! impl_concat {
                 /// Concatenate the two values, with `self` as most significant and `rhs`
                 /// as the least significant.
                 pub const fn concat(&self, rhs: &Self) -> Uint<{nlimbs!($bits) * 2}> {
-                    let mut limbs = [Limb::ZERO; nlimbs!($bits) * 2];
-                    let mut i = 0;
-                    let mut j = 0;
-
-                    while j < nlimbs!($bits) {
-                        limbs[i] = rhs.limbs[j];
-                        i += 1;
-                        j += 1;
-                    }
-
-                    j = 0;
-                    while j < nlimbs!($bits) {
-                        limbs[i] = self.limbs[j];
-                        i += 1;
-                        j += 1;
-                    }
-
-                    Uint { limbs }
+                    concat_internal!(self, $bits, rhs, $bits)
                 }
             }
 

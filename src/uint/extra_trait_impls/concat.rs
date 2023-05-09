@@ -12,24 +12,7 @@ macro_rules! impl_concat_cross_sizes {
                 type Output = Uint<{nlimbs!($first_bits) + nlimbs!($second_bits)}>;
 
                 fn concat(&self, rhs: &$second_type) -> Self::Output {
-                    let mut limbs = [Limb::ZERO; nlimbs!($first_bits) + nlimbs!($second_bits)];
-                    let mut i = 0;
-                    let mut j = 0;
-
-                    while j < nlimbs!($second_bits) {
-                        limbs[i] = rhs.limbs[j];
-                        i += 1;
-                        j += 1;
-                    }
-
-                    j = 0;
-                    while j < nlimbs!($first_bits) {
-                        limbs[i] = self.limbs[j];
-                        i += 1;
-                        j += 1;
-                    }
-
-                    Uint { limbs }
+                    concat_internal!(self, $first_bits, rhs, $second_bits)
                 }
             }
 
@@ -43,24 +26,7 @@ macro_rules! impl_concat_cross_sizes {
                 type Output = Uint<{nlimbs!($second_bits) + nlimbs!($first_bits)}>;
 
                 fn concat(&self, rhs: &$first_type) -> Self::Output {
-                    let mut limbs = [Limb::ZERO; nlimbs!($second_bits) + nlimbs!($first_bits)];
-                    let mut i = 0;
-                    let mut j = 0;
-
-                    while j < nlimbs!($first_bits) {
-                        limbs[i] = rhs.limbs[j];
-                        i += 1;
-                        j += 1;
-                    }
-
-                    j = 0;
-                    while j < nlimbs!($second_bits) {
-                        limbs[i] = self.limbs[j];
-                        i += 1;
-                        j += 1;
-                    }
-
-                    Uint { limbs }
+                    concat_internal!(self, $second_bits, rhs, $first_bits)
                 }
             }
 
@@ -424,19 +390,16 @@ mod tests {
 
     #[test]
     fn concat_other() {
-        let hi = U64::from_u64(0x0011223344556677);
-        let lo = U128::from_be_hex("00112233445566778899aabbccddeeff");
+        let x = U64::from_u64(0x0011223344556677);
+        let y = U128::from_be_hex("00112233445566778899aabbccddeeff");
 
         assert_eq!(
-            <U64 as Concat<U128>>::concat(&hi, &lo),
+            <U64 as Concat<U128>>::concat(&x, &y),
             U192::from_be_hex("001122334455667700112233445566778899aabbccddeeff")
         );
 
-        let hi = U128::from_be_hex("00112233445566778899aabbccddeeff");
-        let lo = U64::from_u64(0x0011223344556677);
-
         assert_eq!(
-            <U128 as Concat<U64>>::concat(&hi, &lo),
+            <U128 as Concat<U64>>::concat(&y, &x),
             U192::from_be_hex("00112233445566778899aabbccddeeff0011223344556677")
         );
     }
