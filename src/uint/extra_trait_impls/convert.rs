@@ -5,34 +5,32 @@ use crate::{
 
 use crate::Limb;
 
+macro_rules! convert_internal {
+    ($x:ident, $source_bits:expr, $target_bits:expr) => {{
+        let mut limbs = [Limb::ZERO; nlimbs!($target_bits)];
+        let mut i = 0;
+
+        while i < nlimbs!($source_bits) {
+            limbs[i] = $x.limbs[i];
+            i += 1;
+        }
+
+        Uint { limbs }
+    }};
+}
+
 macro_rules! impl_convert {
     (($source_type:ident, $source_bits:expr), ($(($target_type:ident, $target_bits:expr)),+ $(,)?)) => {
         $(
             impl From<$source_type> for $target_type {
                 fn from(x: $source_type) -> Self {
-                    let mut limbs = [Limb::ZERO; nlimbs!($target_bits)];
-                    let mut i = 0;
-
-                    while i < nlimbs!($source_bits) {
-                        limbs[i] = x.limbs[i];
-                        i += 1;
-                    }
-
-                    Uint { limbs }
+                    convert_internal!(x, $source_bits, $target_bits)
                 }
             }
 
             impl From<&$source_type> for $target_type {
                 fn from(x: &$source_type) -> Self {
-                    let mut limbs = [Limb::ZERO; nlimbs!($target_bits)];
-                    let mut i = 0;
-
-                    while i < nlimbs!($source_bits) {
-                        limbs[i] = x.limbs[i];
-                        i += 1;
-                    }
-
-                    Uint { limbs }
+                    convert_internal!(x, $source_bits, $target_bits)
                 }
             }
         )+
