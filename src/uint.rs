@@ -435,6 +435,11 @@ impl_mul! {
     (U4096, 4096)
 }
 
+#[cfg(feature = "extra-sizes")]
+mod extra_sizes;
+#[cfg(feature = "extra-sizes")]
+pub use extra_sizes::*;
+
 #[cfg(test)]
 mod tests {
     use crate::{Encoding, U128};
