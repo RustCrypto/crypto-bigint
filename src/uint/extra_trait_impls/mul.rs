@@ -125,7 +125,13 @@ mod tests {
         let xy: U384 = x.mul_wide(&y).into();
 
         assert_eq!(xy, x * y);
+        assert_eq!(xy, x * &y);
+        assert_eq!(xy, &x * y);
+        assert_eq!(xy, &x * &y);
         assert_eq!(xy, y * x);
+        assert_eq!(xy, y * &x);
+        assert_eq!(xy, &y * x);
+        assert_eq!(xy, &y * &x);
 
         assert_eq!(
             xy,

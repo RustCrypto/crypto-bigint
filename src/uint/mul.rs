@@ -291,6 +291,16 @@ macro_rules! impl_mul {
                     hi.concat(&lo)
                 }
             }
+
+            impl Mul<&$self_type> for &$self_type  {
+                type Output = Uint<{nlimbs!($self_bits) * 2}>;
+
+                fn mul(self, rhs: &$self_type) -> Uint<{nlimbs!($self_bits) * 2}> {
+                    let (lo, hi) = self.mul_wide(&rhs);
+
+                    hi.concat(&lo)
+                }
+            }
         )+
     };
 }
@@ -372,6 +382,9 @@ mod tests {
         let xy: U256 = x.mul_wide(&y).into();
 
         assert_eq!(xy, x * y);
+        assert_eq!(xy, &x * y);
+        assert_eq!(xy, x * &y);
+        assert_eq!(xy, &x * &y);
 
         assert_eq!(
             xy,
