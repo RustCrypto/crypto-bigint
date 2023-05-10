@@ -44,7 +44,7 @@ alloc = ["serdect?/alloc"]
 rand = ["rand_core/std"]
 serde = ["dep:serdect"]
 extra-sizes = []
-extra-trait-impls = ["extra-sizes"]
+extra-trait-impls = []
 
 [package.metadata.docs.rs]
 all-features = true
