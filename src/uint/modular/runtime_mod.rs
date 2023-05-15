@@ -186,3 +186,11 @@ impl<const LIMBS: usize, P: ResidueParams<LIMBS>> From<&Residue<P, LIMBS>> for D
         }
     }
 }
+
+#[cfg(feature = "zeroize")]
+impl<const LIMBS: usize> zeroize::Zeroize for DynResidue<LIMBS> {
+    // This does _not_ zeroize the parameters, in order to maintain some form of type consistency
+    fn zeroize(&mut self) {
+        self.montgomery_form.zeroize()
+    }
+}
