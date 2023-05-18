@@ -113,6 +113,32 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
         &self.residue_params
     }
 
+    /// Access the `DynResidue` value in Montgomery form.
+    pub const fn as_montgomery(&self) -> &Uint<LIMBS> {
+        &self.montgomery_form
+    }
+
+    /// Mutably access the `DynResidue` value in Montgomery form.
+    pub fn as_montgomery_mut(&mut self) -> &mut Uint<LIMBS> {
+        &mut self.montgomery_form
+    }
+
+    /// Create a `DynResidue` from a value in Montgomery form.
+    pub const fn from_montgomery(
+        integer: Uint<LIMBS>,
+        residue_params: DynResidueParams<LIMBS>,
+    ) -> Self {
+        Self {
+            montgomery_form: integer,
+            residue_params,
+        }
+    }
+
+    /// Extract the value from the `DynResidue` in Montgomery form.
+    pub const fn to_montgomery(&self) -> Uint<LIMBS> {
+        self.montgomery_form
+    }
+
     /// Performs the modular division by 2, that is for given `x` returns `y`
     /// such that `y * 2 = x mod p`. This means:
     /// - if `x` is even, returns `x / 2`,

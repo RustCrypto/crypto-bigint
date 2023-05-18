@@ -59,6 +59,7 @@ pub trait ResidueParams<const LIMBS: usize>:
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// A residue mod `MOD`, represented using `LIMBS` limbs. The modulus of this residue is constant, so it cannot be set at runtime.
+/// Internally, the value is stored in Montgomery form (multiplied by MOD::R) until it is retrieved.
 pub struct Residue<MOD, const LIMBS: usize>
 where
     MOD: ResidueParams<LIMBS>,
@@ -105,6 +106,29 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
             &MOD::MODULUS,
             MOD::MOD_NEG_INV,
         )
+    }
+
+    /// Access the `Residue` value in Montgomery form.
+    pub const fn as_montgomery(&self) -> &Uint<LIMBS> {
+        &self.montgomery_form
+    }
+
+    /// Mutably access the `Residue` value in Montgomery form.
+    pub fn as_montgomery_mut(&mut self) -> &mut Uint<LIMBS> {
+        &mut self.montgomery_form
+    }
+
+    /// Create a `Residue` from a value in Montgomery form.
+    pub const fn from_montgomery(integer: Uint<LIMBS>) -> Self {
+        Self {
+            montgomery_form: integer,
+            phantom: PhantomData,
+        }
+    }
+
+    /// Extract the value from the `Residue` in Montgomery form.
+    pub const fn to_montgomery(&self) -> Uint<LIMBS> {
+        self.montgomery_form
     }
 
     /// Performs the modular division by 2, that is for given `x` returns `y`
