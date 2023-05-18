@@ -1,6 +1,11 @@
 use crate::{Limb, Uint, Word};
 
-use super::{div_by_2::div_by_2, reduction::montgomery_reduction, Retrieve};
+use super::{
+    constant_mod::{Residue, ResidueParams},
+    div_by_2::div_by_2,
+    reduction::montgomery_reduction,
+    Retrieve,
+};
 
 /// Additions between residues with a modulus set at runtime
 mod runtime_add;
@@ -57,6 +62,20 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
     /// Returns the modulus which was used to initialize these parameters.
     pub const fn modulus(&self) -> &Uint<LIMBS> {
         &self.modulus
+    }
+
+    /// Create `DynResidueParams` corresponding to a `ResidueParams`.
+    pub const fn from_residue_params<P>() -> Self
+    where
+        P: ResidueParams<LIMBS>,
+    {
+        Self {
+            modulus: P::MODULUS,
+            r: P::R,
+            r2: P::R2,
+            r3: P::R3,
+            mod_neg_inv: P::MOD_NEG_INV,
+        }
     }
 }
 
@@ -156,5 +175,14 @@ impl<const LIMBS: usize> Retrieve for DynResidue<LIMBS> {
     type Output = Uint<LIMBS>;
     fn retrieve(&self) -> Self::Output {
         self.retrieve()
+    }
+}
+
+impl<const LIMBS: usize, P: ResidueParams<LIMBS>> From<&Residue<P, LIMBS>> for DynResidue<LIMBS> {
+    fn from(residue: &Residue<P, LIMBS>) -> Self {
+        Self {
+            montgomery_form: residue.to_montgomery(),
+            residue_params: DynResidueParams::from_residue_params::<P>(),
+        }
     }
 }
