@@ -72,11 +72,51 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         CtChoice::from_mask(borrow.0)
     }
 
-    /// Returns the truthy value if `self <= rhs` and the falsy value otherwise.
+    /// Returns the truthy value if `self >= rhs` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn ct_gt(lhs: &Self, rhs: &Self) -> CtChoice {
         let (_res, borrow) = rhs.sbb(lhs, Limb::ZERO);
         CtChoice::from_mask(borrow.0)
+    }
+
+    /// Returns the ordering between `self` and `rhs` as an i8.
+    /// Values correspond to the Ordering enum:
+    ///   -1 is Less
+    ///   0 is Equal
+    ///   1 is Greater
+    #[inline]
+    pub(crate) const fn ct_cmp(lhs: &Self, rhs: &Self) -> i8 {
+        let mut i = 0;
+        let mut borrow = Limb::ZERO;
+        let mut diff = Limb::ZERO;
+
+        while i < LIMBS {
+            let (w, b) = rhs.limbs[i].sbb(lhs.limbs[i], borrow);
+            diff = diff.bitor(w);
+            borrow = b;
+            i += 1;
+        }
+        let sgn = ((borrow.0 & 2) as i8) - 1;
+        (diff.ct_is_nonzero().to_u8() as i8) * sgn
+    }
+
+    /// Returns the Ordering between `self` and `rhs` in variable time.
+    pub const fn cmp_vartime(&self, rhs: &Self) -> Ordering {
+        let mut i = LIMBS - 1;
+        loop {
+            let (val, borrow) = self.limbs[i].sbb(rhs.limbs[i], Limb::ZERO);
+            if val.0 != 0 {
+                return if borrow.0 != 0 {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                };
+            }
+            if i == 0 {
+                return Ordering::Equal;
+            }
+            i -= 1;
+        }
     }
 }
 
@@ -105,15 +145,11 @@ impl<const LIMBS: usize> Eq for Uint<LIMBS> {}
 
 impl<const LIMBS: usize> Ord for Uint<LIMBS> {
     fn cmp(&self, other: &Self) -> Ordering {
-        let is_lt = self.ct_lt(other);
-        let is_eq = self.ct_eq(other);
-
-        if is_lt.into() {
-            Ordering::Less
-        } else if is_eq.into() {
-            Ordering::Equal
-        } else {
-            Ordering::Greater
+        let c = Self::ct_cmp(self, other);
+        match c {
+            -1 => Ordering::Less,
+            0 => Ordering::Equal,
+            _ => Ordering::Greater,
         }
     }
 }
@@ -133,6 +169,7 @@ impl<const LIMBS: usize> PartialEq for Uint<LIMBS> {
 #[cfg(test)]
 mod tests {
     use crate::{Integer, Zero, U128};
+    use core::cmp::Ordering;
     use subtle::{ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
     #[test]
@@ -196,5 +233,43 @@ mod tests {
         assert!(!bool::from(b.ct_lt(&a)));
         assert!(!bool::from(c.ct_lt(&a)));
         assert!(!bool::from(c.ct_lt(&b)));
+    }
+
+    #[test]
+    fn cmp() {
+        let a = U128::ZERO;
+        let b = U128::ONE;
+        let c = U128::MAX;
+
+        assert_eq!(a.cmp(&b), Ordering::Less);
+        assert_eq!(a.cmp(&c), Ordering::Less);
+        assert_eq!(b.cmp(&c), Ordering::Less);
+
+        assert_eq!(a.cmp(&a), Ordering::Equal);
+        assert_eq!(b.cmp(&b), Ordering::Equal);
+        assert_eq!(c.cmp(&c), Ordering::Equal);
+
+        assert_eq!(b.cmp(&a), Ordering::Greater);
+        assert_eq!(c.cmp(&a), Ordering::Greater);
+        assert_eq!(c.cmp(&b), Ordering::Greater);
+    }
+
+    #[test]
+    fn cmp_vartime() {
+        let a = U128::ZERO;
+        let b = U128::ONE;
+        let c = U128::MAX;
+
+        assert_eq!(a.cmp_vartime(&b), Ordering::Less);
+        assert_eq!(a.cmp_vartime(&c), Ordering::Less);
+        assert_eq!(b.cmp_vartime(&c), Ordering::Less);
+
+        assert_eq!(a.cmp_vartime(&a), Ordering::Equal);
+        assert_eq!(b.cmp_vartime(&b), Ordering::Equal);
+        assert_eq!(c.cmp_vartime(&c), Ordering::Equal);
+
+        assert_eq!(b.cmp_vartime(&a), Ordering::Greater);
+        assert_eq!(c.cmp_vartime(&a), Ordering::Greater);
+        assert_eq!(c.cmp_vartime(&b), Ordering::Greater);
     }
 }
