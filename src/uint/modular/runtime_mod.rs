@@ -1,6 +1,11 @@
 use crate::{Limb, Uint, Word};
 
-use super::{div_by_2::div_by_2, reduction::montgomery_reduction, Retrieve};
+use super::{
+    constant_mod::{Residue, ResidueParams},
+    div_by_2::div_by_2,
+    reduction::montgomery_reduction,
+    Retrieve,
+};
 
 /// Additions between residues with a modulus set at runtime
 mod runtime_add;
@@ -58,6 +63,20 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
     pub const fn modulus(&self) -> &Uint<LIMBS> {
         &self.modulus
     }
+
+    /// Create `DynResidueParams` corresponding to a `ResidueParams`.
+    pub const fn from_residue_params<P>() -> Self
+    where
+        P: ResidueParams<LIMBS>,
+    {
+        Self {
+            modulus: P::MODULUS,
+            r: P::R,
+            r2: P::R2,
+            r3: P::R3,
+            mod_neg_inv: P::MOD_NEG_INV,
+        }
+    }
 }
 
 /// A residue represented using `LIMBS` limbs. The odd modulus of this residue is set at runtime.
@@ -113,6 +132,32 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
         &self.residue_params
     }
 
+    /// Access the `DynResidue` value in Montgomery form.
+    pub const fn as_montgomery(&self) -> &Uint<LIMBS> {
+        &self.montgomery_form
+    }
+
+    /// Mutably access the `DynResidue` value in Montgomery form.
+    pub fn as_montgomery_mut(&mut self) -> &mut Uint<LIMBS> {
+        &mut self.montgomery_form
+    }
+
+    /// Create a `DynResidue` from a value in Montgomery form.
+    pub const fn from_montgomery(
+        integer: Uint<LIMBS>,
+        residue_params: DynResidueParams<LIMBS>,
+    ) -> Self {
+        Self {
+            montgomery_form: integer,
+            residue_params,
+        }
+    }
+
+    /// Extract the value from the `DynResidue` in Montgomery form.
+    pub const fn to_montgomery(&self) -> Uint<LIMBS> {
+        self.montgomery_form
+    }
+
     /// Performs the modular division by 2, that is for given `x` returns `y`
     /// such that `y * 2 = x mod p`. This means:
     /// - if `x` is even, returns `x / 2`,
@@ -130,5 +175,14 @@ impl<const LIMBS: usize> Retrieve for DynResidue<LIMBS> {
     type Output = Uint<LIMBS>;
     fn retrieve(&self) -> Self::Output {
         self.retrieve()
+    }
+}
+
+impl<const LIMBS: usize, P: ResidueParams<LIMBS>> From<&Residue<P, LIMBS>> for DynResidue<LIMBS> {
+    fn from(residue: &Residue<P, LIMBS>) -> Self {
+        Self {
+            montgomery_form: residue.to_montgomery(),
+            residue_params: DynResidueParams::from_residue_params::<P>(),
+        }
     }
 }
