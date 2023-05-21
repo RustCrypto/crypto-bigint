@@ -50,11 +50,15 @@ impl CtChoice {
     pub(crate) const fn is_true_vartime(&self) -> bool {
         self.0 == CtChoice::TRUE.0
     }
+
+    pub(crate) const fn to_u8(self) -> u8 {
+        (self.0 as u8) & 1
+    }
 }
 
 impl From<CtChoice> for Choice {
     fn from(choice: CtChoice) -> Self {
-        Choice::from(choice.0 as u8 & 1)
+        Choice::from(choice.to_u8())
     }
 }
 
