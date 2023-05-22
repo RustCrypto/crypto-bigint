@@ -73,9 +73,8 @@ fn bench_division<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     });
 }
 
-#[allow(deprecated)]
 fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
-    let params = DynResidueParams::new(&(U256::random(&mut OsRng) | U256::ONE));
+    let params = DynResidueParams::new_checked(&(U256::random(&mut OsRng) | U256::ONE)).unwrap();
     group.bench_function("multiplication, U256*U256", |b| {
         b.iter_batched(
             || {
@@ -89,7 +88,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     });
 
     let m = U256::random(&mut OsRng) | U256::ONE;
-    let params = DynResidueParams::new(&m);
+    let params = DynResidueParams::new_checked(&m).unwrap();
     group.bench_function("modpow, U256^U256", |b| {
         b.iter_batched(
             || {
@@ -104,17 +103,16 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     });
 }
 
-#[allow(deprecated)]
 fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("DynResidueParams creation", |b| {
         b.iter_batched(
             || U256::random(&mut OsRng) | U256::ONE,
-            |modulus| DynResidueParams::new(&modulus),
+            |modulus| DynResidueParams::new_checked(&modulus).unwrap(),
             BatchSize::SmallInput,
         )
     });
 
-    let params = DynResidueParams::new(&(U256::random(&mut OsRng) | U256::ONE));
+    let params = DynResidueParams::new_checked(&(U256::random(&mut OsRng) | U256::ONE)).unwrap();
     group.bench_function("DynResidue creation", |b| {
         b.iter_batched(
             || U256::random(&mut OsRng),
@@ -123,7 +121,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
         )
     });
 
-    let params = DynResidueParams::new(&(U256::random(&mut OsRng) | U256::ONE));
+    let params = DynResidueParams::new_checked(&(U256::random(&mut OsRng) | U256::ONE)).unwrap();
     group.bench_function("DynResidue retrieve", |b| {
         b.iter_batched(
             || DynResidue::new(&U256::random(&mut OsRng), params),

@@ -69,11 +69,11 @@ mod tests {
     };
 
     #[test]
-    #[allow(deprecated)]
     fn add_overflow() {
-        let params = DynResidueParams::new(&U256::from_be_hex(
+        let params = DynResidueParams::new_checked(&U256::from_be_hex(
             "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551",
-        ));
+        ))
+        .unwrap();
 
         let x =
             U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
