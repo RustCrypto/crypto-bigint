@@ -7,6 +7,8 @@ use super::{
     Retrieve,
 };
 
+use subtle::CtOption;
+
 /// Additions between residues with a modulus set at runtime
 mod runtime_add;
 /// Multiplicative inverses of residues with a modulus set at runtime
@@ -44,18 +46,9 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
         note = "This will return an `Option` in a future version to account for an invalid modulus, but for now will panic if this happens. Consider using `new_checked` until then."
     )]
     pub const fn new(modulus: &Uint<LIMBS>) -> Self {
-        match Self::new_checked(modulus) {
-            Some(params) => params,
-            None => panic!("modulus must be odd"),
-        }
-    }
-
-    /// Instantiates a new set of `ResidueParams` representing the given `modulus` if it is odd.
-    /// Returns an `Option` that is `None` if the provided modulus is not odd; this is a safer version of [`new`][`DynResidueParams::new`], which can panic.
-    pub const fn new_checked(modulus: &Uint<LIMBS>) -> Option<Self> {
-        // A modulus must be odd to be valid
+        // A valid modulus must be odd
         if modulus.ct_is_odd().to_u8() == 0 {
-            return None;
+            panic!("modulus must be odd");
         }
 
         let r = Uint::MAX.const_rem(modulus).0.wrapping_add(&Uint::ONE);
@@ -69,13 +62,40 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
 
         let r3 = montgomery_reduction(&r2.square_wide(), modulus, mod_neg_inv);
 
-        Some(Self {
+        Self {
             modulus: *modulus,
             r,
             r2,
             r3,
             mod_neg_inv,
-        })
+        }
+    }
+
+    /// Instantiates a new set of `ResidueParams` representing the given `modulus` if it is odd.
+    /// Returns a `CtOption` that is `None` if the provided modulus is not odd; this is a safer version of [`new`][`DynResidueParams::new`], which can panic.
+    pub fn new_checked(modulus: &Uint<LIMBS>) -> CtOption<Self> {
+        let r = Uint::MAX.const_rem(modulus).0.wrapping_add(&Uint::ONE);
+        let r2 = Uint::const_rem_wide(r.square_wide(), modulus).0;
+
+        // Since we are calculating the inverse modulo (Word::MAX+1),
+        // we can take the modulo right away and calculate the inverse of the first limb only.
+        let modulus_lo = Uint::<1>::from_words([modulus.limbs[0].0]);
+        let mod_neg_inv =
+            Limb(Word::MIN.wrapping_sub(modulus_lo.inv_mod2k(Word::BITS as usize).limbs[0].0));
+
+        let r3 = montgomery_reduction(&r2.square_wide(), modulus, mod_neg_inv);
+
+        // A valid modulus must be odd, which we check in constant time
+        CtOption::new(
+            Self {
+                modulus: *modulus,
+                r,
+                r2,
+                r3,
+                mod_neg_inv,
+            },
+            modulus.ct_is_odd().into()
+        )
     }
 
     /// Returns the modulus which was used to initialize these parameters.
@@ -227,14 +247,15 @@ mod test {
     fn test_valid_modulus() {
         let valid_modulus = Uint::<LIMBS>::from(3u8);
 
-        assert!(DynResidueParams::<LIMBS>::new_checked(&valid_modulus).is_some());
+        DynResidueParams::<LIMBS>::new_checked(&valid_modulus).unwrap();
         DynResidueParams::<LIMBS>::new(&valid_modulus);
     }
 
     #[test]
+    #[should_panic]
     // Test that an invalid checked modulus does not yield `DynResidueParams`
     fn test_invalid_checked_modulus() {
-        assert!(DynResidueParams::<LIMBS>::new_checked(&Uint::from(2u8)).is_none());
+        DynResidueParams::<LIMBS>::new_checked(&Uint::from(2u8)).unwrap();
     }
 
     #[test]
