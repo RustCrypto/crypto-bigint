@@ -73,6 +73,7 @@ fn bench_division<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     });
 }
 
+#[allow(deprecated)]
 fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     let params = DynResidueParams::new(&(U256::random(&mut OsRng) | U256::ONE));
     group.bench_function("multiplication, U256*U256", |b| {
@@ -103,6 +104,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     });
 }
 
+#[allow(deprecated)]
 fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("DynResidueParams creation", |b| {
         b.iter_batched(

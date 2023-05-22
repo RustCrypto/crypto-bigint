@@ -251,6 +251,7 @@ proptest! {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn residue_pow(a in uint_mod_p(P), b in uint()) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
@@ -266,6 +267,7 @@ proptest! {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn residue_pow_bounded_exp(a in uint_mod_p(P), b in uint(), exponent_bits in any::<u8>()) {
 
         let b_masked = b & (U256::ONE << exponent_bits.into()).wrapping_sub(&U256::ONE);
@@ -284,6 +286,7 @@ proptest! {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn residue_div_by_2(a in uint_mod_p(P)) {
         let a_bi = to_biguint(&a);
         let p_bi = to_biguint(&P);

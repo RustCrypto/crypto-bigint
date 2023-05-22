@@ -20,7 +20,7 @@ mod runtime_pow;
 /// Subtractions between residues with a modulus set at runtime
 mod runtime_sub;
 
-/// The parameters to efficiently go to and from the Montgomery form for a modulus provided at runtime.
+/// The parameters to efficiently go to and from the Montgomery form for an odd modulus provided at runtime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DynResidueParams<const LIMBS: usize> {
     // The constant modulus
@@ -37,8 +37,18 @@ pub struct DynResidueParams<const LIMBS: usize> {
 }
 
 impl<const LIMBS: usize> DynResidueParams<LIMBS> {
-    /// Instantiates a new set of `ResidueParams` representing the given `modulus`.
+    #[deprecated(
+        since = "0.5.3",
+        note = "This will return an `Option` in a future version to account for an invalid modulus, but for now will panic if this happens. Consider using `new_checked` until then."
+    )]
+    /// Instantiates a new set of `ResidueParams` representing the given `modulus`, which _must_ be odd.
+    /// If `modulus` is not odd, this function will panic; use [`new_checked`][`DynResidueParams::new_checked`] if you want to be able to detect an invalid modulus.
     pub const fn new(modulus: &Uint<LIMBS>) -> Self {
+        // The modulus must be odd
+        if modulus.ct_is_odd().to_u8() != 1 {
+            panic!("Modulus must be odd.");
+        }
+
         let r = Uint::MAX.const_rem(modulus).0.wrapping_add(&Uint::ONE);
         let r2 = Uint::const_rem_wide(r.square_wide(), modulus).0;
 
@@ -56,6 +66,38 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
             r2,
             r3,
             mod_neg_inv,
+        }
+    }
+
+    /// Instantiates a new set of `ResidueParams` representing the given `modulus` if it is odd.
+    /// Returns an `Option` that is `None` if the provided modulus is not odd; this is a safer version of [`new`][`DynResidueParams::new`], which can panic.
+    pub const fn new_checked(modulus: &Uint<LIMBS>) -> Option<Self> {
+        match modulus.ct_is_odd().to_u8() {
+            // The modulus is odd, which is valid
+            1 => {
+                let r = Uint::MAX.const_rem(modulus).0.wrapping_add(&Uint::ONE);
+                let r2 = Uint::const_rem_wide(r.square_wide(), modulus).0;
+
+                // Since we are calculating the inverse modulo (Word::MAX+1),
+                // we can take the modulo right away and calculate the inverse of the first limb only.
+                let modulus_lo = Uint::<1>::from_words([modulus.limbs[0].0]);
+                let mod_neg_inv = Limb(
+                    Word::MIN.wrapping_sub(modulus_lo.inv_mod2k(Word::BITS as usize).limbs[0].0),
+                );
+
+                let r3 = montgomery_reduction(&r2.square_wide(), modulus, mod_neg_inv);
+
+                Some(Self {
+                    modulus: *modulus,
+                    r,
+                    r2,
+                    r3,
+                    mod_neg_inv,
+                })
+            }
+
+            // The modulus is even, which is invalid
+            _ => None,
         }
     }
 
@@ -192,5 +234,37 @@ impl<const LIMBS: usize, P: ResidueParams<LIMBS>> From<&Residue<P, LIMBS>> for D
 impl<const LIMBS: usize> zeroize::Zeroize for DynResidue<LIMBS> {
     fn zeroize(&mut self) {
         self.montgomery_form.zeroize()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::nlimbs;
+
+    const LIMBS: usize = nlimbs!(64);
+
+    #[test]
+    #[allow(deprecated)]
+    // Test that a valid modulus yields `DynResidueParams`
+    fn test_valid_modulus() {
+        let valid_modulus = Uint::<LIMBS>::from(3u8);
+
+        assert!(DynResidueParams::<LIMBS>::new_checked(&valid_modulus).is_some());
+        DynResidueParams::<LIMBS>::new(&valid_modulus);
+    }
+
+    #[test]
+    // Test that an invalid checked modulus does not yield `DynResidueParams`
+    fn test_invalid_checked_modulus() {
+        assert!(DynResidueParams::<LIMBS>::new_checked(&Uint::from(2u8)).is_none());
+    }
+
+    #[test]
+    #[allow(deprecated)]
+    #[should_panic]
+    // Tets that an invalid modulus panics
+    fn test_invalid_modulus() {
+        DynResidueParams::<LIMBS>::new(&Uint::from(2u8));
     }
 }

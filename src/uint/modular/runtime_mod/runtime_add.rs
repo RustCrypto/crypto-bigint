@@ -69,6 +69,7 @@ mod tests {
     };
 
     #[test]
+    #[allow(deprecated)]
     fn add_overflow() {
         let params = DynResidueParams::new(&U256::from_be_hex(
             "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551",
