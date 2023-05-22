@@ -94,7 +94,7 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
                 r3,
                 mod_neg_inv,
             },
-            modulus.ct_is_odd().into()
+            modulus.ct_is_odd().into(),
         )
     }
 
