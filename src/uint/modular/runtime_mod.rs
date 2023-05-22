@@ -37,35 +37,16 @@ pub struct DynResidueParams<const LIMBS: usize> {
 }
 
 impl<const LIMBS: usize> DynResidueParams<LIMBS> {
+    /// Instantiates a new set of `ResidueParams` representing the given `modulus`, which _must_ be odd.
+    /// If `modulus` is not odd, this function will panic; use [`new_checked`][`DynResidueParams::new_checked`] if you want to be able to detect an invalid modulus.
     #[deprecated(
         since = "0.5.3",
         note = "This will return an `Option` in a future version to account for an invalid modulus, but for now will panic if this happens. Consider using `new_checked` until then."
     )]
-    /// Instantiates a new set of `ResidueParams` representing the given `modulus`, which _must_ be odd.
-    /// If `modulus` is not odd, this function will panic; use [`new_checked`][`DynResidueParams::new_checked`] if you want to be able to detect an invalid modulus.
     pub const fn new(modulus: &Uint<LIMBS>) -> Self {
-        // The modulus must be odd
-        if modulus.ct_is_odd().to_u8() != 1 {
-            panic!("Modulus must be odd.");
-        }
-
-        let r = Uint::MAX.const_rem(modulus).0.wrapping_add(&Uint::ONE);
-        let r2 = Uint::const_rem_wide(r.square_wide(), modulus).0;
-
-        // Since we are calculating the inverse modulo (Word::MAX+1),
-        // we can take the modulo right away and calculate the inverse of the first limb only.
-        let modulus_lo = Uint::<1>::from_words([modulus.limbs[0].0]);
-        let mod_neg_inv =
-            Limb(Word::MIN.wrapping_sub(modulus_lo.inv_mod2k(Word::BITS as usize).limbs[0].0));
-
-        let r3 = montgomery_reduction(&r2.square_wide(), modulus, mod_neg_inv);
-
-        Self {
-            modulus: *modulus,
-            r,
-            r2,
-            r3,
-            mod_neg_inv,
+        match Self::new_checked(modulus) {
+            Some(params) => params,
+            None => panic!("modulus must be odd"),
         }
     }
 
