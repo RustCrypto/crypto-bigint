@@ -237,10 +237,11 @@ mod test {
     }
 
     #[test]
-    #[should_panic]
     // Test that an invalid checked modulus does not yield `DynResidueParams`
     fn test_invalid_checked_modulus() {
-        DynResidueParams::<LIMBS>::new_checked(&Uint::from(2u8)).unwrap();
+        assert!(bool::from(
+            DynResidueParams::<LIMBS>::new_checked(&Uint::from(2u8)).is_none()
+        ))
     }
 
     #[test]
