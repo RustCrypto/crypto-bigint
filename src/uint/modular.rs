@@ -146,7 +146,7 @@ mod tests {
     fn test_new_retrieve() {
         let x =
             U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
-        let x_mod = Residue::<Modulus2, { Modulus2::LIMBS }>::new(&x);
+        let x_mod = Residue::<Modulus2, { Modulus2::LIMBS }>::new_checked(&x).unwrap();
 
         // Confirm that when creating a Modular and retrieving the value, that it equals the original
         assert_eq!(x, x_mod.retrieve());
@@ -157,7 +157,7 @@ mod tests {
         let x =
             U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
         assert_eq!(
-            Residue::<Modulus2, { Modulus2::LIMBS }>::new(&x),
+            Residue::<Modulus2, { Modulus2::LIMBS }>::new_checked(&x).unwrap(),
             const_residue!(x, Modulus2)
         );
     }

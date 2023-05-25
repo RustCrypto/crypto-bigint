@@ -1,6 +1,6 @@
 use core::{fmt::Debug, marker::PhantomData};
 
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 use crate::{Limb, Uint, Zero};
 
@@ -88,7 +88,17 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     };
 
     /// Instantiates a new `Residue` that represents this `integer` mod `MOD`.
+    /// If the modulus represented by `MOD` is not odd, this function will panic; use [`new_checked`][`Residue::new_checked`] if you want to be able to detect an invalid modulus.
+    #[deprecated(
+        since = "0.5.3",
+        note = "This will return an `Option` in a future version to account for an invalid modulus, but for now will panic if this happens. Consider using `new_checked` until then."
+    )]
     pub const fn new(integer: &Uint<LIMBS>) -> Self {
+        // A valid modulus must be odd
+        if MOD::MODULUS.ct_is_odd().to_u8() == 0 {
+            panic!("modulus must be odd");
+        }
+
         let product = integer.mul_wide(&MOD::R2);
         let montgomery_form =
             montgomery_reduction::<LIMBS>(&product, &MOD::MODULUS, MOD::MOD_NEG_INV);
@@ -97,6 +107,23 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
             montgomery_form,
             phantom: PhantomData,
         }
+    }
+
+    /// Instantiates a new `Residue` that represents this `integer` mod `MOD` if the modulus is odd.
+    /// Returns a `CtOption` that is `None` if the provided modulus is not odd; this is a safer version of [`new`][`Residue::new`], which can panic.
+    pub fn new_checked(integer: &Uint<LIMBS>) -> CtOption<Self> {
+        let product = integer.mul_wide(&MOD::R2);
+        let montgomery_form =
+            montgomery_reduction::<LIMBS>(&product, &MOD::MODULUS, MOD::MOD_NEG_INV);
+
+        // A valid modulus must be odd, which we can check in constant time
+        CtOption::new(
+            Self {
+                montgomery_form,
+                phantom: PhantomData,
+            },
+            MOD::MODULUS.ct_is_odd().into(),
+        )
     }
 
     /// Retrieves the integer currently encoded in this `Residue`, guaranteed to be reduced.
@@ -176,6 +203,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Zero for Residue<MOD, LIMBS>
 }
 
 #[cfg(feature = "rand_core")]
+#[allow(deprecated)]
 impl<MOD, const LIMBS: usize> Random for Residue<MOD, LIMBS>
 where
     MOD: ResidueParams<LIMBS>,

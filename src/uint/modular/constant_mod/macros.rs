@@ -52,8 +52,12 @@ macro_rules! impl_modulus {
 #[macro_export]
 /// Creates a `Residue` with the given value for a specific modulus.
 /// For example, `residue!(U256::from(105u64), MyModulus);` creates a `Residue` for 105 mod `MyModulus`.
+/// The modulus _must_ be odd, or this will panic.
 macro_rules! const_residue {
     ($variable:ident, $modulus:ident) => {
-        $crate::modular::constant_mod::Residue::<$modulus, { $modulus::LIMBS }>::new(&$variable)
+        $crate::modular::constant_mod::Residue::<$modulus, { $modulus::LIMBS }>::new_checked(
+            &$variable,
+        )
+        .unwrap()
     };
 }
