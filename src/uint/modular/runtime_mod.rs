@@ -63,10 +63,6 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
 
     /// Instantiates a new set of `ResidueParams` representing the given `modulus`, which _must_ be odd.
     /// If `modulus` is not odd, this function will panic; use [`new_checked`][`DynResidueParams::new_checked`] if you want to be able to detect an invalid modulus.
-    #[deprecated(
-        since = "0.5.3",
-        note = "This will return an `Option` in a future version to account for an invalid modulus, but for now will panic if this happens. Consider using `new_checked` until then."
-    )]
     pub const fn new(modulus: &Uint<LIMBS>) -> Self {
         // A valid modulus must be odd
         if modulus.ct_is_odd().to_u8() == 0 {
@@ -78,6 +74,10 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
 
     /// Instantiates a new set of `ResidueParams` representing the given `modulus` if it is odd.
     /// Returns a `CtOption` that is `None` if the provided modulus is not odd; this is a safer version of [`new`][`DynResidueParams::new`], which can panic.
+    #[deprecated(
+        since = "0.5.3",
+        note = "This functionality will be moved to `new` in a future release."
+    )]
     pub fn new_checked(modulus: &Uint<LIMBS>) -> CtOption<Self> {
         // A valid modulus must be odd, which we check in constant time
         CtOption::new(Self::generate_params(modulus), modulus.ct_is_odd().into())
@@ -237,6 +237,7 @@ mod test {
     }
 
     #[test]
+    #[allow(deprecated)]
     // Test that an invalid checked modulus does not yield `DynResidueParams`
     fn test_invalid_checked_modulus() {
         assert!(bool::from(
@@ -245,7 +246,6 @@ mod test {
     }
 
     #[test]
-    #[allow(deprecated)]
     #[should_panic]
     // Tets that an invalid modulus panics
     fn test_invalid_modulus() {

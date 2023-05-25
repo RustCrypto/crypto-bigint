@@ -74,7 +74,7 @@ fn bench_division<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
 }
 
 fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
-    let params = DynResidueParams::new_checked(&(U256::random(&mut OsRng) | U256::ONE)).unwrap();
+    let params = DynResidueParams::new(&(U256::random(&mut OsRng) | U256::ONE));
     group.bench_function("multiplication, U256*U256", |b| {
         b.iter_batched(
             || {
@@ -88,7 +88,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     });
 
     let m = U256::random(&mut OsRng) | U256::ONE;
-    let params = DynResidueParams::new_checked(&m).unwrap();
+    let params = DynResidueParams::new(&m);
     group.bench_function("modpow, U256^U256", |b| {
         b.iter_batched(
             || {
@@ -107,12 +107,12 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
     group.bench_function("DynResidueParams creation", |b| {
         b.iter_batched(
             || U256::random(&mut OsRng) | U256::ONE,
-            |modulus| DynResidueParams::new_checked(&modulus).unwrap(),
+            |modulus| DynResidueParams::new(&modulus),
             BatchSize::SmallInput,
         )
     });
 
-    let params = DynResidueParams::new_checked(&(U256::random(&mut OsRng) | U256::ONE)).unwrap();
+    let params = DynResidueParams::new(&(U256::random(&mut OsRng) | U256::ONE));
     group.bench_function("DynResidue creation", |b| {
         b.iter_batched(
             || U256::random(&mut OsRng),
@@ -121,7 +121,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
         )
     });
 
-    let params = DynResidueParams::new_checked(&(U256::random(&mut OsRng) | U256::ONE)).unwrap();
+    let params = DynResidueParams::new(&(U256::random(&mut OsRng) | U256::ONE));
     group.bench_function("DynResidue retrieve", |b| {
         b.iter_batched(
             || DynResidue::new(&U256::random(&mut OsRng), params),
