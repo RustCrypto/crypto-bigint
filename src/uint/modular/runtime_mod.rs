@@ -39,18 +39,8 @@ pub struct DynResidueParams<const LIMBS: usize> {
 }
 
 impl<const LIMBS: usize> DynResidueParams<LIMBS> {
-    /// Instantiates a new set of `ResidueParams` representing the given `modulus`, which _must_ be odd.
-    /// If `modulus` is not odd, this function will panic; use [`new_checked`][`DynResidueParams::new_checked`] if you want to be able to detect an invalid modulus.
-    #[deprecated(
-        since = "0.5.3",
-        note = "This will return an `Option` in a future version to account for an invalid modulus, but for now will panic if this happens. Consider using `new_checked` until then."
-    )]
-    pub const fn new(modulus: &Uint<LIMBS>) -> Self {
-        // A valid modulus must be odd
-        if modulus.ct_is_odd().to_u8() == 0 {
-            panic!("modulus must be odd");
-        }
-
+    // Internal helper function to generate parameters; this lets us wrap the constructors more cleanly
+    const fn generate_params(modulus: &Uint<LIMBS>) -> Self {
         let r = Uint::MAX.const_rem(modulus).0.wrapping_add(&Uint::ONE);
         let r2 = Uint::const_rem_wide(r.square_wide(), modulus).0;
 
@@ -71,31 +61,26 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
         }
     }
 
+    /// Instantiates a new set of `ResidueParams` representing the given `modulus`, which _must_ be odd.
+    /// If `modulus` is not odd, this function will panic; use [`new_checked`][`DynResidueParams::new_checked`] if you want to be able to detect an invalid modulus.
+    #[deprecated(
+        since = "0.5.3",
+        note = "This will return an `Option` in a future version to account for an invalid modulus, but for now will panic if this happens. Consider using `new_checked` until then."
+    )]
+    pub const fn new(modulus: &Uint<LIMBS>) -> Self {
+        // A valid modulus must be odd
+        if modulus.ct_is_odd().to_u8() == 0 {
+            panic!("modulus must be odd");
+        }
+
+        Self::generate_params(modulus)
+    }
+
     /// Instantiates a new set of `ResidueParams` representing the given `modulus` if it is odd.
     /// Returns a `CtOption` that is `None` if the provided modulus is not odd; this is a safer version of [`new`][`DynResidueParams::new`], which can panic.
     pub fn new_checked(modulus: &Uint<LIMBS>) -> CtOption<Self> {
-        let r = Uint::MAX.const_rem(modulus).0.wrapping_add(&Uint::ONE);
-        let r2 = Uint::const_rem_wide(r.square_wide(), modulus).0;
-
-        // Since we are calculating the inverse modulo (Word::MAX+1),
-        // we can take the modulo right away and calculate the inverse of the first limb only.
-        let modulus_lo = Uint::<1>::from_words([modulus.limbs[0].0]);
-        let mod_neg_inv =
-            Limb(Word::MIN.wrapping_sub(modulus_lo.inv_mod2k(Word::BITS as usize).limbs[0].0));
-
-        let r3 = montgomery_reduction(&r2.square_wide(), modulus, mod_neg_inv);
-
         // A valid modulus must be odd, which we check in constant time
-        CtOption::new(
-            Self {
-                modulus: *modulus,
-                r,
-                r2,
-                r3,
-                mod_neg_inv,
-            },
-            modulus.ct_is_odd().into(),
-        )
+        CtOption::new(Self::generate_params(modulus), modulus.ct_is_odd().into())
     }
 
     /// Returns the modulus which was used to initialize these parameters.
