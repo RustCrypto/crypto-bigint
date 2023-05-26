@@ -19,7 +19,7 @@ macro_rules! impl_modulus {
                 let res = <$uint_type>::from_be_hex($value);
 
                 // Check that the modulus is odd
-                if (res.as_limbs()[0].0 & 1) == 0 {
+                if res.as_limbs()[0].0 & 1 == 0 {
                     panic!("modulus must be odd");
                 }
 
@@ -55,9 +55,6 @@ macro_rules! impl_modulus {
 /// The modulus _must_ be odd, or this will panic.
 macro_rules! const_residue {
     ($variable:ident, $modulus:ident) => {
-        $crate::modular::constant_mod::Residue::<$modulus, { $modulus::LIMBS }>::new_checked(
-            &$variable,
-        )
-        .unwrap()
+        $crate::modular::constant_mod::Residue::<$modulus, { $modulus::LIMBS }>::new(&$variable)
     };
 }
