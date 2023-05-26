@@ -2,6 +2,7 @@
 #[macro_export]
 /// Implements a modulus with the given name, type, and value, in that specific order. Please `use crypto_bigint::traits::Encoding` to make this work.
 /// For example, `impl_modulus!(MyModulus, U256, "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001");` implements a 256-bit modulus named `MyModulus`.
+/// The modulus _must_ be odd, or this will panic.
 macro_rules! impl_modulus {
     ($name:ident, $uint_type:ty, $value:expr) => {
         #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -14,8 +15,16 @@ macro_rules! impl_modulus {
                 $crate::Concat<Output = $crate::Uint<DLIMBS>>,
         {
             const LIMBS: usize = { $crate::nlimbs!(<$uint_type>::BITS) };
-            const MODULUS: $crate::Uint<{ $crate::nlimbs!(<$uint_type>::BITS) }> =
-                <$uint_type>::from_be_hex($value);
+            const MODULUS: $crate::Uint<{ $crate::nlimbs!(<$uint_type>::BITS) }> = {
+                let res = <$uint_type>::from_be_hex($value);
+
+                // Check that the modulus is odd
+                if res.as_limbs()[0].0 & 1 == 0 {
+                    panic!("modulus must be odd");
+                }
+
+                res
+            };
             const R: $crate::Uint<{ $crate::nlimbs!(<$uint_type>::BITS) }> = $crate::Uint::MAX
                 .const_rem(&Self::MODULUS)
                 .0
@@ -43,6 +52,7 @@ macro_rules! impl_modulus {
 #[macro_export]
 /// Creates a `Residue` with the given value for a specific modulus.
 /// For example, `residue!(U256::from(105u64), MyModulus);` creates a `Residue` for 105 mod `MyModulus`.
+/// The modulus _must_ be odd, or this will panic.
 macro_rules! const_residue {
     ($variable:ident, $modulus:ident) => {
         $crate::modular::constant_mod::Residue::<$modulus, { $modulus::LIMBS }>::new(&$variable)
