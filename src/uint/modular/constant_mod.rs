@@ -112,6 +112,8 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
 
     /// Instantiates a new `Residue` that represents this `integer` mod `MOD` if the modulus is odd.
     /// Returns a `CtOption` that is `None` if the provided modulus is not odd; this is a safer version of [`new`][`Residue::new`], which can panic.
+    // TODO: remove this method when we can use `generic_const_exprs.` to ensure the modulus is
+    // always valid.
     pub fn new_checked(integer: &Uint<LIMBS>) -> CtOption<Self> {
         // A valid modulus must be odd, which we can check in constant time
         CtOption::new(
