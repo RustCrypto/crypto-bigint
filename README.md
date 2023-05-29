@@ -17,7 +17,7 @@ using const generics.
 
 ## Goals
 
-- No heap allocations. `no_std`-friendly.
+- Supports `no_std`-friendly stack-allocated big integers.
 - Constant-time by default. Variable-time functions are explicitly marked as such.
 - Leverage what is possible today with const generics on `stable` rust.
 - Support `const fn` as much as possible, including decoding big integers from

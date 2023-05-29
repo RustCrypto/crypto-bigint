@@ -1,4 +1,4 @@
-//! Big unsigned integers.
+//! Stack-allocated big unsigned integers.
 
 #![allow(
     clippy::needless_range_loop,
@@ -54,7 +54,7 @@ use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 #[cfg(feature = "zeroize")]
 use zeroize::DefaultIsZeroes;
 
-/// Big unsigned integer.
+/// Stack-allocated big unsigned integer.
 ///
 /// Generic over the given number of `LIMBS`
 ///
