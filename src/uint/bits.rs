@@ -12,15 +12,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Calculate the number of bits needed to represent this number.
-    #[allow(trivial_numeric_casts)]
     pub const fn bits_vartime(&self) -> usize {
-        let mut i = LIMBS - 1;
-        while i > 0 && self.limbs[i].0 == 0 {
-            i -= 1;
-        }
-
-        let limb = self.limbs[i].0;
-        Limb::BITS * (i + 1) - limb.leading_zeros() as usize
+        bits_vartime(&self.limbs)
     }
 
     /// Calculate the number of leading zeros in the binary representation of this number.
@@ -85,6 +78,22 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         CtChoice::from_lsb(result >> index_in_limb)
+    }
+}
+
+/// Calculate the number of bits needed to represent this number.
+#[allow(trivial_numeric_casts)]
+pub const fn bits_vartime(uint: &[Limb]) -> usize {
+    let mut i = uint.len();
+    loop {
+        if i == 0 {
+            break 0;
+        }
+        i -= 1;
+        let limb = uint[i].0;
+        if limb != 0 {
+            break Limb::BITS * (i + 1) - limb.leading_zeros() as usize;
+        }
     }
 }
 

@@ -15,7 +15,7 @@ mod bit_and;
 mod bit_not;
 mod bit_or;
 mod bit_xor;
-mod bits;
+pub(crate) mod bits;
 mod cmp;
 mod concat;
 mod div;
@@ -246,6 +246,15 @@ impl<const LIMBS: usize> fmt::Debug for Uint<LIMBS> {
 impl<const LIMBS: usize> fmt::Display for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::UpperHex::fmt(self, f)
+    }
+}
+
+impl<const LIMBS: usize> fmt::Binary for Uint<LIMBS> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for limb in self.limbs.iter().rev() {
+            fmt::Binary::fmt(limb, f)?;
+        }
+        Ok(())
     }
 }
 
