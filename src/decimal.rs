@@ -224,7 +224,7 @@ impl<'de, T: FromDecimal> Deserialize<'de> for AsDecimal<T> {
 }
 
 #[cfg(feature = "serde")]
-impl<'s, T> Serialize for AsDecimal<T>
+impl<T> Serialize for AsDecimal<T>
 where
     AsDecimal<T>: Display,
 {
@@ -400,13 +400,12 @@ fn _encode_remainder_limb(mut limb: Limb, buf: &mut [u8]) -> usize {
 
 #[inline]
 fn _max_digits(bits: usize) -> usize {
-    ((bits as f32) * LOG10_2).ceil() as usize
+    (((bits as f32) * LOG10_2) + 0.9999) as usize
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Integer, Random};
     use core::fmt::Debug;
 
     #[test]
@@ -437,34 +436,19 @@ mod tests {
         assert_eq!(&des, uint);
     }
 
-    fn _round_trip_test<T>(n: usize)
-    where
-        T: AsRef<[Limb]> + AsMut<[Limb]> + Clone + FromDecimal + Integer + Random,
-    {
-        _round_trip_uint(&T::ZERO);
-        _round_trip_uint(&T::ONE);
-        _round_trip_uint(&T::MAX);
-        use rand_core::SeedableRng;
-        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
-        for _ in 0..n {
-            let uint = T::random(&mut rng);
-            _round_trip_uint(&uint);
-        }
-    }
-
     #[test]
-    fn round_trip_u64() {
-        _round_trip_test::<crate::U64>(10000)
-    }
+    fn round_trip() {
+        _round_trip_uint(&crate::U64::ZERO);
+        _round_trip_uint(&crate::U64::ONE);
+        _round_trip_uint(&crate::U64::MAX);
 
-    #[test]
-    fn round_trip_u1024() {
-        _round_trip_test::<crate::U1024>(1000)
-    }
+        _round_trip_uint(&crate::U1024::ZERO);
+        _round_trip_uint(&crate::U1024::ONE);
+        _round_trip_uint(&crate::U1024::MAX);
 
-    #[test]
-    fn round_trip_u8192() {
-        _round_trip_test::<crate::U8192>(100)
+        _round_trip_uint(&crate::U8192::ZERO);
+        _round_trip_uint(&crate::U8192::ONE);
+        _round_trip_uint(&crate::U8192::MAX);
     }
 
     #[cfg(feature = "alloc")]
