@@ -125,7 +125,7 @@ impl Iterator for ParseDecimal<'_> {
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next_back().map(|chunk| {
             let w: Word = chunk
-                .into_iter()
+                .iter()
                 .fold(0, |acc, c| acc * 10 + ((c - b'0') as Word));
             Limb(w)
         })
@@ -252,7 +252,7 @@ fn _encode_decimal_limbs(uint: &mut [Limb], buf: &mut [u8]) {
     while pos > 0 {
         let (len, rem) = if pos > LIMB_LOG10 {
             // Modified `div_rem_limb_with_reciprocal`: divide `uint` in place.
-            let mut carry: u64 = 0;
+            let mut carry: Word = 0;
             if SHIFT != 0 {
                 for limb in uint.iter_mut() {
                     let r = (limb.0 << SHIFT) | carry;
@@ -387,13 +387,13 @@ fn _encode_remainder_limb(mut limb: Limb, buf: &mut [u8]) -> usize {
     let mut pos = buf.len();
     while limb.0 > 0 && pos > 0 {
         pos -= 1;
-        buf[pos] = ('0' as u8) + (limb.0 % 10) as u8;
+        buf[pos] = b'0' + (limb.0 % 10) as u8;
         limb = Limb(limb.0 / 10);
     }
     let nz_len = buf.len() - pos;
     while pos > 0 {
         pos -= 1;
-        buf[pos] = '0' as u8;
+        buf[pos] = b'0';
     }
     nz_len
 }
