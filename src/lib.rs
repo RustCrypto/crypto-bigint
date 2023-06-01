@@ -163,6 +163,7 @@ mod array;
 mod boxed;
 mod checked;
 mod ct_choice;
+pub mod decimal;
 mod limb;
 mod non_zero;
 mod traits;

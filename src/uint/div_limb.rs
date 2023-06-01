@@ -131,7 +131,7 @@ const fn addhilo(x_hi: Word, x_lo: Word, y_hi: Word, y_lo: Word) -> (Word, Word)
 /// Calculate the quotient and the remainder of the division of a wide word
 /// (supplied as high and low words) by `d`, with a precalculated reciprocal `v`.
 #[inline(always)]
-const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Word, Word) {
+pub(crate) const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Word, Word) {
     let d = reciprocal.divisor_normalized;
 
     debug_assert!(d >= (1 << (Word::BITS - 1)));
@@ -160,9 +160,9 @@ const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Word, Word) {
 /// A pre-calculated reciprocal for division by a single limb.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Reciprocal {
-    divisor_normalized: Word,
-    shift: u32,
-    reciprocal: Word,
+    pub(crate) divisor_normalized: Word,
+    pub(crate) shift: u32,
+    pub(crate) reciprocal: Word,
 }
 
 impl Reciprocal {
