@@ -20,7 +20,7 @@ use crate::BoxedUint;
 
 #[cfg(target_pointer_width = "64")]
 const LIMB_LOG10: usize = 19;
-#[cfg(not(target_pointer_width = "64"))]
+#[cfg(target_pointer_width = "32")]
 const LIMB_LOG10: usize = 9;
 
 const LIMB_MAX10: Limb = Limb(Word::pow(10, LIMB_LOG10 as u32));
@@ -241,11 +241,11 @@ where
 /// fits into a limb, and fills the buffer backwards from the end
 /// using the digits of the remainder.
 fn _encode_decimal_limbs(uint: &mut [Limb], buf: &mut [u8]) {
-    const SHIFT: u32 = LIMB_MAX10_RECIP.shift;
-    const RSHIFT: u32 = if SHIFT == 0 {
+    const LSHIFT: u32 = LIMB_MAX10_RECIP.shift;
+    const RSHIFT: u32 = if LSHIFT == 0 {
         0
     } else {
-        Limb::BITS as u32 - SHIFT
+        Limb::BITS as u32 - LSHIFT
     };
 
     let mut pos = buf.len();
@@ -253,10 +253,10 @@ fn _encode_decimal_limbs(uint: &mut [Limb], buf: &mut [u8]) {
         let (len, rem) = if pos > LIMB_LOG10 {
             // Modified `div_rem_limb_with_reciprocal`: divide `uint` in place.
             let mut carry: Word = 0;
-            if SHIFT != 0 {
+            if LSHIFT != 0 {
                 for limb in uint.iter_mut() {
-                    let r = (limb.0 << SHIFT) | carry;
-                    carry = r >> RSHIFT;
+                    let r = (limb.0 << LSHIFT) | carry;
+                    carry = limb.0 >> RSHIFT;
                     *limb = Limb(r);
                 }
             }
@@ -265,7 +265,7 @@ fn _encode_decimal_limbs(uint: &mut [Limb], buf: &mut [u8]) {
                 *limb = Limb(qj);
                 carry = rj;
             }
-            (LIMB_LOG10, Limb(carry))
+            (LIMB_LOG10, Limb(carry >> LSHIFT))
         } else {
             let l = uint[0];
             uint[0] = Limb::ZERO;
