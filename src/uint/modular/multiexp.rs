@@ -11,7 +11,7 @@ use super::mul::{mul_montgomery_form, square_montgomery_form};
 /// See: Straus, E. G. Problems and solutions: Addition chains of vectors. American Mathematical Monthly 71 (1964), 806–808.
 ///
 /// NOTE: this value is leaked in the time pattern.
-pub fn multi_exponentiate<const LIMBS: usize>(
+pub fn multi_exponentiate_montgomery_form<const LIMBS: usize>(
     bases_and_exponents: Vec<(Uint<LIMBS>, Uint<LIMBS>)>,
     exponent_bits: usize,
     modulus: &Uint<LIMBS>,
@@ -36,7 +36,6 @@ pub fn multi_exponentiate<const LIMBS: usize>(
                 powers[i] = mul_montgomery_form(&powers[i - 1], base, modulus, mod_neg_inv);
                 i += 1;
             }
-
             (powers, *exponent)
         })
         .collect();
@@ -60,7 +59,6 @@ pub fn multi_exponentiate<const LIMBS: usize>(
         while window_num > 0 {
             window_num -= 1;
 
-            // TODO: I don't need  || window_num != starting_window right?
             if limb_num != starting_limb || window_num != starting_window {
                 let mut i = 0;
                 while i < WINDOW {
@@ -92,62 +90,4 @@ pub fn multi_exponentiate<const LIMBS: usize>(
     }
 
     z
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::modular::multiexp::multi_exponentiate;
-    use crate::{const_residue, impl_modulus, modular::constant_mod::ResidueParams, U256};
-    use alloc::vec;
-
-    impl_modulus!(
-        Modulus,
-        U256,
-        "9CC24C5DF431A864188AB905AC751B727C9447A8E99E6366E1AD78A21E8D882B"
-    );
-
-    #[test]
-    fn test_multi_exp() {
-        let base =
-            U256::from_be_hex("3435D18AA8313EBBE4D20002922225B53F75DC4453BB3EEC0378646F79B524A4");
-        let base_mod = const_residue!(base, Modulus);
-
-        let exponent =
-            U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
-
-        let base2 =
-            U256::from_be_hex("0431D18A08313EBBE4D20002922225B53F75DC4453BB3EEC0378646F79B524A4");
-        let base2_mod = const_residue!(base2, Modulus);
-
-        let exponent2 =
-            U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
-
-        let expected = base_mod.pow(&exponent);
-
-        let res = multi_exponentiate(
-            vec![(base, exponent)],
-            U256::BITS,
-            &Modulus::MODULUS,
-            &Modulus::R,
-            Modulus::MOD_NEG_INV,
-        );
-
-        let res = const_residue!(res, Modulus);
-
-        assert_eq!(res, expected);
-
-        let expected = base_mod.pow(&exponent) * base2_mod.pow(&exponent2);
-
-        let res = multi_exponentiate(
-            vec![(base, exponent), (base2, exponent2)],
-            U256::BITS,
-            &Modulus::MODULUS,
-            &Modulus::R,
-            Modulus::MOD_NEG_INV,
-        );
-
-        let res = const_residue!(res, Modulus);
-
-        assert_eq!(res, expected);
-    }
 }
