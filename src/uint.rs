@@ -360,7 +360,9 @@ impl_uint_aliases! {
     (U4224, 4224, "4224-bit"),
     (U4352, 4352, "4352-bit"),
     (U6144, 6144, "6144-bit"),
-    (U8192, 8192, "8192-bit")
+    (U8192, 8192, "8192-bit"),
+    (U16384, 16384, "16384-bit"),
+    (U32768, 32768, "32768-bit")
 }
 
 #[cfg(target_pointer_width = "32")]
@@ -389,7 +391,9 @@ impl_concat! {
     (U3072, 3072),
     (U4096, 4096),
     (U4224, 4224),
-    (U4352, 4352)
+    (U4352, 4352),
+    (U8192, 8192),
+    (U16384, 16384)
 }
 
 // TODO(tarcieri): use `const_evaluatable_checked` when stable to make generic around bits.
@@ -412,7 +416,9 @@ impl_split! {
     (U4224, 4224),
     (U4352, 4352),
     (U6144, 6144),
-    (U8192, 8192)
+    (U8192, 8192),
+    (U16384, 16384),
+    (U32768, 32768)
 }
 
 #[cfg(feature = "extra-sizes")]
