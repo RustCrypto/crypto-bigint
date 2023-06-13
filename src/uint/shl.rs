@@ -5,6 +5,7 @@ use core::ops::{Shl, ShlAssign};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self << 1` in constant-time, returning the overflowing bit as a `CtChoice`.
+    #[allow(unused)]
     pub(crate) const fn shl_1(&self) -> (Self, CtChoice) {
         let mut shifted_bits = [0; LIMBS];
         let mut i = 0;

@@ -13,6 +13,7 @@ mod cmp;
 mod encoding;
 mod from;
 mod mul;
+mod neg;
 mod shl;
 mod shr;
 mod sub;
