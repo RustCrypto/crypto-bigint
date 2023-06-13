@@ -22,7 +22,7 @@ pub fn multi_exponentiate_montgomery_form<const LIMBS: usize>(
         return *r; // 1 in Montgomery form
     }
 
-    const WINDOW: usize = 4;
+    const WINDOW: usize = 2;
     const WINDOW_MASK: Word = (1 << WINDOW) - 1;
 
     let powers_and_exponents: Vec<([Uint<LIMBS>; 1 << WINDOW], Uint<LIMBS>)> = bases_and_exponents
