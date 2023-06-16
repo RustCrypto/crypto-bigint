@@ -1,48 +1,27 @@
-// TODO(tarcieri): use `const_evaluatable_checked` when stable to make generic around bits.
-macro_rules! impl_split {
-    ($(($name:ident, $bits:expr)),+) => {
-        $(
-            impl $name {
-                /// Split this number in half, returning its high and low components
-                /// respectively.
-                pub const fn split(&self) -> (Uint<{nlimbs!($bits) / 2}>, Uint<{nlimbs!($bits) / 2}>) {
-                    let mut lo = [Limb::ZERO; nlimbs!($bits) / 2];
-                    let mut hi = [Limb::ZERO; nlimbs!($bits) / 2];
-                    let mut i = 0;
-                    let mut j = 0;
+use crate::{Limb, Uint};
 
-                    while j < (nlimbs!($bits) / 2) {
-                        lo[j] = self.limbs[i];
-                        i += 1;
-                        j += 1;
-                    }
+/// Split this number in half, returning its high and low components
+/// respectively.
+#[inline]
+pub(crate) const fn split_mixed<const L: usize, const H: usize, const O: usize>(
+    n: &Uint<O>,
+) -> (Uint<H>, Uint<L>) {
+    let top = L + H;
+    let top = if top < O { top } else { O };
+    let mut lo = [Limb::ZERO; L];
+    let mut hi = [Limb::ZERO; H];
+    let mut i = 0;
 
-                    j = 0;
-                    while j < (nlimbs!($bits) / 2) {
-                        hi[j] = self.limbs[i];
-                        i += 1;
-                        j += 1;
-                    }
+    while i < top {
+        if i < L {
+            lo[i] = n.limbs[i];
+        } else {
+            hi[i - L] = n.limbs[i];
+        }
+        i += 1;
+    }
 
-                    (Uint { limbs: hi }, Uint { limbs: lo })
-                }
-            }
-
-            impl Split for $name {
-                type Output = Uint<{nlimbs!($bits) / 2}>;
-
-                fn split(&self) -> (Self::Output, Self::Output) {
-                    self.split()
-                }
-            }
-
-            impl From<$name> for (Uint<{nlimbs!($bits) / 2}>, Uint<{nlimbs!($bits) / 2}>) {
-                fn from(num: $name) -> (Uint<{nlimbs!($bits) / 2}>, Uint<{nlimbs!($bits) / 2}>) {
-                    num.split()
-                }
-            }
-        )+
-     };
+    (Uint { limbs: hi }, Uint { limbs: lo })
 }
 
 #[cfg(test)]
