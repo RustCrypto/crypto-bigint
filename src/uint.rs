@@ -337,6 +337,8 @@ impl_uint_concat_split_even! {
     U64,
 }
 
+// Implement concat and split for double-width Uint sizes: these should be
+// multiples of 128 bits.
 impl_uint_concat_split_even! {
     U128,
     U256,
@@ -359,6 +361,11 @@ impl_uint_concat_split_even! {
     U8192,
 }
 
+// Implement mixed concat and split for combinations not implemented by
+// impl_uint_concat_split_even. The numbers represent the size of each
+// component Uint in multiple of 64 bits. For example,
+// (U256, [1, 3]) will allow splitting U256 into (U64, U192) as well as
+// (U192, U64), while the (U128, U128) combination is already covered.
 impl_uint_concat_split_mixed! {
     (U192, [1, 2]),
     (U256, [1, 3]),
