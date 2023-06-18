@@ -10,7 +10,7 @@ macro_rules! impl_modulus {
         impl<const DLIMBS: usize>
             $crate::modular::constant_mod::ResidueParams<{ <$uint_type>::LIMBS }> for $name
         where
-            $uint_type: $crate::Concat<Output = $crate::Uint<DLIMBS>>,
+            $uint_type: $crate::ConcatMixed<MixedOutput = $crate::Uint<DLIMBS>>,
         {
             const LIMBS: usize = <$uint_type>::LIMBS;
             const MODULUS: $uint_type = {

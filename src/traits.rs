@@ -187,6 +187,19 @@ pub trait CheckedSub<Rhs = Self>: Sized {
     fn checked_sub(&self, rhs: Rhs) -> CtOption<Self>;
 }
 
+/// Concatenate two numbers into a "wide" double-width value, using the `lo`
+/// value as the least significant value.
+pub trait Concat: ConcatMixed<Self, MixedOutput = Self::Output> {
+    /// Concatenated output: twice the width of `Self`.
+    type Output;
+
+    /// Concatenate the two halves, with `self` as most significant and `lo`
+    /// as the least significant.
+    fn concat(&self, lo: &Self) -> Self::Output {
+        self.concat_mixed(lo)
+    }
+}
+
 /// Concatenate two numbers into a "wide" combined-width value, using the `lo`
 /// value as the least significant value.
 pub trait ConcatMixed<Lo: ?Sized = Self> {
@@ -196,25 +209,6 @@ pub trait ConcatMixed<Lo: ?Sized = Self> {
     /// Concatenate the two values, with `self` as most significant and `lo`
     /// as the least significant.
     fn concat_mixed(&self, lo: &Lo) -> Self::MixedOutput;
-}
-
-/// Concatenate two numbers into a "wide" double-width value, using the `lo`
-/// value as the least significant value.
-pub trait Concat: ConcatMixed<Self> {
-    /// Concatenated output: twice the width of `Self`.
-    type Output;
-
-    /// Concatenate the two halves, with `self` as most significant and `lo`
-    /// as the least significant.
-    fn concat(&self, lo: &Self) -> Self::Output;
-}
-
-/// Split a number into parts, returning the most significant part followed by
-/// the least significant.
-pub trait SplitMixed<Hi, Lo> {
-    /// Split this number into parts, returning its high and low components
-    /// respectively.
-    fn split_mixed(&self) -> (Hi, Lo);
 }
 
 /// Split a number in half, returning the most significant half followed by
@@ -228,6 +222,14 @@ pub trait Split: SplitMixed<Self::Output, Self::Output> {
     fn split(&self) -> (Self::Output, Self::Output) {
         self.split_mixed()
     }
+}
+
+/// Split a number into parts, returning the most significant part followed by
+/// the least significant.
+pub trait SplitMixed<Hi, Lo> {
+    /// Split this number into parts, returning its high and low components
+    /// respectively.
+    fn split_mixed(&self) -> (Hi, Lo);
 }
 
 /// Integers whose representation takes a bounded amount of space.

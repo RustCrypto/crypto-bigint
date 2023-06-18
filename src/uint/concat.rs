@@ -5,10 +5,6 @@ where
     T: ConcatMixed<T>,
 {
     type Output = Self::MixedOutput;
-
-    fn concat(&self, lo: &Self) -> Self::Output {
-        self.concat_mixed(lo)
-    }
 }
 
 /// Concatenate the two values, with `lo` as least significant and `hi`
