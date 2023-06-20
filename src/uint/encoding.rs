@@ -46,17 +46,22 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut res = [Limb::ZERO; LIMBS];
         let mut buf = [0u8; Limb::BYTES];
         let mut i = 0;
+        let mut err = 0;
 
         while i < LIMBS {
             let mut j = 0;
             while j < Limb::BYTES {
                 let offset = (i * Limb::BYTES + j) * 2;
-                buf[j] = decode_hex_byte([bytes[offset], bytes[offset + 1]]);
+                let (result, byte_err) = decode_hex_byte([bytes[offset], bytes[offset + 1]]);
+                err |= byte_err;
+                buf[j] = result;
                 j += 1;
             }
             res[LIMBS - i - 1] = Limb(Word::from_be_bytes(buf));
             i += 1;
         }
+
+        assert!(err == 0, "invalid hex byte");
 
         Uint::new(res)
     }
@@ -97,17 +102,22 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut res = [Limb::ZERO; LIMBS];
         let mut buf = [0u8; Limb::BYTES];
         let mut i = 0;
+        let mut err = 0;
 
         while i < LIMBS {
             let mut j = 0;
             while j < Limb::BYTES {
                 let offset = (i * Limb::BYTES + j) * 2;
-                buf[j] = decode_hex_byte([bytes[offset], bytes[offset + 1]]);
+                let (result, byte_err) = decode_hex_byte([bytes[offset], bytes[offset + 1]]);
+                err |= byte_err;
+                buf[j] = result;
                 j += 1;
             }
             res[i] = Limb(Word::from_le_bytes(buf));
             i += 1;
         }
+
+        assert!(err == 0, "invalid hex byte");
 
         Uint::new(res)
     }
@@ -146,30 +156,36 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 }
 
+/// Decode a single nibble of upper or lower hex
+#[inline(always)]
+const fn decode_nibble(src: u8) -> u16 {
+    let byte = src as i16;
+    let mut ret: i16 = -1;
+
+    // 0-9  0x30-0x39
+    // if (byte > 0x2f && byte < 0x3a) ret += byte - 0x30 + 1; // -47
+    ret += (((0x2fi16 - byte) & (byte - 0x3a)) >> 8) & (byte - 47);
+    // A-F  0x41-0x46
+    // if (byte > 0x40 && byte < 0x47) ret += byte - 0x41 + 10 + 1; // -54
+    ret += (((0x40i16 - byte) & (byte - 0x47)) >> 8) & (byte - 54);
+    // a-f  0x61-0x66
+    // if (byte > 0x60 && byte < 0x67) ret += byte - 0x61 + 10 + 1; // -86
+    ret += (((0x60i16 - byte) & (byte - 0x67)) >> 8) & (byte - 86);
+
+    ret as u16
+}
+
 /// Decode a single byte encoded as two hexadecimal characters.
-const fn decode_hex_byte(bytes: [u8; 2]) -> u8 {
-    let mut i = 0;
-    let mut result = 0u8;
-
-    while i < 2 {
-        result <<= 4;
-        result |= match bytes[i] {
-            b @ b'0'..=b'9' => b - b'0',
-            b @ b'a'..=b'f' => 10 + b - b'a',
-            b @ b'A'..=b'F' => 10 + b - b'A',
-            b => {
-                assert!(
-                    matches!(b, b'0'..=b'9' | b'a' ..= b'f' | b'A'..=b'F'),
-                    "invalid hex byte"
-                );
-                0
-            }
-        };
-
-        i += 1;
-    }
-
-    result
+/// Second element of the tuple is non-zero if the `bytes` values are not in the valid range
+/// (0-9, a-z, A-Z).
+#[inline(always)]
+const fn decode_hex_byte(bytes: [u8; 2]) -> (u8, u16) {
+    let hi = decode_nibble(bytes[0]);
+    let lo = decode_nibble(bytes[1]);
+    let byte = (hi << 4) | lo;
+    let err = byte >> 8;
+    let result = byte as u8;
+    (result, err)
 }
 
 #[cfg(test)]
