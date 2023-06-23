@@ -1,38 +1,9 @@
 //! [`Uint`] bitwise left shift operations.
 
-use crate::{limb::HI_BIT, CtChoice, Limb, Uint, Word};
+use crate::{Limb, Uint, Word};
 use core::ops::{Shl, ShlAssign};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Computes `self << 1` in constant-time, returning the overflowing bit as a `CtChoice`.
-    #[allow(unused)]
-    pub(crate) const fn shl_1(&self) -> (Self, CtChoice) {
-        let mut shifted_bits = [0; LIMBS];
-        let mut i = 0;
-        while i < LIMBS {
-            shifted_bits[i] = self.limbs[i].0 << 1;
-            i += 1;
-        }
-
-        let mut carry_bits = [0; LIMBS];
-        let mut i = 0;
-        while i < LIMBS {
-            carry_bits[i] = self.limbs[i].0 >> HI_BIT;
-            i += 1;
-        }
-
-        let mut limbs = [Limb(0); LIMBS];
-
-        limbs[0] = Limb(shifted_bits[0]);
-        let mut i = 1;
-        while i < LIMBS {
-            limbs[i] = Limb(shifted_bits[i] | carry_bits[i - 1]);
-            i += 1;
-        }
-
-        (Uint::new(limbs), CtChoice::from_lsb(carry_bits[LIMBS - 1]))
-    }
-
     /// Computes `self << shift` where `0 <= shift < Limb::BITS`,
     /// returning the result and the carry.
     #[inline(always)]
