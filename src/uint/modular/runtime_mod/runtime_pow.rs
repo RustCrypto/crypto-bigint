@@ -4,8 +4,11 @@ use super::DynResidue;
 
 impl<const LIMBS: usize> DynResidue<LIMBS> {
     /// Raises to the `exponent` power.
-    pub const fn pow(&self, exponent: &Uint<LIMBS>) -> DynResidue<LIMBS> {
-        self.pow_bounded_exp(exponent, Uint::<LIMBS>::BITS)
+    pub const fn pow<const RHS_LIMBS: usize>(
+        &self,
+        exponent: &Uint<RHS_LIMBS>,
+    ) -> DynResidue<LIMBS> {
+        self.pow_bounded_exp(exponent, Uint::<RHS_LIMBS>::BITS)
     }
 
     /// Raises to the `exponent` power,
@@ -13,7 +16,11 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
     /// to take into account for the exponent.
     ///
     /// NOTE: `exponent_bits` may be leaked in the time pattern.
-    pub const fn pow_bounded_exp(&self, exponent: &Uint<LIMBS>, exponent_bits: usize) -> Self {
+    pub const fn pow_bounded_exp<const RHS_LIMBS: usize>(
+        &self,
+        exponent: &Uint<RHS_LIMBS>,
+        exponent_bits: usize,
+    ) -> Self {
         Self {
             montgomery_form: pow_montgomery_form(
                 &self.montgomery_form,

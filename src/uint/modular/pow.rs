@@ -6,9 +6,9 @@ use super::mul::{mul_montgomery_form, square_montgomery_form};
 /// `exponent_bits` represents the number of bits to take into account for the exponent.
 ///
 /// NOTE: this value is leaked in the time pattern.
-pub const fn pow_montgomery_form<const LIMBS: usize>(
+pub const fn pow_montgomery_form<const LIMBS: usize, const RHS_LIMBS: usize>(
     x: &Uint<LIMBS>,
-    exponent: &Uint<LIMBS>,
+    exponent: &Uint<RHS_LIMBS>,
     exponent_bits: usize,
     modulus: &Uint<LIMBS>,
     r: &Uint<LIMBS>,
