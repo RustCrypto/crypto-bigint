@@ -4,8 +4,11 @@ use super::{Residue, ResidueParams};
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// Raises to the `exponent` power.
-    pub const fn pow(&self, exponent: &Uint<LIMBS>) -> Residue<MOD, LIMBS> {
-        self.pow_bounded_exp(exponent, Uint::<LIMBS>::BITS)
+    pub const fn pow<const RHS_LIMBS: usize>(
+        &self,
+        exponent: &Uint<RHS_LIMBS>,
+    ) -> Residue<MOD, LIMBS> {
+        self.pow_bounded_exp(exponent, Uint::<RHS_LIMBS>::BITS)
     }
 
     /// Raises to the `exponent` power,
@@ -13,9 +16,9 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// to take into account for the exponent.
     ///
     /// NOTE: `exponent_bits` may be leaked in the time pattern.
-    pub const fn pow_bounded_exp(
+    pub const fn pow_bounded_exp<const RHS_LIMBS: usize>(
         &self,
-        exponent: &Uint<LIMBS>,
+        exponent: &Uint<RHS_LIMBS>,
         exponent_bits: usize,
     ) -> Residue<MOD, LIMBS> {
         Self {
