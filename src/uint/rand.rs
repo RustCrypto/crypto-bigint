@@ -63,15 +63,17 @@ mod tests {
         let modulus = NonZero::new(U256::from(42u8)).unwrap();
         let res = U256::random_mod(&mut rng, &modulus);
 
-        // Sanity check that the return value isn't zero
-        assert_ne!(res, U256::ZERO);
+        // Check that the value is in range
+        assert!(res >= U256::ZERO);
+        assert!(res < U256::from(42u8));
 
         // Ensure `random_mod` runs in a reasonable amount of time
         // when the modulus is larger than 1 limb
         let modulus = NonZero::new(U256::from(0x10000000000000001u128)).unwrap();
         let res = U256::random_mod(&mut rng, &modulus);
 
-        // Sanity check that the return value isn't zero
-        assert_ne!(res, U256::ZERO);
+        // Check that the value is in range
+        assert!(res >= U256::ZERO);
+        assert!(res < U256::from(0x10000000000000001u128));
     }
 }
