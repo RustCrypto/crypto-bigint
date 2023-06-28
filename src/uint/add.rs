@@ -24,12 +24,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform saturating addition, returning `MAX` on overflow.
     pub const fn saturating_add(&self, rhs: &Self) -> Self {
         let (res, overflow) = self.adc(rhs, Limb::ZERO);
-
-        if overflow.0 == 0 {
-            res
-        } else {
-            Self::MAX
-        }
+        Self::ct_select(&res, &Self::MAX, CtChoice::from_lsb(overflow.0))
     }
 
     /// Perform wrapping addition, discarding overflow.
@@ -175,6 +170,16 @@ mod tests {
         let (res, carry) = U128::MAX.adc(&U128::ONE, Limb::ZERO);
         assert_eq!(res, U128::ZERO);
         assert_eq!(carry, Limb::ONE);
+    }
+
+    #[test]
+    fn saturating_add_no_carry() {
+        assert_eq!(U128::ZERO.saturating_add(&U128::ONE), U128::ONE);
+    }
+
+    #[test]
+    fn saturating_add_with_carry() {
+        assert_eq!(U128::MAX.saturating_add(&U128::ONE), U128::MAX);
     }
 
     #[test]
