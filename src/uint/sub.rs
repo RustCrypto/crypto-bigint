@@ -25,12 +25,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform saturating subtraction, returning `ZERO` on underflow.
     pub const fn saturating_sub(&self, rhs: &Self) -> Self {
         let (res, underflow) = self.sbb(rhs, Limb::ZERO);
-
-        if underflow.0 == 0 {
-            res
-        } else {
-            Self::ZERO
-        }
+        Self::ct_select(&res, &Self::ZERO, CtChoice::from_mask(underflow.0))
     }
 
     /// Perform wrapping subtraction, discarding underflow and wrapping around
@@ -178,6 +173,22 @@ mod tests {
 
         assert_eq!(res, U128::MAX);
         assert_eq!(borrow, Limb::MAX);
+    }
+
+    #[test]
+    fn saturating_sub_no_borrow() {
+        assert_eq!(
+            U128::from(5u64).saturating_sub(&U128::ONE),
+            U128::from(4u64)
+        );
+    }
+
+    #[test]
+    fn saturating_sub_with_borrow() {
+        assert_eq!(
+            U128::from(4u64).saturating_sub(&U128::from(5u64)),
+            U128::ZERO
+        );
     }
 
     #[test]
