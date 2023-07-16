@@ -1,4 +1,4 @@
-// TODO(tarcieri): use `const_evaluatable_checked` when stable to make generic around bits.
+// TODO(tarcieri): use `generic_const_exprs` when stable to make generic around bits.
 macro_rules! impl_uint_aliases {
     ($(($name:ident, $bits:expr, $doc:expr)),+) => {
         $(

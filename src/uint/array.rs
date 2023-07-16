@@ -50,7 +50,7 @@ macro_rules! impl_uint_array_encoding {
      };
 }
 
-// TODO(tarcieri): use `const_evaluatable_checked` when stable to make generic around bits.
+// TODO(tarcieri): use `generic_const_exprs` when stable to make generic around bits.
 impl_uint_array_encoding! {
     (U64, typenum::U8),
     (U128, typenum::U16),

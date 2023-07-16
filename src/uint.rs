@@ -295,7 +295,7 @@ where
 #[cfg(feature = "zeroize")]
 impl<const LIMBS: usize> DefaultIsZeroes for Uint<LIMBS> {}
 
-// TODO(tarcieri): use `const_evaluatable_checked` when stable to make generic around bits.
+// TODO(tarcieri): use `generic_const_exprs` when stable to make generic around bits.
 impl_uint_aliases! {
     (U64, 64, "64-bit"),
     (U128, 128, "128-bit"),
