@@ -153,6 +153,59 @@ fn bench_shifts<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     });
 }
 
+fn bench_inv_mod<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
+    group.bench_function("inv_odd_mod, U256", |b| {
+        b.iter_batched(
+            || {
+                let m = U256::random(&mut OsRng) | U256::ONE;
+                loop {
+                    let x = U256::random(&mut OsRng);
+                    let (_, is_some) = x.inv_odd_mod(&m);
+                    if is_some.into() {
+                        break (x, m);
+                    }
+                }
+            },
+            |(x, m)| x.inv_odd_mod(&m),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("inv_mod, U256, odd modulus", |b| {
+        b.iter_batched(
+            || {
+                let m = U256::random(&mut OsRng) | U256::ONE;
+                loop {
+                    let x = U256::random(&mut OsRng);
+                    let (_, is_some) = x.inv_odd_mod(&m);
+                    if is_some.into() {
+                        break (x, m);
+                    }
+                }
+            },
+            |(x, m)| x.inv_mod(&m),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("inv_mod, U256", |b| {
+        b.iter_batched(
+            || {
+                let m = U256::random(&mut OsRng);
+                loop {
+                    let x = U256::random(&mut OsRng);
+                    let (_, is_some) = x.inv_mod(&m);
+                    if is_some.into() {
+                        break (x, m);
+                    }
+                }
+            },
+            |(x, m)| x.inv_mod(&m),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
 fn bench_wrapping_ops(c: &mut Criterion) {
     let mut group = c.benchmark_group("wrapping ops");
     bench_division(&mut group);
@@ -169,6 +222,7 @@ fn bench_montgomery(c: &mut Criterion) {
 fn bench_modular_ops(c: &mut Criterion) {
     let mut group = c.benchmark_group("modular ops");
     bench_shifts(&mut group);
+    bench_inv_mod(&mut group);
     group.finish();
 }
 

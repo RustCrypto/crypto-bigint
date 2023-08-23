@@ -2,7 +2,7 @@
 
 use crypto_bigint::{
     modular::runtime_mod::{DynResidue, DynResidueParams},
-    Encoding, Limb, NonZero, Word, U256,
+    CtChoice, Encoding, Limb, NonZero, Word, U256,
 };
 use num_bigint::BigUint;
 use num_integer::Integer;
@@ -229,6 +229,23 @@ proptest! {
         else {
             let inv_bi = to_biguint(&actual);
             let res = (inv_bi * a_bi) % m_bi;
+            assert_eq!(res, BigUint::one());
+        }
+    }
+
+    #[test]
+    fn inv_mod(a in uint(), b in uint()) {
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+
+        let expected_is_some = if a_bi.gcd(&b_bi) == BigUint::one() { CtChoice::TRUE } else { CtChoice::FALSE };
+        let (actual, actual_is_some) = a.inv_mod(&b);
+
+        assert_eq!(bool::from(expected_is_some), bool::from(actual_is_some));
+
+        if actual_is_some.into() {
+            let inv_bi = to_biguint(&actual);
+            let res = (inv_bi * a_bi) % b_bi;
             assert_eq!(res, BigUint::one());
         }
     }
