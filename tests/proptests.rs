@@ -213,6 +213,27 @@ proptest! {
     }
 
     #[test]
+    fn inv_mod2k(a in uint(), k in any::<usize>()) {
+        let a = a | U256::ONE; // make odd
+        let k = k % (U256::BITS + 1);
+        let a_bi = to_biguint(&a);
+        let m_bi = BigUint::one() << k;
+
+        let actual = a.inv_mod2k(k);
+        let actual_vartime = a.inv_mod2k_vartime(k);
+        assert_eq!(actual, actual_vartime);
+
+        if k == 0 {
+            assert_eq!(actual, U256::ZERO);
+        }
+        else {
+            let inv_bi = to_biguint(&actual);
+            let res = (inv_bi * a_bi) % m_bi;
+            assert_eq!(res, BigUint::one());
+        }
+    }
+
+    #[test]
     fn wrapping_sqrt(a in uint()) {
         let a_bi = to_biguint(&a);
         let expected = to_uint(a_bi.sqrt());

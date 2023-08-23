@@ -69,7 +69,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Get the value of the bit at position `index`, as a truthy or falsy `CtChoice`.
     /// Returns the falsy value for indices out of range.
     pub const fn bit(&self, index: usize) -> CtChoice {
-        let limb_num = Limb((index / Limb::BITS) as Word);
+        let limb_num = index / Limb::BITS;
         let index_in_limb = index % Limb::BITS;
         let index_mask = 1 << index_in_limb;
 
@@ -79,18 +79,36 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut i = 0;
         while i < LIMBS {
             let bit = limbs[i] & index_mask;
-            let is_right_limb = Limb::ct_eq(limb_num, Limb(i as Word));
+            let is_right_limb = CtChoice::from_usize_equality(i, limb_num);
             result |= is_right_limb.if_true(bit);
             i += 1;
         }
 
         CtChoice::from_lsb(result >> index_in_limb)
     }
+
+    /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
+    pub(crate) const fn set_bit(self, index: usize, bit_value: CtChoice) -> Self {
+        let mut result = self;
+        let limb_num = index / Limb::BITS;
+        let index_in_limb = index % Limb::BITS;
+        let index_mask = 1 << index_in_limb;
+
+        let mut i = 0;
+        while i < LIMBS {
+            let is_right_limb = CtChoice::from_usize_equality(i, limb_num);
+            let old_limb = result.limbs[i].0;
+            let new_limb = bit_value.select(old_limb & !index_mask, old_limb | index_mask);
+            result.limbs[i] = Limb(is_right_limb.select(old_limb, new_limb));
+            i += 1;
+        }
+        result
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::U256;
+    use crate::{CtChoice, U256};
 
     fn uint_with_bits_at(positions: &[usize]) -> U256 {
         let mut result = U256::ZERO;
@@ -158,5 +176,32 @@ mod tests {
 
         let u = U256::ZERO;
         assert_eq!(u.trailing_zeros() as u32, 256);
+    }
+
+    #[test]
+    fn set_bit() {
+        let u = uint_with_bits_at(&[16, 79, 150]);
+        assert_eq!(
+            u.set_bit(127, CtChoice::TRUE),
+            uint_with_bits_at(&[16, 79, 127, 150])
+        );
+
+        let u = uint_with_bits_at(&[16, 79, 150]);
+        assert_eq!(
+            u.set_bit(150, CtChoice::TRUE),
+            uint_with_bits_at(&[16, 79, 150])
+        );
+
+        let u = uint_with_bits_at(&[16, 79, 150]);
+        assert_eq!(
+            u.set_bit(127, CtChoice::FALSE),
+            uint_with_bits_at(&[16, 79, 150])
+        );
+
+        let u = uint_with_bits_at(&[16, 79, 150]);
+        assert_eq!(
+            u.set_bit(150, CtChoice::FALSE),
+            uint_with_bits_at(&[16, 79])
+        );
     }
 }

@@ -47,8 +47,9 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
         // Since we are calculating the inverse modulo (Word::MAX+1),
         // we can take the modulo right away and calculate the inverse of the first limb only.
         let modulus_lo = Uint::<1>::from_words([modulus.limbs[0].0]);
-        let mod_neg_inv =
-            Limb(Word::MIN.wrapping_sub(modulus_lo.inv_mod2k(Word::BITS as usize).limbs[0].0));
+        let mod_neg_inv = Limb(
+            Word::MIN.wrapping_sub(modulus_lo.inv_mod2k_vartime(Word::BITS as usize).limbs[0].0),
+        );
 
         let r3 = montgomery_reduction(&r2.square_wide(), modulus, mod_neg_inv);
 

@@ -1,28 +1,68 @@
 use super::Uint;
-use crate::{CtChoice, Limb};
+use crate::CtChoice;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Computes 1/`self` mod 2^k as specified in Algorithm 4 from
-    /// A Secure Algorithm for Inversion Modulo 2k by
-    /// Sadiel de la Fe and Carles Ferrer. See
-    /// <https://www.mdpi.com/2410-387X/2/3/23>.
+    /// Computes 1/`self` mod `2^k`.
+    /// This method is constant-time w.r.t. `self` but not `k`.
     ///
     /// Conditions: `self` < 2^k and `self` must be odd
-    pub const fn inv_mod2k(&self, k: usize) -> Self {
-        let mut x = Self::ZERO;
-        let mut b = Self::ONE;
+    pub const fn inv_mod2k_vartime(&self, k: usize) -> Self {
+        // Using the Algorithm 3 from "A Secure Algorithm for Inversion Modulo 2k"
+        // by Sadiel de la Fe and Carles Ferrer.
+        // See <https://www.mdpi.com/2410-387X/2/3/23>.
+
+        // Note that we are not using Alrgorithm 4, since we have a different approach
+        // of enforcing constant-timeness w.r.t. `self`.
+
+        let mut x = Self::ZERO; // keeps `x` during iterations
+        let mut b = Self::ONE; // keeps `b_i` during iterations
         let mut i = 0;
 
         while i < k {
-            let mut x_i = Self::ZERO;
-            let j = b.limbs[0].0 & 1;
-            x_i.limbs[0] = Limb(j);
-            x = x.bitor(&x_i.shl_vartime(i));
+            // X_i = b_i mod 2
+            let x_i = b.limbs[0].0 & 1;
+            let x_i_choice = CtChoice::from_lsb(x_i);
+            // b_{i+1} = (b_i - a * X_i) / 2
+            b = Self::ct_select(&b, &b.wrapping_sub(self), x_i_choice).shr_vartime(1);
+            // Store the X_i bit in the result (x = x | (1 << X_i))
+            x = x.bitor(&Uint::from_word(x_i).shl_vartime(i));
 
-            let t = b.wrapping_sub(self);
-            b = Self::ct_select(&b, &t, CtChoice::from_lsb(j)).shr_vartime(1);
             i += 1;
         }
+
+        x
+    }
+
+    /// Computes 1/`self` mod `2^k`.
+    ///
+    /// Conditions: `self` < 2^k and `self` must be odd
+    pub const fn inv_mod2k(&self, k: usize) -> Self {
+        // This is the same algorithm as in `inv_mod2k_vartime()`,
+        // but made constant-time w.r.t `k` as well.
+
+        let mut x = Self::ZERO; // keeps `x` during iterations
+        let mut b = Self::ONE; // keeps `b_i` during iterations
+        let mut i = 0;
+
+        while i < Self::BITS {
+            // Only iterations for i = 0..k need to change `x`,
+            // the rest are dummy ones performed for the sake of constant-timeness.
+            let within_range = CtChoice::from_usize_lt(i, k);
+
+            // X_i = b_i mod 2
+            let x_i = b.limbs[0].0 & 1;
+            let x_i_choice = CtChoice::from_lsb(x_i);
+            // b_{i+1} = (b_i - a * X_i) / 2
+            b = Self::ct_select(&b, &b.wrapping_sub(self), x_i_choice).shr_vartime(1);
+
+            // Store the X_i bit in the result (x = x | (1 << X_i))
+            // Don't change the result in dummy iterations.
+            let x_i_choice = x_i_choice.and(within_range);
+            x = x.set_bit(i, x_i_choice);
+
+            i += 1;
+        }
+
         x
     }
 
