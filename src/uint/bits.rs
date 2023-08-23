@@ -3,7 +3,7 @@ use crate::{CtChoice, Limb, Uint, Word};
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Returns `true` if the bit at position `index` is set, `false` otherwise.
     #[inline(always)]
-    pub const fn bit_vartime(self, index: usize) -> bool {
+    pub const fn bit_vartime(&self, index: usize) -> bool {
         if index >= Self::BITS {
             false
         } else {
@@ -13,7 +13,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Calculate the number of bits needed to represent this number.
     #[allow(trivial_numeric_casts)]
-    pub const fn bits_vartime(self) -> usize {
+    pub const fn bits_vartime(&self) -> usize {
         let mut i = LIMBS - 1;
         while i > 0 && self.limbs[i].0 == 0 {
             i -= 1;
@@ -24,7 +24,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Calculate the number of leading zeros in the binary representation of this number.
-    pub const fn leading_zeros(self) -> usize {
+    pub const fn leading_zeros(&self) -> usize {
         let limbs = self.as_limbs();
 
         let mut count: Word = 0;
@@ -43,7 +43,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Calculate the number of trailing zeros in the binary representation of this number.
-    pub const fn trailing_zeros(self) -> usize {
+    pub const fn trailing_zeros(&self) -> usize {
         let limbs = self.as_limbs();
 
         let mut count: Word = 0;
@@ -62,13 +62,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Calculate the number of bits needed to represent this number.
-    pub const fn bits(self) -> usize {
+    pub const fn bits(&self) -> usize {
         Self::BITS - self.leading_zeros()
     }
 
     /// Get the value of the bit at position `index`, as a truthy or falsy `CtChoice`.
     /// Returns the falsy value for indices out of range.
-    pub const fn bit(self, index: usize) -> CtChoice {
+    pub const fn bit(&self, index: usize) -> CtChoice {
         let limb_num = Limb((index / Limb::BITS) as Word);
         let index_in_limb = index % Limb::BITS;
         let index_mask = 1 << index_in_limb;
