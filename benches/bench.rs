@@ -3,7 +3,7 @@ use criterion::{
 };
 use crypto_bigint::{
     modular::runtime_mod::{DynResidue, DynResidueParams},
-    Limb, NonZero, Random, Reciprocal, U128, U256,
+    Limb, NonZero, Random, Reciprocal, U128, U2048, U256,
 };
 use rand_core::OsRng;
 
@@ -131,6 +131,28 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
     });
 }
 
+fn bench_shifts<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
+    group.bench_function("shl_vartime, small, U2048", |b| {
+        b.iter_batched(|| U2048::ONE, |x| x.shl_vartime(10), BatchSize::SmallInput)
+    });
+
+    group.bench_function("shl_vartime, large, U2048", |b| {
+        b.iter_batched(
+            || U2048::ONE,
+            |x| x.shl_vartime(1024 + 10),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("shl, U2048", |b| {
+        b.iter_batched(|| U2048::ONE, |x| x.shl(1024 + 10), BatchSize::SmallInput)
+    });
+
+    group.bench_function("shr, U2048", |b| {
+        b.iter_batched(|| U2048::ONE, |x| x.shr(1024 + 10), BatchSize::SmallInput)
+    });
+}
+
 fn bench_wrapping_ops(c: &mut Criterion) {
     let mut group = c.benchmark_group("wrapping ops");
     bench_division(&mut group);
@@ -144,5 +166,17 @@ fn bench_montgomery(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_wrapping_ops, bench_montgomery);
+fn bench_modular_ops(c: &mut Criterion) {
+    let mut group = c.benchmark_group("modular ops");
+    bench_shifts(&mut group);
+    group.finish();
+}
+
+criterion_group!(
+    benches,
+    bench_wrapping_ops,
+    bench_montgomery,
+    bench_modular_ops
+);
+
 criterion_main!(benches);

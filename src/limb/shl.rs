@@ -5,6 +5,7 @@ use core::ops::{Shl, ShlAssign};
 
 impl Limb {
     /// Computes `self << rhs`.
+    /// Panics if `rhs` overflows `Limb::BITS`.
     #[inline(always)]
     pub const fn shl(self, rhs: Self) -> Self {
         Limb(self.0 << rhs.0)
