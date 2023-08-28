@@ -92,6 +92,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Total size of the represented integer in bits.
     pub const BITS: usize = LIMBS * Limb::BITS;
 
+    /// Bit size of `BITS`.
+    // Note: assumes the type of `BITS` is `usize`. Any way to assert that?
+    pub(crate) const LOG2_BITS: usize = (usize::BITS - Self::BITS.leading_zeros()) as usize;
+
     /// Total size of the represented integer in bytes.
     pub const BYTES: usize = LIMBS * Limb::BYTES;
 

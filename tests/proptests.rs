@@ -6,7 +6,7 @@ use crypto_bigint::{
 };
 use num_bigint::BigUint;
 use num_integer::Integer;
-use num_traits::identities::Zero;
+use num_traits::identities::{One, Zero};
 use proptest::prelude::*;
 use std::mem;
 
@@ -55,6 +55,32 @@ proptest! {
 
         let expected = to_uint(a_bi << shift);
         let actual = a.shl_vartime(shift as usize);
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn shl(a in uint(), shift in any::<u16>()) {
+        let a_bi = to_biguint(&a);
+
+        // Add a 50% probability of overflow.
+        let shift = (shift as usize) % (U256::BITS * 2);
+
+        let expected = to_uint((a_bi << shift) & ((BigUint::one() << U256::BITS) - BigUint::one()));
+        let actual = a.shl(shift);
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn shr(a in uint(), shift in any::<u16>()) {
+        let a_bi = to_biguint(&a);
+
+        // Add a 50% probability of overflow.
+        let shift = (shift as usize) % (U256::BITS * 2);
+
+        let expected = to_uint(a_bi >> shift);
+        let actual = a.shr(shift);
 
         assert_eq!(expected, actual);
     }

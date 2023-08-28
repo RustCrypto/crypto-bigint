@@ -1,6 +1,6 @@
 //! [`Uint`] bitwise left shift operations.
 
-use crate::{Limb, Uint, Word};
+use crate::{CtChoice, Limb, Uint, Word};
 use core::ops::{Shl, ShlAssign};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -78,6 +78,22 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         (new_lower, upper)
     }
+
+    /// Computes `self << n`.
+    /// Returns zero if `n >= Self::BITS`.
+    pub const fn shl(&self, shift: usize) -> Self {
+        let overflow = CtChoice::from_usize_lt(shift, Self::BITS).not();
+        let shift = shift % Self::BITS;
+        let mut result = *self;
+        let mut i = 0;
+        while i < Self::LOG2_BITS {
+            let bit = CtChoice::from_lsb((shift as Word >> i) & 1);
+            result = Uint::ct_select(&result, &result.shl_vartime(1 << i), bit);
+            i += 1;
+        }
+
+        Uint::ct_select(&result, &Self::ZERO, overflow)
+    }
 }
 
 impl<const LIMBS: usize> Shl<usize> for Uint<LIMBS> {
@@ -88,7 +104,7 @@ impl<const LIMBS: usize> Shl<usize> for Uint<LIMBS> {
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
     fn shl(self, rhs: usize) -> Uint<LIMBS> {
-        self.shl_vartime(rhs)
+        Uint::<LIMBS>::shl(&self, rhs)
     }
 }
 
@@ -100,7 +116,7 @@ impl<const LIMBS: usize> Shl<usize> for &Uint<LIMBS> {
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
     fn shl(self, rhs: usize) -> Uint<LIMBS> {
-        self.shl_vartime(rhs)
+        self.shl(rhs)
     }
 }
 
@@ -110,7 +126,7 @@ impl<const LIMBS: usize> ShlAssign<usize> for Uint<LIMBS> {
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
     fn shl_assign(&mut self, rhs: usize) {
-        *self = self.shl_vartime(rhs)
+        *self = self.shl(rhs)
     }
 }
 
