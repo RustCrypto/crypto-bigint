@@ -47,16 +47,16 @@ impl Display for ParseDecimalError {
 /// Support for parsing decimal strings
 pub trait FromDecimal: Sized {
     /// Parse an instance of this data type from a decimal string
-    fn from_decimal(value: &str) -> Result<Self, ParseDecimalError> {
-        Self::from_decimal_bytes(value.as_bytes())
+    fn from_decimal_vartime(value: &str) -> Result<Self, ParseDecimalError> {
+        Self::from_decimal_bytes_vartime(value.as_bytes())
     }
 
     /// Parse an instance of this data type from a string of utf-8 bytes
-    fn from_decimal_bytes(value: &[u8]) -> Result<Self, ParseDecimalError>;
+    fn from_decimal_bytes_vartime(value: &[u8]) -> Result<Self, ParseDecimalError>;
 }
 
 impl<const LIMBS: usize> FromDecimal for Uint<LIMBS> {
-    fn from_decimal_bytes(value: &[u8]) -> Result<Self, ParseDecimalError> {
+    fn from_decimal_bytes_vartime(value: &[u8]) -> Result<Self, ParseDecimalError> {
         let mut res = Self::ZERO;
         ParseDecimal::parse_into(value, res.as_limbs_mut())?;
         Ok(res)
@@ -65,7 +65,7 @@ impl<const LIMBS: usize> FromDecimal for Uint<LIMBS> {
 
 #[cfg(feature = "alloc")]
 impl FromDecimal for BoxedUint {
-    fn from_decimal_bytes(value: &[u8]) -> Result<Self, ParseDecimalError> {
+    fn from_decimal_bytes_vartime(value: &[u8]) -> Result<Self, ParseDecimalError> {
         let parse = ParseDecimal::new(value)?;
         let bits = parse.len() * Limb::BITS;
         if bits > 0 {
@@ -81,13 +81,13 @@ impl FromDecimal for BoxedUint {
 struct ParseDecimal<'p>(RChunks<'p, u8>);
 
 impl<'p> ParseDecimal<'p> {
-    pub(crate) fn new(dec: &'p [u8]) -> Result<Self, ParseDecimalError> {
+    fn new(dec: &'p [u8]) -> Result<Self, ParseDecimalError> {
         if dec.is_empty() {
             return Err(ParseDecimalError::InvalidInput);
         }
         let mut start = dec.len();
         for (idx, c) in dec.iter().enumerate().rev() {
-            if !matches!(c, b'0'..=b'9') {
+            if !c.is_ascii_digit() {
                 return Err(ParseDecimalError::InvalidInput);
             }
             if *c != b'0' {
@@ -97,11 +97,11 @@ impl<'p> ParseDecimal<'p> {
         Ok(Self(dec[start..].rchunks(LIMB_LOG10)))
     }
 
-    pub(crate) fn parse_into(dec: &'p [u8], limbs: &mut [Limb]) -> Result<(), ParseDecimalError> {
+    fn parse_into(dec: &'p [u8], limbs: &mut [Limb]) -> Result<(), ParseDecimalError> {
         Self::new(dec)?.read_into(limbs)
     }
 
-    pub(crate) fn read_into(self, limbs: &mut [Limb]) -> Result<(), ParseDecimalError> {
+    fn read_into(self, limbs: &mut [Limb]) -> Result<(), ParseDecimalError> {
         for l in limbs.iter_mut() {
             *l = Limb::ZERO;
         }
@@ -154,7 +154,7 @@ impl<T: FromDecimal> Visitor<'_> for DecimalUintVisitor<T> {
     where
         E: Error,
     {
-        T::from_decimal(dec).map_err(|_| E::invalid_value(Unexpected::Str(dec), &self))
+        T::from_decimal_vartime(dec).map_err(|_| E::invalid_value(Unexpected::Str(dec), &self))
     }
 }
 
@@ -279,7 +279,7 @@ fn _encode_decimal_limbs(uint: &mut [Limb], buf: &mut [u8]) {
 /// Obtain the decimal representation of an integer as a vector
 /// of ASCII bytes.
 #[cfg(feature = "alloc")]
-pub fn to_decimal_vec<T>(uint: &T) -> Vec<u8>
+pub fn to_decimal_vec_vartime<T>(uint: &T) -> Vec<u8>
 where
     T: AsRef<[Limb]> + AsMut<[Limb]> + Clone,
 {
@@ -296,17 +296,17 @@ where
 
 /// Obtain the decimal representation of an integer as a String.
 #[cfg(feature = "alloc")]
-pub fn to_decimal_string<T>(uint: &T) -> String
+pub fn to_decimal_string_vartime<T>(uint: &T) -> String
 where
     T: AsRef<[Limb]> + AsMut<[Limb]> + Clone,
 {
-    String::from_utf8(to_decimal_vec(uint)).expect("Error converting to utf-8")
+    String::from_utf8(to_decimal_vec_vartime(uint)).expect("Error converting to utf-8")
 }
 
 /// Write the decimal representation of `uint` to a provided buffer,
 /// returning the length of the output. If the output is too large for the
 /// buffer, then zero is returned.
-pub fn write_decimal_bytes<T>(uint: &T, buf: &mut [u8]) -> usize
+pub fn write_decimal_bytes_vartime<T>(uint: &T, buf: &mut [u8]) -> usize
 where
     T: AsRef<[Limb]> + AsMut<[Limb]> + Clone,
 {
@@ -410,19 +410,19 @@ mod tests {
 
     #[test]
     fn decode_empty() {
-        let res = crate::U64::from_decimal("");
+        let res = crate::U64::from_decimal_vartime("");
         assert_eq!(res, Err(ParseDecimalError::InvalidInput));
     }
 
     #[test]
     fn decode_invalid() {
-        let res = crate::U64::from_decimal("000notanumber");
+        let res = crate::U64::from_decimal_vartime("000notanumber");
         assert_eq!(res, Err(ParseDecimalError::InvalidInput));
     }
 
     #[test]
     fn decode_outside_range() {
-        let res = crate::U64::from_decimal("18446744073709551616"); // 2^64
+        let res = crate::U64::from_decimal_vartime("18446744073709551616"); // 2^64
         assert_eq!(res, Err(ParseDecimalError::OutsideRange));
     }
 
@@ -431,8 +431,8 @@ mod tests {
         T: AsRef<[Limb]> + AsMut<[Limb]> + Clone + Debug + FromDecimal + PartialEq,
     {
         let mut buf = [0u8; 2560];
-        let len = write_decimal_bytes(uint, &mut buf);
-        let des = T::from_decimal_bytes(&buf[..len]).expect("Error deserializing");
+        let len = write_decimal_bytes_vartime(uint, &mut buf);
+        let des = T::from_decimal_bytes_vartime(&buf[..len]).expect("Error deserializing");
         assert_eq!(&des, uint);
     }
 
@@ -464,7 +464,7 @@ mod tests {
     fn serde_uint() {
         type U = crate::U128;
         let input = "123456789012345678901234567890";
-        let uint = U::from_decimal(input).unwrap();
+        let uint = U::from_decimal_vartime(input).unwrap();
         let enc = bincode::serialize(&AsDecimal(&uint)).unwrap();
         let dec: String = bincode::deserialize(&enc).unwrap();
         assert_eq!(dec, input);
@@ -476,11 +476,22 @@ mod tests {
     #[test]
     fn serde_boxed() {
         let input = "123456789012345678901234567890";
-        let uint = BoxedUint::from_decimal(input).unwrap();
+        let uint = BoxedUint::from_decimal_vartime(input).unwrap();
         let enc = bincode::serialize(&AsDecimal(&uint)).unwrap();
         let dec: String = bincode::deserialize(&enc).unwrap();
         assert_eq!(dec, input);
         let des: AsDecimal<BoxedUint> = bincode::deserialize(&enc).unwrap();
         assert_eq!(des.0, uint);
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn to_decimal() {
+        let input = "123456789012345678901234567890";
+        let uint = crate::U128::from_be_hex("000000018ee90ff6c373e0ee4e3f0ad2");
+        let num_string = to_decimal_string_vartime(&uint);
+        assert_eq!(num_string.as_str(), input);
+        let num_vec = to_decimal_vec_vartime(&uint);
+        assert_eq!(num_vec.as_slice(), input.as_bytes());
     }
 }
