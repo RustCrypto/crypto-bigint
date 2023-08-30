@@ -396,6 +396,7 @@ mod extra_sizes;
 pub use extra_sizes::*;
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use crate::{Encoding, U128};
     use subtle::ConditionallySelectable;

@@ -26,6 +26,7 @@ impl CheckedAdd<&BoxedUint> for BoxedUint {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use super::{BoxedUint, CheckedAdd, Limb};
 

@@ -352,6 +352,7 @@ impl<T: Serialize + Zero> Serialize for NonZero<T> {
 }
 
 #[cfg(all(test, feature = "serde"))]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use crate::{NonZero, U64};
     use bincode::ErrorKind;
