@@ -1,10 +1,6 @@
 //! Stack-allocated big unsigned integers.
 
-#![allow(
-    clippy::needless_range_loop,
-    clippy::many_single_char_names,
-    clippy::derive_hash_xor_eq
-)]
+#![allow(clippy::needless_range_loop, clippy::many_single_char_names)]
 
 #[macro_use]
 mod macros;
@@ -71,6 +67,8 @@ use zeroize::DefaultIsZeroes;
 ///
 /// [RLP]: https://eth.wiki/fundamentals/rlp
 // TODO(tarcieri): make generic around a specified number of bits.
+// Our PartialEq impl only differs from the default one by being constant-time, so this is safe
+#[allow(clippy::derived_hash_with_manual_eq)]
 #[derive(Copy, Clone, Hash)]
 pub struct Uint<const LIMBS: usize> {
     /// Inner limb array. Stored from least significant to most significant.
@@ -396,6 +394,7 @@ mod extra_sizes;
 pub use extra_sizes::*;
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use crate::{Encoding, U128};
     use subtle::ConditionallySelectable;

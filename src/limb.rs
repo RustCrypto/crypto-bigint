@@ -1,8 +1,6 @@
 //! Big integers are represented as an array of smaller CPU word-size integers
 //! called "limbs".
 
-#![allow(clippy::derive_hash_xor_eq)]
-
 mod add;
 mod bit_and;
 mod bit_not;
@@ -60,6 +58,8 @@ pub(crate) const HI_BIT: usize = Limb::BITS - 1;
 
 /// Big integers are represented as an array of smaller CPU word-size integers
 /// called "limbs".
+// Our PartialEq impl only differs from the default one by being constant-time, so this is safe
+#[allow(clippy::derived_hash_with_manual_eq)]
 #[derive(Copy, Clone, Default, Hash)]
 #[repr(transparent)]
 pub struct Limb(pub Word);

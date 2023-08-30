@@ -730,6 +730,7 @@ mod tests {
         }
     }
 
+    #[allow(clippy::op_ref)]
     #[test]
     fn rem_trait() {
         let a = U256::from(10u64);
