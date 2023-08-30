@@ -7,7 +7,7 @@ use super::{
     Retrieve,
 };
 
-use subtle::CtOption;
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 /// Additions between residues with a modulus set at runtime
 mod runtime_add;
@@ -100,6 +100,28 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
             r3: P::R3,
             mod_neg_inv: P::MOD_NEG_INV,
         }
+    }
+}
+
+impl<const LIMBS: usize> ConditionallySelectable for DynResidueParams<LIMBS> {
+    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
+        Self {
+            modulus: Uint::conditional_select(&a.modulus, &b.modulus, choice),
+            r: Uint::conditional_select(&a.r, &b.r, choice),
+            r2: Uint::conditional_select(&a.r2, &b.r2, choice),
+            r3: Uint::conditional_select(&a.r3, &b.r3, choice),
+            mod_neg_inv: Limb::conditional_select(&a.mod_neg_inv, &b.mod_neg_inv, choice),
+        }
+    }
+}
+
+impl<const LIMBS: usize> ConstantTimeEq for DynResidueParams<LIMBS> {
+    fn ct_eq(&self, other: &Self) -> Choice {
+        self.modulus.ct_eq(&other.modulus)
+            & self.r.ct_eq(&other.r)
+            & self.r2.ct_eq(&other.r2)
+            & self.r3.ct_eq(&other.r3)
+            & self.mod_neg_inv.ct_eq(&other.mod_neg_inv)
     }
 }
 
@@ -208,6 +230,30 @@ impl<const LIMBS: usize, P: ResidueParams<LIMBS>> From<&Residue<P, LIMBS>> for D
             montgomery_form: residue.to_montgomery(),
             residue_params: DynResidueParams::from_residue_params::<P>(),
         }
+    }
+}
+
+impl<const LIMBS: usize> ConditionallySelectable for DynResidue<LIMBS> {
+    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
+        Self {
+            montgomery_form: Uint::conditional_select(
+                &a.montgomery_form,
+                &b.montgomery_form,
+                choice,
+            ),
+            residue_params: DynResidueParams::conditional_select(
+                &a.residue_params,
+                &b.residue_params,
+                choice,
+            ),
+        }
+    }
+}
+
+impl<const LIMBS: usize> ConstantTimeEq for DynResidue<LIMBS> {
+    fn ct_eq(&self, other: &Self) -> Choice {
+        self.montgomery_form.ct_eq(&other.montgomery_form)
+            & self.residue_params.ct_eq(&other.residue_params)
     }
 }
 
