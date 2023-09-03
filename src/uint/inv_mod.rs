@@ -146,7 +146,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes the multiplicative inverse of `self` mod `modulus`.
     /// Returns `(inverse, CtChoice::TRUE)` if an inverse exists,
     /// otherwise `(undefined, CtChoice::FALSE)`.
-    pub fn inv_mod(&self, modulus: &Self) -> (Self, CtChoice) {
+    pub const fn inv_mod(&self, modulus: &Self) -> (Self, CtChoice) {
         // Decompose `modulus = s * 2^k` where `s` is odd
         let k = modulus.trailing_zeros();
         let s = modulus.shr(k);
@@ -168,8 +168,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let m_odd_inv = s.inv_mod2k(k); // `s` is odd, so this always exists
 
         // This part is mod 2^k
-        let mask = (Uint::ONE << k).wrapping_sub(&Uint::ONE);
-        let t = (b.wrapping_sub(&a).wrapping_mul(&m_odd_inv)) & mask;
+        let mask = Uint::ONE.shl(k).wrapping_sub(&Uint::ONE);
+        let t = (b.wrapping_sub(&a).wrapping_mul(&m_odd_inv)).bitand(&mask);
 
         // Will not overflow since `a <= s - 1`, `t <= 2^k - 1`,
         // so `a + s * t <= s * 2^k - 1 == modulus - 1`.
