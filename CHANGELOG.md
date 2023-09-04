@@ -4,6 +4,55 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.5.3 (2023-09-04)
+### Added
+- `BoxedUint`: heap-allocated fixed-precision integers ([#221])
+- `extra-sizes` feature ([#229])
+- `U4224` and `U4352` ([#233])
+- Zeroizing support for `DynResidue` ([#235])
+- `cmp_vartime`, `ct_cmp` ([#238])
+- Expose Montgomery form in `Residue`/`DynResidue` ([#239])
+- Make `Uint::pow` work with different sized exponents ([#251])
+- Expose `wrapping_neg` ([#252])
+- Make `concat`, `split`, and multiply work with different sized operands ([#253])
+- `U16384` and `U32768` ([#255])
+- `Uint::{inv_mod, inv_mod2k_vartime}` ([#263])
+- `const fn` constructors for `NonZero<Uint>` and `NonZero<Limb>` ([#266])
+- Constant-time `Uint::shr()` and `Uint::shl()` ([#267])
+- Subtle trait impls for `DynResidue` and `DynResidueParams` ([#269])
+
+### Changed
+- Modular inversion improvements ([#263])
+
+### Fixed
+- `serdect` usage ([#222])
+- Enforce valid modulus for `DynResidueParams` ([#240])
+- Enforce valid modulus for `Residue` and associated macros ([#243])
+- Make `Uint::{from_be_hex, from_le_hex}` constant-time ([#254])
+- Remove conditionals in `Uint::saturating_add()` and `saturating_mul()` ([#256])
+- More logical checks in the `Uint::random_mod()` test ([#256])
+- Mark `sqrt` for renaming, to explicitly describe it as vartime ([#256])
+
+[#221]: https://github.com/RustCrypto/crypto-bigint/pull/221
+[#222]: https://github.com/RustCrypto/crypto-bigint/pull/222
+[#229]: https://github.com/RustCrypto/crypto-bigint/pull/229
+[#233]: https://github.com/RustCrypto/crypto-bigint/pull/233
+[#235]: https://github.com/RustCrypto/crypto-bigint/pull/235
+[#238]: https://github.com/RustCrypto/crypto-bigint/pull/238
+[#239]: https://github.com/RustCrypto/crypto-bigint/pull/239
+[#240]: https://github.com/RustCrypto/crypto-bigint/pull/240
+[#243]: https://github.com/RustCrypto/crypto-bigint/pull/243
+[#251]: https://github.com/RustCrypto/crypto-bigint/pull/251
+[#252]: https://github.com/RustCrypto/crypto-bigint/pull/252
+[#253]: https://github.com/RustCrypto/crypto-bigint/pull/253
+[#254]: https://github.com/RustCrypto/crypto-bigint/pull/254
+[#255]: https://github.com/RustCrypto/crypto-bigint/pull/255
+[#256]: https://github.com/RustCrypto/crypto-bigint/pull/256
+[#263]: https://github.com/RustCrypto/crypto-bigint/pull/263
+[#266]: https://github.com/RustCrypto/crypto-bigint/pull/266
+[#267]: https://github.com/RustCrypto/crypto-bigint/pull/267
+[#269]: https://github.com/RustCrypto/crypto-bigint/pull/269
+
 ## 0.5.2 (2023-04-26)
 ### Added
 - Expose residue params and modulus in `DynResidue` ([#197])
