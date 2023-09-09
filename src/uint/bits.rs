@@ -2,9 +2,9 @@ use crate::{CtChoice, Limb, Uint, Word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Returns `true` if the bit at position `index` is set, `false` otherwise.
-		///
-		/// # Remarks
-		/// This operation is variable time with respect to index only.
+    ///
+    /// # Remarks
+    /// This operation is variable time with respect to index only.
     #[inline(always)]
     pub const fn bit_vartime(&self, index: usize) -> bool {
         if index >= Self::BITS {
