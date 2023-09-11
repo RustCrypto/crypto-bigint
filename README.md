@@ -17,12 +17,25 @@ using const generics.
 
 ## Goals
 
-- Supports `no_std`-friendly stack-allocated big integers.
+- Supports `no_std`-friendly const generic stack-allocated big integers.
 - Constant-time by default. Variable-time functions are explicitly marked as such.
 - Leverage what is possible today with const generics on `stable` rust.
 - Support `const fn` as much as possible, including decoding big integers from
   bytes/hex and performing arithmetic operations on them, with the goal of
   being able to compute values at compile-time.
+
+## Security Notes
+
+This crate has been [audited by NCC Group] with no significant
+findings. We would like to thank [Entropy] for funding the audit.
+
+All functions contained in the crate are designed to execute in constant
+time unless explicitly specified otherwise (via a `*_vartime` name suffix).
+
+This library is not suitable for use on processors with a variable-time
+multiplication operation (e.g. short circuit on multiply-by-zero /
+multiply-by-one, such as certain 32-bit PowerPC CPUs and some non-ARM
+microcontrollers).
 
 ## Minimum Supported Rust Version
 
@@ -62,3 +75,5 @@ dual licensed as above, without any additional terms or conditions.
 [//]: # (links)
 
 [RustCrypto]: https://github.com/rustcrypto
+[audited by NCC Group]: https://research.nccgroup.com/2023/08/30/public-report-entropy-rust-cryptography-review/
+[Entropy]: https://entropy.xyz/
