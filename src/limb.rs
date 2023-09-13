@@ -122,6 +122,13 @@ impl fmt::Display for Limb {
     }
 }
 
+impl fmt::Binary for Limb {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:0width$b}", &self.0, width = Self::BITS)
+    }
+}
+
 impl fmt::LowerHex for Limb {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
