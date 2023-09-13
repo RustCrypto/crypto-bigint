@@ -61,29 +61,26 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Self::ct_select(&Self::ZERO, &guess, self.ct_is_nonzero())
     }
 
-    /// See [`Self::wrapping_sqrt_vartime`].
-    #[deprecated(
-        since = "0.5.3",
-        note = "This functionality will be moved to `wrapping_sqrt_vartime` in a future release."
-    )]
-    pub const fn wrapping_sqrt(&self) -> Self {
-        self.wrapping_sqrt_vartime()
+    /// Wrapped sqrt is just normal √(`self`)
+    /// There’s no way wrapping could ever happen.
+    /// This function exists so that all operations are accounted for in the wrapping operations.
+    pub fn wrapping_sqrt(&self) -> Self {
+        self.sqrt()
     }
 
     /// Wrapped sqrt is just normal √(`self`)
     /// There’s no way wrapping could ever happen.
-    /// This function exists, so that all operations are accounted for in the wrapping operations.
+    /// This function exists so that all operations are accounted for in the wrapping operations.
     pub const fn wrapping_sqrt_vartime(&self) -> Self {
         self.sqrt_vartime()
     }
 
-    /// See [`Self::checked_sqrt_vartime`].
-    #[deprecated(
-        since = "0.5.3",
-        note = "This functionality will be moved to `checked_sqrt_vartime` in a future release."
-    )]
+    /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
+    /// only if the √(`self`)² == self
     pub fn checked_sqrt(&self) -> CtOption<Self> {
-        self.checked_sqrt_vartime()
+        let r = self.sqrt();
+        let s = r.wrapping_mul(&r);
+        CtOption::new(r, ConstantTimeEq::ct_eq(self, &s))
     }
 
     /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
