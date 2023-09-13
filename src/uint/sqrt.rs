@@ -20,7 +20,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         // Repeat enough times to guarantee result has stabilized.
         // See Hast, "Note on computation of integer square roots" for a proof of this bound.
-        for _ in 0..Self::BITS.ilog2() + 1 {
+        for _ in 0..usize::BITS - Self::BITS.leading_zeros() {
             guess = xn;
             xn = {
                 let q = self.checked_div(&guess).unwrap_or(Self::ZERO);
