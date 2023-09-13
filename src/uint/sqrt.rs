@@ -4,13 +4,33 @@ use super::Uint;
 use subtle::{ConstantTimeEq, CtOption};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// See [`Self::sqrt_vartime`].
-    #[deprecated(
-        since = "0.5.3",
-        note = "This functionality will be moved to `sqrt_vartime` in a future release."
-    )]
-    pub const fn sqrt(&self) -> Self {
-        self.sqrt_vartime()
+    /// Computes √(`self`) in constant time.
+    /// Based on Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13
+    ///
+    /// Callers can check if `self` is a square by squaring the result
+    pub fn sqrt(&self) -> Self {
+        let max_bits = (self.bits() + 1) >> 1;
+        let cap = Self::ONE.shl(max_bits);
+        let mut guess = cap; // ≥ √(`self`)
+        let mut xn = {
+            let q = self.wrapping_div(&guess);
+            let t = guess.wrapping_add(&q);
+            t.shr_vartime(1)
+        };
+
+        // Repeat enough times to guarantee result has stabilized.
+        // See Hast, "Note on computation of integer square roots" for a proof of this bound.
+        for _ in 0..Self::BITS.ilog2() + 1 {
+            guess = xn;
+            xn = {
+                let q = self.checked_div(&guess).unwrap_or(Self::ZERO);
+                let t = guess.wrapping_add(&q);
+                t.shr_vartime(1)
+            };
+        }
+
+        // at least one of `guess` and `xn` is now equal to √(`self`), so return the minimum
+        Self::ct_select(&guess, &xn, Uint::ct_gt(&guess, &xn))
     }
 
     /// Computes √(`self`)
