@@ -1,7 +1,6 @@
 //! [`Uint`] square root operations.
 
 use super::Uint;
-use crate::{Limb, Word};
 use subtle::{ConstantTimeEq, CtOption};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -27,21 +26,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let t = guess.wrapping_add(&q);
             t.shr_vartime(1)
         };
-
-        // If guess increased, the initial guess was low.
-        // Repeat until reverse course.
-        while Uint::ct_lt(&guess, &xn).is_true_vartime() {
-            // Sometimes an increase is too far, especially with large
-            // powers, and then takes a long time to walk back.  The upper
-            // bound is based on bit size, so saturate on that.
-            let le = Limb::ct_le(Limb(xn.bits_vartime() as Word), Limb(max_bits as Word));
-            guess = Self::ct_select(&cap, &xn, le);
-            xn = {
-                let q = self.wrapping_div(&guess);
-                let t = guess.wrapping_add(&q);
-                t.shr_vartime(1)
-            };
-        }
+        // Note, xn <= guess at this point.
 
         // Repeat while guess decreases.
         while Uint::ct_gt(&guess, &xn).is_true_vartime() && xn.ct_is_nonzero().is_true_vartime() {
