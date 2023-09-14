@@ -254,9 +254,10 @@ proptest! {
     fn wrapping_sqrt(a in uint()) {
         let a_bi = to_biguint(&a);
         let expected = to_uint(a_bi.sqrt());
-        let actual = a.wrapping_sqrt_vartime();
-
-        assert_eq!(expected, actual);
+        let actual_ct = a.wrapping_sqrt();
+        assert_eq!(expected, actual_ct);
+        let actual_vartime = a.wrapping_sqrt_vartime();
+        assert_eq!(expected, actual_vartime);
     }
 
     #[test]
