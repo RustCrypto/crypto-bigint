@@ -8,7 +8,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Based on Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13
     ///
     /// Callers can check if `self` is a square by squaring the result
-    pub fn sqrt(&self) -> Self {
+    pub const fn sqrt(&self) -> Self {
         let max_bits = (self.bits() + 1) >> 1;
         let cap = Self::ONE.shl(max_bits);
         let mut guess = cap; // ≥ √(`self`)
@@ -20,13 +20,16 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         // Repeat enough times to guarantee result has stabilized.
         // See Hast, "Note on computation of integer square roots" for a proof of this bound.
-        for _ in 0..usize::BITS - Self::BITS.leading_zeros() {
+        let mut i = 0;
+        while i < usize::BITS - Self::BITS.leading_zeros() {
             guess = xn;
             xn = {
-                let q = self.checked_div(&guess).unwrap_or(Self::ZERO);
+                let (q, _, is_some) = self.ct_div_rem(&guess);
+                let q = Self::ct_select(&Self::ZERO, &q, is_some);
                 let t = guess.wrapping_add(&q);
                 t.shr_vartime(1)
             };
+            i += 1;
         }
 
         // at least one of `guess` and `xn` is now equal to √(`self`), so return the minimum
@@ -64,7 +67,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Wrapped sqrt is just normal √(`self`)
     /// There’s no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations.
-    pub fn wrapping_sqrt(&self) -> Self {
+    pub const fn wrapping_sqrt(&self) -> Self {
         self.sqrt()
     }
 
