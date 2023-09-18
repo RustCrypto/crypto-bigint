@@ -98,7 +98,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         (lower, new_upper)
     }
 
-    /// Computes `self << n`.
+    /// Computes `self >> n`.
     /// Returns zero if `n >= Self::BITS`.
     pub const fn shr(&self, shift: usize) -> Self {
         let overflow = CtChoice::from_usize_lt(shift, Self::BITS).not();

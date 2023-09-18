@@ -112,6 +112,23 @@ pub trait RandomMod: Sized + Zero {
     fn random_mod(rng: &mut impl CryptoRngCore, modulus: &NonZero<Self>) -> Self;
 }
 
+/// Random prime number generation support.
+#[cfg(feature = "rand_core")]
+pub trait RandomPrime: Random {
+    /// Generate a cryptographically secure random number.
+    ///
+    /// This function uses Miller-Rabin primality test with k=50 rounds
+    /// so the probability of returning a composite number is 4^(-50).
+    /// Note this method doesn't check whether the generated number
+    /// is a safe prime (i.e. that (p-1)/2 is also prime).
+    ///
+    /// The variable-time nature of the algorithm should not pose a security
+    /// issue so long as the underlying random number generator is truly a
+    /// CSRNG, where previous outputs are unrelated to subsequent
+    /// outputs and do not reveal information about the RNG's internal state.
+    fn random_prime(rng: &mut impl CryptoRngCore) -> Self;
+}
+
 /// Compute `self + rhs mod p`.
 pub trait AddMod<Rhs = Self> {
     /// Output type.

@@ -23,6 +23,7 @@ mod mul;
 mod mul_mod;
 mod neg;
 mod neg_mod;
+mod prime;
 mod resize;
 mod shl;
 mod shr;

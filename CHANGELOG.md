@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.5.4 (2023-08-18)
+### Added
+- Miller-Rabin primality test method `is_prime_miller_rabin_vartime` for `UInt` ([#279])
+- `RandomPrime` trait for generating random prime `UInt`s ([#279])
+
+[#279]: https://github.com/RustCrypto/crypto-bigint/pull/279
+
 ## 0.5.3 (2023-09-04)
 ### Added
 - `BoxedUint`: heap-allocated fixed-precision integers ([#221])
