@@ -24,7 +24,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         while i < usize::BITS - Self::BITS.leading_zeros() {
             guess = xn;
             xn = {
-                let (q, _, is_some) = self.ct_div_rem(&guess);
+                let (q, _, is_some) = self.const_div_rem(&guess);
                 let q = Self::ct_select(&Self::ZERO, &q, is_some);
                 let t = guess.wrapping_add(&q);
                 t.shr_vartime(1)
@@ -45,7 +45,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let cap = Self::ONE.shl_vartime(max_bits);
         let mut guess = cap; // ≥ √(`self`)
         let mut xn = {
-            let q = self.wrapping_div(&guess);
+            let q = self.wrapping_div_vartime(&guess);
             let t = guess.wrapping_add(&q);
             t.shr_vartime(1)
         };
@@ -55,7 +55,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         while Uint::ct_gt(&guess, &xn).is_true_vartime() && xn.ct_is_nonzero().is_true_vartime() {
             guess = xn;
             xn = {
-                let q = self.wrapping_div(&guess);
+                let q = self.wrapping_div_vartime(&guess);
                 let t = guess.wrapping_add(&q);
                 t.shr_vartime(1)
             };
