@@ -12,15 +12,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Calculate the number of bits needed to represent this number.
-    #[allow(trivial_numeric_casts)]
     pub const fn bits_vartime(&self) -> usize {
         let mut i = LIMBS - 1;
         while i > 0 && self.limbs[i].0 == 0 {
             i -= 1;
         }
 
-        let limb = self.limbs[i].0;
-        Limb::BITS * (i + 1) - limb.leading_zeros() as usize
+        let limb = self.limbs[i];
+        Limb::BITS * (i + 1) - limb.leading_zeros()
     }
 
     /// Calculate the number of leading zeros in the binary representation of this number.
@@ -42,6 +41,26 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         count as usize
     }
 
+    /// Calculate the number of leading zeros in the binary representation of this number,
+    /// variable time in `self`.
+    pub const fn leading_zeros_vartime(&self) -> usize {
+        let limbs = self.as_limbs();
+
+        let mut count = 0;
+        let mut i = LIMBS;
+        while i > 0 {
+            i -= 1;
+            let l = limbs[i];
+            let z = l.leading_zeros();
+            count += z;
+            if z != Limb::BITS {
+                break;
+            }
+        }
+
+        count
+    }
+
     /// Calculate the number of trailing zeros in the binary representation of this number.
     pub const fn trailing_zeros(&self) -> usize {
         let limbs = self.as_limbs();
@@ -59,6 +78,65 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         count as usize
+    }
+
+    /// Calculate the number of trailing zeros in the binary representation of this number,
+    /// variable time in `self`.
+    pub const fn trailing_zeros_vartime(&self) -> usize {
+        let limbs = self.as_limbs();
+
+        let mut count = 0;
+        let mut i = 0;
+        while i < LIMBS {
+            let l = limbs[i];
+            let z = l.trailing_zeros();
+            count += z;
+            if z != Limb::BITS {
+                break;
+            }
+            i += 1;
+        }
+
+        count
+    }
+
+    /// Calculate the number of trailing ones in the binary representation of this number.
+    pub const fn trailing_ones(&self) -> usize {
+        let limbs = self.as_limbs();
+
+        let mut count: Word = 0;
+        let mut i = 0;
+        let mut nonmax_limb_not_encountered = CtChoice::TRUE;
+        while i < LIMBS {
+            let l = limbs[i];
+            let z = l.trailing_ones() as Word;
+            count += nonmax_limb_not_encountered.if_true(z);
+            nonmax_limb_not_encountered =
+                nonmax_limb_not_encountered.and(Limb::ct_eq(l, Limb::MAX));
+            i += 1;
+        }
+
+        count as usize
+    }
+
+    /// Calculate the number of trailing ones in the binary representation of this number,
+    /// variable time in `self`.
+    pub const fn trailing_ones_vartime(&self) -> usize {
+        let limbs = self.as_limbs();
+
+        let mut count = 0;
+        let mut i = 0;
+        while i < LIMBS {
+            let l = limbs[i];
+            let z = l.trailing_ones();
+            count += z;
+            if z != Limb::BITS {
+                break;
+            }
+            i += 1;
+        }
+
+        count
     }
 
     /// Calculate the number of bits needed to represent this number.
@@ -145,37 +223,109 @@ mod tests {
     #[test]
     fn leading_zeros() {
         let u = uint_with_bits_at(&[256 - 16, 256 - 79, 256 - 207]);
-        assert_eq!(u.leading_zeros() as u32, 15);
+        assert_eq!(u.leading_zeros(), 15);
 
         let u = uint_with_bits_at(&[256 - 79, 256 - 207]);
-        assert_eq!(u.leading_zeros() as u32, 78);
+        assert_eq!(u.leading_zeros(), 78);
 
         let u = uint_with_bits_at(&[256 - 207]);
-        assert_eq!(u.leading_zeros() as u32, 206);
+        assert_eq!(u.leading_zeros(), 206);
 
         let u = uint_with_bits_at(&[256 - 1, 256 - 75, 256 - 150]);
-        assert_eq!(u.leading_zeros() as u32, 0);
+        assert_eq!(u.leading_zeros(), 0);
 
         let u = U256::ZERO;
-        assert_eq!(u.leading_zeros() as u32, 256);
+        assert_eq!(u.leading_zeros(), 256);
+    }
+
+    #[test]
+    fn leading_zeros_vartime() {
+        let u = uint_with_bits_at(&[256 - 16, 256 - 79, 256 - 207]);
+        assert_eq!(u.leading_zeros_vartime(), 15);
+
+        let u = uint_with_bits_at(&[256 - 79, 256 - 207]);
+        assert_eq!(u.leading_zeros_vartime(), 78);
+
+        let u = uint_with_bits_at(&[256 - 207]);
+        assert_eq!(u.leading_zeros_vartime(), 206);
+
+        let u = uint_with_bits_at(&[256 - 1, 256 - 75, 256 - 150]);
+        assert_eq!(u.leading_zeros_vartime(), 0);
+
+        let u = U256::ZERO;
+        assert_eq!(u.leading_zeros_vartime(), 256);
     }
 
     #[test]
     fn trailing_zeros() {
         let u = uint_with_bits_at(&[16, 79, 150]);
-        assert_eq!(u.trailing_zeros() as u32, 16);
+        assert_eq!(u.trailing_zeros(), 16);
 
         let u = uint_with_bits_at(&[79, 150]);
-        assert_eq!(u.trailing_zeros() as u32, 79);
+        assert_eq!(u.trailing_zeros(), 79);
 
         let u = uint_with_bits_at(&[150, 207]);
-        assert_eq!(u.trailing_zeros() as u32, 150);
+        assert_eq!(u.trailing_zeros(), 150);
 
         let u = uint_with_bits_at(&[0, 150, 207]);
-        assert_eq!(u.trailing_zeros() as u32, 0);
+        assert_eq!(u.trailing_zeros(), 0);
 
         let u = U256::ZERO;
-        assert_eq!(u.trailing_zeros() as u32, 256);
+        assert_eq!(u.trailing_zeros(), 256);
+    }
+
+    #[test]
+    fn trailing_zeros_vartime() {
+        let u = uint_with_bits_at(&[16, 79, 150]);
+        assert_eq!(u.trailing_zeros_vartime(), 16);
+
+        let u = uint_with_bits_at(&[79, 150]);
+        assert_eq!(u.trailing_zeros_vartime(), 79);
+
+        let u = uint_with_bits_at(&[150, 207]);
+        assert_eq!(u.trailing_zeros_vartime(), 150);
+
+        let u = uint_with_bits_at(&[0, 150, 207]);
+        assert_eq!(u.trailing_zeros_vartime(), 0);
+
+        let u = U256::ZERO;
+        assert_eq!(u.trailing_zeros_vartime(), 256);
+    }
+
+    #[test]
+    fn trailing_ones() {
+        let u = !uint_with_bits_at(&[16, 79, 150]);
+        assert_eq!(u.trailing_ones(), 16);
+
+        let u = !uint_with_bits_at(&[79, 150]);
+        assert_eq!(u.trailing_ones(), 79);
+
+        let u = !uint_with_bits_at(&[150, 207]);
+        assert_eq!(u.trailing_ones(), 150);
+
+        let u = !uint_with_bits_at(&[0, 150, 207]);
+        assert_eq!(u.trailing_ones(), 0);
+
+        let u = U256::MAX;
+        assert_eq!(u.trailing_ones(), 256);
+    }
+
+    #[test]
+    fn trailing_ones_vartime() {
+        let u = !uint_with_bits_at(&[16, 79, 150]);
+        assert_eq!(u.trailing_ones_vartime(), 16);
+
+        let u = !uint_with_bits_at(&[79, 150]);
+        assert_eq!(u.trailing_ones_vartime(), 79);
+
+        let u = !uint_with_bits_at(&[150, 207]);
+        assert_eq!(u.trailing_ones_vartime(), 150);
+
+        let u = !uint_with_bits_at(&[0, 150, 207]);
+        assert_eq!(u.trailing_ones_vartime(), 0);
+
+        let u = U256::MAX;
+        assert_eq!(u.trailing_ones_vartime(), 256);
     }
 
     #[test]
