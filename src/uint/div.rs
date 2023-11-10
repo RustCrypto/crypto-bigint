@@ -166,6 +166,17 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes self / rhs, returns the quotient, remainder.
+    /// ### Usage:
+    /// ```
+    /// use crypto_bigint::{U448, NonZero};
+    /// 
+    /// let a = U448::from(8_u64);
+    /// let b = NonZero::new(U448::from(4_u64)).unwrap();
+    /// let res = a.div_rem(&b);
+    /// 
+    /// assert!(res.0 == U448::from(2_u64));
+    /// assert!(res.1 == U448::ZERO);
+    /// ```
     pub fn div_rem(&self, rhs: &NonZero<Self>) -> (Self, Self) {
         // Since `rhs` is nonzero, this should always hold.
         let (q, r, _c) = self.ct_div_rem(rhs);
