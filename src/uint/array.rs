@@ -61,6 +61,7 @@ impl_uint_array_encoding! {
     (U512, typenum::U64),
     (U576, typenum::U72),
     (U768, typenum::U96),
+    (U832, typenum::U104),
     (U896, typenum::U112),
     (U1024, typenum::U128),
     (U1536, typenum::U192),
