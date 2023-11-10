@@ -3,7 +3,7 @@
 use crate::{Limb, Uint, WideWord, Word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Computes `self * rhs mod p` in constant time for the special modulus
+    /// Computes `self * rhs mod p` for the special modulus
     /// `p = MAX+1-c` where `c` is small enough to fit in a single [`Limb`].
     /// For the modulus reduction, this function implements Algorithm 14.47 from
     /// the "Handbook of Applied Cryptography", by A. Menezes, P. van Oorschot,

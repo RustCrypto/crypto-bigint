@@ -3,7 +3,7 @@
 use crate::{AddMod, Limb, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Computes `self + rhs mod p` in constant time.
+    /// Computes `self + rhs mod p`.
     ///
     /// Assumes `self + rhs` as unbounded integer is `< 2p`.
     pub const fn add_mod(&self, rhs: &Uint<LIMBS>, p: &Uint<LIMBS>) -> Uint<LIMBS> {
@@ -21,7 +21,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         w.wrapping_add(&p.bitand(&mask))
     }
 
-    /// Computes `self + rhs mod p` in constant time for the special modulus
+    /// Computes `self + rhs mod p` for the special modulus
     /// `p = MAX+1-c` where `c` is small enough to fit in a single [`Limb`].
     ///
     /// Assumes `self + rhs` as unbounded integer is `< 2p`.

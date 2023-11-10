@@ -3,7 +3,7 @@
 use crate::{Limb, NegMod, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Computes `-a mod p` in constant time.
+    /// Computes `-a mod p`.
     /// Assumes `self` is in `[0, p)`.
     pub const fn neg_mod(&self, p: &Self) -> Self {
         let z = self.ct_is_nonzero();
@@ -18,7 +18,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         ret
     }
 
-    /// Computes `-a mod p` in constant time for the special modulus
+    /// Computes `-a mod p` for the special modulus
     /// `p = MAX+1-c` where `c` is small enough to fit in a single [`Limb`].
     pub const fn neg_mod_special(&self, c: Limb) -> Self {
         Self::ZERO.sub_mod_special(self, c)
