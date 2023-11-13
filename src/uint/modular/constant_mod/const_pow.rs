@@ -3,7 +3,7 @@ use crate::{modular::pow::pow_montgomery_form, PowBoundedExp, Uint};
 extern crate alloc;
 use super::{Residue, ResidueParams};
 #[cfg(feature = "alloc")]
-use crate::modular::multiexp::multi_exponentiate_montgomery_form;
+use crate::modular::pow::multi_exponentiate_montgomery_form;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
@@ -57,7 +57,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
             .collect();
         Self {
             montgomery_form: multi_exponentiate_montgomery_form(
-                bases_and_exponents,
+                &bases_and_exponents,
                 exponent_bits,
                 &MOD::MODULUS,
                 &MOD::R,
@@ -79,8 +79,6 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> PowBoundedExp<Uint<LIMBS>>
 #[cfg(test)]
 mod tests {
     use crate::{const_residue, impl_modulus, modular::constant_mod::ResidueParams, U256};
-    #[cfg(feature = "alloc")]
-    use alloc::vec;
 
     impl_modulus!(
         Modulus,
@@ -143,7 +141,9 @@ mod tests {
         let exponent = U256::from(33u8);
 
         let res =
-            Residue::<Modulus, { U256::LIMBS }>::multi_exponentiate(vec![(base_mod, exponent)]);
+            crate::modular::constant_mod::Residue::<Modulus, { U256::LIMBS }>::multi_exponentiate(
+                alloc::vec![(base_mod, exponent)],
+            );
 
         let expected =
             U256::from_be_hex("0000000000000000000000000000000000000000000000000000000200000000");
@@ -159,10 +159,10 @@ mod tests {
 
         let expected = base_mod.pow(&exponent) * base2_mod.pow(&exponent2);
 
-        let res = Residue::<Modulus, { U256::LIMBS }>::multi_exponentiate(vec![
-            (base_mod, exponent),
-            (base2_mod, exponent2),
-        ]);
+        let res =
+            crate::modular::constant_mod::Residue::<Modulus, { U256::LIMBS }>::multi_exponentiate(
+                alloc::vec![(base_mod, exponent), (base2_mod, exponent2),],
+            );
 
         assert_eq!(res, expected);
     }

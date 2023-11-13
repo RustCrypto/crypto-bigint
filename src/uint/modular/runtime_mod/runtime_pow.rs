@@ -1,6 +1,6 @@
 use super::DynResidue;
 #[cfg(feature = "alloc")]
-use crate::modular::{multiexp::multi_exponentiate_montgomery_form, runtime_mod::DynResidueParams};
+use crate::modular::{pow::multi_exponentiate_montgomery_form, runtime_mod::DynResidueParams};
 use crate::{modular::pow::pow_montgomery_form, PowBoundedExp, Uint};
 
 impl<const LIMBS: usize> DynResidue<LIMBS> {
@@ -59,7 +59,7 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
             .collect();
         Self {
             montgomery_form: multi_exponentiate_montgomery_form(
-                bases_and_exponents,
+                &bases_and_exponents,
                 exponent_bits,
                 &residue_params.modulus,
                 &residue_params.r,
