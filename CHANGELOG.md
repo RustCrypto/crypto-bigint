@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.5.4 (2023-11-12)
+### Added
+- `trailing_ones[_vartime]()`, `trailing_zeros_vartime()`, `leading_zeros_vartime()` ([#282])
+- Implement `ArrayEncoding` for `U832` ([#288])
+
+### Changed
+- Make `Uint::random_mod()` work identically on 32- and 64-bit targets ([#285])
+
+[#282]: https://github.com/RustCrypto/crypto-bigint/pull/282
+[#285]: https://github.com/RustCrypto/crypto-bigint/pull/285
+[#288]: https://github.com/RustCrypto/crypto-bigint/pull/288
+
 ## 0.5.3 (2023-09-04)
 ### Added
 - `BoxedUint`: heap-allocated fixed-precision integers ([#221])
