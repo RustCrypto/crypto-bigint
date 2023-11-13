@@ -2,11 +2,11 @@
 
 use crypto_bigint::{
     modular::runtime_mod::{DynResidue, DynResidueParams},
-    Encoding, Limb, NonZero, Word, U256,
+    CtChoice, Encoding, Limb, NonZero, Word, U256,
 };
 use num_bigint::BigUint;
 use num_integer::Integer;
-use num_traits::identities::Zero;
+use num_traits::identities::{One, Zero};
 use proptest::prelude::*;
 use std::mem;
 
@@ -55,6 +55,32 @@ proptest! {
 
         let expected = to_uint(a_bi << shift);
         let actual = a.shl_vartime(shift as usize);
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn shl(a in uint(), shift in any::<u16>()) {
+        let a_bi = to_biguint(&a);
+
+        // Add a 50% probability of overflow.
+        let shift = (shift as usize) % (U256::BITS * 2);
+
+        let expected = to_uint((a_bi << shift) & ((BigUint::one() << U256::BITS) - BigUint::one()));
+        let actual = a.shl(shift);
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn shr(a in uint(), shift in any::<u16>()) {
+        let a_bi = to_biguint(&a);
+
+        // Add a 50% probability of overflow.
+        let shift = (shift as usize) % (U256::BITS * 2);
+
+        let expected = to_uint(a_bi >> shift);
+        let actual = a.shr(shift);
 
         assert_eq!(expected, actual);
     }
@@ -178,7 +204,7 @@ proptest! {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
 
-        if b_bi.is_zero() {
+        if !b_bi.is_zero() {
             let expected = to_uint(a_bi % b_bi);
             let actual = a.wrapping_rem(&b);
 
@@ -187,10 +213,48 @@ proptest! {
     }
 
     #[test]
+    fn inv_mod2k(a in uint(), k in any::<usize>()) {
+        let a = a | U256::ONE; // make odd
+        let k = k % (U256::BITS + 1);
+        let a_bi = to_biguint(&a);
+        let m_bi = BigUint::one() << k;
+
+        let actual = a.inv_mod2k(k);
+        let actual_vartime = a.inv_mod2k_vartime(k);
+        assert_eq!(actual, actual_vartime);
+
+        if k == 0 {
+            assert_eq!(actual, U256::ZERO);
+        }
+        else {
+            let inv_bi = to_biguint(&actual);
+            let res = (inv_bi * a_bi) % m_bi;
+            assert_eq!(res, BigUint::one());
+        }
+    }
+
+    #[test]
+    fn inv_mod(a in uint(), b in uint()) {
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+
+        let expected_is_some = if a_bi.gcd(&b_bi) == BigUint::one() { CtChoice::TRUE } else { CtChoice::FALSE };
+        let (actual, actual_is_some) = a.inv_mod(&b);
+
+        assert_eq!(bool::from(expected_is_some), bool::from(actual_is_some));
+
+        if actual_is_some.into() {
+            let inv_bi = to_biguint(&actual);
+            let res = (inv_bi * a_bi) % b_bi;
+            assert_eq!(res, BigUint::one());
+        }
+    }
+
+    #[test]
     fn wrapping_sqrt(a in uint()) {
         let a_bi = to_biguint(&a);
         let expected = to_uint(a_bi.sqrt());
-        let actual = a.wrapping_sqrt();
+        let actual = a.wrapping_sqrt_vartime();
 
         assert_eq!(expected, actual);
     }

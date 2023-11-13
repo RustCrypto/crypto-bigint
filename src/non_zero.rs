@@ -1,6 +1,6 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{Encoding, Integer, Limb, Uint, Zero};
+use crate::{CtChoice, Encoding, Integer, Limb, Uint, Zero};
 use core::{
     fmt,
     num::{NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8},
@@ -23,6 +23,22 @@ use serdect::serde::{
 /// Wrapper type for non-zero integers.
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub struct NonZero<T: Zero>(T);
+
+impl NonZero<Limb> {
+    /// Creates a new non-zero limb in a const context.
+    /// The second return value is `FALSE` if `n` is zero, `TRUE` otherwise.
+    pub const fn const_new(n: Limb) -> (Self, CtChoice) {
+        (Self(n), n.ct_is_nonzero())
+    }
+}
+
+impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
+    /// Creates a new non-zero integer in a const context.
+    /// The second return value is `FALSE` if `n` is zero, `TRUE` otherwise.
+    pub const fn const_new(n: Uint<LIMBS>) -> (Self, CtChoice) {
+        (Self(n), n.ct_is_nonzero())
+    }
+}
 
 impl<T> NonZero<T>
 where
@@ -336,6 +352,7 @@ impl<T: Serialize + Zero> Serialize for NonZero<T> {
 }
 
 #[cfg(all(test, feature = "serde"))]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use crate::{NonZero, U64};
     use bincode::ErrorKind;

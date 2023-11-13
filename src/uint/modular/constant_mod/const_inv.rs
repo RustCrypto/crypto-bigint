@@ -62,7 +62,7 @@ mod tests {
         let x_mod = const_residue!(x, Modulus);
 
         let (inv, _is_some) = x_mod.invert();
-        let res = &x_mod * &inv;
+        let res = x_mod * inv;
 
         assert_eq!(res.retrieve(), U256::ONE);
     }

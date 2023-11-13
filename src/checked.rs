@@ -83,7 +83,9 @@ impl<T: Copy + Serialize> Serialize for Checked<T> {
 }
 
 #[cfg(all(test, feature = "serde"))]
+#[allow(clippy::unwrap_used)]
 mod tests {
+
     use crate::{Checked, U64};
     use subtle::{Choice, ConstantTimeEq, CtOption};
 

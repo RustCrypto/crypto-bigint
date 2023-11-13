@@ -1,15 +1,9 @@
 //! Stack-allocated big unsigned integers.
 
-#![allow(
-    clippy::needless_range_loop,
-    clippy::many_single_char_names,
-    clippy::derive_hash_xor_eq
-)]
+#![allow(clippy::needless_range_loop, clippy::many_single_char_names)]
 
 #[macro_use]
-mod concat;
-#[macro_use]
-mod split;
+mod macros;
 
 mod add;
 mod add_mod;
@@ -19,6 +13,7 @@ mod bit_or;
 mod bit_xor;
 mod bits;
 mod cmp;
+mod concat;
 mod div;
 pub(crate) mod div_limb;
 mod encoding;
@@ -31,6 +26,7 @@ mod neg_mod;
 mod resize;
 mod shl;
 mod shr;
+mod split;
 mod sqrt;
 mod sub;
 mod sub_mod;
@@ -44,7 +40,7 @@ mod array;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Bounded, Concat, Encoding, Integer, Limb, Split, Word, Zero};
+use crate::{Bounded, Encoding, Integer, Limb, Word, Zero};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
 
@@ -71,6 +67,8 @@ use zeroize::DefaultIsZeroes;
 ///
 /// [RLP]: https://eth.wiki/fundamentals/rlp
 // TODO(tarcieri): make generic around a specified number of bits.
+// Our PartialEq impl only differs from the default one by being constant-time, so this is safe
+#[allow(clippy::derived_hash_with_manual_eq)]
 #[derive(Copy, Clone, Hash)]
 pub struct Uint<const LIMBS: usize> {
     /// Inner limb array. Stored from least significant to most significant.
@@ -91,6 +89,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Total size of the represented integer in bits.
     pub const BITS: usize = LIMBS * Limb::BITS;
+
+    /// Bit size of `BITS`.
+    // Note: assumes the type of `BITS` is `usize`. Any way to assert that?
+    pub(crate) const LOG2_BITS: usize = (usize::BITS - Self::BITS.leading_zeros()) as usize;
 
     /// Total size of the represented integer in bytes.
     pub const BYTES: usize = LIMBS * Limb::BYTES;
@@ -295,47 +297,7 @@ where
 #[cfg(feature = "zeroize")]
 impl<const LIMBS: usize> DefaultIsZeroes for Uint<LIMBS> {}
 
-// TODO(tarcieri): use `const_evaluatable_checked` when stable to make generic around bits.
-macro_rules! impl_uint_aliases {
-    ($(($name:ident, $bits:expr, $doc:expr)),+) => {
-        $(
-            #[doc = $doc]
-            #[doc="unsigned big integer."]
-            pub type $name = Uint<{nlimbs!($bits)}>;
-
-            impl Encoding for $name {
-
-                type Repr = [u8; $bits / 8];
-
-                #[inline]
-                fn from_be_bytes(bytes: Self::Repr) -> Self {
-                    Self::from_be_slice(&bytes)
-                }
-
-                #[inline]
-                fn from_le_bytes(bytes: Self::Repr) -> Self {
-                    Self::from_le_slice(&bytes)
-                }
-
-                #[inline]
-                fn to_be_bytes(&self) -> Self::Repr {
-                    let mut result = [0u8; $bits / 8];
-                    self.write_be_bytes(&mut result);
-                    result
-                }
-
-                #[inline]
-                fn to_le_bytes(&self) -> Self::Repr {
-                    let mut result = [0u8; $bits / 8];
-                    self.write_le_bytes(&mut result);
-                    result
-                }
-            }
-        )+
-     };
-}
-
-// TODO(tarcieri): use `const_evaluatable_checked` when stable to make generic around bits.
+// TODO(tarcieri): use `generic_const_exprs` when stable to make generic around bits.
 impl_uint_aliases! {
     (U64, 64, "64-bit"),
     (U128, 128, "128-bit"),
@@ -347,8 +309,11 @@ impl_uint_aliases! {
     (U512, 512, "512-bit"),
     (U576, 576, "576-bit"),
     (U640, 640, "640-bit"),
+    (U704, 704, "704-bit"),
     (U768, 768, "768-bit"),
+    (U832, 832, "832-bit"),
     (U896, 896, "896-bit"),
+    (U960, 960, "960-bit"),
     (U1024, 1024, "1024-bit"),
     (U1280, 1280, "1280-bit"),
     (U1536, 1536, "1536-bit"),
@@ -360,7 +325,9 @@ impl_uint_aliases! {
     (U4224, 4224, "4224-bit"),
     (U4352, 4352, "4352-bit"),
     (U6144, 6144, "6144-bit"),
-    (U8192, 8192, "8192-bit")
+    (U8192, 8192, "8192-bit"),
+    (U16384, 16384, "16384-bit"),
+    (U32768, 32768, "32768-bit")
 }
 
 #[cfg(target_pointer_width = "32")]
@@ -369,50 +336,56 @@ impl_uint_aliases! {
     (U544, 544, "544-bit")  // For NIST P-521
 }
 
-// TODO(tarcieri): use `const_evaluatable_checked` when stable to make generic around bits.
-impl_concat! {
-    (U64, 64),
-    (U128, 128),
-    (U192, 192),
-    (U256, 256),
-    (U320, 320),
-    (U384, 384),
-    (U448, 448),
-    (U512, 512),
-    (U640, 640),
-    (U768, 768),
-    (U896, 896),
-    (U1024, 1024),
-    (U1536, 1536),
-    (U1792, 1792),
-    (U2048, 2048),
-    (U3072, 3072),
-    (U4096, 4096),
-    (U4224, 4224),
-    (U4352, 4352)
+#[cfg(target_pointer_width = "32")]
+impl_uint_concat_split_even! {
+    U64,
 }
 
-// TODO(tarcieri): use `const_evaluatable_checked` when stable to make generic around bits.
-impl_split! {
-    (U128, 128),
-    (U256, 256),
-    (U384, 384),
-    (U512, 512),
-    (U640, 640),
-    (U768, 768),
-    (U896, 896),
-    (U1024, 1024),
-    (U1280, 1280),
-    (U1536, 1536),
-    (U1792, 1792),
-    (U2048, 2048),
-    (U3072, 3072),
-    (U3584, 3584),
-    (U4096, 4096),
-    (U4224, 4224),
-    (U4352, 4352),
-    (U6144, 6144),
-    (U8192, 8192)
+// Implement concat and split for double-width Uint sizes: these should be
+// multiples of 128 bits.
+impl_uint_concat_split_even! {
+    U128,
+    U256,
+    U384,
+    U512,
+    U640,
+    U768,
+    U896,
+    U1024,
+    U1280,
+    U1536,
+    U1792,
+    U2048,
+    U3072,
+    U3584,
+    U4096,
+    U4224,
+    U4352,
+    U6144,
+    U8192,
+    U16384,
+}
+
+// Implement mixed concat and split for combinations not implemented by
+// impl_uint_concat_split_even. The numbers represent the size of each
+// component Uint in multiple of 64 bits. For example,
+// (U256, [1, 3]) will allow splitting U256 into (U64, U192) as well as
+// (U192, U64), while the (U128, U128) combination is already covered.
+impl_uint_concat_split_mixed! {
+    (U192, [1, 2]),
+    (U256, [1, 3]),
+    (U320, [1, 2, 3, 4]),
+    (U384, [1, 2, 4, 5]),
+    (U448, [1, 2, 3, 4, 5, 6]),
+    (U512, [1, 2, 3, 5, 6, 7]),
+    (U576, [1, 2, 3, 4, 5, 6, 7, 8]),
+    (U640, [1, 2, 3, 4, 6, 7, 8, 9]),
+    (U704, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+    (U768, [1, 2, 3, 4, 5, 7, 8, 9, 10, 11]),
+    (U832, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
+    (U896, [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13]),
+    (U960, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]),
+    (U1024, [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15]),
 }
 
 #[cfg(feature = "extra-sizes")]
@@ -421,6 +394,7 @@ mod extra_sizes;
 pub use extra_sizes::*;
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use crate::{Encoding, U128};
     use subtle::ConditionallySelectable;

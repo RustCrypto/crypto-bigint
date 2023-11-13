@@ -91,6 +91,7 @@ impl<T: Serialize> Serialize for Wrapping<T> {
 }
 
 #[cfg(all(test, feature = "serde"))]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use crate::{Wrapping, U64};
 

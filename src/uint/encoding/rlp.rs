@@ -44,6 +44,7 @@ where
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use crate::U256;
     use hex_literal::hex;
