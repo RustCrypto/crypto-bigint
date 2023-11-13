@@ -104,17 +104,15 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
 
     for i in [1, 2, 3, 4, 10, 100] {
         group.bench_function(
-            format!("multi_exponentiate for {i} bases, U4096^U4096"),
+            format!("multi_exponentiate for {i} bases, U256^U256"),
             |b| {
                 b.iter_batched(
                     || {
-                        let bases_and_exponents: Vec<(DynResidue<{ U4096::LIMBS }>, U4096)> = (1
-                            ..=i)
+                        let bases_and_exponents: Vec<(DynResidue<{ U256::LIMBS }>, U256)> = (1..=i)
                             .map(|_| {
-                                let x = U4096::random(&mut OsRng);
+                                let x = U256::random(&mut OsRng);
                                 let x_m = DynResidue::new(&x, params);
-                                let p =
-                                    U4096::random(&mut OsRng) | (U4096::ONE << (U4096::BITS - 1));
+                                let p = U256::random(&mut OsRng) | (U256::ONE << (U256::BITS - 1));
                                 (x_m, p)
                             })
                             .collect();
@@ -122,7 +120,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                         bases_and_exponents
                     },
                     |bases_and_exponents| {
-                        DynResidue::<{ U4096::LIMBS }>::multi_exponentiate(
+                        DynResidue::<{ U256::LIMBS }>::multi_exponentiate(
                             bases_and_exponents,
                             params,
                         )

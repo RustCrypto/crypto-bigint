@@ -39,6 +39,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
         }
     }
 
+    /// Raises each `base` to its `exponent` power,
     #[cfg(feature = "alloc")]
     pub fn multi_exponentiate(
         bases_and_exponents: Vec<(Self, Uint<LIMBS>)>,
@@ -46,6 +47,11 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
         Self::multi_exponentiate_bounded_exp(bases_and_exponents, Uint::<LIMBS>::BITS)
     }
 
+    /// Raises each `base` to its `exponent` power,
+    /// with `exponent_bits` representing the number of (least significant) bits
+    /// to take into account for the exponent.
+    ///
+    /// NOTE: `exponent_bits` may be leaked in the time pattern.
     #[cfg(feature = "alloc")]
     pub fn multi_exponentiate_bounded_exp(
         bases_and_exponents: Vec<(Self, Uint<LIMBS>)>,
