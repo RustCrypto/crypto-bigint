@@ -81,7 +81,7 @@ const fn ct_select(a: u32, b: u32, c: u32) -> u32 {
     a ^ (c & (a ^ b))
 }
 
-/// Calculates `dividend / divisor` in constant time, given `dividend` and `divisor`
+/// Calculates `dividend / divisor`, given `dividend` and `divisor`
 /// along with their maximum bitsizes.
 #[inline(always)]
 const fn short_div(dividend: u32, dividend_bits: u32, divisor: u32, divisor_bits: u32) -> u32 {
