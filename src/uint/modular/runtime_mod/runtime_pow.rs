@@ -1,12 +1,7 @@
-use crate::{modular::pow::pow_montgomery_form, PowBoundedExp, Uint};
-#[cfg(feature = "alloc")]
-extern crate alloc;
 use super::DynResidue;
 #[cfg(feature = "alloc")]
-use crate::modular::multiexp::multi_exponentiate_montgomery_form;
-use crate::modular::runtime_mod::DynResidueParams;
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
+use crate::modular::{multiexp::multi_exponentiate_montgomery_form, runtime_mod::DynResidueParams};
+use crate::{modular::pow::pow_montgomery_form, PowBoundedExp, Uint};
 
 impl<const LIMBS: usize> DynResidue<LIMBS> {
     /// Raises to the `exponent` power.
@@ -42,7 +37,7 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
 
     #[cfg(feature = "alloc")]
     pub fn multi_exponentiate(
-        bases_and_exponents: Vec<(Self, Uint<LIMBS>)>,
+        bases_and_exponents: alloc::vec::Vec<(Self, Uint<LIMBS>)>,
         residue_params: DynResidueParams<LIMBS>,
     ) -> DynResidue<LIMBS> {
         Self::multi_exponentiate_bounded_exp(
@@ -54,11 +49,11 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
 
     #[cfg(feature = "alloc")]
     pub fn multi_exponentiate_bounded_exp(
-        bases_and_exponents: Vec<(Self, Uint<LIMBS>)>,
+        bases_and_exponents: alloc::vec::Vec<(Self, Uint<LIMBS>)>,
         exponent_bits: usize,
         residue_params: DynResidueParams<LIMBS>,
     ) -> Self {
-        let bases_and_exponents: Vec<(Uint<LIMBS>, Uint<LIMBS>)> = bases_and_exponents
+        let bases_and_exponents: alloc::vec::Vec<(Uint<LIMBS>, Uint<LIMBS>)> = bases_and_exponents
             .iter()
             .map(|(base, exp)| (base.montgomery_form, *exp))
             .collect();

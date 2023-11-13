@@ -78,7 +78,6 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> PowBoundedExp<Uint<LIMBS>>
 
 #[cfg(test)]
 mod tests {
-    use crate::modular::constant_mod::Residue;
     use crate::{const_residue, impl_modulus, modular::constant_mod::ResidueParams, U256};
     #[cfg(feature = "alloc")]
     use alloc::vec;

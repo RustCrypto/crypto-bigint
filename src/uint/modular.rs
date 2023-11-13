@@ -9,8 +9,6 @@ mod add;
 mod div_by_2;
 mod inv;
 mod mul;
-#[cfg(feature = "alloc")]
-mod multiexp;
 mod pow;
 mod sub;
 
