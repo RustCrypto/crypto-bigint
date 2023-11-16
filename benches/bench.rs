@@ -3,7 +3,7 @@ use criterion::{
 };
 use crypto_bigint::{
     modular::runtime_mod::{DynResidue, DynResidueParams},
-    Limb, NonZero, Random, Reciprocal, U128, U2048, U256,
+    Limb, MultiExponentiate, NonZero, Random, Reciprocal, U128, U2048, U256,
 };
 use rand_core::OsRng;
 
@@ -121,8 +121,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                     },
                     |bases_and_exponents| {
                         DynResidue::<{ U256::LIMBS }>::multi_exponentiate(
-                            bases_and_exponents,
-                            params,
+                            bases_and_exponents.as_slice(),
                         )
                     },
                     BatchSize::SmallInput,
