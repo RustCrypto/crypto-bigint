@@ -2,6 +2,9 @@ use crate::{Limb, Uint, Word};
 
 use super::mul::{mul_montgomery_form, square_montgomery_form};
 
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
+
 const WINDOW: usize = 4;
 const WINDOW_MASK: Word = (1 << WINDOW) - 1;
 
@@ -17,21 +20,42 @@ pub const fn pow_montgomery_form<const LIMBS: usize, const RHS_LIMBS: usize>(
     r: &Uint<LIMBS>,
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {
+    multi_exponentiate_montgomery_form_array(
+        &[(*x, *exponent)],
+        exponent_bits,
+        modulus,
+        r,
+        mod_neg_inv,
+    )
+}
+
+pub const fn multi_exponentiate_montgomery_form_array<
+    const LIMBS: usize,
+    const RHS_LIMBS: usize,
+    const N: usize,
+>(
+    bases_and_exponents: &[(Uint<LIMBS>, Uint<RHS_LIMBS>); N],
+    exponent_bits: usize,
+    modulus: &Uint<LIMBS>,
+    r: &Uint<LIMBS>,
+    mod_neg_inv: Limb,
+) -> Uint<LIMBS> {
     if exponent_bits == 0 {
         return *r; // 1 in Montgomery form
     }
 
-    // powers[i] contains x^i
-    let mut powers = [*r; 1 << WINDOW];
-    powers[1] = *x;
-    let mut i = 2;
-    while i < powers.len() {
-        powers[i] = mul_montgomery_form(&powers[i - 1], x, modulus, mod_neg_inv);
+    let mut powers_and_exponents =
+        [([Uint::<LIMBS>::ZERO; 1 << WINDOW], Uint::<RHS_LIMBS>::ZERO); N];
+
+    let mut i = 0;
+    while i < N {
+        let (base, exponent) = bases_and_exponents[i];
+        powers_and_exponents[i] = (compute_powers(&base, modulus, r, mod_neg_inv), exponent);
         i += 1;
     }
 
     multi_exponentiate_montgomery_form_internal(
-        &[(powers, *exponent)],
+        &powers_and_exponents,
         exponent_bits,
         modulus,
         r,
@@ -46,7 +70,7 @@ pub const fn pow_montgomery_form<const LIMBS: usize, const RHS_LIMBS: usize>(
 ///
 /// NOTE: this value is leaked in the time pattern.
 #[cfg(feature = "alloc")]
-pub fn multi_exponentiate_montgomery_form<const LIMBS: usize, const RHS_LIMBS: usize>(
+pub fn multi_exponentiate_montgomery_form_slice<const LIMBS: usize, const RHS_LIMBS: usize>(
     bases_and_exponents: &[(Uint<LIMBS>, Uint<RHS_LIMBS>)],
     exponent_bits: usize,
     modulus: &Uint<LIMBS>,
@@ -57,20 +81,10 @@ pub fn multi_exponentiate_montgomery_form<const LIMBS: usize, const RHS_LIMBS: u
         return *r; // 1 in Montgomery form
     }
 
-    let powers_and_exponents: alloc::vec::Vec<([Uint<LIMBS>; 1 << WINDOW], Uint<RHS_LIMBS>)> =
+    let powers_and_exponents: Vec<([Uint<LIMBS>; 1 << WINDOW], Uint<RHS_LIMBS>)> =
         bases_and_exponents
             .iter()
-            .map(|(base, exponent)| {
-                // powers[i] contains x^i
-                let mut powers = [*r; 1 << WINDOW];
-                powers[1] = *base;
-                let mut i = 2;
-                while i < powers.len() {
-                    powers[i] = mul_montgomery_form(&powers[i - 1], base, modulus, mod_neg_inv);
-                    i += 1;
-                }
-                (powers, *exponent)
-            })
+            .map(|(base, exponent)| (compute_powers(base, modulus, r, mod_neg_inv), *exponent))
             .collect();
 
     multi_exponentiate_montgomery_form_internal(
@@ -80,6 +94,25 @@ pub fn multi_exponentiate_montgomery_form<const LIMBS: usize, const RHS_LIMBS: u
         r,
         mod_neg_inv,
     )
+}
+
+const fn compute_powers<const LIMBS: usize>(
+    x: &Uint<LIMBS>,
+    modulus: &Uint<LIMBS>,
+    r: &Uint<LIMBS>,
+    mod_neg_inv: Limb,
+) -> [Uint<LIMBS>; 1 << WINDOW] {
+    // powers[i] contains x^i
+    let mut powers = [*r; 1 << WINDOW];
+    powers[1] = *x;
+
+    let mut i = 2;
+    while i < powers.len() {
+        powers[i] = mul_montgomery_form(&powers[i - 1], x, modulus, mod_neg_inv);
+        i += 1;
+    }
+
+    powers
 }
 
 const fn multi_exponentiate_montgomery_form_internal<const LIMBS: usize, const RHS_LIMBS: usize>(
