@@ -80,7 +80,7 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
         note = "This functionality will be moved to `new` in a future release."
     )]
     pub fn new_checked(modulus: &Uint<LIMBS>) -> CtOption<Self> {
-        // A valid modulus must be odd, which we check in constant time
+        // A valid modulus must be odd.
         CtOption::new(Self::generate_params(modulus), modulus.ct_is_odd().into())
     }
 
