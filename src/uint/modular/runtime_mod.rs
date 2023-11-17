@@ -269,7 +269,6 @@ impl<const LIMBS: usize> zeroize::Zeroize for DynResidue<LIMBS> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::nlimbs;
 
     const LIMBS: usize = nlimbs!(64);
 
