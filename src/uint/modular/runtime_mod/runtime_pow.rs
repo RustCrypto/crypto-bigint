@@ -55,7 +55,7 @@ impl<const N: usize, const LIMBS: usize, const RHS_LIMBS: usize>
         bases_and_exponents: &[(Self, Uint<RHS_LIMBS>); N],
         exponent_bits: usize,
     ) -> Self {
-        // TODO: is it fine? will crash if N == 0
+        const_assert_ne!(N, 0, "bases_and_exponents must not be empty");
         let residue_params = bases_and_exponents[0].0.residue_params;
 
         let mut bases_and_exponents_montgomery_form =
