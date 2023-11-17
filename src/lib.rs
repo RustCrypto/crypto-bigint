@@ -157,7 +157,7 @@
 extern crate alloc;
 
 #[macro_use]
-mod nlimbs;
+mod macros;
 
 #[cfg(feature = "generic-array")]
 mod array;
