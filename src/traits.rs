@@ -309,12 +309,10 @@ where
     fn multi_exponentiate(bases_and_exponents: &BasesAndExponents) -> Self;
 }
 
-impl<
-        T: MultiExponentiateBoundedExp<Exponent, BasesAndExponents>,
-        Exponent: Bounded,
-        BasesAndExponents,
-    > MultiExponentiate<Exponent, BasesAndExponents> for T
+impl<T, Exponent, BasesAndExponents> MultiExponentiate<Exponent, BasesAndExponents> for T
 where
+    T: MultiExponentiateBoundedExp<Exponent, BasesAndExponents>,
+    Exponent: Bounded,
     BasesAndExponents: AsRef<[(Self, Exponent)]> + ?Sized,
 {
     fn multi_exponentiate(bases_and_exponents: &BasesAndExponents) -> Self {
