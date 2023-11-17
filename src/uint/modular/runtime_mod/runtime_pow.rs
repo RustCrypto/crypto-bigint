@@ -89,9 +89,8 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize>
         bases_and_exponents: &[(Self, Uint<RHS_LIMBS>)],
         exponent_bits: usize,
     ) -> Self {
-        assert_ne!(
-            bases_and_exponents.len(),
-            0,
+        assert!(
+            !bases_and_exponents.is_empty(),
             "bases_and_exponents must not be empty"
         );
         let residue_params = bases_and_exponents[0].0.residue_params;
