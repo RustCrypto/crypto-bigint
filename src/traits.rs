@@ -292,12 +292,6 @@ pub trait PowBoundedExp<Exponent> {
     fn pow_bounded_exp(&self, exponent: &Exponent, exponent_bits: usize) -> Self;
 }
 
-/// Linear combination (extended version).
-///
-/// This trait enables providing an optimized implementation of
-/// linear combinations (e.g. Shamir's Trick).
-// TODO(tarcieri): replace the current `LinearCombination` with this in the next release
-
 /// Performs modular multi-exponentiation using Montgomery's ladder.
 ///
 /// See: Straus, E. G. Problems and solutions: Addition chains of vectors. American Mathematical Monthly 71 (1964), 806–808.
