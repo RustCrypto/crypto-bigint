@@ -89,7 +89,11 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize>
         bases_and_exponents: &[(Self, Uint<RHS_LIMBS>)],
         exponent_bits: usize,
     ) -> Self {
-        // TODO: is it fine? will crash if N == 0
+        assert_ne!(
+            bases_and_exponents.len(),
+            0,
+            "bases_and_exponents must not be empty"
+        );
         let residue_params = bases_and_exponents[0].0.residue_params;
 
         let bases_and_exponents: Vec<(Uint<LIMBS>, Uint<RHS_LIMBS>)> = bases_and_exponents
