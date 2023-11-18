@@ -292,6 +292,45 @@ pub trait PowBoundedExp<Exponent> {
     fn pow_bounded_exp(&self, exponent: &Exponent, exponent_bits: usize) -> Self;
 }
 
+/// Performs modular multi-exponentiation using Montgomery's ladder.
+///
+/// See: Straus, E. G. Problems and solutions: Addition chains of vectors. American Mathematical Monthly 71 (1964), 806–808.
+pub trait MultiExponentiate<Exponent, BasesAndExponents>: Pow<Exponent> + Sized
+where
+    BasesAndExponents: AsRef<[(Self, Exponent)]> + ?Sized,
+{
+    /// Calculates `x1 ^ k1 * ... * xn ^ kn`.
+    fn multi_exponentiate(bases_and_exponents: &BasesAndExponents) -> Self;
+}
+
+impl<T, Exponent, BasesAndExponents> MultiExponentiate<Exponent, BasesAndExponents> for T
+where
+    T: MultiExponentiateBoundedExp<Exponent, BasesAndExponents>,
+    Exponent: Bounded,
+    BasesAndExponents: AsRef<[(Self, Exponent)]> + ?Sized,
+{
+    fn multi_exponentiate(bases_and_exponents: &BasesAndExponents) -> Self {
+        Self::multi_exponentiate_bounded_exp(bases_and_exponents, Exponent::BITS)
+    }
+}
+
+/// Performs modular multi-exponentiation using Montgomery's ladder.
+/// `exponent_bits` represents the number of bits to take into account for the exponent.
+///
+/// See: Straus, E. G. Problems and solutions: Addition chains of vectors. American Mathematical Monthly 71 (1964), 806–808.
+///
+/// NOTE: this value is leaked in the time pattern.
+pub trait MultiExponentiateBoundedExp<Exponent, BasesAndExponents>: Pow<Exponent> + Sized
+where
+    BasesAndExponents: AsRef<[(Self, Exponent)]> + ?Sized,
+{
+    /// Calculates `x1 ^ k1 * ... * xn ^ kn`.
+    fn multi_exponentiate_bounded_exp(
+        bases_and_exponents: &BasesAndExponents,
+        exponent_bits: usize,
+    ) -> Self;
+}
+
 /// Constant-time inversion.
 pub trait Invert: Sized {
     /// Output of the inversion.

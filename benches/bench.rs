@@ -3,7 +3,7 @@ use criterion::{
 };
 use crypto_bigint::{
     modular::runtime_mod::{DynResidue, DynResidueParams},
-    Limb, NonZero, Random, Reciprocal, U128, U2048, U256,
+    Limb, MultiExponentiate, NonZero, Random, Reciprocal, U128, U2048, U256,
 };
 use rand_core::OsRng;
 
@@ -101,6 +101,34 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             BatchSize::SmallInput,
         )
     });
+
+    for i in [1, 2, 3, 4, 10, 100] {
+        group.bench_function(
+            format!("multi_exponentiate for {i} bases, U256^U256"),
+            |b| {
+                b.iter_batched(
+                    || {
+                        let bases_and_exponents: Vec<(DynResidue<{ U256::LIMBS }>, U256)> = (1..=i)
+                            .map(|_| {
+                                let x = U256::random(&mut OsRng);
+                                let x_m = DynResidue::new(&x, params);
+                                let p = U256::random(&mut OsRng) | (U256::ONE << (U256::BITS - 1));
+                                (x_m, p)
+                            })
+                            .collect();
+
+                        bases_and_exponents
+                    },
+                    |bases_and_exponents| {
+                        DynResidue::<{ U256::LIMBS }>::multi_exponentiate(
+                            bases_and_exponents.as_slice(),
+                        )
+                    },
+                    BatchSize::SmallInput,
+                )
+            },
+        );
+    }
 }
 
 fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
