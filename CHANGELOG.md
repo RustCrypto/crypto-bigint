@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.5.5 (2023-11-18)
+### Added
+- Multi-exponentiation ([#248])
+- `const_assert_eq!` and `const_assert_ne!` macros ([#293])
+
+[#248]: https://github.com/RustCrypto/crypto-bigint/pull/248
+[#293]: https://github.com/RustCrypto/crypto-bigint/pull/293
+
 ## 0.5.4 (2023-11-12)
 ### Added
 - `trailing_ones[_vartime]()`, `trailing_zeros_vartime()`, `leading_zeros_vartime()` ([#282])
