@@ -244,7 +244,12 @@ pub trait Bounded {
 /// Encoding support.
 pub trait Encoding: Sized {
     /// Byte array representation.
-    type Repr: AsRef<[u8]> + AsMut<[u8]> + Copy + Clone + Sized;
+    type Repr: AsRef<[u8]>
+        + AsMut<[u8]>
+        + Copy
+        + Clone
+        + Sized
+        + for<'a> TryFrom<&'a [u8], Error = core::array::TryFromSliceError>;
 
     /// Decode from big endian bytes.
     fn from_be_bytes(bytes: Self::Repr) -> Self;
