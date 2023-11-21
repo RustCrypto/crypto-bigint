@@ -4,12 +4,12 @@
 #[doc(hidden)]
 #[macro_export]
 macro_rules! const_assert_n {
-    ($n:expr, $($arg:tt)*) => {{
+    ($n:ident, $($arg:tt)*) => {{
         // TODO(tarcieri): gensym a name so it's unique per invocation of the macro?
         mod __const_assert {
-            pub(super) struct Assert<const N: usize>;
+            pub(super) struct Assert<const $n: usize>;
 
-            impl<const N: usize> Assert<N> {
+            impl<const $n: usize> Assert<$n> {
                 pub(super) const ASSERT: () = assert!($($arg)*);
             }
         }
@@ -20,30 +20,36 @@ macro_rules! const_assert_n {
 
 /// Const-friendly assertion that two values are equal.
 ///
+/// The first/leftmost operand MUST be a `usize` constant.
+///
 /// ```
-/// const _: () = crypto_bigint::const_assert_eq!(0, 0, "zero equals zero");
+/// const N: usize = 0;
+/// const _: () = crypto_bigint::const_assert_eq!(N, 0, "zero equals zero");
 /// ```
 #[macro_export]
 macro_rules! const_assert_eq {
-    ($left:expr, $right:expr $(,)?) => (
+    ($left:ident, $right:expr $(,)?) => (
         $crate::const_assert_n!($left, $left == $right)
     );
-    ($left:expr, $right:expr, $($arg:tt)+) => (
+    ($left:ident, $right:expr, $($arg:tt)+) => (
         $crate::const_assert_n!($left, $left == $right, $($arg)+)
     );
 }
 
 /// Const-friendly assertion that two values are NOT equal.
 ///
+/// The first/leftmost operand MUST be a `usize` constant.
+///
 /// ```
-/// const _: () = crypto_bigint::const_assert_ne!(0, 1, "zero is NOT equal to one");
+/// const N: usize = 0;
+/// const _: () = crypto_bigint::const_assert_ne!(N, 1, "zero is NOT equal to one");
 /// ```
 #[macro_export]
 macro_rules! const_assert_ne {
-    ($left:expr, $right:expr $(,)?) => (
+    ($left:ident, $right:expr $(,)?) => (
         $crate::const_assert_n!($left, $left != $right)
     );
-    ($left:expr, $right:expr, $($arg:tt)+) => (
+    ($left:ident, $right:expr, $($arg:tt)+) => (
         $crate::const_assert_n!($left, $left != $right, $($arg)+)
     );
 }
