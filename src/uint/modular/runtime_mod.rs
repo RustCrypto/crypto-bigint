@@ -62,25 +62,10 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
         }
     }
 
-    /// Instantiates a new set of `ResidueParams` representing the given `modulus`, which _must_ be odd.
-    /// If `modulus` is not odd, this function will panic; use [`new_checked`][`DynResidueParams::new_checked`] if you want to be able to detect an invalid modulus.
-    pub const fn new(modulus: &Uint<LIMBS>) -> Self {
-        // A valid modulus must be odd
-        if modulus.ct_is_odd().to_u8() == 0 {
-            panic!("modulus must be odd");
-        }
-
-        Self::generate_params(modulus)
-    }
-
     /// Instantiates a new set of `ResidueParams` representing the given `modulus` if it is odd.
-    /// Returns a `CtOption` that is `None` if the provided modulus is not odd; this is a safer version of [`new`][`DynResidueParams::new`], which can panic.
-    #[deprecated(
-        since = "0.5.3",
-        note = "This functionality will be moved to `new` in a future release."
-    )]
-    pub fn new_checked(modulus: &Uint<LIMBS>) -> CtOption<Self> {
-        // A valid modulus must be odd.
+    ///
+    /// Returns a `CtOption` that is `None` if the provided modulus is not odd.
+    pub fn new(modulus: &Uint<LIMBS>) -> CtOption<Self> {
         CtOption::new(Self::generate_params(modulus), modulus.ct_is_odd().into())
     }
 
@@ -273,28 +258,17 @@ mod test {
     const LIMBS: usize = nlimbs!(64);
 
     #[test]
-    #[allow(deprecated)]
     // Test that a valid modulus yields `DynResidueParams`
     fn test_valid_modulus() {
         let valid_modulus = Uint::<LIMBS>::from(3u8);
-
-        DynResidueParams::<LIMBS>::new_checked(&valid_modulus).unwrap();
-        DynResidueParams::<LIMBS>::new(&valid_modulus);
+        DynResidueParams::<LIMBS>::new(&valid_modulus).unwrap();
     }
 
     #[test]
-    #[allow(deprecated)]
     // Test that an invalid checked modulus does not yield `DynResidueParams`
     fn test_invalid_checked_modulus() {
         assert!(bool::from(
-            DynResidueParams::<LIMBS>::new_checked(&Uint::from(2u8)).is_none()
+            DynResidueParams::<LIMBS>::new(&Uint::from(2u8)).is_none()
         ))
-    }
-
-    #[test]
-    #[should_panic]
-    // Tets that an invalid modulus panics
-    fn test_invalid_modulus() {
-        DynResidueParams::<LIMBS>::new(&Uint::from(2u8));
     }
 }

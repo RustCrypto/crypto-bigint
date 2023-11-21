@@ -322,7 +322,7 @@ proptest! {
 
         let expected = to_uint(a_bi.modpow(&b_bi, &p_bi));
 
-        let params = DynResidueParams::new(&P);
+        let params = DynResidueParams::new(&P).unwrap();
         let a_m = DynResidue::new(&a, params);
         let actual = a_m.pow(&b).retrieve();
 
@@ -331,7 +331,6 @@ proptest! {
 
     #[test]
     fn residue_pow_bounded_exp(a in uint_mod_p(P), b in uint(), exponent_bits in any::<u8>()) {
-
         let b_masked = b & (U256::ONE << exponent_bits.into()).wrapping_sub(&U256::ONE);
 
         let a_bi = to_biguint(&a);
@@ -340,7 +339,7 @@ proptest! {
 
         let expected = to_uint(a_bi.modpow(&b_bi, &p_bi));
 
-        let params = DynResidueParams::new(&P);
+        let params = DynResidueParams::new(&P).unwrap();
         let a_m = DynResidue::new(&a, params);
         let actual = a_m.pow_bounded_exp(&b, exponent_bits.into()).retrieve();
 
@@ -361,7 +360,7 @@ proptest! {
         };
         let expected = to_uint(expected);
 
-        let params = DynResidueParams::new(&P);
+        let params = DynResidueParams::new(&P).unwrap();
         let a_m = DynResidue::new(&a, params);
         let actual = a_m.div_by_2().retrieve();
 
