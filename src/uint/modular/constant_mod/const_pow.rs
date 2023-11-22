@@ -1,11 +1,13 @@
-use crate::{modular::pow::pow_montgomery_form, MultiExponentiateBoundedExp, PowBoundedExp, Uint};
+//! Exponentiation of residues with a constant modulus.
 
 use super::{Residue, ResidueParams};
-use crate::modular::pow::multi_exponentiate_montgomery_form_array;
+use crate::{
+    modular::pow::{multi_exponentiate_montgomery_form_array, pow_montgomery_form},
+    MultiExponentiateBoundedExp, PowBoundedExp, Uint,
+};
+
 #[cfg(feature = "alloc")]
-use crate::modular::pow::multi_exponentiate_montgomery_form_slice;
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
+use {crate::modular::pow::multi_exponentiate_montgomery_form_slice, alloc::vec::Vec};
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// Raises to the `exponent` power.

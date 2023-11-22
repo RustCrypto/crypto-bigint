@@ -1,4 +1,11 @@
-use crate::{Limb, Uint, Word};
+//! Implements `DynResidue`s, supporting modular arithmetic with a modulus set at runtime.
+
+mod runtime_add;
+mod runtime_inv;
+mod runtime_mul;
+mod runtime_neg;
+mod runtime_pow;
+mod runtime_sub;
 
 use super::{
     constant_mod::{Residue, ResidueParams},
@@ -6,40 +13,27 @@ use super::{
     reduction::montgomery_reduction,
     Retrieve,
 };
-
+use crate::{Limb, Uint, Word};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-/// Additions between residues with a modulus set at runtime
-mod runtime_add;
-/// Multiplicative inverses of residues with a modulus set at runtime
-mod runtime_inv;
-/// Multiplications between residues with a modulus set at runtime
-mod runtime_mul;
-/// Negations of residues with a modulus set at runtime
-mod runtime_neg;
-/// Exponentiation of residues with a modulus set at runtime
-mod runtime_pow;
-/// Subtractions between residues with a modulus set at runtime
-mod runtime_sub;
 
 /// The parameters to efficiently go to and from the Montgomery form for an odd modulus provided at runtime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DynResidueParams<const LIMBS: usize> {
-    // The constant modulus
+    /// The constant modulus
     modulus: Uint<LIMBS>,
-    // Parameter used in Montgomery reduction
+    /// Parameter used in Montgomery reduction
     r: Uint<LIMBS>,
-    // R^2, used to move into Montgomery form
+    /// R^2, used to move into Montgomery form
     r2: Uint<LIMBS>,
-    // R^3, used to compute the multiplicative inverse
+    /// R^3, used to compute the multiplicative inverse
     r3: Uint<LIMBS>,
-    // The lowest limbs of -(MODULUS^-1) mod R
-    // We only need the LSB because during reduction this value is multiplied modulo 2**Limb::BITS.
+    /// The lowest limbs of -(MODULUS^-1) mod R
+    /// We only need the LSB because during reduction this value is multiplied modulo 2**Limb::BITS.
     mod_neg_inv: Limb,
 }
 
 impl<const LIMBS: usize> DynResidueParams<LIMBS> {
-    // Internal helper function to generate parameters; this lets us wrap the constructors more cleanly
+    /// Internal helper function to generate parameters; this lets us wrap the constructors more cleanly
     const fn generate_params(modulus: &Uint<LIMBS>) -> Self {
         let r = Uint::MAX.const_rem(modulus).0.wrapping_add(&Uint::ONE);
         let r2 = Uint::const_rem_wide(r.square_wide(), modulus).0;

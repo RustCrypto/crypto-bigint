@@ -1,8 +1,8 @@
-use subtle::CtOption;
-
-use crate::{modular::inv::inv_montgomery_form, traits::Invert, CtChoice};
+//! Multiplicative inverses of residues with a modulus set at runtime.
 
 use super::DynResidue;
+use crate::{modular::inv::inv_montgomery_form, traits::Invert, CtChoice};
+use subtle::CtOption;
 
 impl<const LIMBS: usize> DynResidue<LIMBS> {
     /// Computes the residue `self^-1` representing the multiplicative inverse of `self`.

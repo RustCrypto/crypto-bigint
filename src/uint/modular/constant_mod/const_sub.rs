@@ -1,8 +1,8 @@
-use core::ops::{Sub, SubAssign};
-
-use crate::modular::sub::sub_montgomery_form;
+//! Subtractions between residues with a constant modulus.
 
 use super::{Residue, ResidueParams};
+use crate::modular::sub::sub_montgomery_form;
+use core::ops::{Sub, SubAssign};
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// Subtracts `rhs`.

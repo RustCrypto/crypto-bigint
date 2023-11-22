@@ -1,10 +1,16 @@
-use core::{fmt::Debug, marker::PhantomData};
+//! Implements `Residue`s, supporting modular arithmetic with a constant modulus.
 
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-use crate::{Limb, Uint, Zero};
+mod const_add;
+mod const_inv;
+mod const_mul;
+mod const_neg;
+mod const_pow;
+mod const_sub;
 
 use super::{div_by_2::div_by_2, reduction::montgomery_reduction, Retrieve};
+use crate::{Limb, Uint, Zero};
+use core::{fmt::Debug, marker::PhantomData};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "rand_core")]
 use crate::{rand_core::CryptoRngCore, NonZero, Random, RandomMod};
@@ -15,19 +21,6 @@ use {
     serdect::serde::de::Error,
     serdect::serde::{Deserialize, Deserializer, Serialize, Serializer},
 };
-
-/// Additions between residues with a constant modulus
-mod const_add;
-/// Multiplicative inverses of residues with a constant modulus
-mod const_inv;
-/// Multiplications between residues with a constant modulus
-mod const_mul;
-/// Negations of residues with a constant modulus
-mod const_neg;
-/// Exponentiation of residues with a constant modulus
-mod const_pow;
-/// Subtractions between residues with a constant modulus
-mod const_sub;
 
 /// Macros to remove the boilerplate code when dealing with constant moduli.
 #[macro_use]

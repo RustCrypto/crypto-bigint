@@ -1,8 +1,8 @@
-use core::ops::{Add, AddAssign};
-
-use crate::modular::add::add_montgomery_form;
+//! Additions between residues with a modulus set at runtime.
 
 use super::DynResidue;
+use crate::modular::add::add_montgomery_form;
+use core::ops::{Add, AddAssign};
 
 impl<const LIMBS: usize> DynResidue<LIMBS> {
     /// Adds `rhs`.

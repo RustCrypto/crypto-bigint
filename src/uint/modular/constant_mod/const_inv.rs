@@ -1,10 +1,9 @@
-use core::marker::PhantomData;
-
-use subtle::CtOption;
-
-use crate::{modular::inv::inv_montgomery_form, traits::Invert, CtChoice, NonZero};
+//! Multiplicative inverses of residues with a constant modulus.
 
 use super::{Residue, ResidueParams};
+use crate::{modular::inv::inv_montgomery_form, traits::Invert, CtChoice, NonZero};
+use core::marker::PhantomData;
+use subtle::CtOption;
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// Computes the residue `self^-1` representing the multiplicative inverse of `self`.

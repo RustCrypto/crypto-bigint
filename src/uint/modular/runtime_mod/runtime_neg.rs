@@ -1,6 +1,7 @@
-use core::ops::Neg;
+//! Negations of residues with a modulus set at runtime.
 
 use super::DynResidue;
+use core::ops::Neg;
 
 impl<const LIMBS: usize> DynResidue<LIMBS> {
     /// Negates the number.
