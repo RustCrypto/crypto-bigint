@@ -1,11 +1,11 @@
 //! Implements `DynResidue`s, supporting modular arithmetic with a modulus set at runtime.
 
-mod runtime_add;
-mod runtime_inv;
-mod runtime_mul;
-mod runtime_neg;
-mod runtime_pow;
-mod runtime_sub;
+mod add;
+mod inv;
+mod mul;
+mod neg;
+mod pow;
+mod sub;
 
 use super::{
     constant_mod::{Residue, ResidueParams},
