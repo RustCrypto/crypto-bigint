@@ -1,11 +1,11 @@
 //! Implements `Residue`s, supporting modular arithmetic with a constant modulus.
 
-mod const_add;
-mod const_inv;
-mod const_mul;
-mod const_neg;
-mod const_pow;
-mod const_sub;
+mod add;
+mod inv;
+mod mul;
+mod neg;
+mod pow;
+mod sub;
 
 use super::{div_by_2::div_by_2, reduction::montgomery_reduction, Retrieve};
 use crate::{Limb, Uint, Zero};
