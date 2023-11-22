@@ -1,6 +1,6 @@
 //! Test to ensure that `const_residue!` works from outside this crate.
 
-use crypto_bigint::{const_residue, impl_modulus, modular::constant_mod::ResidueParams, U64};
+use crypto_bigint::{const_residue, impl_modulus, modular::ResidueParams, U64};
 
 impl_modulus!(TestMod, U64, "30e4b8f030ab42f3");
 
