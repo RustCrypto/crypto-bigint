@@ -1,10 +1,13 @@
+//! Exponentiation of residues with a modulus set at runtime.
+
 use super::DynResidue;
-use crate::modular::pow::multi_exponentiate_montgomery_form_array;
+use crate::{
+    modular::pow::{multi_exponentiate_montgomery_form_array, pow_montgomery_form},
+    MultiExponentiateBoundedExp, PowBoundedExp, Uint,
+};
+
 #[cfg(feature = "alloc")]
-use crate::modular::pow::multi_exponentiate_montgomery_form_slice;
-use crate::{modular::pow::pow_montgomery_form, MultiExponentiateBoundedExp, PowBoundedExp, Uint};
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
+use {crate::modular::pow::multi_exponentiate_montgomery_form_slice, alloc::vec::Vec};
 
 impl<const LIMBS: usize> DynResidue<LIMBS> {
     /// Raises to the `exponent` power.

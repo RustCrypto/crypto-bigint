@@ -1,8 +1,8 @@
-use core::ops::{Add, AddAssign};
-
-use crate::modular::add::add_montgomery_form;
+//! Additions between residues with a constant modulus.
 
 use super::{Residue, ResidueParams};
+use crate::modular::add::add_montgomery_form;
+use core::ops::{Add, AddAssign};
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// Adds `rhs`.

@@ -1,8 +1,8 @@
-use core::ops::{Sub, SubAssign};
-
-use crate::modular::sub::sub_montgomery_form;
+//! Subtractions between residues with a modulus set at runtime.
 
 use super::DynResidue;
+use crate::modular::sub::sub_montgomery_form;
+use core::ops::{Sub, SubAssign};
 
 impl<const LIMBS: usize> DynResidue<LIMBS> {
     /// Subtracts `rhs`.

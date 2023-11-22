@@ -1,6 +1,7 @@
-use core::ops::Neg;
+//! Negations of residues with a constant modulus.
 
 use super::{Residue, ResidueParams};
+use core::ops::Neg;
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// Negates the number.

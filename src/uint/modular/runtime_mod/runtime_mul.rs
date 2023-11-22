@@ -1,11 +1,11 @@
-use core::ops::{Mul, MulAssign};
+//! Multiplications between residues with a modulus set at runtime.
 
+use super::DynResidue;
 use crate::{
     modular::mul::{mul_montgomery_form, square_montgomery_form},
     traits::Square,
 };
-
-use super::DynResidue;
+use core::ops::{Mul, MulAssign};
 
 impl<const LIMBS: usize> DynResidue<LIMBS> {
     /// Multiplies by `rhs`.

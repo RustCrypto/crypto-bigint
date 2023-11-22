@@ -1,3 +1,5 @@
+//! Multiplications between residues with a constant modulus.
+
 use core::{
     marker::PhantomData,
     ops::{Mul, MulAssign},
