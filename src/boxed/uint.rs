@@ -2,11 +2,13 @@
 
 mod add;
 mod cmp;
+mod mul;
 mod sub;
 
-use crate::{Limb, Word};
+use crate::{Limb, Uint, Word, Zero, U128, U64};
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::fmt;
+use subtle::Choice;
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -38,6 +40,13 @@ impl BoxedUint {
         Self {
             limbs: vec![Limb::ONE; 1].into(),
         }
+    }
+
+    /// Is this [`BoxedUint`] equal to zero?
+    pub fn is_zero(&self) -> Choice {
+        self.limbs
+            .iter()
+            .fold(Choice::from(1), |acc, limb| acc & limb.is_zero())
     }
 
     /// Create a new [`BoxedUint`] with the given number of bits of precision.
@@ -129,6 +138,11 @@ impl BoxedUint {
         self.limbs
     }
 
+    /// Get the number of limbs in this [`BoxedUint`].
+    pub fn nlimbs(&self) -> usize {
+        self.limbs.len()
+    }
+
     /// Get the precision of this [`BoxedUint`] in bits.
     pub fn bits(&self) -> usize {
         self.limbs.len() * Limb::BITS
@@ -207,6 +221,54 @@ impl fmt::Debug for BoxedUint {
 impl fmt::Display for BoxedUint {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::UpperHex::fmt(self, f)
+    }
+}
+
+impl From<u8> for BoxedUint {
+    fn from(n: u8) -> Self {
+        vec![Limb::from(n); 1].into()
+    }
+}
+
+impl From<u16> for BoxedUint {
+    fn from(n: u16) -> Self {
+        vec![Limb::from(n); 1].into()
+    }
+}
+
+impl From<u32> for BoxedUint {
+    fn from(n: u32) -> Self {
+        vec![Limb::from(n); 1].into()
+    }
+}
+
+impl From<u64> for BoxedUint {
+    fn from(n: u64) -> Self {
+        U64::from(n).into()
+    }
+}
+
+impl From<u128> for BoxedUint {
+    fn from(n: u128) -> Self {
+        U128::from(n).into()
+    }
+}
+
+impl From<Box<[Limb]>> for BoxedUint {
+    fn from(limbs: Box<[Limb]>) -> BoxedUint {
+        Self { limbs }
+    }
+}
+
+impl From<Vec<Limb>> for BoxedUint {
+    fn from(limbs: Vec<Limb>) -> BoxedUint {
+        limbs.into_boxed_slice().into()
+    }
+}
+
+impl<const LIMBS: usize> From<Uint<LIMBS>> for BoxedUint {
+    fn from(uint: Uint<LIMBS>) -> BoxedUint {
+        Vec::from(uint.to_limbs()).into()
     }
 }
 
