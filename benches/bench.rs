@@ -3,9 +3,12 @@ use criterion::{
 };
 use crypto_bigint::{
     modular::{DynResidue, DynResidueParams},
-    Limb, MultiExponentiate, NonZero, Random, Reciprocal, U128, U2048, U256,
+    Limb, NonZero, Random, Reciprocal, U128, U2048, U256,
 };
 use rand_core::OsRng;
+
+#[cfg(feature = "alloc")]
+use crypto_bigint::MultiExponentiate;
 
 fn bench_division<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("div/rem, U256/U128, full size", |b| {
@@ -102,6 +105,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         )
     });
 
+    #[cfg(feature = "alloc")]
     for i in [1, 2, 3, 4, 10, 100] {
         group.bench_function(
             format!("multi_exponentiate for {i} bases, U256^U256"),

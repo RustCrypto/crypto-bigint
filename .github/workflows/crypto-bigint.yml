@@ -136,6 +136,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: 1.70.0
+      - run: cargo build --benches
       - run: cargo build --all-features --benches
 
   doc:
