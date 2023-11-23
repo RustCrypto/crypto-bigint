@@ -2,6 +2,7 @@
 
 mod add;
 mod cmp;
+mod sub;
 
 use crate::{Limb, Word};
 use alloc::{vec, vec::Vec};
