@@ -20,14 +20,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute "wide" multiplication, with a product twice the size of the input.
     ///
     /// Returns a tuple containing the `(lo, hi)` components of the product.
-    ///
-    /// # Ordering note
-    ///
-    /// Releases of `crypto-bigint` prior to v0.3 used `(hi, lo)` ordering
-    /// instead. This has been changed for better consistency with the rest of
-    /// the APIs in this crate.
-    ///
-    /// For more info see: <https://github.com/RustCrypto/crypto-bigint/issues/4>
     pub const fn mul_wide<const HLIMBS: usize>(&self, rhs: &Uint<HLIMBS>) -> (Self, Uint<HLIMBS>) {
         let mut i = 0;
         let mut lo = Self::ZERO;
