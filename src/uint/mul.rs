@@ -1,4 +1,4 @@
-//! [`Uint`] addition operations.
+//! [`Uint`] multiplication operations.
 
 use crate::{Checked, CheckedMul, Concat, ConcatMixed, Limb, Uint, WideWord, Word, Wrapping, Zero};
 use core::ops::{Mul, MulAssign};
