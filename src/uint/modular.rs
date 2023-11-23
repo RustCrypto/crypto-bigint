@@ -1,7 +1,24 @@
-pub mod constant_mod;
-pub mod runtime_mod;
+//! Modular arithmetic support.
+//!
+//! This module provides support for various modular arithmetic operations, implemented in terms of
+//! Montgomery form.
+//!
+//! # Constant moduli
+//!
+//! The [`Residue`] and [`ResidueParams`] types implement support for modular arithmetic where the
+//! modulus is fixed at compile-time.
+//!
+//! The [`impl_modulus!`][`crate::impl_modulus`] macro can be used to define a compile-time modulus,
+//! whereas the [`const_residue!`][`crate::const_residue`] macro can define a [`Residue`] constant.
+//!
+//! # Dynamic moduli chosen at runtime
+//!
+//! The [`DynResidue`] and [`DynResidueParams`] types implement support for modular arithmetic where
+//! the modulus can vary at runtime.
 
+mod constant_mod;
 mod reduction;
+mod runtime_mod;
 
 mod add;
 mod div_by_2;
@@ -10,7 +27,11 @@ mod mul;
 mod pow;
 mod sub;
 
-pub use reduction::montgomery_reduction;
+pub use self::{
+    constant_mod::{Residue, ResidueParams},
+    reduction::montgomery_reduction,
+    runtime_mod::{DynResidue, DynResidueParams},
+};
 
 /// A generalization for numbers kept in optimized representations (e.g. Montgomery)
 /// that can be converted back to the original form.

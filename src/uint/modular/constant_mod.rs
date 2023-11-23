@@ -26,9 +26,9 @@ use {
 #[macro_use]
 mod macros;
 
-pub use macros::*;
-
-/// The parameters to efficiently go to and from the Montgomery form for a given odd modulus. An easy way to generate these parameters is using the `impl_modulus!` macro. These parameters are constant, so they cannot be set at runtime.
+/// The parameters to efficiently go to and from the Montgomery form for a given odd modulus. An
+/// easy way to generate these parameters is using the [`impl_modulus!`][`crate::impl_modulus`]
+/// macro. These parameters are constant, so they cannot be set at runtime.
 ///
 /// Unfortunately, `LIMBS` must be generic for now until const generics are stabilized.
 pub trait ResidueParams<const LIMBS: usize>:
@@ -51,7 +51,9 @@ pub trait ResidueParams<const LIMBS: usize>:
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// A residue mod `MOD`, represented using `LIMBS` limbs. The modulus of this residue is constant, so it cannot be set at runtime.
+/// A residue mod `MOD`, represented using `LIMBS` limbs. The modulus of this residue is constant,
+/// so it cannot be set at runtime.
+///
 /// Internally, the value is stored in Montgomery form (multiplied by MOD::R) until it is retrieved.
 pub struct Residue<MOD, const LIMBS: usize>
 where
@@ -80,7 +82,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
         phantom: PhantomData,
     };
 
-    // Internal helper function to generate a residue; this lets us wrap the constructors more cleanly
+    /// Internal helper function to generate a residue; this lets us cleanly wrap the constructors.
     const fn generate_residue(integer: &Uint<LIMBS>) -> Self {
         let product = integer.mul_wide(&MOD::R2);
         let montgomery_form =
@@ -92,8 +94,10 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
         }
     }
 
-    /// Instantiates a new `Residue` that represents this `integer` mod `MOD`.
-    /// If the modulus represented by `MOD` is not odd, this function will panic; use [`new_checked`][`Residue::new_checked`] if you want to be able to detect an invalid modulus.
+    /// Instantiates a new [`Residue`] that represents this `integer` mod `MOD`.
+    ///
+    /// If the modulus represented by `MOD` is not odd, this function will panic; use
+    /// [`new_checked`][`Residue::new_checked`] if you want to be able to detect an invalid modulus.
     pub const fn new(integer: &Uint<LIMBS>) -> Self {
         // A valid modulus must be odd
         if MOD::MODULUS.ct_is_odd().to_u8() == 0 {
@@ -104,7 +108,9 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     }
 
     /// Instantiates a new `Residue` that represents this `integer` mod `MOD` if the modulus is odd.
-    /// Returns a `CtOption` that is `None` if the provided modulus is not odd; this is a safer version of [`new`][`Residue::new`], which can panic.
+    ///
+    /// Returns a [`CtOption`] that is `None` if the provided modulus is not odd; this is a safer
+    /// version of [`new`][`Residue::new`], which can panic.
     // TODO: remove this method when we can use `generic_const_exprs.` to ensure the modulus is
     // always valid.
     pub fn new_checked(integer: &Uint<LIMBS>) -> CtOption<Self> {
@@ -115,7 +121,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
         )
     }
 
-    /// Retrieves the integer currently encoded in this `Residue`, guaranteed to be reduced.
+    /// Retrieves the integer currently encoded in this [`Residue`], guaranteed to be reduced.
     pub const fn retrieve(&self) -> Uint<LIMBS> {
         montgomery_reduction::<LIMBS>(
             &(self.montgomery_form, Uint::ZERO),
