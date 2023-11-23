@@ -5,7 +5,7 @@ mod cmp;
 mod sub;
 
 use crate::{Limb, Word};
-use alloc::{vec, vec::Vec};
+use alloc::{boxed::Box, vec, vec::Vec};
 use core::fmt;
 
 #[cfg(feature = "zeroize")]
@@ -21,8 +21,10 @@ use zeroize::Zeroize;
 /// automatically growing.
 #[derive(Clone, Default)]
 pub struct BoxedUint {
-    /// Inner limb vector. Stored from least significant to most significant.
-    limbs: Vec<Limb>,
+    /// Boxed slice containing limbs.
+    ///
+    /// Stored from least significant to most significant.
+    limbs: Box<[Limb]>,
 }
 
 impl BoxedUint {
@@ -34,7 +36,7 @@ impl BoxedUint {
     /// Get the value `1`, represented as succinctly as possible.
     pub fn one() -> Self {
         Self {
-            limbs: vec![Limb::ONE; 1],
+            limbs: vec![Limb::ONE; 1].into(),
         }
     }
 
@@ -50,7 +52,7 @@ impl BoxedUint {
         let nlimbs = bits_precision / Limb::BITS;
 
         Some(Self {
-            limbs: vec![Limb::ZERO; nlimbs],
+            limbs: vec![Limb::ZERO; nlimbs].into(),
         })
     }
 
@@ -61,7 +63,7 @@ impl BoxedUint {
     pub fn max(bits_precision: usize) -> Option<Self> {
         let mut ret = Self::new(bits_precision)?;
 
-        for limb in &mut ret.limbs {
+        for limb in &mut *ret.limbs {
             *limb = Limb::MAX;
         }
 
@@ -77,11 +79,16 @@ impl BoxedUint {
         }
     }
 
-    /// Create an array of [`Word`]s (i.e. word-sized unsigned integers) from
+    /// Create a boxed slice of [`Word`]s (i.e. word-sized unsigned integers) from
     /// a [`BoxedUint`].
     #[inline]
-    pub fn to_words(&self) -> Vec<Word> {
-        self.limbs.iter().copied().map(Into::into).collect()
+    pub fn to_words(&self) -> Box<[Word]> {
+        self.limbs
+            .iter()
+            .copied()
+            .map(Into::into)
+            .collect::<Vec<_>>()
+            .into()
     }
 
     /// Borrow the inner limbs as a slice of [`Word`]s.
@@ -89,16 +96,16 @@ impl BoxedUint {
         // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
         #[allow(trivial_casts, unsafe_code)]
         unsafe {
-            &*((self.limbs.as_slice() as *const _) as *const [Word])
+            &*((&*self.limbs as *const _) as *const [Word])
         }
     }
 
-    /// Borrow the inner limbs as a mutable array of [`Word`]s.
+    /// Borrow the inner limbs as a mutable slice of [`Word`]s.
     pub fn as_words_mut(&mut self) -> &mut [Word] {
         // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
         #[allow(trivial_casts, unsafe_code)]
         unsafe {
-            &mut *((self.limbs.as_mut_slice() as *mut _) as *mut [Word])
+            &mut *((&mut *self.limbs as *mut _) as *mut [Word])
         }
     }
 
@@ -113,12 +120,12 @@ impl BoxedUint {
     }
 
     /// Convert this [`BoxedUint`] into its inner limbs.
-    pub fn to_limbs(&self) -> Vec<Limb> {
+    pub fn to_limbs(&self) -> Box<[Limb]> {
         self.limbs.clone()
     }
 
     /// Convert this [`BoxedUint`] into its inner limbs.
-    pub fn into_limbs(self) -> Vec<Limb> {
+    pub fn into_limbs(self) -> Box<[Limb]> {
         self.limbs
     }
 
@@ -158,7 +165,12 @@ impl BoxedUint {
             carry = c;
         }
 
-        (Self { limbs }, carry)
+        (
+            Self {
+                limbs: limbs.into(),
+            },
+            carry,
+        )
     }
 }
 
