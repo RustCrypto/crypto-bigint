@@ -2,7 +2,7 @@
 
 #![cfg(feature = "alloc")]
 
-use crypto_bigint::{BoxedUint, Limb};
+use crypto_bigint::{BoxedUint, CheckedAdd, Limb};
 use num_bigint::BigUint;
 use proptest::prelude::*;
 
@@ -30,6 +30,22 @@ prop_compose! {
 proptest! {
     #[test]
     fn roundtrip(a in uint()) {
-        assert_eq!(a, to_uint(to_biguint(&a)));
+        prop_assert_eq!(&a, &to_uint(to_biguint(&a)));
+    }
+
+    #[test]
+    fn checked_add(a in uint(), b in uint()) {
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+
+        let expected = a_bi + b_bi;
+
+        match Option::<BoxedUint>::from(a.checked_add(&b)) {
+            Some(actual) => prop_assert_eq!(expected, to_biguint(&actual)),
+            None => {
+                let max = BoxedUint::max(a.bits()).unwrap();
+                prop_assert!(expected > to_biguint(&max));
+            }
+        }
     }
 }
