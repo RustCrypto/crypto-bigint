@@ -4,7 +4,7 @@ use crate::{BoxedUint, Limb};
 
 impl BoxedUint {
     /// Multiply `self` by `rhs`.
-    pub fn mul(&self, rhs: &Self) -> Self {
+    pub fn mul_wide(&self, rhs: &Self) -> Self {
         let mut ret = Self {
             limbs: vec![Limb::ZERO; self.nlimbs() + rhs.nlimbs()].into(),
         };
@@ -35,15 +35,18 @@ mod tests {
     #[test]
     fn mul_zero_and_one() {
         assert!(bool::from(
-            BoxedUint::zero().mul(&BoxedUint::zero()).is_zero()
+            BoxedUint::zero().mul_wide(&BoxedUint::zero()).is_zero()
         ));
         assert!(bool::from(
-            BoxedUint::zero().mul(&BoxedUint::one()).is_zero()
+            BoxedUint::zero().mul_wide(&BoxedUint::one()).is_zero()
         ));
         assert!(bool::from(
-            BoxedUint::one().mul(&BoxedUint::zero()).is_zero()
+            BoxedUint::one().mul_wide(&BoxedUint::zero()).is_zero()
         ));
-        assert_eq!(BoxedUint::one().mul(&BoxedUint::one()), BoxedUint::one());
+        assert_eq!(
+            BoxedUint::one().mul_wide(&BoxedUint::one()),
+            BoxedUint::one()
+        );
     }
 
     #[test]
@@ -52,7 +55,7 @@ mod tests {
 
         for &a_int in primes {
             for &b_int in primes {
-                let actual = BoxedUint::from(a_int).mul(&BoxedUint::from(b_int));
+                let actual = BoxedUint::from(a_int).mul_wide(&BoxedUint::from(b_int));
                 let expected = BoxedUint::from(a_int as u64 * b_int as u64);
                 assert_eq!(actual, expected);
             }
