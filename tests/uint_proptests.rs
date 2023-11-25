@@ -1,4 +1,4 @@
-//! Equivalence tests between `num-bigint` and `crypto-bigint`
+//! Equivalence tests between `crypto_bigint::Uint` and `num_bigint::BigUint`.
 
 use crypto_bigint::{
     modular::{DynResidue, DynResidueParams},
