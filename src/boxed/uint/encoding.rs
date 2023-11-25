@@ -2,6 +2,7 @@
 
 use super::BoxedUint;
 use crate::Limb;
+use alloc::boxed::Box;
 
 /// Decoding errors for [`BoxedUint`].
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -64,6 +65,41 @@ impl BoxedUint {
         }
 
         Ok(ret)
+    }
+
+    /// Serialize this [`BoxedUint`] as big-endian.
+    #[inline]
+    pub fn to_be_bytes(&self) -> Box<[u8]> {
+        let mut out = vec![0u8; self.limbs.len() * Limb::BYTES];
+
+        for (src, dst) in self
+            .limbs
+            .iter()
+            .rev()
+            .cloned()
+            .zip(out.chunks_exact_mut(Limb::BYTES))
+        {
+            dst.copy_from_slice(&src.0.to_be_bytes());
+        }
+
+        out.into()
+    }
+
+    /// Serialize this [`BoxedUint`] as little-endian.
+    #[inline]
+    pub fn to_le_bytes(&self) -> Box<[u8]> {
+        let mut out = vec![0u8; self.limbs.len() * Limb::BYTES];
+
+        for (src, dst) in self
+            .limbs
+            .iter()
+            .cloned()
+            .zip(out.chunks_exact_mut(Limb::BYTES))
+        {
+            dst.copy_from_slice(&src.0.to_le_bytes());
+        }
+
+        out.into()
     }
 }
 
@@ -217,5 +253,19 @@ mod tests {
             BoxedUint::from_le_slice(&bytes, 127),
             Err(DecodeError::Precision)
         );
+    }
+
+    #[test]
+    fn to_be_bytes() {
+        let bytes = hex!("00112233445566778899aabbccddeeff");
+        let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
+        assert_eq!(bytes.as_slice(), &*n.to_be_bytes());
+    }
+
+    #[test]
+    fn to_le_bytes() {
+        let bytes = hex!("ffeeddccbbaa99887766554433221100");
+        let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
+        assert_eq!(bytes.as_slice(), &*n.to_be_bytes());
     }
 }
