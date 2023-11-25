@@ -41,9 +41,9 @@ rand_chacha = "0.3"
 [features]
 default = ["rand"]
 alloc = ["serdect?/alloc"]
+extra-sizes = []
 rand = ["rand_core/std"]
 serde = ["dep:serdect"]
-extra-sizes = []
 
 [package.metadata.docs.rs]
 all-features = true

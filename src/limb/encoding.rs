@@ -30,6 +30,23 @@ impl Encoding for Limb {
     }
 }
 
+#[cfg(feature = "alloc")]
+impl Limb {
+    /// Decode limb from a big endian byte slice.
+    ///
+    /// Panics if the slice is not the same size as [`Limb::Repr`].
+    pub(crate) fn from_be_slice(bytes: &[u8]) -> Self {
+        Self::from_be_bytes(bytes.try_into().expect("slice not limb-sized"))
+    }
+
+    /// Decode limb from a little endian byte slice.
+    ///
+    /// Panics if the slice is not the same size as [`Limb::Repr`].
+    pub(crate) fn from_le_slice(bytes: &[u8]) -> Self {
+        Self::from_le_bytes(bytes.try_into().expect("slice not limb-sized"))
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

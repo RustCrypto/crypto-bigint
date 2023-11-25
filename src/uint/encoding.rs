@@ -1,4 +1,4 @@
-//! Const-friendly decoding operations for [`Uint`]
+//! Const-friendly decoding/encoding operations for [`Uint`].
 
 #[cfg(all(feature = "der", feature = "generic-array"))]
 mod der;
