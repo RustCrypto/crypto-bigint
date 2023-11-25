@@ -2,6 +2,7 @@
 
 mod add;
 mod cmp;
+pub(crate) mod encoding;
 mod mul;
 mod sub;
 
@@ -30,9 +31,22 @@ pub struct BoxedUint {
 }
 
 impl BoxedUint {
-    /// Get the value `0`, represented as succinctly as possible.
+    /// Get the value `0` represented as succinctly as possible.
     pub fn zero() -> Self {
         Self::default()
+    }
+
+    /// Get the value `0` with the given number of bits of precision.
+    ///
+    /// Panics if the precision is not a multiple of [`Limb::BITS`].
+    pub fn zero_with_precision(bits_precision: usize) -> Self {
+        assert_eq!(
+            bits_precision % Limb::BITS,
+            0,
+            "precision is not a multiple of limb size"
+        );
+
+        vec![Limb::ZERO; bits_precision / Limb::BITS].into()
     }
 
     /// Get the value `1`, represented as succinctly as possible.
@@ -40,6 +54,17 @@ impl BoxedUint {
         Self {
             limbs: vec![Limb::ONE; 1].into(),
         }
+    }
+
+    /// Get the value `1` with the given number of bits of precision.
+    ///
+    /// Panics if the precision is not at least [`Limb::BITS`] or if it is not
+    /// a multiple thereof.
+    pub fn one_with_precision(bits_precision: usize) -> Self {
+        assert!(bits_precision >= Limb::BITS, "precision too small");
+        let mut ret = Self::zero_with_precision(bits_precision);
+        ret.limbs[0] = Limb::ONE;
+        ret
     }
 
     /// Is this [`BoxedUint`] equal to zero?
@@ -82,9 +107,9 @@ impl BoxedUint {
     /// Create a [`BoxedUint`] from an array of [`Word`]s (i.e. word-sized unsigned
     /// integers).
     #[inline]
-    pub fn from_words(words: &[Word]) -> Self {
+    pub fn from_words(words: impl IntoIterator<Item = Word>) -> Self {
         Self {
-            limbs: words.iter().copied().map(Into::into).collect(),
+            limbs: words.into_iter().map(Into::into).collect(),
         }
     }
 
@@ -92,12 +117,7 @@ impl BoxedUint {
     /// a [`BoxedUint`].
     #[inline]
     pub fn to_words(&self) -> Box<[Word]> {
-        self.limbs
-            .iter()
-            .copied()
-            .map(Into::into)
-            .collect::<Vec<_>>()
-            .into()
+        self.limbs.iter().copied().map(Into::into).collect()
     }
 
     /// Borrow the inner limbs as a slice of [`Word`]s.

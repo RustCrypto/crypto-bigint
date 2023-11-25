@@ -184,7 +184,7 @@ pub use crate::{
 pub use subtle;
 
 #[cfg(feature = "alloc")]
-pub use crate::boxed::uint::BoxedUint;
+pub use crate::boxed::uint::{encoding::DecodeError, BoxedUint};
 
 #[cfg(feature = "generic-array")]
 pub use {
