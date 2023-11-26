@@ -5,6 +5,7 @@ mod add_mod;
 mod bit_and;
 mod cmp;
 pub(crate) mod encoding;
+mod modular;
 mod mul;
 mod sub;
 mod sub_mod;
@@ -259,6 +260,14 @@ impl From<u64> for BoxedUint {
 impl From<u128> for BoxedUint {
     fn from(n: u128) -> Self {
         U128::from(n).into()
+    }
+}
+
+impl From<&[Limb]> for BoxedUint {
+    fn from(limbs: &[Limb]) -> BoxedUint {
+        Self {
+            limbs: limbs.into(),
+        }
     }
 }
 
