@@ -12,13 +12,11 @@ impl BoxedUint {
         debug_assert!(self < p);
         debug_assert!(rhs < p);
 
-        let (out, borrow) = self.sbb(rhs, Limb::ZERO);
+        let (out, mask) = self.sbb(rhs, Limb::ZERO);
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-        let mask = Self::from_words(vec![borrow.0; p.nlimbs()]);
-
-        out.wrapping_add(&p.bitand(&mask))
+        out.wrapping_add(&p.bitand_limb(mask))
     }
 }
 

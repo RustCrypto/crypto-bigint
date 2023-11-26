@@ -12,6 +12,13 @@ impl BoxedUint {
         Self::chain(self, rhs, Limb::ZERO, |a, b, z| (a.bitand(b), z)).0
     }
 
+    /// Bitwise `AND` against the given limb.
+    pub fn bitand_limb(&self, rhs: Limb) -> Self {
+        Self {
+            limbs: self.limbs.iter().map(|limb| limb.bitand(rhs)).collect(),
+        }
+    }
+
     /// Perform wrapping bitwise `AND`.
     ///
     /// There's no way wrapping could ever happen.
