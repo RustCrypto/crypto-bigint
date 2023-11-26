@@ -163,8 +163,6 @@ pub mod modular;
 
 #[cfg(feature = "generic-array")]
 mod array;
-#[cfg(feature = "alloc")]
-mod boxed;
 mod checked;
 mod ct_choice;
 mod limb;
@@ -186,7 +184,7 @@ pub use crate::{
 pub use subtle;
 
 #[cfg(feature = "alloc")]
-pub use crate::boxed::uint::{encoding::DecodeError, BoxedUint};
+pub use crate::uint::boxed::{encoding::DecodeError, BoxedUint};
 
 #[cfg(feature = "generic-array")]
 pub use {
