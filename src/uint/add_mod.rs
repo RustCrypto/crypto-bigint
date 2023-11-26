@@ -1,4 +1,4 @@
-//! [`Uint`] addition modulus operations.
+//! [`Uint`] modular addition operations.
 
 use crate::{AddMod, Limb, Uint};
 
@@ -6,7 +6,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self + rhs mod p`.
     ///
     /// Assumes `self + rhs` as unbounded integer is `< 2p`.
-    pub const fn add_mod(&self, rhs: &Uint<LIMBS>, p: &Uint<LIMBS>) -> Uint<LIMBS> {
+    pub const fn add_mod(&self, rhs: &Self, p: &Self) -> Self {
         let (w, carry) = self.adc(rhs, Limb::ZERO);
 
         // Attempt to subtract the modulus, to ensure the result is in the field.
@@ -16,7 +16,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the
         // modulus.
-        let mask = Uint::from_words([borrow.0; LIMBS]);
+        let mask = Self::from_words([borrow.0; LIMBS]);
 
         w.wrapping_add(&p.bitand(&mask))
     }
@@ -33,7 +33,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // for the overflow. Otherwise, we need to subtract `c` again, which
         // in that case cannot underflow.
         let l = carry.0.wrapping_sub(1) & c.0;
-        out.wrapping_sub(&Uint::from_word(l))
+        out.wrapping_sub(&Self::from_word(l))
     }
 }
 

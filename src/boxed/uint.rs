@@ -7,6 +7,7 @@ mod cmp;
 pub(crate) mod encoding;
 mod mul;
 mod sub;
+mod sub_mod;
 
 use crate::{Limb, Uint, Word, Zero, U128, U64};
 use alloc::{boxed::Box, vec, vec::Vec};

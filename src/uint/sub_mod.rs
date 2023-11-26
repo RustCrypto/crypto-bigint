@@ -1,4 +1,4 @@
-//! [`Uint`] subtraction modulus operations.
+//! [`Uint`] modular subtraction operations.
 
 use crate::{Limb, SubMod, Uint};
 
@@ -6,12 +6,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self - rhs mod p`.
     ///
     /// Assumes `self - rhs` as unbounded signed integer is in `[-p, p)`.
-    pub const fn sub_mod(&self, rhs: &Uint<LIMBS>, p: &Uint<LIMBS>) -> Uint<LIMBS> {
+    pub const fn sub_mod(&self, rhs: &Self, p: &Self) -> Self {
         let (out, borrow) = self.sbb(rhs, Limb::ZERO);
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-        let mask = Uint::from_words([borrow.0; LIMBS]);
+        let mask = Self::from_words([borrow.0; LIMBS]);
 
         out.wrapping_add(&p.bitand(&mask))
     }
@@ -29,7 +29,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-        let mask = Uint::from_words([borrow; LIMBS]);
+        let mask = Self::from_words([borrow; LIMBS]);
 
         out.wrapping_add(&p.bitand(&mask))
     }
@@ -45,7 +45,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // the underflow. This cannot underflow due to the assumption
         // `self - rhs >= -p`.
         let l = borrow.0 & c.0;
-        out.wrapping_sub(&Uint::from_word(l))
+        out.wrapping_sub(&Self::from_word(l))
     }
 }
 
@@ -61,8 +61,24 @@ impl<const LIMBS: usize> SubMod for Uint<LIMBS> {
 
 #[cfg(all(test, feature = "rand"))]
 mod tests {
-    use crate::{Limb, NonZero, Random, RandomMod, Uint};
+    use crate::{Limb, NonZero, Random, RandomMod, Uint, U256};
     use rand_core::SeedableRng;
+
+    #[test]
+    fn sub_mod_nist_p256() {
+        let a =
+            U256::from_be_hex("1a2472fde50286541d97ca6a3592dd75beb9c9646e40c511b82496cfc3926956");
+        let b =
+            U256::from_be_hex("d5777c45019673125ad240f83094d4252d829516fac8601ed01979ec1ec1a251");
+        let n =
+            U256::from_be_hex("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551");
+
+        let actual = a.sub_mod(&b, &n);
+        let expected =
+            U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
+
+        assert_eq!(expected, actual);
+    }
 
     macro_rules! test_sub_mod {
         ($size:expr, $test_name:ident) => {
