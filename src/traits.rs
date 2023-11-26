@@ -14,6 +14,7 @@ use rand_core::CryptoRngCore;
 /// Integer type.
 pub trait Integer:
     'static
+    + AddMod
     + AsRef<[Limb]>
     + BitAnd<Output = Self>
     + BitOr<Output = Self>
@@ -31,6 +32,8 @@ pub trait Integer:
     + Div<NonZero<Self>, Output = Self>
     + Eq
     + From<u64>
+    + MulMod
+    + NegMod
     + Not
     + Ord
     + Rem<NonZero<Self>, Output = Self>
@@ -38,6 +41,7 @@ pub trait Integer:
     + Sized
     + Shl<usize, Output = Self>
     + Shr<usize, Output = Self>
+    + SubMod
     + Sync
     + Zero
 {
