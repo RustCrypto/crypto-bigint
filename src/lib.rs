@@ -159,6 +159,8 @@ extern crate alloc;
 #[macro_use]
 mod macros;
 
+pub mod modular;
+
 #[cfg(feature = "generic-array")]
 mod array;
 #[cfg(feature = "alloc")]
