@@ -3,9 +3,11 @@
 //! By default these are all constant-time and use the `subtle` crate.
 
 use super::BoxedUint;
-use crate::Limb;
-use core::cmp;
-use subtle::{Choice, ConstantTimeEq};
+use crate::{CtChoice, Limb};
+use core::cmp::{self, Ordering};
+use subtle::{
+    Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
+};
 
 impl ConstantTimeEq for BoxedUint {
     #[inline]
@@ -23,6 +25,22 @@ impl ConstantTimeEq for BoxedUint {
     }
 }
 
+impl ConstantTimeGreater for BoxedUint {
+    #[inline]
+    fn ct_gt(&self, other: &Self) -> Choice {
+        let (_, borrow) = other.sbb(self, Limb::ZERO);
+        CtChoice::from_mask(borrow.0).into()
+    }
+}
+
+impl ConstantTimeLess for BoxedUint {
+    #[inline]
+    fn ct_lt(&self, other: &Self) -> Choice {
+        let (_, borrow) = self.sbb(other, Limb::ZERO);
+        CtChoice::from_mask(borrow.0).into()
+    }
+}
+
 impl Eq for BoxedUint {}
 impl PartialEq for BoxedUint {
     fn eq(&self, other: &Self) -> bool {
@@ -30,10 +48,32 @@ impl PartialEq for BoxedUint {
     }
 }
 
+impl Ord for BoxedUint {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let mut ret = Ordering::Equal;
+        ret.conditional_assign(&Ordering::Greater, self.ct_gt(other));
+        ret.conditional_assign(&Ordering::Less, self.ct_lt(other));
+
+        #[cfg(debug_assertions)]
+        if ret == Ordering::Equal {
+            debug_assert_eq!(self, other);
+        }
+
+        ret
+    }
+}
+
+impl PartialOrd for BoxedUint {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::BoxedUint;
-    use subtle::ConstantTimeEq;
+    use core::cmp::Ordering;
+    use subtle::{ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
     #[test]
     fn ct_eq() {
@@ -44,5 +84,62 @@ mod tests {
         assert!(!bool::from(a.ct_eq(&b)));
         assert!(!bool::from(b.ct_eq(&a)));
         assert!(bool::from(b.ct_eq(&b)));
+    }
+
+    #[test]
+    fn ct_gt() {
+        let a = BoxedUint::zero();
+        let b = BoxedUint::one();
+        let c = BoxedUint::max(64).unwrap();
+
+        assert!(bool::from(b.ct_gt(&a)));
+        assert!(bool::from(c.ct_gt(&a)));
+        assert!(bool::from(c.ct_gt(&b)));
+
+        assert!(!bool::from(a.ct_gt(&a)));
+        assert!(!bool::from(b.ct_gt(&b)));
+        assert!(!bool::from(c.ct_gt(&c)));
+
+        assert!(!bool::from(a.ct_gt(&b)));
+        assert!(!bool::from(a.ct_gt(&c)));
+        assert!(!bool::from(b.ct_gt(&c)));
+    }
+
+    #[test]
+    fn ct_lt() {
+        let a = BoxedUint::zero();
+        let b = BoxedUint::one();
+        let c = BoxedUint::max(64).unwrap();
+
+        assert!(bool::from(a.ct_lt(&b)));
+        assert!(bool::from(a.ct_lt(&c)));
+        assert!(bool::from(b.ct_lt(&c)));
+
+        assert!(!bool::from(a.ct_lt(&a)));
+        assert!(!bool::from(b.ct_lt(&b)));
+        assert!(!bool::from(c.ct_lt(&c)));
+
+        assert!(!bool::from(b.ct_lt(&a)));
+        assert!(!bool::from(c.ct_lt(&a)));
+        assert!(!bool::from(c.ct_lt(&b)));
+    }
+
+    #[test]
+    fn cmp() {
+        let a = BoxedUint::zero();
+        let b = BoxedUint::one();
+        let c = BoxedUint::max(64).unwrap();
+
+        assert_eq!(a.cmp(&b), Ordering::Less);
+        assert_eq!(a.cmp(&c), Ordering::Less);
+        assert_eq!(b.cmp(&c), Ordering::Less);
+
+        assert_eq!(a.cmp(&a), Ordering::Equal);
+        assert_eq!(b.cmp(&b), Ordering::Equal);
+        assert_eq!(c.cmp(&c), Ordering::Equal);
+
+        assert_eq!(b.cmp(&a), Ordering::Greater);
+        assert_eq!(c.cmp(&a), Ordering::Greater);
+        assert_eq!(c.cmp(&b), Ordering::Greater);
     }
 }
