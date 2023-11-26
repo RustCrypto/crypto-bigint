@@ -1,6 +1,7 @@
 //! Heap-allocated big unsigned integers.
 
 mod add;
+mod bit_and;
 mod cmp;
 pub(crate) mod encoding;
 mod mul;

@@ -1,4 +1,4 @@
-//! [`Uint`] bitwise not operations.
+//! [`Uint`] bitwise NOT operations.
 
 use super::Uint;
 use crate::{Limb, Wrapping};
