@@ -12,7 +12,8 @@ impl BoxedUint {
         Self::chain(self, rhs, Limb::ZERO, |a, b, z| (a.bitand(b), z)).0
     }
 
-    /// Bitwise `AND` against the given limb.
+    /// Perform bitwise `AND` between `self` and the given [`Limb`], performing the `AND` operation
+    /// on every limb of `self`.
     pub fn bitand_limb(&self, rhs: Limb) -> Self {
         Self {
             limbs: self.limbs.iter().map(|limb| limb.bitand(rhs)).collect(),
