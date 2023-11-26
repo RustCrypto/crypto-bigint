@@ -70,7 +70,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> AddAssign<Self> for Residue<
 
 #[cfg(test)]
 mod tests {
-    use crate::{const_residue, impl_modulus, modular::constant_mod::ResidueParams, U256};
+    use crate::{const_residue, impl_modulus, modular::residue::ResidueParams, U256};
 
     impl_modulus!(
         Modulus,

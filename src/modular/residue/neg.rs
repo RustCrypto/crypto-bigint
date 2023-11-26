@@ -26,7 +26,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Neg for &Residue<MOD, LIMBS>
 
 #[cfg(test)]
 mod tests {
-    use crate::{const_residue, impl_modulus, modular::constant_mod::ResidueParams, U256};
+    use crate::{const_residue, impl_modulus, modular::residue::ResidueParams, U256};
 
     impl_modulus!(
         Modulus,
