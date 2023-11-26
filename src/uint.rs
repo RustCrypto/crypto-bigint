@@ -33,7 +33,8 @@ mod sub_mod;
 
 #[cfg(feature = "generic-array")]
 mod array;
-
+#[cfg(feature = "alloc")]
+pub(crate) mod boxed;
 #[cfg(feature = "rand_core")]
 mod rand;
 
