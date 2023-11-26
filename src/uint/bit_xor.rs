@@ -1,4 +1,4 @@
-//! [`Uint`] bitwise xor operations.
+//! [`Uint`] bitwise XOR operations.
 
 use super::Uint;
 use crate::{Limb, Wrapping};
