@@ -1,7 +1,7 @@
 //! Modular arithmetic support for [`BoxedUint`].
 
 use super::BoxedUint;
-use crate::{uint::modular::reduction::montgomery_reduction_core, Limb};
+use crate::{modular::reduction::montgomery_reduction_core, Limb};
 
 #[allow(dead_code)]
 pub(crate) fn mul_montgomery_form(

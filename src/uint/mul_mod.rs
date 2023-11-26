@@ -1,7 +1,9 @@
 //! [`Uint`] modular multiplication operations.
 
-use super::modular::{DynResidue, DynResidueParams};
-use crate::{Limb, MulMod, Uint, WideWord, Word};
+use crate::{
+    modular::{DynResidue, DynResidueParams},
+    Limb, MulMod, Uint, WideWord, Word,
+};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self * rhs mod p` for odd `p`.

@@ -31,8 +31,6 @@ mod sqrt;
 mod sub;
 mod sub_mod;
 
-pub mod modular;
-
 #[cfg(feature = "generic-array")]
 mod array;
 
@@ -71,7 +69,7 @@ use zeroize::DefaultIsZeroes;
 #[derive(Copy, Clone, Hash)]
 pub struct Uint<const LIMBS: usize> {
     /// Inner limb array. Stored from least significant to most significant.
-    limbs: [Limb; LIMBS],
+    pub(crate) limbs: [Limb; LIMBS],
 }
 
 impl<const LIMBS: usize> Uint<LIMBS> {
