@@ -2,9 +2,10 @@
 //!
 //! By default these are all constant-time and use the `subtle` crate.
 
+pub(super) use core::cmp::{max, Ordering};
+
 use super::BoxedUint;
 use crate::{CtChoice, Limb};
-use core::cmp::{self, Ordering};
 use subtle::{
     Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
 };
@@ -12,7 +13,7 @@ use subtle::{
 impl ConstantTimeEq for BoxedUint {
     #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
-        let limbs = cmp::max(self.nlimbs(), other.nlimbs());
+        let limbs = max(self.nlimbs(), other.nlimbs());
         let mut ret = Choice::from(1u8);
 
         for i in 0..limbs {
