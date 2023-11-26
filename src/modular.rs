@@ -16,9 +16,9 @@
 //! The [`DynResidue`] and [`DynResidueParams`] types implement support for modular arithmetic where
 //! the modulus can vary at runtime.
 
-mod constant_mod;
+mod dyn_residue;
 pub(crate) mod reduction;
-mod runtime_mod;
+mod residue;
 
 mod add;
 mod div_by_2;
@@ -28,9 +28,9 @@ mod pow;
 mod sub;
 
 pub use self::{
-    constant_mod::{Residue, ResidueParams},
+    dyn_residue::{DynResidue, DynResidueParams},
     reduction::montgomery_reduction,
-    runtime_mod::{DynResidue, DynResidueParams},
+    residue::{Residue, ResidueParams},
 };
 
 /// A generalization for numbers kept in optimized representations (e.g. Montgomery)
@@ -48,7 +48,8 @@ mod tests {
     use crate::{
         const_residue, impl_modulus,
         modular::{
-            constant_mod::Residue, constant_mod::ResidueParams, reduction::montgomery_reduction,
+            reduction::montgomery_reduction,
+            residue::{Residue, ResidueParams},
         },
         NonZero, Uint, U256, U64,
     };

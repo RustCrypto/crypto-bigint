@@ -110,7 +110,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize, const RHS_LIMBS: usize>
 #[cfg(test)]
 mod tests {
     use crate::traits::MultiExponentiate;
-    use crate::{const_residue, impl_modulus, modular::constant_mod::ResidueParams, U256};
+    use crate::{const_residue, impl_modulus, modular::residue::ResidueParams, U256};
 
     impl_modulus!(
         Modulus,
@@ -171,10 +171,9 @@ mod tests {
 
         let exponent = U256::from(33u8);
         let bases_and_exponents = [(base_mod, exponent)];
-        let res =
-            crate::modular::constant_mod::Residue::<Modulus, { U256::LIMBS }>::multi_exponentiate(
-                &bases_and_exponents,
-            );
+        let res = crate::modular::residue::Residue::<Modulus, { U256::LIMBS }>::multi_exponentiate(
+            &bases_and_exponents,
+        );
 
         let expected =
             U256::from_be_hex("0000000000000000000000000000000000000000000000000000000200000000");
@@ -190,10 +189,9 @@ mod tests {
 
         let expected = base_mod.pow(&exponent) * base2_mod.pow(&exponent2);
         let bases_and_exponents = [(base_mod, exponent), (base2_mod, exponent2)];
-        let res =
-            crate::modular::constant_mod::Residue::<Modulus, { U256::LIMBS }>::multi_exponentiate(
-                &bases_and_exponents,
-            );
+        let res = crate::modular::residue::Residue::<Modulus, { U256::LIMBS }>::multi_exponentiate(
+            &bases_and_exponents,
+        );
 
         assert_eq!(res, expected);
     }
@@ -206,10 +204,9 @@ mod tests {
 
         let exponent = U256::from(33u8);
         let bases_and_exponents = vec![(base_mod, exponent)];
-        let res =
-            crate::modular::constant_mod::Residue::<Modulus, { U256::LIMBS }>::multi_exponentiate(
-                bases_and_exponents.as_slice(),
-            );
+        let res = crate::modular::residue::Residue::<Modulus, { U256::LIMBS }>::multi_exponentiate(
+            bases_and_exponents.as_slice(),
+        );
 
         let expected =
             U256::from_be_hex("0000000000000000000000000000000000000000000000000000000200000000");
@@ -225,10 +222,9 @@ mod tests {
 
         let expected = base_mod.pow(&exponent) * base2_mod.pow(&exponent2);
         let bases_and_exponents = vec![(base_mod, exponent), (base2_mod, exponent2)];
-        let res =
-            crate::modular::constant_mod::Residue::<Modulus, { U256::LIMBS }>::multi_exponentiate(
-                bases_and_exponents.as_slice(),
-            );
+        let res = crate::modular::residue::Residue::<Modulus, { U256::LIMBS }>::multi_exponentiate(
+            bases_and_exponents.as_slice(),
+        );
 
         assert_eq!(res, expected);
     }

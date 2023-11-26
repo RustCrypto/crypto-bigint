@@ -64,7 +64,7 @@ impl<const LIMBS: usize> AddAssign<DynResidue<LIMBS>> for DynResidue<LIMBS> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        modular::runtime_mod::{DynResidue, DynResidueParams},
+        modular::dyn_residue::{DynResidue, DynResidueParams},
         U256,
     };
 

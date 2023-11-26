@@ -8,9 +8,9 @@ mod pow;
 mod sub;
 
 use super::{
-    constant_mod::{Residue, ResidueParams},
     div_by_2::div_by_2,
     reduction::montgomery_reduction,
+    residue::{Residue, ResidueParams},
     Retrieve,
 };
 use crate::{Limb, Uint, Word};
