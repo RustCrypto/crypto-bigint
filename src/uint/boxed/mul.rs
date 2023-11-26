@@ -26,6 +26,12 @@ impl BoxedUint {
 
         ret
     }
+
+    /// Multiply `self` by itself.
+    pub fn square(&self) -> Self {
+        // TODO(tarcieri): more optimized implementation
+        self.mul_wide(self)
+    }
 }
 
 #[cfg(test)]

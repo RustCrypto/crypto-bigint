@@ -13,10 +13,10 @@ use super::{
     residue::{Residue, ResidueParams},
     Retrieve,
 };
-use crate::{Limb, Uint, Word};
+use crate::{Integer, Limb, Uint, Word};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
-/// The parameters to efficiently go to and from the Montgomery form for an odd modulus provided at runtime.
+/// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DynResidueParams<const LIMBS: usize> {
     /// The constant modulus
@@ -33,8 +33,10 @@ pub struct DynResidueParams<const LIMBS: usize> {
 }
 
 impl<const LIMBS: usize> DynResidueParams<LIMBS> {
-    /// Internal helper function to generate parameters; this lets us wrap the constructors more cleanly
-    const fn generate_params(modulus: &Uint<LIMBS>) -> Self {
+    /// Instantiates a new set of `ResidueParams` representing the given `modulus` if it is odd.
+    ///
+    /// Returns a `CtOption` that is `None` if the provided modulus is not odd.
+    pub fn new(modulus: &Uint<LIMBS>) -> CtOption<Self> {
         let r = Uint::MAX.const_rem(modulus).0.wrapping_add(&Uint::ONE);
         let r2 = Uint::const_rem_wide(r.square_wide(), modulus).0;
 
@@ -47,20 +49,15 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
 
         let r3 = montgomery_reduction(&r2.square_wide(), modulus, mod_neg_inv);
 
-        Self {
+        let params = Self {
             modulus: *modulus,
             r,
             r2,
             r3,
             mod_neg_inv,
-        }
-    }
+        };
 
-    /// Instantiates a new set of `ResidueParams` representing the given `modulus` if it is odd.
-    ///
-    /// Returns a `CtOption` that is `None` if the provided modulus is not odd.
-    pub fn new(modulus: &Uint<LIMBS>) -> CtOption<Self> {
-        CtOption::new(Self::generate_params(modulus), modulus.ct_is_odd().into())
+        CtOption::new(params, modulus.is_odd())
     }
 
     /// Returns the modulus which was used to initialize these parameters.
