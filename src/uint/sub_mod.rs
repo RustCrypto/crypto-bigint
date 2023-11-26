@@ -7,13 +7,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Assumes `self - rhs` as unbounded signed integer is in `[-p, p)`.
     pub const fn sub_mod(&self, rhs: &Self, p: &Self) -> Self {
-        let (out, borrow) = self.sbb(rhs, Limb::ZERO);
+        let (out, mask) = self.sbb(rhs, Limb::ZERO);
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-        let mask = Self::from_words([borrow.0; LIMBS]);
-
-        out.wrapping_add(&p.bitand(&mask))
+        out.wrapping_add(&p.bitand_limb(mask))
     }
 
     /// Returns `(self..., carry) - (rhs...) mod (p...)`, where `carry <= 1`.
@@ -25,13 +23,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let (out, borrow) = self.sbb(rhs, Limb::ZERO);
 
         // The new `borrow = Word::MAX` iff `carry == 0` and `borrow == Word::MAX`.
-        let borrow = (!carry.0.wrapping_neg()) & borrow.0;
+        let mask = carry.wrapping_neg().not().bitand(borrow);
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-        let mask = Self::from_words([borrow; LIMBS]);
-
-        out.wrapping_add(&p.bitand(&mask))
+        out.wrapping_add(&p.bitand_limb(mask))
     }
 
     /// Computes `self - rhs mod p` for the special modulus
