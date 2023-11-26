@@ -137,6 +137,24 @@ proptest! {
     }
 
     #[test]
+    fn mul_mod_nist_p256(a in uint_mod_p(P), b in uint_mod_p(P)) {
+        assert!(a < P);
+        assert!(b < P);
+
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+        let p_bi = to_biguint(&P);
+
+        let expected = to_uint((a_bi * b_bi) % p_bi);
+        let actual = a.mul_mod(&b, &P);
+
+        assert!(expected < P);
+        assert!(actual < P);
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
     fn wrapping_sub(mut a in uint(), mut b in uint()) {
         if b > a {
             mem::swap(&mut a, &mut b);
