@@ -52,8 +52,6 @@ mod tests {
     use crate::{Limb, NonZero, Random, RandomMod, Uint, U256};
     use rand_core::SeedableRng;
 
-    // TODO(tarcieri): additional tests + proptests
-
     #[test]
     fn add_mod_nist_p256() {
         let a =
