@@ -17,7 +17,7 @@
 //! the modulus can vary at runtime.
 
 mod constant_mod;
-mod reduction;
+pub(crate) mod reduction;
 mod runtime_mod;
 
 mod add;
