@@ -6,8 +6,8 @@ use subtle::CtOption;
 impl BoxedUint {
     /// Computes `a + b + carry`, returning the result along with the new carry.
     #[inline(always)]
-    pub fn sbb(&self, rhs: &Self, carry: Limb) -> (Self, Limb) {
-        Self::chain(self, rhs, carry, |a, b, c| a.sbb(b, c))
+    pub fn sbb(&self, rhs: &Self, borrow: Limb) -> (Self, Limb) {
+        Self::chain(self, rhs, borrow, |a, b, c| a.sbb(b, c))
     }
 
     /// Perform wrapping subition, discarding overflow.
@@ -31,9 +31,13 @@ mod tests {
     use super::{BoxedUint, CheckedSub, Limb};
 
     #[test]
-    fn sbb_no_carry() {
+    fn sbb_no_borrow() {
         let (res, carry) = BoxedUint::one().sbb(&BoxedUint::one(), Limb::ZERO);
         assert_eq!(res, BoxedUint::zero());
+        assert_eq!(carry, Limb::ZERO);
+
+        let (res, carry) = BoxedUint::one().sbb(&BoxedUint::zero(), Limb::ZERO);
+        assert_eq!(res, BoxedUint::one());
         assert_eq!(carry, Limb::ZERO);
     }
 
