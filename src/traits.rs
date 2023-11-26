@@ -145,16 +145,12 @@ pub trait NegMod {
 }
 
 /// Compute `self * rhs mod p`.
-///
-/// Requires `p_inv = -(p^{-1} mod 2^{BITS}) mod 2^{BITS}` to be provided for efficiency.
 pub trait MulMod<Rhs = Self> {
     /// Output type.
     type Output;
 
     /// Compute `self * rhs mod p`.
-    ///
-    /// Requires `p_inv = -(p^{-1} mod 2^{BITS}) mod 2^{BITS}` to be provided for efficiency.
-    fn mul_mod(&self, rhs: &Rhs, p: &Self, p_inv: Limb) -> Self::Output;
+    fn mul_mod(&self, rhs: &Rhs, p: &Self) -> Self::Output;
 }
 
 /// Checked addition.

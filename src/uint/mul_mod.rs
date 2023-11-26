@@ -1,8 +1,31 @@
-//! [`Uint`] multiplication modulus operations.
+//! [`Uint`] modular multiplication operations.
 
-use crate::{Limb, Uint, WideWord, Word};
+use super::modular::{DynResidue, DynResidueParams};
+use crate::{Limb, MulMod, Uint, WideWord, Word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
+    /// Computes `self * rhs mod p` for odd `p`.
+    ///
+    /// Panics if `p` is even.
+    // TODO(tarcieri): support for even `p`?
+    pub fn mul_mod(&self, rhs: &Uint<LIMBS>, p: &Uint<LIMBS>) -> Uint<LIMBS> {
+        // NOTE: the overhead of converting to Montgomery form to perform this operation and then
+        // immediately converting out of Montgomery form after just a single operation is likely to
+        // be higher than other possible implementations of this function, such as using a
+        // Barrett reduction instead.
+        //
+        // It's worth potentially exploring other approaches to improve efficiency.
+        match DynResidueParams::new(p).into() {
+            Some(params) => {
+                let lhs = DynResidue::new(self, params);
+                let rhs = DynResidue::new(rhs, params);
+                let ret = lhs * rhs;
+                ret.retrieve()
+            }
+            None => todo!("even moduli are currently unsupported"),
+        }
+    }
+
     /// Computes `self * rhs mod p` for the special modulus
     /// `p = MAX+1-c` where `c` is small enough to fit in a single [`Limb`].
     /// For the modulus reduction, this function implements Algorithm 14.47 from
@@ -33,6 +56,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         };
 
         lo
+    }
+}
+
+impl<const LIMBS: usize> MulMod for Uint<LIMBS> {
+    type Output = Self;
+
+    fn mul_mod(&self, rhs: &Self, p: &Self) -> Self {
+        self.mul_mod(rhs, p)
     }
 }
 
