@@ -16,14 +16,12 @@ impl BoxedUint {
 
         // Attempt to subtract the modulus, to ensure the result is in the field.
         let (w, borrow) = w.sbb(p, Limb::ZERO);
-        let (_, borrow) = carry.sbb(Limb::ZERO, borrow);
+        let (_, mask) = carry.sbb(Limb::ZERO, borrow);
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the
         // modulus.
-        let mask = Self::from_words(vec![borrow.0; p.nlimbs()]);
-
-        w.wrapping_add(&p.bitand(&mask))
+        w.wrapping_add(&p.bitand_limb(mask))
     }
 }
 
