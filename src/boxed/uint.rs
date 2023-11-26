@@ -170,47 +170,28 @@ impl BoxedUint {
         self.limbs.len() * Limb::BITS
     }
 
-    /// Sort two [`BoxedUint`]s by precision, returning a tuple of the shorter
-    /// followed by the longer, or the original order if their precision is
-    /// equal.
-    fn sort_by_precision<'a>(a: &'a Self, b: &'a Self) -> (&'a Self, &'a Self, bool) {
-        if a.limbs.len() <= b.limbs.len() {
-            (a, b, false)
-        } else {
-            (b, a, true)
-        }
-    }
-
     /// Perform a carry chain-like operation over the limbs of the inputs,
-    /// constructing a result from the returned limbs and carry.
+    /// constructing a result from the returned limbs and carry which is
+    /// widened to the same width as the widest input.
     ///
-    /// If one of the two values has fewer limbs than the other, passes
+    /// If one of the two values has fewer limbs than the other, pads with
     /// [`Limb::ZERO`] as the value for that limb.
-    fn chain<F>(a: &Self, b: &Self, mut carry: Limb, f: F) -> (Self, Limb)
+    fn chain<F>(lhs: &Self, rhs: &Self, mut carry: Limb, f: F) -> (Self, Limb)
     where
         F: Fn(Limb, Limb, Limb) -> (Limb, Limb),
     {
-        let (shorter, longer, swapped) = Self::sort_by_precision(a, b);
-        let mut limbs = Vec::with_capacity(longer.limbs.len());
+        let nlimbs = cmp::max(lhs.nlimbs(), rhs.nlimbs());
+        let mut limbs = Vec::with_capacity(nlimbs);
 
-        for i in 0..longer.limbs.len() {
-            let &a = shorter.limbs.get(i).unwrap_or(&Limb::ZERO);
-            let &b = longer.limbs.get(i).unwrap_or(&Limb::ZERO);
-            let (limb, c) = if swapped {
-                f(b, a, carry)
-            } else {
-                f(a, b, carry)
-            };
+        for i in 0..nlimbs {
+            let &a = lhs.limbs.get(i).unwrap_or(&Limb::ZERO);
+            let &b = rhs.limbs.get(i).unwrap_or(&Limb::ZERO);
+            let (limb, c) = f(a, b, carry);
             limbs.push(limb);
             carry = c;
         }
 
-        (
-            Self {
-                limbs: limbs.into(),
-            },
-            carry,
-        )
+        (limbs.into(), carry)
     }
 }
 
