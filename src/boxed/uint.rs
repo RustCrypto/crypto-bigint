@@ -172,11 +172,11 @@ impl BoxedUint {
     /// Sort two [`BoxedUint`]s by precision, returning a tuple of the shorter
     /// followed by the longer, or the original order if their precision is
     /// equal.
-    fn sort_by_precision<'a>(a: &'a Self, b: &'a Self) -> (&'a Self, &'a Self) {
+    fn sort_by_precision<'a>(a: &'a Self, b: &'a Self) -> (&'a Self, &'a Self, bool) {
         if a.limbs.len() <= b.limbs.len() {
-            (a, b)
+            (a, b, false)
         } else {
-            (b, a)
+            (b, a, true)
         }
     }
 
@@ -189,13 +189,17 @@ impl BoxedUint {
     where
         F: Fn(Limb, Limb, Limb) -> (Limb, Limb),
     {
-        let (shorter, longer) = Self::sort_by_precision(a, b);
+        let (shorter, longer, swapped) = Self::sort_by_precision(a, b);
         let mut limbs = Vec::with_capacity(longer.limbs.len());
 
         for i in 0..longer.limbs.len() {
             let &a = shorter.limbs.get(i).unwrap_or(&Limb::ZERO);
             let &b = longer.limbs.get(i).unwrap_or(&Limb::ZERO);
-            let (limb, c) = f(a, b, carry);
+            let (limb, c) = if swapped {
+                f(b, a, carry)
+            } else {
+                f(a, b, carry)
+            };
             limbs.push(limb);
             carry = c;
         }

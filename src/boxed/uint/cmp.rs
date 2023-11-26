@@ -4,17 +4,18 @@
 
 use super::BoxedUint;
 use crate::Limb;
+use core::cmp;
 use subtle::{Choice, ConstantTimeEq};
 
 impl ConstantTimeEq for BoxedUint {
     #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
-        let (shorter, longer) = Self::sort_by_precision(self, other);
+        let limbs = cmp::max(self.nlimbs(), other.nlimbs());
         let mut ret = Choice::from(1u8);
 
-        for i in 0..longer.limbs.len() {
-            let a = shorter.limbs.get(i).unwrap_or(&Limb::ZERO);
-            let b = longer.limbs.get(i).unwrap_or(&Limb::ZERO);
+        for i in 0..limbs {
+            let a = self.limbs.get(i).unwrap_or(&Limb::ZERO);
+            let b = other.limbs.get(i).unwrap_or(&Limb::ZERO);
             ret &= a.ct_eq(b);
         }
 
