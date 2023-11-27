@@ -19,11 +19,24 @@ fn to_uint(big_uint: BigUint) -> BoxedUint {
 }
 
 prop_compose! {
+    /// Generate a random `uint()`.
     fn uint()(mut bytes in any::<Vec<u8>>()) -> BoxedUint {
         let extra = bytes.len() % Limb::BYTES;
         let bytes_precision = bytes.len() - extra;
         bytes.truncate(bytes_precision);
         BoxedUint::from_be_slice(&bytes, bytes_precision * 8).unwrap()
+    }
+}
+prop_compose! {
+    /// Generate a pair of random uints with the same precision.
+    fn uint_pair()(mut a in uint(), mut b in uint()) -> (BoxedUint, BoxedUint) {
+        if a.bits_precision() > b.bits_precision() {
+            b = b.widen(a.bits_precision());
+        } else if a.bits_precision() < b.bits_precision() {
+            a = a.widen(b.bits_precision());
+        }
+
+        (a, b)
     }
 }
 
@@ -57,5 +70,18 @@ proptest! {
         let actual = a.mul_wide(&b);
 
         prop_assert_eq!(expected, to_biguint(&actual));
+    }
+
+    #[test]
+    fn rem_vartime((a, b) in uint_pair()) {
+        if bool::from(!b.is_zero()) {
+            let a_bi = to_biguint(&a);
+            let b_bi = to_biguint(&b);
+
+            let expected = a_bi % b_bi;
+            let actual = a.rem_vartime(&b).unwrap();
+
+            prop_assert_eq!(expected, to_biguint(&actual));
+        }
     }
 }

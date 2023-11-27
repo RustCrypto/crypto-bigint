@@ -5,6 +5,7 @@ mod add_mod;
 mod bit_and;
 mod bits;
 mod cmp;
+mod div;
 pub(crate) mod encoding;
 mod modular;
 mod mul;
@@ -168,6 +169,19 @@ impl BoxedUint {
         }
 
         Self { limbs }
+    }
+
+    /// Widen this type's precision to the given number of bits.
+    ///
+    /// Panics if `bits_precision` is not a multiple of `Limb::BITS` or smaller than the current
+    /// precision.
+    pub fn widen(&self, bits_precision: usize) -> BoxedUint {
+        assert!(bits_precision % Limb::BITS == 0);
+        assert!(bits_precision >= self.bits_precision());
+
+        let mut ret = BoxedUint::zero_with_precision(bits_precision);
+        ret.limbs[..self.nlimbs()].copy_from_slice(&self.limbs);
+        ret
     }
 
     /// Perform a carry chain-like operation over the limbs of the inputs,
