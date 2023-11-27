@@ -14,7 +14,7 @@ mod sub_mod;
 use crate::{Limb, Uint, Word, Zero, U128, U64};
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::fmt;
-use subtle::Choice;
+use subtle::{Choice, ConditionallySelectable};
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -149,6 +149,23 @@ impl BoxedUint {
     /// Get the number of limbs in this [`BoxedUint`].
     pub fn nlimbs(&self) -> usize {
         self.limbs.len()
+    }
+
+    /// Conditionally select `a` or `b` in constant time depending on [`Choice`].
+    ///
+    /// NOTE: can't impl `subtle`'s [`ConditionallySelectable`] trait due to its `Copy` bound, so
+    /// this is an inherent function instead.
+    ///
+    /// Panics if `a` and `b` don't have the same precision.
+    pub fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
+        debug_assert_eq!(a.nlimbs(), b.nlimbs());
+        let mut limbs = vec![Limb::ZERO; a.nlimbs()].into_boxed_slice();
+
+        for i in 0..a.nlimbs() {
+            limbs[i] = Limb::conditional_select(&a.limbs[i], &b.limbs[i], choice);
+        }
+
+        Self { limbs }
     }
 
     /// Perform a carry chain-like operation over the limbs of the inputs,
@@ -298,5 +315,20 @@ impl fmt::UpperHex for BoxedUint {
 impl Zeroize for BoxedUint {
     fn zeroize(&mut self) {
         self.limbs.zeroize();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::BoxedUint;
+    use subtle::Choice;
+
+    #[test]
+    fn conditional_select() {
+        let a = BoxedUint::zero_with_precision(128);
+        let b = BoxedUint::max(128);
+
+        assert_eq!(a, BoxedUint::conditional_select(&a, &b, Choice::from(0)));
+        assert_eq!(b, BoxedUint::conditional_select(&a, &b, Choice::from(1)));
     }
 }
