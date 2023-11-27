@@ -1,7 +1,7 @@
 //! Limb bit or operations.
 
 use super::Limb;
-use core::ops::BitOr;
+use core::ops::{BitOr, BitOrAssign};
 
 impl Limb {
     /// Calculates `a | b`.
@@ -15,5 +15,17 @@ impl BitOr for Limb {
 
     fn bitor(self, rhs: Self) -> Self::Output {
         self.bitor(rhs)
+    }
+}
+
+impl BitOrAssign for Limb {
+    fn bitor_assign(&mut self, other: Self) {
+        *self = self.bitor(other);
+    }
+}
+
+impl BitOrAssign<&Limb> for Limb {
+    fn bitor_assign(&mut self, other: &Self) {
+        *self = self.bitor(*other);
     }
 }
