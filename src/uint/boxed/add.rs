@@ -39,9 +39,7 @@ mod tests {
 
     #[test]
     fn adc_with_carry() {
-        let (res, carry) = BoxedUint::max(Limb::BITS)
-            .unwrap()
-            .adc(&BoxedUint::one(), Limb::ZERO);
+        let (res, carry) = BoxedUint::max(Limb::BITS).adc(&BoxedUint::one(), Limb::ZERO);
         assert_eq!(res, BoxedUint::zero());
         assert_eq!(carry, Limb::ONE);
     }
@@ -54,9 +52,7 @@ mod tests {
 
     #[test]
     fn checked_add_overflow() {
-        let result = BoxedUint::max(Limb::BITS)
-            .unwrap()
-            .checked_add(&BoxedUint::one());
+        let result = BoxedUint::max(Limb::BITS).checked_add(&BoxedUint::one());
         assert!(!bool::from(result.is_some()));
     }
 }

@@ -140,7 +140,7 @@ mod tests {
 
     #[test]
     fn overlapping_and_ok() {
-        let result = BoxedUint::max(128).unwrap().wrapping_and(&BoxedUint::one());
+        let result = BoxedUint::max(128).wrapping_and(&BoxedUint::one());
         assert_eq!(result, BoxedUint::one());
     }
 }

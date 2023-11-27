@@ -78,34 +78,17 @@ impl BoxedUint {
             .fold(Choice::from(1), |acc, limb| acc & limb.is_zero())
     }
 
-    /// Create a new [`BoxedUint`] with the given number of bits of precision.
-    ///
-    /// Returns `None` if the number of bits is not a multiple of the
-    /// [`Limb`] size.
-    pub fn new(bits_precision: usize) -> Option<Self> {
-        if bits_precision == 0 || bits_precision % Limb::BITS != 0 {
-            return None;
-        }
-
-        let nlimbs = bits_precision / Limb::BITS;
-
-        Some(Self {
-            limbs: vec![Limb::ZERO; nlimbs].into(),
-        })
-    }
-
     /// Get the maximum value for a given number of bits of precision.
     ///
-    /// Returns `None` if the number of bits is not a multiple of the
-    /// [`Limb`] size.
-    pub fn max(bits_precision: usize) -> Option<Self> {
-        let mut ret = Self::new(bits_precision)?;
+    /// Panics if the precision is not a multiple of [`Limb::BITS`].
+    pub fn max(bits_precision: usize) -> Self {
+        assert_eq!(
+            bits_precision % Limb::BITS,
+            0,
+            "precision is not a multiple of limb size"
+        );
 
-        for limb in &mut *ret.limbs {
-            *limb = Limb::MAX;
-        }
-
-        Some(ret)
+        vec![Limb::MAX; bits_precision / Limb::BITS].into()
     }
 
     /// Create a [`BoxedUint`] from an array of [`Word`]s (i.e. word-sized unsigned

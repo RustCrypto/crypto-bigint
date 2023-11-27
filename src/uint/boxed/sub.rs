@@ -44,7 +44,7 @@ mod tests {
     #[test]
     fn sbb_with_borrow() {
         let (res, borrow) = BoxedUint::zero().sbb(&BoxedUint::one(), Limb::ZERO);
-        assert_eq!(res, BoxedUint::max(Limb::BITS).unwrap());
+        assert_eq!(res, BoxedUint::max(Limb::BITS));
         assert_eq!(borrow, Limb::MAX);
     }
 
