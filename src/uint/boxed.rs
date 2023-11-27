@@ -78,7 +78,6 @@ impl BoxedUint {
     }
 
     /// Is this [`BoxedUint`] equal to zero?
-    // TODO(tarcieri): impl the `Zero` trait
     pub fn is_zero(&self) -> Choice {
         self.limbs
             .iter()
@@ -343,6 +342,16 @@ impl From<Vec<Limb>> for BoxedUint {
 impl<const LIMBS: usize> From<Uint<LIMBS>> for BoxedUint {
     fn from(uint: Uint<LIMBS>) -> BoxedUint {
         Vec::from(uint.to_limbs()).into()
+    }
+}
+
+impl Zero for BoxedUint {
+    fn zero() -> Self {
+        Self::zero()
+    }
+
+    fn is_zero(&self) -> Choice {
+        self.is_zero()
     }
 }
 

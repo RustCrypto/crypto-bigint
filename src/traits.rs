@@ -80,7 +80,7 @@ pub trait Integer:
 /// Zero values.
 pub trait Zero: ConstantTimeEq + Sized {
     /// The value `0`.
-    const ZERO: Self;
+    fn zero() -> Self;
 
     /// Determine if this value is equal to zero.
     ///
@@ -88,7 +88,21 @@ pub trait Zero: ConstantTimeEq + Sized {
     ///
     /// If zero, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
     fn is_zero(&self) -> Choice {
-        self.ct_eq(&Self::ZERO)
+        self.ct_eq(&Self::zero())
+    }
+}
+
+/// Trait for associating a constant representing zero.
+///
+/// Types which impl this trait automatically receive a blanket impl of [`Zero`].
+pub trait ZeroConstant: Zero {
+    /// The value `0`.
+    const ZERO: Self;
+}
+
+impl<T: ZeroConstant> Zero for T {
+    fn zero() -> T {
+        Self::ZERO
     }
 }
 

@@ -18,7 +18,9 @@ use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 pub struct Wrapping<T>(pub T);
 
 impl<T: Zero> Zero for Wrapping<T> {
-    const ZERO: Self = Self(T::ZERO);
+    fn zero() -> Self {
+        Wrapping(T::zero())
+    }
 }
 
 impl<T: fmt::Display> fmt::Display for Wrapping<T> {
