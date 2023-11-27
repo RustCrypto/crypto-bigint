@@ -91,7 +91,7 @@ mod tests {
     fn ct_gt() {
         let a = BoxedUint::zero();
         let b = BoxedUint::one();
-        let c = BoxedUint::max(64).unwrap();
+        let c = BoxedUint::max(64);
 
         assert!(bool::from(b.ct_gt(&a)));
         assert!(bool::from(c.ct_gt(&a)));
@@ -110,7 +110,7 @@ mod tests {
     fn ct_lt() {
         let a = BoxedUint::zero();
         let b = BoxedUint::one();
-        let c = BoxedUint::max(64).unwrap();
+        let c = BoxedUint::max(64);
 
         assert!(bool::from(a.ct_lt(&b)));
         assert!(bool::from(a.ct_lt(&c)));
@@ -129,7 +129,7 @@ mod tests {
     fn cmp() {
         let a = BoxedUint::zero();
         let b = BoxedUint::one();
-        let c = BoxedUint::max(64).unwrap();
+        let c = BoxedUint::max(64);
 
         assert_eq!(a.cmp(&b), Ordering::Less);
         assert_eq!(a.cmp(&c), Ordering::Less);
