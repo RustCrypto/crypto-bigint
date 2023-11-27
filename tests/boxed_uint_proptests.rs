@@ -42,7 +42,7 @@ proptest! {
         match Option::<BoxedUint>::from(a.checked_add(&b)) {
             Some(actual) => prop_assert_eq!(expected, to_biguint(&actual)),
             None => {
-                let max = BoxedUint::max(a.bits());
+                let max = BoxedUint::max(a.bits_precision());
                 prop_assert!(expected > to_biguint(&max));
             }
         }
