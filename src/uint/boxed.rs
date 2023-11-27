@@ -6,7 +6,6 @@ mod bit_and;
 mod bit_or;
 mod bits;
 mod cmp;
-mod ct;
 mod div;
 pub(crate) mod encoding;
 mod inv_mod;
@@ -16,7 +15,7 @@ mod shr;
 mod sub;
 mod sub_mod;
 
-use crate::{Limb, Uint, Word, Zero, U128, U64};
+use crate::{Limb, NonZero, Uint, Word, Zero, U128, U64};
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
@@ -32,7 +31,7 @@ use zeroize::Zeroize;
 /// Unlike many other heap-allocated big integer libraries, this type is not
 /// arbitrary precision and will wrap at its fixed-precision rather than
 /// automatically growing.
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct BoxedUint {
     /// Boxed slice containing limbs.
     ///
@@ -43,7 +42,9 @@ pub struct BoxedUint {
 impl BoxedUint {
     /// Get the value `0` represented as succinctly as possible.
     pub fn zero() -> Self {
-        Self::default()
+        Self {
+            limbs: vec![Limb::ZERO; 1].into(),
+        }
     }
 
     /// Get the value `0` with the given number of bits of precision.
@@ -247,6 +248,15 @@ impl BoxedUint {
     }
 }
 
+impl NonZero<BoxedUint> {
+    /// Widen this type's precision to the given number of bits.
+    ///
+    /// See [`BoxedUint::widen`] for more information, including panic conditions.
+    pub fn widen(&self, bits_precision: usize) -> Self {
+        NonZero(self.0.widen(bits_precision))
+    }
+}
+
 impl AsRef<[Word]> for BoxedUint {
     fn as_ref(&self) -> &[Word] {
         self.as_words()
@@ -271,15 +281,9 @@ impl AsMut<[Limb]> for BoxedUint {
     }
 }
 
-impl fmt::Debug for BoxedUint {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "BoxedUint(0x{self:X})")
-    }
-}
-
-impl fmt::Display for BoxedUint {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::UpperHex::fmt(self, f)
+impl Default for BoxedUint {
+    fn default() -> Self {
+        Self::zero()
     }
 }
 
@@ -355,6 +359,25 @@ impl Zero for BoxedUint {
     }
 }
 
+#[cfg(feature = "zeroize")]
+impl Zeroize for BoxedUint {
+    fn zeroize(&mut self) {
+        self.limbs.zeroize();
+    }
+}
+
+impl fmt::Debug for BoxedUint {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "BoxedUint(0x{self:X})")
+    }
+}
+
+impl fmt::Display for BoxedUint {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::UpperHex::fmt(self, f)
+    }
+}
+
 impl fmt::LowerHex for BoxedUint {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.limbs.is_empty() {
@@ -378,13 +401,6 @@ impl fmt::UpperHex for BoxedUint {
             fmt::UpperHex::fmt(limb, f)?;
         }
         Ok(())
-    }
-}
-
-#[cfg(feature = "zeroize")]
-impl Zeroize for BoxedUint {
-    fn zeroize(&mut self) {
-        self.limbs.zeroize();
     }
 }
 

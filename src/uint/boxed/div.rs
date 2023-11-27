@@ -1,16 +1,18 @@
 //! [`BoxedUint`] division operations.
 
-use crate::{BoxedUint, Limb};
-use subtle::{ConstantTimeEq, CtOption};
+use crate::{BoxedUint, Limb, NonZero};
+use subtle::ConstantTimeEq;
 
 impl BoxedUint {
     /// Computes self % rhs, returns the remainder.
     ///
     /// Variable-time with respect to `rhs`.
     ///
+    /// # Panics
+    ///
     /// Panics if `self` and `rhs` have different precisions.
-    // TODO(tarcieri): make infallible by making `rhs` into `NonZero`; don't panic
-    pub fn rem_vartime(&self, rhs: &Self) -> CtOption<Self> {
+    // TODO(tarcieri): handle different precisions without panicking
+    pub fn rem_vartime(&self, rhs: &NonZero<Self>) -> Self {
         debug_assert_eq!(self.nlimbs(), rhs.nlimbs());
         let mb = rhs.bits();
         let mut bd = self.bits_precision() - mb;
@@ -21,24 +23,22 @@ impl BoxedUint {
             let (r, borrow) = rem.sbb(&c, Limb::ZERO);
             rem = Self::conditional_select(&r, &rem, !borrow.ct_eq(&Limb::ZERO));
             if bd == 0 {
-                break;
+                break rem;
             }
             bd -= 1;
             c = c.shr_vartime(1);
         }
-
-        CtOption::new(rem, !(mb as u32).ct_eq(&0))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::BoxedUint;
+    use super::{BoxedUint, NonZero};
 
     #[test]
     fn rem_vartime() {
         let n = BoxedUint::from(0xFFEECCBBAA99887766u128);
-        let p = BoxedUint::from(997u128);
-        assert_eq!(BoxedUint::from(648u128), n.rem_vartime(&p).unwrap());
+        let p = NonZero::new(BoxedUint::from(997u128)).unwrap();
+        assert_eq!(BoxedUint::from(648u128), n.rem_vartime(&p));
     }
 }

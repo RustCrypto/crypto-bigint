@@ -2,7 +2,7 @@
 
 #![cfg(feature = "alloc")]
 
-use crypto_bigint::{BoxedUint, CheckedAdd, Limb};
+use crypto_bigint::{BoxedUint, CheckedAdd, Limb, NonZero};
 use num_bigint::BigUint;
 use proptest::prelude::*;
 
@@ -79,7 +79,7 @@ proptest! {
             let b_bi = to_biguint(&b);
 
             let expected = a_bi % b_bi;
-            let actual = a.rem_vartime(&b).unwrap();
+            let actual = a.rem_vartime(&NonZero::new(b).unwrap());
 
             prop_assert_eq!(expected, to_biguint(&actual));
         }

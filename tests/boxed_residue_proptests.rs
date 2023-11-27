@@ -4,7 +4,7 @@
 
 use crypto_bigint::{
     modular::{BoxedResidue, BoxedResidueParams},
-    BoxedUint, Limb,
+    BoxedUint, Limb, NonZero,
 };
 use num_bigint::BigUint;
 use proptest::prelude::*;
@@ -42,6 +42,7 @@ prop_compose! {
     fn residue_pair()(a in uint(), b in uint(), p in modulus()) -> (BoxedResidue, BoxedResidue) {
         fn reduce(n: &BoxedUint, p: BoxedResidueParams) -> BoxedResidue {
             let bits_precision = p.modulus().bits_precision();
+            let modulus = NonZero::new(p.modulus().clone()).unwrap();
 
             let n = match n.bits_precision().cmp(&bits_precision) {
                 Ordering::Less => n.widen(bits_precision),
@@ -49,7 +50,7 @@ prop_compose! {
                 Ordering::Greater => n.shorten(bits_precision)
             };
 
-            let n_reduced = n.rem_vartime(&p.modulus()).unwrap().widen(p.bits_precision());
+            let n_reduced = n.rem_vartime(&modulus).widen(p.bits_precision());
             BoxedResidue::new(&n_reduced, p)
         }
 
