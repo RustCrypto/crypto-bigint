@@ -4,8 +4,8 @@
 mod mul;
 
 use super::reduction::montgomery_reduction_boxed;
-use crate::{BoxedUint, Limb, Word};
-use subtle::{Choice, CtOption};
+use crate::{BoxedUint, Limb, NonZero, Word};
+use subtle::CtOption;
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -37,19 +37,23 @@ impl BoxedResidueParams {
         let bits_precision = modulus.bits_precision();
         let is_odd = modulus.is_odd();
 
-        let r = BoxedUint::ct_map(
-            bits_precision,
-            BoxedUint::max(bits_precision).rem_vartime(&modulus), // TODO(tarcieri): constant time
-            |r| r.wrapping_add(&BoxedUint::one()),
-        );
+        // Use a surrogate value of `1` in case a modulus of `0` is passed.
+        // This will be rejected by the `is_odd` check above, which will fail and return `None`.
+        let modulus_nz = NonZero::new(BoxedUint::conditional_select(
+            &modulus,
+            &BoxedUint::one_with_precision(modulus.bits_precision()),
+            modulus.is_zero(),
+        ))
+        .expect("modulus ensured non-zero");
 
-        let r2 = BoxedUint::ct_map(
-            bits_precision,
-            BoxedUint::ct_and_then(bits_precision, r.clone(), |r| {
-                r.square().rem_vartime(&modulus.widen(bits_precision * 2)) // TODO(tarcieri): constant time
-            }),
-            |r2| r2.shorten(bits_precision),
-        );
+        let r = BoxedUint::max(bits_precision)
+            .rem_vartime(&modulus_nz)
+            .wrapping_add(&BoxedUint::one());
+
+        let r2 = r
+            .square()
+            .rem_vartime(&modulus_nz.widen(bits_precision * 2)) // TODO(tarcieri): constant time
+            .shorten(bits_precision);
 
         // Since we are calculating the inverse modulo (Word::MAX+1),
         // we can take the modulo right away and calculate the inverse of the first limb only.
@@ -58,31 +62,17 @@ impl BoxedResidueParams {
         let mod_neg_inv =
             Limb(Word::MIN.wrapping_sub(modulus_lo.inv_mod2k(Word::BITS as usize).limbs[0].0));
 
-        let r3 = BoxedUint::ct_map(bits_precision, r2.clone(), |r2| {
-            montgomery_reduction_boxed(&mut r2.square(), &modulus, mod_neg_inv)
-        });
+        let r3 = montgomery_reduction_boxed(&mut r2.square(), &modulus, mod_neg_inv);
 
-        // Not quite constant time, but shouldn't be an issue in practice, hopefully.
-        // The branching is just around constructing the return value.
-        let r = Option::<BoxedUint>::from(r);
-        let r2 = Option::<BoxedUint>::from(r2);
-        let r3 = Option::<BoxedUint>::from(r3);
+        let params = Self {
+            modulus,
+            r,
+            r2,
+            r3,
+            mod_neg_inv,
+        };
 
-        let params = r.and_then(|r| {
-            r2.and_then(|r2| {
-                r3.map(|r3| Self {
-                    modulus,
-                    r,
-                    r2,
-                    r3,
-                    mod_neg_inv,
-                })
-            })
-        });
-
-        let is_some = Choice::from(params.is_some() as u8);
-        let placeholder = Self::placeholder(bits_precision);
-        CtOption::new(params.unwrap_or(placeholder), is_some & is_odd)
+        CtOption::new(params, is_odd)
     }
 
     /// Modulus value.
@@ -93,19 +83,6 @@ impl BoxedResidueParams {
     /// Bits of precision in the modulus.
     pub fn bits_precision(&self) -> usize {
         self.modulus.bits_precision()
-    }
-
-    /// Create a placeholder value with the given precision, used as a default for `CtOption`.
-    fn placeholder(bits_precision: usize) -> Self {
-        let zero = BoxedUint::zero_with_precision(bits_precision);
-
-        Self {
-            modulus: zero.clone(),
-            r: zero.clone(),
-            r2: zero.clone(),
-            r3: zero,
-            mod_neg_inv: Limb::ZERO,
-        }
     }
 }
 
