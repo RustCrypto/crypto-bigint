@@ -23,8 +23,14 @@ impl BoxedResidue {
 
     /// Computes the (reduced) square of a residue.
     pub fn square(&self) -> Self {
-        // TODO(tarcieri): optimized implementation
-        self.mul(self)
+        Self {
+            montgomery_form: square_montgomery_form(
+                &self.montgomery_form,
+                &self.residue_params.modulus,
+                self.residue_params.mod_neg_inv,
+            ),
+            residue_params: self.residue_params.clone(),
+        }
     }
 }
 
@@ -83,7 +89,7 @@ impl Square for BoxedResidue {
     }
 }
 
-fn mul_montgomery_form(
+pub(super) fn mul_montgomery_form(
     a: &BoxedUint,
     b: &BoxedUint,
     modulus: &BoxedUint,
@@ -99,4 +105,14 @@ fn mul_montgomery_form(
     zeroize::Zeroize::zeroize(&mut product);
 
     ret
+}
+
+#[inline]
+pub(super) fn square_montgomery_form(
+    a: &BoxedUint,
+    modulus: &BoxedUint,
+    mod_neg_inv: Limb,
+) -> BoxedUint {
+    // TODO(tarcieri): optimized implementation
+    mul_montgomery_form(a, a, modulus, mod_neg_inv)
 }

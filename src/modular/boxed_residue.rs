@@ -2,6 +2,7 @@
 //! is chosen at runtime.
 
 mod mul;
+mod pow;
 
 use super::reduction::montgomery_reduction_boxed;
 use crate::{BoxedUint, Limb, NonZero, Word};
