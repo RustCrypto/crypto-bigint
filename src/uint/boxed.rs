@@ -3,10 +3,12 @@
 mod add;
 mod add_mod;
 mod bit_and;
+mod bit_or;
 mod bits;
 mod cmp;
 mod div;
 pub(crate) mod encoding;
+mod inv_mod;
 mod modular;
 mod mul;
 mod shl;
