@@ -6,10 +6,10 @@ mod bit_and;
 mod bit_or;
 mod bits;
 mod cmp;
+mod ct;
 mod div;
 pub(crate) mod encoding;
 mod inv_mod;
-mod modular;
 mod mul;
 mod shl;
 mod shr;
@@ -37,7 +37,7 @@ pub struct BoxedUint {
     /// Boxed slice containing limbs.
     ///
     /// Stored from least significant to most significant.
-    limbs: Box<[Limb]>,
+    pub(crate) limbs: Box<[Limb]>,
 }
 
 impl BoxedUint {
@@ -78,10 +78,34 @@ impl BoxedUint {
     }
 
     /// Is this [`BoxedUint`] equal to zero?
+    // TODO(tarcieri): impl the `Zero` trait
     pub fn is_zero(&self) -> Choice {
         self.limbs
             .iter()
             .fold(Choice::from(1), |acc, limb| acc & limb.is_zero())
+    }
+
+    /// Is this integer value an odd number?
+    ///
+    /// # Returns
+    ///
+    /// If odd, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
+    // TODO(tarcieri): impl the `Integer` trait
+    pub fn is_odd(&self) -> Choice {
+        self.limbs
+            .first()
+            .map(|limb| limb.is_odd())
+            .unwrap_or_else(|| Choice::from(0))
+    }
+
+    /// Is this integer value an even number?
+    ///
+    /// # Returns
+    ///
+    /// If even, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
+    // TODO(tarcieri): impl the `Integer` trait
+    pub fn is_even(&self) -> Choice {
+        !self.is_odd()
     }
 
     /// Get the maximum value for a given number of bits of precision.
@@ -186,6 +210,19 @@ impl BoxedUint {
         ret
     }
 
+    /// Shortens this type's precision to the given number of bits.
+    ///
+    /// Panics if `bits_precision` is not a multiple of `Limb::BITS` or smaller than the current
+    /// precision.
+    pub fn shorten(&self, bits_precision: usize) -> BoxedUint {
+        assert!(bits_precision % Limb::BITS == 0);
+        assert!(bits_precision <= self.bits_precision());
+        let mut ret = BoxedUint::zero_with_precision(bits_precision);
+        let nlimbs = ret.nlimbs();
+        ret.limbs.copy_from_slice(&self.limbs[..nlimbs]);
+        ret
+    }
+
     /// Perform a carry chain-like operation over the limbs of the inputs,
     /// constructing a result from the returned limbs and carry which is
     /// widened to the same width as the widest input.
@@ -274,6 +311,12 @@ impl From<u64> for BoxedUint {
 impl From<u128> for BoxedUint {
     fn from(n: u128) -> Self {
         U128::from(n).into()
+    }
+}
+
+impl From<Limb> for BoxedUint {
+    fn from(limb: Limb) -> Self {
+        vec![limb; 1].into()
     }
 }
 

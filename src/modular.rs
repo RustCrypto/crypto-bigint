@@ -17,7 +17,7 @@
 //! the modulus can vary at runtime.
 
 mod dyn_residue;
-pub(crate) mod reduction;
+mod reduction;
 mod residue;
 
 mod add;
@@ -27,11 +27,17 @@ mod mul;
 mod pow;
 mod sub;
 
+#[cfg(feature = "alloc")]
+pub(crate) mod boxed_residue;
+
 pub use self::{
     dyn_residue::{DynResidue, DynResidueParams},
     reduction::montgomery_reduction,
     residue::{Residue, ResidueParams},
 };
+
+#[cfg(feature = "alloc")]
+pub use self::boxed_residue::{BoxedResidue, BoxedResidueParams};
 
 /// A generalization for numbers kept in optimized representations (e.g. Montgomery)
 /// that can be converted back to the original form.

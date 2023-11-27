@@ -19,7 +19,7 @@ fn to_uint(big_uint: BigUint) -> BoxedUint {
 }
 
 prop_compose! {
-    /// Generate a random `uint()`.
+    /// Generate a random `BoxedUint`.
     fn uint()(mut bytes in any::<Vec<u8>>()) -> BoxedUint {
         let extra = bytes.len() % Limb::BYTES;
         let bytes_precision = bytes.len() - extra;
@@ -28,7 +28,7 @@ prop_compose! {
     }
 }
 prop_compose! {
-    /// Generate a pair of random uints with the same precision.
+    /// Generate a pair of random `BoxedUint`s with the same precision.
     fn uint_pair()(mut a in uint(), mut b in uint()) -> (BoxedUint, BoxedUint) {
         if a.bits_precision() > b.bits_precision() {
             b = b.widen(a.bits_precision());

@@ -1,5 +1,8 @@
 use crate::{Limb, Uint, WideWord, Word};
 
+#[cfg(feature = "alloc")]
+use crate::BoxedUint;
+
 /// Returns `(hi, lo)` such that `hi * R + lo = x * y + z + w`.
 #[inline(always)]
 const fn muladdcarry(x: Word, y: Word, z: Word, w: Word) -> (Word, Word) {
@@ -65,15 +68,19 @@ pub const fn montgomery_reduction<const LIMBS: usize>(
     upper.sub_mod_with_carry(meta_carry, modulus, modulus)
 }
 
-/// Shim used by [`BoxedUint`] to perform a Montgomery reduction.
+/// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
+///
+/// This version returns a [`BoxedUint`] as a result.
 #[cfg(feature = "alloc")]
-pub(crate) fn montgomery_reduction_core(
-    lower: &mut [Limb],
-    upper: &mut [Limb],
-    modulus: &[Limb],
+pub(crate) fn montgomery_reduction_boxed(
+    x: &mut BoxedUint,
+    modulus: &BoxedUint,
     mod_neg_inv: Limb,
-) -> Limb {
-    debug_assert_eq!(lower.len(), modulus.len());
-    debug_assert_eq!(upper.len(), modulus.len());
-    impl_montgomery_reduction!(upper, lower, modulus, mod_neg_inv, modulus.len())
+) -> BoxedUint {
+    debug_assert_eq!(x.nlimbs(), modulus.nlimbs() * 2);
+
+    let (lower, upper) = x.limbs.split_at_mut(modulus.nlimbs());
+    let meta_carry =
+        impl_montgomery_reduction!(upper, lower, &modulus.limbs, mod_neg_inv, modulus.nlimbs());
+    BoxedUint::from(&*upper).sub_mod_with_carry(meta_carry, modulus, modulus)
 }
