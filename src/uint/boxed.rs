@@ -3,6 +3,7 @@
 mod add;
 mod add_mod;
 mod bit_and;
+mod bits;
 mod cmp;
 pub(crate) mod encoding;
 mod modular;
@@ -148,11 +149,6 @@ impl BoxedUint {
     /// Get the number of limbs in this [`BoxedUint`].
     pub fn nlimbs(&self) -> usize {
         self.limbs.len()
-    }
-
-    /// Get the precision of this [`BoxedUint`] in bits.
-    pub fn bits(&self) -> usize {
-        self.limbs.len() * Limb::BITS
     }
 
     /// Perform a carry chain-like operation over the limbs of the inputs,
