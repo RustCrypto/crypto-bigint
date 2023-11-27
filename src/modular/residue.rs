@@ -8,7 +8,7 @@ mod pow;
 mod sub;
 
 use super::{div_by_2::div_by_2, reduction::montgomery_reduction, Retrieve};
-use crate::{Limb, Uint, Zero};
+use crate::{Limb, Uint, ZeroConstant};
 use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
@@ -193,7 +193,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Default for Residue<MOD, LIM
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Zero for Residue<MOD, LIMBS> {
+impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> ZeroConstant for Residue<MOD, LIMBS> {
     const ZERO: Self = Self::ZERO;
 }
 

@@ -38,7 +38,7 @@ pub(crate) mod boxed;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Bounded, Encoding, Integer, Limb, Word, Zero};
+use crate::{Bounded, Encoding, Integer, Limb, Word, ZeroConstant};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
 
@@ -224,7 +224,7 @@ impl<const LIMBS: usize> Integer for Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Zero for Uint<LIMBS> {
+impl<const LIMBS: usize> ZeroConstant for Uint<LIMBS> {
     const ZERO: Self = Self::ZERO;
 }
 
