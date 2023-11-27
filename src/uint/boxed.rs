@@ -9,6 +9,7 @@ pub(crate) mod encoding;
 mod modular;
 mod mul;
 mod shl;
+mod shr;
 mod sub;
 mod sub_mod;
 

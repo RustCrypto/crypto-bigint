@@ -34,21 +34,20 @@ impl BoxedUint {
 
     /// Computes `self << shift`.
     ///
-    /// NOTE: this operation is variable time with respect to `n` *ONLY*.
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
-    /// When used with a fixed `n`, this function is constant-time with respect
-    /// to `self`.
+    /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
-    pub fn shl_vartime(&self, n: usize) -> Self {
+    pub fn shl_vartime(&self, shift: usize) -> Self {
         let nlimbs = self.nlimbs();
         let mut limbs = vec![Limb::ZERO; nlimbs].into_boxed_slice();
 
-        if n >= Limb::BITS * nlimbs {
+        if shift >= Limb::BITS * nlimbs {
             return Self { limbs };
         }
 
-        let shift_num = n / Limb::BITS;
-        let rem = n % Limb::BITS;
+        let shift_num = shift / Limb::BITS;
+        let rem = shift % Limb::BITS;
 
         let mut i = nlimbs;
         while i > shift_num {
