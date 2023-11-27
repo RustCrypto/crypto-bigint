@@ -8,6 +8,7 @@ mod cmp;
 pub(crate) mod encoding;
 mod modular;
 mod mul;
+mod shl;
 mod sub;
 mod sub_mod;
 
