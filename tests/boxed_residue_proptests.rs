@@ -6,7 +6,7 @@ use crypto_bigint::{
     modular::{BoxedResidue, BoxedResidueParams},
     BoxedUint, Limb, NonZero,
 };
-use num_bigint::BigUint;
+use num_bigint::{BigUint, ModInverse};
 use proptest::prelude::*;
 use std::cmp::Ordering;
 
@@ -59,6 +59,22 @@ prop_compose! {
 }
 
 proptest! {
+    #[test]
+    fn inv(x in uint(), n in modulus()) {
+        let x = reduce(&x, n.clone());
+        let actual = Option::<BoxedResidue>::from(x.invert()).map(|a| a.retrieve());
+
+        let x_bi = retrieve_biguint(&x);
+        let n_bi = to_biguint(n.modulus());
+        let expected = x_bi.mod_inverse(&n_bi);
+
+        match (expected, actual) {
+            (Some(exp), Some(act)) => prop_assert_eq!(exp, to_biguint(&act).into()),
+            (None, None) => (),
+            (_, _) => panic!("disagreement on if modular inverse exists")
+        }
+    }
+
     #[test]
     fn mul((a, b) in residue_pair()) {
         let p = a.params().modulus();

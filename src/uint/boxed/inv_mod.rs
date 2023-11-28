@@ -69,7 +69,7 @@ impl BoxedUint {
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     /// Returns `None` if an inverse does not exist.
-    fn inv_odd_mod(&self, modulus: &Self) -> (Self, Choice) {
+    pub(crate) fn inv_odd_mod(&self, modulus: &Self) -> (Self, Choice) {
         self.inv_odd_mod_bounded(modulus, self.bits_precision(), modulus.bits_precision())
     }
 
