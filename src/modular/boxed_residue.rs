@@ -2,6 +2,7 @@
 //! is chosen at runtime.
 
 mod add;
+mod inv;
 mod mul;
 mod neg;
 mod pow;
