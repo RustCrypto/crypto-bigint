@@ -29,6 +29,20 @@ impl BoxedUint {
         self.limbs.len() * Limb::BITS
     }
 
+    /// Calculate the number of trailing zeros in the binary representation of this number.
+    pub fn trailing_zeros(&self) -> usize {
+        let mut count: Word = 0;
+        let mut nonzero_limb_not_encountered = Choice::from(1u8);
+
+        for l in &*self.limbs {
+            let z = l.trailing_zeros() as Word;
+            count += Word::conditional_select(&0, &z, nonzero_limb_not_encountered);
+            nonzero_limb_not_encountered &= l.is_zero();
+        }
+
+        count as usize
+    }
+
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
     pub(crate) fn set_bit(&mut self, index: usize, bit_value: Choice) {
         let limb_num = index / Limb::BITS;

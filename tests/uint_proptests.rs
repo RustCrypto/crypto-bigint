@@ -53,7 +53,7 @@ proptest! {
     fn shl_vartime(a in uint(), shift in any::<u8>()) {
         let a_bi = to_biguint(&a);
 
-        let expected = to_uint(a_bi << shift);
+        let expected = to_uint(a_bi << shift.into());
         let actual = a.shl_vartime(shift as usize);
 
         assert_eq!(expected, actual);

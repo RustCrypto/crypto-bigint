@@ -10,6 +10,7 @@ mod div;
 pub(crate) mod encoding;
 mod inv_mod;
 mod mul;
+mod neg;
 mod shl;
 mod shr;
 mod sub;
@@ -18,7 +19,7 @@ mod sub_mod;
 use crate::{Limb, NonZero, Uint, Word, Zero, U128, U64};
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::fmt;
-use subtle::{Choice, ConditionallySelectable};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -83,6 +84,13 @@ impl BoxedUint {
         self.limbs
             .iter()
             .fold(Choice::from(1), |acc, limb| acc & limb.is_zero())
+    }
+
+    /// Is this [`BoxedUint`] equal to one?
+    pub fn is_one(&self) -> Choice {
+        let mut iter = self.limbs.iter();
+        let choice = iter.next().copied().unwrap_or(Limb::ZERO).ct_eq(&Limb::ONE);
+        iter.fold(choice, |acc, limb| acc & limb.is_zero())
     }
 
     /// Is this integer value an odd number?
@@ -195,6 +203,25 @@ impl BoxedUint {
         }
 
         Self { limbs }
+    }
+
+    /// Conditionally assign `other` to `self`, according to `choice`.
+    ///
+    /// This function should execute in constant time.
+    #[inline]
+    pub fn conditional_assign(&mut self, other: &Self, choice: Choice) {
+        *self = Self::conditional_select(self, other, choice);
+    }
+
+    /// Conditionally swap `self` and `other` if `choice == 1`; otherwise,
+    /// reassign both unto themselves.
+    ///
+    /// This function should execute in constant time.
+    #[inline]
+    fn conditional_swap(a: &mut Self, b: &mut Self, choice: Choice) {
+        let t = a.clone();
+        a.conditional_assign(b, choice);
+        b.conditional_assign(&t, choice);
     }
 
     /// Widen this type's precision to the given number of bits.

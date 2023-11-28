@@ -3,7 +3,7 @@
 #![cfg(feature = "alloc")]
 
 use crypto_bigint::{BoxedUint, CheckedAdd, Limb, NonZero};
-use num_bigint::BigUint;
+use num_bigint::{BigUint, ModInverse};
 use proptest::prelude::*;
 
 fn to_biguint(uint: &BoxedUint) -> BigUint {
@@ -58,6 +58,28 @@ proptest! {
                 let max = BoxedUint::max(a.bits_precision());
                 prop_assert!(expected > to_biguint(&max));
             }
+        }
+    }
+
+    #[test]
+    fn mod_inv((mut a, mut b) in uint_pair()) {
+        if a.is_zero().into() {
+            a = BoxedUint::one_with_precision(b.bits_precision());
+        }
+
+        if b.is_zero().into() {
+            b = BoxedUint::one_with_precision(a.bits_precision());
+        }
+
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+        let expected = a_bi.mod_inverse(b_bi);
+        let actual = Option::from(a.inv_mod(&b));
+
+        match (expected, actual) {
+            (Some(exp), Some(act)) => prop_assert_eq!(exp, to_biguint(&act).into()),
+            (None, None) => (),
+            (_, _) => panic!("disagreement on if modular inverse exists")
         }
     }
 
