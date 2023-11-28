@@ -13,7 +13,7 @@ impl BoxedUint {
     /// Panics if `self` and `rhs` have different precisions.
     // TODO(tarcieri): handle different precisions without panicking
     pub fn rem_vartime(&self, rhs: &NonZero<Self>) -> Self {
-        debug_assert_eq!(self.nlimbs(), rhs.nlimbs());
+        debug_assert_eq!(self.bits_precision(), rhs.bits_precision());
         let mb = rhs.bits();
         let mut bd = self.bits_precision() - mb;
         let mut rem = self.clone();
