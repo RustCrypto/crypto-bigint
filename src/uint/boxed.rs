@@ -196,7 +196,7 @@ impl BoxedUint {
     ///
     /// Panics if `a` and `b` don't have the same precision.
     pub fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        debug_assert_eq!(a.nlimbs(), b.nlimbs());
+        debug_assert_eq!(a.bits_precision(), b.bits_precision());
         let mut limbs = vec![Limb::ZERO; a.nlimbs()].into_boxed_slice();
 
         for i in 0..a.nlimbs() {

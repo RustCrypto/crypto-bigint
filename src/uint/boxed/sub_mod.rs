@@ -7,8 +7,8 @@ impl BoxedUint {
     ///
     /// Assumes `self - rhs` as unbounded signed integer is in `[-p, p)`.
     pub fn sub_mod(&self, rhs: &Self, p: &Self) -> Self {
-        debug_assert_eq!(self.nlimbs(), p.nlimbs());
-        debug_assert_eq!(rhs.nlimbs(), p.nlimbs());
+        debug_assert_eq!(self.bits_precision(), p.bits_precision());
+        debug_assert_eq!(rhs.bits_precision(), p.bits_precision());
         debug_assert!(self < p);
         debug_assert!(rhs < p);
 
@@ -23,8 +23,8 @@ impl BoxedUint {
     /// Assumes `-(p...) <= (self..., carry) - (rhs...) < (p...)`.
     #[inline(always)]
     pub(crate) fn sub_mod_with_carry(&self, carry: Limb, rhs: &Self, p: &Self) -> Self {
-        debug_assert_eq!(self.nlimbs(), p.nlimbs());
-        debug_assert_eq!(rhs.nlimbs(), p.nlimbs());
+        debug_assert_eq!(self.bits_precision(), p.bits_precision());
+        debug_assert_eq!(rhs.bits_precision(), p.bits_precision());
         debug_assert!(carry.0 <= 1);
 
         let (out, borrow) = self.sbb(rhs, Limb::ZERO);

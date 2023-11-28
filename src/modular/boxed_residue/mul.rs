@@ -95,8 +95,8 @@ pub(super) fn mul_montgomery_form(
     modulus: &BoxedUint,
     mod_neg_inv: Limb,
 ) -> BoxedUint {
-    debug_assert_eq!(a.nlimbs(), modulus.nlimbs());
-    debug_assert_eq!(b.nlimbs(), modulus.nlimbs());
+    debug_assert_eq!(a.bits_precision(), modulus.bits_precision());
+    debug_assert_eq!(b.bits_precision(), modulus.bits_precision());
 
     let mut product = a.mul_wide(b);
     let ret = montgomery_reduction_boxed(&mut product, modulus, mod_neg_inv);
