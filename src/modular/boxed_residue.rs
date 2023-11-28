@@ -4,6 +4,7 @@
 mod add;
 mod mul;
 mod pow;
+mod sub;
 
 use super::reduction::montgomery_reduction_boxed;
 use crate::{BoxedUint, Limb, NonZero, Word};
