@@ -8,7 +8,7 @@ mod neg;
 mod pow;
 mod sub;
 
-use super::reduction::montgomery_reduction_boxed;
+use super::{reduction::montgomery_reduction_boxed, Retrieve};
 use crate::{BoxedUint, Limb, NonZero, Word};
 use subtle::CtOption;
 
@@ -180,6 +180,13 @@ impl BoxedResidue {
     /// Extract the value from the `DynResidue` in Montgomery form.
     pub fn to_montgomery(&self) -> BoxedUint {
         self.montgomery_form.clone()
+    }
+}
+
+impl Retrieve for BoxedResidue {
+    type Output = BoxedUint;
+    fn retrieve(&self) -> BoxedUint {
+        self.retrieve()
     }
 }
 
