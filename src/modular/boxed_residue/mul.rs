@@ -1,4 +1,4 @@
-//! Multiplications between residues.
+//! Multiplications between boxed residues.
 
 use super::{montgomery_reduction_boxed, BoxedResidue};
 use crate::traits::Square;

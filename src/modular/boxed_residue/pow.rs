@@ -1,4 +1,4 @@
-//! Modular exponentiation support.
+//! Modular exponentiation support for [`BoxedResidue`].
 
 use super::{
     mul::{mul_montgomery_form, square_montgomery_form},
