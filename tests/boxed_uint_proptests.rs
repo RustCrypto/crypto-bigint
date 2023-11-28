@@ -2,6 +2,7 @@
 
 #![cfg(feature = "alloc")]
 
+use core::cmp::Ordering;
 use crypto_bigint::{BoxedUint, CheckedAdd, Limb, NonZero};
 use num_bigint::{BigUint, ModInverse};
 use proptest::prelude::*;
@@ -16,6 +17,21 @@ fn to_uint(big_uint: BigUint) -> BoxedUint {
     let mut padded_bytes = vec![0u8; pad_count];
     padded_bytes.extend_from_slice(&bytes);
     BoxedUint::from_be_slice(&padded_bytes, padded_bytes.len() * 8).unwrap()
+}
+
+fn reduce(x: &BoxedUint, n: &BoxedUint) -> BoxedUint {
+    let bits_precision = n.bits_precision();
+    let modulus = NonZero::new(n.clone()).expect("odd n");
+
+    let x = match x.bits_precision().cmp(&bits_precision) {
+        Ordering::Less => x.widen(bits_precision),
+        Ordering::Equal => x.clone(),
+        Ordering::Greater => x.shorten(bits_precision),
+    };
+
+    let x_reduced = x.rem_vartime(&modulus);
+    debug_assert_eq!(x_reduced.bits_precision(), bits_precision);
+    x_reduced
 }
 
 prop_compose! {
@@ -37,6 +53,16 @@ prop_compose! {
         }
 
         (a, b)
+    }
+}
+prop_compose! {
+    /// Generate a random odd modulus.
+    fn modulus()(n in uint()) -> BoxedUint {
+        if n.is_even().into() {
+            n.wrapping_add(&BoxedUint::one())
+        } else {
+            n
+        }
     }
 }
 
@@ -81,6 +107,20 @@ proptest! {
             (None, None) => (),
             (_, _) => panic!("disagreement on if modular inverse exists")
         }
+    }
+
+    #[test]
+    fn mul_mod(a in uint(), b in uint(), n in modulus()) {
+        let a = reduce(&a, &n);
+        let b = reduce(&b, &n);
+
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+        let n_bi = to_biguint(&n);
+
+        let expected = to_uint((a_bi * b_bi) % n_bi);
+        let actual = a.mul_mod(&b, &n);
+        assert_eq!(expected, actual);
     }
 
     #[test]

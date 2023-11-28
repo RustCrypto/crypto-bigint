@@ -10,6 +10,7 @@ mod div;
 pub(crate) mod encoding;
 mod inv_mod;
 mod mul;
+mod mul_mod;
 mod neg;
 mod shl;
 mod shr;

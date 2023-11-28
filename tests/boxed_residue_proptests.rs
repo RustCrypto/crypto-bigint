@@ -42,7 +42,7 @@ prop_compose! {
     }
 }
 prop_compose! {
-    /// Generate a random modulus.
+    /// Generate a random odd modulus.
     fn modulus()(mut n in uint()) -> BoxedResidueParams {
         if n.is_even().into() {
             n = n.wrapping_add(&BoxedUint::one());

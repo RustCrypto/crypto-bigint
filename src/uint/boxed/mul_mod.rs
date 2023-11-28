@@ -1,26 +1,26 @@
-//! [`Uint`] modular multiplication operations.
+//! [`BoxedUint`] modular multiplication operations.
 
 use crate::{
-    modular::{DynResidue, DynResidueParams},
-    Limb, MulMod, Uint, WideWord, Word,
+    modular::{BoxedResidue, BoxedResidueParams},
+    BoxedUint, Limb, MulMod, WideWord, Word,
 };
 
-impl<const LIMBS: usize> Uint<LIMBS> {
+impl BoxedUint {
     /// Computes `self * rhs mod p` for odd `p`.
     ///
     /// Panics if `p` is even.
     // TODO(tarcieri): support for even `p`?
-    pub fn mul_mod(&self, rhs: &Uint<LIMBS>, p: &Uint<LIMBS>) -> Uint<LIMBS> {
+    pub fn mul_mod(&self, rhs: &BoxedUint, p: &BoxedUint) -> BoxedUint {
         // NOTE: the overhead of converting to Montgomery form to perform this operation and then
         // immediately converting out of Montgomery form after just a single operation is likely to
         // be higher than other possible implementations of this function, such as using a
         // Barrett reduction instead.
         //
         // It's worth potentially exploring other approaches to improve efficiency.
-        match DynResidueParams::new(p).into() {
+        match Option::<BoxedResidueParams>::from(BoxedResidueParams::new(p.clone())) {
             Some(params) => {
-                let lhs = DynResidue::new(self, params);
-                let rhs = DynResidue::new(rhs, params);
+                let lhs = BoxedResidue::new(self, params.clone());
+                let rhs = BoxedResidue::new(rhs, params);
                 let ret = lhs * rhs;
                 ret.retrieve()
             }
@@ -34,35 +34,40 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// For the modulus reduction, this function implements Algorithm 14.47 from
     /// the "Handbook of Applied Cryptography", by A. Menezes, P. van Oorschot,
     /// and S. Vanstone, CRC Press, 1996.
-    pub const fn mul_mod_special(&self, rhs: &Self, c: Limb) -> Self {
+    pub fn mul_mod_special(&self, rhs: &Self, c: Limb) -> Self {
+        debug_assert_eq!(self.bits_precision(), rhs.bits_precision());
+
         // We implicitly assume `LIMBS > 0`, because `Uint<0>` doesn't compile.
         // Still the case `LIMBS == 1` needs special handling.
-        if LIMBS == 1 {
+        if self.nlimbs() == 1 {
             let prod = self.limbs[0].0 as WideWord * rhs.limbs[0].0 as WideWord;
             let reduced = prod % Word::MIN.wrapping_sub(c.0) as WideWord;
-            return Self::from_word(reduced as Word);
+            return Self::from(reduced as Word);
         }
 
-        let (lo, hi) = self.mul_wide(rhs);
+        let product = self.mul_wide(rhs);
+        let (lo_words, hi_words) = product.limbs.split_at(self.nlimbs());
+        let lo = BoxedUint::from(lo_words);
+        let hi = BoxedUint::from(hi_words);
 
         // Now use Algorithm 14.47 for the reduction
         let (lo, carry) = mac_by_limb(&lo, &hi, c, Limb::ZERO);
 
         let (lo, carry) = {
             let rhs = (carry.0 + 1) as WideWord * c.0 as WideWord;
-            lo.adc(&Self::from_wide_word(rhs), Limb::ZERO)
+            lo.adc(&Self::from(rhs), Limb::ZERO)
         };
 
         let (lo, _) = {
             let rhs = carry.0.wrapping_sub(1) & c.0;
-            lo.sbb(&Self::from_word(rhs), Limb::ZERO)
+            lo.sbb(&Self::from(rhs), Limb::ZERO)
         };
 
         lo
     }
 }
 
-impl<const LIMBS: usize> MulMod for Uint<LIMBS> {
+impl MulMod for BoxedUint {
     type Output = Self;
 
     fn mul_mod(&self, rhs: &Self, p: &Self) -> Self {
@@ -71,21 +76,14 @@ impl<const LIMBS: usize> MulMod for Uint<LIMBS> {
 }
 
 /// Computes `a + (b * c) + carry`, returning the result along with the new carry.
-const fn mac_by_limb<const LIMBS: usize>(
-    a: &Uint<LIMBS>,
-    b: &Uint<LIMBS>,
-    c: Limb,
-    carry: Limb,
-) -> (Uint<LIMBS>, Limb) {
-    let mut i = 0;
-    let mut a = *a;
+fn mac_by_limb(a: &BoxedUint, b: &BoxedUint, c: Limb, carry: Limb) -> (BoxedUint, Limb) {
+    let mut a = a.clone();
     let mut carry = carry;
 
-    while i < LIMBS {
+    for i in 0..a.nlimbs() {
         let (n, c) = a.limbs[i].mac(b.limbs[i], c, carry);
         a.limbs[i] = n;
         carry = c;
-        i += 1;
     }
 
     (a, carry)
