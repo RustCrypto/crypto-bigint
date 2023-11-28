@@ -96,6 +96,9 @@ jobs:
       - run: cross test --target ${{ matrix.target }} --release
       - run: cross test --target ${{ matrix.target }} --release --all-features
 
+  minimal-versions:
+    uses: RustCrypto/actions/.github/workflows/minimal-versions.yml@master
+
   # dudect benchmarks: check for constant-time operation
   dudect:
     runs-on: ubuntu-latest
