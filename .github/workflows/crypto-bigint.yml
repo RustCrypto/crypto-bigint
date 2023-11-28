@@ -97,7 +97,15 @@ jobs:
       - run: cross test --target ${{ matrix.target }} --release --all-features
 
   minimal-versions:
-    uses: RustCrypto/actions/.github/workflows/minimal-versions.yml@master
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: RustCrypto/actions/cargo-cache@master
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly
+      - run: cargo update -Z minimal-versions
+      - run: cargo +stable build --release --all-features
 
   # dudect benchmarks: check for constant-time operation
   dudect:
