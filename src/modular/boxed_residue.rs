@@ -1,6 +1,7 @@
 //! Implements `BoxedResidue`s, supporting modular arithmetic with a modulus whose size and value
 //! is chosen at runtime.
 
+mod add;
 mod mul;
 mod pow;
 
