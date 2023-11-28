@@ -1,13 +1,46 @@
 //! [`BoxedUint`] modular inverse (i.e. reciprocal) operations.
 
 use crate::{BoxedUint, Word};
-use subtle::{Choice, ConstantTimeLess};
+use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
 impl BoxedUint {
+    /// Computes the multiplicative inverse of `self` mod `modulus`.
+    /// Returns `None` if an inverse does not exist.
+    pub fn inv_mod(&self, modulus: &Self) -> CtOption<Self> {
+        debug_assert_eq!(self.bits_precision(), modulus.bits_precision());
+
+        // Decompose `modulus = s * 2^k` where `s` is odd
+        let k = modulus.trailing_zeros();
+        let s = modulus.shr(k);
+
+        // Decompose `self` into RNS with moduli `2^k` and `s` and calculate the inverses.
+        // Using the fact that `(z^{-1} mod (m1 * m2)) mod m1 == z^{-1} mod m1`
+        let (a, a_is_some) = self.inv_odd_mod(&s);
+        let b = self.inv_mod2k(k);
+        // inverse modulo 2^k exists either if `k` is 0 or if `self` is odd.
+        let b_is_some = (k as Word).ct_eq(&0) | self.is_odd();
+
+        // Restore from RNS:
+        // self^{-1} = a mod s = b mod 2^k
+        // => self^{-1} = a + s * ((b - a) * s^(-1) mod 2^k)
+        // (essentially one step of the Garner's algorithm for recovery from RNS).
+
+        let m_odd_inv = s.inv_mod2k(k); // `s` is odd, so this always exists
+
+        // This part is mod 2^k
+        let mask = Self::one().shl(k).wrapping_sub(&Self::one());
+        let t = (b.wrapping_sub(&a).wrapping_mul(&m_odd_inv)).bitand(&mask);
+
+        // Will not overflow since `a <= s - 1`, `t <= 2^k - 1`,
+        // so `a + s * t <= s * 2^k - 1 == modulus - 1`.
+        let result = a.wrapping_add(&s.wrapping_mul(&t));
+        CtOption::new(result, a_is_some & b_is_some)
+    }
+
     /// Computes 1/`self` mod `2^k`.
     ///
     /// Conditions: `self` < 2^k and `self` must be odd
-    pub fn inv_mod2k(&self, k: usize) -> Self {
+    pub(crate) fn inv_mod2k(&self, k: usize) -> Self {
         // This is the same algorithm as in `inv_mod2k_vartime()`,
         // but made constant-time w.r.t `k` as well.
 
@@ -32,6 +65,83 @@ impl BoxedUint {
         }
 
         x
+    }
+
+    /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
+    /// Returns `None` if an inverse does not exist.
+    fn inv_odd_mod(&self, modulus: &Self) -> (Self, Choice) {
+        self.inv_odd_mod_bounded(modulus, self.bits_precision(), modulus.bits_precision())
+    }
+
+    /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
+    /// In other words `self^-1 mod modulus`.
+    ///
+    /// `bits` and `modulus_bits` are the bounds on the bit size
+    /// of `self` and `modulus`, respectively.
+    ///
+    /// (the inversion speed will be proportional to `bits + modulus_bits`).
+    /// The second element of the tuple is the truthy value if an inverse exists,
+    /// otherwise it is a falsy value.
+    ///
+    /// **Note:** variable time in `bits` and `modulus_bits`.
+    ///
+    /// The algorithm is the same as in GMP 6.2.1's `mpn_sec_invert`.
+    fn inv_odd_mod_bounded(
+        &self,
+        modulus: &Self,
+        bits: usize,
+        modulus_bits: usize,
+    ) -> (Self, Choice) {
+        debug_assert_eq!(self.bits_precision(), modulus.bits_precision());
+
+        let bits_precision = self.bits_precision();
+        debug_assert!(bool::from(modulus.is_odd()));
+
+        let mut a = self.clone();
+        let mut u = Self::one_with_precision(bits_precision);
+        let mut v = Self::zero_with_precision(bits_precision);
+        let mut b = modulus.clone();
+
+        // `bit_size` can be anything >= `self.bits()` + `modulus.bits()`, setting to the minimum.
+        let bit_size = bits + modulus_bits;
+
+        let mut m1hp = modulus.clone();
+        let (m1hp_new, carry) = m1hp.shr_1();
+        debug_assert!(bool::from(carry));
+        m1hp = m1hp_new.wrapping_add(&Self::one_with_precision(bits_precision));
+
+        for _ in 0..bit_size {
+            debug_assert!(bool::from(b.is_odd()));
+
+            let self_odd = a.is_odd();
+
+            // Set `self -= b` if `self` is odd.
+            let (new_a, swap) = a.conditional_wrapping_sub(&b, self_odd);
+            // Set `b += self` if `swap` is true.
+            b = Self::conditional_select(&b, &b.wrapping_add(&new_a), swap);
+            // Negate `self` if `swap` is true.
+            a = new_a.conditional_wrapping_neg(swap);
+
+            let mut new_u = u.clone();
+            let mut new_v = v.clone();
+            Self::conditional_swap(&mut new_u, &mut new_v, swap);
+            let (new_u, cy) = new_u.conditional_wrapping_sub(&new_v, self_odd);
+            let (new_u, cyy) = new_u.conditional_wrapping_add(modulus, cy);
+            debug_assert!(bool::from(cy.ct_eq(&cyy)));
+
+            let (new_a, overflow) = a.shr_1();
+            debug_assert!(!bool::from(overflow));
+            let (new_u, cy) = new_u.shr_1();
+            let (new_u, cy) = new_u.conditional_wrapping_add(&m1hp, cy);
+            debug_assert!(!bool::from(cy));
+
+            a = new_a;
+            u = new_u;
+            v = new_v;
+        }
+
+        debug_assert!(bool::from(a.is_zero()));
+        (v, b.is_one())
     }
 }
 

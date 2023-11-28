@@ -1,7 +1,7 @@
 //! [`BoxedUint`] subtraction operations.
 
 use crate::{BoxedUint, CheckedSub, Limb, Zero};
-use subtle::CtOption;
+use subtle::{Choice, CtOption};
 
 impl BoxedUint {
     /// Computes `a + b + carry`, returning the result along with the new carry.
@@ -13,6 +13,18 @@ impl BoxedUint {
     /// Perform wrapping subition, discarding overflow.
     pub fn wrapping_sub(&self, rhs: &Self) -> Self {
         self.sbb(rhs, Limb::ZERO).0
+    }
+
+    /// Perform wrapping subtraction, returning the truthy value as the second element of the tuple
+    /// if an underflow has occurred.
+    pub(crate) fn conditional_wrapping_sub(&self, rhs: &Self, choice: Choice) -> (Self, Choice) {
+        let actual_rhs = Self::conditional_select(
+            &Self::zero_with_precision(rhs.bits_precision()),
+            rhs,
+            choice,
+        );
+        let (res, borrow) = self.sbb(&actual_rhs, Limb::ZERO);
+        (res, Choice::from((borrow.0 & 1) as u8))
     }
 }
 

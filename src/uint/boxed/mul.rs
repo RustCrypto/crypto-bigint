@@ -27,6 +27,11 @@ impl BoxedUint {
         ret
     }
 
+    /// Perform wrapping multiplication, wrapping to the width of `self`.
+    pub fn wrapping_mul(&self, rhs: &Self) -> Self {
+        self.mul_wide(rhs).shorten(self.bits_precision())
+    }
+
     /// Multiply `self` by itself.
     pub fn square(&self) -> Self {
         // TODO(tarcieri): more optimized implementation

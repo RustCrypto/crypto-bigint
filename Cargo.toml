@@ -31,7 +31,7 @@ zeroize = { version = "1", optional = true,  default-features = false }
 bincode = "1"
 criterion = { version = "0.5", features = ["html_reports"] }
 hex-literal = "0.4"
-num-bigint = "0.4"
+num-bigint = { package = "num-bigint-dig", version = "0.8" }
 num-integer = "0.1"
 num-traits = "0.2"
 proptest = "1"

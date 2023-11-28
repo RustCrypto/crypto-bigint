@@ -1,6 +1,8 @@
 //! [`BoxedUint`] bitwise left shift operations.
 
 use crate::{BoxedUint, Limb, Word};
+use core::ops::{Shl, ShlAssign};
+use subtle::{Choice, ConstantTimeLess};
 
 impl BoxedUint {
     /// Computes `self << shift` where `0 <= shift < Limb::BITS`,
@@ -57,6 +59,61 @@ impl BoxedUint {
 
         let (new_lower, _carry) = (Self { limbs }).shl_limb(rem);
         new_lower
+    }
+
+    /// Computes `self << n`.
+    /// Returns zero if `n >= Self::BITS`.
+    pub fn shl(&self, shift: usize) -> Self {
+        let overflow = !(shift as Word).ct_lt(&(self.bits_precision() as Word));
+        let shift = shift % self.bits_precision();
+        let log2_bits = (usize::BITS - self.bits_precision().leading_zeros()) as usize;
+        let mut result = self.clone();
+
+        for i in 0..log2_bits {
+            let bit = Choice::from(((shift as Word >> i) & 1) as u8);
+            result = Self::conditional_select(&result, &result.shl_vartime(1 << i), bit);
+        }
+
+        Self::conditional_select(
+            &result,
+            &Self::zero_with_precision(self.bits_precision()),
+            overflow,
+        )
+    }
+}
+
+impl Shl<usize> for BoxedUint {
+    type Output = BoxedUint;
+
+    /// NOTE: this operation is variable time with respect to `rhs` *ONLY*.
+    ///
+    /// When used with a fixed `rhs`, this function is constant-time with respect
+    /// to `self`.
+    fn shl(self, rhs: usize) -> BoxedUint {
+        Self::shl(&self, rhs)
+    }
+}
+
+impl Shl<usize> for &BoxedUint {
+    type Output = BoxedUint;
+
+    /// NOTE: this operation is variable time with respect to `rhs` *ONLY*.
+    ///
+    /// When used with a fixed `rhs`, this function is constant-time with respect
+    /// to `self`.
+    fn shl(self, rhs: usize) -> BoxedUint {
+        self.shl(rhs)
+    }
+}
+
+impl ShlAssign<usize> for BoxedUint {
+    /// NOTE: this operation is variable time with respect to `rhs` *ONLY*.
+    ///
+    /// When used with a fixed `rhs`, this function is constant-time with respect
+    /// to `self`.
+    fn shl_assign(&mut self, rhs: usize) {
+        // TODO(tarcieri): in-place implementation that avoids clone
+        *self = self.clone().shl(rhs)
     }
 }
 

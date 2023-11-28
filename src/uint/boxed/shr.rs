@@ -1,8 +1,35 @@
 //! [`BoxedUint`] bitwise right shift operations.
 
-use crate::{BoxedUint, Limb};
+use crate::{limb::HI_BIT, BoxedUint, Limb, Word};
+use core::ops::{Shr, ShrAssign};
+use subtle::{Choice, ConstantTimeLess};
 
 impl BoxedUint {
+    /// Computes `self >> 1` in constant-time, returning [`CtChoice::TRUE`] if the overflowing bit
+    /// was set, and [`CtChoice::FALSE`] otherwise.
+    pub(crate) fn shr_1(&self) -> (Self, Choice) {
+        let nlimbs = self.nlimbs();
+        let mut shifted_bits = vec![0; nlimbs];
+
+        for i in 0..nlimbs {
+            shifted_bits[i] = self.limbs[i].0 >> 1;
+        }
+
+        let mut carry_bits = vec![0; nlimbs];
+        for i in 0..nlimbs {
+            carry_bits[i] = self.limbs[i].0 << HI_BIT;
+        }
+
+        let mut limbs = vec![Limb(0); nlimbs];
+        for i in 0..(nlimbs - 1) {
+            limbs[i] = Limb(shifted_bits[i] | carry_bits[i + 1]);
+        }
+        limbs[nlimbs - 1] = Limb(shifted_bits[nlimbs - 1]);
+
+        debug_assert!(carry_bits[nlimbs - 1] == 0 || carry_bits[nlimbs - 1] == (1 << HI_BIT));
+        (limbs.into(), Choice::from((carry_bits[0] >> HI_BIT) as u8))
+    }
+
     /// Computes `self >> shift`.
     ///
     /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
@@ -41,6 +68,57 @@ impl BoxedUint {
         }
 
         Self { limbs }
+    }
+
+    /// Computes `self << n`.
+    /// Returns zero if `n >= Self::BITS`.
+    pub fn shr(&self, shift: usize) -> Self {
+        let overflow = !(shift as Word).ct_lt(&(self.bits_precision() as Word));
+        let shift = shift % self.bits_precision();
+        let log2_bits = (usize::BITS - self.bits_precision().leading_zeros()) as usize;
+        let mut result = self.clone();
+
+        for i in 0..log2_bits {
+            let bit = Choice::from(((shift as Word >> i) & 1) as u8);
+            result = Self::conditional_select(&result, &result.shr_vartime(1 << i), bit);
+        }
+
+        Self::conditional_select(
+            &result,
+            &Self::zero_with_precision(self.bits_precision()),
+            overflow,
+        )
+    }
+}
+
+impl Shr<usize> for BoxedUint {
+    type Output = BoxedUint;
+
+    /// NOTE: this operation is variable time with respect to `rhs` *ONLY*.
+    ///
+    /// When used with a fixed `rhs`, this function is constant-time with respect
+    /// to `self`.
+    fn shr(self, rhs: usize) -> BoxedUint {
+        Self::shr(&self, rhs)
+    }
+}
+
+impl Shr<usize> for &BoxedUint {
+    type Output = BoxedUint;
+
+    /// NOTE: this operation is variable time with respect to `rhs` *ONLY*.
+    ///
+    /// When used with a fixed `rhs`, this function is constant-time with respect
+    /// to `self`.
+    fn shr(self, rhs: usize) -> BoxedUint {
+        self.shr(rhs)
+    }
+}
+
+impl ShrAssign<usize> for BoxedUint {
+    fn shr_assign(&mut self, rhs: usize) {
+        // TODO(tarcieri): in-place implementation that avoids clone
+        *self = self.clone().shr(rhs);
     }
 }
 

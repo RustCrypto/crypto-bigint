@@ -1,7 +1,7 @@
 //! [`BoxedUint`] addition operations.
 
 use crate::{BoxedUint, CheckedAdd, Limb, Zero};
-use subtle::CtOption;
+use subtle::{Choice, CtOption};
 
 impl BoxedUint {
     /// Computes `a + b + carry`, returning the result along with the new carry.
@@ -13,6 +13,18 @@ impl BoxedUint {
     /// Perform wrapping addition, discarding overflow.
     pub fn wrapping_add(&self, rhs: &Self) -> Self {
         self.adc(rhs, Limb::ZERO).0
+    }
+
+    /// Perform wrapping addition, returning the truthy value as the second element of the tuple
+    /// if an overflow has occurred.
+    pub(crate) fn conditional_wrapping_add(&self, rhs: &Self, choice: Choice) -> (Self, Choice) {
+        let actual_rhs = Self::conditional_select(
+            &Self::zero_with_precision(rhs.bits_precision()),
+            rhs,
+            choice,
+        );
+        let (sum, carry) = self.adc(&actual_rhs, Limb::ZERO);
+        (sum, Choice::from((carry.0 & 1) as u8))
     }
 }
 
