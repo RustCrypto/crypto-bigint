@@ -1,7 +1,7 @@
 //! Random number generator support
 
 use super::Uint;
-use crate::{Encoding, Limb, NonZero, Random, RandomMod};
+use crate::{Encoding, Limb, NonZero, Random, RandomMod, Zero};
 use rand_core::CryptoRngCore;
 use subtle::ConstantTimeLess;
 
@@ -32,31 +32,43 @@ impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
     /// outputs and do not reveal information about the RNG's internal state.
     fn random_mod(rng: &mut impl CryptoRngCore, modulus: &NonZero<Self>) -> Self {
         let mut n = Self::ZERO;
+        random_mod_core(rng, &mut n, modulus, modulus.bits_vartime());
+        n
+    }
+}
 
-        let n_bits = modulus.as_ref().bits_vartime();
-        let n_bytes = (n_bits + 7) / 8;
-        let n_limbs = (n_bits + Limb::BITS - 1) / Limb::BITS;
-        let hi_bytes = n_bytes - (n_limbs - 1) * Limb::BYTES;
+/// Generic implementation of `random_mod` which can be shared with `BoxedUint`.
+// TODO(tarcieri): obtain `n_bits` via a trait like `Integer`
+pub(super) fn random_mod_core<T>(
+    rng: &mut impl CryptoRngCore,
+    n: &mut T,
+    modulus: &NonZero<T>,
+    n_bits: usize,
+) where
+    T: AsMut<[Limb]> + ConstantTimeLess + Zero,
+{
+    let n_bytes = (n_bits + 7) / 8;
+    let n_limbs = (n_bits + Limb::BITS - 1) / Limb::BITS;
+    let hi_bytes = n_bytes - (n_limbs - 1) * Limb::BYTES;
 
-        let mut bytes = Limb::ZERO.to_le_bytes();
+    let mut bytes = Limb::ZERO.to_le_bytes();
 
-        loop {
-            for i in 0..n_limbs - 1 {
-                rng.fill_bytes(bytes.as_mut());
-                // Need to deserialize from little-endian to make sure that two 32-bit limbs
-                // deserialized sequentially are equal to one 64-bit limb produced from the same
-                // byte stream.
-                n.limbs[i] = Limb::from_le_bytes(bytes);
-            }
+    loop {
+        for i in 0..n_limbs - 1 {
+            rng.fill_bytes(bytes.as_mut());
+            // Need to deserialize from little-endian to make sure that two 32-bit limbs
+            // deserialized sequentially are equal to one 64-bit limb produced from the same
+            // byte stream.
+            n.as_mut()[i] = Limb::from_le_bytes(bytes);
+        }
 
-            // Generate the high limb which may need to only be filled partially.
-            bytes.as_mut().fill(0);
-            rng.fill_bytes(&mut (bytes.as_mut()[0..hi_bytes]));
-            n.limbs[n_limbs - 1] = Limb::from_le_bytes(bytes);
+        // Generate the high limb which may need to only be filled partially.
+        bytes.as_mut().fill(0);
+        rng.fill_bytes(&mut (bytes.as_mut()[0..hi_bytes]));
+        n.as_mut()[n_limbs - 1] = Limb::from_le_bytes(bytes);
 
-            if n.ct_lt(modulus).into() {
-                return n;
-            }
+        if n.ct_lt(modulus).into() {
+            break;
         }
     }
 }

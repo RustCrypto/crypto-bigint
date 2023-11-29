@@ -17,6 +17,9 @@ mod shr;
 mod sub;
 mod sub_mod;
 
+#[cfg(feature = "rand_core")]
+mod rand;
+
 use crate::{Limb, NonZero, Uint, Word, Zero, U128, U64};
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::fmt;
