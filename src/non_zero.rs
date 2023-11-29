@@ -21,7 +21,7 @@ use serdect::serde::{
 };
 
 /// Wrapper type for non-zero integers.
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct NonZero<T: Zero>(pub(crate) T);
 
 impl NonZero<Limb> {
