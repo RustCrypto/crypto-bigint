@@ -9,7 +9,9 @@ impl BoxedUint {
     /// Conditional `map`: workaround which provides a [`CtOption::map`]-like API.
     ///
     /// Ensures both functions are called regardless of whether the first returns some/none with an
-    /// argument whose precision matches `self`.
+    /// argument whose precision matches `self`. Note this still requires branching on the
+    /// intermediate [`CtOption`] value and therefore isn't fully constant time, but the best we can
+    /// do without upstream changes to `subtle` (see dalek-cryptography/subtle#94).
     ///
     /// Workaround due to `Copy` in [`subtle::ConditionallySelectable`] supertrait bounds.
     pub fn cond_map<C, F, T>(&self, condition: C, f: F) -> CtOption<T>
@@ -17,10 +19,10 @@ impl BoxedUint {
         C: Fn(&Self) -> CtOption<Self>,
         F: Fn(Self) -> T,
     {
-        let placeholder = Self::zero_with_precision(self.bits_precision());
         let cond_val = condition(self);
         let is_some = cond_val.is_some();
 
+        let placeholder = Self::zero_with_precision(self.bits_precision());
         let value = Option::<Self>::from(cond_val).unwrap_or(placeholder);
         debug_assert_eq!(self.bits_precision(), value.bits_precision());
         CtOption::new(f(value), is_some)
@@ -28,8 +30,10 @@ impl BoxedUint {
 
     /// Conditional `and_then`: workaround which provides a [`CtOption::and_then`]-like API.
     ///
-    /// Ensures both functions are called regardless of whether they return some/none with an
-    /// argument whose precision matches `self`.
+    /// Ensures both functions are called regardless of whether the first returns some/none with an
+    /// argument whose precision matches `self`. Note this still requires branching on the
+    /// intermediate [`CtOption`] value and therefore isn't fully constant time, but the best we can
+    /// do without upstream changes to `subtle` (see dalek-cryptography/subtle#94).
     ///
     /// Workaround due to `Copy` in [`subtle::ConditionallySelectable`] supertrait bounds.
     pub fn cond_and_then<C, F>(&self, condition: C, f: F) -> CtOption<Self>
@@ -49,6 +53,8 @@ impl BoxedUint {
 
         let placeholder = Self::zero_with_precision(self.bits_precision());
         let value = Option::from(cond_val).unwrap_or(placeholder);
+        debug_assert_eq!(self.bits_precision(), value.bits_precision());
+
         CtOption::new(value, is_some)
     }
 }
