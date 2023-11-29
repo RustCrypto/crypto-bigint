@@ -6,6 +6,7 @@ mod bit_and;
 mod bit_or;
 mod bits;
 mod cmp;
+mod ct;
 mod div;
 pub(crate) mod encoding;
 mod inv_mod;
