@@ -272,7 +272,7 @@ pub trait CheckedSub<Rhs = Self>: Sized {
 /// value as the least significant value.
 pub trait Concat: ConcatMixed<Self, MixedOutput = Self::Output> {
     /// Concatenated output: twice the width of `Self`.
-    type Output;
+    type Output: Integer;
 
     /// Concatenate the two halves, with `self` as most significant and `lo`
     /// as the least significant.
@@ -285,7 +285,7 @@ pub trait Concat: ConcatMixed<Self, MixedOutput = Self::Output> {
 /// value as the least significant value.
 pub trait ConcatMixed<Lo: ?Sized = Self> {
     /// Concatenated output: combination of `Lo` and `Self`.
-    type MixedOutput;
+    type MixedOutput: Integer;
 
     /// Concatenate the two values, with `self` as most significant and `lo`
     /// as the least significant.
@@ -415,4 +415,13 @@ pub trait Invert: Sized {
 
     /// Computes the inverse.
     fn invert(&self) -> Self::Output;
+}
+
+/// Widening multiply: returns a value with a number of limbs equal to the sum of the inputs.
+pub trait WideningMul<Rhs = Self>: Sized {
+    /// Output of the widening multiplication.
+    type Output: Integer;
+
+    /// Perform widening multiplication.
+    fn widening_mul(&self, rhs: Rhs) -> Self::Output;
 }
