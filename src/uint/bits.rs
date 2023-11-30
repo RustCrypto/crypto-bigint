@@ -1,6 +1,27 @@
 use crate::{CtChoice, Limb, Uint, Word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
+    /// Get the value of the bit at position `index`, as a truthy or falsy `CtChoice`.
+    /// Returns the falsy value for indices out of range.
+    pub const fn bit(&self, index: usize) -> CtChoice {
+        let limb_num = index / Limb::BITS;
+        let index_in_limb = index % Limb::BITS;
+        let index_mask = 1 << index_in_limb;
+
+        let limbs = self.as_words();
+
+        let mut result: Word = 0;
+        let mut i = 0;
+        while i < LIMBS {
+            let bit = limbs[i] & index_mask;
+            let is_right_limb = CtChoice::from_usize_equality(i, limb_num);
+            result |= is_right_limb.if_true(bit);
+            i += 1;
+        }
+
+        CtChoice::from_lsb(result >> index_in_limb)
+    }
+
     /// Returns `true` if the bit at position `index` is set, `false` otherwise.
     ///
     /// # Remarks
@@ -15,6 +36,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Calculate the number of bits needed to represent this number.
+    #[inline]
+    pub const fn bits(&self) -> usize {
+        Self::BITS - self.leading_zeros()
+    }
+
+    /// Calculate the number of bits needed to represent this number in variable-time with respect
+    /// to `self`.
     pub const fn bits_vartime(&self) -> usize {
         let mut i = LIMBS - 1;
         while i > 0 && self.limbs[i].0 == 0 {
@@ -44,8 +72,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         count as usize
     }
 
-    /// Calculate the number of leading zeros in the binary representation of this number,
-    /// variable time in `self`.
+    /// Calculate the number of leading zeros in the binary representation of this number in
+    /// variable-time with respect to `self`.
     pub const fn leading_zeros_vartime(&self) -> usize {
         let limbs = self.as_limbs();
 
@@ -83,8 +111,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         count as usize
     }
 
-    /// Calculate the number of trailing zeros in the binary representation of this number,
-    /// variable time in `self`.
+    /// Calculate the number of trailing zeros in the binary representation of this number in
+    /// variable-time with respect to `self`.
     pub const fn trailing_zeros_vartime(&self) -> usize {
         let limbs = self.as_limbs();
 
@@ -140,32 +168,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         count
-    }
-
-    /// Calculate the number of bits needed to represent this number.
-    pub const fn bits(&self) -> usize {
-        Self::BITS - self.leading_zeros()
-    }
-
-    /// Get the value of the bit at position `index`, as a truthy or falsy `CtChoice`.
-    /// Returns the falsy value for indices out of range.
-    pub const fn bit(&self, index: usize) -> CtChoice {
-        let limb_num = index / Limb::BITS;
-        let index_in_limb = index % Limb::BITS;
-        let index_mask = 1 << index_in_limb;
-
-        let limbs = self.as_words();
-
-        let mut result: Word = 0;
-        let mut i = 0;
-        while i < LIMBS {
-            let bit = limbs[i] & index_mask;
-            let is_right_limb = CtChoice::from_usize_equality(i, limb_num);
-            result |= is_right_limb.if_true(bit);
-            i += 1;
-        }
-
-        CtChoice::from_lsb(result >> index_in_limb)
     }
 
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.

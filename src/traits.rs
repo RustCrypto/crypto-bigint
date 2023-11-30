@@ -57,11 +57,23 @@ pub trait Integer:
     /// The value `1`.
     fn one() -> Self;
 
+    /// Calculate the number of bits required to represent a given number.
+    fn bits(&self) -> usize;
+
+    /// Calculate the number of bits required to represent a given number in variable-time with
+    /// respect to `self`.
+    fn bits_vartime(&self) -> usize;
+
     /// Precision of this integer in bits.
     fn bits_precision(&self) -> usize;
 
     /// Precision of this integer in bytes.
     fn bytes_precision(&self) -> usize;
+
+    /// Calculate the number of leading zeros in the binary representation of this number.
+    fn leading_zeros(&self) -> usize  {
+        self.bits_precision() - self.bits()
+    }
 
     /// Number of limbs in this integer.
     fn nlimbs(&self) -> usize;
@@ -92,24 +104,6 @@ pub trait Integer:
 pub trait FixedInteger: Bounded + ConditionallySelectable + Constants + Copy + Integer {
     /// The number of limbs used on this platform.
     const LIMBS: usize;
-}
-
-impl<T: FixedInteger> Integer for T {
-    fn one() -> Self {
-        T::ONE
-    }
-
-    fn bits_precision(&self) -> usize {
-        T::BITS
-    }
-
-    fn bytes_precision(&self) -> usize {
-        T::BYTES
-    }
-
-    fn nlimbs(&self) -> usize {
-        T::LIMBS
-    }
 }
 
 /// Zero values.
