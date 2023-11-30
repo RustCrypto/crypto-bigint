@@ -11,7 +11,16 @@ use subtle::{
 #[cfg(feature = "rand_core")]
 use rand_core::CryptoRngCore;
 
-/// Integer type.
+/// Integers whose representation takes a bounded amount of space.
+pub trait Bounded {
+    /// Size of this integer in bits.
+    const BITS: usize;
+
+    /// Size of this integer in bytes.
+    const BYTES: usize;
+}
+
+/// Integer trait: represents common functionality of integer types provided by this crate.
 pub trait Integer:
     'static
     + AddMod
@@ -46,19 +55,16 @@ pub trait Integer:
     + Zero
 {
     /// The value `1`.
-    const ONE: Self;
+    fn one() -> Self;
 
-    /// Maximum value this integer can express.
-    const MAX: Self;
+    /// Precision of this integer in bits.
+    fn bits_precision(&self) -> usize;
 
-    /// Total size of the represented integer in bits.
-    const BITS: usize;
+    /// Precision of this integer in bytes.
+    fn bytes_precision(&self) -> usize;
 
-    /// Total size of the represented integer in bytes.
-    const BYTES: usize;
-
-    /// The number of limbs used on this platform.
-    const LIMBS: usize;
+    /// Number of limbs in this integer.
+    fn nlimbs(&self) -> usize;
 
     /// Is this integer value an odd number?
     ///
@@ -104,6 +110,21 @@ impl<T: ZeroConstant> Zero for T {
     fn zero() -> T {
         Self::ZERO
     }
+}
+
+/// Trait for associating constant values with a type.
+pub trait Constants: ZeroConstant {
+    /// The value `1`.
+    const ONE: Self;
+
+    /// Maximum value this integer can express.
+    const MAX: Self;
+}
+
+/// Constant representing the number of limbs used to represent a type.
+pub trait LimbsConstant {
+    /// The number of limbs used on this platform.
+    const LIMBS: usize;
 }
 
 /// Random number generation support.
@@ -244,15 +265,6 @@ pub trait SplitMixed<Hi, Lo> {
     /// Split this number into parts, returning its high and low components
     /// respectively.
     fn split_mixed(&self) -> (Hi, Lo);
-}
-
-/// Integers whose representation takes a bounded amount of space.
-pub trait Bounded {
-    /// Size of this integer in bits.
-    const BITS: usize;
-
-    /// Size of this integer in bytes.
-    const BYTES: usize;
 }
 
 /// Encoding support.
