@@ -7,7 +7,7 @@ impl BoxedUint {
     /// Computes `a + b + carry`, returning the result along with the new carry.
     #[inline(always)]
     pub fn adc(&self, rhs: &Self, carry: Limb) -> (Self, Limb) {
-        Self::chain(self, rhs, carry, |a, b, c| a.adc(b, c))
+        Self::fold_limbs(self, rhs, carry, |a, b, c| a.adc(b, c))
     }
 
     /// Perform wrapping addition, discarding overflow.

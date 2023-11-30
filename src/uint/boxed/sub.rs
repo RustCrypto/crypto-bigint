@@ -7,7 +7,7 @@ impl BoxedUint {
     /// Computes `a + b + carry`, returning the result along with the new carry.
     #[inline(always)]
     pub fn sbb(&self, rhs: &Self, borrow: Limb) -> (Self, Limb) {
-        Self::chain(self, rhs, borrow, |a, b, c| a.sbb(b, c))
+        Self::fold_limbs(self, rhs, borrow, |a, b, c| a.sbb(b, c))
     }
 
     /// Perform wrapping subition, discarding overflow.
