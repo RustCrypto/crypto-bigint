@@ -38,7 +38,7 @@ pub(crate) mod boxed;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Bounded, Constants, Encoding, Integer, Limb, LimbsConstant, Word, ZeroConstant};
+use crate::{Bounded, Constants, Encoding, FixedInteger, Limb, Word, ZeroConstant};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
 
@@ -209,29 +209,8 @@ impl<const LIMBS: usize> Default for Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Integer for Uint<LIMBS> {
-    fn one() -> Self {
-        Self::ONE
-    }
-
-    fn bits_precision(&self) -> usize {
-        Self::BITS
-    }
-
-    fn bytes_precision(&self) -> usize {
-        Self::BYTES
-    }
-
-    fn nlimbs(&self) -> usize {
-        Self::LIMBS
-    }
-
-    fn is_odd(&self) -> Choice {
-        self.limbs
-            .first()
-            .map(|limb| limb.is_odd())
-            .unwrap_or_else(|| Choice::from(0))
-    }
+impl<const LIMBS: usize> FixedInteger for Uint<LIMBS> {
+    const LIMBS: usize = LIMBS;
 }
 
 impl<const LIMBS: usize> Bounded for Uint<LIMBS> {
@@ -242,10 +221,6 @@ impl<const LIMBS: usize> Bounded for Uint<LIMBS> {
 impl<const LIMBS: usize> Constants for Uint<LIMBS> {
     const ONE: Self = Self::ONE;
     const MAX: Self = Self::MAX;
-}
-
-impl<const LIMBS: usize> LimbsConstant for Uint<LIMBS> {
-    const LIMBS: usize = Self::LIMBS;
 }
 
 impl<const LIMBS: usize> ZeroConstant for Uint<LIMBS> {
