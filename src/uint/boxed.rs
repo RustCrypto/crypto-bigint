@@ -24,7 +24,7 @@ mod neg_mod;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Limb, NonZero, Uint, Word, Zero, U128, U64};
+use crate::{Integer, Limb, NonZero, Uint, Word, Zero, U128, U64};
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
@@ -400,6 +400,28 @@ impl From<Vec<Limb>> for BoxedUint {
 impl<const LIMBS: usize> From<Uint<LIMBS>> for BoxedUint {
     fn from(uint: Uint<LIMBS>) -> BoxedUint {
         Vec::from(uint.to_limbs()).into()
+    }
+}
+
+impl Integer for BoxedUint {
+    fn one() -> Self {
+        Self::one()
+    }
+
+    fn bits_precision(&self) -> usize {
+        self.bits_precision()
+    }
+
+    fn bytes_precision(&self) -> usize {
+        self.nlimbs() * Limb::BYTES
+    }
+
+    fn nlimbs(&self) -> usize {
+        self.nlimbs()
+    }
+
+    fn is_odd(&self) -> Choice {
+        self.is_odd()
     }
 }
 
