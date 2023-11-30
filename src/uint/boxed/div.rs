@@ -1,6 +1,7 @@
 //! [`BoxedUint`] division operations.
 
 use crate::{BoxedUint, Limb, NonZero};
+use core::ops::{Rem, RemAssign};
 use subtle::ConstantTimeEq;
 
 impl BoxedUint {
@@ -28,6 +29,54 @@ impl BoxedUint {
             bd -= 1;
             c = c.shr_vartime(1);
         }
+    }
+}
+
+impl Rem<&NonZero<BoxedUint>> for &BoxedUint {
+    type Output = BoxedUint;
+
+    #[inline]
+    fn rem(self, rhs: &NonZero<BoxedUint>) -> Self::Output {
+        self.rem_vartime(rhs)
+    }
+}
+
+impl Rem<&NonZero<BoxedUint>> for BoxedUint {
+    type Output = BoxedUint;
+
+    #[inline]
+    fn rem(self, rhs: &NonZero<BoxedUint>) -> Self::Output {
+        self.rem_vartime(rhs)
+    }
+}
+
+impl Rem<NonZero<BoxedUint>> for &BoxedUint {
+    type Output = BoxedUint;
+
+    #[inline]
+    fn rem(self, rhs: NonZero<BoxedUint>) -> Self::Output {
+        self.rem_vartime(&rhs)
+    }
+}
+
+impl Rem<NonZero<BoxedUint>> for BoxedUint {
+    type Output = BoxedUint;
+
+    #[inline]
+    fn rem(self, rhs: NonZero<BoxedUint>) -> Self::Output {
+        self.rem_vartime(&rhs)
+    }
+}
+
+impl RemAssign<&NonZero<BoxedUint>> for BoxedUint {
+    fn rem_assign(&mut self, rhs: &NonZero<BoxedUint>) {
+        *self = self.rem_vartime(rhs)
+    }
+}
+
+impl RemAssign<NonZero<BoxedUint>> for BoxedUint {
+    fn rem_assign(&mut self, rhs: NonZero<BoxedUint>) {
+        *self = self.rem_vartime(&rhs)
     }
 }
 
