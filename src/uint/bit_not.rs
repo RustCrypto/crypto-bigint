@@ -23,9 +23,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 impl<const LIMBS: usize> Not for Uint<LIMBS> {
     type Output = Self;
 
-    #[allow(clippy::needless_borrow)]
-    fn not(self) -> <Self as Not>::Output {
-        (&self).not()
+    fn not(self) -> Self {
+        Self::not(&self)
     }
 }
 
