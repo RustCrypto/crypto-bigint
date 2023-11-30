@@ -32,7 +32,7 @@ pub trait Integer:
     + for<'a> CheckedSub<&'a Self, Output = Self>
     + for<'a> CheckedMul<&'a Self, Output = Self>
     + Copy
-    + ConditionallySelectable
+    // + ConditionallySelectable (see dalek-cryptography/subtle#94)
     + ConstantTimeEq
     + ConstantTimeGreater
     + ConstantTimeLess
@@ -71,7 +71,12 @@ pub trait Integer:
     /// # Returns
     ///
     /// If odd, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
-    fn is_odd(&self) -> Choice;
+    fn is_odd(&self) -> Choice {
+        self.as_ref()
+            .first()
+            .map(|limb| limb.is_odd())
+            .unwrap_or_else(|| Choice::from(0))
+    }
 
     /// Is this integer value an even number?
     ///
@@ -80,6 +85,30 @@ pub trait Integer:
     /// If even, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
     fn is_even(&self) -> Choice {
         !self.is_odd()
+    }
+}
+
+/// Fixed-width integers.
+pub trait FixedInteger: Bounded + Constants + ConditionallySelectable + Integer {
+    /// The number of limbs used on this platform.
+    const LIMBS: usize;
+}
+
+impl<T: FixedInteger> Integer for T {
+    fn one() -> Self {
+        T::ONE
+    }
+
+    fn bits_precision(&self) -> usize {
+        T::BITS
+    }
+
+    fn bytes_precision(&self) -> usize {
+        T::BYTES
+    }
+
+    fn nlimbs(&self) -> usize {
+        T::LIMBS
     }
 }
 
@@ -119,12 +148,6 @@ pub trait Constants: ZeroConstant {
 
     /// Maximum value this integer can express.
     const MAX: Self;
-}
-
-/// Constant representing the number of limbs used to represent a type.
-pub trait LimbsConstant {
-    /// The number of limbs used on this platform.
-    const LIMBS: usize;
 }
 
 /// Random number generation support.
