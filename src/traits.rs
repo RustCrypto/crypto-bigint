@@ -31,7 +31,7 @@ pub trait Integer:
     + for<'a> CheckedAdd<&'a Self, Output = Self>
     + for<'a> CheckedSub<&'a Self, Output = Self>
     + for<'a> CheckedMul<&'a Self, Output = Self>
-    + Copy
+    + Clone
     // + ConditionallySelectable (see dalek-cryptography/subtle#94)
     + ConstantTimeEq
     + ConstantTimeGreater
@@ -89,7 +89,7 @@ pub trait Integer:
 }
 
 /// Fixed-width integers.
-pub trait FixedInteger: Bounded + Constants + ConditionallySelectable + Integer {
+pub trait FixedInteger: Bounded + ConditionallySelectable + Constants + Copy + Integer {
     /// The number of limbs used on this platform.
     const LIMBS: usize;
 }
