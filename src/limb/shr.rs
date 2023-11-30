@@ -1,46 +1,30 @@
 //! Limb right bitshift
 
-use crate::{Limb, Word};
+use crate::Limb;
 use core::ops::{Shr, ShrAssign};
 
 impl Limb {
-    /// Computes `self >> rhs`.
-    /// Panics if `rhs` overflows `Limb::BITS`.
+    /// Computes `self >> shift`.
+    /// Panics if `shift` overflows `Limb::BITS`.
     #[inline(always)]
-    pub const fn shr(self, rhs: Self) -> Self {
-        Limb(self.0 >> rhs.0)
+    pub const fn shr(self, shift: u32) -> Self {
+        Limb(self.0 >> shift)
     }
 }
 
-impl Shr for Limb {
+impl Shr<u32> for Limb {
     type Output = Self;
 
     #[inline(always)]
-    fn shr(self, rhs: Self) -> Self::Output {
-        self.shr(rhs)
+    fn shr(self, shift: u32) -> Self::Output {
+        self.shr(shift)
     }
 }
 
-impl Shr<usize> for Limb {
-    type Output = Self;
-
+impl ShrAssign<u32> for Limb {
     #[inline(always)]
-    fn shr(self, rhs: usize) -> Self::Output {
-        self.shr(Limb(rhs as Word))
-    }
-}
-
-impl ShrAssign for Limb {
-    #[inline(always)]
-    fn shr_assign(&mut self, other: Self) {
-        *self = self.shr(other);
-    }
-}
-
-impl ShrAssign<usize> for Limb {
-    #[inline(always)]
-    fn shr_assign(&mut self, other: usize) {
-        *self = self.shr(Limb(other as Word));
+    fn shr_assign(&mut self, shift: u32) {
+        *self = self.shr(shift);
     }
 }
 

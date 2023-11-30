@@ -184,15 +184,12 @@ impl Reciprocal {
         // If `divisor = 0`, shifting `divisor` by `leading_zeros == Word::BITS` will cause a panic.
         // Have to substitute a "bogus" shift in that case.
         #[allow(trivial_numeric_casts)]
-        let shift_limb = Limb::ct_select(Limb::ZERO, Limb(shift as Word), is_some);
+        let shift = is_some.select(0, shift as Word) as u32;
 
         // Need to provide bogus normalized divisor and reciprocal too,
         // so that we don't get a panic in low-level functions.
-        let divisor_normalized = divisor.shl(shift_limb);
+        let divisor_normalized = divisor.shl(shift);
         let divisor_normalized = Limb::ct_select(Limb::MAX, divisor_normalized, is_some).0;
-
-        #[allow(trivial_numeric_casts)]
-        let shift = shift_limb.0 as u32;
 
         (
             Self {
