@@ -129,7 +129,7 @@ proptest! {
         let b_bi = to_biguint(&b);
 
         let expected = a_bi * b_bi;
-        let actual = a.mul_wide(&b);
+        let actual = a.mul(&b);
 
         prop_assert_eq!(expected, to_biguint(&actual));
     }
