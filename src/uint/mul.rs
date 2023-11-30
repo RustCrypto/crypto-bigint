@@ -1,8 +1,51 @@
 //! [`Uint`] multiplication operations.
 
+// TODO(tarcieri): use Karatsuba for better performance
+
 use crate::{Checked, CheckedMul, Concat, ConcatMixed, Limb, Uint, WideWord, Word, Wrapping, Zero};
 use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
+
+/// Impl the core schoolbook multiplication algorithm.
+///
+/// This is implemented as a macro to abstract over `const fn` and boxed use cases, since the latter
+/// needs mutable references and thus the unstable `const_mut_refs` feature (rust-lang/rust#57349).
+///
+/// It allows us to have a single place (this module) to improve the multiplication implementation
+/// which will also be reused for `BoxedUint`.
+// TODO(tarcieri): change this into a `const fn` when `const_mut_refs` is stable
+macro_rules! impl_schoolbook_multiplication {
+    ($lhs:expr, $rhs:expr, $lo:expr, $hi:expr) => {{
+        let mut i = 0;
+        while i < $lhs.len() {
+            let mut j = 0;
+            let mut carry = Limb::ZERO;
+
+            while j < $rhs.len() {
+                let k = i + j;
+
+                if k >= $lhs.len() {
+                    let (n, c) = $hi[k - $lhs.len()].mac($lhs[i], $rhs[j], carry);
+                    $hi[k - $lhs.len()] = n;
+                    carry = c;
+                } else {
+                    let (n, c) = $lo[k].mac($lhs[i], $rhs[j], carry);
+                    $lo[k] = n;
+                    carry = c;
+                }
+
+                j += 1;
+            }
+
+            if i + j >= $lhs.len() {
+                $hi[i + j - $lhs.len()] = carry;
+            } else {
+                $lo[i + j] = carry;
+            }
+            i += 1;
+        }
+    }};
+}
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
@@ -21,40 +64,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Returns a tuple containing the `(lo, hi)` components of the product.
     pub const fn mul_wide<const HLIMBS: usize>(&self, rhs: &Uint<HLIMBS>) -> (Self, Uint<HLIMBS>) {
-        let mut i = 0;
         let mut lo = Self::ZERO;
         let mut hi = Uint::<HLIMBS>::ZERO;
-
-        // Schoolbook multiplication.
-        // TODO(tarcieri): use Karatsuba for better performance?
-        while i < LIMBS {
-            let mut j = 0;
-            let mut carry = Limb::ZERO;
-
-            while j < HLIMBS {
-                let k = i + j;
-
-                if k >= LIMBS {
-                    let (n, c) = hi.limbs[k - LIMBS].mac(self.limbs[i], rhs.limbs[j], carry);
-                    hi.limbs[k - LIMBS] = n;
-                    carry = c;
-                } else {
-                    let (n, c) = lo.limbs[k].mac(self.limbs[i], rhs.limbs[j], carry);
-                    lo.limbs[k] = n;
-                    carry = c;
-                }
-
-                j += 1;
-            }
-
-            if i + j >= LIMBS {
-                hi.limbs[i + j - LIMBS] = carry;
-            } else {
-                lo.limbs[i + j] = carry;
-            }
-            i += 1;
-        }
-
+        impl_schoolbook_multiplication!(&self.limbs, &rhs.limbs, lo.limbs, hi.limbs);
         (lo, hi)
     }
 
@@ -310,6 +322,14 @@ where
     fn mul(self, other: &Uint<HLIMBS>) -> Self::Output {
         Uint::mul(self, other)
     }
+}
+
+/// Wrapper function used by `BoxedUint`
+#[cfg(feature = "alloc")]
+pub(crate) fn mul_limbs(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) {
+    debug_assert_eq!(lhs.len() + rhs.len(), out.len());
+    let (lo, hi) = out.split_at_mut(lhs.len());
+    impl_schoolbook_multiplication!(lhs, rhs, lo, hi);
 }
 
 #[cfg(test)]
