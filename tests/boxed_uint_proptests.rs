@@ -88,6 +88,22 @@ proptest! {
     }
 
     #[test]
+    fn div_rem((a, mut b) in uint_pair()) {
+        if b.is_zero().into() {
+            b = b.wrapping_add(&BoxedUint::one());
+        }
+
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+        let expected_quotient = &a_bi / &b_bi;
+        let expected_remainder = a_bi % b_bi;
+
+        let (actual_quotient, actual_remainder) = a.div_rem_vartime(&NonZero::new(b).unwrap());
+        prop_assert_eq!(expected_quotient, to_biguint(&actual_quotient));
+        prop_assert_eq!(expected_remainder, to_biguint(&actual_remainder));
+    }
+
+    #[test]
     fn mod_inv((mut a, mut b) in uint_pair()) {
         if a.is_zero().into() {
             a = BoxedUint::one_with_precision(b.bits_precision());

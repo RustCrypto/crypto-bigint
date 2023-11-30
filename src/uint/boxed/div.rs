@@ -1,10 +1,17 @@
 //! [`BoxedUint`] division operations.
 
-use crate::{BoxedUint, Limb, NonZero};
-use core::ops::{Rem, RemAssign};
-use subtle::ConstantTimeEq;
+use crate::{BoxedUint, Limb, NonZero, Wrapping};
+use core::ops::{Div, DivAssign, Rem, RemAssign};
+use subtle::{Choice, ConstantTimeEq, CtOption};
 
 impl BoxedUint {
+    /// Computes self / rhs, returns the quotient, remainder.
+    ///
+    /// Variable-time with respect to `rhs`
+    pub fn div_rem_vartime(&self, rhs: &NonZero<Self>) -> (Self, Self) {
+        self.div_rem_vartime_unchecked(rhs.as_ref())
+    }
+
     /// Computes self % rhs, returns the remainder.
     ///
     /// Variable-time with respect to `rhs`.
@@ -29,6 +36,136 @@ impl BoxedUint {
             bd -= 1;
             c = c.shr_vartime(1);
         }
+    }
+
+    /// Wrapped division is just normal division i.e. `self` / `rhs`
+    /// There’s no way wrapping could ever happen.
+    ///
+    /// This function exists, so that all operations are accounted for in the wrapping operations.
+    ///
+    /// Panics if `rhs == 0`.
+    pub fn wrapping_div(&self, rhs: &NonZero<Self>) -> Self {
+        self.div_rem_vartime(rhs).0
+    }
+
+    /// Perform checked division, returning a [`CtOption`] which `is_some`
+    /// only if the rhs != 0
+    pub fn checked_div(&self, rhs: &Self) -> CtOption<Self> {
+        CtOption::new(self.div_rem_vartime_unchecked(rhs).0, rhs.is_zero())
+    }
+
+    /// Compute divison and remainder without checking `rhs` is zero.
+    fn div_rem_vartime_unchecked(&self, rhs: &Self) -> (Self, Self) {
+        debug_assert_eq!(self.bits_precision(), rhs.bits_precision());
+        let mb = rhs.bits();
+        let mut bd = self.bits_precision() - mb;
+        let mut remainder = self.clone();
+        let mut quotient = Self::zero_with_precision(self.bits_precision());
+        let mut c = rhs.shl(bd);
+
+        loop {
+            let (mut r, borrow) = remainder.sbb(&c, Limb::ZERO);
+            let borrow = Choice::from(borrow.0 as u8 & 1);
+            remainder = Self::conditional_select(&r, &remainder, borrow);
+            r = &quotient | Self::one();
+            quotient = Self::conditional_select(&r, &quotient, borrow);
+            if bd == 0 {
+                break;
+            }
+            bd -= 1;
+            c = c.shr(1);
+            quotient = quotient.shl(1);
+        }
+
+        (quotient, remainder)
+    }
+}
+
+impl Div<&NonZero<BoxedUint>> for &BoxedUint {
+    type Output = BoxedUint;
+
+    fn div(self, rhs: &NonZero<BoxedUint>) -> Self::Output {
+        self.wrapping_div(rhs)
+    }
+}
+
+impl Div<&NonZero<BoxedUint>> for BoxedUint {
+    type Output = BoxedUint;
+
+    fn div(self, rhs: &NonZero<BoxedUint>) -> Self::Output {
+        self.wrapping_div(rhs)
+    }
+}
+
+impl Div<NonZero<BoxedUint>> for &BoxedUint {
+    type Output = BoxedUint;
+
+    fn div(self, rhs: NonZero<BoxedUint>) -> Self::Output {
+        self.wrapping_div(&rhs)
+    }
+}
+
+impl Div<NonZero<BoxedUint>> for BoxedUint {
+    type Output = BoxedUint;
+
+    fn div(self, rhs: NonZero<BoxedUint>) -> Self::Output {
+        self.div_rem_vartime(&rhs).0
+    }
+}
+
+impl DivAssign<&NonZero<BoxedUint>> for BoxedUint {
+    fn div_assign(&mut self, rhs: &NonZero<BoxedUint>) {
+        *self = self.wrapping_div(rhs);
+    }
+}
+
+impl DivAssign<NonZero<BoxedUint>> for BoxedUint {
+    fn div_assign(&mut self, rhs: NonZero<BoxedUint>) {
+        *self = self.wrapping_div(&rhs);
+    }
+}
+
+impl Div<NonZero<BoxedUint>> for Wrapping<BoxedUint> {
+    type Output = Wrapping<BoxedUint>;
+
+    fn div(self, rhs: NonZero<BoxedUint>) -> Self::Output {
+        Wrapping(self.0 / rhs)
+    }
+}
+
+impl Div<NonZero<BoxedUint>> for &Wrapping<BoxedUint> {
+    type Output = Wrapping<BoxedUint>;
+
+    fn div(self, rhs: NonZero<BoxedUint>) -> Self::Output {
+        Wrapping(self.0.wrapping_div(&rhs))
+    }
+}
+
+impl Div<&NonZero<BoxedUint>> for &Wrapping<BoxedUint> {
+    type Output = Wrapping<BoxedUint>;
+
+    fn div(self, rhs: &NonZero<BoxedUint>) -> Self::Output {
+        Wrapping(self.0.wrapping_div(rhs))
+    }
+}
+
+impl Div<&NonZero<BoxedUint>> for Wrapping<BoxedUint> {
+    type Output = Wrapping<BoxedUint>;
+
+    fn div(self, rhs: &NonZero<BoxedUint>) -> Self::Output {
+        Wrapping(self.0.wrapping_div(rhs))
+    }
+}
+
+impl DivAssign<&NonZero<BoxedUint>> for Wrapping<BoxedUint> {
+    fn div_assign(&mut self, rhs: &NonZero<BoxedUint>) {
+        *self = Wrapping(&self.0 / rhs);
+    }
+}
+
+impl DivAssign<NonZero<BoxedUint>> for Wrapping<BoxedUint> {
+    fn div_assign(&mut self, rhs: NonZero<BoxedUint>) {
+        *self /= &rhs;
     }
 }
 
