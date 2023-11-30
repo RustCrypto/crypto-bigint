@@ -1,32 +1,15 @@
 //! [`BoxedUint`] multiplication operations.
 
-use crate::{BoxedUint, Limb};
+use crate::{uint::mul::mul_limbs, BoxedUint, Limb};
 
 impl BoxedUint {
     /// Multiply `self` by `rhs`.
     ///
     /// Returns a widened output with a limb count equal to the sums of the input limb counts.
     pub fn mul(&self, rhs: &Self) -> Self {
-        let mut ret = Self {
-            limbs: vec![Limb::ZERO; self.nlimbs() + rhs.nlimbs()].into(),
-        };
-
-        // Schoolbook multiplication.
-        // TODO(tarcieri): use Karatsuba for better performance? Share impl with `Uint::mul`?
-        for i in 0..self.nlimbs() {
-            let mut carry = Limb::ZERO;
-
-            for j in 0..rhs.nlimbs() {
-                let k = i + j;
-                let (n, c) = ret.limbs[k].mac(self.limbs[i], rhs.limbs[j], carry);
-                ret.limbs[k] = n;
-                carry = c;
-            }
-
-            ret.limbs[i + rhs.nlimbs()] = carry;
-        }
-
-        ret
+        let mut limbs = vec![Limb::ZERO; self.nlimbs() + rhs.nlimbs()];
+        mul_limbs(&self.limbs, &rhs.limbs, &mut limbs);
+        limbs.into()
     }
 
     /// Perform wrapping multiplication, wrapping to the width of `self`.
