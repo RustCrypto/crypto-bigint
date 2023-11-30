@@ -1,7 +1,7 @@
 //! [`Uint`] division operations.
 
 use super::div_limb::{div_rem_limb_with_reciprocal, Reciprocal};
-use crate::{CtChoice, Limb, NonZero, Uint, Word, Wrapping};
+use crate::{CheckedDiv, CtChoice, Limb, NonZero, Uint, Word, Wrapping};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::CtOption;
 
@@ -402,6 +402,22 @@ impl<const LIMBS: usize> RemAssign<&NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
 //
 // Division by an Uint
 //
+
+impl<const LIMBS: usize> CheckedDiv<Uint<LIMBS>> for Uint<LIMBS> {
+    type Output = Self;
+
+    fn checked_div(&self, rhs: Uint<LIMBS>) -> CtOption<Self> {
+        self.checked_div(&rhs)
+    }
+}
+
+impl<const LIMBS: usize> CheckedDiv<&Uint<LIMBS>> for Uint<LIMBS> {
+    type Output = Self;
+
+    fn checked_div(&self, rhs: &Uint<LIMBS>) -> CtOption<Self> {
+        self.checked_div(rhs)
+    }
+}
 
 impl<const LIMBS: usize> Div<&NonZero<Uint<LIMBS>>> for &Uint<LIMBS> {
     type Output = Uint<LIMBS>;
