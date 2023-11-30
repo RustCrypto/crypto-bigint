@@ -1,6 +1,6 @@
 //! [`BoxedUint`] bitwise OR operations.
 
-use crate::{BoxedUint, Limb, Wrapping};
+use crate::{BoxedUint, Wrapping};
 use core::ops::{BitOr, BitOrAssign};
 use subtle::{Choice, CtOption};
 
@@ -8,7 +8,7 @@ impl BoxedUint {
     /// Computes bitwise `a & b`.
     #[inline(always)]
     pub fn bitor(&self, rhs: &Self) -> Self {
-        Self::chain(self, rhs, Limb::ZERO, |a, b, z| (a.bitor(b), z)).0
+        Self::map_limbs(self, rhs, |a, b| a.bitor(b))
     }
 
     /// Perform wrapping bitwise `OR`.

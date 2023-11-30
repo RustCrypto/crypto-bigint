@@ -262,7 +262,7 @@ impl BoxedUint {
     ///
     /// If one of the two values has fewer limbs than the other, pads with
     /// [`Limb::ZERO`] as the value for that limb.
-    fn chain<F>(lhs: &Self, rhs: &Self, mut carry: Limb, f: F) -> (Self, Limb)
+    fn fold_limbs<F>(lhs: &Self, rhs: &Self, mut carry: Limb, f: F) -> (Self, Limb)
     where
         F: Fn(Limb, Limb, Limb) -> (Limb, Limb),
     {
@@ -278,6 +278,24 @@ impl BoxedUint {
         }
 
         (limbs.into(), carry)
+    }
+
+    /// Iterate over the limbs of the inputs, applying the given function, and
+    /// constructing a result from the returned values.
+    fn map_limbs<F>(lhs: &Self, rhs: &Self, f: F) -> Self
+    where
+        F: Fn(Limb, Limb) -> Limb,
+    {
+        let nlimbs = cmp::max(lhs.nlimbs(), rhs.nlimbs());
+        let mut limbs = Vec::with_capacity(nlimbs);
+
+        for i in 0..nlimbs {
+            let &a = lhs.limbs.get(i).unwrap_or(&Limb::ZERO);
+            let &b = rhs.limbs.get(i).unwrap_or(&Limb::ZERO);
+            limbs.push(f(a, b));
+        }
+
+        limbs.into()
     }
 }
 
