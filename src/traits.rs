@@ -2,7 +2,10 @@
 
 use crate::{Limb, NonZero};
 use core::fmt::Debug;
-use core::ops::{BitAnd, BitOr, BitXor, Div, Not, Rem, Shl, Shr};
+use core::ops::{
+    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign, Not, Rem, Shl,
+    ShlAssign, Shr, ShrAssign,
+};
 use subtle::{
     Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
     CtOption,
@@ -25,9 +28,15 @@ pub trait Integer:
     'static
     + AddMod
     + AsRef<[Limb]>
+    + BitAndAssign
+    + BitOrAssign
+    + BitXorAssign
     + BitAnd<Output = Self>
     + BitOr<Output = Self>
     + BitXor<Output = Self>
+    + for<'a> BitAndAssign<&'a Self>
+    + for<'a> BitOrAssign<&'a Self>
+    + for<'a> BitXorAssign<&'a Self>
     + for<'a> CheckedAdd<&'a Self, Output = Self>
     + for<'a> CheckedSub<&'a Self, Output = Self>
     + for<'a> CheckedMul<&'a Self, Output = Self>
@@ -40,17 +49,26 @@ pub trait Integer:
     + Debug
     + Default
     + Div<NonZero<Self>, Output = Self>
+    + DivAssign<NonZero<Self>>
+    + for<'a> Div<&'a NonZero<Self>, Output = Self>
+    + for<'a> DivAssign<&'a NonZero<Self>>
     + Eq
+    + From<u8>
+    + From<u16>
+    + From<u32>
     + From<u64>
     + MulMod
     + NegMod
     + Not
     + Ord
     + Rem<NonZero<Self>, Output = Self>
+    + for<'a> Rem<&'a NonZero<Self>, Output = Self>
     + Send
     + Sized
     + Shl<usize, Output = Self>
+    + ShlAssign<usize>
     + Shr<usize, Output = Self>
+    + ShrAssign<usize>
     + SubMod
     + Sync
     + Zero
