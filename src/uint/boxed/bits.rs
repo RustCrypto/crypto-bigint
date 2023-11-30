@@ -24,6 +24,18 @@ impl BoxedUint {
         Limb::BITS * (n as usize) - (leading_zeros as usize)
     }
 
+    /// Calculate the number of bits needed to represent this number in variable-time with respect
+    /// to `self`.
+    pub fn bits_vartime(&self) -> usize {
+        let mut i = self.nlimbs() - 1;
+        while i > 0 && self.limbs[i].0 == 0 {
+            i -= 1;
+        }
+
+        let limb = self.limbs[i];
+        Limb::BITS * (i + 1) - limb.leading_zeros()
+    }
+
     /// Get the precision of this [`BoxedUint`] in bits.
     pub fn bits_precision(&self) -> usize {
         self.limbs.len() * Limb::BITS

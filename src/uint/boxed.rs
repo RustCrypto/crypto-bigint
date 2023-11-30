@@ -408,6 +408,14 @@ impl Integer for BoxedUint {
         Self::one()
     }
 
+    fn bits(&self) -> usize {
+        self.bits()
+    }
+
+    fn bits_vartime(&self) -> usize {
+        self.bits_vartime()
+    }
+
     fn bits_precision(&self) -> usize {
         self.bits_precision()
     }

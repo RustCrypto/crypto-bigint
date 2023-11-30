@@ -38,7 +38,7 @@ pub(crate) mod boxed;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Bounded, Constants, Encoding, FixedInteger, Limb, Word, ZeroConstant};
+use crate::{Bounded, Constants, Encoding, FixedInteger, Integer, Limb, Word, ZeroConstant};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable};
 
@@ -203,6 +203,16 @@ impl<const LIMBS: usize> ConditionallySelectable for Uint<LIMBS> {
     }
 }
 
+impl<const LIMBS: usize> Bounded for Uint<LIMBS> {
+    const BITS: usize = Self::BITS;
+    const BYTES: usize = Self::BYTES;
+}
+
+impl<const LIMBS: usize> Constants for Uint<LIMBS> {
+    const ONE: Self = Self::ONE;
+    const MAX: Self = Self::MAX;
+}
+
 impl<const LIMBS: usize> Default for Uint<LIMBS> {
     fn default() -> Self {
         Self::ZERO
@@ -213,14 +223,30 @@ impl<const LIMBS: usize> FixedInteger for Uint<LIMBS> {
     const LIMBS: usize = LIMBS;
 }
 
-impl<const LIMBS: usize> Bounded for Uint<LIMBS> {
-    const BITS: usize = Self::BITS;
-    const BYTES: usize = Self::BYTES;
-}
+impl<const LIMBS: usize> Integer for Uint<LIMBS> {
+    fn one() -> Self {
+        Self::ONE
+    }
 
-impl<const LIMBS: usize> Constants for Uint<LIMBS> {
-    const ONE: Self = Self::ONE;
-    const MAX: Self = Self::MAX;
+    fn bits(&self) -> usize {
+        self.bits()
+    }
+
+    fn bits_vartime(&self) -> usize {
+        self.bits_vartime()
+    }
+
+    fn bits_precision(&self) -> usize {
+        Self::BITS
+    }
+
+    fn bytes_precision(&self) -> usize {
+        Self::BYTES
+    }
+
+    fn nlimbs(&self) -> usize {
+        Self::LIMBS
+    }
 }
 
 impl<const LIMBS: usize> ZeroConstant for Uint<LIMBS> {

@@ -50,6 +50,13 @@ proptest! {
     }
 
     #[test]
+    fn bits(a in uint()) {
+        let expected = to_biguint(&a).bits();
+        assert_eq!(expected, a.bits());
+        assert_eq!(expected, a.bits_vartime());
+    }
+
+    #[test]
     fn shl_vartime(a in uint(), shift in any::<u8>()) {
         let a_bi = to_biguint(&a);
 

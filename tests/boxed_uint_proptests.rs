@@ -73,6 +73,13 @@ proptest! {
     }
 
     #[test]
+    fn bits(a in uint()) {
+        let expected = to_biguint(&a).bits();
+        assert_eq!(expected, a.bits());
+        assert_eq!(expected, a.bits_vartime());
+    }
+
+    #[test]
     fn checked_add(a in uint(), b in uint()) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
