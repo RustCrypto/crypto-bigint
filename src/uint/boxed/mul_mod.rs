@@ -45,7 +45,7 @@ impl BoxedUint {
             return Self::from(reduced as Word);
         }
 
-        let product = self.mul_wide(rhs);
+        let product = self.mul(rhs);
         let (lo_words, hi_words) = product.limbs.split_at(self.nlimbs());
         let lo = BoxedUint::from(lo_words);
         let hi = BoxedUint::from(hi_words);

@@ -105,7 +105,7 @@ impl BoxedResidue {
     pub fn new(integer: &BoxedUint, residue_params: BoxedResidueParams) -> Self {
         debug_assert_eq!(integer.bits_precision(), residue_params.bits_precision());
 
-        let mut product = integer.mul_wide(&residue_params.r2);
+        let mut product = integer.mul(&residue_params.r2);
         let montgomery_form = montgomery_reduction_boxed(
             &mut product,
             &residue_params.modulus,

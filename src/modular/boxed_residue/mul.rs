@@ -98,7 +98,7 @@ pub(super) fn mul_montgomery_form(
     debug_assert_eq!(a.bits_precision(), modulus.bits_precision());
     debug_assert_eq!(b.bits_precision(), modulus.bits_precision());
 
-    let mut product = a.mul_wide(b);
+    let mut product = a.mul(b);
     let ret = montgomery_reduction_boxed(&mut product, modulus, mod_neg_inv);
 
     #[cfg(feature = "zeroize")]

@@ -13,7 +13,7 @@ impl BoxedResidue {
             .inv_odd_mod(&self.residue_params.modulus);
 
         let montgomery_form = montgomery_reduction_boxed(
-            &mut inverse.mul_wide(&self.residue_params.r3),
+            &mut inverse.mul(&self.residue_params.r3),
             &self.residue_params.modulus,
             self.residue_params.mod_neg_inv,
         );
