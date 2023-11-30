@@ -19,6 +19,20 @@ impl BoxedUint {
         out.wrapping_add(&p.bitand_limb(mask))
     }
 
+    /// Computes `self - rhs mod p` for the special modulus
+    /// `p = MAX+1-c` where `c` is small enough to fit in a single [`Limb`].
+    ///
+    /// Assumes `self - rhs` as unbounded signed integer is in `[-p, p)`.
+    pub fn sub_mod_special(&self, rhs: &Self, c: Limb) -> Self {
+        let (out, borrow) = self.sbb(rhs, Limb::ZERO);
+
+        // If underflow occurred, then we need to subtract `c` to account for
+        // the underflow. This cannot underflow due to the assumption
+        // `self - rhs >= -p`.
+        let l = borrow.0 & c.0;
+        out.wrapping_sub(&Self::from(l))
+    }
+
     /// Returns `(self..., carry) - (rhs...) mod (p...)`, where `carry <= 1`.
     /// Assumes `-(p...) <= (self..., carry) - (rhs...) < (p...)`.
     #[inline(always)]

@@ -1,4 +1,4 @@
-//! [`Uint`] negation modulus operations.
+//! [`Uint`] modular negation operations.
 
 use crate::{Limb, NegMod, Uint};
 
