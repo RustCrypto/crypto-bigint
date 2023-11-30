@@ -1,6 +1,6 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{CtChoice, Encoding, Integer, Limb, Uint, Zero};
+use crate::{Bounded, Constants, CtChoice, Encoding, Limb, Uint, Zero};
 use core::{
     fmt,
     num::{NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8},
@@ -58,7 +58,18 @@ where
 
 impl<T> NonZero<T>
 where
-    T: Integer,
+    T: Bounded + Zero,
+{
+    /// Total size of the represented integer in bits.
+    pub const BITS: usize = T::BITS;
+
+    /// Total size of the represented integer in bytes.
+    pub const BYTES: usize = T::BYTES;
+}
+
+impl<T> NonZero<T>
+where
+    T: Constants + Zero,
 {
     /// The value `1`.
     pub const ONE: Self = Self(T::ONE);

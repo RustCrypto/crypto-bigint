@@ -7,7 +7,6 @@ macro_rules! impl_uint_aliases {
             pub type $name = Uint<{nlimbs!($bits)}>;
 
             impl Encoding for $name {
-
                 type Repr = [u8; $bits / 8];
 
                 #[inline]
