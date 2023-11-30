@@ -31,6 +31,7 @@ pub trait Integer:
     + for<'a> CheckedAdd<&'a Self, Output = Self>
     + for<'a> CheckedSub<&'a Self, Output = Self>
     + for<'a> CheckedMul<&'a Self, Output = Self>
+    + for<'a> CheckedDiv<&'a Self, Output = Self>
     + Clone
     // + ConditionallySelectable (see dalek-cryptography/subtle#94)
     + ConstantTimeEq
@@ -214,9 +215,19 @@ pub trait CheckedAdd<Rhs = Self>: Sized {
     /// Output type.
     type Output;
 
-    /// Perform checked subtraction, returning a [`CtOption`] which `is_some`
-    /// only if the operation did not overflow.
+    /// Perform checked subtraction, returning a [`CtOption`] which `is_some` only if the operation
+    /// did not overflow.
     fn checked_add(&self, rhs: Rhs) -> CtOption<Self>;
+}
+
+/// Checked division.
+pub trait CheckedDiv<Rhs = Self>: Sized {
+    /// Output type.
+    type Output;
+
+    /// Perform checked division, returning a [`CtOption`] which `is_some` only if the divisor is
+    /// non-zero.
+    fn checked_div(&self, rhs: Rhs) -> CtOption<Self>;
 }
 
 /// Checked multiplication.

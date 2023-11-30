@@ -1,6 +1,6 @@
 //! [`BoxedUint`] division operations.
 
-use crate::{BoxedUint, Limb, NonZero, Wrapping};
+use crate::{BoxedUint, CheckedDiv, Limb, NonZero, Wrapping};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::{Choice, ConstantTimeEq, CtOption};
 
@@ -78,6 +78,22 @@ impl BoxedUint {
         }
 
         (quotient, remainder)
+    }
+}
+
+impl CheckedDiv<BoxedUint> for BoxedUint {
+    type Output = Self;
+
+    fn checked_div(&self, rhs: BoxedUint) -> CtOption<Self> {
+        self.checked_div(&rhs)
+    }
+}
+
+impl CheckedDiv<&BoxedUint> for BoxedUint {
+    type Output = Self;
+
+    fn checked_div(&self, rhs: &BoxedUint) -> CtOption<Self> {
+        self.checked_div(rhs)
     }
 }
 
