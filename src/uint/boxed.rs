@@ -20,6 +20,7 @@ mod sub_mod;
 
 mod bit_not;
 mod bit_xor;
+mod neg_mod;
 #[cfg(feature = "rand_core")]
 mod rand;
 
