@@ -1,6 +1,6 @@
 //! [`BoxedUint`] multiplication operations.
 
-use crate::{uint::mul::mul_limbs, BoxedUint, CheckedMul, Limb, Wrapping, Zero};
+use crate::{uint::mul::mul_limbs, BoxedUint, CheckedMul, Limb, WideningMul, Wrapping, Zero};
 use core::ops::{Mul, MulAssign};
 use subtle::{Choice, CtOption};
 
@@ -26,6 +26,14 @@ impl BoxedUint {
     }
 }
 
+impl CheckedMul<BoxedUint> for BoxedUint {
+    type Output = Self;
+
+    fn checked_mul(&self, rhs: BoxedUint) -> CtOption<Self> {
+        self.checked_mul(&rhs)
+    }
+}
+
 impl CheckedMul<&BoxedUint> for BoxedUint {
     type Output = Self;
 
@@ -40,6 +48,24 @@ impl CheckedMul<&BoxedUint> for BoxedUint {
         let mut limbs = product.limbs.into_vec();
         limbs.truncate(self.nlimbs());
         CtOption::new(limbs.into(), is_some)
+    }
+}
+
+impl WideningMul for BoxedUint {
+    type Output = Self;
+
+    #[inline]
+    fn widening_mul(&self, rhs: BoxedUint) -> Self {
+        self.mul(&rhs)
+    }
+}
+
+impl WideningMul<&BoxedUint> for BoxedUint {
+    type Output = Self;
+
+    #[inline]
+    fn widening_mul(&self, rhs: &BoxedUint) -> Self {
+        self.mul(rhs)
     }
 }
 

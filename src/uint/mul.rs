@@ -2,7 +2,10 @@
 
 // TODO(tarcieri): use Karatsuba for better performance
 
-use crate::{Checked, CheckedMul, Concat, ConcatMixed, Limb, Uint, WideWord, Word, Wrapping, Zero};
+use crate::{
+    Checked, CheckedMul, Concat, ConcatMixed, Limb, Uint, WideWord, WideningMul, Word, Wrapping,
+    Zero,
+};
 use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
 
@@ -165,12 +168,46 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 }
 
+impl<const LIMBS: usize, const HLIMBS: usize> CheckedMul<Uint<HLIMBS>> for Uint<LIMBS> {
+    type Output = Self;
+
+    #[inline]
+    fn checked_mul(&self, rhs: Uint<HLIMBS>) -> CtOption<Self> {
+        self.checked_mul(&rhs)
+    }
+}
+
 impl<const LIMBS: usize, const HLIMBS: usize> CheckedMul<&Uint<HLIMBS>> for Uint<LIMBS> {
     type Output = Self;
 
+    #[inline]
     fn checked_mul(&self, rhs: &Uint<HLIMBS>) -> CtOption<Self> {
         let (lo, hi) = self.mul_wide(rhs);
         CtOption::new(lo, hi.is_zero())
+    }
+}
+
+impl<const LIMBS: usize, const HLIMBS: usize> WideningMul<Uint<HLIMBS>> for Uint<LIMBS>
+where
+    Uint<HLIMBS>: ConcatMixed<Self>,
+{
+    type Output = <Uint<HLIMBS> as ConcatMixed<Self>>::MixedOutput;
+
+    #[inline]
+    fn widening_mul(&self, rhs: Uint<HLIMBS>) -> Self::Output {
+        self.mul(&rhs)
+    }
+}
+
+impl<const LIMBS: usize, const HLIMBS: usize> WideningMul<&Uint<HLIMBS>> for Uint<LIMBS>
+where
+    Uint<HLIMBS>: ConcatMixed<Self>,
+{
+    type Output = <Uint<HLIMBS> as ConcatMixed<Self>>::MixedOutput;
+
+    #[inline]
+    fn widening_mul(&self, rhs: &Uint<HLIMBS>) -> Self::Output {
+        self.mul(rhs)
     }
 }
 
