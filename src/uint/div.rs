@@ -1,7 +1,7 @@
 //! [`Uint`] division operations.
 
 use super::div_limb::{div_rem_limb_with_reciprocal, Reciprocal};
-use crate::{CheckedDiv, CtChoice, Limb, NonZero, Uint, Wrapping};
+use crate::{CheckedDiv, CtChoice, Limb, NonZero, Uint, Word, Wrapping};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::CtOption;
 
@@ -58,16 +58,16 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut done = CtChoice::FALSE;
         loop {
             let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::ct_select(&r, &rem, CtChoice::from_mask(borrow.0).or(done));
+            rem = Self::ct_select(&r, &rem, CtChoice::from_word_mask(borrow.0).or(done));
             r = quo.bitor(&Self::ONE);
-            quo = Self::ct_select(&r, &quo, CtChoice::from_mask(borrow.0).or(done));
+            quo = Self::ct_select(&r, &quo, CtChoice::from_word_mask(borrow.0).or(done));
             if i == 0 {
                 break;
             }
             i -= 1;
             // when `i < mb`, the computation is actually done, so we ensure `quo` and `rem`
             // aren't modified further (but do the remaining iterations anyway to be constant-time)
-            done = Limb::ct_lt(Limb(i as Word), Limb(mb as Word));
+            done = CtChoice::from_word_lt(i as Word, mb as Word);
             c = c.shr_vartime(1);
             quo = Self::ct_select(&quo.shl_vartime(1), &quo, done);
         }

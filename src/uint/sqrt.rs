@@ -1,7 +1,6 @@
 //! [`Uint`] square root operations.
 
 use super::Uint;
-use crate::CtChoice;
 use subtle::{ConstantTimeEq, CtOption};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -21,6 +20,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         // Repeat enough times to guarantee result has stabilized.
         // See Hast, "Note on computation of integer square roots" for a proof of this bound.
+        // https://github.com/RustCrypto/crypto-bigint/files/12600669/ct_sqrt.pdf
         let mut i = 0;
         while i < usize::BITS - Self::BITS.leading_zeros() {
             guess = xn;
