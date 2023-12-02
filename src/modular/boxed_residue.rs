@@ -12,6 +12,9 @@ use super::{reduction::montgomery_reduction_boxed, Retrieve};
 use crate::{BoxedUint, Limb, NonZero, Word};
 use subtle::CtOption;
 
+#[cfg(feature = "std")]
+use std::sync::Arc;
+
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
 
@@ -96,8 +99,15 @@ impl BoxedResidueParams {
 pub struct BoxedResidue {
     /// Value in the Montgomery domain.
     montgomery_form: BoxedUint,
+
     /// Residue parameters.
+    #[cfg(not(feature = "std"))]
     residue_params: BoxedResidueParams,
+
+    /// Residue parameters.
+    // Uses `Arc` when `std` is available.
+    #[cfg(feature = "std")]
+    residue_params: Arc<BoxedResidueParams>,
 }
 
 impl BoxedResidue {
@@ -117,7 +127,7 @@ impl BoxedResidue {
 
         Self {
             montgomery_form,
-            residue_params,
+            residue_params: residue_params.into(),
         }
     }
 
@@ -146,7 +156,7 @@ impl BoxedResidue {
     pub fn zero(residue_params: BoxedResidueParams) -> Self {
         Self {
             montgomery_form: BoxedUint::zero_with_precision(residue_params.bits_precision()),
-            residue_params,
+            residue_params: residue_params.into(),
         }
     }
 
@@ -154,7 +164,7 @@ impl BoxedResidue {
     pub fn one(residue_params: BoxedResidueParams) -> Self {
         Self {
             montgomery_form: residue_params.r.clone(),
-            residue_params,
+            residue_params: residue_params.into(),
         }
     }
 
@@ -173,7 +183,7 @@ impl BoxedResidue {
         debug_assert_eq!(integer.bits_precision(), residue_params.bits_precision());
         Self {
             montgomery_form: integer,
-            residue_params,
+            residue_params: residue_params.into(),
         }
     }
 

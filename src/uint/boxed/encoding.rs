@@ -3,6 +3,7 @@
 use super::BoxedUint;
 use crate::Limb;
 use alloc::boxed::Box;
+use core::fmt;
 
 /// Decoding errors for [`BoxedUint`].
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -13,6 +14,18 @@ pub enum DecodeError {
     /// Precision is not a multiple of [`Limb::BYTES`].
     Precision,
 }
+
+impl fmt::Display for DecodeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InputSize => write!(f, "input is not a valid size"),
+            Self::Precision => write!(f, "precision is not a multiple of the word size"),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for DecodeError {}
 
 impl BoxedUint {
     /// Create a new [`BoxedUint`] from the provided big endian bytes.

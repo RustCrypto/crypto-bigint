@@ -156,6 +156,9 @@
 #[macro_use]
 extern crate alloc;
 
+#[cfg(feature = "std")]
+extern crate std;
+
 #[macro_use]
 mod macros;
 
