@@ -6,6 +6,8 @@
 //!
 //! Copyright (c) 2023 Privacy Scaling Explorations Team
 
+#![allow(clippy::needless_range_loop)]
+
 use core::{
     cmp::PartialEq,
     ops::{Add, Mul, Neg, Sub},
@@ -277,7 +279,7 @@ impl<const B: usize, const L: usize> Add for &CInt<B, L> {
             data[i] = sum & CInt::<B, L>::MASK;
             carry = sum >> B;
         }
-        Self::Output { 0: data }
+        CInt(data)
     }
 }
 
@@ -311,7 +313,7 @@ impl<const B: usize, const L: usize> Sub for &CInt<B, L> {
             data[i] = sum & CInt::<B, L>::MASK;
             carry = sum >> B;
         }
-        Self::Output { 0: data }
+        CInt(data)
     }
 }
 
@@ -340,7 +342,7 @@ impl<const B: usize, const L: usize> Neg for &CInt<B, L> {
             data[i] = sum & CInt::<B, L>::MASK;
             carry = sum >> B;
         }
-        Self::Output { 0: data }
+        CInt(data)
     }
 }
 
@@ -365,7 +367,7 @@ impl<const B: usize, const L: usize> Mul for &CInt<B, L> {
                 carry = (sum >> B) as u64;
             }
         }
-        Self::Output { 0: data }
+        CInt(data)
     }
 }
 
@@ -409,7 +411,7 @@ impl<const B: usize, const L: usize> Mul<i64> for &CInt<B, L> {
             data[i] = sum as u64 & CInt::<B, L>::MASK;
             carry = (sum >> B) as u64;
         }
-        Self::Output { 0: data }
+        CInt(data)
     }
 }
 
