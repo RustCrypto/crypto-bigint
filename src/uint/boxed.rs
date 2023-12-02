@@ -60,14 +60,14 @@ impl BoxedUint {
     /// Get the value `0` with the given number of bits of precision.
     ///
     /// Panics if the precision is not a multiple of [`Limb::BITS`].
-    pub fn zero_with_precision(bits_precision: usize) -> Self {
+    pub fn zero_with_precision(bits_precision: u32) -> Self {
         assert_eq!(
             bits_precision % Limb::BITS,
             0,
             "precision is not a multiple of limb size"
         );
 
-        vec![Limb::ZERO; bits_precision / Limb::BITS].into()
+        vec![Limb::ZERO; (bits_precision / Limb::BITS) as usize].into()
     }
 
     /// Get the value `1`, represented as succinctly as possible.
@@ -81,7 +81,7 @@ impl BoxedUint {
     ///
     /// Panics if the precision is not at least [`Limb::BITS`] or if it is not
     /// a multiple thereof.
-    pub fn one_with_precision(bits_precision: usize) -> Self {
+    pub fn one_with_precision(bits_precision: u32) -> Self {
         assert!(bits_precision >= Limb::BITS, "precision too small");
         let mut ret = Self::zero_with_precision(bits_precision);
         ret.limbs[0] = Limb::ONE;
@@ -128,14 +128,14 @@ impl BoxedUint {
     /// Get the maximum value for a given number of bits of precision.
     ///
     /// Panics if the precision is not a multiple of [`Limb::BITS`].
-    pub fn max(bits_precision: usize) -> Self {
+    pub fn max(bits_precision: u32) -> Self {
         assert_eq!(
             bits_precision % Limb::BITS,
             0,
             "precision is not a multiple of limb size"
         );
 
-        vec![Limb::MAX; bits_precision / Limb::BITS].into()
+        vec![Limb::MAX; (bits_precision / Limb::BITS) as usize].into()
     }
 
     /// Create a [`BoxedUint`] from an array of [`Word`]s (i.e. word-sized unsigned
@@ -237,7 +237,7 @@ impl BoxedUint {
     ///
     /// Panics if `bits_precision` is not a multiple of `Limb::BITS` or smaller than the current
     /// precision.
-    pub fn widen(&self, bits_precision: usize) -> BoxedUint {
+    pub fn widen(&self, bits_precision: u32) -> BoxedUint {
         assert!(bits_precision % Limb::BITS == 0);
         assert!(bits_precision >= self.bits_precision());
 
@@ -250,7 +250,7 @@ impl BoxedUint {
     ///
     /// Panics if `bits_precision` is not a multiple of `Limb::BITS` or smaller than the current
     /// precision.
-    pub fn shorten(&self, bits_precision: usize) -> BoxedUint {
+    pub fn shorten(&self, bits_precision: u32) -> BoxedUint {
         assert!(bits_precision % Limb::BITS == 0);
         assert!(bits_precision <= self.bits_precision());
         let mut ret = BoxedUint::zero_with_precision(bits_precision);
@@ -306,7 +306,7 @@ impl NonZero<BoxedUint> {
     /// Widen this type's precision to the given number of bits.
     ///
     /// See [`BoxedUint::widen`] for more information, including panic conditions.
-    pub fn widen(&self, bits_precision: usize) -> Self {
+    pub fn widen(&self, bits_precision: u32) -> Self {
         NonZero(self.0.widen(bits_precision))
     }
 }
@@ -408,15 +408,15 @@ impl Integer for BoxedUint {
         Self::one()
     }
 
-    fn bits(&self) -> usize {
+    fn bits(&self) -> u32 {
         self.bits()
     }
 
-    fn bits_vartime(&self) -> usize {
+    fn bits_vartime(&self) -> u32 {
         self.bits_vartime()
     }
 
-    fn bits_precision(&self) -> usize {
+    fn bits_precision(&self) -> u32 {
         self.bits_precision()
     }
 

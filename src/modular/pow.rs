@@ -1,11 +1,11 @@
-use crate::{Limb, Uint, Word};
+use crate::{CtChoice, Limb, Uint, Word};
 
 use super::mul::{mul_montgomery_form, square_montgomery_form};
 
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
-const WINDOW: usize = 4;
+const WINDOW: u32 = 4;
 const WINDOW_MASK: Word = (1 << WINDOW) - 1;
 
 /// Performs modular exponentiation using Montgomery's ladder.
@@ -15,7 +15,7 @@ const WINDOW_MASK: Word = (1 << WINDOW) - 1;
 pub const fn pow_montgomery_form<const LIMBS: usize, const RHS_LIMBS: usize>(
     x: &Uint<LIMBS>,
     exponent: &Uint<RHS_LIMBS>,
-    exponent_bits: usize,
+    exponent_bits: u32,
     modulus: &Uint<LIMBS>,
     r: &Uint<LIMBS>,
     mod_neg_inv: Limb,
@@ -35,7 +35,7 @@ pub const fn multi_exponentiate_montgomery_form_array<
     const N: usize,
 >(
     bases_and_exponents: &[(Uint<LIMBS>, Uint<RHS_LIMBS>); N],
-    exponent_bits: usize,
+    exponent_bits: u32,
     modulus: &Uint<LIMBS>,
     r: &Uint<LIMBS>,
     mod_neg_inv: Limb,
@@ -72,7 +72,7 @@ pub const fn multi_exponentiate_montgomery_form_array<
 #[cfg(feature = "alloc")]
 pub fn multi_exponentiate_montgomery_form_slice<const LIMBS: usize, const RHS_LIMBS: usize>(
     bases_and_exponents: &[(Uint<LIMBS>, Uint<RHS_LIMBS>)],
-    exponent_bits: usize,
+    exponent_bits: u32,
     modulus: &Uint<LIMBS>,
     r: &Uint<LIMBS>,
     mod_neg_inv: Limb,
@@ -117,12 +117,12 @@ const fn compute_powers<const LIMBS: usize>(
 
 const fn multi_exponentiate_montgomery_form_internal<const LIMBS: usize, const RHS_LIMBS: usize>(
     powers_and_exponents: &[([Uint<LIMBS>; 1 << WINDOW], Uint<RHS_LIMBS>)],
-    exponent_bits: usize,
+    exponent_bits: u32,
     modulus: &Uint<LIMBS>,
     r: &Uint<LIMBS>,
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {
-    let starting_limb = (exponent_bits - 1) / Limb::BITS;
+    let starting_limb = ((exponent_bits - 1) / Limb::BITS) as usize;
     let starting_bit_in_limb = (exponent_bits - 1) % Limb::BITS;
     let starting_window = starting_bit_in_limb / WINDOW;
     let starting_window_mask = (1 << (starting_bit_in_limb % WINDOW + 1)) - 1;
@@ -163,8 +163,8 @@ const fn multi_exponentiate_montgomery_form_internal<const LIMBS: usize, const R
                 let mut power = powers[0];
                 let mut j = 1;
                 while j < 1 << WINDOW {
-                    let choice = Limb::ct_eq(Limb(j as Word), Limb(idx));
-                    power = Uint::<LIMBS>::ct_select(&power, &powers[j], choice);
+                    let choice = CtChoice::from_word_eq(j, idx);
+                    power = Uint::<LIMBS>::ct_select(&power, &powers[j as usize], choice);
                     j += 1;
                 }
 

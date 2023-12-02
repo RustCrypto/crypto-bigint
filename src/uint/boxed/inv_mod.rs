@@ -1,6 +1,6 @@
 //! [`BoxedUint`] modular inverse (i.e. reciprocal) operations.
 
-use crate::{BoxedUint, Word};
+use crate::BoxedUint;
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
 impl BoxedUint {
@@ -18,7 +18,7 @@ impl BoxedUint {
         let (a, a_is_some) = self.inv_odd_mod(&s);
         let b = self.inv_mod2k(k);
         // inverse modulo 2^k exists either if `k` is 0 or if `self` is odd.
-        let b_is_some = (k as Word).ct_eq(&0) | self.is_odd();
+        let b_is_some = k.ct_eq(&0) | self.is_odd();
 
         // Restore from RNS:
         // self^{-1} = a mod s = b mod 2^k
@@ -40,7 +40,7 @@ impl BoxedUint {
     /// Computes 1/`self` mod `2^k`.
     ///
     /// Conditions: `self` < 2^k and `self` must be odd
-    pub(crate) fn inv_mod2k(&self, k: usize) -> Self {
+    pub(crate) fn inv_mod2k(&self, k: u32) -> Self {
         // This is the same algorithm as in `inv_mod2k_vartime()`,
         // but made constant-time w.r.t `k` as well.
 
@@ -50,7 +50,7 @@ impl BoxedUint {
         for i in 0..self.bits_precision() {
             // Only iterations for i = 0..k need to change `x`,
             // the rest are dummy ones performed for the sake of constant-timeness.
-            let within_range = (i as Word).ct_lt(&(k as Word));
+            let within_range = i.ct_lt(&k);
 
             // X_i = b_i mod 2
             let x_i = b.limbs[0].0 & 1;
@@ -86,12 +86,7 @@ impl BoxedUint {
     /// **Note:** variable time in `bits` and `modulus_bits`.
     ///
     /// The algorithm is the same as in GMP 6.2.1's `mpn_sec_invert`.
-    fn inv_odd_mod_bounded(
-        &self,
-        modulus: &Self,
-        bits: usize,
-        modulus_bits: usize,
-    ) -> (Self, Choice) {
+    fn inv_odd_mod_bounded(&self, modulus: &Self, bits: u32, modulus_bits: u32) -> (Self, Choice) {
         debug_assert_eq!(self.bits_precision(), modulus.bits_precision());
 
         let bits_precision = self.bits_precision();

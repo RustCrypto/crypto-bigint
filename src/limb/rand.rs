@@ -21,9 +21,9 @@ impl RandomMod for Limb {
     fn random_mod(rng: &mut impl CryptoRngCore, modulus: &NonZero<Self>) -> Self {
         let mut bytes = <Self as Encoding>::Repr::default();
 
-        let n_bits = modulus.bits();
+        let n_bits = modulus.bits() as usize;
         let n_bytes = (n_bits + 7) / 8;
-        let mask = 0xff >> (8 * n_bytes - n_bits);
+        let mask = 0xffu8 >> (8 * n_bytes - n_bits);
 
         loop {
             rng.fill_bytes(&mut bytes[..n_bytes]);

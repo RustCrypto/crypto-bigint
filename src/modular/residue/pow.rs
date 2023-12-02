@@ -26,7 +26,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     pub const fn pow_bounded_exp<const RHS_LIMBS: usize>(
         &self,
         exponent: &Uint<RHS_LIMBS>,
-        exponent_bits: usize,
+        exponent_bits: u32,
     ) -> Residue<MOD, LIMBS> {
         Self {
             montgomery_form: pow_montgomery_form(
@@ -45,7 +45,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize, const RHS_LIMBS: usize>
     PowBoundedExp<Uint<RHS_LIMBS>> for Residue<MOD, LIMBS>
 {
-    fn pow_bounded_exp(&self, exponent: &Uint<RHS_LIMBS>, exponent_bits: usize) -> Self {
+    fn pow_bounded_exp(&self, exponent: &Uint<RHS_LIMBS>, exponent_bits: u32) -> Self {
         self.pow_bounded_exp(exponent, exponent_bits)
     }
 }
@@ -56,7 +56,7 @@ impl<const N: usize, MOD: ResidueParams<LIMBS>, const LIMBS: usize, const RHS_LI
 {
     fn multi_exponentiate_bounded_exp(
         bases_and_exponents: &[(Self, Uint<RHS_LIMBS>); N],
-        exponent_bits: usize,
+        exponent_bits: u32,
     ) -> Self {
         let mut bases_and_exponents_montgomery_form =
             [(Uint::<LIMBS>::ZERO, Uint::<RHS_LIMBS>::ZERO); N];
@@ -88,7 +88,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize, const RHS_LIMBS: usize>
 {
     fn multi_exponentiate_bounded_exp(
         bases_and_exponents: &[(Self, Uint<RHS_LIMBS>)],
-        exponent_bits: usize,
+        exponent_bits: u32,
     ) -> Self {
         let bases_and_exponents: Vec<(Uint<LIMBS>, Uint<RHS_LIMBS>)> = bases_and_exponents
             .iter()

@@ -1,7 +1,7 @@
 //! [`Uint`] bitwise right shift operations.
 
 use super::Uint;
-use crate::{limb::HI_BIT, CtChoice, Limb, Word};
+use crate::{limb::HI_BIT, CtChoice, Limb};
 use core::ops::{Shr, ShrAssign};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -34,36 +34,36 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         debug_assert!(carry_bits[LIMBS - 1] == 0 || carry_bits[LIMBS - 1] == (1 << HI_BIT));
         (
             Uint::new(limbs),
-            CtChoice::from_lsb(carry_bits[0] >> HI_BIT),
+            CtChoice::from_word_lsb(carry_bits[0] >> HI_BIT),
         )
     }
 
-    /// Computes `self >> n`.
+    /// Computes `self >> shift`.
     ///
-    /// NOTE: this operation is variable time with respect to `n` *ONLY*.
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
-    /// When used with a fixed `n`, this function is constant-time with respect
+    /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
     #[inline(always)]
-    pub const fn shr_vartime(&self, shift: usize) -> Self {
-        let full_shifts = shift / Limb::BITS;
+    pub const fn shr_vartime(&self, shift: u32) -> Self {
+        let full_shifts = (shift / Limb::BITS) as usize;
         let small_shift = shift & (Limb::BITS - 1);
         let mut limbs = [Limb::ZERO; LIMBS];
 
-        if shift > Limb::BITS * LIMBS {
+        if shift > Self::BITS {
             return Self { limbs };
         }
 
-        let n = LIMBS - full_shifts;
+        let shift = LIMBS - full_shifts;
         let mut i = 0;
 
         if small_shift == 0 {
-            while i < n {
+            while i < shift {
                 limbs[i] = Limb(self.limbs[i + full_shifts].0);
                 i += 1;
             }
         } else {
-            while i < n {
+            while i < shift {
                 let mut lo = self.limbs[i + full_shifts].0 >> small_shift;
 
                 if i < (LIMBS - 1) - full_shifts {
@@ -80,33 +80,33 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes a right shift on a wide input as `(lo, hi)`.
     ///
-    /// NOTE: this operation is variable time with respect to `n` *ONLY*.
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
-    /// When used with a fixed `n`, this function is constant-time with respect
+    /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
     #[inline(always)]
-    pub const fn shr_vartime_wide(lower_upper: (Self, Self), n: usize) -> (Self, Self) {
+    pub const fn shr_vartime_wide(lower_upper: (Self, Self), shift: u32) -> (Self, Self) {
         let (mut lower, upper) = lower_upper;
-        let new_upper = upper.shr_vartime(n);
-        lower = lower.shr_vartime(n);
-        if n >= Self::BITS {
-            lower = lower.bitor(&upper.shr_vartime(n - Self::BITS));
+        let new_upper = upper.shr_vartime(shift);
+        lower = lower.shr_vartime(shift);
+        if shift >= Self::BITS {
+            lower = lower.bitor(&upper.shr_vartime(shift - Self::BITS));
         } else {
-            lower = lower.bitor(&upper.shl_vartime(Self::BITS - n));
+            lower = lower.bitor(&upper.shl_vartime(Self::BITS - shift));
         }
 
         (lower, new_upper)
     }
 
-    /// Computes `self << n`.
-    /// Returns zero if `n >= Self::BITS`.
-    pub const fn shr(&self, shift: usize) -> Self {
-        let overflow = CtChoice::from_usize_lt(shift, Self::BITS).not();
+    /// Computes `self << shift`.
+    /// Returns zero if `shift >= Self::BITS`.
+    pub const fn shr(&self, shift: u32) -> Self {
+        let overflow = CtChoice::from_u32_lt(shift, Self::BITS).not();
         let shift = shift % Self::BITS;
         let mut result = *self;
         let mut i = 0;
         while i < Self::LOG2_BITS {
-            let bit = CtChoice::from_lsb((shift as Word >> i) & 1);
+            let bit = CtChoice::from_u32_lsb((shift >> i) & 1);
             result = Uint::ct_select(&result, &result.shr_vartime(1 << i), bit);
             i += 1;
         }
@@ -115,33 +115,33 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Shr<usize> for Uint<LIMBS> {
+impl<const LIMBS: usize> Shr<u32> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
-    /// NOTE: this operation is variable time with respect to `rhs` *ONLY*.
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
-    /// When used with a fixed `rhs`, this function is constant-time with respect
+    /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
-    fn shr(self, rhs: usize) -> Uint<LIMBS> {
-        Uint::<LIMBS>::shr(&self, rhs)
+    fn shr(self, shift: u32) -> Uint<LIMBS> {
+        Uint::<LIMBS>::shr(&self, shift)
     }
 }
 
-impl<const LIMBS: usize> Shr<usize> for &Uint<LIMBS> {
+impl<const LIMBS: usize> Shr<u32> for &Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
-    /// NOTE: this operation is variable time with respect to `rhs` *ONLY*.
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
-    /// When used with a fixed `rhs`, this function is constant-time with respect
+    /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
-    fn shr(self, rhs: usize) -> Uint<LIMBS> {
-        self.shr(rhs)
+    fn shr(self, shift: u32) -> Uint<LIMBS> {
+        self.shr(shift)
     }
 }
 
-impl<const LIMBS: usize> ShrAssign<usize> for Uint<LIMBS> {
-    fn shr_assign(&mut self, rhs: usize) {
-        *self = self.shr(rhs);
+impl<const LIMBS: usize> ShrAssign<u32> for Uint<LIMBS> {
+    fn shr_assign(&mut self, shift: u32) {
+        *self = self.shr(shift);
     }
 }
 

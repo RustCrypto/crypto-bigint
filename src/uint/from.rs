@@ -56,7 +56,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     // TODO(tarcieri): replace with `const impl From<u128>` when stable
     pub const fn from_u128(n: u128) -> Self {
         assert!(
-            LIMBS >= (128 / Limb::BITS),
+            LIMBS >= 16 / Limb::BYTES,
             "number of limbs must be greater than zero"
         );
 
@@ -127,7 +127,7 @@ impl<const LIMBS: usize> From<u32> for Uint<LIMBS> {
 impl<const LIMBS: usize> From<u64> for Uint<LIMBS> {
     fn from(n: u64) -> Self {
         // TODO(tarcieri): const where clause when possible
-        debug_assert!(LIMBS >= (64 / Limb::BITS), "not enough limbs");
+        debug_assert!(LIMBS >= 8 / Limb::BYTES, "not enough limbs");
         Self::from_u64(n)
     }
 }
@@ -135,7 +135,7 @@ impl<const LIMBS: usize> From<u64> for Uint<LIMBS> {
 impl<const LIMBS: usize> From<u128> for Uint<LIMBS> {
     fn from(n: u128) -> Self {
         // TODO(tarcieri): const where clause when possible
-        debug_assert!(LIMBS >= (128 / Limb::BITS), "not enough limbs");
+        debug_assert!(LIMBS >= 16 / Limb::BYTES, "not enough limbs");
         Self::from_u128(n)
     }
 }

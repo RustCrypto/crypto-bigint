@@ -59,7 +59,7 @@ macro_rules! const_assert_ne {
 #[macro_export]
 macro_rules! nlimbs {
     ($bits:expr) => {
-        $bits / $crate::Limb::BITS
+        $bits / $crate::Limb::BITS as usize
     };
 }
 

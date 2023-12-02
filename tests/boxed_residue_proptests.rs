@@ -38,7 +38,7 @@ prop_compose! {
         let extra = bytes.len() % Limb::BYTES;
         let bytes_precision = bytes.len() - extra;
         bytes.truncate(bytes_precision);
-        BoxedUint::from_be_slice(&bytes, bytes_precision * 8).unwrap()
+        BoxedUint::from_be_slice(&bytes, bytes_precision as u32 * 8).unwrap()
     }
 }
 prop_compose! {

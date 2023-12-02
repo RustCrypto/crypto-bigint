@@ -6,7 +6,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// This method is constant-time w.r.t. `self` but not `k`.
     ///
     /// Conditions: `self` < 2^k and `self` must be odd
-    pub const fn inv_mod2k_vartime(&self, k: usize) -> Self {
+    pub const fn inv_mod2k_vartime(&self, k: u32) -> Self {
         // Using the Algorithm 3 from "A Secure Algorithm for Inversion Modulo 2k"
         // by Sadiel de la Fe and Carles Ferrer.
         // See <https://www.mdpi.com/2410-387X/2/3/23>.
@@ -21,7 +21,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         while i < k {
             // X_i = b_i mod 2
             let x_i = b.limbs[0].0 & 1;
-            let x_i_choice = CtChoice::from_lsb(x_i);
+            let x_i_choice = CtChoice::from_word_lsb(x_i);
             // b_{i+1} = (b_i - a * X_i) / 2
             b = Self::ct_select(&b, &b.wrapping_sub(self), x_i_choice).shr_vartime(1);
             // Store the X_i bit in the result (x = x | (1 << X_i))
@@ -36,7 +36,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes 1/`self` mod `2^k`.
     ///
     /// Conditions: `self` < 2^k and `self` must be odd
-    pub const fn inv_mod2k(&self, k: usize) -> Self {
+    pub const fn inv_mod2k(&self, k: u32) -> Self {
         // This is the same algorithm as in `inv_mod2k_vartime()`,
         // but made constant-time w.r.t `k` as well.
 
@@ -47,11 +47,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         while i < Self::BITS {
             // Only iterations for i = 0..k need to change `x`,
             // the rest are dummy ones performed for the sake of constant-timeness.
-            let within_range = CtChoice::from_usize_lt(i, k);
+            let within_range = CtChoice::from_u32_lt(i, k);
 
             // X_i = b_i mod 2
             let x_i = b.limbs[0].0 & 1;
-            let x_i_choice = CtChoice::from_lsb(x_i);
+            let x_i_choice = CtChoice::from_word_lsb(x_i);
             // b_{i+1} = (b_i - a * X_i) / 2
             b = Self::ct_select(&b, &b.wrapping_sub(self), x_i_choice).shr_vartime(1);
 
@@ -80,8 +80,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn inv_odd_mod_bounded(
         &self,
         modulus: &Self,
-        bits: usize,
-        modulus_bits: usize,
+        bits: u32,
+        modulus_bits: u32,
     ) -> (Self, CtChoice) {
         debug_assert!(modulus.ct_is_odd().is_true_vartime());
 
@@ -156,9 +156,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let (a, a_is_some) = self.inv_odd_mod(&s);
         let b = self.inv_mod2k(k);
         // inverse modulo 2^k exists either if `k` is 0 or if `self` is odd.
-        let b_is_some = CtChoice::from_usize_being_nonzero(k)
-            .not()
-            .or(self.ct_is_odd());
+        let b_is_some = CtChoice::from_u32_nonzero(k).not().or(self.ct_is_odd());
 
         // Restore from RNS:
         // self^{-1} = a mod s = b mod 2^k

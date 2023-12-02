@@ -86,11 +86,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     };
 
     /// Total size of the represented integer in bits.
-    pub const BITS: usize = LIMBS * Limb::BITS;
+    pub const BITS: u32 = LIMBS as u32 * Limb::BITS;
 
     /// Bit size of `BITS`.
-    // Note: assumes the type of `BITS` is `usize`. Any way to assert that?
-    pub(crate) const LOG2_BITS: usize = (usize::BITS - Self::BITS.leading_zeros()) as usize;
+    // Note: assumes the type of `BITS` is `u32`. Any way to assert that?
+    pub(crate) const LOG2_BITS: u32 = u32::BITS - Self::BITS.leading_zeros();
 
     /// Total size of the represented integer in bytes.
     pub const BYTES: usize = LIMBS * Limb::BYTES;
@@ -204,7 +204,7 @@ impl<const LIMBS: usize> ConditionallySelectable for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> Bounded for Uint<LIMBS> {
-    const BITS: usize = Self::BITS;
+    const BITS: u32 = Self::BITS;
     const BYTES: usize = Self::BYTES;
 }
 
@@ -228,15 +228,15 @@ impl<const LIMBS: usize> Integer for Uint<LIMBS> {
         Self::ONE
     }
 
-    fn bits(&self) -> usize {
+    fn bits(&self) -> u32 {
         self.bits()
     }
 
-    fn bits_vartime(&self) -> usize {
+    fn bits_vartime(&self) -> u32 {
         self.bits_vartime()
     }
 
-    fn bits_precision(&self) -> usize {
+    fn bits_precision(&self) -> u32 {
         Self::BITS
     }
 

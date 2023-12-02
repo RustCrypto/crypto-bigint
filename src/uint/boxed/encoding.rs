@@ -36,7 +36,7 @@ impl BoxedUint {
     ///
     /// If the length of `bytes` (when interpreted as bits) is larger than `bits_precision`, this
     /// function will return [`DecodeError::InputSize`].
-    pub fn from_be_slice(bytes: &[u8], bits_precision: usize) -> Result<Self, DecodeError> {
+    pub fn from_be_slice(bytes: &[u8], bits_precision: u32) -> Result<Self, DecodeError> {
         if bytes.is_empty() && bits_precision == 0 {
             return Ok(Self::zero());
         }
@@ -45,7 +45,7 @@ impl BoxedUint {
             return Err(DecodeError::Precision);
         }
 
-        if bytes.len() % Limb::BYTES != 0 || bytes.len() * 8 > bits_precision {
+        if bytes.len() % Limb::BYTES != 0 || bytes.len() * 8 > bits_precision as usize {
             return Err(DecodeError::InputSize);
         }
 
@@ -66,7 +66,7 @@ impl BoxedUint {
     ///
     /// If the length of `bytes` (when interpreted as bits) is larger than `bits_precision`, this
     /// function will return [`DecodeError::InputSize`].
-    pub fn from_le_slice(bytes: &[u8], bits_precision: usize) -> Result<Self, DecodeError> {
+    pub fn from_le_slice(bytes: &[u8], bits_precision: u32) -> Result<Self, DecodeError> {
         if bytes.is_empty() && bits_precision == 0 {
             return Ok(Self::zero());
         }
@@ -75,7 +75,7 @@ impl BoxedUint {
             return Err(DecodeError::Precision);
         }
 
-        if bytes.len() % Limb::BYTES != 0 || bytes.len() * 8 > bits_precision {
+        if bytes.len() % Limb::BYTES != 0 || bytes.len() * 8 > bits_precision as usize {
             return Err(DecodeError::InputSize);
         }
 

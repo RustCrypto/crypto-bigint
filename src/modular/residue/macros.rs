@@ -39,7 +39,7 @@ macro_rules! impl_modulus {
             const MOD_NEG_INV: $crate::Limb = $crate::Limb(
                 $crate::Word::MIN.wrapping_sub(
                     Self::MODULUS
-                        .inv_mod2k_vartime($crate::Word::BITS as usize)
+                        .inv_mod2k_vartime($crate::Word::BITS)
                         .as_limbs()[0]
                         .0,
                 ),

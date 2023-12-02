@@ -16,7 +16,7 @@ fn to_uint(big_uint: BigUint) -> BoxedUint {
     let pad_count = Limb::BYTES - (bytes.len() % Limb::BYTES);
     let mut padded_bytes = vec![0u8; pad_count];
     padded_bytes.extend_from_slice(&bytes);
-    BoxedUint::from_be_slice(&padded_bytes, padded_bytes.len() * 8).unwrap()
+    BoxedUint::from_be_slice(&padded_bytes, padded_bytes.len() as u32 * 8).unwrap()
 }
 
 fn reduce(x: &BoxedUint, n: &BoxedUint) -> BoxedUint {
@@ -40,7 +40,7 @@ prop_compose! {
         let extra = bytes.len() % Limb::BYTES;
         let bytes_precision = bytes.len() - extra;
         bytes.truncate(bytes_precision);
-        BoxedUint::from_be_slice(&bytes, bytes_precision * 8).unwrap()
+        BoxedUint::from_be_slice(&bytes, bytes_precision as u32 * 8).unwrap()
     }
 }
 prop_compose! {
@@ -74,7 +74,7 @@ proptest! {
 
     #[test]
     fn bits(a in uint()) {
-        let expected = to_biguint(&a).bits();
+        let expected = to_biguint(&a).bits() as u32;
         assert_eq!(expected, a.bits());
         assert_eq!(expected, a.bits_vartime());
     }

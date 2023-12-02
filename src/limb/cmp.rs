@@ -1,6 +1,5 @@
 //! Limb comparisons
 
-use super::HI_BIT;
 use crate::{CtChoice, Limb};
 use core::cmp::Ordering;
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
@@ -28,42 +27,13 @@ impl Limb {
     /// Return `b` if `c` is truthy, otherwise return `a`.
     #[inline]
     pub(crate) const fn ct_select(a: Self, b: Self, c: CtChoice) -> Self {
-        Self(c.select(a.0, b.0))
+        Self(c.select_word(a.0, b.0))
     }
 
     /// Returns the truthy value if `self != 0` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn ct_is_nonzero(&self) -> CtChoice {
-        let inner = self.0;
-        CtChoice::from_lsb((inner | inner.wrapping_neg()) >> HI_BIT)
-    }
-
-    /// Returns the truthy value if `lhs == rhs` and the falsy value otherwise.
-    #[inline]
-    pub(crate) const fn ct_eq(lhs: Self, rhs: Self) -> CtChoice {
-        let x = lhs.0;
-        let y = rhs.0;
-
-        // x ^ y == 0 if and only if x == y
-        Self(x ^ y).ct_is_nonzero().not()
-    }
-
-    /// Returns the truthy value if `lhs < rhs` and the falsy value otherwise.
-    #[inline]
-    pub(crate) const fn ct_lt(lhs: Self, rhs: Self) -> CtChoice {
-        let x = lhs.0;
-        let y = rhs.0;
-        let bit = (((!x) & y) | (((!x) | y) & (x.wrapping_sub(y)))) >> (Limb::BITS - 1);
-        CtChoice::from_lsb(bit)
-    }
-
-    /// Returns the truthy value if `lhs <= rhs` and the falsy value otherwise.
-    #[inline]
-    pub(crate) const fn ct_le(lhs: Self, rhs: Self) -> CtChoice {
-        let x = lhs.0;
-        let y = rhs.0;
-        let bit = (((!x) | y) & ((x ^ y) | !(y.wrapping_sub(x)))) >> (Limb::BITS - 1);
-        CtChoice::from_lsb(bit)
+        CtChoice::from_word_nonzero(self.0)
     }
 }
 
