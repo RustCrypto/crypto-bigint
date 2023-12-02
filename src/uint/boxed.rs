@@ -50,8 +50,8 @@ pub struct BoxedUint {
 }
 
 impl BoxedUint {
-    fn limbs_for_precision(bits_precision: u32) -> usize {
-        ((bits_precision + Limb::BITS - 1) / Limb::BITS) as usize
+    fn limbs_for_precision(at_least_bits_precision: u32) -> usize {
+        ((at_least_bits_precision + Limb::BITS - 1) / Limb::BITS) as usize
     }
 
     /// Get the value `0` represented as succinctly as possible.
@@ -63,9 +63,9 @@ impl BoxedUint {
 
     /// Get the value `0` with the given number of bits of precision.
     ///
-    /// `bits_precision` is rounded up to a multiple of [`Limb::BITS`].
-    pub fn zero_with_precision(bits_precision: u32) -> Self {
-        vec![Limb::ZERO; Self::limbs_for_precision(bits_precision)].into()
+    /// `at_least_bits_precision` is rounded up to a multiple of [`Limb::BITS`].
+    pub fn zero_with_precision(at_least_bits_precision: u32) -> Self {
+        vec![Limb::ZERO; Self::limbs_for_precision(at_least_bits_precision)].into()
     }
 
     /// Get the value `1`, represented as succinctly as possible.
@@ -77,9 +77,9 @@ impl BoxedUint {
 
     /// Get the value `1` with the given number of bits of precision.
     ///
-    /// `bits_precision` is rounded up to a multiple of [`Limb::BITS`].
-    pub fn one_with_precision(bits_precision: u32) -> Self {
-        let mut ret = Self::zero_with_precision(bits_precision);
+    /// `at_least_bits_precision` is rounded up to a multiple of [`Limb::BITS`].
+    pub fn one_with_precision(at_least_bits_precision: u32) -> Self {
+        let mut ret = Self::zero_with_precision(at_least_bits_precision);
         ret.limbs[0] = Limb::ONE;
         ret
     }
@@ -121,11 +121,12 @@ impl BoxedUint {
         !self.is_odd()
     }
 
-    /// Get the maximum value for a given number of bits of precision.
+    /// Get the maximum value for a `BoxedUint` created with `at_least_bits_precision`
+    /// precision bits requested.
     ///
-    /// `bits_precision` is rounded up to a multiple of [`Limb::BITS`].
-    pub fn max(bits_precision: u32) -> Self {
-        vec![Limb::MAX; Self::limbs_for_precision(bits_precision)].into()
+    /// That is, returns the value `2^self.bits_precision() - 1`.
+    pub fn max(at_least_bits_precision: u32) -> Self {
+        vec![Limb::MAX; Self::limbs_for_precision(at_least_bits_precision)].into()
     }
 
     /// Create a [`BoxedUint`] from an array of [`Word`]s (i.e. word-sized unsigned
@@ -225,21 +226,21 @@ impl BoxedUint {
 
     /// Widen this type's precision to the given number of bits.
     ///
-    /// Panics if `bits_precision` is smaller than the current precision.
-    pub fn widen(&self, bits_precision: u32) -> BoxedUint {
-        assert!(bits_precision >= self.bits_precision());
+    /// Panics if `at_least_bits_precision` is smaller than the current precision.
+    pub fn widen(&self, at_least_bits_precision: u32) -> BoxedUint {
+        assert!(at_least_bits_precision >= self.bits_precision());
 
-        let mut ret = BoxedUint::zero_with_precision(bits_precision);
+        let mut ret = BoxedUint::zero_with_precision(at_least_bits_precision);
         ret.limbs[..self.nlimbs()].copy_from_slice(&self.limbs);
         ret
     }
 
     /// Shortens this type's precision to the given number of bits.
     ///
-    /// Panics if `bits_precision` is larger than the current precision.
-    pub fn shorten(&self, bits_precision: u32) -> BoxedUint {
-        assert!(bits_precision <= self.bits_precision());
-        let mut ret = BoxedUint::zero_with_precision(bits_precision);
+    /// Panics if `at_least_bits_precision` is larger than the current precision.
+    pub fn shorten(&self, at_least_bits_precision: u32) -> BoxedUint {
+        assert!(at_least_bits_precision <= self.bits_precision());
+        let mut ret = BoxedUint::zero_with_precision(at_least_bits_precision);
         let nlimbs = ret.nlimbs();
         ret.limbs.copy_from_slice(&self.limbs[..nlimbs]);
         ret
