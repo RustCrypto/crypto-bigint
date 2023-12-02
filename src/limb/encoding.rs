@@ -34,16 +34,30 @@ impl Encoding for Limb {
 impl Limb {
     /// Decode limb from a big endian byte slice.
     ///
-    /// Panics if the slice is not the same size as [`Limb::Repr`].
+    /// Panics if the slice is larger than [`Limb::Repr`].
     pub(crate) fn from_be_slice(bytes: &[u8]) -> Self {
-        Self::from_be_bytes(bytes.try_into().expect("slice not limb-sized"))
+        let mut repr = Self::ZERO.to_be_bytes();
+        let repr_len = repr.len();
+        assert!(
+            bytes.len() <= repr_len,
+            "The given slice is larger than the limb size"
+        );
+        repr[(repr_len - bytes.len())..].copy_from_slice(bytes);
+        Self::from_be_bytes(repr)
     }
 
     /// Decode limb from a little endian byte slice.
     ///
     /// Panics if the slice is not the same size as [`Limb::Repr`].
     pub(crate) fn from_le_slice(bytes: &[u8]) -> Self {
-        Self::from_le_bytes(bytes.try_into().expect("slice not limb-sized"))
+        let mut repr = Self::ZERO.to_le_bytes();
+        let repr_len = repr.len();
+        assert!(
+            bytes.len() <= repr_len,
+            "The given slice is larger than the limb size"
+        );
+        repr[..bytes.len()].copy_from_slice(bytes);
+        Self::from_le_bytes(repr)
     }
 }
 
