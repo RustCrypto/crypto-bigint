@@ -6,12 +6,18 @@ use rand_core::CryptoRngCore;
 
 impl BoxedUint {
     /// Generate a cryptographically secure random [`BoxedUint`].
-    pub fn random(mut rng: &mut impl CryptoRngCore, bits_precision: u32) -> Self {
+    /// in range `[0, 2^bits_precision)`.
+    pub fn random(rng: &mut impl CryptoRngCore, bits_precision: u32) -> Self {
         let mut ret = BoxedUint::zero_with_precision(bits_precision);
 
         for limb in &mut *ret.limbs {
-            *limb = Limb::random(&mut rng)
+            *limb = Limb::random(rng)
         }
+
+        // Since `bits_precision` will be rounded up on creation of `ret`,
+        // we need to clear the high bits if the rounding occurred.
+        ret.limbs[ret.limbs.len() - 1] =
+            ret.limbs[ret.limbs.len() - 1] & (Limb::MAX >> (ret.bits_precision() - bits_precision));
 
         ret
     }
@@ -36,28 +42,38 @@ impl RandomMod for BoxedUint {
 
 #[cfg(test)]
 mod tests {
-    use crate::{NonZero, RandomMod, U256};
+    use crate::{BoxedUint, NonZero, RandomMod};
     use rand_core::SeedableRng;
+
+    #[test]
+    fn random() {
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+
+        let r = BoxedUint::random(&mut rng, 256);
+        assert!(r.bits_precision() == 256);
+
+        let r = BoxedUint::random(&mut rng, 256 - 32 + 1);
+        assert!(r.bits_precision() == 256);
+        assert!(r < BoxedUint::one_with_precision(256) << (256 - 32 + 1));
+    }
 
     #[test]
     fn random_mod() {
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
 
         // Ensure `random_mod` runs in a reasonable amount of time
-        let modulus = NonZero::new(U256::from(42u8)).unwrap();
-        let res = U256::random_mod(&mut rng, &modulus);
+        let modulus = NonZero::new(BoxedUint::from(42u8)).unwrap();
+        let res = BoxedUint::random_mod(&mut rng, &modulus);
 
         // Check that the value is in range
-        assert!(res >= U256::ZERO);
-        assert!(res < U256::from(42u8));
+        assert!(res < BoxedUint::from(42u8));
 
         // Ensure `random_mod` runs in a reasonable amount of time
         // when the modulus is larger than 1 limb
-        let modulus = NonZero::new(U256::from(0x10000000000000001u128)).unwrap();
-        let res = U256::random_mod(&mut rng, &modulus);
+        let modulus = NonZero::new(BoxedUint::from(0x10000000000000001u128)).unwrap();
+        let res = BoxedUint::random_mod(&mut rng, &modulus);
 
         // Check that the value is in range
-        assert!(res >= U256::ZERO);
-        assert!(res < U256::from(0x10000000000000001u128));
+        assert!(res < BoxedUint::from(0x10000000000000001u128));
     }
 }

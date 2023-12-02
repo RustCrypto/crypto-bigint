@@ -87,7 +87,6 @@ mod tests {
         let res = U256::random_mod(&mut rng, &modulus);
 
         // Check that the value is in range
-        assert!(res >= U256::ZERO);
         assert!(res < U256::from(42u8));
 
         // Ensure `random_mod` runs in a reasonable amount of time
@@ -96,7 +95,6 @@ mod tests {
         let res = U256::random_mod(&mut rng, &modulus);
 
         // Check that the value is in range
-        assert!(res >= U256::ZERO);
         assert!(res < U256::from(0x10000000000000001u128));
     }
 }
