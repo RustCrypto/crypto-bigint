@@ -1,6 +1,6 @@
 //! [`BoxedUint`] bitwise right shift operations.
 
-use crate::{limb::HI_BIT, BoxedUint, Limb, Word};
+use crate::{limb::HI_BIT, BoxedUint, Limb};
 use core::ops::{Shr, ShrAssign};
 use subtle::{Choice, ConstantTimeLess};
 
@@ -36,13 +36,13 @@ impl BoxedUint {
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
-    pub fn shr_vartime(&self, shift: usize) -> Self {
+    pub fn shr_vartime(&self, shift: u32) -> Self {
         let nlimbs = self.nlimbs();
-        let full_shifts = shift / Limb::BITS;
+        let full_shifts = (shift / Limb::BITS) as usize;
         let small_shift = shift & (Limb::BITS - 1);
         let mut limbs = vec![Limb::ZERO; nlimbs].into_boxed_slice();
 
-        if shift > Limb::BITS * nlimbs {
+        if shift > self.bits_precision() {
             return Self { limbs };
         }
 
@@ -70,16 +70,16 @@ impl BoxedUint {
         Self { limbs }
     }
 
-    /// Computes `self << n`.
-    /// Returns zero if `n >= Self::BITS`.
-    pub fn shr(&self, shift: usize) -> Self {
-        let overflow = !(shift as Word).ct_lt(&(self.bits_precision() as Word));
+    /// Computes `self << shift`.
+    /// Returns zero if `shift >= Self::BITS`.
+    pub fn shr(&self, shift: u32) -> Self {
+        let overflow = !shift.ct_lt(&self.bits_precision());
         let shift = shift % self.bits_precision();
-        let log2_bits = (usize::BITS - self.bits_precision().leading_zeros()) as usize;
+        let log2_bits = u32::BITS - self.bits_precision().leading_zeros();
         let mut result = self.clone();
 
         for i in 0..log2_bits {
-            let bit = Choice::from(((shift as Word >> i) & 1) as u8);
+            let bit = Choice::from(((shift >> i) & 1) as u8);
             result = Self::conditional_select(&result, &result.shr_vartime(1 << i), bit);
         }
 
@@ -91,34 +91,34 @@ impl BoxedUint {
     }
 }
 
-impl Shr<usize> for BoxedUint {
+impl Shr<u32> for BoxedUint {
     type Output = BoxedUint;
 
-    /// NOTE: this operation is variable time with respect to `rhs` *ONLY*.
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
-    /// When used with a fixed `rhs`, this function is constant-time with respect
+    /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
-    fn shr(self, rhs: usize) -> BoxedUint {
-        Self::shr(&self, rhs)
+    fn shr(self, shift: u32) -> BoxedUint {
+        Self::shr(&self, shift)
     }
 }
 
-impl Shr<usize> for &BoxedUint {
+impl Shr<u32> for &BoxedUint {
     type Output = BoxedUint;
 
-    /// NOTE: this operation is variable time with respect to `rhs` *ONLY*.
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
-    /// When used with a fixed `rhs`, this function is constant-time with respect
+    /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
-    fn shr(self, rhs: usize) -> BoxedUint {
-        self.shr(rhs)
+    fn shr(self, shift: u32) -> BoxedUint {
+        self.shr(shift)
     }
 }
 
-impl ShrAssign<usize> for BoxedUint {
-    fn shr_assign(&mut self, rhs: usize) {
+impl ShrAssign<u32> for BoxedUint {
+    fn shr_assign(&mut self, shift: u32) {
         // TODO(tarcieri): in-place implementation that avoids clone
-        *self = self.clone().shr(rhs);
+        *self = self.clone().shr(shift);
     }
 }
 

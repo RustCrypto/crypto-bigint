@@ -18,7 +18,7 @@ impl BoxedResidue {
     /// to take into account for the exponent.
     ///
     /// NOTE: `exponent_bits` may be leaked in the time pattern.
-    pub fn pow_bounded_exp(&self, exponent: &BoxedUint, exponent_bits: usize) -> Self {
+    pub fn pow_bounded_exp(&self, exponent: &BoxedUint, exponent_bits: u32) -> Self {
         Self {
             montgomery_form: pow_montgomery_form(
                 &self.montgomery_form,
@@ -34,7 +34,7 @@ impl BoxedResidue {
 }
 
 impl PowBoundedExp<BoxedUint> for BoxedResidue {
-    fn pow_bounded_exp(&self, exponent: &BoxedUint, exponent_bits: usize) -> Self {
+    fn pow_bounded_exp(&self, exponent: &BoxedUint, exponent_bits: u32) -> Self {
         self.pow_bounded_exp(exponent, exponent_bits)
     }
 }
@@ -46,7 +46,7 @@ impl PowBoundedExp<BoxedUint> for BoxedResidue {
 fn pow_montgomery_form(
     x: &BoxedUint,
     exponent: &BoxedUint,
-    exponent_bits: usize,
+    exponent_bits: u32,
     modulus: &BoxedUint,
     r: &BoxedUint,
     mod_neg_inv: Limb,
@@ -55,7 +55,7 @@ fn pow_montgomery_form(
         return r.clone(); // 1 in Montgomery form
     }
 
-    const WINDOW: usize = 4;
+    const WINDOW: u32 = 4;
     const WINDOW_MASK: Word = (1 << WINDOW) - 1;
 
     // powers[i] contains x^i
@@ -67,7 +67,7 @@ fn pow_montgomery_form(
         i += 1;
     }
 
-    let starting_limb = (exponent_bits - 1) / Limb::BITS;
+    let starting_limb = ((exponent_bits - 1) / Limb::BITS) as usize;
     let starting_bit_in_limb = (exponent_bits - 1) % Limb::BITS;
     let starting_window = starting_bit_in_limb / WINDOW;
     let starting_window_mask = (1 << (starting_bit_in_limb % WINDOW + 1)) - 1;
@@ -103,7 +103,7 @@ fn pow_montgomery_form(
             let mut power = powers[0].clone();
             let mut i = 1;
             while i < 1 << WINDOW {
-                power = BoxedUint::conditional_select(&power, &powers[i], (i as Word).ct_eq(&idx));
+                power = BoxedUint::conditional_select(&power, &powers[i as usize], i.ct_eq(&idx));
                 i += 1;
             }
 

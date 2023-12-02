@@ -17,7 +17,7 @@ use rand_core::CryptoRngCore;
 /// Integers whose representation takes a bounded amount of space.
 pub trait Bounded {
     /// Size of this integer in bits.
-    const BITS: usize;
+    const BITS: u32;
 
     /// Size of this integer in bytes.
     const BYTES: usize;
@@ -65,10 +65,10 @@ pub trait Integer:
     + for<'a> Rem<&'a NonZero<Self>, Output = Self>
     + Send
     + Sized
-    + Shl<usize, Output = Self>
-    + ShlAssign<usize>
-    + Shr<usize, Output = Self>
-    + ShrAssign<usize>
+    + Shl<u32, Output = Self>
+    + ShlAssign<u32>
+    + Shr<u32, Output = Self>
+    + ShrAssign<u32>
     + SubMod
     + Sync
     + Zero
@@ -77,20 +77,20 @@ pub trait Integer:
     fn one() -> Self;
 
     /// Calculate the number of bits required to represent a given number.
-    fn bits(&self) -> usize;
+    fn bits(&self) -> u32;
 
     /// Calculate the number of bits required to represent a given number in variable-time with
     /// respect to `self`.
-    fn bits_vartime(&self) -> usize;
+    fn bits_vartime(&self) -> u32;
 
     /// Precision of this integer in bits.
-    fn bits_precision(&self) -> usize;
+    fn bits_precision(&self) -> u32;
 
     /// Precision of this integer in bytes.
     fn bytes_precision(&self) -> usize;
 
     /// Calculate the number of leading zeros in the binary representation of this number.
-    fn leading_zeros(&self) -> usize  {
+    fn leading_zeros(&self) -> u32  {
         self.bits_precision() - self.bits()
     }
 
@@ -366,7 +366,7 @@ pub trait PowBoundedExp<Exponent> {
     /// to take into account for the exponent.
     ///
     /// NOTE: `exponent_bits` may be leaked in the time pattern.
-    fn pow_bounded_exp(&self, exponent: &Exponent, exponent_bits: usize) -> Self;
+    fn pow_bounded_exp(&self, exponent: &Exponent, exponent_bits: u32) -> Self;
 }
 
 /// Performs modular multi-exponentiation using Montgomery's ladder.
@@ -404,7 +404,7 @@ where
     /// Calculates `x1 ^ k1 * ... * xn ^ kn`.
     fn multi_exponentiate_bounded_exp(
         bases_and_exponents: &BasesAndExponents,
-        exponent_bits: usize,
+        exponent_bits: u32,
     ) -> Self;
 }
 

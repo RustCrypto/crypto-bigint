@@ -44,7 +44,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Returns the truthy value if `self` is odd or the falsy value otherwise.
     pub(crate) const fn ct_is_odd(&self) -> CtChoice {
-        CtChoice::from_lsb(self.limbs[0].0 & 1)
+        CtChoice::from_word_lsb(self.limbs[0].0 & 1)
     }
 
     /// Returns the truthy value if `self == rhs` or the falsy value otherwise.
@@ -69,14 +69,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // but since we have to use Uint::wrapping_sub(), which calls `sbb()`,
         // there are no savings compared to just calling `sbb()` directly.
         let (_res, borrow) = lhs.sbb(rhs, Limb::ZERO);
-        CtChoice::from_mask(borrow.0)
+        CtChoice::from_word_mask(borrow.0)
     }
 
     /// Returns the truthy value if `self >= rhs` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn ct_gt(lhs: &Self, rhs: &Self) -> CtChoice {
         let (_res, borrow) = rhs.sbb(lhs, Limb::ZERO);
-        CtChoice::from_mask(borrow.0)
+        CtChoice::from_word_mask(borrow.0)
     }
 
     /// Returns the ordering between `self` and `rhs` as an i8.

@@ -25,7 +25,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform saturating subtraction, returning `ZERO` on underflow.
     pub const fn saturating_sub(&self, rhs: &Self) -> Self {
         let (res, underflow) = self.sbb(rhs, Limb::ZERO);
-        Self::ct_select(&res, &Self::ZERO, CtChoice::from_mask(underflow.0))
+        Self::ct_select(&res, &Self::ZERO, CtChoice::from_word_mask(underflow.0))
     }
 
     /// Perform wrapping subtraction, discarding underflow and wrapping around
@@ -43,7 +43,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ) -> (Self, CtChoice) {
         let actual_rhs = Uint::ct_select(&Uint::ZERO, rhs, choice);
         let (res, borrow) = self.sbb(&actual_rhs, Limb::ZERO);
-        (res, CtChoice::from_mask(borrow.0))
+        (res, CtChoice::from_word_mask(borrow.0))
     }
 }
 

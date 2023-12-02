@@ -67,8 +67,7 @@ impl BoxedResidueParams {
         // we can take the modulo right away and calculate the inverse of the first limb only.
         let modulus_lo = BoxedUint::from(modulus.limbs.get(0).copied().unwrap_or_default());
 
-        let mod_neg_inv =
-            Limb(Word::MIN.wrapping_sub(modulus_lo.inv_mod2k(Word::BITS as usize).limbs[0].0));
+        let mod_neg_inv = Limb(Word::MIN.wrapping_sub(modulus_lo.inv_mod2k(Word::BITS).limbs[0].0));
 
         let r3 = montgomery_reduction_boxed(&mut r2.square(), &modulus, mod_neg_inv);
 
@@ -89,7 +88,7 @@ impl BoxedResidueParams {
     }
 
     /// Bits of precision in the modulus.
-    pub fn bits_precision(&self) -> usize {
+    pub fn bits_precision(&self) -> u32 {
         self.modulus.bits_precision()
     }
 }
@@ -132,7 +131,7 @@ impl BoxedResidue {
     }
 
     /// Bits of precision in the modulus.
-    pub fn bits_precision(&self) -> usize {
+    pub fn bits_precision(&self) -> u32 {
         self.residue_params.bits_precision()
     }
 

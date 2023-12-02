@@ -61,7 +61,7 @@ where
     T: Bounded + Zero,
 {
     /// Total size of the represented integer in bits.
-    pub const BITS: usize = T::BITS;
+    pub const BITS: u32 = T::BITS;
 
     /// Total size of the represented integer in bytes.
     pub const BYTES: usize = T::BYTES;

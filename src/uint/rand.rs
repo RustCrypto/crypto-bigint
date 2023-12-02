@@ -43,12 +43,12 @@ pub(super) fn random_mod_core<T>(
     rng: &mut impl CryptoRngCore,
     n: &mut T,
     modulus: &NonZero<T>,
-    n_bits: usize,
+    n_bits: u32,
 ) where
     T: AsMut<[Limb]> + ConstantTimeLess + Zero,
 {
-    let n_bytes = (n_bits + 7) / 8;
-    let n_limbs = (n_bits + Limb::BITS - 1) / Limb::BITS;
+    let n_bytes = ((n_bits + 7) / 8) as usize;
+    let n_limbs = ((n_bits + Limb::BITS - 1) / Limb::BITS) as usize;
     let hi_bytes = n_bytes - (n_limbs - 1) * Limb::BYTES;
 
     let mut bytes = Limb::ZERO.to_le_bytes();

@@ -54,7 +54,7 @@ pub type Word = u64;
 pub type WideWord = u128;
 
 /// Highest bit in a [`Limb`].
-pub(crate) const HI_BIT: usize = Limb::BITS - 1;
+pub(crate) const HI_BIT: u32 = Limb::BITS - 1;
 
 /// Big integers are represented as an array of smaller CPU word-size integers
 /// called "limbs".
@@ -78,7 +78,7 @@ impl Limb {
 
     /// Size of the inner integer in bits.
     #[cfg(target_pointer_width = "32")]
-    pub const BITS: usize = 32;
+    pub const BITS: u32 = 32;
     /// Size of the inner integer in bytes.
     #[cfg(target_pointer_width = "32")]
     pub const BYTES: usize = 4;
@@ -87,14 +87,14 @@ impl Limb {
 
     /// Size of the inner integer in bits.
     #[cfg(target_pointer_width = "64")]
-    pub const BITS: usize = 64;
+    pub const BITS: u32 = 64;
     /// Size of the inner integer in bytes.
     #[cfg(target_pointer_width = "64")]
     pub const BYTES: usize = 8;
 }
 
 impl Bounded for Limb {
-    const BITS: usize = Self::BITS;
+    const BITS: u32 = Self::BITS;
     const BYTES: usize = Self::BYTES;
 }
 

@@ -26,7 +26,7 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
     pub const fn pow_bounded_exp<const RHS_LIMBS: usize>(
         &self,
         exponent: &Uint<RHS_LIMBS>,
-        exponent_bits: usize,
+        exponent_bits: u32,
     ) -> Self {
         Self {
             montgomery_form: pow_montgomery_form(
@@ -45,7 +45,7 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
 impl<const LIMBS: usize, const RHS_LIMBS: usize> PowBoundedExp<Uint<RHS_LIMBS>>
     for DynResidue<LIMBS>
 {
-    fn pow_bounded_exp(&self, exponent: &Uint<RHS_LIMBS>, exponent_bits: usize) -> Self {
+    fn pow_bounded_exp(&self, exponent: &Uint<RHS_LIMBS>, exponent_bits: u32) -> Self {
         self.pow_bounded_exp(exponent, exponent_bits)
     }
 }
@@ -56,7 +56,7 @@ impl<const N: usize, const LIMBS: usize, const RHS_LIMBS: usize>
 {
     fn multi_exponentiate_bounded_exp(
         bases_and_exponents: &[(Self, Uint<RHS_LIMBS>); N],
-        exponent_bits: usize,
+        exponent_bits: u32,
     ) -> Self {
         const_assert_ne!(N, 0, "bases_and_exponents must not be empty");
         let residue_params = bases_and_exponents[0].0.residue_params;
@@ -90,7 +90,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize>
 {
     fn multi_exponentiate_bounded_exp(
         bases_and_exponents: &[(Self, Uint<RHS_LIMBS>)],
-        exponent_bits: usize,
+        exponent_bits: u32,
     ) -> Self {
         assert!(
             !bases_and_exponents.is_empty(),

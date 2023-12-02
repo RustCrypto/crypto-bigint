@@ -1,7 +1,7 @@
 //! [`Uint`] division operations.
 
 use super::div_limb::{div_rem_limb_with_reciprocal, Reciprocal};
-use crate::{CheckedDiv, CtChoice, Limb, NonZero, Uint, Word, Wrapping};
+use crate::{CheckedDiv, CtChoice, Limb, NonZero, Uint, Wrapping};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::CtOption;
 
@@ -60,9 +60,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         loop {
             let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::ct_select(&r, &rem, CtChoice::from_mask(borrow.0));
+            rem = Self::ct_select(&r, &rem, CtChoice::from_word_mask(borrow.0));
             r = quo.bitor(&Self::ONE);
-            quo = Self::ct_select(&r, &quo, CtChoice::from_mask(borrow.0));
+            quo = Self::ct_select(&r, &quo, CtChoice::from_word_mask(borrow.0));
             if bd == 0 {
                 break;
             }
@@ -71,7 +71,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             quo = quo.shl_vartime(1);
         }
 
-        let is_some = Limb(mb as Word).ct_is_nonzero();
+        let is_some = CtChoice::from_u32_nonzero(mb);
         quo = Self::ct_select(&Self::ZERO, &quo, is_some);
         (quo, rem, is_some)
     }
@@ -92,7 +92,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         loop {
             let (r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::ct_select(&r, &rem, CtChoice::from_mask(borrow.0));
+            rem = Self::ct_select(&r, &rem, CtChoice::from_word_mask(borrow.0));
             if bd == 0 {
                 break;
             }
@@ -100,7 +100,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             c = c.shr_vartime(1);
         }
 
-        let is_some = Limb(mb as Word).ct_is_nonzero();
+        let is_some = CtChoice::from_u32_nonzero(mb);
         (rem, is_some)
     }
 
@@ -127,8 +127,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let (lower_sub, borrow) = lower.sbb(&c.0, Limb::ZERO);
             let (upper_sub, borrow) = upper.sbb(&c.1, borrow);
 
-            lower = Self::ct_select(&lower_sub, &lower, CtChoice::from_mask(borrow.0));
-            upper = Self::ct_select(&upper_sub, &upper, CtChoice::from_mask(borrow.0));
+            lower = Self::ct_select(&lower_sub, &lower, CtChoice::from_word_mask(borrow.0));
+            upper = Self::ct_select(&upper_sub, &upper, CtChoice::from_word_mask(borrow.0));
             if bd == 0 {
                 break;
             }
@@ -136,27 +136,28 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             c = Self::shr_vartime_wide(c, 1);
         }
 
-        let is_some = Limb(mb as Word).ct_is_nonzero();
+        let is_some = CtChoice::from_u32_nonzero(mb);
         (lower, is_some)
     }
 
     /// Computes `self` % 2^k. Faster than reduce since its a power of 2.
     /// Limited to 2^16-1 since Uint doesn't support higher.
-    pub const fn rem2k(&self, k: usize) -> Self {
+    pub const fn rem2k(&self, k: u32) -> Self {
         let highest = (LIMBS - 1) as u32;
-        let index = k as u32 / (Limb::BITS as u32);
-        let le = Limb::ct_le(Limb::from_u32(index), Limb::from_u32(highest));
-        let word = Limb::ct_select(Limb::from_u32(highest), Limb::from_u32(index), le).0 as usize;
+        let index = k / Limb::BITS;
+        let le = CtChoice::from_u32_le(index, highest);
+        let limb_num = le.select_u32(highest, index) as usize;
 
         let base = k % Limb::BITS;
         let mask = (1 << base) - 1;
         let mut out = *self;
 
-        let outmask = Limb(out.limbs[word].0 & mask);
+        let outmask = Limb(out.limbs[limb_num].0 & mask);
 
-        out.limbs[word] = Limb::ct_select(out.limbs[word], outmask, le);
+        out.limbs[limb_num] = Limb::ct_select(out.limbs[limb_num], outmask, le);
 
-        let mut i = word + 1;
+        // TODO: this is not constant-time.
+        let mut i = limb_num + 1;
         while i < LIMBS {
             out.limbs[i] = Limb::ZERO;
             i += 1;
@@ -598,8 +599,7 @@ impl<const LIMBS: usize> RemAssign<&NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMB
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::{limb::HI_BIT, Limb, U256};
+    use crate::{limb::HI_BIT, Limb, NonZero, Uint, Word, U256};
 
     #[cfg(feature = "rand")]
     use {
@@ -737,7 +737,7 @@ mod tests {
         let mut rng = ChaChaRng::from_seed([7u8; 32]);
         for _ in 0..25 {
             let num = U256::random(&mut rng);
-            let k = (rng.next_u32() % 256) as usize;
+            let k = rng.next_u32() % 256;
             let den = U256::ONE.shl_vartime(k);
 
             let a = num.rem2k(k);

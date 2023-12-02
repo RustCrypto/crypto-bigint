@@ -33,7 +33,7 @@ pub const fn reciprocal(d: Word) -> Word {
     // Hence the `ct_select()`.
     let x = v2.wrapping_add(1);
     let (hi, _lo) = mulhilo(x, d);
-    let hi = Limb::ct_select(Limb(d), Limb(hi), Limb(x).ct_is_nonzero()).0;
+    let hi = CtChoice::from_u32_nonzero(x).select_word(d, hi);
 
     v2.wrapping_sub(hi).wrapping_sub(d)
 }
@@ -63,7 +63,7 @@ pub const fn reciprocal(d: Word) -> Word {
     // Hence the `ct_select()`.
     let x = v3.wrapping_add(1);
     let (hi, _lo) = mulhilo(x, d);
-    let hi = Limb::ct_select(Limb(d), Limb(hi), Limb(x).ct_is_nonzero()).0;
+    let hi = CtChoice::from_word_nonzero(x).select_word(d, hi);
 
     v3.wrapping_sub(hi).wrapping_sub(d)
 }
@@ -142,17 +142,17 @@ const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Word, Word) {
     let q1 = q1.wrapping_add(1);
     let r = u0.wrapping_sub(q1.wrapping_mul(d));
 
-    let r_gt_q0 = Limb::ct_lt(Limb(q0), Limb(r));
-    let q1 = Limb::ct_select(Limb(q1), Limb(q1.wrapping_sub(1)), r_gt_q0).0;
-    let r = Limb::ct_select(Limb(r), Limb(r.wrapping_add(d)), r_gt_q0).0;
+    let r_gt_q0 = CtChoice::from_word_lt(q0, r);
+    let q1 = r_gt_q0.select_word(q1, q1.wrapping_sub(1));
+    let r = r_gt_q0.select_word(r, r.wrapping_add(d));
 
     // If this was a normal `if`, we wouldn't need wrapping ops, because there would be no overflow.
     // But since we calculate both results either way, we have to wrap.
     // Added an assert to still check the lack of overflow in debug mode.
     debug_assert!(r < d || q1 < Word::MAX);
-    let r_ge_d = Limb::ct_le(Limb(d), Limb(r));
-    let q1 = Limb::ct_select(Limb(q1), Limb(q1.wrapping_add(1)), r_ge_d).0;
-    let r = Limb::ct_select(Limb(r), Limb(r.wrapping_sub(d)), r_ge_d).0;
+    let r_ge_d = CtChoice::from_word_le(d, r);
+    let q1 = r_ge_d.select_word(q1, q1.wrapping_add(1));
+    let r = r_ge_d.select_word(r, r.wrapping_sub(d));
 
     (q1, r)
 }
@@ -179,17 +179,17 @@ impl Reciprocal {
         let shift = divisor.0.leading_zeros();
 
         #[allow(trivial_numeric_casts)]
-        let is_some = Limb((Word::BITS - shift) as Word).ct_is_nonzero();
+        let is_some = CtChoice::from_u32_nonzero(Word::BITS - shift);
 
         // If `divisor = 0`, shifting `divisor` by `leading_zeros == Word::BITS` will cause a panic.
         // Have to substitute a "bogus" shift in that case.
         #[allow(trivial_numeric_casts)]
-        let shift = is_some.select(0, shift as Word) as u32;
+        let shift = is_some.if_true_u32(shift);
 
         // Need to provide bogus normalized divisor and reciprocal too,
         // so that we don't get a panic in low-level functions.
-        let divisor_normalized = divisor.shl(shift);
-        let divisor_normalized = Limb::ct_select(Limb::MAX, divisor_normalized, is_some).0;
+        let divisor_normalized = divisor.0 << shift;
+        let divisor_normalized = is_some.select_word(Word::MAX, divisor_normalized);
 
         (
             Self {
@@ -252,7 +252,7 @@ pub(crate) const fn div_rem_limb_with_reciprocal<const L: usize>(
     u: &Uint<L>,
     reciprocal: &Reciprocal,
 ) -> (Uint<L>, Limb) {
-    let (u_shifted, u_hi) = u.shl_limb(reciprocal.shift as usize);
+    let (u_shifted, u_hi) = u.shl_limb(reciprocal.shift);
     let mut r = u_hi.0;
     let mut q = [Limb::ZERO; L];
 

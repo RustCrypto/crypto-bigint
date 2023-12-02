@@ -1,6 +1,6 @@
 //! [`BoxedUint`] bitwise left shift operations.
 
-use crate::{BoxedUint, Limb, Word};
+use crate::{BoxedUint, CtChoice, Limb, Word};
 use core::ops::{Shl, ShlAssign};
 use subtle::{Choice, ConstantTimeLess};
 
@@ -8,30 +8,26 @@ impl BoxedUint {
     /// Computes `self << shift` where `0 <= shift < Limb::BITS`,
     /// returning the result and the carry.
     #[inline(always)]
-    pub(crate) fn shl_limb(&self, n: usize) -> (Self, Limb) {
+    pub(crate) fn shl_limb(&self, shift: u32) -> (Self, Limb) {
         let nlimbs = self.nlimbs();
         let mut limbs = vec![Limb::ZERO; nlimbs].into_boxed_slice();
 
-        let nz = Limb(n as Word).ct_is_nonzero();
-        let lshift = n as Word;
-        let rshift = Limb::ct_select(Limb::ZERO, Limb((Limb::BITS - n) as Word), nz).0;
-        let carry = Limb::ct_select(
-            Limb::ZERO,
-            Limb(self.limbs[nlimbs - 1].0.wrapping_shr(Word::BITS - n as u32)),
-            nz,
-        );
+        let nz = CtChoice::from_u32_nonzero(shift);
+        let lshift = shift;
+        let rshift = nz.if_true_u32(Limb::BITS - shift);
+        let carry = nz.if_true_word(self.limbs[nlimbs - 1].0.wrapping_shr(Word::BITS - shift));
 
         let mut i = nlimbs - 1;
         while i > 0 {
             let mut limb = self.limbs[i].0 << lshift;
             let hi = self.limbs[i - 1].0 >> rshift;
-            limb |= nz.if_true(hi);
+            limb |= nz.if_true_word(hi);
             limbs[i] = Limb(limb);
             i -= 1
         }
         limbs[0] = Limb(self.limbs[0].0 << lshift);
 
-        (Self { limbs }, carry)
+        (Self { limbs }, Limb(carry))
     }
 
     /// Computes `self << shift`.
@@ -40,15 +36,15 @@ impl BoxedUint {
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
-    pub fn shl_vartime(&self, shift: usize) -> Self {
+    pub fn shl_vartime(&self, shift: u32) -> Self {
         let nlimbs = self.nlimbs();
         let mut limbs = vec![Limb::ZERO; nlimbs].into_boxed_slice();
 
-        if shift >= Limb::BITS * nlimbs {
+        if shift >= self.bits_precision() {
             return Self { limbs };
         }
 
-        let shift_num = shift / Limb::BITS;
+        let shift_num = (shift / Limb::BITS) as usize;
         let rem = shift % Limb::BITS;
 
         let mut i = nlimbs;
@@ -61,16 +57,16 @@ impl BoxedUint {
         new_lower
     }
 
-    /// Computes `self << n`.
-    /// Returns zero if `n >= Self::BITS`.
-    pub fn shl(&self, shift: usize) -> Self {
-        let overflow = !(shift as Word).ct_lt(&(self.bits_precision() as Word));
+    /// Computes `self << shift`.
+    /// Returns zero if `shift >= Self::BITS`.
+    pub fn shl(&self, shift: u32) -> Self {
+        let overflow = !shift.ct_lt(&self.bits_precision());
         let shift = shift % self.bits_precision();
-        let log2_bits = (usize::BITS - self.bits_precision().leading_zeros()) as usize;
+        let log2_bits = u32::BITS - self.bits_precision().leading_zeros();
         let mut result = self.clone();
 
         for i in 0..log2_bits {
-            let bit = Choice::from(((shift as Word >> i) & 1) as u8);
+            let bit = Choice::from(((shift >> i) & 1) as u8);
             result = Self::conditional_select(&result, &result.shl_vartime(1 << i), bit);
         }
 
@@ -82,38 +78,38 @@ impl BoxedUint {
     }
 }
 
-impl Shl<usize> for BoxedUint {
+impl Shl<u32> for BoxedUint {
     type Output = BoxedUint;
 
-    /// NOTE: this operation is variable time with respect to `rhs` *ONLY*.
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
-    /// When used with a fixed `rhs`, this function is constant-time with respect
+    /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
-    fn shl(self, rhs: usize) -> BoxedUint {
-        Self::shl(&self, rhs)
+    fn shl(self, shift: u32) -> BoxedUint {
+        Self::shl(&self, shift)
     }
 }
 
-impl Shl<usize> for &BoxedUint {
+impl Shl<u32> for &BoxedUint {
     type Output = BoxedUint;
 
-    /// NOTE: this operation is variable time with respect to `rhs` *ONLY*.
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
-    /// When used with a fixed `rhs`, this function is constant-time with respect
+    /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
-    fn shl(self, rhs: usize) -> BoxedUint {
-        self.shl(rhs)
+    fn shl(self, shift: u32) -> BoxedUint {
+        self.shl(shift)
     }
 }
 
-impl ShlAssign<usize> for BoxedUint {
-    /// NOTE: this operation is variable time with respect to `rhs` *ONLY*.
+impl ShlAssign<u32> for BoxedUint {
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
-    /// When used with a fixed `rhs`, this function is constant-time with respect
+    /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
-    fn shl_assign(&mut self, rhs: usize) {
+    fn shl_assign(&mut self, shift: u32) {
         // TODO(tarcieri): in-place implementation that avoids clone
-        *self = self.clone().shl(rhs)
+        *self = self.clone().shl(shift)
     }
 }
 

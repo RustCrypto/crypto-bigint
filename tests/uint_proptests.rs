@@ -51,7 +51,7 @@ proptest! {
 
     #[test]
     fn bits(a in uint()) {
-        let expected = to_biguint(&a).bits();
+        let expected = to_biguint(&a).bits() as u32;
         assert_eq!(expected, a.bits());
         assert_eq!(expected, a.bits_vartime());
     }
@@ -61,7 +61,7 @@ proptest! {
         let a_bi = to_biguint(&a);
 
         let expected = to_uint(a_bi << shift.into());
-        let actual = a.shl_vartime(shift as usize);
+        let actual = a.shl_vartime(shift.into());
 
         assert_eq!(expected, actual);
     }
@@ -71,9 +71,9 @@ proptest! {
         let a_bi = to_biguint(&a);
 
         // Add a 50% probability of overflow.
-        let shift = (shift as usize) % (U256::BITS * 2);
+        let shift = u32::from(shift) % (U256::BITS * 2);
 
-        let expected = to_uint((a_bi << shift) & ((BigUint::one() << U256::BITS) - BigUint::one()));
+        let expected = to_uint((a_bi << shift as usize) & ((BigUint::one() << U256::BITS as usize) - BigUint::one()));
         let actual = a.shl(shift);
 
         assert_eq!(expected, actual);
@@ -84,9 +84,9 @@ proptest! {
         let a_bi = to_biguint(&a);
 
         // Add a 50% probability of overflow.
-        let shift = (shift as usize) % (U256::BITS * 2);
+        let shift = u32::from(shift) % (U256::BITS * 2);
 
-        let expected = to_uint(a_bi >> shift);
+        let expected = to_uint(a_bi >> shift as usize);
         let actual = a.shr(shift);
 
         assert_eq!(expected, actual);
@@ -238,11 +238,11 @@ proptest! {
     }
 
     #[test]
-    fn inv_mod2k(a in uint(), k in any::<usize>()) {
+    fn inv_mod2k(a in uint(), k in any::<u32>()) {
         let a = a | U256::ONE; // make odd
         let k = k % (U256::BITS + 1);
         let a_bi = to_biguint(&a);
-        let m_bi = BigUint::one() << k;
+        let m_bi = BigUint::one() << k as usize;
 
         let actual = a.inv_mod2k(k);
         let actual_vartime = a.inv_mod2k_vartime(k);

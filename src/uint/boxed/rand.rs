@@ -6,7 +6,7 @@ use rand_core::CryptoRngCore;
 
 impl BoxedUint {
     /// Generate a cryptographically secure random [`BoxedUint`].
-    pub fn random(mut rng: &mut impl CryptoRngCore, bits_precision: usize) -> Self {
+    pub fn random(mut rng: &mut impl CryptoRngCore, bits_precision: u32) -> Self {
         let mut ret = BoxedUint::zero_with_precision(bits_precision);
 
         for limb in &mut *ret.limbs {
