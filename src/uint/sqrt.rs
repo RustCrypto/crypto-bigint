@@ -22,7 +22,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // See Hast, "Note on computation of integer square roots" for a proof of this bound.
         // https://github.com/RustCrypto/crypto-bigint/files/12600669/ct_sqrt.pdf
         let mut i = 0;
-        while i < usize::BITS - Self::BITS.leading_zeros() {
+        while i < Self::LOG2_BITS {
             guess = xn;
             xn = {
                 let (q, _, is_some) = self.const_div_rem(&guess);
@@ -53,7 +53,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Note, xn <= guess at this point.
 
         // Repeat while guess decreases.
-        while Uint::ct_gt(&guess, &xn).is_true_vartime() && xn.ct_is_nonzero().is_true_vartime() {
+        while guess.cmp_vartime(&xn).is_gt() && !xn.cmp_vartime(&Self::ZERO).is_eq() {
             guess = xn;
             xn = {
                 let q = self.wrapping_div_vartime(&guess);
@@ -62,7 +62,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             };
         }
 
-        Self::ct_select(&Self::ZERO, &guess, self.ct_is_nonzero())
+        if self.ct_is_nonzero().is_true_vartime() {
+            guess
+        } else {
+            Self::ZERO
+        }
     }
 
     /// Wrapped sqrt is just normal √(`self`)
