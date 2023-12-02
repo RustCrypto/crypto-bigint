@@ -8,10 +8,10 @@ use core::fmt;
 /// Decoding errors for [`BoxedUint`].
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DecodeError {
-    /// Input is not a valid size.
+    /// Input size is too small to fit in the given precision.
     InputSize,
 
-    /// Precision is not a multiple of [`Limb::BYTES`].
+    /// The deserialized number is larger than the given precision.
     Precision,
 }
 
@@ -31,28 +31,31 @@ impl BoxedUint {
     /// Create a new [`BoxedUint`] from the provided big endian bytes.
     ///
     /// The `bits_precision` argument represents the precision of the resulting integer, which is
-    /// fixed as this type is not arbitrary-precision. It MUST be a multiple of the limb size, i.e.
-    /// [`Limb::BITS`], or otherwise this function will return [`DecodeError::Precision`].
+    /// fixed as this type is not arbitrary-precision.
+    /// The new [`BoxedUint`] will be created with `bits_precision`
+    /// rounded up to a multiple of [`Limb::BITS`].
     ///
-    /// If the length of `bytes` (when interpreted as bits) is larger than `bits_precision`, this
-    /// function will return [`DecodeError::InputSize`].
+    /// If the length of `bytes` is larger than `bits_precision` (rounded up to a multiple of 8)
+    /// this function will return [`DecodeError::InputSize`].
+    /// If the size of the decoded integer is larger than `bits_precision`,
+    /// this function will return [`DecodeError::Precision`].
     pub fn from_be_slice(bytes: &[u8], bits_precision: u32) -> Result<Self, DecodeError> {
         if bytes.is_empty() && bits_precision == 0 {
             return Ok(Self::zero());
         }
 
-        if bits_precision % Limb::BITS != 0 {
-            return Err(DecodeError::Precision);
-        }
-
-        if bytes.len() % Limb::BYTES != 0 || bytes.len() * 8 > bits_precision as usize {
+        if bytes.len() > (bits_precision as usize + 7) / 8 {
             return Err(DecodeError::InputSize);
         }
 
         let mut ret = Self::zero_with_precision(bits_precision);
 
-        for (chunk, limb) in bytes.chunks(Limb::BYTES).rev().zip(ret.limbs.iter_mut()) {
+        for (chunk, limb) in bytes.rchunks(Limb::BYTES).zip(ret.limbs.iter_mut()) {
             *limb = Limb::from_be_slice(chunk);
+        }
+
+        if bits_precision < ret.bits() {
+            return Err(DecodeError::Precision);
         }
 
         Ok(ret)
@@ -61,21 +64,20 @@ impl BoxedUint {
     /// Create a new [`BoxedUint`] from the provided little endian bytes.
     ///
     /// The `bits_precision` argument represents the precision of the resulting integer, which is
-    /// fixed as this type is not arbitrary-precision. It MUST be a multiple of the limb size, i.e.
-    /// [`Limb::BITS`], or otherwise this function will return [`DecodeError::Precision`].
+    /// fixed as this type is not arbitrary-precision.
+    /// The new [`BoxedUint`] will be created with `bits_precision`
+    /// rounded up to a multiple of [`Limb::BITS`].
     ///
-    /// If the length of `bytes` (when interpreted as bits) is larger than `bits_precision`, this
-    /// function will return [`DecodeError::InputSize`].
+    /// If the length of `bytes` is larger than `bits_precision` (rounded up to a multiple of 8)
+    /// this function will return [`DecodeError::InputSize`].
+    /// If the size of the decoded integer is larger than `bits_precision`,
+    /// this function will return [`DecodeError::Precision`].
     pub fn from_le_slice(bytes: &[u8], bits_precision: u32) -> Result<Self, DecodeError> {
         if bytes.is_empty() && bits_precision == 0 {
             return Ok(Self::zero());
         }
 
-        if bits_precision % Limb::BITS != 0 {
-            return Err(DecodeError::Precision);
-        }
-
-        if bytes.len() % Limb::BYTES != 0 || bytes.len() * 8 > bits_precision as usize {
+        if bytes.len() > (bits_precision as usize + 7) / 8 {
             return Err(DecodeError::InputSize);
         }
 
@@ -83,6 +85,10 @@ impl BoxedUint {
 
         for (chunk, limb) in bytes.chunks(Limb::BYTES).zip(ret.limbs.iter_mut()) {
             *limb = Limb::from_le_slice(chunk);
+        }
+
+        if bits_precision < ret.bits() {
+            return Err(DecodeError::Precision);
         }
 
         Ok(ret)
@@ -186,19 +192,39 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_pointer_width = "32")]
     fn from_be_slice_not_word_sized() {
-        let bytes = hex!("00112233445566778899aabbccddee");
+        let bytes = hex!("112233445566778899aabbccddeeff");
+        let n = BoxedUint::from_be_slice(&bytes, 127).unwrap();
         assert_eq!(
-            BoxedUint::from_be_slice(&bytes, 128),
-            Err(DecodeError::InputSize)
+            n.as_limbs(),
+            &[
+                Limb(0xccddeeff),
+                Limb(0x8899aabb),
+                Limb(0x44556677),
+                Limb(0x00112233)
+            ]
         );
+        assert_eq!(n.bits_precision(), 128);
     }
 
     #[test]
-    fn from_be_slice_bad_precision() {
-        let bytes = hex!("00112233445566778899aabbccddeeff");
+    #[cfg(target_pointer_width = "64")]
+    fn from_be_slice_not_word_sized() {
+        let bytes = hex!("112233445566778899aabbccddeeff");
+        let n = BoxedUint::from_be_slice(&bytes, 127).unwrap();
         assert_eq!(
-            BoxedUint::from_be_slice(&bytes, 127),
+            n.as_limbs(),
+            &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
+        );
+        assert_eq!(n.bits_precision(), 128);
+    }
+
+    #[test]
+    fn from_be_slice_non_multiple_precision() {
+        let bytes = hex!("0f112233445566778899aabbccddeeff");
+        assert_eq!(
+            BoxedUint::from_be_slice(&bytes, 121),
             Err(DecodeError::Precision)
         );
     }
@@ -259,19 +285,39 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_pointer_width = "32")]
     fn from_le_slice_not_word_sized() {
         let bytes = hex!("ffeeddccbbaa998877665544332211");
+        let n = BoxedUint::from_le_slice(&bytes, 127).unwrap();
         assert_eq!(
-            BoxedUint::from_be_slice(&bytes, 128),
-            Err(DecodeError::InputSize)
+            n.as_limbs(),
+            &[
+                Limb(0xccddeeff),
+                Limb(0x8899aabb),
+                Limb(0x44556677),
+                Limb(0x00112233)
+            ]
         );
+        assert_eq!(n.bits_precision(), 128);
     }
 
     #[test]
-    fn from_le_slice_bad_precision() {
-        let bytes = hex!("ffeeddccbbaa99887766554433221100");
+    #[cfg(target_pointer_width = "64")]
+    fn from_le_slice_not_word_sized() {
+        let bytes = hex!("ffeeddccbbaa998877665544332211");
+        let n = BoxedUint::from_le_slice(&bytes, 127).unwrap();
         assert_eq!(
-            BoxedUint::from_le_slice(&bytes, 127),
+            n.as_limbs(),
+            &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
+        );
+        assert_eq!(n.bits_precision(), 128);
+    }
+
+    #[test]
+    fn from_le_slice_non_multiple_precision() {
+        let bytes = hex!("ffeeddccbbaa998877665544332211f0");
+        assert_eq!(
+            BoxedUint::from_le_slice(&bytes, 121),
             Err(DecodeError::Precision)
         );
     }
