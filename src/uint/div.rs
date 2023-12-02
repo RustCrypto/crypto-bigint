@@ -48,6 +48,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// the value for is_some needs to be checked before using `q` and `r`.
     ///
     /// This function is constant-time with respect to both `self` and `rhs`.
+    #[allow(trivial_numeric_casts)]
     pub(crate) const fn const_div_rem(&self, rhs: &Self) -> (Self, Self, CtChoice) {
         let mb = rhs.bits();
         let mut rem = *self;
