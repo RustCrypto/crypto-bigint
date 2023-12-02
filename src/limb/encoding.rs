@@ -38,9 +38,10 @@ impl Limb {
     pub(crate) fn from_be_slice(bytes: &[u8]) -> Self {
         let mut repr = Self::ZERO.to_be_bytes();
         let repr_len = repr.len();
-        if bytes.len() > repr_len {
-            panic!("The given slice is larger than the limb size");
-        }
+        assert!(
+            bytes.len() <= repr_len,
+            "The given slice is larger than the limb size"
+        );
         repr[(repr_len - bytes.len())..].copy_from_slice(bytes);
         Self::from_be_bytes(repr)
     }
@@ -51,9 +52,10 @@ impl Limb {
     pub(crate) fn from_le_slice(bytes: &[u8]) -> Self {
         let mut repr = Self::ZERO.to_le_bytes();
         let repr_len = repr.len();
-        if bytes.len() > repr_len {
-            panic!("The given slice is larger than the limb size");
-        }
+        assert!(
+            bytes.len() <= repr_len,
+            "The given slice is larger than the limb size"
+        );
         repr[..bytes.len()].copy_from_slice(bytes);
         Self::from_le_bytes(repr)
     }

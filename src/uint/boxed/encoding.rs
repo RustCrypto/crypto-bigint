@@ -18,8 +18,11 @@ pub enum DecodeError {
 impl fmt::Display for DecodeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InputSize => write!(f, "input is not a valid size"),
-            Self::Precision => write!(f, "precision is not a multiple of the word size"),
+            Self::InputSize => write!(f, "input size is too small to fit in the given precision"),
+            Self::Precision => write!(
+                f,
+                "the deserialized number is larger than the given precision"
+            ),
         }
     }
 }
