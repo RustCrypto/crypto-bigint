@@ -102,7 +102,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, U256};
+    use crate::{Limb, U192, U256};
 
     #[cfg(feature = "rand")]
     use {
@@ -120,6 +120,17 @@ mod tests {
             half.limbs[i] = Limb::MAX;
         }
         assert_eq!(U256::MAX.sqrt(), half);
+
+        assert_eq!(
+            U192::from_be_hex("055fa39422bd9f281762946e056535badbf8a6864d45fa3d").sqrt(),
+            U192::from_be_hex("0000000000000000000000002516f0832a538b2d98869e21")
+        );
+
+        assert_eq!(
+            U256::from_be_hex("4bb750738e25a8f82940737d94a48a91f8cd918a3679ff90c1a631f2bd6c3597")
+                .sqrt(),
+            U256::from_be_hex("000000000000000000000000000000008b3956339e8315cff66eb6107b610075")
+        );
     }
 
     #[test]
