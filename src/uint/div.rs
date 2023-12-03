@@ -161,7 +161,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Limited to 2^16-1 since Uint doesn't support higher.
     /// TODO: this is not constant-time.
     ///
-    /// # Examples
+    /// ### Usage:
     /// ```
     /// use crypto_bigint::{U448, Limb};
     ///
@@ -217,7 +217,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform checked division, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
     ///
-    /// # Usage:
+    /// ### Usage:
     /// ```
     /// use crypto_bigint::{U448, NonZero, subtle::{CtOption, Choice}};
     ///
@@ -244,7 +244,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Panics if `rhs == 0`.
     ///
-    /// # Usage:
+    /// ### Usage:
     /// ```
     /// use crypto_bigint::U448;
     ///
@@ -262,7 +262,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform checked reduction, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
     ///
-    /// # Examples
+    /// ### Usage:
     /// ```
     /// use crypto_bigint::{U448, NonZero, subtle::{Choice,CtOption}};
     ///
