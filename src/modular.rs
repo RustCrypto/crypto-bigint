@@ -21,6 +21,7 @@ mod reduction;
 mod residue;
 
 mod add;
+mod bernstein_yang;
 mod div_by_2;
 mod inv;
 mod mul;
@@ -31,6 +32,7 @@ mod sub;
 pub(crate) mod boxed_residue;
 
 pub use self::{
+    bernstein_yang::BernsteinYangInverter,
     dyn_residue::{DynResidue, DynResidueParams},
     reduction::montgomery_reduction,
     residue::{Residue, ResidueParams},
