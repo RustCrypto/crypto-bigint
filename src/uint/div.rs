@@ -1,7 +1,7 @@
 //! [`Uint`] division operations.
 
 use super::div_limb::{div_rem_limb_with_reciprocal, Reciprocal};
-use crate::{CheckedDiv, CtChoice, Limb, NonZero, Uint, Wrapping};
+use crate::{CheckedDiv, CtChoice, Limb, NonZero, Uint, Word, Wrapping};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::CtOption;
 
@@ -47,11 +47,48 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// NOTE: Use only if you need to access const fn. Otherwise use [`Self::div_rem`] because
     /// the value for is_some needs to be checked before using `q` and `r`.
     ///
+    /// This function is constant-time with respect to both `self` and `rhs`.
+    #[allow(trivial_numeric_casts)]
+    pub(crate) const fn const_div_rem(&self, rhs: &Self) -> (Self, Self, CtChoice) {
+        let mb = rhs.bits();
+        let mut rem = *self;
+        let mut quo = Self::ZERO;
+        let mut c = rhs.shl(Self::BITS - mb);
+
+        let mut i = Self::BITS;
+        let mut done = CtChoice::FALSE;
+        loop {
+            let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
+            rem = Self::ct_select(&r, &rem, CtChoice::from_word_mask(borrow.0).or(done));
+            r = quo.bitor(&Self::ONE);
+            quo = Self::ct_select(&r, &quo, CtChoice::from_word_mask(borrow.0).or(done));
+            if i == 0 {
+                break;
+            }
+            i -= 1;
+            // when `i < mb`, the computation is actually done, so we ensure `quo` and `rem`
+            // aren't modified further (but do the remaining iterations anyway to be constant-time)
+            done = CtChoice::from_word_lt(i as Word, mb as Word);
+            c = c.shr_vartime(1);
+            quo = Self::ct_select(&quo.shl_vartime(1), &quo, done);
+        }
+
+        let is_some = Limb(mb as Word).ct_is_nonzero();
+        quo = Self::ct_select(&Self::ZERO, &quo, is_some);
+        (quo, rem, is_some)
+    }
+
+    /// Computes `self` / `rhs`, returns the quotient (q), remainder (r)
+    /// and the truthy value for is_some or the falsy value for is_none.
+    ///
+    /// NOTE: Use only if you need to access const fn. Otherwise use [`Self::div_rem`] because
+    /// the value for is_some needs to be checked before using `q` and `r`.
+    ///
     /// This is variable only with respect to `rhs`.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub(crate) const fn ct_div_rem(&self, rhs: &Self) -> (Self, Self, CtChoice) {
+    pub(crate) const fn const_div_rem_vartime(&self, rhs: &Self) -> (Self, Self, CtChoice) {
         let mb = rhs.bits_vartime();
         let mut bd = Self::BITS - mb;
         let mut rem = *self;
@@ -169,7 +206,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes self / rhs, returns the quotient, remainder.
     pub fn div_rem(&self, rhs: &NonZero<Self>) -> (Self, Self) {
         // Since `rhs` is nonzero, this should always hold.
-        let (q, r, _c) = self.ct_div_rem(rhs);
+        let (q, r, _c) = self.const_div_rem(rhs);
+        (q, r)
+    }
+
+    /// Computes self / rhs, returns the quotient, remainder. Constant-time only for fixed `rhs`.
+    pub fn div_rem_vartime(&self, rhs: &NonZero<Self>) -> (Self, Self) {
+        // Since `rhs` is nonzero, this should always hold.
+        let (q, r, _c) = self.const_div_rem_vartime(rhs);
         (q, r)
     }
 
@@ -186,7 +230,18 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Panics if `rhs == 0`.
     pub const fn wrapping_div(&self, rhs: &Self) -> Self {
-        let (q, _, c) = self.ct_div_rem(rhs);
+        let (q, _, c) = self.const_div_rem(rhs);
+        assert!(c.is_true_vartime(), "divide by zero");
+        q
+    }
+
+    /// Wrapped division is just normal division i.e. `self` / `rhs`
+    /// There’s no way wrapping could ever happen.
+    /// This function exists, so that all operations are accounted for in the wrapping operations.
+    ///
+    /// Panics if `rhs == 0`. Constant-time only for fixed `rhs`.
+    pub const fn wrapping_div_vartime(&self, rhs: &Self) -> Self {
+        let (q, _, c) = self.const_div_rem_vartime(rhs);
         assert!(c.is_true_vartime(), "divide by zero");
         q
     }
@@ -625,7 +680,11 @@ mod tests {
         ] {
             let lhs = U256::from(*n);
             let rhs = U256::from(*d);
-            let (q, r, is_some) = lhs.ct_div_rem(&rhs);
+            let (q, r, is_some) = lhs.const_div_rem(&rhs);
+            assert!(is_some.is_true_vartime());
+            assert_eq!(U256::from(*e), q);
+            assert_eq!(U256::from(*ee), r);
+            let (q, r, is_some) = lhs.const_div_rem_vartime(&rhs);
             assert!(is_some.is_true_vartime());
             assert_eq!(U256::from(*e), q);
             assert_eq!(U256::from(*ee), r);
@@ -641,7 +700,10 @@ mod tests {
             let den = U256::random(&mut rng).shr_vartime(128);
             let n = num.checked_mul(&den);
             if n.is_some().into() {
-                let (q, _, is_some) = n.unwrap().ct_div_rem(&den);
+                let (q, _, is_some) = n.unwrap().const_div_rem(&den);
+                assert!(is_some.is_true_vartime());
+                assert_eq!(q, num);
+                let (q, _, is_some) = n.unwrap().const_div_rem_vartime(&den);
                 assert!(is_some.is_true_vartime());
                 assert_eq!(q, num);
             }
@@ -663,7 +725,11 @@ mod tests {
 
     #[test]
     fn div_zero() {
-        let (q, r, is_some) = U256::ONE.ct_div_rem(&U256::ZERO);
+        let (q, r, is_some) = U256::ONE.const_div_rem(&U256::ZERO);
+        assert!(!is_some.is_true_vartime());
+        assert_eq!(q, U256::ZERO);
+        assert_eq!(r, U256::ONE);
+        let (q, r, is_some) = U256::ONE.const_div_rem_vartime(&U256::ZERO);
         assert!(!is_some.is_true_vartime());
         assert_eq!(q, U256::ZERO);
         assert_eq!(r, U256::ONE);
@@ -671,7 +737,11 @@ mod tests {
 
     #[test]
     fn div_one() {
-        let (q, r, is_some) = U256::from(10u8).ct_div_rem(&U256::ONE);
+        let (q, r, is_some) = U256::from(10u8).const_div_rem(&U256::ONE);
+        assert!(is_some.is_true_vartime());
+        assert_eq!(q, U256::from(10u8));
+        assert_eq!(r, U256::ZERO);
+        let (q, r, is_some) = U256::from(10u8).const_div_rem_vartime(&U256::ONE);
         assert!(is_some.is_true_vartime());
         assert_eq!(q, U256::from(10u8));
         assert_eq!(r, U256::ZERO);
