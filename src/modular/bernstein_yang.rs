@@ -6,6 +6,8 @@
 //!
 //! Copyright (c) 2023 Privacy Scaling Explorations Team
 
+// TODO(tarcieri): optimized implementation for 32-bit platforms (#380)
+
 #![allow(clippy::needless_range_loop)]
 
 use crate::Word;
