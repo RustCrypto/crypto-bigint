@@ -22,7 +22,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // See Hast, "Note on computation of integer square roots" for a proof of this bound.
         // https://github.com/RustCrypto/crypto-bigint/files/12600669/ct_sqrt.pdf
         let mut i = 0;
-        while i < Self::LOG2_BITS {
+        while i < Self::LOG2_BITS + 1 {
             guess = xn;
             xn = {
                 let (q, _, is_some) = self.const_div_rem(&guess);

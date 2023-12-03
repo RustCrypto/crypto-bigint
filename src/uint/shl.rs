@@ -82,7 +82,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let shift = shift % Self::BITS;
         let mut result = *self;
         let mut i = 0;
-        while i < Self::LOG2_BITS {
+        while i < Self::LOG2_BITS + 1 {
             let bit = CtChoice::from_u32_lsb((shift >> i) & 1);
             result = Uint::ct_select(&result, &result.shl_vartime(1 << i), bit);
             i += 1;
