@@ -88,9 +88,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Total size of the represented integer in bits.
     pub const BITS: u32 = LIMBS as u32 * Limb::BITS;
 
-    /// Bit size of `BITS`.
+    /// `floor(log2(Self::BITS))`.
     // Note: assumes the type of `BITS` is `u32`. Any way to assert that?
-    pub(crate) const LOG2_BITS: u32 = u32::BITS - Self::BITS.leading_zeros();
+    pub(crate) const LOG2_BITS: u32 = u32::BITS - Self::BITS.leading_zeros() - 1;
 
     /// Total size of the represented integer in bytes.
     pub const BYTES: usize = LIMBS * Limb::BYTES;
