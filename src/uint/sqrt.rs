@@ -20,6 +20,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Repeat enough times to guarantee result has stabilized.
         let mut i = 0;
         let mut x_prev = x; // keep the previous iteration in case we need to roll back.
+
+        // TODO (#378): the tests indicate that just `Self::LOG2_BITS` may be enough.
         while i < Self::LOG2_BITS + 2 {
             x_prev = x;
 
