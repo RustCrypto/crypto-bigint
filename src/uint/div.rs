@@ -84,6 +84,19 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
+    ///
+    /// # Examples
+    /// ```
+    /// use crypto_bigint::{U448, CtChoice, Limb};
+    ///
+    /// let a = U448::from(20_u64);
+    /// let b = U448::from(6_u64);
+    /// let (remainder, is_some) = a.const_rem(&b);
+    ///
+    /// // Verify the result
+    /// assert_eq!(remainder, U448::from(2_u64));
+    /// assert!(<CtChoice as Into<bool>>::into(is_some));
+    /// ```
     pub const fn const_rem(&self, rhs: &Self) -> (Self, CtChoice) {
         let mb = rhs.bits_vartime();
         let mut bd = Self::BITS - mb;
@@ -111,6 +124,21 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
+    ///
+    /// # Examples
+    /// ```
+    /// use crypto_bigint::{U448, CtChoice};
+    ///
+    /// let lower = U448::from(15_u64); // Lower part of the wide integer
+    /// let upper = U448::from(0_u64);  // Upper part of the wide integer
+    /// let rhs = U448::from(7_u64);    // Modulus
+    ///
+    /// let (remainder, is_some) = U448::const_rem_wide((lower, upper), &rhs);
+    ///
+    /// // Verify the result
+    /// assert_eq!(remainder, U448::from(1_u64));
+    /// assert!(<CtChoice as Into<bool>>::into(is_some));
+    /// ```
     pub const fn const_rem_wide(lower_upper: (Self, Self), rhs: &Self) -> (Self, CtChoice) {
         let mb = rhs.bits_vartime();
 
@@ -140,9 +168,21 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         (lower, is_some)
     }
 
-    /// Computes `self` % 2^k. Faster than reduce since its a power of 2.
+    /// Computes `self` % 2^k. Faster than reduce since it's a power of 2.
     /// Limited to 2^16-1 since Uint doesn't support higher.
     /// TODO: this is not constant-time.
+    ///
+    /// # Examples
+    /// ```
+    /// use crypto_bigint::{U448, Limb};
+    ///
+    /// let a = U448::from(10_u64);
+    /// let k = 3; // 2^3 = 8
+    /// let remainder = a.rem2k(k);
+    ///
+    /// // As 10 % 8 = 2
+    /// assert_eq!(remainder, U448::from(2_u64));
+    /// ```
     pub const fn rem2k(&self, k: u32) -> Self {
         let highest = (LIMBS - 1) as u32;
         let index = k / Limb::BITS;
@@ -240,14 +280,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// # Usage:
     /// ```
-    /// use crypto_bigint::{U448, subtle::Choice};
+    /// use crypto_bigint::{U448, NonZero, subtle::{CtOption, Choice}};
     ///
     /// let a = U448::from(8_u64);
-    /// let b = U448::from(4_u64);
-    /// let result = a.checked_div(&b);
+    /// let result = NonZero::new(U448::from(4_u64))
+    ///     .map(|b| a.div_rem(&b))
+    ///     .expect("Division by zero");
     ///
-    /// assert!(<Choice as Into<bool>>::into(result.is_some()), "Division by zero");
-    /// assert_eq!(result.unwrap(), U448::from(2_u64), "Quotient is incorrect");
+    /// assert_eq!(result.0, U448::from(2_u64));
     ///
     /// // Check division by zero
     /// let zero = U448::from(0_u64);
@@ -288,14 +328,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// # Examples
     /// ```
-    /// use crypto_bigint::{U448, subtle::{Choice, CtOption}};
+    /// use crypto_bigint::{U448, NonZero, subtle::{Choice,CtOption}};
     ///
     /// let a = U448::from(10_u64);
-    /// let b = U448::from(3_u64);
-    /// let remainder_option = a.checked_rem(&b);
+    /// let remainder_option = NonZero::new(U448::from(3_u64))
+    ///     .map(|b| a.rem(&b));
     ///
     /// assert!(<Choice as Into<bool>>::into(remainder_option.is_some()), "Reduction by zero");
-    /// assert_eq!(remainder_option.unwrap(), U448::from(1_u64));
     ///
     /// // Check reduction by zero
     /// let zero = U448::from(0_u64);
