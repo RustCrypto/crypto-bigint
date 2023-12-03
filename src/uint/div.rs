@@ -168,7 +168,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         (lower, is_some)
     }
 
-    /// Computes `self` % 2^k. Faster than reduce since it's a power of 2.
+    /// Computes `self` % 2^k. Faster than reduce since its a power of 2.
     /// Limited to 2^16-1 since Uint doesn't support higher.
     /// TODO: this is not constant-time.
     ///
@@ -229,9 +229,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes self % rhs, returns the remainder.
     ///
-    /// This function performs modulo operation and returns the remainder
-    /// of the division of `self` by `rhs`. The `rhs` must be non-zero.
-    ///
     /// # Usage:
     /// ```
     /// use crypto_bigint::{U448, NonZero};
@@ -271,12 +268,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         q
     }
 
-    /// Performs checked division, returning a [`CtOption`] which `is_some`
-    /// only if the divisor (rhs) is non-zero.
-    ///
-    /// This function performs division and returns a [`CtOption<Self>`] that wraps the quotient.
-    /// The result will be `None` (as per the `CtOption` type) if the divisor is zero, providing a safe
-    /// way to handle division where the divisor might be zero without panicking.
+    /// Perform checked division, returning a [`CtOption`] which `is_some`
+    /// only if the rhs != 0
     ///
     /// # Usage:
     /// ```
@@ -299,11 +292,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         })
     }
 
-    /// Calculates the wrapped (modular) remainder, equivalent to `self` % `rhs`.
-    ///
-    /// In this context, "wrapped" refers to the behavior when an arithmetic operation overflows.
-    /// However, for remainder calculations, there's no concept of wrapping as there's no overflow scenario.
-    /// This function exists to maintain consistency across all arithmetic operations.
+    /// Wrapped (modular) remainder calculation is just `self` % `rhs`.
+    /// There’s no way wrapping could ever happen.
+    /// This function exists, so that all operations are accounted for in the wrapping operations.
     ///
     /// Panics if `rhs == 0`.
     ///
