@@ -125,14 +125,27 @@ mod tests {
         }
         assert_eq!(U256::MAX.sqrt(), half);
 
+        // Test edge cases that use up the maximum number of iterations.
+
+        // `x = (r + 1)^2 - 583`, where `r` is the expected square root.
         assert_eq!(
             U192::from_be_hex("055fa39422bd9f281762946e056535badbf8a6864d45fa3d").sqrt(),
             U192::from_be_hex("0000000000000000000000002516f0832a538b2d98869e21")
         );
+        assert_eq!(
+            U192::from_be_hex("055fa39422bd9f281762946e056535badbf8a6864d45fa3d").sqrt_vartime(),
+            U192::from_be_hex("0000000000000000000000002516f0832a538b2d98869e21")
+        );
 
+        // `x = (r + 1)^2 - 205`, where `r` is the expected square root.
         assert_eq!(
             U256::from_be_hex("4bb750738e25a8f82940737d94a48a91f8cd918a3679ff90c1a631f2bd6c3597")
                 .sqrt(),
+            U256::from_be_hex("000000000000000000000000000000008b3956339e8315cff66eb6107b610075")
+        );
+        assert_eq!(
+            U256::from_be_hex("4bb750738e25a8f82940737d94a48a91f8cd918a3679ff90c1a631f2bd6c3597")
+                .sqrt_vartime(),
             U256::from_be_hex("000000000000000000000000000000008b3956339e8315cff66eb6107b610075")
         );
     }
