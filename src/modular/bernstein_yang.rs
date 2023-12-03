@@ -8,6 +8,8 @@
 
 #![allow(clippy::needless_range_loop)]
 
+use crate::Word;
+
 /// Type of the modular multiplicative inverter based on the Bernstein-Yang method.
 /// The inverter can be created for a specified modulus M and adjusting parameter A
 /// to compute the adjusted multiplicative inverses of positive integers, i.e. for
@@ -48,19 +50,20 @@ type Matrix = [[i64; 2]; 2];
 
 impl<const L: usize> BernsteinYangInverter<L> {
     /// Creates the inverter for specified modulus and adjusting parameter
-    pub const fn new(modulus: &[u64], adjuster: &[u64]) -> Self {
+    #[allow(trivial_numeric_casts)]
+    pub const fn new(modulus: &[Word], adjuster: &[Word]) -> Self {
         Self {
-            modulus: CInt::<62, L>(Self::convert::<64, 62, L>(modulus)),
-            adjuster: CInt::<62, L>(Self::convert::<64, 62, L>(adjuster)),
-            inverse: Self::inv(modulus[0]),
+            modulus: CInt::<62, L>(convert_in::<{ Word::BITS as usize }, 62, L>(modulus)),
+            adjuster: CInt::<62, L>(convert_in::<{ Word::BITS as usize }, 62, L>(adjuster)),
+            inverse: inv_mod62(modulus),
         }
     }
 
     /// Returns either the adjusted modular multiplicative inverse for the argument or None
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus
-    pub const fn invert<const S: usize>(&self, value: &[u64]) -> Option<[u64; S]> {
+    pub const fn invert<const S: usize>(&self, value: &[Word]) -> Option<[Word; S]> {
         let (mut d, mut e) = (CInt::ZERO, self.adjuster);
-        let mut g = CInt::<62, L>(Self::convert::<64, 62, L>(value));
+        let mut g = CInt::<62, L>(convert_in::<{ Word::BITS as usize }, 62, L>(value));
         let (mut delta, mut f) = (1, self.modulus);
         let mut matrix;
 
@@ -76,7 +79,9 @@ impl<const L: usize> BernsteinYangInverter<L> {
         if !f.eq(&CInt::ONE) && !antiunit {
             return None;
         }
-        Some(Self::convert::<62, 64, S>(&self.norm(d, antiunit).0))
+        Some(convert_out::<62, { Word::BITS as usize }, S>(
+            &self.norm(d, antiunit).0,
+        ))
     }
 
     /// Returns the Bernstein-Yang transition matrix multiplied by 2^62 and the new value
@@ -181,11 +186,40 @@ impl<const L: usize> BernsteinYangInverter<L> {
 
         value
     }
+}
 
-    /// Returns a big unsigned integer as an array of O-bit chunks, which is equal modulo
-    /// 2 ^ (O * S) to the input big unsigned integer stored as an array of I-bit chunks.
-    /// The ordering of the chunks in these arrays is little-endian
-    const fn convert<const I: usize, const O: usize, const S: usize>(input: &[u64]) -> [u64; S] {
+/// Returns the multiplicative inverse of the argument modulo 2^62. The implementation is based
+/// on the Hurchalla's method for computing the multiplicative inverse modulo a power of two.
+/// For better understanding the implementation, the following paper is recommended:
+/// J. Hurchalla, "An Improved Integer Multiplicative Inverse (modulo 2^w)",
+/// https://arxiv.org/pdf/2204.04342.pdf
+const fn inv_mod62(value: &[Word]) -> i64 {
+    let value = {
+        #[cfg(target_pointer_width = "32")]
+        {
+            debug_assert!(value.len() >= 2);
+            value[0] as u64 | (value[1] as u64) << 32
+        }
+
+        #[cfg(target_pointer_width = "64")]
+        {
+            value[0]
+        }
+    };
+
+    let x = value.wrapping_mul(3) ^ 2;
+    let y = 1u64.wrapping_sub(x.wrapping_mul(value));
+    let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
+    let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
+    let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
+    (x.wrapping_mul(y.wrapping_add(1)) & (u64::MAX >> 2)) as i64
+}
+
+/// Write an impl of a `convert_*` function.
+///
+/// Workaround for making this function generic while still allowing it to be `const fn`.
+macro_rules! impl_convert {
+    ($input_type:ty, $output_type:ty, $input:expr) => {{
         // This function is defined because the method "min" of the usize type is not constant
         const fn min(a: usize, b: usize) -> usize {
             if a > b {
@@ -195,15 +229,17 @@ impl<const L: usize> BernsteinYangInverter<L> {
             }
         }
 
-        let (total, mut output, mut bits) = (min(input.len() * I, S * O), [0; S], 0);
+        let total = min($input.len() * I, S * O);
+        let mut output = [0 as $output_type; S];
+        let mut bits = 0;
 
         while bits < total {
             let (i, o) = (bits % I, bits % O);
-            output[bits / O] |= (input[bits / I] >> i) << o;
+            output[bits / O] |= ($input[bits / I] >> i) as $output_type << o;
             bits += min(I - i, O - o);
         }
 
-        let mask = u64::MAX >> (64 - O);
+        let mask = (<$output_type>::MAX as $output_type) >> (<$output_type>::BITS as usize - O);
         let mut filled = total / O + if total % O > 0 { 1 } else { 0 };
 
         while filled > 0 {
@@ -212,21 +248,23 @@ impl<const L: usize> BernsteinYangInverter<L> {
         }
 
         output
-    }
+    }};
+}
 
-    /// Returns the multiplicative inverse of the argument modulo 2^62. The implementation is based
-    /// on the Hurchalla's method for computing the multiplicative inverse modulo a power of two.
-    /// For better understanding the implementation, the following paper is recommended:
-    /// J. Hurchalla, "An Improved Integer Multiplicative Inverse (modulo 2^w)",
-    /// https://arxiv.org/pdf/2204.04342.pdf
-    const fn inv(value: u64) -> i64 {
-        let x = value.wrapping_mul(3) ^ 2;
-        let y = 1u64.wrapping_sub(x.wrapping_mul(value));
-        let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
-        let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
-        let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
-        (x.wrapping_mul(y.wrapping_add(1)) & CInt::<62, L>::MASK) as i64
-    }
+/// Returns a big unsigned integer as an array of O-bit chunks, which is equal modulo
+/// 2 ^ (O * S) to the input big unsigned integer stored as an array of I-bit chunks.
+/// The ordering of the chunks in these arrays is little-endian
+#[allow(trivial_numeric_casts)]
+const fn convert_in<const I: usize, const O: usize, const S: usize>(input: &[Word]) -> [u64; S] {
+    impl_convert!(Word, u64, input)
+}
+
+/// Returns a big unsigned integer as an array of O-bit chunks, which is equal modulo
+/// 2 ^ (O * S) to the input big unsigned integer stored as an array of I-bit chunks.
+/// The ordering of the chunks in these arrays is little-endian
+#[allow(trivial_numeric_casts)]
+const fn convert_out<const I: usize, const O: usize, const S: usize>(input: &[u64]) -> [Word; S] {
+    impl_convert!(u64, Word, input)
 }
 
 /// Big signed (B * L)-bit integer type, whose variables store
