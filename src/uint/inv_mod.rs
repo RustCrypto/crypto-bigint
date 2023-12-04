@@ -96,7 +96,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let bit_size = bits + modulus_bits;
 
         let mut m1hp = *modulus;
-        let (m1hp_new, carry) = m1hp.shr_1();
+        let (m1hp_new, carry) = m1hp.shr1();
         debug_assert!(carry.is_true_vartime());
         m1hp = m1hp_new.wrapping_add(&Uint::ONE);
 
@@ -118,9 +118,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let (new_u, cyy) = new_u.conditional_wrapping_add(modulus, cy);
             debug_assert!(cy.is_true_vartime() == cyy.is_true_vartime());
 
-            let (new_a, overflow) = a.shr_1();
+            let (new_a, overflow) = a.shr1();
             debug_assert!(!overflow.is_true_vartime());
-            let (new_u, cy) = new_u.shr_1();
+            let (new_u, cy) = new_u.shr1();
             let (new_u, cy) = new_u.conditional_wrapping_add(&m1hp, cy);
             debug_assert!(!cy.is_true_vartime());
 
