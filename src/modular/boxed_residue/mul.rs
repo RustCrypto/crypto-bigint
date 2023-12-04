@@ -113,6 +113,13 @@ pub(super) fn square_montgomery_form(
     modulus: &BoxedUint,
     mod_neg_inv: Limb,
 ) -> BoxedUint {
-    // TODO(tarcieri): optimized implementation
-    mul_montgomery_form(a, a, modulus, mod_neg_inv)
+    debug_assert_eq!(a.bits_precision(), modulus.bits_precision());
+
+    let mut square = a.square();
+    let ret = montgomery_reduction_boxed(&mut square, modulus, mod_neg_inv);
+
+    #[cfg(feature = "zeroize")]
+    zeroize::Zeroize::zeroize(&mut square);
+
+    ret
 }
