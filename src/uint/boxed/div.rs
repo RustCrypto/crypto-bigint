@@ -34,7 +34,7 @@ impl BoxedUint {
                 break rem;
             }
             bd -= 1;
-            c = c.shr_vartime(1);
+            c.shr1_assign();
         }
     }
 
@@ -73,7 +73,7 @@ impl BoxedUint {
                 break;
             }
             bd -= 1;
-            c = c.shr(1);
+            c.shr1_assign();
             quotient = quotient.shl(1);
         }
 

@@ -65,32 +65,29 @@ impl BoxedUint {
         Self { limbs }
     }
 
-    /// Computes `self >> 1` in constant-time, returning [`CtChoice::TRUE`] if the overflowing bit
-    /// was set, and [`CtChoice::FALSE`] otherwise.
-    pub(crate) fn shr1(&self) -> (Self, Choice) {
-        let nlimbs = self.nlimbs();
-        let mut shifted_bits = vec![0; nlimbs];
+    /// Computes `self >> 1` in constant-time, returning a true [`Choice`] if the overflowing bit
+    /// was set, and a false [`Choice::FALSE`] otherwise.
+    pub(crate) fn shr1_with_overflow(&self) -> (Self, Choice) {
+        let carry = self.limbs[0].0 & 1;
+        (self.shr1(), Choice::from(carry as u8))
+    }
 
-        for i in 0..nlimbs {
-            shifted_bits[i] = self.limbs[i].0 >> 1;
+    /// Computes `self >> 1` in constant-time.
+    pub(crate) fn shr1(&self) -> Self {
+        let mut ret = self.clone();
+        ret.shr1_assign();
+        ret
+    }
+
+    /// Computes `self >> 1` in-place in constant-time.
+    pub(crate) fn shr1_assign(&mut self) {
+        self.limbs[0].shr_assign(1);
+
+        for i in 1..self.limbs.len() {
+            // set carry bit
+            self.limbs[i - 1].0 |= (self.limbs[i].0 & 1) << Limb::HI_BIT;
+            self.limbs[i].shr_assign(1);
         }
-
-        let mut carry_bits = vec![0; nlimbs];
-        for i in 0..nlimbs {
-            carry_bits[i] = self.limbs[i].0 << Limb::HI_BIT;
-        }
-
-        let mut limbs = vec![Limb(0); nlimbs];
-        for i in 0..(nlimbs - 1) {
-            limbs[i] = Limb(shifted_bits[i] | carry_bits[i + 1]);
-        }
-        limbs[nlimbs - 1] = Limb(shifted_bits[nlimbs - 1]);
-
-        debug_assert!(carry_bits[nlimbs - 1] == 0 || carry_bits[nlimbs - 1] == (1 << Limb::HI_BIT));
-        (
-            limbs.into(),
-            Choice::from((carry_bits[0] >> Limb::HI_BIT) as u8),
-        )
     }
 }
 
@@ -120,6 +117,14 @@ impl ShrAssign<u32> for BoxedUint {
 #[cfg(test)]
 mod tests {
     use super::BoxedUint;
+
+    #[test]
+    fn shr1_assign() {
+        let mut n = BoxedUint::from(0x3c442b21f19185fe433f0a65af902b8fu128);
+        let n_shr1 = BoxedUint::from(0x1e221590f8c8c2ff219f8532d7c815c7u128);
+        n.shr1_assign();
+        assert_eq!(n, n_shr1);
+    }
 
     #[test]
     fn shr_vartime() {
