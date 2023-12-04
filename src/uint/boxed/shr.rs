@@ -1,6 +1,6 @@
 //! [`BoxedUint`] bitwise right shift operations.
 
-use crate::{limb::HI_BIT, BoxedUint, Limb};
+use crate::{BoxedUint, Limb};
 use core::ops::{Shr, ShrAssign};
 use subtle::{Choice, ConstantTimeLess};
 
@@ -77,7 +77,7 @@ impl BoxedUint {
 
         let mut carry_bits = vec![0; nlimbs];
         for i in 0..nlimbs {
-            carry_bits[i] = self.limbs[i].0 << HI_BIT;
+            carry_bits[i] = self.limbs[i].0 << Limb::HI_BIT;
         }
 
         let mut limbs = vec![Limb(0); nlimbs];
@@ -86,8 +86,11 @@ impl BoxedUint {
         }
         limbs[nlimbs - 1] = Limb(shifted_bits[nlimbs - 1]);
 
-        debug_assert!(carry_bits[nlimbs - 1] == 0 || carry_bits[nlimbs - 1] == (1 << HI_BIT));
-        (limbs.into(), Choice::from((carry_bits[0] >> HI_BIT) as u8))
+        debug_assert!(carry_bits[nlimbs - 1] == 0 || carry_bits[nlimbs - 1] == (1 << Limb::HI_BIT));
+        (
+            limbs.into(),
+            Choice::from((carry_bits[0] >> Limb::HI_BIT) as u8),
+        )
     }
 }
 
