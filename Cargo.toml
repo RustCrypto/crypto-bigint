@@ -52,5 +52,9 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [[bench]]
-name = "bench"
+name = "dyn_residue"
+harness = false
+
+[[bench]]
+name = "uint"
 harness = false
