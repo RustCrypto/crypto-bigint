@@ -53,9 +53,6 @@ pub type Word = u64;
 #[cfg(target_pointer_width = "64")]
 pub type WideWord = u128;
 
-/// Highest bit in a [`Limb`].
-pub(crate) const HI_BIT: u32 = Limb::BITS - 1;
-
 /// Big integers are represented as an array of smaller CPU word-size integers
 /// called "limbs".
 // Our PartialEq impl only differs from the default one by being constant-time, so this is safe
@@ -73,6 +70,9 @@ impl Limb {
 
     /// Maximum value this [`Limb`] can express.
     pub const MAX: Self = Limb(Word::MAX);
+
+    /// Highest bit in a [`Limb`].
+    pub(crate) const HI_BIT: u32 = Limb::BITS - 1;
 
     // 32-bit
 

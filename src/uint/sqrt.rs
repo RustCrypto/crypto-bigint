@@ -32,7 +32,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             // A protection in case `self == 0`, which will make `x == 0`
             let q = Self::ct_select(&Self::ZERO, &q, is_some);
 
-            x = x.wrapping_add(&q).shr_vartime(1);
+            x = x.wrapping_add(&q).shr1();
             i += 1;
         }
 
@@ -56,7 +56,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
             let q = self.wrapping_div_vartime(&x);
             let t = x.wrapping_add(&q);
-            let next_x = t.shr_vartime(1);
+            let next_x = t.shr1();
 
             // If `next_x` is the same as `x` or greater, we reached convergence
             // (`x` is guaranteed to either go down or oscillate between

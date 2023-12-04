@@ -90,6 +90,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         (Uint::<LIMBS>::new(limbs), Limb(carry))
     }
+
+    /// Computes `self >> 1` in constant-time.
+    pub(crate) const fn shl1(&self) -> Self {
+        // TODO(tarcieri): optimized implementation
+        self.shl_vartime(1)
+    }
 }
 
 impl<const LIMBS: usize> Shl<u32> for Uint<LIMBS> {
