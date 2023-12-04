@@ -69,8 +69,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             // when `i < mb`, the computation is actually done, so we ensure `quo` and `rem`
             // aren't modified further (but do the remaining iterations anyway to be constant-time)
             done = CtChoice::from_word_lt(i as Word, mb as Word);
-            c = c.shr_vartime(1);
-            quo = Self::ct_select(&quo.shl_vartime(1), &quo, done);
+            c = c.shr1();
+            quo = Self::ct_select(&quo.shl1(), &quo, done);
         }
 
         let is_some = Limb(mb as Word).ct_is_nonzero();
@@ -104,8 +104,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 break;
             }
             bd -= 1;
-            c = c.shr_vartime(1);
-            quo = quo.shl_vartime(1);
+            c = c.shr1();
+            quo = quo.shl1();
         }
 
         let is_some = CtChoice::from_u32_nonzero(mb);
@@ -113,8 +113,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         (quo, rem, is_some)
     }
 
-    /// Computes `self` % `rhs`, returns the remainder and
-    /// and the truthy value for is_some or the falsy value for is_none.
+    /// Computes `self` % `rhs`, returns the remainder and and the truthy value for is_some or the
+    /// falsy value for is_none.
     ///
     /// NOTE: Use only if you need to access const fn. Otherwise use [`Self::rem`].
     /// This is variable only with respect to `rhs`.
@@ -147,7 +147,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 break;
             }
             bd -= 1;
-            c = c.shr_vartime(1);
+            c = c.shr1();
         }
 
         let is_some = CtChoice::from_u32_nonzero(mb);
@@ -772,7 +772,7 @@ impl<const LIMBS: usize> RemAssign<&NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMB
 
 #[cfg(test)]
 mod tests {
-    use crate::{limb::HI_BIT, Limb, NonZero, Uint, Word, U256};
+    use crate::{Limb, NonZero, Uint, Word, U256};
 
     #[cfg(feature = "rand")]
     use {
@@ -835,8 +835,8 @@ mod tests {
         b.limbs[b.limbs.len() - 1] = Limb(Word::MAX);
         let q = a.wrapping_div(&b);
         assert_eq!(q, Uint::ZERO);
-        a.limbs[a.limbs.len() - 1] = Limb(1 << (HI_BIT - 7));
-        b.limbs[b.limbs.len() - 1] = Limb(0x82 << (HI_BIT - 7));
+        a.limbs[a.limbs.len() - 1] = Limb(1 << (Limb::HI_BIT - 7));
+        b.limbs[b.limbs.len() - 1] = Limb(0x82 << (Limb::HI_BIT - 7));
         let q = a.wrapping_div(&b);
         assert_eq!(q, Uint::ZERO);
     }
@@ -913,8 +913,8 @@ mod tests {
         b.limbs[b.limbs.len() - 1] = Limb(Word::MAX);
         let r = a.wrapping_rem(&b);
         assert_eq!(r, Uint::ZERO);
-        a.limbs[a.limbs.len() - 1] = Limb(1 << (HI_BIT - 7));
-        b.limbs[b.limbs.len() - 1] = Limb(0x82 << (HI_BIT - 7));
+        a.limbs[a.limbs.len() - 1] = Limb(1 << (Limb::HI_BIT - 7));
+        b.limbs[b.limbs.len() - 1] = Limb(0x82 << (Limb::HI_BIT - 7));
         let r = a.wrapping_rem(&b);
         assert_eq!(r, a);
     }

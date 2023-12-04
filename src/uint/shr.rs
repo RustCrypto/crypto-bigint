@@ -1,7 +1,7 @@
 //! [`Uint`] bitwise right shift operations.
 
 use super::Uint;
-use crate::{limb::HI_BIT, CtChoice, Limb};
+use crate::{CtChoice, Limb};
 use core::ops::{Shr, ShrAssign};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -83,35 +83,25 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes `self >> 1` in constant-time, returning [`CtChoice::TRUE`] if the overflowing bit
     /// was set, and [`CtChoice::FALSE`] otherwise.
-    pub(crate) const fn shr1(&self) -> (Self, CtChoice) {
-        let mut shifted_bits = [0; LIMBS];
-        let mut i = 0;
+    pub(crate) const fn shr1_with_overflow(&self) -> (Self, CtChoice) {
+        let carry = CtChoice::from_word_lsb(self.limbs[0].0 & 1);
+        let mut ret = Self::ZERO;
+        ret.limbs[0] = self.limbs[0].shr(1);
+
+        let mut i = 1;
         while i < LIMBS {
-            shifted_bits[i] = self.limbs[i].0 >> 1;
+            // set carry bit
+            ret.limbs[i - 1].0 |= (self.limbs[i].0 & 1) << Limb::HI_BIT;
+            ret.limbs[i] = self.limbs[i].shr(1);
             i += 1;
         }
 
-        let mut carry_bits = [0; LIMBS];
-        let mut i = 0;
-        while i < LIMBS {
-            carry_bits[i] = self.limbs[i].0 << HI_BIT;
-            i += 1;
-        }
+        (ret, carry)
+    }
 
-        let mut limbs = [Limb(0); LIMBS];
-
-        let mut i = 0;
-        while i < (LIMBS - 1) {
-            limbs[i] = Limb(shifted_bits[i] | carry_bits[i + 1]);
-            i += 1;
-        }
-        limbs[LIMBS - 1] = Limb(shifted_bits[LIMBS - 1]);
-
-        debug_assert!(carry_bits[LIMBS - 1] == 0 || carry_bits[LIMBS - 1] == (1 << HI_BIT));
-        (
-            Uint::new(limbs),
-            CtChoice::from_word_lsb(carry_bits[0] >> HI_BIT),
-        )
+    /// Computes `self >> 1` in constant-time.
+    pub(crate) const fn shr1(&self) -> Self {
+        self.shr1_with_overflow().0
     }
 }
 

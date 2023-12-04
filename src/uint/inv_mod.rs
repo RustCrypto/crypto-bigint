@@ -23,7 +23,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let x_i = b.limbs[0].0 & 1;
             let x_i_choice = CtChoice::from_word_lsb(x_i);
             // b_{i+1} = (b_i - a * X_i) / 2
-            b = Self::ct_select(&b, &b.wrapping_sub(self), x_i_choice).shr_vartime(1);
+            b = Self::ct_select(&b, &b.wrapping_sub(self), x_i_choice).shr1();
             // Store the X_i bit in the result (x = x | (1 << X_i))
             x = x.bitor(&Uint::from_word(x_i).shl_vartime(i));
 
@@ -53,7 +53,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let x_i = b.limbs[0].0 & 1;
             let x_i_choice = CtChoice::from_word_lsb(x_i);
             // b_{i+1} = (b_i - a * X_i) / 2
-            b = Self::ct_select(&b, &b.wrapping_sub(self), x_i_choice).shr_vartime(1);
+            b = Self::ct_select(&b, &b.wrapping_sub(self), x_i_choice).shr1();
 
             // Store the X_i bit in the result (x = x | (1 << X_i))
             // Don't change the result in dummy iterations.
@@ -96,7 +96,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let bit_size = bits + modulus_bits;
 
         let mut m1hp = *modulus;
-        let (m1hp_new, carry) = m1hp.shr1();
+        let (m1hp_new, carry) = m1hp.shr1_with_overflow();
         debug_assert!(carry.is_true_vartime());
         m1hp = m1hp_new.wrapping_add(&Uint::ONE);
 
@@ -118,9 +118,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let (new_u, cyy) = new_u.conditional_wrapping_add(modulus, cy);
             debug_assert!(cy.is_true_vartime() == cyy.is_true_vartime());
 
-            let (new_a, overflow) = a.shr1();
+            let (new_a, overflow) = a.shr1_with_overflow();
             debug_assert!(!overflow.is_true_vartime());
-            let (new_u, cy) = new_u.shr1();
+            let (new_u, cy) = new_u.shr1_with_overflow();
             let (new_u, cy) = new_u.conditional_wrapping_add(&m1hp, cy);
             debug_assert!(!cy.is_true_vartime());
 
