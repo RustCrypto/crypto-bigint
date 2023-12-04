@@ -52,6 +52,11 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [[bench]]
+name = "boxed_residue"
+harness = false
+required-features = ["alloc"]
+
+[[bench]]
 name = "dyn_residue"
 harness = false
 
