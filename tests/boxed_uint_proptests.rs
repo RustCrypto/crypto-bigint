@@ -147,13 +147,21 @@ proptest! {
     }
 
     #[test]
-    fn mul_wide(a in uint(), b in uint()) {
+    fn mul(a in uint(), b in uint()) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
 
         let expected = a_bi * b_bi;
         let actual = a.mul(&b);
 
+        prop_assert_eq!(expected, to_biguint(&actual));
+    }
+
+    #[test]
+    fn square(n in uint()) {
+        let n_bi = to_biguint(&n);
+        let expected = &n_bi * &n_bi;
+        let actual = n.square();
         prop_assert_eq!(expected, to_biguint(&actual));
     }
 
