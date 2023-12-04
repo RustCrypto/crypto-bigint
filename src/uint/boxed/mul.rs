@@ -1,9 +1,6 @@
 //! [`BoxedUint`] multiplication operations.
 
-use crate::{
-    uint::mul::{diagonal_mul_limbs, half_mul_limbs, mul_limbs},
-    BoxedUint, CheckedMul, Limb, WideningMul, Wrapping, Zero,
-};
+use crate::{uint::mul::mul_limbs, BoxedUint, CheckedMul, Limb, WideningMul, Wrapping, Zero};
 use core::ops::{Mul, MulAssign};
 use subtle::{Choice, CtOption};
 
@@ -12,9 +9,9 @@ impl BoxedUint {
     ///
     /// Returns a widened output with a limb count equal to the sums of the input limb counts.
     pub fn mul(&self, rhs: &Self) -> Self {
-        let mut out = vec![Limb::ZERO; self.nlimbs() + rhs.nlimbs()];
-        mul_limbs(&self.limbs, &rhs.limbs, &mut out);
-        out.into()
+        let mut limbs = vec![Limb::ZERO; self.nlimbs() + rhs.nlimbs()];
+        mul_limbs(&self.limbs, &rhs.limbs, &mut limbs);
+        limbs.into()
     }
 
     /// Perform wrapping multiplication, wrapping to the width of `self`.
@@ -24,11 +21,8 @@ impl BoxedUint {
 
     /// Multiply `self` by itself.
     pub fn square(&self) -> Self {
-        let mut out = Self::from(vec![Limb::ZERO; self.nlimbs() * 2]);
-        half_mul_limbs(&self.limbs, &mut out.limbs);
-        out <<= 1;
-        diagonal_mul_limbs(&self.limbs, &mut out.limbs);
-        out
+        // TODO(tarcieri): more optimized implementation (shared with `Uint`?)
+        self.mul(self)
     }
 }
 
