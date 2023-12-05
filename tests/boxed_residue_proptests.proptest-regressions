@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc a2dbf0ee6304db81982e37ad9d9145a0f9de45730b9c41221dbf9fdfb9a246c5 # shrinks to a = BoxedUint(0x0000000000000002), b = BoxedUint(0x0000000000000100), n = BoxedResidueParams { modulus: BoxedUint(0x0000000000000003), r: BoxedUint(0x0000000000000001), r2: BoxedUint(0x0000000000000001), r3: BoxedUint(0x0000000000000001), mod_neg_inv: Limb(0x5555555555555555) }
