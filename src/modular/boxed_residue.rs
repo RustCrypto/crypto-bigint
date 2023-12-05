@@ -8,7 +8,10 @@ mod neg;
 mod pow;
 mod sub;
 
-use super::{reduction::montgomery_reduction_boxed, Retrieve};
+use super::{
+    reduction::{montgomery_reduction_boxed, montgomery_reduction_boxed_mut},
+    Retrieve,
+};
 use crate::{BoxedUint, Limb, NonZero, Word};
 use subtle::CtOption;
 
@@ -111,21 +114,22 @@ pub struct BoxedResidue {
 
 impl BoxedResidue {
     /// Instantiates a new [`BoxedResidue`] that represents an integer modulo the provided params.
-    pub fn new(integer: &BoxedUint, residue_params: BoxedResidueParams) -> Self {
+    pub fn new(mut integer: BoxedUint, residue_params: BoxedResidueParams) -> Self {
         debug_assert_eq!(integer.bits_precision(), residue_params.bits_precision());
 
         let mut product = integer.mul(&residue_params.r2);
-        let montgomery_form = montgomery_reduction_boxed(
+        montgomery_reduction_boxed_mut(
             &mut product,
             &residue_params.modulus,
             residue_params.mod_neg_inv,
+            &mut integer,
         );
 
         #[cfg(feature = "zeroize")]
         product.zeroize();
 
         Self {
-            montgomery_form,
+            montgomery_form: integer,
             residue_params: residue_params.into(),
         }
     }

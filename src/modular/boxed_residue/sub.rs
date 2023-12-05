@@ -87,14 +87,14 @@ mod tests {
             256,
         )
         .unwrap();
-        let mut x_mod = BoxedResidue::new(&x, params.clone());
+        let mut x_mod = BoxedResidue::new(x, params.clone());
 
         let y = BoxedUint::from_be_slice(
             &hex!("d5777c45019673125ad240f83094d4252d829516fac8601ed01979ec1ec1a251"),
             256,
         )
         .unwrap();
-        let y_mod = BoxedResidue::new(&y, params);
+        let y_mod = BoxedResidue::new(y, params);
 
         x_mod -= &y_mod;
 

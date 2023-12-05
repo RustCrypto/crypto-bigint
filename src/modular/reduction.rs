@@ -70,17 +70,45 @@ pub const fn montgomery_reduction<const LIMBS: usize>(
 
 /// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
 ///
-/// This version returns a [`BoxedUint`] as a result.
+/// This version writes the result into the provided [`BoxedUint`].
 #[cfg(feature = "alloc")]
+#[inline]
+pub(crate) fn montgomery_reduction_boxed_mut(
+    x: &mut BoxedUint,
+    modulus: &BoxedUint,
+    mod_neg_inv: Limb,
+    out: &mut BoxedUint,
+) {
+    debug_assert_eq!(x.nlimbs(), modulus.nlimbs() * 2);
+    debug_assert_eq!(out.nlimbs(), modulus.nlimbs());
+
+    let (lower, upper) = x.limbs.split_at_mut(modulus.nlimbs());
+    let meta_carry =
+        impl_montgomery_reduction!(upper, lower, &modulus.limbs, mod_neg_inv, modulus.nlimbs());
+
+    out.limbs.copy_from_slice(upper);
+    let borrow = out.sbb_assign(modulus, Limb::ZERO);
+
+    // The new `borrow = Word::MAX` iff `carry == 0` and `borrow == Word::MAX`.
+    let borrow = Limb((!meta_carry.0.wrapping_neg()) & borrow.0);
+
+    // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
+    // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
+    // TODO(tarcieri): eliminate bitand_limb allocation (with conditional adc_assign?)
+    out.adc_assign(&modulus.bitand_limb(borrow), Limb::ZERO);
+}
+
+/// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
+///
+/// This version allocates and returns a [`BoxedUint`].
+#[cfg(feature = "alloc")]
+#[inline]
 pub(crate) fn montgomery_reduction_boxed(
     x: &mut BoxedUint,
     modulus: &BoxedUint,
     mod_neg_inv: Limb,
 ) -> BoxedUint {
-    debug_assert_eq!(x.nlimbs(), modulus.nlimbs() * 2);
-
-    let (lower, upper) = x.limbs.split_at_mut(modulus.nlimbs());
-    let meta_carry =
-        impl_montgomery_reduction!(upper, lower, &modulus.limbs, mod_neg_inv, modulus.nlimbs());
-    BoxedUint::from(&*upper).sub_mod_with_carry(meta_carry, modulus, modulus)
+    let mut ret = BoxedUint::zero_with_precision(modulus.bits_precision());
+    montgomery_reduction_boxed_mut(x, modulus, mod_neg_inv, &mut ret);
+    ret
 }
