@@ -61,10 +61,9 @@ fn pow_montgomery_form(
     // powers[i] contains x^i
     let mut powers = vec![r.clone(); 1 << WINDOW];
     powers[1] = x.clone();
-    let mut i = 2;
-    while i < powers.len() {
+
+    for i in 2..powers.len() {
         powers[i] = mul_montgomery_form(&powers[i - 1], x, modulus, mod_neg_inv);
-        i += 1;
     }
 
     let starting_limb = ((exponent_bits - 1) / Limb::BITS) as usize;
@@ -74,9 +73,7 @@ fn pow_montgomery_form(
 
     let mut z = r.clone(); // 1 in Montgomery form
 
-    let mut limb_num = starting_limb + 1;
-    while limb_num > 0 {
-        limb_num -= 1;
+    for limb_num in (0..=starting_limb).rev() {
         let w = exponent.as_limbs()[limb_num].0;
 
         let mut window_num = if limb_num == starting_limb {
@@ -84,6 +81,7 @@ fn pow_montgomery_form(
         } else {
             Limb::BITS / WINDOW
         };
+
         while window_num > 0 {
             window_num -= 1;
 
@@ -92,19 +90,15 @@ fn pow_montgomery_form(
             if limb_num == starting_limb && window_num == starting_window {
                 idx &= starting_window_mask;
             } else {
-                let mut i = 0;
-                while i < WINDOW {
-                    i += 1;
+                for _ in 1..=WINDOW {
                     square_montgomery_form_assign(&mut z, modulus, mod_neg_inv);
                 }
             }
 
             // Constant-time lookup in the array of powers
             let mut power = powers[0].clone();
-            let mut i = 1;
-            while i < 1 << WINDOW {
-                power = BoxedUint::conditional_select(&power, &powers[i as usize], i.ct_eq(&idx));
-                i += 1;
+            for i in 1..(1 << WINDOW) {
+                power.conditional_assign(&powers[i as usize], i.ct_eq(&idx));
             }
 
             mul_montgomery_form_assign(&mut z, &power, modulus, mod_neg_inv);
