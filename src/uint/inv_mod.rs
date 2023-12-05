@@ -30,7 +30,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             // b_{i+1} = (b_i - a * X_i) / 2
             b = Self::ct_select(&b, &b.wrapping_sub(self), x_i_choice).shr1();
             // Store the X_i bit in the result (x = x | (1 << X_i))
-            x = x.bitor(&Uint::from_word(x_i).shl_vartime(i));
+            let (shifted, _overflow) = Uint::from_word(x_i).shl_vartime(i);
+            x = x.bitor(&shifted);
 
             i += 1;
         }
@@ -161,7 +162,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn inv_mod(&self, modulus: &Self) -> (Self, CtChoice) {
         // Decompose `modulus = s * 2^k` where `s` is odd
         let k = modulus.trailing_zeros();
-        let s = modulus.shr(k);
+        let (s, _overflow) = modulus.shr(k);
 
         // Decompose `self` into RNS with moduli `2^k` and `s` and calculate the inverses.
         // Using the fact that `(z^{-1} mod (m1 * m2)) mod m1 == z^{-1} mod m1`
@@ -176,7 +177,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let (m_odd_inv, _is_some) = s.inv_mod2k(k); // `s` is odd, so this always exists
 
         // This part is mod 2^k
-        let mask = Uint::ONE.shl(k).wrapping_sub(&Uint::ONE);
+        // Will not overflow since `modulus` is nonzero, and therefore `k < BITS`.
+        let (shifted, _overflow) = Uint::ONE.shl(k);
+        let mask = shifted.wrapping_sub(&Uint::ONE);
         let t = (b.wrapping_sub(&a).wrapping_mul(&m_odd_inv)).bitand(&mask);
 
         // Will not overflow since `a <= s - 1`, `t <= 2^k - 1`,

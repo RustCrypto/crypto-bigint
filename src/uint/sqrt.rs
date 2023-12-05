@@ -15,7 +15,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // https://github.com/RustCrypto/crypto-bigint/files/12600669/ct_sqrt.pdf
 
         // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < b`.
-        let mut x = Self::ONE.shl((self.bits() + 1) >> 1); // ≥ √(`self`)
+        // Will not overflow since `b <= BITS`.
+        let (mut x, _overflow) = Self::ONE.shl((self.bits() + 1) >> 1); // ≥ √(`self`)
 
         // Repeat enough times to guarantee result has stabilized.
         let mut i = 0;
@@ -49,7 +50,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13
 
         // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < b`.
-        let mut x = Self::ONE.shl((self.bits() + 1) >> 1); // ≥ √(`self`)
+        // Will not overflow since `b <= BITS`.
+        let (mut x, _overflow) = Self::ONE.shl((self.bits() + 1) >> 1); // ≥ √(`self`)
 
         // Stop right away if `x` is zero to avoid divizion by zero.
         while !x.cmp_vartime(&Self::ZERO).is_eq() {

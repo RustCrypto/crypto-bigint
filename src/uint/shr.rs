@@ -1,40 +1,42 @@
 //! [`Uint`] bitwise right shift operations.
 
-use super::Uint;
-use crate::{CtChoice, Limb};
+use crate::{CtChoice, Limb, Uint};
 use core::ops::{Shr, ShrAssign};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Computes `self << shift`.
-    /// Returns zero if `shift >= Self::BITS`.
-    pub const fn shr(&self, shift: u32) -> Self {
+    /// Computes `self >> shift`.
+    /// If `shift >= Self::BITS`, returns zero as the first tuple element,
+    /// and `CtChoice::TRUE` as the second element.
+    pub const fn shr(&self, shift: u32) -> (Self, CtChoice) {
         let overflow = CtChoice::from_u32_lt(shift, Self::BITS).not();
         let shift = shift % Self::BITS;
         let mut result = *self;
         let mut i = 0;
         while i < Self::LOG2_BITS + 1 {
             let bit = CtChoice::from_u32_lsb((shift >> i) & 1);
-            result = Uint::ct_select(&result, &result.shr_vartime(1 << i), bit);
+            result = Uint::ct_select(&result, &result.shr_vartime(1 << i).0, bit);
             i += 1;
         }
 
-        Uint::ct_select(&result, &Self::ZERO, overflow)
+        (Uint::ct_select(&result, &Self::ZERO, overflow), overflow)
     }
 
     /// Computes `self >> shift`.
+    /// If `shift >= Self::BITS`, returns zero as the first tuple element,
+    /// and `CtChoice::TRUE` as the second element.
     ///
     /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
     #[inline(always)]
-    pub const fn shr_vartime(&self, shift: u32) -> Self {
+    pub const fn shr_vartime(&self, shift: u32) -> (Self, CtChoice) {
         let full_shifts = (shift / Limb::BITS) as usize;
         let small_shift = shift & (Limb::BITS - 1);
         let mut limbs = [Limb::ZERO; LIMBS];
 
-        if shift > Self::BITS {
-            return Self { limbs };
+        if shift >= Self::BITS {
+            return (Self::ZERO, CtChoice::TRUE);
         }
 
         let shift = LIMBS - full_shifts;
@@ -58,7 +60,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             }
         }
 
-        Self { limbs }
+        (Self { limbs }, CtChoice::FALSE)
     }
 
     /// Computes a right shift on a wide input as `(lo, hi)`.
@@ -68,17 +70,22 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
     #[inline(always)]
-    pub const fn shr_vartime_wide(lower_upper: (Self, Self), shift: u32) -> (Self, Self) {
-        let (mut lower, upper) = lower_upper;
-        let new_upper = upper.shr_vartime(shift);
-        lower = lower.shr_vartime(shift);
-        if shift >= Self::BITS {
-            lower = lower.bitor(&upper.shr_vartime(shift - Self::BITS));
+    pub const fn shr_vartime_wide(
+        lower_upper: (Self, Self),
+        shift: u32,
+    ) -> ((Self, Self), CtChoice) {
+        let (lower, upper) = lower_upper;
+        if shift >= 2 * Self::BITS {
+            ((Self::ZERO, Self::ZERO), CtChoice::TRUE)
+        } else if shift >= Self::BITS {
+            let (lower, _) = upper.shr_vartime(shift - Self::BITS);
+            ((lower, Self::ZERO), CtChoice::FALSE)
         } else {
-            lower = lower.bitor(&upper.shl_vartime(Self::BITS - shift));
+            let (new_upper, _) = upper.shr_vartime(shift);
+            let (lower_hi, _) = upper.shl_vartime(Self::BITS - shift);
+            let (lower_lo, _) = lower.shr_vartime(shift);
+            ((lower_lo.bitor(&lower_hi), new_upper), CtChoice::FALSE)
         }
-
-        (lower, new_upper)
     }
 
     /// Computes `self >> 1` in constant-time, returning [`CtChoice::TRUE`] if the overflowing bit
@@ -109,7 +116,7 @@ impl<const LIMBS: usize> Shr<u32> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn shr(self, shift: u32) -> Uint<LIMBS> {
-        Uint::<LIMBS>::shr(&self, shift)
+        <&Uint<LIMBS> as Shr<u32>>::shr(&self, shift)
     }
 }
 
@@ -117,7 +124,12 @@ impl<const LIMBS: usize> Shr<u32> for &Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn shr(self, shift: u32) -> Uint<LIMBS> {
-        self.shr(shift)
+        let (result, overflow) = Uint::<LIMBS>::shr(self, shift);
+        assert!(
+            !overflow.is_true_vartime(),
+            "attempt to shift right with overflow"
+        );
+        result
     }
 }
 
@@ -129,7 +141,7 @@ impl<const LIMBS: usize> ShrAssign<u32> for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Uint, U128, U256};
+    use crate::{CtChoice, Uint, U128, U256};
 
     const N: U256 =
         U256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
@@ -143,10 +155,22 @@ mod tests {
     }
 
     #[test]
+    fn shr256_const() {
+        assert_eq!(N.shr(256), (U256::ZERO, CtChoice::TRUE));
+        assert_eq!(N.shr_vartime(256), (U256::ZERO, CtChoice::TRUE));
+    }
+
+    #[test]
+    #[should_panic(expected = "attempt to shift right with overflow")]
+    fn shr256() {
+        let _ = N >> 256;
+    }
+
+    #[test]
     fn shr_wide_1_1_128() {
         assert_eq!(
             Uint::shr_vartime_wide((U128::ONE, U128::ONE), 128),
-            (U128::ONE, U128::ZERO)
+            ((U128::ONE, U128::ZERO), CtChoice::FALSE)
         );
     }
 
@@ -154,7 +178,7 @@ mod tests {
     fn shr_wide_0_max_1() {
         assert_eq!(
             Uint::shr_vartime_wide((U128::ZERO, U128::MAX), 1),
-            (U128::ONE << 127, U128::MAX >> 1)
+            ((U128::ONE << 127, U128::MAX >> 1), CtChoice::FALSE)
         );
     }
 
@@ -162,7 +186,7 @@ mod tests {
     fn shr_wide_max_max_256() {
         assert_eq!(
             Uint::shr_vartime_wide((U128::MAX, U128::MAX), 256),
-            (U128::ZERO, U128::ZERO)
+            ((U128::ZERO, U128::ZERO), CtChoice::TRUE)
         );
     }
 }
