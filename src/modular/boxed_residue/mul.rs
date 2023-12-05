@@ -1,6 +1,6 @@
 //! Multiplications between boxed residues.
 
-use super::{montgomery_reduction_boxed, BoxedResidue};
+use super::{montgomery_reduction_boxed_mut, BoxedResidue};
 use crate::traits::Square;
 use crate::{BoxedUint, Limb};
 use core::ops::{Mul, MulAssign};
@@ -95,16 +95,25 @@ pub(super) fn mul_montgomery_form(
     modulus: &BoxedUint,
     mod_neg_inv: Limb,
 ) -> BoxedUint {
+    let mut ret = a.clone();
+    mul_montgomery_form_assign(&mut ret, b, modulus, mod_neg_inv);
+    ret
+}
+
+pub(super) fn mul_montgomery_form_assign(
+    a: &mut BoxedUint,
+    b: &BoxedUint,
+    modulus: &BoxedUint,
+    mod_neg_inv: Limb,
+) {
     debug_assert_eq!(a.bits_precision(), modulus.bits_precision());
     debug_assert_eq!(b.bits_precision(), modulus.bits_precision());
 
     let mut product = a.mul(b);
-    let ret = montgomery_reduction_boxed(&mut product, modulus, mod_neg_inv);
+    montgomery_reduction_boxed_mut(&mut product, modulus, mod_neg_inv, a);
 
     #[cfg(feature = "zeroize")]
     zeroize::Zeroize::zeroize(&mut product);
-
-    ret
 }
 
 #[inline]
@@ -113,13 +122,22 @@ pub(super) fn square_montgomery_form(
     modulus: &BoxedUint,
     mod_neg_inv: Limb,
 ) -> BoxedUint {
+    let mut ret = a.clone();
+    square_montgomery_form_assign(&mut ret, modulus, mod_neg_inv);
+    ret
+}
+
+#[inline]
+pub(super) fn square_montgomery_form_assign(
+    a: &mut BoxedUint,
+    modulus: &BoxedUint,
+    mod_neg_inv: Limb,
+) {
     debug_assert_eq!(a.bits_precision(), modulus.bits_precision());
 
     let mut square = a.square();
-    let ret = montgomery_reduction_boxed(&mut square, modulus, mod_neg_inv);
+    montgomery_reduction_boxed_mut(&mut square, modulus, mod_neg_inv, a);
 
     #[cfg(feature = "zeroize")]
     zeroize::Zeroize::zeroize(&mut square);
-
-    ret
 }

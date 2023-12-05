@@ -1,7 +1,7 @@
 //! Modular exponentiation support for [`BoxedResidue`].
 
 use super::{
-    mul::{mul_montgomery_form, square_montgomery_form},
+    mul::{mul_montgomery_form, mul_montgomery_form_assign, square_montgomery_form_assign},
     BoxedResidue,
 };
 use crate::{BoxedUint, Limb, PowBoundedExp, Word};
@@ -95,7 +95,7 @@ fn pow_montgomery_form(
                 let mut i = 0;
                 while i < WINDOW {
                     i += 1;
-                    z = square_montgomery_form(&z, modulus, mod_neg_inv);
+                    square_montgomery_form_assign(&mut z, modulus, mod_neg_inv);
                 }
             }
 
@@ -107,7 +107,7 @@ fn pow_montgomery_form(
                 i += 1;
             }
 
-            z = mul_montgomery_form(&z, &power, modulus, mod_neg_inv);
+            mul_montgomery_form_assign(&mut z, &power, modulus, mod_neg_inv);
         }
     }
 
