@@ -18,10 +18,8 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("multiplication, BoxedUint*BoxedUint", |b| {
         b.iter_batched(
             || {
-                let x =
-                    BoxedResidue::new(&BoxedUint::random(&mut OsRng, UINT_BITS), params.clone());
-                let y =
-                    BoxedResidue::new(&BoxedUint::random(&mut OsRng, UINT_BITS), params.clone());
+                let x = BoxedResidue::new(BoxedUint::random(&mut OsRng, UINT_BITS), params.clone());
+                let y = BoxedResidue::new(BoxedUint::random(&mut OsRng, UINT_BITS), params.clone());
                 (x, y)
             },
             |(x, y)| x * y,
@@ -35,7 +33,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         b.iter_batched(
             || {
                 let x = BoxedUint::random(&mut OsRng, UINT_BITS);
-                let x_m = BoxedResidue::new(&x, params.clone());
+                let x_m = BoxedResidue::new(x, params.clone());
                 let p = BoxedUint::random(&mut OsRng, UINT_BITS)
                     | (BoxedUint::one_with_precision(UINT_BITS) << (UINT_BITS - 1));
                 (x_m, p)
@@ -62,7 +60,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
     group.bench_function("BoxedResidue creation", |b| {
         b.iter_batched(
             || BoxedUint::random(&mut OsRng, UINT_BITS),
-            |x| BoxedResidue::new(&x, params.clone()),
+            |x| BoxedResidue::new(x, params.clone()),
             BatchSize::SmallInput,
         )
     });
@@ -73,7 +71,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
     .unwrap();
     group.bench_function("BoxedResidue retrieve", |b| {
         b.iter_batched(
-            || BoxedResidue::new(&BoxedUint::random(&mut OsRng, UINT_BITS), params.clone()),
+            || BoxedResidue::new(BoxedUint::random(&mut OsRng, UINT_BITS), params.clone()),
             |x| x.retrieve(),
             BatchSize::SmallInput,
         )
