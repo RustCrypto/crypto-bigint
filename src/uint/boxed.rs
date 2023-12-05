@@ -210,7 +210,11 @@ impl BoxedUint {
     /// This function should execute in constant time.
     #[inline]
     pub fn conditional_assign(&mut self, other: &Self, choice: Choice) {
-        *self = Self::conditional_select(self, other, choice);
+        debug_assert_eq!(self.bits_precision(), other.bits_precision());
+
+        for i in 0..self.nlimbs() {
+            self.limbs[i] = Limb::conditional_select(&self.limbs[i], &other.limbs[i], choice);
+        }
     }
 
     /// Conditionally swap `self` and `other` if `choice == 1`; otherwise,
