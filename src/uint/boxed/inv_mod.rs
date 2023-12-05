@@ -111,23 +111,23 @@ impl BoxedUint {
             let self_odd = a.is_odd();
 
             // Set `self -= b` if `self` is odd.
-            let (new_a, swap) = a.conditional_wrapping_sub(&b, self_odd);
+            let swap = a.conditional_sbb_assign(&b, self_odd);
             // Set `b += self` if `swap` is true.
-            b = Self::conditional_select(&b, &b.wrapping_add(&new_a), swap);
+            b = Self::conditional_select(&b, &b.wrapping_add(&a), swap);
             // Negate `self` if `swap` is true.
-            a = new_a.conditional_wrapping_neg(swap);
+            a = a.conditional_wrapping_neg(swap);
 
             let mut new_u = u.clone();
             let mut new_v = v.clone();
             Self::conditional_swap(&mut new_u, &mut new_v, swap);
-            let (new_u, cy) = new_u.conditional_wrapping_sub(&new_v, self_odd);
-            let (new_u, cyy) = new_u.conditional_wrapping_add(modulus, cy);
+            let cy = new_u.conditional_sbb_assign(&new_v, self_odd);
+            let cyy = new_u.conditional_adc_assign(modulus, cy);
             debug_assert!(bool::from(cy.ct_eq(&cyy)));
 
             let (new_a, overflow) = a.shr1_with_overflow();
             debug_assert!(!bool::from(overflow));
-            let (new_u, cy) = new_u.shr1_with_overflow();
-            let (new_u, cy) = new_u.conditional_wrapping_add(&m1hp, cy);
+            let (mut new_u, cy) = new_u.shr1_with_overflow();
+            let cy = new_u.conditional_adc_assign(&m1hp, cy);
             debug_assert!(!bool::from(cy));
 
             a = new_a;

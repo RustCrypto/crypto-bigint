@@ -1,7 +1,9 @@
+//! Modular reduction implementation.
+
 use crate::{Limb, Uint, WideWord, Word};
 
 #[cfg(feature = "alloc")]
-use crate::BoxedUint;
+use {crate::BoxedUint, subtle::Choice};
 
 /// Returns `(hi, lo)` such that `hi * R + lo = x * y + z + w`.
 #[inline(always)]
@@ -94,8 +96,7 @@ pub(crate) fn montgomery_reduction_boxed_mut(
 
     // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
     // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-    // TODO(tarcieri): eliminate bitand_limb allocation (with conditional adc_assign?)
-    out.adc_assign(&modulus.bitand_limb(borrow), Limb::ZERO);
+    out.conditional_adc_assign(modulus, Choice::from((borrow.0 & 1) as u8));
 }
 
 /// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
