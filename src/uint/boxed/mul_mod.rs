@@ -19,8 +19,8 @@ impl BoxedUint {
         // It's worth potentially exploring other approaches to improve efficiency.
         match Option::<BoxedResidueParams>::from(BoxedResidueParams::new(p.clone())) {
             Some(params) => {
-                let lhs = BoxedResidue::new(self, params.clone());
-                let rhs = BoxedResidue::new(rhs, params);
+                let lhs = BoxedResidue::new(self.clone(), params.clone());
+                let rhs = BoxedResidue::new(rhs.clone(), params);
                 let ret = lhs * rhs;
                 ret.retrieve()
             }

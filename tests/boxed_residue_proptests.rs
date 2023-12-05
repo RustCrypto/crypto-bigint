@@ -29,7 +29,7 @@ fn reduce(n: &BoxedUint, p: BoxedResidueParams) -> BoxedResidue {
     };
 
     let n_reduced = n.rem_vartime(&modulus).widen(p.bits_precision());
-    BoxedResidue::new(&n_reduced, p)
+    BoxedResidue::new(n_reduced, p)
 }
 
 prop_compose! {

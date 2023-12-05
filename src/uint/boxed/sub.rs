@@ -4,13 +4,29 @@ use crate::{BoxedUint, CheckedSub, Limb, Zero};
 use subtle::{Choice, CtOption};
 
 impl BoxedUint {
-    /// Computes `a + b + carry`, returning the result along with the new carry.
+    /// Computes `a - (b + borrow)`, returning the result along with the new borrow.
     #[inline(always)]
     pub fn sbb(&self, rhs: &Self, borrow: Limb) -> (Self, Limb) {
         Self::fold_limbs(self, rhs, borrow, |a, b, c| a.sbb(b, c))
     }
 
-    /// Perform wrapping subition, discarding overflow.
+    /// Computes `a - (b + borrow)` in-place, returning the new borrow.
+    ///
+    /// Panics if `rhs` has a larger precision than `self`.
+    #[inline(always)]
+    pub fn sbb_assign(&mut self, rhs: &Self, mut borrow: Limb) -> Limb {
+        debug_assert!(self.bits_precision() <= rhs.bits_precision());
+
+        for i in 0..self.nlimbs() {
+            let (limb, b) = self.limbs[i].sbb(*rhs.limbs.get(i).unwrap_or(&Limb::ZERO), borrow);
+            self.limbs[i] = limb;
+            borrow = b;
+        }
+
+        borrow
+    }
+
+    /// Perform wrapping subtraction, discarding overflow.
     pub fn wrapping_sub(&self, rhs: &Self) -> Self {
         self.sbb(rhs, Limb::ZERO).0
     }

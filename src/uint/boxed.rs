@@ -26,7 +26,7 @@ mod rand;
 
 use crate::{Integer, Limb, NonZero, Uint, Word, Zero, U128, U64};
 use alloc::{boxed::Box, vec, vec::Vec};
-use core::fmt;
+use core::{fmt, mem};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "zeroize")]
@@ -252,6 +252,7 @@ impl BoxedUint {
     ///
     /// If one of the two values has fewer limbs than the other, pads with
     /// [`Limb::ZERO`] as the value for that limb.
+    #[inline]
     fn fold_limbs<F>(lhs: &Self, rhs: &Self, mut carry: Limb, f: F) -> (Self, Limb)
     where
         F: Fn(Limb, Limb, Limb) -> (Limb, Limb),
@@ -272,6 +273,7 @@ impl BoxedUint {
 
     /// Iterate over the limbs of the inputs, applying the given function, and
     /// constructing a result from the returned values.
+    #[inline]
     fn map_limbs<F>(lhs: &Self, rhs: &Self, f: F) -> Self
     where
         F: Fn(Limb, Limb) -> Limb,
@@ -384,6 +386,21 @@ impl From<Vec<Limb>> for BoxedUint {
     }
 }
 
+impl From<Vec<Word>> for BoxedUint {
+    fn from(mut words: Vec<Word>) -> BoxedUint {
+        // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
+        #[allow(unsafe_code)]
+        unsafe {
+            let ptr = words.as_mut_ptr() as *mut Limb;
+            let len = words.len();
+            let capacity = words.capacity();
+            mem::forget(words);
+            Vec::<Limb>::from_raw_parts(ptr, len, capacity)
+        }
+        .into()
+    }
+}
+
 impl<const LIMBS: usize> From<Uint<LIMBS>> for BoxedUint {
     fn from(uint: Uint<LIMBS>) -> BoxedUint {
         Vec::from(uint.to_limbs()).into()
@@ -478,6 +495,8 @@ impl fmt::UpperHex for BoxedUint {
 #[cfg(test)]
 mod tests {
     use super::BoxedUint;
+    use crate::Word;
+    use alloc::vec::Vec;
     use subtle::Choice;
 
     #[test]
@@ -487,5 +506,13 @@ mod tests {
 
         assert_eq!(a, BoxedUint::conditional_select(&a, &b, Choice::from(0)));
         assert_eq!(b, BoxedUint::conditional_select(&a, &b, Choice::from(1)));
+    }
+
+    #[test]
+    fn from_word_vec() {
+        let words: &[Word] = &[0, 1, 2, 3];
+        let uint = BoxedUint::from(Vec::from(words));
+        assert_eq!(uint.nlimbs(), 4);
+        assert_eq!(uint.as_words(), words);
     }
 }

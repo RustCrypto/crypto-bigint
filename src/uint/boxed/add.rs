@@ -12,6 +12,22 @@ impl BoxedUint {
         Self::fold_limbs(self, rhs, carry, |a, b, c| a.adc(b, c))
     }
 
+    /// Computes `a + b + carry` in-place, returning the new carry.
+    ///
+    /// Panics if `rhs` has a larger precision than `self`.
+    #[inline(always)]
+    pub fn adc_assign(&mut self, rhs: &Self, mut carry: Limb) -> Limb {
+        debug_assert!(self.bits_precision() <= rhs.bits_precision());
+
+        for i in 0..self.nlimbs() {
+            let (limb, b) = self.limbs[i].adc(*rhs.limbs.get(i).unwrap_or(&Limb::ZERO), carry);
+            self.limbs[i] = limb;
+            carry = b;
+        }
+
+        carry
+    }
+
     /// Perform wrapping addition, discarding overflow.
     pub fn wrapping_add(&self, rhs: &Self) -> Self {
         self.adc(rhs, Limb::ZERO).0
