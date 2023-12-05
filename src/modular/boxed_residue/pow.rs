@@ -1,10 +1,8 @@
 //! Modular exponentiation support for [`BoxedResidue`].
 
-use super::{
-    mul::{mul_montgomery_form, mul_montgomery_form_assign, square_montgomery_form_assign},
-    BoxedResidue,
-};
+use super::{mul::MontgomeryMultiplier, BoxedResidue};
 use crate::{BoxedUint, Limb, PowBoundedExp, Word};
+use alloc::vec::Vec;
 use subtle::ConstantTimeEq;
 
 impl BoxedResidue {
@@ -58,12 +56,15 @@ fn pow_montgomery_form(
     const WINDOW: u32 = 4;
     const WINDOW_MASK: Word = (1 << WINDOW) - 1;
 
-    // powers[i] contains x^i
-    let mut powers = vec![r.clone(); 1 << WINDOW];
-    powers[1] = x.clone();
+    let mut multiplier = MontgomeryMultiplier::new(modulus, mod_neg_inv);
 
-    for i in 2..powers.len() {
-        powers[i] = mul_montgomery_form(&powers[i - 1], x, modulus, mod_neg_inv);
+    // powers[i] contains x^i
+    let mut powers = Vec::with_capacity(1 << WINDOW);
+    powers.push(r.clone()); // 1 in Montgomery form
+    powers.push(x.clone());
+
+    for i in 2..(1 << WINDOW) {
+        powers.push(multiplier.mul(&powers[i - 1], x));
     }
 
     let starting_limb = ((exponent_bits - 1) / Limb::BITS) as usize;
@@ -72,6 +73,7 @@ fn pow_montgomery_form(
     let starting_window_mask = (1 << (starting_bit_in_limb % WINDOW + 1)) - 1;
 
     let mut z = r.clone(); // 1 in Montgomery form
+    let mut power = powers[0].clone();
 
     for limb_num in (0..=starting_limb).rev() {
         let w = exponent.as_limbs()[limb_num].0;
@@ -91,17 +93,17 @@ fn pow_montgomery_form(
                 idx &= starting_window_mask;
             } else {
                 for _ in 1..=WINDOW {
-                    square_montgomery_form_assign(&mut z, modulus, mod_neg_inv);
+                    multiplier.square_assign(&mut z);
                 }
             }
 
             // Constant-time lookup in the array of powers
-            let mut power = powers[0].clone();
+            power.limbs.copy_from_slice(&powers[0].limbs);
             for i in 1..(1 << WINDOW) {
                 power.conditional_assign(&powers[i as usize], i.ct_eq(&idx));
             }
 
-            mul_montgomery_form_assign(&mut z, &power, modulus, mod_neg_inv);
+            multiplier.mul_assign(&mut z, &power);
         }
     }
 

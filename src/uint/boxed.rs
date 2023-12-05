@@ -380,13 +380,19 @@ impl From<&[Limb]> for BoxedUint {
 
 impl From<Box<[Limb]>> for BoxedUint {
     fn from(limbs: Box<[Limb]>) -> BoxedUint {
-        Self { limbs }
+        Vec::from(limbs).into()
     }
 }
 
 impl From<Vec<Limb>> for BoxedUint {
-    fn from(limbs: Vec<Limb>) -> BoxedUint {
-        limbs.into_boxed_slice().into()
+    fn from(mut limbs: Vec<Limb>) -> BoxedUint {
+        if limbs.is_empty() {
+            limbs.push(Limb::ZERO);
+        }
+
+        Self {
+            limbs: limbs.into_boxed_slice(),
+        }
     }
 }
 
