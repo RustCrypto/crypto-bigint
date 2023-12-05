@@ -1,7 +1,7 @@
 //! [`BoxedUint`] subtraction operations.
 
 use crate::{BoxedUint, CheckedSub, Limb, Zero};
-use subtle::{Choice, CtOption};
+use subtle::{Choice, ConditionallySelectable, CtOption};
 
 impl BoxedUint {
     /// Computes `a - (b + borrow)`, returning the result along with the new borrow.
@@ -31,16 +31,21 @@ impl BoxedUint {
         self.sbb(rhs, Limb::ZERO).0
     }
 
-    /// Perform wrapping subtraction, returning the truthy value as the second element of the tuple
-    /// if an underflow has occurred.
-    pub(crate) fn conditional_wrapping_sub(&self, rhs: &Self, choice: Choice) -> (Self, Choice) {
-        let actual_rhs = Self::conditional_select(
-            &Self::zero_with_precision(rhs.bits_precision()),
-            rhs,
-            choice,
-        );
-        let (res, borrow) = self.sbb(&actual_rhs, Limb::ZERO);
-        (res, Choice::from((borrow.0 & 1) as u8))
+    /// Perform in-place wrapping subtraction, returning the truthy value as the second element of
+    /// the tuple if an underflow has occurred.
+    pub(crate) fn conditional_sbb_assign(&mut self, rhs: &Self, choice: Choice) -> Choice {
+        debug_assert!(self.bits_precision() <= rhs.bits_precision());
+        let mask = Limb::conditional_select(&Limb::ZERO, &Limb::MAX, choice);
+        let mut borrow = Limb::ZERO;
+
+        for i in 0..self.nlimbs() {
+            let masked_rhs = *rhs.limbs.get(i).unwrap_or(&Limb::ZERO) & mask;
+            let (limb, b) = self.limbs[i].sbb(masked_rhs, borrow);
+            self.limbs[i] = limb;
+            borrow = b;
+        }
+
+        Choice::from((borrow.0 & 1) as u8)
     }
 }
 

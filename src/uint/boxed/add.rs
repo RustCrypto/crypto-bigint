@@ -3,7 +3,7 @@
 use core::ops::{Add, AddAssign};
 
 use crate::{BoxedUint, CheckedAdd, Limb, Wrapping, Zero};
-use subtle::{Choice, CtOption};
+use subtle::{Choice, ConditionallySelectable, CtOption};
 
 impl BoxedUint {
     /// Computes `a + b + carry`, returning the result along with the new carry.
@@ -15,7 +15,7 @@ impl BoxedUint {
     /// Computes `a + b + carry` in-place, returning the new carry.
     ///
     /// Panics if `rhs` has a larger precision than `self`.
-    #[inline(always)]
+    #[inline]
     pub fn adc_assign(&mut self, rhs: &Self, mut carry: Limb) -> Limb {
         debug_assert!(self.bits_precision() <= rhs.bits_precision());
 
@@ -33,16 +33,21 @@ impl BoxedUint {
         self.adc(rhs, Limb::ZERO).0
     }
 
-    /// Perform wrapping addition, returning the truthy value as the second element of the tuple
-    /// if an overflow has occurred.
-    pub(crate) fn conditional_wrapping_add(&self, rhs: &Self, choice: Choice) -> (Self, Choice) {
-        let actual_rhs = Self::conditional_select(
-            &Self::zero_with_precision(rhs.bits_precision()),
-            rhs,
-            choice,
-        );
-        let (sum, carry) = self.adc(&actual_rhs, Limb::ZERO);
-        (sum, Choice::from((carry.0 & 1) as u8))
+    /// Perform in-place wrapping addition, returning the truthy value as the second element of the
+    /// tuple if an overflow has occurred.
+    pub(crate) fn conditional_adc_assign(&mut self, rhs: &Self, choice: Choice) -> Choice {
+        debug_assert!(self.bits_precision() <= rhs.bits_precision());
+        let mask = Limb::conditional_select(&Limb::ZERO, &Limb::MAX, choice);
+        let mut carry = Limb::ZERO;
+
+        for i in 0..self.nlimbs() {
+            let masked_rhs = *rhs.limbs.get(i).unwrap_or(&Limb::ZERO) & mask;
+            let (limb, c) = self.limbs[i].adc(masked_rhs, carry);
+            self.limbs[i] = limb;
+            carry = c;
+        }
+
+        Choice::from((carry.0 & 1) as u8)
     }
 }
 
