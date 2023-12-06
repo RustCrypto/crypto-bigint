@@ -76,6 +76,18 @@ impl BoxedUint {
 
         (Self { limbs }, Limb(carry))
     }
+
+    /// Computes `self >> 1` in constant-time.
+    pub(crate) fn shl1(&self) -> Self {
+        // TODO(tarcieri): optimized implementation
+        self.shl_vartime(1)
+    }
+
+    /// Computes `self >> 1` in-place in constant-time.
+    pub(crate) fn shl1_assign(&mut self) {
+        // TODO(tarcieri): optimized implementation
+        *self = self.shl1();
+    }
 }
 
 impl Shl<u32> for BoxedUint {

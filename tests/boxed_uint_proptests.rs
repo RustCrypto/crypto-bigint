@@ -95,7 +95,37 @@ proptest! {
     }
 
     #[test]
+    fn checked_div((a, b) in uint_pair()) {
+        let actual = a.checked_div(&b);
+
+        if b.is_zero().into() {
+            prop_assert!(bool::from(actual.is_none()));
+        } else {
+            let a_bi = to_biguint(&a);
+            let b_bi = to_biguint(&b);
+            let expected = &a_bi / &b_bi;
+            prop_assert_eq!(expected, to_biguint(&actual.unwrap()));
+        }
+    }
+
+    #[test]
     fn div_rem((a, mut b) in uint_pair()) {
+        if b.is_zero().into() {
+            b = b.wrapping_add(&BoxedUint::one());
+        }
+
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+        let expected_quotient = &a_bi / &b_bi;
+        let expected_remainder = a_bi % b_bi;
+
+        let (actual_quotient, actual_remainder) = a.div_rem(&NonZero::new(b).unwrap());
+        prop_assert_eq!(expected_quotient, to_biguint(&actual_quotient));
+        prop_assert_eq!(expected_remainder, to_biguint(&actual_remainder));
+    }
+
+    #[test]
+    fn div_rem_vartime((a, mut b) in uint_pair()) {
         if b.is_zero().into() {
             b = b.wrapping_add(&BoxedUint::one());
         }
@@ -155,6 +185,19 @@ proptest! {
         let actual = a.mul(&b);
 
         prop_assert_eq!(expected, to_biguint(&actual));
+    }
+
+    #[test]
+    fn rem((a, b) in uint_pair()) {
+        if bool::from(!b.is_zero()) {
+            let a_bi = to_biguint(&a);
+            let b_bi = to_biguint(&b);
+
+            let expected = a_bi % b_bi;
+            let actual = a.rem(&NonZero::new(b).unwrap());
+
+            prop_assert_eq!(expected, to_biguint(&actual));
+        }
     }
 
     #[test]
