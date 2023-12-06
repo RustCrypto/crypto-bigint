@@ -27,7 +27,7 @@ mod rand;
 use crate::{Integer, Limb, NonZero, Uint, Word, Zero, U128, U64};
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{fmt, mem};
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
+use subtle::{Choice, ConstantTimeEq};
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -186,46 +186,6 @@ impl BoxedUint {
     /// Get the number of limbs in this [`BoxedUint`].
     pub fn nlimbs(&self) -> usize {
         self.limbs.len()
-    }
-
-    /// Conditionally select `a` or `b` in constant time depending on [`Choice`].
-    ///
-    /// NOTE: can't impl `subtle`'s [`ConditionallySelectable`] trait due to its `Copy` bound, so
-    /// this is an inherent function instead.
-    ///
-    /// Panics if `a` and `b` don't have the same precision.
-    pub fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        debug_assert_eq!(a.bits_precision(), b.bits_precision());
-        let mut limbs = vec![Limb::ZERO; a.nlimbs()].into_boxed_slice();
-
-        for i in 0..a.nlimbs() {
-            limbs[i] = Limb::conditional_select(&a.limbs[i], &b.limbs[i], choice);
-        }
-
-        Self { limbs }
-    }
-
-    /// Conditionally assign `other` to `self`, according to `choice`.
-    ///
-    /// This function should execute in constant time.
-    #[inline]
-    pub fn conditional_assign(&mut self, other: &Self, choice: Choice) {
-        debug_assert_eq!(self.bits_precision(), other.bits_precision());
-
-        for i in 0..self.nlimbs() {
-            self.limbs[i] = Limb::conditional_select(&self.limbs[i], &other.limbs[i], choice);
-        }
-    }
-
-    /// Conditionally swap `self` and `other` if `choice == 1`; otherwise,
-    /// reassign both unto themselves.
-    ///
-    /// This function should execute in constant time.
-    #[inline]
-    fn conditional_swap(a: &mut Self, b: &mut Self, choice: Choice) {
-        let t = a.clone();
-        a.conditional_assign(b, choice);
-        b.conditional_assign(&t, choice);
     }
 
     /// Widen this type's precision to the given number of bits.
@@ -507,16 +467,6 @@ mod tests {
     use super::BoxedUint;
     use crate::Word;
     use alloc::vec::Vec;
-    use subtle::Choice;
-
-    #[test]
-    fn conditional_select() {
-        let a = BoxedUint::zero_with_precision(128);
-        let b = BoxedUint::max(128);
-
-        assert_eq!(a, BoxedUint::conditional_select(&a, &b, Choice::from(0)));
-        assert_eq!(b, BoxedUint::conditional_select(&a, &b, Choice::from(1)));
-    }
 
     #[test]
     fn from_word_vec() {
