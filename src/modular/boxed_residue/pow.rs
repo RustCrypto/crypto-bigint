@@ -1,9 +1,8 @@
 //! Modular exponentiation support for [`BoxedResidue`].
 
 use super::{mul::MontgomeryMultiplier, BoxedResidue};
-use crate::{BoxedUint, Limb, PowBoundedExp, Word};
+use crate::{BoxedUint, Limb, PowBoundedExp};
 use alloc::vec::Vec;
-use subtle::ConstantTimeEq;
 
 impl BoxedResidue {
     /// Raises to the `exponent` power.
@@ -46,17 +45,12 @@ impl PowBoundedExp<BoxedUint> for BoxedResidue {
 fn pow_montgomery_form(
     x: &BoxedUint,
     exponent: &BoxedUint,
-    exponent_bits: u32,
+    _exponent_bits: u32,
     modulus: &BoxedUint,
     r: &BoxedUint,
     mod_neg_inv: Limb,
 ) -> BoxedUint {
-    if exponent_bits == 0 {
-        return r.clone(); // 1 in Montgomery form
-    }
-
     const WINDOW: u32 = 4;
-    const WINDOW_MASK: Word = (1 << WINDOW) - 1;
 
     let mut multiplier = MontgomeryMultiplier::new(modulus, mod_neg_inv);
 
@@ -69,43 +63,23 @@ fn pow_montgomery_form(
         powers.push(multiplier.mul(&powers[i - 1], x));
     }
 
-    let starting_limb = ((exponent_bits - 1) / Limb::BITS) as usize;
-    let starting_bit_in_limb = (exponent_bits - 1) % Limb::BITS;
-    let starting_window = starting_bit_in_limb / WINDOW;
-    let starting_window_mask = (1 << (starting_bit_in_limb % WINDOW + 1)) - 1;
+    // initialize z = 1 (Montgomery 1)
+    let mut z = powers[0].clone();
 
-    let mut z = r.clone(); // 1 in Montgomery form
-    let mut power = powers[0].clone();
-
-    for limb_num in (0..=starting_limb).rev() {
-        let w = exponent.as_limbs()[limb_num].0;
-
-        let mut window_num = if limb_num == starting_limb {
-            starting_window + 1
-        } else {
-            Limb::BITS / WINDOW
-        };
-
-        while window_num > 0 {
-            window_num -= 1;
-
-            let mut idx = (w >> (window_num * WINDOW)) & WINDOW_MASK;
-
-            if limb_num == starting_limb && window_num == starting_window {
-                idx &= starting_window_mask;
-            } else {
-                for _ in 1..=WINDOW {
-                    multiplier.square_assign(&mut z);
-                }
+    // same windowed exponent, but with Montgomery multiplications
+    for i in (0..exponent.limbs.len()).rev() {
+        let mut yi = exponent.limbs[i];
+        let mut j = 0;
+        while j < Limb::BITS {
+            if i != exponent.limbs.len() - 1 || j != 0 {
+                multiplier.square_assign(&mut z);
+                multiplier.square_assign(&mut z);
+                multiplier.square_assign(&mut z);
+                multiplier.square_assign(&mut z);
             }
-
-            // Constant-time lookup in the array of powers
-            power.limbs.copy_from_slice(&powers[0].limbs);
-            for i in 1..(1 << WINDOW) {
-                power.conditional_assign(&powers[i as usize], i.ct_eq(&idx));
-            }
-
-            multiplier.mul_assign(&mut z, &power);
+            multiplier.mul_assign(&mut z, &powers[(yi.0 >> (Limb::BITS - WINDOW)) as usize]);
+            yi <<= WINDOW;
+            j += WINDOW;
         }
     }
 
