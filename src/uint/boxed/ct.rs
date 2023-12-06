@@ -60,17 +60,17 @@ impl BoxedUint {
     /// intermediate [`CtOption`] value and therefore isn't fully constant time, but the best we can
     /// do without upstream changes to `subtle` (see dalek-cryptography/subtle#94).
     ///
-    /// Workaround due to `Copy` in [`subtle::ConditionallySelectable`] supertrait bounds.
-    pub fn cond_map<C, F, T>(&self, condition: C, f: F) -> CtOption<T>
+    /// Workaround due to `Copy` in [`ConditionallySelectable`] supertrait bounds.
+    pub fn conditional_map<C, F, T>(&self, condition: C, f: F) -> CtOption<T>
     where
         C: Fn(&Self) -> CtOption<Self>,
         F: Fn(Self) -> T,
     {
-        let cond_val = condition(self);
-        let is_some = cond_val.is_some();
+        let conditional_val = condition(self);
+        let is_some = conditional_val.is_some();
 
         let placeholder = Self::zero_with_precision(self.bits_precision());
-        let value = Option::<Self>::from(cond_val).unwrap_or(placeholder);
+        let value = Option::<Self>::from(conditional_val).unwrap_or(placeholder);
         debug_assert_eq!(self.bits_precision(), value.bits_precision());
         CtOption::new(f(value), is_some)
     }
@@ -82,24 +82,24 @@ impl BoxedUint {
     /// intermediate [`CtOption`] value and therefore isn't fully constant time, but the best we can
     /// do without upstream changes to `subtle` (see dalek-cryptography/subtle#94).
     ///
-    /// Workaround due to `Copy` in [`subtle::ConditionallySelectable`] supertrait bounds.
-    pub fn cond_and_then<C, F>(&self, condition: C, f: F) -> CtOption<Self>
+    /// Workaround due to `Copy` in [`ConditionallySelectable`] supertrait bounds.
+    pub fn conditional_and_then<C, F>(&self, condition: C, f: F) -> CtOption<Self>
     where
         C: Fn(&Self) -> CtOption<Self>,
         F: Fn(Self) -> CtOption<Self>,
     {
-        let cond_val = condition(self);
-        let mut is_some = cond_val.is_some();
+        let conditional_val = condition(self);
+        let mut is_some = conditional_val.is_some();
 
         let placeholder = Self::zero_with_precision(self.bits_precision());
-        let value = Option::<Self>::from(cond_val).unwrap_or(placeholder);
+        let value = Option::<Self>::from(conditional_val).unwrap_or(placeholder);
         debug_assert_eq!(self.bits_precision(), value.bits_precision());
 
-        let cond_val = f(value);
-        is_some &= cond_val.is_some();
+        let conditional_val = f(value);
+        is_some &= conditional_val.is_some();
 
         let placeholder = Self::zero_with_precision(self.bits_precision());
-        let value = Option::from(cond_val).unwrap_or(placeholder);
+        let value = Option::from(conditional_val).unwrap_or(placeholder);
         debug_assert_eq!(self.bits_precision(), value.bits_precision());
 
         CtOption::new(value, is_some)
@@ -121,11 +121,11 @@ mod tests {
     }
 
     #[test]
-    fn cond_map_some() {
+    fn conditional_map_some() {
         let n = BoxedUint::one();
 
         let ret = n
-            .cond_map(
+            .conditional_map(
                 |n| CtOption::new(n.clone(), 1u8.into()),
                 |n| n.wrapping_add(&BoxedUint::one()),
             )
@@ -135,10 +135,10 @@ mod tests {
     }
 
     #[test]
-    fn cond_map_none() {
+    fn conditional_map_none() {
         let n = BoxedUint::one();
 
-        let ret = n.cond_map(
+        let ret = n.conditional_map(
             |n| CtOption::new(n.clone(), 0u8.into()),
             |n| n.wrapping_add(&BoxedUint::one()),
         );
@@ -147,11 +147,11 @@ mod tests {
     }
 
     #[test]
-    fn cond_and_then_all_some() {
+    fn conditional_and_then_all_some() {
         let n = BoxedUint::one();
 
         let ret = n
-            .cond_and_then(
+            .conditional_and_then(
                 |n| CtOption::new(n.clone(), 1u8.into()),
                 |n| CtOption::new(n.wrapping_add(&BoxedUint::one()), 1u8.into()),
             )
@@ -160,13 +160,13 @@ mod tests {
         assert_eq!(ret, BoxedUint::from(2u8));
     }
 
-    macro_rules! cond_and_then_none_test {
+    macro_rules! conditional_and_then_none_test {
         ($name:ident, $a:expr, $b:expr) => {
             #[test]
             fn $name() {
                 let n = BoxedUint::one();
 
-                let ret = n.cond_and_then(
+                let ret = n.conditional_and_then(
                     |n| CtOption::new(n.clone(), $a.into()),
                     |n| CtOption::new(n.wrapping_add(&BoxedUint::one()), $b.into()),
                 );
@@ -176,7 +176,7 @@ mod tests {
         };
     }
 
-    cond_and_then_none_test!(cond_and_then_none_some, 0, 1);
-    cond_and_then_none_test!(cond_and_then_some_none, 1, 0);
-    cond_and_then_none_test!(cond_and_then_none_none, 0, 0);
+    conditional_and_then_none_test!(conditional_and_then_none_some, 0, 1);
+    conditional_and_then_none_test!(conditional_and_then_some_none, 1, 0);
+    conditional_and_then_none_test!(conditional_and_then_none_none, 0, 0);
 }
