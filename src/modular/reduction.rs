@@ -15,7 +15,7 @@ const fn muladdcarry(x: Word, y: Word, z: Word, w: Word) -> (Word, Word) {
     ((res >> Word::BITS) as Word, res as Word)
 }
 
-/// Impl the core Montgomery reduction algorithm.
+/// Implement the Montgomery reduction algorithm.
 ///
 /// This is implemented as a macro to abstract over `const fn` and boxed use cases, since the latter
 /// needs mutable references and thus the unstable `const_mut_refs` feature (rust-lang/rust#57349).
@@ -74,7 +74,6 @@ pub const fn montgomery_reduction<const LIMBS: usize>(
 ///
 /// This version writes the result into the provided [`BoxedUint`].
 #[cfg(feature = "alloc")]
-#[inline]
 pub(crate) fn montgomery_reduction_boxed_mut(
     x: &mut BoxedUint,
     modulus: &BoxedUint,
