@@ -1,11 +1,58 @@
 //! Constant-time helper functions.
-//!
-//! These largely exist as a workaround for the `Copy` bound on [`subtle::ConditionallySelectable`].
 
 use super::BoxedUint;
-use subtle::CtOption;
+use crate::Limb;
+use subtle::{Choice, ConditionallySelectable, CtOption};
 
 impl BoxedUint {
+    /// Conditionally select `a` or `b` in constant time depending on [`Choice`].
+    ///
+    /// NOTE: can't impl `subtle`'s [`ConditionallySelectable`] trait due to its `Copy` bound, so
+    /// this is an inherent function instead.
+    ///
+    /// Panics if `a` and `b` don't have the same precision.
+    pub fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
+        debug_assert_eq!(a.bits_precision(), b.bits_precision());
+        let mut limbs = vec![Limb::ZERO; a.nlimbs()].into_boxed_slice();
+
+        for i in 0..a.nlimbs() {
+            limbs[i] = Limb::conditional_select(&a.limbs[i], &b.limbs[i], choice);
+        }
+
+        Self { limbs }
+    }
+
+    /// Conditionally assign `other` to `self`, according to `choice`.
+    ///
+    /// NOTE: can't impl `subtle`'s [`ConditionallySelectable`] trait due to its `Copy` bound, so
+    /// this is an inherent function instead.
+    ///
+    /// Panics if `a` and `b` don't have the same precision.
+    #[inline]
+    pub fn conditional_assign(&mut self, other: &Self, choice: Choice) {
+        debug_assert_eq!(self.bits_precision(), other.bits_precision());
+
+        for i in 0..self.nlimbs() {
+            self.limbs[i].conditional_assign(&other.limbs[i], choice);
+        }
+    }
+
+    /// Conditionally swap `self` and `other` if `choice == 1`; otherwise,
+    /// reassign both unto themselves.
+    ///
+    /// NOTE: can't impl `subtle`'s [`ConditionallySelectable`] trait due to its `Copy` bound, so
+    /// this is an inherent function instead.
+    ///
+    /// Panics if `a` and `b` don't have the same precision.
+    #[inline]
+    pub fn conditional_swap(a: &mut Self, b: &mut Self, choice: Choice) {
+        debug_assert_eq!(a.bits_precision(), b.bits_precision());
+
+        for i in 0..a.nlimbs() {
+            Limb::conditional_swap(&mut a.limbs[i], &mut b.limbs[i], choice);
+        }
+    }
+
     /// Conditional `map`: workaround which provides a [`CtOption::map`]-like API.
     ///
     /// Ensures both functions are called regardless of whether the first returns some/none with an
@@ -62,7 +109,16 @@ impl BoxedUint {
 #[cfg(test)]
 mod tests {
     use super::BoxedUint;
-    use subtle::CtOption;
+    use subtle::{Choice, CtOption};
+
+    #[test]
+    fn conditional_select() {
+        let a = BoxedUint::zero_with_precision(128);
+        let b = BoxedUint::max(128);
+
+        assert_eq!(a, BoxedUint::conditional_select(&a, &b, Choice::from(0)));
+        assert_eq!(b, BoxedUint::conditional_select(&a, &b, Choice::from(1)));
+    }
 
     #[test]
     fn cond_map_some() {
