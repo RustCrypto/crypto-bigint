@@ -58,20 +58,18 @@ impl BoxedResidueParams {
         .expect("modulus ensured non-zero");
 
         let r = BoxedUint::max(bits_precision)
-            .rem_vartime(&modulus_nz)
+            .rem(&modulus_nz)
             .wrapping_add(&BoxedUint::one());
 
         let r2 = r
             .square()
-            .rem_vartime(&modulus_nz.widen(bits_precision * 2)) // TODO(tarcieri): constant time
+            .rem(&modulus_nz.widen(bits_precision * 2))
             .shorten(bits_precision);
 
         // Since we are calculating the inverse modulo (Word::MAX+1),
         // we can take the modulo right away and calculate the inverse of the first limb only.
         let modulus_lo = BoxedUint::from(modulus.limbs.get(0).copied().unwrap_or_default());
-
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(modulus_lo.inv_mod2k(Word::BITS).limbs[0].0));
-
         let r3 = montgomery_reduction_boxed(&mut r2.square(), &modulus, mod_neg_inv);
 
         let params = Self {

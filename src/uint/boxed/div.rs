@@ -2,13 +2,25 @@
 
 use crate::{BoxedUint, CheckedDiv, Limb, NonZero, Wrapping};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
-use subtle::{Choice, ConstantTimeEq, CtOption};
+use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
 impl BoxedUint {
+    /// Computes self / rhs, returns the quotient, remainder.
+    pub fn div_rem(&self, rhs: &NonZero<Self>) -> (Self, Self) {
+        // Since `rhs` is nonzero, this should always hold.
+        self.div_rem_unchecked(rhs.as_ref())
+    }
+
+    /// Computes self % rhs, returns the remainder.
+    pub fn rem(&self, rhs: &NonZero<Self>) -> Self {
+        self.div_rem(rhs).1
+    }
+
     /// Computes self / rhs, returns the quotient, remainder.
     ///
     /// Variable-time with respect to `rhs`
     pub fn div_rem_vartime(&self, rhs: &NonZero<Self>) -> (Self, Self) {
+        // Since `rhs` is nonzero, this should always hold.
         self.div_rem_vartime_unchecked(rhs.as_ref())
     }
 
@@ -45,23 +57,60 @@ impl BoxedUint {
     ///
     /// Panics if `rhs == 0`.
     pub fn wrapping_div(&self, rhs: &NonZero<Self>) -> Self {
-        self.div_rem_vartime(rhs).0
+        self.div_rem(rhs).0
     }
 
     /// Perform checked division, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
     pub fn checked_div(&self, rhs: &Self) -> CtOption<Self> {
-        CtOption::new(self.div_rem_vartime_unchecked(rhs).0, rhs.is_zero())
+        let q = self.div_rem_unchecked(rhs).0;
+        CtOption::new(q, !rhs.is_zero())
     }
 
-    /// Compute divison and remainder without checking `rhs` is zero.
-    fn div_rem_vartime_unchecked(&self, rhs: &Self) -> (Self, Self) {
+    /// Computes `self` / `rhs`, returns the quotient (q), remainder (r) without checking if `rhs`
+    /// is zero.
+    ///
+    /// This function is constant-time with respect to both `self` and `rhs`.
+    fn div_rem_unchecked(&self, rhs: &Self) -> (Self, Self) {
         debug_assert_eq!(self.bits_precision(), rhs.bits_precision());
         let mb = rhs.bits();
+        let bits_precision = self.bits_precision();
+        let mut rem = self.clone();
+        let mut quo = Self::zero_with_precision(bits_precision);
+        let mut c = rhs.shl(bits_precision - mb);
+        let mut i = bits_precision;
+        let mut done = Choice::from(0u8);
+
+        loop {
+            let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
+            rem = Self::conditional_select(&r, &rem, Choice::from((borrow.0 & 1) as u8) | done);
+            r = quo.bitor(&Self::one());
+            quo = Self::conditional_select(&r, &quo, Choice::from((borrow.0 & 1) as u8) | done);
+            if i == 0 {
+                break;
+            }
+            i -= 1;
+            // when `i < mb`, the computation is actually done, so we ensure `quo` and `rem`
+            // aren't modified further (but do the remaining iterations anyway to be constant-time)
+            done = i.ct_lt(&mb);
+            c.shr1_assign();
+            quo = Self::conditional_select(&quo.shl1(), &quo, done);
+        }
+
+        (quo, rem)
+    }
+
+    /// Computes `self` / `rhs`, returns the quotient (q), remainder (r) without checking if `rhs`
+    /// is zero.
+    ///
+    /// This function operates in variable-time.
+    fn div_rem_vartime_unchecked(&self, rhs: &Self) -> (Self, Self) {
+        debug_assert_eq!(self.bits_precision(), rhs.bits_precision());
+        let mb = rhs.bits_vartime();
         let mut bd = self.bits_precision() - mb;
         let mut remainder = self.clone();
         let mut quotient = Self::zero_with_precision(self.bits_precision());
-        let mut c = rhs.shl(bd);
+        let mut c = rhs.shl_vartime(bd);
 
         loop {
             let (mut r, borrow) = remainder.sbb(&c, Limb::ZERO);
@@ -74,7 +123,7 @@ impl BoxedUint {
             }
             bd -= 1;
             c.shr1_assign();
-            quotient = quotient.shl(1);
+            quotient.shl1_assign();
         }
 
         (quotient, remainder)
@@ -125,7 +174,7 @@ impl Div<NonZero<BoxedUint>> for BoxedUint {
     type Output = BoxedUint;
 
     fn div(self, rhs: NonZero<BoxedUint>) -> Self::Output {
-        self.div_rem_vartime(&rhs).0
+        self.div_rem(&rhs).0
     }
 }
 
@@ -190,7 +239,7 @@ impl Rem<&NonZero<BoxedUint>> for &BoxedUint {
 
     #[inline]
     fn rem(self, rhs: &NonZero<BoxedUint>) -> Self::Output {
-        self.rem_vartime(rhs)
+        self.rem(rhs)
     }
 }
 
@@ -199,7 +248,7 @@ impl Rem<&NonZero<BoxedUint>> for BoxedUint {
 
     #[inline]
     fn rem(self, rhs: &NonZero<BoxedUint>) -> Self::Output {
-        self.rem_vartime(rhs)
+        Self::rem(&self, rhs)
     }
 }
 
@@ -208,7 +257,7 @@ impl Rem<NonZero<BoxedUint>> for &BoxedUint {
 
     #[inline]
     fn rem(self, rhs: NonZero<BoxedUint>) -> Self::Output {
-        self.rem_vartime(&rhs)
+        self.rem(&rhs)
     }
 }
 
@@ -217,25 +266,32 @@ impl Rem<NonZero<BoxedUint>> for BoxedUint {
 
     #[inline]
     fn rem(self, rhs: NonZero<BoxedUint>) -> Self::Output {
-        self.rem_vartime(&rhs)
+        self.rem(&rhs)
     }
 }
 
 impl RemAssign<&NonZero<BoxedUint>> for BoxedUint {
     fn rem_assign(&mut self, rhs: &NonZero<BoxedUint>) {
-        *self = self.rem_vartime(rhs)
+        *self = Self::rem(self, rhs)
     }
 }
 
 impl RemAssign<NonZero<BoxedUint>> for BoxedUint {
     fn rem_assign(&mut self, rhs: NonZero<BoxedUint>) {
-        *self = self.rem_vartime(&rhs)
+        *self = Self::rem(self, &rhs)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{BoxedUint, NonZero};
+
+    #[test]
+    fn rem() {
+        let n = BoxedUint::from(0xFFEECCBBAA99887766u128);
+        let p = NonZero::new(BoxedUint::from(997u128)).unwrap();
+        assert_eq!(BoxedUint::from(648u128), n.rem(&p));
+    }
 
     #[test]
     fn rem_vartime() {
