@@ -1,5 +1,6 @@
 use criterion::{
-    criterion_group, criterion_main, measurement::Measurement, BatchSize, BenchmarkGroup, Criterion,
+    black_box, criterion_group, criterion_main, measurement::Measurement, BatchSize,
+    BenchmarkGroup, Criterion,
 };
 use crypto_bigint::{
     modular::{DynResidue, DynResidueParams},
@@ -19,7 +20,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                 let y = DynResidue::new(&U256::random(&mut OsRng), params);
                 (x, y)
             },
-            |(x, y)| x * y,
+            |(x, y)| black_box(x * y),
             BatchSize::SmallInput,
         )
     });
@@ -34,7 +35,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                 let p = U256::random(&mut OsRng) | (U256::ONE << (U256::BITS - 1));
                 (x_m, p)
             },
-            |(x, p)| x.pow(&p),
+            |(x, p)| black_box(x.pow(&p)),
             BatchSize::SmallInput,
         )
     });
@@ -58,9 +59,9 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                         bases_and_exponents
                     },
                     |bases_and_exponents| {
-                        DynResidue::<{ U256::LIMBS }>::multi_exponentiate(
+                        black_box(DynResidue::<{ U256::LIMBS }>::multi_exponentiate(
                             bases_and_exponents.as_slice(),
-                        )
+                        ))
                     },
                     BatchSize::SmallInput,
                 )
@@ -73,7 +74,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
     group.bench_function("DynResidueParams creation", |b| {
         b.iter_batched(
             || U256::random(&mut OsRng) | U256::ONE,
-            |modulus| DynResidueParams::new(&modulus),
+            |modulus| black_box(DynResidueParams::new(&modulus)),
             BatchSize::SmallInput,
         )
     });
@@ -82,7 +83,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
     group.bench_function("DynResidue creation", |b| {
         b.iter_batched(
             || U256::random(&mut OsRng),
-            |x| DynResidue::new(&x, params),
+            |x| black_box(DynResidue::new(&x, params)),
             BatchSize::SmallInput,
         )
     });
@@ -91,7 +92,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
     group.bench_function("DynResidue retrieve", |b| {
         b.iter_batched(
             || DynResidue::new(&U256::random(&mut OsRng), params),
-            |x| x.retrieve(),
+            |x| black_box(x.retrieve()),
             BatchSize::SmallInput,
         )
     });
