@@ -367,6 +367,13 @@ impl<T: Serialize + Zero> Serialize for NonZero<T> {
     }
 }
 
+#[cfg(feature = "zeroize")]
+impl<T: zeroize::Zeroize + Zero> zeroize::Zeroize for NonZero<T> {
+    fn zeroize(&mut self) {
+        self.0.zeroize();
+    }
+}
+
 #[cfg(all(test, feature = "serde"))]
 #[allow(clippy::unwrap_used)]
 mod tests {
