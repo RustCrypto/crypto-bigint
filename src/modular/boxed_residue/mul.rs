@@ -196,6 +196,11 @@ pub(crate) fn montgomery_mul(z: &mut [Word], x: &[Word], y: &[Word], m: &[Word],
     let mut c: Word = 0;
     let n = m.len();
 
+    let pre_cond = z.len() > n && z[n..].len() == n && x.len() == n && y.len() == n && m.len() == n;
+    if !pre_cond {
+        panic!("invalid inputs");
+    }
+
     for i in 0..n {
         let c2 = add_mul_vvw(&mut z[i..n + i], x, y[i]);
         let t = z[i].wrapping_mul(k);
