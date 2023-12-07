@@ -8,6 +8,11 @@ use crate::{
 use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
 
+#[cfg(feature = "alloc")]
+mod karatsuba;
+#[cfg(feature = "alloc")]
+mod schoolbook;
+
 /// Impl the core schoolbook multiplication algorithm.
 ///
 /// This is implemented as a macro to abstract over `const fn` and boxed use cases, since the latter
@@ -270,10 +275,14 @@ impl<const LIMBS: usize> WrappingMul for Uint<LIMBS> {
 
 /// Wrapper function used by `BoxedUint`
 #[cfg(feature = "alloc")]
-pub(crate) fn mul_limbs(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) {
+pub(crate) fn mul_limbs(lhs: &[Word], rhs: &[Word], out: &mut [Word]) {
     debug_assert_eq!(lhs.len() + rhs.len(), out.len());
-    let (lo, hi) = out.split_at_mut(lhs.len());
-    impl_schoolbook_multiplication!(lhs, rhs, lo, hi);
+    if lhs.len() <= 32 {
+        schoolbook::mul(lhs, rhs, out);
+    } else {
+        karatsuba::mul(lhs, rhs, out);
+    }
+    // TODO: use toom3 for > 256
 }
 
 #[cfg(test)]

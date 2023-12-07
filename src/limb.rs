@@ -41,6 +41,14 @@ pub type Word = u32;
 #[cfg(target_pointer_width = "32")]
 pub type WideWord = u64;
 
+/// Signed integer type.
+#[cfg(target_pointer_width = "32")]
+pub type SignedWord = i32;
+
+/// Signed wide integer type: double the width of [`Word`].
+#[cfg(target_pointer_width = "32")]
+pub type SignedWideWord = i64;
+
 //
 // 64-bit definitions
 //
@@ -52,6 +60,14 @@ pub type Word = u64;
 /// Wide integer type: double the width of [`Word`].
 #[cfg(target_pointer_width = "64")]
 pub type WideWord = u128;
+
+/// Signed integer type.
+#[cfg(target_pointer_width = "64")]
+pub type SignedWord = i64;
+
+/// Signed wide integer type: double the width of [`Word`].
+#[cfg(target_pointer_width = "64")]
+pub type SignedWideWord = i128;
 
 /// Big integers are represented as an array of smaller CPU word-size integers
 /// called "limbs".
