@@ -1,5 +1,6 @@
 use criterion::{
-    criterion_group, criterion_main, measurement::Measurement, BatchSize, BenchmarkGroup, Criterion,
+    black_box, criterion_group, criterion_main, measurement::Measurement, BatchSize,
+    BenchmarkGroup, Criterion,
 };
 use crypto_bigint::{
     modular::{BoxedResidue, BoxedResidueParams},
@@ -8,7 +9,7 @@ use crypto_bigint::{
 use rand_core::OsRng;
 
 /// Size of `BoxedUint` to use in benchmark.
-const UINT_BITS: u32 = 256;
+const UINT_BITS: u32 = 4096;
 
 fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     let params = BoxedResidueParams::new(
@@ -22,7 +23,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                 let y = BoxedResidue::new(BoxedUint::random(&mut OsRng, UINT_BITS), params.clone());
                 (x, y)
             },
-            |(x, y)| x * y,
+            |(x, y)| black_box(x * y),
             BatchSize::SmallInput,
         )
     });
@@ -38,7 +39,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                     | (BoxedUint::one_with_precision(UINT_BITS) << (UINT_BITS - 1));
                 (x_m, p)
             },
-            |(x, p)| x.pow(&p),
+            |(x, p)| black_box(x.pow(&p)),
             BatchSize::SmallInput,
         )
     });
@@ -60,7 +61,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
     group.bench_function("BoxedResidue creation", |b| {
         b.iter_batched(
             || BoxedUint::random(&mut OsRng, UINT_BITS),
-            |x| BoxedResidue::new(x, params.clone()),
+            |x| black_box(BoxedResidue::new(x, params.clone())),
             BatchSize::SmallInput,
         )
     });
@@ -72,7 +73,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
     group.bench_function("BoxedResidue retrieve", |b| {
         b.iter_batched(
             || BoxedResidue::new(BoxedUint::random(&mut OsRng, UINT_BITS), params.clone()),
-            |x| x.retrieve(),
+            |x| black_box(x.retrieve()),
             BatchSize::SmallInput,
         )
     });
