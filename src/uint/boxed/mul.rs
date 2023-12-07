@@ -1,6 +1,6 @@
 //! [`BoxedUint`] multiplication operations.
 
-use crate::{uint::mul::mul_limbs, BoxedUint, CheckedMul, Limb, WideningMul, Wrapping, Zero};
+use crate::{uint::mul::mul_limbs, BoxedUint, CheckedMul, WideningMul, Wrapping, Zero};
 use core::ops::{Mul, MulAssign};
 use subtle::{Choice, CtOption};
 
@@ -9,14 +9,19 @@ impl BoxedUint {
     ///
     /// Returns a widened output with a limb count equal to the sums of the input limb counts.
     pub fn mul(&self, rhs: &Self) -> Self {
-        let mut limbs = vec![Limb::ZERO; self.nlimbs() + rhs.nlimbs()];
-        mul_limbs(&self.limbs, &rhs.limbs, &mut limbs);
+        let mut limbs = vec![0; self.nlimbs() + rhs.nlimbs()];
+        mul_limbs(self.as_words(), rhs.as_words(), &mut limbs);
         limbs.into()
     }
 
     /// Perform wrapping multiplication, wrapping to the width of `self`.
     pub fn wrapping_mul(&self, rhs: &Self) -> Self {
         self.mul(rhs).shorten(self.bits_precision())
+    }
+
+    #[inline(never)]
+    fn wrapping_mul_assign(&mut self, rhs: &Self) {
+        *self = self.wrapping_mul(rhs);
     }
 
     /// Multiply `self` by itself.
@@ -103,13 +108,13 @@ impl Mul<&Wrapping<BoxedUint>> for &Wrapping<BoxedUint> {
 
 impl MulAssign<Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     fn mul_assign(&mut self, other: Wrapping<BoxedUint>) {
-        *self = Wrapping(self.0.wrapping_mul(&other.0));
+        self.0.wrapping_mul_assign(&other.0);
     }
 }
 
 impl MulAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     fn mul_assign(&mut self, other: &Wrapping<BoxedUint>) {
-        *self = Wrapping(self.0.wrapping_mul(&other.0));
+        self.0.wrapping_mul_assign(&other.0);
     }
 }
 

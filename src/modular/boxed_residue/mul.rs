@@ -237,13 +237,11 @@ fn add_mul_vvw(z: &mut [Word], x: &[Word], y: Word) -> Word {
 #[inline(always)]
 fn sub_vv(z: &mut [Word], x: &[Word], y: &[Word]) -> Word {
     let mut c = 0;
-    for (i, (&xi, &yi)) in x.iter().zip(y.iter()).enumerate().take(z.len()) {
-        let zi = xi.wrapping_sub(yi).wrapping_sub(c);
-        z[i] = zi;
+    for ((&xi, &yi), zi) in x.iter().zip(y.iter()).zip(z.iter_mut()) {
+        *zi = xi.wrapping_sub(yi).wrapping_sub(c);
         // see "Hacker's Delight", section 2-12 (overflow detection)
-        c = ((yi & !xi) | ((yi | !xi) & zi)) >> (Word::BITS - 1)
+        c = ((yi & !xi) | ((yi | !xi) & *zi)) >> (Word::BITS - 1)
     }
-
     c
 }
 
