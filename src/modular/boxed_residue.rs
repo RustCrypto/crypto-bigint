@@ -46,13 +46,12 @@ impl BoxedResidueParams {
     /// TODO(tarcieri): DRY out with `DynResidueParams::new`?
     pub fn new(modulus: BoxedUint) -> CtOption<Self> {
         let bits_precision = modulus.bits_precision();
-        let is_odd = modulus.is_odd();
 
         // Use a surrogate value of `1` in case a modulus of `0` is passed.
         // This will be rejected by the `is_odd` check above, which will fail and return `None`.
         let modulus_nz = NonZero::new(BoxedUint::conditional_select(
             &modulus,
-            &BoxedUint::one_with_precision(modulus.bits_precision()),
+            &BoxedUint::one_with_precision(bits_precision),
             modulus.is_zero(),
         ))
         .expect("modulus ensured non-zero");
@@ -65,6 +64,46 @@ impl BoxedResidueParams {
             .square()
             .rem(&modulus_nz.widen(bits_precision * 2))
             .shorten(bits_precision);
+
+        Self::new_inner(modulus, r, r2)
+    }
+
+    /// Instantiates a new set of [`BoxedResidueParams`] representing the given `modulus`, which
+    /// must be odd. This version operates in variable-time with respect to the modulus.
+    ///
+    /// Returns `None` if the provided modulus is not odd.
+    /// TODO(tarcieri): DRY out with `DynResidueParams::new`?
+    pub fn new_vartime(modulus: BoxedUint) -> Option<Self> {
+        if modulus.is_even().into() {
+            return None;
+        }
+
+        let bits_precision = modulus.bits_precision();
+
+        // Use a surrogate value of `1` in case a modulus of `0` is passed.
+        // This will be rejected by the `is_odd` check above, which will fail and return `None`.
+        let modulus_nz = NonZero::new(BoxedUint::conditional_select(
+            &modulus,
+            &BoxedUint::one_with_precision(bits_precision),
+            modulus.is_zero(),
+        ))
+        .expect("modulus ensured non-zero");
+
+        let r = BoxedUint::max(bits_precision)
+            .rem_vartime(&modulus_nz)
+            .wrapping_add(&BoxedUint::one());
+
+        let r2 = r
+            .square()
+            .rem_vartime(&modulus_nz.widen(bits_precision * 2))
+            .shorten(bits_precision);
+
+        Self::new_inner(modulus, r, r2).into()
+    }
+
+    /// Common functionality of `new` and `new_vartime`.
+    fn new_inner(modulus: BoxedUint, r: BoxedUint, r2: BoxedUint) -> CtOption<Self> {
+        let is_odd = modulus.is_odd();
 
         // Since we are calculating the inverse modulo (Word::MAX+1),
         // we can take the modulo right away and calculate the inverse of the first limb only.
