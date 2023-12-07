@@ -73,17 +73,25 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                 );
                 (x_m, p)
             },
-            |(x, p)| x.modpow(&p, &modulus),
+            |(x, p)| black_box(x.modpow(&p, &modulus)),
             BatchSize::SmallInput,
         )
     });
 }
 
 fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
-    group.bench_function("BoxedResidueParams creation", |b| {
+    group.bench_function("BoxedResidueParams::new", |b| {
         b.iter_batched(
             || BoxedUint::random(&mut OsRng, UINT_BITS) | BoxedUint::one_with_precision(UINT_BITS),
-            |modulus| BoxedResidueParams::new(modulus),
+            |modulus| black_box(BoxedResidueParams::new(modulus)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("BoxedResidueParams::new_vartime", |b| {
+        b.iter_batched(
+            || BoxedUint::random(&mut OsRng, UINT_BITS) | BoxedUint::one_with_precision(UINT_BITS),
+            |modulus| black_box(BoxedResidueParams::new_vartime(modulus)),
             BatchSize::SmallInput,
         )
     });
@@ -92,7 +100,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
         BoxedUint::random(&mut OsRng, UINT_BITS) | BoxedUint::one_with_precision(UINT_BITS),
     )
     .unwrap();
-    group.bench_function("BoxedResidue creation", |b| {
+    group.bench_function("BoxedResidue::new", |b| {
         b.iter_batched(
             || BoxedUint::random(&mut OsRng, UINT_BITS),
             |x| black_box(BoxedResidue::new(x, params.clone())),
@@ -104,7 +112,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
         BoxedUint::random(&mut OsRng, UINT_BITS) | BoxedUint::one_with_precision(UINT_BITS),
     )
     .unwrap();
-    group.bench_function("BoxedResidue retrieve", |b| {
+    group.bench_function("BoxedResidue::retrieve", |b| {
         b.iter_batched(
             || BoxedResidue::new(BoxedUint::random(&mut OsRng, UINT_BITS), params.clone()),
             |x| black_box(x.retrieve()),
