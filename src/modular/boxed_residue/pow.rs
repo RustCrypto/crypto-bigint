@@ -8,7 +8,9 @@ use subtle::ConstantTimeEq;
 impl BoxedResidue {
     /// Raises to the `exponent` power.
     pub fn pow(&self, exponent: &BoxedUint) -> Self {
-        self.pow_bounded_exp(exponent, exponent.bits_precision())
+        let ret = self.pow_bounded_exp(exponent, exponent.bits_precision());
+        debug_assert!(ret.retrieve() < self.residue_params.modulus);
+        ret
     }
 
     /// Raises to the `exponent` power,

@@ -6,10 +6,15 @@ use crypto_bigint::{
     modular::{BoxedResidue, BoxedResidueParams},
     BoxedUint,
 };
+use num_bigint::BigUint;
 use rand_core::OsRng;
 
 /// Size of `BoxedUint` to use in benchmark.
 const UINT_BITS: u32 = 4096;
+
+fn to_biguint(uint: &BoxedUint) -> BigUint {
+    BigUint::from_bytes_be(&uint.to_be_bytes())
+}
 
 fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     let params = BoxedResidueParams::new(
@@ -28,6 +33,19 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         )
     });
 
+    let modulus = to_biguint(params.modulus());
+    group.bench_function("multiplication, BigUint*BigUint (num-bigint-dig)", |b| {
+        b.iter_batched(
+            || {
+                let x = to_biguint(&BoxedUint::random(&mut OsRng, UINT_BITS)) % &modulus;
+                let y = to_biguint(&BoxedUint::random(&mut OsRng, UINT_BITS)) % &modulus;
+                (x, y)
+            },
+            |(x, y)| x * y % &modulus,
+            BatchSize::SmallInput,
+        )
+    });
+
     let m = BoxedUint::random(&mut OsRng, UINT_BITS) | BoxedUint::one_with_precision(UINT_BITS);
     let params = BoxedResidueParams::new(m).unwrap();
     group.bench_function("modpow, BoxedUint^BoxedUint", |b| {
@@ -40,6 +58,22 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                 (x_m, p)
             },
             |(x, p)| black_box(x.pow(&p)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("modpow, BigUint^BigUint (num-bigint-dig)", |b| {
+        b.iter_batched(
+            || {
+                let x = to_biguint(&BoxedUint::random(&mut OsRng, UINT_BITS));
+                let x_m = x % &modulus;
+                let p = to_biguint(
+                    &(BoxedUint::random(&mut OsRng, UINT_BITS)
+                        | (BoxedUint::one_with_precision(UINT_BITS) << (UINT_BITS - 1))),
+                );
+                (x_m, p)
+            },
+            |(x, p)| x.modpow(&p, &modulus),
             BatchSize::SmallInput,
         )
     });

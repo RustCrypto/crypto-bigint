@@ -1,7 +1,12 @@
-//! Multiplications between boxed residues.
+//! Multiplication between boxed residues (i.e. Montgomery multiplication).
+//!
+//! Some parts adapted from `monty.rs` in `num-bigint`:
+//! <https://github.com/rust-num/num-bigint/blob/2cea7f4/src/biguint/monty.rs>
+//!
+//! Originally (c) 2014 The Rust Project Developers, dual licensed Apache 2.0+MIT.
 
-use super::{montgomery_reduction_boxed_mut, BoxedResidue, BoxedResidueParams};
-use crate::{traits::Square, uint::mul::mul_limbs, BoxedUint, Limb};
+use super::{BoxedResidue, BoxedResidueParams};
+use crate::{traits::Square, BoxedUint, Limb, WideWord, Word};
 use core::{
     borrow::Borrow,
     ops::{Mul, MulAssign},
@@ -109,38 +114,51 @@ impl<'a> MontgomeryMultiplier<'a> {
         }
     }
 
-    /// Multiply two values in Montgomery form.
+    /// Perform an "Almost Montgomery Multiplication".
     pub(super) fn mul(&mut self, a: &BoxedUint, b: &BoxedUint) -> BoxedUint {
         let mut ret = a.clone();
         self.mul_assign(&mut ret, b);
         ret
     }
 
-    /// Multiply two values in Montgomery form, assigning the product to `a`.
+    /// Perform an "Almost Montgomery Multiplication", assigning the product to `a`.
     pub(super) fn mul_assign(&mut self, a: &mut BoxedUint, b: &BoxedUint) {
         debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
         debug_assert_eq!(b.bits_precision(), self.modulus.bits_precision());
 
         self.clear_product();
-        mul_limbs(&a.limbs, &b.limbs, &mut self.product.limbs);
-        self.montgomery_reduction(a);
+        montgomery_mul(
+            self.product.as_words_mut(),
+            a.as_words(),
+            b.as_words(),
+            self.modulus.as_words(),
+            self.mod_neg_inv.into(),
+        );
+        a.limbs
+            .copy_from_slice(&self.product.limbs[..a.limbs.len()]);
     }
 
-    /// Square the given value in Montgomery form.
-    #[inline]
+    /// Perform a squaring "Almost Montgomery Multiplication".
     pub(super) fn square(&mut self, a: &BoxedUint) -> BoxedUint {
         let mut ret = a.clone();
         self.square_assign(&mut ret);
         ret
     }
 
-    /// Square the given value in Montgomery form, assigning the result to `a`.
-    #[inline]
+    /// Perform a squaring using "Almost Montgomery Multiplication"
     pub(super) fn square_assign(&mut self, a: &mut BoxedUint) {
         debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
+
         self.clear_product();
-        mul_limbs(&a.limbs, &a.limbs, &mut self.product.limbs);
-        self.montgomery_reduction(a);
+        montgomery_mul(
+            self.product.as_words_mut(),
+            a.as_words(),
+            a.as_words(),
+            self.modulus.as_words(),
+            self.mod_neg_inv.into(),
+        );
+        a.limbs
+            .copy_from_slice(&self.product.limbs[..a.limbs.len()]);
     }
 
     /// Clear the internal product buffer.
@@ -150,11 +168,6 @@ impl<'a> MontgomeryMultiplier<'a> {
             .iter_mut()
             .for_each(|limb| *limb = Limb::ZERO);
     }
-
-    /// Perform Montgomery reduction on the internal product buffer.
-    fn montgomery_reduction(&mut self, out: &mut BoxedUint) {
-        montgomery_reduction_boxed_mut(&mut self.product, self.modulus, self.mod_neg_inv, out);
-    }
 }
 
 #[cfg(feature = "zeroize")]
@@ -162,4 +175,90 @@ impl Drop for MontgomeryMultiplier<'_> {
     fn drop(&mut self) {
         self.product.zeroize();
     }
+}
+
+/// Compute an "Almost Montgomery Multiplication (AMM)" as described in the paper
+/// "Efficient Software Implementations of Modular Exponentiation"
+/// <https://eprint.iacr.org/2011/239.pdf>
+///
+/// Computes z mod m = x * y * 2 ** (-n*_W) mod m assuming k = -1/m mod 2**_W.
+///
+/// x and y are required to satisfy 0 <= z < 2**(n*_W) and then the result z is guaranteed to
+/// satisfy 0 <= z < 2**(n*_W), but it may not be < m.
+///
+/// Note: this was adapted from an implementation in `num-bigint`'s `monty.rs`.
+// TODO(tarcieri): refactor into `reduction.rs`, share impl with `(Dyn)Residue`?
+#[cfg(feature = "alloc")]
+pub(crate) fn montgomery_mul(z: &mut [Word], x: &[Word], y: &[Word], m: &[Word], k: Word) {
+    // This code assumes x, y, m are all the same length (required by addMulVVW and the for loop).
+    // It also assumes that x, y are already reduced mod m, or else the result will not be properly
+    // reduced.
+    let mut c: Word = 0;
+    let n = m.len();
+
+    let pre_cond = z.len() > n && z[n..].len() == n && x.len() == n && y.len() == n && m.len() == n;
+    if !pre_cond {
+        panic!("invalid inputs");
+    }
+
+    for i in 0..n {
+        let c2 = add_mul_vvw(&mut z[i..n + i], x, y[i]);
+        let t = z[i].wrapping_mul(k);
+        let c3 = add_mul_vvw(&mut z[i..n + i], m, t);
+        let cx = c.wrapping_add(c2);
+        let cy = cx.wrapping_add(c3);
+        z[n + i] = cy;
+        c = (cx < c2 || cy < c3) as Word;
+    }
+
+    // TODO(tarcieri): eliminate branch
+    let (first, second) = z.split_at_mut(n);
+    if c == 0 {
+        first.swap_with_slice(&mut second[..]);
+    } else {
+        sub_vv(first, second, m);
+    }
+}
+
+#[inline]
+fn add_mul_vvw(z: &mut [Word], x: &[Word], y: Word) -> Word {
+    let mut c = 0;
+    for (zi, xi) in z.iter_mut().zip(x.iter()) {
+        let (z1, z0) = mul_add_www(*xi, y, *zi);
+        let (c_, zi_) = add_ww(z0, c, 0);
+        *zi = zi_;
+        c = c_.wrapping_add(z1);
+    }
+
+    c
+}
+
+/// The resulting carry c is either 0 or 1.
+#[inline(always)]
+fn sub_vv(z: &mut [Word], x: &[Word], y: &[Word]) -> Word {
+    let mut c = 0;
+    for (i, (&xi, &yi)) in x.iter().zip(y.iter()).enumerate().take(z.len()) {
+        let zi = xi.wrapping_sub(yi).wrapping_sub(c);
+        z[i] = zi;
+        // see "Hacker's Delight", section 2-12 (overflow detection)
+        c = ((yi & !xi) | ((yi | !xi) & zi)) >> (Word::BITS - 1)
+    }
+
+    c
+}
+
+/// z1<<_W + z0 = x+y+c, with c == 0 or 1
+#[inline(always)]
+fn add_ww(x: Word, y: Word, c: Word) -> (Word, Word) {
+    let yc = y.wrapping_add(c);
+    let z0 = x.wrapping_add(yc);
+    let z1 = (z0 < x || yc < y) as Word;
+    (z1, z0)
+}
+
+/// z1 << _W + z0 = x * y + c
+#[inline]
+fn mul_add_www(x: Word, y: Word, c: Word) -> (Word, Word) {
+    let z = x as WideWord * y as WideWord + c as WideWord;
+    ((z >> Word::BITS) as Word, z as Word)
 }
