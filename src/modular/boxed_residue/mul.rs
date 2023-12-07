@@ -6,7 +6,7 @@
 //! Originally (c) 2014 The Rust Project Developers, dual licensed Apache 2.0+MIT.
 
 use super::{montgomery_reduction_boxed_mut, BoxedResidue, BoxedResidueParams};
-use crate::{traits::Square, uint::mul::mul_limbs, BoxedUint, Limb, WideWord, Word, Zero};
+use crate::{traits::Square, uint::mul::mul_limbs, BoxedUint, Limb, WideWord, Word};
 use core::{
     borrow::Borrow,
     ops::{Mul, MulAssign},
@@ -145,11 +145,11 @@ impl<'a> MontgomeryMultiplier<'a> {
 
         self.clear_product();
         almost_montgomery_multiplication(
-            &mut self.product.limbs,
-            &a.limbs,
-            &b.limbs,
-            &self.modulus.limbs,
-            self.mod_neg_inv,
+            self.product.as_words_mut(),
+            a.as_words(),
+            b.as_words(),
+            self.modulus.as_words(),
+            self.mod_neg_inv.into(),
         );
         a.limbs
             .copy_from_slice(&self.product.limbs[..a.limbs.len()]);
@@ -161,11 +161,11 @@ impl<'a> MontgomeryMultiplier<'a> {
 
         self.clear_product();
         almost_montgomery_multiplication(
-            &mut self.product.limbs,
-            &a.limbs,
-            &a.limbs,
-            &self.modulus.limbs,
-            self.mod_neg_inv,
+            self.product.as_words_mut(),
+            a.as_words(),
+            a.as_words(),
+            self.modulus.as_words(),
+            self.mod_neg_inv.into(),
         );
         a.limbs
             .copy_from_slice(&self.product.limbs[..a.limbs.len()]);
@@ -222,16 +222,16 @@ impl Drop for MontgomeryMultiplier<'_> {
 // TODO(tarcieri): refactor into `reduction.rs`, share impl with `(Dyn)Residue`?
 #[cfg(feature = "alloc")]
 pub(crate) fn almost_montgomery_multiplication(
-    z: &mut [Limb],
-    x: &[Limb],
-    y: &[Limb],
-    m: &[Limb],
-    k: Limb,
+    z: &mut [Word],
+    x: &[Word],
+    y: &[Word],
+    m: &[Word],
+    k: Word,
 ) {
     // This code assumes x, y, m are all the same length (required by addMulVVW and the for loop).
     // It also assumes that x, y are already reduced mod m, or else the result will not be properly
     // reduced.
-    let mut c = Limb::ZERO;
+    let mut c: Word = 0;
     let n = m.len();
 
     for i in 0..n {
@@ -241,12 +241,12 @@ pub(crate) fn almost_montgomery_multiplication(
         let cx = c.wrapping_add(c2);
         let cy = cx.wrapping_add(c3);
         z[n + i] = cy;
-        c = Limb((cx < c2 || cy < c3) as Word);
+        c = (cx < c2 || cy < c3) as Word;
     }
 
     // TODO(tarcieri): eliminate branch
     let (first, second) = z.split_at_mut(n);
-    if c.is_zero().into() {
+    if c == 0 {
         first.swap_with_slice(&mut second[..]);
     } else {
         sub_vv(first, second, m);
@@ -254,11 +254,11 @@ pub(crate) fn almost_montgomery_multiplication(
 }
 
 #[inline]
-fn add_mul_vvw(z: &mut [Limb], x: &[Limb], y: Limb) -> Limb {
-    let mut c = Limb::ZERO;
+fn add_mul_vvw(z: &mut [Word], x: &[Word], y: Word) -> Word {
+    let mut c = 0;
     for (zi, xi) in z.iter_mut().zip(x.iter()) {
         let (z1, z0) = mul_add_www(*xi, y, *zi);
-        let (c_, zi_) = add_ww(z0, c, Limb::ZERO);
+        let (c_, zi_) = add_ww(z0, c, 0);
         *zi = zi_;
         c = c_.wrapping_add(z1);
     }
@@ -268,13 +268,13 @@ fn add_mul_vvw(z: &mut [Limb], x: &[Limb], y: Limb) -> Limb {
 
 /// The resulting carry c is either 0 or 1.
 #[inline(always)]
-fn sub_vv(z: &mut [Limb], x: &[Limb], y: &[Limb]) -> Limb {
-    let mut c = Limb::ZERO;
+fn sub_vv(z: &mut [Word], x: &[Word], y: &[Word]) -> Word {
+    let mut c = 0;
     for (i, (&xi, &yi)) in x.iter().zip(y.iter()).enumerate().take(z.len()) {
         let zi = xi.wrapping_sub(yi).wrapping_sub(c);
         z[i] = zi;
         // see "Hacker's Delight", section 2-12 (overflow detection)
-        c = ((yi & !xi) | ((yi | !xi) & zi)) >> (Limb::BITS - 1)
+        c = ((yi & !xi) | ((yi | !xi) & zi)) >> (Word::BITS - 1)
     }
 
     c
@@ -282,16 +282,16 @@ fn sub_vv(z: &mut [Limb], x: &[Limb], y: &[Limb]) -> Limb {
 
 /// z1<<_W + z0 = x+y+c, with c == 0 or 1
 #[inline(always)]
-fn add_ww(x: Limb, y: Limb, c: Limb) -> (Limb, Limb) {
+fn add_ww(x: Word, y: Word, c: Word) -> (Word, Word) {
     let yc = y.wrapping_add(c);
     let z0 = x.wrapping_add(yc);
-    let z1 = Limb((z0 < x || yc < y) as Word);
+    let z1 = (z0 < x || yc < y) as Word;
     (z1, z0)
 }
 
 /// z1 << _W + z0 = x * y + c
 #[inline]
-fn mul_add_www(x: Limb, y: Limb, c: Limb) -> (Limb, Limb) {
-    let z = x.0 as WideWord * y.0 as WideWord + c.0 as WideWord;
-    (Limb((z >> Limb::BITS) as Word), Limb(z as Word))
+fn mul_add_www(x: Word, y: Word, c: Word) -> (Word, Word) {
+    let z = x as WideWord * y as WideWord + c as WideWord;
+    ((z >> Word::BITS) as Word, z as Word)
 }
