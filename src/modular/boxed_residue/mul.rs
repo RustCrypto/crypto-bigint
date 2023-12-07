@@ -5,8 +5,8 @@
 //!
 //! Originally (c) 2014 The Rust Project Developers, dual licensed Apache 2.0+MIT.
 
-use super::{montgomery_reduction_boxed_mut, BoxedResidue, BoxedResidueParams};
-use crate::{traits::Square, uint::mul::mul_limbs, BoxedUint, Limb, WideWord, Word};
+use super::{BoxedResidue, BoxedResidueParams};
+use crate::{traits::Square, BoxedUint, Limb, WideWord, Word};
 use core::{
     borrow::Borrow,
     ops::{Mul, MulAssign},
@@ -114,37 +114,20 @@ impl<'a> MontgomeryMultiplier<'a> {
         }
     }
 
-    /// Multiply two values in Montgomery form.
+    /// Perform an "Almost Montgomery Multiplication".
     pub(super) fn mul(&mut self, a: &BoxedUint, b: &BoxedUint) -> BoxedUint {
         let mut ret = a.clone();
         self.mul_assign(&mut ret, b);
         ret
     }
 
-    /// Multiply two values in Montgomery form, assigning the product to `a`.
+    /// Perform an "Almost Montgomery Multiplication", assigning the product to `a`.
     pub(super) fn mul_assign(&mut self, a: &mut BoxedUint, b: &BoxedUint) {
         debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
         debug_assert_eq!(b.bits_precision(), self.modulus.bits_precision());
 
         self.clear_product();
-        mul_limbs(&a.limbs, &b.limbs, &mut self.product.limbs);
-        self.montgomery_reduction(a);
-    }
-
-    /// Perform an "Almost Montgomery Multiplication".
-    pub(super) fn mul_amm(&mut self, a: &BoxedUint, b: &BoxedUint) -> BoxedUint {
-        let mut ret = a.clone();
-        self.mul_amm_assign(&mut ret, b);
-        ret
-    }
-
-    /// Perform an "Almost Montgomery Multiplication", assigning the product to `a`.
-    pub(super) fn mul_amm_assign(&mut self, a: &mut BoxedUint, b: &BoxedUint) {
-        debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
-        debug_assert_eq!(b.bits_precision(), self.modulus.bits_precision());
-
-        self.clear_product();
-        almost_montgomery_multiplication(
+        montgomery_mul(
             self.product.as_words_mut(),
             a.as_words(),
             b.as_words(),
@@ -155,12 +138,19 @@ impl<'a> MontgomeryMultiplier<'a> {
             .copy_from_slice(&self.product.limbs[..a.limbs.len()]);
     }
 
-    /// Perform a squaring using "Almost Montgomery Multiplication"/
-    pub(super) fn square_amm_assign(&mut self, a: &mut BoxedUint) {
+    /// Perform a squaring "Almost Montgomery Multiplication".
+    pub(super) fn square(&mut self, a: &BoxedUint) -> BoxedUint {
+        let mut ret = a.clone();
+        self.square_assign(&mut ret);
+        ret
+    }
+
+    /// Perform a squaring using "Almost Montgomery Multiplication"
+    pub(super) fn square_assign(&mut self, a: &mut BoxedUint) {
         debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
 
         self.clear_product();
-        almost_montgomery_multiplication(
+        montgomery_mul(
             self.product.as_words_mut(),
             a.as_words(),
             a.as_words(),
@@ -171,34 +161,12 @@ impl<'a> MontgomeryMultiplier<'a> {
             .copy_from_slice(&self.product.limbs[..a.limbs.len()]);
     }
 
-    /// Square the given value in Montgomery form.
-    #[inline]
-    pub(super) fn square(&mut self, a: &BoxedUint) -> BoxedUint {
-        let mut ret = a.clone();
-        self.square_assign(&mut ret);
-        ret
-    }
-
-    /// Square the given value in Montgomery form, assigning the result to `a`.
-    #[inline]
-    pub(super) fn square_assign(&mut self, a: &mut BoxedUint) {
-        debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
-        self.clear_product();
-        mul_limbs(&a.limbs, &a.limbs, &mut self.product.limbs);
-        self.montgomery_reduction(a);
-    }
-
     /// Clear the internal product buffer.
     fn clear_product(&mut self) {
         self.product
             .limbs
             .iter_mut()
             .for_each(|limb| *limb = Limb::ZERO);
-    }
-
-    /// Perform Montgomery reduction on the internal product buffer.
-    fn montgomery_reduction(&mut self, out: &mut BoxedUint) {
-        montgomery_reduction_boxed_mut(&mut self.product, self.modulus, self.mod_neg_inv, out);
     }
 }
 
@@ -221,13 +189,7 @@ impl Drop for MontgomeryMultiplier<'_> {
 /// Note: this was adapted from an implementation in `num-bigint`'s `monty.rs`.
 // TODO(tarcieri): refactor into `reduction.rs`, share impl with `(Dyn)Residue`?
 #[cfg(feature = "alloc")]
-pub(crate) fn almost_montgomery_multiplication(
-    z: &mut [Word],
-    x: &[Word],
-    y: &[Word],
-    m: &[Word],
-    k: Word,
-) {
+pub(crate) fn montgomery_mul(z: &mut [Word], x: &[Word], y: &[Word], m: &[Word], k: Word) {
     // This code assumes x, y, m are all the same length (required by addMulVVW and the for loop).
     // It also assumes that x, y are already reduced mod m, or else the result will not be properly
     // reduced.
