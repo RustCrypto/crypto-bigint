@@ -60,6 +60,17 @@ prop_compose! {
 
 proptest! {
     #[test]
+    fn new(mut n in uint()) {
+        if n.is_even().into() {
+            n = n.wrapping_add(&BoxedUint::one());
+        }
+
+        let params1 = BoxedResidueParams::new(n.clone()).unwrap();
+        let params2 = BoxedResidueParams::new_vartime(n).unwrap();
+        prop_assert_eq!(params1, params2);
+    }
+
+    #[test]
     fn inv(x in uint(), n in modulus()) {
         let x = reduce(&x, n.clone());
         let actual = Option::<BoxedResidue>::from(x.invert()).map(|a| a.retrieve());
