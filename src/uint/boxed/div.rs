@@ -83,9 +83,9 @@ impl BoxedUint {
 
         loop {
             let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::conditional_select(&r, &rem, Choice::from((borrow.0 & 1) as u8) | done);
+            rem.conditional_assign(&r, !(Choice::from((borrow.0 & 1) as u8) | done));
             r = quo.bitor(&Self::one());
-            quo = Self::conditional_select(&r, &quo, Choice::from((borrow.0 & 1) as u8) | done);
+            quo.conditional_assign(&r, !(Choice::from((borrow.0 & 1) as u8) | done));
             if i == 0 {
                 break;
             }
@@ -94,7 +94,7 @@ impl BoxedUint {
             // aren't modified further (but do the remaining iterations anyway to be constant-time)
             done = i.ct_lt(&mb);
             c.shr1_assign();
-            quo = Self::conditional_select(&quo.shl1(), &quo, done);
+            quo.conditional_assign(&quo.shl1(), !done);
         }
 
         (quo, rem)
