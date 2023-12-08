@@ -153,21 +153,23 @@ impl BoxedResidue {
     /// Instantiates a new [`BoxedResidue`] that represents an integer modulo the provided params.
     pub fn new(mut integer: BoxedUint, residue_params: BoxedResidueParams) -> Self {
         debug_assert_eq!(integer.bits_precision(), residue_params.bits_precision());
+        convert_to_montgomery(&mut integer, &residue_params);
 
-        let mut product = integer.mul(&residue_params.r2);
-        montgomery_reduction_boxed_mut(
-            &mut product,
-            &residue_params.modulus,
-            residue_params.mod_neg_inv,
-            &mut integer,
-        );
-
-        #[cfg(feature = "zeroize")]
-        product.zeroize();
-
+        #[allow(clippy::useless_conversion)]
         Self {
             montgomery_form: integer,
             residue_params: residue_params.into(),
+        }
+    }
+
+    /// Instantiates a new [`BoxedResidue`] that represents an integer modulo the provided params.
+    #[cfg(feature = "std")]
+    pub fn new_with_arc(mut integer: BoxedUint, residue_params: Arc<BoxedResidueParams>) -> Self {
+        debug_assert_eq!(integer.bits_precision(), residue_params.bits_precision());
+        convert_to_montgomery(&mut integer, &residue_params);
+        Self {
+            montgomery_form: integer,
+            residue_params,
         }
     }
 
@@ -238,6 +240,21 @@ impl Retrieve for BoxedResidue {
     fn retrieve(&self) -> BoxedUint {
         self.retrieve()
     }
+}
+
+/// Convert the given integer into the Montgomery domain.
+#[inline]
+fn convert_to_montgomery(integer: &mut BoxedUint, residue_params: &BoxedResidueParams) {
+    let mut product = integer.mul(&residue_params.r2);
+    montgomery_reduction_boxed_mut(
+        &mut product,
+        &residue_params.modulus,
+        residue_params.mod_neg_inv,
+        integer,
+    );
+
+    #[cfg(feature = "zeroize")]
+    product.zeroize();
 }
 
 #[cfg(test)]
