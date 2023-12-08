@@ -11,6 +11,7 @@ use crate::{Encoding, Limb, Word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a new [`Uint`] from the provided big endian bytes.
+    /// This method will panic if the input length is incorrect.
     pub const fn from_be_slice(bytes: &[u8]) -> Self {
         assert!(
             bytes.len() == Limb::BYTES * LIMBS,
@@ -35,6 +36,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Create a new [`Uint`] from the provided big endian hex string.
+    /// This method will panic on invalid input.
     pub const fn from_be_hex(hex: &str) -> Self {
         let bytes = hex.as_bytes();
 
@@ -66,7 +68,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Uint::new(res)
     }
 
+    /// Create a new [`Uint`] from the provided big endian hex string,
+    /// returning None on invalid input.
+    pub fn try_from_be_hex(hex: &str) -> Option<Self> {
+        validate_hex(hex.as_bytes()).filter(|l| *l == Limb::BYTES * LIMBS)?;
+        Some(Self::from_be_hex(hex))
+    }
+
     /// Create a new [`Uint`] from the provided little endian bytes.
+    /// This method will panic if the input length is incorrect.
     pub const fn from_le_slice(bytes: &[u8]) -> Self {
         assert!(
             bytes.len() == Limb::BYTES * LIMBS,
@@ -91,6 +101,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Create a new [`Uint`] from the provided little endian hex string.
+    /// This method will panic on invalid input.
     pub const fn from_le_hex(hex: &str) -> Self {
         let bytes = hex.as_bytes();
 
@@ -120,6 +131,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         assert!(err == 0, "invalid hex byte");
 
         Uint::new(res)
+    }
+
+    /// Create a new [`Uint`] from the provided little endian hex string,
+    /// returning None on invalid input.
+    pub fn try_from_le_hex(hex: &str) -> Option<Self> {
+        validate_hex(hex.as_bytes()).filter(|l| *l == Limb::BYTES * LIMBS)?;
+        Some(Self::from_le_hex(hex))
     }
 
     /// Serialize this [`Uint`] as big-endian, writing it into the provided
@@ -186,6 +204,22 @@ const fn decode_hex_byte(bytes: [u8; 2]) -> (u8, u16) {
     let err = byte >> 8;
     let result = byte as u8;
     (result, err)
+}
+
+/// Check that the input consists of hexadecimal characters,
+/// short-circuiting on invalid input.
+const fn validate_hex(bytes: &[u8]) -> Option<usize> {
+    if bytes.len() % 2 == 1 {
+        return None;
+    }
+    let mut i = 0;
+    while i < bytes.len() {
+        if !matches!(bytes[i], b'0'..=b'9' | b'a' ..= b'f' | b'A'..=b'F') {
+            return None;
+        }
+        i += 1;
+    }
+    Some(bytes.len() / 2)
 }
 
 #[cfg(test)]
@@ -258,6 +292,27 @@ mod tests {
     }
 
     #[test]
+    fn try_from_be_hex() {
+        const EX: &str = "00112233445566778899aabbccddeeff";
+        assert_eq!(
+            crate::U128::try_from_be_hex(&EX),
+            Some(crate::U128::from_be_hex(&EX),)
+        );
+    }
+
+    #[test]
+    fn try_from_be_hex_invalid_length() {
+        const EX: &str = "00112233445566778899aabbccddeef";
+        assert_eq!(crate::U128::try_from_be_hex(&EX), None);
+    }
+
+    #[test]
+    fn try_from_be_hex_invalid_character() {
+        const EX: &str = "00112233445566778899aabbccddeefg";
+        assert_eq!(crate::U128::try_from_be_hex(&EX), None);
+    }
+
+    #[test]
     #[cfg(target_pointer_width = "32")]
     fn from_le_hex() {
         let n = UintEx::from_le_hex("7766554433221100");
@@ -272,6 +327,27 @@ mod tests {
             n.as_limbs(),
             &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
         );
+    }
+
+    #[test]
+    fn try_from_le_hex() {
+        const EX: &str = "00112233445566778899aabbccddeeff";
+        assert_eq!(
+            crate::U128::try_from_le_hex(&EX),
+            Some(crate::U128::from_le_hex(&EX),)
+        );
+    }
+
+    #[test]
+    fn try_from_le_hex_invalid_length() {
+        const EX: &str = "00112233445566778899aabbccddeef";
+        assert_eq!(crate::U128::try_from_le_hex(&EX), None);
+    }
+
+    #[test]
+    fn try_from_le_hex_invalid_character() {
+        const EX: &str = "00112233445566778899aabbccddeefg";
+        assert_eq!(crate::U128::try_from_le_hex(&EX), None);
     }
 
     #[cfg(feature = "alloc")]
