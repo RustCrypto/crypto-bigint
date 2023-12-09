@@ -8,9 +8,7 @@ use subtle::ConstantTimeEq;
 impl BoxedResidue {
     /// Raises to the `exponent` power.
     pub fn pow(&self, exponent: &BoxedUint) -> Self {
-        let ret = self.pow_bounded_exp(exponent, exponent.bits_precision());
-        debug_assert!(ret.retrieve() < self.residue_params.modulus);
-        ret
+        self.pow_bounded_exp(exponent, exponent.bits_precision())
     }
 
     /// Raises to the `exponent` power,
@@ -19,7 +17,7 @@ impl BoxedResidue {
     ///
     /// NOTE: `exponent_bits` may be leaked in the time pattern.
     pub fn pow_bounded_exp(&self, exponent: &BoxedUint, exponent_bits: u32) -> Self {
-        Self {
+        let ret = Self {
             montgomery_form: pow_montgomery_form(
                 &self.montgomery_form,
                 exponent,
@@ -29,7 +27,10 @@ impl BoxedResidue {
                 self.residue_params.mod_neg_inv,
             ),
             residue_params: self.residue_params.clone(),
-        }
+        };
+
+        debug_assert!(ret.retrieve() < self.residue_params.modulus);
+        ret
     }
 }
 
