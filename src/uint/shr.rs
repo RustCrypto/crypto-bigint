@@ -8,11 +8,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// If `shift >= Self::BITS`, returns zero as the first tuple element,
     /// and `CtChoice::TRUE` as the second element.
     pub const fn shr(&self, shift: u32) -> (Self, CtChoice) {
+        // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
+        // (which lies in range `0 <= shift < BITS`).
+        let shift_bits = u32::BITS - (Self::BITS - 1).leading_zeros();
         let overflow = CtChoice::from_u32_lt(shift, Self::BITS).not();
         let shift = shift % Self::BITS;
         let mut result = *self;
         let mut i = 0;
-        while i < Self::LOG2_BITS + 1 {
+        while i < shift_bits {
             let bit = CtChoice::from_u32_lsb((shift >> i) & 1);
             result = Uint::ct_select(&result, &result.shr_vartime(1 << i).0, bit);
             i += 1;
@@ -31,39 +34,41 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// to `self`.
     #[inline(always)]
     pub const fn shr_vartime(&self, shift: u32) -> (Self, CtChoice) {
-        let full_shifts = (shift / Limb::BITS) as usize;
-        let small_shift = shift & (Limb::BITS - 1);
         let mut limbs = [Limb::ZERO; LIMBS];
 
         if shift >= Self::BITS {
             return (Self::ZERO, CtChoice::TRUE);
         }
 
-        let shift = LIMBS - full_shifts;
+        let shift_num = (shift / Limb::BITS) as usize;
+        let rem = shift % Limb::BITS;
+
         let mut i = 0;
+        while i < LIMBS - shift_num {
+            limbs[i] = self.limbs[i + shift_num];
+            i += 1;
+        }
 
-        if small_shift == 0 {
-            while i < shift {
-                limbs[i] = Limb(self.limbs[i + full_shifts].0);
-                i += 1;
-            }
-        } else {
-            while i < shift {
-                let mut lo = self.limbs[i + full_shifts].0 >> small_shift;
+        if rem == 0 {
+            return (Self { limbs }, CtChoice::FALSE);
+        }
 
-                if i < (LIMBS - 1) - full_shifts {
-                    lo |= self.limbs[i + full_shifts + 1].0 << (Limb::BITS - small_shift);
-                }
+        let mut carry = Limb::ZERO;
 
-                limbs[i] = Limb(lo);
-                i += 1;
-            }
+        while i > 0 {
+            i -= 1;
+            let shifted = limbs[i].shr(rem);
+            let new_carry = limbs[i].shl(Limb::BITS - rem);
+            limbs[i] = shifted.bitor(carry);
+            carry = new_carry;
         }
 
         (Self { limbs }, CtChoice::FALSE)
     }
 
     /// Computes a right shift on a wide input as `(lo, hi)`.
+    /// If `shift >= Self::BITS`, returns a tuple of zeros as the first element,
+    /// and `CtChoice::TRUE` as the second element.
     ///
     /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
@@ -90,24 +95,24 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes `self >> 1` in constant-time, returning [`CtChoice::TRUE`] if the overflowing bit
     /// was set, and [`CtChoice::FALSE`] otherwise.
+    #[inline(always)]
     pub(crate) const fn shr1_with_overflow(&self) -> (Self, CtChoice) {
-        let carry = CtChoice::from_word_lsb(self.limbs[0].0 & 1);
         let mut ret = Self::ZERO;
-        ret.limbs[0] = self.limbs[0].shr(1);
-
-        let mut i = 1;
-        while i < LIMBS {
-            // set carry bit
-            ret.limbs[i - 1].0 |= (self.limbs[i].0 & 1) << Limb::HI_BIT;
-            ret.limbs[i] = self.limbs[i].shr(1);
-            i += 1;
+        let mut i = LIMBS;
+        let mut carry = Limb::ZERO;
+        while i > 0 {
+            i -= 1;
+            let (shifted, new_carry) = self.limbs[i].shr1();
+            ret.limbs[i] = shifted.bitor(carry);
+            carry = new_carry;
         }
 
-        (ret, carry)
+        (ret, CtChoice::from_word_lsb(carry.0 >> Limb::HI_BIT))
     }
 
     /// Computes `self >> 1` in constant-time.
     pub(crate) const fn shr1(&self) -> Self {
+        // TODO(tarcieri): optimized implementation
         self.shr1_with_overflow().0
     }
 }
@@ -151,6 +156,7 @@ mod tests {
 
     #[test]
     fn shr1() {
+        assert_eq!(N.shr1(), N_2);
         assert_eq!(N >> 1, N_2);
     }
 
@@ -189,4 +195,19 @@ mod tests {
             ((U128::ZERO, U128::ZERO), CtChoice::TRUE)
         );
     }
+
+    /*
+    #[test]
+    fn shr_limb() {
+        let x = U128::from_be_hex("00112233445566778899aabbccddeeff");
+        assert_eq!(x.shr_limb(0), (x, Limb::ZERO));
+        assert_eq!(
+            x.shr_limb(8),
+            (
+                U128::from_be_hex("0000112233445566778899aabbccddee"),
+                Limb(0xff << (Limb::BITS - 8))
+            )
+        );
+    }
+    */
 }

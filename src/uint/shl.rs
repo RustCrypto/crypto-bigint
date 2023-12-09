@@ -8,11 +8,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// If `shift >= Self::BITS`, returns zero as the first tuple element,
     /// and `CtChoice::TRUE` as the second element.
     pub const fn shl(&self, shift: u32) -> (Self, CtChoice) {
+        // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
+        // (which lies in range `0 <= shift < BITS`).
+        let shift_bits = u32::BITS - (Self::BITS - 1).leading_zeros();
         let overflow = CtChoice::from_u32_lt(shift, Self::BITS).not();
         let shift = shift % Self::BITS;
         let mut result = *self;
         let mut i = 0;
-        while i < Self::LOG2_BITS + 1 {
+        while i < shift_bits {
             let bit = CtChoice::from_u32_lsb((shift >> i) & 1);
             result = Uint::ct_select(&result, &result.shl_vartime(1 << i).0, bit);
             i += 1;
@@ -46,8 +49,21 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             limbs[i] = self.limbs[i - shift_num];
         }
 
-        let (new_lower, _carry) = (Self { limbs }).shl_limb(rem);
-        (new_lower, CtChoice::FALSE)
+        if rem == 0 {
+            return (Self { limbs }, CtChoice::FALSE);
+        }
+
+        let mut carry = Limb::ZERO;
+
+        while i < LIMBS {
+            let shifted = limbs[i].shl(rem);
+            let new_carry = limbs[i].shr(Limb::BITS - rem);
+            limbs[i] = shifted.bitor(carry);
+            carry = new_carry;
+            i += 1;
+        }
+
+        (Self { limbs }, CtChoice::FALSE)
     }
 
     /// Computes a left shift on a wide input as `(lo, hi)`.
@@ -101,10 +117,27 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         (Uint::<LIMBS>::new(limbs), Limb(carry))
     }
 
-    /// Computes `self >> 1` in constant-time.
+    /// Computes `self << 1` in constant-time, returning [`CtChoice::TRUE`] if the overflowing bit
+    /// was set, and [`CtChoice::FALSE`] otherwise.
+    #[inline(always)]
+    pub(crate) const fn shl1_with_overflow(&self) -> (Self, CtChoice) {
+        let mut ret = Self::ZERO;
+        let mut i = 0;
+        let mut carry = Limb::ZERO;
+        while i < LIMBS {
+            let (shifted, new_carry) = self.limbs[i].shl1();
+            ret.limbs[i] = shifted.bitor(carry);
+            carry = new_carry;
+            i += 1;
+        }
+
+        (ret, CtChoice::from_word_lsb(carry.0))
+    }
+
+    /// Computes `self << 1` in constant-time.
     pub(crate) const fn shl1(&self) -> Self {
         // TODO(tarcieri): optimized implementation
-        self.shl_vartime(1).0
+        self.shl1_with_overflow().0
     }
 }
 
