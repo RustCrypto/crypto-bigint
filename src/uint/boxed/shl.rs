@@ -14,15 +14,16 @@ impl BoxedUint {
         let overflow = !shift.ct_lt(&self.bits_precision());
         let shift = shift % self.bits_precision();
         let mut result = self.clone();
+        let mut temp = self.clone();
 
         for i in 0..shift_bits {
             let bit = Choice::from(((shift >> i) & 1) as u8);
-            result = Self::conditional_select(
-                &result,
-                // Will not overflow by construction
-                &result.shl_vartime(1 << i).expect("shift within range"),
-                bit,
-            );
+            temp.set_to_zero();
+            // Will not overflow by construction
+            result
+                .shl_vartime_into(&mut temp, 1 << i)
+                .expect("shift within range");
+            result.conditional_assign(&temp, bit);
         }
 
         (
@@ -35,6 +36,44 @@ impl BoxedUint {
         )
     }
 
+    /// Computes `self << shift` and writes the result into `dest`.
+    /// Returns `None` if `shift >= Self::BITS`.
+    ///
+    /// WARNING: for performance reasons, `dest` is assumed to be pre-zeroized.
+    ///
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
+    ///
+    /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
+    #[inline(always)]
+    fn shl_vartime_into(&self, dest: &mut Self, shift: u32) -> Option<()> {
+        if shift >= self.bits_precision() {
+            return None;
+        }
+
+        let nlimbs = self.nlimbs();
+        let shift_num = (shift / Limb::BITS) as usize;
+        let rem = shift % Limb::BITS;
+
+        for i in shift_num..nlimbs {
+            dest.limbs[i] = self.limbs[i - shift_num];
+        }
+
+        if rem == 0 {
+            return Some(());
+        }
+
+        let mut carry = Limb::ZERO;
+
+        for i in shift_num..nlimbs {
+            let shifted = dest.limbs[i].shl(rem);
+            let new_carry = dest.limbs[i].shr(Limb::BITS - rem);
+            dest.limbs[i] = shifted.bitor(carry);
+            carry = new_carry;
+        }
+
+        Some(())
+    }
+
     /// Computes `self << shift`.
     /// Returns `None` if `shift >= Self::BITS`.
     ///
@@ -43,37 +82,9 @@ impl BoxedUint {
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
     pub fn shl_vartime(&self, shift: u32) -> Option<Self> {
-        if shift >= self.bits_precision() {
-            return None;
-        }
-
-        let nlimbs = self.nlimbs();
-        let mut limbs = vec![Limb::ZERO; nlimbs].into_boxed_slice();
-
-        let shift_num = (shift / Limb::BITS) as usize;
-        let rem = shift % Limb::BITS;
-
-        let mut i = nlimbs;
-        while i > shift_num {
-            i -= 1;
-            limbs[i] = self.limbs[i - shift_num];
-        }
-
-        if rem == 0 {
-            return Some(Self { limbs });
-        }
-
-        let mut carry = Limb::ZERO;
-
-        while i < nlimbs {
-            let shifted = limbs[i].shl(rem);
-            let new_carry = limbs[i].shr(Limb::BITS - rem);
-            limbs[i] = shifted.bitor(carry);
-            carry = new_carry;
-            i += 1;
-        }
-
-        Some(Self { limbs })
+        let mut result = Self::zero_with_precision(self.bits_precision());
+        let success = self.shl_vartime_into(&mut result, shift);
+        success.map(|_| result)
     }
 
     /// Computes `self >> 1` in constant-time.
@@ -117,6 +128,18 @@ impl ShlAssign<u32> for BoxedUint {
 #[cfg(test)]
 mod tests {
     use super::BoxedUint;
+
+    #[test]
+    fn shl() {
+        let one = BoxedUint::one_with_precision(128);
+
+        assert_eq!(BoxedUint::from(2u8), one.shl(1).0);
+        assert_eq!(BoxedUint::from(4u8), one.shl(2).0);
+        assert_eq!(
+            BoxedUint::from(0x80000000000000000u128),
+            one.shl_vartime(67).unwrap()
+        );
+    }
 
     #[test]
     fn shl_vartime() {

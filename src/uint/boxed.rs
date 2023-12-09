@@ -253,6 +253,11 @@ impl BoxedUint {
 
         limbs.into()
     }
+
+    /// Set the value of `self` to zero in-place.
+    pub(crate) fn set_to_zero(&mut self) {
+        self.limbs.as_mut().fill(Limb::ZERO)
+    }
 }
 
 impl NonZero<BoxedUint> {
