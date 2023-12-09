@@ -1,7 +1,9 @@
 //! [`Uint`] addition operations.
 
 use super::Uint;
-use crate::{Checked, CheckedSub, ConstChoice, Limb, Wrapping, WrappingSub, Zero};
+use crate::{
+    limb::SignedWideWord, Checked, CheckedSub, ConstChoice, Limb, Word, Wrapping, WrappingSub, Zero,
+};
 use core::ops::{Sub, SubAssign};
 use subtle::CtOption;
 
@@ -98,6 +100,69 @@ impl<const LIMBS: usize> SubAssign<&Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS
 impl<const LIMBS: usize> WrappingSub for Uint<LIMBS> {
     fn wrapping_sub(&self, v: &Self) -> Self {
         self.wrapping_sub(v)
+    }
+}
+
+/// Subtract with borrow:
+#[inline]
+pub(crate) fn sbb(a: Word, b: Word, acc: &mut SignedWideWord) -> Word {
+    *acc += a as SignedWideWord;
+    *acc -= b as SignedWideWord;
+    let lo = *acc as Word;
+    *acc >>= Word::BITS;
+    lo
+}
+
+pub(crate) fn sub2(a: &mut [Word], b: &[Word]) {
+    let mut borrow = 0;
+
+    let len = core::cmp::min(a.len(), b.len());
+    let (a_lo, a_hi) = a.split_at_mut(len);
+    let (b_lo, b_hi) = b.split_at(len);
+
+    for (a, b) in a_lo.iter_mut().zip(b_lo) {
+        *a = sbb(*a, *b, &mut borrow);
+    }
+
+    if borrow != 0 {
+        for a in a_hi {
+            *a = sbb(*a, 0, &mut borrow);
+            if borrow == 0 {
+                break;
+            }
+        }
+    }
+
+    // note: we're _required_ to fail on underflow
+    assert!(
+        borrow == 0 && b_hi.iter().all(|x| *x == 0),
+        "Cannot subtract b from a because b is larger than a."
+    );
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum Sign {
+    Plus,
+    Minus,
+    NoSign,
+}
+
+#[cfg(feature = "alloc")]
+pub(crate) fn sub_sign(a: &[Word], b: &[Word]) -> (Sign, alloc::vec::Vec<Word>) {
+    use super::cmp::cmp_slice;
+
+    match cmp_slice(a, b) {
+        Ordering::Greater => {
+            let mut a = a.to_vec();
+            sub2(&mut a, b);
+            (Sign::Plus, a)
+        }
+        Ordering::Less => {
+            let mut b = b.to_vec();
+            sub2(&mut b, a);
+            (Sign::Minus, b)
+        }
+        _ => (Sign::NoSign, Default::default()),
     }
 }
 

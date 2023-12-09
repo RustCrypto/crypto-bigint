@@ -32,7 +32,8 @@ impl BoxedUint {
         self.adc(rhs, Limb::ZERO).0
     }
 
-    fn wrapping_add_assign(&mut self, rhs: &Self) {
+    /// Perform wrapping addition, discarding overflow.
+    pub fn wrapping_add_assign(&mut self, rhs: &Self) {
         self.adc_assign(rhs, Limb::ZERO);
     }
 

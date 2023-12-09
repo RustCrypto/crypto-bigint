@@ -126,7 +126,13 @@ proptest! {
     }
 
     #[test]
-    fn div_rem_vartime((a, mut b) in uint_pair()) {
+    fn div_rem_vartime(a in uint(), b in uint()) {
+        let (a, mut b) = if a.bits_precision() < b.bits_precision() {
+            (b, a)
+        } else {
+            (a, b)
+        };
+
         if b.is_zero().into() {
             b = b.wrapping_add(&BoxedUint::one());
         }
@@ -137,8 +143,8 @@ proptest! {
         let expected_remainder = a_bi % b_bi;
 
         let (actual_quotient, actual_remainder) = a.div_rem_vartime(&NonZero::new(b).unwrap());
-        prop_assert_eq!(expected_quotient, to_biguint(&actual_quotient));
-        prop_assert_eq!(expected_remainder, to_biguint(&actual_remainder));
+        prop_assert_eq!(expected_quotient, to_biguint(&actual_quotient), "quotient");
+        prop_assert_eq!(expected_remainder, to_biguint(&actual_remainder), "remainder");
     }
 
     #[test]
@@ -213,6 +219,7 @@ proptest! {
             prop_assert_eq!(expected, to_biguint(&actual));
         }
     }
+<<<<<<< HEAD
 
     #[test]
     fn shl(a in uint(), shift in any::<u16>()) {
@@ -284,4 +291,16 @@ proptest! {
             assert_eq!(expected, actual.unwrap());
         }
     }
+||||||| parent of e143d6a (feat(boxed): implement division with different precision)
+=======
+
+    #[test]
+    fn shl_vartime(a in uint(), b in any::<u32>()) {
+        let a_bi = to_biguint(&a);
+
+        let expected = a_bi << (b as usize);
+        let actual = a.shl_vartime(b);
+        prop_assert_eq!(expected, to_biguint(&actual));
+    }
+>>>>>>> e143d6a (feat(boxed): implement division with different precision)
 }

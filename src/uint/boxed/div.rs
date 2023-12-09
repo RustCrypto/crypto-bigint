@@ -1,7 +1,14 @@
 //! [`BoxedUint`] division operations.
 
-use crate::{BoxedUint, CheckedDiv, ConstantTimeSelect, Limb, NonZero, Wrapping};
-use core::ops::{Div, DivAssign, Rem, RemAssign};
+use crate::{
+    limb::div::div_wide,
+    uint::{add::add2, cmp::cmp_slice, sub::sub2},
+    BoxedUint, CheckedDiv, CheckedSub, Limb, NonZero, Word, Wrapping,
+};
+use core::{
+    cmp::Ordering,
+    ops::{Div, DivAssign, Rem, RemAssign},
+};
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
 impl BoxedUint {
@@ -30,25 +37,10 @@ impl BoxedUint {
     ///
     /// # Panics
     ///
-    /// Panics if `self` and `rhs` have different precisions.
+    /// Panics if `self` has less precision than `rhs`.
     // TODO(tarcieri): handle different precisions without panicking
     pub fn rem_vartime(&self, rhs: &NonZero<Self>) -> Self {
-        debug_assert_eq!(self.bits_precision(), rhs.bits_precision());
-        let mb = rhs.bits();
-        let mut bd = self.bits_precision() - mb;
-        let mut rem = self.clone();
-        // Will not overflow since `bd < bits_precision`
-        let mut c = rhs.shl_vartime(bd).expect("shift within range");
-
-        loop {
-            let (r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::ct_select(&r, &rem, !borrow.ct_eq(&Limb::ZERO));
-            if bd == 0 {
-                break rem;
-            }
-            bd -= 1;
-            c.shr1_assign();
-        }
+        self.div_rem_vartime(rhs).1
     }
 
     /// Wrapped division is just normal division i.e. `self` / `rhs`
@@ -106,29 +98,118 @@ impl BoxedUint {
     ///
     /// This function operates in variable-time.
     fn div_rem_vartime_unchecked(&self, rhs: &Self) -> (Self, Self) {
-        debug_assert_eq!(self.bits_precision(), rhs.bits_precision());
-        let mb = rhs.bits_vartime();
-        let mut bd = self.bits_precision() - mb;
-        let mut remainder = self.clone();
-        let mut quotient = Self::zero_with_precision(self.bits_precision());
-        // Will not overflow since `bd < bits_precision`
-        let mut c = rhs.shl_vartime(bd).expect("shift within range");
-
-        loop {
-            let (mut r, borrow) = remainder.sbb(&c, Limb::ZERO);
-            let borrow = Choice::from(borrow.0 as u8 & 1);
-            remainder = Self::ct_select(&r, &remainder, borrow);
-            r = &quotient | Self::one();
-            quotient = Self::ct_select(&r, &quotient, borrow);
-            if bd == 0 {
-                break;
-            }
-            bd -= 1;
-            c.shr1_assign();
-            quotient.shl1_assign();
+        // normalize to avoid excess work
+        let this = self.normalize_vartime();
+        let rhs = rhs.normalize_vartime();
+        // 0 / x = 0
+        if bool::from(this.is_zero()) {
+            return (Self::zero(), Self::zero());
         }
 
-        (quotient, remainder)
+        // rhs is just a single word
+        if rhs.as_words().len() == 1 {
+            // division by 1
+            if rhs.as_words()[0] == 1 {
+                return (this.clone(), Self::zero());
+            }
+
+            let (div, rem) = this.div_rem_digit(rhs.as_words()[0]);
+            return (div, rem.into());
+        }
+
+        // Required as the q_len calculation below can underflow:
+        match this.cmp(&rhs) {
+            Ordering::Less => return (Self::zero(), self.clone()),
+            Ordering::Equal => return (Self::one(), Self::zero()),
+            Ordering::Greater => {} // Do nothing
+        }
+
+        // This algorithm is from Knuth, TAOCP vol 2 section 4.3, algorithm D:
+        //
+        // First, normalize the arguments so the highest bit in the highest digit of the divisor is
+        // set: the main loop uses the highest digit of the divisor for generating guesses, so we
+        // want it to be the largest number we can efficiently divide by.
+        let shift = rhs.as_words().last().unwrap().leading_zeros();
+        std::dbg!(shift, this.as_words(), rhs.as_words());
+        let mut a = this.shl_vartime(shift).normalize_vartime();
+        let b = rhs.shl_vartime(shift).normalize_vartime();
+
+        // The algorithm works by incrementally calculating "guesses", q0, for part of the
+        // remainder. Once we have any number q0 such that q0 * b <= a, we can set
+        //
+        //     q += q0
+        //     a -= q0 * b
+        //
+        // and then iterate until a < b. Then, (q, a) will be our desired quotient and remainder.
+        //
+        // q0, our guess, is calculated by dividing the last few digits of a by the last digit of b
+        // - this should give us a guess that is "close" to the actual quotient, but is possibly
+        // greater than the actual quotient. If q0 * b > a, we simply use iterated subtraction
+        // until we have a guess such that q0 * b <= a.
+
+        let bn = *b.as_words().last().unwrap();
+        debug_assert!(
+            a.as_words().len() >= b.as_words().len(),
+            "{:?} - {:?} - {:?} - {:?}",
+            a.as_words(),
+            b.as_words(),
+            this.as_words(),
+            rhs.as_words(),
+        );
+        let q_len = (a.as_words().len() - b.as_words().len() + 1) as u32;
+        let mut q = Self::zero_with_precision(q_len * Word::BITS);
+        debug_assert_eq!(q.as_words().len(), q_len as _);
+
+        for j in (0..q_len).rev() {
+            // When calculating our next guess q0, we don't need to consider the digits below j
+            // + b.data.len() - 1: we're guessing digit j of the quotient (i.e. q0 << j) from
+            // digit bn of the divisor (i.e. bn << (b.data.len() - 1) - so the product of those
+            // two numbers will be zero in all digits up to (j + b.data.len() - 1).
+            let offset = (j as usize) + b.as_words().len() - 1;
+            if offset >= a.as_words().len() {
+                continue;
+            }
+
+            let a0 = Self::from_words(a.as_words()[offset..].iter().copied());
+
+            // q0 << j * Word::BITS is our actual quotient estimate - we do the shifts
+            // implicitly at the end, when adding and subtracting to a and q. Not only do we
+            // save the cost of the shifts, the rest of the arithmetic gets to work with
+            // smaller numbers.
+            let (mut q0, _) = a0.div_rem_digit(bn);
+            let mut prod = b.mul(&q0).normalize_vartime();
+
+            std::dbg!(prod.as_words(), &a.as_words(), j);
+            while cmp_slice(&prod.as_words(), &a.as_words()[(j as usize)..]) == Ordering::Greater {
+                let one = Self::one();
+                q0 = q0.checked_sub(&one).unwrap();
+                prod = prod.checked_sub(&b).unwrap();
+            }
+
+            add2(&mut q.as_words_mut()[(j as usize)..], q0.as_words());
+            sub2(&mut a.as_words_mut()[(j as usize)..], prod.as_words());
+            a = a.normalize_vartime();
+        }
+
+        debug_assert!(a < b);
+
+        (q.normalize_vartime(), a >> shift)
+    }
+
+    /// Division by a single word.
+    ///
+    /// This function operates in variable-time.
+    fn div_rem_digit(&self, b: Word) -> (Self, Word) {
+        let mut out = self.clone();
+        let mut rem = 0;
+
+        for d in out.as_words_mut().iter_mut().rev() {
+            let (q, r) = div_wide(rem, *d, b);
+            *d = q;
+            rem = r;
+        }
+
+        (out.normalize_vartime(), rem)
     }
 }
 

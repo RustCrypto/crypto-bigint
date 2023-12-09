@@ -8,6 +8,7 @@ mod bit_or;
 mod bit_xor;
 mod bits;
 mod cmp;
+pub(crate) mod div;
 mod encoding;
 mod from;
 mod mul;

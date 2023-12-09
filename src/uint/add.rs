@@ -1,6 +1,8 @@
 //! [`Uint`] addition operations.
 
-use crate::{Checked, CheckedAdd, ConstChoice, Limb, Uint, Wrapping, WrappingAdd, Zero};
+use crate::{
+    Checked, CheckedAdd, ConstChoice, Limb, Uint, WideWord, Word, Wrapping, WrappingAdd, Zero,
+};
 use core::ops::{Add, AddAssign};
 use subtle::CtOption;
 
@@ -97,6 +99,49 @@ impl<const LIMBS: usize> WrappingAdd for Uint<LIMBS> {
     fn wrapping_add(&self, v: &Self) -> Self {
         self.wrapping_add(v)
     }
+}
+
+/// Two argument addition of raw slices:
+/// a += b
+///
+/// The caller _must_ ensure that a is big enough to store the result - typically this means
+/// resizing a to max(a.len(), b.len()) + 1, to fit a possible carry.
+pub(crate) fn add2(a: &mut [Word], b: &[Word]) {
+    let carry = __add2(a, b);
+
+    assert!(carry == 0);
+}
+
+#[inline]
+fn __add2(a: &mut [Word], b: &[Word]) -> Word {
+    debug_assert!(a.len() >= b.len(), "{} < {}", a.len(), b.len());
+
+    let mut carry = 0;
+    let (a_lo, a_hi) = a.split_at_mut(b.len());
+
+    for (a, b) in a_lo.iter_mut().zip(b) {
+        *a = adc(*a, *b, &mut carry);
+    }
+
+    if carry != 0 {
+        for a in a_hi {
+            *a = adc(*a, 0, &mut carry);
+            if carry == 0 {
+                break;
+            }
+        }
+    }
+
+    carry as Word
+}
+
+#[inline]
+pub(crate) fn adc(a: Word, b: Word, acc: &mut WideWord) -> Word {
+    *acc += a as WideWord;
+    *acc += b as WideWord;
+    let lo = *acc as Word;
+    *acc >>= Word::BITS;
+    lo
 }
 
 #[cfg(test)]

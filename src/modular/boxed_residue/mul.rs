@@ -111,7 +111,7 @@ impl<'a> MontgomeryMultiplier<'a> {
     /// Create a new Montgomery multiplier.
     pub(super) fn new(modulus: &'a BoxedUint, mod_neg_inv: Limb) -> Self {
         Self {
-            product: BoxedUint::zero_with_precision(modulus.bits_precision() * 2),
+            product: BoxedUint::zero_with_precision(2 * modulus.bits_precision()),
             modulus,
             mod_neg_inv,
         }
@@ -219,10 +219,7 @@ impl<'a> MontgomeryMultiplier<'a> {
 
     /// Clear the internal product buffer.
     fn clear_product(&mut self) {
-        self.product
-            .limbs
-            .iter_mut()
-            .for_each(|limb| *limb = Limb::ZERO);
+        self.product.limbs.iter_mut().for_each(|limb| limb.0 = 0);
     }
 }
 

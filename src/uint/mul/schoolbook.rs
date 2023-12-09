@@ -1,6 +1,4 @@
-use crate::{WideWord, Word};
-
-use super::karatsuba::adc;
+use crate::{uint::add::adc, WideWord, Word};
 
 /// Schoolbook multiplication
 pub(super) fn mul(x: &[Word], y: &[Word], acc: &mut [Word]) {

@@ -190,6 +190,12 @@ impl BoxedUint {
         ret
     }
 
+    /// Shortens the precision to the minum required bytes to be used.
+    pub(crate) fn normalize_vartime(&self) -> BoxedUint {
+        let needed_bits = self.bits_vartime();
+        self.shorten(needed_bits)
+    }
+
     /// Perform a carry chain-like operation over the limbs of the inputs,
     /// constructing a result from the returned limbs and carry which is
     /// widened to the same width as the widest input.
@@ -400,5 +406,20 @@ mod tests {
         let uint = BoxedUint::from(Vec::from(words));
         assert_eq!(uint.nlimbs(), 4);
         assert_eq!(uint.as_words(), words);
+    }
+
+    #[test]
+    fn normalize_vartime() {
+        let source = BoxedUint::from(vec![0, 0, 0, 0]);
+        let normalized = source.normalize_vartime();
+        assert_eq!(normalized.as_words(), &[0]);
+
+        let source = BoxedUint::from(vec![1, 0, 0, 0]);
+        let normalized = source.normalize_vartime();
+        assert_eq!(normalized.as_words(), &[1]);
+
+        let source = BoxedUint::from(vec![0, 1, 0, 0, 0]);
+        let normalized = source.normalize_vartime();
+        assert_eq!(normalized.as_words(), &[0, 1]);
     }
 }
