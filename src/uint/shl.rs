@@ -43,10 +43,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let shift_num = (shift / Limb::BITS) as usize;
         let rem = shift % Limb::BITS;
 
-        let mut i = LIMBS;
-        while i > shift_num {
-            i -= 1;
+        let mut i = shift_num;
+        while i < LIMBS {
             limbs[i] = self.limbs[i - shift_num];
+            i += 1;
         }
 
         if rem == 0 {
@@ -55,6 +55,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         let mut carry = Limb::ZERO;
 
+        let mut i = shift_num;
         while i < LIMBS {
             let shifted = limbs[i].shl(rem);
             let new_carry = limbs[i].shr(Limb::BITS - rem);
@@ -104,15 +105,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let rshift = nz.if_true_u32(Limb::BITS - shift);
         let carry = nz.if_true_word(self.limbs[LIMBS - 1].0.wrapping_shr(Word::BITS - shift));
 
-        let mut i = LIMBS - 1;
-        while i > 0 {
+        limbs[0] = Limb(self.limbs[0].0 << lshift);
+        let mut i = 1;
+        while i < LIMBS {
             let mut limb = self.limbs[i].0 << lshift;
             let hi = self.limbs[i - 1].0 >> rshift;
             limb |= nz.if_true_word(hi);
             limbs[i] = Limb(limb);
-            i -= 1
+            i += 1
         }
-        limbs[0] = Limb(self.limbs[0].0 << lshift);
 
         (Uint::<LIMBS>::new(limbs), Limb(carry))
     }
