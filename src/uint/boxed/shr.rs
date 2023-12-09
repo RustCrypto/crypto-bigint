@@ -5,64 +5,75 @@ use core::ops::{Shr, ShrAssign};
 use subtle::{Choice, ConstantTimeLess};
 
 impl BoxedUint {
-    /// Computes `self << shift`.
-    /// Returns zero if `shift >= Self::BITS`.
-    pub fn shr(&self, shift: u32) -> Self {
+    /// Computes `self >> shift`.
+    /// Returns `None` if `shift >= Self::BITS`.
+    pub fn shr(&self, shift: u32) -> (Self, Choice) {
+        // `floor(log2(bits_precision - 1))` is the number of bits in the representation of `shift`
+        // (which lies in range `0 <= shift < bits_precision`).
+        let shift_bits = u32::BITS - (self.bits_precision() - 1).leading_zeros();
         let overflow = !shift.ct_lt(&self.bits_precision());
         let shift = shift % self.bits_precision();
-        let log2_bits = u32::BITS - self.bits_precision().leading_zeros();
         let mut result = self.clone();
 
-        for i in 0..log2_bits {
+        for i in 0..shift_bits {
             let bit = Choice::from(((shift >> i) & 1) as u8);
-            result = Self::conditional_select(&result, &result.shr_vartime(1 << i), bit);
+            result = Self::conditional_select(
+                &result,
+                // Will not overflow by construction
+                &result.shr_vartime(1 << i).expect("shift within range"),
+                bit,
+            );
         }
 
-        Self::conditional_select(
-            &result,
-            &Self::zero_with_precision(self.bits_precision()),
+        (
+            Self::conditional_select(
+                &result,
+                &Self::zero_with_precision(self.bits_precision()),
+                overflow,
+            ),
             overflow,
         )
     }
 
     /// Computes `self >> shift`.
+    /// Returns `None` if `shift >= Self::BITS`.
     ///
     /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
-    pub fn shr_vartime(&self, shift: u32) -> Self {
+    pub fn shr_vartime(&self, shift: u32) -> Option<Self> {
+        if shift >= self.bits_precision() {
+            return None;
+        }
+
         let nlimbs = self.nlimbs();
-        let full_shifts = (shift / Limb::BITS) as usize;
-        let small_shift = shift & (Limb::BITS - 1);
         let mut limbs = vec![Limb::ZERO; nlimbs].into_boxed_slice();
 
-        if shift > self.bits_precision() {
-            return Self { limbs };
-        }
+        let shift_num = (shift / Limb::BITS) as usize;
+        let rem = shift % Limb::BITS;
 
-        let n = nlimbs - full_shifts;
         let mut i = 0;
-
-        if small_shift == 0 {
-            while i < n {
-                limbs[i] = Limb(self.limbs[i + full_shifts].0);
-                i += 1;
-            }
-        } else {
-            while i < n {
-                let mut lo = self.limbs[i + full_shifts].0 >> small_shift;
-
-                if i < (nlimbs - 1) - full_shifts {
-                    lo |= self.limbs[i + full_shifts + 1].0 << (Limb::BITS - small_shift);
-                }
-
-                limbs[i] = Limb(lo);
-                i += 1;
-            }
+        while i < nlimbs - shift_num {
+            limbs[i] = self.limbs[i + shift_num];
+            i += 1;
         }
 
-        Self { limbs }
+        if rem == 0 {
+            return Some(Self { limbs });
+        }
+
+        let mut carry = Limb::ZERO;
+
+        while i > 0 {
+            i -= 1;
+            let shifted = limbs[i].shr(rem);
+            let new_carry = limbs[i].shl(Limb::BITS - rem);
+            limbs[i] = shifted.bitor(carry);
+            carry = new_carry;
+        }
+
+        Some(Self { limbs })
     }
 
     /// Computes `self >> 1` in constant-time, returning a true [`Choice`] if the overflowing bit
@@ -95,7 +106,7 @@ impl Shr<u32> for BoxedUint {
     type Output = BoxedUint;
 
     fn shr(self, shift: u32) -> BoxedUint {
-        Self::shr(&self, shift)
+        <&BoxedUint as Shr<u32>>::shr(&self, shift)
     }
 }
 
@@ -103,7 +114,12 @@ impl Shr<u32> for &BoxedUint {
     type Output = BoxedUint;
 
     fn shr(self, shift: u32) -> BoxedUint {
-        self.shr(shift)
+        let (result, overflow) = self.shr(shift);
+        assert!(
+            !bool::from(overflow),
+            "attempt to shift right with overflow"
+        );
+        result
     }
 }
 
@@ -129,9 +145,9 @@ mod tests {
     #[test]
     fn shr_vartime() {
         let n = BoxedUint::from(0x80000000000000000u128);
-        assert_eq!(BoxedUint::zero(), n.shr_vartime(68));
-        assert_eq!(BoxedUint::one(), n.shr_vartime(67));
-        assert_eq!(BoxedUint::from(2u8), n.shr_vartime(66));
-        assert_eq!(BoxedUint::from(4u8), n.shr_vartime(65));
+        assert_eq!(BoxedUint::zero(), n.shr_vartime(68).unwrap());
+        assert_eq!(BoxedUint::one(), n.shr_vartime(67).unwrap());
+        assert_eq!(BoxedUint::from(2u8), n.shr_vartime(66).unwrap());
+        assert_eq!(BoxedUint::from(4u8), n.shr_vartime(65).unwrap());
     }
 }
