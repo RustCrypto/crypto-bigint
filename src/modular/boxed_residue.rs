@@ -191,6 +191,7 @@ impl BoxedResidue {
         #[cfg(feature = "zeroize")]
         montgomery_form.zeroize();
 
+        debug_assert!(ret < self.residue_params.modulus);
         ret
     }
 
