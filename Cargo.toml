@@ -57,6 +57,11 @@ harness = false
 required-features = ["alloc"]
 
 [[bench]]
+name = "boxed_uint"
+harness = false
+required-features = ["alloc"]
+
+[[bench]]
 name = "dyn_residue"
 harness = false
 
