@@ -11,7 +11,7 @@ use core::{
     borrow::Borrow,
     ops::{Mul, MulAssign},
 };
-use subtle::ConditionallySelectable;
+use subtle::{ConditionallySelectable, ConstantTimeLess};
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -211,9 +211,7 @@ fn montgomery_mul(z: &mut [Limb], x: &[Limb], y: &[Limb], m: &[Limb], k: Limb) {
         let cx = c.wrapping_add(c2);
         let cy = cx.wrapping_add(c3);
         z[n + i] = cy;
-
-        // TODO(tarcieri): eliminate data-dependent branches
-        c = Limb((cx.0 < c2.0 || cy.0 < c3.0) as Word);
+        c = Limb((cx.ct_lt(&c2) | cy.ct_lt(&c3)).unwrap_u8() as Word);
     }
 
     let (lower, upper) = z.split_at_mut(n);
