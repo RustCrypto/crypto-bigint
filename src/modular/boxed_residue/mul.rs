@@ -11,6 +11,7 @@ use core::{
     borrow::Borrow,
     ops::{Mul, MulAssign},
 };
+use subtle::{ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -186,20 +187,22 @@ impl Drop for MontgomeryMultiplier<'_> {
 /// x and y are required to satisfy 0 <= z < 2**(n*_W) and then the result z is guaranteed to
 /// satisfy 0 <= z < 2**(n*_W), but it may not be < m.
 ///
+/// Output is written into the lower (i.e. first) half of `z`.
+///
 /// Note: this was adapted from an implementation in `num-bigint`'s `monty.rs`.
 // TODO(tarcieri): refactor into `reduction.rs`, share impl with `(Dyn)Residue`?
 #[cfg(feature = "alloc")]
-pub(crate) fn montgomery_mul(z: &mut [Word], x: &[Word], y: &[Word], m: &[Word], k: Word) {
+fn montgomery_mul(z: &mut [Word], x: &[Word], y: &[Word], m: &[Word], k: Word) {
     // This code assumes x, y, m are all the same length (required by addMulVVW and the for loop).
     // It also assumes that x, y are already reduced mod m, or else the result will not be properly
     // reduced.
-    let mut c: Word = 0;
     let n = m.len();
+    debug_assert_eq!(z.len(), n * 2);
+    debug_assert_eq!(x.len(), n);
+    debug_assert_eq!(y.len(), n);
+    debug_assert_eq!(m.len(), n);
 
-    let pre_cond = z.len() > n && z[n..].len() == n && x.len() == n && y.len() == n && m.len() == n;
-    if !pre_cond {
-        panic!("invalid inputs");
-    }
+    let mut c: Word = 0;
 
     for i in 0..n {
         let c2 = add_mul_vvw(&mut z[i..n + i], x, y[i]);
@@ -208,15 +211,17 @@ pub(crate) fn montgomery_mul(z: &mut [Word], x: &[Word], y: &[Word], m: &[Word],
         let cx = c.wrapping_add(c2);
         let cy = cx.wrapping_add(c3);
         z[n + i] = cy;
+
+        // TODO(tarcieri): eliminate data-dependent branches
         c = (cx < c2 || cy < c3) as Word;
     }
 
-    // TODO(tarcieri): eliminate branch
-    let (first, second) = z.split_at_mut(n);
-    if c == 0 {
-        first.swap_with_slice(&mut second[..]);
-    } else {
-        sub_vv(first, second, m);
+    let (lower, upper) = z.split_at_mut(n);
+    sub_vv(lower, upper, m);
+
+    let is_zero = c.ct_eq(&0);
+    for (a, b) in lower.iter_mut().zip(upper.iter()) {
+        a.conditional_assign(b, is_zero);
     }
 }
 
