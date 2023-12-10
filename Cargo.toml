@@ -61,5 +61,9 @@ name = "dyn_residue"
 harness = false
 
 [[bench]]
+name = "limb"
+harness = false
+
+[[bench]]
 name = "uint"
 harness = false
