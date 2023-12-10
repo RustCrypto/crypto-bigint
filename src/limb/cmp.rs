@@ -2,7 +2,9 @@
 
 use crate::{CtChoice, Limb};
 use core::cmp::Ordering;
-use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
+use subtle::{
+    Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
+};
 
 impl Limb {
     /// Is this limb an odd number?
@@ -62,19 +64,11 @@ impl Eq for Limb {}
 
 impl Ord for Limb {
     fn cmp(&self, other: &Self) -> Ordering {
-        let mut n = 0i8;
-        n -= self.ct_lt(other).unwrap_u8() as i8;
-        n += self.ct_gt(other).unwrap_u8() as i8;
-
-        match n {
-            -1 => Ordering::Less,
-            1 => Ordering::Greater,
-            _ => {
-                debug_assert_eq!(n, 0);
-                debug_assert!(bool::from(self.ct_eq(other)));
-                Ordering::Equal
-            }
-        }
+        let mut ret = Ordering::Less;
+        ret.conditional_assign(&Ordering::Equal, self.ct_eq(other));
+        ret.conditional_assign(&Ordering::Greater, self.ct_gt(other));
+        debug_assert_eq!(ret == Ordering::Less, self.ct_lt(other).into());
+        ret
     }
 }
 
