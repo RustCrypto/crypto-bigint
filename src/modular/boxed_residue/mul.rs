@@ -11,7 +11,7 @@ use core::{
     borrow::Borrow,
     ops::{Mul, MulAssign},
 };
-use subtle::{ConditionallySelectable, ConstantTimeLess};
+use subtle::ConditionallySelectable;
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -211,7 +211,7 @@ fn montgomery_mul(z: &mut [Limb], x: &[Limb], y: &[Limb], m: &[Limb], k: Limb) {
         let cx = c.wrapping_add(c2);
         let cy = cx.wrapping_add(c3);
         z[n + i] = cy;
-        c = Limb((cx.ct_lt(&c2) | cy.ct_lt(&c3)).unwrap_u8() as Word);
+        c = limb_ct_lt(cx, c2, cy, c3);
     }
 
     let (lower, upper) = z.split_at_mut(n);
@@ -255,8 +255,7 @@ fn sub_vv(z: &mut [Limb], x: &[Limb], y: &[Limb]) -> Limb {
 fn add_ww(x: Limb, y: Limb, c: Limb) -> (Limb, Limb) {
     let yc = y.wrapping_add(c);
     let z0 = x.wrapping_add(yc);
-    // TODO(tarcieri): eliminate data-dependent branches
-    let z1 = Limb((z0.0 < x.0 || yc.0 < y.0) as Word);
+    let z1 = limb_ct_lt(z0, x, yc, y);
     (z1, z0)
 }
 
@@ -265,4 +264,10 @@ fn add_ww(x: Limb, y: Limb, c: Limb) -> (Limb, Limb) {
 fn mul_add_www(x: Limb, y: Limb, c: Limb) -> (Limb, Limb) {
     let z = x.0 as WideWord * y.0 as WideWord + c.0 as WideWord;
     (Limb((z >> Word::BITS) as Word), Limb(z as Word))
+}
+
+/// Compare limbs in constant time, returning `Limb::ONE` if the left size is less than the right.
+#[inline(always)]
+fn limb_ct_lt(a1: Limb, b1: Limb, a2: Limb, b2: Limb) -> Limb {
+    (a1.sbb(b1, Limb::ZERO).1 | a2.sbb(b2, Limb::ZERO).1) & Limb::ONE
 }
