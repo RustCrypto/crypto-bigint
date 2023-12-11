@@ -81,8 +81,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// `bits` and `modulus_bits` are the bounds on the bit size
     /// of `self` and `modulus`, respectively
     /// (the inversion speed will be proportional to `bits + modulus_bits`).
-    /// The second element of the tuple is the truthy value if an inverse exists,
-    /// otherwise it is a falsy value.
+    /// The second element of the tuple is the truthy value
+    /// if `modulus` is odd and an inverse exists, otherwise it is a falsy value.
     ///
     /// **Note:** variable time in `bits` and `modulus_bits`.
     ///
@@ -93,8 +93,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         bits: u32,
         modulus_bits: u32,
     ) -> (Self, CtChoice) {
-        debug_assert!(modulus.ct_is_odd().is_true_vartime());
-
         let mut a = *self;
 
         let mut u = Uint::ONE;
@@ -105,14 +103,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // `bit_size` can be anything >= `self.bits()` + `modulus.bits()`, setting to the minimum.
         let bit_size = bits + modulus_bits;
 
-        let mut m1hp = *modulus;
-        let (m1hp_new, carry) = m1hp.shr1_with_overflow();
-        debug_assert!(carry.is_true_vartime());
-        m1hp = m1hp_new.wrapping_add(&Uint::ONE);
+        let m1hp = modulus.shr1().wrapping_add(&Uint::ONE);
+
+        let modulus_is_odd = modulus.ct_is_odd();
 
         let mut i = 0;
         while i < bit_size {
-            debug_assert!(b.ct_is_odd().is_true_vartime());
+            // A sanity check that `b` stays odd. Only matters if `modulus` was odd to begin with,
+            // otherwise this whole thing produces nonsense anyway.
+            debug_assert!(modulus_is_odd.not().or(b.ct_is_odd()).is_true_vartime());
 
             let self_odd = a.ct_is_odd();
 
@@ -129,10 +128,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             debug_assert!(cy.is_true_vartime() == cyy.is_true_vartime());
 
             let (new_a, overflow) = a.shr1_with_overflow();
-            debug_assert!(!overflow.is_true_vartime());
+            debug_assert!(modulus_is_odd.not().or(overflow.not()).is_true_vartime());
             let (new_u, cy) = new_u.shr1_with_overflow();
             let (new_u, cy) = new_u.conditional_wrapping_add(&m1hp, cy);
-            debug_assert!(!cy.is_true_vartime());
+            debug_assert!(modulus_is_odd.not().or(cy.not()).is_true_vartime());
 
             a = new_a;
             u = new_u;
@@ -141,9 +140,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             i += 1;
         }
 
-        debug_assert!(!a.ct_is_nonzero().is_true_vartime());
+        debug_assert!(modulus_is_odd
+            .not()
+            .or(a.ct_is_nonzero().not())
+            .is_true_vartime());
 
-        (v, Uint::ct_eq(&b, &Uint::ONE))
+        (v, Uint::ct_eq(&b, &Uint::ONE).and(modulus_is_odd))
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
@@ -268,10 +270,30 @@ mod tests {
         assert!(is_some.is_true_vartime());
         assert_eq!(res, expected);
 
+        // Check that trying to pass an even modulus causes `is_some` to be falsy
+        let (_res, is_some) = a.inv_odd_mod(&(m.wrapping_add(&U1024::ONE)));
+        assert!(!is_some.is_true_vartime());
+
         // Even though it is less efficient, it still works
         let (res, is_some) = a.inv_mod(&m);
         assert!(is_some.is_true_vartime());
         assert_eq!(res, expected);
+    }
+
+    #[test]
+    fn test_invert_odd_no_inverse() {
+        // 2^128 - 159, a prime
+        let p1 =
+            U256::from_be_hex("00000000000000000000000000000000ffffffffffffffffffffffffffffff61");
+        // 2^128 - 173, a prime
+        let p2 =
+            U256::from_be_hex("00000000000000000000000000000000ffffffffffffffffffffffffffffff53");
+
+        let m = p1.wrapping_mul(&p2);
+
+        // `m` is a multiple of `p1`, so no inverse exists
+        let (_res, is_some) = p1.inv_odd_mod(&m);
+        assert!(!is_some.is_true_vartime());
     }
 
     #[test]
