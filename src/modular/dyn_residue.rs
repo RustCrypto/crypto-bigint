@@ -13,7 +13,7 @@ use super::{
     residue::{Residue, ResidueParams},
     Retrieve,
 };
-use crate::{Integer, Limb, Uint, Word};
+use crate::{Limb, Uint, Word};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
@@ -40,11 +40,9 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
         let r = Uint::MAX.const_rem(modulus).0.wrapping_add(&Uint::ONE);
         let r2 = Uint::const_rem_wide(r.square_wide(), modulus).0;
 
-        // Since we are calculating the inverse modulo (Word::MAX+1),
-        // we can take the modulo right away and calculate the inverse of the first limb only.
-        let modulus_lo = Uint::<1>::from_words([modulus.limbs[0].0]);
-        let mod_neg_inv =
-            Limb(Word::MIN.wrapping_sub(modulus_lo.inv_mod2k_vartime(Word::BITS).limbs[0].0));
+        // If the inverse does not exist, it means the modulus is odd.
+        let (inv_mod_limb, modulus_is_odd) = modulus.inv_mod2k_vartime(Word::BITS);
+        let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));
 
         let r3 = montgomery_reduction(&r2.square_wide(), modulus, mod_neg_inv);
 
@@ -56,7 +54,7 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
             mod_neg_inv,
         };
 
-        CtOption::new(params, modulus.is_odd())
+        CtOption::new(params, modulus_is_odd.into())
     }
 
     /// Returns the modulus which was used to initialize these parameters.

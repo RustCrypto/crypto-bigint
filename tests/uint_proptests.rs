@@ -245,9 +245,11 @@ proptest! {
         let a_bi = to_biguint(&a);
         let m_bi = BigUint::one() << k as usize;
 
-        let actual = a.inv_mod2k(k);
-        let actual_vartime = a.inv_mod2k_vartime(k);
+        let (actual, is_some) = a.inv_mod2k(k);
+        let (actual_vartime, is_some_vartime) = a.inv_mod2k_vartime(k);
         assert_eq!(actual, actual_vartime);
+        assert_eq!(is_some, CtChoice::TRUE);
+        assert_eq!(is_some_vartime, CtChoice::TRUE);
 
         if k == 0 {
             assert_eq!(actual, U256::ZERO);
