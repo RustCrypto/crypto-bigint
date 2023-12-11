@@ -80,8 +80,8 @@ impl BoxedUint {
     /// of `self` and `modulus`, respectively.
     ///
     /// (the inversion speed will be proportional to `bits + modulus_bits`).
-    /// The second element of the tuple is the truthy value if an inverse exists,
-    /// otherwise it is a falsy value.
+    /// The second element of the tuple is the truthy value
+    /// if `modulus` is odd and an inverse exists, otherwise it is a falsy value.
     ///
     /// **Note:** variable time in `bits` and `modulus_bits`.
     ///
@@ -90,7 +90,6 @@ impl BoxedUint {
         debug_assert_eq!(self.bits_precision(), modulus.bits_precision());
 
         let bits_precision = self.bits_precision();
-        debug_assert!(bool::from(modulus.is_odd()));
 
         let mut a = self.clone();
         let mut u = Self::one_with_precision(bits_precision);
@@ -100,13 +99,16 @@ impl BoxedUint {
         // `bit_size` can be anything >= `self.bits()` + `modulus.bits()`, setting to the minimum.
         let bit_size = bits + modulus_bits;
 
-        let mut m1hp = modulus.clone();
-        let (m1hp_new, carry) = m1hp.shr1_with_overflow();
-        debug_assert!(bool::from(carry));
-        m1hp = m1hp_new.wrapping_add(&Self::one_with_precision(bits_precision));
+        let m1hp = modulus
+            .shr1()
+            .wrapping_add(&Self::one_with_precision(bits_precision));
+
+        let modulus_is_odd = modulus.is_odd();
 
         for _ in 0..bit_size {
-            debug_assert!(bool::from(b.is_odd()));
+            // A sanity check that `b` stays odd. Only matters if `modulus` was odd to begin with,
+            // otherwise this whole thing produces nonsense anyway.
+            debug_assert!(bool::from(!modulus_is_odd | b.is_odd()));
 
             let self_odd = a.is_odd();
 
@@ -125,18 +127,18 @@ impl BoxedUint {
             debug_assert!(bool::from(cy.ct_eq(&cyy)));
 
             let (new_a, overflow) = a.shr1_with_overflow();
-            debug_assert!(!bool::from(overflow));
+            debug_assert!(bool::from(!modulus_is_odd | !overflow));
             let (mut new_u, cy) = new_u.shr1_with_overflow();
             let cy = new_u.conditional_adc_assign(&m1hp, cy);
-            debug_assert!(!bool::from(cy));
+            debug_assert!(bool::from(!modulus_is_odd | !cy));
 
             a = new_a;
             u = new_u;
             v = new_v;
         }
 
-        debug_assert!(bool::from(a.is_zero()));
-        (v, b.is_one())
+        debug_assert!(bool::from(!modulus_is_odd | a.is_zero()));
+        (v, b.is_one() & modulus_is_odd)
     }
 }
 
