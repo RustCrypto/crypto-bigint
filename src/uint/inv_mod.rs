@@ -128,9 +128,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let (new_u, cyy) = new_u.conditional_wrapping_add(modulus, cy);
             debug_assert!(cy.is_true_vartime() == cyy.is_true_vartime());
 
-            let (new_a, overflow) = a.shr1_with_overflow();
-            debug_assert!(modulus_is_odd.not().or(overflow.not()).is_true_vartime());
-            let (new_u, cy) = new_u.shr1_with_overflow();
+            let (new_a, carry) = a.shr1_with_carry();
+            debug_assert!(modulus_is_odd.not().or(carry.not()).is_true_vartime());
+            let (new_u, cy) = new_u.shr1_with_carry();
             let (new_u, cy) = new_u.conditional_wrapping_add(&m1hp, cy);
             debug_assert!(modulus_is_odd.not().or(cy.not()).is_true_vartime());
 

@@ -85,9 +85,9 @@ impl BoxedUint {
         success.map(|_| result)
     }
 
-    /// Computes `self >> 1` in constant-time, returning a true [`Choice`] if the overflowing bit
-    /// was set, and a false [`Choice::FALSE`] otherwise.
-    pub(crate) fn shr1_with_overflow(&self) -> (Self, Choice) {
+    /// Computes `self >> 1` in constant-time, returning a true [`Choice`]
+    /// if the least significant bit was set, and a false [`Choice::FALSE`] otherwise.
+    pub(crate) fn shr1_with_carry(&self) -> (Self, Choice) {
         let carry = self.limbs[0].0 & 1;
         (self.shr1(), Choice::from(carry as u8))
     }

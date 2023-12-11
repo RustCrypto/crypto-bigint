@@ -93,10 +93,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
     }
 
-    /// Computes `self >> 1` in constant-time, returning [`CtChoice::TRUE`] if the overflowing bit
-    /// was set, and [`CtChoice::FALSE`] otherwise.
+    /// Computes `self >> 1` in constant-time, returning [`CtChoice::TRUE`]
+    /// if the least significant bit was set, and [`CtChoice::FALSE`] otherwise.
     #[inline(always)]
-    pub(crate) const fn shr1_with_overflow(&self) -> (Self, CtChoice) {
+    pub(crate) const fn shr1_with_carry(&self) -> (Self, CtChoice) {
         let mut ret = Self::ZERO;
         let mut i = LIMBS;
         let mut carry = Limb::ZERO;
@@ -113,7 +113,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self >> 1` in constant-time.
     pub(crate) const fn shr1(&self) -> Self {
         // TODO(tarcieri): optimized implementation
-        self.shr1_with_overflow().0
+        self.shr1_with_carry().0
     }
 }
 

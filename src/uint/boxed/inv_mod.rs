@@ -126,9 +126,9 @@ impl BoxedUint {
             let cyy = new_u.conditional_adc_assign(modulus, cy);
             debug_assert!(bool::from(cy.ct_eq(&cyy)));
 
-            let (new_a, overflow) = a.shr1_with_overflow();
-            debug_assert!(bool::from(!modulus_is_odd | !overflow));
-            let (mut new_u, cy) = new_u.shr1_with_overflow();
+            let (new_a, carry) = a.shr1_with_carry();
+            debug_assert!(bool::from(!modulus_is_odd | !carry));
+            let (mut new_u, cy) = new_u.shr1_with_carry();
             let cy = new_u.conditional_adc_assign(&m1hp, cy);
             debug_assert!(bool::from(!modulus_is_odd | !cy));
 
