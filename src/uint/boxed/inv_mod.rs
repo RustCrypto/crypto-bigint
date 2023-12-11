@@ -16,16 +16,14 @@ impl BoxedUint {
         // Decompose `self` into RNS with moduli `2^k` and `s` and calculate the inverses.
         // Using the fact that `(z^{-1} mod (m1 * m2)) mod m1 == z^{-1} mod m1`
         let (a, a_is_some) = self.inv_odd_mod(&s);
-        let b = self.inv_mod2k(k);
-        // inverse modulo 2^k exists either if `k` is 0 or if `self` is odd.
-        let b_is_some = k.ct_eq(&0) | self.is_odd();
+        let (b, b_is_some) = self.inv_mod2k(k);
 
         // Restore from RNS:
         // self^{-1} = a mod s = b mod 2^k
         // => self^{-1} = a + s * ((b - a) * s^(-1) mod 2^k)
         // (essentially one step of the Garner's algorithm for recovery from RNS).
 
-        let m_odd_inv = s.inv_mod2k(k); // `s` is odd, so this always exists
+        let (m_odd_inv, _is_some) = s.inv_mod2k(k); // `s` is odd, so this always exists
 
         // This part is mod 2^k
         let mask = Self::one().shl(k).wrapping_sub(&Self::one());
@@ -39,13 +37,15 @@ impl BoxedUint {
 
     /// Computes 1/`self` mod `2^k`.
     ///
-    /// Conditions: `self` < 2^k and `self` must be odd
-    pub(crate) fn inv_mod2k(&self, k: u32) -> Self {
-        // This is the same algorithm as in `inv_mod2k_vartime()`,
-        // but made constant-time w.r.t `k` as well.
-
+    /// If the inverse does not exist (`k > 0` and `self` is even),
+    /// returns `CtChoice::FALSE` as the second element of the tuple,
+    /// otherwise returns `CtChoice::TRUE`.
+    pub(crate) fn inv_mod2k(&self, k: u32) -> (Self, Choice) {
         let mut x = Self::zero_with_precision(self.bits_precision()); // keeps `x` during iterations
         let mut b = Self::one_with_precision(self.bits_precision()); // keeps `b_i` during iterations
+
+        // The inverse exists either if `k` is 0 or if `self` is odd.
+        let is_some = k.ct_eq(&0) | self.is_odd();
 
         for i in 0..self.bits_precision() {
             // Only iterations for i = 0..k need to change `x`,
@@ -64,7 +64,7 @@ impl BoxedUint {
             x.set_bit(i, x_i_choice);
         }
 
-        x
+        (x, is_some)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
@@ -157,8 +157,9 @@ mod tests {
             256,
         )
         .unwrap();
-        let a = v.inv_mod2k(256);
+        let (a, is_some) = v.inv_mod2k(256);
         assert_eq!(e, a);
+        assert!(bool::from(is_some));
 
         let v = BoxedUint::from_be_slice(
             &hex!("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141"),
@@ -170,7 +171,8 @@ mod tests {
             256,
         )
         .unwrap();
-        let a = v.inv_mod2k(256);
+        let (a, is_some) = v.inv_mod2k(256);
         assert_eq!(e, a);
+        assert!(bool::from(is_some));
     }
 }
