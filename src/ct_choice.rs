@@ -158,6 +158,12 @@ impl From<CtChoice> for bool {
     }
 }
 
+impl PartialEq for CtChoice {
+    fn eq(&self, other: &Self) -> bool {
+        self.0 == other.0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::CtChoice;
