@@ -9,36 +9,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self` / `rhs` using a pre-made reciprocal,
     /// returns the quotient (q) and remainder (r).
     #[inline(always)]
-    pub const fn ct_div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb) {
+    pub const fn div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb) {
         div_rem_limb_with_reciprocal(self, reciprocal)
     }
 
-    /// Computes `self` / `rhs` using a pre-made reciprocal,
-    /// returns the quotient (q) and remainder (r).
-    #[inline(always)]
-    pub fn div_rem_limb_with_reciprocal(
-        &self,
-        reciprocal: &CtOption<Reciprocal>,
-    ) -> CtOption<(Self, Limb)> {
-        reciprocal.map(|r| div_rem_limb_with_reciprocal(self, &r))
-    }
-
-    /// Computes `self` / `rhs`, returns the quotient (q) and remainder (r).
-    /// Returns the truthy value as the third element of the tuple if `rhs != 0`,
-    /// and the falsy value otherwise.
-    #[inline(always)]
-    pub(crate) const fn ct_div_rem_limb(&self, rhs: Limb) -> (Self, Limb, CtChoice) {
-        let (reciprocal, is_some) = Reciprocal::ct_new(rhs);
-        let (quo, rem) = div_rem_limb_with_reciprocal(self, &reciprocal);
-        (quo, rem, is_some)
-    }
-
     /// Computes `self` / `rhs`, returns the quotient (q) and remainder (r).
     #[inline(always)]
-    pub fn div_rem_limb(&self, rhs: NonZero<Limb>) -> (Self, Limb) {
-        // Guaranteed to succeed since `rhs` is nonzero.
-        let (quo, rem, _is_some) = self.ct_div_rem_limb(*rhs);
-        (quo, rem)
+    pub const fn div_rem_limb(&self, rhs: NonZero<Limb>) -> (Self, Limb) {
+        div_rem_limb_with_reciprocal(self, &Reciprocal::new(rhs))
     }
 
     /// Computes `self` / `rhs`, returns the quotient (q), remainder (r)
@@ -307,7 +285,7 @@ impl<const LIMBS: usize> Div<NonZero<Limb>> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn div(self, rhs: NonZero<Limb>) -> Self::Output {
-        let (q, _, _) = self.ct_div_rem_limb(*rhs);
+        let (q, _) = self.div_rem_limb(rhs);
         q
     }
 }
@@ -396,7 +374,7 @@ impl<const LIMBS: usize> Rem<NonZero<Limb>> for Uint<LIMBS> {
     type Output = Limb;
 
     fn rem(self, rhs: NonZero<Limb>) -> Self::Output {
-        let (_, r, _) = self.ct_div_rem_limb(*rhs);
+        let (_, r) = self.div_rem_limb(rhs);
         r
     }
 }
