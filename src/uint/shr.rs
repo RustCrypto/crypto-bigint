@@ -17,11 +17,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut i = 0;
         while i < shift_bits {
             let bit = CtChoice::from_u32_lsb((shift >> i) & 1);
-            result = Uint::ct_select(&result, &result.shr_vartime(1 << i).0, bit);
+            result = Uint::select(&result, &result.shr_vartime(1 << i).0, bit);
             i += 1;
         }
 
-        (Uint::ct_select(&result, &Self::ZERO, overflow), overflow)
+        (Uint::select(&result, &Self::ZERO, overflow), overflow)
     }
 
     /// Computes `self >> shift`.

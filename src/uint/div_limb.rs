@@ -70,14 +70,14 @@ pub const fn reciprocal(d: Word) -> Word {
 
 /// Returns `u32::MAX` if `a < b` and `0` otherwise.
 #[inline]
-const fn ct_lt(a: u32, b: u32) -> u32 {
+const fn lt(a: u32, b: u32) -> u32 {
     let bit = (((!a) & b) | (((!a) | b) & (a.wrapping_sub(b)))) >> (u32::BITS - 1);
     bit.wrapping_neg()
 }
 
 /// Returns `a` if `c == 0` and `b` if `c == u32::MAX`.
 #[inline(always)]
-const fn ct_select(a: u32, b: u32, c: u32) -> u32 {
+const fn select(a: u32, b: u32, c: u32) -> u32 {
     a ^ (c & (a ^ b))
 }
 
@@ -101,8 +101,8 @@ const fn short_div(dividend: u32, dividend_bits: u32, divisor: u32, divisor_bits
 
     while i > 0 {
         i -= 1;
-        let bit = ct_lt(dividend, divisor);
-        dividend = ct_select(dividend.wrapping_sub(divisor), dividend, bit);
+        let bit = lt(dividend, divisor);
+        dividend = select(dividend.wrapping_sub(divisor), dividend, bit);
         divisor >>= 1;
         let inv_bit = !bit;
         quotient |= (inv_bit >> (u32::BITS - 1)) << i;

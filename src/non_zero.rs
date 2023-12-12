@@ -28,7 +28,7 @@ impl NonZero<Limb> {
     /// Creates a new non-zero limb in a const context.
     /// The second return value is `FALSE` if `n` is zero, `TRUE` otherwise.
     pub const fn const_new(n: Limb) -> (Self, CtChoice) {
-        (Self(n), n.ct_is_nonzero())
+        (Self(n), n.is_nonzero())
     }
 }
 
@@ -36,7 +36,7 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     /// Creates a new non-zero integer in a const context.
     /// The second return value is `FALSE` if `n` is zero, `TRUE` otherwise.
     pub const fn const_new(n: Uint<LIMBS>) -> (Self, CtChoice) {
-        (Self(n), n.ct_is_nonzero())
+        (Self(n), n.is_nonzero())
     }
 }
 

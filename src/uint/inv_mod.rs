@@ -21,14 +21,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut i = 0;
 
         // The inverse exists either if `k` is 0 or if `self` is odd.
-        let is_some = CtChoice::from_u32_nonzero(k).not().or(self.ct_is_odd());
+        let is_some = CtChoice::from_u32_nonzero(k).not().or(self.is_odd());
 
         while i < k {
             // X_i = b_i mod 2
             let x_i = b.limbs[0].0 & 1;
             let x_i_choice = CtChoice::from_word_lsb(x_i);
             // b_{i+1} = (b_i - a * X_i) / 2
-            b = Self::ct_select(&b, &b.wrapping_sub(self), x_i_choice).shr1();
+            b = Self::select(&b, &b.wrapping_sub(self), x_i_choice).shr1();
             // Store the X_i bit in the result (x = x | (1 << X_i))
             let (shifted, _overflow) = Uint::from_word(x_i).shl_vartime(i);
             x = x.bitor(&shifted);
@@ -53,7 +53,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut i = 0;
 
         // The inverse exists either if `k` is 0 or if `self` is odd.
-        let is_some = CtChoice::from_u32_nonzero(k).not().or(self.ct_is_odd());
+        let is_some = CtChoice::from_u32_nonzero(k).not().or(self.is_odd());
 
         while i < Self::BITS {
             // Only iterations for i = 0..k need to change `x`,
@@ -64,7 +64,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let x_i = b.limbs[0].0 & 1;
             let x_i_choice = CtChoice::from_word_lsb(x_i);
             // b_{i+1} = (b_i - self * X_i) / 2
-            b = Self::ct_select(&b, &b.wrapping_sub(self), x_i_choice).shr1();
+            b = Self::select(&b, &b.wrapping_sub(self), x_i_choice).shr1();
 
             // Store the X_i bit in the result (x = x | (1 << X_i))
             // Don't change the result in dummy iterations.
@@ -106,24 +106,24 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         let m1hp = modulus.shr1().wrapping_add(&Uint::ONE);
 
-        let modulus_is_odd = modulus.ct_is_odd();
+        let modulus_is_odd = modulus.is_odd();
 
         let mut i = 0;
         while i < bit_size {
             // A sanity check that `b` stays odd. Only matters if `modulus` was odd to begin with,
             // otherwise this whole thing produces nonsense anyway.
-            debug_assert!(modulus_is_odd.not().or(b.ct_is_odd()).is_true_vartime());
+            debug_assert!(modulus_is_odd.not().or(b.is_odd()).is_true_vartime());
 
-            let self_odd = a.ct_is_odd();
+            let self_odd = a.is_odd();
 
             // Set `self -= b` if `self` is odd.
             let (new_a, swap) = a.conditional_wrapping_sub(&b, self_odd);
             // Set `b += self` if `swap` is true.
-            b = Uint::ct_select(&b, &b.wrapping_add(&new_a), swap);
+            b = Uint::select(&b, &b.wrapping_add(&new_a), swap);
             // Negate `self` if `swap` is true.
             a = new_a.conditional_wrapping_neg(swap);
 
-            let (new_u, new_v) = Uint::ct_swap(&u, &v, swap);
+            let (new_u, new_v) = Uint::swap(&u, &v, swap);
             let (new_u, cy) = new_u.conditional_wrapping_sub(&new_v, self_odd);
             let (new_u, cyy) = new_u.conditional_wrapping_add(modulus, cy);
             debug_assert!(cy.is_true_vartime() == cyy.is_true_vartime());
@@ -143,10 +143,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         debug_assert!(modulus_is_odd
             .not()
-            .or(a.ct_is_nonzero().not())
+            .or(a.is_nonzero().not())
             .is_true_vartime());
 
-        (v, Uint::ct_eq(&b, &Uint::ONE).and(modulus_is_odd))
+        (v, Uint::eq(&b, &Uint::ONE).and(modulus_is_odd))
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.

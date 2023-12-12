@@ -13,7 +13,7 @@ impl<const LIMBS: usize> Neg for Wrapping<Uint<LIMBS>> {
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Negates based on `choice` by wrapping the integer.
     pub(crate) const fn conditional_wrapping_neg(&self, choice: CtChoice) -> Uint<LIMBS> {
-        Uint::ct_select(self, &self.wrapping_neg(), choice)
+        Uint::select(self, &self.wrapping_neg(), choice)
     }
 
     /// Perform wrapping negation.

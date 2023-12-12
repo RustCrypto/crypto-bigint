@@ -34,9 +34,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut done = CtChoice::FALSE;
         loop {
             let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::ct_select(&r, &rem, CtChoice::from_word_mask(borrow.0).or(done));
+            rem = Self::select(&r, &rem, CtChoice::from_word_mask(borrow.0).or(done));
             r = quo.bitor(&Self::ONE);
-            quo = Self::ct_select(&r, &quo, CtChoice::from_word_mask(borrow.0).or(done));
+            quo = Self::select(&r, &quo, CtChoice::from_word_mask(borrow.0).or(done));
             if i == 0 {
                 break;
             }
@@ -45,7 +45,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             // aren't modified further (but do the remaining iterations anyway to be constant-time)
             done = CtChoice::from_word_lt(i as Word, mb as Word);
             c = c.shr1();
-            quo = Self::ct_select(&quo.shl1(), &quo, done);
+            quo = Self::select(&quo.shl1(), &quo, done);
         }
 
         (quo, rem)
@@ -68,9 +68,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         loop {
             let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::ct_select(&r, &rem, CtChoice::from_word_mask(borrow.0));
+            rem = Self::select(&r, &rem, CtChoice::from_word_mask(borrow.0));
             r = quo.bitor(&Self::ONE);
-            quo = Self::ct_select(&r, &quo, CtChoice::from_word_mask(borrow.0));
+            quo = Self::select(&r, &quo, CtChoice::from_word_mask(borrow.0));
             if bd == 0 {
                 break;
             }
@@ -96,7 +96,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         loop {
             let (r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::ct_select(&r, &rem, CtChoice::from_word_mask(borrow.0));
+            rem = Self::select(&r, &rem, CtChoice::from_word_mask(borrow.0));
             if bd == 0 {
                 break;
             }
@@ -129,8 +129,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let (lower_sub, borrow) = lower.sbb(&c.0, Limb::ZERO);
             let (upper_sub, borrow) = upper.sbb(&c.1, borrow);
 
-            lower = Self::ct_select(&lower_sub, &lower, CtChoice::from_word_mask(borrow.0));
-            upper = Self::ct_select(&upper_sub, &upper, CtChoice::from_word_mask(borrow.0));
+            lower = Self::select(&lower_sub, &lower, CtChoice::from_word_mask(borrow.0));
+            upper = Self::select(&upper_sub, &upper, CtChoice::from_word_mask(borrow.0));
             if bd == 0 {
                 break;
             }
@@ -156,7 +156,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         let outmask = Limb(out.limbs[limb_num].0 & mask);
 
-        out.limbs[limb_num] = Limb::ct_select(out.limbs[limb_num], outmask, le);
+        out.limbs[limb_num] = Limb::select(out.limbs[limb_num], outmask, le);
 
         // TODO: this is not constant-time.
         let mut i = limb_num + 1;

@@ -164,7 +164,7 @@ const fn multi_exponentiate_montgomery_form_internal<const LIMBS: usize, const R
                 let mut j = 1;
                 while j < 1 << WINDOW {
                     let choice = CtChoice::from_word_eq(j, idx);
-                    power = Uint::<LIMBS>::ct_select(&power, &powers[j as usize], choice);
+                    power = Uint::<LIMBS>::select(&power, &powers[j as usize], choice);
                     j += 1;
                 }
 

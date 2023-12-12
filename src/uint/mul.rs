@@ -76,7 +76,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform saturating multiplication, returning `MAX` on overflow.
     pub const fn saturating_mul<const HLIMBS: usize>(&self, rhs: &Uint<HLIMBS>) -> Self {
         let (res, overflow) = self.mul_wide(rhs);
-        Self::ct_select(&res, &Self::MAX, overflow.ct_is_nonzero())
+        Self::select(&res, &Self::MAX, overflow.is_nonzero())
     }
 
     /// Perform wrapping multiplication, discarding overflow.
