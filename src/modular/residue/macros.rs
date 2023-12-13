@@ -30,12 +30,15 @@ macro_rules! impl_modulus {
 
                 res
             };
+
+            // Can unwrap `NonZero::const_new()` here since `MODULUS` was asserted to be non-zero.
+            const MODULUS_NZ: $crate::NonZero<$uint_type> =
+                $crate::NonZero::<$uint_type>::const_new(Self::MODULUS).0;
+
             const R: $uint_type = $crate::Uint::MAX
-                .const_rem(&Self::MODULUS)
-                .0
+                .rem(&Self::MODULUS_NZ)
                 .wrapping_add(&$crate::Uint::ONE);
-            const R2: $uint_type =
-                $crate::Uint::const_rem_wide(Self::R.square_wide(), &Self::MODULUS).0;
+            const R2: $uint_type = $crate::Uint::rem_wide(Self::R.square_wide(), &Self::MODULUS_NZ);
             const MOD_NEG_INV: $crate::Limb = $crate::Limb(
                 $crate::Word::MIN.wrapping_sub(
                     Self::MODULUS

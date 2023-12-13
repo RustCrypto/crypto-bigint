@@ -8,12 +8,12 @@ mod pow;
 mod sub;
 
 use super::{div_by_2::div_by_2, reduction::montgomery_reduction, Retrieve};
-use crate::{Limb, Uint, ZeroConstant};
+use crate::{Limb, NonZero, Uint, ZeroConstant};
 use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "rand_core")]
-use crate::{rand_core::CryptoRngCore, NonZero, Random, RandomMod};
+use crate::{rand_core::CryptoRngCore, Random, RandomMod};
 
 #[cfg(feature = "serde")]
 use {
@@ -39,6 +39,8 @@ pub trait ResidueParams<const LIMBS: usize>:
 
     /// The constant modulus
     const MODULUS: Uint<LIMBS>;
+    /// The constant modulus pre-wrapped in NonZero
+    const MODULUS_NZ: NonZero<Uint<LIMBS>>;
     /// Parameter used in Montgomery reduction
     const R: Uint<LIMBS>;
     /// R^2, used to move into Montgomery form

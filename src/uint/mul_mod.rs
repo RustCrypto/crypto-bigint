@@ -17,7 +17,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Barrett reduction instead.
         //
         // It's worth potentially exploring other approaches to improve efficiency.
-        match DynResidueParams::new(p).into() {
+        match DynResidueParams::new(p) {
             Some(params) => {
                 let lhs = DynResidue::new(self, params);
                 let rhs = DynResidue::new(rhs, params);

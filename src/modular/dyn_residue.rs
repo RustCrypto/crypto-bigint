@@ -13,8 +13,8 @@ use super::{
     residue::{Residue, ResidueParams},
     Retrieve,
 };
-use crate::{Limb, Uint, Word};
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+use crate::{Integer, Limb, NonZero, Uint, Word};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,13 +35,19 @@ pub struct DynResidueParams<const LIMBS: usize> {
 impl<const LIMBS: usize> DynResidueParams<LIMBS> {
     /// Instantiates a new set of `ResidueParams` representing the given `modulus` if it is odd.
     ///
-    /// Returns a `CtOption` that is `None` if the provided modulus is not odd.
-    pub fn new(modulus: &Uint<LIMBS>) -> CtOption<Self> {
-        let r = Uint::MAX.const_rem(modulus).0.wrapping_add(&Uint::ONE);
-        let r2 = Uint::const_rem_wide(r.square_wide(), modulus).0;
+    /// Returns `None` if the provided modulus is not odd.
+    pub fn new(modulus: &Uint<LIMBS>) -> Option<Self> {
+        if modulus.is_even().into() {
+            return None;
+        }
 
-        // If the inverse does not exist, it means the modulus is odd.
-        let (inv_mod_limb, modulus_is_odd) = modulus.inv_mod2k_vartime(Word::BITS);
+        let nz_modulus = Option::from(NonZero::new(*modulus))?;
+
+        let r = Uint::MAX.rem(&nz_modulus).wrapping_add(&Uint::ONE);
+        let r2 = Uint::rem_wide(r.square_wide(), &nz_modulus);
+
+        // Since the modulus is odd, the inverse exists.
+        let (inv_mod_limb, _is_some) = modulus.inv_mod2k_vartime(Word::BITS);
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));
 
         let r3 = montgomery_reduction(&r2.square_wide(), modulus, mod_neg_inv);
@@ -54,7 +60,7 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
             mod_neg_inv,
         };
 
-        CtOption::new(params, modulus_is_odd.into())
+        Some(params)
     }
 
     /// Returns the modulus which was used to initialize these parameters.
