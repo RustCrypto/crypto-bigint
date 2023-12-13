@@ -45,7 +45,7 @@
 //!     U256::from_be_hex("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551");
 //!
 //! // Compute `MODULUS` shifted right by 1 at compile time
-//! pub const MODULUS_SHR1: U256 = MODULUS.shr(1);
+//! pub const MODULUS_SHR1: U256 = MODULUS.shr(1).0;
 //! ```
 //!
 //! Note that large constant computations may accidentally trigger a the `const_eval_limit` of the compiler.

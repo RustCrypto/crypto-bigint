@@ -5,6 +5,7 @@ use core::ops::BitXor;
 
 impl Limb {
     /// Calculates `a ^ b`.
+    #[inline(always)]
     pub const fn bitxor(self, rhs: Self) -> Self {
         Limb(self.0 ^ rhs.0)
     }

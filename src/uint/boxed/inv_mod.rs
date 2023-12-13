@@ -11,7 +11,7 @@ impl BoxedUint {
 
         // Decompose `modulus = s * 2^k` where `s` is odd
         let k = modulus.trailing_zeros();
-        let s = modulus.shr(k);
+        let s = modulus >> k;
 
         // Decompose `self` into RNS with moduli `2^k` and `s` and calculate the inverses.
         // Using the fact that `(z^{-1} mod (m1 * m2)) mod m1 == z^{-1} mod m1`
@@ -26,7 +26,7 @@ impl BoxedUint {
         let (m_odd_inv, _is_some) = s.inv_mod2k(k); // `s` is odd, so this always exists
 
         // This part is mod 2^k
-        let mask = Self::one().shl(k).wrapping_sub(&Self::one());
+        let mask = (Self::one() << k).wrapping_sub(&Self::one());
         let t = (b.wrapping_sub(&a).wrapping_mul(&m_odd_inv)).bitand(&mask);
 
         // Will not overflow since `a <= s - 1`, `t <= 2^k - 1`,
@@ -126,9 +126,9 @@ impl BoxedUint {
             let cyy = new_u.conditional_adc_assign(modulus, cy);
             debug_assert!(bool::from(cy.ct_eq(&cyy)));
 
-            let (new_a, overflow) = a.shr1_with_overflow();
-            debug_assert!(bool::from(!modulus_is_odd | !overflow));
-            let (mut new_u, cy) = new_u.shr1_with_overflow();
+            let (new_a, carry) = a.shr1_with_carry();
+            debug_assert!(bool::from(!modulus_is_odd | !carry));
+            let (mut new_u, cy) = new_u.shr1_with_carry();
             let cy = new_u.conditional_adc_assign(&m1hp, cy);
             debug_assert!(bool::from(!modulus_is_odd | !cy));
 

@@ -53,7 +53,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mb = rhs.bits();
         let mut rem = *self;
         let mut quo = Self::ZERO;
-        let mut c = rhs.shl(Self::BITS - mb);
+        // If there is overflow, it means `mb == 0`, so `rhs == 0`.
+        let (mut c, overflow) = rhs.shl(Self::BITS - mb);
+        let is_some = overflow.not();
 
         let mut i = Self::BITS;
         let mut done = CtChoice::FALSE;
@@ -73,7 +75,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             quo = Self::ct_select(&quo.shl1(), &quo, done);
         }
 
-        let is_some = Limb(mb as Word).ct_is_nonzero();
         quo = Self::ct_select(&Self::ZERO, &quo, is_some);
         (quo, rem, is_some)
     }
@@ -93,7 +94,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut bd = Self::BITS - mb;
         let mut rem = *self;
         let mut quo = Self::ZERO;
-        let mut c = rhs.shl_vartime(bd);
+        let (mut c, overflow) = rhs.shl_vartime(bd);
+        let is_some = overflow.not();
 
         loop {
             let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
@@ -108,7 +110,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             quo = quo.shl1();
         }
 
-        let is_some = CtChoice::from_u32_nonzero(mb);
         quo = Self::ct_select(&Self::ZERO, &quo, is_some);
         (quo, rem, is_some)
     }
@@ -138,7 +139,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mb = rhs.bits_vartime();
         let mut bd = Self::BITS - mb;
         let mut rem = *self;
-        let mut c = rhs.shl_vartime(bd);
+        let (mut c, overflow) = rhs.shl_vartime(bd);
+        let is_some = overflow.not();
 
         loop {
             let (r, borrow) = rem.sbb(&c, Limb::ZERO);
@@ -150,7 +152,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             c = c.shr1();
         }
 
-        let is_some = CtChoice::from_u32_nonzero(mb);
         (rem, is_some)
     }
 
@@ -186,7 +187,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let (mut lower, mut upper) = lower_upper;
 
         // Factor of the modulus, split into two halves
-        let mut c = Self::shl_vartime_wide((*rhs, Uint::ZERO), bd);
+        let (mut c, _overflow) = Self::shl_vartime_wide((*rhs, Uint::ZERO), bd);
 
         loop {
             let (lower_sub, borrow) = lower.sbb(&c.0, Limb::ZERO);
@@ -198,7 +199,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 break;
             }
             bd -= 1;
-            c = Self::shr_vartime_wide(c, 1);
+            let (new_c, _overflow) = Self::shr_vartime_wide(c, 1);
+            c = new_c;
         }
 
         let is_some = CtChoice::from_u32_nonzero(mb);
@@ -814,8 +816,8 @@ mod tests {
     fn div() {
         let mut rng = ChaChaRng::from_seed([7u8; 32]);
         for _ in 0..25 {
-            let num = U256::random(&mut rng).shr_vartime(128);
-            let den = U256::random(&mut rng).shr_vartime(128);
+            let (num, _) = U256::random(&mut rng).shr_vartime(128);
+            let (den, _) = U256::random(&mut rng).shr_vartime(128);
             let n = num.checked_mul(&den);
             if n.is_some().into() {
                 let (q, _, is_some) = n.unwrap().const_div_rem(&den);
@@ -926,7 +928,7 @@ mod tests {
         for _ in 0..25 {
             let num = U256::random(&mut rng);
             let k = rng.next_u32() % 256;
-            let den = U256::ONE.shl_vartime(k);
+            let (den, _) = U256::ONE.shl_vartime(k);
 
             let a = num.rem2k(k);
             let e = num.wrapping_rem(&den);

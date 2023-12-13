@@ -37,7 +37,8 @@ impl BoxedUint {
         let mb = rhs.bits();
         let mut bd = self.bits_precision() - mb;
         let mut rem = self.clone();
-        let mut c = rhs.shl_vartime(bd);
+        // Will not overflow since `bd < bits_precision`
+        let mut c = rhs.shl_vartime(bd).expect("shift within range");
 
         loop {
             let (r, borrow) = rem.sbb(&c, Limb::ZERO);
@@ -77,7 +78,7 @@ impl BoxedUint {
         let bits_precision = self.bits_precision();
         let mut rem = self.clone();
         let mut quo = Self::zero_with_precision(bits_precision);
-        let mut c = rhs.shl(bits_precision - mb);
+        let (mut c, _overflow) = rhs.shl(bits_precision - mb);
         let mut i = bits_precision;
         let mut done = Choice::from(0u8);
 
@@ -110,7 +111,8 @@ impl BoxedUint {
         let mut bd = self.bits_precision() - mb;
         let mut remainder = self.clone();
         let mut quotient = Self::zero_with_precision(self.bits_precision());
-        let mut c = rhs.shl_vartime(bd);
+        // Will not overflow since `bd < bits_precision`
+        let mut c = rhs.shl_vartime(bd).expect("shift within range");
 
         loop {
             let (mut r, borrow) = remainder.sbb(&c, Limb::ZERO);
