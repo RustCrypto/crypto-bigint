@@ -13,8 +13,8 @@ use super::{
     residue::{Residue, ResidueParams},
     Retrieve,
 };
-use crate::{Integer, Limb, NonZero, Uint, Word};
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
+use crate::{Limb, NonZero, Uint, Word, Zero};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,18 +36,22 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
     /// Instantiates a new set of `ResidueParams` representing the given `modulus` if it is odd.
     ///
     /// Returns `None` if the provided modulus is not odd.
-    pub fn new(modulus: &Uint<LIMBS>) -> Option<Self> {
-        if modulus.is_even().into() {
-            return None;
-        }
-
-        let nz_modulus = Option::from(NonZero::new(*modulus))?;
+    pub fn new(modulus: &Uint<LIMBS>) -> CtOption<Self> {
+        // Use a surrogate value of `1` in case a modulus of `0` is passed.
+        // This will be rejected by the `modulus_is_odd` check below,
+        // which will fail and return `None`.
+        let nz_modulus = NonZero::new(Uint::conditional_select(
+            modulus,
+            &Uint::ONE,
+            modulus.is_zero(),
+        ))
+        .expect("modulus ensured non-zero");
 
         let r = Uint::MAX.rem(&nz_modulus).wrapping_add(&Uint::ONE);
         let r2 = Uint::rem_wide(r.square_wide(), &nz_modulus);
 
-        // Since the modulus is odd, the inverse exists.
-        let (inv_mod_limb, _is_some) = modulus.inv_mod2k_vartime(Word::BITS);
+        // If the inverse exists, it means the modulus is odd.
+        let (inv_mod_limb, modulus_is_odd) = modulus.inv_mod2k_vartime(Word::BITS);
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));
 
         let r3 = montgomery_reduction(&r2.square_wide(), modulus, mod_neg_inv);
@@ -60,7 +64,7 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
             mod_neg_inv,
         };
 
-        Some(params)
+        CtOption::new(params, modulus_is_odd.into())
     }
 
     /// Returns the modulus which was used to initialize these parameters.
