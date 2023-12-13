@@ -60,10 +60,17 @@ proptest! {
     fn shl_vartime(a in uint(), shift in any::<u8>()) {
         let a_bi = to_biguint(&a);
 
-        let expected = to_uint(a_bi << shift.into());
-        let actual = a.shl_vartime(shift.into());
+        // Add a 50% probability of overflow.
+        let shift = u32::from(shift) % (U256::BITS * 2);
+
+        let expected = to_uint((a_bi << shift as usize) & ((BigUint::one() << U256::BITS as usize) - BigUint::one()));
+        let (actual, overflow) = a.shl_vartime(shift.into());
 
         assert_eq!(expected, actual);
+        if shift >= U256::BITS {
+            assert_eq!(actual, U256::ZERO);
+            assert_eq!(overflow, CtChoice::TRUE);
+        }
     }
 
     #[test]
@@ -74,9 +81,30 @@ proptest! {
         let shift = u32::from(shift) % (U256::BITS * 2);
 
         let expected = to_uint((a_bi << shift as usize) & ((BigUint::one() << U256::BITS as usize) - BigUint::one()));
-        let actual = a.shl(shift);
+        let (actual, overflow) = a.shl(shift);
 
         assert_eq!(expected, actual);
+        if shift >= U256::BITS {
+            assert_eq!(actual, U256::ZERO);
+            assert_eq!(overflow, CtChoice::TRUE);
+        }
+    }
+
+    #[test]
+    fn shr_vartime(a in uint(), shift in any::<u16>()) {
+        let a_bi = to_biguint(&a);
+
+        // Add a 50% probability of overflow.
+        let shift = u32::from(shift) % (U256::BITS * 2);
+
+        let expected = to_uint(a_bi >> shift as usize);
+        let (actual, overflow) = a.shr_vartime(shift);
+
+        assert_eq!(expected, actual);
+        if shift >= U256::BITS {
+            assert_eq!(actual, U256::ZERO);
+            assert_eq!(overflow, CtChoice::TRUE);
+        }
     }
 
     #[test]
@@ -87,9 +115,13 @@ proptest! {
         let shift = u32::from(shift) % (U256::BITS * 2);
 
         let expected = to_uint(a_bi >> shift as usize);
-        let actual = a.shr(shift);
+        let (actual, overflow) = a.shr(shift);
 
         assert_eq!(expected, actual);
+        if shift >= U256::BITS {
+            assert_eq!(actual, U256::ZERO);
+            assert_eq!(overflow, CtChoice::TRUE);
+        }
     }
 
     #[test]

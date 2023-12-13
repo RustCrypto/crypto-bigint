@@ -5,6 +5,7 @@ use core::ops::{BitOr, BitOrAssign};
 
 impl Limb {
     /// Calculates `a | b`.
+    #[inline(always)]
     pub const fn bitor(self, rhs: Self) -> Self {
         Limb(self.0 | rhs.0)
     }

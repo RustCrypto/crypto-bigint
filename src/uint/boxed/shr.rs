@@ -5,69 +5,86 @@ use core::ops::{Shr, ShrAssign};
 use subtle::{Choice, ConstantTimeLess};
 
 impl BoxedUint {
-    /// Computes `self << shift`.
-    /// Returns zero if `shift >= Self::BITS`.
-    pub fn shr(&self, shift: u32) -> Self {
+    /// Computes `self >> shift`.
+    ///
+    /// Returns a zero and a truthy `Choice` if `shift >= self.bits_precision()`,
+    /// or the result and a falsy `Choice` otherwise.
+    pub fn shr(&self, shift: u32) -> (Self, Choice) {
+        // `floor(log2(bits_precision - 1))` is the number of bits in the representation of `shift`
+        // (which lies in range `0 <= shift < bits_precision`).
+        let shift_bits = u32::BITS - (self.bits_precision() - 1).leading_zeros();
         let overflow = !shift.ct_lt(&self.bits_precision());
         let shift = shift % self.bits_precision();
-        let log2_bits = u32::BITS - self.bits_precision().leading_zeros();
         let mut result = self.clone();
+        let mut temp = self.clone();
 
-        for i in 0..log2_bits {
+        for i in 0..shift_bits {
             let bit = Choice::from(((shift >> i) & 1) as u8);
-            result = Self::conditional_select(&result, &result.shr_vartime(1 << i), bit);
+            temp.set_to_zero();
+            // Will not overflow by construction
+            result
+                .shr_vartime_into(&mut temp, 1 << i)
+                .expect("shift within range");
+            result.conditional_assign(&temp, bit);
         }
 
-        Self::conditional_select(
-            &result,
-            &Self::zero_with_precision(self.bits_precision()),
-            overflow,
-        )
+        result.conditional_set_to_zero(overflow);
+
+        (result, overflow)
     }
 
     /// Computes `self >> shift`.
+    /// Returns `None` if `shift >= self.bits_precision()`.
+    ///
+    /// WARNING: for performance reasons, `dest` is assumed to be pre-zeroized.
     ///
     /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
-    pub fn shr_vartime(&self, shift: u32) -> Self {
+    fn shr_vartime_into(&self, dest: &mut Self, shift: u32) -> Option<()> {
+        if shift >= self.bits_precision() {
+            return None;
+        }
+
         let nlimbs = self.nlimbs();
-        let full_shifts = (shift / Limb::BITS) as usize;
-        let small_shift = shift & (Limb::BITS - 1);
-        let mut limbs = vec![Limb::ZERO; nlimbs].into_boxed_slice();
+        let shift_num = (shift / Limb::BITS) as usize;
+        let rem = shift % Limb::BITS;
 
-        if shift > self.bits_precision() {
-            return Self { limbs };
+        for i in 0..nlimbs - shift_num {
+            dest.limbs[i] = self.limbs[i + shift_num];
         }
 
-        let n = nlimbs - full_shifts;
-        let mut i = 0;
-
-        if small_shift == 0 {
-            while i < n {
-                limbs[i] = Limb(self.limbs[i + full_shifts].0);
-                i += 1;
-            }
-        } else {
-            while i < n {
-                let mut lo = self.limbs[i + full_shifts].0 >> small_shift;
-
-                if i < (nlimbs - 1) - full_shifts {
-                    lo |= self.limbs[i + full_shifts + 1].0 << (Limb::BITS - small_shift);
-                }
-
-                limbs[i] = Limb(lo);
-                i += 1;
-            }
+        if rem == 0 {
+            return Some(());
         }
 
-        Self { limbs }
+        for i in 0..nlimbs - shift_num - 1 {
+            let shifted = dest.limbs[i].shr(rem);
+            let carry = dest.limbs[i + 1].shl(Limb::BITS - rem);
+            dest.limbs[i] = shifted.bitor(carry);
+        }
+        dest.limbs[nlimbs - shift_num - 1] = dest.limbs[nlimbs - shift_num - 1].shr(rem);
+
+        Some(())
     }
 
-    /// Computes `self >> 1` in constant-time, returning a true [`Choice`] if the overflowing bit
-    /// was set, and a false [`Choice::FALSE`] otherwise.
-    pub(crate) fn shr1_with_overflow(&self) -> (Self, Choice) {
+    /// Computes `self >> shift`.
+    /// Returns `None` if `shift >= self.bits_precision()`.
+    ///
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
+    ///
+    /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
+    #[inline(always)]
+    pub fn shr_vartime(&self, shift: u32) -> Option<Self> {
+        let mut result = Self::zero_with_precision(self.bits_precision());
+        let success = self.shr_vartime_into(&mut result, shift);
+        success.map(|_| result)
+    }
+
+    /// Computes `self >> 1` in constant-time, returning a true [`Choice`]
+    /// if the least significant bit was set, and a false [`Choice::FALSE`] otherwise.
+    pub(crate) fn shr1_with_carry(&self) -> (Self, Choice) {
         let carry = self.limbs[0].0 & 1;
         (self.shr1(), Choice::from(carry as u8))
     }
@@ -95,7 +112,7 @@ impl Shr<u32> for BoxedUint {
     type Output = BoxedUint;
 
     fn shr(self, shift: u32) -> BoxedUint {
-        Self::shr(&self, shift)
+        <&BoxedUint as Shr<u32>>::shr(&self, shift)
     }
 }
 
@@ -103,7 +120,12 @@ impl Shr<u32> for &BoxedUint {
     type Output = BoxedUint;
 
     fn shr(self, shift: u32) -> BoxedUint {
-        self.shr(shift)
+        let (result, overflow) = self.shr(shift);
+        assert!(
+            !bool::from(overflow),
+            "attempt to shift right with overflow"
+        );
+        result
     }
 }
 
@@ -127,11 +149,20 @@ mod tests {
     }
 
     #[test]
+    fn shr() {
+        let n = BoxedUint::from(0x80000000000000000u128);
+        assert_eq!(BoxedUint::zero(), n.shr(68).0);
+        assert_eq!(BoxedUint::one(), n.shr(67).0);
+        assert_eq!(BoxedUint::from(2u8), n.shr(66).0);
+        assert_eq!(BoxedUint::from(4u8), n.shr(65).0);
+    }
+
+    #[test]
     fn shr_vartime() {
         let n = BoxedUint::from(0x80000000000000000u128);
-        assert_eq!(BoxedUint::zero(), n.shr_vartime(68));
-        assert_eq!(BoxedUint::one(), n.shr_vartime(67));
-        assert_eq!(BoxedUint::from(2u8), n.shr_vartime(66));
-        assert_eq!(BoxedUint::from(4u8), n.shr_vartime(65));
+        assert_eq!(BoxedUint::zero(), n.shr_vartime(68).unwrap());
+        assert_eq!(BoxedUint::one(), n.shr_vartime(67).unwrap());
+        assert_eq!(BoxedUint::from(2u8), n.shr_vartime(66).unwrap());
+        assert_eq!(BoxedUint::from(4u8), n.shr_vartime(65).unwrap());
     }
 }

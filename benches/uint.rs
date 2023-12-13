@@ -1,11 +1,10 @@
-use criterion::{
-    black_box, criterion_group, criterion_main, measurement::Measurement, BatchSize,
-    BenchmarkGroup, Criterion,
-};
-use crypto_bigint::{Limb, NonZero, Random, Reciprocal, U128, U2048, U256};
+use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
+use crypto_bigint::{Limb, NonZero, Random, Reciprocal, Uint, U128, U2048, U256};
 use rand_core::OsRng;
 
-fn bench_division<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
+fn bench_division(c: &mut Criterion) {
+    let mut group = c.benchmark_group("wrapping ops");
+
     group.bench_function("div/rem, U256/U128, full size", |b| {
         b.iter_batched(
             || {
@@ -69,9 +68,13 @@ fn bench_division<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             BatchSize::SmallInput,
         )
     });
+
+    group.finish();
 }
 
-fn bench_shifts<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
+fn bench_shl(c: &mut Criterion) {
+    let mut group = c.benchmark_group("left shift");
+
     group.bench_function("shl_vartime, small, U2048", |b| {
         b.iter_batched(|| U2048::ONE, |x| x.shl_vartime(10), BatchSize::SmallInput)
     });
@@ -84,16 +87,54 @@ fn bench_shifts<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         )
     });
 
+    group.bench_function("shl_vartime_wide, large, U2048", |b| {
+        b.iter_batched(
+            || (U2048::ONE, U2048::ONE),
+            |x| Uint::shl_vartime_wide(x, 1024 + 10),
+            BatchSize::SmallInput,
+        )
+    });
+
     group.bench_function("shl, U2048", |b| {
         b.iter_batched(|| U2048::ONE, |x| x.shl(1024 + 10), BatchSize::SmallInput)
+    });
+
+    group.finish();
+}
+
+fn bench_shr(c: &mut Criterion) {
+    let mut group = c.benchmark_group("right shift");
+
+    group.bench_function("shr_vartime, small, U2048", |b| {
+        b.iter_batched(|| U2048::ONE, |x| x.shr_vartime(10), BatchSize::SmallInput)
+    });
+
+    group.bench_function("shr_vartime, large, U2048", |b| {
+        b.iter_batched(
+            || U2048::ONE,
+            |x| x.shr_vartime(1024 + 10),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("shr_vartime_wide, large, U2048", |b| {
+        b.iter_batched(
+            || (U2048::ONE, U2048::ONE),
+            |x| Uint::shr_vartime_wide(x, 1024 + 10),
+            BatchSize::SmallInput,
+        )
     });
 
     group.bench_function("shr, U2048", |b| {
         b.iter_batched(|| U2048::ONE, |x| x.shr(1024 + 10), BatchSize::SmallInput)
     });
+
+    group.finish();
 }
 
-fn bench_inv_mod<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
+fn bench_inv_mod(c: &mut Criterion) {
+    let mut group = c.benchmark_group("modular ops");
+
     group.bench_function("inv_odd_mod, U256", |b| {
         b.iter_batched(
             || {
@@ -144,21 +185,10 @@ fn bench_inv_mod<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             BatchSize::SmallInput,
         )
     });
-}
 
-fn bench_wrapping_ops(c: &mut Criterion) {
-    let mut group = c.benchmark_group("wrapping ops");
-    bench_division(&mut group);
     group.finish();
 }
 
-fn bench_modular_ops(c: &mut Criterion) {
-    let mut group = c.benchmark_group("modular ops");
-    bench_shifts(&mut group);
-    bench_inv_mod(&mut group);
-    group.finish();
-}
-
-criterion_group!(benches, bench_wrapping_ops, bench_modular_ops);
+criterion_group!(benches, bench_shl, bench_shr, bench_division, bench_inv_mod);
 
 criterion_main!(benches);

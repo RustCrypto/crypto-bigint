@@ -5,6 +5,7 @@
 use core::cmp::Ordering;
 use crypto_bigint::{BoxedUint, CheckedAdd, Limb, NonZero};
 use num_bigint::{BigUint, ModInverse};
+use num_traits::identities::One;
 use proptest::prelude::*;
 
 fn to_biguint(uint: &BoxedUint) -> BigUint {
@@ -210,6 +211,77 @@ proptest! {
             let actual = a.rem_vartime(&NonZero::new(b).unwrap());
 
             prop_assert_eq!(expected, to_biguint(&actual));
+        }
+    }
+
+    #[test]
+    fn shl(a in uint(), shift in any::<u16>()) {
+        let a_bi = to_biguint(&a);
+
+        // Add a 50% probability of overflow.
+        let shift = u32::from(shift) % (a.bits_precision() * 2);
+
+        let expected = to_uint((a_bi << shift as usize) & ((BigUint::one() << a.bits_precision() as usize) - BigUint::one()));
+        let (actual, overflow) = a.shl(shift);
+
+        assert_eq!(expected, actual);
+        if shift >= a.bits_precision() {
+            assert_eq!(actual, BoxedUint::zero());
+            assert!(bool::from(overflow));
+        }
+    }
+
+    #[test]
+    fn shl_vartime(a in uint(), shift in any::<u16>()) {
+        let a_bi = to_biguint(&a);
+
+        // Add a 50% probability of overflow.
+        let shift = u32::from(shift) % (a.bits_precision() * 2);
+
+        let expected = to_uint((a_bi << shift as usize) & ((BigUint::one() << a.bits_precision() as usize) - BigUint::one()));
+        let actual = a.shl_vartime(shift);
+
+        if shift >= a.bits_precision() {
+            assert!(actual.is_none());
+        }
+        else {
+            assert_eq!(expected, actual.unwrap());
+        }
+    }
+
+    #[test]
+    fn shr(a in uint(), shift in any::<u16>()) {
+        let a_bi = to_biguint(&a);
+
+        // Add a 50% probability of overflow.
+        let shift = u32::from(shift) % (a.bits_precision() * 2);
+
+        let expected = to_uint(a_bi >> shift as usize);
+        let (actual, overflow) = a.shr(shift);
+
+        assert_eq!(expected, actual);
+        if shift >= a.bits_precision() {
+            assert_eq!(actual, BoxedUint::zero());
+            assert!(bool::from(overflow));
+        }
+    }
+
+
+    #[test]
+    fn shr_vartime(a in uint(), shift in any::<u16>()) {
+        let a_bi = to_biguint(&a);
+
+        // Add a 50% probability of overflow.
+        let shift = u32::from(shift) % (a.bits_precision() * 2);
+
+        let expected = to_uint(a_bi >> shift as usize);
+        let actual = a.shr_vartime(shift);
+
+        if shift >= a.bits_precision() {
+            assert!(actual.is_none());
+        }
+        else {
+            assert_eq!(expected, actual.unwrap());
         }
     }
 }

@@ -17,7 +17,7 @@ impl Limb {
     }
 
     /// Perform saturating multiplication.
-    #[inline]
+    #[inline(always)]
     pub const fn saturating_mul(&self, rhs: Self) -> Self {
         Limb(self.0.saturating_mul(rhs.0))
     }
