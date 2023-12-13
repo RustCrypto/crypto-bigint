@@ -7,8 +7,8 @@ use subtle::{Choice, ConstantTimeLess};
 impl BoxedUint {
     /// Computes `self >> shift`.
     ///
-    /// Returns a zero and a falsy `Choice` if `shift >= self.bits_precision()`,
-    /// or the result and a truthy `Choice` otherwise.
+    /// Returns a zero and a truthy `Choice` if `shift >= self.bits_precision()`,
+    /// or the result and a falsy `Choice` otherwise.
     pub fn shr(&self, shift: u32) -> (Self, Choice) {
         // `floor(log2(bits_precision - 1))` is the number of bits in the representation of `shift`
         // (which lies in range `0 <= shift < bits_precision`).
