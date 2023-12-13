@@ -27,7 +27,7 @@ mod rand;
 use crate::{Integer, Limb, NonZero, Uint, Word, Zero, U128, U64};
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{fmt, mem};
-use subtle::{Choice, ConstantTimeEq};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -257,6 +257,15 @@ impl BoxedUint {
     /// Set the value of `self` to zero in-place.
     pub(crate) fn set_to_zero(&mut self) {
         self.limbs.as_mut().fill(Limb::ZERO)
+    }
+
+    /// Set the value of `self` to zero in-place if `choice` is truthy.
+    pub(crate) fn conditional_set_to_zero(&mut self, choice: Choice) {
+        let nlimbs = self.nlimbs();
+        let limbs = self.limbs.as_mut();
+        for i in 0..nlimbs {
+            limbs[i] = Limb::conditional_select(&limbs[i], &Limb::ZERO, choice);
+        }
     }
 }
 

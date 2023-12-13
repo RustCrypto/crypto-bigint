@@ -26,14 +26,9 @@ impl BoxedUint {
             result.conditional_assign(&temp, bit);
         }
 
-        (
-            Self::conditional_select(
-                &result,
-                &Self::zero_with_precision(self.bits_precision()),
-                overflow,
-            ),
-            overflow,
-        )
+        result.conditional_set_to_zero(overflow);
+
+        (result, overflow)
     }
 
     /// Computes `self >> shift`.
