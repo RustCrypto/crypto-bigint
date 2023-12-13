@@ -195,19 +195,4 @@ mod tests {
             ((U128::ZERO, U128::ZERO), CtChoice::TRUE)
         );
     }
-
-    /*
-    #[test]
-    fn shr_limb() {
-        let x = U128::from_be_hex("00112233445566778899aabbccddeeff");
-        assert_eq!(x.shr_limb(0), (x, Limb::ZERO));
-        assert_eq!(
-            x.shr_limb(8),
-            (
-                U128::from_be_hex("0000112233445566778899aabbccddee"),
-                Limb(0xff << (Limb::BITS - 8))
-            )
-        );
-    }
-    */
 }
