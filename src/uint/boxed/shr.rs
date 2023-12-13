@@ -6,7 +6,7 @@ use subtle::{Choice, ConstantTimeLess};
 
 impl BoxedUint {
     /// Computes `self >> shift`.
-    /// Returns `None` if `shift >= Self::BITS`.
+    /// Returns `None` if `shift >= self.bits_precision()`.
     pub fn shr(&self, shift: u32) -> (Self, Choice) {
         // `floor(log2(bits_precision - 1))` is the number of bits in the representation of `shift`
         // (which lies in range `0 <= shift < bits_precision`).
@@ -37,7 +37,7 @@ impl BoxedUint {
     }
 
     /// Computes `self >> shift`.
-    /// Returns `None` if `shift >= Self::BITS`.
+    /// Returns `None` if `shift >= self.bits_precision()`.
     ///
     /// WARNING: for performance reasons, `dest` is assumed to be pre-zeroized.
     ///
@@ -73,7 +73,7 @@ impl BoxedUint {
     }
 
     /// Computes `self >> shift`.
-    /// Returns `None` if `shift >= Self::BITS`.
+    /// Returns `None` if `shift >= self.bits_precision()`.
     ///
     /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///

@@ -6,7 +6,7 @@ use subtle::{Choice, ConstantTimeLess};
 
 impl BoxedUint {
     /// Computes `self << shift`.
-    /// Returns `None` if `shift >= Self::BITS`.
+    /// Returns `None` if `shift >= self.bits_precision()`.
     pub fn shl(&self, shift: u32) -> (Self, Choice) {
         // `floor(log2(bits_precision - 1))` is the number of bits in the representation of `shift`
         // (which lies in range `0 <= shift < bits_precision`).
@@ -37,7 +37,7 @@ impl BoxedUint {
     }
 
     /// Computes `self << shift` and writes the result into `dest`.
-    /// Returns `None` if `shift >= Self::BITS`.
+    /// Returns `None` if `shift >= self.bits_precision()`.
     ///
     /// WARNING: for performance reasons, `dest` is assumed to be pre-zeroized.
     ///
@@ -75,7 +75,7 @@ impl BoxedUint {
     }
 
     /// Computes `self << shift`.
-    /// Returns `None` if `shift >= Self::BITS`.
+    /// Returns `None` if `shift >= self.bits_precision()`.
     ///
     /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
@@ -87,14 +87,14 @@ impl BoxedUint {
         success.map(|_| result)
     }
 
-    /// Computes `self >> 1` in constant-time.
+    /// Computes `self << 1` in constant-time.
     pub(crate) fn shl1(&self) -> Self {
         let mut ret = self.clone();
         ret.shl1_assign();
         ret
     }
 
-    /// Computes `self >> 1` in-place in constant-time.
+    /// Computes `self << 1` in-place in constant-time.
     pub(crate) fn shl1_assign(&mut self) {
         let mut carry = self.limbs[0].0 >> Limb::HI_BIT;
         self.limbs[0].shl_assign(1);
