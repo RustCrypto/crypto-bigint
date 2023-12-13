@@ -226,9 +226,10 @@ proptest! {
 
         if !b_bi.is_zero() {
             let expected = to_uint(a_bi / b_bi);
-            let actual = a.wrapping_div(&b);
+            let b_nz = NonZero::new(b).unwrap();
+            let actual = a.wrapping_div(&b_nz);
             assert_eq!(expected, actual);
-            let actual_vartime = a.wrapping_div_vartime(&b);
+            let actual_vartime = a.wrapping_div_vartime(&b_nz);
             assert_eq!(expected, actual_vartime);
         }
     }

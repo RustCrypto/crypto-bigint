@@ -58,7 +58,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Stop right away if `x` is zero to avoid divizion by zero.
         while !x.cmp_vartime(&Self::ZERO).is_eq() {
             // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
-            let q = self.wrapping_div_vartime(&x);
+            let q = self.wrapping_div_vartime(&NonZero::<Self>::const_new(x).0);
             let t = x.wrapping_add(&q);
             let next_x = t.shr1();
 

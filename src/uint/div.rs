@@ -169,26 +169,20 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Wrapped division is just normal division i.e. `self` / `rhs`
+    ///
     /// There’s no way wrapping could ever happen.
     /// This function exists, so that all operations are accounted for in the wrapping operations.
-    ///
-    /// Panics if `rhs == 0`.
-    pub const fn wrapping_div(&self, rhs: &Self) -> Self {
-        let (nz_rhs, c) = NonZero::<Self>::const_new(*rhs);
-        assert!(c.is_true_vartime(), "divide by zero");
-        let (q, _) = self.div_rem(&nz_rhs);
+    pub const fn wrapping_div(&self, rhs: &NonZero<Self>) -> Self {
+        let (q, _) = self.div_rem(rhs);
         q
     }
 
     /// Wrapped division is just normal division i.e. `self` / `rhs`
+    ///
     /// There’s no way wrapping could ever happen.
     /// This function exists, so that all operations are accounted for in the wrapping operations.
-    ///
-    /// Panics if `rhs == 0`. Constant-time only for fixed `rhs`.
-    pub const fn wrapping_div_vartime(&self, rhs: &Self) -> Self {
-        let (nz_rhs, c) = NonZero::<Self>::const_new(*rhs);
-        assert!(c.is_true_vartime(), "divide by zero");
-        let (q, _) = self.div_rem_vartime(&nz_rhs);
+    pub const fn wrapping_div_vartime(&self, rhs: &NonZero<Self>) -> Self {
+        let (q, _) = self.div_rem_vartime(rhs);
         q
     }
 
@@ -657,24 +651,12 @@ mod tests {
         let mut a = U256::ZERO;
         let mut b = U256::ZERO;
         b.limbs[b.limbs.len() - 1] = Limb(Word::MAX);
-        let q = a.wrapping_div(&b);
+        let q = a.wrapping_div(&NonZero::new(b).unwrap());
         assert_eq!(q, Uint::ZERO);
         a.limbs[a.limbs.len() - 1] = Limb(1 << (Limb::HI_BIT - 7));
         b.limbs[b.limbs.len() - 1] = Limb(0x82 << (Limb::HI_BIT - 7));
-        let q = a.wrapping_div(&b);
+        let q = a.wrapping_div(&NonZero::new(b).unwrap());
         assert_eq!(q, Uint::ZERO);
-    }
-
-    #[test]
-    #[should_panic(expected = "divide by zero")]
-    fn div_zero() {
-        U256::ONE.wrapping_div(&U256::ZERO);
-    }
-
-    #[test]
-    #[should_panic(expected = "divide by zero")]
-    fn div_zero_vartime() {
-        U256::ONE.wrapping_div_vartime(&U256::ZERO);
     }
 
     #[test]
