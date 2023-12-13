@@ -197,10 +197,14 @@ fn montgomery_mul(z: &mut [Limb], x: &[Limb], y: &[Limb], m: &[Limb], k: Limb) {
     // It also assumes that x, y are already reduced mod m, or else the result will not be properly
     // reduced.
     let n = m.len();
-    debug_assert_eq!(z.len(), n * 2);
-    debug_assert_eq!(x.len(), n);
-    debug_assert_eq!(y.len(), n);
-    debug_assert_eq!(m.len(), n);
+
+    // This preconditions check allows compiler to remove bound checks later in the code.
+    // `z.len() > n && z[n..].len() == n` is used intentionally instead of `z.len() == 2* n`
+    // since the latter prevents compiler from removing some bound checks.
+    let pre_cond = z.len() > n && z[n..].len() == n && x.len() == n && y.len() == n && m.len() == n;
+    if !pre_cond {
+        panic!("Failed preconditions in montgomery_mul");
+    }
 
     let mut c = Limb::ZERO;
 
