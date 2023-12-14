@@ -3,14 +3,14 @@
 //! By default these are all constant-time and use the `subtle` crate.
 
 use super::Uint;
-use crate::{CtChoice, Limb};
+use crate::{ConstChoice, Limb};
 use core::cmp::Ordering;
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Return `b` if `c` is truthy, otherwise return `a`.
     #[inline]
-    pub(crate) const fn select(a: &Self, b: &Self, c: CtChoice) -> Self {
+    pub(crate) const fn select(a: &Self, b: &Self, c: ConstChoice) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
 
         let mut i = 0;
@@ -23,7 +23,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     #[inline]
-    pub(crate) const fn swap(a: &Self, b: &Self, c: CtChoice) -> (Self, Self) {
+    pub(crate) const fn swap(a: &Self, b: &Self, c: ConstChoice) -> (Self, Self) {
         let new_a = Self::select(a, b, c);
         let new_b = Self::select(b, a, c);
 
@@ -32,7 +32,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Returns the truthy value if `self`!=0 or the falsy value otherwise.
     #[inline]
-    pub(crate) const fn is_nonzero(&self) -> CtChoice {
+    pub(crate) const fn is_nonzero(&self) -> ConstChoice {
         let mut b = 0;
         let mut i = 0;
         while i < LIMBS {
@@ -43,13 +43,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Returns the truthy value if `self` is odd or the falsy value otherwise.
-    pub(crate) const fn is_odd(&self) -> CtChoice {
-        CtChoice::from_word_lsb(self.limbs[0].0 & 1)
+    pub(crate) const fn is_odd(&self) -> ConstChoice {
+        ConstChoice::from_word_lsb(self.limbs[0].0 & 1)
     }
 
     /// Returns the truthy value if `self == rhs` or the falsy value otherwise.
     #[inline]
-    pub(crate) const fn eq(lhs: &Self, rhs: &Self) -> CtChoice {
+    pub(crate) const fn eq(lhs: &Self, rhs: &Self) -> ConstChoice {
         let mut acc = 0;
         let mut i = 0;
 
@@ -64,19 +64,19 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Returns the truthy value if `self <= rhs` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn lt(lhs: &Self, rhs: &Self) -> CtChoice {
+    pub(crate) const fn lt(lhs: &Self, rhs: &Self) -> ConstChoice {
         // We could use the same approach as in Limb::ct_lt(),
         // but since we have to use Uint::wrapping_sub(), which calls `sbb()`,
         // there are no savings compared to just calling `sbb()` directly.
         let (_res, borrow) = lhs.sbb(rhs, Limb::ZERO);
-        CtChoice::from_word_mask(borrow.0)
+        ConstChoice::from_word_mask(borrow.0)
     }
 
     /// Returns the truthy value if `self >= rhs` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn gt(lhs: &Self, rhs: &Self) -> CtChoice {
+    pub(crate) const fn gt(lhs: &Self, rhs: &Self) -> ConstChoice {
         let (_res, borrow) = rhs.sbb(lhs, Limb::ZERO);
-        CtChoice::from_word_mask(borrow.0)
+        ConstChoice::from_word_mask(borrow.0)
     }
 
     /// Returns the ordering between `self` and `rhs` as an i8.

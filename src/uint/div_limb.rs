@@ -3,7 +3,7 @@
 //! (DOI: 10.1109/TC.2010.143, <https://gmplib.org/~tege/division-paper.pdf>).
 use subtle::{Choice, ConditionallySelectable};
 
-use crate::{CtChoice, Limb, NonZero, Uint, WideWord, Word};
+use crate::{ConstChoice, Limb, NonZero, Uint, WideWord, Word};
 
 /// Calculates the reciprocal of the given 32-bit divisor with the highmost bit set.
 #[cfg(target_pointer_width = "32")]
@@ -33,7 +33,7 @@ pub const fn reciprocal(d: Word) -> Word {
     // Hence the `ct_select()`.
     let x = v2.wrapping_add(1);
     let (hi, _lo) = mulhilo(x, d);
-    let hi = CtChoice::from_u32_nonzero(x).select_word(d, hi);
+    let hi = ConstChoice::from_u32_nonzero(x).select_word(d, hi);
 
     v2.wrapping_sub(hi).wrapping_sub(d)
 }
@@ -63,7 +63,7 @@ pub const fn reciprocal(d: Word) -> Word {
     // Hence the `ct_select()`.
     let x = v3.wrapping_add(1);
     let (hi, _lo) = mulhilo(x, d);
-    let hi = CtChoice::from_word_nonzero(x).select_word(d, hi);
+    let hi = ConstChoice::from_word_nonzero(x).select_word(d, hi);
 
     v3.wrapping_sub(hi).wrapping_sub(d)
 }
@@ -142,7 +142,7 @@ const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Word, Word) {
     let q1 = q1.wrapping_add(1);
     let r = u0.wrapping_sub(q1.wrapping_mul(d));
 
-    let r_gt_q0 = CtChoice::from_word_lt(q0, r);
+    let r_gt_q0 = ConstChoice::from_word_lt(q0, r);
     let q1 = r_gt_q0.select_word(q1, q1.wrapping_sub(1));
     let r = r_gt_q0.select_word(r, r.wrapping_add(d));
 
@@ -150,7 +150,7 @@ const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Word, Word) {
     // But since we calculate both results either way, we have to wrap.
     // Added an assert to still check the lack of overflow in debug mode.
     debug_assert!(r < d || q1 < Word::MAX);
-    let r_ge_d = CtChoice::from_word_le(d, r);
+    let r_ge_d = ConstChoice::from_word_le(d, r);
     let q1 = r_ge_d.select_word(q1, q1.wrapping_add(1));
     let r = r_ge_d.select_word(r, r.wrapping_sub(d));
 

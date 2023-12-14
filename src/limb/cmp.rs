@@ -1,6 +1,6 @@
 //! Limb comparisons
 
-use crate::{CtChoice, Limb};
+use crate::{ConstChoice, Limb};
 use core::cmp::Ordering;
 use subtle::{
     Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
@@ -28,14 +28,14 @@ impl Limb {
 
     /// Return `b` if `c` is truthy, otherwise return `a`.
     #[inline]
-    pub(crate) const fn select(a: Self, b: Self, c: CtChoice) -> Self {
+    pub(crate) const fn select(a: Self, b: Self, c: ConstChoice) -> Self {
         Self(c.select_word(a.0, b.0))
     }
 
     /// Returns the truthy value if `self != 0` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn is_nonzero(&self) -> CtChoice {
-        CtChoice::from_word_nonzero(self.0)
+    pub(crate) const fn is_nonzero(&self) -> ConstChoice {
+        ConstChoice::from_word_nonzero(self.0)
     }
 }
 

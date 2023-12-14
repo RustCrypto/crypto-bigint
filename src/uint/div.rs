@@ -1,7 +1,7 @@
 //! [`Uint`] division operations.
 
 use super::div_limb::{div_rem_limb_with_reciprocal, Reciprocal};
-use crate::{CheckedDiv, CtChoice, Limb, NonZero, Uint, Word, Wrapping};
+use crate::{CheckedDiv, ConstChoice, Limb, NonZero, Uint, Word, Wrapping};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::CtOption;
 
@@ -31,19 +31,19 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let (mut c, _overflow) = rhs.0.shl(Self::BITS - mb);
 
         let mut i = Self::BITS;
-        let mut done = CtChoice::FALSE;
+        let mut done = ConstChoice::FALSE;
         loop {
             let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::select(&r, &rem, CtChoice::from_word_mask(borrow.0).or(done));
+            rem = Self::select(&r, &rem, ConstChoice::from_word_mask(borrow.0).or(done));
             r = quo.bitor(&Self::ONE);
-            quo = Self::select(&r, &quo, CtChoice::from_word_mask(borrow.0).or(done));
+            quo = Self::select(&r, &quo, ConstChoice::from_word_mask(borrow.0).or(done));
             if i == 0 {
                 break;
             }
             i -= 1;
             // when `i < mb`, the computation is actually done, so we ensure `quo` and `rem`
             // aren't modified further (but do the remaining iterations anyway to be constant-time)
-            done = CtChoice::from_word_lt(i as Word, mb as Word);
+            done = ConstChoice::from_word_lt(i as Word, mb as Word);
             c = c.shr1();
             quo = Self::select(&quo.shl1(), &quo, done);
         }
@@ -68,9 +68,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         loop {
             let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::select(&r, &rem, CtChoice::from_word_mask(borrow.0));
+            rem = Self::select(&r, &rem, ConstChoice::from_word_mask(borrow.0));
             r = quo.bitor(&Self::ONE);
-            quo = Self::select(&r, &quo, CtChoice::from_word_mask(borrow.0));
+            quo = Self::select(&r, &quo, ConstChoice::from_word_mask(borrow.0));
             if bd == 0 {
                 break;
             }
@@ -96,7 +96,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         loop {
             let (r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::select(&r, &rem, CtChoice::from_word_mask(borrow.0));
+            rem = Self::select(&r, &rem, ConstChoice::from_word_mask(borrow.0));
             if bd == 0 {
                 break;
             }
@@ -129,8 +129,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let (lower_sub, borrow) = lower.sbb(&c.0, Limb::ZERO);
             let (upper_sub, borrow) = upper.sbb(&c.1, borrow);
 
-            lower = Self::select(&lower_sub, &lower, CtChoice::from_word_mask(borrow.0));
-            upper = Self::select(&upper_sub, &upper, CtChoice::from_word_mask(borrow.0));
+            lower = Self::select(&lower_sub, &lower, ConstChoice::from_word_mask(borrow.0));
+            upper = Self::select(&upper_sub, &upper, ConstChoice::from_word_mask(borrow.0));
             if bd == 0 {
                 break;
             }
@@ -147,7 +147,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn rem2k(&self, k: u32) -> Self {
         let highest = (LIMBS - 1) as u32;
         let index = k / Limb::BITS;
-        let le = CtChoice::from_u32_le(index, highest);
+        let le = ConstChoice::from_u32_le(index, highest);
         let limb_num = le.select_u32(highest, index) as usize;
 
         let base = k % Limb::BITS;

@@ -1,7 +1,7 @@
 //! Multiplicative inverses of residues with a constant modulus.
 
 use super::{Residue, ResidueParams};
-use crate::{modular::inv::inv_montgomery_form, traits::Invert, CtChoice, NonZero};
+use crate::{modular::inv::inv_montgomery_form, traits::Invert, ConstChoice, NonZero};
 use core::marker::PhantomData;
 use subtle::CtOption;
 
@@ -10,7 +10,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// I.e. `self * self^-1 = 1`.
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
-    pub const fn invert(&self) -> (Self, CtChoice) {
+    pub const fn invert(&self) -> (Self, ConstChoice) {
         let (montgomery_form, is_some) = inv_montgomery_form(
             &self.montgomery_form,
             &MOD::MODULUS.0,
