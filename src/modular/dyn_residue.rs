@@ -13,7 +13,7 @@ use super::{
     residue::{Residue, ResidueParams},
     Retrieve,
 };
-use crate::{Limb, Uint, Word};
+use crate::{Limb, NonZero, Uint, Word, Zero};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
@@ -35,12 +35,22 @@ pub struct DynResidueParams<const LIMBS: usize> {
 impl<const LIMBS: usize> DynResidueParams<LIMBS> {
     /// Instantiates a new set of `ResidueParams` representing the given `modulus` if it is odd.
     ///
-    /// Returns a `CtOption` that is `None` if the provided modulus is not odd.
+    /// Returns `None` if the provided modulus is not odd.
     pub fn new(modulus: &Uint<LIMBS>) -> CtOption<Self> {
-        let r = Uint::MAX.const_rem(modulus).0.wrapping_add(&Uint::ONE);
-        let r2 = Uint::const_rem_wide(r.square_wide(), modulus).0;
+        // Use a surrogate value of `1` in case a modulus of `0` is passed.
+        // This will be rejected by the `modulus_is_odd` check below,
+        // which will fail and return `None`.
+        let nz_modulus = NonZero::new(Uint::conditional_select(
+            modulus,
+            &Uint::ONE,
+            modulus.is_zero(),
+        ))
+        .expect("modulus ensured non-zero");
 
-        // If the inverse does not exist, it means the modulus is odd.
+        let r = Uint::MAX.rem(&nz_modulus).wrapping_add(&Uint::ONE);
+        let r2 = Uint::rem_wide(r.square_wide(), &nz_modulus);
+
+        // If the inverse exists, it means the modulus is odd.
         let (inv_mod_limb, modulus_is_odd) = modulus.inv_mod2k_vartime(Word::BITS);
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));
 
@@ -68,7 +78,7 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
         P: ResidueParams<LIMBS>,
     {
         Self {
-            modulus: P::MODULUS,
+            modulus: P::MODULUS.0,
             r: P::R,
             r2: P::R2,
             r3: P::R3,
