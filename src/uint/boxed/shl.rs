@@ -9,7 +9,7 @@ impl BoxedUint {
     ///
     /// Returns a zero and a truthy `Choice` if `shift >= self.bits_precision()`,
     /// or the result and a falsy `Choice` otherwise.
-    pub fn shl(&self, shift: u32) -> (Self, Choice) {
+    pub fn overflowing_shl(&self, shift: u32) -> (Self, Choice) {
         let mut result = self.clone();
         let overflow = result.overflowing_shl_assign(shift);
         (result, overflow)
@@ -125,7 +125,7 @@ impl Shl<u32> for &BoxedUint {
     type Output = BoxedUint;
 
     fn shl(self, shift: u32) -> BoxedUint {
-        let (result, overflow) = self.shl(shift);
+        let (result, overflow) = self.overflowing_shl(shift);
         assert!(!bool::from(overflow), "attempt to shift left with overflow");
         result
     }
@@ -154,8 +154,8 @@ mod tests {
     fn shl() {
         let one = BoxedUint::one_with_precision(128);
 
-        assert_eq!(BoxedUint::from(2u8), one.shl(1).0);
-        assert_eq!(BoxedUint::from(4u8), one.shl(2).0);
+        assert_eq!(BoxedUint::from(2u8), one.overflowing_shl(1).0);
+        assert_eq!(BoxedUint::from(4u8), one.overflowing_shl(2).0);
         assert_eq!(
             BoxedUint::from(0x80000000000000000u128),
             one.shl_vartime(67).unwrap()

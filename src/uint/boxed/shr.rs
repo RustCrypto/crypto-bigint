@@ -9,7 +9,7 @@ impl BoxedUint {
     ///
     /// Returns a zero and a truthy `Choice` if `shift >= self.bits_precision()`,
     /// or the result and a falsy `Choice` otherwise.
-    pub fn shr(&self, shift: u32) -> (Self, Choice) {
+    pub fn overflowing_shr(&self, shift: u32) -> (Self, Choice) {
         let mut result = self.clone();
         let overflow = result.overflowing_shr_assign(shift);
         (result, overflow)
@@ -129,7 +129,7 @@ impl Shr<u32> for &BoxedUint {
     type Output = BoxedUint;
 
     fn shr(self, shift: u32) -> BoxedUint {
-        let (result, overflow) = self.shr(shift);
+        let (result, overflow) = self.overflowing_shr(shift);
         assert!(
             !bool::from(overflow),
             "attempt to shift right with overflow"
@@ -163,10 +163,10 @@ mod tests {
     #[test]
     fn shr() {
         let n = BoxedUint::from(0x80000000000000000u128);
-        assert_eq!(BoxedUint::zero(), n.shr(68).0);
-        assert_eq!(BoxedUint::one(), n.shr(67).0);
-        assert_eq!(BoxedUint::from(2u8), n.shr(66).0);
-        assert_eq!(BoxedUint::from(4u8), n.shr(65).0);
+        assert_eq!(BoxedUint::zero(), n.overflowing_shr(68).0);
+        assert_eq!(BoxedUint::one(), n.overflowing_shr(67).0);
+        assert_eq!(BoxedUint::from(2u8), n.overflowing_shr(66).0);
+        assert_eq!(BoxedUint::from(4u8), n.overflowing_shr(65).0);
     }
 
     #[test]

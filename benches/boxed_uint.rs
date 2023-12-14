@@ -19,7 +19,7 @@ fn bench_shifts(c: &mut Criterion) {
     group.bench_function("shl", |b| {
         b.iter_batched(
             || BoxedUint::random(&mut OsRng, UINT_BITS),
-            |x| x.shl(UINT_BITS / 2 + 10),
+            |x| x.overflowing_shl(UINT_BITS / 2 + 10),
             BatchSize::SmallInput,
         )
     });
@@ -35,7 +35,7 @@ fn bench_shifts(c: &mut Criterion) {
     group.bench_function("shr", |b| {
         b.iter_batched(
             || BoxedUint::random(&mut OsRng, UINT_BITS),
-            |x| x.shr(UINT_BITS / 2 + 10),
+            |x| x.overflowing_shr(UINT_BITS / 2 + 10),
             BatchSize::SmallInput,
         )
     });
