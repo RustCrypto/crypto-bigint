@@ -1,9 +1,9 @@
 //! Implementation of constant-time division via reciprocal precomputation, as described in
 //! "Improved Division by Invariant Integers" by Niels Möller and Torbjorn Granlund
 //! (DOI: 10.1109/TC.2010.143, <https://gmplib.org/~tege/division-paper.pdf>).
-use subtle::{Choice, ConditionallySelectable, CtOption};
+use subtle::{Choice, ConditionallySelectable};
 
-use crate::{CtChoice, Limb, Uint, WideWord, Word};
+use crate::{CtChoice, Limb, NonZero, Uint, WideWord, Word};
 
 /// Calculates the reciprocal of the given 32-bit divisor with the highmost bit set.
 #[cfg(target_pointer_width = "32")]
@@ -168,37 +168,20 @@ pub struct Reciprocal {
 impl Reciprocal {
     /// Pre-calculates a reciprocal for a known divisor,
     /// to be used in the single-limb division later.
-    /// Returns the reciprocal, and the truthy value if `divisor != 0`
-    /// and the falsy value otherwise.
-    ///
-    /// Note: if the returned flag is falsy, the returned reciprocal object is still self-consistent
-    /// and can be passed to functions here without causing them to panic,
-    /// but the results are naturally not to be used.
-    pub const fn ct_new(divisor: Limb) -> (Self, CtChoice) {
+    pub const fn new(divisor: NonZero<Limb>) -> Self {
+        let divisor = divisor.0;
+
         // Assuming this is constant-time for primitive types.
         let shift = divisor.0.leading_zeros();
 
-        #[allow(trivial_numeric_casts)]
-        let is_some = CtChoice::from_u32_nonzero(Word::BITS - shift);
-
-        // If `divisor = 0`, shifting `divisor` by `leading_zeros == Word::BITS` will cause a panic.
-        // Have to substitute a "bogus" shift in that case.
-        #[allow(trivial_numeric_casts)]
-        let shift = is_some.if_true_u32(shift);
-
-        // Need to provide bogus normalized divisor and reciprocal too,
-        // so that we don't get a panic in low-level functions.
+        // Will not panic since divisor is non-zero
         let divisor_normalized = divisor.0 << shift;
-        let divisor_normalized = is_some.select_word(Word::MAX, divisor_normalized);
 
-        (
-            Self {
-                divisor_normalized,
-                shift,
-                reciprocal: reciprocal(divisor_normalized),
-            },
-            is_some,
-        )
+        Self {
+            divisor_normalized,
+            shift,
+            reciprocal: reciprocal(divisor_normalized),
+        }
     }
 
     /// Returns a default instance of this object.
@@ -214,12 +197,6 @@ impl Reciprocal {
             // This holds both for 32- and 64-bit versions.
             reciprocal: 1,
         }
-    }
-
-    /// A non-const-fn version of `new_const()`, wrapping the result in a `CtOption`.
-    pub fn new(divisor: Limb) -> CtOption<Self> {
-        let (rec, is_some) = Self::ct_new(divisor);
-        CtOption::new(rec, is_some.into())
     }
 }
 
@@ -269,13 +246,13 @@ pub(crate) const fn div_rem_limb_with_reciprocal<const L: usize>(
 #[cfg(test)]
 mod tests {
     use super::{div2by1, Reciprocal};
-    use crate::{Limb, Word};
+    use crate::{Limb, NonZero, Word};
     #[test]
     fn div2by1_overflow() {
         // A regression test for a situation when in div2by1() an operation (`q1 + 1`)
         // that is protected from overflowing by a condition in the original paper (`r >= d`)
         // still overflows because we're calculating the results for both branches.
-        let r = Reciprocal::new(Limb(Word::MAX - 1)).unwrap();
+        let r = Reciprocal::new(NonZero::new(Limb(Word::MAX - 1)).unwrap());
         assert_eq!(
             div2by1(Word::MAX - 2, Word::MAX - 63, &r),
             (Word::MAX, Word::MAX - 65)

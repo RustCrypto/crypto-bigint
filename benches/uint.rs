@@ -60,8 +60,11 @@ fn bench_division(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let x = U256::random(&mut OsRng);
-                let y = Limb::random(&mut OsRng);
-                let r = Reciprocal::new(y);
+                let mut y = Limb::random(&mut OsRng);
+                if y == Limb::ZERO {
+                    y = Limb::ONE;
+                }
+                let r = Reciprocal::new(NonZero::new(y).unwrap());
                 (x, r)
             },
             |(x, r)| black_box(x.div_rem_limb_with_reciprocal(&r)),

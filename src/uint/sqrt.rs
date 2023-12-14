@@ -1,7 +1,8 @@
 //! [`Uint`] square root operations.
 
-use super::Uint;
 use subtle::{ConstantTimeEq, CtOption};
+
+use crate::{NonZero, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes √(`self`) in constant time.
@@ -28,7 +29,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
             // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
 
-            let (q, _, is_some) = self.const_div_rem(&x);
+            let (nz_x, is_some) = NonZero::<Self>::const_new(x);
+            let (q, _) = self.div_rem(&nz_x);
 
             // A protection in case `self == 0`, which will make `x == 0`
             let q = Self::ct_select(&Self::ZERO, &q, is_some);
@@ -56,7 +58,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Stop right away if `x` is zero to avoid divizion by zero.
         while !x.cmp_vartime(&Self::ZERO).is_eq() {
             // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
-            let q = self.wrapping_div_vartime(&x);
+            let q = self.wrapping_div_vartime(&NonZero::<Self>::const_new(x).0);
             let t = x.wrapping_add(&q);
             let next_x = t.shr1();
 

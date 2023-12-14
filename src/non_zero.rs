@@ -50,6 +50,11 @@ where
         CtOption::new(Self(n), !is_zero)
     }
 
+    /// Provides access to the contents of `NonZero` in a `const` context.
+    pub const fn as_ref(&self) -> &T {
+        &self.0
+    }
+
     /// Returns the inner value.
     pub fn get(self) -> T {
         self.0

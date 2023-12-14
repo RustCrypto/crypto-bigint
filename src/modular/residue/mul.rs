@@ -19,7 +19,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
             montgomery_form: mul_montgomery_form(
                 &self.montgomery_form,
                 &rhs.montgomery_form,
-                &MOD::MODULUS,
+                &MOD::MODULUS.0,
                 MOD::MOD_NEG_INV,
             ),
             phantom: PhantomData,
@@ -31,7 +31,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
         Self {
             montgomery_form: square_montgomery_form(
                 &self.montgomery_form,
-                &MOD::MODULUS,
+                &MOD::MODULUS.0,
                 MOD::MOD_NEG_INV,
             ),
             phantom: PhantomData,
