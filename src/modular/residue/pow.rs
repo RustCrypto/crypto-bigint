@@ -33,7 +33,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
                 &self.montgomery_form,
                 exponent,
                 exponent_bits,
-                &MOD::MODULUS,
+                &MOD::MODULUS.0,
                 &MOD::R,
                 MOD::MOD_NEG_INV,
             ),

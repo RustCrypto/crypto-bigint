@@ -13,7 +13,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     pub const fn invert(&self) -> (Self, CtChoice) {
         let (montgomery_form, is_some) = inv_montgomery_form(
             &self.montgomery_form,
-            &MOD::MODULUS,
+            &MOD::MODULUS.0,
             &MOD::R3,
             MOD::MOD_NEG_INV,
         );

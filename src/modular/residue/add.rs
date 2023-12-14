@@ -11,7 +11,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
             montgomery_form: add_montgomery_form(
                 &self.montgomery_form,
                 &rhs.montgomery_form,
-                &MOD::MODULUS,
+                &MOD::MODULUS.0,
             ),
             phantom: core::marker::PhantomData,
         }

@@ -78,7 +78,7 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
         P: ResidueParams<LIMBS>,
     {
         Self {
-            modulus: P::MODULUS,
+            modulus: P::MODULUS.0,
             r: P::R,
             r2: P::R2,
             r3: P::R3,

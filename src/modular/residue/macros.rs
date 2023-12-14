@@ -20,7 +20,7 @@ macro_rules! impl_modulus {
             $uint_type: $crate::ConcatMixed<MixedOutput = $crate::Uint<DLIMBS>>,
         {
             const LIMBS: usize = <$uint_type>::LIMBS;
-            const MODULUS: $uint_type = {
+            const MODULUS: $crate::NonZero<$uint_type> = {
                 let res = <$uint_type>::from_be_hex($value);
 
                 // Check that the modulus is odd
@@ -28,20 +28,18 @@ macro_rules! impl_modulus {
                     panic!("modulus must be odd");
                 }
 
-                res
+                // Can unwrap `NonZero::const_new()` here since `res` was asserted to be odd.
+                $crate::NonZero::<$uint_type>::const_new(res).0
             };
 
-            // Can unwrap `NonZero::const_new()` here since `MODULUS` was asserted to be non-zero.
-            const MODULUS_NZ: $crate::NonZero<$uint_type> =
-                $crate::NonZero::<$uint_type>::const_new(Self::MODULUS).0;
-
             const R: $uint_type = $crate::Uint::MAX
-                .rem(&Self::MODULUS_NZ)
+                .rem(&Self::MODULUS)
                 .wrapping_add(&$crate::Uint::ONE);
-            const R2: $uint_type = $crate::Uint::rem_wide(Self::R.square_wide(), &Self::MODULUS_NZ);
+            const R2: $uint_type = $crate::Uint::rem_wide(Self::R.square_wide(), &Self::MODULUS);
             const MOD_NEG_INV: $crate::Limb = $crate::Limb(
                 $crate::Word::MIN.wrapping_sub(
                     Self::MODULUS
+                        .as_ref()
                         .inv_mod2k_vartime($crate::Word::BITS)
                         .0
                         .as_limbs()[0]
@@ -50,7 +48,7 @@ macro_rules! impl_modulus {
             );
             const R3: $uint_type = $crate::modular::montgomery_reduction(
                 &Self::R2.square_wide(),
-                &Self::MODULUS,
+                Self::MODULUS.as_ref(),
                 Self::MOD_NEG_INV,
             );
         }

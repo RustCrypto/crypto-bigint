@@ -10,7 +10,7 @@ mod sub;
 use super::{div_by_2::div_by_2, reduction::montgomery_reduction, Retrieve};
 use crate::{Limb, NonZero, Uint, ZeroConstant};
 use core::{fmt::Debug, marker::PhantomData};
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "rand_core")]
 use crate::{rand_core::CryptoRngCore, Random, RandomMod};
@@ -38,9 +38,7 @@ pub trait ResidueParams<const LIMBS: usize>:
     const LIMBS: usize;
 
     /// The constant modulus
-    const MODULUS: Uint<LIMBS>;
-    /// The constant modulus pre-wrapped in NonZero
-    const MODULUS_NZ: NonZero<Uint<LIMBS>>;
+    const MODULUS: NonZero<Uint<LIMBS>>;
     /// Parameter used in Montgomery reduction
     const R: Uint<LIMBS>;
     /// R^2, used to move into Montgomery form
@@ -88,7 +86,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     const fn generate_residue(integer: &Uint<LIMBS>) -> Self {
         let product = integer.mul_wide(&MOD::R2);
         let montgomery_form =
-            montgomery_reduction::<LIMBS>(&product, &MOD::MODULUS, MOD::MOD_NEG_INV);
+            montgomery_reduction::<LIMBS>(&product, &MOD::MODULUS.0, MOD::MOD_NEG_INV);
 
         Self {
             montgomery_form,
@@ -97,37 +95,15 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     }
 
     /// Instantiates a new [`Residue`] that represents this `integer` mod `MOD`.
-    ///
-    /// If the modulus represented by `MOD` is not odd, this function will panic; use
-    /// [`new_checked`][`Residue::new_checked`] if you want to be able to detect an invalid modulus.
     pub const fn new(integer: &Uint<LIMBS>) -> Self {
-        // A valid modulus must be odd
-        if MOD::MODULUS.ct_is_odd().to_u8() == 0 {
-            panic!("modulus must be odd");
-        }
-
         Self::generate_residue(integer)
-    }
-
-    /// Instantiates a new `Residue` that represents this `integer` mod `MOD` if the modulus is odd.
-    ///
-    /// Returns a [`CtOption`] that is `None` if the provided modulus is not odd; this is a safer
-    /// version of [`new`][`Residue::new`], which can panic.
-    // TODO: remove this method when we can use `generic_const_exprs.` to ensure the modulus is
-    // always valid.
-    pub fn new_checked(integer: &Uint<LIMBS>) -> CtOption<Self> {
-        // A valid modulus must be odd.
-        CtOption::new(
-            Self::generate_residue(integer),
-            MOD::MODULUS.ct_is_odd().into(),
-        )
     }
 
     /// Retrieves the integer currently encoded in this [`Residue`], guaranteed to be reduced.
     pub const fn retrieve(&self) -> Uint<LIMBS> {
         montgomery_reduction::<LIMBS>(
             &(self.montgomery_form, Uint::ZERO),
-            &MOD::MODULUS,
+            &MOD::MODULUS.0,
             MOD::MOD_NEG_INV,
         )
     }
@@ -206,7 +182,7 @@ where
 {
     #[inline]
     fn random(rng: &mut impl CryptoRngCore) -> Self {
-        Self::new(&Uint::random_mod(rng, &NonZero::from_uint(MOD::MODULUS)))
+        Self::new(&Uint::random_mod(rng, &MOD::MODULUS))
     }
 }
 
