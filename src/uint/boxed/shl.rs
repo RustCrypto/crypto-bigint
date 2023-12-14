@@ -1,6 +1,6 @@
 //! [`BoxedUint`] bitwise left shift operations.
 
-use crate::{BoxedUint, Limb};
+use crate::{BoxedUint, Limb, Zero};
 use core::ops::{Shl, ShlAssign};
 use subtle::{Choice, ConstantTimeLess};
 
@@ -20,7 +20,7 @@ impl BoxedUint {
 
         for i in 0..shift_bits {
             let bit = Choice::from(((shift >> i) & 1) as u8);
-            temp.set_to_zero();
+            temp.set_zero();
             // Will not overflow by construction
             result
                 .shl_vartime_into(&mut temp, 1 << i)
@@ -28,7 +28,7 @@ impl BoxedUint {
             result.conditional_assign(&temp, bit);
         }
 
-        result.conditional_set_to_zero(overflow);
+        result.conditional_set_zero(overflow);
 
         (result, overflow)
     }
