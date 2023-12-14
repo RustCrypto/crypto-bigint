@@ -231,13 +231,8 @@ impl BoxedUint {
         limbs.into()
     }
 
-    /// Set the value of `self` to zero in-place.
-    pub(crate) fn set_to_zero(&mut self) {
-        self.limbs.as_mut().fill(Limb::ZERO)
-    }
-
     /// Set the value of `self` to zero in-place if `choice` is truthy.
-    pub(crate) fn conditional_set_to_zero(&mut self, choice: Choice) {
+    pub(crate) fn conditional_set_zero(&mut self, choice: Choice) {
         let nlimbs = self.nlimbs();
         let limbs = self.limbs.as_mut();
         for i in 0..nlimbs {
@@ -401,6 +396,10 @@ impl Zero for BoxedUint {
 
     fn is_zero(&self) -> Choice {
         self.is_zero()
+    }
+
+    fn set_zero(&mut self) {
+        self.limbs.as_mut().fill(Limb::ZERO)
     }
 }
 

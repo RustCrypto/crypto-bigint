@@ -135,8 +135,15 @@ pub trait Zero: ConstantTimeEq + Sized {
     /// # Returns
     ///
     /// If zero, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
+    #[inline]
     fn is_zero(&self) -> Choice {
         self.ct_eq(&Self::zero())
+    }
+
+    /// Set `self` to its additive identity, i.e. `Self::zero`.
+    #[inline]
+    fn set_zero(&mut self) {
+        *self = Zero::zero();
     }
 }
 
@@ -149,6 +156,7 @@ pub trait ZeroConstant: Zero {
 }
 
 impl<T: ZeroConstant> Zero for T {
+    #[inline(always)]
     fn zero() -> T {
         Self::ZERO
     }
