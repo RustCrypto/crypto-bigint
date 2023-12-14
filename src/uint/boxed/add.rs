@@ -94,13 +94,13 @@ impl Add<&Wrapping<BoxedUint>> for &Wrapping<BoxedUint> {
 
 impl AddAssign<Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     fn add_assign(&mut self, other: Wrapping<BoxedUint>) {
-        *self = Wrapping(self.0.wrapping_add(&other.0));
+        self.0.adc_assign(&other.0, Limb::ZERO);
     }
 }
 
 impl AddAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     fn add_assign(&mut self, other: &Wrapping<BoxedUint>) {
-        *self = Wrapping(self.0.wrapping_add(&other.0));
+        self.0.adc_assign(&other.0, Limb::ZERO);
     }
 }
 
