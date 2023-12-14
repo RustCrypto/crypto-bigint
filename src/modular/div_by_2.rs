@@ -26,5 +26,5 @@ pub(crate) fn div_by_2<const LIMBS: usize>(a: &Uint<LIMBS>, modulus: &Uint<LIMBS
         .wrapping_add(&half_modulus)
         .wrapping_add(&Uint::<LIMBS>::ONE);
 
-    Uint::<LIMBS>::ct_select(&if_even, &if_odd, is_odd)
+    Uint::<LIMBS>::select(&if_even, &if_odd, is_odd)
 }
