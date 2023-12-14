@@ -17,9 +17,8 @@ impl BoxedUint {
 
     /// Computes `self <<= shift`.
     ///
-    /// Returns a zero and a truthy `Choice` if `shift >= self.bits_precision()`,
-    /// or a falsy `Choice` otherwise.
-    fn overflowing_shl_assign(&mut self, shift: u32) -> Choice {
+    /// Returns a truthy `Choice` if `shift >= self.bits_precision()` or a falsy `Choice` otherwise.
+    pub fn overflowing_shl_assign(&mut self, shift: u32) -> Choice {
         // `floor(log2(bits_precision - 1))` is the number of bits in the representation of `shift`
         // (which lies in range `0 <= shift < bits_precision`).
         let shift_bits = u32::BITS - (self.bits_precision() - 1).leading_zeros();

@@ -10,27 +10,36 @@ impl BoxedUint {
     /// Returns a zero and a truthy `Choice` if `shift >= self.bits_precision()`,
     /// or the result and a falsy `Choice` otherwise.
     pub fn shr(&self, shift: u32) -> (Self, Choice) {
+        let mut result = self.clone();
+        let overflow = result.overflowing_shr_assign(shift);
+        (result, overflow)
+    }
+
+    /// Computes `self >>= shift`.
+    ///
+    /// Returns a truthy `Choice` if `shift >= self.bits_precision()` or a falsy `Choice` otherwise.
+    pub fn overflowing_shr_assign(&mut self, shift: u32) -> Choice {
         // `floor(log2(bits_precision - 1))` is the number of bits in the representation of `shift`
         // (which lies in range `0 <= shift < bits_precision`).
         let shift_bits = u32::BITS - (self.bits_precision() - 1).leading_zeros();
         let overflow = !shift.ct_lt(&self.bits_precision());
         let shift = shift % self.bits_precision();
-        let mut result = self.clone();
         let mut temp = self.clone();
 
         for i in 0..shift_bits {
             let bit = Choice::from(((shift >> i) & 1) as u8);
             temp.set_zero();
             // Will not overflow by construction
-            result
-                .shr_vartime_into(&mut temp, 1 << i)
+            self.shr_vartime_into(&mut temp, 1 << i)
                 .expect("shift within range");
-            result.conditional_assign(&temp, bit);
+            self.conditional_assign(&temp, bit);
         }
 
-        result.conditional_set_zero(overflow);
+        #[cfg(feature = "zeroize")]
+        zeroize::Zeroize::zeroize(&mut temp);
 
-        (result, overflow)
+        self.conditional_set_zero(overflow);
+        overflow
     }
 
     /// Computes `self >> shift`.
@@ -131,8 +140,11 @@ impl Shr<u32> for &BoxedUint {
 
 impl ShrAssign<u32> for BoxedUint {
     fn shr_assign(&mut self, shift: u32) {
-        // TODO(tarcieri): in-place implementation that avoids clone
-        *self = self.clone().shr(shift);
+        let overflow = self.overflowing_shr_assign(shift);
+        assert!(
+            !bool::from(overflow),
+            "attempt to shift right with overflow"
+        );
     }
 }
 
