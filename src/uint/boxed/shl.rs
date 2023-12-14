@@ -11,15 +11,15 @@ impl BoxedUint {
     /// or the result and a falsy `Choice` otherwise.
     pub fn shl(&self, shift: u32) -> (Self, Choice) {
         let mut result = self.clone();
-        let overflow = result.shl_assign_with_carry(shift);
+        let overflow = result.overflowing_shl_assign(shift);
         (result, overflow)
     }
 
     /// Computes `self <<= shift`.
     ///
     /// Returns a zero and a truthy `Choice` if `shift >= self.bits_precision()`,
-    /// or the result and a falsy `Choice` otherwise.
-    fn shl_assign_with_carry(&mut self, shift: u32) -> Choice {
+    /// or a falsy `Choice` otherwise.
+    fn overflowing_shl_assign(&mut self, shift: u32) -> Choice {
         // `floor(log2(bits_precision - 1))` is the number of bits in the representation of `shift`
         // (which lies in range `0 <= shift < bits_precision`).
         let shift_bits = u32::BITS - (self.bits_precision() - 1).leading_zeros();
@@ -134,7 +134,7 @@ impl Shl<u32> for &BoxedUint {
 
 impl ShlAssign<u32> for BoxedUint {
     fn shl_assign(&mut self, shift: u32) {
-        let overflow = self.shl_assign_with_carry(shift);
+        let overflow = self.overflowing_shl_assign(shift);
         assert!(!bool::from(overflow), "attempt to shift left with overflow");
     }
 }
