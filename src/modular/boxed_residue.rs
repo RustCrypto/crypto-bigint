@@ -12,7 +12,7 @@ use super::{
     reduction::{montgomery_reduction_boxed, montgomery_reduction_boxed_mut},
     Retrieve,
 };
-use crate::{BoxedUint, Limb, NonZero, Word};
+use crate::{BoxedUint, Integer, Limb, NonZero, Word};
 use subtle::CtOption;
 
 #[cfg(feature = "std")]

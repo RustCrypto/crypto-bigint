@@ -3,7 +3,7 @@
 #![cfg(feature = "alloc")]
 
 use core::cmp::Ordering;
-use crypto_bigint::{BoxedUint, CheckedAdd, Limb, NonZero};
+use crypto_bigint::{BoxedUint, CheckedAdd, Integer, Limb, NonZero};
 use num_bigint::{BigUint, ModInverse};
 use num_traits::identities::One;
 use proptest::prelude::*;

@@ -98,29 +98,6 @@ impl BoxedUint {
         iter.fold(choice, |acc, limb| acc & limb.is_zero())
     }
 
-    /// Is this integer value an odd number?
-    ///
-    /// # Returns
-    ///
-    /// If odd, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
-    // TODO(tarcieri): impl the `Integer` trait
-    pub fn is_odd(&self) -> Choice {
-        self.limbs
-            .first()
-            .map(|limb| limb.is_odd())
-            .unwrap_or_else(|| Choice::from(0))
-    }
-
-    /// Is this integer value an even number?
-    ///
-    /// # Returns
-    ///
-    /// If even, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
-    // TODO(tarcieri): impl the `Integer` trait
-    pub fn is_even(&self) -> Choice {
-        !self.is_odd()
-    }
-
     /// Get the maximum value for a `BoxedUint` created with `at_least_bits_precision`
     /// precision bits requested.
     ///
@@ -414,10 +391,6 @@ impl Integer for BoxedUint {
 
     fn nlimbs(&self) -> usize {
         self.nlimbs()
-    }
-
-    fn is_odd(&self) -> Choice {
-        self.is_odd()
     }
 }
 
