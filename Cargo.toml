@@ -22,6 +22,7 @@ subtle = { version = "2.5", default-features = false }
 # optional dependencies
 der = { version = "0.7", optional = true, default-features = false }
 generic-array = { version = "0.14", optional = true }
+num-traits = { version = "0.2", default-features = false }
 rand_core = { version = "0.6.4", optional = true }
 rlp = { version = "0.5", optional = true, default-features = false }
 serdect = { version = "0.2", optional = true, default-features = false }
@@ -33,7 +34,6 @@ criterion = { version = "0.5", features = ["html_reports"] }
 hex-literal = "0.4"
 num-bigint = { package = "num-bigint-dig", version = "0.8" }
 num-integer = "0.1"
-num-traits = "0.2"
 proptest = "1"
 rand_core = { version = "0.6", features = ["std"] }
 rand_chacha = "0.3"

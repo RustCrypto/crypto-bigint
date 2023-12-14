@@ -132,7 +132,7 @@ mod tests {
                         assert!(c < **p, "not reduced: {} >= {} ", c, p);
 
                         let expected = {
-                            let (lo, hi) = a.mul_wide(&b);
+                            let (lo, hi) = a.widening_mul_split(&b);
                             let mut prod = Uint::<{ 2 * $size }>::ZERO;
                             prod.limbs[..$size].clone_from_slice(&lo.limbs);
                             prod.limbs[$size..].clone_from_slice(&hi.limbs);

@@ -1,5 +1,9 @@
 //! Traits provided by this crate
 
+pub use num_traits::{
+    WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr, WrappingSub,
+};
+
 use crate::{Limb, NonZero};
 use core::fmt::Debug;
 use core::ops::{
@@ -71,6 +75,9 @@ pub trait Integer:
     + ShrAssign<u32>
     + SubMod
     + Sync
+    + WrappingAdd
+    + WrappingSub
+    + WrappingMul
     + Zero
 {
     /// The value `1`.

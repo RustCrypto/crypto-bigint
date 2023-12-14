@@ -1,6 +1,6 @@
 //! [`Uint`] addition operations.
 
-use crate::{Checked, CheckedAdd, ConstChoice, Limb, Uint, Wrapping, Zero};
+use crate::{Checked, CheckedAdd, ConstChoice, Limb, Uint, Wrapping, WrappingAdd, Zero};
 use core::ops::{Add, AddAssign};
 use subtle::CtOption;
 
@@ -45,12 +45,20 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> CheckedAdd<&Uint<LIMBS>> for Uint<LIMBS> {
+impl<const LIMBS: usize> Add for Uint<LIMBS> {
     type Output = Self;
 
-    fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
-        let (result, carry) = self.adc(rhs, Limb::ZERO);
-        CtOption::new(result, carry.is_zero())
+    fn add(self, rhs: Self) -> Self {
+        self.add(&rhs)
+    }
+}
+
+impl<const LIMBS: usize> Add<&Uint<LIMBS>> for Uint<LIMBS> {
+    type Output = Self;
+
+    fn add(self, rhs: &Self) -> Self {
+        self.checked_add(rhs)
+            .expect("attempted to add with overflow")
     }
 }
 
@@ -151,6 +159,21 @@ impl<const LIMBS: usize> AddAssign for Checked<Uint<LIMBS>> {
 impl<const LIMBS: usize> AddAssign<&Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS>> {
     fn add_assign(&mut self, other: &Self) {
         *self = *self + other;
+    }
+}
+
+impl<const LIMBS: usize> CheckedAdd<&Uint<LIMBS>> for Uint<LIMBS> {
+    type Output = Self;
+
+    fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
+        let (result, carry) = self.adc(rhs, Limb::ZERO);
+        CtOption::new(result, carry.is_zero())
+    }
+}
+
+impl<const LIMBS: usize> WrappingAdd for Uint<LIMBS> {
+    fn wrapping_add(&self, v: &Self) -> Self {
+        self.wrapping_add(v)
     }
 }
 
