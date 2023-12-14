@@ -1,6 +1,7 @@
 //! [`BoxedUint`] subtraction operations.
 
-use crate::{BoxedUint, CheckedSub, Limb, Zero};
+use crate::{BoxedUint, CheckedSub, Limb, Wrapping, Zero};
+use core::ops::SubAssign;
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
 impl BoxedUint {
@@ -55,6 +56,18 @@ impl CheckedSub<&BoxedUint> for BoxedUint {
     fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
         let (result, carry) = self.sbb(rhs, Limb::ZERO);
         CtOption::new(result, carry.is_zero())
+    }
+}
+
+impl SubAssign<Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
+    fn sub_assign(&mut self, other: Wrapping<BoxedUint>) {
+        self.0.sbb_assign(&other.0, Limb::ZERO);
+    }
+}
+
+impl SubAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
+    fn sub_assign(&mut self, other: &Wrapping<BoxedUint>) {
+        self.0.sbb_assign(&other.0, Limb::ZERO);
     }
 }
 
