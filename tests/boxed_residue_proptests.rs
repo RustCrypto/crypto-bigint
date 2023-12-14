@@ -4,7 +4,7 @@
 
 use crypto_bigint::{
     modular::{BoxedResidue, BoxedResidueParams},
-    BoxedUint, Limb, NonZero,
+    BoxedUint, Integer, Limb, NonZero,
 };
 use num_bigint::{BigUint, ModInverse};
 use proptest::prelude::*;
