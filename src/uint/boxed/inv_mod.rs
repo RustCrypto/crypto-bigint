@@ -1,6 +1,6 @@
 //! [`BoxedUint`] modular inverse (i.e. reciprocal) operations.
 
-use crate::BoxedUint;
+use crate::{BoxedUint, Integer};
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
 impl BoxedUint {
