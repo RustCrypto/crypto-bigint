@@ -150,6 +150,7 @@ pub(crate) enum Sign {
 #[cfg(feature = "alloc")]
 pub(crate) fn sub_sign(a: &[Word], b: &[Word]) -> (Sign, alloc::vec::Vec<Word>) {
     use super::cmp::cmp_slice;
+    use core::cmp::Ordering;
 
     match cmp_slice(a, b) {
         Ordering::Greater => {

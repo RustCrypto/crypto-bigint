@@ -299,7 +299,7 @@ fn sub_vv(z: &mut [Limb], x: &[Limb], y: &[Limb]) {
         z[i] = zi;
         borrow = new_borrow;
         // see "Hacker's Delight", section 2-12 (overflow detection)
-        c = ((yi & !xi) | ((yi | !xi) & *zi)) >> (Word::BITS - 1)
+        c = ((yi & !xi) | ((yi | !xi) & zi)) >> (Word::BITS - 1)
     }
 
     c

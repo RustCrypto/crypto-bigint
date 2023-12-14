@@ -9,7 +9,7 @@ use core::{
     cmp::Ordering,
     ops::{Div, DivAssign, Rem, RemAssign},
 };
-use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
+use subtle::{Choice, ConstantTimeLess, CtOption};
 
 impl BoxedUint {
     /// Computes self / rhs, returns the quotient, remainder.
@@ -101,6 +101,7 @@ impl BoxedUint {
         // normalize to avoid excess work
         let this = self.normalize_vartime();
         let rhs = rhs.normalize_vartime();
+
         // 0 / x = 0
         if bool::from(this.is_zero()) {
             return (Self::zero(), Self::zero());
@@ -131,8 +132,8 @@ impl BoxedUint {
         // want it to be the largest number we can efficiently divide by.
         let shift = rhs.as_words().last().unwrap().leading_zeros();
         std::dbg!(shift, this.as_words(), rhs.as_words());
-        let mut a = this.shl_vartime(shift).normalize_vartime();
-        let b = rhs.shl_vartime(shift).normalize_vartime();
+        let mut a = this.shl_vartime(shift).unwrap().normalize_vartime();
+        let b = rhs.shl_vartime(shift).unwrap().normalize_vartime();
 
         // The algorithm works by incrementally calculating "guesses", q0, for part of the
         // remainder. Once we have any number q0 such that q0 * b <= a, we can set

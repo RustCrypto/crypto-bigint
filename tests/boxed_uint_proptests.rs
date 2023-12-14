@@ -3,9 +3,8 @@
 #![cfg(feature = "alloc")]
 
 use core::cmp::Ordering;
-use crypto_bigint::{BoxedUint, CheckedAdd, Integer, Limb, NonZero};
-use num_bigint::{BigUint, ModInverse};
-use num_traits::identities::One;
+use crypto_bigint::{BoxedUint, Integer, Limb, NonZero};
+use num_bigint::BigUint;
 use proptest::prelude::*;
 
 fn to_biguint(uint: &BoxedUint) -> BigUint {
@@ -70,7 +69,8 @@ prop_compose! {
 proptest! {
     #[test]
     fn roundtrip(a in uint()) {
-        prop_assert_eq!(&a, &to_uint(to_biguint(&a)));
+        let b = to_uint(to_biguint(&a));
+        prop_assert_eq!(&a, &b);
     }
 
     #[test]
