@@ -38,8 +38,8 @@ impl BoxedUint {
     /// Computes 1/`self` mod `2^k`.
     ///
     /// If the inverse does not exist (`k > 0` and `self` is even),
-    /// returns `CtChoice::FALSE` as the second element of the tuple,
-    /// otherwise returns `CtChoice::TRUE`.
+    /// returns `ConstChoice::FALSE` as the second element of the tuple,
+    /// otherwise returns `ConstChoice::TRUE`.
     pub(crate) fn inv_mod2k(&self, k: u32) -> (Self, Choice) {
         let mut x = Self::zero_with_precision(self.bits_precision()); // keeps `x` during iterations
         let mut b = Self::one_with_precision(self.bits_precision()); // keeps `b_i` during iterations

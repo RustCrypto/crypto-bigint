@@ -5,7 +5,7 @@
 pub(super) use core::cmp::{max, Ordering};
 
 use super::BoxedUint;
-use crate::{CtChoice, Limb};
+use crate::{ConstChoice, Limb};
 use subtle::{
     Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
 };
@@ -30,7 +30,7 @@ impl ConstantTimeGreater for BoxedUint {
     #[inline]
     fn ct_gt(&self, other: &Self) -> Choice {
         let (_, borrow) = other.sbb(self, Limb::ZERO);
-        CtChoice::from_word_mask(borrow.0).into()
+        ConstChoice::from_word_mask(borrow.0).into()
     }
 }
 
@@ -38,7 +38,7 @@ impl ConstantTimeLess for BoxedUint {
     #[inline]
     fn ct_lt(&self, other: &Self) -> Choice {
         let (_, borrow) = self.sbb(other, Limb::ZERO);
-        CtChoice::from_word_mask(borrow.0).into()
+        ConstChoice::from_word_mask(borrow.0).into()
     }
 }
 

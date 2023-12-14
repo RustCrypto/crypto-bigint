@@ -94,20 +94,20 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         (quo, rem)
     }
 
-    /// Computes `self` % `rhs`, returns the remainder and and the truthy value for is_some or the
-    /// falsy value for is_none.
-    ///
-    /// NOTE: Use only if you need to access const fn. Otherwise use [`Self::rem`].
-    /// This is variable only with respect to `rhs`.
+    /// Computes `self` % `rhs`, returns the remainder.
+    pub const fn rem(&self, rhs: &NonZero<Self>) -> Self {
+        self.div_rem(rhs).1
+    }
+
+    /// Computes `self` % `rhs`, returns the remainder in variable-time with respect to `rhs`.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub const fn rem(&self, rhs: &NonZero<Self>) -> Self {
+    pub const fn rem_vartime(&self, rhs: &NonZero<Self>) -> Self {
         let mb = rhs.0.bits_vartime();
         let mut bd = Self::BITS - mb;
         let mut rem = *self;
-        let (mut c, overflow) = rhs.shl_vartime(bd);
-        let is_some = overflow.not();
+        let mut c = rhs.0.wrapping_shl_vartime(bd);
 
         loop {
             let (r, borrow) = rem.sbb(&c, Limb::ZERO);
@@ -159,6 +159,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes `self` % 2^k. Faster than reduce since its a power of 2.
     /// Limited to 2^16-1 since Uint doesn't support higher.
+    /// TODO: this is not constant-time.
     pub const fn rem2k(&self, k: u32) -> Self {
         let highest = (LIMBS - 1) as u32;
         let index = k / Limb::BITS;
@@ -183,6 +184,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         out
     }
 
+<<<<<<< HEAD
     /// Wrapped division is just normal division i.e. `self` / `rhs`
     ///
     /// There’s no way wrapping could ever happen.
@@ -190,19 +192,99 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn wrapping_div(&self, rhs: &NonZero<Self>) -> Self {
         let (q, _) = self.div_rem(rhs);
         q
+=======
+    /// Computes self / rhs, returns the quotient, remainder.
+    ///
+    /// ### Usage:
+    /// ```
+    /// use crypto_bigint::{U448, NonZero};
+    ///
+    /// let a = U448::from(8_u64);
+    /// let res = NonZero::new(U448::from(4_u64))
+    ///    .map(|b| a.div_rem(&b))
+    ///    .expect("Division by zero");
+    ///
+    /// assert_eq!(res.0, U448::from(2_u64));
+    /// assert_eq!(res.1, U448::from(0_u64));
+    /// ```
+    pub fn div_rem(&self, rhs: &NonZero<Self>) -> (Self, Self) {
+        // Since `rhs` is nonzero, this should always hold.
+        let (q, r, _c) = self.ct_div_rem(rhs);
+        (q, r)
+    }
+
+    /// Computes self % rhs, returns the remainder.
+    ///
+    /// This function performs modulo operation and returns the remainder
+    /// of the division of `self` by `rhs`. The `rhs` must be non-zero.
+    ///
+    /// # Usage:
+    /// ```
+    /// use crypto_bigint::{U448, NonZero};
+    ///
+    /// let a = U448::from(8_u64);
+    /// let remainder = NonZero::new(U448::from(3_u64))
+    ///     .map(|b| a.rem(&b))
+    ///     .expect("Modulo by zero");
+    ///
+    /// assert_eq!(remainder, U448::from(2_u64));
+    /// ```
+    pub fn rem(&self, rhs: &NonZero<Self>) -> Self {
+        // Since `rhs` is nonzero, this should always hold.
+        let (r, _c) = self.const_rem(rhs);
+        r
+>>>>>>> f36b4ff (docs: a few usage examples for div)
     }
 
     /// Wrapped division is just normal division i.e. `self` / `rhs`
     ///
     /// There’s no way wrapping could ever happen.
     /// This function exists, so that all operations are accounted for in the wrapping operations.
+<<<<<<< HEAD
     pub const fn wrapping_div_vartime(&self, rhs: &NonZero<Self>) -> Self {
         let (q, _) = self.div_rem_vartime(rhs);
+=======
+    ///
+    /// Panics if `rhs == 0`.
+    ///
+    /// # Usage:
+    /// ```
+    /// use crypto_bigint::U448;
+    ///
+    /// let a = U448::from(10_u64);
+    /// let b = U448::from(2_u64);
+    /// let quotient = a.wrapping_div(&b);
+    ///
+    /// assert_eq!(quotient, U448::from(5_u64));
+    /// ```
+    pub const fn wrapping_div(&self, rhs: &Self) -> Self {
+        let (q, _, c) = self.ct_div_rem(rhs);
+        assert!(c.is_true_vartime(), "divide by zero");
+>>>>>>> f36b4ff (docs: a few usage examples for div)
         q
     }
 
-    /// Perform checked division, returning a [`CtOption`] which `is_some`
-    /// only if the rhs != 0
+    /// Performs checked division, returning a [`CtOption`] which `is_some`
+    /// only if the divisor (rhs) is non-zero.
+    ///
+    /// This function performs division and returns a [`CtOption<Self>`] that wraps the quotient.
+    /// The result will be `None` (as per the `CtOption` type) if the divisor is zero, providing a safe
+    /// way to handle division where the divisor might be zero without panicking.
+    ///
+    /// # Usage:
+    /// ```
+    /// use crypto_bigint::{U448, subtle::Choice};
+    ///
+    /// let a = U448::from(8_u64);
+    /// let b = U448::from(4_u64);
+    /// let result = a.checked_div(&b);
+    ///
+    /// assert!(<Choice as Into<bool>>::into(result.is_some()), "Division by zero");
+    /// assert_eq!(result.unwrap(), U448::from(2_u64), "Quotient is incorrect");
+    ///
+    /// // Check division by zero
+    /// let zero = U448::from(0_u64);
+    /// assert!(<Choice as Into<bool>>::into(a.checked_div(&zero).is_none()), "Should be None for division by zero");
     pub fn checked_div(&self, rhs: &Self) -> CtOption<Self> {
         NonZero::new(*rhs).map(|rhs| {
             let (q, _r) = self.div_rem(&rhs);
@@ -210,11 +292,24 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         })
     }
 
-    /// Wrapped (modular) remainder calculation is just `self` % `rhs`.
-    /// There’s no way wrapping could ever happen.
-    /// This function exists, so that all operations are accounted for in the wrapping operations.
+    /// Calculates the wrapped (modular) remainder, equivalent to `self` % `rhs`.
+    ///
+    /// In this context, "wrapped" refers to the behavior when an arithmetic operation overflows.
+    /// However, for remainder calculations, there's no concept of wrapping as there's no overflow scenario.
+    /// This function exists to maintain consistency across all arithmetic operations.
     ///
     /// Panics if `rhs == 0`.
+    ///
+    /// # Usage:
+    /// ```
+    /// use crypto_bigint::U448;
+    ///
+    /// let a = U448::from(10_u64);
+    /// let b = U448::from(3_u64);
+    /// let remainder = a.wrapping_rem(&b);
+    ///
+    /// assert_eq!(remainder, U448::from(1_u64));
+    /// ```
     pub const fn wrapping_rem(&self, rhs: &Self) -> Self {
         let nz_rhs = rhs.to_nz().expect("non-zero divisor");
         self.rem_vartime(&nz_rhs)
@@ -222,6 +317,22 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Perform checked reduction, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
+    ///
+    /// # Examples
+    /// ```
+    /// use crypto_bigint::{U448, subtle::{Choice, CtOption}};
+    ///
+    /// let a = U448::from(10_u64);
+    /// let b = U448::from(3_u64);
+    /// let remainder_option = a.checked_rem(&b);
+    ///
+    /// assert!(<Choice as Into<bool>>::into(remainder_option.is_some()), "Reduction by zero");
+    /// assert_eq!(remainder_option.unwrap(), U448::from(1_u64));
+    ///
+    /// // Check reduction by zero
+    /// let zero = U448::from(0_u64);
+    /// assert!(<Choice as Into<bool>>::into(a.checked_rem(&zero).is_none()), "Should be None for reduction by zero");
+    /// ```
     pub fn checked_rem(&self, rhs: &Self) -> CtOption<Self> {
         NonZero::new(*rhs).map(|rhs| self.rem(&rhs))
     }

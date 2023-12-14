@@ -6,7 +6,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `-a mod p`.
     /// Assumes `self` is in `[0, p)`.
     pub const fn neg_mod(&self, p: &Self) -> Self {
-        let z = self.ct_is_nonzero();
+        let z = self.is_nonzero();
         let mut ret = p.sbb(self, Limb::ZERO).0;
         let mut i = 0;
         while i < LIMBS {

@@ -6,9 +6,9 @@ use crate::Word;
 // TODO: should be replaced by `subtle::Choice` or `CtOption`
 // when `subtle` starts supporting const fns.
 #[derive(Debug, Copy, Clone)]
-pub struct CtChoice(Word);
+pub struct ConstChoice(Word);
 
-impl CtChoice {
+impl ConstChoice {
     /// The falsy value.
     pub const FALSE: Self = Self(0);
 
@@ -137,7 +137,7 @@ impl CtChoice {
 
     #[inline]
     pub(crate) const fn is_true_vartime(&self) -> bool {
-        self.0 == CtChoice::TRUE.0
+        self.0 == ConstChoice::TRUE.0
     }
 
     #[inline]
@@ -146,19 +146,19 @@ impl CtChoice {
     }
 }
 
-impl From<CtChoice> for Choice {
-    fn from(choice: CtChoice) -> Self {
+impl From<ConstChoice> for Choice {
+    fn from(choice: ConstChoice) -> Self {
         Choice::from(choice.to_u8())
     }
 }
 
-impl From<CtChoice> for bool {
-    fn from(choice: CtChoice) -> Self {
+impl From<ConstChoice> for bool {
+    fn from(choice: ConstChoice) -> Self {
         choice.is_true_vartime()
     }
 }
 
-impl PartialEq for CtChoice {
+impl PartialEq for ConstChoice {
     fn eq(&self, other: &Self) -> bool {
         self.0 == other.0
     }
@@ -166,14 +166,14 @@ impl PartialEq for CtChoice {
 
 #[cfg(test)]
 mod tests {
-    use super::CtChoice;
+    use super::ConstChoice;
     use crate::Word;
 
     #[test]
     fn select() {
         let a: Word = 1;
         let b: Word = 2;
-        assert_eq!(CtChoice::TRUE.select_word(a, b), b);
-        assert_eq!(CtChoice::FALSE.select_word(a, b), a);
+        assert_eq!(ConstChoice::TRUE.select_word(a, b), b);
+        assert_eq!(ConstChoice::FALSE.select_word(a, b), a);
     }
 }

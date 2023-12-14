@@ -33,7 +33,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let (q, _) = self.div_rem(&nz_x);
 
             // A protection in case `self == 0`, which will make `x == 0`
-            let q = Self::ct_select(&Self::ZERO, &q, is_some);
+            let q = Self::select(&Self::ZERO, &q, is_some);
 
             x = x.wrapping_add(&q).shr1();
             i += 1;
@@ -42,7 +42,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // At this point `x_prev == x_{n}` and `x == x_{n+1}`
         // where `n == i - 1 == LOG2_BITS + 1 == floor(log2(BITS)) + 1`.
         // Thus, according to Hast, `sqrt(self) = min(x_n, x_{n+1})`.
-        Self::ct_select(&x_prev, &x, Uint::ct_gt(&x_prev, &x))
+        Self::select(&x_prev, &x, Uint::gt(&x_prev, &x))
     }
 
     /// Computes √(`self`)
@@ -72,7 +72,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             x = next_x;
         }
 
-        if self.ct_is_nonzero().is_true_vartime() {
+        if self.is_nonzero().is_true_vartime() {
             x
         } else {
             Self::ZERO

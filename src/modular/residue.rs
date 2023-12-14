@@ -204,7 +204,7 @@ where
         D: Deserializer<'de>,
     {
         Uint::<LIMBS>::deserialize(deserializer).and_then(|montgomery_form| {
-            if Uint::ct_lt(&montgomery_form, &MOD::MODULUS).into() {
+            if montgomery_form < MOD::MODULUS.0 {
                 Ok(Self {
                     montgomery_form,
                     phantom: PhantomData,
