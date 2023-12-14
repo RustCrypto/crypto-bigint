@@ -3,8 +3,9 @@
 #![cfg(feature = "alloc")]
 
 use core::cmp::Ordering;
-use crypto_bigint::{BoxedUint, Integer, Limb, NonZero};
-use num_bigint::BigUint;
+use crypto_bigint::{BoxedUint, CheckedAdd, Integer, Limb, NonZero};
+use num_bigint::{BigUint, ModInverse};
+use num_traits::identities::One;
 use proptest::prelude::*;
 
 fn to_biguint(uint: &BoxedUint) -> BigUint {
@@ -219,7 +220,6 @@ proptest! {
             prop_assert_eq!(expected, to_biguint(&actual));
         }
     }
-<<<<<<< HEAD
 
     #[test]
     fn shl(a in uint(), shift in any::<u16>()) {
@@ -291,16 +291,4 @@ proptest! {
             assert_eq!(expected, actual.unwrap());
         }
     }
-||||||| parent of e143d6a (feat(boxed): implement division with different precision)
-=======
-
-    #[test]
-    fn shl_vartime(a in uint(), b in any::<u32>()) {
-        let a_bi = to_biguint(&a);
-
-        let expected = a_bi << (b as usize);
-        let actual = a.shl_vartime(b);
-        prop_assert_eq!(expected, to_biguint(&actual));
-    }
->>>>>>> e143d6a (feat(boxed): implement division with different precision)
 }
