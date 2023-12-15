@@ -132,7 +132,7 @@ impl BoxedUint {
         out.into()
     }
 
-    /// Create a new [`Uint`] from the provided big endian hex string.
+    /// Create a new [`BoxedUint`] from the provided big endian hex string.
     pub fn from_be_hex(hex: &str, bits_precision: u32) -> Self {
         let nlimbs = (bits_precision / Limb::BITS) as usize;
         let bytes = hex.as_bytes();

@@ -122,11 +122,12 @@ impl BoxedUint {
         let mut result = Self::zero_with_precision(self.bits_precision());
         let success = self.shl_vartime_into(&mut result, shift);
         // TODO: is this okay?
-        return (
+
+        (
             result,
             // If success, then return ConstChoice::False since it's not overflowing
             success.map_or(ConstChoice::TRUE, |_| ConstChoice::FALSE),
-        );
+        )
     }
 
     /// Computes `self << 1` in constant-time.
