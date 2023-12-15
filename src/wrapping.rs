@@ -4,6 +4,13 @@ use crate::Zero;
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
+#[cfg(feature = "num-traits")]
+use crate::{Integer, NonZero};
+#[cfg(feature = "num-traits")]
+use core::ops::{Add, Div, Mul, Rem, Sub};
+#[cfg(feature = "num-traits")]
+use num_traits::Num;
+
 #[cfg(feature = "rand_core")]
 use {crate::Random, rand_core::CryptoRngCore};
 
@@ -65,6 +72,70 @@ impl<T: ConstantTimeEq> ConstantTimeEq for Wrapping<T> {
     }
 }
 
+#[cfg(feature = "num-traits")]
+impl<T: Zero> num_traits::Zero for Wrapping<T>
+where
+    Wrapping<T>: Add<Wrapping<T>, Output = Wrapping<T>> + PartialEq<Wrapping<T>>,
+{
+    fn zero() -> Self {
+        Self::ZERO
+    }
+
+    fn is_zero(&self) -> bool {
+        self == &Self::ZERO
+    }
+}
+
+#[cfg(feature = "num-traits")]
+impl<T: Integer> num_traits::One for Wrapping<T>
+where
+    Wrapping<T>: Add<Wrapping<T>, Output = Wrapping<T>> + Mul<Wrapping<T>, Output = Wrapping<T>>,
+{
+    fn one() -> Self {
+        Wrapping(T::ONE)
+    }
+}
+
+#[cfg(feature = "num-traits")]
+impl<T: Zero> Div<Wrapping<T>> for Wrapping<T>
+where
+    Wrapping<T>: Div<NonZero<T>, Output = Wrapping<T>>,
+{
+    type Output = Wrapping<T>;
+
+    fn div(self, rhs: Wrapping<T>) -> Self::Output {
+        self / NonZero::new(rhs.0).unwrap()
+    }
+}
+
+#[cfg(feature = "num-traits")]
+impl<T: Zero> Rem<Wrapping<T>> for Wrapping<T>
+where
+    Wrapping<T>: Rem<NonZero<T>, Output = Wrapping<T>>,
+{
+    type Output = Wrapping<T>;
+
+    fn rem(self, rhs: Wrapping<T>) -> Self::Output {
+        self % NonZero::new(rhs.0).unwrap()
+    }
+}
+
+#[cfg(feature = "num-traits")]
+impl<T: Integer + Zero> Num for Wrapping<T>
+where
+    Wrapping<T>: Add<Wrapping<T>, Output = Wrapping<T>>
+        + Sub<Wrapping<T>, Output = Wrapping<T>>
+        + Mul<Wrapping<T>, Output = Wrapping<T>>
+        + Div<NonZero<T>, Output = Wrapping<T>>
+        + Rem<NonZero<T>, Output = Wrapping<T>>,
+{
+    type FromStrRadixErr = ();
+
+    fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
+        todo!()
+    }
+}
+
 #[cfg(feature = "rand_core")]
 impl<T: Random> Random for Wrapping<T> {
     fn random(rng: &mut impl CryptoRngCore) -> Self {
@@ -89,6 +160,24 @@ impl<T: Serialize> Serialize for Wrapping<T> {
         S: Serializer,
     {
         self.0.serialize(serializer)
+    }
+}
+
+#[cfg(all(test, feature = "num-traits"))]
+mod tests {
+    use crate::{Integer, NonZero};
+    use core::ops::{Add, Div, Mul, Rem, Sub};
+    use num_traits::{Num, NumOps, One, Zero};
+
+    use crate::{Wrapping, U64};
+
+    fn assures_num<T: Num>(x: T) {}
+
+    #[test]
+    fn num_traits() {
+        const TEST: Wrapping<U64> = Wrapping(U64::from_u64(0x0011223344556677));
+
+        assures_num(TEST)
     }
 }
 
