@@ -78,6 +78,7 @@ pub trait Integer:
     + WrappingAdd
     + WrappingSub
     + WrappingMul
+    + WrappingNeg
     + Zero
 {
     /// The value `1`.
