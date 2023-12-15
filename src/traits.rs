@@ -7,8 +7,8 @@ pub use num_traits::{
 use crate::{Limb, NonZero};
 use core::fmt::Debug;
 use core::ops::{
-    BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign, Not, Rem, Shl,
-    ShlAssign, Shr, ShrAssign,
+    Add, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign, Mul, Not,
+    Rem, Shl, ShlAssign, Shr, ShrAssign, Sub,
 };
 use subtle::{
     Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
@@ -30,16 +30,21 @@ pub trait Bounded {
 /// Integer trait: represents common functionality of integer types provided by this crate.
 pub trait Integer:
     'static
-    + AddMod
+    + Add<Output = Self>
+    + for<'a> Add<&'a Self, Output = Self>
+    + AddMod<Output = Self>
     + AsRef<[Limb]>
-    + BitAndAssign
-    + BitOrAssign
-    + BitXorAssign
     + BitAnd<Output = Self>
-    + BitOr<Output = Self>
-    + BitXor<Output = Self>
+    + for<'a> BitAnd<&'a Self, Output = Self>
+    + BitAndAssign
     + for<'a> BitAndAssign<&'a Self>
+    + BitOr<Output = Self>
+    + for<'a> BitOr<&'a Self, Output = Self>
+    + BitOrAssign
     + for<'a> BitOrAssign<&'a Self>
+    + BitXor<Output = Self>
+    + for<'a> BitXor<&'a Self, Output = Self>
+    + BitXorAssign
     + for<'a> BitXorAssign<&'a Self>
     + CheckedAdd
     + CheckedSub
@@ -53,17 +58,19 @@ pub trait Integer:
     + Debug
     + Default
     + Div<NonZero<Self>, Output = Self>
-    + DivAssign<NonZero<Self>>
     + for<'a> Div<&'a NonZero<Self>, Output = Self>
+    + DivAssign<NonZero<Self>>
     + for<'a> DivAssign<&'a NonZero<Self>>
     + Eq
     + From<u8>
     + From<u16>
     + From<u32>
     + From<u64>
-    + MulMod
-    + NegMod
-    + Not
+    + Mul<Output = Self>
+    + for<'a> Mul<&'a Self, Output = Self>
+    + MulMod<Output = Self>
+    + NegMod<Output = Self>
+    + Not<Output = Self>
     + Ord
     + Rem<NonZero<Self>, Output = Self>
     + for<'a> Rem<&'a NonZero<Self>, Output = Self>
@@ -73,7 +80,9 @@ pub trait Integer:
     + ShlAssign<u32>
     + Shr<u32, Output = Self>
     + ShrAssign<u32>
-    + SubMod
+    + Sub<Output = Self>
+    + for<'a> Sub<&'a Self, Output = Self>
+    + SubMod<Output = Self>
     + Sync
     + WrappingAdd
     + WrappingSub
@@ -345,7 +354,7 @@ pub trait Encoding: Sized {
 /// Support for optimized squaring
 pub trait Square: Sized
 where
-    for<'a> &'a Self: core::ops::Mul<&'a Self, Output = Self>,
+    for<'a> &'a Self: Mul<&'a Self, Output = Self>,
 {
     /// Computes the same as `self.mul(self)`, but may be more efficient.
     fn square(&self) -> Self {
