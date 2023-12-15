@@ -24,6 +24,11 @@ impl BoxedUint {
         Limb::BITS * n - leading_zeros
     }
 
+    /// `floor(log2(self.bits_precision()))`.
+    pub(crate) fn log2_bits(&self) -> u32 {
+        u32::BITS - self.bits_precision().leading_zeros() - 1
+    }
+
     /// Returns `true` if the bit at position `index` is set, `false` otherwise.
     ///
     /// # Remarks

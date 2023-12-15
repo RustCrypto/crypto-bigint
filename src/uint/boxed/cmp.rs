@@ -10,6 +10,52 @@ use subtle::{
     Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
 };
 
+impl BoxedUint {
+    /// Return `b` if `c` is truthy, otherwise return `a`.
+    #[inline]
+    pub(crate) fn select(a: &Self, b: &Self, c: ConstChoice) -> Self {
+        debug_assert_eq!(a.limbs.len(), b.limbs.len());
+        let mut limbs = vec![Limb::ZERO; a.limbs.len()];
+
+        let mut i = 0;
+        while i < limbs.len() {
+            limbs[i] = Limb::select(a.limbs[i], b.limbs[i], c);
+            i += 1;
+        }
+
+        Self {
+            limbs: limbs.into(),
+        }
+    }
+
+    /// Returns the truthy value if `self >= rhs` and the falsy value otherwise.
+    #[inline]
+    pub(crate) fn gt(lhs: &Self, rhs: &Self) -> ConstChoice {
+        let (_res, borrow) = rhs.sbb(lhs, Limb::ZERO);
+        ConstChoice::from_word_mask(borrow.0)
+    }
+
+    /// Returns the Ordering between `self` and `rhs` in variable time.
+    pub fn cmp_vartime(&self, rhs: &Self) -> Ordering {
+        debug_assert_eq!(self.limbs.len(), rhs.limbs.len());
+        let mut i = self.limbs.len() - 1;
+        loop {
+            let (val, borrow) = self.limbs[i].sbb(rhs.limbs[i], Limb::ZERO);
+            if val.0 != 0 {
+                return if borrow.0 != 0 {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                };
+            }
+            if i == 0 {
+                return Ordering::Equal;
+            }
+            i -= 1;
+        }
+    }
+}
+
 impl ConstantTimeEq for BoxedUint {
     #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {

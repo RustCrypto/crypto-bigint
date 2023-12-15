@@ -1,7 +1,7 @@
 //! Const-friendly decoding operations for [`BoxedUint`].
 
 use super::BoxedUint;
-use crate::Limb;
+use crate::{uint::encoding, Limb, Word};
 use alloc::boxed::Box;
 use core::fmt;
 
@@ -130,6 +130,40 @@ impl BoxedUint {
         }
 
         out.into()
+    }
+
+    /// Create a new [`Uint`] from the provided big endian hex string.
+    pub fn from_be_hex(hex: &str, bits_precision: u32) -> Self {
+        let nlimbs = (bits_precision / Limb::BITS) as usize;
+        let bytes = hex.as_bytes();
+
+        assert!(
+            bytes.len() == Limb::BYTES * nlimbs * 2,
+            "hex string is not the expected size"
+        );
+
+        let mut res = vec![Limb::ZERO; nlimbs];
+        let mut buf = [0u8; Limb::BYTES];
+        let mut i = 0;
+        let mut err = 0;
+
+        while i < nlimbs {
+            let mut j = 0;
+            while j < Limb::BYTES {
+                let offset = (i * Limb::BYTES + j) * 2;
+                let (result, byte_err) =
+                    encoding::decode_hex_byte([bytes[offset], bytes[offset + 1]]);
+                err |= byte_err;
+                buf[j] = result;
+                j += 1;
+            }
+            res[nlimbs - i - 1] = Limb(Word::from_be_bytes(buf));
+            i += 1;
+        }
+
+        assert!(err == 0, "invalid hex byte");
+
+        Self { limbs: res.into() }
     }
 }
 

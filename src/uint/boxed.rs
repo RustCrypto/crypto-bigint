@@ -19,13 +19,14 @@ mod neg;
 mod neg_mod;
 mod shl;
 mod shr;
+mod sqrt;
 mod sub;
 mod sub_mod;
 
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Integer, Limb, NonZero, Word, Zero};
+use crate::{ConstChoice, Integer, Limb, NonZero, Uint, Word, Zero, U128, U64};
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
@@ -90,6 +91,17 @@ impl BoxedUint {
         self.limbs
             .iter()
             .fold(Choice::from(1), |acc, limb| acc & limb.is_zero())
+    }
+
+    /// Returns the truthy value if `self`!=0 or the falsy value otherwise.
+    pub(crate) const fn is_nonzero(&self) -> ConstChoice {
+        let mut b = 0;
+        let mut i = 0;
+        while i < self.limbs.len() {
+            b |= self.limbs[i].0;
+            i += 1;
+        }
+        Limb(b).is_nonzero()
     }
 
     /// Is this [`BoxedUint`] equal to one?
@@ -250,6 +262,13 @@ impl NonZero<BoxedUint> {
     /// See [`BoxedUint::widen`] for more information, including panic conditions.
     pub fn widen(&self, bits_precision: u32) -> Self {
         NonZero(self.0.widen(bits_precision))
+    }
+
+    /// Creates a new non-zero integer in a const context.
+    /// The second return value is `FALSE` if `n` is zero, `TRUE` otherwise.
+    pub const fn const_new(n: BoxedUint) -> (Self, ConstChoice) {
+        let is_nonzero = n.is_nonzero();
+        (Self(n), is_nonzero)
     }
 }
 
