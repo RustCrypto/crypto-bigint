@@ -2,6 +2,7 @@
 
 use crate::Limb;
 use core::ops::{Shl, ShlAssign};
+use num_traits::WrappingShl;
 
 impl Limb {
     /// Computes `self << shift`.
@@ -18,19 +19,43 @@ impl Limb {
     }
 }
 
-impl Shl<u32> for Limb {
-    type Output = Self;
+macro_rules! impl_shl {
+    ($($shift:ty),+) => {
+        $(
+            impl Shl<$shift> for Limb {
+                type Output = Limb;
 
-    #[inline(always)]
-    fn shl(self, shift: u32) -> Self::Output {
-        self.shl(shift)
-    }
+                #[inline]
+                fn shl(self, shift: $shift) -> Limb {
+                     Self::shl(self, u32::try_from(shift).expect("invalid shift"))
+                }
+            }
+
+            impl Shl<$shift> for &Limb {
+                type Output = Limb;
+
+                #[inline]
+                fn shl(self, shift: $shift) -> Limb {
+                   *self << shift
+                }
+            }
+
+            impl ShlAssign<$shift> for Limb {
+                #[inline]
+                fn shl_assign(&mut self, shift: $shift) {
+                    *self = *self << shift;
+                }
+            }
+        )+
+    };
 }
 
-impl ShlAssign<u32> for Limb {
-    #[inline(always)]
-    fn shl_assign(&mut self, shift: u32) {
-        *self = self.shl(shift);
+impl_shl!(i32, u32, usize);
+
+impl WrappingShl for Limb {
+    #[inline]
+    fn wrapping_shl(&self, shift: u32) -> Limb {
+        Self(self.0.wrapping_shl(shift))
     }
 }
 

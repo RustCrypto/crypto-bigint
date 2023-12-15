@@ -1,6 +1,6 @@
 //! Limb right bitshift
 
-use crate::Limb;
+use crate::{Limb, WrappingShr};
 use core::ops::{Shr, ShrAssign};
 
 impl Limb {
@@ -18,19 +18,43 @@ impl Limb {
     }
 }
 
-impl Shr<u32> for Limb {
-    type Output = Self;
+macro_rules! impl_shr {
+    ($($shift:ty),+) => {
+        $(
+            impl Shr<$shift> for Limb {
+                type Output = Limb;
 
-    #[inline(always)]
-    fn shr(self, shift: u32) -> Self::Output {
-        self.shr(shift)
-    }
+                #[inline]
+                fn shr(self, shift: $shift) -> Limb {
+                     Self::shr(self, u32::try_from(shift).expect("invalid shift"))
+                }
+            }
+
+            impl Shr<$shift> for &Limb {
+                type Output = Limb;
+
+                #[inline]
+                fn shr(self, shift: $shift) -> Limb {
+                   *self >> shift
+                }
+            }
+
+            impl ShrAssign<$shift> for Limb {
+                #[inline]
+                fn shr_assign(&mut self, shift: $shift) {
+                    *self = *self >> shift;
+                }
+            }
+        )+
+    };
 }
 
-impl ShrAssign<u32> for Limb {
-    #[inline(always)]
-    fn shr_assign(&mut self, shift: u32) {
-        *self = self.shr(shift);
+impl_shr!(i32, u32, usize);
+
+impl WrappingShr for Limb {
+    #[inline]
+    fn wrapping_shr(&self, shift: u32) -> Limb {
+        Self(self.0.wrapping_shr(shift))
     }
 }
 

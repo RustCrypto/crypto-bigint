@@ -1,16 +1,7 @@
 //! [`BoxedUint`] negation operations.
 
-use crate::{BoxedUint, Limb, WideWord, Word, Wrapping, WrappingNeg};
-use core::ops::Neg;
+use crate::{BoxedUint, Limb, WideWord, Word, WrappingNeg};
 use subtle::Choice;
-
-impl Neg for Wrapping<BoxedUint> {
-    type Output = Self;
-
-    fn neg(self) -> Self::Output {
-        Self(self.0.wrapping_neg())
-    }
-}
 
 impl BoxedUint {
     /// Negates based on `choice` by wrapping the integer.

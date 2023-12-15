@@ -2,6 +2,7 @@
 
 use crate::{Checked, CheckedMul, Limb, WideWord, Word, Wrapping, Zero};
 use core::ops::{Mul, MulAssign};
+use num_traits::WrappingMul;
 use subtle::CtOption;
 
 impl Limb {
@@ -45,45 +46,52 @@ impl CheckedMul for Limb {
     }
 }
 
-impl Mul for Wrapping<Limb> {
-    type Output = Self;
+impl Mul<Limb> for Limb {
+    type Output = Limb;
 
-    fn mul(self, rhs: Self) -> Wrapping<Limb> {
-        Wrapping(self.0.wrapping_mul(rhs.0))
+    #[inline]
+    fn mul(self, rhs: Limb) -> Self {
+        self.checked_mul(rhs)
+            .expect("attempted to multiply with overflow")
     }
 }
 
-impl Mul<&Wrapping<Limb>> for Wrapping<Limb> {
-    type Output = Wrapping<Limb>;
+impl Mul<&Limb> for Limb {
+    type Output = Limb;
 
-    fn mul(self, rhs: &Wrapping<Limb>) -> Wrapping<Limb> {
-        Wrapping(self.0.wrapping_mul(rhs.0))
+    #[inline]
+    fn mul(self, rhs: &Limb) -> Self {
+        self * *rhs
     }
 }
 
-impl Mul<Wrapping<Limb>> for &Wrapping<Limb> {
-    type Output = Wrapping<Limb>;
+impl Mul<Limb> for &Limb {
+    type Output = Limb;
 
-    fn mul(self, rhs: Wrapping<Limb>) -> Wrapping<Limb> {
-        Wrapping(self.0.wrapping_mul(rhs.0))
+    #[inline]
+    fn mul(self, rhs: Limb) -> Self::Output {
+        *self * rhs
     }
 }
 
-impl Mul<&Wrapping<Limb>> for &Wrapping<Limb> {
-    type Output = Wrapping<Limb>;
+impl Mul<&Limb> for &Limb {
+    type Output = Limb;
 
-    fn mul(self, rhs: &Wrapping<Limb>) -> Wrapping<Limb> {
-        Wrapping(self.0.wrapping_mul(rhs.0))
+    #[inline]
+    fn mul(self, rhs: &Limb) -> Self::Output {
+        *self * *rhs
     }
 }
 
 impl MulAssign for Wrapping<Limb> {
+    #[inline]
     fn mul_assign(&mut self, other: Self) {
         *self = *self * other;
     }
 }
 
 impl MulAssign<&Wrapping<Limb>> for Wrapping<Limb> {
+    #[inline]
     fn mul_assign(&mut self, other: &Self) {
         *self = *self * other;
     }
@@ -92,6 +100,7 @@ impl MulAssign<&Wrapping<Limb>> for Wrapping<Limb> {
 impl Mul for Checked<Limb> {
     type Output = Self;
 
+    #[inline]
     fn mul(self, rhs: Self) -> Checked<Limb> {
         Checked(
             self.0
@@ -103,6 +112,7 @@ impl Mul for Checked<Limb> {
 impl Mul<&Checked<Limb>> for Checked<Limb> {
     type Output = Checked<Limb>;
 
+    #[inline]
     fn mul(self, rhs: &Checked<Limb>) -> Checked<Limb> {
         Checked(
             self.0
@@ -114,6 +124,7 @@ impl Mul<&Checked<Limb>> for Checked<Limb> {
 impl Mul<Checked<Limb>> for &Checked<Limb> {
     type Output = Checked<Limb>;
 
+    #[inline]
     fn mul(self, rhs: Checked<Limb>) -> Checked<Limb> {
         Checked(
             self.0
@@ -125,6 +136,7 @@ impl Mul<Checked<Limb>> for &Checked<Limb> {
 impl Mul<&Checked<Limb>> for &Checked<Limb> {
     type Output = Checked<Limb>;
 
+    #[inline]
     fn mul(self, rhs: &Checked<Limb>) -> Checked<Limb> {
         Checked(
             self.0
@@ -134,14 +146,23 @@ impl Mul<&Checked<Limb>> for &Checked<Limb> {
 }
 
 impl MulAssign for Checked<Limb> {
+    #[inline]
     fn mul_assign(&mut self, other: Self) {
         *self = *self * other;
     }
 }
 
 impl MulAssign<&Checked<Limb>> for Checked<Limb> {
+    #[inline]
     fn mul_assign(&mut self, other: &Self) {
         *self = *self * other;
+    }
+}
+
+impl WrappingMul for Limb {
+    #[inline]
+    fn wrapping_mul(&self, v: &Self) -> Self {
+        self.wrapping_mul(*v)
     }
 }
 

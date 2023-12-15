@@ -1,7 +1,10 @@
 //! Wrapping arithmetic.
 
-use crate::Zero;
-use core::fmt;
+use crate::{WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr, WrappingSub, Zero};
+use core::{
+    fmt,
+    ops::{Add, Mul, Neg, Shl, Shr, Sub},
+};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "rand_core")]
@@ -17,9 +20,210 @@ use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Wrapping<T>(pub T);
 
+impl<T: WrappingAdd> Add<Self> for Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    #[inline]
+    fn add(self, rhs: Self) -> Self::Output {
+        Wrapping(self.0.wrapping_add(&rhs.0))
+    }
+}
+
+impl<T: WrappingAdd> Add<&Self> for Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    #[inline]
+    fn add(self, rhs: &Self) -> Self::Output {
+        Wrapping(self.0.wrapping_add(&rhs.0))
+    }
+}
+
+impl<T: WrappingAdd> Add<Wrapping<T>> for &Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    #[inline]
+    fn add(self, rhs: Wrapping<T>) -> Self::Output {
+        Wrapping(self.0.wrapping_add(&rhs.0))
+    }
+}
+
+impl<T: WrappingAdd> Add<&Wrapping<T>> for &Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    #[inline]
+    fn add(self, rhs: &Wrapping<T>) -> Self::Output {
+        Wrapping(self.0.wrapping_add(&rhs.0))
+    }
+}
+
+impl<T: WrappingSub> Sub<Self> for Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    #[inline]
+    fn sub(self, rhs: Self) -> Self::Output {
+        Wrapping(self.0.wrapping_sub(&rhs.0))
+    }
+}
+
+impl<T: WrappingSub> Sub<&Self> for Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    #[inline]
+    fn sub(self, rhs: &Self) -> Self::Output {
+        Wrapping(self.0.wrapping_sub(&rhs.0))
+    }
+}
+
+impl<T: WrappingSub> Sub<Wrapping<T>> for &Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    #[inline]
+    fn sub(self, rhs: Wrapping<T>) -> Self::Output {
+        Wrapping(self.0.wrapping_sub(&rhs.0))
+    }
+}
+
+impl<T: WrappingSub> Sub<&Wrapping<T>> for &Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    #[inline]
+    fn sub(self, rhs: &Wrapping<T>) -> Self::Output {
+        Wrapping(self.0.wrapping_sub(&rhs.0))
+    }
+}
+
+impl<T: WrappingMul> Mul<Self> for Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    #[inline]
+    fn mul(self, rhs: Self) -> Self::Output {
+        Wrapping(self.0.wrapping_mul(&rhs.0))
+    }
+}
+
+impl<T: WrappingMul> Mul<&Self> for Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    #[inline]
+    fn mul(self, rhs: &Self) -> Self::Output {
+        Wrapping(self.0.wrapping_mul(&rhs.0))
+    }
+}
+
+impl<T: WrappingMul> Mul<Wrapping<T>> for &Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    #[inline]
+    fn mul(self, rhs: Wrapping<T>) -> Self::Output {
+        Wrapping(self.0.wrapping_mul(&rhs.0))
+    }
+}
+
+impl<T: WrappingMul> Mul<&Wrapping<T>> for &Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    #[inline]
+    fn mul(self, rhs: &Wrapping<T>) -> Self::Output {
+        Wrapping(self.0.wrapping_mul(&rhs.0))
+    }
+}
+
+impl<T: WrappingNeg> Neg for Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    #[inline]
+    fn neg(self) -> Self::Output {
+        Wrapping(self.0.wrapping_neg())
+    }
+}
+
+impl<T: WrappingNeg> Neg for &Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    #[inline]
+    fn neg(self) -> Self::Output {
+        Wrapping(self.0.wrapping_neg())
+    }
+}
+
+impl<T: WrappingShl> Shl<u32> for Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    #[inline]
+    fn shl(self, rhs: u32) -> Self::Output {
+        Wrapping(self.0.wrapping_shl(rhs))
+    }
+}
+
+impl<T: WrappingShl> Shl<u32> for &Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    #[inline]
+    fn shl(self, rhs: u32) -> Self::Output {
+        Wrapping(self.0.wrapping_shl(rhs))
+    }
+}
+
+impl<T: WrappingShr> Shr<u32> for Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    #[inline]
+    fn shr(self, rhs: u32) -> Self::Output {
+        Wrapping(self.0.wrapping_shr(rhs))
+    }
+}
+
+impl<T: WrappingShr> Shr<u32> for &Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    #[inline]
+    fn shr(self, rhs: u32) -> Self::Output {
+        Wrapping(self.0.wrapping_shr(rhs))
+    }
+}
+
+impl<T: ConditionallySelectable> ConditionallySelectable for Wrapping<T> {
+    #[inline]
+    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
+        Wrapping(T::conditional_select(&a.0, &b.0, choice))
+    }
+}
+
+impl<T: ConstantTimeEq> ConstantTimeEq for Wrapping<T> {
+    #[inline]
+    fn ct_eq(&self, other: &Self) -> Choice {
+        self.0.ct_eq(&other.0)
+    }
+}
+
 impl<T: Zero> Zero for Wrapping<T> {
+    #[inline]
     fn zero() -> Self {
         Wrapping(T::zero())
+    }
+}
+
+impl<T: num_traits::Zero + WrappingAdd> num_traits::Zero for Wrapping<T> {
+    #[inline]
+    fn zero() -> Self {
+        Wrapping(T::zero())
+    }
+
+    #[inline]
+    fn is_zero(&self) -> bool {
+        self.0.is_zero()
+    }
+}
+
+impl<T: num_traits::One + WrappingMul + PartialEq> num_traits::One for Wrapping<T> {
+    #[inline]
+    fn one() -> Self {
+        Wrapping(T::one())
+    }
+
+    #[inline]
+    fn is_one(&self) -> bool {
+        self.0.is_one()
     }
 }
 
@@ -50,18 +254,6 @@ impl<T: fmt::LowerHex> fmt::LowerHex for Wrapping<T> {
 impl<T: fmt::UpperHex> fmt::UpperHex for Wrapping<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.fmt(f)
-    }
-}
-
-impl<T: ConditionallySelectable> ConditionallySelectable for Wrapping<T> {
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Wrapping(T::conditional_select(&a.0, &b.0, choice))
-    }
-}
-
-impl<T: ConstantTimeEq> ConstantTimeEq for Wrapping<T> {
-    fn ct_eq(&self, other: &Self) -> Choice {
-        self.0.ct_eq(&other.0)
     }
 }
 

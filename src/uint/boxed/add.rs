@@ -75,38 +75,6 @@ impl Add<&BoxedUint> for &BoxedUint {
     }
 }
 
-impl Add<Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
-    type Output = Self;
-
-    fn add(self, rhs: Wrapping<BoxedUint>) -> Wrapping<BoxedUint> {
-        Wrapping(self.0.wrapping_add(&rhs.0))
-    }
-}
-
-impl Add<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
-    type Output = Self;
-
-    fn add(self, rhs: &Wrapping<BoxedUint>) -> Wrapping<BoxedUint> {
-        Wrapping(self.0.wrapping_add(&rhs.0))
-    }
-}
-
-impl Add<Wrapping<BoxedUint>> for &Wrapping<BoxedUint> {
-    type Output = Wrapping<BoxedUint>;
-
-    fn add(self, rhs: Wrapping<BoxedUint>) -> Wrapping<BoxedUint> {
-        Wrapping(self.0.wrapping_add(&rhs.0))
-    }
-}
-
-impl Add<&Wrapping<BoxedUint>> for &Wrapping<BoxedUint> {
-    type Output = Wrapping<BoxedUint>;
-
-    fn add(self, rhs: &Wrapping<BoxedUint>) -> Wrapping<BoxedUint> {
-        Wrapping(self.0.wrapping_add(&rhs.0))
-    }
-}
-
 impl AddAssign<Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     fn add_assign(&mut self, other: Wrapping<BoxedUint>) {
         self.0.adc_assign(&other.0, Limb::ZERO);

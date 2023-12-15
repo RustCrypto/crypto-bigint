@@ -40,7 +40,7 @@ mod rand;
 
 use crate::{Bounded, Constants, Encoding, FixedInteger, Integer, Limb, Word, ZeroConstant};
 use core::fmt;
-use subtle::{Choice, ConditionallySelectable};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "serde")]
 use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -251,6 +251,26 @@ impl<const LIMBS: usize> Integer for Uint<LIMBS> {
 
 impl<const LIMBS: usize> ZeroConstant for Uint<LIMBS> {
     const ZERO: Self = Self::ZERO;
+}
+
+impl<const LIMBS: usize> num_traits::Zero for Uint<LIMBS> {
+    fn zero() -> Self {
+        Self::ZERO
+    }
+
+    fn is_zero(&self) -> bool {
+        self.ct_eq(&Self::ZERO).into()
+    }
+}
+
+impl<const LIMBS: usize> num_traits::One for Uint<LIMBS> {
+    fn one() -> Self {
+        Self::ONE
+    }
+
+    fn is_one(&self) -> bool {
+        self.ct_eq(&Self::ONE).into()
+    }
 }
 
 impl<const LIMBS: usize> fmt::Debug for Uint<LIMBS> {

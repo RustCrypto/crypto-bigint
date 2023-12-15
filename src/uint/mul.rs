@@ -222,58 +222,14 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Uint<RHS_LIMBS>> for &Uint
     }
 }
 
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<Wrapping<Uint<RHS_LIMBS>>>
-    for Wrapping<Uint<LIMBS>>
-{
-    type Output = Self;
-
-    fn mul(self, rhs: Wrapping<Uint<RHS_LIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_mul(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Wrapping<Uint<RHS_LIMBS>>>
-    for Wrapping<Uint<LIMBS>>
-{
-    type Output = Self;
-
-    fn mul(self, rhs: &Wrapping<Uint<RHS_LIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_mul(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<Wrapping<Uint<RHS_LIMBS>>>
-    for &Wrapping<Uint<LIMBS>>
-{
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn mul(self, rhs: Wrapping<Uint<RHS_LIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_mul(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Wrapping<Uint<RHS_LIMBS>>>
-    for &Wrapping<Uint<LIMBS>>
-{
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn mul(self, rhs: &Wrapping<Uint<RHS_LIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_mul(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> MulAssign<Wrapping<Uint<RHS_LIMBS>>>
-    for Wrapping<Uint<LIMBS>>
-{
-    fn mul_assign(&mut self, other: Wrapping<Uint<RHS_LIMBS>>) {
+impl<const LIMBS: usize> MulAssign<Wrapping<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
+    fn mul_assign(&mut self, other: Wrapping<Uint<LIMBS>>) {
         *self = *self * other;
     }
 }
 
-impl<const LIMBS: usize, const RHS_LIMBS: usize> MulAssign<&Wrapping<Uint<RHS_LIMBS>>>
-    for Wrapping<Uint<LIMBS>>
-{
-    fn mul_assign(&mut self, other: &Wrapping<Uint<RHS_LIMBS>>) {
+impl<const LIMBS: usize> MulAssign<&Wrapping<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
+    fn mul_assign(&mut self, other: &Wrapping<Uint<LIMBS>>) {
         *self = *self * other;
     }
 }

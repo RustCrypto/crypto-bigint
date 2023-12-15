@@ -86,38 +86,6 @@ impl Mul<&BoxedUint> for &BoxedUint {
     }
 }
 
-impl Mul<Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
-    type Output = Self;
-
-    fn mul(self, rhs: Wrapping<BoxedUint>) -> Wrapping<BoxedUint> {
-        Wrapping(self.0.wrapping_mul(&rhs.0))
-    }
-}
-
-impl Mul<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
-    type Output = Self;
-
-    fn mul(self, rhs: &Wrapping<BoxedUint>) -> Wrapping<BoxedUint> {
-        Wrapping(self.0.wrapping_mul(&rhs.0))
-    }
-}
-
-impl Mul<Wrapping<BoxedUint>> for &Wrapping<BoxedUint> {
-    type Output = Wrapping<BoxedUint>;
-
-    fn mul(self, rhs: Wrapping<BoxedUint>) -> Wrapping<BoxedUint> {
-        Wrapping(self.0.wrapping_mul(&rhs.0))
-    }
-}
-
-impl Mul<&Wrapping<BoxedUint>> for &Wrapping<BoxedUint> {
-    type Output = Wrapping<BoxedUint>;
-
-    fn mul(self, rhs: &Wrapping<BoxedUint>) -> Wrapping<BoxedUint> {
-        Wrapping(self.0.wrapping_mul(&rhs.0))
-    }
-}
-
 impl MulAssign<Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     fn mul_assign(&mut self, other: Wrapping<BoxedUint>) {
         *self = Wrapping(self.0.wrapping_mul(&other.0));
