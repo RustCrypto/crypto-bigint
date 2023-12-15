@@ -50,9 +50,7 @@ impl BoxedUint {
     }
 }
 
-impl CheckedSub<&BoxedUint> for BoxedUint {
-    type Output = Self;
-
+impl CheckedSub for BoxedUint {
     fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
         let (result, carry) = self.sbb(rhs, Limb::ZERO);
         CtOption::new(result, carry.is_zero())

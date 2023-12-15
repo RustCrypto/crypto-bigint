@@ -28,17 +28,7 @@ impl BoxedUint {
     }
 }
 
-impl CheckedMul<BoxedUint> for BoxedUint {
-    type Output = Self;
-
-    fn checked_mul(&self, rhs: BoxedUint) -> CtOption<Self> {
-        self.checked_mul(&rhs)
-    }
-}
-
-impl CheckedMul<&BoxedUint> for BoxedUint {
-    type Output = Self;
-
+impl CheckedMul for BoxedUint {
     fn checked_mul(&self, rhs: &BoxedUint) -> CtOption<Self> {
         let product = self.mul(rhs);
 

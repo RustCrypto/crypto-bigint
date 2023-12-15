@@ -132,17 +132,7 @@ impl BoxedUint {
     }
 }
 
-impl CheckedDiv<BoxedUint> for BoxedUint {
-    type Output = Self;
-
-    fn checked_div(&self, rhs: BoxedUint) -> CtOption<Self> {
-        self.checked_div(&rhs)
-    }
-}
-
-impl CheckedDiv<&BoxedUint> for BoxedUint {
-    type Output = Self;
-
+impl CheckedDiv for BoxedUint {
     fn checked_div(&self, rhs: &BoxedUint) -> CtOption<Self> {
         self.checked_div(rhs)
     }

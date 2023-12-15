@@ -30,11 +30,9 @@ impl Limb {
 }
 
 impl CheckedSub for Limb {
-    type Output = Self;
-
     #[inline]
-    fn checked_sub(&self, rhs: Self) -> CtOption<Self> {
-        let (result, underflow) = self.sbb(rhs, Limb::ZERO);
+    fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
+        let (result, underflow) = self.sbb(*rhs, Limb::ZERO);
         CtOption::new(result, underflow.is_zero())
     }
 }
@@ -44,7 +42,7 @@ impl Sub for Limb {
 
     #[inline]
     fn sub(self, rhs: Self) -> Self {
-        self.checked_sub(rhs)
+        self.checked_sub(&rhs)
             .expect("attempted to subtract with underflow")
     }
 }
@@ -69,54 +67,6 @@ impl SubAssign<&Wrapping<Limb>> for Wrapping<Limb> {
     #[inline]
     fn sub_assign(&mut self, other: &Self) {
         *self = *self - other;
-    }
-}
-
-impl Sub for Checked<Limb> {
-    type Output = Self;
-
-    #[inline]
-    fn sub(self, rhs: Self) -> Checked<Limb> {
-        Checked(
-            self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_sub(rhs))),
-        )
-    }
-}
-
-impl Sub<&Checked<Limb>> for Checked<Limb> {
-    type Output = Checked<Limb>;
-
-    #[inline]
-    fn sub(self, rhs: &Checked<Limb>) -> Checked<Limb> {
-        Checked(
-            self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_sub(rhs))),
-        )
-    }
-}
-
-impl Sub<Checked<Limb>> for &Checked<Limb> {
-    type Output = Checked<Limb>;
-
-    #[inline]
-    fn sub(self, rhs: Checked<Limb>) -> Checked<Limb> {
-        Checked(
-            self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_sub(rhs))),
-        )
-    }
-}
-
-impl Sub<&Checked<Limb>> for &Checked<Limb> {
-    type Output = Checked<Limb>;
-
-    #[inline]
-    fn sub(self, rhs: &Checked<Limb>) -> Checked<Limb> {
-        Checked(
-            self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_sub(rhs))),
-        )
     }
 }
 
@@ -172,13 +122,13 @@ mod tests {
 
     #[test]
     fn checked_sub_ok() {
-        let result = Limb::ONE.checked_sub(Limb::ONE);
+        let result = Limb::ONE.checked_sub(&Limb::ONE);
         assert_eq!(result.unwrap(), Limb::ZERO);
     }
 
     #[test]
     fn checked_sub_overflow() {
-        let result = Limb::ZERO.checked_sub(Limb::ONE);
+        let result = Limb::ZERO.checked_sub(&Limb::ONE);
         assert!(!bool::from(result.is_some()));
     }
 }
