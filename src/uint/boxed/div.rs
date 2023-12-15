@@ -78,7 +78,7 @@ impl BoxedUint {
         let bits_precision = self.bits_precision();
         let mut rem = self.clone();
         let mut quo = Self::zero_with_precision(bits_precision);
-        let (mut c, _overflow) = rhs.shl(bits_precision - mb);
+        let (mut c, _overflow) = rhs.overflowing_shl(bits_precision - mb);
         let mut i = bits_precision;
         let mut done = Choice::from(0u8);
 

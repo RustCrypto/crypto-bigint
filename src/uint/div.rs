@@ -28,7 +28,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut rem = *self;
         let mut quo = Self::ZERO;
         // If there is overflow, it means `mb == 0`, so `rhs == 0`.
-        let (mut c, _overflow) = rhs.0.shl(Self::BITS - mb);
+        let (mut c, _overflow) = rhs.0.overflowing_shl(Self::BITS - mb);
 
         let mut i = Self::BITS;
         let mut done = ConstChoice::FALSE;
@@ -64,7 +64,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut rem = *self;
         let mut quo = Self::ZERO;
         // If there is overflow, it means `mb == 0`, so `rhs == 0`.
-        let (mut c, _overflow) = rhs.0.shl_vartime(bd);
+        let (mut c, _overflow) = rhs.0.overflowing_shl_vartime(bd);
 
         loop {
             let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
@@ -92,7 +92,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mb = rhs.0.bits_vartime();
         let mut bd = Self::BITS - mb;
         let mut rem = *self;
-        let (mut c, _overflow) = rhs.0.shl_vartime(bd);
+        let (mut c, _overflow) = rhs.0.overflowing_shl_vartime(bd);
 
         loop {
             let (r, borrow) = rem.sbb(&c, Limb::ZERO);
@@ -123,7 +123,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let (mut lower, mut upper) = lower_upper;
 
         // Factor of the modulus, split into two halves
-        let (mut c, _overflow) = Self::shl_vartime_wide((rhs.0, Uint::ZERO), bd);
+        let (mut c, _overflow) = Self::overflowing_shl_vartime_wide((rhs.0, Uint::ZERO), bd);
 
         loop {
             let (lower_sub, borrow) = lower.sbb(&c.0, Limb::ZERO);
@@ -135,7 +135,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 break;
             }
             bd -= 1;
-            let (new_c, _overflow) = Self::shr_vartime_wide(c, 1);
+            let (new_c, _overflow) = Self::overflowing_shr_vartime_wide(c, 1);
             c = new_c;
         }
 
@@ -634,8 +634,8 @@ mod tests {
     fn div() {
         let mut rng = ChaChaRng::from_seed([7u8; 32]);
         for _ in 0..25 {
-            let (num, _) = U256::random(&mut rng).shr_vartime(128);
-            let den = NonZero::new(U256::random(&mut rng).shr_vartime(128).0).unwrap();
+            let (num, _) = U256::random(&mut rng).overflowing_shr_vartime(128);
+            let den = NonZero::new(U256::random(&mut rng).overflowing_shr_vartime(128).0).unwrap();
             let n = num.checked_mul(den.as_ref());
             if n.is_some().into() {
                 let (q, _) = n.unwrap().div_rem(&den);
@@ -724,7 +724,7 @@ mod tests {
         for _ in 0..25 {
             let num = U256::random(&mut rng);
             let k = rng.next_u32() % 256;
-            let (den, _) = U256::ONE.shl_vartime(k);
+            let (den, _) = U256::ONE.overflowing_shl_vartime(k);
 
             let a = num.rem2k(k);
             let e = num.wrapping_rem(&den);

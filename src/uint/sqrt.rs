@@ -17,7 +17,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < b`.
         // Will not overflow since `b <= BITS`.
-        let (mut x, _overflow) = Self::ONE.shl((self.bits() + 1) >> 1); // ≥ √(`self`)
+        let (mut x, _overflow) = Self::ONE.overflowing_shl((self.bits() + 1) >> 1); // ≥ √(`self`)
 
         // Repeat enough times to guarantee result has stabilized.
         let mut i = 0;
@@ -53,7 +53,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < b`.
         // Will not overflow since `b <= BITS`.
-        let (mut x, _overflow) = Self::ONE.shl((self.bits() + 1) >> 1); // ≥ √(`self`)
+        let (mut x, _overflow) = Self::ONE.overflowing_shl((self.bits() + 1) >> 1); // ≥ √(`self`)
 
         // Stop right away if `x` is zero to avoid divizion by zero.
         while !x.cmp_vartime(&Self::ZERO).is_eq() {
