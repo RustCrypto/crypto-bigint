@@ -1,6 +1,8 @@
 //! [`BoxedUint`] multiplication operations.
 
-use crate::{uint::mul::mul_limbs, BoxedUint, CheckedMul, Limb, WideningMul, Wrapping, Zero};
+use crate::{
+    uint::mul::mul_limbs, BoxedUint, CheckedMul, Limb, WideningMul, Wrapping, WrappingMul, Zero,
+};
 use core::ops::{Mul, MulAssign};
 use subtle::{Choice, CtOption};
 
@@ -51,21 +53,36 @@ impl CheckedMul<&BoxedUint> for BoxedUint {
     }
 }
 
-impl WideningMul for BoxedUint {
-    type Output = Self;
+impl Mul<BoxedUint> for BoxedUint {
+    type Output = BoxedUint;
 
-    #[inline]
-    fn widening_mul(&self, rhs: BoxedUint) -> Self {
-        self.mul(&rhs)
+    fn mul(self, rhs: BoxedUint) -> Self {
+        BoxedUint::mul(&self, &rhs)
     }
 }
 
-impl WideningMul<&BoxedUint> for BoxedUint {
-    type Output = Self;
+impl Mul<&BoxedUint> for BoxedUint {
+    type Output = BoxedUint;
 
-    #[inline]
-    fn widening_mul(&self, rhs: &BoxedUint) -> Self {
-        self.mul(rhs)
+    fn mul(self, rhs: &BoxedUint) -> Self {
+        BoxedUint::mul(&self, rhs)
+    }
+}
+
+impl Mul<BoxedUint> for &BoxedUint {
+    type Output = BoxedUint;
+
+    fn mul(self, rhs: BoxedUint) -> Self::Output {
+        BoxedUint::mul(self, &rhs)
+    }
+}
+
+impl Mul<&BoxedUint> for &BoxedUint {
+    type Output = BoxedUint;
+
+    fn mul(self, rhs: &BoxedUint) -> Self::Output {
+        self.checked_mul(rhs)
+            .expect("attempted to multiply with overflow")
     }
 }
 
@@ -110,6 +127,30 @@ impl MulAssign<Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
 impl MulAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     fn mul_assign(&mut self, other: &Wrapping<BoxedUint>) {
         *self = Wrapping(self.0.wrapping_mul(&other.0));
+    }
+}
+
+impl WideningMul for BoxedUint {
+    type Output = Self;
+
+    #[inline]
+    fn widening_mul(&self, rhs: BoxedUint) -> Self {
+        self.mul(&rhs)
+    }
+}
+
+impl WideningMul<&BoxedUint> for BoxedUint {
+    type Output = Self;
+
+    #[inline]
+    fn widening_mul(&self, rhs: &BoxedUint) -> Self {
+        self.mul(rhs)
+    }
+}
+
+impl WrappingMul for BoxedUint {
+    fn wrapping_mul(&self, v: &Self) -> Self {
+        self.wrapping_mul(v)
     }
 }
 

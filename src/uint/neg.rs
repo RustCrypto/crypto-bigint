@@ -1,6 +1,6 @@
 use core::ops::Neg;
 
-use crate::{ConstChoice, Limb, Uint, WideWord, Word, Wrapping};
+use crate::{ConstChoice, Limb, Uint, WideWord, Word, Wrapping, WrappingNeg};
 
 impl<const LIMBS: usize> Neg for Wrapping<Uint<LIMBS>> {
     type Output = Self;
@@ -28,6 +28,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             i += 1;
         }
         Uint::new(ret)
+    }
+}
+
+impl<const LIMBS: usize> WrappingNeg for Uint<LIMBS> {
+    fn wrapping_neg(&self) -> Self {
+        self.wrapping_neg()
     }
 }
 

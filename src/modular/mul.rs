@@ -8,7 +8,7 @@ pub(crate) const fn mul_montgomery_form<const LIMBS: usize>(
     modulus: &Uint<LIMBS>,
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {
-    let product = a.mul_wide(b);
+    let product = a.split_mul(b);
     montgomery_reduction::<LIMBS>(&product, modulus, mod_neg_inv)
 }
 

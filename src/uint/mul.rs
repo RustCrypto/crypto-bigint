@@ -4,7 +4,7 @@
 
 use crate::{
     Checked, CheckedMul, Concat, ConcatMixed, Limb, Uint, WideWord, WideningMul, Word, Wrapping,
-    Zero,
+    WrappingMul, Zero,
 };
 use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
@@ -52,36 +52,35 @@ macro_rules! impl_schoolbook_multiplication {
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
-    pub fn mul<const HLIMBS: usize>(
+    pub fn widening_mul<const HLIMBS: usize>(
         &self,
         rhs: &Uint<HLIMBS>,
     ) -> <Uint<HLIMBS> as ConcatMixed<Self>>::MixedOutput
     where
         Uint<HLIMBS>: ConcatMixed<Self>,
     {
-        let (lo, hi) = self.mul_wide(rhs);
+        let (lo, hi) = self.split_mul(rhs);
         hi.concat_mixed(&lo)
     }
 
-    /// Compute "wide" multiplication, with a product twice the size of the input.
-    ///
-    /// Returns a tuple containing the `(lo, hi)` components of the product.
-    pub const fn mul_wide<const HLIMBS: usize>(&self, rhs: &Uint<HLIMBS>) -> (Self, Uint<HLIMBS>) {
+    /// Compute "wide" multiplication as a 2-tuple containing the `(lo, hi)` components of the product, whose sizes
+    /// correspond to the sizes of the operands.
+    pub const fn split_mul<const HLIMBS: usize>(&self, rhs: &Uint<HLIMBS>) -> (Self, Uint<HLIMBS>) {
         let mut lo = Self::ZERO;
         let mut hi = Uint::<HLIMBS>::ZERO;
         impl_schoolbook_multiplication!(&self.limbs, &rhs.limbs, lo.limbs, hi.limbs);
         (lo, hi)
     }
 
-    /// Perform saturating multiplication, returning `MAX` on overflow.
-    pub const fn saturating_mul<const HLIMBS: usize>(&self, rhs: &Uint<HLIMBS>) -> Self {
-        let (res, overflow) = self.mul_wide(rhs);
-        Self::select(&res, &Self::MAX, overflow.is_nonzero())
-    }
-
     /// Perform wrapping multiplication, discarding overflow.
     pub const fn wrapping_mul<const H: usize>(&self, rhs: &Uint<H>) -> Self {
-        self.mul_wide(rhs).0
+        self.split_mul(rhs).0
+    }
+
+    /// Perform saturating multiplication, returning `MAX` on overflow.
+    pub const fn saturating_mul<const HLIMBS: usize>(&self, rhs: &Uint<HLIMBS>) -> Self {
+        let (res, overflow) = self.split_mul(rhs);
+        Self::select(&res, &Self::MAX, overflow.is_nonzero())
     }
 
     /// Square self, returning a concatenated "wide" result.
@@ -169,7 +168,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize, const HLIMBS: usize> CheckedMul<Uint<HLIMBS>> for Uint<LIMBS> {
-    type Output = Self;
+    type Output = Uint<LIMBS>;
 
     #[inline]
     fn checked_mul(&self, rhs: Uint<HLIMBS>) -> CtOption<Self> {
@@ -178,36 +177,45 @@ impl<const LIMBS: usize, const HLIMBS: usize> CheckedMul<Uint<HLIMBS>> for Uint<
 }
 
 impl<const LIMBS: usize, const HLIMBS: usize> CheckedMul<&Uint<HLIMBS>> for Uint<LIMBS> {
-    type Output = Self;
+    type Output = Uint<LIMBS>;
 
     #[inline]
     fn checked_mul(&self, rhs: &Uint<HLIMBS>) -> CtOption<Self> {
-        let (lo, hi) = self.mul_wide(rhs);
+        let (lo, hi) = self.split_mul(rhs);
         CtOption::new(lo, hi.is_zero())
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> WideningMul<Uint<HLIMBS>> for Uint<LIMBS>
-where
-    Uint<HLIMBS>: ConcatMixed<Self>,
-{
-    type Output = <Uint<HLIMBS> as ConcatMixed<Self>>::MixedOutput;
+impl<const LIMBS: usize, const HLIMBS: usize> Mul<Uint<HLIMBS>> for Uint<LIMBS> {
+    type Output = Uint<LIMBS>;
 
-    #[inline]
-    fn widening_mul(&self, rhs: Uint<HLIMBS>) -> Self::Output {
+    fn mul(self, rhs: Uint<HLIMBS>) -> Self {
         self.mul(&rhs)
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> WideningMul<&Uint<HLIMBS>> for Uint<LIMBS>
-where
-    Uint<HLIMBS>: ConcatMixed<Self>,
-{
-    type Output = <Uint<HLIMBS> as ConcatMixed<Self>>::MixedOutput;
+impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Uint<HLIMBS>> for Uint<LIMBS> {
+    type Output = Uint<LIMBS>;
 
-    #[inline]
-    fn widening_mul(&self, rhs: &Uint<HLIMBS>) -> Self::Output {
-        self.mul(rhs)
+    fn mul(self, rhs: &Uint<HLIMBS>) -> Self {
+        (&self).mul(rhs)
+    }
+}
+
+impl<const LIMBS: usize, const HLIMBS: usize> Mul<Uint<HLIMBS>> for &Uint<LIMBS> {
+    type Output = Uint<LIMBS>;
+
+    fn mul(self, rhs: Uint<HLIMBS>) -> Self::Output {
+        self.mul(&rhs)
+    }
+}
+
+impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Uint<HLIMBS>> for &Uint<LIMBS> {
+    type Output = Uint<LIMBS>;
+
+    fn mul(self, rhs: &Uint<HLIMBS>) -> Self::Output {
+        self.checked_mul(rhs)
+            .expect("attempted to multiply with overflow")
     }
 }
 
@@ -317,47 +325,33 @@ impl<const LIMBS: usize, const HLIMBS: usize> MulAssign<&Checked<Uint<HLIMBS>>>
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Uint<HLIMBS>> for Uint<LIMBS>
+impl<const LIMBS: usize, const HLIMBS: usize> WideningMul<Uint<HLIMBS>> for Uint<LIMBS>
 where
-    Uint<HLIMBS>: ConcatMixed<Uint<LIMBS>>,
+    Uint<HLIMBS>: ConcatMixed<Self>,
 {
     type Output = <Uint<HLIMBS> as ConcatMixed<Self>>::MixedOutput;
 
-    fn mul(self, other: Uint<HLIMBS>) -> Self::Output {
-        Uint::mul(&self, &other)
+    #[inline]
+    fn widening_mul(&self, rhs: Uint<HLIMBS>) -> Self::Output {
+        self.widening_mul(&rhs)
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Uint<HLIMBS>> for Uint<LIMBS>
+impl<const LIMBS: usize, const HLIMBS: usize> WideningMul<&Uint<HLIMBS>> for Uint<LIMBS>
 where
-    Uint<HLIMBS>: ConcatMixed<Uint<LIMBS>>,
+    Uint<HLIMBS>: ConcatMixed<Self>,
 {
     type Output = <Uint<HLIMBS> as ConcatMixed<Self>>::MixedOutput;
 
-    fn mul(self, other: &Uint<HLIMBS>) -> Self::Output {
-        Uint::mul(&self, other)
+    #[inline]
+    fn widening_mul(&self, rhs: &Uint<HLIMBS>) -> Self::Output {
+        self.widening_mul(rhs)
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Uint<HLIMBS>> for &Uint<LIMBS>
-where
-    Uint<HLIMBS>: ConcatMixed<Uint<LIMBS>>,
-{
-    type Output = <Uint<HLIMBS> as ConcatMixed<Uint<LIMBS>>>::MixedOutput;
-
-    fn mul(self, other: Uint<HLIMBS>) -> Self::Output {
-        Uint::mul(self, &other)
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Uint<HLIMBS>> for &Uint<LIMBS>
-where
-    Uint<HLIMBS>: ConcatMixed<Uint<LIMBS>>,
-{
-    type Output = <Uint<HLIMBS> as ConcatMixed<Uint<LIMBS>>>::MixedOutput;
-
-    fn mul(self, other: &Uint<HLIMBS>) -> Self::Output {
-        Uint::mul(self, other)
+impl<const LIMBS: usize> WrappingMul for Uint<LIMBS> {
+    fn wrapping_mul(&self, v: &Self) -> Self {
+        self.wrapping_mul(v)
     }
 }
 
@@ -375,10 +369,10 @@ mod tests {
 
     #[test]
     fn mul_wide_zero_and_one() {
-        assert_eq!(U64::ZERO.mul_wide(&U64::ZERO), (U64::ZERO, U64::ZERO));
-        assert_eq!(U64::ZERO.mul_wide(&U64::ONE), (U64::ZERO, U64::ZERO));
-        assert_eq!(U64::ONE.mul_wide(&U64::ZERO), (U64::ZERO, U64::ZERO));
-        assert_eq!(U64::ONE.mul_wide(&U64::ONE), (U64::ONE, U64::ZERO));
+        assert_eq!(U64::ZERO.split_mul(&U64::ZERO), (U64::ZERO, U64::ZERO));
+        assert_eq!(U64::ZERO.split_mul(&U64::ONE), (U64::ZERO, U64::ZERO));
+        assert_eq!(U64::ONE.split_mul(&U64::ZERO), (U64::ZERO, U64::ZERO));
+        assert_eq!(U64::ONE.split_mul(&U64::ONE), (U64::ONE, U64::ZERO));
     }
 
     #[test]
@@ -387,7 +381,7 @@ mod tests {
 
         for &a_int in primes {
             for &b_int in primes {
-                let (lo, hi) = U64::from_u32(a_int).mul_wide(&U64::from_u32(b_int));
+                let (lo, hi) = U64::from_u32(a_int).split_mul(&U64::from_u32(b_int));
                 let expected = U64::from_u64(a_int as u64 * b_int as u64);
                 assert_eq!(lo, expected);
                 assert!(bool::from(hi.is_zero()));
@@ -397,14 +391,14 @@ mod tests {
 
     #[test]
     fn mul_concat_even() {
-        assert_eq!(U64::ZERO * U64::MAX, U128::ZERO);
-        assert_eq!(U64::MAX * U64::ZERO, U128::ZERO);
+        assert_eq!(U64::ZERO.widening_mul(&U64::MAX), U128::ZERO);
+        assert_eq!(U64::MAX.widening_mul(&U64::ZERO), U128::ZERO);
         assert_eq!(
-            U64::MAX * U64::MAX,
+            U64::MAX.widening_mul(&U64::MAX),
             U128::from_u128(0xfffffffffffffffe_0000000000000001)
         );
         assert_eq!(
-            U64::ONE * U64::MAX,
+            U64::ONE.widening_mul(&U64::MAX),
             U128::from_u128(0x0000000000000000_ffffffffffffffff)
         );
     }
@@ -413,8 +407,8 @@ mod tests {
     fn mul_concat_mixed() {
         let a = U64::from_u64(0x0011223344556677);
         let b = U128::from_u128(0x8899aabbccddeeff_8899aabbccddeeff);
-        assert_eq!(a * b, U192::from(&a).saturating_mul(&b));
-        assert_eq!(b * a, U192::from(&b).saturating_mul(&a));
+        assert_eq!(a.widening_mul(&b), U192::from(&a).saturating_mul(&b));
+        assert_eq!(b.widening_mul(&a), U192::from(&b).saturating_mul(&a));
     }
 
     #[test]

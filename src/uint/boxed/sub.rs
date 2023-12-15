@@ -1,7 +1,7 @@
 //! [`BoxedUint`] subtraction operations.
 
-use crate::{BoxedUint, CheckedSub, Limb, Wrapping, Zero};
-use core::ops::SubAssign;
+use crate::{BoxedUint, CheckedSub, Limb, Wrapping, WrappingSub, Zero};
+use core::ops::{Sub, SubAssign};
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
 impl BoxedUint {
@@ -59,6 +59,31 @@ impl CheckedSub<&BoxedUint> for BoxedUint {
     }
 }
 
+impl Sub for BoxedUint {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self {
+        self.sub(&rhs)
+    }
+}
+
+impl Sub<&BoxedUint> for BoxedUint {
+    type Output = Self;
+
+    fn sub(self, rhs: &Self) -> Self {
+        Sub::sub(&self, rhs)
+    }
+}
+
+impl Sub<&BoxedUint> for &BoxedUint {
+    type Output = BoxedUint;
+
+    fn sub(self, rhs: &BoxedUint) -> BoxedUint {
+        self.checked_sub(rhs)
+            .expect("attempted to subtract with underflow")
+    }
+}
+
 impl SubAssign<Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     fn sub_assign(&mut self, other: Wrapping<BoxedUint>) {
         self.0.sbb_assign(&other.0, Limb::ZERO);
@@ -68,6 +93,12 @@ impl SubAssign<Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
 impl SubAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     fn sub_assign(&mut self, other: &Wrapping<BoxedUint>) {
         self.0.sbb_assign(&other.0, Limb::ZERO);
+    }
+}
+
+impl WrappingSub for BoxedUint {
+    fn wrapping_sub(&self, v: &Self) -> Self {
+        self.wrapping_sub(v)
     }
 }
 

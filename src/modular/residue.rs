@@ -84,7 +84,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
 
     /// Internal helper function to generate a residue; this lets us cleanly wrap the constructors.
     const fn generate_residue(integer: &Uint<LIMBS>) -> Self {
-        let product = integer.mul_wide(&MOD::R2);
+        let product = integer.split_mul(&MOD::R2);
         let montgomery_form =
             montgomery_reduction::<LIMBS>(&product, &MOD::MODULUS.0, MOD::MOD_NEG_INV);
 

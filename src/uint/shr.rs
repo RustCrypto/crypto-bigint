@@ -1,6 +1,6 @@
 //! [`Uint`] bitwise right shift operations.
 
-use crate::{ConstChoice, Limb, Uint};
+use crate::{ConstChoice, Limb, Uint, WrappingShr};
 use core::ops::{Shr, ShrAssign};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -108,6 +108,18 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
     }
 
+    /// Computes `self >> shift` in a panic-free manner, masking off bits of `shift` which would cause the shift to
+    /// exceed the type's width.
+    pub const fn wrapping_shr(&self, shift: u32) -> Self {
+        self.overflowing_shr(shift).0
+    }
+
+    /// Computes `self >> shift` in variable-time in a panic-free manner, masking off bits of `shift` which would cause
+    /// the shift to exceed the type's width.
+    pub const fn wrapping_shr_vartime(&self, shift: u32) -> Self {
+        self.overflowing_shr_vartime(shift).0
+    }
+
     /// Computes `self >> 1` in constant-time.
     pub(crate) const fn shr1(&self) -> Self {
         self.shr1_with_carry().0
@@ -131,25 +143,41 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Shr<u32> for Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
+macro_rules! impl_shr {
+    ($($shift:ty),+) => {
+        $(
+            impl<const LIMBS: usize> Shr<$shift> for Uint<LIMBS> {
+                type Output = Uint<LIMBS>;
 
-    fn shr(self, shift: u32) -> Uint<LIMBS> {
-        <&Uint<LIMBS> as Shr<u32>>::shr(&self, shift)
-    }
+                #[inline]
+                fn shr(self, shift: $shift) -> Uint<LIMBS> {
+                    <&Self>::shr(&self, shift)
+                }
+            }
+
+            impl<const LIMBS: usize> Shr<$shift> for &Uint<LIMBS> {
+                type Output = Uint<LIMBS>;
+
+                #[inline]
+                fn shr(self, shift: $shift) -> Uint<LIMBS> {
+                    Uint::<LIMBS>::shr(self, u32::try_from(shift).expect("invalid shift"))
+                }
+            }
+
+            impl<const LIMBS: usize> ShrAssign<$shift> for Uint<LIMBS> {
+                fn shr_assign(&mut self, shift: $shift) {
+                    *self = self.shr(shift)
+                }
+            }
+        )+
+    };
 }
 
-impl<const LIMBS: usize> Shr<u32> for &Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
+impl_shr!(i32, u32, usize);
 
-    fn shr(self, shift: u32) -> Uint<LIMBS> {
-        Uint::<LIMBS>::shr(self, shift)
-    }
-}
-
-impl<const LIMBS: usize> ShrAssign<u32> for Uint<LIMBS> {
-    fn shr_assign(&mut self, shift: u32) {
-        *self = self.shr(shift);
+impl<const LIMBS: usize> WrappingShr for Uint<LIMBS> {
+    fn wrapping_shr(&self, shift: u32) -> Uint<LIMBS> {
+        self.wrapping_shr(shift)
     }
 }
 
