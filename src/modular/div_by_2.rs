@@ -29,6 +29,7 @@ pub(crate) fn div_by_2<const LIMBS: usize>(a: &Uint<LIMBS>, modulus: &Uint<LIMBS
     Uint::<LIMBS>::select(&if_even, &if_odd, is_odd)
 }
 
+#[cfg(feature = "alloc")]
 pub(crate) mod boxed {
     use crate::BoxedUint;
 
