@@ -1,7 +1,9 @@
 //! [`Uint`] division operations.
 
-use super::div_limb::{div_rem_limb_with_reciprocal, Reciprocal};
-use crate::{CheckedDiv, ConstChoice, Limb, NonZero, Uint, Word, Wrapping};
+use super::div_limb::div_rem_limb_with_reciprocal;
+use crate::{
+    uint::reciprocal::Reciprocal, CheckedDiv, ConstChoice, Limb, NonZero, Uint, Word, Wrapping,
+};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::CtOption;
 

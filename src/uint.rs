@@ -24,6 +24,7 @@ pub(crate) mod mul;
 mod mul_mod;
 mod neg;
 mod neg_mod;
+pub mod reciprocal;
 mod resize;
 mod shl;
 mod shr;
