@@ -171,17 +171,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Uint<RHS_LIMBS>> for Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    #[inline]
-    fn checked_mul(&self, rhs: Uint<RHS_LIMBS>) -> CtOption<Self> {
-        self.checked_mul(&rhs)
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<&Uint<RHS_LIMBS>> for Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
     #[inline]
     fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
         let (lo, hi) = self.split_mul(rhs);
@@ -234,58 +223,14 @@ impl<const LIMBS: usize> MulAssign<&Wrapping<Uint<LIMBS>>> for Wrapping<Uint<LIM
     }
 }
 
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<Checked<Uint<RHS_LIMBS>>>
-    for Checked<Uint<LIMBS>>
-{
-    type Output = Self;
-
-    fn mul(self, rhs: Checked<Uint<RHS_LIMBS>>) -> Checked<Uint<LIMBS>> {
-        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Checked<Uint<RHS_LIMBS>>>
-    for Checked<Uint<LIMBS>>
-{
-    type Output = Checked<Uint<LIMBS>>;
-
-    fn mul(self, rhs: &Checked<Uint<RHS_LIMBS>>) -> Checked<Uint<LIMBS>> {
-        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<Checked<Uint<RHS_LIMBS>>>
-    for &Checked<Uint<LIMBS>>
-{
-    type Output = Checked<Uint<LIMBS>>;
-
-    fn mul(self, rhs: Checked<Uint<RHS_LIMBS>>) -> Checked<Uint<LIMBS>> {
-        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Checked<Uint<RHS_LIMBS>>>
-    for &Checked<Uint<LIMBS>>
-{
-    type Output = Checked<Uint<LIMBS>>;
-
-    fn mul(self, rhs: &Checked<Uint<RHS_LIMBS>>) -> Checked<Uint<LIMBS>> {
-        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> MulAssign<Checked<Uint<RHS_LIMBS>>>
-    for Checked<Uint<LIMBS>>
-{
-    fn mul_assign(&mut self, other: Checked<Uint<RHS_LIMBS>>) {
+impl<const LIMBS: usize> MulAssign<Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS>> {
+    fn mul_assign(&mut self, other: Checked<Uint<LIMBS>>) {
         *self = *self * other;
     }
 }
 
-impl<const LIMBS: usize, const RHS_LIMBS: usize> MulAssign<&Checked<Uint<RHS_LIMBS>>>
-    for Checked<Uint<LIMBS>>
-{
-    fn mul_assign(&mut self, other: &Checked<Uint<RHS_LIMBS>>) {
+impl<const LIMBS: usize> MulAssign<&Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS>> {
+    fn mul_assign(&mut self, other: &Checked<Uint<LIMBS>>) {
         *self = *self * other;
     }
 }

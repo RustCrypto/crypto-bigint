@@ -36,11 +36,9 @@ impl Limb {
 }
 
 impl CheckedMul for Limb {
-    type Output = Self;
-
     #[inline]
-    fn checked_mul(&self, rhs: Self) -> CtOption<Self> {
-        let result = self.mul_wide(rhs);
+    fn checked_mul(&self, rhs: &Self) -> CtOption<Self> {
+        let result = self.mul_wide(*rhs);
         let overflow = Limb((result >> Self::BITS) as Word);
         CtOption::new(Limb(result as Word), overflow.is_zero())
     }
@@ -51,7 +49,7 @@ impl Mul<Limb> for Limb {
 
     #[inline]
     fn mul(self, rhs: Limb) -> Self {
-        self.checked_mul(rhs)
+        self.checked_mul(&rhs)
             .expect("attempted to multiply with overflow")
     }
 }
@@ -94,54 +92,6 @@ impl MulAssign<&Wrapping<Limb>> for Wrapping<Limb> {
     #[inline]
     fn mul_assign(&mut self, other: &Self) {
         *self = *self * other;
-    }
-}
-
-impl Mul for Checked<Limb> {
-    type Output = Self;
-
-    #[inline]
-    fn mul(self, rhs: Self) -> Checked<Limb> {
-        Checked(
-            self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_mul(rhs))),
-        )
-    }
-}
-
-impl Mul<&Checked<Limb>> for Checked<Limb> {
-    type Output = Checked<Limb>;
-
-    #[inline]
-    fn mul(self, rhs: &Checked<Limb>) -> Checked<Limb> {
-        Checked(
-            self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_mul(rhs))),
-        )
-    }
-}
-
-impl Mul<Checked<Limb>> for &Checked<Limb> {
-    type Output = Checked<Limb>;
-
-    #[inline]
-    fn mul(self, rhs: Checked<Limb>) -> Checked<Limb> {
-        Checked(
-            self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_mul(rhs))),
-        )
-    }
-}
-
-impl Mul<&Checked<Limb>> for &Checked<Limb> {
-    type Output = Checked<Limb>;
-
-    #[inline]
-    fn mul(self, rhs: &Checked<Limb>) -> Checked<Limb> {
-        Checked(
-            self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_mul(rhs))),
-        )
     }
 }
 
@@ -195,7 +145,7 @@ mod tests {
     #[cfg(target_pointer_width = "32")]
     fn checked_mul_ok() {
         let n = Limb::from_u16(0xffff);
-        assert_eq!(n.checked_mul(n).unwrap(), Limb::from_u32(0xfffe_0001));
+        assert_eq!(n.checked_mul(&n).unwrap(), Limb::from_u32(0xfffe_0001));
     }
 
     #[test]
@@ -203,7 +153,7 @@ mod tests {
     fn checked_mul_ok() {
         let n = Limb::from_u32(0xffff_ffff);
         assert_eq!(
-            n.checked_mul(n).unwrap(),
+            n.checked_mul(&n).unwrap(),
             Limb::from_u64(0xffff_fffe_0000_0001)
         );
     }
@@ -211,6 +161,6 @@ mod tests {
     #[test]
     fn checked_mul_overflow() {
         let n = Limb::MAX;
-        assert!(bool::from(n.checked_mul(n).is_none()));
+        assert!(bool::from(n.checked_mul(&n).is_none()));
     }
 }

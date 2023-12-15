@@ -41,10 +41,10 @@ pub trait Integer:
     + for<'a> BitAndAssign<&'a Self>
     + for<'a> BitOrAssign<&'a Self>
     + for<'a> BitXorAssign<&'a Self>
-    + for<'a> CheckedAdd<&'a Self, Output = Self>
-    + for<'a> CheckedSub<&'a Self, Output = Self>
-    + for<'a> CheckedMul<&'a Self, Output = Self>
-    + for<'a> CheckedDiv<&'a Self, Output = Self>
+    + CheckedAdd
+    + CheckedSub
+    + CheckedMul
+    + CheckedDiv
     + Clone
     // + ConditionallySelectable (see dalek-cryptography/subtle#94)
     + ConstantTimeEq
@@ -248,42 +248,30 @@ pub trait MulMod<Rhs = Self> {
 
 /// Checked addition.
 pub trait CheckedAdd<Rhs = Self>: Sized {
-    /// Output type.
-    type Output;
-
-    /// Perform checked subtraction, returning a [`CtOption`] which `is_some` only if the operation
+    /// Perform checked addition, returning a [`CtOption`] which `is_some` only if the operation
     /// did not overflow.
-    fn checked_add(&self, rhs: Rhs) -> CtOption<Self>;
+    fn checked_add(&self, rhs: &Rhs) -> CtOption<Self>;
 }
 
 /// Checked division.
 pub trait CheckedDiv<Rhs = Self>: Sized {
-    /// Output type.
-    type Output;
-
     /// Perform checked division, returning a [`CtOption`] which `is_some` only if the divisor is
     /// non-zero.
-    fn checked_div(&self, rhs: Rhs) -> CtOption<Self>;
+    fn checked_div(&self, rhs: &Rhs) -> CtOption<Self>;
 }
 
 /// Checked multiplication.
 pub trait CheckedMul<Rhs = Self>: Sized {
-    /// Output type.
-    type Output;
-
     /// Perform checked multiplication, returning a [`CtOption`] which `is_some`
     /// only if the operation did not overflow.
-    fn checked_mul(&self, rhs: Rhs) -> CtOption<Self>;
+    fn checked_mul(&self, rhs: &Rhs) -> CtOption<Self>;
 }
 
 /// Checked subtraction.
 pub trait CheckedSub<Rhs = Self>: Sized {
-    /// Output type.
-    type Output;
-
     /// Perform checked subtraction, returning a [`CtOption`] which `is_some`
     /// only if the operation did not underflow.
-    fn checked_sub(&self, rhs: Rhs) -> CtOption<Self>;
+    fn checked_sub(&self, rhs: &Rhs) -> CtOption<Self>;
 }
 
 /// Concatenate two numbers into a "wide" double-width value, using the `lo`
