@@ -52,12 +52,12 @@ macro_rules! impl_schoolbook_multiplication {
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
-    pub fn widening_mul<const HLIMBS: usize>(
+    pub fn widening_mul<const RHS_LIMBS: usize>(
         &self,
-        rhs: &Uint<HLIMBS>,
-    ) -> <Uint<HLIMBS> as ConcatMixed<Self>>::MixedOutput
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> <Uint<RHS_LIMBS> as ConcatMixed<Self>>::MixedOutput
     where
-        Uint<HLIMBS>: ConcatMixed<Self>,
+        Uint<RHS_LIMBS>: ConcatMixed<Self>,
     {
         let (lo, hi) = self.split_mul(rhs);
         hi.concat_mixed(&lo)
@@ -65,9 +65,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Compute "wide" multiplication as a 2-tuple containing the `(lo, hi)` components of the product, whose sizes
     /// correspond to the sizes of the operands.
-    pub const fn split_mul<const HLIMBS: usize>(&self, rhs: &Uint<HLIMBS>) -> (Self, Uint<HLIMBS>) {
+    pub const fn split_mul<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> (Self, Uint<RHS_LIMBS>) {
         let mut lo = Self::ZERO;
-        let mut hi = Uint::<HLIMBS>::ZERO;
+        let mut hi = Uint::<RHS_LIMBS>::ZERO;
         impl_schoolbook_multiplication!(&self.limbs, &rhs.limbs, lo.limbs, hi.limbs);
         (lo, hi)
     }
@@ -78,7 +81,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform saturating multiplication, returning `MAX` on overflow.
-    pub const fn saturating_mul<const HLIMBS: usize>(&self, rhs: &Uint<HLIMBS>) -> Self {
+    pub const fn saturating_mul<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> Self {
         let (res, overflow) = self.split_mul(rhs);
         Self::select(&res, &Self::MAX, overflow.is_nonzero())
     }
@@ -167,184 +170,190 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> CheckedMul<Uint<HLIMBS>> for Uint<LIMBS> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Uint<RHS_LIMBS>> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     #[inline]
-    fn checked_mul(&self, rhs: Uint<HLIMBS>) -> CtOption<Self> {
+    fn checked_mul(&self, rhs: Uint<RHS_LIMBS>) -> CtOption<Self> {
         self.checked_mul(&rhs)
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> CheckedMul<&Uint<HLIMBS>> for Uint<LIMBS> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<&Uint<RHS_LIMBS>> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     #[inline]
-    fn checked_mul(&self, rhs: &Uint<HLIMBS>) -> CtOption<Self> {
+    fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
         let (lo, hi) = self.split_mul(rhs);
         CtOption::new(lo, hi.is_zero())
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Uint<HLIMBS>> for Uint<LIMBS> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<Uint<RHS_LIMBS>> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
-    fn mul(self, rhs: Uint<HLIMBS>) -> Self {
+    fn mul(self, rhs: Uint<RHS_LIMBS>) -> Self {
         self.mul(&rhs)
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Uint<HLIMBS>> for Uint<LIMBS> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Uint<RHS_LIMBS>> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
-    fn mul(self, rhs: &Uint<HLIMBS>) -> Self {
+    fn mul(self, rhs: &Uint<RHS_LIMBS>) -> Self {
         (&self).mul(rhs)
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Uint<HLIMBS>> for &Uint<LIMBS> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<Uint<RHS_LIMBS>> for &Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
-    fn mul(self, rhs: Uint<HLIMBS>) -> Self::Output {
+    fn mul(self, rhs: Uint<RHS_LIMBS>) -> Self::Output {
         self.mul(&rhs)
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Uint<HLIMBS>> for &Uint<LIMBS> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Uint<RHS_LIMBS>> for &Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
-    fn mul(self, rhs: &Uint<HLIMBS>) -> Self::Output {
+    fn mul(self, rhs: &Uint<RHS_LIMBS>) -> Self::Output {
         self.checked_mul(rhs)
             .expect("attempted to multiply with overflow")
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Wrapping<Uint<HLIMBS>>>
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<Wrapping<Uint<RHS_LIMBS>>>
     for Wrapping<Uint<LIMBS>>
 {
     type Output = Self;
 
-    fn mul(self, rhs: Wrapping<Uint<HLIMBS>>) -> Wrapping<Uint<LIMBS>> {
+    fn mul(self, rhs: Wrapping<Uint<RHS_LIMBS>>) -> Wrapping<Uint<LIMBS>> {
         Wrapping(self.0.wrapping_mul(&rhs.0))
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Wrapping<Uint<HLIMBS>>>
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Wrapping<Uint<RHS_LIMBS>>>
     for Wrapping<Uint<LIMBS>>
 {
     type Output = Self;
 
-    fn mul(self, rhs: &Wrapping<Uint<HLIMBS>>) -> Wrapping<Uint<LIMBS>> {
+    fn mul(self, rhs: &Wrapping<Uint<RHS_LIMBS>>) -> Wrapping<Uint<LIMBS>> {
         Wrapping(self.0.wrapping_mul(&rhs.0))
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Wrapping<Uint<HLIMBS>>>
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<Wrapping<Uint<RHS_LIMBS>>>
     for &Wrapping<Uint<LIMBS>>
 {
     type Output = Wrapping<Uint<LIMBS>>;
 
-    fn mul(self, rhs: Wrapping<Uint<HLIMBS>>) -> Wrapping<Uint<LIMBS>> {
+    fn mul(self, rhs: Wrapping<Uint<RHS_LIMBS>>) -> Wrapping<Uint<LIMBS>> {
         Wrapping(self.0.wrapping_mul(&rhs.0))
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Wrapping<Uint<HLIMBS>>>
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Wrapping<Uint<RHS_LIMBS>>>
     for &Wrapping<Uint<LIMBS>>
 {
     type Output = Wrapping<Uint<LIMBS>>;
 
-    fn mul(self, rhs: &Wrapping<Uint<HLIMBS>>) -> Wrapping<Uint<LIMBS>> {
+    fn mul(self, rhs: &Wrapping<Uint<RHS_LIMBS>>) -> Wrapping<Uint<LIMBS>> {
         Wrapping(self.0.wrapping_mul(&rhs.0))
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> MulAssign<Wrapping<Uint<HLIMBS>>>
+impl<const LIMBS: usize, const RHS_LIMBS: usize> MulAssign<Wrapping<Uint<RHS_LIMBS>>>
     for Wrapping<Uint<LIMBS>>
 {
-    fn mul_assign(&mut self, other: Wrapping<Uint<HLIMBS>>) {
+    fn mul_assign(&mut self, other: Wrapping<Uint<RHS_LIMBS>>) {
         *self = *self * other;
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> MulAssign<&Wrapping<Uint<HLIMBS>>>
+impl<const LIMBS: usize, const RHS_LIMBS: usize> MulAssign<&Wrapping<Uint<RHS_LIMBS>>>
     for Wrapping<Uint<LIMBS>>
 {
-    fn mul_assign(&mut self, other: &Wrapping<Uint<HLIMBS>>) {
+    fn mul_assign(&mut self, other: &Wrapping<Uint<RHS_LIMBS>>) {
         *self = *self * other;
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Checked<Uint<HLIMBS>>> for Checked<Uint<LIMBS>> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<Checked<Uint<RHS_LIMBS>>>
+    for Checked<Uint<LIMBS>>
+{
     type Output = Self;
 
-    fn mul(self, rhs: Checked<Uint<HLIMBS>>) -> Checked<Uint<LIMBS>> {
+    fn mul(self, rhs: Checked<Uint<RHS_LIMBS>>) -> Checked<Uint<LIMBS>> {
         Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Checked<Uint<HLIMBS>>> for Checked<Uint<LIMBS>> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Checked<Uint<RHS_LIMBS>>>
+    for Checked<Uint<LIMBS>>
+{
     type Output = Checked<Uint<LIMBS>>;
 
-    fn mul(self, rhs: &Checked<Uint<HLIMBS>>) -> Checked<Uint<LIMBS>> {
+    fn mul(self, rhs: &Checked<Uint<RHS_LIMBS>>) -> Checked<Uint<LIMBS>> {
         Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<Checked<Uint<HLIMBS>>> for &Checked<Uint<LIMBS>> {
-    type Output = Checked<Uint<LIMBS>>;
-
-    fn mul(self, rhs: Checked<Uint<HLIMBS>>) -> Checked<Uint<LIMBS>> {
-        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
-    }
-}
-
-impl<const LIMBS: usize, const HLIMBS: usize> Mul<&Checked<Uint<HLIMBS>>>
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<Checked<Uint<RHS_LIMBS>>>
     for &Checked<Uint<LIMBS>>
 {
     type Output = Checked<Uint<LIMBS>>;
 
-    fn mul(self, rhs: &Checked<Uint<HLIMBS>>) -> Checked<Uint<LIMBS>> {
+    fn mul(self, rhs: Checked<Uint<RHS_LIMBS>>) -> Checked<Uint<LIMBS>> {
         Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> MulAssign<Checked<Uint<HLIMBS>>>
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Checked<Uint<RHS_LIMBS>>>
+    for &Checked<Uint<LIMBS>>
+{
+    type Output = Checked<Uint<LIMBS>>;
+
+    fn mul(self, rhs: &Checked<Uint<RHS_LIMBS>>) -> Checked<Uint<LIMBS>> {
+        Checked(self.0.and_then(|a| rhs.0.and_then(|b| a.checked_mul(&b))))
+    }
+}
+
+impl<const LIMBS: usize, const RHS_LIMBS: usize> MulAssign<Checked<Uint<RHS_LIMBS>>>
     for Checked<Uint<LIMBS>>
 {
-    fn mul_assign(&mut self, other: Checked<Uint<HLIMBS>>) {
+    fn mul_assign(&mut self, other: Checked<Uint<RHS_LIMBS>>) {
         *self = *self * other;
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> MulAssign<&Checked<Uint<HLIMBS>>>
+impl<const LIMBS: usize, const RHS_LIMBS: usize> MulAssign<&Checked<Uint<RHS_LIMBS>>>
     for Checked<Uint<LIMBS>>
 {
-    fn mul_assign(&mut self, other: &Checked<Uint<HLIMBS>>) {
+    fn mul_assign(&mut self, other: &Checked<Uint<RHS_LIMBS>>) {
         *self = *self * other;
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> WideningMul<Uint<HLIMBS>> for Uint<LIMBS>
+impl<const LIMBS: usize, const RHS_LIMBS: usize> WideningMul<Uint<RHS_LIMBS>> for Uint<LIMBS>
 where
-    Uint<HLIMBS>: ConcatMixed<Self>,
+    Uint<RHS_LIMBS>: ConcatMixed<Self>,
 {
-    type Output = <Uint<HLIMBS> as ConcatMixed<Self>>::MixedOutput;
+    type Output = <Uint<RHS_LIMBS> as ConcatMixed<Self>>::MixedOutput;
 
     #[inline]
-    fn widening_mul(&self, rhs: Uint<HLIMBS>) -> Self::Output {
+    fn widening_mul(&self, rhs: Uint<RHS_LIMBS>) -> Self::Output {
         self.widening_mul(&rhs)
     }
 }
 
-impl<const LIMBS: usize, const HLIMBS: usize> WideningMul<&Uint<HLIMBS>> for Uint<LIMBS>
+impl<const LIMBS: usize, const RHS_LIMBS: usize> WideningMul<&Uint<RHS_LIMBS>> for Uint<LIMBS>
 where
-    Uint<HLIMBS>: ConcatMixed<Self>,
+    Uint<RHS_LIMBS>: ConcatMixed<Self>,
 {
-    type Output = <Uint<HLIMBS> as ConcatMixed<Self>>::MixedOutput;
+    type Output = <Uint<RHS_LIMBS> as ConcatMixed<Self>>::MixedOutput;
 
     #[inline]
-    fn widening_mul(&self, rhs: &Uint<HLIMBS>) -> Self::Output {
+    fn widening_mul(&self, rhs: &Uint<RHS_LIMBS>) -> Self::Output {
         self.widening_mul(rhs)
     }
 }
