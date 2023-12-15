@@ -25,7 +25,7 @@ mod sub_mod;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Integer, Limb, NonZero, Word, Zero};
+use crate::{modular::BoxedMontyForm, HasMontyForm, Integer, Limb, NonZero, Word, Zero};
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
@@ -341,6 +341,10 @@ impl num_traits::One for BoxedUint {
     fn is_one(&self) -> bool {
         self.is_one().into()
     }
+}
+
+impl HasMontyForm for BoxedUint {
+    type MontyForm = BoxedMontyForm;
 }
 
 #[cfg(feature = "zeroize")]
