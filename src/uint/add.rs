@@ -62,38 +62,6 @@ impl<const LIMBS: usize> Add<&Uint<LIMBS>> for Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Add for Wrapping<Uint<LIMBS>> {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_add(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> Add<&Wrapping<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn add(self, rhs: &Wrapping<Uint<LIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_add(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> Add<Wrapping<Uint<LIMBS>>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn add(self, rhs: Wrapping<Uint<LIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_add(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> Add<&Wrapping<Uint<LIMBS>>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn add(self, rhs: &Wrapping<Uint<LIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_add(&rhs.0))
-    }
-}
-
 impl<const LIMBS: usize> AddAssign for Wrapping<Uint<LIMBS>> {
     fn add_assign(&mut self, other: Self) {
         *self = *self + other;

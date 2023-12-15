@@ -1,6 +1,6 @@
 //! Limb subtraction
 
-use crate::{Checked, CheckedSub, Limb, WideWord, Word, Wrapping, Zero};
+use crate::{Checked, CheckedSub, Limb, WideWord, Word, Wrapping, WrappingSub, Zero};
 use core::ops::{Sub, SubAssign};
 use subtle::CtOption;
 
@@ -39,45 +39,34 @@ impl CheckedSub for Limb {
     }
 }
 
-impl Sub for Wrapping<Limb> {
+impl Sub for Limb {
     type Output = Self;
 
-    fn sub(self, rhs: Self) -> Wrapping<Limb> {
-        Wrapping(self.0.wrapping_sub(rhs.0))
+    #[inline]
+    fn sub(self, rhs: Self) -> Self {
+        self.checked_sub(rhs)
+            .expect("attempted to subtract with underflow")
     }
 }
 
-impl Sub<&Wrapping<Limb>> for Wrapping<Limb> {
-    type Output = Wrapping<Limb>;
+impl Sub<&Self> for Limb {
+    type Output = Self;
 
-    fn sub(self, rhs: &Wrapping<Limb>) -> Wrapping<Limb> {
-        Wrapping(self.0.wrapping_sub(rhs.0))
-    }
-}
-
-impl Sub<Wrapping<Limb>> for &Wrapping<Limb> {
-    type Output = Wrapping<Limb>;
-
-    fn sub(self, rhs: Wrapping<Limb>) -> Wrapping<Limb> {
-        Wrapping(self.0.wrapping_sub(rhs.0))
-    }
-}
-
-impl Sub<&Wrapping<Limb>> for &Wrapping<Limb> {
-    type Output = Wrapping<Limb>;
-
-    fn sub(self, rhs: &Wrapping<Limb>) -> Wrapping<Limb> {
-        Wrapping(self.0.wrapping_sub(rhs.0))
+    #[inline]
+    fn sub(self, rhs: &Self) -> Self {
+        self - *rhs
     }
 }
 
 impl SubAssign for Wrapping<Limb> {
+    #[inline]
     fn sub_assign(&mut self, other: Self) {
         *self = *self - other;
     }
 }
 
 impl SubAssign<&Wrapping<Limb>> for Wrapping<Limb> {
+    #[inline]
     fn sub_assign(&mut self, other: &Self) {
         *self = *self - other;
     }
@@ -86,6 +75,7 @@ impl SubAssign<&Wrapping<Limb>> for Wrapping<Limb> {
 impl Sub for Checked<Limb> {
     type Output = Self;
 
+    #[inline]
     fn sub(self, rhs: Self) -> Checked<Limb> {
         Checked(
             self.0
@@ -97,6 +87,7 @@ impl Sub for Checked<Limb> {
 impl Sub<&Checked<Limb>> for Checked<Limb> {
     type Output = Checked<Limb>;
 
+    #[inline]
     fn sub(self, rhs: &Checked<Limb>) -> Checked<Limb> {
         Checked(
             self.0
@@ -108,6 +99,7 @@ impl Sub<&Checked<Limb>> for Checked<Limb> {
 impl Sub<Checked<Limb>> for &Checked<Limb> {
     type Output = Checked<Limb>;
 
+    #[inline]
     fn sub(self, rhs: Checked<Limb>) -> Checked<Limb> {
         Checked(
             self.0
@@ -119,6 +111,7 @@ impl Sub<Checked<Limb>> for &Checked<Limb> {
 impl Sub<&Checked<Limb>> for &Checked<Limb> {
     type Output = Checked<Limb>;
 
+    #[inline]
     fn sub(self, rhs: &Checked<Limb>) -> Checked<Limb> {
         Checked(
             self.0
@@ -128,14 +121,23 @@ impl Sub<&Checked<Limb>> for &Checked<Limb> {
 }
 
 impl SubAssign for Checked<Limb> {
+    #[inline]
     fn sub_assign(&mut self, other: Self) {
         *self = *self - other;
     }
 }
 
 impl SubAssign<&Checked<Limb>> for Checked<Limb> {
+    #[inline]
     fn sub_assign(&mut self, other: &Self) {
         *self = *self - other;
+    }
+}
+
+impl WrappingSub for Limb {
+    #[inline]
+    fn wrapping_sub(&self, v: &Self) -> Self {
+        self.wrapping_sub(*v)
     }
 }
 

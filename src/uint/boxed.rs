@@ -403,6 +403,26 @@ impl Zero for BoxedUint {
     }
 }
 
+impl num_traits::Zero for BoxedUint {
+    fn zero() -> Self {
+        Self::zero()
+    }
+
+    fn is_zero(&self) -> bool {
+        self.is_zero().into()
+    }
+}
+
+impl num_traits::One for BoxedUint {
+    fn one() -> Self {
+        Self::one()
+    }
+
+    fn is_one(&self) -> bool {
+        self.is_one().into()
+    }
+}
+
 #[cfg(feature = "zeroize")]
 impl Zeroize for BoxedUint {
     fn zeroize(&mut self) {

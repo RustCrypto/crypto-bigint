@@ -73,38 +73,6 @@ impl<const LIMBS: usize> Sub<&Uint<LIMBS>> for Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Sub for Wrapping<Uint<LIMBS>> {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_sub(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> Sub<&Wrapping<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn sub(self, rhs: &Wrapping<Uint<LIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_sub(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> Sub<Wrapping<Uint<LIMBS>>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn sub(self, rhs: Wrapping<Uint<LIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_sub(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> Sub<&Wrapping<Uint<LIMBS>>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn sub(self, rhs: &Wrapping<Uint<LIMBS>>) -> Wrapping<Uint<LIMBS>> {
-        Wrapping(self.0.wrapping_sub(&rhs.0))
-    }
-}
-
 impl<const LIMBS: usize> SubAssign for Wrapping<Uint<LIMBS>> {
     fn sub_assign(&mut self, other: Self) {
         *self = *self - other;
