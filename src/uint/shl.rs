@@ -1,6 +1,6 @@
 //! [`Uint`] bitwise left shift operations.
 
-use crate::{ConstChoice, Limb, Uint, Word};
+use crate::{ConstChoice, Limb, Uint, Word, WrappingShl};
 use core::ops::{Shl, ShlAssign};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -109,6 +109,18 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
     }
 
+    /// Computes `self << shift` in a panic-free manner, masking off bits of `shift` which would cause the shift to
+    /// exceed the type's width.
+    pub const fn wrapping_shl(&self, shift: u32) -> Self {
+        self.overflowing_shl(shift).0
+    }
+
+    /// Computes `self << shift` in variable-time in a panic-free manner, masking off bits of `shift` which would cause
+    /// the shift to exceed the type's width.
+    pub const fn wrapping_shl_vartime(&self, shift: u32) -> Self {
+        self.overflowing_shl_vartime(shift).0
+    }
+
     /// Computes `self << shift` where `0 <= shift < Limb::BITS`,
     /// returning the result and the carry.
     #[inline(always)]
@@ -156,25 +168,41 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Shl<u32> for Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
+macro_rules! impl_shl {
+    ($($shift:ty),+) => {
+        $(
+            impl<const LIMBS: usize> Shl<$shift> for Uint<LIMBS> {
+                type Output = Uint<LIMBS>;
 
-    fn shl(self, shift: u32) -> Uint<LIMBS> {
-        <&Uint<LIMBS> as Shl<u32>>::shl(&self, shift)
-    }
+                #[inline]
+                fn shl(self, shift: $shift) -> Uint<LIMBS> {
+                    <&Self>::shl(&self, shift)
+                }
+            }
+
+            impl<const LIMBS: usize> Shl<$shift> for &Uint<LIMBS> {
+                type Output = Uint<LIMBS>;
+
+                #[inline]
+                fn shl(self, shift: $shift) -> Uint<LIMBS> {
+                    Uint::<LIMBS>::shl(self, u32::try_from(shift).expect("invalid shift"))
+                }
+            }
+
+            impl<const LIMBS: usize> ShlAssign<$shift> for Uint<LIMBS> {
+                fn shl_assign(&mut self, shift: $shift) {
+                    *self = self.shl(shift)
+                }
+            }
+        )+
+    };
 }
 
-impl<const LIMBS: usize> Shl<u32> for &Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
+impl_shl!(i32, u32, usize);
 
-    fn shl(self, shift: u32) -> Uint<LIMBS> {
-        Uint::<LIMBS>::shl(self, shift)
-    }
-}
-
-impl<const LIMBS: usize> ShlAssign<u32> for Uint<LIMBS> {
-    fn shl_assign(&mut self, shift: u32) {
-        *self = self.shl(shift)
+impl<const LIMBS: usize> WrappingShl for Uint<LIMBS> {
+    fn wrapping_shl(&self, shift: u32) -> Uint<LIMBS> {
+        self.wrapping_shl(shift)
     }
 }
 

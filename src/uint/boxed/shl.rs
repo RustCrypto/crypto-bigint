@@ -1,10 +1,27 @@
 //! [`BoxedUint`] bitwise left shift operations.
 
-use crate::{BoxedUint, Limb, Zero};
+use crate::{BoxedUint, Limb, WrappingShl, Zero};
 use core::ops::{Shl, ShlAssign};
 use subtle::{Choice, ConstantTimeLess};
 
 impl BoxedUint {
+    /// Computes `self << shift`.
+    ///
+    /// Panics if `shift >= Self::BITS`.
+    pub fn shl(&self, shift: u32) -> BoxedUint {
+        let (result, overflow) = self.overflowing_shl(shift);
+        assert!(!bool::from(overflow), "attempt to shift left with overflow");
+        result
+    }
+
+    /// Computes `self <<= shift`.
+    ///
+    /// Panics if `shift >= Self::BITS`.
+    pub fn shl_assign(&mut self, shift: u32) {
+        let overflow = self.overflowing_shl_assign(shift);
+        assert!(!bool::from(overflow), "attempt to shift left with overflow");
+    }
+
     /// Computes `self << shift`.
     ///
     /// Returns a zero and a truthy `Choice` if `shift >= self.bits_precision()`,
@@ -40,6 +57,20 @@ impl BoxedUint {
 
         self.conditional_set_zero(overflow);
         overflow
+    }
+
+    /// Computes `self << shift` in a panic-free manner, masking off bits of `shift` which would cause the shift to
+    /// exceed the type's width.
+    pub fn wrapping_shl(&self, shift: u32) -> Self {
+        self.overflowing_shl(shift).0
+    }
+
+    /// Computes `self << shift` in variable-time in a panic-free manner, masking off bits of `shift` which would cause
+    /// the shift to exceed the type's width.
+    pub fn wrapping_shl_vartime(&self, shift: u32) -> Self {
+        let mut result = Self::zero_with_precision(self.bits_precision());
+        let _ = self.shl_vartime_into(&mut result, shift);
+        result
     }
 
     /// Computes `self << shift` and writes the result into `dest`.
@@ -113,28 +144,41 @@ impl BoxedUint {
     }
 }
 
-impl Shl<u32> for BoxedUint {
-    type Output = BoxedUint;
+macro_rules! impl_shl {
+    ($($shift:ty),+) => {
+        $(
+            impl Shl<$shift> for BoxedUint {
+                type Output = BoxedUint;
 
-    fn shl(self, shift: u32) -> BoxedUint {
-        <&BoxedUint as Shl<u32>>::shl(&self, shift)
-    }
+                #[inline]
+                fn shl(self, shift: $shift) -> BoxedUint {
+                    <&Self>::shl(&self, shift)
+                }
+            }
+
+            impl Shl<$shift> for &BoxedUint {
+                type Output = BoxedUint;
+
+                #[inline]
+                fn shl(self, shift: $shift) -> BoxedUint {
+                    BoxedUint::shl(self, u32::try_from(shift).expect("invalid shift"))
+                }
+            }
+
+            impl ShlAssign<$shift> for BoxedUint {
+                fn shl_assign(&mut self, shift: $shift) {
+                    BoxedUint::shl_assign(self, u32::try_from(shift).expect("invalid shift"))
+                }
+            }
+        )+
+    };
 }
 
-impl Shl<u32> for &BoxedUint {
-    type Output = BoxedUint;
+impl_shl!(i32, u32, usize);
 
-    fn shl(self, shift: u32) -> BoxedUint {
-        let (result, overflow) = self.overflowing_shl(shift);
-        assert!(!bool::from(overflow), "attempt to shift left with overflow");
-        result
-    }
-}
-
-impl ShlAssign<u32> for BoxedUint {
-    fn shl_assign(&mut self, shift: u32) {
-        let overflow = self.overflowing_shl_assign(shift);
-        assert!(!bool::from(overflow), "attempt to shift left with overflow");
+impl WrappingShl for BoxedUint {
+    fn wrapping_shl(&self, shift: u32) -> BoxedUint {
+        self.wrapping_shl(shift)
     }
 }
 

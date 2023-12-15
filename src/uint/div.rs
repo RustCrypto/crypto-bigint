@@ -28,7 +28,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut rem = *self;
         let mut quo = Self::ZERO;
         // If there is overflow, it means `mb == 0`, so `rhs == 0`.
-        let (mut c, _overflow) = rhs.0.overflowing_shl(Self::BITS - mb);
+        let mut c = rhs.0.wrapping_shl(Self::BITS - mb);
 
         let mut i = Self::BITS;
         let mut done = ConstChoice::FALSE;
@@ -64,7 +64,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut rem = *self;
         let mut quo = Self::ZERO;
         // If there is overflow, it means `mb == 0`, so `rhs == 0`.
-        let (mut c, _overflow) = rhs.0.overflowing_shl_vartime(bd);
+        let mut c = rhs.0.wrapping_shl_vartime(bd);
 
         loop {
             let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
@@ -92,7 +92,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mb = rhs.0.bits_vartime();
         let mut bd = Self::BITS - mb;
         let mut rem = *self;
-        let (mut c, _overflow) = rhs.0.overflowing_shl_vartime(bd);
+        let mut c = rhs.0.wrapping_shl_vartime(bd);
 
         loop {
             let (r, borrow) = rem.sbb(&c, Limb::ZERO);
