@@ -1,6 +1,6 @@
 //! [`BoxedUint`] bitwise left shift operations.
 
-use crate::{BoxedUint, ConstantTimeSelect, Limb, WrappingShl, Zero};
+use crate::{BoxedUint, ConstantTimeSelect, ConstChoice, Limb, WrappingShl, Zero};
 use core::ops::{Shl, ShlAssign};
 use subtle::{Choice, ConstantTimeLess};
 
@@ -118,10 +118,15 @@ impl BoxedUint {
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
-    pub fn shl_vartime(&self, shift: u32) -> Option<Self> {
+    pub fn shl_vartime(&self, shift: u32) -> (Self, ConstChoice) {
         let mut result = Self::zero_with_precision(self.bits_precision());
         let success = self.shl_vartime_into(&mut result, shift);
-        success.map(|_| result)
+        // TODO: is this okay?
+        return (
+            result,
+            // If success, then return ConstChoice::False since it's not overflowing
+            success.map_or(ConstChoice::TRUE, |_| ConstChoice::FALSE),
+        );
     }
 
     /// Computes `self << 1` in constant-time.
@@ -202,7 +207,7 @@ mod tests {
         assert_eq!(BoxedUint::from(4u8), &one << 2);
         assert_eq!(
             BoxedUint::from(0x80000000000000000u128),
-            one.shl_vartime(67).unwrap()
+            one.shl_vartime(67).0
         );
     }
 
@@ -210,11 +215,11 @@ mod tests {
     fn shl_vartime() {
         let one = BoxedUint::one_with_precision(128);
 
-        assert_eq!(BoxedUint::from(2u8), one.shl_vartime(1).unwrap());
-        assert_eq!(BoxedUint::from(4u8), one.shl_vartime(2).unwrap());
+        assert_eq!(BoxedUint::from(2u8), one.shl_vartime(1).0);
+        assert_eq!(BoxedUint::from(4u8), one.shl_vartime(2).0);
         assert_eq!(
             BoxedUint::from(0x80000000000000000u128),
-            one.shl_vartime(67).unwrap()
+            one.shl_vartime(67).0
         );
     }
 }

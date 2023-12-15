@@ -140,7 +140,7 @@ mod tests {
     fn uint_with_bits_at(positions: &[u32]) -> BoxedUint {
         let mut result = BoxedUint::zero_with_precision(256);
         for &pos in positions {
-            result |= BoxedUint::one_with_precision(256).shl_vartime(pos).unwrap();
+            result |= BoxedUint::one_with_precision(256).shl_vartime(pos).0;
         }
         result
     }

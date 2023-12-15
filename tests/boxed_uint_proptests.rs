@@ -3,7 +3,7 @@
 #![cfg(feature = "alloc")]
 
 use core::cmp::Ordering;
-use crypto_bigint::{BoxedUint, CheckedAdd, Integer, Limb, NonZero};
+use crypto_bigint::{BoxedUint, CheckedAdd, ConstChoice, Integer, Limb, NonZero};
 use num_bigint::{BigUint, ModInverse};
 use num_traits::identities::One;
 use proptest::prelude::*;
@@ -239,13 +239,13 @@ proptest! {
         let shift = u32::from(shift) % (a.bits_precision() * 2);
 
         let expected = to_uint((a_bi << shift as usize) & ((BigUint::one() << a.bits_precision() as usize) - BigUint::one()));
-        let actual = a.shl_vartime(shift);
+        let (actual, overflow) = a.shl_vartime(shift);
 
         if shift >= a.bits_precision() {
-            assert!(actual.is_none());
+            assert!(<ConstChoice as Into<bool>>::into(overflow));
         }
         else {
-            assert_eq!(expected, actual.unwrap());
+            assert_eq!(expected, actual);
         }
     }
 
@@ -275,13 +275,12 @@ proptest! {
         let shift = u32::from(shift) % (a.bits_precision() * 2);
 
         let expected = to_uint(a_bi >> shift as usize);
-        let actual = a.shr_vartime(shift);
+        let (actual, overflow) = a.shr_vartime(shift);
 
         if shift >= a.bits_precision() {
-            assert!(actual.is_none());
-        }
-        else {
-            assert_eq!(expected, actual.unwrap());
+            assert!(<ConstChoice as Into<bool>>::into(overflow));
+        } else {
+            assert_eq!(expected, actual);
         }
     }
 }
