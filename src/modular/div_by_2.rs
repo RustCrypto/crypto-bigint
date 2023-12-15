@@ -18,7 +18,7 @@ pub(crate) fn div_by_2<const LIMBS: usize>(a: &Uint<LIMBS>, modulus: &Uint<LIMBS
     // ("+1" because both `a` and `modulus` are odd, we lose 0.5 in each integer division).
     // This will not overflow, so we can just use wrapping operations.
 
-    let (half, is_odd) = a.overflowing_shr1();
+    let (half, is_odd) = a.shr1_with_carry();
     let half_modulus = modulus.shr1();
 
     let if_even = half;

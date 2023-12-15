@@ -135,13 +135,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes `self << 1` in constant-time.
     pub(crate) const fn shl1(&self) -> Self {
-        self.overflowing_shl1().0
+        self.shl1_with_carry().0
     }
 
     /// Computes `self << 1` in constant-time, returning [`ConstChoice::TRUE`]
-    /// if the most significant bit was set (i.e. if overflow occurred), and [`ConstChoice::FALSE`] otherwise.
+    /// if the most significant bit was set, and [`ConstChoice::FALSE`] otherwise.
     #[inline(always)]
-    pub(crate) const fn overflowing_shl1(&self) -> (Self, ConstChoice) {
+    pub(crate) const fn shl1_with_carry(&self) -> (Self, ConstChoice) {
         let mut ret = Self::ZERO;
         let mut i = 0;
         let mut carry = Limb::ZERO;
