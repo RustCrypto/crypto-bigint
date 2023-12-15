@@ -1,6 +1,6 @@
 //! Limb addition
 
-use crate::{Checked, CheckedAdd, Limb, WideWord, Word, Wrapping, Zero};
+use crate::{Checked, CheckedAdd, Limb, WideWord, Word, Wrapping, WrappingAdd, Zero};
 use core::ops::{Add, AddAssign};
 use subtle::CtOption;
 
@@ -28,55 +28,25 @@ impl Limb {
     }
 }
 
-impl CheckedAdd for Limb {
+impl Add for Limb {
     type Output = Self;
 
     #[inline]
-    fn checked_add(&self, rhs: Self) -> CtOption<Self> {
-        let (result, carry) = self.adc(rhs, Limb::ZERO);
-        CtOption::new(result, carry.is_zero())
-    }
-}
-
-impl Add for Wrapping<Limb> {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Wrapping<Limb> {
-        Wrapping(self.0.wrapping_add(rhs.0))
-    }
-}
-
-impl Add<&Wrapping<Limb>> for Wrapping<Limb> {
-    type Output = Wrapping<Limb>;
-
-    fn add(self, rhs: &Wrapping<Limb>) -> Wrapping<Limb> {
-        Wrapping(self.0.wrapping_add(rhs.0))
-    }
-}
-
-impl Add<Wrapping<Limb>> for &Wrapping<Limb> {
-    type Output = Wrapping<Limb>;
-
-    fn add(self, rhs: Wrapping<Limb>) -> Wrapping<Limb> {
-        Wrapping(self.0.wrapping_add(rhs.0))
-    }
-}
-
-impl Add<&Wrapping<Limb>> for &Wrapping<Limb> {
-    type Output = Wrapping<Limb>;
-
-    fn add(self, rhs: &Wrapping<Limb>) -> Wrapping<Limb> {
-        Wrapping(self.0.wrapping_add(rhs.0))
+    fn add(self, rhs: Self) -> Self {
+        self.checked_add(rhs)
+            .expect("attempted to add with overflow")
     }
 }
 
 impl AddAssign for Wrapping<Limb> {
+    #[inline]
     fn add_assign(&mut self, other: Self) {
         *self = *self + other;
     }
 }
 
 impl AddAssign<&Wrapping<Limb>> for Wrapping<Limb> {
+    #[inline]
     fn add_assign(&mut self, other: &Self) {
         *self = *self + other;
     }
@@ -85,6 +55,7 @@ impl AddAssign<&Wrapping<Limb>> for Wrapping<Limb> {
 impl Add for Checked<Limb> {
     type Output = Self;
 
+    #[inline]
     fn add(self, rhs: Self) -> Checked<Limb> {
         Checked(
             self.0
@@ -96,6 +67,7 @@ impl Add for Checked<Limb> {
 impl Add<&Checked<Limb>> for Checked<Limb> {
     type Output = Checked<Limb>;
 
+    #[inline]
     fn add(self, rhs: &Checked<Limb>) -> Checked<Limb> {
         Checked(
             self.0
@@ -107,6 +79,7 @@ impl Add<&Checked<Limb>> for Checked<Limb> {
 impl Add<Checked<Limb>> for &Checked<Limb> {
     type Output = Checked<Limb>;
 
+    #[inline]
     fn add(self, rhs: Checked<Limb>) -> Checked<Limb> {
         Checked(
             self.0
@@ -118,6 +91,7 @@ impl Add<Checked<Limb>> for &Checked<Limb> {
 impl Add<&Checked<Limb>> for &Checked<Limb> {
     type Output = Checked<Limb>;
 
+    #[inline]
     fn add(self, rhs: &Checked<Limb>) -> Checked<Limb> {
         Checked(
             self.0
@@ -127,14 +101,33 @@ impl Add<&Checked<Limb>> for &Checked<Limb> {
 }
 
 impl AddAssign for Checked<Limb> {
+    #[inline]
     fn add_assign(&mut self, other: Self) {
         *self = *self + other;
     }
 }
 
 impl AddAssign<&Checked<Limb>> for Checked<Limb> {
+    #[inline]
     fn add_assign(&mut self, other: &Self) {
         *self = *self + other;
+    }
+}
+
+impl CheckedAdd for Limb {
+    type Output = Self;
+
+    #[inline]
+    fn checked_add(&self, rhs: Self) -> CtOption<Self> {
+        let (result, carry) = self.adc(rhs, Limb::ZERO);
+        CtOption::new(result, carry.is_zero())
+    }
+}
+
+impl WrappingAdd for Limb {
+    #[inline]
+    fn wrapping_add(&self, v: &Self) -> Self {
+        self.wrapping_add(*v)
     }
 }
 
