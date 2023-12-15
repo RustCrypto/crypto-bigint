@@ -1,7 +1,7 @@
 //! [`Uint`] addition operations.
 
 use super::Uint;
-use crate::{Checked, CheckedSub, ConstChoice, Limb, Wrapping, Zero};
+use crate::{Checked, CheckedSub, ConstChoice, Limb, Wrapping, WrappingSub, Zero};
 use core::ops::{Sub, SubAssign};
 use subtle::CtOption;
 
@@ -53,6 +53,23 @@ impl<const LIMBS: usize> CheckedSub<&Uint<LIMBS>> for Uint<LIMBS> {
     fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
         let (result, underflow) = self.sbb(rhs, Limb::ZERO);
         CtOption::new(result, underflow.is_zero())
+    }
+}
+
+impl<const LIMBS: usize> Sub for Uint<LIMBS> {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self {
+        self.sub(&rhs)
+    }
+}
+
+impl<const LIMBS: usize> Sub<&Uint<LIMBS>> for Uint<LIMBS> {
+    type Output = Self;
+
+    fn sub(self, rhs: &Self) -> Self {
+        self.checked_sub(rhs)
+            .expect("attempted to subtract with underflow")
     }
 }
 
@@ -153,6 +170,12 @@ impl<const LIMBS: usize> SubAssign for Checked<Uint<LIMBS>> {
 impl<const LIMBS: usize> SubAssign<&Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS>> {
     fn sub_assign(&mut self, other: &Self) {
         *self = *self - other;
+    }
+}
+
+impl<const LIMBS: usize> WrappingSub for Uint<LIMBS> {
+    fn wrapping_sub(&self, v: &Self) -> Self {
+        self.wrapping_sub(v)
     }
 }
 

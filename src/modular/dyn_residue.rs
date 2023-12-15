@@ -119,7 +119,7 @@ pub struct DynResidue<const LIMBS: usize> {
 impl<const LIMBS: usize> DynResidue<LIMBS> {
     /// Instantiates a new `Residue` that represents this `integer` mod `MOD`.
     pub const fn new(integer: &Uint<LIMBS>, residue_params: DynResidueParams<LIMBS>) -> Self {
-        let product = integer.mul_wide(&residue_params.r2);
+        let product = integer.split_mul(&residue_params.r2);
         let montgomery_form = montgomery_reduction(
             &product,
             &residue_params.modulus,

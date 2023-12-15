@@ -1,6 +1,6 @@
 //! [`BoxedUint`] negation operations.
 
-use crate::{BoxedUint, Limb, WideWord, Word, Wrapping};
+use crate::{BoxedUint, Limb, WideWord, Word, Wrapping, WrappingNeg};
 use core::ops::Neg;
 use subtle::Choice;
 
@@ -30,6 +30,12 @@ impl BoxedUint {
         }
 
         ret.into()
+    }
+}
+
+impl WrappingNeg for BoxedUint {
+    fn wrapping_neg(&self) -> Self {
+        self.wrapping_neg()
     }
 }
 

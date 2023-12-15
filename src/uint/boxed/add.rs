@@ -1,8 +1,7 @@
 //! [`BoxedUint`] addition operations.
 
+use crate::{BoxedUint, CheckedAdd, Limb, Wrapping, WrappingAdd, Zero};
 use core::ops::{Add, AddAssign};
-
-use crate::{BoxedUint, CheckedAdd, Limb, Wrapping, Zero};
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
 impl BoxedUint {
@@ -51,12 +50,28 @@ impl BoxedUint {
     }
 }
 
-impl CheckedAdd<&BoxedUint> for BoxedUint {
+impl Add for BoxedUint {
     type Output = Self;
 
-    fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
-        let (result, carry) = self.adc(rhs, Limb::ZERO);
-        CtOption::new(result, carry.is_zero())
+    fn add(self, rhs: Self) -> Self {
+        self.add(&rhs)
+    }
+}
+
+impl Add<&BoxedUint> for BoxedUint {
+    type Output = Self;
+
+    fn add(self, rhs: &Self) -> Self {
+        Add::add(&self, rhs)
+    }
+}
+
+impl Add<&BoxedUint> for &BoxedUint {
+    type Output = BoxedUint;
+
+    fn add(self, rhs: &BoxedUint) -> BoxedUint {
+        self.checked_add(rhs)
+            .expect("attempted to add with overflow")
     }
 }
 
@@ -101,6 +116,21 @@ impl AddAssign<Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
 impl AddAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     fn add_assign(&mut self, other: &Wrapping<BoxedUint>) {
         self.0.adc_assign(&other.0, Limb::ZERO);
+    }
+}
+
+impl CheckedAdd<&BoxedUint> for BoxedUint {
+    type Output = Self;
+
+    fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
+        let (result, carry) = self.adc(rhs, Limb::ZERO);
+        CtOption::new(result, carry.is_zero())
+    }
+}
+
+impl WrappingAdd for BoxedUint {
+    fn wrapping_add(&self, v: &Self) -> Self {
+        self.wrapping_add(v)
     }
 }
 
