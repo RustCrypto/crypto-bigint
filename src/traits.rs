@@ -138,6 +138,23 @@ pub trait Integer:
     }
 }
 
+/// Obtain a precomputed inverter for efficiently computing modular inversions for a given modulus.
+pub trait Inverter: Integer {
+    /// Inverter type for integers of this size.
+    type Inverter: Sized;
+
+    /// Obtain a precomputed inverter for `&self` as the modulus, using `Self::one()` as an adjusting parameter.
+    ///
+    /// Returns `None` if `self` is even.
+    fn inverter(&self) -> Self::Inverter {
+        Self::inverter_with_adjuster(self, &Self::one())
+    }
+
+    /// Obtain a precomputed inverter for `&self` as the modulus, supplying a custom adjusting parameter (e.g. R^2 for
+    /// when computing inversions in Montgomery form).
+    fn inverter_with_adjuster(&self, adjuster: &Self) -> Self::Inverter;
+}
+
 /// Fixed-width integers.
 pub trait FixedInteger: Bounded + ConditionallySelectable + Constants + Copy + Integer {
     /// The number of limbs used on this platform.

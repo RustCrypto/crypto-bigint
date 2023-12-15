@@ -38,7 +38,10 @@ pub(crate) mod boxed;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Bounded, Constants, Encoding, FixedInteger, Integer, Limb, Word, ZeroConstant};
+use crate::{
+    modular::BernsteinYangInverter, Bounded, Constants, Encoding, FixedInteger, Integer, Inverter,
+    Limb, Word, ZeroConstant,
+};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 

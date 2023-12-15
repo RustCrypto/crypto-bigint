@@ -53,17 +53,17 @@ type Matrix = [[i64; 2]; 2];
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>
 {
-    /// Creates the inverter for specified modulus and adjusting parameter
+    /// Creates the inverter for specified modulus and adjusting parameter.
     #[allow(trivial_numeric_casts)]
-    pub const fn new(modulus: &[Word], adjuster: &[Word]) -> Self {
+    pub const fn new(modulus: &Uint<SAT_LIMBS>, adjuster: &Uint<SAT_LIMBS>) -> Self {
         if UNSAT_LIMBS != unsat_nlimbs(SAT_LIMBS) {
             panic!("BernsteinYangInverter has incorrect number of limbs");
         }
 
         Self {
-            modulus: Uint62L::<UNSAT_LIMBS>(sat_to_unsat::<UNSAT_LIMBS>(modulus)),
-            adjuster: Uint62L::<UNSAT_LIMBS>(sat_to_unsat::<UNSAT_LIMBS>(adjuster)),
-            inverse: inv_mod2_62(modulus),
+            modulus: Uint62L::<UNSAT_LIMBS>(sat_to_unsat::<UNSAT_LIMBS>(modulus.as_words())),
+            adjuster: Uint62L::<UNSAT_LIMBS>(sat_to_unsat::<UNSAT_LIMBS>(adjuster.as_words())),
+            inverse: inv_mod2_62(modulus.as_words()),
         }
     }
 

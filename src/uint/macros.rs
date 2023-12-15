@@ -1,3 +1,32 @@
+//! Macros used to define traits on aliases of `Uint`.
+
+/// Calculate the number of 62-bit unsaturated limbs required to represent the given number of bits when performing
+/// Bernstein-Yang inversions.
+// TODO(tarcieri): replace with `generic_const_exprs` (rust-lang/rust#76560) when stable
+#[macro_export]
+macro_rules! bernstein_yang_nlimbs {
+    ($bits:expr) => {
+        (($bits / 64) + (($bits / 64) * 2).div_ceil(64) + 1)
+    };
+}
+
+/// Impl the `Inverter` trait, where we need to compute the number of unsaturated limbs for a given number of bits.
+macro_rules! impl_inverter_trait {
+    ($name:ident, $bits:expr) => {
+        impl Inverter for $name {
+            #[allow(trivial_numeric_casts)]
+            type Inverter = BernsteinYangInverter<
+                { nlimbs!($bits) },
+                { bernstein_yang_nlimbs!($bits as usize) },
+            >;
+
+            fn inverter_with_adjuster(&self, adjuster: &Self) -> Self::Inverter {
+                Self::Inverter::new(self, adjuster)
+            }
+        }
+    };
+}
+
 // TODO(tarcieri): use `generic_const_exprs` when stable to make generic around bits.
 macro_rules! impl_uint_aliases {
     ($(($name:ident, $bits:expr, $doc:expr)),+) => {
@@ -33,6 +62,8 @@ macro_rules! impl_uint_aliases {
                     result
                 }
             }
+
+            impl_inverter_trait!($name, $bits);
         )+
      };
 }
