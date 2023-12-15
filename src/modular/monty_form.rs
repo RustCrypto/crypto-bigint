@@ -266,4 +266,15 @@ mod test {
             MontyParams::<LIMBS>::new(&Uint::from(2u8)).is_none()
         ))
     }
+
+    #[test]
+    fn div_by_2() {
+        let params = DynResidueParams::new(&Uint::<1>::from(9u8)).unwrap();
+        let zero = DynResidue::zero(params.clone());
+        let one = DynResidue::one(params.clone());
+        let two = one.add(&one);
+
+        assert_eq!(zero.div_by_2(), zero);
+        assert_eq!(one.div_by_2().mul(&two), one);
+    }
 }
