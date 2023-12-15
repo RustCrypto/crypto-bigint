@@ -163,10 +163,10 @@ mod tests {
     #[test]
     fn shr() {
         let n = BoxedUint::from(0x80000000000000000u128);
-        assert_eq!(BoxedUint::zero(), n.overflowing_shr(68).0);
-        assert_eq!(BoxedUint::one(), n.overflowing_shr(67).0);
-        assert_eq!(BoxedUint::from(2u8), n.overflowing_shr(66).0);
-        assert_eq!(BoxedUint::from(4u8), n.overflowing_shr(65).0);
+        assert_eq!(BoxedUint::zero(), &n >> 68);
+        assert_eq!(BoxedUint::one(), &n >> 67);
+        assert_eq!(BoxedUint::from(2u8), &n >> 66);
+        assert_eq!(BoxedUint::from(4u8), &n >> 65);
     }
 
     #[test]

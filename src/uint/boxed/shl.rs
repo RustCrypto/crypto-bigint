@@ -154,8 +154,8 @@ mod tests {
     fn shl() {
         let one = BoxedUint::one_with_precision(128);
 
-        assert_eq!(BoxedUint::from(2u8), one.overflowing_shl(1).0);
-        assert_eq!(BoxedUint::from(4u8), one.overflowing_shl(2).0);
+        assert_eq!(BoxedUint::from(2u8), &one << 1);
+        assert_eq!(BoxedUint::from(4u8), &one << 2);
         assert_eq!(
             BoxedUint::from(0x80000000000000000u128),
             one.shl_vartime(67).unwrap()
