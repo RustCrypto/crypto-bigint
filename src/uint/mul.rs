@@ -135,7 +135,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         // Double the current result, this accounts for the other half of the multiplication grid.
         // TODO: The top word is empty so we can also use a special purpose shl.
-        (lo, hi) = Self::shl_vartime_wide((lo, hi), 1).0;
+        (lo, hi) = Self::overflowing_shl_vartime_wide((lo, hi), 1).0;
 
         // Handle the diagonal of the multiplication grid, which finishes the multiplication grid.
         let mut carry = Limb::ZERO;

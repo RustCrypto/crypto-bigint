@@ -64,7 +64,7 @@ proptest! {
         let shift = u32::from(shift) % (U256::BITS * 2);
 
         let expected = to_uint((a_bi << shift as usize) & ((BigUint::one() << U256::BITS as usize) - BigUint::one()));
-        let (actual, overflow) = a.shl_vartime(shift.into());
+        let (actual, overflow) = a.overflowing_shl_vartime(shift.into());
 
         assert_eq!(expected, actual);
         if shift >= U256::BITS {
@@ -81,7 +81,7 @@ proptest! {
         let shift = u32::from(shift) % (U256::BITS * 2);
 
         let expected = to_uint((a_bi << shift as usize) & ((BigUint::one() << U256::BITS as usize) - BigUint::one()));
-        let (actual, overflow) = a.shl(shift);
+        let (actual, overflow) = a.overflowing_shl(shift);
 
         assert_eq!(expected, actual);
         if shift >= U256::BITS {
@@ -98,7 +98,7 @@ proptest! {
         let shift = u32::from(shift) % (U256::BITS * 2);
 
         let expected = to_uint(a_bi >> shift as usize);
-        let (actual, overflow) = a.shr_vartime(shift);
+        let (actual, overflow) = a.overflowing_shr_vartime(shift);
 
         assert_eq!(expected, actual);
         if shift >= U256::BITS {
@@ -115,7 +115,7 @@ proptest! {
         let shift = u32::from(shift) % (U256::BITS * 2);
 
         let expected = to_uint(a_bi >> shift as usize);
-        let (actual, overflow) = a.shr(shift);
+        let (actual, overflow) = a.overflowing_shr(shift);
 
         assert_eq!(expected, actual);
         if shift >= U256::BITS {

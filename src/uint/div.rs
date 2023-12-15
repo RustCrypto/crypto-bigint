@@ -184,7 +184,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         out
     }
 
-<<<<<<< HEAD
     /// Wrapped division is just normal division i.e. `self` / `rhs`
     ///
     /// There’s no way wrapping could ever happen.
@@ -192,75 +191,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn wrapping_div(&self, rhs: &NonZero<Self>) -> Self {
         let (q, _) = self.div_rem(rhs);
         q
-=======
-    /// Computes self / rhs, returns the quotient, remainder.
-    ///
-    /// ### Usage:
-    /// ```
-    /// use crypto_bigint::{U448, NonZero};
-    ///
-    /// let a = U448::from(8_u64);
-    /// let res = NonZero::new(U448::from(4_u64))
-    ///    .map(|b| a.div_rem(&b))
-    ///    .expect("Division by zero");
-    ///
-    /// assert_eq!(res.0, U448::from(2_u64));
-    /// assert_eq!(res.1, U448::from(0_u64));
-    /// ```
-    pub fn div_rem(&self, rhs: &NonZero<Self>) -> (Self, Self) {
-        // Since `rhs` is nonzero, this should always hold.
-        let (q, r, _c) = self.ct_div_rem(rhs);
-        (q, r)
-    }
-
-    /// Computes self % rhs, returns the remainder.
-    ///
-    /// This function performs modulo operation and returns the remainder
-    /// of the division of `self` by `rhs`. The `rhs` must be non-zero.
-    ///
-    /// # Usage:
-    /// ```
-    /// use crypto_bigint::{U448, NonZero};
-    ///
-    /// let a = U448::from(8_u64);
-    /// let remainder = NonZero::new(U448::from(3_u64))
-    ///     .map(|b| a.rem(&b))
-    ///     .expect("Modulo by zero");
-    ///
-    /// assert_eq!(remainder, U448::from(2_u64));
-    /// ```
-    pub fn rem(&self, rhs: &NonZero<Self>) -> Self {
-        // Since `rhs` is nonzero, this should always hold.
-        let (r, _c) = self.const_rem(rhs);
-        r
->>>>>>> f36b4ff (docs: a few usage examples for div)
     }
 
     /// Wrapped division is just normal division i.e. `self` / `rhs`
     ///
     /// There’s no way wrapping could ever happen.
     /// This function exists, so that all operations are accounted for in the wrapping operations.
-<<<<<<< HEAD
     pub const fn wrapping_div_vartime(&self, rhs: &NonZero<Self>) -> Self {
         let (q, _) = self.div_rem_vartime(rhs);
-=======
-    ///
-    /// Panics if `rhs == 0`.
-    ///
-    /// # Usage:
-    /// ```
-    /// use crypto_bigint::U448;
-    ///
-    /// let a = U448::from(10_u64);
-    /// let b = U448::from(2_u64);
-    /// let quotient = a.wrapping_div(&b);
-    ///
-    /// assert_eq!(quotient, U448::from(5_u64));
-    /// ```
-    pub const fn wrapping_div(&self, rhs: &Self) -> Self {
-        let (q, _, c) = self.ct_div_rem(rhs);
-        assert!(c.is_true_vartime(), "divide by zero");
->>>>>>> f36b4ff (docs: a few usage examples for div)
         q
     }
 
