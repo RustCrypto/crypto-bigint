@@ -399,17 +399,7 @@ impl<const LIMBS: usize> RemAssign<&NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
 // Division by an Uint
 //
 
-impl<const LIMBS: usize> CheckedDiv<Uint<LIMBS>> for Uint<LIMBS> {
-    type Output = Self;
-
-    fn checked_div(&self, rhs: Uint<LIMBS>) -> CtOption<Self> {
-        self.checked_div(&rhs)
-    }
-}
-
-impl<const LIMBS: usize> CheckedDiv<&Uint<LIMBS>> for Uint<LIMBS> {
-    type Output = Self;
-
+impl<const LIMBS: usize> CheckedDiv for Uint<LIMBS> {
     fn checked_div(&self, rhs: &Uint<LIMBS>) -> CtOption<Self> {
         self.checked_div(rhs)
     }

@@ -1,5 +1,7 @@
 //! Checked arithmetic.
 
+use crate::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
+use core::ops::{Add, Div, Mul, Sub};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "serde")]
@@ -19,12 +21,243 @@ impl<T> Checked<T> {
     }
 }
 
-impl<T> Default for Checked<T>
+impl<T> Add<Self> for Checked<T>
 where
-    T: Default,
+    T: CheckedAdd + ConditionallySelectable + Default,
 {
-    fn default() -> Self {
-        Self::new(T::default())
+    type Output = Checked<T>;
+
+    #[inline]
+    fn add(self, rhs: Self) -> Self::Output {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(&rhs))),
+        )
+    }
+}
+
+impl<T> Add<&Self> for Checked<T>
+where
+    T: CheckedAdd + ConditionallySelectable + Default,
+{
+    type Output = Checked<T>;
+
+    #[inline]
+    fn add(self, rhs: &Self) -> Self::Output {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(&rhs))),
+        )
+    }
+}
+
+impl<T> Add<Checked<T>> for &Checked<T>
+where
+    T: CheckedAdd + ConditionallySelectable + Default,
+{
+    type Output = Checked<T>;
+
+    #[inline]
+    fn add(self, rhs: Checked<T>) -> Self::Output {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(&rhs))),
+        )
+    }
+}
+
+impl<T> Add<&Checked<T>> for &Checked<T>
+where
+    T: CheckedAdd + ConditionallySelectable + Default,
+{
+    type Output = Checked<T>;
+
+    #[inline]
+    fn add(self, rhs: &Checked<T>) -> Self::Output {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(&rhs))),
+        )
+    }
+}
+
+impl<T> Sub<Self> for Checked<T>
+where
+    T: CheckedSub + ConditionallySelectable + Default,
+{
+    type Output = Checked<T>;
+
+    #[inline]
+    fn sub(self, rhs: Self) -> Self::Output {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_sub(&rhs))),
+        )
+    }
+}
+
+impl<T> Sub<&Self> for Checked<T>
+where
+    T: CheckedSub + ConditionallySelectable + Default,
+{
+    type Output = Checked<T>;
+
+    #[inline]
+    fn sub(self, rhs: &Self) -> Self::Output {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_sub(&rhs))),
+        )
+    }
+}
+
+impl<T> Sub<Checked<T>> for &Checked<T>
+where
+    T: CheckedSub + ConditionallySelectable + Default,
+{
+    type Output = Checked<T>;
+
+    #[inline]
+    fn sub(self, rhs: Checked<T>) -> Self::Output {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_sub(&rhs))),
+        )
+    }
+}
+
+impl<T> Sub<&Checked<T>> for &Checked<T>
+where
+    T: CheckedSub + ConditionallySelectable + Default,
+{
+    type Output = Checked<T>;
+
+    #[inline]
+    fn sub(self, rhs: &Checked<T>) -> Self::Output {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_sub(&rhs))),
+        )
+    }
+}
+
+impl<T> Mul<Self> for Checked<T>
+where
+    T: CheckedMul + ConditionallySelectable + Default,
+{
+    type Output = Checked<T>;
+
+    #[inline]
+    fn mul(self, rhs: Self) -> Self::Output {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_mul(&rhs))),
+        )
+    }
+}
+
+impl<T> Mul<&Self> for Checked<T>
+where
+    T: CheckedMul + ConditionallySelectable + Default,
+{
+    type Output = Checked<T>;
+
+    #[inline]
+    fn mul(self, rhs: &Self) -> Self::Output {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_mul(&rhs))),
+        )
+    }
+}
+
+impl<T> Mul<Checked<T>> for &Checked<T>
+where
+    T: CheckedMul + ConditionallySelectable + Default,
+{
+    type Output = Checked<T>;
+
+    #[inline]
+    fn mul(self, rhs: Checked<T>) -> Self::Output {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_mul(&rhs))),
+        )
+    }
+}
+
+impl<T> Mul<&Checked<T>> for &Checked<T>
+where
+    T: CheckedMul + ConditionallySelectable + Default,
+{
+    type Output = Checked<T>;
+
+    #[inline]
+    fn mul(self, rhs: &Checked<T>) -> Self::Output {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_mul(&rhs))),
+        )
+    }
+}
+
+impl<T> Div<Self> for Checked<T>
+where
+    T: CheckedDiv + ConditionallySelectable + Default,
+{
+    type Output = Checked<T>;
+
+    #[inline]
+    fn div(self, rhs: Self) -> Self::Output {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_div(&rhs))),
+        )
+    }
+}
+
+impl<T> Div<&Self> for Checked<T>
+where
+    T: CheckedDiv + ConditionallySelectable + Default,
+{
+    type Output = Checked<T>;
+
+    #[inline]
+    fn div(self, rhs: &Self) -> Self::Output {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_div(&rhs))),
+        )
+    }
+}
+
+impl<T> Div<Checked<T>> for &Checked<T>
+where
+    T: CheckedDiv + ConditionallySelectable + Default,
+{
+    type Output = Checked<T>;
+
+    #[inline]
+    fn div(self, rhs: Checked<T>) -> Self::Output {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_div(&rhs))),
+        )
+    }
+}
+
+impl<T> Div<&Checked<T>> for &Checked<T>
+where
+    T: CheckedDiv + ConditionallySelectable + Default,
+{
+    type Output = Checked<T>;
+
+    #[inline]
+    fn div(self, rhs: &Checked<T>) -> Self::Output {
+        Checked(
+            self.0
+                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_div(&rhs))),
+        )
     }
 }
 
@@ -39,6 +272,15 @@ impl<T: ConstantTimeEq> ConstantTimeEq for Checked<T> {
     #[inline]
     fn ct_eq(&self, rhs: &Self) -> Choice {
         self.0.ct_eq(&rhs.0)
+    }
+}
+
+impl<T> Default for Checked<T>
+where
+    T: Default,
+{
+    fn default() -> Self {
+        Self::new(T::default())
     }
 }
 

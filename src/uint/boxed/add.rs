@@ -87,9 +87,7 @@ impl AddAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     }
 }
 
-impl CheckedAdd<&BoxedUint> for BoxedUint {
-    type Output = Self;
-
+impl CheckedAdd for BoxedUint {
     fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
         let (result, carry) = self.adc(rhs, Limb::ZERO);
         CtOption::new(result, carry.is_zero())

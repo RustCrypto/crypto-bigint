@@ -33,7 +33,7 @@ impl Add for Limb {
 
     #[inline]
     fn add(self, rhs: Self) -> Self {
-        self.checked_add(rhs)
+        self.checked_add(&rhs)
             .expect("attempted to add with overflow")
     }
 }
@@ -52,54 +52,6 @@ impl AddAssign<&Wrapping<Limb>> for Wrapping<Limb> {
     }
 }
 
-impl Add for Checked<Limb> {
-    type Output = Self;
-
-    #[inline]
-    fn add(self, rhs: Self) -> Checked<Limb> {
-        Checked(
-            self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(rhs))),
-        )
-    }
-}
-
-impl Add<&Checked<Limb>> for Checked<Limb> {
-    type Output = Checked<Limb>;
-
-    #[inline]
-    fn add(self, rhs: &Checked<Limb>) -> Checked<Limb> {
-        Checked(
-            self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(rhs))),
-        )
-    }
-}
-
-impl Add<Checked<Limb>> for &Checked<Limb> {
-    type Output = Checked<Limb>;
-
-    #[inline]
-    fn add(self, rhs: Checked<Limb>) -> Checked<Limb> {
-        Checked(
-            self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(rhs))),
-        )
-    }
-}
-
-impl Add<&Checked<Limb>> for &Checked<Limb> {
-    type Output = Checked<Limb>;
-
-    #[inline]
-    fn add(self, rhs: &Checked<Limb>) -> Checked<Limb> {
-        Checked(
-            self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(rhs))),
-        )
-    }
-}
-
 impl AddAssign for Checked<Limb> {
     #[inline]
     fn add_assign(&mut self, other: Self) {
@@ -115,11 +67,9 @@ impl AddAssign<&Checked<Limb>> for Checked<Limb> {
 }
 
 impl CheckedAdd for Limb {
-    type Output = Self;
-
     #[inline]
-    fn checked_add(&self, rhs: Self) -> CtOption<Self> {
-        let (result, carry) = self.adc(rhs, Limb::ZERO);
+    fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
+        let (result, carry) = self.adc(*rhs, Limb::ZERO);
         CtOption::new(result, carry.is_zero())
     }
 }
@@ -161,13 +111,13 @@ mod tests {
 
     #[test]
     fn checked_add_ok() {
-        let result = Limb::ZERO.checked_add(Limb::ONE);
+        let result = Limb::ZERO.checked_add(&Limb::ONE);
         assert_eq!(result.unwrap(), Limb::ONE);
     }
 
     #[test]
     fn checked_add_overflow() {
-        let result = Limb::MAX.checked_add(Limb::ONE);
+        let result = Limb::MAX.checked_add(&Limb::ONE);
         assert!(!bool::from(result.is_some()));
     }
 }
