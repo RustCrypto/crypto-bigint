@@ -32,14 +32,13 @@ proptest! {
         let p_bi = to_biguint(&P);
 
         let expected_is_some = x_bi.gcd(&p_bi) == BigUint::one();
-
-        let inverter = BernsteinYangInverter::<6>::new(P.as_words(), &[1]);
-        let actual = inverter.invert::<{U256::LIMBS}>(x.as_words());
+        let inverter = BernsteinYangInverter::<{U256::LIMBS}, 6>::new(P.as_words(), &[1]);
+        let actual = inverter.invert(&x);
 
         prop_assert_eq!(bool::from(expected_is_some), actual.is_some());
 
         if let Some(actual) = actual {
-            let inv_bi = to_biguint(&U256::from(actual));
+            let inv_bi = to_biguint(&actual);
             let res = (inv_bi * x_bi) % p_bi;
             prop_assert_eq!(res, BigUint::one());
         }
