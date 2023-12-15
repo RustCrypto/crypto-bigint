@@ -59,17 +59,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     where
         Uint<HLIMBS>: ConcatMixed<Self>,
     {
-        let (lo, hi) = self.widening_mul_split(rhs);
+        let (lo, hi) = self.split_mul(rhs);
         hi.concat_mixed(&lo)
     }
 
-    /// Compute "wide" multiplication, with a product twice the size of the input.
-    ///
-    /// Returns a tuple containing the `(lo, hi)` components of the product.
-    pub const fn widening_mul_split<const HLIMBS: usize>(
-        &self,
-        rhs: &Uint<HLIMBS>,
-    ) -> (Self, Uint<HLIMBS>) {
+    /// Compute "wide" multiplication as a 2-tuple containing the `(lo, hi)` components of the product, whose sizes
+    /// correspond to the sizes of the operands.
+    pub const fn split_mul<const HLIMBS: usize>(&self, rhs: &Uint<HLIMBS>) -> (Self, Uint<HLIMBS>) {
         let mut lo = Self::ZERO;
         let mut hi = Uint::<HLIMBS>::ZERO;
         impl_schoolbook_multiplication!(&self.limbs, &rhs.limbs, lo.limbs, hi.limbs);
@@ -78,12 +74,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Perform wrapping multiplication, discarding overflow.
     pub const fn wrapping_mul<const H: usize>(&self, rhs: &Uint<H>) -> Self {
-        self.widening_mul_split(rhs).0
+        self.split_mul(rhs).0
     }
 
     /// Perform saturating multiplication, returning `MAX` on overflow.
     pub const fn saturating_mul<const HLIMBS: usize>(&self, rhs: &Uint<HLIMBS>) -> Self {
-        let (res, overflow) = self.widening_mul_split(rhs);
+        let (res, overflow) = self.split_mul(rhs);
         Self::select(&res, &Self::MAX, overflow.is_nonzero())
     }
 
@@ -185,7 +181,7 @@ impl<const LIMBS: usize, const HLIMBS: usize> CheckedMul<&Uint<HLIMBS>> for Uint
 
     #[inline]
     fn checked_mul(&self, rhs: &Uint<HLIMBS>) -> CtOption<Self> {
-        let (lo, hi) = self.widening_mul_split(rhs);
+        let (lo, hi) = self.split_mul(rhs);
         CtOption::new(lo, hi.is_zero())
     }
 }
@@ -373,22 +369,10 @@ mod tests {
 
     #[test]
     fn mul_wide_zero_and_one() {
-        assert_eq!(
-            U64::ZERO.widening_mul_split(&U64::ZERO),
-            (U64::ZERO, U64::ZERO)
-        );
-        assert_eq!(
-            U64::ZERO.widening_mul_split(&U64::ONE),
-            (U64::ZERO, U64::ZERO)
-        );
-        assert_eq!(
-            U64::ONE.widening_mul_split(&U64::ZERO),
-            (U64::ZERO, U64::ZERO)
-        );
-        assert_eq!(
-            U64::ONE.widening_mul_split(&U64::ONE),
-            (U64::ONE, U64::ZERO)
-        );
+        assert_eq!(U64::ZERO.split_mul(&U64::ZERO), (U64::ZERO, U64::ZERO));
+        assert_eq!(U64::ZERO.split_mul(&U64::ONE), (U64::ZERO, U64::ZERO));
+        assert_eq!(U64::ONE.split_mul(&U64::ZERO), (U64::ZERO, U64::ZERO));
+        assert_eq!(U64::ONE.split_mul(&U64::ONE), (U64::ONE, U64::ZERO));
     }
 
     #[test]
@@ -397,7 +381,7 @@ mod tests {
 
         for &a_int in primes {
             for &b_int in primes {
-                let (lo, hi) = U64::from_u32(a_int).widening_mul_split(&U64::from_u32(b_int));
+                let (lo, hi) = U64::from_u32(a_int).split_mul(&U64::from_u32(b_int));
                 let expected = U64::from_u64(a_int as u64 * b_int as u64);
                 assert_eq!(lo, expected);
                 assert!(bool::from(hi.is_zero()));

@@ -61,7 +61,7 @@ mod tests {
 
     #[test]
     fn convert() {
-        let res: U128 = U64::ONE.widening_mul_split(&U64::ONE).into();
+        let res: U128 = U64::ONE.split_mul(&U64::ONE).into();
         assert_eq!(res, U128::ONE);
 
         let res: U128 = U64::ONE.square_wide().into();
