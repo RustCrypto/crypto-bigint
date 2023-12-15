@@ -1,6 +1,6 @@
 //! [`BoxedUint`] bitwise left shift operations.
 
-use crate::{BoxedUint, ConstantTimeSelect, ConstChoice, Limb, WrappingShl, Zero};
+use crate::{BoxedUint, ConstantTimeSelect,  ConstChoice, Limb, Word, WrappingShl, Zero};
 use core::ops::{Shl, ShlAssign};
 use subtle::{Choice, ConstantTimeLess};
 
@@ -146,6 +146,38 @@ impl BoxedUint {
             self.limbs[i].0 |= carry;
             carry = new_carry
         }
+    }
+
+    /// Computes `self << shift` where `0 <= shift < Limb::BITS`,
+    /// returning the result and the carry.
+    pub(crate) fn shl_limb(&self, shift: u32) -> (Self, Limb) {
+        let mut limbs = vec![Limb::ZERO; self.limbs.len()];
+
+        let nz = ConstChoice::from_u32_nonzero(shift);
+        let lshift = shift;
+        let rshift = nz.if_true_u32(Limb::BITS - shift);
+        let carry = nz.if_true_word(
+            self.limbs[self.limbs.len() - 1]
+                .0
+                .wrapping_shr(Word::BITS - shift),
+        );
+
+        limbs[0] = Limb(self.limbs[0].0 << lshift);
+        let mut i = 1;
+        while i < self.limbs.len() {
+            let mut limb = self.limbs[i].0 << lshift;
+            let hi = self.limbs[i - 1].0 >> rshift;
+            limb |= nz.if_true_word(hi);
+            limbs[i] = Limb(limb);
+            i += 1
+        }
+
+        (
+            BoxedUint {
+                limbs: limbs.into(),
+            },
+            Limb(carry),
+        )
     }
 }
 
