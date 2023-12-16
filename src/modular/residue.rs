@@ -1,14 +1,15 @@
 //! Implements `Residue`s, supporting modular arithmetic with a constant modulus.
 
 mod add;
-mod inv;
+pub(super) mod inv;
 mod mul;
 mod neg;
 mod pow;
 mod sub;
 
-use super::{div_by_2::div_by_2, reduction::montgomery_reduction, Retrieve};
-use crate::{Limb, NonZero, Uint, ZeroConstant};
+use self::inv::ResidueInverter;
+use super::{div_by_2::div_by_2, reduction::montgomery_reduction, BernsteinYangInverter, Retrieve};
+use crate::{Limb, NonZero, PrecomputeInverter, Uint, ZeroConstant};
 use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
@@ -48,6 +49,19 @@ pub trait ResidueParams<const LIMBS: usize>:
     /// The lowest limbs of -(MODULUS^-1) mod R
     // We only need the LSB because during reduction this value is multiplied modulo 2**Limb::BITS.
     const MOD_NEG_INV: Limb;
+
+    /// Precompute a Bernstein-Yang inverter for this modulus.
+    ///
+    /// Use [`ResidueInverter::new`] if you need `const fn` access.
+    fn precompute_inverter<const UNSAT_LIMBS: usize>() -> ResidueInverter<Self, LIMBS>
+    where
+        Uint<LIMBS>: PrecomputeInverter<
+            Inverter = BernsteinYangInverter<LIMBS, UNSAT_LIMBS>,
+            Output = Uint<LIMBS>,
+        >,
+    {
+        ResidueInverter::new()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
