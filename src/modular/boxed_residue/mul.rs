@@ -301,7 +301,7 @@ fn sub_vv(z: &mut [Limb], x: &[Limb], y: &[Limb]) -> Limb {
     for (i, (&xi, &yi)) in x.iter().zip(y.iter()).enumerate().take(z.len()) {
         let zi = xi.wrapping_sub(yi).wrapping_sub(c);
         z[i] = zi;
-        // see "Hacker's Delight", section 2-12 (overflow detection)
+        // See "Hacker's Delight" 2nd ed, section 2-13 (Overflow detection)
         c = ((yi & !xi) | ((yi | !xi) & zi)) >> (Word::BITS - 1)
     }
 

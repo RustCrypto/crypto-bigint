@@ -71,7 +71,16 @@ impl ConstChoice {
     /// Returns the truthy value if `x < y`, and the falsy value otherwise.
     #[inline]
     pub(crate) const fn from_word_lt(x: Word, y: Word) -> Self {
+        // See "Hacker's Delight" 2nd ed, section 2-12 (Comparison predicates)
         let bit = (((!x) & y) | (((!x) | y) & (x.wrapping_sub(y)))) >> (Word::BITS - 1);
+        Self::from_word_lsb(bit)
+    }
+
+    /// Returns the truthy value if `x > y`, and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn from_word_gt(x: Word, y: Word) -> Self {
+        // See "Hacker's Delight" 2nd ed, section 2-12 (Comparison predicates)
+        let bit = (((!y) & x) | (((!y) | x) & (y.wrapping_sub(x)))) >> (Word::BITS - 1);
         Self::from_word_lsb(bit)
     }
 
@@ -147,6 +156,7 @@ impl ConstChoice {
 }
 
 impl From<ConstChoice> for Choice {
+    #[inline]
     fn from(choice: ConstChoice) -> Self {
         Choice::from(choice.to_u8())
     }
@@ -168,6 +178,20 @@ impl PartialEq for ConstChoice {
 mod tests {
     use super::ConstChoice;
     use crate::Word;
+
+    #[test]
+    fn from_word_lt() {
+        assert_eq!(ConstChoice::from_word_lt(4, 5), ConstChoice::TRUE);
+        assert_eq!(ConstChoice::from_word_lt(5, 5), ConstChoice::FALSE);
+        assert_eq!(ConstChoice::from_word_lt(6, 5), ConstChoice::FALSE);
+    }
+
+    #[test]
+    fn from_word_gt() {
+        assert_eq!(ConstChoice::from_word_gt(4, 5), ConstChoice::FALSE);
+        assert_eq!(ConstChoice::from_word_gt(5, 5), ConstChoice::FALSE);
+        assert_eq!(ConstChoice::from_word_gt(6, 5), ConstChoice::TRUE);
+    }
 
     #[test]
     fn select() {
