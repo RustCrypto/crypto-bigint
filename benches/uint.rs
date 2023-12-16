@@ -208,6 +208,25 @@ fn bench_inv_mod(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_shl, bench_shr, bench_division, bench_inv_mod);
+fn bench_sqrt(c: &mut Criterion) {
+    let mut group = c.benchmark_group("sqrt");
+
+    group.bench_function("sqrt, U256", |b| {
+        b.iter_batched(
+            || U256::random(&mut OsRng),
+            |x| x.sqrt(),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
+criterion_group!(
+    benches,
+    bench_shl,
+    bench_shr,
+    bench_division,
+    bench_inv_mod,
+    bench_sqrt
+);
 
 criterion_main!(benches);
