@@ -168,8 +168,7 @@ pub trait Inverter {
     type Output;
 
     /// Compute a modular inversion, returning `None` if `value` is zero.
-    // TODO(tarcieri): return `CtOption` instead?
-    fn invert(&self, value: &Self::Output) -> Option<Self::Output>;
+    fn invert(&self, value: &Self::Output) -> CtOption<Self::Output>;
 
     /// Compute a modular inversion of a non-zero input.
     fn invert_nz(&self, value: &NonZero<Self::Output>) -> Self::Output
