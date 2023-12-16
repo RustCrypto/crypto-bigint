@@ -52,6 +52,12 @@ prop_compose! {
     }
 }
 prop_compose! {
+    /// Generate a single residue.
+    fn residue()(a in uint(), n in modulus()) -> BoxedResidue {
+        reduce(&a, n.clone())
+    }
+}
+prop_compose! {
     /// Generate two residues with a common modulus.
     fn residue_pair()(a in uint(), b in uint(), n in modulus()) -> (BoxedResidue, BoxedResidue) {
         (reduce(&a, n.clone()), reduce(&b, n.clone()))
@@ -90,11 +96,25 @@ proptest! {
     fn mul((a, b) in residue_pair()) {
         let p = a.params().modulus();
         let actual = &a * &b;
+        prop_assert!(actual.as_montgomery() < a.params().modulus());
 
         let a_bi = retrieve_biguint(&a);
         let b_bi = retrieve_biguint(&b);
         let p_bi = to_biguint(&p);
         let expected = (a_bi * b_bi) % p_bi;
+
+        prop_assert_eq!(retrieve_biguint(&actual), expected);
+    }
+
+    #[test]
+    fn square(a in residue()) {
+        let p = a.params().modulus();
+        let actual = a.square();
+        prop_assert!(actual.as_montgomery() < a.params().modulus());
+
+        let a_bi = retrieve_biguint(&a);
+        let p_bi = to_biguint(&p);
+        let expected = (&a_bi * &a_bi) % p_bi;
 
         prop_assert_eq!(retrieve_biguint(&actual), expected);
     }
