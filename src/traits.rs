@@ -138,27 +138,47 @@ pub trait Integer:
     }
 }
 
-/// Obtain a precomputed inverter for efficiently computing modular inversions for a given modulus.
-pub trait Inverter: Integer {
-    /// Inverter type for integers of this size.
-    type Inverter: Sized;
-
-    /// Obtain a precomputed inverter for `&self` as the modulus, using `Self::one()` as an adjusting parameter.
-    ///
-    /// Returns `None` if `self` is even.
-    fn inverter(&self) -> Self::Inverter {
-        Self::inverter_with_adjuster(self, &Self::one())
-    }
-
-    /// Obtain a precomputed inverter for `&self` as the modulus, supplying a custom adjusting parameter (e.g. R^2 for
-    /// when computing inversions in Montgomery form).
-    fn inverter_with_adjuster(&self, adjuster: &Self) -> Self::Inverter;
-}
-
 /// Fixed-width integers.
 pub trait FixedInteger: Bounded + ConditionallySelectable + Constants + Copy + Integer {
     /// The number of limbs used on this platform.
     const LIMBS: usize;
+}
+
+/// Obtain a precomputed inverter for efficiently computing modular inversions for a given modulus.
+pub trait PrecomputeInverter {
+    /// Inverter type for integers of this size.
+    type Inverter: Inverter<Output = Self::Output> + Sized;
+
+    /// Output produced by the inverter.
+    type Output;
+
+    /// Obtain a precomputed inverter for `&self` as the modulus, using `Self::one()` as an adjusting parameter.
+    ///
+    /// Returns `None` if `self` is even.
+    fn precompute_inverter(&self) -> Self::Inverter;
+
+    /// Obtain a precomputed inverter for `&self` as the modulus, supplying a custom adjusting parameter (e.g. R^2 for
+    /// when computing inversions in Montgomery form).
+    fn precompute_inverter_with_adjuster(&self, adjuster: &Self) -> Self::Inverter;
+}
+
+/// Trait impl'd by precomputed modular inverters.
+pub trait Inverter {
+    /// Output of an inversion.
+    type Output;
+
+    /// Compute a modular inversion, returning `None` if `value` is zero.
+    // TODO(tarcieri): return `CtOption` instead?
+    fn invert(&self, value: &Self::Output) -> Option<Self::Output>;
+
+    /// Compute a modular inversion of a non-zero input.
+    fn invert_nz(&self, value: &NonZero<Self::Output>) -> Self::Output
+    where
+        Self::Output: Zero,
+    {
+        self.invert(&value.0)
+            .expect("non-zero inputs are always invertable")
+    }
 }
 
 /// Zero values.

@@ -39,8 +39,8 @@ pub(crate) mod boxed;
 mod rand;
 
 use crate::{
-    modular::BernsteinYangInverter, Bounded, Constants, Encoding, FixedInteger, Integer, Inverter,
-    Limb, Word, ZeroConstant,
+    modular::BernsteinYangInverter, Bounded, Constants, Encoding, FixedInteger, Integer, Limb,
+    PrecomputeInverter, Word, ZeroConstant,
 };
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
