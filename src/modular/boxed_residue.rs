@@ -213,12 +213,13 @@ impl BoxedResidue {
         &self.residue_params
     }
 
-    /// Access the `DynResidue` value in Montgomery form.
+    /// Access the [`BoxedResidue`] value in Montgomery form.
     pub fn as_montgomery(&self) -> &BoxedUint {
+        debug_assert!(self.montgomery_form < self.residue_params.modulus);
         &self.montgomery_form
     }
 
-    /// Create a `DynResidue` from a value in Montgomery form.
+    /// Create a [`BoxedResidue`] from a value in Montgomery form.
     pub fn from_montgomery(integer: BoxedUint, residue_params: BoxedResidueParams) -> Self {
         debug_assert_eq!(integer.bits_precision(), residue_params.bits_precision());
         Self {
@@ -227,8 +228,9 @@ impl BoxedResidue {
         }
     }
 
-    /// Extract the value from the `DynResidue` in Montgomery form.
+    /// Extract the value from the [`BoxedResidue`] in Montgomery form.
     pub fn to_montgomery(&self) -> BoxedUint {
+        debug_assert!(self.montgomery_form < self.residue_params.modulus);
         self.montgomery_form.clone()
     }
 }

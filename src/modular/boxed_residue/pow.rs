@@ -67,7 +67,7 @@ fn pow_montgomery_form(
     powers.push(x.clone());
 
     for i in 2..(1 << WINDOW) {
-        powers.push(multiplier.mul(&powers[i - 1], x));
+        powers.push(multiplier.mul_amm(&powers[i - 1], x));
     }
 
     let starting_limb = ((exponent_bits - 1) / Limb::BITS) as usize;
@@ -96,7 +96,7 @@ fn pow_montgomery_form(
                 idx &= starting_window_mask;
             } else {
                 for _ in 1..=WINDOW {
-                    multiplier.square_assign(&mut z);
+                    multiplier.square_amm_assign(&mut z);
                 }
             }
 
@@ -106,7 +106,7 @@ fn pow_montgomery_form(
                 power.conditional_assign(&powers[i as usize], i.ct_eq(&idx));
             }
 
-            multiplier.mul_assign(&mut z, &power);
+            multiplier.mul_amm_assign(&mut z, &power);
         }
     }
 
