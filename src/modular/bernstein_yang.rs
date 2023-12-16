@@ -36,10 +36,10 @@ use subtle::CtOption;
 /// <https://gcd.cr.yp.to/safegcd-20190413.pdf>
 /// - P. Wuille, "The safegcd implementation in libsecp256k1 explained",
 /// <https://github.com/bitcoin-core/secp256k1/blob/master/doc/safegcd_implementation.md>
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct BernsteinYangInverter<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> {
     /// Modulus
-    modulus: Uint62L<UNSAT_LIMBS>,
+    pub(super) modulus: Uint62L<UNSAT_LIMBS>,
 
     /// Adjusting parameter
     adjuster: Uint62L<UNSAT_LIMBS>,
@@ -316,7 +316,7 @@ const fn unsat_to_sat<const S: usize>(input: &[u64]) -> [Word; S] {
 ///
 /// The arithmetic operations for this type are wrapping ones.
 #[derive(Clone, Copy, Debug)]
-struct Uint62L<const LIMBS: usize>(pub [u64; LIMBS]);
+pub(super) struct Uint62L<const LIMBS: usize>(pub [u64; LIMBS]);
 
 impl<const LIMBS: usize> Uint62L<LIMBS> {
     /// Number of bits in each limb.

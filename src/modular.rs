@@ -35,7 +35,7 @@ pub use self::{
     bernstein_yang::BernsteinYangInverter,
     dyn_residue::{DynResidue, DynResidueParams},
     reduction::montgomery_reduction,
-    residue::{Residue, ResidueParams},
+    residue::{inv::ResidueInverter, Residue, ResidueParams},
 };
 
 #[cfg(feature = "alloc")]
