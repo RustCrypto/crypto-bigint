@@ -10,7 +10,7 @@
 
 #![allow(clippy::needless_range_loop)]
 
-use crate::{Uint, Word};
+use crate::{Inverter, Limb, Uint, Word};
 
 /// Type of the modular multiplicative inverter based on the Bernstein-Yang method.
 /// The inverter can be created for a specified modulus M and adjusting parameter A
@@ -56,7 +56,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// Creates the inverter for specified modulus and adjusting parameter.
     #[allow(trivial_numeric_casts)]
     pub const fn new(modulus: &Uint<SAT_LIMBS>, adjuster: &Uint<SAT_LIMBS>) -> Self {
-        if UNSAT_LIMBS != unsat_nlimbs(SAT_LIMBS) {
+        if UNSAT_LIMBS != bernstein_yang_nlimbs!(SAT_LIMBS * Limb::BITS as usize) {
             panic!("BernsteinYangInverter has incorrect number of limbs");
         }
 
@@ -209,6 +209,16 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     }
 }
 
+impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Inverter
+    for BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>
+{
+    type Output = Uint<SAT_LIMBS>;
+
+    fn invert(&self, value: &Uint<SAT_LIMBS>) -> Option<Self::Output> {
+        self.invert(value)
+    }
+}
+
 /// Returns the multiplicative inverse of the argument modulo 2^62. The implementation is based
 /// on the Hurchalla's method for computing the multiplicative inverse modulo a power of two.
 /// For better understanding the implementation, the following paper is recommended:
@@ -294,12 +304,6 @@ const fn sat_to_unsat<const S: usize>(input: &[Word]) -> [u64; S] {
 #[allow(trivial_numeric_casts)]
 const fn unsat_to_sat<const S: usize>(input: &[u64]) -> [Word; S] {
     impl_limb_convert!(u64, 62, Word, Word::BITS as usize, S, input)
-}
-
-/// Compute the number of unsaturated limbs needed to represent a value with the given number of saturated limbs.
-const fn unsat_nlimbs(mut sat_nlimbs: usize) -> usize {
-    sat_nlimbs /= (64 / Word::BITS) as usize;
-    sat_nlimbs + (sat_nlimbs * 2).div_ceil(64) + 1
 }
 
 /// `Uint`-like (62 * LIMBS)-bit integer type, whose variables store numbers in the two's complement code as arrays of
