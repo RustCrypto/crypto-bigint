@@ -3,6 +3,7 @@
 /// Impl the `Inverter` trait, where we need to compute the number of unsaturated limbs for a given number of bits.
 macro_rules! impl_inverter_trait {
     ($name:ident, $bits:expr) => {
+        /// Precompute a Bernstein-Yang inverter using `self` as the modulus. Panics if called on an even number!
         impl PrecomputeInverter for $name {
             #[allow(trivial_numeric_casts)]
             type Inverter = BernsteinYangInverter<
@@ -17,7 +18,9 @@ macro_rules! impl_inverter_trait {
             }
 
             fn precompute_inverter_with_adjuster(&self, adjuster: &Self) -> Self::Inverter {
-                Self::Inverter::new(self, adjuster)
+                let (ret, is_some) = Self::Inverter::new(self, adjuster);
+                assert!(bool::from(is_some), "modulus must be odd");
+                ret
             }
         }
     };

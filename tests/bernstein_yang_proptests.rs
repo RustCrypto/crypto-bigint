@@ -1,6 +1,6 @@
 //! Equivalence tests for Bernstein-Yang inversions.
 
-use crypto_bigint::{Encoding, PrecomputeInverter, U256};
+use crypto_bigint::{Encoding, Inverter, PrecomputeInverter, U256};
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::One;
@@ -35,9 +35,9 @@ proptest! {
         let inverter = P.precompute_inverter();
         let actual = inverter.invert(&x);
 
-        prop_assert_eq!(bool::from(expected_is_some), actual.is_some());
+        prop_assert_eq!(expected_is_some, actual.is_some().into());
 
-        if let Some(actual) = actual {
+        if let Some(actual) = actual.into() {
             let inv_bi = to_biguint(&actual);
             let res = (inv_bi * x_bi) % p_bi;
             prop_assert_eq!(res, BigUint::one());

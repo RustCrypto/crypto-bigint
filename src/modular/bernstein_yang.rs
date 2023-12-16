@@ -10,7 +10,8 @@
 
 #![allow(clippy::needless_range_loop)]
 
-use crate::{Inverter, Limb, Uint, Word};
+use crate::{ConstChoice, Inverter, Limb, Uint, Word};
+use subtle::CtOption;
 
 /// Type of the modular multiplicative inverter based on the Bernstein-Yang method.
 /// The inverter can be created for a specified modulus M and adjusting parameter A
@@ -54,22 +55,26 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>
 {
     /// Creates the inverter for specified modulus and adjusting parameter.
+    ///
+    /// Modulus must be odd. Returns `ConstChoice::FALSE` if it is not.
     #[allow(trivial_numeric_casts)]
-    pub const fn new(modulus: &Uint<SAT_LIMBS>, adjuster: &Uint<SAT_LIMBS>) -> Self {
+    pub const fn new(modulus: &Uint<SAT_LIMBS>, adjuster: &Uint<SAT_LIMBS>) -> (Self, ConstChoice) {
         if UNSAT_LIMBS != bernstein_yang_nlimbs!(SAT_LIMBS * Limb::BITS as usize) {
             panic!("BernsteinYangInverter has incorrect number of limbs");
         }
 
-        Self {
+        let ret = Self {
             modulus: Uint62L::<UNSAT_LIMBS>(sat_to_unsat::<UNSAT_LIMBS>(modulus.as_words())),
             adjuster: Uint62L::<UNSAT_LIMBS>(sat_to_unsat::<UNSAT_LIMBS>(adjuster.as_words())),
             inverse: inv_mod2_62(modulus.as_words()),
-        }
+        };
+
+        (ret, modulus.is_odd())
     }
 
     /// Returns either the adjusted modular multiplicative inverse for the argument or None
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus
-    pub const fn invert(&self, value: &Uint<SAT_LIMBS>) -> Option<Uint<SAT_LIMBS>> {
+    pub const fn inv(&self, value: &Uint<SAT_LIMBS>) -> (Uint<SAT_LIMBS>, ConstChoice) {
         let (mut d, mut e) = (Uint62L::ZERO, self.adjuster);
         let mut g = Uint62L::<UNSAT_LIMBS>(sat_to_unsat::<UNSAT_LIMBS>(value.as_words()));
         let (mut delta, mut f) = (1, self.modulus);
@@ -84,12 +89,9 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
         // of the integer to be inverted and the modulus the inverter was created for.
         // Thus, if "f" is neither 1 nor -1, then the sought inverse does not exist
         let antiunit = f.eq(&Uint62L::MINUS_ONE);
-        if !f.eq(&Uint62L::ONE) && !antiunit {
-            return None;
-        }
-
         let words = unsat_to_sat::<SAT_LIMBS>(&self.norm(d, antiunit).0);
-        Some(Uint::from_words(words))
+        let is_some = ConstChoice::from_word_lsb((f.eq(&Uint62L::ONE) || antiunit) as Word);
+        (Uint::from_words(words), is_some)
     }
 
     /// Returns the Bernstein-Yang transition matrix multiplied by 2^62 and the new value
@@ -214,8 +216,9 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Inverter
 {
     type Output = Uint<SAT_LIMBS>;
 
-    fn invert(&self, value: &Uint<SAT_LIMBS>) -> Option<Self::Output> {
-        self.invert(value)
+    fn invert(&self, value: &Uint<SAT_LIMBS>) -> CtOption<Self::Output> {
+        let (ret, choice) = self.inv(value);
+        CtOption::new(ret, choice.into())
     }
 }
 
