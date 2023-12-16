@@ -4,7 +4,7 @@ use super::{DynResidue, DynResidueParams};
 use crate::{
     modular::{inv::inv_montgomery_form, BernsteinYangInverter},
     traits::Invert,
-    ConstChoice, Inverter, PrecomputeInverter, PrecomputeInverterWithAdjuster, Uint,
+    ConstOption, Inverter, PrecomputeInverter, PrecomputeInverterWithAdjuster, Uint,
 };
 use core::fmt;
 use subtle::CtOption;
@@ -14,28 +14,28 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
     /// I.e. `self * self^-1 = 1`.
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
-    pub const fn invert(&self) -> (Self, ConstChoice) {
-        let (montgomery_form, is_some) = inv_montgomery_form(
+    pub const fn invert(&self) -> ConstOption<Self> {
+        let maybe_inverse = inv_montgomery_form(
             &self.montgomery_form,
             &self.residue_params.modulus,
             &self.residue_params.r3,
             self.residue_params.mod_neg_inv,
         );
+        let (montgomery_form, is_some) = maybe_inverse.components_ref();
 
         let value = Self {
-            montgomery_form,
+            montgomery_form: *montgomery_form,
             residue_params: self.residue_params,
         };
 
-        (value, is_some)
+        ConstOption::new(value, is_some)
     }
 }
 
 impl<const LIMBS: usize> Invert for DynResidue<LIMBS> {
     type Output = CtOption<Self>;
     fn invert(&self) -> Self::Output {
-        let (value, is_some) = self.invert();
-        CtOption::new(value, is_some.into())
+        self.invert().into()
     }
 }
 
@@ -114,7 +114,7 @@ mod tests {
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
         let x_mod = DynResidue::new(&x, params);
 
-        let (inv, _is_some) = x_mod.invert();
+        let inv = x_mod.invert().unwrap();
         let res = x_mod * inv;
 
         assert_eq!(res.retrieve(), U256::ONE);

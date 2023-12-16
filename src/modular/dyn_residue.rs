@@ -50,8 +50,9 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
         let r = Uint::MAX.rem(&nz_modulus).wrapping_add(&Uint::ONE);
         let r2 = Uint::rem_wide(r.square_wide(), &nz_modulus);
 
+        let maybe_inverse = modulus.inv_mod2k_vartime(Word::BITS);
         // If the inverse exists, it means the modulus is odd.
-        let (inv_mod_limb, modulus_is_odd) = modulus.inv_mod2k_vartime(Word::BITS);
+        let (inv_mod_limb, modulus_is_odd) = maybe_inverse.components_ref();
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));
 
         let r3 = montgomery_reduction(&r2.square_wide(), modulus, mod_neg_inv);

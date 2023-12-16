@@ -2,7 +2,7 @@
 
 use crypto_bigint::{
     modular::{DynResidue, DynResidueParams},
-    ConstChoice, Encoding, Limb, NonZero, Word, U256,
+    Encoding, Limb, NonZero, Word, U256,
 };
 use num_bigint::BigUint;
 use num_integer::Integer;
@@ -63,13 +63,14 @@ proptest! {
         // Add a 50% probability of overflow.
         let shift = u32::from(shift) % (U256::BITS * 2);
 
-        let expected = to_uint((a_bi << shift as usize) & ((BigUint::one() << U256::BITS as usize) - BigUint::one()));
-        let (actual, overflow) = a.overflowing_shl_vartime(shift.into());
+        let expected = to_uint(a_bi << shift as usize);
+        let actual = a.overflowing_shl_vartime(shift.into());
 
-        assert_eq!(expected, actual);
         if shift >= U256::BITS {
-            assert_eq!(actual, U256::ZERO);
-            assert_eq!(overflow, ConstChoice::TRUE);
+            assert!(bool::from(actual.is_none()));
+        }
+        else {
+            assert_eq!(expected, actual.unwrap());
         }
     }
 
@@ -80,13 +81,14 @@ proptest! {
         // Add a 50% probability of overflow.
         let shift = u32::from(shift) % (U256::BITS * 2);
 
-        let expected = to_uint((a_bi << shift as usize) & ((BigUint::one() << U256::BITS as usize) - BigUint::one()));
-        let (actual, overflow) = a.overflowing_shl(shift);
+        let expected = to_uint(a_bi << shift as usize);
+        let actual = a.overflowing_shl(shift);
 
-        assert_eq!(expected, actual);
         if shift >= U256::BITS {
-            assert_eq!(actual, U256::ZERO);
-            assert_eq!(overflow, ConstChoice::TRUE);
+            assert!(bool::from(actual.is_none()));
+        }
+        else {
+            assert_eq!(expected, actual.unwrap());
         }
     }
 
@@ -98,12 +100,13 @@ proptest! {
         let shift = u32::from(shift) % (U256::BITS * 2);
 
         let expected = to_uint(a_bi >> shift as usize);
-        let (actual, overflow) = a.overflowing_shr_vartime(shift);
+        let actual = a.overflowing_shr_vartime(shift);
 
-        assert_eq!(expected, actual);
         if shift >= U256::BITS {
-            assert_eq!(actual, U256::ZERO);
-            assert_eq!(overflow, ConstChoice::TRUE);
+            assert!(bool::from(actual.is_none()));
+        }
+        else {
+            assert_eq!(expected, actual.unwrap());
         }
     }
 
@@ -115,12 +118,13 @@ proptest! {
         let shift = u32::from(shift) % (U256::BITS * 2);
 
         let expected = to_uint(a_bi >> shift as usize);
-        let (actual, overflow) = a.overflowing_shr(shift);
+        let actual = a.overflowing_shr(shift);
 
-        assert_eq!(expected, actual);
         if shift >= U256::BITS {
-            assert_eq!(actual, U256::ZERO);
-            assert_eq!(overflow, ConstChoice::TRUE);
+            assert!(bool::from(actual.is_none()));
+        }
+        else {
+            assert_eq!(expected, actual.unwrap());
         }
     }
 
@@ -278,11 +282,9 @@ proptest! {
         let a_bi = to_biguint(&a);
         let m_bi = BigUint::one() << k as usize;
 
-        let (actual, is_some) = a.inv_mod2k(k);
-        let (actual_vartime, is_some_vartime) = a.inv_mod2k_vartime(k);
+        let actual = a.inv_mod2k(k).unwrap();
+        let actual_vartime = a.inv_mod2k_vartime(k).unwrap();
         assert_eq!(actual, actual_vartime);
-        assert_eq!(is_some, ConstChoice::TRUE);
-        assert_eq!(is_some_vartime, ConstChoice::TRUE);
 
         if k == 0 {
             assert_eq!(actual, U256::ZERO);
@@ -299,12 +301,14 @@ proptest! {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
 
-        let expected_is_some = if a_bi.gcd(&b_bi) == BigUint::one() { ConstChoice::TRUE } else { ConstChoice::FALSE };
-        let (actual, actual_is_some) = a.inv_mod(&b);
+        let expected_is_some = a_bi.gcd(&b_bi) == BigUint::one();
+        let actual = a.inv_mod(&b);
+        let actual_is_some = bool::from(actual.is_some());
 
-        assert_eq!(bool::from(expected_is_some), bool::from(actual_is_some));
+        assert_eq!(expected_is_some, actual_is_some);
 
-        if actual_is_some.into() {
+        if actual_is_some {
+            let actual = actual.unwrap();
             let inv_bi = to_biguint(&actual);
             let res = (inv_bi * a_bi) % b_bi;
             assert_eq!(res, BigUint::one());
