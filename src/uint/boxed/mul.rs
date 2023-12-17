@@ -1,7 +1,7 @@
 //! [`BoxedUint`] multiplication operations.
 
 use crate::{
-    uint::mul::mul_limbs, BoxedUint, CheckedMul, Limb, WideningMul, Wrapping, WrappingMul, Zero,
+    uint::mul::mul_limbs, BoxedUint, CheckedMul, WideningMul, Wrapping, WrappingMul, Zero,
 };
 use core::ops::{Mul, MulAssign};
 use subtle::{Choice, CtOption};
