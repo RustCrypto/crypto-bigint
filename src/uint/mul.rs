@@ -277,6 +277,11 @@ impl<const LIMBS: usize> WrappingMul for Uint<LIMBS> {
 #[cfg(feature = "alloc")]
 pub(crate) fn mul_limbs(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) {
     debug_assert_eq!(lhs.len() + rhs.len(), out.len());
+    let (lhs, rhs) = if lhs.len() < rhs.len() {
+        (lhs, rhs)
+    } else {
+        (rhs, lhs)
+    };
     if lhs.len() <= 32 {
         schoolbook::mul(lhs, rhs, out);
     } else {
