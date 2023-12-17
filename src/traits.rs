@@ -54,7 +54,7 @@ pub trait ConstantTimeSelect: Clone {
     #[inline]
     fn ct_swap(a: &mut Self, b: &mut Self, choice: Choice) {
         let t: Self = a.clone();
-        a.ct_assign(&b, choice);
+        a.ct_assign(b, choice);
         b.ct_assign(&t, choice);
     }
 }
