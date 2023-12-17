@@ -13,7 +13,7 @@
 #[macro_use]
 mod macros;
 
-use crate::{ConstChoice, Inverter, Limb, Uint, Word};
+use crate::{ConstChoice, ConstCtOption, Inverter, Limb, Uint, Word};
 use subtle::CtOption;
 
 /// Type of the modular multiplicative inverter based on the Bernstein-Yang method.
@@ -61,19 +61,19 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     ///
     /// Modulus must be odd. Returns `ConstChoice::FALSE` if it is not.
     #[allow(trivial_numeric_casts)]
-    pub const fn new(modulus: &Uint<SAT_LIMBS>, adjuster: &Uint<SAT_LIMBS>) -> (Self, ConstChoice) {
+    pub const fn new(modulus: &Uint<SAT_LIMBS>, adjuster: &Uint<SAT_LIMBS>) -> ConstCtOption<Self> {
         let ret = Self {
             modulus: Uint62L::from_uint(modulus),
             adjuster: Uint62L::from_uint(adjuster),
             inverse: inv_mod2_62(modulus.as_words()),
         };
 
-        (ret, modulus.is_odd())
+        ConstCtOption::new(ret, modulus.is_odd())
     }
 
     /// Returns either the adjusted modular multiplicative inverse for the argument or None
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus
-    pub const fn inv(&self, value: &Uint<SAT_LIMBS>) -> (Uint<SAT_LIMBS>, ConstChoice) {
+    pub const fn inv(&self, value: &Uint<SAT_LIMBS>) -> ConstCtOption<Uint<SAT_LIMBS>> {
         let (mut d, mut e) = (Uint62L::ZERO, self.adjuster);
         let mut g = Uint62L::from_uint(value);
         let (mut delta, mut f) = (1, self.modulus);
@@ -90,7 +90,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
         let antiunit = f.eq(&Uint62L::MINUS_ONE);
         let ret = self.norm(d, antiunit);
         let is_some = ConstChoice::from_word_lsb((f.eq(&Uint62L::ONE) || antiunit) as Word);
-        (ret.to_uint(), is_some)
+        ConstCtOption::new(ret.to_uint(), is_some)
     }
 
     /// Returns the Bernstein-Yang transition matrix multiplied by 2^62 and the new value
@@ -216,8 +216,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Inverter
     type Output = Uint<SAT_LIMBS>;
 
     fn invert(&self, value: &Uint<SAT_LIMBS>) -> CtOption<Self::Output> {
-        let (ret, choice) = self.inv(value);
-        CtOption::new(ret, choice.into())
+        self.inv(value).into()
     }
 }
 
