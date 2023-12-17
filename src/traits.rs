@@ -167,17 +167,8 @@ pub trait Inverter {
     /// Output of an inversion.
     type Output;
 
-    /// Compute a modular inversion, returning `None` if `value` is zero.
+    /// Compute a modular inversion, returning `None` if the result is undefined (i.e. `value` is zero).
     fn invert(&self, value: &Self::Output) -> CtOption<Self::Output>;
-
-    /// Compute a modular inversion of a non-zero input.
-    fn invert_nz(&self, value: &NonZero<Self::Output>) -> Self::Output
-    where
-        Self::Output: Zero,
-    {
-        self.invert(&value.0)
-            .expect("non-zero inputs are always invertable")
-    }
 }
 
 /// Zero values.

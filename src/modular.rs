@@ -33,7 +33,7 @@ pub(crate) mod boxed_residue;
 
 pub use self::{
     bernstein_yang::BernsteinYangInverter,
-    dyn_residue::{DynResidue, DynResidueParams},
+    dyn_residue::{inv::DynResidueInverter, DynResidue, DynResidueParams},
     reduction::montgomery_reduction,
     residue::{inv::ResidueInverter, Residue, ResidueParams},
 };
