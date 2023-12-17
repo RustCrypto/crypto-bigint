@@ -48,7 +48,7 @@ impl BoxedUint {
         // At this point `x_prev == x_{n}` and `x == x_{n+1}`
         // where `n == i - 1 == LOG2_BITS + 1 == floor(log2(BITS)) + 1`.
         // Thus, according to Hast, `sqrt(self) = min(x_n, x_{n+1})`.
-        Self::select(&x_prev, &x, BoxedUint::gt(&x_prev, &x))
+        Self::conditional_select(&x_prev, &x, Self::gt(&x_prev, &x).into())
     }
 
     /// Computes √(`self`)

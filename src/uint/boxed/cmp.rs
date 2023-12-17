@@ -11,23 +11,6 @@ use subtle::{
 };
 
 impl BoxedUint {
-    /// Return `b` if `c` is truthy, otherwise return `a`.
-    #[inline]
-    pub(crate) fn select(a: &Self, b: &Self, c: ConstChoice) -> Self {
-        debug_assert_eq!(a.limbs.len(), b.limbs.len());
-        let mut limbs = vec![Limb::ZERO; a.limbs.len()];
-
-        let mut i = 0;
-        while i < limbs.len() {
-            limbs[i] = Limb::select(a.limbs[i], b.limbs[i], c);
-            i += 1;
-        }
-
-        Self {
-            limbs: limbs.into(),
-        }
-    }
-
     /// Returns the truthy value if `self >= rhs` and the falsy value otherwise.
     #[inline]
     pub(crate) fn gt(lhs: &Self, rhs: &Self) -> ConstChoice {
