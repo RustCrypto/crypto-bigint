@@ -3,7 +3,7 @@
 use super::{Residue, ResidueParams};
 use crate::{
     modular::{inv::inv_montgomery_form, BernsteinYangInverter},
-    ConstChoice, ConstCtOption, Invert, Inverter, NonZero, PrecomputeInverter, Uint,
+    ConstCtOption, Invert, Inverter, NonZero, PrecomputeInverter, Uint,
 };
 use core::{fmt, marker::PhantomData};
 use subtle::CtOption;
@@ -67,9 +67,11 @@ where
 {
     /// Create a new [`ResidueInverter`] for the given [`ResidueParams`].
     pub const fn new() -> Self {
+        let inverter =
+            BernsteinYangInverter::new(&MOD::MODULUS.0, &MOD::R2).expect("modulus should be valid");
+
         Self {
-            // Ensured always valid because the modulus has been checked in advance
-            inverter: BernsteinYangInverter::new(&MOD::MODULUS.0, &MOD::R2).0,
+            inverter,
             phantom: PhantomData,
         }
     }
@@ -79,13 +81,14 @@ where
     pub const fn inv(
         &self,
         value: &Residue<MOD, SAT_LIMBS>,
-    ) -> (Residue<MOD, SAT_LIMBS>, ConstChoice) {
-        let (montgomery_form, is_some) = self.inverter.inv(&value.montgomery_form);
+    ) -> ConstCtOption<Residue<MOD, SAT_LIMBS>> {
+        let montgomery_form = self.inverter.inv(&value.montgomery_form);
+        let (montgomery_form_ref, is_some) = montgomery_form.components_ref();
         let ret = Residue {
-            montgomery_form,
+            montgomery_form: *montgomery_form_ref,
             phantom: PhantomData,
         };
-        (ret, is_some)
+        ConstCtOption::new(ret, is_some)
     }
 }
 
@@ -100,8 +103,7 @@ where
     type Output = Residue<MOD, SAT_LIMBS>;
 
     fn invert(&self, value: &Residue<MOD, SAT_LIMBS>) -> CtOption<Self::Output> {
-        let (ret, choice) = self.inv(value);
-        CtOption::new(ret, choice.into())
+        self.inv(value).into()
     }
 }
 
