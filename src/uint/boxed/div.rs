@@ -181,14 +181,14 @@ impl BoxedUint {
             let mut prod = b.mul(&q0).normalize_vartime();
 
             std::dbg!(prod.as_words(), &a.as_words(), j);
-            while cmp_slice(&prod.as_words(), &a.as_words()[(j as usize)..]) == Ordering::Greater {
+            while cmp_slice(&prod.limbs, &a.as_limbs()[(j as usize)..]) == Ordering::Greater {
                 let one = Self::one();
                 q0 = q0.checked_sub(&one).unwrap();
                 prod = prod.checked_sub(&b).unwrap();
             }
 
-            add2(&mut q.as_words_mut()[(j as usize)..], q0.as_words());
-            sub2(&mut a.as_words_mut()[(j as usize)..], prod.as_words());
+            add2(&mut q.as_limbs_mut()[(j as usize)..], q0.as_limbs());
+            sub2(&mut a.as_limbs_mut()[(j as usize)..], prod.as_limbs());
             a = a.normalize_vartime();
         }
 

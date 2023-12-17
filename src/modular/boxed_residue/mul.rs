@@ -129,7 +129,7 @@ impl<'a> MontgomeryMultiplier<'a> {
         debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
         debug_assert_eq!(b.bits_precision(), self.modulus.bits_precision());
 
-        mul_limbs(a.as_words(), b.as_words(), self.product.as_words_mut());
+        mul_limbs(&a.limbs, &b.limbs, &mut self.product.limbs);
         montgomery_reduction_boxed_mut(&mut self.product, self.modulus, self.mod_neg_inv, a);
 
         debug_assert!(&*a < self.modulus);
@@ -147,7 +147,7 @@ impl<'a> MontgomeryMultiplier<'a> {
         debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
 
         // TODO(tarcieri): optimized implementation
-        mul_limbs(a.as_words(), a.as_words(), self.product.as_words_mut());
+        mul_limbs(&a.limbs, &a.limbs, &mut self.product.limbs);
         montgomery_reduction_boxed_mut(&mut self.product, self.modulus, self.mod_neg_inv, a);
 
         debug_assert!(&*a < self.modulus);

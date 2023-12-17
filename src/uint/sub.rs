@@ -113,7 +113,7 @@ pub(crate) fn sbb(a: Word, b: Word, acc: &mut SignedWideWord) -> Word {
     lo
 }
 
-pub(crate) fn sub2(a: &mut [Word], b: &[Word]) {
+pub(crate) fn sub2(a: &mut [Limb], b: &[Limb]) {
     let mut borrow = 0;
 
     let len = core::cmp::min(a.len(), b.len());
@@ -121,12 +121,12 @@ pub(crate) fn sub2(a: &mut [Word], b: &[Word]) {
     let (b_lo, b_hi) = b.split_at(len);
 
     for (a, b) in a_lo.iter_mut().zip(b_lo) {
-        *a = sbb(*a, *b, &mut borrow);
+        a.0 = sbb(a.0, b.0, &mut borrow);
     }
 
     if borrow != 0 {
         for a in a_hi {
-            *a = sbb(*a, 0, &mut borrow);
+            a.0 = sbb(a.0, 0, &mut borrow);
             if borrow == 0 {
                 break;
             }
@@ -135,7 +135,7 @@ pub(crate) fn sub2(a: &mut [Word], b: &[Word]) {
 
     // note: we're _required_ to fail on underflow
     assert!(
-        borrow == 0 && b_hi.iter().all(|x| *x == 0),
+        borrow == 0 && b_hi.iter().all(|x| num_traits::Zero::is_zero(x)),
         "Cannot subtract b from a because b is larger than a."
     );
 }
@@ -148,7 +148,7 @@ pub(crate) enum Sign {
 }
 
 #[cfg(feature = "alloc")]
-pub(crate) fn sub_sign(a: &[Word], b: &[Word]) -> (Sign, alloc::vec::Vec<Word>) {
+pub(crate) fn sub_sign(a: &[Limb], b: &[Limb]) -> (Sign, alloc::vec::Vec<Limb>) {
     use super::cmp::cmp_slice;
     use core::cmp::Ordering;
 

@@ -3,7 +3,7 @@
 //! By default these are all constant-time and use the `subtle` crate.
 
 use super::Uint;
-use crate::{ConstChoice, Limb, Word};
+use crate::{ConstChoice, Limb};
 use core::cmp::Ordering;
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
@@ -166,11 +166,11 @@ impl<const LIMBS: usize> PartialEq for Uint<LIMBS> {
     }
 }
 
-fn is_normalized(a: &[Word]) -> bool {
-    a.last() != Some(&0) || a == &[0]
+fn is_normalized(a: &[Limb]) -> bool {
+    a.last() != Some(&Limb::ZERO) || a == &[Limb::ZERO]
 }
 
-pub(crate) fn cmp_slice(a: &[Word], b: &[Word]) -> Ordering {
+pub(crate) fn cmp_slice(a: &[Limb], b: &[Limb]) -> Ordering {
     debug_assert!(is_normalized(a), "a: {:?} - {:?}", a, b);
     debug_assert!(is_normalized(b), "b: {:?} - {:?}", a, b);
 

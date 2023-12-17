@@ -3,7 +3,7 @@ use crate::{
         add::add2,
         sub::{sub2, sub_sign, Sign},
     },
-    Word,
+    Limb,
 };
 
 use super::mul_limbs as mac3;
@@ -64,7 +64,7 @@ use super::mul_limbs as mac3;
 ///
 /// The other trick we use is instead of doing explicit shifts, we slice acc at the
 /// appropriate offset when doing the add.
-pub(super) fn mul(x: &[Word], y: &[Word], acc: &mut [Word]) {
+pub(super) fn mul(x: &[Limb], y: &[Limb], acc: &mut [Limb]) {
     let b = x.len() / 2;
     let (x0, x1) = x.split_at(b);
     let (y0, y1) = y.split_at(b);
@@ -72,7 +72,7 @@ pub(super) fn mul(x: &[Word], y: &[Word], acc: &mut [Word]) {
     // We reuse the same container for all the intermediate multiplies and have to size p
     // appropriately here.
     let len = x1.len() + y1.len();
-    let mut p = vec![0; len];
+    let mut p = vec![Limb::ZERO; len];
 
     // p2 = x1 * y1
     mac3(x1, y1, &mut p[..]);
@@ -108,8 +108,8 @@ pub(super) fn mul(x: &[Word], y: &[Word], acc: &mut [Word]) {
     }
 }
 
-fn clear(v: &mut [Word]) {
+fn clear(v: &mut [Limb]) {
     for el in v {
-        *el = 0;
+        el.0 = 0;
     }
 }

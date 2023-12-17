@@ -106,33 +106,33 @@ impl<const LIMBS: usize> WrappingAdd for Uint<LIMBS> {
 ///
 /// The caller _must_ ensure that a is big enough to store the result - typically this means
 /// resizing a to max(a.len(), b.len()) + 1, to fit a possible carry.
-pub(crate) fn add2(a: &mut [Word], b: &[Word]) {
+pub(crate) fn add2(a: &mut [Limb], b: &[Limb]) {
     let carry = __add2(a, b);
 
-    assert!(carry == 0);
+    assert!(num_traits::Zero::is_zero(&carry));
 }
 
 #[inline]
-fn __add2(a: &mut [Word], b: &[Word]) -> Word {
+fn __add2(a: &mut [Limb], b: &[Limb]) -> Limb {
     debug_assert!(a.len() >= b.len(), "{} < {}", a.len(), b.len());
 
     let mut carry = 0;
     let (a_lo, a_hi) = a.split_at_mut(b.len());
 
     for (a, b) in a_lo.iter_mut().zip(b) {
-        *a = adc(*a, *b, &mut carry);
+        *a = Limb(adc(a.0, b.0, &mut carry));
     }
 
     if carry != 0 {
         for a in a_hi {
-            *a = adc(*a, 0, &mut carry);
+            *a = Limb(adc(a.0, 0, &mut carry));
             if carry == 0 {
                 break;
             }
         }
     }
 
-    carry as Word
+    Limb(carry as Word)
 }
 
 #[inline]
