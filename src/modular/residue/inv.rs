@@ -121,7 +121,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{const_residue, impl_modulus, modular::residue::ResidueParams, Inverter, U256};
+    use super::ResidueParams;
+    use crate::{const_residue, impl_modulus, Inverter, U256};
 
     impl_modulus!(
         Modulus,
