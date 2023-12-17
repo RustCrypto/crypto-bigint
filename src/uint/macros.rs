@@ -20,9 +20,7 @@ macro_rules! impl_precompute_inverter_trait {
 
         impl PrecomputeInverterWithAdjuster for $name {
             fn precompute_inverter_with_adjuster(&self, adjuster: &Self) -> Self::Inverter {
-                let (ret, is_some) = Self::Inverter::new(self, adjuster);
-                assert!(bool::from(is_some), "modulus must be odd");
-                ret
+                Self::Inverter::new(self, adjuster).expect("modulus must be odd")
             }
         }
     };
