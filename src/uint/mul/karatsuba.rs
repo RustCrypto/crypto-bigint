@@ -65,6 +65,7 @@ use super::mul_limbs as mac3;
 /// The other trick we use is instead of doing explicit shifts, we slice acc at the
 /// appropriate offset when doing the add.
 pub(super) fn mul(x: &[Limb], y: &[Limb], acc: &mut [Limb]) {
+    debug_assert_eq!(x.len(), y.len());
     let b = x.len() / 2;
     let (x0, x1) = x.split_at(b);
     let (y0, y1) = y.split_at(b);
@@ -84,7 +85,7 @@ pub(super) fn mul(x: &[Limb], y: &[Limb], acc: &mut [Limb]) {
     clear(&mut p);
 
     // p0 = x0 * y0
-    mac3(x0, y0, &mut p[..]);
+    mac3(x0, y0, &mut p[..x0.len() + y0.len()]);
 
     add2(&mut acc[..], &p[..]);
     add2(&mut acc[b..], &p[..]);

@@ -276,7 +276,14 @@ impl<const LIMBS: usize> WrappingMul for Uint<LIMBS> {
 /// Wrapper function used by `BoxedUint`
 #[cfg(feature = "alloc")]
 pub(crate) fn mul_limbs(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) {
-    debug_assert_eq!(lhs.len() + rhs.len(), out.len());
+    debug_assert_eq!(
+        lhs.len() + rhs.len(),
+        out.len(),
+        "{} + {} != {}",
+        lhs.len(),
+        rhs.len(),
+        out.len()
+    );
     let (lhs, rhs) = if lhs.len() < rhs.len() {
         (lhs, rhs)
     } else {

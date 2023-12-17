@@ -91,6 +91,7 @@ impl BoxedResidueParams {
 
         let r = BoxedUint::max(bits_precision)
             .rem_vartime(&modulus_nz)
+            .widen(bits_precision)
             .wrapping_add(&BoxedUint::one());
 
         let r2 = r.square();
