@@ -40,7 +40,7 @@ mod rand;
 
 use crate::{
     modular::BernsteinYangInverter, Bounded, Constants, Encoding, FixedInteger, Integer, Limb,
-    PrecomputeInverter, Word, ZeroConstant,
+    PrecomputeInverter, PrecomputeInverterWithAdjuster, Word, ZeroConstant,
 };
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
