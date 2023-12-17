@@ -1,5 +1,5 @@
 use super::Uint;
-use crate::ConstChoice;
+use crate::{ConstChoice, ConstCtOption};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes 1/`self` mod `2^k`.
@@ -8,7 +8,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// If the inverse does not exist (`k > 0` and `self` is even),
     /// returns `ConstChoice::FALSE` as the second element of the tuple,
     /// otherwise returns `ConstChoice::TRUE`.
-    pub const fn inv_mod2k_vartime(&self, k: u32) -> (Self, ConstChoice) {
+    pub const fn inv_mod2k_vartime(&self, k: u32) -> ConstCtOption<Self> {
         // Using the Algorithm 3 from "A Secure Algorithm for Inversion Modulo 2k"
         // by Sadiel de la Fe and Carles Ferrer.
         // See <https://www.mdpi.com/2410-387X/2/3/23>.
@@ -30,13 +30,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             // b_{i+1} = (b_i - a * X_i) / 2
             b = Self::select(&b, &b.wrapping_sub(self), x_i_choice).shr1();
             // Store the X_i bit in the result (x = x | (1 << X_i))
-            let (shifted, _overflow) = Uint::from_word(x_i).overflowing_shl_vartime(i);
+            let shifted = Uint::from_word(x_i)
+                .overflowing_shl_vartime(i)
+                .expect("shift within range");
             x = x.bitor(&shifted);
 
             i += 1;
         }
 
-        (x, is_some)
+        ConstCtOption::new(x, is_some)
     }
 
     /// Computes 1/`self` mod `2^k`.
@@ -44,7 +46,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// If the inverse does not exist (`k > 0` and `self` is even),
     /// returns `ConstChoice::FALSE` as the second element of the tuple,
     /// otherwise returns `ConstChoice::TRUE`.
-    pub const fn inv_mod2k(&self, k: u32) -> (Self, ConstChoice) {
+    pub const fn inv_mod2k(&self, k: u32) -> ConstCtOption<Self> {
         // This is the same algorithm as in `inv_mod2k_vartime()`,
         // but made constant-time w.r.t `k` as well.
 
@@ -74,7 +76,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             i += 1;
         }
 
-        (x, is_some)
+        ConstCtOption::new(x, is_some)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
@@ -93,7 +95,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         modulus: &Self,
         bits: u32,
         modulus_bits: u32,
-    ) -> (Self, ConstChoice) {
+    ) -> ConstCtOption<Self> {
         let mut a = *self;
 
         let mut u = Uint::ONE;
@@ -146,52 +148,58 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             .or(a.is_nonzero().not())
             .is_true_vartime());
 
-        (v, Uint::eq(&b, &Uint::ONE).and(modulus_is_odd))
+        ConstCtOption::new(v, Uint::eq(&b, &Uint::ONE).and(modulus_is_odd))
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     /// Returns `(inverse, ConstChoice::TRUE)` if an inverse exists,
     /// otherwise `(undefined, ConstChoice::FALSE)`.
-    pub const fn inv_odd_mod(&self, modulus: &Self) -> (Self, ConstChoice) {
+    pub const fn inv_odd_mod(&self, modulus: &Self) -> ConstCtOption<Self> {
         self.inv_odd_mod_bounded(modulus, Uint::<LIMBS>::BITS, Uint::<LIMBS>::BITS)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`.
     /// Returns `(inverse, ConstChoice::TRUE)` if an inverse exists,
     /// otherwise `(undefined, ConstChoice::FALSE)`.
-    pub const fn inv_mod(&self, modulus: &Self) -> (Self, ConstChoice) {
+    pub const fn inv_mod(&self, modulus: &Self) -> ConstCtOption<Self> {
         // Decompose `modulus = s * 2^k` where `s` is odd
         let k = modulus.trailing_zeros();
-        let (s, _overflow) = modulus.overflowing_shr(k);
+        let s = modulus.overflowing_shr(k).unwrap_or(Self::ZERO);
 
         // Decompose `self` into RNS with moduli `2^k` and `s` and calculate the inverses.
         // Using the fact that `(z^{-1} mod (m1 * m2)) mod m1 == z^{-1} mod m1`
-        let (a, a_is_some) = self.inv_odd_mod(&s);
-        let (b, b_is_some) = self.inv_mod2k(k);
+        let maybe_a = self.inv_odd_mod(&s);
+        let maybe_b = self.inv_mod2k(k);
+        let is_some = maybe_a.is_some().and(maybe_b.is_some());
+
+        // Unwrap to avoid mapping through ConstCtOptions.
+        // if `a` or `b` don't exist, the returned ConstCtOption will be None anyway.
+        let a = maybe_a.unwrap_or(Uint::ZERO);
+        let b = maybe_b.unwrap_or(Uint::ZERO);
 
         // Restore from RNS:
         // self^{-1} = a mod s = b mod 2^k
         // => self^{-1} = a + s * ((b - a) * s^(-1) mod 2^k)
         // (essentially one step of the Garner's algorithm for recovery from RNS).
 
-        let (m_odd_inv, _is_some) = s.inv_mod2k(k); // `s` is odd, so this always exists
+        // `s` is odd, so this always exists
+        let m_odd_inv = s.inv_mod2k(k).expect("inverse mod 2^k exists");
 
         // This part is mod 2^k
-        // Will not overflow since `modulus` is nonzero, and therefore `k < BITS`.
-        let (shifted, _overflow) = Uint::ONE.overflowing_shl(k);
+        let shifted = Uint::ONE.overflowing_shl(k).unwrap_or(Self::ZERO);
         let mask = shifted.wrapping_sub(&Uint::ONE);
         let t = (b.wrapping_sub(&a).wrapping_mul(&m_odd_inv)).bitand(&mask);
 
         // Will not overflow since `a <= s - 1`, `t <= 2^k - 1`,
         // so `a + s * t <= s * 2^k - 1 == modulus - 1`.
         let result = a.wrapping_add(&s.wrapping_mul(&t));
-        (result, a_is_some.and(b_is_some))
+        ConstCtOption::new(result, is_some)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, U1024, U256, U64};
+    use crate::{U1024, U256, U64};
 
     #[test]
     fn inv_mod2k() {
@@ -199,25 +207,21 @@ mod tests {
             U256::from_be_hex("fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f");
         let e =
             U256::from_be_hex("3642e6faeaac7c6663b93d3d6a0d489e434ddc0123db5fa627c7f6e22ddacacf");
-        let (a, is_some) = v.inv_mod2k(256);
+        let a = v.inv_mod2k(256).unwrap();
         assert_eq!(e, a);
-        assert_eq!(is_some, ConstChoice::TRUE);
 
-        let (a, is_some) = v.inv_mod2k_vartime(256);
+        let a = v.inv_mod2k_vartime(256).unwrap();
         assert_eq!(e, a);
-        assert_eq!(is_some, ConstChoice::TRUE);
 
         let v =
             U256::from_be_hex("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141");
         let e =
             U256::from_be_hex("261776f29b6b106c7680cf3ed83054a1af5ae537cb4613dbb4f20099aa774ec1");
-        let (a, is_some) = v.inv_mod2k(256);
+        let a = v.inv_mod2k(256).unwrap();
         assert_eq!(e, a);
-        assert_eq!(is_some, ConstChoice::TRUE);
 
-        let (a, is_some) = v.inv_mod2k_vartime(256);
+        let a = v.inv_mod2k_vartime(256).unwrap();
         assert_eq!(e, a);
-        assert_eq!(is_some, ConstChoice::TRUE);
 
         // Check that even if the number is >= 2^k, the inverse is still correct.
 
@@ -225,27 +229,24 @@ mod tests {
             U256::from_be_hex("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141");
         let e =
             U256::from_be_hex("0000000000000000000000000000000000000000034613dbb4f20099aa774ec1");
-        let (a, is_some) = v.inv_mod2k(90);
+        let a = v.inv_mod2k(90).unwrap();
         assert_eq!(e, a);
-        assert_eq!(is_some, ConstChoice::TRUE);
 
-        let (a, is_some) = v.inv_mod2k_vartime(90);
+        let a = v.inv_mod2k_vartime(90).unwrap();
         assert_eq!(e, a);
-        assert_eq!(is_some, ConstChoice::TRUE);
 
         // An inverse of an even number does not exist.
 
-        let (_a, is_some) = U256::from(10u64).inv_mod2k(4);
-        assert_eq!(is_some, ConstChoice::FALSE);
+        let a = U256::from(10u64).inv_mod2k(4);
+        assert!(a.is_none().is_true_vartime());
 
-        let (_a, is_some) = U256::from(10u64).inv_mod2k_vartime(4);
-        assert_eq!(is_some, ConstChoice::FALSE);
+        let a = U256::from(10u64).inv_mod2k_vartime(4);
+        assert!(a.is_none().is_true_vartime());
 
         // A degenerate case. An inverse mod 2^0 == 1 always exists even for even numbers.
 
-        let (a, is_some) = U256::from(10u64).inv_mod2k_vartime(0);
+        let a = U256::from(10u64).inv_mod2k_vartime(0).unwrap();
         assert_eq!(a, U256::ZERO);
-        assert_eq!(is_some, ConstChoice::TRUE);
     }
 
     #[test]
@@ -269,17 +270,15 @@ mod tests {
             "3E520968399B4017BF98A864FABA2B647EFC4998B56774D4F2CB026BC024A336"
         ]);
 
-        let (res, is_some) = a.inv_odd_mod(&m);
-        assert!(is_some.is_true_vartime());
+        let res = a.inv_odd_mod(&m).unwrap();
         assert_eq!(res, expected);
 
-        // Check that trying to pass an even modulus causes `is_some` to be falsy
-        let (_res, is_some) = a.inv_odd_mod(&(m.wrapping_add(&U1024::ONE)));
-        assert!(!is_some.is_true_vartime());
+        // Check that trying to pass an even modulus results in `None`
+        let res = a.inv_odd_mod(&(m.wrapping_add(&U1024::ONE)));
+        assert!(res.is_none().is_true_vartime());
 
         // Even though it is less efficient, it still works
-        let (res, is_some) = a.inv_mod(&m);
-        assert!(is_some.is_true_vartime());
+        let res = a.inv_mod(&m).unwrap();
         assert_eq!(res, expected);
     }
 
@@ -295,8 +294,8 @@ mod tests {
         let m = p1.wrapping_mul(&p2);
 
         // `m` is a multiple of `p1`, so no inverse exists
-        let (_res, is_some) = p1.inv_odd_mod(&m);
-        assert!(!is_some.is_true_vartime());
+        let res = p1.inv_odd_mod(&m);
+        assert!(res.is_none().is_true_vartime());
     }
 
     #[test]
@@ -320,8 +319,7 @@ mod tests {
             "5B9BFAE5D43C6BC6E7A9856C71C7318C76530E9E5AE35882D5ABB02F1696874D",
         ]);
 
-        let (res, is_some) = a.inv_mod(&m);
-        assert!(is_some.is_true_vartime());
+        let res = a.inv_mod(&m).unwrap();
         assert_eq!(res, expected);
     }
 
@@ -340,7 +338,7 @@ mod tests {
             "558D0B64E37CD0775C0D0104AE7D98BA23C815185DD43CD8B16292FD94156767"
         ]);
 
-        let (res, is_some) = a.inv_odd_mod_bounded(&m, 768, 512);
+        let res = a.inv_odd_mod_bounded(&m, 768, 512).unwrap();
 
         let expected = U1024::from_be_hex(concat![
             "0000000000000000000000000000000000000000000000000000000000000000",
@@ -348,7 +346,6 @@ mod tests {
             "0DCC94E2FE509E6EBBA0825645A38E73EF85D5927C79C1AD8FFE7C8DF9A822FA",
             "09EB396A21B1EF05CBE51E1A8EF284EF01EBDD36A9A4EA17039D8EEFDD934768"
         ]);
-        assert!(is_some.is_true_vartime());
         assert_eq!(res, expected);
     }
 
@@ -357,9 +354,7 @@ mod tests {
         let a = U64::from(3u64);
         let m = U64::from(13u64);
 
-        let (res, is_some) = a.inv_odd_mod(&m);
-
-        assert!(is_some.is_true_vartime());
+        let res = a.inv_odd_mod(&m).unwrap();
         assert_eq!(U64::from(9u64), res);
     }
 
@@ -368,8 +363,7 @@ mod tests {
         let a = U64::from(14u64);
         let m = U64::from(49u64);
 
-        let (_res, is_some) = a.inv_odd_mod(&m);
-
-        assert!(!is_some.is_true_vartime());
+        let res = a.inv_odd_mod(&m);
+        assert!(res.is_none().is_true_vartime());
     }
 }

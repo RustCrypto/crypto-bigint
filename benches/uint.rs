@@ -160,8 +160,8 @@ fn bench_inv_mod(c: &mut Criterion) {
                 let m = U256::random(&mut OsRng) | U256::ONE;
                 loop {
                     let x = U256::random(&mut OsRng);
-                    let (_, is_some) = x.inv_odd_mod(&m);
-                    if is_some.into() {
+                    let inv_x = x.inv_odd_mod(&m);
+                    if inv_x.is_some().into() {
                         break (x, m);
                     }
                 }
@@ -177,8 +177,8 @@ fn bench_inv_mod(c: &mut Criterion) {
                 let m = U256::random(&mut OsRng) | U256::ONE;
                 loop {
                     let x = U256::random(&mut OsRng);
-                    let (_, is_some) = x.inv_odd_mod(&m);
-                    if is_some.into() {
+                    let inv_x = x.inv_odd_mod(&m);
+                    if inv_x.is_some().into() {
                         break (x, m);
                     }
                 }
@@ -194,8 +194,8 @@ fn bench_inv_mod(c: &mut Criterion) {
                 let m = U256::random(&mut OsRng);
                 loop {
                     let x = U256::random(&mut OsRng);
-                    let (_, is_some) = black_box(x.inv_mod(&m));
-                    if is_some.into() {
+                    let inv_x = x.inv_mod(&m);
+                    if inv_x.is_some().into() {
                         break (x, m);
                     }
                 }
@@ -208,6 +208,25 @@ fn bench_inv_mod(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_shl, bench_shr, bench_division, bench_inv_mod);
+fn bench_sqrt(c: &mut Criterion) {
+    let mut group = c.benchmark_group("sqrt");
+
+    group.bench_function("sqrt, U256", |b| {
+        b.iter_batched(
+            || U256::random(&mut OsRng),
+            |x| x.sqrt(),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
+criterion_group!(
+    benches,
+    bench_shl,
+    bench_shr,
+    bench_division,
+    bench_inv_mod,
+    bench_sqrt
+);
 
 criterion_main!(benches);
