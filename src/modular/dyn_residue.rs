@@ -1,7 +1,7 @@
 //! Implements `DynResidue`s, supporting modular arithmetic with a modulus set at runtime.
 
 mod add;
-mod inv;
+pub(super) mod inv;
 mod mul;
 mod neg;
 mod pow;
@@ -17,7 +17,7 @@ use crate::{Limb, NonZero, Uint, Word, Zero};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct DynResidueParams<const LIMBS: usize> {
     /// The constant modulus
     modulus: Uint<LIMBS>,
