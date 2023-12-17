@@ -167,7 +167,7 @@ pub mod modular;
 #[cfg(feature = "generic-array")]
 mod array;
 mod checked;
-mod ct_choice;
+mod const_choice;
 mod limb;
 mod non_zero;
 mod traits;
@@ -176,7 +176,7 @@ mod wrapping;
 
 pub use crate::{
     checked::Checked,
-    ct_choice::ConstChoice,
+    const_choice::{ConstChoice, ConstCtOption},
     limb::{Limb, WideWord, Word},
     non_zero::NonZero,
     traits::*,

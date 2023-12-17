@@ -123,7 +123,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let (mut lower, mut upper) = lower_upper;
 
         // Factor of the modulus, split into two halves
-        let (mut c, _overflow) = Self::overflowing_shl_vartime_wide((rhs.0, Uint::ZERO), bd);
+        let mut c = Self::overflowing_shl_vartime_wide((rhs.0, Uint::ZERO), bd)
+            .expect("shift within range");
 
         loop {
             let (lower_sub, borrow) = lower.sbb(&c.0, Limb::ZERO);
@@ -135,8 +136,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 break;
             }
             bd -= 1;
-            let (new_c, _overflow) = Self::overflowing_shr_vartime_wide(c, 1);
-            c = new_c;
+            c = Self::overflowing_shr_vartime_wide(c, 1).expect("shift within range");
         }
 
         lower
@@ -201,8 +201,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Panics if `rhs == 0`.
     pub const fn wrapping_rem(&self, rhs: &Self) -> Self {
-        let (nz_rhs, c) = NonZero::<Self>::const_new(*rhs);
-        assert!(c.is_true_vartime(), "modulo zero");
+        let nz_rhs = NonZero::<Self>::const_new(*rhs).expect("non-zero divisor");
         self.rem(&nz_rhs)
     }
 
@@ -624,8 +623,9 @@ mod tests {
     fn div() {
         let mut rng = ChaChaRng::from_seed([7u8; 32]);
         for _ in 0..25 {
-            let (num, _) = U256::random(&mut rng).overflowing_shr_vartime(128);
-            let den = NonZero::new(U256::random(&mut rng).overflowing_shr_vartime(128).0).unwrap();
+            let num = U256::random(&mut rng).overflowing_shr_vartime(128).unwrap();
+            let den =
+                NonZero::new(U256::random(&mut rng).overflowing_shr_vartime(128).unwrap()).unwrap();
             let n = num.checked_mul(den.as_ref());
             if n.is_some().into() {
                 let (q, _) = n.unwrap().div_rem(&den);
@@ -714,7 +714,7 @@ mod tests {
         for _ in 0..25 {
             let num = U256::random(&mut rng);
             let k = rng.next_u32() % 256;
-            let (den, _) = U256::ONE.overflowing_shl_vartime(k);
+            let den = U256::ONE.overflowing_shl_vartime(k).unwrap();
 
             let a = num.rem2k(k);
             let e = num.wrapping_rem(&den);

@@ -3,7 +3,7 @@
 use super::{Residue, ResidueParams};
 use crate::{
     modular::{inv::inv_montgomery_form, BernsteinYangInverter},
-    ConstChoice, Invert, Inverter, NonZero, PrecomputeInverter, Uint,
+    ConstChoice, ConstCtOption, Invert, Inverter, NonZero, PrecomputeInverter, Uint,
 };
 use core::{fmt, marker::PhantomData};
 use subtle::CtOption;
@@ -13,28 +13,28 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// I.e. `self * self^-1 = 1`.
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
-    pub const fn invert(&self) -> (Self, ConstChoice) {
-        let (montgomery_form, is_some) = inv_montgomery_form(
+    pub const fn invert(&self) -> ConstCtOption<Self> {
+        let maybe_inverse = inv_montgomery_form(
             &self.montgomery_form,
             &MOD::MODULUS.0,
             &MOD::R3,
             MOD::MOD_NEG_INV,
         );
+        let (montgomery_form, is_some) = maybe_inverse.components_ref();
 
         let value = Self {
-            montgomery_form,
+            montgomery_form: *montgomery_form,
             phantom: PhantomData,
         };
 
-        (value, is_some)
+        ConstCtOption::new(value, is_some)
     }
 }
 
 impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Invert for Residue<MOD, LIMBS> {
     type Output = CtOption<Self>;
     fn invert(&self) -> Self::Output {
-        let (value, is_some) = self.invert();
-        CtOption::new(value, is_some.into())
+        self.invert().into()
     }
 }
 
@@ -42,7 +42,8 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Invert for NonZero<Residue<M
     type Output = Self;
     fn invert(&self) -> Self::Output {
         // Always succeeds for a non-zero argument
-        let (value, _is_some) = self.as_ref().invert();
+        let value = self.as_ref().invert().unwrap();
+        // An inverse is necessarily non-zero
         NonZero::new(value).unwrap()
     }
 }
@@ -136,7 +137,7 @@ mod tests {
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
         let x_mod = const_residue!(x, Modulus);
 
-        let (inv, _is_some) = x_mod.invert();
+        let inv = x_mod.invert().unwrap();
         let res = x_mod * inv;
 
         assert_eq!(res.retrieve(), U256::ONE);

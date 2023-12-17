@@ -29,7 +29,7 @@ macro_rules! impl_modulus {
                 }
 
                 // Can unwrap `NonZero::const_new()` here since `res` was asserted to be odd.
-                $crate::NonZero::<$uint_type>::const_new(res).0
+                $crate::NonZero::<$uint_type>::const_new(res).expect("modulus ensured non-zero")
             };
 
             const R: $uint_type = $crate::Uint::MAX
@@ -41,7 +41,7 @@ macro_rules! impl_modulus {
                     Self::MODULUS
                         .as_ref()
                         .inv_mod2k_vartime($crate::Word::BITS)
-                        .0
+                        .expect("modulus ensured odd")
                         .as_limbs()[0]
                         .0,
                 ),

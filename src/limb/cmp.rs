@@ -54,16 +54,14 @@ impl ConstantTimeEq for Limb {
 impl ConstantTimeGreater for Limb {
     #[inline]
     fn ct_gt(&self, other: &Self) -> Choice {
-        let borrow = other.sbb(*self, Limb::ZERO).1;
-        Choice::from(borrow.0 as u8 & 1)
+        ConstChoice::from_word_gt(self.0, other.0).into()
     }
 }
 
 impl ConstantTimeLess for Limb {
     #[inline]
     fn ct_lt(&self, other: &Self) -> Choice {
-        let borrow = self.sbb(*other, Limb::ZERO).1;
-        Choice::from(borrow.0 as u8 & 1)
+        ConstChoice::from_word_lt(self.0, other.0).into()
     }
 }
 

@@ -17,7 +17,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < b`.
         // Will not overflow since `b <= BITS`.
-        let (mut x, _overflow) = Self::ONE.overflowing_shl((self.bits() + 1) >> 1); // ≥ √(`self`)
+        let mut x = Self::ONE
+            .overflowing_shl((self.bits() + 1) >> 1)
+            .expect("shift within range"); // ≥ √(`self`)
 
         // Repeat enough times to guarantee result has stabilized.
         let mut i = 0;
@@ -29,8 +31,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
             // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
 
-            let (nz_x, is_some) = NonZero::<Self>::const_new(x);
-            let (q, _) = self.div_rem(&nz_x);
+            let maybe_nz_x = NonZero::<Self>::const_new(x);
+            let (nz_x, is_some) = maybe_nz_x.components_ref();
+            let (q, _) = self.div_rem(nz_x);
 
             // A protection in case `self == 0`, which will make `x == 0`
             let q = Self::select(&Self::ZERO, &q, is_some);
@@ -53,12 +56,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < b`.
         // Will not overflow since `b <= BITS`.
-        let (mut x, _overflow) = Self::ONE.overflowing_shl((self.bits() + 1) >> 1); // ≥ √(`self`)
+        let mut x = Self::ONE
+            .overflowing_shl((self.bits() + 1) >> 1)
+            .expect("shift within range"); // ≥ √(`self`)
 
         // Stop right away if `x` is zero to avoid divizion by zero.
         while !x.cmp_vartime(&Self::ZERO).is_eq() {
             // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
-            let q = self.wrapping_div_vartime(&NonZero::<Self>::const_new(x).0);
+            let q = self
+                .wrapping_div_vartime(&NonZero::<Self>::const_new(x).expect("ensured non-zero"));
             let t = x.wrapping_add(&q);
             let next_x = t.shr1();
 
