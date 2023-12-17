@@ -1,5 +1,23 @@
 //! Macro definitions which are a part of the public API.
 
+/// Calculate the number of limbs required to represent the given number of bits.
+// TODO(tarcieri): replace with `generic_const_exprs` (rust-lang/rust#76560) when stable
+#[macro_export]
+macro_rules! nlimbs {
+    ($bits:expr) => {
+        (($bits + $crate::Limb::BITS - 1) / $crate::Limb::BITS) as usize
+    };
+}
+
+/// Calculate the number of 62-bit unsaturated limbs required to represent the given number of bits when performing
+/// Bernstein-Yang inversions.
+// TODO(tarcieri): replace with `generic_const_exprs` (rust-lang/rust#76560) when stable
+macro_rules! bernstein_yang_nlimbs {
+    ($bits:expr) => {
+        (($bits / 64) + (($bits / 64) * 2).div_ceil(64) + 1)
+    };
+}
+
 /// Internal implementation detail of [`const_assert_eq`] and [`const_assert_ne`].
 #[doc(hidden)]
 #[macro_export]
@@ -22,11 +40,11 @@ macro_rules! const_assert_n {
 ///
 /// The first/leftmost operand MUST be a `usize` constant.
 ///
-/// ```
+/// ```ignore
 /// const N: usize = 0;
 /// const _: () = crypto_bigint::const_assert_eq!(N, 0, "zero equals zero");
 /// ```
-#[macro_export]
+#[allow(unused_macros)] // TODO(tarcieri): not ready for external use
 macro_rules! const_assert_eq {
     ($left:ident, $right:expr $(,)?) => (
         $crate::const_assert_n!($left, $left == $right)
@@ -40,11 +58,10 @@ macro_rules! const_assert_eq {
 ///
 /// The first/leftmost operand MUST be a `usize` constant.
 ///
-/// ```
+/// ```ignore
 /// const N: usize = 0;
 /// const _: () = crypto_bigint::const_assert_ne!(N, 1, "zero is NOT equal to one");
 /// ```
-#[macro_export]
 macro_rules! const_assert_ne {
     ($left:ident, $right:expr $(,)?) => (
         $crate::const_assert_n!($left, $left != $right)
@@ -52,24 +69,6 @@ macro_rules! const_assert_ne {
     ($left:ident, $right:expr, $($arg:tt)+) => (
         $crate::const_assert_n!($left, $left != $right, $($arg)+)
     );
-}
-
-/// Calculate the number of limbs required to represent the given number of bits.
-// TODO(tarcieri): replace with `generic_const_exprs` (rust-lang/rust#76560) when stable
-#[macro_export]
-macro_rules! nlimbs {
-    ($bits:expr) => {
-        (($bits + $crate::Limb::BITS - 1) / $crate::Limb::BITS) as usize
-    };
-}
-
-/// Calculate the number of 62-bit unsaturated limbs required to represent the given number of bits when performing
-/// Bernstein-Yang inversions.
-// TODO(tarcieri): replace with `generic_const_exprs` (rust-lang/rust#76560) when stable
-macro_rules! bernstein_yang_nlimbs {
-    ($bits:expr) => {
-        (($bits / 64) + (($bits / 64) * 2).div_ceil(64) + 1)
-    };
 }
 
 #[cfg(test)]
