@@ -1,6 +1,6 @@
 //! [`BoxedUint`] bitwise left shift operations.
 
-use crate::{BoxedUint, Limb, WrappingShl, Zero};
+use crate::{BoxedUint, ConstantTimeSelect, Limb, WrappingShl, Zero};
 use core::ops::{Shl, ShlAssign};
 use subtle::{Choice, ConstantTimeLess};
 
@@ -49,7 +49,7 @@ impl BoxedUint {
             // Will not overflow by construction
             self.shl_vartime_into(&mut temp, 1 << i)
                 .expect("shift within range");
-            self.conditional_assign(&temp, bit);
+            self.ct_assign(&temp, bit);
         }
 
         #[cfg(feature = "zeroize")]

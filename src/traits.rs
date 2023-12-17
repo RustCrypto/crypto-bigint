@@ -31,6 +31,51 @@ pub trait Bounded {
     const BYTES: usize;
 }
 
+/// Trait for types which are conditionally selectable in constant time, similar to (and blanket impl'd for) `subtle`'s
+/// [`ConditionallySelectable`] trait, but without the `Copy` bound which allows it to be impl'd for heap allocated
+/// types such as `BoxedUint`.
+///
+/// It also provides generic implementations of conditional assignment and conditional swaps.
+pub trait ConstantTimeSelect: Clone {
+    /// Select `a` or `b` according to `choice`.
+    ///
+    /// # Returns
+    /// - `a` if `choice == Choice(0)`;
+    /// - `b` if `choice == Choice(1)`.
+    fn ct_select(a: &Self, b: &Self, choice: Choice) -> Self;
+
+    /// Conditionally assign `other` to `self`, according to `choice`.
+    #[inline]
+    fn ct_assign(&mut self, other: &Self, choice: Choice) {
+        *self = Self::ct_select(self, other, choice);
+    }
+
+    /// Conditionally swap `self` and `other` if `choice == 1`; otherwise, reassign both unto themselves.
+    #[inline]
+    fn ct_swap(a: &mut Self, b: &mut Self, choice: Choice) {
+        let t: Self = a.clone();
+        a.ct_assign(&b, choice);
+        b.ct_assign(&t, choice);
+    }
+}
+
+impl<T: ConditionallySelectable> ConstantTimeSelect for T {
+    #[inline(always)]
+    fn ct_select(a: &Self, b: &Self, choice: Choice) -> Self {
+        T::conditional_select(a, b, choice)
+    }
+
+    #[inline(always)]
+    fn ct_assign(&mut self, other: &Self, choice: Choice) {
+        self.conditional_assign(other, choice)
+    }
+
+    #[inline(always)]
+    fn ct_swap(a: &mut Self, b: &mut Self, choice: Choice) {
+        T::conditional_swap(a, b, choice)
+    }
+}
+
 /// Integer trait: represents common functionality of integer types provided by this crate.
 pub trait Integer:
     'static
@@ -55,10 +100,10 @@ pub trait Integer:
     + CheckedMul
     + CheckedDiv
     + Clone
-    // + ConditionallySelectable (see dalek-cryptography/subtle#94)
     + ConstantTimeEq
     + ConstantTimeGreater
     + ConstantTimeLess
+    + ConstantTimeSelect
     + Debug
     + Default
     + Div<NonZero<Self>, Output = Self>
@@ -113,7 +158,7 @@ pub trait Integer:
     fn bytes_precision(&self) -> usize;
 
     /// Calculate the number of leading zeros in the binary representation of this number.
-    fn leading_zeros(&self) -> u32  {
+    fn leading_zeros(&self) -> u32 {
         self.bits_precision() - self.bits()
     }
 
