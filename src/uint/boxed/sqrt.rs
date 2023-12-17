@@ -35,7 +35,7 @@ impl BoxedUint {
             let (q, _) = self.div_rem(&nz_x);
 
             // A protection in case `self == 0`, which will make `x == 0`
-            let q = Self::select(
+            let q = Self::conditional_select(
                 &Self::zero_with_precision(self.bits_precision()),
                 &q,
                 is_some,
@@ -68,9 +68,8 @@ impl BoxedUint {
             .is_eq()
         {
             // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
-            let q = self.wrapping_div_vartime(
-                &NonZero::<Self>::const_new(x.clone()).0, // TODO: avoid this clone
-            );
+            let q =
+                self.wrapping_div_vartime(&NonZero::<Self>::new(x.clone()).expect("Division by 0"));
             let t = x.wrapping_add(&q);
             let next_x = t.shr1();
 
@@ -84,7 +83,7 @@ impl BoxedUint {
             x = next_x;
         }
 
-        if self.is_nonzero().is_true_vartime() {
+        if self.is_nonzero().into() {
             x
         } else {
             Self::zero_with_precision(self.bits_precision())

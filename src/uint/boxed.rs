@@ -258,6 +258,13 @@ impl BoxedUint {
 }
 
 impl NonZero<BoxedUint> {
+    /// TODO: this is not really "const", but I need a way to return (value, choice) since
+    /// BoxedUint is not [`ConditionallySelectable`] so `CtChoice::map` and such does not work
+    pub fn const_new(n: BoxedUint) -> (Self, Choice) {
+        let nonzero = n.is_nonzero();
+        (Self(n), nonzero)
+    }
+
     /// Widen this type's precision to the given number of bits.
     ///
     /// See [`BoxedUint::widen`] for more information, including panic conditions.
