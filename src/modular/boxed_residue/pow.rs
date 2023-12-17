@@ -1,7 +1,7 @@
 //! Modular exponentiation support for [`BoxedResidue`].
 
 use super::{mul::MontgomeryMultiplier, BoxedResidue};
-use crate::{BoxedUint, Limb, PowBoundedExp, Word};
+use crate::{BoxedUint, ConstantTimeSelect, Limb, PowBoundedExp, Word};
 use alloc::vec::Vec;
 use subtle::{ConstantTimeEq, ConstantTimeLess};
 
@@ -103,7 +103,7 @@ fn pow_montgomery_form(
             // Constant-time lookup in the array of powers
             power.limbs.copy_from_slice(&powers[0].limbs);
             for i in 1..(1 << WINDOW) {
-                power.conditional_assign(&powers[i as usize], i.ct_eq(&idx));
+                power.ct_assign(&powers[i as usize], i.ct_eq(&idx));
             }
 
             multiplier.mul_amm_assign(&mut z, &power);
