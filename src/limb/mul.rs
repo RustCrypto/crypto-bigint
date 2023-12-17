@@ -1,6 +1,9 @@
 //! Limb multiplication
 
-use crate::{Checked, CheckedMul, Limb, WideWord, Word, Wrapping, Zero};
+use crate::{
+    primitives::{mac, mul_wide},
+    Checked, CheckedMul, Limb, Wrapping, Zero,
+};
 use core::ops::{Mul, MulAssign};
 use num_traits::WrappingMul;
 use subtle::CtOption;
@@ -9,12 +12,8 @@ impl Limb {
     /// Computes `self + (b * c) + carry`, returning the result along with the new carry.
     #[inline(always)]
     pub const fn mac(self, b: Limb, c: Limb, carry: Limb) -> (Limb, Limb) {
-        let a = self.0 as WideWord;
-        let b = b.0 as WideWord;
-        let c = c.0 as WideWord;
-        let carry = carry.0 as WideWord;
-        let ret = a + (b * c) + carry;
-        (Limb(ret as Word), Limb((ret >> Self::BITS) as Word))
+        let (res, carry) = mac(self.0, b.0, c.0, carry.0);
+        (Limb(res), Limb(carry))
     }
 
     /// Perform saturating multiplication.
@@ -30,17 +29,17 @@ impl Limb {
     }
 
     /// Compute "wide" multiplication, with a product twice the size of the input.
-    pub(crate) const fn mul_wide(&self, rhs: Self) -> WideWord {
-        (self.0 as WideWord) * (rhs.0 as WideWord)
+    pub(crate) const fn mul_wide(&self, rhs: Self) -> (Self, Self) {
+        let (lo, hi) = mul_wide(self.0, rhs.0);
+        (Limb(lo), Limb(hi))
     }
 }
 
 impl CheckedMul for Limb {
     #[inline]
     fn checked_mul(&self, rhs: &Self) -> CtOption<Self> {
-        let result = self.mul_wide(*rhs);
-        let overflow = Limb((result >> Self::BITS) as Word);
-        CtOption::new(Limb(result as Word), overflow.is_zero())
+        let (lo, hi) = self.mul_wide(*rhs);
+        CtOption::new(lo, hi.is_zero())
     }
 }
 
@@ -118,28 +117,7 @@ impl WrappingMul for Limb {
 
 #[cfg(test)]
 mod tests {
-    use super::{CheckedMul, Limb, WideWord};
-
-    #[test]
-    fn mul_wide_zero_and_one() {
-        assert_eq!(Limb::ZERO.mul_wide(Limb::ZERO), 0);
-        assert_eq!(Limb::ZERO.mul_wide(Limb::ONE), 0);
-        assert_eq!(Limb::ONE.mul_wide(Limb::ZERO), 0);
-        assert_eq!(Limb::ONE.mul_wide(Limb::ONE), 1);
-    }
-
-    #[test]
-    fn mul_wide() {
-        let primes: &[u32] = &[3, 5, 17, 257, 65537];
-
-        for &a_int in primes {
-            for &b_int in primes {
-                let actual = Limb::from_u32(a_int).mul_wide(Limb::from_u32(b_int));
-                let expected = a_int as WideWord * b_int as WideWord;
-                assert_eq!(actual, expected);
-            }
-        }
-    }
+    use super::{CheckedMul, Limb};
 
     #[test]
     #[cfg(target_pointer_width = "32")]

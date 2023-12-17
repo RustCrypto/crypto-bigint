@@ -3,8 +3,7 @@
 // TODO(tarcieri): use Karatsuba for better performance
 
 use crate::{
-    Checked, CheckedMul, Concat, ConcatMixed, Limb, Uint, WideWord, WideningMul, Word, Wrapping,
-    WrappingMul, Zero,
+    Checked, CheckedMul, Concat, ConcatMixed, Limb, Uint, WideningMul, Wrapping, WrappingMul, Zero,
 };
 use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
@@ -158,13 +157,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             }
 
             if (i * 2 + 1) < LIMBS {
-                let n = lo.limbs[i * 2 + 1].0 as WideWord + carry.0 as WideWord;
-                lo.limbs[i * 2 + 1] = Limb(n as Word);
-                carry = Limb((n >> Word::BITS) as Word);
+                let (n, c) = lo.limbs[i * 2 + 1].overflowing_add(carry);
+                lo.limbs[i * 2 + 1] = n;
+                carry = c;
             } else {
-                let n = hi.limbs[i * 2 + 1 - LIMBS].0 as WideWord + carry.0 as WideWord;
-                hi.limbs[i * 2 + 1 - LIMBS] = Limb(n as Word);
-                carry = Limb((n >> Word::BITS) as Word);
+                let (n, c) = hi.limbs[i * 2 + 1 - LIMBS].overflowing_add(carry);
+                hi.limbs[i * 2 + 1 - LIMBS] = n;
+                carry = c;
             }
 
             i += 1;
