@@ -34,7 +34,14 @@ macro_rules! impl_uint_aliases {
         $(
             #[doc = $doc]
             #[doc="unsigned big integer."]
-            pub type $name = Uint<{nlimbs!($bits)}>;
+            pub type $name = Uint<{ nlimbs!($bits) }>;
+
+            impl $name {
+                /// Serialize as big endian bytes.
+                pub const fn to_be_bytes(&self) -> [u8; $bits / 8] {
+                    encoding::uint_to_be_bytes::<{ nlimbs!($bits) }, { $bits / 8 }>(self)
+                }
+            }
 
             impl Encoding for $name {
                 type Repr = [u8; $bits / 8];
@@ -51,16 +58,12 @@ macro_rules! impl_uint_aliases {
 
                 #[inline]
                 fn to_be_bytes(&self) -> Self::Repr {
-                    let mut result = [0u8; $bits / 8];
-                    self.write_be_bytes(&mut result);
-                    result
+                    encoding::uint_to_be_bytes(self)
                 }
 
                 #[inline]
                 fn to_le_bytes(&self) -> Self::Repr {
-                    let mut result = [0u8; $bits / 8];
-                    self.write_le_bytes(&mut result);
-                    result
+                    encoding::uint_to_le_bytes(self)
                 }
             }
 
