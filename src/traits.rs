@@ -167,7 +167,8 @@ pub trait Inverter {
     /// Output of an inversion.
     type Output;
 
-    /// Compute a modular inversion, returning `None` if the result is undefined (i.e. `value` is zero).
+    /// Compute a modular inversion, returning `None` if the result is undefined (i.e. if `value` is zero or isn't
+    /// prime relative to the modulus).
     fn invert(&self, value: &Self::Output) -> CtOption<Self::Output>;
 }
 
