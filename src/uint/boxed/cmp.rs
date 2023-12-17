@@ -11,13 +11,6 @@ use subtle::{
 };
 
 impl BoxedUint {
-    /// Returns the truthy value if `self >= rhs` and the falsy value otherwise.
-    #[inline]
-    pub(crate) fn gt(lhs: &Self, rhs: &Self) -> ConstChoice {
-        let (_res, borrow) = rhs.sbb(lhs, Limb::ZERO);
-        ConstChoice::from_word_mask(borrow.0)
-    }
-
     /// Returns the Ordering between `self` and `rhs` in variable time.
     pub fn cmp_vartime(&self, rhs: &Self) -> Ordering {
         debug_assert_eq!(self.limbs.len(), rhs.limbs.len());
