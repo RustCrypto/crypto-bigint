@@ -4,15 +4,64 @@ use criterion::{
 };
 use crypto_bigint::{
     modular::{DynResidue, DynResidueParams},
-    Random, U256,
+    Inverter, PrecomputeInverter, Random, U256,
 };
 use rand_core::OsRng;
 
 #[cfg(feature = "alloc")]
 use crypto_bigint::MultiExponentiate;
 
+fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
+    group.bench_function("DynResidueParams creation", |b| {
+        b.iter_batched(
+            || U256::random(&mut OsRng) | U256::ONE,
+            |modulus| black_box(DynResidueParams::new(&modulus)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    let params = DynResidueParams::new(&(U256::random(&mut OsRng) | U256::ONE)).unwrap();
+    group.bench_function("DynResidue creation", |b| {
+        b.iter_batched(
+            || U256::random(&mut OsRng),
+            |x| black_box(DynResidue::new(&x, params)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    let params = DynResidueParams::new(&(U256::random(&mut OsRng) | U256::ONE)).unwrap();
+    group.bench_function("DynResidue retrieve", |b| {
+        b.iter_batched(
+            || DynResidue::new(&U256::random(&mut OsRng), params),
+            |x| black_box(x.retrieve()),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
 fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     let params = DynResidueParams::new(&(U256::random(&mut OsRng) | U256::ONE)).unwrap();
+
+    group.bench_function("invert, U256", |b| {
+        b.iter_batched(
+            || DynResidue::new(&U256::random(&mut OsRng), params),
+            |x| black_box(x).invert(),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("Bernstein-Yang invert, U256", |b| {
+        b.iter_batched(
+            || {
+                let x = DynResidue::new(&U256::random(&mut OsRng), params);
+                let inverter = x.params().precompute_inverter();
+                (x, inverter)
+            },
+            |(x, inverter)| inverter.invert(&black_box(x)),
+            BatchSize::SmallInput,
+        )
+    });
+
     group.bench_function("multiplication, U256*U256", |b| {
         b.iter_batched(
             || {
@@ -25,8 +74,6 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         )
     });
 
-    let m = U256::random(&mut OsRng) | U256::ONE;
-    let params = DynResidueParams::new(&m).unwrap();
     group.bench_function("modpow, U256^U256", |b| {
         b.iter_batched(
             || {
@@ -68,34 +115,6 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
         );
     }
-}
-
-fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
-    group.bench_function("DynResidueParams creation", |b| {
-        b.iter_batched(
-            || U256::random(&mut OsRng) | U256::ONE,
-            |modulus| black_box(DynResidueParams::new(&modulus)),
-            BatchSize::SmallInput,
-        )
-    });
-
-    let params = DynResidueParams::new(&(U256::random(&mut OsRng) | U256::ONE)).unwrap();
-    group.bench_function("DynResidue creation", |b| {
-        b.iter_batched(
-            || U256::random(&mut OsRng),
-            |x| black_box(DynResidue::new(&x, params)),
-            BatchSize::SmallInput,
-        )
-    });
-
-    let params = DynResidueParams::new(&(U256::random(&mut OsRng) | U256::ONE)).unwrap();
-    group.bench_function("DynResidue retrieve", |b| {
-        b.iter_batched(
-            || DynResidue::new(&U256::random(&mut OsRng), params),
-            |x| black_box(x.retrieve()),
-            BatchSize::SmallInput,
-        )
-    });
 }
 
 fn bench_montgomery(c: &mut Criterion) {
