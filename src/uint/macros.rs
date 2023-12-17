@@ -1,7 +1,7 @@
 //! Macros used to define traits on aliases of `Uint`.
 
 /// Impl the `Inverter` trait, where we need to compute the number of unsaturated limbs for a given number of bits.
-macro_rules! impl_inverter_trait {
+macro_rules! impl_precompute_inverter_trait {
     ($name:ident, $bits:expr) => {
         /// Precompute a Bernstein-Yang inverter using `self` as the modulus. Panics if called on an even number!
         impl PrecomputeInverter for $name {
@@ -16,7 +16,9 @@ macro_rules! impl_inverter_trait {
             fn precompute_inverter(&self) -> Self::Inverter {
                 Self::precompute_inverter_with_adjuster(self, &Self::ONE)
             }
+        }
 
+        impl PrecomputeInverterWithAdjuster for $name {
             fn precompute_inverter_with_adjuster(&self, adjuster: &Self) -> Self::Inverter {
                 let (ret, is_some) = Self::Inverter::new(self, adjuster);
                 assert!(bool::from(is_some), "modulus must be odd");
@@ -62,7 +64,7 @@ macro_rules! impl_uint_aliases {
                 }
             }
 
-            impl_inverter_trait!($name, $bits);
+            impl_precompute_inverter_trait!($name, $bits);
         )+
      };
 }

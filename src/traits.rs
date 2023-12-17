@@ -1,8 +1,12 @@
 //! Traits provided by this crate
 
+mod sealed;
+
 pub use num_traits::{
     WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr, WrappingSub,
 };
+
+pub(crate) use sealed::PrecomputeInverterWithAdjuster;
 
 use crate::{Limb, NonZero};
 use core::fmt::Debug;
@@ -156,10 +160,6 @@ pub trait PrecomputeInverter {
     ///
     /// Returns `None` if `self` is even.
     fn precompute_inverter(&self) -> Self::Inverter;
-
-    /// Obtain a precomputed inverter for `&self` as the modulus, supplying a custom adjusting parameter (e.g. R^2 for
-    /// when computing inversions in Montgomery form).
-    fn precompute_inverter_with_adjuster(&self, adjuster: &Self) -> Self::Inverter;
 }
 
 /// Trait impl'd by precomputed modular inverters.

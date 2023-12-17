@@ -4,7 +4,7 @@ use super::{DynResidue, DynResidueParams};
 use crate::{
     modular::{inv::inv_montgomery_form, BernsteinYangInverter},
     traits::Invert,
-    ConstChoice, Inverter, PrecomputeInverter, Uint,
+    ConstChoice, Inverter, PrecomputeInverter, PrecomputeInverterWithAdjuster, Uint,
 };
 use core::fmt;
 use subtle::CtOption;
@@ -41,7 +41,7 @@ impl<const LIMBS: usize> Invert for DynResidue<LIMBS> {
 
 impl<const LIMBS: usize> PrecomputeInverter for DynResidueParams<LIMBS>
 where
-    Uint<LIMBS>: PrecomputeInverter<Output = Uint<LIMBS>>,
+    Uint<LIMBS>: PrecomputeInverter<Output = Uint<LIMBS>> + PrecomputeInverterWithAdjuster,
 {
     type Inverter = DynResidueInverter<LIMBS>;
     type Output = DynResidue<LIMBS>;
@@ -51,10 +51,6 @@ where
             inverter: self.modulus.precompute_inverter_with_adjuster(&self.r2),
             residue_params: *self,
         }
-    }
-
-    fn precompute_inverter_with_adjuster(&self, _adjuster: &Self) -> Self::Inverter {
-        todo!()
     }
 }
 
