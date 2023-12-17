@@ -333,25 +333,25 @@ impl<const LIMBS: usize> Uint62L<LIMBS> {
 
     /// Representation of 1.
     pub const ONE: Self = {
-        let mut data = [0; LIMBS];
-        data[0] = 1;
-        Self(data)
+        let mut ret = Self::ZERO;
+        ret.0[0] = 1;
+        ret
     };
 
     /// Returns the result of applying 62-bit right arithmetical shift to the current number.
     pub const fn shift(&self) -> Self {
-        let mut data = [0; LIMBS];
+        let mut ret = Self::ZERO;
         if self.is_negative() {
-            data[LIMBS - 1] = Self::MASK;
+            ret.0[LIMBS - 1] = Self::MASK;
         }
 
         let mut i = 0;
         while i < LIMBS - 1 {
-            data[i] = self.0[i + 1];
+            ret.0[i] = self.0[i + 1];
             i += 1;
         }
 
-        Self(data)
+        ret
     }
 
     /// Returns the lowest 62 bits of the current number.
@@ -379,39 +379,39 @@ impl<const LIMBS: usize> Uint62L<LIMBS> {
 
     /// Const fn equivalent for `Add::add`.
     pub const fn add(&self, other: &Self) -> Self {
-        let (mut data, mut carry) = ([0; LIMBS], 0);
+        let (mut ret, mut carry) = (Self::ZERO, 0);
         let mut i = 0;
 
         while i < LIMBS {
             let sum = self.0[i] + other.0[i] + carry;
-            data[i] = sum & Self::MASK;
+            ret.0[i] = sum & Self::MASK;
             carry = sum >> Self::LIMB_BITS;
             i += 1;
         }
 
-        Self(data)
+        ret
     }
 
     /// Const fn equivalent for `Neg::neg`.
     pub const fn neg(&self) -> Self {
         // For the two's complement code the additive negation is the result
         // of adding 1 to the bitwise inverted argument's representation
-        let (mut data, mut carry) = ([0; LIMBS], 1);
+        let (mut ret, mut carry) = (Self::ZERO, 1);
         let mut i = 0;
 
         while i < LIMBS {
             let sum = (self.0[i] ^ Self::MASK) + carry;
-            data[i] = sum & Self::MASK;
+            ret.0[i] = sum & Self::MASK;
             carry = sum >> Self::LIMB_BITS;
             i += 1;
         }
 
-        Self(data)
+        ret
     }
 
     /// Const fn equivalent for `Mul::<i64>::mul`.
     pub const fn mul(&self, other: i64) -> Self {
-        let mut data = [0; LIMBS];
+        let mut ret = Self::ZERO;
         // If the short multiplicand is non-negative, the standard multiplication
         // algorithm is performed. Otherwise, the product of the additively negated
         // multiplicands is found as follows. Since for the two's complement code
@@ -433,11 +433,11 @@ impl<const LIMBS: usize> Uint62L<LIMBS> {
         let mut i = 0;
         while i < LIMBS {
             let sum = (carry as u128) + ((self.0[i] ^ mask) as u128) * (other as u128);
-            data[i] = sum as u64 & Self::MASK;
+            ret.0[i] = sum as u64 & Self::MASK;
             carry = (sum >> Self::LIMB_BITS) as u64;
             i += 1;
         }
 
-        Self(data)
+        ret
     }
 }
