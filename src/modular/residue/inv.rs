@@ -3,7 +3,7 @@
 use super::{Residue, ResidueParams};
 use crate::{
     modular::{inv::inv_montgomery_form, BernsteinYangInverter},
-    ConstChoice, ConstOption, Invert, Inverter, NonZero, PrecomputeInverter, Uint,
+    ConstChoice, ConstCtOption, Invert, Inverter, NonZero, PrecomputeInverter, Uint,
 };
 use core::{fmt, marker::PhantomData};
 use subtle::CtOption;
@@ -13,7 +13,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     /// I.e. `self * self^-1 = 1`.
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
-    pub const fn invert(&self) -> ConstOption<Self> {
+    pub const fn invert(&self) -> ConstCtOption<Self> {
         let maybe_inverse = inv_montgomery_form(
             &self.montgomery_form,
             &MOD::MODULUS.0,
@@ -27,7 +27,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
             phantom: PhantomData,
         };
 
-        ConstOption::new(value, is_some)
+        ConstCtOption::new(value, is_some)
     }
 }
 

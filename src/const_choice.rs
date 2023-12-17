@@ -176,12 +176,12 @@ impl PartialEq for ConstChoice {
 
 /// An equivalent of `subtle::CtOption` usable in a `const fn` context.
 #[derive(Debug, Clone)]
-pub struct ConstOption<T> {
+pub struct ConstCtOption<T> {
     value: T,
     is_some: ConstChoice,
 }
 
-impl<T> ConstOption<T> {
+impl<T> ConstCtOption<T> {
     #[inline]
     pub(crate) const fn new(value: T, is_some: ConstChoice) -> Self {
         Self { value, is_some }
@@ -234,9 +234,9 @@ impl<T> ConstOption<T> {
     }
 }
 
-impl<T> From<ConstOption<T>> for CtOption<T> {
+impl<T> From<ConstCtOption<T>> for CtOption<T> {
     #[inline]
-    fn from(value: ConstOption<T>) -> Self {
+    fn from(value: ConstCtOption<T>) -> Self {
         CtOption::new(value.value, value.is_some.into())
     }
 }
@@ -245,7 +245,7 @@ impl<T> From<ConstOption<T>> for CtOption<T> {
 // "destructors cannot be evaluated at compile-time" error
 // See https://github.com/rust-lang/rust/issues/66753
 
-impl<const LIMBS: usize> ConstOption<Uint<LIMBS>> {
+impl<const LIMBS: usize> ConstCtOption<Uint<LIMBS>> {
     /// This returns the underlying value if it is `Some` or the provided value otherwise.
     #[inline]
     pub const fn unwrap_or(self, def: Uint<LIMBS>) -> Uint<LIMBS> {
@@ -265,7 +265,7 @@ impl<const LIMBS: usize> ConstOption<Uint<LIMBS>> {
     }
 }
 
-impl<const LIMBS: usize> ConstOption<(Uint<LIMBS>, Uint<LIMBS>)> {
+impl<const LIMBS: usize> ConstCtOption<(Uint<LIMBS>, Uint<LIMBS>)> {
     /// Returns the contained value, consuming the `self` value.
     ///
     /// # Panics
@@ -279,7 +279,7 @@ impl<const LIMBS: usize> ConstOption<(Uint<LIMBS>, Uint<LIMBS>)> {
     }
 }
 
-impl<const LIMBS: usize> ConstOption<NonZero<Uint<LIMBS>>> {
+impl<const LIMBS: usize> ConstCtOption<NonZero<Uint<LIMBS>>> {
     /// Returns the contained value, consuming the `self` value.
     ///
     /// # Panics

@@ -1,6 +1,6 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{Bounded, ConstOption, Constants, Encoding, Limb, Uint, Zero};
+use crate::{Bounded, ConstCtOption, Constants, Encoding, Limb, Uint, Zero};
 use core::{
     fmt,
     num::{NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8},
@@ -27,16 +27,16 @@ pub struct NonZero<T: Zero>(pub(crate) T);
 impl NonZero<Limb> {
     /// Creates a new non-zero limb in a const context.
     /// The second return value is `FALSE` if `n` is zero, `TRUE` otherwise.
-    pub const fn const_new(n: Limb) -> ConstOption<Self> {
-        ConstOption::new(Self(n), n.is_nonzero())
+    pub const fn const_new(n: Limb) -> ConstCtOption<Self> {
+        ConstCtOption::new(Self(n), n.is_nonzero())
     }
 }
 
 impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     /// Creates a new non-zero integer in a const context.
     /// The second return value is `FALSE` if `n` is zero, `TRUE` otherwise.
-    pub const fn const_new(n: Uint<LIMBS>) -> ConstOption<Self> {
-        ConstOption::new(Self(n), n.is_nonzero())
+    pub const fn const_new(n: Uint<LIMBS>) -> ConstCtOption<Self> {
+        ConstCtOption::new(Self(n), n.is_nonzero())
     }
 }
 

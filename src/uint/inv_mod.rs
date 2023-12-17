@@ -1,5 +1,5 @@
 use super::Uint;
-use crate::{ConstChoice, ConstOption};
+use crate::{ConstChoice, ConstCtOption};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes 1/`self` mod `2^k`.
@@ -8,7 +8,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// If the inverse does not exist (`k > 0` and `self` is even),
     /// returns `ConstChoice::FALSE` as the second element of the tuple,
     /// otherwise returns `ConstChoice::TRUE`.
-    pub const fn inv_mod2k_vartime(&self, k: u32) -> ConstOption<Self> {
+    pub const fn inv_mod2k_vartime(&self, k: u32) -> ConstCtOption<Self> {
         // Using the Algorithm 3 from "A Secure Algorithm for Inversion Modulo 2k"
         // by Sadiel de la Fe and Carles Ferrer.
         // See <https://www.mdpi.com/2410-387X/2/3/23>.
@@ -38,7 +38,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             i += 1;
         }
 
-        ConstOption::new(x, is_some)
+        ConstCtOption::new(x, is_some)
     }
 
     /// Computes 1/`self` mod `2^k`.
@@ -46,7 +46,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// If the inverse does not exist (`k > 0` and `self` is even),
     /// returns `ConstChoice::FALSE` as the second element of the tuple,
     /// otherwise returns `ConstChoice::TRUE`.
-    pub const fn inv_mod2k(&self, k: u32) -> ConstOption<Self> {
+    pub const fn inv_mod2k(&self, k: u32) -> ConstCtOption<Self> {
         // This is the same algorithm as in `inv_mod2k_vartime()`,
         // but made constant-time w.r.t `k` as well.
 
@@ -76,7 +76,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             i += 1;
         }
 
-        ConstOption::new(x, is_some)
+        ConstCtOption::new(x, is_some)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
@@ -95,7 +95,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         modulus: &Self,
         bits: u32,
         modulus_bits: u32,
-    ) -> ConstOption<Self> {
+    ) -> ConstCtOption<Self> {
         let mut a = *self;
 
         let mut u = Uint::ONE;
@@ -148,20 +148,20 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             .or(a.is_nonzero().not())
             .is_true_vartime());
 
-        ConstOption::new(v, Uint::eq(&b, &Uint::ONE).and(modulus_is_odd))
+        ConstCtOption::new(v, Uint::eq(&b, &Uint::ONE).and(modulus_is_odd))
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     /// Returns `(inverse, ConstChoice::TRUE)` if an inverse exists,
     /// otherwise `(undefined, ConstChoice::FALSE)`.
-    pub const fn inv_odd_mod(&self, modulus: &Self) -> ConstOption<Self> {
+    pub const fn inv_odd_mod(&self, modulus: &Self) -> ConstCtOption<Self> {
         self.inv_odd_mod_bounded(modulus, Uint::<LIMBS>::BITS, Uint::<LIMBS>::BITS)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`.
     /// Returns `(inverse, ConstChoice::TRUE)` if an inverse exists,
     /// otherwise `(undefined, ConstChoice::FALSE)`.
-    pub const fn inv_mod(&self, modulus: &Self) -> ConstOption<Self> {
+    pub const fn inv_mod(&self, modulus: &Self) -> ConstCtOption<Self> {
         // Decompose `modulus = s * 2^k` where `s` is odd
         let k = modulus.trailing_zeros();
         let s = modulus.overflowing_shr(k).unwrap_or(Self::ZERO);
@@ -172,8 +172,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let maybe_b = self.inv_mod2k(k);
         let is_some = maybe_a.is_some().and(maybe_b.is_some());
 
-        // Unwrap to avoid mapping through ConstOptions.
-        // if `a` or `b` don't exist, the returned ConstOption will be None anyway.
+        // Unwrap to avoid mapping through ConstCtOptions.
+        // if `a` or `b` don't exist, the returned ConstCtOption will be None anyway.
         let a = maybe_a.unwrap_or(Uint::ZERO);
         let b = maybe_b.unwrap_or(Uint::ZERO);
 
@@ -193,7 +193,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Will not overflow since `a <= s - 1`, `t <= 2^k - 1`,
         // so `a + s * t <= s * 2^k - 1 == modulus - 1`.
         let result = a.wrapping_add(&s.wrapping_mul(&t));
-        ConstOption::new(result, is_some)
+        ConstCtOption::new(result, is_some)
     }
 }
 

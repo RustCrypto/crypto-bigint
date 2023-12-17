@@ -176,7 +176,7 @@ mod wrapping;
 
 pub use crate::{
     checked::Checked,
-    const_choice::{ConstChoice, ConstOption},
+    const_choice::{ConstChoice, ConstCtOption},
     limb::{Limb, WideWord, Word},
     non_zero::NonZero,
     traits::*,

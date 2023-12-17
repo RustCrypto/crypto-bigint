@@ -1,6 +1,6 @@
 //! [`Uint`] bitwise left shift operations.
 
-use crate::{ConstChoice, ConstOption, Limb, Uint, Word, WrappingShl};
+use crate::{ConstChoice, ConstCtOption, Limb, Uint, Word, WrappingShl};
 use core::ops::{Shl, ShlAssign};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -16,7 +16,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// If `shift >= Self::BITS`, returns zero as the first tuple element,
     /// and `ConstChoice::TRUE` as the second element.
-    pub const fn overflowing_shl(&self, shift: u32) -> ConstOption<Self> {
+    pub const fn overflowing_shl(&self, shift: u32) -> ConstCtOption<Self> {
         // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
         // (which lies in range `0 <= shift < BITS`).
         let shift_bits = u32::BITS - (Self::BITS - 1).leading_zeros();
@@ -36,7 +36,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             i += 1;
         }
 
-        ConstOption::new(Uint::select(&result, &Self::ZERO, overflow), overflow.not())
+        ConstCtOption::new(Uint::select(&result, &Self::ZERO, overflow), overflow.not())
     }
 
     /// Computes `self << shift`.
@@ -49,11 +49,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
     #[inline(always)]
-    pub const fn overflowing_shl_vartime(&self, shift: u32) -> ConstOption<Self> {
+    pub const fn overflowing_shl_vartime(&self, shift: u32) -> ConstCtOption<Self> {
         let mut limbs = [Limb::ZERO; LIMBS];
 
         if shift >= Self::BITS {
-            return ConstOption::none(Self::ZERO);
+            return ConstCtOption::none(Self::ZERO);
         }
 
         let shift_num = (shift / Limb::BITS) as usize;
@@ -66,7 +66,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         if rem == 0 {
-            return ConstOption::some(Self { limbs });
+            return ConstCtOption::some(Self { limbs });
         }
 
         let mut carry = Limb::ZERO;
@@ -80,7 +80,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             i += 1;
         }
 
-        ConstOption::some(Self { limbs })
+        ConstCtOption::some(Self { limbs })
     }
 
     /// Computes a left shift on a wide input as `(lo, hi)`.
@@ -96,15 +96,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn overflowing_shl_vartime_wide(
         lower_upper: (Self, Self),
         shift: u32,
-    ) -> ConstOption<(Self, Self)> {
+    ) -> ConstCtOption<(Self, Self)> {
         let (lower, upper) = lower_upper;
         if shift >= 2 * Self::BITS {
-            ConstOption::none((Self::ZERO, Self::ZERO))
+            ConstCtOption::none((Self::ZERO, Self::ZERO))
         } else if shift >= Self::BITS {
             let upper = lower
                 .overflowing_shl_vartime(shift - Self::BITS)
                 .expect("shift within range");
-            ConstOption::some((Self::ZERO, upper))
+            ConstCtOption::some((Self::ZERO, upper))
         } else {
             let new_lower = lower
                 .overflowing_shl_vartime(shift)
@@ -115,7 +115,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let upper_hi = upper
                 .overflowing_shl_vartime(shift)
                 .expect("shift within range");
-            ConstOption::some((new_lower, upper_lo.bitor(&upper_hi)))
+            ConstCtOption::some((new_lower, upper_lo.bitor(&upper_hi)))
         }
     }
 

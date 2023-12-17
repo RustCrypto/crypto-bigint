@@ -4,7 +4,7 @@ use super::{DynResidue, DynResidueParams};
 use crate::{
     modular::{inv::inv_montgomery_form, BernsteinYangInverter},
     traits::Invert,
-    ConstOption, Inverter, PrecomputeInverter, PrecomputeInverterWithAdjuster, Uint,
+    ConstCtOption, Inverter, PrecomputeInverter, PrecomputeInverterWithAdjuster, Uint,
 };
 use core::fmt;
 use subtle::CtOption;
@@ -14,7 +14,7 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
     /// I.e. `self * self^-1 = 1`.
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
-    pub const fn invert(&self) -> ConstOption<Self> {
+    pub const fn invert(&self) -> ConstCtOption<Self> {
         let maybe_inverse = inv_montgomery_form(
             &self.montgomery_form,
             &self.residue_params.modulus,
@@ -28,7 +28,7 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
             residue_params: self.residue_params,
         };
 
-        ConstOption::new(value, is_some)
+        ConstCtOption::new(value, is_some)
     }
 }
 
