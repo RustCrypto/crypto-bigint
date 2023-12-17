@@ -1,6 +1,6 @@
 //! [`BoxedUint`] modular inverse (i.e. reciprocal) operations.
 
-use crate::{BoxedUint, Integer};
+use crate::{BoxedUint, ConstantTimeSelect, Integer};
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
 impl BoxedUint {
@@ -56,7 +56,7 @@ impl BoxedUint {
             let x_i = b.limbs[0].0 & 1;
             let x_i_choice = Choice::from(x_i as u8);
             // b_{i+1} = (b_i - a * X_i) / 2
-            b = Self::conditional_select(&b, &b.wrapping_sub(self), x_i_choice).shr1();
+            b = Self::ct_select(&b, &b.wrapping_sub(self), x_i_choice).shr1();
 
             // Store the X_i bit in the result (x = x | (1 << X_i))
             // Don't change the result in dummy iterations.
@@ -115,13 +115,13 @@ impl BoxedUint {
             // Set `self -= b` if `self` is odd.
             let swap = a.conditional_sbb_assign(&b, self_odd);
             // Set `b += self` if `swap` is true.
-            b = Self::conditional_select(&b, &b.wrapping_add(&a), swap);
+            b = Self::ct_select(&b, &b.wrapping_add(&a), swap);
             // Negate `self` if `swap` is true.
             a = a.conditional_wrapping_neg(swap);
 
             let mut new_u = u.clone();
             let mut new_v = v.clone();
-            Self::conditional_swap(&mut new_u, &mut new_v, swap);
+            Self::ct_swap(&mut new_u, &mut new_v, swap);
             let cy = new_u.conditional_sbb_assign(&new_v, self_odd);
             let cyy = new_u.conditional_adc_assign(modulus, cy);
             debug_assert!(bool::from(cy.ct_eq(&cyy)));

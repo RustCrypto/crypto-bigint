@@ -12,7 +12,7 @@ use super::{
     reduction::{montgomery_reduction_boxed, montgomery_reduction_boxed_mut},
     Retrieve,
 };
-use crate::{BoxedUint, Integer, Limb, NonZero, Word};
+use crate::{BoxedUint, ConstantTimeSelect, Integer, Limb, NonZero, Word};
 use subtle::CtOption;
 
 #[cfg(feature = "std")]
@@ -49,7 +49,7 @@ impl BoxedResidueParams {
 
         // Use a surrogate value of `1` in case a modulus of `0` is passed.
         // This will be rejected by the `is_odd` check above, which will fail and return `None`.
-        let modulus_nz = NonZero::new(BoxedUint::conditional_select(
+        let modulus_nz = NonZero::new(BoxedUint::ct_select(
             &modulus,
             &BoxedUint::one_with_precision(bits_precision),
             modulus.is_zero(),
@@ -82,7 +82,7 @@ impl BoxedResidueParams {
 
         // Use a surrogate value of `1` in case a modulus of `0` is passed.
         // This will be rejected by the `is_odd` check above, which will fail and return `None`.
-        let modulus_nz = NonZero::new(BoxedUint::conditional_select(
+        let modulus_nz = NonZero::new(BoxedUint::ct_select(
             &modulus,
             &BoxedUint::one_with_precision(bits_precision),
             modulus.is_zero(),

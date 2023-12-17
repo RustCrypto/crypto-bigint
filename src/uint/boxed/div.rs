@@ -1,6 +1,6 @@
 //! [`BoxedUint`] division operations.
 
-use crate::{BoxedUint, CheckedDiv, Limb, NonZero, Wrapping};
+use crate::{BoxedUint, CheckedDiv, ConstantTimeSelect, Limb, NonZero, Wrapping};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
@@ -42,7 +42,7 @@ impl BoxedUint {
 
         loop {
             let (r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::conditional_select(&r, &rem, !borrow.ct_eq(&Limb::ZERO));
+            rem = Self::ct_select(&r, &rem, !borrow.ct_eq(&Limb::ZERO));
             if bd == 0 {
                 break rem;
             }
@@ -84,9 +84,9 @@ impl BoxedUint {
 
         loop {
             let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem.conditional_assign(&r, !(Choice::from((borrow.0 & 1) as u8) | done));
+            rem.ct_assign(&r, !(Choice::from((borrow.0 & 1) as u8) | done));
             r = quo.bitor(&Self::one());
-            quo.conditional_assign(&r, !(Choice::from((borrow.0 & 1) as u8) | done));
+            quo.ct_assign(&r, !(Choice::from((borrow.0 & 1) as u8) | done));
             if i == 0 {
                 break;
             }
@@ -95,7 +95,7 @@ impl BoxedUint {
             // aren't modified further (but do the remaining iterations anyway to be constant-time)
             done = i.ct_lt(&mb);
             c.shr1_assign();
-            quo.conditional_assign(&quo.shl1(), !done);
+            quo.ct_assign(&quo.shl1(), !done);
         }
 
         (quo, rem)
@@ -117,9 +117,9 @@ impl BoxedUint {
         loop {
             let (mut r, borrow) = remainder.sbb(&c, Limb::ZERO);
             let borrow = Choice::from(borrow.0 as u8 & 1);
-            remainder = Self::conditional_select(&r, &remainder, borrow);
+            remainder = Self::ct_select(&r, &remainder, borrow);
             r = &quotient | Self::one();
-            quotient = Self::conditional_select(&r, &quotient, borrow);
+            quotient = Self::ct_select(&r, &quotient, borrow);
             if bd == 0 {
                 break;
             }

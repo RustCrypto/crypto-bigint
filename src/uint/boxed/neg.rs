@@ -1,12 +1,12 @@
 //! [`BoxedUint`] negation operations.
 
-use crate::{BoxedUint, Limb, WideWord, Word, WrappingNeg};
+use crate::{BoxedUint, ConstantTimeSelect, Limb, WideWord, Word, WrappingNeg};
 use subtle::Choice;
 
 impl BoxedUint {
     /// Negates based on `choice` by wrapping the integer.
     pub(crate) fn conditional_wrapping_neg(&self, choice: Choice) -> BoxedUint {
-        Self::conditional_select(self, &self.wrapping_neg(), choice)
+        Self::ct_select(self, &self.wrapping_neg(), choice)
     }
 
     /// Perform wrapping negation.
