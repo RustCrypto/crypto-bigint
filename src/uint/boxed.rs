@@ -183,7 +183,12 @@ impl BoxedUint {
     /// Panics if `at_least_bits_precision` is larger than the current precision.
     #[must_use]
     pub fn shorten(&self, at_least_bits_precision: u32) -> BoxedUint {
-        assert!(at_least_bits_precision <= self.bits_precision());
+        assert!(
+            at_least_bits_precision <= self.bits_precision(),
+            "{} > {}",
+            at_least_bits_precision,
+            self.bits_precision()
+        );
         let mut ret = BoxedUint::zero_with_precision(at_least_bits_precision);
         let nlimbs = ret.nlimbs();
         ret.limbs.copy_from_slice(&self.limbs[..nlimbs]);

@@ -119,6 +119,7 @@ impl BoxedUint {
         }
 
         // Required as the q_len calculation below can underflow:
+        std::dbg!(&this, &rhs);
         match this.cmp(&rhs) {
             Ordering::Less => return (Self::zero(), self.clone()),
             Ordering::Equal => return (Self::one(), Self::zero()),
@@ -132,8 +133,9 @@ impl BoxedUint {
         // want it to be the largest number we can efficiently divide by.
         let shift = rhs.as_words().last().unwrap().leading_zeros();
         std::dbg!(shift, this.as_words(), rhs.as_words());
-        let mut a = this.shl_vartime(shift).unwrap().normalize_vartime();
-        let b = rhs.shl_vartime(shift).unwrap().normalize_vartime();
+        let mut a = this.widening_shl_vartime(shift).normalize_vartime();
+        let b = rhs.widening_shl_vartime(shift).normalize_vartime();
+        std::dbg!(a.as_words(), b.as_words());
 
         // The algorithm works by incrementally calculating "guesses", q0, for part of the
         // remainder. Once we have any number q0 such that q0 * b <= a, we can set

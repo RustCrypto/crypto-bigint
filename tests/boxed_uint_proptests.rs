@@ -30,9 +30,7 @@ fn reduce(x: &BoxedUint, n: &BoxedUint) -> BoxedUint {
         Ordering::Greater => x.shorten(bits_precision),
     };
 
-    let x_reduced = x.rem_vartime(&modulus);
-    debug_assert_eq!(x_reduced.bits_precision(), bits_precision);
-    x_reduced
+    x.rem_vartime(&modulus).widen(bits_precision)
 }
 
 prop_compose! {

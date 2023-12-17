@@ -59,6 +59,38 @@ impl BoxedUint {
         overflow
     }
 
+    /// Computes `self << shift`, returning the full result.
+    pub(crate) fn widening_shl_vartime(&self, shift: u32) -> Self {
+        let n_unit = shift / Limb::BITS;
+        let mut data = if shift == 0 {
+            self.clone()
+        } else {
+            let len = n_unit + self.limbs.len() as u32 + 1;
+            let mut data = BoxedUint::zero_with_precision(len * Limb::BITS);
+            let start = n_unit as usize;
+            let end = len as usize - 1;
+            data.as_limbs_mut()[start..end].copy_from_slice(self.as_limbs());
+            data
+        };
+
+        let n_shift = shift % Limb::BITS;
+        if n_shift > 0 {
+            let mut carry = 0;
+            let shifter = Limb::BITS - n_shift;
+            let len = data.as_limbs().len();
+            for elem in data.as_limbs_mut()[n_unit as usize..len - 1].iter_mut() {
+                let new_carry = elem.0 >> shifter;
+                elem.0 = (elem.0 << n_shift) | carry;
+                carry = new_carry;
+            }
+            if carry != 0 {
+                data.as_limbs_mut().last_mut().unwrap().0 = carry;
+            }
+        }
+
+        data
+    }
+
     /// Computes `self << shift` in a panic-free manner, masking off bits of `shift` which would cause the shift to
     /// exceed the type's width.
     pub fn wrapping_shl(&self, shift: u32) -> Self {
@@ -184,6 +216,8 @@ impl WrappingShl for BoxedUint {
 
 #[cfg(test)]
 mod tests {
+    use crate::Limb;
+
     use super::BoxedUint;
 
     #[test]
@@ -215,6 +249,38 @@ mod tests {
         assert_eq!(
             BoxedUint::from(0x80000000000000000u128),
             one.shl_vartime(67).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_widening_shl_vartime() {
+        let one = BoxedUint::one_with_precision(128);
+
+        assert_eq!(BoxedUint::from(2u8), one.widening_shl_vartime(1));
+        assert_eq!(BoxedUint::from(4u8), one.widening_shl_vartime(2));
+        assert_eq!(
+            BoxedUint::from(0x80000000000000000u128),
+            one.widening_shl_vartime(67)
+        );
+
+        assert_eq!(
+            BoxedUint::from_words([0, 1]),
+            BoxedUint::from_words([1]).widening_shl_vartime(Limb::BITS),
+        );
+
+        assert_eq!(
+            BoxedUint::from_words([0, 0, 1]),
+            BoxedUint::from_words([1]).widening_shl_vartime(Limb::BITS * 2),
+        );
+
+        assert_eq!(
+            BoxedUint::from_words([9223372036854775808, 0, 9223372036854775807,]),
+            BoxedUint::from_words([1, 18446744073709551614]).widening_shl_vartime(63),
+        );
+
+        assert_eq!(
+            BoxedUint::from_words([9223372036854775808, 9223372036854775808,]),
+            BoxedUint::from_words([1, 1]).widening_shl_vartime(63),
         );
     }
 }
