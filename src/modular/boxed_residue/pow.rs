@@ -113,6 +113,7 @@ fn pow_montgomery_form(
     // Ensure output is fully reduced (AMM only reduces to the bit length of the modulus)
     // See RustCrypto/crypto-bigint#441
     z.conditional_sbb_assign(modulus, !z.ct_lt(modulus));
+    z.conditional_sbb_assign(modulus, !z.ct_lt(modulus));
     debug_assert!(&z < modulus);
 
     z
