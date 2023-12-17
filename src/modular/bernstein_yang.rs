@@ -10,6 +10,9 @@
 
 #![allow(clippy::needless_range_loop)]
 
+#[macro_use]
+mod macros;
+
 use crate::{ConstChoice, Inverter, Limb, Uint, Word};
 use subtle::CtOption;
 
@@ -59,13 +62,9 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// Modulus must be odd. Returns `ConstChoice::FALSE` if it is not.
     #[allow(trivial_numeric_casts)]
     pub const fn new(modulus: &Uint<SAT_LIMBS>, adjuster: &Uint<SAT_LIMBS>) -> (Self, ConstChoice) {
-        if UNSAT_LIMBS != bernstein_yang_nlimbs!(SAT_LIMBS * Limb::BITS as usize) {
-            panic!("BernsteinYangInverter has incorrect number of limbs");
-        }
-
         let ret = Self {
-            modulus: Uint62L::<UNSAT_LIMBS>(sat_to_unsat::<UNSAT_LIMBS>(modulus.as_words())),
-            adjuster: Uint62L::<UNSAT_LIMBS>(sat_to_unsat::<UNSAT_LIMBS>(adjuster.as_words())),
+            modulus: Uint62L::from_uint(modulus),
+            adjuster: Uint62L::from_uint(adjuster),
             inverse: inv_mod2_62(modulus.as_words()),
         };
 
@@ -76,7 +75,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus
     pub const fn inv(&self, value: &Uint<SAT_LIMBS>) -> (Uint<SAT_LIMBS>, ConstChoice) {
         let (mut d, mut e) = (Uint62L::ZERO, self.adjuster);
-        let mut g = Uint62L::<UNSAT_LIMBS>(sat_to_unsat::<UNSAT_LIMBS>(value.as_words()));
+        let mut g = Uint62L::from_uint(value);
         let (mut delta, mut f) = (1, self.modulus);
         let mut matrix;
 
@@ -89,9 +88,9 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
         // of the integer to be inverted and the modulus the inverter was created for.
         // Thus, if "f" is neither 1 nor -1, then the sought inverse does not exist
         let antiunit = f.eq(&Uint62L::MINUS_ONE);
-        let words = unsat_to_sat::<SAT_LIMBS>(&self.norm(d, antiunit).0);
+        let ret = self.norm(d, antiunit);
         let is_some = ConstChoice::from_word_lsb((f.eq(&Uint62L::ONE) || antiunit) as Word);
-        (Uint::from_words(words), is_some)
+        (ret.to_uint(), is_some)
     }
 
     /// Returns the Bernstein-Yang transition matrix multiplied by 2^62 and the new value
@@ -249,66 +248,6 @@ const fn inv_mod2_62(value: &[Word]) -> i64 {
     (x.wrapping_mul(y.wrapping_add(1)) & (u64::MAX >> 2)) as i64
 }
 
-/// Write an impl of a limb conversion function.
-///
-/// Workaround for making this function generic around limb types while still allowing it to be `const fn`.
-macro_rules! impl_limb_convert {
-    ($input_type:ty, $input_bits:expr, $output_type:ty, $output_bits:expr, $output_size:expr, $input:expr) => {{
-        // This function is defined because the method "min" of the usize type is not constant
-        const fn min(a: usize, b: usize) -> usize {
-            if a > b {
-                b
-            } else {
-                a
-            }
-        }
-
-        let total = min($input.len() * $input_bits, $output_size * $output_bits);
-        let mut output = [0 as $output_type; $output_size];
-        let mut bits = 0;
-
-        while bits < total {
-            let (i, o) = (bits % $input_bits, bits % $output_bits);
-            output[bits / $output_bits] |= ($input[bits / $input_bits] >> i) as $output_type << o;
-            bits += min($input_bits - i, $output_bits - o);
-        }
-
-        let mask = (<$output_type>::MAX as $output_type) >> (<$output_type>::BITS as usize - $output_bits);
-        let mut filled = total / $output_bits + if total % $output_bits > 0 { 1 } else { 0 };
-
-        while filled > 0 {
-            filled -= 1;
-            output[filled] &= mask;
-        }
-
-        output
-    }};
-}
-
-/// Convert from 64-bit saturated representation used by `Uint` to the 62-bit unsaturated representation used by
-/// `Uint62`.
-///
-/// Returns a big unsigned integer as an array of 62-bit chunks, which is equal modulo 2 ^ (62 * S) to the input big
-/// unsigned integer stored as an array of 64-bit chunks.
-///
-/// The ordering of the chunks in these arrays is little-endian.
-#[allow(trivial_numeric_casts)]
-const fn sat_to_unsat<const S: usize>(input: &[Word]) -> [u64; S] {
-    impl_limb_convert!(Word, Word::BITS as usize, u64, 62, S, input)
-}
-
-/// Convert from 62-bit unsaturated representation used by `Uint62` to the 64-bit saturated representation used by
-/// `Uint`.
-///
-/// Returns a big unsigned integer as an array of 64-bit chunks, which is equal modulo 2 ^ (64 * S) to the input big
-/// unsigned integer stored as an array of 62-bit chunks.
-///
-/// The ordering of the chunks in these arrays is little-endian
-#[allow(trivial_numeric_casts)]
-const fn unsat_to_sat<const S: usize>(input: &[u64]) -> [Word; S] {
-    impl_limb_convert!(u64, 62, Word, Word::BITS as usize, S, input)
-}
-
 /// `Uint`-like (62 * LIMBS)-bit integer type, whose variables store numbers in the two's complement code as arrays of
 /// 62-bit limbs.
 ///
@@ -337,6 +276,52 @@ impl<const LIMBS: usize> Uint62L<LIMBS> {
         ret.0[0] = 1;
         ret
     };
+
+    /// Convert from 64-bit saturated representation used by `Uint` to the 62-bit unsaturated representation used by
+    /// `Uint62`.
+    ///
+    /// Returns a big unsigned integer as an array of 62-bit chunks, which is equal modulo 2 ^ (62 * S) to the input big
+    /// unsigned integer stored as an array of 64-bit chunks.
+    ///
+    /// The ordering of the chunks in these arrays is little-endian.
+    #[allow(trivial_numeric_casts)]
+    pub const fn from_uint<const SAT_LIMBS: usize>(input: &Uint<SAT_LIMBS>) -> Self {
+        if LIMBS != bernstein_yang_nlimbs!(SAT_LIMBS * Limb::BITS as usize) {
+            panic!("incorrect number of limbs");
+        }
+
+        Self(impl_limb_convert!(
+            Word,
+            Word::BITS as usize,
+            u64,
+            62,
+            LIMBS,
+            input.as_words()
+        ))
+    }
+
+    /// Convert from 62-bit unsaturated representation used by `Uint62` to the 64-bit saturated representation used by
+    /// `Uint`.
+    ///
+    /// Returns a big unsigned integer as an array of 64-bit chunks, which is equal modulo 2 ^ (64 * S) to the input big
+    /// unsigned integer stored as an array of 62-bit chunks.
+    ///
+    /// The ordering of the chunks in these arrays is little-endian
+    #[allow(trivial_numeric_casts, clippy::wrong_self_convention)]
+    pub const fn to_uint<const SAT_LIMBS: usize>(&self) -> Uint<SAT_LIMBS> {
+        if LIMBS != bernstein_yang_nlimbs!(SAT_LIMBS * Limb::BITS as usize) {
+            panic!("incorrect number of limbs");
+        }
+
+        Uint::from_words(impl_limb_convert!(
+            u64,
+            62,
+            Word,
+            Word::BITS as usize,
+            SAT_LIMBS,
+            &self.0
+        ))
+    }
 
     /// Returns the result of applying 62-bit right arithmetical shift to the current number.
     pub const fn shift(&self) -> Self {
