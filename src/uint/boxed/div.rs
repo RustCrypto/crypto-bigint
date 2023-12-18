@@ -1,7 +1,9 @@
 //! [`BoxedUint`] division operations.
 
 use crate::{
-    uint::boxed::div_limb, BoxedUint, CheckedDiv, Limb, NonZero, Reciprocal, Wrapping, ConstantTimeSelect};
+    uint::boxed::div_limb, BoxedUint, CheckedDiv, ConstantTimeSelect, Limb, NonZero, Reciprocal,
+    Wrapping,
+};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 

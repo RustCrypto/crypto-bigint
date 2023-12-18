@@ -2,7 +2,7 @@
 
 use subtle::{ConstantTimeEq, ConstantTimeGreater, CtOption};
 
-use crate::{ConstantTimeSelect, BoxedUint, NonZero};
+use crate::{BoxedUint, ConstantTimeSelect, NonZero};
 
 impl BoxedUint {
     /// Computes √(`self`) in constant time.

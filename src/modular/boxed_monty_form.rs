@@ -9,7 +9,7 @@ mod pow;
 mod sub;
 
 use super::{
-    div_by_2::boxed::div_by_2,
+    div_by_2,
     reduction::{montgomery_reduction_boxed, montgomery_reduction_boxed_mut},
     Retrieve,
 };
@@ -251,7 +251,10 @@ impl BoxedMontyForm {
     ///   (since the modulus `p` in Montgomery form is always odd, this divides entirely).
     pub fn div_by_2(&self) -> Self {
         Self {
-            montgomery_form: div_by_2(&self.montgomery_form, &self.residue_params.modulus),
+            montgomery_form: div_by_2::boxed::div_by_2(
+                &self.montgomery_form,
+                &self.residue_params.modulus,
+            ),
             residue_params: self.residue_params.clone(), // TODO: avoid clone?
         }
     }

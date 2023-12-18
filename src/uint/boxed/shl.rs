@@ -1,6 +1,6 @@
 //! [`BoxedUint`] bitwise left shift operations.
 
-use crate::{BoxedUint, ConstantTimeSelect,  ConstChoice, Limb, Word, WrappingShl, Zero};
+use crate::{BoxedUint, ConstChoice, ConstantTimeSelect, Limb, Word, WrappingShl, Zero};
 use core::ops::{Shl, ShlAssign};
 use subtle::{Choice, ConstantTimeLess};
 
