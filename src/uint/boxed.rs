@@ -169,6 +169,7 @@ impl BoxedUint {
     /// Widen this type's precision to the given number of bits.
     ///
     /// Panics if `at_least_bits_precision` is smaller than the current precision.
+    #[must_use]
     pub fn widen(&self, at_least_bits_precision: u32) -> BoxedUint {
         assert!(at_least_bits_precision >= self.bits_precision());
 
