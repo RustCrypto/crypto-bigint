@@ -79,22 +79,24 @@ impl BoxedBernsteinYangInverter {
 
     /// Returns the updated values of the variables f and g for specified initial ones and Bernstein-Yang transition
     /// matrix multiplied by 2^62. The returned vector is "matrix * (f, g)' / 2^62", where "'" is the transpose operator
-    fn fg(f: &BoxedUint62L, g: &BoxedUint62L, t: Matrix) -> (BoxedUint62L, BoxedUint62L) {
-        (
-            f.mul(t[0][0]).add(&g.mul(t[0][1])).shr(),
-            f.mul(t[1][0]).add(&g.mul(t[1][1])).shr(),
-        )
+    fn fg(f: &mut BoxedUint62L, g: &mut BoxedUint62L, t: Matrix) {
+        // TODO(tarcieri): reduce allocations
+        let f2 = f.mul(t[0][0]).add(&g.mul(t[0][1])).shr();
+        let g2 = f.mul(t[1][0]).add(&g.mul(t[1][1])).shr();
+        *f = f2;
+        *g = g2;
     }
 
     /// Returns the updated values of the variables d and e for specified initial ones and Bernstein-Yang transition
     /// matrix multiplied by 2^62. The returned vector is congruent modulo M to "matrix * (d, e)' / 2^62 (mod M)",
     /// where M is the modulus the inverter was created for and "'" stands for the transpose operator. Both the input
     /// and output values lie in the interval (-2 * M, M)
-    fn de(&self, d: &BoxedUint62L, e: &BoxedUint62L, t: Matrix) -> (BoxedUint62L, BoxedUint62L) {
+    fn de(&self, d: &mut BoxedUint62L, e: &mut BoxedUint62L, t: Matrix) {
         let mask = BoxedUint62L::MASK as i64;
         let mut md = t[0][0] * d.is_negative() as i64 + t[0][1] * e.is_negative() as i64;
         let mut me = t[1][0] * d.is_negative() as i64 + t[1][1] * e.is_negative() as i64;
 
+        // TODO(tarcieri): reduce allocations
         let cd = t[0][0]
             .wrapping_mul(d.lowest() as i64)
             .wrapping_add(t[0][1].wrapping_mul(e.lowest() as i64))
@@ -116,7 +118,8 @@ impl BoxedBernsteinYangInverter {
             .add(&e.mul(t[1][1]))
             .add(&self.modulus.mul(me));
 
-        (cd.shr(), ce.shr())
+        *d = cd.shr();
+        *e = ce.shr();
     }
 
     /// Returns either "value (mod M)" or "-value (mod M)", where M is the modulus the
@@ -145,6 +148,7 @@ impl Inverter for BoxedBernsteinYangInverter {
     /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus
     fn invert(&self, value: &BoxedUint) -> CtOption<BoxedUint> {
+        // Ensure `d` has the right number of limbs for `value`, but is initialized to `0`.
         let mut d = BoxedUint62L::from(value);
         d.0.iter_mut().for_each(|limb| *limb = 0);
 
@@ -156,8 +160,8 @@ impl Inverter for BoxedBernsteinYangInverter {
 
         while !g.is_zero() {
             (delta, matrix) = Self::jump(&f, &g, delta);
-            (f, g) = Self::fg(&f, &g, matrix);
-            (d, e) = self.de(&d, &e, matrix);
+            Self::fg(&mut f, &mut g, matrix);
+            self.de(&mut d, &mut e, matrix);
         }
         // At this point the absolute value of "f" equals the greatest common divisor
         // of the integer to be inverted and the modulus the inverter was created for.
