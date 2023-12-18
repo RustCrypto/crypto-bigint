@@ -170,6 +170,7 @@ impl Inverter for BoxedBernsteinYangInverter {
             Self::fg(&mut f, &mut g, matrix);
             self.de(&mut d, &mut e, matrix);
         }
+
         // At this point the absolute value of "f" equals the greatest common divisor
         // of the integer to be inverted and the modulus the inverter was created for.
         // Thus, if "f" is neither 1 nor -1, then the sought inverse does not exist
