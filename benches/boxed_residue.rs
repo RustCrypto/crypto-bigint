@@ -4,7 +4,7 @@ use criterion::{
 };
 use crypto_bigint::{
     modular::{BoxedResidue, BoxedResidueParams},
-    BoxedUint,
+    BoxedUint, Inverter, NonZero, PrecomputeInverter, RandomMod,
 };
 use num_bigint::BigUint;
 use rand_core::OsRng;
@@ -21,6 +21,32 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         BoxedUint::random(&mut OsRng, UINT_BITS) | BoxedUint::one_with_precision(UINT_BITS),
     )
     .unwrap();
+
+    group.bench_function("invert, U256", |b| {
+        b.iter_batched(
+            || {
+                let modulus = NonZero::new(params.modulus().clone()).unwrap();
+                BoxedResidue::new(BoxedUint::random_mod(&mut OsRng, &modulus), params.clone())
+            },
+            |x| black_box(x).invert(),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("Bernstein-Yang invert, U256", |b| {
+        b.iter_batched(
+            || {
+                let inverter = params.precompute_inverter();
+                let modulus = NonZero::new(params.modulus().clone()).unwrap();
+                let x =
+                    BoxedResidue::new(BoxedUint::random_mod(&mut OsRng, &modulus), params.clone());
+                (x, inverter)
+            },
+            |(x, inverter)| inverter.invert(&black_box(x)),
+            BatchSize::SmallInput,
+        )
+    });
+
     group.bench_function("multiplication, BoxedUint*BoxedUint", |b| {
         b.iter_batched(
             || {
