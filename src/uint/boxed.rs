@@ -179,6 +179,7 @@ impl BoxedUint {
     /// Shortens this type's precision to the given number of bits.
     ///
     /// Panics if `at_least_bits_precision` is larger than the current precision.
+    #[must_use]
     pub fn shorten(&self, at_least_bits_precision: u32) -> BoxedUint {
         assert!(at_least_bits_precision <= self.bits_precision());
         let mut ret = BoxedUint::zero_with_precision(at_least_bits_precision);
