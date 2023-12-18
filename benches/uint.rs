@@ -31,6 +31,19 @@ fn bench_division(c: &mut Criterion) {
         )
     });
 
+    group.bench_function("rem_vartime, U256/U128, full size", |b| {
+        b.iter_batched(
+            || {
+                let x = U256::random(&mut OsRng);
+                let y_half = U128::random(&mut OsRng);
+                let y: U256 = (y_half, U128::ZERO).into();
+                (x, NonZero::new(y).unwrap())
+            },
+            |(x, y)| black_box(x.rem_vartime(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
     group.bench_function("div/rem, U256/Limb, full size", |b| {
         b.iter_batched(
             || {

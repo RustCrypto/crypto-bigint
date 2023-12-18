@@ -140,7 +140,7 @@ mod tests {
                             prod.limbs[$size..].clone_from_slice(&hi.limbs);
                             let mut modulus = Uint::ZERO;
                             modulus.limbs[..$size].clone_from_slice(&p.as_ref().limbs);
-                            let reduced = prod.rem(&NonZero::new(modulus).unwrap());
+                            let reduced = prod.rem_vartime(&NonZero::new(modulus).unwrap());
                             let mut expected = Uint::ZERO;
                             expected.limbs[..].clone_from_slice(&reduced.limbs[..$size]);
                             expected

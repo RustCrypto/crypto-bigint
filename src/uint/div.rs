@@ -83,12 +83,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes `self` % `rhs`, returns the remainder.
-    ///
-    /// This is variable only with respect to `rhs`.
+    pub const fn rem(&self, rhs: &NonZero<Self>) -> Self {
+        self.div_rem_vartime(rhs).1
+    }
+
+    /// Computes `self` % `rhs`, returns the remainder in variable-time with respect to `rhs`.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub const fn rem(&self, rhs: &NonZero<Self>) -> Self {
+    pub const fn rem_vartime(&self, rhs: &NonZero<Self>) -> Self {
         let mb = rhs.0.bits_vartime();
         let mut bd = Self::BITS - mb;
         let mut rem = *self;
@@ -113,7 +116,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub const fn rem_wide(lower_upper: (Self, Self), rhs: &NonZero<Self>) -> Self {
+    pub const fn rem_wide_vartime(lower_upper: (Self, Self), rhs: &NonZero<Self>) -> Self {
         let mb = rhs.0.bits_vartime();
 
         // The number of bits to consider is two sets of limbs * BITS - mb (modulus bitcount)
@@ -202,13 +205,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Panics if `rhs == 0`.
     pub const fn wrapping_rem(&self, rhs: &Self) -> Self {
         let nz_rhs = NonZero::<Self>::const_new(*rhs).expect("non-zero divisor");
-        self.rem(&nz_rhs)
+        self.rem_vartime(&nz_rhs)
     }
 
     /// Perform checked reduction, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
     pub fn checked_rem(&self, rhs: &Self) -> CtOption<Self> {
-        NonZero::new(*rhs).map(|rhs| self.rem(&rhs))
+        NonZero::new(*rhs).map(|rhs| self.rem_vartime(&rhs))
     }
 }
 
@@ -521,7 +524,7 @@ impl<const LIMBS: usize> Rem<NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn rem(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
-        Self::rem(&self, &rhs)
+        Self::rem_vartime(&self, &rhs)
     }
 }
 
@@ -661,33 +664,33 @@ mod tests {
 
     #[test]
     fn reduce_one() {
-        let r = U256::from(10u8).rem(&NonZero::new(U256::ONE).unwrap());
+        let r = U256::from(10u8).rem_vartime(&NonZero::new(U256::ONE).unwrap());
         assert_eq!(r, U256::ZERO);
     }
 
     #[test]
     fn reduce_tests() {
-        let r = U256::from(10u8).rem(&NonZero::new(U256::from(2u8)).unwrap());
+        let r = U256::from(10u8).rem_vartime(&NonZero::new(U256::from(2u8)).unwrap());
         assert_eq!(r, U256::ZERO);
-        let r = U256::from(10u8).rem(&NonZero::new(U256::from(3u8)).unwrap());
+        let r = U256::from(10u8).rem_vartime(&NonZero::new(U256::from(3u8)).unwrap());
         assert_eq!(r, U256::ONE);
-        let r = U256::from(10u8).rem(&NonZero::new(U256::from(7u8)).unwrap());
+        let r = U256::from(10u8).rem_vartime(&NonZero::new(U256::from(7u8)).unwrap());
         assert_eq!(r, U256::from(3u8));
     }
 
     #[test]
     fn reduce_tests_wide_zero_padded() {
-        let r = U256::rem_wide(
+        let r = U256::rem_wide_vartime(
             (U256::from(10u8), U256::ZERO),
             &NonZero::new(U256::from(2u8)).unwrap(),
         );
         assert_eq!(r, U256::ZERO);
-        let r = U256::rem_wide(
+        let r = U256::rem_wide_vartime(
             (U256::from(10u8), U256::ZERO),
             &NonZero::new(U256::from(3u8)).unwrap(),
         );
         assert_eq!(r, U256::ONE);
-        let r = U256::rem_wide(
+        let r = U256::rem_wide_vartime(
             (U256::from(10u8), U256::ZERO),
             &NonZero::new(U256::from(7u8)).unwrap(),
         );
