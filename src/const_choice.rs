@@ -241,6 +241,17 @@ impl<T> From<ConstCtOption<T>> for CtOption<T> {
     }
 }
 
+impl<T> From<ConstCtOption<T>> for Option<T> {
+    #[inline]
+    fn from(value: ConstCtOption<T>) -> Self {
+        if value.is_some.into() {
+            Some(value.value)
+        } else {
+            None
+        }
+    }
+}
+
 // Need specific implementations to work around the
 // "destructors cannot be evaluated at compile-time" error
 // See https://github.com/rust-lang/rust/issues/66753
