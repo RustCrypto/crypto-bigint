@@ -36,13 +36,15 @@ pub(crate) mod boxed {
     pub(crate) fn div_by_2(a: &BoxedUint, modulus: &BoxedUint) -> BoxedUint {
         debug_assert_eq!(a.bits_precision(), modulus.bits_precision());
 
-        let (half, is_odd) = a.shr1_with_carry();
+        let (mut half, is_odd) = a.shr1_with_carry();
         let half_modulus = modulus.shr1();
 
         let if_odd = half
             .wrapping_add(&half_modulus)
             .wrapping_add(&BoxedUint::one_with_precision(a.bits_precision()));
 
-        BoxedUint::ct_select(&half, &if_odd, is_odd)
+        half.ct_assign(&if_odd, is_odd);
+
+        half
     }
 }
