@@ -2,7 +2,7 @@
 
 use subtle::{ConstantTimeEq, ConstantTimeGreater, CtOption};
 
-use crate::{BoxedUint, NonZero};
+use crate::{ConstantTimeSelect, BoxedUint, NonZero};
 
 impl BoxedUint {
     /// Computes √(`self`) in constant time.
@@ -35,7 +35,7 @@ impl BoxedUint {
             let (q, _) = self.div_rem(&nz_x);
 
             // A protection in case `self == 0`, which will make `x == 0`
-            let q = Self::conditional_select(
+            let q = Self::ct_select(
                 &Self::zero_with_precision(self.bits_precision()),
                 &q,
                 is_some,
@@ -48,7 +48,7 @@ impl BoxedUint {
         // At this point `x_prev == x_{n}` and `x == x_{n+1}`
         // where `n == i - 1 == LOG2_BITS + 1 == floor(log2(BITS)) + 1`.
         // Thus, according to Hast, `sqrt(self) = min(x_n, x_{n+1})`.
-        Self::conditional_select(&x_prev, &x, Self::ct_gt(&x_prev, &x))
+        Self::ct_select(&x_prev, &x, Self::ct_gt(&x_prev, &x))
     }
 
     /// Computes √(`self`)

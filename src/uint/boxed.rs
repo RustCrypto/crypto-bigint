@@ -27,7 +27,7 @@ mod sub_mod;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Integer, Limb, NonZero, Uint, Word, Zero, U128, U64};
+use crate::{Integer, Limb, NonZero, Word, Zero};
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
