@@ -4,7 +4,7 @@
 ///
 /// Workaround for making this function generic around limb types while still allowing it to be `const fn`.
 macro_rules! impl_limb_convert {
-    ($input_type:ty, $input_bits:expr, $output_type:ty, $output_bits:expr, $output_size:expr, $input:expr) => {{
+    ($input_type:ty, $input_bits:expr, $input:expr, $output_type:ty, $output_bits:expr, $output:expr) => {{
         // This function is defined because the method "min" of the usize type is not constant
         const fn min(a: usize, b: usize) -> usize {
             if a > b {
@@ -14,13 +14,12 @@ macro_rules! impl_limb_convert {
             }
         }
 
-        let total = min($input.len() * $input_bits, $output_size * $output_bits);
-        let mut output = [0 as $output_type; $output_size];
+        let total = min($input.len() * $input_bits, $output.len() * $output_bits);
         let mut bits = 0;
 
         while bits < total {
             let (i, o) = (bits % $input_bits, bits % $output_bits);
-            output[bits / $output_bits] |= ($input[bits / $input_bits] >> i) as $output_type << o;
+            $output[bits / $output_bits] |= ($input[bits / $input_bits] >> i) as $output_type << o;
             bits += min($input_bits - i, $output_bits - o);
         }
 
@@ -29,9 +28,7 @@ macro_rules! impl_limb_convert {
 
         while filled > 0 {
             filled -= 1;
-            output[filled] &= mask;
+            $output[filled] &= mask;
         }
-
-        output
     }};
 }

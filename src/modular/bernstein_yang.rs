@@ -13,10 +13,14 @@
 #[macro_use]
 mod macros;
 
+#[cfg(feature = "alloc")]
+pub(super) mod boxed;
+
 use crate::{ConstChoice, ConstCtOption, Inverter, Limb, Uint, Word};
 use subtle::CtOption;
 
-/// Type of the modular multiplicative inverter based on the Bernstein-Yang method.
+/// Modular multiplicative inverter based on the Bernstein-Yang method.
+///
 /// The inverter can be created for a specified modulus M and adjusting parameter A
 /// to compute the adjusted multiplicative inverses of positive integers, i.e. for
 /// computing (1 / x) * A (mod M) for a positive integer x.
@@ -59,8 +63,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
 {
     /// Creates the inverter for specified modulus and adjusting parameter.
     ///
-    /// Modulus must be odd. Returns `ConstChoice::FALSE` if it is not.
-    #[allow(trivial_numeric_casts)]
+    /// Modulus must be odd. Returns `None` if it is not.
     pub const fn new(modulus: &Uint<SAT_LIMBS>, adjuster: &Uint<SAT_LIMBS>) -> ConstCtOption<Self> {
         let ret = Self {
             modulus: Uint62L::from_uint(modulus),
@@ -71,7 +74,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
         ConstCtOption::new(ret, modulus.is_odd())
     }
 
-    /// Returns either the adjusted modular multiplicative inverse for the argument or None
+    /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus
     pub const fn inv(&self, value: &Uint<SAT_LIMBS>) -> ConstCtOption<Uint<SAT_LIMBS>> {
         let (mut d, mut e) = (Uint62L::ZERO, self.adjuster);
@@ -147,8 +150,8 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
         t: Matrix,
     ) -> (Uint62L<UNSAT_LIMBS>, Uint62L<UNSAT_LIMBS>) {
         (
-            f.mul(t[0][0]).add(&g.mul(t[0][1])).shift(),
-            f.mul(t[1][0]).add(&g.mul(t[1][1])).shift(),
+            f.mul(t[0][0]).add(&g.mul(t[0][1])).shr(),
+            f.mul(t[1][0]).add(&g.mul(t[1][1])).shr(),
         )
     }
 
@@ -187,7 +190,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
             .add(&e.mul(t[1][1]))
             .add(&self.modulus.mul(me));
 
-        (cd.shift(), ce.shift())
+        (cd.shr(), ce.shr())
     }
 
     /// Returns either "value (mod M)" or "-value (mod M)", where M is the modulus the
@@ -260,7 +263,7 @@ impl<const LIMBS: usize> Uint62L<LIMBS> {
     /// Number of bits in each limb.
     pub const LIMB_BITS: usize = 62;
 
-    /// Mask, in which the B lowest bits are 1 and only they.
+    /// Mask, in which the 62 lowest bits are 1.
     pub const MASK: u64 = u64::MAX >> (64 - Self::LIMB_BITS);
 
     /// Representation of -1.
@@ -277,7 +280,7 @@ impl<const LIMBS: usize> Uint62L<LIMBS> {
     };
 
     /// Convert from 64-bit saturated representation used by `Uint` to the 62-bit unsaturated representation used by
-    /// `Uint62`.
+    /// `Uint62L`.
     ///
     /// Returns a big unsigned integer as an array of 62-bit chunks, which is equal modulo 2 ^ (62 * S) to the input big
     /// unsigned integer stored as an array of 64-bit chunks.
@@ -289,17 +292,13 @@ impl<const LIMBS: usize> Uint62L<LIMBS> {
             panic!("incorrect number of limbs");
         }
 
-        Self(impl_limb_convert!(
-            Word,
-            Word::BITS as usize,
-            u64,
-            62,
-            LIMBS,
-            input.as_words()
-        ))
+        let mut output = [0; LIMBS];
+        impl_limb_convert!(Word, Word::BITS as usize, input.as_words(), u64, 62, output);
+
+        Self(output)
     }
 
-    /// Convert from 62-bit unsaturated representation used by `Uint62` to the 64-bit saturated representation used by
+    /// Convert from 62-bit unsaturated representation used by `Uint62L` to the 64-bit saturated representation used by
     /// `Uint`.
     ///
     /// Returns a big unsigned integer as an array of 64-bit chunks, which is equal modulo 2 ^ (64 * S) to the input big
@@ -312,53 +311,9 @@ impl<const LIMBS: usize> Uint62L<LIMBS> {
             panic!("incorrect number of limbs");
         }
 
-        Uint::from_words(impl_limb_convert!(
-            u64,
-            62,
-            Word,
-            Word::BITS as usize,
-            SAT_LIMBS,
-            &self.0
-        ))
-    }
-
-    /// Returns the result of applying 62-bit right arithmetical shift to the current number.
-    pub const fn shift(&self) -> Self {
-        let mut ret = Self::ZERO;
-        if self.is_negative() {
-            ret.0[LIMBS - 1] = Self::MASK;
-        }
-
-        let mut i = 0;
-        while i < LIMBS - 1 {
-            ret.0[i] = self.0[i + 1];
-            i += 1;
-        }
-
-        ret
-    }
-
-    /// Returns the lowest 62 bits of the current number.
-    pub const fn lowest(&self) -> u64 {
-        self.0[0]
-    }
-
-    /// Returns "true" iff the current number is negative.
-    pub const fn is_negative(&self) -> bool {
-        self.0[LIMBS - 1] > (Self::MASK >> 1)
-    }
-
-    /// Const fn equivalent for `PartialEq::eq`.
-    pub const fn eq(&self, other: &Self) -> bool {
-        let mut ret = true;
-        let mut i = 0;
-
-        while i < LIMBS {
-            ret &= self.0[i] == other.0[i];
-            i += 1;
-        }
-
-        ret
+        let mut ret = [0 as Word; SAT_LIMBS];
+        impl_limb_convert!(u64, 62, &self.0, Word, Word::BITS as usize, ret);
+        Uint::from_words(ret)
     }
 
     /// Const fn equivalent for `Add::add`.
@@ -368,23 +323,6 @@ impl<const LIMBS: usize> Uint62L<LIMBS> {
 
         while i < LIMBS {
             let sum = self.0[i] + other.0[i] + carry;
-            ret.0[i] = sum & Self::MASK;
-            carry = sum >> Self::LIMB_BITS;
-            i += 1;
-        }
-
-        ret
-    }
-
-    /// Const fn equivalent for `Neg::neg`.
-    pub const fn neg(&self) -> Self {
-        // For the two's complement code the additive negation is the result
-        // of adding 1 to the bitwise inverted argument's representation
-        let (mut ret, mut carry) = (Self::ZERO, 1);
-        let mut i = 0;
-
-        while i < LIMBS {
-            let sum = (self.0[i] ^ Self::MASK) + carry;
             ret.0[i] = sum & Self::MASK;
             carry = sum >> Self::LIMB_BITS;
             i += 1;
@@ -423,5 +361,61 @@ impl<const LIMBS: usize> Uint62L<LIMBS> {
         }
 
         ret
+    }
+
+    /// Const fn equivalent for `Neg::neg`.
+    pub const fn neg(&self) -> Self {
+        // For the two's complement code the additive negation is the result
+        // of adding 1 to the bitwise inverted argument's representation
+        let (mut ret, mut carry) = (Self::ZERO, 1);
+        let mut i = 0;
+
+        while i < LIMBS {
+            let sum = (self.0[i] ^ Self::MASK) + carry;
+            ret.0[i] = sum & Self::MASK;
+            carry = sum >> Self::LIMB_BITS;
+            i += 1;
+        }
+
+        ret
+    }
+
+    /// Returns the result of applying 62-bit right arithmetical shift to the current number.
+    pub const fn shr(&self) -> Self {
+        let mut ret = Self::ZERO;
+        if self.is_negative() {
+            ret.0[LIMBS - 1] = Self::MASK;
+        }
+
+        let mut i = 0;
+        while i < LIMBS - 1 {
+            ret.0[i] = self.0[i + 1];
+            i += 1;
+        }
+
+        ret
+    }
+
+    /// Const fn equivalent for `PartialEq::eq`.
+    pub const fn eq(&self, other: &Self) -> bool {
+        let mut ret = true;
+        let mut i = 0;
+
+        while i < LIMBS {
+            ret &= self.0[i] == other.0[i];
+            i += 1;
+        }
+
+        ret
+    }
+
+    /// Returns "true" iff the current number is negative.
+    pub const fn is_negative(&self) -> bool {
+        self.0[LIMBS - 1] > (Self::MASK >> 1)
+    }
+
+    /// Returns the lowest 62 bits of the current number.
+    pub const fn lowest(&self) -> u64 {
+        self.0[0]
     }
 }
