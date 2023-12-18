@@ -47,8 +47,8 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
         ))
         .expect("modulus ensured non-zero");
 
-        let r = Uint::MAX.rem(&nz_modulus).wrapping_add(&Uint::ONE);
-        let r2 = Uint::rem_wide(r.square_wide(), &nz_modulus);
+        let r = Uint::MAX.rem_vartime(&nz_modulus).wrapping_add(&Uint::ONE);
+        let r2 = Uint::rem_wide_vartime(r.square_wide(), &nz_modulus);
 
         let maybe_inverse = modulus.inv_mod2k_vartime(Word::BITS);
         // If the inverse exists, it means the modulus is odd.

@@ -159,7 +159,7 @@ mod tests {
         // Computing xR mod modulus without Montgomery reduction
         let (lo, hi) = x.split_mul(&Modulus2::R);
         let c = hi.concat(&lo);
-        let red = c.rem(&NonZero::new(U256::ZERO.concat(&Modulus2::MODULUS)).unwrap());
+        let red = c.rem_vartime(&NonZero::new(U256::ZERO.concat(&Modulus2::MODULUS)).unwrap());
         let (hi, lo) = red.split();
         assert_eq!(hi, Uint::ZERO);
 
