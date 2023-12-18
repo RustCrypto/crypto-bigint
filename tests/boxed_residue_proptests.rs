@@ -1,4 +1,4 @@
-//! Equivalence tests between `crypto_bigint::BoxedUint` and `num-bigint`.
+//! Equivalence tests between `crypto_bigint::BoxedResidue` and `num-bigint`.
 
 #![cfg(feature = "alloc")]
 
