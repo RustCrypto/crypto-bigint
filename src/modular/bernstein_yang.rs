@@ -173,6 +173,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
             .wrapping_mul(d.lowest() as i64)
             .wrapping_add(t[0][1].wrapping_mul(e.lowest() as i64))
             & mask;
+
         let ce = t[1][0]
             .wrapping_mul(d.lowest() as i64)
             .wrapping_add(t[1][1].wrapping_mul(e.lowest() as i64))
