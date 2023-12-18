@@ -1,6 +1,6 @@
 //! [`BoxedUint`] bitwise right shift operations.
 
-use crate::{BoxedUint, ConstChoice, ConstantTimeSelect, Limb, WrappingShr, Zero};
+use crate::{BoxedUint, ConstantTimeSelect, Limb, WrappingShr, Zero};
 use core::ops::{Shr, ShrAssign};
 use subtle::{Choice, ConstantTimeLess};
 
@@ -115,24 +115,6 @@ impl BoxedUint {
         Some(())
     }
 
-    /// Computes `self >> shift`.
-    /// Returns `None` if `shift >= self.bits_precision()`.
-    ///
-    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
-    ///
-    /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
-    #[inline(always)]
-    pub fn shr_vartime(&self, shift: u32) -> (Self, ConstChoice) {
-        let mut result = Self::zero_with_precision(self.bits_precision());
-        let success = self.shr_vartime_into(&mut result, shift);
-        // TODO: is this okay?
-        (
-            result,
-            // If success, then return ConstChoice::False since it's not overflowing
-            success.map_or(ConstChoice::TRUE, |_| ConstChoice::FALSE),
-        )
-    }
-
     /// Computes `self >> 1` in constant-time, returning a true [`Choice`]
     /// if the least significant bit was set, and a false [`Choice::FALSE`] otherwise.
     pub(crate) fn shr1_with_carry(&self) -> (Self, Choice) {
@@ -221,9 +203,9 @@ mod tests {
     #[test]
     fn shr_vartime() {
         let n = BoxedUint::from(0x80000000000000000u128);
-        assert_eq!(BoxedUint::zero(), n.shr_vartime(68).0);
-        assert_eq!(BoxedUint::one(), n.shr_vartime(67).0);
-        assert_eq!(BoxedUint::from(2u8), n.shr_vartime(66).0);
-        assert_eq!(BoxedUint::from(4u8), n.shr_vartime(65).0);
+        assert_eq!(BoxedUint::zero(), n.overflowing_shr(68).0);
+        assert_eq!(BoxedUint::one(), n.overflowing_shr(67).0);
+        assert_eq!(BoxedUint::from(2u8), n.overflowing_shr(66).0);
+        assert_eq!(BoxedUint::from(4u8), n.overflowing_shr(65).0);
     }
 }

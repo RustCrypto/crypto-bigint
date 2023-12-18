@@ -111,25 +111,6 @@ impl BoxedUint {
         Some(())
     }
 
-    /// Computes `self << shift`.
-    /// Returns `None` if `shift >= self.bits_precision()`.
-    ///
-    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
-    ///
-    /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
-    #[inline(always)]
-    pub fn shl_vartime(&self, shift: u32) -> (Self, ConstChoice) {
-        let mut result = Self::zero_with_precision(self.bits_precision());
-        let success = self.shl_vartime_into(&mut result, shift);
-        // TODO: is this okay?
-
-        (
-            result,
-            // If success, then return ConstChoice::False since it's not overflowing
-            success.map_or(ConstChoice::TRUE, |_| ConstChoice::FALSE),
-        )
-    }
-
     /// Computes `self << 1` in constant-time.
     pub(crate) fn shl1(&self) -> Self {
         let mut ret = self.clone();
@@ -240,7 +221,7 @@ mod tests {
         assert_eq!(BoxedUint::from(4u8), &one << 2);
         assert_eq!(
             BoxedUint::from(0x80000000000000000u128),
-            one.shl_vartime(67).0
+            one.overflowing_shl(67).0
         );
     }
 
@@ -248,11 +229,11 @@ mod tests {
     fn shl_vartime() {
         let one = BoxedUint::one_with_precision(128);
 
-        assert_eq!(BoxedUint::from(2u8), one.shl_vartime(1).0);
-        assert_eq!(BoxedUint::from(4u8), one.shl_vartime(2).0);
+        assert_eq!(BoxedUint::from(2u8), one.overflowing_shl(1).0);
+        assert_eq!(BoxedUint::from(4u8), one.overflowing_shl(2).0);
         assert_eq!(
             BoxedUint::from(0x80000000000000000u128),
-            one.shl_vartime(67).0
+            one.overflowing_shl(67).0
         );
     }
 }
