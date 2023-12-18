@@ -103,6 +103,9 @@ impl BoxedResidueParams {
 
     /// Common functionality of `new` and `new_vartime`.
     fn new_inner(modulus: BoxedUint, r: BoxedUint, r2: BoxedUint) -> CtOption<Self> {
+        debug_assert_eq!(r.bits_precision(), modulus.bits_precision());
+        debug_assert_eq!(r2.bits_precision(), modulus.bits_precision());
+
         // If the inverse exists, it means the modulus is odd.
         let (inv_mod_limb, modulus_is_odd) = modulus.inv_mod2k(Word::BITS);
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));
