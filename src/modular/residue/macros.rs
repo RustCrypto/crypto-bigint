@@ -33,9 +33,10 @@ macro_rules! impl_modulus {
             };
 
             const R: $uint_type = $crate::Uint::MAX
-                .rem(&Self::MODULUS)
+                .rem_vartime(&Self::MODULUS)
                 .wrapping_add(&$crate::Uint::ONE);
-            const R2: $uint_type = $crate::Uint::rem_wide(Self::R.square_wide(), &Self::MODULUS);
+            const R2: $uint_type =
+                $crate::Uint::rem_wide_vartime(Self::R.square_wide(), &Self::MODULUS);
             const MOD_NEG_INV: $crate::Limb = $crate::Limb(
                 $crate::Word::MIN.wrapping_sub(
                     Self::MODULUS

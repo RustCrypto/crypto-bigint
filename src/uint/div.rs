@@ -272,7 +272,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// assert!(<Choice as Into<bool>>::into(a.checked_rem(&zero).is_none()), "Should be None for reduction by zero");
     /// ```
     pub fn checked_rem(&self, rhs: &Self) -> CtOption<Self> {
-        NonZero::new(*rhs).map(|rhs| self.rem(&rhs))
+        NonZero::new(*rhs).map(|rhs| self.rem_vartime(&rhs))
     }
 }
 
