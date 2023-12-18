@@ -12,7 +12,7 @@ use subtle::{Choice, ConstantTimeEq, CtOption};
 #[derive(Clone, Debug)]
 pub struct BoxedBernsteinYangInverter {
     /// Modulus
-    modulus: BoxedUint62L,
+    pub(crate) modulus: BoxedUint62L,
 
     /// Adjusting parameter
     adjuster: BoxedUint62L,
@@ -165,7 +165,9 @@ impl Inverter for BoxedBernsteinYangInverter {
         let antiunit = f.is_minus_one();
         let ret = self.norm(d, antiunit);
         let is_some = Choice::from((f.is_one() || antiunit) as u8);
-        CtOption::new(BoxedUint::from(&ret), is_some)
+
+        let ret = BoxedUint::from(&ret);
+        CtOption::new(ret.shorten(value.bits_precision()), is_some)
     }
 }
 
