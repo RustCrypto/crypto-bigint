@@ -27,9 +27,11 @@ impl BoxedBernsteinYangInverter {
     ///
     /// Modulus must be odd. Returns `None` if it is not.
     pub fn new(modulus: &BoxedUint, adjuster: &BoxedUint) -> CtOption<Self> {
+        debug_assert!(modulus.bits_precision() >= adjuster.bits_precision());
+
         let ret = Self {
             modulus: modulus.into(),
-            adjuster: adjuster.into(),
+            adjuster: adjuster.widen(modulus.bits_precision()).into(),
             inverse: inv_mod2_62(modulus.as_words()),
         };
 
@@ -155,6 +157,11 @@ impl Inverter for BoxedBernsteinYangInverter {
     /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus
     fn invert(&self, value: &BoxedUint) -> CtOption<BoxedUint> {
+        debug_assert_eq!(
+            bernstein_yang_nlimbs!(value.bits_precision()) as usize,
+            self.modulus.nlimbs()
+        );
+
         // Ensure `d` has the right number of limbs for `value`, but is initialized to `0`.
         let mut d = BoxedUint62L::from(value);
         d.0.iter_mut().for_each(|limb| *limb = 0);
@@ -270,12 +277,14 @@ impl BoxedUint62L {
 }
 
 impl AddAssign<BoxedUint62L> for BoxedUint62L {
+    #[inline]
     fn add_assign(&mut self, rhs: BoxedUint62L) {
         self.add_assign(&rhs);
     }
 }
 
 impl AddAssign<&BoxedUint62L> for BoxedUint62L {
+    #[inline]
     fn add_assign(&mut self, rhs: &BoxedUint62L) {
         debug_assert_eq!(self.nlimbs(), rhs.nlimbs());
         let mut carry = 0;
@@ -358,6 +367,13 @@ impl ConstantTimeEq for BoxedUint62L {
         }
 
         ret
+    }
+}
+
+impl From<BoxedUint> for BoxedUint62L {
+    #[inline]
+    fn from(input: BoxedUint) -> Self {
+        Self::from(&input)
     }
 }
 
