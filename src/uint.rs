@@ -18,6 +18,7 @@ mod div;
 pub(crate) mod div_limb;
 mod encoding;
 mod from;
+mod gcd;
 mod inv_mod;
 pub(crate) mod mul;
 mod mul_mod;
@@ -431,6 +432,7 @@ impl_uint_concat_split_mixed! {
 
 #[cfg(feature = "extra-sizes")]
 mod extra_sizes;
+
 #[cfg(feature = "extra-sizes")]
 pub use extra_sizes::*;
 

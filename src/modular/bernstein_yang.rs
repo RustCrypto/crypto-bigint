@@ -74,9 +74,11 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus
     pub const fn inv(&self, value: &Uint<SAT_LIMBS>) -> ConstCtOption<Uint<SAT_LIMBS>> {
-        let (mut d, mut e) = (Int62L::ZERO, self.adjuster);
+        let mut d = Int62L::ZERO;
+        let mut e = self.adjuster;
+        let mut f = self.modulus;
         let mut g = Int62L::from_uint(value);
-        let (mut delta, mut f) = (1, self.modulus);
+        let mut delta = 1;
         let mut matrix;
 
         while !g.eq(&Int62L::ZERO) {
@@ -91,6 +93,34 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
         let ret = self.norm(d, antiunit);
         let is_some = ConstChoice::from_word_lsb((f.eq(&Int62L::ONE) || antiunit) as Word);
         ConstCtOption::new(ret.to_uint(), is_some)
+    }
+
+    /// Returns the greatest common divisor (GCD) of the two given numbers.
+    ///
+    /// This is defined on this type to piggyback on the definitions for `SAT_LIMBS` and `UNSAT_LIMBS` which are
+    /// computed when defining `PrecomputeInverter::Inverter` for various `Uint` limb sizes.
+    pub(crate) fn gcd(f: &Uint<SAT_LIMBS>, g: &Uint<SAT_LIMBS>) -> Uint<SAT_LIMBS> {
+        let f_0 = Int62L::from_uint(f);
+        let inverse = inv_mod2_62(f.as_words());
+
+        let mut d = Int62L::ZERO;
+        let mut e = Int62L::ONE;
+        let mut f = f_0;
+        let mut g = Int62L::from_uint(g);
+        let mut delta = 1;
+        let mut matrix;
+
+        while !g.eq(&Int62L::ZERO) {
+            (delta, matrix) = Self::jump(&f, &g, delta);
+            (f, g) = fg(f, g, matrix);
+            (d, e) = de(&f_0, inverse, d, e, matrix);
+        }
+
+        if f.is_negative() {
+            f = f.neg();
+        }
+
+        f.to_uint()
     }
 
     /// Returns the Bernstein-Yang transition matrix multiplied by 2^62 and the new value

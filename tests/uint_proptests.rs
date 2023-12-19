@@ -2,10 +2,10 @@
 
 use crypto_bigint::{
     modular::{DynResidue, DynResidueParams},
-    Encoding, Limb, NonZero, Word, U256,
+    Encoding, Integer, Limb, NonZero, Word, U256,
 };
 use num_bigint::BigUint;
-use num_integer::Integer;
+use num_integer::Integer as _;
 use num_traits::identities::{One, Zero};
 use proptest::prelude::*;
 use std::mem;
@@ -273,6 +273,21 @@ proptest! {
 
             assert_eq!(expected, actual);
         }
+    }
+
+    #[test]
+    fn gcd(mut f in uint(), g in uint()) {
+        if f.is_even().into() {
+            f = f.wrapping_add(&U256::ONE);
+        }
+
+        let f_bi = to_biguint(&f);
+        let g_bi = to_biguint(&g);
+
+        let expected = to_uint(f_bi.gcd(&g_bi));
+        let actual = f.gcd(&g);
+
+        assert_eq!(expected, actual);
     }
 
     #[test]
