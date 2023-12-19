@@ -10,8 +10,8 @@ where
     /// Compute the greatest common divisor (GCD) of this number and another.
     ///
     /// Panics if `self` is odd.
-    pub fn gcd(&self, rhs: &Self) -> Self {
-        debug_assert!(bool::from(self.is_odd()));
+    pub const fn gcd(&self, rhs: &Self) -> Self {
+        debug_assert!(self.is_odd().is_true_vartime());
         <Self as PrecomputeInverter>::Inverter::gcd(self, rhs)
     }
 }
