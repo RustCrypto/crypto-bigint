@@ -64,15 +64,12 @@ pub trait ResidueParams<const LIMBS: usize>:
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// A residue mod `MOD`, represented using `LIMBS` limbs. The modulus of this residue is constant,
 /// so it cannot be set at runtime.
 ///
 /// Internally, the value is stored in Montgomery form (multiplied by MOD::R) until it is retrieved.
-pub struct Residue<MOD, const LIMBS: usize>
-where
-    MOD: ResidueParams<LIMBS>,
-{
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Residue<MOD: ResidueParams<LIMBS>, const LIMBS: usize> {
     montgomery_form: Uint<LIMBS>,
     phantom: PhantomData<MOD>,
 }
