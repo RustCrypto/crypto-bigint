@@ -4,7 +4,7 @@
 
 use crypto_bigint::{
     modular::{BoxedResidue, BoxedResidueParams},
-    BoxedUint, Integer, Limb, NonZero,
+    BoxedUint, Integer, Inverter, Limb, NonZero, PrecomputeInverter,
 };
 use num_bigint::{BigUint, ModInverse};
 use proptest::prelude::*;
@@ -79,7 +79,7 @@ proptest! {
     #[test]
     fn inv(x in uint(), n in modulus()) {
         let x = reduce(&x, n.clone());
-        let actual = Option::<BoxedResidue>::from(x.invert()).map(|a| a.retrieve());
+        let actual = Option::<BoxedResidue>::from(x.invert()).map(|x| x.retrieve());
 
         let x_bi = retrieve_biguint(&x);
         let n_bi = to_biguint(n.modulus());
@@ -87,6 +87,28 @@ proptest! {
 
         match (expected, actual) {
             (Some(exp), Some(act)) => prop_assert_eq!(exp, to_biguint(&act).into()),
+            (None, None) => (),
+            (_, _) => panic!("disagreement on if modular inverse exists")
+        }
+    }
+
+    #[test]
+    fn precomputed_inv(x in uint(), n in modulus()) {
+        let x = reduce(&x, n.clone());
+        let inverter = x.params().precompute_inverter();
+        let actual = Option::<BoxedResidue>::from(inverter.invert(&x));
+
+        let x_bi = retrieve_biguint(&x);
+        let n_bi = to_biguint(n.modulus());
+        let expected = x_bi.mod_inverse(&n_bi);
+
+        match (expected, actual) {
+            (Some(exp), Some(act)) => {
+                prop_assert_eq!(exp, retrieve_biguint(&act).into());
+
+                let res = x * &act;
+                prop_assert!(bool::from(res.retrieve().is_one()));
+            }
             (None, None) => (),
             (_, _) => panic!("disagreement on if modular inverse exists")
         }
