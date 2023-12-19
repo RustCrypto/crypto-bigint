@@ -1,6 +1,6 @@
 //! Equivalence tests between `crypto_bigint::DynResidue` and `num-bigint`.
 
-use crypto_bigint::{Encoding, Integer, Inverter, NonZero, PrecomputeInverter, U256};
+use crypto_bigint::{Encoding, Integer, Invert, Inverter, NonZero, PrecomputeInverter, U256};
 use num_bigint::{BigUint, ModInverse};
 use proptest::prelude::*;
 

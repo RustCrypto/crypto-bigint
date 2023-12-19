@@ -2,40 +2,53 @@
 
 use super::{DynResidue, DynResidueParams};
 use crate::{
-    modular::{inv::inv_montgomery_form, BernsteinYangInverter},
-    traits::Invert,
-    ConstCtOption, Inverter, PrecomputeInverter, PrecomputeInverterWithAdjuster, Uint,
+    modular::BernsteinYangInverter, traits::Invert, ConstCtOption, Inverter, PrecomputeInverter,
+    PrecomputeInverterWithAdjuster, Uint,
 };
 use core::fmt;
 use subtle::CtOption;
 
-impl<const LIMBS: usize> DynResidue<LIMBS> {
+impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> DynResidue<SAT_LIMBS>
+where
+    Uint<SAT_LIMBS>: PrecomputeInverter<
+        Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
+        Output = Uint<SAT_LIMBS>,
+    >,
+{
     /// Computes the residue `self^-1` representing the multiplicative inverse of `self`.
     /// I.e. `self * self^-1 = 1`.
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
-    pub const fn invert(&self) -> ConstCtOption<Self> {
-        let maybe_inverse = inv_montgomery_form(
-            &self.montgomery_form,
+    pub const fn inv(&self) -> ConstCtOption<Self> {
+        let maybe_inverter = <Uint<SAT_LIMBS> as PrecomputeInverter>::Inverter::new(
             &self.residue_params.modulus,
-            &self.residue_params.r3,
-            self.residue_params.mod_neg_inv,
+            &self.residue_params.r2,
         );
-        let (montgomery_form, is_some) = maybe_inverse.components_ref();
+        let (inverter, inverter_is_some) = maybe_inverter.components_ref();
 
-        let value = Self {
-            montgomery_form: *montgomery_form,
+        let maybe_inverse = inverter.inv(&self.montgomery_form);
+        let (inverse, inverse_is_some) = maybe_inverse.components_ref();
+
+        let ret = Self {
+            montgomery_form: *inverse,
             residue_params: self.residue_params,
         };
 
-        ConstCtOption::new(value, is_some)
+        ConstCtOption::new(ret, inverter_is_some.and(inverse_is_some))
     }
 }
 
-impl<const LIMBS: usize> Invert for DynResidue<LIMBS> {
+impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Invert for DynResidue<SAT_LIMBS>
+where
+    Uint<SAT_LIMBS>: PrecomputeInverter<
+        Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
+        Output = Uint<SAT_LIMBS>,
+    >,
+{
     type Output = CtOption<Self>;
+
     fn invert(&self) -> Self::Output {
-        self.invert().into()
+        self.inv().into()
     }
 }
 
@@ -98,7 +111,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::{DynResidue, DynResidueParams};
-    use crate::{Inverter, PrecomputeInverter, U256};
+    use crate::{Invert, Inverter, PrecomputeInverter, U256};
 
     fn residue_params() -> DynResidueParams<{ U256::LIMBS }> {
         DynResidueParams::new(&U256::from_be_hex(
