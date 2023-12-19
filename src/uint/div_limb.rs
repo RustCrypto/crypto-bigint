@@ -3,7 +3,10 @@
 //! (DOI: 10.1109/TC.2010.143, <https://gmplib.org/~tege/division-paper.pdf>).
 use subtle::{Choice, ConditionallySelectable};
 
-use crate::{ConstChoice, Limb, NonZero, Uint, WideWord, Word};
+use crate::{
+    primitives::{addhilo, mulhilo},
+    ConstChoice, Limb, NonZero, Uint, Word,
+};
 
 /// Calculates the reciprocal of the given 32-bit divisor with the highmost bit set.
 #[cfg(target_pointer_width = "32")]
@@ -109,23 +112,6 @@ const fn short_div(dividend: u32, dividend_bits: u32, divisor: u32, divisor_bits
     }
 
     quotient
-}
-
-/// Multiplies `x` and `y`, returning the most significant
-/// and the least significant words as `(hi, lo)`.
-#[inline(always)]
-const fn mulhilo(x: Word, y: Word) -> (Word, Word) {
-    let res = (x as WideWord) * (y as WideWord);
-    ((res >> Word::BITS) as Word, res as Word)
-}
-
-/// Adds wide numbers represented by pairs of (most significant word, least significant word)
-/// and returns the result in the same format `(hi, lo)`.
-#[inline(always)]
-const fn addhilo(x_hi: Word, x_lo: Word, y_hi: Word, y_lo: Word) -> (Word, Word) {
-    let res = (((x_hi as WideWord) << Word::BITS) | (x_lo as WideWord))
-        + (((y_hi as WideWord) << Word::BITS) | (y_lo as WideWord));
-    ((res >> Word::BITS) as Word, res as Word)
 }
 
 /// Calculate the quotient and the remainder of the division of a wide word

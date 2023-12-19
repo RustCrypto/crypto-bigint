@@ -16,9 +16,9 @@ impl ConstChoice {
     pub const TRUE: Self = Self(Word::MAX);
 
     #[inline]
+    #[allow(trivial_numeric_casts)]
     pub(crate) const fn as_u32_mask(&self) -> u32 {
-        #[allow(trivial_numeric_casts)]
-        (self.0.wrapping_neg() as u32).wrapping_neg()
+        self.0 as u32
     }
 
     /// Returns the truthy value if `value == Word::MAX`, and the falsy value if `value == 0`.
@@ -79,14 +79,13 @@ impl ConstChoice {
     /// Returns the truthy value if `x > y`, and the falsy value otherwise.
     #[inline]
     pub(crate) const fn from_word_gt(x: Word, y: Word) -> Self {
-        // See "Hacker's Delight" 2nd ed, section 2-12 (Comparison predicates)
-        let bit = (((!y) & x) | (((!y) | x) & (y.wrapping_sub(x)))) >> (Word::BITS - 1);
-        Self::from_word_lsb(bit)
+        Self::from_word_lt(y, x)
     }
 
     /// Returns the truthy value if `x < y`, and the falsy value otherwise.
     #[inline]
     pub(crate) const fn from_u32_lt(x: u32, y: u32) -> Self {
+        // See "Hacker's Delight" 2nd ed, section 2-12 (Comparison predicates)
         let bit = (((!x) & y) | (((!x) | y) & (x.wrapping_sub(y)))) >> (u32::BITS - 1);
         Self::from_u32_lsb(bit)
     }
@@ -94,6 +93,7 @@ impl ConstChoice {
     /// Returns the truthy value if `x <= y` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn from_word_le(x: Word, y: Word) -> Self {
+        // See "Hacker's Delight" 2nd ed, section 2-12 (Comparison predicates)
         let bit = (((!x) | y) & ((x ^ y) | !(y.wrapping_sub(x)))) >> (Word::BITS - 1);
         Self::from_word_lsb(bit)
     }
@@ -101,6 +101,7 @@ impl ConstChoice {
     /// Returns the truthy value if `x <= y` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn from_u32_le(x: u32, y: u32) -> Self {
+        // See "Hacker's Delight" 2nd ed, section 2-12 (Comparison predicates)
         let bit = (((!x) | y) & ((x ^ y) | !(y.wrapping_sub(x)))) >> (u32::BITS - 1);
         Self::from_u32_lsb(bit)
     }

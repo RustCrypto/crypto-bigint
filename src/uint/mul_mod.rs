@@ -2,6 +2,7 @@
 
 use crate::{
     modular::{DynResidue, DynResidueParams},
+    primitives::mul_rem,
     Limb, MulMod, Uint, WideWord, Word,
 };
 
@@ -38,9 +39,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // We implicitly assume `LIMBS > 0`, because `Uint<0>` doesn't compile.
         // Still the case `LIMBS == 1` needs special handling.
         if LIMBS == 1 {
-            let prod = self.limbs[0].0 as WideWord * rhs.limbs[0].0 as WideWord;
-            let reduced = prod % Word::MIN.wrapping_sub(c.0) as WideWord;
-            return Self::from_word(reduced as Word);
+            let reduced = mul_rem(self.limbs[0].0, rhs.limbs[0].0, Word::MIN.wrapping_sub(c.0));
+            return Self::from_word(reduced);
         }
 
         let (lo, hi) = self.split_mul(rhs);

@@ -170,6 +170,7 @@ mod checked;
 mod const_choice;
 mod limb;
 mod non_zero;
+mod primitives;
 mod traits;
 mod uint;
 mod wrapping;
