@@ -99,7 +99,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     ///
     /// This is defined on this type to piggyback on the definitions for `SAT_LIMBS` and `UNSAT_LIMBS` which are
     /// computed when defining `PrecomputeInverter::Inverter` for various `Uint` limb sizes.
-    pub(crate) fn gcd(f: &Uint<SAT_LIMBS>, g: &Uint<SAT_LIMBS>) -> Uint<SAT_LIMBS> {
+    pub(crate) const fn gcd(f: &Uint<SAT_LIMBS>, g: &Uint<SAT_LIMBS>) -> Uint<SAT_LIMBS> {
         let f_0 = Int62L::from_uint(f);
         let inverse = inv_mod2_62(f.as_words());
 
