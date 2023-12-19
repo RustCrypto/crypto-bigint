@@ -95,7 +95,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// // Verify the result
     /// assert_eq!(remainder, U448::from(2_u64));
-    /// assert!(<CtChoice as Into<bool>>::into(is_some));
+    /// assert!(bool::from(is_some));
     /// ```
     pub const fn const_rem(&self, rhs: &Self) -> (Self, CtChoice) {
         let mb = rhs.bits_vartime();
