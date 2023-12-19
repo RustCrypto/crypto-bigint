@@ -70,5 +70,9 @@ name = "limb"
 harness = false
 
 [[bench]]
+name = "residue"
+harness = false
+
+[[bench]]
 name = "uint"
 harness = false
