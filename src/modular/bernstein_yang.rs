@@ -43,10 +43,10 @@ use subtle::CtOption;
 #[derive(Clone, Debug)]
 pub struct BernsteinYangInverter<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> {
     /// Modulus
-    pub(super) modulus: Uint62L<UNSAT_LIMBS>,
+    pub(super) modulus: Int62L<UNSAT_LIMBS>,
 
     /// Adjusting parameter
-    adjuster: Uint62L<UNSAT_LIMBS>,
+    adjuster: Int62L<UNSAT_LIMBS>,
 
     /// Multiplicative inverse of the modulus modulo 2^62
     inverse: i64,
@@ -63,8 +63,8 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// Modulus must be odd. Returns `None` if it is not.
     pub const fn new(modulus: &Uint<SAT_LIMBS>, adjuster: &Uint<SAT_LIMBS>) -> ConstCtOption<Self> {
         let ret = Self {
-            modulus: Uint62L::from_uint(modulus),
-            adjuster: Uint62L::from_uint(adjuster),
+            modulus: Int62L::from_uint(modulus),
+            adjuster: Int62L::from_uint(adjuster),
             inverse: inv_mod2_62(modulus.as_words()),
         };
 
@@ -74,12 +74,12 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus
     pub const fn inv(&self, value: &Uint<SAT_LIMBS>) -> ConstCtOption<Uint<SAT_LIMBS>> {
-        let (mut d, mut e) = (Uint62L::ZERO, self.adjuster);
-        let mut g = Uint62L::from_uint(value);
+        let (mut d, mut e) = (Int62L::ZERO, self.adjuster);
+        let mut g = Int62L::from_uint(value);
         let (mut delta, mut f) = (1, self.modulus);
         let mut matrix;
 
-        while !g.eq(&Uint62L::ZERO) {
+        while !g.eq(&Int62L::ZERO) {
             (delta, matrix) = Self::jump(&f, &g, delta);
             (f, g) = Self::fg(f, g, matrix);
             (d, e) = self.de(d, e, matrix);
@@ -87,9 +87,9 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
         // At this point the absolute value of "f" equals the greatest common divisor
         // of the integer to be inverted and the modulus the inverter was created for.
         // Thus, if "f" is neither 1 nor -1, then the sought inverse does not exist
-        let antiunit = f.eq(&Uint62L::MINUS_ONE);
+        let antiunit = f.eq(&Int62L::MINUS_ONE);
         let ret = self.norm(d, antiunit);
-        let is_some = ConstChoice::from_word_lsb((f.eq(&Uint62L::ONE) || antiunit) as Word);
+        let is_some = ConstChoice::from_word_lsb((f.eq(&Int62L::ONE) || antiunit) as Word);
         ConstCtOption::new(ret.to_uint(), is_some)
     }
 
@@ -97,8 +97,8 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// of the delta variable for the 62 basic steps of the Bernstein-Yang method, which
     /// are to be performed sequentially for specified initial values of f, g and delta
     const fn jump(
-        f: &Uint62L<UNSAT_LIMBS>,
-        g: &Uint62L<UNSAT_LIMBS>,
+        f: &Int62L<UNSAT_LIMBS>,
+        g: &Int62L<UNSAT_LIMBS>,
         mut delta: i64,
     ) -> (i64, Matrix) {
         // This function is defined because the method "min" of the i64 type is not constant
@@ -142,10 +142,10 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// Returns the updated values of the variables f and g for specified initial ones and Bernstein-Yang transition
     /// matrix multiplied by 2^62. The returned vector is "matrix * (f, g)' / 2^62", where "'" is the transpose operator
     const fn fg(
-        f: Uint62L<UNSAT_LIMBS>,
-        g: Uint62L<UNSAT_LIMBS>,
+        f: Int62L<UNSAT_LIMBS>,
+        g: Int62L<UNSAT_LIMBS>,
         t: Matrix,
-    ) -> (Uint62L<UNSAT_LIMBS>, Uint62L<UNSAT_LIMBS>) {
+    ) -> (Int62L<UNSAT_LIMBS>, Int62L<UNSAT_LIMBS>) {
         (
             f.mul(t[0][0]).add(&g.mul(t[0][1])).shr(),
             f.mul(t[1][0]).add(&g.mul(t[1][1])).shr(),
@@ -158,11 +158,11 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// and output values lie in the interval (-2 * M, M)
     const fn de(
         &self,
-        d: Uint62L<UNSAT_LIMBS>,
-        e: Uint62L<UNSAT_LIMBS>,
+        d: Int62L<UNSAT_LIMBS>,
+        e: Int62L<UNSAT_LIMBS>,
         t: Matrix,
-    ) -> (Uint62L<UNSAT_LIMBS>, Uint62L<UNSAT_LIMBS>) {
-        let mask = Uint62L::<UNSAT_LIMBS>::MASK as i64;
+    ) -> (Int62L<UNSAT_LIMBS>, Int62L<UNSAT_LIMBS>) {
+        let mask = Int62L::<UNSAT_LIMBS>::MASK as i64;
         let mut md = t[0][0] * d.is_negative() as i64 + t[0][1] * e.is_negative() as i64;
         let mut me = t[1][0] * d.is_negative() as i64 + t[1][1] * e.is_negative() as i64;
 
@@ -194,7 +194,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// Returns either "value (mod M)" or "-value (mod M)", where M is the modulus the
     /// inverter was created for, depending on "negate", which determines the presence
     /// of "-" in the used formula. The input integer lies in the interval (-2 * M, M)
-    const fn norm(&self, mut value: Uint62L<UNSAT_LIMBS>, negate: bool) -> Uint62L<UNSAT_LIMBS> {
+    const fn norm(&self, mut value: Int62L<UNSAT_LIMBS>, negate: bool) -> Int62L<UNSAT_LIMBS> {
         if value.is_negative() {
             value = value.add(&self.modulus);
         }
@@ -248,16 +248,14 @@ const fn inv_mod2_62(value: &[Word]) -> i64 {
     (x.wrapping_mul(y.wrapping_add(1)) & (u64::MAX >> 2)) as i64
 }
 
-/// `Uint`-like (62 * LIMBS)-bit integer type, whose variables store numbers in the two's complement code as arrays of
-/// 62-bit limbs.
-///
-/// The ordering of the chunks in these arrays is little-endian.
+/// "Bigint"-like (62 * LIMBS)-bit signed integer type, whose variables store numbers in the two's complement code as
+/// arrays of 62-bit limbs in little endian order.
 ///
 /// The arithmetic operations for this type are wrapping ones.
 #[derive(Clone, Copy, Debug)]
-pub(super) struct Uint62L<const LIMBS: usize>(pub [u64; LIMBS]);
+pub(super) struct Int62L<const LIMBS: usize>(pub [u64; LIMBS]);
 
-impl<const LIMBS: usize> Uint62L<LIMBS> {
+impl<const LIMBS: usize> Int62L<LIMBS> {
     /// Number of bits in each limb.
     pub const LIMB_BITS: usize = 62;
 
