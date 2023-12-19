@@ -20,11 +20,11 @@ where
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
     pub const fn inv(&self) -> ConstCtOption<Self> {
-        let maybe_inverter = <Uint<SAT_LIMBS> as PrecomputeInverter>::Inverter::new(
+        let inverter = <Uint<SAT_LIMBS> as PrecomputeInverter>::Inverter::new(
             &self.residue_params.modulus,
             &self.residue_params.r2,
-        );
-        let (inverter, inverter_is_some) = maybe_inverter.components_ref();
+        )
+        .expect("modulus should be valid");
 
         let maybe_inverse = inverter.inv(&self.montgomery_form);
         let (inverse, inverse_is_some) = maybe_inverse.components_ref();
@@ -34,7 +34,7 @@ where
             residue_params: self.residue_params,
         };
 
-        ConstCtOption::new(ret, inverter_is_some.and(inverse_is_some))
+        ConstCtOption::new(ret, inverse_is_some)
     }
 }
 
