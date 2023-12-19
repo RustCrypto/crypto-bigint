@@ -81,8 +81,8 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
 
         while !g.eq(&Int62L::ZERO) {
             (delta, matrix) = Self::jump(&f, &g, delta);
-            (f, g) = Self::fg(f, g, matrix);
-            (d, e) = self.de(d, e, matrix);
+            (f, g) = fg(f, g, matrix);
+            (d, e) = de(&self.modulus, self.inverse, d, e, matrix);
         }
         // At this point the absolute value of "f" equals the greatest common divisor
         // of the integer to be inverted and the modulus the inverter was created for.
@@ -137,58 +137,6 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
         }
 
         (delta, t)
-    }
-
-    /// Returns the updated values of the variables f and g for specified initial ones and Bernstein-Yang transition
-    /// matrix multiplied by 2^62. The returned vector is "matrix * (f, g)' / 2^62", where "'" is the transpose operator
-    const fn fg(
-        f: Int62L<UNSAT_LIMBS>,
-        g: Int62L<UNSAT_LIMBS>,
-        t: Matrix,
-    ) -> (Int62L<UNSAT_LIMBS>, Int62L<UNSAT_LIMBS>) {
-        (
-            f.mul(t[0][0]).add(&g.mul(t[0][1])).shr(),
-            f.mul(t[1][0]).add(&g.mul(t[1][1])).shr(),
-        )
-    }
-
-    /// Returns the updated values of the variables d and e for specified initial ones and Bernstein-Yang transition
-    /// matrix multiplied by 2^62. The returned vector is congruent modulo M to "matrix * (d, e)' / 2^62 (mod M)",
-    /// where M is the modulus the inverter was created for and "'" stands for the transpose operator. Both the input
-    /// and output values lie in the interval (-2 * M, M)
-    const fn de(
-        &self,
-        d: Int62L<UNSAT_LIMBS>,
-        e: Int62L<UNSAT_LIMBS>,
-        t: Matrix,
-    ) -> (Int62L<UNSAT_LIMBS>, Int62L<UNSAT_LIMBS>) {
-        let mask = Int62L::<UNSAT_LIMBS>::MASK as i64;
-        let mut md = t[0][0] * d.is_negative() as i64 + t[0][1] * e.is_negative() as i64;
-        let mut me = t[1][0] * d.is_negative() as i64 + t[1][1] * e.is_negative() as i64;
-
-        let cd = t[0][0]
-            .wrapping_mul(d.lowest() as i64)
-            .wrapping_add(t[0][1].wrapping_mul(e.lowest() as i64))
-            & mask;
-
-        let ce = t[1][0]
-            .wrapping_mul(d.lowest() as i64)
-            .wrapping_add(t[1][1].wrapping_mul(e.lowest() as i64))
-            & mask;
-
-        md -= (self.inverse.wrapping_mul(cd).wrapping_add(md)) & mask;
-        me -= (self.inverse.wrapping_mul(ce).wrapping_add(me)) & mask;
-
-        let cd = d
-            .mul(t[0][0])
-            .add(&e.mul(t[0][1]))
-            .add(&self.modulus.mul(md));
-        let ce = d
-            .mul(t[1][0])
-            .add(&e.mul(t[1][1]))
-            .add(&self.modulus.mul(me));
-
-        (cd.shr(), ce.shr())
     }
 
     /// Returns either "value (mod M)" or "-value (mod M)", where M is the modulus the
@@ -248,6 +196,53 @@ const fn inv_mod2_62(value: &[Word]) -> i64 {
     (x.wrapping_mul(y.wrapping_add(1)) & (u64::MAX >> 2)) as i64
 }
 
+/// Returns the updated values of the variables f and g for specified initial ones and Bernstein-Yang transition
+/// matrix multiplied by 2^62. The returned vector is "matrix * (f, g)' / 2^62", where "'" is the transpose operator
+const fn fg<const LIMBS: usize>(
+    f: Int62L<LIMBS>,
+    g: Int62L<LIMBS>,
+    t: Matrix,
+) -> (Int62L<LIMBS>, Int62L<LIMBS>) {
+    (
+        f.mul(t[0][0]).add(&g.mul(t[0][1])).shr(),
+        f.mul(t[1][0]).add(&g.mul(t[1][1])).shr(),
+    )
+}
+
+/// Returns the updated values of the variables d and e for specified initial ones and Bernstein-Yang transition
+/// matrix multiplied by 2^62. The returned vector is congruent modulo M to "matrix * (d, e)' / 2^62 (mod M)",
+/// where M is the modulus the inverter was created for and "'" stands for the transpose operator. Both the input
+/// and output values lie in the interval (-2 * M, M)
+const fn de<const LIMBS: usize>(
+    modulus: &Int62L<LIMBS>,
+    inverse: i64,
+    d: Int62L<LIMBS>,
+    e: Int62L<LIMBS>,
+    t: Matrix,
+) -> (Int62L<LIMBS>, Int62L<LIMBS>) {
+    let mask = Int62L::<LIMBS>::MASK as i64;
+    let mut md = t[0][0] * d.is_negative() as i64 + t[0][1] * e.is_negative() as i64;
+    let mut me = t[1][0] * d.is_negative() as i64 + t[1][1] * e.is_negative() as i64;
+
+    let cd = t[0][0]
+        .wrapping_mul(d.lowest() as i64)
+        .wrapping_add(t[0][1].wrapping_mul(e.lowest() as i64))
+        & mask;
+
+    let ce = t[1][0]
+        .wrapping_mul(d.lowest() as i64)
+        .wrapping_add(t[1][1].wrapping_mul(e.lowest() as i64))
+        & mask;
+
+    md -= (inverse.wrapping_mul(cd).wrapping_add(md)) & mask;
+    me -= (inverse.wrapping_mul(ce).wrapping_add(me)) & mask;
+
+    let cd = d.mul(t[0][0]).add(&e.mul(t[0][1])).add(&modulus.mul(md));
+    let ce = d.mul(t[1][0]).add(&e.mul(t[1][1])).add(&modulus.mul(me));
+
+    (cd.shr(), ce.shr())
+}
+
 /// "Bigint"-like (62 * LIMBS)-bit signed integer type, whose variables store numbers in the two's complement code as
 /// arrays of 62-bit limbs in little endian order.
 ///
@@ -305,6 +300,10 @@ impl<const LIMBS: usize> Int62L<LIMBS> {
     pub const fn to_uint<const SAT_LIMBS: usize>(&self) -> Uint<SAT_LIMBS> {
         if LIMBS != bernstein_yang_nlimbs!(SAT_LIMBS * Limb::BITS as usize) {
             panic!("incorrect number of limbs");
+        }
+
+        if self.is_negative() {
+            panic!("can't convert negative number to Uint");
         }
 
         let mut ret = [0 as Word; SAT_LIMBS];
