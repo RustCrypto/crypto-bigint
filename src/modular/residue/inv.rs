@@ -2,49 +2,51 @@
 
 use super::{Residue, ResidueParams};
 use crate::{
-    modular::{inv::inv_montgomery_form, BernsteinYangInverter},
-    ConstCtOption, Invert, Inverter, NonZero, PrecomputeInverter, Uint,
+    modular::BernsteinYangInverter, ConstCtOption, Invert, Inverter, PrecomputeInverter, Uint,
 };
 use core::{fmt, marker::PhantomData};
 use subtle::CtOption;
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
+impl<MOD: ResidueParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
+    Residue<MOD, SAT_LIMBS>
+where
+    Uint<SAT_LIMBS>: PrecomputeInverter<
+        Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
+        Output = Uint<SAT_LIMBS>,
+    >,
+{
     /// Computes the residue `self^-1` representing the multiplicative inverse of `self`.
     /// I.e. `self * self^-1 = 1`.
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
     pub const fn inv(&self) -> ConstCtOption<Self> {
-        let maybe_inverse = inv_montgomery_form(
-            &self.montgomery_form,
-            &MOD::MODULUS.0,
-            &MOD::R3,
-            MOD::MOD_NEG_INV,
-        );
-        let (montgomery_form, is_some) = maybe_inverse.components_ref();
+        let inverter =
+            <Uint<SAT_LIMBS> as PrecomputeInverter>::Inverter::new(&MOD::MODULUS.0, &MOD::R2)
+                .expect("modulus should be valid");
 
-        let value = Self {
-            montgomery_form: *montgomery_form,
+        let maybe_inverse = inverter.inv(&self.montgomery_form);
+        let (inverse, inverse_is_some) = maybe_inverse.components_ref();
+
+        let ret = Self {
+            montgomery_form: *inverse,
             phantom: PhantomData,
         };
 
-        ConstCtOption::new(value, is_some)
+        ConstCtOption::new(ret, inverse_is_some)
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Invert for Residue<MOD, LIMBS> {
+impl<MOD: ResidueParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Invert
+    for Residue<MOD, SAT_LIMBS>
+where
+    Uint<SAT_LIMBS>: PrecomputeInverter<
+        Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
+        Output = Uint<SAT_LIMBS>,
+    >,
+{
     type Output = CtOption<Self>;
     fn invert(&self) -> Self::Output {
         self.inv().into()
-    }
-}
-
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Invert for NonZero<Residue<MOD, LIMBS>> {
-    type Output = Self;
-    fn invert(&self) -> Self::Output {
-        // Always succeeds for a non-zero argument
-        let value = self.as_ref().inv().unwrap();
-        // An inverse is necessarily non-zero
-        NonZero::new(value).unwrap()
     }
 }
 
