@@ -278,6 +278,7 @@ proptest! {
     #[test]
     fn gcd(mut f in uint(), g in uint()) {
         if f.is_even().into() {
+            // Ensure `f` is always odd (required by Bernstein-Yang)
             f = f.wrapping_add(&U256::ONE);
         }
 
@@ -285,7 +286,7 @@ proptest! {
         let g_bi = to_biguint(&g);
 
         let expected = to_uint(f_bi.gcd(&g_bi));
-        let actual = f.gcd(&g);
+        let actual = f.gcd(&g).unwrap();
 
         assert_eq!(expected, actual);
     }
