@@ -13,9 +13,6 @@
 #[macro_use]
 mod macros;
 
-#[cfg(feature = "alloc")]
-pub(super) mod boxed;
-
 use crate::{ConstChoice, ConstCtOption, Inverter, Limb, Uint, Word};
 use subtle::CtOption;
 
