@@ -134,7 +134,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
 }
 
 fn bench_montgomery(c: &mut Criterion) {
-    let mut group = c.benchmark_group("Montgomery arithmetic");
+    let mut group = c.benchmark_group("Boxed Montgomery arithmetic");
     bench_montgomery_conversion(&mut group);
     bench_montgomery_ops(&mut group);
     group.finish();
