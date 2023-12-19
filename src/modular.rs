@@ -39,10 +39,7 @@ pub use self::{
 };
 
 #[cfg(feature = "alloc")]
-pub use self::{
-    bernstein_yang::boxed::BoxedBernsteinYangInverter,
-    boxed_residue::{BoxedResidue, BoxedResidueParams},
-};
+pub use self::boxed_residue::{BoxedResidue, BoxedResidueParams};
 
 /// A generalization for numbers kept in optimized representations (e.g. Montgomery)
 /// that can be converted back to the original form.
