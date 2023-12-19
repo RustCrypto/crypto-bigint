@@ -444,3 +444,45 @@ impl<const LIMBS: usize> Int62L<LIMBS> {
         self.0[0]
     }
 }
+
+impl<const LIMBS: usize> PartialEq for Int62L<LIMBS> {
+    fn eq(&self, other: &Self) -> bool {
+        self.eq(other)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    type Int62L = super::Int62L<4>;
+
+    #[test]
+    fn int62l_add() {
+        assert_eq!(Int62L::ZERO, Int62L::ZERO.add(&Int62L::ZERO));
+        assert_eq!(Int62L::ONE, Int62L::ONE.add(&Int62L::ZERO));
+        assert_eq!(Int62L::ZERO, Int62L::MINUS_ONE.add(&Int62L::ONE));
+    }
+
+    #[test]
+    fn int62l_mul() {
+        assert_eq!(Int62L::ZERO, Int62L::ZERO.mul(0));
+        assert_eq!(Int62L::ZERO, Int62L::ZERO.mul(1));
+        assert_eq!(Int62L::ZERO, Int62L::ONE.mul(0));
+        assert_eq!(Int62L::ZERO, Int62L::MINUS_ONE.mul(0));
+        assert_eq!(Int62L::ONE, Int62L::ONE.mul(1));
+        assert_eq!(Int62L::MINUS_ONE, Int62L::MINUS_ONE.mul(1));
+    }
+
+    #[test]
+    fn int62l_neg() {
+        assert_eq!(Int62L::ZERO, Int62L::ZERO.neg());
+        assert_eq!(Int62L::MINUS_ONE, Int62L::ONE.neg());
+        assert_eq!(Int62L::ONE, Int62L::MINUS_ONE.neg());
+    }
+
+    #[test]
+    fn int62l_is_negative() {
+        assert!(!Int62L::ZERO.is_negative());
+        assert!(!Int62L::ONE.is_negative());
+        assert!(Int62L::MINUS_ONE.is_negative());
+    }
+}
