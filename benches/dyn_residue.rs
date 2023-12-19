@@ -4,7 +4,7 @@ use criterion::{
 };
 use crypto_bigint::{
     modular::{DynResidue, DynResidueParams},
-    Inverter, PrecomputeInverter, Random, U256,
+    Invert, Inverter, PrecomputeInverter, Random, U256,
 };
 use rand_core::OsRng;
 
