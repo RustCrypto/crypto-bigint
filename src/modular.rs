@@ -23,7 +23,6 @@ mod residue;
 mod add;
 mod bernstein_yang;
 mod div_by_2;
-mod inv;
 mod mul;
 mod pow;
 mod sub;
