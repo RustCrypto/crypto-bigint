@@ -8,7 +8,7 @@
 use super::{BoxedResidue, BoxedResidueParams};
 use crate::{
     modular::reduction::montgomery_reduction_boxed_mut, traits::Square, uint::mul::mul_limbs,
-    BoxedUint, Limb, WideWord, Word, Zero,
+    BoxedUint, Limb, Word, Zero,
 };
 use core::{
     borrow::Borrow,
@@ -285,8 +285,8 @@ fn almost_montgomery_mul(z: &mut [Limb], x: &[Limb], y: &[Limb], m: &[Limb], k: 
 fn add_mul_vvw(z: &mut [Limb], x: &[Limb], y: Limb) -> Limb {
     let mut c = Limb::ZERO;
     for (zi, xi) in z.iter_mut().zip(x.iter()) {
-        let (z1, z0) = mul_add_www(*xi, y, *zi);
-        let (c_, zi_) = add_ww(Limb(z0.0), c, Limb::ZERO);
+        let (z0, z1) = zi.mac(*xi, y, Limb::ZERO);
+        let (zi_, c_) = z0.overflowing_add(c);
         *zi = zi_;
         c = c_.wrapping_add(z1);
     }
@@ -294,35 +294,14 @@ fn add_mul_vvw(z: &mut [Limb], x: &[Limb], y: Limb) -> Limb {
     c
 }
 
-/// The resulting carry c is either 0 or 1.
 #[inline(always)]
-fn sub_vv(z: &mut [Limb], x: &[Limb], y: &[Limb]) -> Limb {
-    let mut c = Limb::ZERO;
+fn sub_vv(z: &mut [Limb], x: &[Limb], y: &[Limb]) {
+    let mut borrow = Limb::ZERO;
     for (i, (&xi, &yi)) in x.iter().zip(y.iter()).enumerate().take(z.len()) {
-        let zi = xi.wrapping_sub(yi).wrapping_sub(c);
+        let (zi, new_borrow) = xi.sbb(yi, borrow);
         z[i] = zi;
-        // See "Hacker's Delight" 2nd ed, section 2-13 (Overflow detection)
-        c = ((yi & !xi) | ((yi | !xi) & zi)) >> (Word::BITS - 1)
+        borrow = new_borrow;
     }
-
-    c
-}
-
-/// z1<<_W + z0 = x+y+c, with c == 0 or 1
-#[inline(always)]
-fn add_ww(x: Limb, y: Limb, c: Limb) -> (Limb, Limb) {
-    let yc = y.wrapping_add(c);
-    let z0 = x.wrapping_add(yc);
-    // TODO(tarcieri): eliminate data-dependent branches
-    let z1 = Limb((z0.0 < x.0 || yc.0 < y.0) as Word);
-    (z1, z0)
-}
-
-/// z1 << _W + z0 = x * y + c
-#[inline]
-fn mul_add_www(x: Limb, y: Limb, c: Limb) -> (Limb, Limb) {
-    let z = x.0 as WideWord * y.0 as WideWord + c.0 as WideWord;
-    (Limb((z >> Word::BITS) as Word), Limb(z as Word))
 }
 
 #[cfg(test)]

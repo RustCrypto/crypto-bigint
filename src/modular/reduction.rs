@@ -1,19 +1,9 @@
 //! Modular reduction implementation.
 
-use crate::{Limb, Uint, WideWord, Word};
+use crate::{Limb, Uint};
 
 #[cfg(feature = "alloc")]
 use {crate::BoxedUint, subtle::Choice};
-
-/// Returns `(hi, lo)` such that `hi * R + lo = x * y + z + w`.
-#[inline(always)]
-const fn muladdcarry(x: Word, y: Word, z: Word, w: Word) -> (Word, Word) {
-    let res = (x as WideWord)
-        .wrapping_mul(y as WideWord)
-        .wrapping_add(z as WideWord)
-        .wrapping_add(w as WideWord);
-    ((res >> Word::BITS) as Word, res as Word)
-}
 
 /// Implement the Montgomery reduction algorithm.
 ///
@@ -22,29 +12,29 @@ const fn muladdcarry(x: Word, y: Word, z: Word, w: Word) -> (Word, Word) {
 // TODO(tarcieri): change this into a `const fn` when `const_mut_refs` is stable
 macro_rules! impl_montgomery_reduction {
     ($upper:expr, $lower:expr, $modulus:expr, $mod_neg_inv:expr, $limbs:expr) => {{
-        let mut meta_carry = Limb(0);
+        let mut meta_carry = Limb::ZERO;
         let mut new_sum;
 
         let mut i = 0;
         while i < $limbs {
-            let u = $lower[i].0.wrapping_mul($mod_neg_inv.0);
+            let u = $lower[i].wrapping_mul($mod_neg_inv);
 
-            let (mut carry, _) = muladdcarry(u, $modulus[0].0, $lower[i].0, 0);
+            let (_, mut carry) = $lower[i].mac(u, $modulus[0], Limb::ZERO);
             let mut new_limb;
 
             let mut j = 1;
             while j < ($limbs - i) {
-                (carry, new_limb) = muladdcarry(u, $modulus[j].0, $lower[i + j].0, carry);
-                $lower[i + j] = Limb(new_limb);
+                (new_limb, carry) = $lower[i + j].mac(u, $modulus[j], carry);
+                $lower[i + j] = new_limb;
                 j += 1;
             }
             while j < $limbs {
-                (carry, new_limb) = muladdcarry(u, $modulus[j].0, $upper[i + j - $limbs].0, carry);
-                $upper[i + j - $limbs] = Limb(new_limb);
+                (new_limb, carry) = $upper[i + j - $limbs].mac(u, $modulus[j], carry);
+                $upper[i + j - $limbs] = new_limb;
                 j += 1;
             }
 
-            (new_sum, meta_carry) = $upper[i].adc(Limb(carry), meta_carry);
+            (new_sum, meta_carry) = $upper[i].adc(carry, meta_carry);
             $upper[i] = new_sum;
 
             i += 1;

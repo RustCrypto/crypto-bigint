@@ -1,18 +1,25 @@
 //! Limb addition
 
-use crate::{Checked, CheckedAdd, Limb, WideWord, Word, Wrapping, WrappingAdd, Zero};
+use crate::{
+    primitives::{adc, overflowing_add},
+    Checked, CheckedAdd, Limb, Wrapping, WrappingAdd, Zero,
+};
 use core::ops::{Add, AddAssign};
 use subtle::CtOption;
 
 impl Limb {
+    /// Computes `self + rhs`, returning the result along with the carry.
+    #[inline(always)]
+    pub const fn overflowing_add(self, rhs: Limb) -> (Limb, Limb) {
+        let (res, carry) = overflowing_add(self.0, rhs.0);
+        (Limb(res), Limb(carry))
+    }
+
     /// Computes `self + rhs + carry`, returning the result along with the new carry.
     #[inline(always)]
     pub const fn adc(self, rhs: Limb, carry: Limb) -> (Limb, Limb) {
-        let a = self.0 as WideWord;
-        let b = rhs.0 as WideWord;
-        let carry = carry.0 as WideWord;
-        let ret = a + b + carry;
-        (Limb(ret as Word), Limb((ret >> Self::BITS) as Word))
+        let (res, carry) = adc(self.0, rhs.0, carry.0);
+        (Limb(res), Limb(carry))
     }
 
     /// Perform saturating addition.
@@ -69,7 +76,7 @@ impl AddAssign<&Checked<Limb>> for Checked<Limb> {
 impl CheckedAdd for Limb {
     #[inline]
     fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
-        let (result, carry) = self.adc(*rhs, Limb::ZERO);
+        let (result, carry) = self.overflowing_add(*rhs);
         CtOption::new(result, carry.is_zero())
     }
 }
@@ -87,14 +94,14 @@ mod tests {
 
     #[test]
     fn adc_no_carry() {
-        let (res, carry) = Limb::ZERO.adc(Limb::ONE, Limb::ZERO);
+        let (res, carry) = Limb::ZERO.overflowing_add(Limb::ONE);
         assert_eq!(res, Limb::ONE);
         assert_eq!(carry, Limb::ZERO);
     }
 
     #[test]
     fn adc_with_carry() {
-        let (res, carry) = Limb::MAX.adc(Limb::ONE, Limb::ZERO);
+        let (res, carry) = Limb::MAX.overflowing_add(Limb::ONE);
         assert_eq!(res, Limb::ZERO);
         assert_eq!(carry, Limb::ONE);
     }

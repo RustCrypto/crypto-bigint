@@ -2,6 +2,7 @@
 
 use crate::{
     modular::{BoxedResidue, BoxedResidueParams},
+    primitives::mul_rem,
     BoxedUint, Limb, MulMod, WideWord, Word,
 };
 
@@ -40,9 +41,8 @@ impl BoxedUint {
         // We implicitly assume `LIMBS > 0`, because `Uint<0>` doesn't compile.
         // Still the case `LIMBS == 1` needs special handling.
         if self.nlimbs() == 1 {
-            let prod = self.limbs[0].0 as WideWord * rhs.limbs[0].0 as WideWord;
-            let reduced = prod % Word::MIN.wrapping_sub(c.0) as WideWord;
-            return Self::from(reduced as Word);
+            let reduced = mul_rem(self.limbs[0].0, rhs.limbs[0].0, Word::MIN.wrapping_sub(c.0));
+            return Self::from(reduced);
         }
 
         let product = self.mul(rhs);
