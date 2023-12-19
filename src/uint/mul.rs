@@ -19,8 +19,9 @@ use subtle::CtOption;
 // TODO(tarcieri): change this into a `const fn` when `const_mut_refs` is stable
 macro_rules! impl_schoolbook_multiplication {
     ($lhs:expr, $rhs:expr, $lo:expr, $hi:expr) => {{
-        debug_assert!($lhs.len() == $lo.len());
-        debug_assert!($rhs.len() == $hi.len());
+        if $lhs.len() != $lo.len() || $rhs.len() != $hi.len() {
+            panic!("schoolbook multiplication length mismatch");
+        }
 
         let mut i = 0;
         while i < $lhs.len() {
