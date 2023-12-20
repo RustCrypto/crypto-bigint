@@ -1,7 +1,7 @@
 //! Wrapper type for non-zero integers.
 
 use crate::{Integer, NonZero, Uint};
-use core::ops::Deref;
+use core::{cmp::Ordering, ops::Deref};
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
 #[cfg(feature = "rand_core")]
@@ -89,6 +89,18 @@ impl<T> Deref for Odd<T> {
 
     fn deref(&self) -> &T {
         &self.0
+    }
+}
+
+impl<const LIMBS: usize> PartialEq<Odd<Uint<LIMBS>>> for Uint<LIMBS> {
+    fn eq(&self, other: &Odd<Uint<LIMBS>>) -> bool {
+        self.eq(&other.0)
+    }
+}
+
+impl<const LIMBS: usize> PartialOrd<Odd<Uint<LIMBS>>> for Uint<LIMBS> {
+    fn partial_cmp(&self, other: &Odd<Uint<LIMBS>>) -> Option<Ordering> {
+        Some(self.cmp(&other.0))
     }
 }
 
