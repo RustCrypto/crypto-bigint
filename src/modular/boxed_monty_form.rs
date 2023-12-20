@@ -251,11 +251,8 @@ impl BoxedMontyForm {
     ///   (since the modulus `p` in Montgomery form is always odd, this divides entirely).
     pub fn div_by_2(&self) -> Self {
         Self {
-            montgomery_form: div_by_2::boxed::div_by_2(
-                &self.montgomery_form,
-                &self.residue_params.modulus,
-            ),
-            residue_params: self.residue_params.clone(), // TODO: avoid clone?
+            montgomery_form: div_by_2::boxed::div_by_2(&self.montgomery_form, &self.params.modulus),
+            params: self.params.clone(), // TODO: avoid clone?
         }
     }
 }
@@ -279,7 +276,7 @@ fn convert_to_montgomery(integer: &mut BoxedUint, params: &BoxedMontyParams) {
 
 #[cfg(test)]
 mod tests {
-    use super::{BoxedMontyParams, BoxedUint};
+    use super::{BoxedMontyForm, BoxedMontyParams, BoxedUint};
 
     #[test]
     fn new_params_with_invalid_modulus() {
@@ -299,9 +296,9 @@ mod tests {
 
     #[test]
     fn div_by_2() {
-        let params = BoxedResidueParams::new(BoxedUint::from(9u8)).unwrap();
-        let zero = BoxedResidue::zero(params.clone());
-        let one = BoxedResidue::one(params.clone());
+        let params = BoxedMontyParams::new(BoxedUint::from(9u8)).unwrap();
+        let zero = BoxedMontyForm::zero(params.clone());
+        let one = BoxedMontyForm::one(params.clone());
         let two = one.add(&one);
 
         assert_eq!(zero.div_by_2(), zero);

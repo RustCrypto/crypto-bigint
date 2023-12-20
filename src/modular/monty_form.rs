@@ -269,9 +269,9 @@ mod test {
 
     #[test]
     fn div_by_2() {
-        let params = DynResidueParams::new(&Uint::<1>::from(9u8)).unwrap();
-        let zero = DynResidue::zero(params.clone());
-        let one = DynResidue::one(params.clone());
+        let params = MontyParams::new(&Uint::<1>::from(9u8)).unwrap();
+        let zero = MontyForm::zero(params.clone());
+        let one = MontyForm::one(params.clone());
         let two = one.add(&one);
 
         assert_eq!(zero.div_by_2(), zero);
