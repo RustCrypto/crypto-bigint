@@ -397,7 +397,7 @@ proptest! {
     }
 
     #[test]
-    fn residue_pow(a in uint_mod_p(P), b in uint()) {
+    fn monty_form_pow(a in uint_mod_p(P), b in uint()) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
         let p_bi = to_biguint(&P);
@@ -412,7 +412,7 @@ proptest! {
     }
 
     #[test]
-    fn residue_pow_bounded_exp(a in uint_mod_p(P), b in uint(), exponent_bits in any::<u8>()) {
+    fn monty_form_pow_bounded_exp(a in uint_mod_p(P), b in uint(), exponent_bits in any::<u8>()) {
         let b_masked = b & (U256::ONE << exponent_bits as u32).wrapping_sub(&U256::ONE);
 
         let a_bi = to_biguint(&a);
@@ -429,7 +429,7 @@ proptest! {
     }
 
     #[test]
-    fn residue_div_by_2(a in uint_mod_p(P)) {
+    fn monty_form_div_by_2(a in uint_mod_p(P)) {
         let a_bi = to_biguint(&a);
         let p_bi = to_biguint(&P);
         let two = BigUint::from(2u32);

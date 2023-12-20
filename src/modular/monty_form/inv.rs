@@ -1,4 +1,4 @@
-//! Multiplicative inverses of residues with a modulus set at runtime.
+//! Multiplicative inverses of integers in Montgomery form with a modulus set at runtime.
 
 use super::{MontyForm, MontyFormParams};
 use crate::{
@@ -15,14 +15,14 @@ where
         Output = Uint<SAT_LIMBS>,
     >,
 {
-    /// Computes the residue `self^-1` representing the multiplicative inverse of `self`.
+    /// Computes `self^-1` representing the multiplicative inverse of `self`.
     /// I.e. `self * self^-1 = 1`.
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
     pub const fn inv(&self) -> ConstCtOption<Self> {
         let inverter = <Uint<SAT_LIMBS> as PrecomputeInverter>::Inverter::new(
-            &self.residue_params.modulus,
-            &self.residue_params.r2,
+            &self.params.modulus,
+            &self.params.r2,
         )
         .expect("modulus should be valid");
 
@@ -31,7 +31,7 @@ where
 
         let ret = Self {
             montgomery_form: *inverse,
-            residue_params: self.residue_params,
+            params: self.params,
         };
 
         ConstCtOption::new(ret, inverse_is_some)
@@ -62,7 +62,7 @@ where
     fn precompute_inverter(&self) -> MontyFormInverter<LIMBS> {
         MontyFormInverter {
             inverter: self.modulus.precompute_inverter_with_adjuster(&self.r2),
-            residue_params: *self,
+            params: *self,
         }
     }
 }
@@ -73,7 +73,7 @@ where
     Uint<LIMBS>: PrecomputeInverter<Output = Uint<LIMBS>>,
 {
     inverter: <Uint<LIMBS> as PrecomputeInverter>::Inverter,
-    residue_params: MontyFormParams<LIMBS>,
+    params: MontyFormParams<LIMBS>,
 }
 
 impl<const LIMBS: usize> Inverter for MontyFormInverter<LIMBS>
@@ -83,13 +83,13 @@ where
     type Output = MontyForm<LIMBS>;
 
     fn invert(&self, value: &MontyForm<LIMBS>) -> CtOption<Self::Output> {
-        debug_assert_eq!(self.residue_params, value.residue_params);
+        debug_assert_eq!(self.params, value.params);
 
         self.inverter
             .invert(&value.montgomery_form)
             .map(|montgomery_form| MontyForm {
                 montgomery_form,
-                residue_params: value.residue_params,
+                params: value.params,
             })
     }
 }
@@ -113,7 +113,7 @@ mod tests {
     use super::{MontyForm, MontyFormParams};
     use crate::{Invert, Inverter, PrecomputeInverter, U256};
 
-    fn residue_params() -> MontyFormParams<{ U256::LIMBS }> {
+    fn params() -> MontyFormParams<{ U256::LIMBS }> {
         MontyFormParams::new(&U256::from_be_hex(
             "15477BCCEFE197328255BFA79A1217899016D927EF460F4FF404029D24FA4409",
         ))
@@ -122,7 +122,7 @@ mod tests {
 
     #[test]
     fn test_self_inverse() {
-        let params = residue_params();
+        let params = params();
         let x =
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
         let x_mod = MontyForm::new(&x, params);
@@ -135,7 +135,7 @@ mod tests {
 
     #[test]
     fn test_self_inverse_precomuted() {
-        let params = residue_params();
+        let params = params();
         let x =
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
         let x_mod = MontyForm::new(&x, params);

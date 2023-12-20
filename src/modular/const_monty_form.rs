@@ -35,7 +35,7 @@ mod macros;
 pub trait ConstMontyFormParams<const LIMBS: usize>:
     Copy + Debug + Default + Eq + Send + Sync + 'static
 {
-    /// Number of limbs required to encode a residue
+    /// Number of limbs required to encode the Montgomery form
     const LIMBS: usize;
 
     /// The constant modulus
@@ -64,8 +64,8 @@ pub trait ConstMontyFormParams<const LIMBS: usize>:
     }
 }
 
-/// A residue mod `MOD`, represented using `LIMBS` limbs. The modulus of this residue is constant,
-/// so it cannot be set at runtime.
+/// An integer in Montgomery form modulo `MOD`, represented using `LIMBS` limbs.
+/// The modulus is constant, so it cannot be set at runtime.
 ///
 /// Internally, the value is stored in Montgomery form (multiplied by MOD::R) until it is retrieved.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -93,8 +93,9 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, L
         phantom: PhantomData,
     };
 
-    /// Internal helper function to generate a residue; this lets us cleanly wrap the constructors.
-    const fn generate_residue(integer: &Uint<LIMBS>) -> Self {
+    /// Internal helper function to convert to Montgomery form;
+    /// this lets us cleanly wrap the constructors.
+    const fn from_integer(integer: &Uint<LIMBS>) -> Self {
         let product = integer.split_mul(&MOD::R2);
         let montgomery_form =
             montgomery_reduction::<LIMBS>(&product, &MOD::MODULUS.0, MOD::MOD_NEG_INV);
@@ -107,7 +108,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, L
 
     /// Instantiates a new [`ConstMontyForm`] that represents this `integer` mod `MOD`.
     pub const fn new(integer: &Uint<LIMBS>) -> Self {
-        Self::generate_residue(integer)
+        Self::from_integer(integer)
     }
 
     /// Retrieves the integer currently encoded in this [`ConstMontyForm`], guaranteed to be reduced.

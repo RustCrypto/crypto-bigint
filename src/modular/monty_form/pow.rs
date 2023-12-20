@@ -1,4 +1,4 @@
-//! Exponentiation of residues with a modulus set at runtime.
+//! Exponentiation of integers in Montgomery form with a modulus set at runtime.
 
 use super::MontyForm;
 use crate::{
@@ -33,11 +33,11 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
                 &self.montgomery_form,
                 exponent,
                 exponent_bits,
-                &self.residue_params.modulus,
-                &self.residue_params.r,
-                self.residue_params.mod_neg_inv,
+                &self.params.modulus,
+                &self.params.r,
+                self.params.mod_neg_inv,
             ),
-            residue_params: self.residue_params,
+            params: self.params,
         }
     }
 }
@@ -59,7 +59,7 @@ impl<const N: usize, const LIMBS: usize, const RHS_LIMBS: usize>
         exponent_bits: u32,
     ) -> Self {
         const_assert_ne!(N, 0, "bases_and_exponents must not be empty");
-        let residue_params = bases_and_exponents[0].0.residue_params;
+        let params = bases_and_exponents[0].0.params;
 
         let mut bases_and_exponents_montgomery_form =
             [(Uint::<LIMBS>::ZERO, Uint::<RHS_LIMBS>::ZERO); N];
@@ -75,11 +75,11 @@ impl<const N: usize, const LIMBS: usize, const RHS_LIMBS: usize>
             montgomery_form: multi_exponentiate_montgomery_form_array(
                 &bases_and_exponents_montgomery_form,
                 exponent_bits,
-                &residue_params.modulus,
-                &residue_params.r,
-                residue_params.mod_neg_inv,
+                &params.modulus,
+                &params.r,
+                params.mod_neg_inv,
             ),
-            residue_params,
+            params,
         }
     }
 }
@@ -96,7 +96,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize>
             !bases_and_exponents.is_empty(),
             "bases_and_exponents must not be empty"
         );
-        let residue_params = bases_and_exponents[0].0.residue_params;
+        let params = bases_and_exponents[0].0.params;
 
         let bases_and_exponents: Vec<(Uint<LIMBS>, Uint<RHS_LIMBS>)> = bases_and_exponents
             .iter()
@@ -106,11 +106,11 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize>
             montgomery_form: multi_exponentiate_montgomery_form_slice(
                 &bases_and_exponents,
                 exponent_bits,
-                &residue_params.modulus,
-                &residue_params.r,
-                residue_params.mod_neg_inv,
+                &params.modulus,
+                &params.r,
+                params.mod_neg_inv,
             ),
-            residue_params,
+            params,
         }
     }
 }

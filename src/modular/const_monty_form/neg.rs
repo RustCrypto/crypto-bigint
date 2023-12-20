@@ -1,4 +1,4 @@
-//! Negations of residues with a constant modulus.
+//! Negations of integers in Montgomery form with a constant modulus.
 
 use super::{ConstMontyForm, ConstMontyFormParams};
 use core::ops::Neg;
@@ -26,7 +26,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Neg for &ConstMontyFo
 
 #[cfg(test)]
 mod tests {
-    use crate::{const_residue, impl_modulus, modular::residue::ConstMontyFormParams, U256};
+    use crate::{const_monty_form, impl_modulus, modular::const_monty_form::ConstMontyFormParams, U256};
 
     impl_modulus!(
         Modulus,
@@ -38,7 +38,7 @@ mod tests {
     fn test_negate() {
         let x =
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
-        let x_mod = const_residue!(x, Modulus);
+        let x_mod = const_monty_form!(x, Modulus);
 
         let res = -x_mod;
         let expected =

@@ -1,4 +1,4 @@
-//! Multiplications between residues with a modulus set at runtime.
+//! Multiplications between integers in Montgomery form with a modulus set at runtime.
 
 use super::MontyForm;
 use crate::{
@@ -14,22 +14,22 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
             montgomery_form: mul_montgomery_form(
                 &self.montgomery_form,
                 &rhs.montgomery_form,
-                &self.residue_params.modulus,
-                self.residue_params.mod_neg_inv,
+                &self.params.modulus,
+                self.params.mod_neg_inv,
             ),
-            residue_params: self.residue_params,
+            params: self.params,
         }
     }
 
-    /// Computes the (reduced) square of a residue.
+    /// Computes the (reduced) square.
     pub const fn square(&self) -> Self {
         Self {
             montgomery_form: square_montgomery_form(
                 &self.montgomery_form,
-                &self.residue_params.modulus,
-                self.residue_params.mod_neg_inv,
+                &self.params.modulus,
+                self.params.mod_neg_inv,
             ),
-            residue_params: self.residue_params,
+            params: self.params,
         }
     }
 }
@@ -37,7 +37,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
 impl<const LIMBS: usize> Mul<&MontyForm<LIMBS>> for &MontyForm<LIMBS> {
     type Output = MontyForm<LIMBS>;
     fn mul(self, rhs: &MontyForm<LIMBS>) -> MontyForm<LIMBS> {
-        debug_assert_eq!(self.residue_params, rhs.residue_params);
+        debug_assert_eq!(self.params, rhs.params);
         self.mul(rhs)
     }
 }

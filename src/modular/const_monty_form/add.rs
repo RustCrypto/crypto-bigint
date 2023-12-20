@@ -1,4 +1,4 @@
-//! Additions between residues with a constant modulus.
+//! Additions between integers in Montgomery form with a constant modulus.
 
 use super::{ConstMontyForm, ConstMontyFormParams};
 use crate::modular::add::add_montgomery_form;
@@ -70,7 +70,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> AddAssign<Self> for C
 
 #[cfg(test)]
 mod tests {
-    use crate::{const_residue, impl_modulus, modular::residue::ConstMontyFormParams, U256};
+    use crate::{const_monty_form, impl_modulus, modular::const_monty_form::ConstMontyFormParams, U256};
 
     impl_modulus!(
         Modulus,
@@ -82,11 +82,11 @@ mod tests {
     fn add_overflow() {
         let x =
             U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
-        let mut x_mod = const_residue!(x, Modulus);
+        let mut x_mod = const_monty_form!(x, Modulus);
 
         let y =
             U256::from_be_hex("d5777c45019673125ad240f83094d4252d829516fac8601ed01979ec1ec1a251");
-        let y_mod = const_residue!(y, Modulus);
+        let y_mod = const_monty_form!(y, Modulus);
 
         x_mod += &y_mod;
 

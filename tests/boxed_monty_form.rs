@@ -14,8 +14,8 @@ fn to_biguint(uint: &BoxedUint) -> BigUint {
     BigUint::from_bytes_be(&uint.to_be_bytes())
 }
 
-fn retrieve_biguint(residue: &BoxedMontyForm) -> BigUint {
-    to_biguint(&residue.retrieve())
+fn retrieve_biguint(monty_form: &BoxedMontyForm) -> BigUint {
+    to_biguint(&monty_form.retrieve())
 }
 
 fn reduce(n: &BoxedUint, p: BoxedMontyFormParams) -> BoxedMontyForm {
@@ -52,14 +52,14 @@ prop_compose! {
     }
 }
 prop_compose! {
-    /// Generate a single residue.
-    fn residue()(a in uint(), n in modulus()) -> BoxedMontyForm {
+    /// Generate a single Montgomery form integer.
+    fn monty_form()(a in uint(), n in modulus()) -> BoxedMontyForm {
         reduce(&a, n.clone())
     }
 }
 prop_compose! {
-    /// Generate two residues with a common modulus.
-    fn residue_pair()(a in uint(), b in uint(), n in modulus()) -> (BoxedMontyForm, BoxedMontyForm) {
+    /// Generate two Montgomery form integers with a common modulus.
+    fn monty_form_pair()(a in uint(), b in uint(), n in modulus()) -> (BoxedMontyForm, BoxedMontyForm) {
         (reduce(&a, n.clone()), reduce(&b, n.clone()))
     }
 }
@@ -93,7 +93,7 @@ proptest! {
     }
 
     #[test]
-    fn mul((a, b) in residue_pair()) {
+    fn mul((a, b) in monty_form_pair()) {
         let p = a.params().modulus();
         let actual = &a * &b;
         prop_assert!(actual.as_montgomery() < a.params().modulus());
@@ -107,7 +107,7 @@ proptest! {
     }
 
     #[test]
-    fn square(a in residue()) {
+    fn square(a in monty_form()) {
         let p = a.params().modulus();
         let actual = a.square();
         prop_assert!(actual.as_montgomery() < a.params().modulus());

@@ -22,14 +22,14 @@ impl BoxedMontyForm {
                 &self.montgomery_form,
                 exponent,
                 exponent_bits,
-                &self.residue_params.modulus,
-                &self.residue_params.r,
-                self.residue_params.mod_neg_inv,
+                &self.params.modulus,
+                &self.params.r,
+                self.params.mod_neg_inv,
             ),
-            residue_params: self.residue_params.clone(),
+            params: self.params.clone(),
         };
 
-        debug_assert!(ret.retrieve() < self.residue_params.modulus);
+        debug_assert!(ret.retrieve() < self.params.modulus);
         ret
     }
 }

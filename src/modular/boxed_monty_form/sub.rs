@@ -1,64 +1,65 @@
-//! Additions between boxed residues.
+//! Subtractions between boxed integers in Montgomery form.
 
 use super::BoxedMontyForm;
-use core::ops::{Add, AddAssign};
+use core::ops::{Sub, SubAssign};
 
 impl BoxedMontyForm {
-    /// Adds `rhs`.
-    pub fn add(&self, rhs: &Self) -> Self {
-        debug_assert_eq!(self.residue_params, rhs.residue_params);
+    /// Subtracts `rhs`.
+    pub fn sub(&self, rhs: &Self) -> Self {
+        debug_assert_eq!(self.params, rhs.params);
 
         Self {
             montgomery_form: self
                 .montgomery_form
-                .add_mod(&rhs.montgomery_form, &self.residue_params.modulus),
-            residue_params: self.residue_params.clone(),
+                .sub_mod(&rhs.montgomery_form, &self.params.modulus),
+            params: self.params.clone(),
         }
     }
 }
 
-impl Add<&BoxedMontyForm> for &BoxedMontyForm {
+impl Sub<&BoxedMontyForm> for &BoxedMontyForm {
     type Output = BoxedMontyForm;
-    fn add(self, rhs: &BoxedMontyForm) -> BoxedMontyForm {
-        self.add(rhs)
+    fn sub(self, rhs: &BoxedMontyForm) -> BoxedMontyForm {
+        debug_assert_eq!(self.params, rhs.params);
+        self.sub(rhs)
     }
 }
 
-impl Add<BoxedMontyForm> for &BoxedMontyForm {
-    type Output = BoxedMontyForm;
-    #[allow(clippy::op_ref)]
-    fn add(self, rhs: BoxedMontyForm) -> BoxedMontyForm {
-        self + &rhs
-    }
-}
-
-impl Add<&BoxedMontyForm> for BoxedMontyForm {
+impl Sub<BoxedMontyForm> for &BoxedMontyForm {
     type Output = BoxedMontyForm;
     #[allow(clippy::op_ref)]
-    fn add(self, rhs: &BoxedMontyForm) -> BoxedMontyForm {
-        &self + rhs
+    fn sub(self, rhs: BoxedMontyForm) -> BoxedMontyForm {
+        self - &rhs
     }
 }
 
-impl Add<BoxedMontyForm> for BoxedMontyForm {
+impl Sub<&BoxedMontyForm> for BoxedMontyForm {
     type Output = BoxedMontyForm;
-    fn add(self, rhs: BoxedMontyForm) -> BoxedMontyForm {
-        &self + &rhs
+    #[allow(clippy::op_ref)]
+    fn sub(self, rhs: &BoxedMontyForm) -> BoxedMontyForm {
+        &self - rhs
     }
 }
 
-impl AddAssign<&BoxedMontyForm> for BoxedMontyForm {
-    fn add_assign(&mut self, rhs: &BoxedMontyForm) {
-        debug_assert_eq!(self.residue_params, rhs.residue_params);
+impl Sub<BoxedMontyForm> for BoxedMontyForm {
+    type Output = BoxedMontyForm;
+    fn sub(self, rhs: BoxedMontyForm) -> BoxedMontyForm {
+        &self - &rhs
+    }
+}
+
+impl SubAssign<&BoxedMontyForm> for BoxedMontyForm {
+    fn sub_assign(&mut self, rhs: &BoxedMontyForm) {
+        debug_assert_eq!(self.params, rhs.params);
         self.montgomery_form = self
             .montgomery_form
-            .add_mod(&rhs.montgomery_form, &self.residue_params.modulus)
+            .sub_mod(&rhs.montgomery_form, &self.params.modulus)
     }
 }
 
-impl AddAssign<BoxedMontyForm> for BoxedMontyForm {
-    fn add_assign(&mut self, rhs: BoxedMontyForm) {
-        *self += &rhs;
+impl SubAssign<BoxedMontyForm> for BoxedMontyForm {
+    fn sub_assign(&mut self, rhs: BoxedMontyForm) {
+        *self -= &rhs;
     }
 }
 
@@ -71,7 +72,7 @@ mod tests {
     use hex_literal::hex;
 
     #[test]
-    fn add_overflow() {
+    fn sub_overflow() {
         let params = BoxedMontyFormParams::new(
             BoxedUint::from_be_slice(
                 &hex!("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"),
@@ -93,12 +94,12 @@ mod tests {
             256,
         )
         .unwrap();
-        let y_mod = BoxedMontyForm::new(y, params.clone());
+        let y_mod = BoxedMontyForm::new(y, params);
 
-        x_mod += &y_mod;
+        x_mod -= &y_mod;
 
         let expected = BoxedUint::from_be_slice(
-            &hex!("1a2472fde50286541d97ca6a3592dd75beb9c9646e40c511b82496cfc3926956"),
+            &hex!("6f357a71e1d5a03167f34879d469352add829491c6df41ddff65387d7ed56f56"),
             256,
         )
         .unwrap();

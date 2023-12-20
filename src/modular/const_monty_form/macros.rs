@@ -58,12 +58,12 @@ macro_rules! impl_modulus {
 
 /// Creates a `ConstMontyForm` with the given value for a specific modulus.
 ///
-/// For example, `residue!(U256::from(105u64), MyModulus);` creates a `ConstMontyForm` for 105 mod
-/// `MyModulus`.
+/// For example, `const_monty_form!(U256::from(105u64), MyModulus);`
+/// creates a `ConstMontyForm` for 105 mod `MyModulus`.
 ///
 /// The modulus _must_ be odd, or this will panic.
 #[macro_export]
-macro_rules! const_residue {
+macro_rules! const_monty_form {
     ($variable:ident, $modulus:ident) => {
         $crate::modular::ConstMontyForm::<$modulus, { $modulus::LIMBS }>::new(&$variable)
     };

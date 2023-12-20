@@ -10,7 +10,7 @@ mod sub;
 use super::{
     div_by_2::div_by_2,
     reduction::montgomery_reduction,
-    residue::{ConstMontyForm, ConstMontyFormParams},
+    const_monty_form::{ConstMontyForm, ConstMontyFormParams},
     Retrieve,
 };
 use crate::{Limb, NonZero, Uint, Word, Zero};
@@ -74,7 +74,7 @@ impl<const LIMBS: usize> MontyFormParams<LIMBS> {
     }
 
     /// Create `MontyFormParams` corresponding to a `ConstMontyFormParams`.
-    pub const fn from_residue_params<P>() -> Self
+    pub const fn from_const_params<P>() -> Self
     where
         P: ConstMontyFormParams<LIMBS>,
     {
@@ -110,26 +110,27 @@ impl<const LIMBS: usize> ConstantTimeEq for MontyFormParams<LIMBS> {
     }
 }
 
-/// A residue represented using `LIMBS` limbs. The odd modulus of this residue is set at runtime.
+/// An integer in Montgomery form represented using `LIMBS` limbs.
+/// The odd modulus is set at runtime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MontyForm<const LIMBS: usize> {
     montgomery_form: Uint<LIMBS>,
-    residue_params: MontyFormParams<LIMBS>,
+    params: MontyFormParams<LIMBS>,
 }
 
 impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Instantiates a new `ConstMontyForm` that represents this `integer` mod `MOD`.
-    pub const fn new(integer: &Uint<LIMBS>, residue_params: MontyFormParams<LIMBS>) -> Self {
-        let product = integer.split_mul(&residue_params.r2);
+    pub const fn new(integer: &Uint<LIMBS>, params: MontyFormParams<LIMBS>) -> Self {
+        let product = integer.split_mul(&params.r2);
         let montgomery_form = montgomery_reduction(
             &product,
-            &residue_params.modulus,
-            residue_params.mod_neg_inv,
+            &params.modulus,
+            params.mod_neg_inv,
         );
 
         Self {
             montgomery_form,
-            residue_params,
+            params,
         }
     }
 
@@ -137,30 +138,30 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     pub const fn retrieve(&self) -> Uint<LIMBS> {
         montgomery_reduction(
             &(self.montgomery_form, Uint::ZERO),
-            &self.residue_params.modulus,
-            self.residue_params.mod_neg_inv,
+            &self.params.modulus,
+            self.params.mod_neg_inv,
         )
     }
 
     /// Instantiates a new `ConstMontyForm` that represents zero.
-    pub const fn zero(residue_params: MontyFormParams<LIMBS>) -> Self {
+    pub const fn zero(params: MontyFormParams<LIMBS>) -> Self {
         Self {
             montgomery_form: Uint::<LIMBS>::ZERO,
-            residue_params,
+            params,
         }
     }
 
     /// Instantiates a new `ConstMontyForm` that represents 1.
-    pub const fn one(residue_params: MontyFormParams<LIMBS>) -> Self {
+    pub const fn one(params: MontyFormParams<LIMBS>) -> Self {
         Self {
-            montgomery_form: residue_params.r,
-            residue_params,
+            montgomery_form: params.r,
+            params,
         }
     }
 
-    /// Returns the parameter struct used to initialize this residue.
+    /// Returns the parameter struct used to initialize this object.
     pub const fn params(&self) -> &MontyFormParams<LIMBS> {
-        &self.residue_params
+        &self.params
     }
 
     /// Access the `MontyForm` value in Montgomery form.
@@ -176,11 +177,11 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Create a `MontyForm` from a value in Montgomery form.
     pub const fn from_montgomery(
         integer: Uint<LIMBS>,
-        residue_params: MontyFormParams<LIMBS>,
+        params: MontyFormParams<LIMBS>,
     ) -> Self {
         Self {
             montgomery_form: integer,
-            residue_params,
+            params,
         }
     }
 
@@ -196,8 +197,8 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     ///   (since the modulus `p` in Montgomery form is always odd, this divides entirely).
     pub fn div_by_2(&self) -> Self {
         Self {
-            montgomery_form: div_by_2(&self.montgomery_form, &self.residue_params.modulus),
-            residue_params: self.residue_params,
+            montgomery_form: div_by_2(&self.montgomery_form, &self.params.modulus),
+            params: self.params,
         }
     }
 }
@@ -210,10 +211,10 @@ impl<const LIMBS: usize> Retrieve for MontyForm<LIMBS> {
 }
 
 impl<const LIMBS: usize, P: ConstMontyFormParams<LIMBS>> From<&ConstMontyForm<P, LIMBS>> for MontyForm<LIMBS> {
-    fn from(residue: &ConstMontyForm<P, LIMBS>) -> Self {
+    fn from(const_monty_form: &ConstMontyForm<P, LIMBS>) -> Self {
         Self {
-            montgomery_form: residue.to_montgomery(),
-            residue_params: MontyFormParams::from_residue_params::<P>(),
+            montgomery_form: const_monty_form.to_montgomery(),
+            params: MontyFormParams::from_const_params::<P>(),
         }
     }
 }
@@ -226,9 +227,9 @@ impl<const LIMBS: usize> ConditionallySelectable for MontyForm<LIMBS> {
                 &b.montgomery_form,
                 choice,
             ),
-            residue_params: MontyFormParams::conditional_select(
-                &a.residue_params,
-                &b.residue_params,
+            params: MontyFormParams::conditional_select(
+                &a.params,
+                &b.params,
                 choice,
             ),
         }
@@ -238,7 +239,7 @@ impl<const LIMBS: usize> ConditionallySelectable for MontyForm<LIMBS> {
 impl<const LIMBS: usize> ConstantTimeEq for MontyForm<LIMBS> {
     fn ct_eq(&self, other: &Self) -> Choice {
         self.montgomery_form.ct_eq(&other.montgomery_form)
-            & self.residue_params.ct_eq(&other.residue_params)
+            & self.params.ct_eq(&other.params)
     }
 }
 

@@ -11,8 +11,8 @@ fn to_biguint(uint: &U256) -> BigUint {
     BigUint::from_bytes_le(uint.to_le_bytes().as_ref())
 }
 
-fn retrieve_biguint(residue: &MontyForm) -> BigUint {
-    to_biguint(&residue.retrieve())
+fn retrieve_biguint(monty_form: &MontyForm) -> BigUint {
+    to_biguint(&monty_form.retrieve())
 }
 
 fn reduce(n: &U256, p: MontyFormParams) -> MontyForm {
@@ -34,12 +34,6 @@ prop_compose! {
         }
 
         MontyFormParams::new(&n).expect("modulus should be valid")
-    }
-}
-prop_compose! {
-    /// Generate a single residue.
-    fn residue()(a in uint(), n in modulus()) -> MontyForm {
-        reduce(&a, n.clone())
     }
 }
 

@@ -1,4 +1,4 @@
-//! Multiplications between residues with a constant modulus.
+//! Multiplications between integers in Montgomery form with a constant modulus.
 
 use core::{
     marker::PhantomData,
@@ -26,7 +26,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, L
         }
     }
 
-    /// Computes the (reduced) square of a residue.
+    /// Computes the (reduced) square.
     pub const fn square(&self) -> Self {
         Self {
             montgomery_form: square_montgomery_form(

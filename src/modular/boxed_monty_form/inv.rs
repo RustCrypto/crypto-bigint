@@ -1,29 +1,29 @@
-//! Multiplicative inverses of boxed residue.
+//! Multiplicative inverses of boxed integers in Montgomery form.
 
 use super::BoxedMontyForm;
 use crate::{modular::reduction::montgomery_reduction_boxed_mut, Invert};
 use subtle::CtOption;
 
 impl BoxedMontyForm {
-    /// Computes the residue `self^-1` representing the multiplicative inverse of `self`.
+    /// Computes `self^-1` representing the multiplicative inverse of `self`.
     /// I.e. `self * self^-1 = 1`.
     pub fn invert(&self) -> CtOption<Self> {
         let (mut inverse, is_some) = self
             .montgomery_form
-            .inv_odd_mod(&self.residue_params.modulus);
+            .inv_odd_mod(&self.params.modulus);
 
-        let mut product = inverse.mul(&self.residue_params.r3);
+        let mut product = inverse.mul(&self.params.r3);
 
         montgomery_reduction_boxed_mut(
             &mut product,
-            &self.residue_params.modulus,
-            self.residue_params.mod_neg_inv,
+            &self.params.modulus,
+            self.params.mod_neg_inv,
             &mut inverse,
         );
 
         let value = Self {
             montgomery_form: inverse,
-            residue_params: self.residue_params.clone(),
+            params: self.params.clone(),
         };
 
         CtOption::new(value, is_some)
@@ -45,7 +45,7 @@ mod tests {
     };
     use hex_literal::hex;
 
-    fn residue_params() -> BoxedMontyFormParams {
+    fn monty_params() -> BoxedMontyFormParams {
         BoxedMontyFormParams::new(
             BoxedUint::from_be_slice(
                 &hex!("15477BCCEFE197328255BFA79A1217899016D927EF460F4FF404029D24FA4409"),
@@ -58,7 +58,7 @@ mod tests {
 
     #[test]
     fn test_self_inverse() {
-        let params = residue_params();
+        let params = monty_params();
         let x = BoxedUint::from_be_slice(
             &hex!("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685"),
             256,

@@ -1,4 +1,4 @@
-//! Multiplication between boxed residues (i.e. Montgomery multiplication).
+//! Multiplication between boxed integers in Montgomery form (i.e. Montgomery multiplication).
 //!
 //! Some parts adapted from `monty.rs` in `num-bigint`:
 //! <https://github.com/rust-num/num-bigint/blob/2cea7f4/src/biguint/monty.rs>
@@ -22,24 +22,24 @@ use zeroize::Zeroize;
 impl BoxedMontyForm {
     /// Multiplies by `rhs`.
     pub fn mul(&self, rhs: &Self) -> Self {
-        debug_assert_eq!(&self.residue_params, &rhs.residue_params);
-        let montgomery_form = MontgomeryMultiplier::from(self.residue_params.borrow())
+        debug_assert_eq!(&self.params, &rhs.params);
+        let montgomery_form = MontgomeryMultiplier::from(self.params.borrow())
             .mul(&self.montgomery_form, &rhs.montgomery_form);
 
         Self {
             montgomery_form,
-            residue_params: self.residue_params.clone(),
+            params: self.params.clone(),
         }
     }
 
-    /// Computes the (reduced) square of a residue.
+    /// Computes the (reduced) square.
     pub fn square(&self) -> Self {
         let montgomery_form =
-            MontgomeryMultiplier::from(self.residue_params.borrow()).square(&self.montgomery_form);
+            MontgomeryMultiplier::from(self.params.borrow()).square(&self.montgomery_form);
 
         Self {
             montgomery_form,
-            residue_params: self.residue_params.clone(),
+            params: self.params.clone(),
         }
     }
 }
@@ -82,8 +82,8 @@ impl MulAssign<BoxedMontyForm> for BoxedMontyForm {
 
 impl MulAssign<&BoxedMontyForm> for BoxedMontyForm {
     fn mul_assign(&mut self, rhs: &BoxedMontyForm) {
-        debug_assert_eq!(&self.residue_params, &rhs.residue_params);
-        MontgomeryMultiplier::from(self.residue_params.borrow())
+        debug_assert_eq!(&self.params, &rhs.params);
+        MontgomeryMultiplier::from(self.params.borrow())
             .mul_assign(&mut self.montgomery_form, &rhs.montgomery_form);
     }
 }
@@ -95,8 +95,8 @@ impl Square for BoxedMontyForm {
 }
 
 impl<'a> From<&'a BoxedMontyFormParams> for MontgomeryMultiplier<'a> {
-    fn from(residue_params: &'a BoxedMontyFormParams) -> MontgomeryMultiplier<'a> {
-        MontgomeryMultiplier::new(&residue_params.modulus, residue_params.mod_neg_inv)
+    fn from(params: &'a BoxedMontyFormParams) -> MontgomeryMultiplier<'a> {
+        MontgomeryMultiplier::new(&params.modulus, params.mod_neg_inv)
     }
 }
 
@@ -311,13 +311,13 @@ mod tests {
     /// Regression test for RustCrypto/crypto-bigint#441
     #[test]
     fn square() {
-        let residue = 0x20u128;
+        let x = 0x20u128;
         let modulus = 0xB44677037A7DBDE04814256570DCBD8Du128;
 
         let boxed_modulus = BoxedUint::from(modulus);
         let boxed_params = BoxedMontyFormParams::new(boxed_modulus).unwrap();
-        let boxed_residue = BoxedMontyForm::new(BoxedUint::from(residue), boxed_params);
-        let boxed_square = boxed_residue.square();
+        let boxed_monty = BoxedMontyForm::new(BoxedUint::from(x), boxed_params);
+        let boxed_square = boxed_monty.square();
 
         // TODO(tarcieri): test for correct output
         assert!(boxed_square.as_montgomery() < boxed_square.params().modulus());

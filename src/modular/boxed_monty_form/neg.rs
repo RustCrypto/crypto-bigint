@@ -1,4 +1,4 @@
-//! Negations of boxed residues.
+//! Negations of boxed integers in Montgomery form.
 
 use super::BoxedMontyForm;
 use crate::BoxedUint;
@@ -8,8 +8,8 @@ impl BoxedMontyForm {
     /// Negates the number.
     pub fn neg(&self) -> Self {
         let zero = Self {
-            montgomery_form: BoxedUint::zero_with_precision(self.residue_params.bits_precision()),
-            residue_params: self.residue_params.clone(),
+            montgomery_form: BoxedUint::zero_with_precision(self.params.bits_precision()),
+            params: self.params.clone(),
         };
 
         zero.sub(self)

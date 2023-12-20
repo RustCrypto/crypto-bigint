@@ -1,4 +1,4 @@
-//! Multiplicative inverses of residues with a constant modulus.
+//! Multiplicative inverses of integers in Montgomery form with a constant modulus.
 
 use super::{ConstMontyForm, ConstMontyFormParams};
 use crate::{
@@ -15,7 +15,7 @@ where
         Output = Uint<SAT_LIMBS>,
     >,
 {
-    /// Computes the residue `self^-1` representing the multiplicative inverse of `self`.
+    /// Computes `self^-1` representing the multiplicative inverse of `self`.
     /// I.e. `self * self^-1 = 1`.
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
@@ -127,7 +127,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::ConstMontyFormParams;
-    use crate::{const_residue, impl_modulus, Inverter, U256};
+    use crate::{const_monty_form, impl_modulus, Inverter, U256};
 
     impl_modulus!(
         Modulus,
@@ -139,7 +139,7 @@ mod tests {
     fn test_self_inverse() {
         let x =
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
-        let x_mod = const_residue!(x, Modulus);
+        let x_mod = const_monty_form!(x, Modulus);
 
         let inv = x_mod.inv().unwrap();
         let res = x_mod * inv;
@@ -151,7 +151,7 @@ mod tests {
     fn test_self_inverse_precomputed() {
         let x =
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
-        let x_mod = const_residue!(x, Modulus);
+        let x_mod = const_monty_form!(x, Modulus);
         let inverter = Modulus::precompute_inverter();
 
         let inv = inverter.invert(&x_mod).unwrap();

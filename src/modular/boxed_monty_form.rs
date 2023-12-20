@@ -133,49 +133,49 @@ impl BoxedMontyFormParams {
     }
 }
 
-/// A residue represented using heap-allocated limbs.
+/// An integer in Montgomery form represented using heap-allocated limbs.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BoxedMontyForm {
-    /// Value in the Montgomery domain.
+    /// Value in the Montgomery form.
     montgomery_form: BoxedUint,
 
-    /// ConstMontyForm parameters.
+    /// Montgomery form parameters.
     #[cfg(not(feature = "std"))]
-    residue_params: BoxedMontyFormParams,
+    params: BoxedMontyFormParams,
 
-    /// ConstMontyForm parameters.
+    /// Montgomery form parameters.
     // Uses `Arc` when `std` is available.
     #[cfg(feature = "std")]
-    residue_params: Arc<BoxedMontyFormParams>,
+    params: Arc<BoxedMontyFormParams>,
 }
 
 impl BoxedMontyForm {
     /// Instantiates a new [`BoxedMontyForm`] that represents an integer modulo the provided params.
-    pub fn new(mut integer: BoxedUint, residue_params: BoxedMontyFormParams) -> Self {
-        debug_assert_eq!(integer.bits_precision(), residue_params.bits_precision());
-        convert_to_montgomery(&mut integer, &residue_params);
+    pub fn new(mut integer: BoxedUint, params: BoxedMontyFormParams) -> Self {
+        debug_assert_eq!(integer.bits_precision(), params.bits_precision());
+        convert_to_montgomery(&mut integer, &params);
 
         #[allow(clippy::useless_conversion)]
         Self {
             montgomery_form: integer,
-            residue_params: residue_params.into(),
+            params: params.into(),
         }
     }
 
     /// Instantiates a new [`BoxedMontyForm`] that represents an integer modulo the provided params.
     #[cfg(feature = "std")]
-    pub fn new_with_arc(mut integer: BoxedUint, residue_params: Arc<BoxedMontyFormParams>) -> Self {
-        debug_assert_eq!(integer.bits_precision(), residue_params.bits_precision());
-        convert_to_montgomery(&mut integer, &residue_params);
+    pub fn new_with_arc(mut integer: BoxedUint, params: Arc<BoxedMontyFormParams>) -> Self {
+        debug_assert_eq!(integer.bits_precision(), params.bits_precision());
+        convert_to_montgomery(&mut integer, &params);
         Self {
             montgomery_form: integer,
-            residue_params,
+            params,
         }
     }
 
     /// Bits of precision in the modulus.
     pub fn bits_precision(&self) -> u32 {
-        self.residue_params.bits_precision()
+        self.params.bits_precision()
     }
 
     /// Retrieves the integer currently encoded in this [`BoxedMontyForm`], guaranteed to be reduced.
@@ -184,56 +184,56 @@ impl BoxedMontyForm {
 
         let ret = montgomery_reduction_boxed(
             &mut montgomery_form,
-            &self.residue_params.modulus,
-            self.residue_params.mod_neg_inv,
+            &self.params.modulus,
+            self.params.mod_neg_inv,
         );
 
         #[cfg(feature = "zeroize")]
         montgomery_form.zeroize();
 
-        debug_assert!(ret < self.residue_params.modulus);
+        debug_assert!(ret < self.params.modulus);
         ret
     }
 
     /// Instantiates a new `ConstMontyForm` that represents zero.
-    pub fn zero(residue_params: BoxedMontyFormParams) -> Self {
+    pub fn zero(params: BoxedMontyFormParams) -> Self {
         Self {
-            montgomery_form: BoxedUint::zero_with_precision(residue_params.bits_precision()),
-            residue_params: residue_params.into(),
+            montgomery_form: BoxedUint::zero_with_precision(params.bits_precision()),
+            params: params.into(),
         }
     }
 
     /// Instantiates a new `ConstMontyForm` that represents 1.
-    pub fn one(residue_params: BoxedMontyFormParams) -> Self {
+    pub fn one(params: BoxedMontyFormParams) -> Self {
         Self {
-            montgomery_form: residue_params.r.clone(),
-            residue_params: residue_params.into(),
+            montgomery_form: params.r.clone(),
+            params: params.into(),
         }
     }
 
-    /// Returns the parameter struct used to initialize this residue.
+    /// Returns the parameter struct used to initialize this object.
     pub fn params(&self) -> &BoxedMontyFormParams {
-        &self.residue_params
+        &self.params
     }
 
     /// Access the [`BoxedMontyForm`] value in Montgomery form.
     pub fn as_montgomery(&self) -> &BoxedUint {
-        debug_assert!(self.montgomery_form < self.residue_params.modulus);
+        debug_assert!(self.montgomery_form < self.params.modulus);
         &self.montgomery_form
     }
 
     /// Create a [`BoxedMontyForm`] from a value in Montgomery form.
-    pub fn from_montgomery(integer: BoxedUint, residue_params: BoxedMontyFormParams) -> Self {
-        debug_assert_eq!(integer.bits_precision(), residue_params.bits_precision());
+    pub fn from_montgomery(integer: BoxedUint, params: BoxedMontyFormParams) -> Self {
+        debug_assert_eq!(integer.bits_precision(), params.bits_precision());
         Self {
             montgomery_form: integer,
-            residue_params: residue_params.into(),
+            params: params.into(),
         }
     }
 
     /// Extract the value from the [`BoxedMontyForm`] in Montgomery form.
     pub fn to_montgomery(&self) -> BoxedUint {
-        debug_assert!(self.montgomery_form < self.residue_params.modulus);
+        debug_assert!(self.montgomery_form < self.params.modulus);
         self.montgomery_form.clone()
     }
 }
@@ -247,12 +247,12 @@ impl Retrieve for BoxedMontyForm {
 
 /// Convert the given integer into the Montgomery domain.
 #[inline]
-fn convert_to_montgomery(integer: &mut BoxedUint, residue_params: &BoxedMontyFormParams) {
-    let mut product = integer.mul(&residue_params.r2);
+fn convert_to_montgomery(integer: &mut BoxedUint, params: &BoxedMontyFormParams) {
+    let mut product = integer.mul(&params.r2);
     montgomery_reduction_boxed_mut(
         &mut product,
-        &residue_params.modulus,
-        residue_params.mod_neg_inv,
+        &params.modulus,
+        params.mod_neg_inv,
         integer,
     );
 

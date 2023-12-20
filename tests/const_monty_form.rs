@@ -16,8 +16,8 @@ fn to_biguint(uint: &U256) -> BigUint {
     BigUint::from_bytes_le(uint.to_le_bytes().as_ref())
 }
 
-fn retrieve_biguint(residue: &ConstMontyForm) -> BigUint {
-    to_biguint(&residue.retrieve())
+fn retrieve_biguint(monty_form: &ConstMontyForm) -> BigUint {
+    to_biguint(&monty_form.retrieve())
 }
 
 fn reduce(n: &U256) -> ConstMontyForm {
@@ -27,12 +27,6 @@ fn reduce(n: &U256) -> ConstMontyForm {
 prop_compose! {
     fn uint()(bytes in any::<[u8; 32]>()) -> U256 {
         U256::from_le_slice(&bytes)
-    }
-}
-prop_compose! {
-    /// Generate a single residue.
-    fn residue()(a in uint()) -> ConstMontyForm {
-        reduce(&a)
     }
 }
 

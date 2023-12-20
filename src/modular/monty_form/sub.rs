@@ -1,4 +1,4 @@
-//! Subtractions between residues with a modulus set at runtime.
+//! Subtractions between integers in Montgomery form with a modulus set at runtime.
 
 use super::MontyForm;
 use crate::modular::sub::sub_montgomery_form;
@@ -11,9 +11,9 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
             montgomery_form: sub_montgomery_form(
                 &self.montgomery_form,
                 &rhs.montgomery_form,
-                &self.residue_params.modulus,
+                &self.params.modulus,
             ),
-            residue_params: self.residue_params,
+            params: self.params,
         }
     }
 }
@@ -21,7 +21,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
 impl<const LIMBS: usize> Sub<&MontyForm<LIMBS>> for &MontyForm<LIMBS> {
     type Output = MontyForm<LIMBS>;
     fn sub(self, rhs: &MontyForm<LIMBS>) -> MontyForm<LIMBS> {
-        debug_assert_eq!(self.residue_params, rhs.residue_params);
+        debug_assert_eq!(self.params, rhs.params);
         self.sub(rhs)
     }
 }
@@ -64,7 +64,7 @@ impl<const LIMBS: usize> SubAssign<MontyForm<LIMBS>> for MontyForm<LIMBS> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        modular::dyn_residue::{MontyForm, MontyFormParams},
+        modular::monty_form::{MontyForm, MontyFormParams},
         U256,
     };
 

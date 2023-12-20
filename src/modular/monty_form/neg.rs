@@ -1,4 +1,4 @@
-//! Negations of residues with a modulus set at runtime.
+//! Negations of integers in Montgomery form with a modulus set at runtime.
 
 use super::MontyForm;
 use core::ops::Neg;
@@ -6,7 +6,7 @@ use core::ops::Neg;
 impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Negates the number.
     pub const fn neg(&self) -> Self {
-        Self::zero(self.residue_params).sub(self)
+        Self::zero(self.params).sub(self)
     }
 }
 
