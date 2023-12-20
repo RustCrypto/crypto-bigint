@@ -61,6 +61,14 @@ impl BoxedUint {
         self.div_rem(rhs).0
     }
 
+    /// Wrapped division is just normal division i.e. `self` / `rhs`
+    ///
+    /// There’s no way wrapping could ever happen.
+    /// This function exists, so that all operations are accounted for in the wrapping operations
+    pub fn wrapping_div_vartime(&self, rhs: &NonZero<Self>) -> Self {
+        self.div_rem_vartime(rhs).0
+    }
+
     /// Perform checked division, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
     pub fn checked_div(&self, rhs: &Self) -> CtOption<Self> {
