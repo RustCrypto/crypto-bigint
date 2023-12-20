@@ -11,7 +11,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
             montgomery_form: sub_montgomery_form(
                 &self.montgomery_form,
                 &rhs.montgomery_form,
-                &self.params.modulus.0,
+                &self.params.modulus,
             ),
             params: self.params,
         }

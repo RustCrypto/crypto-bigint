@@ -46,7 +46,7 @@ macro_rules! impl_modulus {
 
             const R3: $uint_type = $crate::modular::montgomery_reduction(
                 &Self::R2.square_wide(),
-                Self::MODULUS.as_ref(),
+                &Self::MODULUS,
                 Self::MOD_NEG_INV,
             );
         }

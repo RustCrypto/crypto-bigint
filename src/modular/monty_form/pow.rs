@@ -33,7 +33,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
                 &self.montgomery_form,
                 exponent,
                 exponent_bits,
-                &self.params.modulus.0,
+                &self.params.modulus,
                 &self.params.one,
                 self.params.mod_neg_inv,
             ),

@@ -1,6 +1,6 @@
 //! Modular reduction implementation.
 
-use crate::{Limb, Uint};
+use crate::{Limb, Odd, Uint};
 
 #[cfg(feature = "alloc")]
 use {crate::BoxedUint, subtle::Choice};
@@ -47,17 +47,22 @@ macro_rules! impl_montgomery_reduction {
 /// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
 pub const fn montgomery_reduction<const LIMBS: usize>(
     lower_upper: &(Uint<LIMBS>, Uint<LIMBS>),
-    modulus: &Uint<LIMBS>,
+    modulus: &Odd<Uint<LIMBS>>,
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {
     let (mut lower, mut upper) = *lower_upper;
-    let meta_carry =
-        impl_montgomery_reduction!(upper.limbs, lower.limbs, &modulus.limbs, mod_neg_inv, LIMBS);
+    let meta_carry = impl_montgomery_reduction!(
+        upper.limbs,
+        lower.limbs,
+        &modulus.0.limbs,
+        mod_neg_inv,
+        LIMBS
+    );
 
     // Division is simply taking the upper half of the limbs
     // Final reduction (at this point, the value is at most 2 * modulus,
     // so `meta_carry` is either 0 or 1)
-    upper.sub_mod_with_carry(meta_carry, modulus, modulus)
+    upper.sub_mod_with_carry(meta_carry, &modulus.0, &modulus.0)
 }
 
 /// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>

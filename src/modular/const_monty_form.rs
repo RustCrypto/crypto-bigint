@@ -98,7 +98,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     const fn from_integer(integer: &Uint<LIMBS>) -> Self {
         let product = integer.split_mul(&MOD::R2);
         let montgomery_form =
-            montgomery_reduction::<LIMBS>(&product, &MOD::MODULUS.0, MOD::MOD_NEG_INV);
+            montgomery_reduction::<LIMBS>(&product, &MOD::MODULUS, MOD::MOD_NEG_INV);
 
         Self {
             montgomery_form,
@@ -115,7 +115,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     pub const fn retrieve(&self) -> Uint<LIMBS> {
         montgomery_reduction::<LIMBS>(
             &(self.montgomery_form, Uint::ZERO),
-            &MOD::MODULUS.0,
+            &MOD::MODULUS,
             MOD::MOD_NEG_INV,
         )
     }

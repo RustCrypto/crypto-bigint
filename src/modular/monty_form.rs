@@ -54,7 +54,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
 
         // `R^3 mod modulus`, used for inversion in Montgomery form.
-        let r3 = montgomery_reduction(&r2.square_wide(), &modulus.0, mod_neg_inv);
+        let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);
 
         Self {
             modulus,
@@ -119,7 +119,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Instantiates a new `MontyForm` that represents this `integer` mod `MOD`.
     pub const fn new(integer: &Uint<LIMBS>, params: MontyParams<LIMBS>) -> Self {
         let product = integer.split_mul(&params.r2);
-        let montgomery_form = montgomery_reduction(&product, &params.modulus.0, params.mod_neg_inv);
+        let montgomery_form = montgomery_reduction(&product, &params.modulus, params.mod_neg_inv);
 
         Self {
             montgomery_form,
@@ -131,7 +131,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     pub const fn retrieve(&self) -> Uint<LIMBS> {
         montgomery_reduction(
             &(self.montgomery_form, Uint::ZERO),
-            &self.params.modulus.0,
+            &self.params.modulus,
             self.params.mod_neg_inv,
         )
     }

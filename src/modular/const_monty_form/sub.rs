@@ -11,7 +11,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
             montgomery_form: sub_montgomery_form(
                 &self.montgomery_form,
                 &rhs.montgomery_form,
-                &MOD::MODULUS.0,
+                &MOD::MODULUS,
             ),
             phantom: core::marker::PhantomData,
         }
