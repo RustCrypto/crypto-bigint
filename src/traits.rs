@@ -141,6 +141,10 @@ pub trait Integer:
     + WrappingShr
     + Zero
 {
+    /// The corresponding Montgomery representation,
+    /// optimized for the performance of modular operations at the price of a conversion overhead.
+    type MontyForm: MontyFormLike<Integer = Self>;
+
     /// The value `1`.
     fn one() -> Self;
 
@@ -514,16 +518,10 @@ pub trait WideningMul<Rhs = Self>: Sized {
     fn widening_mul(&self, rhs: Rhs) -> Self::Output;
 }
 
-/// This integer has a representation optimized for the performance of modular operations.
-pub trait HasMontyForm {
-    /// The representation type.
-    type MontyForm: MontyFormLike<Raw = Self>;
-}
-
 /// A representation of an integer optimized for the performance of modular operations.
 pub trait MontyFormLike {
     /// The original integer type.
-    type Raw: HasMontyForm<MontyForm = Self>;
+    type Integer: Integer<MontyForm = Self>;
 
     /// The precomputed data needed for this representation.
     type Params: Clone;
@@ -532,10 +530,10 @@ pub trait MontyFormLike {
     ///
     /// Can return `None` if `modulus` is not valid for the representation;
     /// see the documentation of the specific type for the requirements.
-    fn new_params(modulus: Self::Raw) -> CtOption<Self::Params>;
+    fn new_params(modulus: Self::Integer) -> CtOption<Self::Params>;
 
     /// Convert the value into the representation using precomputed data.
-    fn new(value: Self::Raw, params: Self::Params) -> Self;
+    fn new(value: Self::Integer, params: Self::Params) -> Self;
 
     /// Returns zero in this representation.
     fn zero(params: Self::Params) -> Self;

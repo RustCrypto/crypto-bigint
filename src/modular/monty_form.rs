@@ -209,14 +209,14 @@ impl<const LIMBS: usize> Retrieve for MontyForm<LIMBS> {
 }
 
 impl<const LIMBS: usize> MontyFormLike for MontyForm<LIMBS> {
-    type Raw = Uint<LIMBS>;
+    type Integer = Uint<LIMBS>;
     type Params = MontyParams<LIMBS>;
 
-    fn new_params(modulus: Self::Raw) -> CtOption<Self::Params> {
+    fn new_params(modulus: Self::Integer) -> CtOption<Self::Params> {
         MontyParams::new(&modulus)
     }
 
-    fn new(value: Self::Raw, params: Self::Params) -> Self {
+    fn new(value: Self::Integer, params: Self::Params) -> Self {
         MontyForm::new(&value, params)
     }
 

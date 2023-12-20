@@ -252,14 +252,14 @@ impl Retrieve for BoxedMontyForm {
 }
 
 impl MontyFormLike for BoxedMontyForm {
-    type Raw = BoxedUint;
+    type Integer = BoxedUint;
     type Params = BoxedMontyParams;
 
-    fn new_params(modulus: Self::Raw) -> CtOption<Self::Params> {
+    fn new_params(modulus: Self::Integer) -> CtOption<Self::Params> {
         BoxedMontyParams::new(modulus)
     }
 
-    fn new(value: Self::Raw, params: Self::Params) -> Self {
+    fn new(value: Self::Integer, params: Self::Params) -> Self {
         BoxedMontyForm::new(value, params)
     }
 

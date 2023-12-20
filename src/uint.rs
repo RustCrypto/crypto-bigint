@@ -41,8 +41,8 @@ mod rand;
 
 use crate::{
     modular::{BernsteinYangInverter, MontyForm},
-    Bounded, ConstCtOption, Constants, Encoding, FixedInteger, HasMontyForm, Integer, Limb,
-    NonZero, PrecomputeInverter, PrecomputeInverterWithAdjuster, Word, ZeroConstant,
+    Bounded, ConstCtOption, Constants, Encoding, FixedInteger, Integer, Limb, NonZero,
+    PrecomputeInverter, PrecomputeInverterWithAdjuster, Word, ZeroConstant,
 };
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
@@ -236,6 +236,8 @@ impl<const LIMBS: usize> FixedInteger for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> Integer for Uint<LIMBS> {
+    type MontyForm = MontyForm<LIMBS>;
+
     fn one() -> Self {
         Self::ONE
     }
@@ -259,10 +261,6 @@ impl<const LIMBS: usize> Integer for Uint<LIMBS> {
     fn nlimbs(&self) -> usize {
         Self::LIMBS
     }
-}
-
-impl<const LIMBS: usize> HasMontyForm for Uint<LIMBS> {
-    type MontyForm = MontyForm<LIMBS>;
 }
 
 impl<const LIMBS: usize> ZeroConstant for Uint<LIMBS> {
