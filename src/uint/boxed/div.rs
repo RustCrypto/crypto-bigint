@@ -3,7 +3,7 @@
 use crate::{
     limb::div::div_wide,
     uint::{add::add2, cmp::cmp_slice, sub::sub2},
-    BoxedUint, CheckedDiv, CheckedSub, Limb, NonZero, Word, Wrapping,
+    BoxedUint, CheckedDiv, CheckedSub, ConstantTimeSelect, Limb, NonZero, Word, Wrapping,
 };
 use core::{
     cmp::Ordering,

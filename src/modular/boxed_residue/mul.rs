@@ -298,48 +298,7 @@ fn sub_vv(z: &mut [Limb], x: &[Limb], y: &[Limb]) {
         let (zi, new_borrow) = xi.sbb(yi, borrow);
         z[i] = zi;
         borrow = new_borrow;
-        // see "Hacker's Delight", section 2-12 (overflow detection)
-        c = ((yi & !xi) | ((yi | !xi) & zi)) >> (Word::BITS - 1)
     }
-
-    c
-}
-
-/// z1<<_W + z0 = x+y+c, with c == 0 or 1
-#[inline(always)]
-fn add_ww(x: Limb, y: Limb, c: Limb) -> (Limb, Limb) {
-    let yc = y.wrapping_add(c);
-    let z0 = x.wrapping_add(yc);
-    // TODO(tarcieri): eliminate data-dependent branches
-    let z1 = Limb((z0.0 < x.0 || yc.0 < y.0) as Word);
-    (z1, z0)
-}
-
-/// z1 << _W + z0 = x * y + c
-#[inline]
-fn mul_add_www(x: Limb, y: Limb, c: Limb) -> (Limb, Limb) {
-    let z = x.0 as WideWord * y.0 as WideWord + c.0 as WideWord;
-    (Limb((z >> Word::BITS) as Word), Limb(z as Word))
-=======
-    c
-}
-
-/// z1<<_W + z0 = x+y+c, with c == 0 or 1
-#[inline(always)]
-fn add_ww(x: Limb, y: Limb, c: Limb) -> (Limb, Limb) {
-    let yc = y.wrapping_add(c);
-    let z0 = x.wrapping_add(yc);
-    // TODO(tarcieri): eliminate data-dependent branches
-    let z1 = Limb((z0.0 < x.0 || yc.0 < y.0) as Word);
-    (z1, z0)
-}
-
-/// z1 << _W + z0 = x * y + c
-#[inline]
-fn mul_add_www(x: Limb, y: Limb, c: Limb) -> (Limb, Limb) {
-    let z = x.0 as WideWord * y.0 as WideWord + c.0 as WideWord;
-    (Limb((z >> Word::BITS) as Word), Limb(z as Word))
->>>>>>> 31405f8 (first draft of karatsuba multiplication)
 }
 
 #[cfg(test)]

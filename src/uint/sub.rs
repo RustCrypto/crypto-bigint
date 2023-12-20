@@ -2,7 +2,7 @@
 
 use super::Uint;
 use crate::{
-    limb::SignedWideWord, Checked, CheckedSub, ConstChoice, Limb, Word, Wrapping, WrappingSub, Zero,
+    primitives::sbb_assign, Checked, CheckedSub, ConstChoice, Limb, Wrapping, WrappingSub, Zero,
 };
 use core::ops::{Sub, SubAssign};
 use subtle::CtOption;
@@ -103,16 +103,6 @@ impl<const LIMBS: usize> WrappingSub for Uint<LIMBS> {
     }
 }
 
-/// Subtract with borrow:
-#[inline]
-pub(crate) fn sbb(a: Word, b: Word, acc: &mut SignedWideWord) -> Word {
-    *acc += a as SignedWideWord;
-    *acc -= b as SignedWideWord;
-    let lo = *acc as Word;
-    *acc >>= Word::BITS;
-    lo
-}
-
 pub(crate) fn sub2(a: &mut [Limb], b: &[Limb]) {
     let mut borrow = 0;
 
@@ -121,12 +111,12 @@ pub(crate) fn sub2(a: &mut [Limb], b: &[Limb]) {
     let (b_lo, b_hi) = b.split_at(len);
 
     for (a, b) in a_lo.iter_mut().zip(b_lo) {
-        a.0 = sbb(a.0, b.0, &mut borrow);
+        a.0 = sbb_assign(a.0, b.0, &mut borrow);
     }
 
     if borrow != 0 {
         for a in a_hi {
-            a.0 = sbb(a.0, 0, &mut borrow);
+            a.0 = sbb_assign(a.0, 0, &mut borrow);
             if borrow == 0 {
                 break;
             }
@@ -141,6 +131,7 @@ pub(crate) fn sub2(a: &mut [Limb], b: &[Limb]) {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[cfg(feature = "alloc")]
 pub(crate) enum Sign {
     Plus,
     Minus,
