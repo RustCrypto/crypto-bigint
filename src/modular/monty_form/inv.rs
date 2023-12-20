@@ -110,13 +110,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::{MontyForm, MontyParams};
-    use crate::{Invert, Inverter, PrecomputeInverter, U256};
+    use crate::{Invert, Inverter, Odd, PrecomputeInverter, U256};
 
     fn params() -> MontyParams<{ U256::LIMBS }> {
-        MontyParams::new(&U256::from_be_hex(
+        MontyParams::new(Odd::<U256>::from_be_hex(
             "15477BCCEFE197328255BFA79A1217899016D927EF460F4FF404029D24FA4409",
         ))
-        .unwrap()
     }
 
     #[test]

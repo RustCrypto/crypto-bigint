@@ -36,18 +36,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
     /// Instantiates a new set of `MontyParams` representing the given `modulus` if it is odd.
     ///
     /// Returns `None` if the provided modulus is not odd.
-    pub fn new(modulus: &Uint<LIMBS>) -> CtOption<Self> {
-        let modulus_is_odd = modulus.is_odd();
-
-        // Use a surrogate value of `1` in case a modulus of `0` is passed.
-        // This will be rejected by the `modulus_is_odd` check, which will fail and return `None`.
-        let modulus = Odd(Uint::conditional_select(
-            &Uint::ONE,
-            modulus,
-            modulus_is_odd.into(),
-        ));
-        debug_assert!(modulus.is_odd().is_true_vartime());
-
+    pub fn new(modulus: Odd<Uint<LIMBS>>) -> Self {
         // `R mod modulus` where `R = 2^BITS`.
         // Represents 1 in Montgomery form.
         let one = Uint::MAX
@@ -67,15 +56,13 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
         // `R^3 mod modulus`, used for inversion in Montgomery form.
         let r3 = montgomery_reduction(&r2.square_wide(), &modulus.0, mod_neg_inv);
 
-        let params = Self {
+        Self {
             modulus,
             one,
             r2,
             r3,
             mod_neg_inv,
-        };
-
-        CtOption::new(params, modulus_is_odd.into())
+        }
     }
 
     /// Returns the modulus which was used to initialize these parameters.
@@ -218,7 +205,7 @@ impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
     type Params = MontyParams<LIMBS>;
 
     fn new_params(modulus: Self::Integer) -> CtOption<Self::Params> {
-        MontyParams::new(&modulus)
+        Odd::new(modulus).map(MontyParams::new)
     }
 
     fn new(value: Self::Integer, params: Self::Params) -> Self {
@@ -269,27 +256,5 @@ impl<const LIMBS: usize> ConstantTimeEq for MontyForm<LIMBS> {
 impl<const LIMBS: usize> zeroize::Zeroize for MontyForm<LIMBS> {
     fn zeroize(&mut self) {
         self.montgomery_form.zeroize()
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    const LIMBS: usize = nlimbs!(64);
-
-    #[test]
-    // Test that a valid modulus yields `MontyParams`
-    fn test_valid_modulus() {
-        let valid_modulus = Uint::<LIMBS>::from(3u8);
-        MontyParams::<LIMBS>::new(&valid_modulus).unwrap();
-    }
-
-    #[test]
-    // Test that an invalid checked modulus does not yield `MontyParams`
-    fn test_invalid_checked_modulus() {
-        assert!(bool::from(
-            MontyParams::<LIMBS>::new(&Uint::from(2u8)).is_none()
-        ))
     }
 }

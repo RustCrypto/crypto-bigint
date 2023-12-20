@@ -18,8 +18,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Barrett reduction instead.
         //
         // It's worth potentially exploring other approaches to improve efficiency.
-        match MontyParams::new(p).into() {
-            Some(params) => {
+        match p.to_odd().into() {
+            Some(odd_p) => {
+                let params = MontyParams::new(odd_p);
                 let lhs = MontyForm::new(self, params);
                 let rhs = MontyForm::new(rhs, params);
                 let ret = lhs * rhs;

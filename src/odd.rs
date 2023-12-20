@@ -1,6 +1,6 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{Integer, NonZero};
+use crate::{Integer, NonZero, Uint};
 use core::ops::Deref;
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
@@ -37,6 +37,26 @@ impl<T> Odd<T> {
     /// Returns the inner value.
     pub fn get(self) -> T {
         self.0
+    }
+}
+
+impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
+    /// Create a new [`Odd<Uint<LIMBS>>`] from the provided big endian hex string.
+    ///
+    /// Panics if the hex is malformed or not zero-padded accordingly for the size, or if the value is even.
+    pub const fn from_be_hex(hex: &str) -> Self {
+        let uint = Uint::<LIMBS>::from_be_hex(hex);
+        assert!(uint.is_odd().is_true_vartime(), "number must be odd");
+        Odd(uint)
+    }
+
+    /// Create a new [`Odd<Uint<LIMBS>>`] from the provided little endian hex string.
+    ///
+    /// Panics if the hex is malformed or not zero-padded accordingly for the size, or if the value is even.
+    pub const fn from_le_hex(hex: &str) -> Self {
+        let uint = Uint::<LIMBS>::from_be_hex(hex);
+        assert!(uint.is_odd().is_true_vartime(), "number must be odd");
+        Odd(uint)
     }
 }
 

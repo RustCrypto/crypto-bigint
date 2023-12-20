@@ -21,10 +21,7 @@ macro_rules! impl_modulus {
             $uint_type: $crate::ConcatMixed<MixedOutput = $crate::Uint<DLIMBS>>,
         {
             const LIMBS: usize = <$uint_type>::LIMBS;
-            const MODULUS: $crate::Odd<$uint_type> = {
-                let res = <$uint_type>::from_be_hex($value);
-                res.to_odd().expect("modulus must be odd")
-            };
+            const MODULUS: $crate::Odd<$uint_type> = $crate::Odd::<$uint_type>::from_be_hex($value);
 
             // `R mod MODULUS` where `R = 2^BITS`.
             // Represents 1 in Montgomery form.

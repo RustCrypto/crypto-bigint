@@ -2,7 +2,7 @@
 
 use crypto_bigint::{
     modular::{MontyForm, MontyParams},
-    Encoding, Integer, Limb, NonZero, Word, U256,
+    Encoding, Integer, Limb, NonZero, Odd, Word, U256,
 };
 use num_bigint::BigUint;
 use num_integer::Integer as _;
@@ -11,8 +11,8 @@ use proptest::prelude::*;
 use std::mem;
 
 /// Example prime number (NIST P-256 curve order)
-const P: U256 =
-    U256::from_be_hex("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551");
+const P: Odd<U256> =
+    Odd::<U256>::from_be_hex("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551");
 
 fn to_biguint(uint: &U256) -> BigUint {
     BigUint::from_bytes_le(uint.to_le_bytes().as_ref())
@@ -33,7 +33,7 @@ prop_compose! {
     }
 }
 prop_compose! {
-    fn uint_mod_p(p: U256)(a in uint()) -> U256 {
+    fn uint_mod_p(p: Odd<U256>)(a in uint()) -> U256 {
         a.wrapping_rem(&p)
     }
 }
@@ -141,8 +141,8 @@ proptest! {
 
     #[test]
     fn add_mod_nist_p256(a in uint_mod_p(P), b in uint_mod_p(P)) {
-        assert!(a < P);
-        assert!(b < P);
+        assert!(a < *P);
+        assert!(b < *P);
 
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
@@ -151,8 +151,8 @@ proptest! {
         let expected = to_uint((a_bi + b_bi) % p_bi);
         let actual = a.add_mod(&b, &P);
 
-        assert!(expected < P);
-        assert!(actual < P);
+        assert!(expected < *P);
+        assert!(actual < *P);
 
         assert_eq!(expected, actual);
     }
@@ -163,8 +163,8 @@ proptest! {
             mem::swap(&mut a, &mut b);
         }
 
-        assert!(a < P);
-        assert!(b < P);
+        assert!(a < *P);
+        assert!(b < *P);
 
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
@@ -173,16 +173,16 @@ proptest! {
         let expected = to_uint((a_bi - b_bi) % p_bi);
         let actual = a.sub_mod(&b, &P);
 
-        assert!(expected < P);
-        assert!(actual < P);
+        assert!(expected < *P);
+        assert!(actual < *P);
 
         assert_eq!(expected, actual);
     }
 
     #[test]
     fn mul_mod_nist_p256(a in uint_mod_p(P), b in uint_mod_p(P)) {
-        assert!(a < P);
-        assert!(b < P);
+        assert!(a < *P);
+        assert!(b < *P);
 
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
@@ -191,8 +191,8 @@ proptest! {
         let expected = to_uint((a_bi * b_bi) % p_bi);
         let actual = a.mul_mod(&b, &P);
 
-        assert!(expected < P);
-        assert!(actual < P);
+        assert!(expected < *P);
+        assert!(actual < *P);
 
         assert_eq!(expected, actual);
     }
@@ -404,7 +404,7 @@ proptest! {
 
         let expected = to_uint(a_bi.modpow(&b_bi, &p_bi));
 
-        let params = MontyParams::new(&P).unwrap();
+        let params = MontyParams::new(P);
         let a_m = MontyForm::new(&a, params);
         let actual = a_m.pow(&b).retrieve();
 
@@ -421,7 +421,7 @@ proptest! {
 
         let expected = to_uint(a_bi.modpow(&b_bi, &p_bi));
 
-        let params = MontyParams::new(&P).unwrap();
+        let params = MontyParams::new(P);
         let a_m = MontyForm::new(&a, params);
         let actual = a_m.pow_bounded_exp(&b, exponent_bits.into()).retrieve();
 
@@ -442,7 +442,7 @@ proptest! {
         };
         let expected = to_uint(expected);
 
-        let params = MontyParams::new(&P).unwrap();
+        let params = MontyParams::new(P);
         let a_m = MontyForm::new(&a, params);
         let actual = a_m.div_by_2().retrieve();
 

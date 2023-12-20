@@ -1,6 +1,6 @@
 //! Equivalence tests between `crypto_bigint::MontyForm` and `num-bigint`.
 
-use crypto_bigint::{Encoding, Integer, Invert, Inverter, NonZero, PrecomputeInverter, U256};
+use crypto_bigint::{Encoding, Integer, Invert, Inverter, NonZero, Odd, PrecomputeInverter, U256};
 use num_bigint::{BigUint, ModInverse};
 use proptest::prelude::*;
 
@@ -33,7 +33,7 @@ prop_compose! {
             n = n.wrapping_add(&U256::one());
         }
 
-        MontyParams::new(&n).expect("modulus should be valid")
+        MontyParams::new(Odd::new(n).expect("modulus ensured odd"))
     }
 }
 
