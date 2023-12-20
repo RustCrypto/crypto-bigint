@@ -245,7 +245,7 @@ impl Drop for MontgomeryMultiplier<'_> {
 /// Output is written into the lower (i.e. first) half of `z`.
 ///
 /// Note: this was adapted from an implementation in `num-bigint`'s `monty.rs`.
-// TODO(tarcieri): refactor into `reduction.rs`, share impl with `(Dyn)ConstMontyForm`?
+// TODO(tarcieri): refactor into `reduction.rs`, share impl with `MontyForm`?
 fn almost_montgomery_mul(z: &mut [Limb], x: &[Limb], y: &[Limb], m: &[Limb], k: Limb) {
     // This code assumes x, y, m are all the same length (required by addMulVVW and the for loop).
     // It also assumes that x, y are already reduced mod m, or else the result will not be properly
