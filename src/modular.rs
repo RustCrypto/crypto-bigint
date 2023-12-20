@@ -5,7 +5,7 @@
 //!
 //! # Constant moduli
 //!
-//! The [`ConstMontyForm`] and [`ConstMontyFormParams`] types implement support for modular arithmetic where the
+//! The [`ConstMontyForm`] and [`ConstMontyParams`] types implement support for modular arithmetic where the
 //! modulus is fixed at compile-time.
 //!
 //! The [`impl_modulus!`][`crate::impl_modulus`] macro can be used to define a compile-time modulus,
@@ -13,7 +13,7 @@
 //!
 //! # Dynamic moduli chosen at runtime
 //!
-//! The [`MontyForm`] and [`MontyFormParams`] types implement support for modular arithmetic where
+//! The [`MontyForm`] and [`MontyParams`] types implement support for modular arithmetic where
 //! the modulus can vary at runtime.
 
 mod const_monty_form;
@@ -32,13 +32,13 @@ pub(crate) mod boxed_monty_form;
 
 pub use self::{
     bernstein_yang::BernsteinYangInverter,
-    const_monty_form::{inv::ConstMontyFormInverter, ConstMontyForm, ConstMontyFormParams},
-    monty_form::{inv::MontyFormInverter, MontyForm, MontyFormParams},
+    const_monty_form::{inv::ConstMontyFormInverter, ConstMontyForm, ConstMontyParams},
+    monty_form::{inv::MontyFormInverter, MontyForm, MontyParams},
     reduction::montgomery_reduction,
 };
 
 #[cfg(feature = "alloc")]
-pub use self::boxed_monty_form::{BoxedMontyForm, BoxedMontyFormParams};
+pub use self::boxed_monty_form::{BoxedMontyForm, BoxedMontyParams};
 
 /// A generalization for numbers kept in optimized representations (e.g. Montgomery)
 /// that can be converted back to the original form.
@@ -55,7 +55,7 @@ mod tests {
     use crate::{
         const_monty_form, impl_modulus,
         modular::{
-            const_monty_form::{ConstMontyForm, ConstMontyFormParams},
+            const_monty_form::{ConstMontyForm, ConstMontyParams},
             reduction::montgomery_reduction,
         },
         NonZero, Uint, U256, U64,

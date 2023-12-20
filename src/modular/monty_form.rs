@@ -8,7 +8,7 @@ mod pow;
 mod sub;
 
 use super::{
-    const_monty_form::{ConstMontyForm, ConstMontyFormParams},
+    const_monty_form::{ConstMontyForm, ConstMontyParams},
     div_by_2::div_by_2,
     reduction::montgomery_reduction,
     Retrieve,
@@ -18,7 +18,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct MontyFormParams<const LIMBS: usize> {
+pub struct MontyParams<const LIMBS: usize> {
     /// The constant modulus
     modulus: Uint<LIMBS>,
     /// 1 in Montgomery fomr
@@ -32,8 +32,8 @@ pub struct MontyFormParams<const LIMBS: usize> {
     mod_neg_inv: Limb,
 }
 
-impl<const LIMBS: usize> MontyFormParams<LIMBS> {
-    /// Instantiates a new set of `MontyFormParams` representing the given `modulus` if it is odd.
+impl<const LIMBS: usize> MontyParams<LIMBS> {
+    /// Instantiates a new set of `MontyParams` representing the given `modulus` if it is odd.
     ///
     /// Returns `None` if the provided modulus is not odd.
     pub fn new(modulus: &Uint<LIMBS>) -> CtOption<Self> {
@@ -78,10 +78,10 @@ impl<const LIMBS: usize> MontyFormParams<LIMBS> {
         &self.modulus
     }
 
-    /// Create `MontyFormParams` corresponding to a `ConstMontyFormParams`.
+    /// Create `MontyParams` corresponding to a `ConstMontyParams`.
     pub const fn from_const_params<P>() -> Self
     where
-        P: ConstMontyFormParams<LIMBS>,
+        P: ConstMontyParams<LIMBS>,
     {
         Self {
             modulus: P::MODULUS.0,
@@ -93,7 +93,7 @@ impl<const LIMBS: usize> MontyFormParams<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> ConditionallySelectable for MontyFormParams<LIMBS> {
+impl<const LIMBS: usize> ConditionallySelectable for MontyParams<LIMBS> {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         Self {
             modulus: Uint::conditional_select(&a.modulus, &b.modulus, choice),
@@ -105,7 +105,7 @@ impl<const LIMBS: usize> ConditionallySelectable for MontyFormParams<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> ConstantTimeEq for MontyFormParams<LIMBS> {
+impl<const LIMBS: usize> ConstantTimeEq for MontyParams<LIMBS> {
     fn ct_eq(&self, other: &Self) -> Choice {
         self.modulus.ct_eq(&other.modulus)
             & self.one.ct_eq(&other.one)
@@ -120,12 +120,12 @@ impl<const LIMBS: usize> ConstantTimeEq for MontyFormParams<LIMBS> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MontyForm<const LIMBS: usize> {
     montgomery_form: Uint<LIMBS>,
-    params: MontyFormParams<LIMBS>,
+    params: MontyParams<LIMBS>,
 }
 
 impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Instantiates a new `MontyForm` that represents this `integer` mod `MOD`.
-    pub const fn new(integer: &Uint<LIMBS>, params: MontyFormParams<LIMBS>) -> Self {
+    pub const fn new(integer: &Uint<LIMBS>, params: MontyParams<LIMBS>) -> Self {
         let product = integer.split_mul(&params.r2);
         let montgomery_form = montgomery_reduction(&product, &params.modulus, params.mod_neg_inv);
 
@@ -145,7 +145,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     }
 
     /// Instantiates a new `MontyForm` that represents zero.
-    pub const fn zero(params: MontyFormParams<LIMBS>) -> Self {
+    pub const fn zero(params: MontyParams<LIMBS>) -> Self {
         Self {
             montgomery_form: Uint::<LIMBS>::ZERO,
             params,
@@ -153,7 +153,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     }
 
     /// Instantiates a new `MontyForm` that represents 1.
-    pub const fn one(params: MontyFormParams<LIMBS>) -> Self {
+    pub const fn one(params: MontyParams<LIMBS>) -> Self {
         Self {
             montgomery_form: params.one,
             params,
@@ -161,7 +161,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     }
 
     /// Returns the parameter struct used to initialize this object.
-    pub const fn params(&self) -> &MontyFormParams<LIMBS> {
+    pub const fn params(&self) -> &MontyParams<LIMBS> {
         &self.params
     }
 
@@ -176,7 +176,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     }
 
     /// Create a `MontyForm` from a value in Montgomery form.
-    pub const fn from_montgomery(integer: Uint<LIMBS>, params: MontyFormParams<LIMBS>) -> Self {
+    pub const fn from_montgomery(integer: Uint<LIMBS>, params: MontyParams<LIMBS>) -> Self {
         Self {
             montgomery_form: integer,
             params,
@@ -208,13 +208,13 @@ impl<const LIMBS: usize> Retrieve for MontyForm<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize, P: ConstMontyFormParams<LIMBS>> From<&ConstMontyForm<P, LIMBS>>
+impl<const LIMBS: usize, P: ConstMontyParams<LIMBS>> From<&ConstMontyForm<P, LIMBS>>
     for MontyForm<LIMBS>
 {
     fn from(const_monty_form: &ConstMontyForm<P, LIMBS>) -> Self {
         Self {
             montgomery_form: const_monty_form.to_montgomery(),
-            params: MontyFormParams::from_const_params::<P>(),
+            params: MontyParams::from_const_params::<P>(),
         }
     }
 }
@@ -227,7 +227,7 @@ impl<const LIMBS: usize> ConditionallySelectable for MontyForm<LIMBS> {
                 &b.montgomery_form,
                 choice,
             ),
-            params: MontyFormParams::conditional_select(&a.params, &b.params, choice),
+            params: MontyParams::conditional_select(&a.params, &b.params, choice),
         }
     }
 }
@@ -253,17 +253,17 @@ mod test {
     const LIMBS: usize = nlimbs!(64);
 
     #[test]
-    // Test that a valid modulus yields `MontyFormParams`
+    // Test that a valid modulus yields `MontyParams`
     fn test_valid_modulus() {
         let valid_modulus = Uint::<LIMBS>::from(3u8);
-        MontyFormParams::<LIMBS>::new(&valid_modulus).unwrap();
+        MontyParams::<LIMBS>::new(&valid_modulus).unwrap();
     }
 
     #[test]
-    // Test that an invalid checked modulus does not yield `MontyFormParams`
+    // Test that an invalid checked modulus does not yield `MontyParams`
     fn test_invalid_checked_modulus() {
         assert!(bool::from(
-            MontyFormParams::<LIMBS>::new(&Uint::from(2u8)).is_none()
+            MontyParams::<LIMBS>::new(&Uint::from(2u8)).is_none()
         ))
     }
 }

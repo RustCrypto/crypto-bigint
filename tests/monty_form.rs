@@ -5,7 +5,7 @@ use num_bigint::{BigUint, ModInverse};
 use proptest::prelude::*;
 
 type MontyForm = crypto_bigint::modular::MontyForm<{ U256::LIMBS }>;
-type MontyFormParams = crypto_bigint::modular::MontyFormParams<{ U256::LIMBS }>;
+type MontyParams = crypto_bigint::modular::MontyParams<{ U256::LIMBS }>;
 
 fn to_biguint(uint: &U256) -> BigUint {
     BigUint::from_bytes_le(uint.to_le_bytes().as_ref())
@@ -15,7 +15,7 @@ fn retrieve_biguint(monty_form: &MontyForm) -> BigUint {
     to_biguint(&monty_form.retrieve())
 }
 
-fn reduce(n: &U256, p: MontyFormParams) -> MontyForm {
+fn reduce(n: &U256, p: MontyParams) -> MontyForm {
     let modulus = NonZero::new(p.modulus().clone()).unwrap();
     let n_reduced = n.rem_vartime(&modulus);
     MontyForm::new(&n_reduced, p)
@@ -28,12 +28,12 @@ prop_compose! {
 }
 prop_compose! {
     /// Generate a random odd modulus.
-    fn modulus()(mut n in uint()) -> MontyFormParams {
+    fn modulus()(mut n in uint()) -> MontyParams {
         if n.is_even().into() {
             n = n.wrapping_add(&U256::one());
         }
 
-        MontyFormParams::new(&n).expect("modulus should be valid")
+        MontyParams::new(&n).expect("modulus should be valid")
     }
 }
 

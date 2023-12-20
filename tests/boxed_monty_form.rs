@@ -3,7 +3,7 @@
 #![cfg(feature = "alloc")]
 
 use crypto_bigint::{
-    modular::{BoxedMontyForm, BoxedMontyFormParams},
+    modular::{BoxedMontyForm, BoxedMontyParams},
     BoxedUint, Integer, Limb, NonZero,
 };
 use num_bigint::{BigUint, ModInverse};
@@ -18,7 +18,7 @@ fn retrieve_biguint(monty_form: &BoxedMontyForm) -> BigUint {
     to_biguint(&monty_form.retrieve())
 }
 
-fn reduce(n: &BoxedUint, p: BoxedMontyFormParams) -> BoxedMontyForm {
+fn reduce(n: &BoxedUint, p: BoxedMontyParams) -> BoxedMontyForm {
     let bits_precision = p.modulus().bits_precision();
     let modulus = NonZero::new(p.modulus().clone()).unwrap();
 
@@ -43,12 +43,12 @@ prop_compose! {
 }
 prop_compose! {
     /// Generate a random odd modulus.
-    fn modulus()(mut n in uint()) -> BoxedMontyFormParams {
+    fn modulus()(mut n in uint()) -> BoxedMontyParams {
         if n.is_even().into() {
             n = n.wrapping_add(&BoxedUint::one());
         }
 
-        BoxedMontyFormParams::new(n).expect("modulus should be valid")
+        BoxedMontyParams::new(n).expect("modulus should be valid")
     }
 }
 prop_compose! {
@@ -71,8 +71,8 @@ proptest! {
             n = n.wrapping_add(&BoxedUint::one());
         }
 
-        let params1 = BoxedMontyFormParams::new(n.clone()).unwrap();
-        let params2 = BoxedMontyFormParams::new_vartime(n).unwrap();
+        let params1 = BoxedMontyParams::new(n.clone()).unwrap();
+        let params2 = BoxedMontyParams::new_vartime(n).unwrap();
         prop_assert_eq!(params1, params2);
     }
 

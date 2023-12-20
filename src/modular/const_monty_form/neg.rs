@@ -1,23 +1,23 @@
 //! Negations of integers in Montgomery form with a constant modulus.
 
-use super::{ConstMontyForm, ConstMontyFormParams};
+use super::{ConstMontyForm, ConstMontyParams};
 use core::ops::Neg;
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
     /// Negates the number.
     pub const fn neg(&self) -> Self {
         Self::ZERO.sub(self)
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Neg for ConstMontyForm<MOD, LIMBS> {
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Neg for ConstMontyForm<MOD, LIMBS> {
     type Output = Self;
     fn neg(self) -> Self {
         ConstMontyForm::neg(&self)
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Neg for &ConstMontyForm<MOD, LIMBS> {
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Neg for &ConstMontyForm<MOD, LIMBS> {
     type Output = ConstMontyForm<MOD, LIMBS>;
     fn neg(self) -> ConstMontyForm<MOD, LIMBS> {
         ConstMontyForm::neg(self)
@@ -27,7 +27,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Neg for &ConstMontyFo
 #[cfg(test)]
 mod tests {
     use crate::{
-        const_monty_form, impl_modulus, modular::const_monty_form::ConstMontyFormParams, U256,
+        const_monty_form, impl_modulus, modular::const_monty_form::ConstMontyParams, U256,
     };
 
     impl_modulus!(

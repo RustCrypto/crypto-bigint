@@ -5,7 +5,7 @@
 //!
 //! Originally (c) 2014 The Rust Project Developers, dual licensed Apache 2.0+MIT.
 
-use super::{BoxedMontyForm, BoxedMontyFormParams};
+use super::{BoxedMontyForm, BoxedMontyParams};
 use crate::{
     modular::reduction::montgomery_reduction_boxed_mut, traits::Square, uint::mul::mul_limbs,
     BoxedUint, Limb, Word, Zero,
@@ -94,8 +94,8 @@ impl Square for BoxedMontyForm {
     }
 }
 
-impl<'a> From<&'a BoxedMontyFormParams> for MontgomeryMultiplier<'a> {
-    fn from(params: &'a BoxedMontyFormParams) -> MontgomeryMultiplier<'a> {
+impl<'a> From<&'a BoxedMontyParams> for MontgomeryMultiplier<'a> {
+    fn from(params: &'a BoxedMontyParams) -> MontgomeryMultiplier<'a> {
         MontgomeryMultiplier::new(&params.modulus, params.mod_neg_inv)
     }
 }
@@ -306,7 +306,7 @@ fn sub_vv(z: &mut [Limb], x: &[Limb], y: &[Limb]) {
 
 #[cfg(test)]
 mod tests {
-    use super::{BoxedMontyForm, BoxedMontyFormParams, BoxedUint};
+    use super::{BoxedMontyForm, BoxedMontyParams, BoxedUint};
 
     /// Regression test for RustCrypto/crypto-bigint#441
     #[test]
@@ -315,7 +315,7 @@ mod tests {
         let modulus = 0xB44677037A7DBDE04814256570DCBD8Du128;
 
         let boxed_modulus = BoxedUint::from(modulus);
-        let boxed_params = BoxedMontyFormParams::new(boxed_modulus).unwrap();
+        let boxed_params = BoxedMontyParams::new(boxed_modulus).unwrap();
         let boxed_monty = BoxedMontyForm::new(BoxedUint::from(x), boxed_params);
         let boxed_square = boxed_monty.square();
 

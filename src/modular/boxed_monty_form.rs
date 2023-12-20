@@ -24,7 +24,7 @@ use zeroize::Zeroize;
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus whose size and value
 /// are both chosen at runtime.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct BoxedMontyFormParams {
+pub struct BoxedMontyParams {
     /// The constant modulus
     modulus: BoxedUint,
     /// Parameter used in Montgomery reduction
@@ -38,12 +38,12 @@ pub struct BoxedMontyFormParams {
     mod_neg_inv: Limb,
 }
 
-impl BoxedMontyFormParams {
-    /// Instantiates a new set of [`BoxedMontyFormParams`] representing the given `modulus`, which
+impl BoxedMontyParams {
+    /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`, which
     /// must be odd.
     ///
     /// Returns a `CtOption` that is `None` if the provided modulus is not odd.
-    /// TODO(tarcieri): DRY out with `MontyFormParams::new`?
+    /// TODO(tarcieri): DRY out with `MontyParams::new`?
     pub fn new(modulus: BoxedUint) -> CtOption<Self> {
         let bits_precision = modulus.bits_precision();
 
@@ -71,11 +71,11 @@ impl BoxedMontyFormParams {
         Self::new_inner(modulus, one, r2)
     }
 
-    /// Instantiates a new set of [`BoxedMontyFormParams`] representing the given `modulus`, which
+    /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`, which
     /// must be odd. This version operates in variable-time with respect to the modulus.
     ///
     /// Returns `None` if the provided modulus is not odd.
-    /// TODO(tarcieri): DRY out with `MontyFormParams::new`?
+    /// TODO(tarcieri): DRY out with `MontyParams::new`?
     pub fn new_vartime(modulus: BoxedUint) -> Option<Self> {
         if modulus.is_even().into() {
             return None;
@@ -147,17 +147,17 @@ pub struct BoxedMontyForm {
 
     /// Montgomery form parameters.
     #[cfg(not(feature = "std"))]
-    params: BoxedMontyFormParams,
+    params: BoxedMontyParams,
 
     /// Montgomery form parameters.
     // Uses `Arc` when `std` is available.
     #[cfg(feature = "std")]
-    params: Arc<BoxedMontyFormParams>,
+    params: Arc<BoxedMontyParams>,
 }
 
 impl BoxedMontyForm {
     /// Instantiates a new [`BoxedMontyForm`] that represents an integer modulo the provided params.
-    pub fn new(mut integer: BoxedUint, params: BoxedMontyFormParams) -> Self {
+    pub fn new(mut integer: BoxedUint, params: BoxedMontyParams) -> Self {
         debug_assert_eq!(integer.bits_precision(), params.bits_precision());
         convert_to_montgomery(&mut integer, &params);
 
@@ -170,7 +170,7 @@ impl BoxedMontyForm {
 
     /// Instantiates a new [`BoxedMontyForm`] that represents an integer modulo the provided params.
     #[cfg(feature = "std")]
-    pub fn new_with_arc(mut integer: BoxedUint, params: Arc<BoxedMontyFormParams>) -> Self {
+    pub fn new_with_arc(mut integer: BoxedUint, params: Arc<BoxedMontyParams>) -> Self {
         debug_assert_eq!(integer.bits_precision(), params.bits_precision());
         convert_to_montgomery(&mut integer, &params);
         Self {
@@ -202,7 +202,7 @@ impl BoxedMontyForm {
     }
 
     /// Instantiates a new `ConstMontyForm` that represents zero.
-    pub fn zero(params: BoxedMontyFormParams) -> Self {
+    pub fn zero(params: BoxedMontyParams) -> Self {
         Self {
             montgomery_form: BoxedUint::zero_with_precision(params.bits_precision()),
             params: params.into(),
@@ -210,7 +210,7 @@ impl BoxedMontyForm {
     }
 
     /// Instantiates a new `ConstMontyForm` that represents 1.
-    pub fn one(params: BoxedMontyFormParams) -> Self {
+    pub fn one(params: BoxedMontyParams) -> Self {
         Self {
             montgomery_form: params.one.clone(),
             params: params.into(),
@@ -218,7 +218,7 @@ impl BoxedMontyForm {
     }
 
     /// Returns the parameter struct used to initialize this object.
-    pub fn params(&self) -> &BoxedMontyFormParams {
+    pub fn params(&self) -> &BoxedMontyParams {
         &self.params
     }
 
@@ -229,7 +229,7 @@ impl BoxedMontyForm {
     }
 
     /// Create a [`BoxedMontyForm`] from a value in Montgomery form.
-    pub fn from_montgomery(integer: BoxedUint, params: BoxedMontyFormParams) -> Self {
+    pub fn from_montgomery(integer: BoxedUint, params: BoxedMontyParams) -> Self {
         debug_assert_eq!(integer.bits_precision(), params.bits_precision());
         Self {
             montgomery_form: integer,
@@ -253,7 +253,7 @@ impl Retrieve for BoxedMontyForm {
 
 /// Convert the given integer into the Montgomery domain.
 #[inline]
-fn convert_to_montgomery(integer: &mut BoxedUint, params: &BoxedMontyFormParams) {
+fn convert_to_montgomery(integer: &mut BoxedUint, params: &BoxedMontyParams) {
     let mut product = integer.mul(&params.r2);
     montgomery_reduction_boxed_mut(&mut product, &params.modulus, params.mod_neg_inv, integer);
 
@@ -263,21 +263,21 @@ fn convert_to_montgomery(integer: &mut BoxedUint, params: &BoxedMontyFormParams)
 
 #[cfg(test)]
 mod tests {
-    use super::{BoxedMontyFormParams, BoxedUint};
+    use super::{BoxedMontyParams, BoxedUint};
 
     #[test]
     fn new_params_with_invalid_modulus() {
         // 0
-        let ret = BoxedMontyFormParams::new(BoxedUint::zero());
+        let ret = BoxedMontyParams::new(BoxedUint::zero());
         assert!(bool::from(ret.is_none()));
 
         // 2
-        let ret = BoxedMontyFormParams::new(BoxedUint::from(2u8));
+        let ret = BoxedMontyParams::new(BoxedUint::from(2u8));
         assert!(bool::from(ret.is_none()));
     }
 
     #[test]
     fn new_params_with_valid_modulus() {
-        BoxedMontyFormParams::new(BoxedUint::from(3u8)).unwrap();
+        BoxedMontyParams::new(BoxedUint::from(3u8)).unwrap();
     }
 }

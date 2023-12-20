@@ -1,10 +1,10 @@
 //! Additions between integers in Montgomery form with a constant modulus.
 
-use super::{ConstMontyForm, ConstMontyFormParams};
+use super::{ConstMontyForm, ConstMontyParams};
 use crate::modular::add::add_montgomery_form;
 use core::ops::{Add, AddAssign};
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
     /// Adds `rhs`.
     pub const fn add(&self, rhs: &ConstMontyForm<MOD, LIMBS>) -> Self {
         Self {
@@ -18,7 +18,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, L
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Add<&ConstMontyForm<MOD, LIMBS>>
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Add<&ConstMontyForm<MOD, LIMBS>>
     for &ConstMontyForm<MOD, LIMBS>
 {
     type Output = ConstMontyForm<MOD, LIMBS>;
@@ -27,7 +27,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Add<&ConstMontyForm<M
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Add<ConstMontyForm<MOD, LIMBS>>
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Add<ConstMontyForm<MOD, LIMBS>>
     for &ConstMontyForm<MOD, LIMBS>
 {
     type Output = ConstMontyForm<MOD, LIMBS>;
@@ -37,7 +37,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Add<ConstMontyForm<MO
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Add<&ConstMontyForm<MOD, LIMBS>>
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Add<&ConstMontyForm<MOD, LIMBS>>
     for ConstMontyForm<MOD, LIMBS>
 {
     type Output = ConstMontyForm<MOD, LIMBS>;
@@ -47,7 +47,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Add<&ConstMontyForm<M
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Add<ConstMontyForm<MOD, LIMBS>>
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Add<ConstMontyForm<MOD, LIMBS>>
     for ConstMontyForm<MOD, LIMBS>
 {
     type Output = ConstMontyForm<MOD, LIMBS>;
@@ -56,7 +56,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Add<ConstMontyForm<MO
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> AddAssign<&Self>
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> AddAssign<&Self>
     for ConstMontyForm<MOD, LIMBS>
 {
     fn add_assign(&mut self, rhs: &Self) {
@@ -64,7 +64,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> AddAssign<&Self>
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> AddAssign<Self>
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> AddAssign<Self>
     for ConstMontyForm<MOD, LIMBS>
 {
     fn add_assign(&mut self, rhs: Self) {
@@ -75,7 +75,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> AddAssign<Self>
 #[cfg(test)]
 mod tests {
     use crate::{
-        const_monty_form, impl_modulus, modular::const_monty_form::ConstMontyFormParams, U256,
+        const_monty_form, impl_modulus, modular::const_monty_form::ConstMontyParams, U256,
     };
 
     impl_modulus!(

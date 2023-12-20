@@ -2,7 +2,7 @@ use criterion::{
     black_box, criterion_group, criterion_main, measurement::Measurement, BatchSize,
     BenchmarkGroup, Criterion,
 };
-use crypto_bigint::{impl_modulus, modular::ConstMontyFormParams, Invert, Inverter, Random, U256};
+use crypto_bigint::{impl_modulus, modular::ConstMontyParams, Invert, Inverter, Random, U256};
 use rand_core::OsRng;
 
 #[cfg(feature = "alloc")]

@@ -1,6 +1,6 @@
 //! Multiplicative inverses of integers in Montgomery form with a modulus set at runtime.
 
-use super::{MontyForm, MontyFormParams};
+use super::{MontyForm, MontyParams};
 use crate::{
     modular::BernsteinYangInverter, traits::Invert, ConstCtOption, Inverter, PrecomputeInverter,
     PrecomputeInverterWithAdjuster, Uint,
@@ -52,7 +52,7 @@ where
     }
 }
 
-impl<const LIMBS: usize> PrecomputeInverter for MontyFormParams<LIMBS>
+impl<const LIMBS: usize> PrecomputeInverter for MontyParams<LIMBS>
 where
     Uint<LIMBS>: PrecomputeInverter<Output = Uint<LIMBS>> + PrecomputeInverterWithAdjuster,
 {
@@ -73,7 +73,7 @@ where
     Uint<LIMBS>: PrecomputeInverter<Output = Uint<LIMBS>>,
 {
     inverter: <Uint<LIMBS> as PrecomputeInverter>::Inverter,
-    params: MontyFormParams<LIMBS>,
+    params: MontyParams<LIMBS>,
 }
 
 impl<const LIMBS: usize> Inverter for MontyFormInverter<LIMBS>
@@ -110,11 +110,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{MontyForm, MontyFormParams};
+    use super::{MontyForm, MontyParams};
     use crate::{Invert, Inverter, PrecomputeInverter, U256};
 
-    fn params() -> MontyFormParams<{ U256::LIMBS }> {
-        MontyFormParams::new(&U256::from_be_hex(
+    fn params() -> MontyParams<{ U256::LIMBS }> {
+        MontyParams::new(&U256::from_be_hex(
             "15477BCCEFE197328255BFA79A1217899016D927EF460F4FF404029D24FA4409",
         ))
         .unwrap()

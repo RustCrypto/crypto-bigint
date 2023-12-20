@@ -65,14 +65,14 @@ impl AddAssign<BoxedMontyForm> for BoxedMontyForm {
 #[cfg(test)]
 mod tests {
     use crate::{
-        modular::{BoxedMontyForm, BoxedMontyFormParams},
+        modular::{BoxedMontyForm, BoxedMontyParams},
         BoxedUint,
     };
     use hex_literal::hex;
 
     #[test]
     fn add_overflow() {
-        let params = BoxedMontyFormParams::new(
+        let params = BoxedMontyParams::new(
             BoxedUint::from_be_slice(
                 &hex!("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"),
                 256,

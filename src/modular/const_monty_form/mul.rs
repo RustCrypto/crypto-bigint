@@ -10,9 +10,9 @@ use crate::{
     traits::Square,
 };
 
-use super::{ConstMontyForm, ConstMontyFormParams};
+use super::{ConstMontyForm, ConstMontyParams};
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
     /// Multiplies by `rhs`.
     pub const fn mul(&self, rhs: &Self) -> Self {
         Self {
@@ -39,7 +39,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, L
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Mul<&ConstMontyForm<MOD, LIMBS>>
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Mul<&ConstMontyForm<MOD, LIMBS>>
     for &ConstMontyForm<MOD, LIMBS>
 {
     type Output = ConstMontyForm<MOD, LIMBS>;
@@ -48,7 +48,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Mul<&ConstMontyForm<M
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Mul<ConstMontyForm<MOD, LIMBS>>
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Mul<ConstMontyForm<MOD, LIMBS>>
     for &ConstMontyForm<MOD, LIMBS>
 {
     type Output = ConstMontyForm<MOD, LIMBS>;
@@ -58,7 +58,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Mul<ConstMontyForm<MO
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Mul<&ConstMontyForm<MOD, LIMBS>>
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Mul<&ConstMontyForm<MOD, LIMBS>>
     for ConstMontyForm<MOD, LIMBS>
 {
     type Output = ConstMontyForm<MOD, LIMBS>;
@@ -68,7 +68,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Mul<&ConstMontyForm<M
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Mul<ConstMontyForm<MOD, LIMBS>>
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Mul<ConstMontyForm<MOD, LIMBS>>
     for ConstMontyForm<MOD, LIMBS>
 {
     type Output = ConstMontyForm<MOD, LIMBS>;
@@ -77,7 +77,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Mul<ConstMontyForm<MO
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> MulAssign<&Self>
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> MulAssign<&Self>
     for ConstMontyForm<MOD, LIMBS>
 {
     fn mul_assign(&mut self, rhs: &ConstMontyForm<MOD, LIMBS>) {
@@ -85,7 +85,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> MulAssign<&Self>
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> MulAssign<Self>
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> MulAssign<Self>
     for ConstMontyForm<MOD, LIMBS>
 {
     fn mul_assign(&mut self, rhs: Self) {
@@ -93,7 +93,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> MulAssign<Self>
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Square for ConstMontyForm<MOD, LIMBS> {
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Square for ConstMontyForm<MOD, LIMBS> {
     fn square(&self) -> Self {
         ConstMontyForm::square(self)
     }

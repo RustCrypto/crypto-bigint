@@ -32,7 +32,7 @@ mod macros;
 /// macro. These parameters are constant, so they cannot be set at runtime.
 ///
 /// Unfortunately, `LIMBS` must be generic for now until const generics are stabilized.
-pub trait ConstMontyFormParams<const LIMBS: usize>:
+pub trait ConstMontyParams<const LIMBS: usize>:
     Copy + Debug + Default + Eq + Send + Sync + 'static
 {
     /// Number of limbs required to encode the Montgomery form
@@ -69,18 +69,18 @@ pub trait ConstMontyFormParams<const LIMBS: usize>:
 ///
 /// Internally, the value is stored in Montgomery form (multiplied by MOD::ONE) until it is retrieved.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ConstMontyForm<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> {
+pub struct ConstMontyForm<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> {
     montgomery_form: Uint<LIMBS>,
     phantom: PhantomData<MOD>,
 }
 
 #[cfg(feature = "zeroize")]
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> zeroize::DefaultIsZeroes
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> zeroize::DefaultIsZeroes
     for ConstMontyForm<MOD, LIMBS>
 {
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
     /// The representation of 0 mod `MOD`.
     pub const ZERO: Self = Self {
         montgomery_form: Uint::<LIMBS>::ZERO,
@@ -156,7 +156,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, L
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS> + Copy, const LIMBS: usize> ConditionallySelectable
+impl<MOD: ConstMontyParams<LIMBS> + Copy, const LIMBS: usize> ConditionallySelectable
     for ConstMontyForm<MOD, LIMBS>
 {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
@@ -171,7 +171,7 @@ impl<MOD: ConstMontyFormParams<LIMBS> + Copy, const LIMBS: usize> ConditionallyS
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstantTimeEq
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstantTimeEq
     for ConstMontyForm<MOD, LIMBS>
 {
     fn ct_eq(&self, other: &Self) -> Choice {
@@ -179,22 +179,20 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstantTimeEq
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Default for ConstMontyForm<MOD, LIMBS> {
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Default for ConstMontyForm<MOD, LIMBS> {
     fn default() -> Self {
         Self::ZERO
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ZeroConstant
-    for ConstMontyForm<MOD, LIMBS>
-{
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ZeroConstant for ConstMontyForm<MOD, LIMBS> {
     const ZERO: Self = Self::ZERO;
 }
 
 #[cfg(feature = "rand_core")]
 impl<MOD, const LIMBS: usize> Random for ConstMontyForm<MOD, LIMBS>
 where
-    MOD: ConstMontyFormParams<LIMBS>,
+    MOD: ConstMontyParams<LIMBS>,
 {
     #[inline]
     fn random(rng: &mut impl CryptoRngCore) -> Self {
@@ -202,7 +200,7 @@ where
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Retrieve for ConstMontyForm<MOD, LIMBS> {
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Retrieve for ConstMontyForm<MOD, LIMBS> {
     type Output = Uint<LIMBS>;
     fn retrieve(&self) -> Self::Output {
         self.retrieve()
@@ -212,7 +210,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Retrieve for ConstMon
 #[cfg(feature = "serde")]
 impl<'de, MOD, const LIMBS: usize> Deserialize<'de> for ConstMontyForm<MOD, LIMBS>
 where
-    MOD: ConstMontyFormParams<LIMBS>,
+    MOD: ConstMontyParams<LIMBS>,
     Uint<LIMBS>: Encoding,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -235,7 +233,7 @@ where
 #[cfg(feature = "serde")]
 impl<MOD, const LIMBS: usize> Serialize for ConstMontyForm<MOD, LIMBS>
 where
-    MOD: ConstMontyFormParams<LIMBS>,
+    MOD: ConstMontyParams<LIMBS>,
     Uint<LIMBS>: Encoding,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

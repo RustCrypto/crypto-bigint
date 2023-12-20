@@ -64,13 +64,13 @@ impl<const LIMBS: usize> AddAssign<MontyForm<LIMBS>> for MontyForm<LIMBS> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        modular::monty_form::{MontyForm, MontyFormParams},
+        modular::monty_form::{MontyForm, MontyParams},
         U256,
     };
 
     #[test]
     fn add_overflow() {
-        let params = MontyFormParams::new(&U256::from_be_hex(
+        let params = MontyParams::new(&U256::from_be_hex(
             "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551",
         ))
         .unwrap();

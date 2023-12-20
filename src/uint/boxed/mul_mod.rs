@@ -1,7 +1,7 @@
 //! [`BoxedUint`] modular multiplication operations.
 
 use crate::{
-    modular::{BoxedMontyForm, BoxedMontyFormParams},
+    modular::{BoxedMontyForm, BoxedMontyParams},
     primitives::mul_rem,
     BoxedUint, Limb, MulMod, WideWord, Word,
 };
@@ -18,7 +18,7 @@ impl BoxedUint {
         // Barrett reduction instead.
         //
         // It's worth potentially exploring other approaches to improve efficiency.
-        match Option::<BoxedMontyFormParams>::from(BoxedMontyFormParams::new(p.clone())) {
+        match Option::<BoxedMontyParams>::from(BoxedMontyParams::new(p.clone())) {
             Some(params) => {
                 let lhs = BoxedMontyForm::new(self.clone(), params.clone());
                 let rhs = BoxedMontyForm::new(rhs.clone(), params);
