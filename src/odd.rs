@@ -4,6 +4,9 @@ use crate::{Integer, NonZero, Uint};
 use core::ops::Deref;
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
+#[cfg(feature = "rand_core")]
+use {crate::Random, rand_core::CryptoRngCore};
+
 /// Wrapper type for odd integers.
 ///
 /// These are frequently used in cryptography, e.g. as a modulus.
@@ -86,5 +89,13 @@ impl<T> Deref for Odd<T> {
 
     fn deref(&self) -> &T {
         &self.0
+    }
+}
+
+#[cfg(feature = "rand_core")]
+impl<const LIMBS: usize> Random for Odd<Uint<LIMBS>> {
+    /// Generate a random `NonZero<Uint<T>>`.
+    fn random(rng: &mut impl CryptoRngCore) -> Self {
+        Odd(Uint::random(rng) | Uint::ONE)
     }
 }

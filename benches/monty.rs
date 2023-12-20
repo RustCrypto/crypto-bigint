@@ -4,7 +4,7 @@ use criterion::{
 };
 use crypto_bigint::{
     modular::{MontyForm, MontyParams},
-    Invert, Inverter, PrecomputeInverter, Random, U256,
+    Invert, Inverter, Odd, PrecomputeInverter, Random, U256,
 };
 use rand_core::OsRng;
 
@@ -14,22 +14,22 @@ use crypto_bigint::MultiExponentiate;
 fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("MontyParams creation", |b| {
         b.iter_batched(
-            || U256::random(&mut OsRng) | U256::ONE,
-            |modulus| black_box(MontyParams::new(&modulus)),
+            || Odd::<U256>::random(&mut OsRng),
+            |modulus| black_box(MontyParams::new(modulus)),
             BatchSize::SmallInput,
         )
     });
 
-    let params = MontyParams::new(&(U256::random(&mut OsRng) | U256::ONE)).unwrap();
+    let params = MontyParams::new(Odd::<U256>::random(&mut OsRng));
     group.bench_function("MontyForm creation", |b| {
         b.iter_batched(
-            || U256::random(&mut OsRng),
+            || Odd::<U256>::random(&mut OsRng),
             |x| black_box(MontyForm::new(&x, params)),
             BatchSize::SmallInput,
         )
     });
 
-    let params = MontyParams::new(&(U256::random(&mut OsRng) | U256::ONE)).unwrap();
+    let params = MontyParams::new(Odd::<U256>::random(&mut OsRng));
     group.bench_function("MontyForm retrieve", |b| {
         b.iter_batched(
             || MontyForm::new(&U256::random(&mut OsRng), params),
@@ -40,7 +40,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
 }
 
 fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
-    let params = MontyParams::new(&(U256::random(&mut OsRng) | U256::ONE)).unwrap();
+    let params = MontyParams::new(Odd::<U256>::random(&mut OsRng));
 
     group.bench_function("invert, U256", |b| {
         b.iter_batched(
