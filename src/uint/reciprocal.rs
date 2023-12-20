@@ -1,5 +1,5 @@
 //! Reciprocal, shared across Uint and BoxedUint
-use crate::{ConstChoice, Limb, NonZero, Word, primitives};
+use crate::{primitives, ConstChoice, Limb, NonZero, Word};
 use subtle::{Choice, ConditionallySelectable};
 
 /// Calculates the reciprocal of the given 32-bit divisor with the highmost bit set.
@@ -12,14 +12,14 @@ pub const fn reciprocal(d: Word) -> Word {
     let d21 = (d >> 11) + 1;
     let d31 = (d >> 1) + d0;
     let v0 = short_div((1 << 24) - (1 << 14) + (1 << 9), 24, d10, 10);
-    let (hi, _lo) = mulhilo(v0 * v0, d21);
+    let (hi, _lo) = primitives::mulhilo(v0 * v0, d21);
     let v1 = (v0 << 4) - hi - 1;
 
     // Checks that the expression for `e` can be simplified in the way we did below.
-    debug_assert!(mulhilo(v1, d31).0 == (1 << 16) - 1);
+    debug_assert!(primitives::mulhilo(v1, d31).0 == (1 << 16) - 1);
     let e = Word::MAX - v1.wrapping_mul(d31) + 1 + (v1 >> 1) * d0;
 
-    let (hi, _lo) = mulhilo(v1, e);
+    let (hi, _lo) = primitives::mulhilo(v1, e);
     // Note: the paper does not mention a wrapping add here,
     // but the 64-bit version has it at this stage, and the function panics without it
     // when calculating a reciprocal for `Word::MAX`.
@@ -29,7 +29,7 @@ pub const fn reciprocal(d: Word) -> Word {
     // If `v2 == 2^32-1` this should give `d`, but we can't achieve this in our wrapping arithmetic.
     // Hence the `ct_select()`.
     let x = v2.wrapping_add(1);
-    let (hi, _lo) = mulhilo(x, d);
+    let (hi, _lo) = primitives::mulhilo(x, d);
     let hi = ConstChoice::from_u32_nonzero(x).select_word(d, hi);
 
     v2.wrapping_sub(hi).wrapping_sub(d)
