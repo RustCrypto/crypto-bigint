@@ -21,7 +21,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 pub struct MontyParams<const LIMBS: usize> {
     /// The constant modulus
     modulus: Uint<LIMBS>,
-    /// 1 in Montgomery fomr
+    /// 1 in Montgomery form (a.k.a. `R`)
     one: Uint<LIMBS>,
     /// `R^2 mod modulus`, used to move into Montgomery form
     r2: Uint<LIMBS>,
