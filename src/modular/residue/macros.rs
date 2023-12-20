@@ -28,8 +28,8 @@ macro_rules! impl_modulus {
                     panic!("modulus must be odd");
                 }
 
-                // Can unwrap `NonZero::const_new()` here since `res` was asserted to be odd.
-                $crate::NonZero::<$uint_type>::const_new(res).expect("modulus ensured non-zero")
+                // Can unwrap here since `res` was asserted to be odd.
+                res.to_nz().expect("modulus ensured non-zero")
             };
 
             const R: $uint_type = $crate::Uint::MAX
