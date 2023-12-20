@@ -1,10 +1,23 @@
 //! [`BoxedUint`] division operations.
 
-use crate::{BoxedUint, CheckedDiv, ConstantTimeSelect, Limb, NonZero, Wrapping};
+use crate::{
+    uint::boxed, BoxedUint, CheckedDiv, ConstantTimeSelect, Limb, NonZero, Reciprocal, Wrapping,
+};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
 impl BoxedUint {
+    /// Computes `self` / `rhs` using a pre-made reciprocal,
+    /// returns the quotient (q) and remainder (r).
+    pub fn div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb) {
+        boxed::div_limb::div_rem_limb_with_reciprocal(self, reciprocal)
+    }
+
+    /// Computes `self` / `rhs`, returns the quotient (q) and remainder (r).
+    pub fn div_rem_limb(&self, rhs: NonZero<Limb>) -> (Self, Limb) {
+        boxed::div_limb::div_rem_limb_with_reciprocal(self, &Reciprocal::new(rhs))
+    }
+
     /// Computes self / rhs, returns the quotient, remainder.
     pub fn div_rem(&self, rhs: &NonZero<Self>) -> (Self, Self) {
         // Since `rhs` is nonzero, this should always hold.
