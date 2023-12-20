@@ -19,7 +19,7 @@ mod sub;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Bounded, Constants, ZeroConstant};
+use crate::{Bounded, ConstCtOption, Constants, NonZero, ZeroConstant};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
@@ -91,6 +91,13 @@ impl Limb {
     /// Size of the inner integer in bytes.
     #[cfg(target_pointer_width = "64")]
     pub const BYTES: usize = 8;
+
+    /// Convert to a [`NonZero<Limb>`].
+    ///
+    /// Returns some if the original value is non-zero, and false otherwise.
+    pub const fn to_nz(self) -> ConstCtOption<NonZero<Self>> {
+        ConstCtOption::new(NonZero(self), self.is_nonzero())
+    }
 }
 
 impl Bounded for Limb {

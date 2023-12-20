@@ -204,7 +204,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Panics if `rhs == 0`.
     pub const fn wrapping_rem(&self, rhs: &Self) -> Self {
-        let nz_rhs = NonZero::<Self>::const_new(*rhs).expect("non-zero divisor");
+        let nz_rhs = rhs.to_nz().expect("non-zero divisor");
         self.rem_vartime(&nz_rhs)
     }
 
