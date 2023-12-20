@@ -23,7 +23,7 @@ macro_rules! impl_modulus {
             const LIMBS: usize = <$uint_type>::LIMBS;
             const MODULUS: $crate::Odd<$uint_type> = {
                 let res = <$uint_type>::from_be_hex($value);
-                res.to_odd().expect("modulus ensured non-zero")
+                res.to_odd().expect("modulus must be odd")
             };
 
             // `R mod MODULUS` where `R = 2^BITS`.
