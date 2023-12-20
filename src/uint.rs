@@ -40,8 +40,8 @@ pub(crate) mod boxed;
 mod rand;
 
 use crate::{
-    modular::BernsteinYangInverter, Bounded, Constants, Encoding, FixedInteger, Integer, Limb,
-    PrecomputeInverter, PrecomputeInverterWithAdjuster, Word, ZeroConstant,
+    modular::BernsteinYangInverter, Bounded, ConstCtOption, Constants, Encoding, FixedInteger,
+    Integer, Limb, NonZero, PrecomputeInverter, PrecomputeInverterWithAdjuster, Word, ZeroConstant,
 };
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
@@ -168,6 +168,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Convert this [`Uint`] into its inner limbs.
     pub const fn to_limbs(self) -> [Limb; LIMBS] {
         self.limbs
+    }
+
+    /// Convert to a [`NonZero<Limb>`].
+    ///
+    /// Returns some if the original value is non-zero, and false otherwise.
+    pub const fn to_nz(self) -> ConstCtOption<NonZero<Self>> {
+        ConstCtOption::new(NonZero(self), self.is_nonzero())
     }
 }
 
