@@ -91,12 +91,13 @@ impl BoxedResidueParams {
 
         let r = BoxedUint::max(bits_precision)
             .rem_vartime(&modulus_nz)
+            .widen(bits_precision)
             .wrapping_add(&BoxedUint::one());
 
-        let r2 = r
-            .square()
+        let r2 = r.square();
+        let r2 = r2
             .rem_vartime(&modulus_nz.widen(bits_precision * 2))
-            .shorten(bits_precision);
+            .widen(bits_precision);
 
         Self::new_inner(modulus, r, r2).into()
     }

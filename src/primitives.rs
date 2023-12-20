@@ -1,4 +1,4 @@
-use crate::{WideWord, Word};
+use crate::{limb::SignedWideWord, WideWord, Word};
 
 /// Multiplies `x` and `y`, returning the most significant
 /// and the least significant words as `(hi, lo)`.
@@ -44,6 +44,16 @@ pub const fn sbb(lhs: Word, rhs: Word, borrow: Word) -> (Word, Word) {
     let borrow = (borrow >> (Word::BITS - 1)) as WideWord;
     let ret = a.wrapping_sub(b + borrow);
     (ret as Word, (ret >> Word::BITS) as Word)
+}
+
+/// Subtract with borrow:
+#[inline]
+pub(crate) fn sbb_assign(a: Word, b: Word, acc: &mut SignedWideWord) -> Word {
+    *acc += a as SignedWideWord;
+    *acc -= b as SignedWideWord;
+    let lo = *acc as Word;
+    *acc >>= Word::BITS;
+    lo
 }
 
 /// Computes `lhs * rhs`, returning the low and the high words of the result.

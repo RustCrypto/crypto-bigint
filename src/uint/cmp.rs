@@ -166,6 +166,33 @@ impl<const LIMBS: usize> PartialEq for Uint<LIMBS> {
     }
 }
 
+fn is_normalized(a: &[Limb]) -> bool {
+    a.last() != Some(&Limb::ZERO) || a == &[Limb::ZERO]
+}
+
+pub(crate) fn cmp_slice(a: &[Limb], b: &[Limb]) -> Ordering {
+    debug_assert!(is_normalized(a), "a: {:?} - {:?}", a, b);
+    debug_assert!(is_normalized(b), "b: {:?} - {:?}", a, b);
+
+    let (a_len, b_len) = (a.len(), b.len());
+    if a_len < b_len {
+        return Ordering::Less;
+    }
+    if a_len > b_len {
+        return Ordering::Greater;
+    }
+
+    for (&ai, &bi) in a.iter().rev().zip(b.iter().rev()) {
+        if ai < bi {
+            return Ordering::Less;
+        }
+        if ai > bi {
+            return Ordering::Greater;
+        }
+    }
+    Ordering::Equal
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{Integer, Zero, U128};

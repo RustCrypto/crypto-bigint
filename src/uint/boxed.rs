@@ -183,11 +183,22 @@ impl BoxedUint {
     /// Panics if `at_least_bits_precision` is larger than the current precision.
     #[must_use]
     pub fn shorten(&self, at_least_bits_precision: u32) -> BoxedUint {
-        assert!(at_least_bits_precision <= self.bits_precision());
+        assert!(
+            at_least_bits_precision <= self.bits_precision(),
+            "{} > {}",
+            at_least_bits_precision,
+            self.bits_precision()
+        );
         let mut ret = BoxedUint::zero_with_precision(at_least_bits_precision);
         let nlimbs = ret.nlimbs();
         ret.limbs.copy_from_slice(&self.limbs[..nlimbs]);
         ret
+    }
+
+    /// Shortens the precision to the minum required bytes to be used.
+    pub(crate) fn normalize_vartime(&self) -> BoxedUint {
+        let needed_bits = self.bits_vartime();
+        self.shorten(needed_bits)
     }
 
     /// Perform a carry chain-like operation over the limbs of the inputs,
@@ -400,5 +411,20 @@ mod tests {
         let uint = BoxedUint::from(Vec::from(words));
         assert_eq!(uint.nlimbs(), 4);
         assert_eq!(uint.as_words(), words);
+    }
+
+    #[test]
+    fn normalize_vartime() {
+        let source = BoxedUint::from(vec![0, 0, 0, 0]);
+        let normalized = source.normalize_vartime();
+        assert_eq!(normalized.as_words(), &[0]);
+
+        let source = BoxedUint::from(vec![1, 0, 0, 0]);
+        let normalized = source.normalize_vartime();
+        assert_eq!(normalized.as_words(), &[1]);
+
+        let source = BoxedUint::from(vec![0, 1, 0, 0, 0]);
+        let normalized = source.normalize_vartime();
+        assert_eq!(normalized.as_words(), &[0, 1]);
     }
 }

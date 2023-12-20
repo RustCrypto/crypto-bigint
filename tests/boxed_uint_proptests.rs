@@ -30,9 +30,7 @@ fn reduce(x: &BoxedUint, n: &BoxedUint) -> BoxedUint {
         Ordering::Greater => x.shorten(bits_precision),
     };
 
-    let x_reduced = x.rem_vartime(&modulus);
-    debug_assert_eq!(x_reduced.bits_precision(), bits_precision);
-    x_reduced
+    x.rem_vartime(&modulus).widen(bits_precision)
 }
 
 prop_compose! {
@@ -70,7 +68,8 @@ prop_compose! {
 proptest! {
     #[test]
     fn roundtrip(a in uint()) {
-        prop_assert_eq!(&a, &to_uint(to_biguint(&a)));
+        let b = to_uint(to_biguint(&a));
+        prop_assert_eq!(&a, &b);
     }
 
     #[test]
@@ -126,7 +125,13 @@ proptest! {
     }
 
     #[test]
-    fn div_rem_vartime((a, mut b) in uint_pair()) {
+    fn div_rem_vartime(a in uint(), b in uint()) {
+        let (a, mut b) = if a.bits_precision() < b.bits_precision() {
+            (b, a)
+        } else {
+            (a, b)
+        };
+
         if b.is_zero().into() {
             b = b.wrapping_add(&BoxedUint::one());
         }
@@ -137,8 +142,8 @@ proptest! {
         let expected_remainder = a_bi % b_bi;
 
         let (actual_quotient, actual_remainder) = a.div_rem_vartime(&NonZero::new(b).unwrap());
-        prop_assert_eq!(expected_quotient, to_biguint(&actual_quotient));
-        prop_assert_eq!(expected_remainder, to_biguint(&actual_remainder));
+        prop_assert_eq!(expected_quotient, to_biguint(&actual_quotient), "quotient");
+        prop_assert_eq!(expected_remainder, to_biguint(&actual_remainder), "remainder");
     }
 
     #[test]

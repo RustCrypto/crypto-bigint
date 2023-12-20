@@ -1,7 +1,7 @@
 //! [`BoxedUint`] multiplication operations.
 
 use crate::{
-    uint::mul::mul_limbs, BoxedUint, CheckedMul, Limb, WideningMul, Wrapping, WrappingMul, Zero,
+    uint::mul::mul_limbs, BoxedUint, CheckedMul, WideningMul, Wrapping, WrappingMul, Zero,
 };
 use core::ops::{Mul, MulAssign};
 use subtle::{Choice, CtOption};
@@ -11,8 +11,8 @@ impl BoxedUint {
     ///
     /// Returns a widened output with a limb count equal to the sums of the input limb counts.
     pub fn mul(&self, rhs: &Self) -> Self {
-        let mut limbs = vec![Limb::ZERO; self.nlimbs() + rhs.nlimbs()];
-        mul_limbs(&self.limbs, &rhs.limbs, &mut limbs);
+        let mut limbs = vec![crate::Limb::ZERO; self.nlimbs() + rhs.nlimbs()];
+        mul_limbs(self.as_limbs(), rhs.as_limbs(), &mut limbs);
         limbs.into()
     }
 

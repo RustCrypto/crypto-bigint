@@ -32,6 +32,11 @@ impl BoxedUint {
         self.adc(rhs, Limb::ZERO).0
     }
 
+    /// Perform wrapping addition, discarding overflow.
+    pub fn wrapping_add_assign(&mut self, rhs: &Self) {
+        self.adc_assign(rhs, Limb::ZERO);
+    }
+
     /// Perform in-place wrapping addition, returning the truthy value as the second element of the
     /// tuple if an overflow has occurred.
     pub(crate) fn conditional_adc_assign(&mut self, rhs: &Self, choice: Choice) -> Choice {
