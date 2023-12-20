@@ -77,13 +77,17 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Mul<ConstMontyForm<MO
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> MulAssign<&Self> for ConstMontyForm<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> MulAssign<&Self>
+    for ConstMontyForm<MOD, LIMBS>
+{
     fn mul_assign(&mut self, rhs: &ConstMontyForm<MOD, LIMBS>) {
         *self = *self * rhs;
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> MulAssign<Self> for ConstMontyForm<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> MulAssign<Self>
+    for ConstMontyForm<MOD, LIMBS>
+{
     fn mul_assign(&mut self, rhs: Self) {
         *self *= &rhs;
     }

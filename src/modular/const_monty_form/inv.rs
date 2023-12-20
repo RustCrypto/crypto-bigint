@@ -94,8 +94,8 @@ where
     }
 }
 
-impl<MOD: ConstMontyFormParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Inverter
-    for ConstMontyFormInverter<MOD, SAT_LIMBS>
+impl<MOD: ConstMontyFormParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
+    Inverter for ConstMontyFormInverter<MOD, SAT_LIMBS>
 where
     Uint<SAT_LIMBS>: PrecomputeInverter<
         Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
@@ -109,8 +109,8 @@ where
     }
 }
 
-impl<MOD: ConstMontyFormParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> fmt::Debug
-    for ConstMontyFormInverter<MOD, SAT_LIMBS>
+impl<MOD: ConstMontyFormParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
+    fmt::Debug for ConstMontyFormInverter<MOD, SAT_LIMBS>
 where
     Uint<SAT_LIMBS>: PrecomputeInverter<
         Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,

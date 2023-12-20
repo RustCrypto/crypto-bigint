@@ -249,12 +249,7 @@ impl Retrieve for BoxedMontyForm {
 #[inline]
 fn convert_to_montgomery(integer: &mut BoxedUint, params: &BoxedMontyFormParams) {
     let mut product = integer.mul(&params.r2);
-    montgomery_reduction_boxed_mut(
-        &mut product,
-        &params.modulus,
-        params.mod_neg_inv,
-        integer,
-    );
+    montgomery_reduction_boxed_mut(&mut product, &params.modulus, params.mod_neg_inv, integer);
 
     #[cfg(feature = "zeroize")]
     product.zeroize();

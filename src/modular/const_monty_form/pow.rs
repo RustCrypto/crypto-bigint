@@ -50,8 +50,12 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize, const RHS_LIMBS: usiz
     }
 }
 
-impl<const N: usize, MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize, const RHS_LIMBS: usize>
-    MultiExponentiateBoundedExp<Uint<RHS_LIMBS>, [(Self, Uint<RHS_LIMBS>); N]>
+impl<
+        const N: usize,
+        MOD: ConstMontyFormParams<LIMBS>,
+        const LIMBS: usize,
+        const RHS_LIMBS: usize,
+    > MultiExponentiateBoundedExp<Uint<RHS_LIMBS>, [(Self, Uint<RHS_LIMBS>); N]>
     for ConstMontyForm<MOD, LIMBS>
 {
     fn multi_exponentiate_bounded_exp(
@@ -110,7 +114,9 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize, const RHS_LIMBS: usiz
 #[cfg(test)]
 mod tests {
     use crate::traits::MultiExponentiate;
-    use crate::{const_monty_form, impl_modulus, modular::const_monty_form::ConstMontyFormParams, U256};
+    use crate::{
+        const_monty_form, impl_modulus, modular::const_monty_form::ConstMontyFormParams, U256,
+    };
 
     impl_modulus!(
         Modulus,

@@ -1,6 +1,8 @@
 //! Equivalence tests between `crypto_bigint::ConstMontyForm` and `num-bigint`.
 
-use crypto_bigint::{impl_modulus, modular::ConstMontyFormParams, Encoding, Invert, Inverter, U256};
+use crypto_bigint::{
+    impl_modulus, modular::ConstMontyFormParams, Encoding, Invert, Inverter, U256,
+};
 use num_bigint::{BigUint, ModInverse};
 use proptest::prelude::*;
 

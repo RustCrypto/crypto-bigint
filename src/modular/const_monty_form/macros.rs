@@ -15,7 +15,8 @@ macro_rules! impl_modulus {
     ($name:ident, $uint_type:ty, $value:expr) => {
         #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
         pub struct $name;
-        impl<const DLIMBS: usize> $crate::modular::ConstMontyFormParams<{ <$uint_type>::LIMBS }> for $name
+        impl<const DLIMBS: usize> $crate::modular::ConstMontyFormParams<{ <$uint_type>::LIMBS }>
+            for $name
         where
             $uint_type: $crate::ConcatMixed<MixedOutput = $crate::Uint<DLIMBS>>,
         {

@@ -99,7 +99,9 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                         bases_and_exponents
                     },
                     |bases_and_exponents| {
-                        black_box(ConstMontyForm::multi_exponentiate(bases_and_exponents.as_slice()))
+                        black_box(ConstMontyForm::multi_exponentiate(
+                            bases_and_exponents.as_slice(),
+                        ))
                     },
                     BatchSize::SmallInput,
                 )

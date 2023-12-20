@@ -16,9 +16,9 @@
 //! The [`MontyForm`] and [`MontyFormParams`] types implement support for modular arithmetic where
 //! the modulus can vary at runtime.
 
+mod const_monty_form;
 mod monty_form;
 mod reduction;
-mod const_monty_form;
 
 mod add;
 mod bernstein_yang;
@@ -32,9 +32,9 @@ pub(crate) mod boxed_monty_form;
 
 pub use self::{
     bernstein_yang::BernsteinYangInverter,
+    const_monty_form::{inv::ConstMontyFormInverter, ConstMontyForm, ConstMontyFormParams},
     monty_form::{inv::MontyFormInverter, MontyForm, MontyFormParams},
     reduction::montgomery_reduction,
-    const_monty_form::{inv::ConstMontyFormInverter, ConstMontyForm, ConstMontyFormParams},
 };
 
 #[cfg(feature = "alloc")]
@@ -55,8 +55,8 @@ mod tests {
     use crate::{
         const_monty_form, impl_modulus,
         modular::{
-            reduction::montgomery_reduction,
             const_monty_form::{ConstMontyForm, ConstMontyFormParams},
+            reduction::montgomery_reduction,
         },
         NonZero, Uint, U256, U64,
     };

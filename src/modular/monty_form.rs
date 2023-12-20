@@ -8,9 +8,9 @@ mod pow;
 mod sub;
 
 use super::{
+    const_monty_form::{ConstMontyForm, ConstMontyFormParams},
     div_by_2::div_by_2,
     reduction::montgomery_reduction,
-    const_monty_form::{ConstMontyForm, ConstMontyFormParams},
     Retrieve,
 };
 use crate::{Limb, NonZero, Uint, Word, Zero};
@@ -122,11 +122,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Instantiates a new `ConstMontyForm` that represents this `integer` mod `MOD`.
     pub const fn new(integer: &Uint<LIMBS>, params: MontyFormParams<LIMBS>) -> Self {
         let product = integer.split_mul(&params.r2);
-        let montgomery_form = montgomery_reduction(
-            &product,
-            &params.modulus,
-            params.mod_neg_inv,
-        );
+        let montgomery_form = montgomery_reduction(&product, &params.modulus, params.mod_neg_inv);
 
         Self {
             montgomery_form,
@@ -175,10 +171,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     }
 
     /// Create a `MontyForm` from a value in Montgomery form.
-    pub const fn from_montgomery(
-        integer: Uint<LIMBS>,
-        params: MontyFormParams<LIMBS>,
-    ) -> Self {
+    pub const fn from_montgomery(integer: Uint<LIMBS>, params: MontyFormParams<LIMBS>) -> Self {
         Self {
             montgomery_form: integer,
             params,
@@ -210,7 +203,9 @@ impl<const LIMBS: usize> Retrieve for MontyForm<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize, P: ConstMontyFormParams<LIMBS>> From<&ConstMontyForm<P, LIMBS>> for MontyForm<LIMBS> {
+impl<const LIMBS: usize, P: ConstMontyFormParams<LIMBS>> From<&ConstMontyForm<P, LIMBS>>
+    for MontyForm<LIMBS>
+{
     fn from(const_monty_form: &ConstMontyForm<P, LIMBS>) -> Self {
         Self {
             montgomery_form: const_monty_form.to_montgomery(),
@@ -227,19 +222,14 @@ impl<const LIMBS: usize> ConditionallySelectable for MontyForm<LIMBS> {
                 &b.montgomery_form,
                 choice,
             ),
-            params: MontyFormParams::conditional_select(
-                &a.params,
-                &b.params,
-                choice,
-            ),
+            params: MontyFormParams::conditional_select(&a.params, &b.params, choice),
         }
     }
 }
 
 impl<const LIMBS: usize> ConstantTimeEq for MontyForm<LIMBS> {
     fn ct_eq(&self, other: &Self) -> Choice {
-        self.montgomery_form.ct_eq(&other.montgomery_form)
-            & self.params.ct_eq(&other.params)
+        self.montgomery_form.ct_eq(&other.montgomery_form) & self.params.ct_eq(&other.params)
     }
 }
 

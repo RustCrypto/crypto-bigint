@@ -56,13 +56,17 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Add<ConstMontyForm<MO
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> AddAssign<&Self> for ConstMontyForm<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> AddAssign<&Self>
+    for ConstMontyForm<MOD, LIMBS>
+{
     fn add_assign(&mut self, rhs: &Self) {
         *self = *self + rhs;
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> AddAssign<Self> for ConstMontyForm<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> AddAssign<Self>
+    for ConstMontyForm<MOD, LIMBS>
+{
     fn add_assign(&mut self, rhs: Self) {
         *self += &rhs;
     }
@@ -70,7 +74,9 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> AddAssign<Self> for C
 
 #[cfg(test)]
 mod tests {
-    use crate::{const_monty_form, impl_modulus, modular::const_monty_form::ConstMontyFormParams, U256};
+    use crate::{
+        const_monty_form, impl_modulus, modular::const_monty_form::ConstMontyFormParams, U256,
+    };
 
     impl_modulus!(
         Modulus,

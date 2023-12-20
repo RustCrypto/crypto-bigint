@@ -8,9 +8,7 @@ impl BoxedMontyForm {
     /// Computes `self^-1` representing the multiplicative inverse of `self`.
     /// I.e. `self * self^-1 = 1`.
     pub fn invert(&self) -> CtOption<Self> {
-        let (mut inverse, is_some) = self
-            .montgomery_form
-            .inv_odd_mod(&self.params.modulus);
+        let (mut inverse, is_some) = self.montgomery_form.inv_odd_mod(&self.params.modulus);
 
         let mut product = inverse.mul(&self.params.r3);
 

@@ -171,7 +171,9 @@ impl<MOD: ConstMontyFormParams<LIMBS> + Copy, const LIMBS: usize> ConditionallyS
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstantTimeEq for ConstMontyForm<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstantTimeEq
+    for ConstMontyForm<MOD, LIMBS>
+{
     fn ct_eq(&self, other: &Self) -> Choice {
         ConstantTimeEq::ct_eq(&self.montgomery_form, &other.montgomery_form)
     }
@@ -183,7 +185,9 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Default for ConstMont
     }
 }
 
-impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ZeroConstant for ConstMontyForm<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ZeroConstant
+    for ConstMontyForm<MOD, LIMBS>
+{
     const ZERO: Self = Self::ZERO;
 }
 

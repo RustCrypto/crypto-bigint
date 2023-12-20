@@ -26,7 +26,9 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Neg for &ConstMontyFo
 
 #[cfg(test)]
 mod tests {
-    use crate::{const_monty_form, impl_modulus, modular::const_monty_form::ConstMontyFormParams, U256};
+    use crate::{
+        const_monty_form, impl_modulus, modular::const_monty_form::ConstMontyFormParams, U256,
+    };
 
     impl_modulus!(
         Modulus,

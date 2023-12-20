@@ -36,8 +36,10 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("multiplication, BoxedUint*BoxedUint", |b| {
         b.iter_batched(
             || {
-                let x = BoxedMontyForm::new(BoxedUint::random(&mut OsRng, UINT_BITS), params.clone());
-                let y = BoxedMontyForm::new(BoxedUint::random(&mut OsRng, UINT_BITS), params.clone());
+                let x =
+                    BoxedMontyForm::new(BoxedUint::random(&mut OsRng, UINT_BITS), params.clone());
+                let y =
+                    BoxedMontyForm::new(BoxedUint::random(&mut OsRng, UINT_BITS), params.clone());
                 (x, y)
             },
             |(x, y)| black_box(x * y),
