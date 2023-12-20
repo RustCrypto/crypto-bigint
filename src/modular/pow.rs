@@ -17,14 +17,14 @@ pub const fn pow_montgomery_form<const LIMBS: usize, const RHS_LIMBS: usize>(
     exponent: &Uint<RHS_LIMBS>,
     exponent_bits: u32,
     modulus: &Uint<LIMBS>,
-    r: &Uint<LIMBS>,
+    one: &Uint<LIMBS>,
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {
     multi_exponentiate_montgomery_form_array(
         &[(*x, *exponent)],
         exponent_bits,
         modulus,
-        r,
+        one,
         mod_neg_inv,
     )
 }
@@ -37,11 +37,11 @@ pub const fn multi_exponentiate_montgomery_form_array<
     bases_and_exponents: &[(Uint<LIMBS>, Uint<RHS_LIMBS>); N],
     exponent_bits: u32,
     modulus: &Uint<LIMBS>,
-    r: &Uint<LIMBS>,
+    one: &Uint<LIMBS>,
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {
     if exponent_bits == 0 {
-        return *r; // 1 in Montgomery form
+        return *one; // 1 in Montgomery form
     }
 
     let mut powers_and_exponents =
@@ -50,7 +50,7 @@ pub const fn multi_exponentiate_montgomery_form_array<
     let mut i = 0;
     while i < N {
         let (base, exponent) = bases_and_exponents[i];
-        powers_and_exponents[i] = (compute_powers(&base, modulus, r, mod_neg_inv), exponent);
+        powers_and_exponents[i] = (compute_powers(&base, modulus, one, mod_neg_inv), exponent);
         i += 1;
     }
 
@@ -58,7 +58,7 @@ pub const fn multi_exponentiate_montgomery_form_array<
         &powers_and_exponents,
         exponent_bits,
         modulus,
-        r,
+        one,
         mod_neg_inv,
     )
 }
@@ -74,24 +74,24 @@ pub fn multi_exponentiate_montgomery_form_slice<const LIMBS: usize, const RHS_LI
     bases_and_exponents: &[(Uint<LIMBS>, Uint<RHS_LIMBS>)],
     exponent_bits: u32,
     modulus: &Uint<LIMBS>,
-    r: &Uint<LIMBS>,
+    one: &Uint<LIMBS>,
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {
     if exponent_bits == 0 {
-        return *r; // 1 in Montgomery form
+        return *one; // 1 in Montgomery form
     }
 
     let powers_and_exponents: Vec<([Uint<LIMBS>; 1 << WINDOW], Uint<RHS_LIMBS>)> =
         bases_and_exponents
             .iter()
-            .map(|(base, exponent)| (compute_powers(base, modulus, r, mod_neg_inv), *exponent))
+            .map(|(base, exponent)| (compute_powers(base, modulus, one, mod_neg_inv), *exponent))
             .collect();
 
     multi_exponentiate_montgomery_form_internal(
         powers_and_exponents.as_slice(),
         exponent_bits,
         modulus,
-        r,
+        one,
         mod_neg_inv,
     )
 }
@@ -99,11 +99,11 @@ pub fn multi_exponentiate_montgomery_form_slice<const LIMBS: usize, const RHS_LI
 const fn compute_powers<const LIMBS: usize>(
     x: &Uint<LIMBS>,
     modulus: &Uint<LIMBS>,
-    r: &Uint<LIMBS>,
+    one: &Uint<LIMBS>,
     mod_neg_inv: Limb,
 ) -> [Uint<LIMBS>; 1 << WINDOW] {
     // powers[i] contains x^i
-    let mut powers = [*r; 1 << WINDOW];
+    let mut powers = [*one; 1 << WINDOW];
     powers[1] = *x;
 
     let mut i = 2;
@@ -119,7 +119,7 @@ const fn multi_exponentiate_montgomery_form_internal<const LIMBS: usize, const R
     powers_and_exponents: &[([Uint<LIMBS>; 1 << WINDOW], Uint<RHS_LIMBS>)],
     exponent_bits: u32,
     modulus: &Uint<LIMBS>,
-    r: &Uint<LIMBS>,
+    one: &Uint<LIMBS>,
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {
     let starting_limb = ((exponent_bits - 1) / Limb::BITS) as usize;
@@ -127,7 +127,7 @@ const fn multi_exponentiate_montgomery_form_internal<const LIMBS: usize, const R
     let starting_window = starting_bit_in_limb / WINDOW;
     let starting_window_mask = (1 << (starting_bit_in_limb % WINDOW + 1)) - 1;
 
-    let mut z = *r; // 1 in Montgomery form
+    let mut z = *one; // 1 in Montgomery form
 
     let mut limb_num = starting_limb + 1;
     while limb_num > 0 {
