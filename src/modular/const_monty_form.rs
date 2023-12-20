@@ -40,11 +40,11 @@ pub trait ConstMontyFormParams<const LIMBS: usize>:
 
     /// The constant modulus
     const MODULUS: NonZero<Uint<LIMBS>>;
-    /// Parameter used in Montgomery reduction
-    const R: Uint<LIMBS>;
-    /// R^2, used to move into Montgomery form
+    /// 1 in Montgomery form
+    const ONE: Uint<LIMBS>;
+    /// `R^2 mod MODULUS`, used to move into Montgomery form
     const R2: Uint<LIMBS>;
-    /// R^3, used to perform a multiplicative inverse
+    /// `R^3 mod MODULUS`, used to perform a multiplicative inverse
     const R3: Uint<LIMBS>;
     /// The lowest limbs of -(MODULUS^-1) mod R
     // We only need the LSB because during reduction this value is multiplied modulo 2**Limb::BITS.
@@ -67,7 +67,7 @@ pub trait ConstMontyFormParams<const LIMBS: usize>:
 /// An integer in Montgomery form modulo `MOD`, represented using `LIMBS` limbs.
 /// The modulus is constant, so it cannot be set at runtime.
 ///
-/// Internally, the value is stored in Montgomery form (multiplied by MOD::R) until it is retrieved.
+/// Internally, the value is stored in Montgomery form (multiplied by MOD::ONE) until it is retrieved.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ConstMontyForm<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> {
     montgomery_form: Uint<LIMBS>,
@@ -89,7 +89,7 @@ impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, L
 
     /// The representation of 1 mod `MOD`.
     pub const ONE: Self = Self {
-        montgomery_form: MOD::R,
+        montgomery_form: MOD::ONE,
         phantom: PhantomData,
     };
 

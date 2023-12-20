@@ -28,7 +28,7 @@ pub struct BoxedMontyFormParams {
     /// The constant modulus
     modulus: BoxedUint,
     /// Parameter used in Montgomery reduction
-    r: BoxedUint,
+    one: BoxedUint,
     /// R^2, used to move into Montgomery form
     r2: BoxedUint,
     /// R^3, used to compute the multiplicative inverse
@@ -56,16 +56,19 @@ impl BoxedMontyFormParams {
         ))
         .expect("modulus ensured non-zero");
 
-        let r = BoxedUint::max(bits_precision)
+        // `R mod modulus` where `R = 2^BITS`.
+        // Represents 1 in Montgomery form.
+        let one = BoxedUint::max(bits_precision)
             .rem(&modulus_nz)
             .wrapping_add(&BoxedUint::one());
 
-        let r2 = r
+        // `R^2 mod modulus`, used to convert integers to Montgomery form.
+        let r2 = one
             .square()
             .rem(&modulus_nz.widen(bits_precision * 2))
             .shorten(bits_precision);
 
-        Self::new_inner(modulus, r, r2)
+        Self::new_inner(modulus, one, r2)
     }
 
     /// Instantiates a new set of [`BoxedMontyFormParams`] representing the given `modulus`, which
@@ -89,21 +92,24 @@ impl BoxedMontyFormParams {
         ))
         .expect("modulus ensured non-zero");
 
-        let r = BoxedUint::max(bits_precision)
+        // `R mod modulus` where `R = 2^BITS`.
+        // Represents 1 in Montgomery form.
+        let one = BoxedUint::max(bits_precision)
             .rem_vartime(&modulus_nz)
             .wrapping_add(&BoxedUint::one());
 
-        let r2 = r
+        // `R^2 mod modulus`, used to convert integers to Montgomery form.
+        let r2 = one
             .square()
             .rem_vartime(&modulus_nz.widen(bits_precision * 2))
             .shorten(bits_precision);
 
-        Self::new_inner(modulus, r, r2).into()
+        Self::new_inner(modulus, one, r2).into()
     }
 
     /// Common functionality of `new` and `new_vartime`.
-    fn new_inner(modulus: BoxedUint, r: BoxedUint, r2: BoxedUint) -> CtOption<Self> {
-        debug_assert_eq!(r.bits_precision(), modulus.bits_precision());
+    fn new_inner(modulus: BoxedUint, one: BoxedUint, r2: BoxedUint) -> CtOption<Self> {
+        debug_assert_eq!(one.bits_precision(), modulus.bits_precision());
         debug_assert_eq!(r2.bits_precision(), modulus.bits_precision());
 
         // If the inverse exists, it means the modulus is odd.
@@ -113,7 +119,7 @@ impl BoxedMontyFormParams {
 
         let params = Self {
             modulus,
-            r,
+            one,
             r2,
             r3,
             mod_neg_inv,
@@ -206,7 +212,7 @@ impl BoxedMontyForm {
     /// Instantiates a new `ConstMontyForm` that represents 1.
     pub fn one(params: BoxedMontyFormParams) -> Self {
         Self {
-            montgomery_form: params.r.clone(),
+            montgomery_form: params.one.clone(),
             params: params.into(),
         }
     }

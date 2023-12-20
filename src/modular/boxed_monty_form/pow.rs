@@ -23,7 +23,7 @@ impl BoxedMontyForm {
                 exponent,
                 exponent_bits,
                 &self.params.modulus,
-                &self.params.r,
+                &self.params.one,
                 self.params.mod_neg_inv,
             ),
             params: self.params.clone(),
@@ -49,11 +49,11 @@ fn pow_montgomery_form(
     exponent: &BoxedUint,
     exponent_bits: u32,
     modulus: &BoxedUint,
-    r: &BoxedUint,
+    one: &BoxedUint,
     mod_neg_inv: Limb,
 ) -> BoxedUint {
     if exponent_bits == 0 {
-        return r.clone(); // 1 in Montgomery form
+        return one.clone(); // 1 in Montgomery form
     }
 
     const WINDOW: u32 = 4;
@@ -63,7 +63,7 @@ fn pow_montgomery_form(
 
     // powers[i] contains x^i
     let mut powers = Vec::with_capacity(1 << WINDOW);
-    powers.push(r.clone()); // 1 in Montgomery form
+    powers.push(one.clone()); // 1 in Montgomery form
     powers.push(x.clone());
 
     for i in 2..(1 << WINDOW) {
@@ -75,7 +75,7 @@ fn pow_montgomery_form(
     let starting_window = starting_bit_in_limb / WINDOW;
     let starting_window_mask = (1 << (starting_bit_in_limb % WINDOW + 1)) - 1;
 
-    let mut z = r.clone(); // 1 in Montgomery form
+    let mut z = one.clone(); // 1 in Montgomery form
     let mut power = powers[0].clone();
 
     for limb_num in (0..=starting_limb).rev() {

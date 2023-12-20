@@ -33,11 +33,16 @@ macro_rules! impl_modulus {
                 res.to_nz().expect("modulus ensured non-zero")
             };
 
-            const R: $uint_type = $crate::Uint::MAX
+            // `R mod MODULUS` where `R = 2^BITS`.
+            // Represents 1 in Montgomery form.
+            const ONE: $uint_type = $crate::Uint::MAX
                 .rem_vartime(&Self::MODULUS)
                 .wrapping_add(&$crate::Uint::ONE);
+
+            // `R^2 mod MODULUS`, used to convert integers to Montgomery form.
             const R2: $uint_type =
-                $crate::Uint::rem_wide_vartime(Self::R.square_wide(), &Self::MODULUS);
+                $crate::Uint::rem_wide_vartime(Self::ONE.square_wide(), &Self::MODULUS);
+
             const MOD_NEG_INV: $crate::Limb = $crate::Limb(
                 $crate::Word::MIN.wrapping_sub(
                     Self::MODULUS
@@ -48,6 +53,7 @@ macro_rules! impl_modulus {
                         .0,
                 ),
             );
+
             const R3: $uint_type = $crate::modular::montgomery_reduction(
                 &Self::R2.square_wide(),
                 Self::MODULUS.as_ref(),

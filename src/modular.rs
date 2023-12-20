@@ -70,7 +70,7 @@ mod tests {
     #[test]
     fn test_montgomery_params() {
         assert_eq!(
-            Modulus1::R,
+            Modulus1::ONE,
             U256::from_be_hex("1824b159acc5056f998c4fefecbc4ff55884b7fa0003480200000001fffffffe")
         );
         assert_eq!(
@@ -90,11 +90,11 @@ mod tests {
     );
 
     #[test]
-    fn test_reducing_r() {
+    fn test_reducing_one() {
         // Divide the value R by R, which should equal 1
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(
-                &(Modulus2::R, Uint::ZERO),
+                &(Modulus2::ONE, Uint::ZERO),
                 &Modulus2::MODULUS,
                 Modulus2::MOD_NEG_INV
             ),
@@ -111,21 +111,21 @@ mod tests {
                 &Modulus2::MODULUS,
                 Modulus2::MOD_NEG_INV
             ),
-            Modulus2::R
+            Modulus2::ONE
         );
     }
 
     #[test]
     fn test_reducing_r2_wide() {
-        // Divide the value R^2 by R, which should equal R
-        let (hi, lo) = Modulus2::R.square().split();
+        // Divide the value ONE^2 by R, which should equal ONE
+        let (hi, lo) = Modulus2::ONE.square().split();
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(
                 &(lo, hi),
                 &Modulus2::MODULUS,
                 Modulus2::MOD_NEG_INV
             ),
-            Modulus2::R
+            Modulus2::ONE
         );
     }
 
@@ -134,7 +134,7 @@ mod tests {
         // Reducing xR should return x
         let x =
             U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
-        let product = x.split_mul(&Modulus2::R);
+        let product = x.split_mul(&Modulus2::ONE);
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(
                 &product,
@@ -153,7 +153,7 @@ mod tests {
         let product = x.split_mul(&Modulus2::R2);
 
         // Computing xR mod modulus without Montgomery reduction
-        let (lo, hi) = x.split_mul(&Modulus2::R);
+        let (lo, hi) = x.split_mul(&Modulus2::ONE);
         let c = hi.concat(&lo);
         let red = c.rem_vartime(&NonZero::new(U256::ZERO.concat(&Modulus2::MODULUS)).unwrap());
         let (hi, lo) = red.split();
