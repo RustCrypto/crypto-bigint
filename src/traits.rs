@@ -554,8 +554,7 @@ pub trait Monty:
 
     /// Create the precomputed data.
     ///
-    /// Can return `None` if `modulus` is not valid for the representation;
-    /// see the documentation of the specific type for the requirements.
+    /// `modulus` must be odd, otherwise returns `None`.
     fn new_params(modulus: Self::Integer) -> CtOption<Self::Params>;
 
     /// Convert the value into the representation using precomputed data.
