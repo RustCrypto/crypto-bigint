@@ -1,8 +1,9 @@
 //! Const-friendly decoding operations for [`BoxedUint`].
 
 use super::BoxedUint;
-use crate::Limb;
+use crate::{uint::encoding, Limb, Word};
 use alloc::boxed::Box;
+use subtle::{CtOption, Choice};
 use core::fmt;
 
 /// Decoding errors for [`BoxedUint`].
@@ -131,6 +132,42 @@ impl BoxedUint {
 
         out.into()
     }
+
+    /// Create a new [`BoxedUint`] from the provided big endian hex string.
+    pub fn from_be_hex(hex: &str, bits_precision: u32) -> CtOption<Self> {
+        let nlimbs = (bits_precision / Limb::BITS) as usize;
+        let bytes = hex.as_bytes();
+
+        assert!(
+            bytes.len() == Limb::BYTES * nlimbs * 2,
+            "hex string is not the expected size"
+        );
+
+        let mut res = vec![Limb::ZERO; nlimbs];
+        let mut buf = [0u8; Limb::BYTES];
+        let mut i = 0;
+        let mut err = 0;
+
+        while i < nlimbs {
+            let mut j = 0;
+            while j < Limb::BYTES {
+                let offset = (i * Limb::BYTES + j) * 2;
+                let (result, byte_err) =
+                    encoding::decode_hex_byte([bytes[offset], bytes[offset + 1]]);
+                err |= byte_err;
+                buf[j] = result;
+                j += 1;
+            }
+            res[nlimbs - i - 1] = Limb(Word::from_be_bytes(buf));
+            i += 1;
+        }
+
+        if err == 0 {
+            CtOption::new(Self { limbs: res.into() }, Choice::from(1))
+        } else {
+            CtOption::new(Self::zero_with_precision(bits_precision), Choice::from(0))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -152,6 +189,17 @@ mod tests {
     fn from_be_slice_eq() {
         let bytes = hex!("00112233445566778899aabbccddeeff");
         let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
+        assert_eq!(
+            n.as_limbs(),
+            &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
+        );
+    }
+
+    #[test]
+    #[cfg(target_pointer_width = "64")]
+    fn from_be_hex_eq() {
+        let hex = "00112233445566778899aabbccddeeff";
+        let n = BoxedUint::from_be_hex(hex, 128).unwrap();
         assert_eq!(
             n.as_limbs(),
             &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
