@@ -10,6 +10,28 @@ use subtle::{
     Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
 };
 
+impl BoxedUint {
+    /// Returns the Ordering between `self` and `rhs` in variable time.
+    pub fn cmp_vartime(&self, rhs: &Self) -> Ordering {
+        debug_assert_eq!(self.limbs.len(), rhs.limbs.len());
+        let mut i = self.limbs.len() - 1;
+        loop {
+            let (val, borrow) = self.limbs[i].sbb(rhs.limbs[i], Limb::ZERO);
+            if val.0 != 0 {
+                return if borrow.0 != 0 {
+                    Ordering::Less
+                } else {
+                    Ordering::Greater
+                };
+            }
+            if i == 0 {
+                return Ordering::Equal;
+            }
+            i -= 1;
+        }
+    }
+}
+
 impl ConstantTimeEq for BoxedUint {
     #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
