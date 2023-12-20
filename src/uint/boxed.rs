@@ -25,7 +25,7 @@ mod sub_mod;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Integer, Limb, NonZero, Word, Zero};
+use crate::{modular::BoxedMontyForm, Integer, Limb, NonZero, Word, Zero};
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
@@ -284,6 +284,8 @@ impl Default for BoxedUint {
 }
 
 impl Integer for BoxedUint {
+    type Monty = BoxedMontyForm;
+
     fn one() -> Self {
         Self::one()
     }

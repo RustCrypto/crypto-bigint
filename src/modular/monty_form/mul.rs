@@ -3,7 +3,7 @@
 use super::MontyForm;
 use crate::{
     modular::mul::{mul_montgomery_form, square_montgomery_form},
-    traits::Square,
+    Square, SquareAssign,
 };
 use core::ops::{Mul, MulAssign};
 
@@ -80,5 +80,11 @@ impl<const LIMBS: usize> MulAssign<MontyForm<LIMBS>> for MontyForm<LIMBS> {
 impl<const LIMBS: usize> Square for MontyForm<LIMBS> {
     fn square(&self) -> Self {
         MontyForm::square(self)
+    }
+}
+
+impl<const LIMBS: usize> SquareAssign for MontyForm<LIMBS> {
+    fn square_assign(&mut self) {
+        *self = self.square()
     }
 }
