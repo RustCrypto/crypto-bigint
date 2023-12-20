@@ -36,6 +36,18 @@ impl BoxedUint {
         Limb::BITS * (i as u32 + 1) - limb.leading_zeros()
     }
 
+    /// Returns `true` if the bit at position `index` is set, `false` otherwise.
+    ///
+    /// # Remarks
+    /// This operation is variable time with respect to `index` only.
+    pub fn bit_vartime(&self, index: u32) -> bool {
+        if index >= self.bits_precision() {
+            false
+        } else {
+            (self.limbs[(index / Limb::BITS) as usize].0 >> (index % Limb::BITS)) & 1 == 1
+        }
+    }
+
     /// Get the precision of this [`BoxedUint`] in bits.
     pub fn bits_precision(&self) -> u32 {
         self.limbs.len() as u32 * Limb::BITS
@@ -87,6 +99,18 @@ mod tests {
             result |= BoxedUint::one_with_precision(256).shl_vartime(pos).unwrap();
         }
         result
+    }
+
+    #[test]
+    fn bit_vartime() {
+        let u = uint_with_bits_at(&[16, 48, 112, 127, 255]);
+        assert!(!u.bit_vartime(0));
+        assert!(!u.bit_vartime(1));
+        assert!(u.bit_vartime(16));
+        assert!(u.bit_vartime(127));
+        assert!(u.bit_vartime(255));
+        assert!(!u.bit_vartime(256));
+        assert!(!u.bit_vartime(260));
     }
 
     #[test]
