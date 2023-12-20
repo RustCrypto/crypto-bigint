@@ -96,8 +96,9 @@ impl BoxedUint {
     /// Is this [`BoxedUint`] not equal to zero?
     pub fn is_nonzero(&self) -> Choice {
         // TODO: why not just !self.is_zero()?
-        !self.limbs.iter()
-            .fold(Choice::from(0), |acc, limb| acc | limb.is_zero())
+        self.limbs
+            .iter()
+            .fold(Choice::from(0), |acc, limb| acc | limb.is_nonzero().into())
     }
 
     /// Is this [`BoxedUint`] equal to one?

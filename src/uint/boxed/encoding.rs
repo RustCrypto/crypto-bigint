@@ -3,8 +3,8 @@
 use super::BoxedUint;
 use crate::{uint::encoding, Limb, Word};
 use alloc::boxed::Box;
-use subtle::{CtOption, Choice};
 use core::fmt;
+use subtle::{Choice, CtOption};
 
 /// Decoding errors for [`BoxedUint`].
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
