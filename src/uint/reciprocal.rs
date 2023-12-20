@@ -1,5 +1,5 @@
 //! Reciprocal, shared across Uint and BoxedUint
-use crate::{ConstChoice, Limb, NonZero, WideWord, Word};
+use crate::{ConstChoice, Limb, NonZero, Word, primitives};
 use subtle::{Choice, ConditionallySelectable};
 
 /// Calculates the reciprocal of the given 32-bit divisor with the highmost bit set.
@@ -49,17 +49,17 @@ pub const fn reciprocal(d: Word) -> Word {
     let v2 = (v1 << 13) + ((v1 * ((1 << 60) - v1 * d40)) >> 47);
 
     // Checks that the expression for `e` can be simplified in the way we did below.
-    debug_assert!(mulhilo(v2, d63).0 == (1 << 32) - 1);
+    debug_assert!(primitives::mulhilo(v2, d63).0 == (1 << 32) - 1);
     let e = Word::MAX - v2.wrapping_mul(d63) + 1 + (v2 >> 1) * d0;
 
-    let (hi, _lo) = mulhilo(v2, e);
+    let (hi, _lo) = primitives::mulhilo(v2, e);
     let v3 = (v2 << 31).wrapping_add(hi >> 1);
 
     // The paper has `(v3 + 1) * d / 2^64` (there's another 2^64, but it's accounted for later).
     // If `v3 == 2^64-1` this should give `d`, but we can't achieve this in our wrapping arithmetic.
     // Hence the `ct_select()`.
     let x = v3.wrapping_add(1);
-    let (hi, _lo) = mulhilo(x, d);
+    let (hi, _lo) = primitives::mulhilo(x, d);
     let hi = ConstChoice::from_word_nonzero(x).select_word(d, hi);
 
     v3.wrapping_sub(hi).wrapping_sub(d)
@@ -108,23 +108,6 @@ const fn short_div(dividend: u32, dividend_bits: u32, divisor: u32, divisor_bits
     quotient
 }
 
-/// Multiplies `x` and `y`, returning the most significant
-/// and the least significant words as `(hi, lo)`.
-#[inline(always)]
-const fn mulhilo(x: Word, y: Word) -> (Word, Word) {
-    let res = (x as WideWord) * (y as WideWord);
-    ((res >> Word::BITS) as Word, res as Word)
-}
-
-/// Adds wide numbers represented by pairs of (most significant word, least significant word)
-/// and returns the result in the same format `(hi, lo)`.
-#[inline(always)]
-const fn addhilo(x_hi: Word, x_lo: Word, y_hi: Word, y_lo: Word) -> (Word, Word) {
-    let res = (((x_hi as WideWord) << Word::BITS) | (x_lo as WideWord))
-        + (((y_hi as WideWord) << Word::BITS) | (y_lo as WideWord));
-    ((res >> Word::BITS) as Word, res as Word)
-}
-
 /// Calculate the quotient and the remainder of the division of a wide word
 /// (supplied as high and low words) by `d`, with a precalculated reciprocal `v`.
 #[inline(always)]
@@ -134,8 +117,8 @@ pub(crate) const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Wor
     debug_assert!(d >= (1 << (Word::BITS - 1)));
     debug_assert!(u1 < d);
 
-    let (q1, q0) = mulhilo(reciprocal.reciprocal, u1);
-    let (q1, q0) = addhilo(q1, q0, u1, u0);
+    let (q1, q0) = primitives::mulhilo(reciprocal.reciprocal, u1);
+    let (q1, q0) = primitives::addhilo(q1, q0, u1, u0);
     let q1 = q1.wrapping_add(1);
     let r = u0.wrapping_sub(q1.wrapping_mul(d));
 
