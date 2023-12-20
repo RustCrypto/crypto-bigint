@@ -7,8 +7,8 @@
 
 use super::{BoxedMontyForm, BoxedMontyParams};
 use crate::{
-    modular::reduction::montgomery_reduction_boxed_mut, traits::Square, uint::mul::mul_limbs,
-    BoxedUint, Limb, Word, Zero,
+    modular::reduction::montgomery_reduction_boxed_mut, uint::mul::mul_limbs, BoxedUint, Limb,
+    Square, SquareAssign, Word, Zero,
 };
 use core::{
     borrow::Borrow,
@@ -91,6 +91,12 @@ impl MulAssign<&BoxedMontyForm> for BoxedMontyForm {
 impl Square for BoxedMontyForm {
     fn square(&self) -> Self {
         BoxedMontyForm::square(self)
+    }
+}
+
+impl SquareAssign for BoxedMontyForm {
+    fn square_assign(&mut self) {
+        MontgomeryMultiplier::from(self.params.borrow()).square_assign(&mut self.montgomery_form);
     }
 }
 

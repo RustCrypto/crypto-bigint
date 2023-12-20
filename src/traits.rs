@@ -11,8 +11,8 @@ pub(crate) use sealed::PrecomputeInverterWithAdjuster;
 use crate::{Limb, NonZero};
 use core::fmt::Debug;
 use core::ops::{
-    Add, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign, Mul, Not,
-    Rem, Shl, ShlAssign, Shr, ShrAssign, Sub,
+    Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign,
+    Mul, MulAssign, Neg, Not, Rem, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 use subtle::{
     Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
@@ -141,6 +141,10 @@ pub trait Integer:
     + WrappingShr
     + Zero
 {
+    /// The corresponding Montgomery representation,
+    /// optimized for the performance of modular operations at the price of a conversion overhead.
+    type Monty: Monty<Integer = Self>;
+
     /// The value `1`.
     fn one() -> Self;
 
@@ -425,14 +429,16 @@ pub trait Encoding: Sized {
 }
 
 /// Support for optimized squaring
-pub trait Square: Sized
-where
-    for<'a> &'a Self: Mul<&'a Self, Output = Self>,
-{
-    /// Computes the same as `self.mul(self)`, but may be more efficient.
-    fn square(&self) -> Self {
-        self * self
-    }
+pub trait Square {
+    /// Computes the same as `self * self`, but may be more efficient.
+    fn square(&self) -> Self;
+}
+
+/// Support for optimized squaring in-place
+pub trait SquareAssign {
+    /// Computes the same as `self * self`, but may be more efficient.
+    /// Writes the result in `self`.
+    fn square_assign(&mut self);
 }
 
 /// Constant-time exponentiation.
@@ -512,4 +518,51 @@ pub trait WideningMul<Rhs = Self>: Sized {
 
     /// Perform widening multiplication.
     fn widening_mul(&self, rhs: Rhs) -> Self::Output;
+}
+
+/// A representation of an integer optimized for the performance of modular operations.
+pub trait Monty:
+    'static
+    + Clone
+    + Debug
+    + Eq
+    + Sized
+    + Send
+    + Sync
+    + Add<Output = Self>
+    + for<'a> Add<&'a Self, Output = Self>
+    + AddAssign
+    + for<'a> AddAssign<&'a Self>
+    + Sub<Output = Self>
+    + for<'a> Sub<&'a Self, Output = Self>
+    + SubAssign
+    + for<'a> SubAssign<&'a Self>
+    + Mul<Output = Self>
+    + for<'a> Mul<&'a Self, Output = Self>
+    + MulAssign
+    + for<'a> MulAssign<&'a Self>
+    + Neg<Output = Self>
+    + PowBoundedExp<Self::Integer>
+    + Square
+    + SquareAssign
+{
+    /// The original integer type.
+    type Integer: Integer<Monty = Self>;
+
+    /// The precomputed data needed for this representation.
+    type Params: Clone;
+
+    /// Create the precomputed data for Montgomery representation of integers modulo `modulus`.
+    ///
+    /// `modulus` must be odd, otherwise returns `None`.
+    fn new_params(modulus: Self::Integer) -> CtOption<Self::Params>;
+
+    /// Convert the value into the representation using precomputed data.
+    fn new(value: Self::Integer, params: Self::Params) -> Self;
+
+    /// Returns zero in this representation.
+    fn zero(params: Self::Params) -> Self;
+
+    /// Returns one in this representation.
+    fn one(params: Self::Params) -> Self;
 }
