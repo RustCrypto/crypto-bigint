@@ -33,7 +33,7 @@ pub struct MontyFormParams<const LIMBS: usize> {
 }
 
 impl<const LIMBS: usize> MontyFormParams<LIMBS> {
-    /// Instantiates a new set of `ConstMontyFormParams` representing the given `modulus` if it is odd.
+    /// Instantiates a new set of `MontyFormParams` representing the given `modulus` if it is odd.
     ///
     /// Returns `None` if the provided modulus is not odd.
     pub fn new(modulus: &Uint<LIMBS>) -> CtOption<Self> {
@@ -119,7 +119,7 @@ pub struct MontyForm<const LIMBS: usize> {
 }
 
 impl<const LIMBS: usize> MontyForm<LIMBS> {
-    /// Instantiates a new `ConstMontyForm` that represents this `integer` mod `MOD`.
+    /// Instantiates a new `MontyForm` that represents this `integer` mod `MOD`.
     pub const fn new(integer: &Uint<LIMBS>, params: MontyFormParams<LIMBS>) -> Self {
         let product = integer.split_mul(&params.r2);
         let montgomery_form = montgomery_reduction(&product, &params.modulus, params.mod_neg_inv);
@@ -130,7 +130,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
         }
     }
 
-    /// Retrieves the integer currently encoded in this `ConstMontyForm`, guaranteed to be reduced.
+    /// Retrieves the integer currently encoded in this `MontyForm`, guaranteed to be reduced.
     pub const fn retrieve(&self) -> Uint<LIMBS> {
         montgomery_reduction(
             &(self.montgomery_form, Uint::ZERO),
@@ -139,7 +139,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
         )
     }
 
-    /// Instantiates a new `ConstMontyForm` that represents zero.
+    /// Instantiates a new `MontyForm` that represents zero.
     pub const fn zero(params: MontyFormParams<LIMBS>) -> Self {
         Self {
             montgomery_form: Uint::<LIMBS>::ZERO,
@@ -147,7 +147,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
         }
     }
 
-    /// Instantiates a new `ConstMontyForm` that represents 1.
+    /// Instantiates a new `MontyForm` that represents 1.
     pub const fn one(params: MontyFormParams<LIMBS>) -> Self {
         Self {
             montgomery_form: params.r,
