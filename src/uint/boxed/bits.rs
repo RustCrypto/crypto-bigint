@@ -24,6 +24,11 @@ impl BoxedUint {
         Limb::BITS * n - leading_zeros
     }
 
+    /// `floor(log2(self.bits_precision()))`.
+    pub(crate) fn log2_bits(&self) -> u32 {
+        u32::BITS - self.bits_precision().leading_zeros() - 1
+    }
+
     /// Calculate the number of bits needed to represent this number in variable-time with respect
     /// to `self`.
     pub fn bits_vartime(&self) -> u32 {
