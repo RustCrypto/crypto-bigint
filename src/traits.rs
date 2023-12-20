@@ -552,7 +552,7 @@ pub trait Monty:
     /// The precomputed data needed for this representation.
     type Params: Clone;
 
-    /// Create the precomputed data.
+    /// Create the precomputed data for Montgomery representation of integers modulo `modulus`.
     ///
     /// `modulus` must be odd, otherwise returns `None`.
     fn new_params(modulus: Self::Integer) -> CtOption<Self::Params>;
