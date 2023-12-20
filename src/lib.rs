@@ -110,8 +110,8 @@
 //! assert_eq!(b, U256::ZERO);
 //! ```
 //!
-//! It also supports modular arithmetic over constant moduli using `Residue`,
-//! and over moduli set at runtime using `DynResidue`.
+//! It also supports modular arithmetic over constant moduli using `ConstMontyForm`,
+//! and over moduli set at runtime using `MontyForm`.
 //! That includes modular exponentiation and multiplicative inverses.
 //! These features are described in the [`modular`] module.
 //!

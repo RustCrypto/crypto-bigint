@@ -1,10 +1,10 @@
 //! Negations of boxed residues.
 
-use super::BoxedResidue;
+use super::BoxedMontyForm;
 use crate::BoxedUint;
 use core::ops::Neg;
 
-impl BoxedResidue {
+impl BoxedMontyForm {
     /// Negates the number.
     pub fn neg(&self) -> Self {
         let zero = Self {
@@ -16,16 +16,16 @@ impl BoxedResidue {
     }
 }
 
-impl Neg for BoxedResidue {
+impl Neg for BoxedMontyForm {
     type Output = Self;
     fn neg(self) -> Self {
-        BoxedResidue::neg(&self)
+        BoxedMontyForm::neg(&self)
     }
 }
 
-impl Neg for &BoxedResidue {
-    type Output = BoxedResidue;
-    fn neg(self) -> BoxedResidue {
-        BoxedResidue::neg(self)
+impl Neg for &BoxedMontyForm {
+    type Output = BoxedMontyForm;
+    fn neg(self) -> BoxedMontyForm {
+        BoxedMontyForm::neg(self)
     }
 }

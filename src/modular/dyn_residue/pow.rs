@@ -1,6 +1,6 @@
 //! Exponentiation of residues with a modulus set at runtime.
 
-use super::DynResidue;
+use super::MontyForm;
 use crate::{
     modular::pow::{multi_exponentiate_montgomery_form_array, pow_montgomery_form},
     MultiExponentiateBoundedExp, PowBoundedExp, Uint,
@@ -9,12 +9,12 @@ use crate::{
 #[cfg(feature = "alloc")]
 use {crate::modular::pow::multi_exponentiate_montgomery_form_slice, alloc::vec::Vec};
 
-impl<const LIMBS: usize> DynResidue<LIMBS> {
+impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Raises to the `exponent` power.
     pub const fn pow<const RHS_LIMBS: usize>(
         &self,
         exponent: &Uint<RHS_LIMBS>,
-    ) -> DynResidue<LIMBS> {
+    ) -> MontyForm<LIMBS> {
         self.pow_bounded_exp(exponent, Uint::<RHS_LIMBS>::BITS)
     }
 
@@ -43,7 +43,7 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> PowBoundedExp<Uint<RHS_LIMBS>>
-    for DynResidue<LIMBS>
+    for MontyForm<LIMBS>
 {
     fn pow_bounded_exp(&self, exponent: &Uint<RHS_LIMBS>, exponent_bits: u32) -> Self {
         self.pow_bounded_exp(exponent, exponent_bits)
@@ -52,7 +52,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> PowBoundedExp<Uint<RHS_LIMBS>>
 
 impl<const N: usize, const LIMBS: usize, const RHS_LIMBS: usize>
     MultiExponentiateBoundedExp<Uint<RHS_LIMBS>, [(Self, Uint<RHS_LIMBS>); N]>
-    for DynResidue<LIMBS>
+    for MontyForm<LIMBS>
 {
     fn multi_exponentiate_bounded_exp(
         bases_and_exponents: &[(Self, Uint<RHS_LIMBS>); N],
@@ -86,7 +86,7 @@ impl<const N: usize, const LIMBS: usize, const RHS_LIMBS: usize>
 
 #[cfg(feature = "alloc")]
 impl<const LIMBS: usize, const RHS_LIMBS: usize>
-    MultiExponentiateBoundedExp<Uint<RHS_LIMBS>, [(Self, Uint<RHS_LIMBS>)]> for DynResidue<LIMBS>
+    MultiExponentiateBoundedExp<Uint<RHS_LIMBS>, [(Self, Uint<RHS_LIMBS>)]> for MontyForm<LIMBS>
 {
     fn multi_exponentiate_bounded_exp(
         bases_and_exponents: &[(Self, Uint<RHS_LIMBS>)],

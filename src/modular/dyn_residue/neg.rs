@@ -1,25 +1,25 @@
 //! Negations of residues with a modulus set at runtime.
 
-use super::DynResidue;
+use super::MontyForm;
 use core::ops::Neg;
 
-impl<const LIMBS: usize> DynResidue<LIMBS> {
+impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Negates the number.
     pub const fn neg(&self) -> Self {
         Self::zero(self.residue_params).sub(self)
     }
 }
 
-impl<const LIMBS: usize> Neg for DynResidue<LIMBS> {
+impl<const LIMBS: usize> Neg for MontyForm<LIMBS> {
     type Output = Self;
     fn neg(self) -> Self {
-        DynResidue::neg(&self)
+        MontyForm::neg(&self)
     }
 }
 
-impl<const LIMBS: usize> Neg for &DynResidue<LIMBS> {
-    type Output = DynResidue<LIMBS>;
-    fn neg(self) -> DynResidue<LIMBS> {
-        DynResidue::neg(self)
+impl<const LIMBS: usize> Neg for &MontyForm<LIMBS> {
+    type Output = MontyForm<LIMBS>;
+    fn neg(self) -> MontyForm<LIMBS> {
+        MontyForm::neg(self)
     }
 }

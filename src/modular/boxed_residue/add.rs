@@ -1,9 +1,9 @@
 //! Additions between boxed residues.
 
-use super::BoxedResidue;
+use super::BoxedMontyForm;
 use core::ops::{Add, AddAssign};
 
-impl BoxedResidue {
+impl BoxedMontyForm {
     /// Adds `rhs`.
     pub fn add(&self, rhs: &Self) -> Self {
         debug_assert_eq!(self.residue_params, rhs.residue_params);
@@ -17,38 +17,38 @@ impl BoxedResidue {
     }
 }
 
-impl Add<&BoxedResidue> for &BoxedResidue {
-    type Output = BoxedResidue;
-    fn add(self, rhs: &BoxedResidue) -> BoxedResidue {
+impl Add<&BoxedMontyForm> for &BoxedMontyForm {
+    type Output = BoxedMontyForm;
+    fn add(self, rhs: &BoxedMontyForm) -> BoxedMontyForm {
         self.add(rhs)
     }
 }
 
-impl Add<BoxedResidue> for &BoxedResidue {
-    type Output = BoxedResidue;
+impl Add<BoxedMontyForm> for &BoxedMontyForm {
+    type Output = BoxedMontyForm;
     #[allow(clippy::op_ref)]
-    fn add(self, rhs: BoxedResidue) -> BoxedResidue {
+    fn add(self, rhs: BoxedMontyForm) -> BoxedMontyForm {
         self + &rhs
     }
 }
 
-impl Add<&BoxedResidue> for BoxedResidue {
-    type Output = BoxedResidue;
+impl Add<&BoxedMontyForm> for BoxedMontyForm {
+    type Output = BoxedMontyForm;
     #[allow(clippy::op_ref)]
-    fn add(self, rhs: &BoxedResidue) -> BoxedResidue {
+    fn add(self, rhs: &BoxedMontyForm) -> BoxedMontyForm {
         &self + rhs
     }
 }
 
-impl Add<BoxedResidue> for BoxedResidue {
-    type Output = BoxedResidue;
-    fn add(self, rhs: BoxedResidue) -> BoxedResidue {
+impl Add<BoxedMontyForm> for BoxedMontyForm {
+    type Output = BoxedMontyForm;
+    fn add(self, rhs: BoxedMontyForm) -> BoxedMontyForm {
         &self + &rhs
     }
 }
 
-impl AddAssign<&BoxedResidue> for BoxedResidue {
-    fn add_assign(&mut self, rhs: &BoxedResidue) {
+impl AddAssign<&BoxedMontyForm> for BoxedMontyForm {
+    fn add_assign(&mut self, rhs: &BoxedMontyForm) {
         debug_assert_eq!(self.residue_params, rhs.residue_params);
         self.montgomery_form = self
             .montgomery_form
@@ -56,8 +56,8 @@ impl AddAssign<&BoxedResidue> for BoxedResidue {
     }
 }
 
-impl AddAssign<BoxedResidue> for BoxedResidue {
-    fn add_assign(&mut self, rhs: BoxedResidue) {
+impl AddAssign<BoxedMontyForm> for BoxedMontyForm {
+    fn add_assign(&mut self, rhs: BoxedMontyForm) {
         *self += &rhs;
     }
 }
@@ -65,14 +65,14 @@ impl AddAssign<BoxedResidue> for BoxedResidue {
 #[cfg(test)]
 mod tests {
     use crate::{
-        modular::{BoxedResidue, BoxedResidueParams},
+        modular::{BoxedMontyForm, BoxedMontyFormParams},
         BoxedUint,
     };
     use hex_literal::hex;
 
     #[test]
     fn add_overflow() {
-        let params = BoxedResidueParams::new(
+        let params = BoxedMontyFormParams::new(
             BoxedUint::from_be_slice(
                 &hex!("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"),
                 256,
@@ -86,14 +86,14 @@ mod tests {
             256,
         )
         .unwrap();
-        let mut x_mod = BoxedResidue::new(x, params.clone());
+        let mut x_mod = BoxedMontyForm::new(x, params.clone());
 
         let y = BoxedUint::from_be_slice(
             &hex!("d5777c45019673125ad240f83094d4252d829516fac8601ed01979ec1ec1a251"),
             256,
         )
         .unwrap();
-        let y_mod = BoxedResidue::new(y, params.clone());
+        let y_mod = BoxedMontyForm::new(y, params.clone());
 
         x_mod += &y_mod;
 

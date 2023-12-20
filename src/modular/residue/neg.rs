@@ -1,32 +1,32 @@
 //! Negations of residues with a constant modulus.
 
-use super::{Residue, ResidueParams};
+use super::{ConstMontyForm, ConstMontyFormParams};
 use core::ops::Neg;
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
     /// Negates the number.
     pub const fn neg(&self) -> Self {
         Self::ZERO.sub(self)
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Neg for Residue<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Neg for ConstMontyForm<MOD, LIMBS> {
     type Output = Self;
     fn neg(self) -> Self {
-        Residue::neg(&self)
+        ConstMontyForm::neg(&self)
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Neg for &Residue<MOD, LIMBS> {
-    type Output = Residue<MOD, LIMBS>;
-    fn neg(self) -> Residue<MOD, LIMBS> {
-        Residue::neg(self)
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Neg for &ConstMontyForm<MOD, LIMBS> {
+    type Output = ConstMontyForm<MOD, LIMBS>;
+    fn neg(self) -> ConstMontyForm<MOD, LIMBS> {
+        ConstMontyForm::neg(self)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{const_residue, impl_modulus, modular::residue::ResidueParams, U256};
+    use crate::{const_residue, impl_modulus, modular::residue::ConstMontyFormParams, U256};
 
     impl_modulus!(
         Modulus,

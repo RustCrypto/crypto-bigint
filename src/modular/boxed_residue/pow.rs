@@ -1,11 +1,11 @@
-//! Modular exponentiation support for [`BoxedResidue`].
+//! Modular exponentiation support for [`BoxedMontyForm`].
 
-use super::{mul::MontgomeryMultiplier, BoxedResidue};
+use super::{mul::MontgomeryMultiplier, BoxedMontyForm};
 use crate::{BoxedUint, ConstantTimeSelect, Limb, PowBoundedExp, Word};
 use alloc::vec::Vec;
 use subtle::{ConstantTimeEq, ConstantTimeLess};
 
-impl BoxedResidue {
+impl BoxedMontyForm {
     /// Raises to the `exponent` power.
     pub fn pow(&self, exponent: &BoxedUint) -> Self {
         self.pow_bounded_exp(exponent, exponent.bits_precision())
@@ -34,7 +34,7 @@ impl BoxedResidue {
     }
 }
 
-impl PowBoundedExp<BoxedUint> for BoxedResidue {
+impl PowBoundedExp<BoxedUint> for BoxedMontyForm {
     fn pow_bounded_exp(&self, exponent: &BoxedUint, exponent_bits: u32) -> Self {
         self.pow_bounded_exp(exponent, exponent_bits)
     }

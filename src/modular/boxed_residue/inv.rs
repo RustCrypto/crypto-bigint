@@ -1,10 +1,10 @@
 //! Multiplicative inverses of boxed residue.
 
-use super::BoxedResidue;
+use super::BoxedMontyForm;
 use crate::{modular::reduction::montgomery_reduction_boxed_mut, Invert};
 use subtle::CtOption;
 
-impl BoxedResidue {
+impl BoxedMontyForm {
     /// Computes the residue `self^-1` representing the multiplicative inverse of `self`.
     /// I.e. `self * self^-1 = 1`.
     pub fn invert(&self) -> CtOption<Self> {
@@ -30,7 +30,7 @@ impl BoxedResidue {
     }
 }
 
-impl Invert for BoxedResidue {
+impl Invert for BoxedMontyForm {
     type Output = CtOption<Self>;
     fn invert(&self) -> Self::Output {
         self.invert()
@@ -40,13 +40,13 @@ impl Invert for BoxedResidue {
 #[cfg(test)]
 mod tests {
     use crate::{
-        modular::{BoxedResidue, BoxedResidueParams},
+        modular::{BoxedMontyForm, BoxedMontyFormParams},
         BoxedUint,
     };
     use hex_literal::hex;
 
-    fn residue_params() -> BoxedResidueParams {
-        BoxedResidueParams::new(
+    fn residue_params() -> BoxedMontyFormParams {
+        BoxedMontyFormParams::new(
             BoxedUint::from_be_slice(
                 &hex!("15477BCCEFE197328255BFA79A1217899016D927EF460F4FF404029D24FA4409"),
                 256,
@@ -64,7 +64,7 @@ mod tests {
             256,
         )
         .unwrap();
-        let x_mod = BoxedResidue::new(x, params);
+        let x_mod = BoxedMontyForm::new(x, params);
 
         let inv = x_mod.invert().unwrap();
         let res = x_mod * inv;

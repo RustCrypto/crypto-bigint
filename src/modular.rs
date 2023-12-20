@@ -5,15 +5,15 @@
 //!
 //! # Constant moduli
 //!
-//! The [`Residue`] and [`ResidueParams`] types implement support for modular arithmetic where the
+//! The [`ConstMontyForm`] and [`ConstMontyFormParams`] types implement support for modular arithmetic where the
 //! modulus is fixed at compile-time.
 //!
 //! The [`impl_modulus!`][`crate::impl_modulus`] macro can be used to define a compile-time modulus,
-//! whereas the [`const_residue!`][`crate::const_residue`] macro can define a [`Residue`] constant.
+//! whereas the [`const_residue!`][`crate::const_residue`] macro can define a [`ConstMontyForm`] constant.
 //!
 //! # Dynamic moduli chosen at runtime
 //!
-//! The [`DynResidue`] and [`DynResidueParams`] types implement support for modular arithmetic where
+//! The [`MontyForm`] and [`MontyFormParams`] types implement support for modular arithmetic where
 //! the modulus can vary at runtime.
 
 mod dyn_residue;
@@ -32,13 +32,13 @@ pub(crate) mod boxed_residue;
 
 pub use self::{
     bernstein_yang::BernsteinYangInverter,
-    dyn_residue::{inv::DynResidueInverter, DynResidue, DynResidueParams},
+    dyn_residue::{inv::MontyFormInverter, MontyForm, MontyFormParams},
     reduction::montgomery_reduction,
-    residue::{inv::ResidueInverter, Residue, ResidueParams},
+    residue::{inv::ConstMontyFormInverter, ConstMontyForm, ConstMontyFormParams},
 };
 
 #[cfg(feature = "alloc")]
-pub use self::boxed_residue::{BoxedResidue, BoxedResidueParams};
+pub use self::boxed_residue::{BoxedMontyForm, BoxedMontyFormParams};
 
 /// A generalization for numbers kept in optimized representations (e.g. Montgomery)
 /// that can be converted back to the original form.
@@ -56,7 +56,7 @@ mod tests {
         const_residue, impl_modulus,
         modular::{
             reduction::montgomery_reduction,
-            residue::{Residue, ResidueParams},
+            residue::{ConstMontyForm, ConstMontyFormParams},
         },
         NonZero, Uint, U256, U64,
     };
@@ -173,7 +173,7 @@ mod tests {
     fn test_new_retrieve() {
         let x =
             U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
-        let x_mod = Residue::<Modulus2, { Modulus2::LIMBS }>::new(&x);
+        let x_mod = ConstMontyForm::<Modulus2, { Modulus2::LIMBS }>::new(&x);
 
         // Confirm that when creating a Modular and retrieving the value, that it equals the original
         assert_eq!(x, x_mod.retrieve());
@@ -184,7 +184,7 @@ mod tests {
         let x =
             U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
         assert_eq!(
-            Residue::<Modulus2, { Modulus2::LIMBS }>::new(&x),
+            ConstMontyForm::<Modulus2, { Modulus2::LIMBS }>::new(&x),
             const_residue!(x, Modulus2)
         );
     }

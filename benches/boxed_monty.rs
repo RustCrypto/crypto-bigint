@@ -3,7 +3,7 @@ use criterion::{
     BenchmarkGroup, Criterion,
 };
 use crypto_bigint::{
-    modular::{BoxedResidue, BoxedResidueParams},
+    modular::{BoxedMontyForm, BoxedMontyFormParams},
     BoxedUint, NonZero, RandomMod,
 };
 use num_bigint::BigUint;
@@ -17,7 +17,7 @@ fn to_biguint(uint: &BoxedUint) -> BigUint {
 }
 
 fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
-    let params = BoxedResidueParams::new(
+    let params = BoxedMontyFormParams::new(
         BoxedUint::random(&mut OsRng, UINT_BITS) | BoxedUint::one_with_precision(UINT_BITS),
     )
     .unwrap();
@@ -26,7 +26,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         b.iter_batched(
             || {
                 let modulus = NonZero::new(params.modulus().clone()).unwrap();
-                BoxedResidue::new(BoxedUint::random_mod(&mut OsRng, &modulus), params.clone())
+                BoxedMontyForm::new(BoxedUint::random_mod(&mut OsRng, &modulus), params.clone())
             },
             |x| black_box(x).invert(),
             BatchSize::SmallInput,
@@ -36,8 +36,8 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("multiplication, BoxedUint*BoxedUint", |b| {
         b.iter_batched(
             || {
-                let x = BoxedResidue::new(BoxedUint::random(&mut OsRng, UINT_BITS), params.clone());
-                let y = BoxedResidue::new(BoxedUint::random(&mut OsRng, UINT_BITS), params.clone());
+                let x = BoxedMontyForm::new(BoxedUint::random(&mut OsRng, UINT_BITS), params.clone());
+                let y = BoxedMontyForm::new(BoxedUint::random(&mut OsRng, UINT_BITS), params.clone());
                 (x, y)
             },
             |(x, y)| black_box(x * y),
@@ -59,12 +59,12 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     });
 
     let m = BoxedUint::random(&mut OsRng, UINT_BITS) | BoxedUint::one_with_precision(UINT_BITS);
-    let params = BoxedResidueParams::new(m).unwrap();
+    let params = BoxedMontyFormParams::new(m).unwrap();
     group.bench_function("modpow, BoxedUint^BoxedUint", |b| {
         b.iter_batched(
             || {
                 let x = BoxedUint::random(&mut OsRng, UINT_BITS);
-                let x_m = BoxedResidue::new(x, params.clone());
+                let x_m = BoxedMontyForm::new(x, params.clone());
                 let p = BoxedUint::random(&mut OsRng, UINT_BITS)
                     | (BoxedUint::one_with_precision(UINT_BITS) << (UINT_BITS - 1));
                 (x_m, p)
@@ -92,41 +92,41 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
 }
 
 fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
-    group.bench_function("BoxedResidueParams::new", |b| {
+    group.bench_function("BoxedMontyFormParams::new", |b| {
         b.iter_batched(
             || BoxedUint::random(&mut OsRng, UINT_BITS) | BoxedUint::one_with_precision(UINT_BITS),
-            |modulus| black_box(BoxedResidueParams::new(modulus)),
+            |modulus| black_box(BoxedMontyFormParams::new(modulus)),
             BatchSize::SmallInput,
         )
     });
 
-    group.bench_function("BoxedResidueParams::new_vartime", |b| {
+    group.bench_function("BoxedMontyFormParams::new_vartime", |b| {
         b.iter_batched(
             || BoxedUint::random(&mut OsRng, UINT_BITS) | BoxedUint::one_with_precision(UINT_BITS),
-            |modulus| black_box(BoxedResidueParams::new_vartime(modulus)),
+            |modulus| black_box(BoxedMontyFormParams::new_vartime(modulus)),
             BatchSize::SmallInput,
         )
     });
 
-    let params = BoxedResidueParams::new(
+    let params = BoxedMontyFormParams::new(
         BoxedUint::random(&mut OsRng, UINT_BITS) | BoxedUint::one_with_precision(UINT_BITS),
     )
     .unwrap();
-    group.bench_function("BoxedResidue::new", |b| {
+    group.bench_function("BoxedMontyForm::new", |b| {
         b.iter_batched(
             || BoxedUint::random(&mut OsRng, UINT_BITS),
-            |x| black_box(BoxedResidue::new(x, params.clone())),
+            |x| black_box(BoxedMontyForm::new(x, params.clone())),
             BatchSize::SmallInput,
         )
     });
 
-    let params = BoxedResidueParams::new(
+    let params = BoxedMontyFormParams::new(
         BoxedUint::random(&mut OsRng, UINT_BITS) | BoxedUint::one_with_precision(UINT_BITS),
     )
     .unwrap();
-    group.bench_function("BoxedResidue::retrieve", |b| {
+    group.bench_function("BoxedMontyForm::retrieve", |b| {
         b.iter_batched(
-            || BoxedResidue::new(BoxedUint::random(&mut OsRng, UINT_BITS), params.clone()),
+            || BoxedMontyForm::new(BoxedUint::random(&mut OsRng, UINT_BITS), params.clone()),
             |x| black_box(x.retrieve()),
             BatchSize::SmallInput,
         )

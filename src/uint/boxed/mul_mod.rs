@@ -1,7 +1,7 @@
 //! [`BoxedUint`] modular multiplication operations.
 
 use crate::{
-    modular::{BoxedResidue, BoxedResidueParams},
+    modular::{BoxedMontyForm, BoxedMontyFormParams},
     primitives::mul_rem,
     BoxedUint, Limb, MulMod, WideWord, Word,
 };
@@ -18,10 +18,10 @@ impl BoxedUint {
         // Barrett reduction instead.
         //
         // It's worth potentially exploring other approaches to improve efficiency.
-        match Option::<BoxedResidueParams>::from(BoxedResidueParams::new(p.clone())) {
+        match Option::<BoxedMontyFormParams>::from(BoxedMontyFormParams::new(p.clone())) {
             Some(params) => {
-                let lhs = BoxedResidue::new(self.clone(), params.clone());
-                let rhs = BoxedResidue::new(rhs.clone(), params);
+                let lhs = BoxedMontyForm::new(self.clone(), params.clone());
+                let rhs = BoxedMontyForm::new(rhs.clone(), params);
                 let ret = lhs * rhs;
                 ret.retrieve()
             }

@@ -1,12 +1,12 @@
 //! Additions between residues with a constant modulus.
 
-use super::{Residue, ResidueParams};
+use super::{ConstMontyForm, ConstMontyFormParams};
 use crate::modular::add::add_montgomery_form;
 use core::ops::{Add, AddAssign};
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
     /// Adds `rhs`.
-    pub const fn add(&self, rhs: &Residue<MOD, LIMBS>) -> Self {
+    pub const fn add(&self, rhs: &ConstMontyForm<MOD, LIMBS>) -> Self {
         Self {
             montgomery_form: add_montgomery_form(
                 &self.montgomery_form,
@@ -18,51 +18,51 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Add<&Residue<MOD, LIMBS>>
-    for &Residue<MOD, LIMBS>
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Add<&ConstMontyForm<MOD, LIMBS>>
+    for &ConstMontyForm<MOD, LIMBS>
 {
-    type Output = Residue<MOD, LIMBS>;
-    fn add(self, rhs: &Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+    type Output = ConstMontyForm<MOD, LIMBS>;
+    fn add(self, rhs: &ConstMontyForm<MOD, LIMBS>) -> ConstMontyForm<MOD, LIMBS> {
         self.add(rhs)
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Add<Residue<MOD, LIMBS>>
-    for &Residue<MOD, LIMBS>
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Add<ConstMontyForm<MOD, LIMBS>>
+    for &ConstMontyForm<MOD, LIMBS>
 {
-    type Output = Residue<MOD, LIMBS>;
+    type Output = ConstMontyForm<MOD, LIMBS>;
     #[allow(clippy::op_ref)]
-    fn add(self, rhs: Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+    fn add(self, rhs: ConstMontyForm<MOD, LIMBS>) -> ConstMontyForm<MOD, LIMBS> {
         self + &rhs
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Add<&Residue<MOD, LIMBS>>
-    for Residue<MOD, LIMBS>
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Add<&ConstMontyForm<MOD, LIMBS>>
+    for ConstMontyForm<MOD, LIMBS>
 {
-    type Output = Residue<MOD, LIMBS>;
+    type Output = ConstMontyForm<MOD, LIMBS>;
     #[allow(clippy::op_ref)]
-    fn add(self, rhs: &Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+    fn add(self, rhs: &ConstMontyForm<MOD, LIMBS>) -> ConstMontyForm<MOD, LIMBS> {
         &self + rhs
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Add<Residue<MOD, LIMBS>>
-    for Residue<MOD, LIMBS>
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Add<ConstMontyForm<MOD, LIMBS>>
+    for ConstMontyForm<MOD, LIMBS>
 {
-    type Output = Residue<MOD, LIMBS>;
-    fn add(self, rhs: Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+    type Output = ConstMontyForm<MOD, LIMBS>;
+    fn add(self, rhs: ConstMontyForm<MOD, LIMBS>) -> ConstMontyForm<MOD, LIMBS> {
         &self + &rhs
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> AddAssign<&Self> for Residue<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> AddAssign<&Self> for ConstMontyForm<MOD, LIMBS> {
     fn add_assign(&mut self, rhs: &Self) {
         *self = *self + rhs;
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> AddAssign<Self> for Residue<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> AddAssign<Self> for ConstMontyForm<MOD, LIMBS> {
     fn add_assign(&mut self, rhs: Self) {
         *self += &rhs;
     }
@@ -70,7 +70,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> AddAssign<Self> for Residue<
 
 #[cfg(test)]
 mod tests {
-    use crate::{const_residue, impl_modulus, modular::residue::ResidueParams, U256};
+    use crate::{const_residue, impl_modulus, modular::residue::ConstMontyFormParams, U256};
 
     impl_modulus!(
         Modulus,

@@ -52,7 +52,7 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [[bench]]
-name = "boxed_residue"
+name = "boxed_monty"
 harness = false
 required-features = ["alloc"]
 
@@ -62,7 +62,7 @@ harness = false
 required-features = ["alloc"]
 
 [[bench]]
-name = "dyn_residue"
+name = "const_monty"
 harness = false
 
 [[bench]]
@@ -70,7 +70,7 @@ name = "limb"
 harness = false
 
 [[bench]]
-name = "residue"
+name = "monty"
 harness = false
 
 [[bench]]

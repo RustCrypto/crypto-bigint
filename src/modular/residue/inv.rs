@@ -1,14 +1,14 @@
 //! Multiplicative inverses of residues with a constant modulus.
 
-use super::{Residue, ResidueParams};
+use super::{ConstMontyForm, ConstMontyFormParams};
 use crate::{
     modular::BernsteinYangInverter, ConstCtOption, Invert, Inverter, PrecomputeInverter, Uint,
 };
 use core::{fmt, marker::PhantomData};
 use subtle::CtOption;
 
-impl<MOD: ResidueParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
-    Residue<MOD, SAT_LIMBS>
+impl<MOD: ConstMontyFormParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
+    ConstMontyForm<MOD, SAT_LIMBS>
 where
     Uint<SAT_LIMBS>: PrecomputeInverter<
         Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
@@ -36,8 +36,8 @@ where
     }
 }
 
-impl<MOD: ResidueParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Invert
-    for Residue<MOD, SAT_LIMBS>
+impl<MOD: ConstMontyFormParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Invert
+    for ConstMontyForm<MOD, SAT_LIMBS>
 where
     Uint<SAT_LIMBS>: PrecomputeInverter<
         Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
@@ -50,8 +50,8 @@ where
     }
 }
 
-/// Bernstein-Yang inverter which inverts [`Residue`] types.
-pub struct ResidueInverter<MOD: ResidueParams<LIMBS>, const LIMBS: usize>
+/// Bernstein-Yang inverter which inverts [`ConstMontyForm`] types.
+pub struct ConstMontyFormInverter<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize>
 where
     Uint<LIMBS>: PrecomputeInverter<Output = Uint<LIMBS>>,
 {
@@ -59,15 +59,15 @@ where
     phantom: PhantomData<MOD>,
 }
 
-impl<MOD: ResidueParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
-    ResidueInverter<MOD, SAT_LIMBS>
+impl<MOD: ConstMontyFormParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
+    ConstMontyFormInverter<MOD, SAT_LIMBS>
 where
     Uint<SAT_LIMBS>: PrecomputeInverter<
         Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
         Output = Uint<SAT_LIMBS>,
     >,
 {
-    /// Create a new [`ResidueInverter`] for the given [`ResidueParams`].
+    /// Create a new [`ConstMontyFormInverter`] for the given [`ConstMontyFormParams`].
     pub const fn new() -> Self {
         let inverter =
             BernsteinYangInverter::new(&MOD::MODULUS.0, &MOD::R2).expect("modulus should be valid");
@@ -82,11 +82,11 @@ where
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
     pub const fn inv(
         &self,
-        value: &Residue<MOD, SAT_LIMBS>,
-    ) -> ConstCtOption<Residue<MOD, SAT_LIMBS>> {
+        value: &ConstMontyForm<MOD, SAT_LIMBS>,
+    ) -> ConstCtOption<ConstMontyForm<MOD, SAT_LIMBS>> {
         let montgomery_form = self.inverter.inv(&value.montgomery_form);
         let (montgomery_form_ref, is_some) = montgomery_form.components_ref();
-        let ret = Residue {
+        let ret = ConstMontyForm {
             montgomery_form: *montgomery_form_ref,
             phantom: PhantomData,
         };
@@ -94,23 +94,23 @@ where
     }
 }
 
-impl<MOD: ResidueParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Inverter
-    for ResidueInverter<MOD, SAT_LIMBS>
+impl<MOD: ConstMontyFormParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Inverter
+    for ConstMontyFormInverter<MOD, SAT_LIMBS>
 where
     Uint<SAT_LIMBS>: PrecomputeInverter<
         Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
         Output = Uint<SAT_LIMBS>,
     >,
 {
-    type Output = Residue<MOD, SAT_LIMBS>;
+    type Output = ConstMontyForm<MOD, SAT_LIMBS>;
 
-    fn invert(&self, value: &Residue<MOD, SAT_LIMBS>) -> CtOption<Self::Output> {
+    fn invert(&self, value: &ConstMontyForm<MOD, SAT_LIMBS>) -> CtOption<Self::Output> {
         self.inv(value).into()
     }
 }
 
-impl<MOD: ResidueParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> fmt::Debug
-    for ResidueInverter<MOD, SAT_LIMBS>
+impl<MOD: ConstMontyFormParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> fmt::Debug
+    for ConstMontyFormInverter<MOD, SAT_LIMBS>
 where
     Uint<SAT_LIMBS>: PrecomputeInverter<
         Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
@@ -118,7 +118,7 @@ where
     >,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ResidueInverter")
+        f.debug_struct("ConstMontyFormInverter")
             .field("modulus", &self.inverter.modulus)
             .finish()
     }
@@ -126,7 +126,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::ResidueParams;
+    use super::ConstMontyFormParams;
     use crate::{const_residue, impl_modulus, Inverter, U256};
 
     impl_modulus!(

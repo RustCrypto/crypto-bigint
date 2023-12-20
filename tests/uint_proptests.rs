@@ -1,7 +1,7 @@
 //! Equivalence tests between `crypto_bigint::Uint` and `num_bigint::BigUint`.
 
 use crypto_bigint::{
-    modular::{DynResidue, DynResidueParams},
+    modular::{MontyForm, MontyFormParams},
     Encoding, Integer, Limb, NonZero, Word, U256,
 };
 use num_bigint::BigUint;
@@ -404,8 +404,8 @@ proptest! {
 
         let expected = to_uint(a_bi.modpow(&b_bi, &p_bi));
 
-        let params = DynResidueParams::new(&P).unwrap();
-        let a_m = DynResidue::new(&a, params);
+        let params = MontyFormParams::new(&P).unwrap();
+        let a_m = MontyForm::new(&a, params);
         let actual = a_m.pow(&b).retrieve();
 
         assert_eq!(expected, actual);
@@ -421,8 +421,8 @@ proptest! {
 
         let expected = to_uint(a_bi.modpow(&b_bi, &p_bi));
 
-        let params = DynResidueParams::new(&P).unwrap();
-        let a_m = DynResidue::new(&a, params);
+        let params = MontyFormParams::new(&P).unwrap();
+        let a_m = MontyForm::new(&a, params);
         let actual = a_m.pow_bounded_exp(&b, exponent_bits.into()).retrieve();
 
         assert_eq!(expected, actual);
@@ -442,8 +442,8 @@ proptest! {
         };
         let expected = to_uint(expected);
 
-        let params = DynResidueParams::new(&P).unwrap();
-        let a_m = DynResidue::new(&a, params);
+        let params = MontyFormParams::new(&P).unwrap();
+        let a_m = MontyForm::new(&a, params);
         let actual = a_m.div_by_2().retrieve();
 
         assert_eq!(expected, actual);

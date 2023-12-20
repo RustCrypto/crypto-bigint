@@ -8,14 +8,14 @@
 /// implements a 256-bit modulus named `MyModulus`.
 ///
 /// The modulus _must_ be odd, or this will panic.
-// TODO: Use `adt_const_params` once stabilized to make a `Residue` generic around a modulus rather
+// TODO: Use `adt_const_params` once stabilized to make a `ConstMontyForm` generic around a modulus rather
 // than having to implement a ZST + trait
 #[macro_export]
 macro_rules! impl_modulus {
     ($name:ident, $uint_type:ty, $value:expr) => {
         #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
         pub struct $name;
-        impl<const DLIMBS: usize> $crate::modular::ResidueParams<{ <$uint_type>::LIMBS }> for $name
+        impl<const DLIMBS: usize> $crate::modular::ConstMontyFormParams<{ <$uint_type>::LIMBS }> for $name
         where
             $uint_type: $crate::ConcatMixed<MixedOutput = $crate::Uint<DLIMBS>>,
         {
@@ -56,15 +56,15 @@ macro_rules! impl_modulus {
     };
 }
 
-/// Creates a `Residue` with the given value for a specific modulus.
+/// Creates a `ConstMontyForm` with the given value for a specific modulus.
 ///
-/// For example, `residue!(U256::from(105u64), MyModulus);` creates a `Residue` for 105 mod
+/// For example, `residue!(U256::from(105u64), MyModulus);` creates a `ConstMontyForm` for 105 mod
 /// `MyModulus`.
 ///
 /// The modulus _must_ be odd, or this will panic.
 #[macro_export]
 macro_rules! const_residue {
     ($variable:ident, $modulus:ident) => {
-        $crate::modular::Residue::<$modulus, { $modulus::LIMBS }>::new(&$variable)
+        $crate::modular::ConstMontyForm::<$modulus, { $modulus::LIMBS }>::new(&$variable)
     };
 }

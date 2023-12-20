@@ -1,13 +1,13 @@
 //! Multiplications between residues with a modulus set at runtime.
 
-use super::DynResidue;
+use super::MontyForm;
 use crate::{
     modular::mul::{mul_montgomery_form, square_montgomery_form},
     traits::Square,
 };
 use core::ops::{Mul, MulAssign};
 
-impl<const LIMBS: usize> DynResidue<LIMBS> {
+impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Multiplies by `rhs`.
     pub const fn mul(&self, rhs: &Self) -> Self {
         Self {
@@ -34,51 +34,51 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Mul<&DynResidue<LIMBS>> for &DynResidue<LIMBS> {
-    type Output = DynResidue<LIMBS>;
-    fn mul(self, rhs: &DynResidue<LIMBS>) -> DynResidue<LIMBS> {
+impl<const LIMBS: usize> Mul<&MontyForm<LIMBS>> for &MontyForm<LIMBS> {
+    type Output = MontyForm<LIMBS>;
+    fn mul(self, rhs: &MontyForm<LIMBS>) -> MontyForm<LIMBS> {
         debug_assert_eq!(self.residue_params, rhs.residue_params);
         self.mul(rhs)
     }
 }
 
-impl<const LIMBS: usize> Mul<DynResidue<LIMBS>> for &DynResidue<LIMBS> {
-    type Output = DynResidue<LIMBS>;
+impl<const LIMBS: usize> Mul<MontyForm<LIMBS>> for &MontyForm<LIMBS> {
+    type Output = MontyForm<LIMBS>;
     #[allow(clippy::op_ref)]
-    fn mul(self, rhs: DynResidue<LIMBS>) -> DynResidue<LIMBS> {
+    fn mul(self, rhs: MontyForm<LIMBS>) -> MontyForm<LIMBS> {
         self * &rhs
     }
 }
 
-impl<const LIMBS: usize> Mul<&DynResidue<LIMBS>> for DynResidue<LIMBS> {
-    type Output = DynResidue<LIMBS>;
+impl<const LIMBS: usize> Mul<&MontyForm<LIMBS>> for MontyForm<LIMBS> {
+    type Output = MontyForm<LIMBS>;
     #[allow(clippy::op_ref)]
-    fn mul(self, rhs: &DynResidue<LIMBS>) -> DynResidue<LIMBS> {
+    fn mul(self, rhs: &MontyForm<LIMBS>) -> MontyForm<LIMBS> {
         &self * rhs
     }
 }
 
-impl<const LIMBS: usize> Mul<DynResidue<LIMBS>> for DynResidue<LIMBS> {
-    type Output = DynResidue<LIMBS>;
-    fn mul(self, rhs: DynResidue<LIMBS>) -> DynResidue<LIMBS> {
+impl<const LIMBS: usize> Mul<MontyForm<LIMBS>> for MontyForm<LIMBS> {
+    type Output = MontyForm<LIMBS>;
+    fn mul(self, rhs: MontyForm<LIMBS>) -> MontyForm<LIMBS> {
         &self * &rhs
     }
 }
 
-impl<const LIMBS: usize> MulAssign<&DynResidue<LIMBS>> for DynResidue<LIMBS> {
-    fn mul_assign(&mut self, rhs: &DynResidue<LIMBS>) {
+impl<const LIMBS: usize> MulAssign<&MontyForm<LIMBS>> for MontyForm<LIMBS> {
+    fn mul_assign(&mut self, rhs: &MontyForm<LIMBS>) {
         *self = *self * rhs;
     }
 }
 
-impl<const LIMBS: usize> MulAssign<DynResidue<LIMBS>> for DynResidue<LIMBS> {
-    fn mul_assign(&mut self, rhs: DynResidue<LIMBS>) {
+impl<const LIMBS: usize> MulAssign<MontyForm<LIMBS>> for MontyForm<LIMBS> {
+    fn mul_assign(&mut self, rhs: MontyForm<LIMBS>) {
         *self *= &rhs;
     }
 }
 
-impl<const LIMBS: usize> Square for DynResidue<LIMBS> {
+impl<const LIMBS: usize> Square for MontyForm<LIMBS> {
     fn square(&self) -> Self {
-        DynResidue::square(self)
+        MontyForm::square(self)
     }
 }

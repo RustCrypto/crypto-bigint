@@ -1,4 +1,4 @@
-//! Implements `DynResidue`s, supporting modular arithmetic with a modulus set at runtime.
+//! Implements `MontyForm`s, supporting modular arithmetic with a modulus set at runtime.
 
 mod add;
 pub(super) mod inv;
@@ -10,7 +10,7 @@ mod sub;
 use super::{
     div_by_2::div_by_2,
     reduction::montgomery_reduction,
-    residue::{Residue, ResidueParams},
+    residue::{ConstMontyForm, ConstMontyFormParams},
     Retrieve,
 };
 use crate::{Limb, NonZero, Uint, Word, Zero};
@@ -18,7 +18,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct DynResidueParams<const LIMBS: usize> {
+pub struct MontyFormParams<const LIMBS: usize> {
     /// The constant modulus
     modulus: Uint<LIMBS>,
     /// Parameter used in Montgomery reduction
@@ -32,8 +32,8 @@ pub struct DynResidueParams<const LIMBS: usize> {
     mod_neg_inv: Limb,
 }
 
-impl<const LIMBS: usize> DynResidueParams<LIMBS> {
-    /// Instantiates a new set of `ResidueParams` representing the given `modulus` if it is odd.
+impl<const LIMBS: usize> MontyFormParams<LIMBS> {
+    /// Instantiates a new set of `ConstMontyFormParams` representing the given `modulus` if it is odd.
     ///
     /// Returns `None` if the provided modulus is not odd.
     pub fn new(modulus: &Uint<LIMBS>) -> CtOption<Self> {
@@ -73,10 +73,10 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
         &self.modulus
     }
 
-    /// Create `DynResidueParams` corresponding to a `ResidueParams`.
+    /// Create `MontyFormParams` corresponding to a `ConstMontyFormParams`.
     pub const fn from_residue_params<P>() -> Self
     where
-        P: ResidueParams<LIMBS>,
+        P: ConstMontyFormParams<LIMBS>,
     {
         Self {
             modulus: P::MODULUS.0,
@@ -88,7 +88,7 @@ impl<const LIMBS: usize> DynResidueParams<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> ConditionallySelectable for DynResidueParams<LIMBS> {
+impl<const LIMBS: usize> ConditionallySelectable for MontyFormParams<LIMBS> {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         Self {
             modulus: Uint::conditional_select(&a.modulus, &b.modulus, choice),
@@ -100,7 +100,7 @@ impl<const LIMBS: usize> ConditionallySelectable for DynResidueParams<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> ConstantTimeEq for DynResidueParams<LIMBS> {
+impl<const LIMBS: usize> ConstantTimeEq for MontyFormParams<LIMBS> {
     fn ct_eq(&self, other: &Self) -> Choice {
         self.modulus.ct_eq(&other.modulus)
             & self.r.ct_eq(&other.r)
@@ -112,14 +112,14 @@ impl<const LIMBS: usize> ConstantTimeEq for DynResidueParams<LIMBS> {
 
 /// A residue represented using `LIMBS` limbs. The odd modulus of this residue is set at runtime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct DynResidue<const LIMBS: usize> {
+pub struct MontyForm<const LIMBS: usize> {
     montgomery_form: Uint<LIMBS>,
-    residue_params: DynResidueParams<LIMBS>,
+    residue_params: MontyFormParams<LIMBS>,
 }
 
-impl<const LIMBS: usize> DynResidue<LIMBS> {
-    /// Instantiates a new `Residue` that represents this `integer` mod `MOD`.
-    pub const fn new(integer: &Uint<LIMBS>, residue_params: DynResidueParams<LIMBS>) -> Self {
+impl<const LIMBS: usize> MontyForm<LIMBS> {
+    /// Instantiates a new `ConstMontyForm` that represents this `integer` mod `MOD`.
+    pub const fn new(integer: &Uint<LIMBS>, residue_params: MontyFormParams<LIMBS>) -> Self {
         let product = integer.split_mul(&residue_params.r2);
         let montgomery_form = montgomery_reduction(
             &product,
@@ -133,7 +133,7 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
         }
     }
 
-    /// Retrieves the integer currently encoded in this `Residue`, guaranteed to be reduced.
+    /// Retrieves the integer currently encoded in this `ConstMontyForm`, guaranteed to be reduced.
     pub const fn retrieve(&self) -> Uint<LIMBS> {
         montgomery_reduction(
             &(self.montgomery_form, Uint::ZERO),
@@ -142,16 +142,16 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
         )
     }
 
-    /// Instantiates a new `Residue` that represents zero.
-    pub const fn zero(residue_params: DynResidueParams<LIMBS>) -> Self {
+    /// Instantiates a new `ConstMontyForm` that represents zero.
+    pub const fn zero(residue_params: MontyFormParams<LIMBS>) -> Self {
         Self {
             montgomery_form: Uint::<LIMBS>::ZERO,
             residue_params,
         }
     }
 
-    /// Instantiates a new `Residue` that represents 1.
-    pub const fn one(residue_params: DynResidueParams<LIMBS>) -> Self {
+    /// Instantiates a new `ConstMontyForm` that represents 1.
+    pub const fn one(residue_params: MontyFormParams<LIMBS>) -> Self {
         Self {
             montgomery_form: residue_params.r,
             residue_params,
@@ -159,24 +159,24 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
     }
 
     /// Returns the parameter struct used to initialize this residue.
-    pub const fn params(&self) -> &DynResidueParams<LIMBS> {
+    pub const fn params(&self) -> &MontyFormParams<LIMBS> {
         &self.residue_params
     }
 
-    /// Access the `DynResidue` value in Montgomery form.
+    /// Access the `MontyForm` value in Montgomery form.
     pub const fn as_montgomery(&self) -> &Uint<LIMBS> {
         &self.montgomery_form
     }
 
-    /// Mutably access the `DynResidue` value in Montgomery form.
+    /// Mutably access the `MontyForm` value in Montgomery form.
     pub fn as_montgomery_mut(&mut self) -> &mut Uint<LIMBS> {
         &mut self.montgomery_form
     }
 
-    /// Create a `DynResidue` from a value in Montgomery form.
+    /// Create a `MontyForm` from a value in Montgomery form.
     pub const fn from_montgomery(
         integer: Uint<LIMBS>,
-        residue_params: DynResidueParams<LIMBS>,
+        residue_params: MontyFormParams<LIMBS>,
     ) -> Self {
         Self {
             montgomery_form: integer,
@@ -184,7 +184,7 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
         }
     }
 
-    /// Extract the value from the `DynResidue` in Montgomery form.
+    /// Extract the value from the `MontyForm` in Montgomery form.
     pub const fn to_montgomery(&self) -> Uint<LIMBS> {
         self.montgomery_form
     }
@@ -202,23 +202,23 @@ impl<const LIMBS: usize> DynResidue<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Retrieve for DynResidue<LIMBS> {
+impl<const LIMBS: usize> Retrieve for MontyForm<LIMBS> {
     type Output = Uint<LIMBS>;
     fn retrieve(&self) -> Self::Output {
         self.retrieve()
     }
 }
 
-impl<const LIMBS: usize, P: ResidueParams<LIMBS>> From<&Residue<P, LIMBS>> for DynResidue<LIMBS> {
-    fn from(residue: &Residue<P, LIMBS>) -> Self {
+impl<const LIMBS: usize, P: ConstMontyFormParams<LIMBS>> From<&ConstMontyForm<P, LIMBS>> for MontyForm<LIMBS> {
+    fn from(residue: &ConstMontyForm<P, LIMBS>) -> Self {
         Self {
             montgomery_form: residue.to_montgomery(),
-            residue_params: DynResidueParams::from_residue_params::<P>(),
+            residue_params: MontyFormParams::from_residue_params::<P>(),
         }
     }
 }
 
-impl<const LIMBS: usize> ConditionallySelectable for DynResidue<LIMBS> {
+impl<const LIMBS: usize> ConditionallySelectable for MontyForm<LIMBS> {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         Self {
             montgomery_form: Uint::conditional_select(
@@ -226,7 +226,7 @@ impl<const LIMBS: usize> ConditionallySelectable for DynResidue<LIMBS> {
                 &b.montgomery_form,
                 choice,
             ),
-            residue_params: DynResidueParams::conditional_select(
+            residue_params: MontyFormParams::conditional_select(
                 &a.residue_params,
                 &b.residue_params,
                 choice,
@@ -235,7 +235,7 @@ impl<const LIMBS: usize> ConditionallySelectable for DynResidue<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> ConstantTimeEq for DynResidue<LIMBS> {
+impl<const LIMBS: usize> ConstantTimeEq for MontyForm<LIMBS> {
     fn ct_eq(&self, other: &Self) -> Choice {
         self.montgomery_form.ct_eq(&other.montgomery_form)
             & self.residue_params.ct_eq(&other.residue_params)
@@ -244,7 +244,7 @@ impl<const LIMBS: usize> ConstantTimeEq for DynResidue<LIMBS> {
 
 /// NOTE: this does _not_ zeroize the parameters, in order to maintain some form of type consistency
 #[cfg(feature = "zeroize")]
-impl<const LIMBS: usize> zeroize::Zeroize for DynResidue<LIMBS> {
+impl<const LIMBS: usize> zeroize::Zeroize for MontyForm<LIMBS> {
     fn zeroize(&mut self) {
         self.montgomery_form.zeroize()
     }
@@ -257,17 +257,17 @@ mod test {
     const LIMBS: usize = nlimbs!(64);
 
     #[test]
-    // Test that a valid modulus yields `DynResidueParams`
+    // Test that a valid modulus yields `MontyFormParams`
     fn test_valid_modulus() {
         let valid_modulus = Uint::<LIMBS>::from(3u8);
-        DynResidueParams::<LIMBS>::new(&valid_modulus).unwrap();
+        MontyFormParams::<LIMBS>::new(&valid_modulus).unwrap();
     }
 
     #[test]
-    // Test that an invalid checked modulus does not yield `DynResidueParams`
+    // Test that an invalid checked modulus does not yield `MontyFormParams`
     fn test_invalid_checked_modulus() {
         assert!(bool::from(
-            DynResidueParams::<LIMBS>::new(&Uint::from(2u8)).is_none()
+            MontyFormParams::<LIMBS>::new(&Uint::from(2u8)).is_none()
         ))
     }
 }

@@ -1,6 +1,6 @@
-//! Equivalence tests between `crypto_bigint::Residue` and `num-bigint`.
+//! Equivalence tests between `crypto_bigint::ConstMontyForm` and `num-bigint`.
 
-use crypto_bigint::{impl_modulus, modular::ResidueParams, Encoding, Invert, Inverter, U256};
+use crypto_bigint::{impl_modulus, modular::ConstMontyFormParams, Encoding, Invert, Inverter, U256};
 use num_bigint::{BigUint, ModInverse};
 use proptest::prelude::*;
 
@@ -10,18 +10,18 @@ impl_modulus!(
     "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"
 );
 
-type Residue = crypto_bigint::modular::Residue<Modulus, { U256::LIMBS }>;
+type ConstMontyForm = crypto_bigint::modular::ConstMontyForm<Modulus, { U256::LIMBS }>;
 
 fn to_biguint(uint: &U256) -> BigUint {
     BigUint::from_bytes_le(uint.to_le_bytes().as_ref())
 }
 
-fn retrieve_biguint(residue: &Residue) -> BigUint {
+fn retrieve_biguint(residue: &ConstMontyForm) -> BigUint {
     to_biguint(&residue.retrieve())
 }
 
-fn reduce(n: &U256) -> Residue {
-    Residue::new(&n)
+fn reduce(n: &U256) -> ConstMontyForm {
+    ConstMontyForm::new(&n)
 }
 
 prop_compose! {
@@ -31,7 +31,7 @@ prop_compose! {
 }
 prop_compose! {
     /// Generate a single residue.
-    fn residue()(a in uint()) -> Residue {
+    fn residue()(a in uint()) -> ConstMontyForm {
         reduce(&a)
     }
 }
@@ -40,7 +40,7 @@ proptest! {
     #[test]
     fn inv(x in uint()) {
         let x = reduce(&x);
-        let actual = Option::<Residue>::from(x.invert());
+        let actual = Option::<ConstMontyForm>::from(x.invert());
 
         let x_bi = retrieve_biguint(&x);
         let n_bi = to_biguint(&Modulus::MODULUS);
@@ -61,7 +61,7 @@ proptest! {
     fn precomputed_inv(x in uint()) {
         let x = reduce(&x);
         let inverter = Modulus::precompute_inverter();
-        let actual = Option::<Residue>::from(inverter.invert(&x));
+        let actual = Option::<ConstMontyForm>::from(inverter.invert(&x));
 
         let x_bi = retrieve_biguint(&x);
         let n_bi = to_biguint(&Modulus::MODULUS);

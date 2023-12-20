@@ -1,6 +1,6 @@
 //! Multiplicative inverses of residues with a modulus set at runtime.
 
-use super::{DynResidue, DynResidueParams};
+use super::{MontyForm, MontyFormParams};
 use crate::{
     modular::BernsteinYangInverter, traits::Invert, ConstCtOption, Inverter, PrecomputeInverter,
     PrecomputeInverterWithAdjuster, Uint,
@@ -8,7 +8,7 @@ use crate::{
 use core::fmt;
 use subtle::CtOption;
 
-impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> DynResidue<SAT_LIMBS>
+impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> MontyForm<SAT_LIMBS>
 where
     Uint<SAT_LIMBS>: PrecomputeInverter<
         Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
@@ -38,7 +38,7 @@ where
     }
 }
 
-impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Invert for DynResidue<SAT_LIMBS>
+impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Invert for MontyForm<SAT_LIMBS>
 where
     Uint<SAT_LIMBS>: PrecomputeInverter<
         Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
@@ -52,49 +52,49 @@ where
     }
 }
 
-impl<const LIMBS: usize> PrecomputeInverter for DynResidueParams<LIMBS>
+impl<const LIMBS: usize> PrecomputeInverter for MontyFormParams<LIMBS>
 where
     Uint<LIMBS>: PrecomputeInverter<Output = Uint<LIMBS>> + PrecomputeInverterWithAdjuster,
 {
-    type Inverter = DynResidueInverter<LIMBS>;
-    type Output = DynResidue<LIMBS>;
+    type Inverter = MontyFormInverter<LIMBS>;
+    type Output = MontyForm<LIMBS>;
 
-    fn precompute_inverter(&self) -> DynResidueInverter<LIMBS> {
-        DynResidueInverter {
+    fn precompute_inverter(&self) -> MontyFormInverter<LIMBS> {
+        MontyFormInverter {
             inverter: self.modulus.precompute_inverter_with_adjuster(&self.r2),
             residue_params: *self,
         }
     }
 }
 
-/// Bernstein-Yang inverter which inverts [`DynResidue`] types.
-pub struct DynResidueInverter<const LIMBS: usize>
+/// Bernstein-Yang inverter which inverts [`MontyForm`] types.
+pub struct MontyFormInverter<const LIMBS: usize>
 where
     Uint<LIMBS>: PrecomputeInverter<Output = Uint<LIMBS>>,
 {
     inverter: <Uint<LIMBS> as PrecomputeInverter>::Inverter,
-    residue_params: DynResidueParams<LIMBS>,
+    residue_params: MontyFormParams<LIMBS>,
 }
 
-impl<const LIMBS: usize> Inverter for DynResidueInverter<LIMBS>
+impl<const LIMBS: usize> Inverter for MontyFormInverter<LIMBS>
 where
     Uint<LIMBS>: PrecomputeInverter<Output = Uint<LIMBS>>,
 {
-    type Output = DynResidue<LIMBS>;
+    type Output = MontyForm<LIMBS>;
 
-    fn invert(&self, value: &DynResidue<LIMBS>) -> CtOption<Self::Output> {
+    fn invert(&self, value: &MontyForm<LIMBS>) -> CtOption<Self::Output> {
         debug_assert_eq!(self.residue_params, value.residue_params);
 
         self.inverter
             .invert(&value.montgomery_form)
-            .map(|montgomery_form| DynResidue {
+            .map(|montgomery_form| MontyForm {
                 montgomery_form,
                 residue_params: value.residue_params,
             })
     }
 }
 
-impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> fmt::Debug for DynResidueInverter<SAT_LIMBS>
+impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> fmt::Debug for MontyFormInverter<SAT_LIMBS>
 where
     Uint<SAT_LIMBS>: PrecomputeInverter<
         Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
@@ -102,7 +102,7 @@ where
     >,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("DynResidueInverter")
+        f.debug_struct("MontyFormInverter")
             .field("modulus", &self.inverter.modulus)
             .finish()
     }
@@ -110,11 +110,11 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{DynResidue, DynResidueParams};
+    use super::{MontyForm, MontyFormParams};
     use crate::{Invert, Inverter, PrecomputeInverter, U256};
 
-    fn residue_params() -> DynResidueParams<{ U256::LIMBS }> {
-        DynResidueParams::new(&U256::from_be_hex(
+    fn residue_params() -> MontyFormParams<{ U256::LIMBS }> {
+        MontyFormParams::new(&U256::from_be_hex(
             "15477BCCEFE197328255BFA79A1217899016D927EF460F4FF404029D24FA4409",
         ))
         .unwrap()
@@ -125,7 +125,7 @@ mod tests {
         let params = residue_params();
         let x =
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
-        let x_mod = DynResidue::new(&x, params);
+        let x_mod = MontyForm::new(&x, params);
 
         let inv = x_mod.invert().unwrap();
         let res = x_mod * inv;
@@ -138,7 +138,7 @@ mod tests {
         let params = residue_params();
         let x =
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
-        let x_mod = DynResidue::new(&x, params);
+        let x_mod = MontyForm::new(&x, params);
 
         let inverter = params.precompute_inverter();
         let inv = inverter.invert(&x_mod).unwrap();

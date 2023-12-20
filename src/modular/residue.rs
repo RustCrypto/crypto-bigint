@@ -1,4 +1,4 @@
-//! Implements `Residue`s, supporting modular arithmetic with a constant modulus.
+//! Implements `ConstMontyForm`s, supporting modular arithmetic with a constant modulus.
 
 mod add;
 pub(super) mod inv;
@@ -7,7 +7,7 @@ mod neg;
 mod pow;
 mod sub;
 
-use self::inv::ResidueInverter;
+use self::inv::ConstMontyFormInverter;
 use super::{div_by_2::div_by_2, reduction::montgomery_reduction, BernsteinYangInverter, Retrieve};
 use crate::{Limb, NonZero, PrecomputeInverter, Uint, ZeroConstant};
 use core::{fmt::Debug, marker::PhantomData};
@@ -32,7 +32,7 @@ mod macros;
 /// macro. These parameters are constant, so they cannot be set at runtime.
 ///
 /// Unfortunately, `LIMBS` must be generic for now until const generics are stabilized.
-pub trait ResidueParams<const LIMBS: usize>:
+pub trait ConstMontyFormParams<const LIMBS: usize>:
     Copy + Debug + Default + Eq + Send + Sync + 'static
 {
     /// Number of limbs required to encode a residue
@@ -52,15 +52,15 @@ pub trait ResidueParams<const LIMBS: usize>:
 
     /// Precompute a Bernstein-Yang inverter for this modulus.
     ///
-    /// Use [`ResidueInverter::new`] if you need `const fn` access.
-    fn precompute_inverter<const UNSAT_LIMBS: usize>() -> ResidueInverter<Self, LIMBS>
+    /// Use [`ConstMontyFormInverter::new`] if you need `const fn` access.
+    fn precompute_inverter<const UNSAT_LIMBS: usize>() -> ConstMontyFormInverter<Self, LIMBS>
     where
         Uint<LIMBS>: PrecomputeInverter<
             Inverter = BernsteinYangInverter<LIMBS, UNSAT_LIMBS>,
             Output = Uint<LIMBS>,
         >,
     {
-        ResidueInverter::new()
+        ConstMontyFormInverter::new()
     }
 }
 
@@ -69,18 +69,18 @@ pub trait ResidueParams<const LIMBS: usize>:
 ///
 /// Internally, the value is stored in Montgomery form (multiplied by MOD::R) until it is retrieved.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Residue<MOD: ResidueParams<LIMBS>, const LIMBS: usize> {
+pub struct ConstMontyForm<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> {
     montgomery_form: Uint<LIMBS>,
     phantom: PhantomData<MOD>,
 }
 
 #[cfg(feature = "zeroize")]
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> zeroize::DefaultIsZeroes
-    for Residue<MOD, LIMBS>
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> zeroize::DefaultIsZeroes
+    for ConstMontyForm<MOD, LIMBS>
 {
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
     /// The representation of 0 mod `MOD`.
     pub const ZERO: Self = Self {
         montgomery_form: Uint::<LIMBS>::ZERO,
@@ -105,12 +105,12 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
         }
     }
 
-    /// Instantiates a new [`Residue`] that represents this `integer` mod `MOD`.
+    /// Instantiates a new [`ConstMontyForm`] that represents this `integer` mod `MOD`.
     pub const fn new(integer: &Uint<LIMBS>) -> Self {
         Self::generate_residue(integer)
     }
 
-    /// Retrieves the integer currently encoded in this [`Residue`], guaranteed to be reduced.
+    /// Retrieves the integer currently encoded in this [`ConstMontyForm`], guaranteed to be reduced.
     pub const fn retrieve(&self) -> Uint<LIMBS> {
         montgomery_reduction::<LIMBS>(
             &(self.montgomery_form, Uint::ZERO),
@@ -119,17 +119,17 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
         )
     }
 
-    /// Access the `Residue` value in Montgomery form.
+    /// Access the `ConstMontyForm` value in Montgomery form.
     pub const fn as_montgomery(&self) -> &Uint<LIMBS> {
         &self.montgomery_form
     }
 
-    /// Mutably access the `Residue` value in Montgomery form.
+    /// Mutably access the `ConstMontyForm` value in Montgomery form.
     pub fn as_montgomery_mut(&mut self) -> &mut Uint<LIMBS> {
         &mut self.montgomery_form
     }
 
-    /// Create a `Residue` from a value in Montgomery form.
+    /// Create a `ConstMontyForm` from a value in Montgomery form.
     pub const fn from_montgomery(integer: Uint<LIMBS>) -> Self {
         Self {
             montgomery_form: integer,
@@ -137,7 +137,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
         }
     }
 
-    /// Extract the value from the `Residue` in Montgomery form.
+    /// Extract the value from the `ConstMontyForm` in Montgomery form.
     pub const fn to_montgomery(&self) -> Uint<LIMBS> {
         self.montgomery_form
     }
@@ -155,11 +155,11 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     }
 }
 
-impl<MOD: ResidueParams<LIMBS> + Copy, const LIMBS: usize> ConditionallySelectable
-    for Residue<MOD, LIMBS>
+impl<MOD: ConstMontyFormParams<LIMBS> + Copy, const LIMBS: usize> ConditionallySelectable
+    for ConstMontyForm<MOD, LIMBS>
 {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Residue {
+        ConstMontyForm {
             montgomery_form: Uint::conditional_select(
                 &a.montgomery_form,
                 &b.montgomery_form,
@@ -170,26 +170,26 @@ impl<MOD: ResidueParams<LIMBS> + Copy, const LIMBS: usize> ConditionallySelectab
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> ConstantTimeEq for Residue<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstantTimeEq for ConstMontyForm<MOD, LIMBS> {
     fn ct_eq(&self, other: &Self) -> Choice {
         ConstantTimeEq::ct_eq(&self.montgomery_form, &other.montgomery_form)
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Default for Residue<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Default for ConstMontyForm<MOD, LIMBS> {
     fn default() -> Self {
         Self::ZERO
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> ZeroConstant for Residue<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ZeroConstant for ConstMontyForm<MOD, LIMBS> {
     const ZERO: Self = Self::ZERO;
 }
 
 #[cfg(feature = "rand_core")]
-impl<MOD, const LIMBS: usize> Random for Residue<MOD, LIMBS>
+impl<MOD, const LIMBS: usize> Random for ConstMontyForm<MOD, LIMBS>
 where
-    MOD: ResidueParams<LIMBS>,
+    MOD: ConstMontyFormParams<LIMBS>,
 {
     #[inline]
     fn random(rng: &mut impl CryptoRngCore) -> Self {
@@ -197,7 +197,7 @@ where
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Retrieve for Residue<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Retrieve for ConstMontyForm<MOD, LIMBS> {
     type Output = Uint<LIMBS>;
     fn retrieve(&self) -> Self::Output {
         self.retrieve()
@@ -205,9 +205,9 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Retrieve for Residue<MOD, LI
 }
 
 #[cfg(feature = "serde")]
-impl<'de, MOD, const LIMBS: usize> Deserialize<'de> for Residue<MOD, LIMBS>
+impl<'de, MOD, const LIMBS: usize> Deserialize<'de> for ConstMontyForm<MOD, LIMBS>
 where
-    MOD: ResidueParams<LIMBS>,
+    MOD: ConstMontyFormParams<LIMBS>,
     Uint<LIMBS>: Encoding,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -228,9 +228,9 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<MOD, const LIMBS: usize> Serialize for Residue<MOD, LIMBS>
+impl<MOD, const LIMBS: usize> Serialize for ConstMontyForm<MOD, LIMBS>
 where
-    MOD: ResidueParams<LIMBS>,
+    MOD: ConstMontyFormParams<LIMBS>,
     Uint<LIMBS>: Encoding,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

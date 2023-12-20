@@ -1,9 +1,9 @@
-//! Equivalence tests between `crypto_bigint::BoxedResidue` and `num-bigint`.
+//! Equivalence tests between `crypto_bigint::BoxedMontyForm` and `num-bigint`.
 
 #![cfg(feature = "alloc")]
 
 use crypto_bigint::{
-    modular::{BoxedResidue, BoxedResidueParams},
+    modular::{BoxedMontyForm, BoxedMontyFormParams},
     BoxedUint, Integer, Limb, NonZero,
 };
 use num_bigint::{BigUint, ModInverse};
@@ -14,11 +14,11 @@ fn to_biguint(uint: &BoxedUint) -> BigUint {
     BigUint::from_bytes_be(&uint.to_be_bytes())
 }
 
-fn retrieve_biguint(residue: &BoxedResidue) -> BigUint {
+fn retrieve_biguint(residue: &BoxedMontyForm) -> BigUint {
     to_biguint(&residue.retrieve())
 }
 
-fn reduce(n: &BoxedUint, p: BoxedResidueParams) -> BoxedResidue {
+fn reduce(n: &BoxedUint, p: BoxedMontyFormParams) -> BoxedMontyForm {
     let bits_precision = p.modulus().bits_precision();
     let modulus = NonZero::new(p.modulus().clone()).unwrap();
 
@@ -29,7 +29,7 @@ fn reduce(n: &BoxedUint, p: BoxedResidueParams) -> BoxedResidue {
     };
 
     let n_reduced = n.rem_vartime(&modulus).widen(p.bits_precision());
-    BoxedResidue::new(n_reduced, p)
+    BoxedMontyForm::new(n_reduced, p)
 }
 
 prop_compose! {
@@ -43,23 +43,23 @@ prop_compose! {
 }
 prop_compose! {
     /// Generate a random odd modulus.
-    fn modulus()(mut n in uint()) -> BoxedResidueParams {
+    fn modulus()(mut n in uint()) -> BoxedMontyFormParams {
         if n.is_even().into() {
             n = n.wrapping_add(&BoxedUint::one());
         }
 
-        BoxedResidueParams::new(n).expect("modulus should be valid")
+        BoxedMontyFormParams::new(n).expect("modulus should be valid")
     }
 }
 prop_compose! {
     /// Generate a single residue.
-    fn residue()(a in uint(), n in modulus()) -> BoxedResidue {
+    fn residue()(a in uint(), n in modulus()) -> BoxedMontyForm {
         reduce(&a, n.clone())
     }
 }
 prop_compose! {
     /// Generate two residues with a common modulus.
-    fn residue_pair()(a in uint(), b in uint(), n in modulus()) -> (BoxedResidue, BoxedResidue) {
+    fn residue_pair()(a in uint(), b in uint(), n in modulus()) -> (BoxedMontyForm, BoxedMontyForm) {
         (reduce(&a, n.clone()), reduce(&b, n.clone()))
     }
 }
@@ -71,15 +71,15 @@ proptest! {
             n = n.wrapping_add(&BoxedUint::one());
         }
 
-        let params1 = BoxedResidueParams::new(n.clone()).unwrap();
-        let params2 = BoxedResidueParams::new_vartime(n).unwrap();
+        let params1 = BoxedMontyFormParams::new(n.clone()).unwrap();
+        let params2 = BoxedMontyFormParams::new_vartime(n).unwrap();
         prop_assert_eq!(params1, params2);
     }
 
     #[test]
     fn inv(x in uint(), n in modulus()) {
         let x = reduce(&x, n.clone());
-        let actual = Option::<BoxedResidue>::from(x.invert()).map(|a| a.retrieve());
+        let actual = Option::<BoxedMontyForm>::from(x.invert()).map(|a| a.retrieve());
 
         let x_bi = retrieve_biguint(&x);
         let n_bi = to_biguint(n.modulus());

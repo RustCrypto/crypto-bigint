@@ -5,7 +5,7 @@
 //!
 //! Originally (c) 2014 The Rust Project Developers, dual licensed Apache 2.0+MIT.
 
-use super::{BoxedResidue, BoxedResidueParams};
+use super::{BoxedMontyForm, BoxedMontyFormParams};
 use crate::{
     modular::reduction::montgomery_reduction_boxed_mut, traits::Square, uint::mul::mul_limbs,
     BoxedUint, Limb, Word, Zero,
@@ -19,7 +19,7 @@ use subtle::{ConditionallySelectable, ConstantTimeLess};
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
 
-impl BoxedResidue {
+impl BoxedMontyForm {
     /// Multiplies by `rhs`.
     pub fn mul(&self, rhs: &Self) -> Self {
         debug_assert_eq!(&self.residue_params, &rhs.residue_params);
@@ -44,58 +44,58 @@ impl BoxedResidue {
     }
 }
 
-impl Mul<&BoxedResidue> for &BoxedResidue {
-    type Output = BoxedResidue;
-    fn mul(self, rhs: &BoxedResidue) -> BoxedResidue {
+impl Mul<&BoxedMontyForm> for &BoxedMontyForm {
+    type Output = BoxedMontyForm;
+    fn mul(self, rhs: &BoxedMontyForm) -> BoxedMontyForm {
         self.mul(rhs)
     }
 }
 
-impl Mul<BoxedResidue> for &BoxedResidue {
-    type Output = BoxedResidue;
+impl Mul<BoxedMontyForm> for &BoxedMontyForm {
+    type Output = BoxedMontyForm;
     #[allow(clippy::op_ref)]
-    fn mul(self, rhs: BoxedResidue) -> BoxedResidue {
+    fn mul(self, rhs: BoxedMontyForm) -> BoxedMontyForm {
         self * &rhs
     }
 }
 
-impl Mul<&BoxedResidue> for BoxedResidue {
-    type Output = BoxedResidue;
+impl Mul<&BoxedMontyForm> for BoxedMontyForm {
+    type Output = BoxedMontyForm;
     #[allow(clippy::op_ref)]
-    fn mul(self, rhs: &BoxedResidue) -> BoxedResidue {
+    fn mul(self, rhs: &BoxedMontyForm) -> BoxedMontyForm {
         &self * rhs
     }
 }
 
-impl Mul<BoxedResidue> for BoxedResidue {
-    type Output = BoxedResidue;
-    fn mul(self, rhs: BoxedResidue) -> BoxedResidue {
+impl Mul<BoxedMontyForm> for BoxedMontyForm {
+    type Output = BoxedMontyForm;
+    fn mul(self, rhs: BoxedMontyForm) -> BoxedMontyForm {
         &self * &rhs
     }
 }
 
-impl MulAssign<BoxedResidue> for BoxedResidue {
-    fn mul_assign(&mut self, rhs: BoxedResidue) {
+impl MulAssign<BoxedMontyForm> for BoxedMontyForm {
+    fn mul_assign(&mut self, rhs: BoxedMontyForm) {
         Self::mul_assign(self, &rhs)
     }
 }
 
-impl MulAssign<&BoxedResidue> for BoxedResidue {
-    fn mul_assign(&mut self, rhs: &BoxedResidue) {
+impl MulAssign<&BoxedMontyForm> for BoxedMontyForm {
+    fn mul_assign(&mut self, rhs: &BoxedMontyForm) {
         debug_assert_eq!(&self.residue_params, &rhs.residue_params);
         MontgomeryMultiplier::from(self.residue_params.borrow())
             .mul_assign(&mut self.montgomery_form, &rhs.montgomery_form);
     }
 }
 
-impl Square for BoxedResidue {
+impl Square for BoxedMontyForm {
     fn square(&self) -> Self {
-        BoxedResidue::square(self)
+        BoxedMontyForm::square(self)
     }
 }
 
-impl<'a> From<&'a BoxedResidueParams> for MontgomeryMultiplier<'a> {
-    fn from(residue_params: &'a BoxedResidueParams) -> MontgomeryMultiplier<'a> {
+impl<'a> From<&'a BoxedMontyFormParams> for MontgomeryMultiplier<'a> {
+    fn from(residue_params: &'a BoxedMontyFormParams) -> MontgomeryMultiplier<'a> {
         MontgomeryMultiplier::new(&residue_params.modulus, residue_params.mod_neg_inv)
     }
 }
@@ -245,7 +245,7 @@ impl Drop for MontgomeryMultiplier<'_> {
 /// Output is written into the lower (i.e. first) half of `z`.
 ///
 /// Note: this was adapted from an implementation in `num-bigint`'s `monty.rs`.
-// TODO(tarcieri): refactor into `reduction.rs`, share impl with `(Dyn)Residue`?
+// TODO(tarcieri): refactor into `reduction.rs`, share impl with `(Dyn)ConstMontyForm`?
 fn almost_montgomery_mul(z: &mut [Limb], x: &[Limb], y: &[Limb], m: &[Limb], k: Limb) {
     // This code assumes x, y, m are all the same length (required by addMulVVW and the for loop).
     // It also assumes that x, y are already reduced mod m, or else the result will not be properly
@@ -306,7 +306,7 @@ fn sub_vv(z: &mut [Limb], x: &[Limb], y: &[Limb]) {
 
 #[cfg(test)]
 mod tests {
-    use super::{BoxedResidue, BoxedResidueParams, BoxedUint};
+    use super::{BoxedMontyForm, BoxedMontyFormParams, BoxedUint};
 
     /// Regression test for RustCrypto/crypto-bigint#441
     #[test]
@@ -315,8 +315,8 @@ mod tests {
         let modulus = 0xB44677037A7DBDE04814256570DCBD8Du128;
 
         let boxed_modulus = BoxedUint::from(modulus);
-        let boxed_params = BoxedResidueParams::new(boxed_modulus).unwrap();
-        let boxed_residue = BoxedResidue::new(BoxedUint::from(residue), boxed_params);
+        let boxed_params = BoxedMontyFormParams::new(boxed_modulus).unwrap();
+        let boxed_residue = BoxedMontyForm::new(BoxedUint::from(residue), boxed_params);
         let boxed_square = boxed_residue.square();
 
         // TODO(tarcieri): test for correct output

@@ -10,9 +10,9 @@ use crate::{
     traits::Square,
 };
 
-use super::{Residue, ResidueParams};
+use super::{ConstMontyForm, ConstMontyFormParams};
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
     /// Multiplies by `rhs`.
     pub const fn mul(&self, rhs: &Self) -> Self {
         Self {
@@ -39,58 +39,58 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Mul<&Residue<MOD, LIMBS>>
-    for &Residue<MOD, LIMBS>
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Mul<&ConstMontyForm<MOD, LIMBS>>
+    for &ConstMontyForm<MOD, LIMBS>
 {
-    type Output = Residue<MOD, LIMBS>;
-    fn mul(self, rhs: &Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+    type Output = ConstMontyForm<MOD, LIMBS>;
+    fn mul(self, rhs: &ConstMontyForm<MOD, LIMBS>) -> ConstMontyForm<MOD, LIMBS> {
         self.mul(rhs)
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Mul<Residue<MOD, LIMBS>>
-    for &Residue<MOD, LIMBS>
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Mul<ConstMontyForm<MOD, LIMBS>>
+    for &ConstMontyForm<MOD, LIMBS>
 {
-    type Output = Residue<MOD, LIMBS>;
+    type Output = ConstMontyForm<MOD, LIMBS>;
     #[allow(clippy::op_ref)]
-    fn mul(self, rhs: Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+    fn mul(self, rhs: ConstMontyForm<MOD, LIMBS>) -> ConstMontyForm<MOD, LIMBS> {
         self * &rhs
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Mul<&Residue<MOD, LIMBS>>
-    for Residue<MOD, LIMBS>
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Mul<&ConstMontyForm<MOD, LIMBS>>
+    for ConstMontyForm<MOD, LIMBS>
 {
-    type Output = Residue<MOD, LIMBS>;
+    type Output = ConstMontyForm<MOD, LIMBS>;
     #[allow(clippy::op_ref)]
-    fn mul(self, rhs: &Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+    fn mul(self, rhs: &ConstMontyForm<MOD, LIMBS>) -> ConstMontyForm<MOD, LIMBS> {
         &self * rhs
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Mul<Residue<MOD, LIMBS>>
-    for Residue<MOD, LIMBS>
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Mul<ConstMontyForm<MOD, LIMBS>>
+    for ConstMontyForm<MOD, LIMBS>
 {
-    type Output = Residue<MOD, LIMBS>;
-    fn mul(self, rhs: Residue<MOD, LIMBS>) -> Residue<MOD, LIMBS> {
+    type Output = ConstMontyForm<MOD, LIMBS>;
+    fn mul(self, rhs: ConstMontyForm<MOD, LIMBS>) -> ConstMontyForm<MOD, LIMBS> {
         &self * &rhs
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> MulAssign<&Self> for Residue<MOD, LIMBS> {
-    fn mul_assign(&mut self, rhs: &Residue<MOD, LIMBS>) {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> MulAssign<&Self> for ConstMontyForm<MOD, LIMBS> {
+    fn mul_assign(&mut self, rhs: &ConstMontyForm<MOD, LIMBS>) {
         *self = *self * rhs;
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> MulAssign<Self> for Residue<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> MulAssign<Self> for ConstMontyForm<MOD, LIMBS> {
     fn mul_assign(&mut self, rhs: Self) {
         *self *= &rhs;
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Square for Residue<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> Square for ConstMontyForm<MOD, LIMBS> {
     fn square(&self) -> Self {
-        Residue::square(self)
+        ConstMontyForm::square(self)
     }
 }

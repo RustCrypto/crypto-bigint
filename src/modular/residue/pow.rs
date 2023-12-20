@@ -1,6 +1,6 @@
 //! Exponentiation of residues with a constant modulus.
 
-use super::{Residue, ResidueParams};
+use super::{ConstMontyForm, ConstMontyFormParams};
 use crate::{
     modular::pow::{multi_exponentiate_montgomery_form_array, pow_montgomery_form},
     MultiExponentiateBoundedExp, PowBoundedExp, Uint,
@@ -9,12 +9,12 @@ use crate::{
 #[cfg(feature = "alloc")]
 use {crate::modular::pow::multi_exponentiate_montgomery_form_slice, alloc::vec::Vec};
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
     /// Raises to the `exponent` power.
     pub const fn pow<const RHS_LIMBS: usize>(
         &self,
         exponent: &Uint<RHS_LIMBS>,
-    ) -> Residue<MOD, LIMBS> {
+    ) -> ConstMontyForm<MOD, LIMBS> {
         self.pow_bounded_exp(exponent, Uint::<RHS_LIMBS>::BITS)
     }
 
@@ -27,7 +27,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
         &self,
         exponent: &Uint<RHS_LIMBS>,
         exponent_bits: u32,
-    ) -> Residue<MOD, LIMBS> {
+    ) -> ConstMontyForm<MOD, LIMBS> {
         Self {
             montgomery_form: pow_montgomery_form(
                 &self.montgomery_form,
@@ -42,17 +42,17 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize> Residue<MOD, LIMBS> {
     }
 }
 
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize, const RHS_LIMBS: usize>
-    PowBoundedExp<Uint<RHS_LIMBS>> for Residue<MOD, LIMBS>
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize, const RHS_LIMBS: usize>
+    PowBoundedExp<Uint<RHS_LIMBS>> for ConstMontyForm<MOD, LIMBS>
 {
     fn pow_bounded_exp(&self, exponent: &Uint<RHS_LIMBS>, exponent_bits: u32) -> Self {
         self.pow_bounded_exp(exponent, exponent_bits)
     }
 }
 
-impl<const N: usize, MOD: ResidueParams<LIMBS>, const LIMBS: usize, const RHS_LIMBS: usize>
+impl<const N: usize, MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize, const RHS_LIMBS: usize>
     MultiExponentiateBoundedExp<Uint<RHS_LIMBS>, [(Self, Uint<RHS_LIMBS>); N]>
-    for Residue<MOD, LIMBS>
+    for ConstMontyForm<MOD, LIMBS>
 {
     fn multi_exponentiate_bounded_exp(
         bases_and_exponents: &[(Self, Uint<RHS_LIMBS>); N],
@@ -82,9 +82,9 @@ impl<const N: usize, MOD: ResidueParams<LIMBS>, const LIMBS: usize, const RHS_LI
 }
 
 #[cfg(feature = "alloc")]
-impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize, const RHS_LIMBS: usize>
+impl<MOD: ConstMontyFormParams<LIMBS>, const LIMBS: usize, const RHS_LIMBS: usize>
     MultiExponentiateBoundedExp<Uint<RHS_LIMBS>, [(Self, Uint<RHS_LIMBS>)]>
-    for Residue<MOD, LIMBS>
+    for ConstMontyForm<MOD, LIMBS>
 {
     fn multi_exponentiate_bounded_exp(
         bases_and_exponents: &[(Self, Uint<RHS_LIMBS>)],
@@ -110,7 +110,7 @@ impl<MOD: ResidueParams<LIMBS>, const LIMBS: usize, const RHS_LIMBS: usize>
 #[cfg(test)]
 mod tests {
     use crate::traits::MultiExponentiate;
-    use crate::{const_residue, impl_modulus, modular::residue::ResidueParams, U256};
+    use crate::{const_residue, impl_modulus, modular::residue::ConstMontyFormParams, U256};
 
     impl_modulus!(
         Modulus,
@@ -171,7 +171,7 @@ mod tests {
 
         let exponent = U256::from(33u8);
         let bases_and_exponents = [(base_mod, exponent)];
-        let res = crate::modular::residue::Residue::<Modulus, { U256::LIMBS }>::multi_exponentiate(
+        let res = crate::modular::residue::ConstMontyForm::<Modulus, { U256::LIMBS }>::multi_exponentiate(
             &bases_and_exponents,
         );
 
@@ -189,7 +189,7 @@ mod tests {
 
         let expected = base_mod.pow(&exponent) * base2_mod.pow(&exponent2);
         let bases_and_exponents = [(base_mod, exponent), (base2_mod, exponent2)];
-        let res = crate::modular::residue::Residue::<Modulus, { U256::LIMBS }>::multi_exponentiate(
+        let res = crate::modular::residue::ConstMontyForm::<Modulus, { U256::LIMBS }>::multi_exponentiate(
             &bases_and_exponents,
         );
 
@@ -204,7 +204,7 @@ mod tests {
 
         let exponent = U256::from(33u8);
         let bases_and_exponents = vec![(base_mod, exponent)];
-        let res = crate::modular::residue::Residue::<Modulus, { U256::LIMBS }>::multi_exponentiate(
+        let res = crate::modular::residue::ConstMontyForm::<Modulus, { U256::LIMBS }>::multi_exponentiate(
             bases_and_exponents.as_slice(),
         );
 
@@ -222,7 +222,7 @@ mod tests {
 
         let expected = base_mod.pow(&exponent) * base2_mod.pow(&exponent2);
         let bases_and_exponents = vec![(base_mod, exponent), (base2_mod, exponent2)];
-        let res = crate::modular::residue::Residue::<Modulus, { U256::LIMBS }>::multi_exponentiate(
+        let res = crate::modular::residue::ConstMontyForm::<Modulus, { U256::LIMBS }>::multi_exponentiate(
             bases_and_exponents.as_slice(),
         );
 
