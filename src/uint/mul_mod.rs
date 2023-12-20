@@ -1,7 +1,7 @@
 //! [`Uint`] modular multiplication operations.
 
 use crate::{
-    modular::{DynResidue, DynResidueParams},
+    modular::{MontyForm, MontyParams},
     primitives::mul_rem,
     Limb, MulMod, Uint, WideWord, Word,
 };
@@ -18,10 +18,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Barrett reduction instead.
         //
         // It's worth potentially exploring other approaches to improve efficiency.
-        match DynResidueParams::new(p).into() {
+        match MontyParams::new(p).into() {
             Some(params) => {
-                let lhs = DynResidue::new(self, params);
-                let rhs = DynResidue::new(rhs, params);
+                let lhs = MontyForm::new(self, params);
+                let rhs = MontyForm::new(rhs, params);
                 let ret = lhs * rhs;
                 ret.retrieve()
             }

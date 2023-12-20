@@ -1,7 +1,7 @@
 //! Equivalence tests between `crypto_bigint::Uint` and `num_bigint::BigUint`.
 
 use crypto_bigint::{
-    modular::{DynResidue, DynResidueParams},
+    modular::{MontyForm, MontyParams},
     Encoding, Integer, Limb, NonZero, Word, U256,
 };
 use num_bigint::BigUint;
@@ -397,22 +397,22 @@ proptest! {
     }
 
     #[test]
-    fn residue_pow(a in uint_mod_p(P), b in uint()) {
+    fn monty_form_pow(a in uint_mod_p(P), b in uint()) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
         let p_bi = to_biguint(&P);
 
         let expected = to_uint(a_bi.modpow(&b_bi, &p_bi));
 
-        let params = DynResidueParams::new(&P).unwrap();
-        let a_m = DynResidue::new(&a, params);
+        let params = MontyParams::new(&P).unwrap();
+        let a_m = MontyForm::new(&a, params);
         let actual = a_m.pow(&b).retrieve();
 
         assert_eq!(expected, actual);
     }
 
     #[test]
-    fn residue_pow_bounded_exp(a in uint_mod_p(P), b in uint(), exponent_bits in any::<u8>()) {
+    fn monty_form_pow_bounded_exp(a in uint_mod_p(P), b in uint(), exponent_bits in any::<u8>()) {
         let b_masked = b & (U256::ONE << exponent_bits as u32).wrapping_sub(&U256::ONE);
 
         let a_bi = to_biguint(&a);
@@ -421,15 +421,15 @@ proptest! {
 
         let expected = to_uint(a_bi.modpow(&b_bi, &p_bi));
 
-        let params = DynResidueParams::new(&P).unwrap();
-        let a_m = DynResidue::new(&a, params);
+        let params = MontyParams::new(&P).unwrap();
+        let a_m = MontyForm::new(&a, params);
         let actual = a_m.pow_bounded_exp(&b, exponent_bits.into()).retrieve();
 
         assert_eq!(expected, actual);
     }
 
     #[test]
-    fn residue_div_by_2(a in uint_mod_p(P)) {
+    fn monty_form_div_by_2(a in uint_mod_p(P)) {
         let a_bi = to_biguint(&a);
         let p_bi = to_biguint(&P);
         let two = BigUint::from(2u32);
@@ -442,8 +442,8 @@ proptest! {
         };
         let expected = to_uint(expected);
 
-        let params = DynResidueParams::new(&P).unwrap();
-        let a_m = DynResidue::new(&a, params);
+        let params = MontyParams::new(&P).unwrap();
+        let a_m = MontyForm::new(&a, params);
         let actual = a_m.div_by_2().retrieve();
 
         assert_eq!(expected, actual);
