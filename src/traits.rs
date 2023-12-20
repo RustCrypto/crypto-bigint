@@ -143,7 +143,7 @@ pub trait Integer:
 {
     /// The corresponding Montgomery representation,
     /// optimized for the performance of modular operations at the price of a conversion overhead.
-    type MontyForm: MontyFormLike<Integer = Self>;
+    type Monty: Monty<Integer = Self>;
 
     /// The value `1`.
     fn one() -> Self;
@@ -521,7 +521,7 @@ pub trait WideningMul<Rhs = Self>: Sized {
 }
 
 /// A representation of an integer optimized for the performance of modular operations.
-pub trait MontyFormLike:
+pub trait Monty:
     'static
     + Clone
     + Debug
@@ -547,7 +547,7 @@ pub trait MontyFormLike:
     + SquareAssign
 {
     /// The original integer type.
-    type Integer: Integer<MontyForm = Self>;
+    type Integer: Integer<Monty = Self>;
 
     /// The precomputed data needed for this representation.
     type Params: Clone;

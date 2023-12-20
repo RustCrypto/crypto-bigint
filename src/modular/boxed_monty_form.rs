@@ -12,7 +12,7 @@ use super::{
     reduction::{montgomery_reduction_boxed, montgomery_reduction_boxed_mut},
     Retrieve,
 };
-use crate::{BoxedUint, ConstantTimeSelect, Integer, Limb, MontyFormLike, NonZero, Word};
+use crate::{BoxedUint, ConstantTimeSelect, Integer, Limb, Monty, NonZero, Word};
 use subtle::CtOption;
 
 #[cfg(feature = "std")]
@@ -251,7 +251,7 @@ impl Retrieve for BoxedMontyForm {
     }
 }
 
-impl MontyFormLike for BoxedMontyForm {
+impl Monty for BoxedMontyForm {
     type Integer = BoxedUint;
     type Params = BoxedMontyParams;
 

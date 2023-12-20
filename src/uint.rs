@@ -236,7 +236,7 @@ impl<const LIMBS: usize> FixedInteger for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> Integer for Uint<LIMBS> {
-    type MontyForm = MontyForm<LIMBS>;
+    type Monty = MontyForm<LIMBS>;
 
     fn one() -> Self {
         Self::ONE

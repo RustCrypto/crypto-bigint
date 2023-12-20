@@ -13,7 +13,7 @@ use super::{
     reduction::montgomery_reduction,
     Retrieve,
 };
-use crate::{Limb, MontyFormLike, NonZero, Uint, Word, Zero};
+use crate::{Limb, Monty, NonZero, Uint, Word, Zero};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
@@ -208,7 +208,7 @@ impl<const LIMBS: usize> Retrieve for MontyForm<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> MontyFormLike for MontyForm<LIMBS> {
+impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
     type Integer = Uint<LIMBS>;
     type Params = MontyParams<LIMBS>;
 

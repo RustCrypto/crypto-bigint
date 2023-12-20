@@ -284,7 +284,7 @@ impl Default for BoxedUint {
 }
 
 impl Integer for BoxedUint {
-    type MontyForm = BoxedMontyForm;
+    type Monty = BoxedMontyForm;
 
     fn one() -> Self {
         Self::one()
