@@ -23,8 +23,7 @@ where
         let inverter = <Uint<SAT_LIMBS> as PrecomputeInverter>::Inverter::new(
             &self.params.modulus,
             &self.params.r2,
-        )
-        .expect("modulus should be valid");
+        );
 
         let maybe_inverse = inverter.inv(&self.montgomery_form);
         let (inverse, inverse_is_some) = maybe_inverse.components_ref();

@@ -14,7 +14,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
             montgomery_form: mul_montgomery_form(
                 &self.montgomery_form,
                 &rhs.montgomery_form,
-                &self.params.modulus,
+                &self.params.modulus.0,
                 self.params.mod_neg_inv,
             ),
             params: self.params,
@@ -26,7 +26,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
         Self {
             montgomery_form: square_montgomery_form(
                 &self.montgomery_form,
-                &self.params.modulus,
+                &self.params.modulus.0,
                 self.params.mod_neg_inv,
             ),
             params: self.params,

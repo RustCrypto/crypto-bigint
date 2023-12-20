@@ -9,7 +9,7 @@ mod sub;
 
 use self::inv::ConstMontyFormInverter;
 use super::{div_by_2::div_by_2, reduction::montgomery_reduction, BernsteinYangInverter, Retrieve};
-use crate::{Limb, NonZero, PrecomputeInverter, Uint, ZeroConstant};
+use crate::{Limb, Odd, PrecomputeInverter, Uint, ZeroConstant};
 use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
@@ -39,7 +39,7 @@ pub trait ConstMontyParams<const LIMBS: usize>:
     const LIMBS: usize;
 
     /// The constant modulus
-    const MODULUS: NonZero<Uint<LIMBS>>;
+    const MODULUS: Odd<Uint<LIMBS>>;
     /// 1 in Montgomery form
     const ONE: Uint<LIMBS>;
     /// `R^2 mod MODULUS`, used to move into Montgomery form
@@ -196,7 +196,7 @@ where
 {
     #[inline]
     fn random(rng: &mut impl CryptoRngCore) -> Self {
-        Self::new(&Uint::random_mod(rng, &MOD::MODULUS))
+        Self::new(&Uint::random_mod(rng, MOD::MODULUS.as_nz_ref()))
     }
 }
 

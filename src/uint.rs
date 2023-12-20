@@ -41,7 +41,7 @@ mod rand;
 
 use crate::{
     modular::{BernsteinYangInverter, MontyForm},
-    Bounded, ConstCtOption, Constants, Encoding, FixedInteger, Integer, Limb, NonZero,
+    Bounded, ConstCtOption, Constants, Encoding, FixedInteger, Integer, Limb, NonZero, Odd,
     PrecomputeInverter, PrecomputeInverterWithAdjuster, Word, ZeroConstant,
 };
 use core::fmt;
@@ -171,11 +171,18 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         self.limbs
     }
 
-    /// Convert to a [`NonZero<Limb>`].
+    /// Convert to a [`NonZero<Uint<LIMBS>>`].
     ///
     /// Returns some if the original value is non-zero, and false otherwise.
     pub const fn to_nz(self) -> ConstCtOption<NonZero<Self>> {
         ConstCtOption::new(NonZero(self), self.is_nonzero())
+    }
+
+    /// Convert to a [`Odd<Uint<LIMBS>>`].
+    ///
+    /// Returns some if the original value is odd, and false otherwise.
+    pub const fn to_odd(self) -> ConstCtOption<Odd<Self>> {
+        ConstCtOption::new(Odd(self), self.is_odd())
     }
 }
 

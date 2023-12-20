@@ -13,7 +13,7 @@
 #[macro_use]
 mod macros;
 
-use crate::{ConstChoice, ConstCtOption, Inverter, Limb, Uint, Word};
+use crate::{ConstChoice, ConstCtOption, Inverter, Limb, Odd, Uint, Word};
 use subtle::CtOption;
 
 /// Modular multiplicative inverter based on the Bernstein-Yang method.
@@ -61,14 +61,12 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// Creates the inverter for specified modulus and adjusting parameter.
     ///
     /// Modulus must be odd. Returns `None` if it is not.
-    pub const fn new(modulus: &Uint<SAT_LIMBS>, adjuster: &Uint<SAT_LIMBS>) -> ConstCtOption<Self> {
-        let ret = Self {
-            modulus: Int62L::from_uint(modulus),
+    pub const fn new(modulus: &Odd<Uint<SAT_LIMBS>>, adjuster: &Uint<SAT_LIMBS>) -> Self {
+        Self {
+            modulus: Int62L::from_uint(&modulus.0),
             adjuster: Int62L::from_uint(adjuster),
-            inverse: inv_mod2_62(modulus.as_words()),
-        };
-
-        ConstCtOption::new(ret, modulus.is_odd())
+            inverse: inv_mod2_62(modulus.0.as_words()),
+        }
     }
 
     /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
