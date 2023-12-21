@@ -227,7 +227,7 @@ impl BoxedMontyForm {
     ///   (since the modulus `p` in Montgomery form is always odd, this divides entirely).
     pub fn div_by_2(&self) -> Self {
         Self {
-            montgomery_form: div_by_2::boxed::div_by_2(&self.montgomery_form, &self.params.modulus),
+            montgomery_form: div_by_2::div_by_2_boxed(&self.montgomery_form, &self.params.modulus),
             params: self.params.clone(),
         }
     }
