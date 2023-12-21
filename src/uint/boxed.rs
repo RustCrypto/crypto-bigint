@@ -10,6 +10,7 @@ mod bits;
 mod cmp;
 mod ct;
 mod div;
+mod div_limb;
 pub(crate) mod encoding;
 mod from;
 mod inv_mod;
@@ -19,6 +20,7 @@ mod neg;
 mod neg_mod;
 mod shl;
 mod shr;
+mod sqrt;
 mod sub;
 mod sub_mod;
 
@@ -90,6 +92,14 @@ impl BoxedUint {
         self.limbs
             .iter()
             .fold(Choice::from(1), |acc, limb| acc & limb.is_zero())
+    }
+
+    /// Is this [`BoxedUint`] not equal to zero?
+    pub fn is_nonzero(&self) -> Choice {
+        // TODO: why not just !self.is_zero()?
+        self.limbs
+            .iter()
+            .fold(Choice::from(0), |acc, limb| acc | limb.is_nonzero().into())
     }
 
     /// Is this [`BoxedUint`] equal to one?

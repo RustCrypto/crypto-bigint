@@ -1,4 +1,3 @@
-//! Implements `BoxedMontyForm`s, supporting modular arithmetic with a modulus whose size and value
 //! is chosen at runtime.
 
 mod add;
@@ -9,6 +8,7 @@ mod pow;
 mod sub;
 
 use super::{
+    div_by_2,
     reduction::{montgomery_reduction_boxed, montgomery_reduction_boxed_mut},
     Retrieve,
 };
@@ -219,6 +219,18 @@ impl BoxedMontyForm {
         debug_assert!(self.montgomery_form < self.params.modulus);
         self.montgomery_form.clone()
     }
+
+    /// Performs the modular division by 2, that is for given `x` returns `y`
+    /// such that `y * 2 = x mod p`. This means:
+    /// - if `x` is even, returns `x / 2`,
+    /// - if `x` is odd, returns `(x + p) / 2`
+    ///   (since the modulus `p` in Montgomery form is always odd, this divides entirely).
+    pub fn div_by_2(&self) -> Self {
+        Self {
+            montgomery_form: div_by_2::div_by_2_boxed(&self.montgomery_form, &self.params.modulus),
+            params: self.params.clone(),
+        }
+    }
 }
 
 impl Retrieve for BoxedMontyForm {
@@ -257,4 +269,27 @@ fn convert_to_montgomery(integer: &mut BoxedUint, params: &BoxedMontyParams) {
 
     #[cfg(feature = "zeroize")]
     product.zeroize();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{BoxedMontyForm, BoxedMontyParams, BoxedUint, Odd};
+
+    #[test]
+    fn new_params_with_valid_modulus() {
+        let modulus = Odd::new(BoxedUint::from(3u8)).unwrap();
+        BoxedMontyParams::new(modulus);
+    }
+
+    #[test]
+    fn div_by_2() {
+        let modulus = Odd::new(BoxedUint::from(9u8)).unwrap();
+        let params = BoxedMontyParams::new(modulus);
+        let zero = BoxedMontyForm::zero(params.clone());
+        let one = BoxedMontyForm::one(params.clone());
+        let two = one.add(&one);
+
+        assert_eq!(zero.div_by_2(), zero);
+        assert_eq!(one.div_by_2().mul(&two), one);
+    }
 }
