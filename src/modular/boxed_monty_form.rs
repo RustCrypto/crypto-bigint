@@ -50,7 +50,7 @@ impl BoxedMontyParams {
         // `R mod modulus` where `R = 2^BITS`.
         // Represents 1 in Montgomery form.
         let one = BoxedUint::max(bits_precision)
-            .rem(&modulus.as_nz_ref())
+            .rem(modulus.as_nz_ref())
             .wrapping_add(&BoxedUint::one());
 
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
@@ -82,7 +82,7 @@ impl BoxedMontyParams {
             .rem_vartime(&modulus.as_nz_ref().widen(bits_precision * 2))
             .shorten(bits_precision);
 
-        Self::new_inner(modulus, one, r2).into()
+        Self::new_inner(modulus, one, r2)
     }
 
     /// Common functionality of `new` and `new_vartime`.
