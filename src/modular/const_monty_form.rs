@@ -143,11 +143,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
         self.montgomery_form
     }
 
-    /// Performs the modular division by 2, that is for given `x` returns `y`
-    /// such that `y * 2 = x mod p`. This means:
-    /// - if `x` is even, returns `x / 2`,
-    /// - if `x` is odd, returns `(x + p) / 2`
-    ///   (since the modulus `p` in Montgomery form is always odd, this divides entirely).
+    /// Performs division by 2, that is returns `x` such that `x + x = self`.
     pub const fn div_by_2(&self) -> Self {
         Self {
             montgomery_form: div_by_2(&self.montgomery_form, &MOD::MODULUS),
