@@ -563,4 +563,11 @@ pub trait Monty:
 
     /// Returns one in this representation.
     fn one(params: Self::Params) -> Self;
+
+    /// Performs the modular division by 2, that is for given `x` returns `y`
+    /// such that `y * 2 = x mod p`. This means:
+    /// - if `x` is even, returns `x / 2`,
+    /// - if `x` is odd, returns `(x + p) / 2`
+    ///   (since the modulus `p` in Montgomery form is always odd, this divides entirely).
+    fn div_by_2(&self) -> Self;
 }

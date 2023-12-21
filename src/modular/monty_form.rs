@@ -185,7 +185,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// - if `x` is even, returns `x / 2`,
     /// - if `x` is odd, returns `(x + p) / 2`
     ///   (since the modulus `p` in Montgomery form is always odd, this divides entirely).
-    pub fn div_by_2(&self) -> Self {
+    pub const fn div_by_2(&self) -> Self {
         Self {
             montgomery_form: div_by_2(&self.montgomery_form, &self.params.modulus),
             params: self.params,
@@ -218,6 +218,10 @@ impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
 
     fn one(params: Self::Params) -> Self {
         MontyForm::one(params)
+    }
+
+    fn div_by_2(&self) -> Self {
+        MontyForm::div_by_2(self)
     }
 }
 

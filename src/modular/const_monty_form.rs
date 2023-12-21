@@ -148,7 +148,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     /// - if `x` is even, returns `x / 2`,
     /// - if `x` is odd, returns `(x + p) / 2`
     ///   (since the modulus `p` in Montgomery form is always odd, this divides entirely).
-    pub fn div_by_2(&self) -> Self {
+    pub const fn div_by_2(&self) -> Self {
         Self {
             montgomery_form: div_by_2(&self.montgomery_form, &MOD::MODULUS),
             phantom: PhantomData,

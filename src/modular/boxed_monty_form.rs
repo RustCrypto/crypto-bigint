@@ -259,6 +259,10 @@ impl Monty for BoxedMontyForm {
     fn one(params: Self::Params) -> Self {
         BoxedMontyForm::one(params)
     }
+
+    fn div_by_2(&self) -> Self {
+        BoxedMontyForm::div_by_2(self)
+    }
 }
 
 /// Convert the given integer into the Montgomery domain.

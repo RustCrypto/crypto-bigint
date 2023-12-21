@@ -1,8 +1,11 @@
-use crate::Uint;
 #[cfg(feature = "alloc")]
 use crate::{BoxedUint, ConstantTimeSelect};
+use crate::{Odd, Uint};
 
-pub(crate) fn div_by_2<const LIMBS: usize>(a: &Uint<LIMBS>, modulus: &Uint<LIMBS>) -> Uint<LIMBS> {
+pub(crate) const fn div_by_2<const LIMBS: usize>(
+    a: &Uint<LIMBS>,
+    modulus: &Odd<Uint<LIMBS>>,
+) -> Uint<LIMBS> {
     // We are looking for such `x` that `x * 2 = y mod modulus`,
     // where the given `a = M(y)` is the Montgomery representation of some `y`.
     // This means that in Montgomery representation it would still apply:
@@ -21,7 +24,7 @@ pub(crate) fn div_by_2<const LIMBS: usize>(a: &Uint<LIMBS>, modulus: &Uint<LIMBS
     // This will not overflow, so we can just use wrapping operations.
 
     let (half, is_odd) = a.shr1_with_carry();
-    let half_modulus = modulus.shr1();
+    let half_modulus = modulus.0.shr1();
 
     let if_even = half;
     let if_odd = half
@@ -32,7 +35,7 @@ pub(crate) fn div_by_2<const LIMBS: usize>(a: &Uint<LIMBS>, modulus: &Uint<LIMBS
 }
 
 #[cfg(feature = "alloc")]
-pub(crate) fn div_by_2_boxed(a: &BoxedUint, modulus: &BoxedUint) -> BoxedUint {
+pub(crate) fn div_by_2_boxed(a: &BoxedUint, modulus: &Odd<BoxedUint>) -> BoxedUint {
     debug_assert_eq!(a.bits_precision(), modulus.bits_precision());
 
     let (mut half, is_odd) = a.shr1_with_carry();
