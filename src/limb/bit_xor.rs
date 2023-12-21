@@ -1,7 +1,7 @@
 //! Limb bit xor operations.
 
 use super::Limb;
-use core::ops::BitXor;
+use core::ops::{BitXor, BitXorAssign};
 
 impl Limb {
     /// Calculates `a ^ b`.
@@ -16,5 +16,11 @@ impl BitXor for Limb {
 
     fn bitxor(self, rhs: Self) -> Self::Output {
         self.bitxor(rhs)
+    }
+}
+
+impl BitXorAssign for Limb {
+    fn bitxor_assign(&mut self, rhs: Self) {
+        self.0 ^= rhs.0;
     }
 }

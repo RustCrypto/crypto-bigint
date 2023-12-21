@@ -8,7 +8,10 @@ use subtle::{Choice, ConditionallySelectable, CtOption};
 use crate::BoxedUint;
 
 #[cfg(feature = "rand_core")]
-use {crate::Random, rand_core::CryptoRngCore};
+use {
+    crate::{Limb, Random},
+    rand_core::CryptoRngCore,
+};
 
 /// Wrapper type for odd integers.
 ///
@@ -125,6 +128,18 @@ impl PartialOrd<Odd<BoxedUint>> for BoxedUint {
 impl<const LIMBS: usize> Random for Odd<Uint<LIMBS>> {
     /// Generate a random `NonZero<Uint<T>>`.
     fn random(rng: &mut impl CryptoRngCore) -> Self {
-        Odd(Uint::random(rng) | Uint::ONE)
+        let mut ret = Uint::random(rng);
+        ret.limbs[0] &= Limb::ONE;
+        Odd(ret)
+    }
+}
+
+#[cfg(all(feature = "alloc", feature = "rand_core"))]
+impl Odd<BoxedUint> {
+    /// Generate a random `NonZero<Uint<T>>`.
+    pub fn random(rng: &mut impl CryptoRngCore, bits_precision: u32) -> Self {
+        let mut ret = BoxedUint::random(rng, bits_precision);
+        ret.limbs[0] &= Limb::ONE;
+        Odd(ret)
     }
 }

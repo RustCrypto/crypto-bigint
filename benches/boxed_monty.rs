@@ -4,7 +4,7 @@ use criterion::{
 };
 use crypto_bigint::{
     modular::{BoxedMontyForm, BoxedMontyParams},
-    BoxedUint, NonZero, RandomMod,
+    BoxedUint, NonZero, Odd, RandomMod,
 };
 use num_bigint::BigUint;
 use rand_core::OsRng;
@@ -17,10 +17,7 @@ fn to_biguint(uint: &BoxedUint) -> BigUint {
 }
 
 fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
-    let params = BoxedMontyParams::new(
-        BoxedUint::random(&mut OsRng, UINT_BITS) | BoxedUint::one_with_precision(UINT_BITS),
-    )
-    .unwrap();
+    let params = BoxedMontyParams::new(Odd::<BoxedUint>::random(&mut OsRng, UINT_BITS));
 
     group.bench_function("invert, U256", |b| {
         b.iter_batched(
@@ -60,8 +57,8 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         )
     });
 
-    let m = BoxedUint::random(&mut OsRng, UINT_BITS) | BoxedUint::one_with_precision(UINT_BITS);
-    let params = BoxedMontyParams::new(m).unwrap();
+    let m = Odd::<BoxedUint>::random(&mut OsRng, UINT_BITS);
+    let params = BoxedMontyParams::new(m);
     group.bench_function("modpow, BoxedUint^BoxedUint", |b| {
         b.iter_batched(
             || {
@@ -96,7 +93,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
 fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("BoxedMontyParams::new", |b| {
         b.iter_batched(
-            || BoxedUint::random(&mut OsRng, UINT_BITS) | BoxedUint::one_with_precision(UINT_BITS),
+            || Odd::<BoxedUint>::random(&mut OsRng, UINT_BITS),
             |modulus| black_box(BoxedMontyParams::new(modulus)),
             BatchSize::SmallInput,
         )
@@ -104,16 +101,13 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
 
     group.bench_function("BoxedMontyParams::new_vartime", |b| {
         b.iter_batched(
-            || BoxedUint::random(&mut OsRng, UINT_BITS) | BoxedUint::one_with_precision(UINT_BITS),
+            || Odd::<BoxedUint>::random(&mut OsRng, UINT_BITS),
             |modulus| black_box(BoxedMontyParams::new_vartime(modulus)),
             BatchSize::SmallInput,
         )
     });
 
-    let params = BoxedMontyParams::new(
-        BoxedUint::random(&mut OsRng, UINT_BITS) | BoxedUint::one_with_precision(UINT_BITS),
-    )
-    .unwrap();
+    let params = BoxedMontyParams::new(Odd::<BoxedUint>::random(&mut OsRng, UINT_BITS));
     group.bench_function("BoxedMontyForm::new", |b| {
         b.iter_batched(
             || BoxedUint::random(&mut OsRng, UINT_BITS),
@@ -122,10 +116,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
         )
     });
 
-    let params = BoxedMontyParams::new(
-        BoxedUint::random(&mut OsRng, UINT_BITS) | BoxedUint::one_with_precision(UINT_BITS),
-    )
-    .unwrap();
+    let params = BoxedMontyParams::new(Odd::<BoxedUint>::random(&mut OsRng, UINT_BITS));
     group.bench_function("BoxedMontyForm::retrieve", |b| {
         b.iter_batched(
             || BoxedMontyForm::new(BoxedUint::random(&mut OsRng, UINT_BITS), params.clone()),
