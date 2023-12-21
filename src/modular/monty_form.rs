@@ -13,14 +13,14 @@ use super::{
     reduction::montgomery_reduction,
     Retrieve,
 };
-use crate::{Limb, Monty, NonZero, Uint, Word, Zero};
+use crate::{Limb, Monty, Odd, Uint, Word};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct MontyParams<const LIMBS: usize> {
     /// The constant modulus
-    modulus: Uint<LIMBS>,
+    modulus: Odd<Uint<LIMBS>>,
     /// 1 in Montgomery form (a.k.a. `R`)
     one: Uint<LIMBS>,
     /// `R^2 mod modulus`, used to move into Montgomery form
@@ -36,46 +36,38 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
     /// Instantiates a new set of `MontyParams` representing the given `modulus` if it is odd.
     ///
     /// Returns `None` if the provided modulus is not odd.
-    pub fn new(modulus: &Uint<LIMBS>) -> CtOption<Self> {
-        // Use a surrogate value of `1` in case a modulus of `0` is passed.
-        // This will be rejected by the `modulus_is_odd` check below,
-        // which will fail and return `None`.
-        let nz_modulus = NonZero::new(Uint::conditional_select(
-            modulus,
-            &Uint::ONE,
-            modulus.is_zero(),
-        ))
-        .expect("modulus ensured non-zero");
-
+    pub fn new(modulus: Odd<Uint<LIMBS>>) -> Self {
         // `R mod modulus` where `R = 2^BITS`.
         // Represents 1 in Montgomery form.
-        let one = Uint::MAX.rem_vartime(&nz_modulus).wrapping_add(&Uint::ONE);
+        let one = Uint::MAX
+            .rem_vartime(modulus.as_nz_ref())
+            .wrapping_add(&Uint::ONE);
 
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
-        let r2 = Uint::rem_wide_vartime(one.square_wide(), &nz_modulus);
+        let r2 = Uint::rem_wide_vartime(one.square_wide(), modulus.as_nz_ref());
 
-        let maybe_inverse = modulus.inv_mod2k_vartime(Word::BITS);
-        // If the inverse exists, it means the modulus is odd.
-        let (inv_mod_limb, modulus_is_odd) = maybe_inverse.components_ref();
-        let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));
+        // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
+        let inv_mod = modulus
+            .inv_mod2k_vartime(Word::BITS)
+            .expect("modular inverse should exist");
+
+        let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
 
         // `R^3 mod modulus`, used for inversion in Montgomery form.
-        let r3 = montgomery_reduction(&r2.square_wide(), modulus, mod_neg_inv);
+        let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);
 
-        let params = Self {
-            modulus: *modulus,
+        Self {
+            modulus,
             one,
             r2,
             r3,
             mod_neg_inv,
-        };
-
-        CtOption::new(params, modulus_is_odd.into())
+        }
     }
 
     /// Returns the modulus which was used to initialize these parameters.
     pub const fn modulus(&self) -> &Uint<LIMBS> {
-        &self.modulus
+        &self.modulus.0
     }
 
     /// Create `MontyParams` corresponding to a `ConstMontyParams`.
@@ -84,7 +76,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
         P: ConstMontyParams<LIMBS>,
     {
         Self {
-            modulus: P::MODULUS.0,
+            modulus: Odd(P::MODULUS.0),
             one: P::ONE,
             r2: P::R2,
             r3: P::R3,
@@ -96,7 +88,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
 impl<const LIMBS: usize> ConditionallySelectable for MontyParams<LIMBS> {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         Self {
-            modulus: Uint::conditional_select(&a.modulus, &b.modulus, choice),
+            modulus: Odd::conditional_select(&a.modulus, &b.modulus, choice),
             one: Uint::conditional_select(&a.one, &b.one, choice),
             r2: Uint::conditional_select(&a.r2, &b.r2, choice),
             r3: Uint::conditional_select(&a.r3, &b.r3, choice),
@@ -213,7 +205,7 @@ impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
     type Params = MontyParams<LIMBS>;
 
     fn new_params(modulus: Self::Integer) -> CtOption<Self::Params> {
-        MontyParams::new(&modulus)
+        Odd::new(modulus).map(MontyParams::new)
     }
 
     fn new(value: Self::Integer, params: Self::Params) -> Self {
@@ -264,27 +256,5 @@ impl<const LIMBS: usize> ConstantTimeEq for MontyForm<LIMBS> {
 impl<const LIMBS: usize> zeroize::Zeroize for MontyForm<LIMBS> {
     fn zeroize(&mut self) {
         self.montgomery_form.zeroize()
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    const LIMBS: usize = nlimbs!(64);
-
-    #[test]
-    // Test that a valid modulus yields `MontyParams`
-    fn test_valid_modulus() {
-        let valid_modulus = Uint::<LIMBS>::from(3u8);
-        MontyParams::<LIMBS>::new(&valid_modulus).unwrap();
-    }
-
-    #[test]
-    // Test that an invalid checked modulus does not yield `MontyParams`
-    fn test_invalid_checked_modulus() {
-        assert!(bool::from(
-            MontyParams::<LIMBS>::new(&Uint::from(2u8)).is_none()
-        ))
     }
 }

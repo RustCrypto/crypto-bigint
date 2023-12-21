@@ -25,10 +25,10 @@ mod sub_mod;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{modular::BoxedMontyForm, Integer, Limb, NonZero, Word, Zero};
+use crate::{modular::BoxedMontyForm, Integer, Limb, NonZero, Odd, Word, Zero};
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::fmt;
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -164,6 +164,12 @@ impl BoxedUint {
     /// Get the number of limbs in this [`BoxedUint`].
     pub fn nlimbs(&self) -> usize {
         self.limbs.len()
+    }
+
+    /// Convert into an [`Odd`].
+    pub fn to_odd(self) -> CtOption<Odd<Self>> {
+        let is_odd = self.is_odd();
+        CtOption::new(Odd(self), is_odd)
     }
 
     /// Widen this type's precision to the given number of bits.

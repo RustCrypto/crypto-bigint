@@ -21,8 +21,7 @@ where
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
     pub const fn inv(&self) -> ConstCtOption<Self> {
         let inverter =
-            <Uint<SAT_LIMBS> as PrecomputeInverter>::Inverter::new(&MOD::MODULUS.0, &MOD::R2)
-                .expect("modulus should be valid");
+            <Uint<SAT_LIMBS> as PrecomputeInverter>::Inverter::new(&MOD::MODULUS, &MOD::R2);
 
         let maybe_inverse = inverter.inv(&self.montgomery_form);
         let (inverse, inverse_is_some) = maybe_inverse.components_ref();
@@ -69,8 +68,7 @@ where
 {
     /// Create a new [`ConstMontyFormInverter`] for the given [`ConstMontyParams`].
     pub const fn new() -> Self {
-        let inverter =
-            BernsteinYangInverter::new(&MOD::MODULUS.0, &MOD::R2).expect("modulus should be valid");
+        let inverter = BernsteinYangInverter::new(&MOD::MODULUS, &MOD::R2);
 
         Self {
             inverter,

@@ -38,6 +38,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Create a new [`Uint`] from the provided big endian hex string.
+    ///
+    /// Panics if the hex is malformed or not zero-padded accordingly for the size.
     pub const fn from_be_hex(hex: &str) -> Self {
         let bytes = hex.as_bytes();
 
@@ -94,6 +96,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Create a new [`Uint`] from the provided little endian hex string.
+    ///
+    /// Panics if the hex is malformed or not zero-padded accordingly for the size.
     pub const fn from_le_hex(hex: &str) -> Self {
         let bytes = hex.as_bytes();
 
