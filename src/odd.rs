@@ -4,6 +4,9 @@ use crate::{Integer, NonZero, Uint};
 use core::{cmp::Ordering, ops::Deref};
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
+#[cfg(feature = "alloc")]
+use crate::BoxedUint;
+
 #[cfg(feature = "rand_core")]
 use {crate::Random, rand_core::CryptoRngCore};
 
@@ -100,6 +103,20 @@ impl<const LIMBS: usize> PartialEq<Odd<Uint<LIMBS>>> for Uint<LIMBS> {
 
 impl<const LIMBS: usize> PartialOrd<Odd<Uint<LIMBS>>> for Uint<LIMBS> {
     fn partial_cmp(&self, other: &Odd<Uint<LIMBS>>) -> Option<Ordering> {
+        Some(self.cmp(&other.0))
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl PartialEq<Odd<BoxedUint>> for BoxedUint {
+    fn eq(&self, other: &Odd<BoxedUint>) -> bool {
+        self.eq(&other.0)
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl PartialOrd<Odd<BoxedUint>> for BoxedUint {
+    fn partial_cmp(&self, other: &Odd<BoxedUint>) -> Option<Ordering> {
         Some(self.cmp(&other.0))
     }
 }

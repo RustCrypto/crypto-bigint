@@ -72,14 +72,12 @@ mod tests {
 
     #[test]
     fn add_overflow() {
-        let params = BoxedMontyParams::new(
-            BoxedUint::from_be_slice(
-                &hex!("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"),
-                256,
-            )
-            .unwrap(),
+        let modulus = BoxedUint::from_be_slice(
+            &hex!("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"),
+            256,
         )
         .unwrap();
+        let params = BoxedMontyParams::new(modulus.to_odd().unwrap());
 
         let x = BoxedUint::from_be_slice(
             &hex!("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56"),

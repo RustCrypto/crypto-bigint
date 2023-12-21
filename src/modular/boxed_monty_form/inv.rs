@@ -49,9 +49,10 @@ mod tests {
                 &hex!("15477BCCEFE197328255BFA79A1217899016D927EF460F4FF404029D24FA4409"),
                 256,
             )
+            .unwrap()
+            .to_odd()
             .unwrap(),
         )
-        .unwrap()
     }
 
     #[test]
