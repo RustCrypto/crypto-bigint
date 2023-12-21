@@ -273,27 +273,18 @@ fn convert_to_montgomery(integer: &mut BoxedUint, params: &BoxedMontyParams) {
 
 #[cfg(test)]
 mod tests {
-    use super::{BoxedMontyForm, BoxedMontyParams, BoxedUint};
-
-    #[test]
-    fn new_params_with_invalid_modulus() {
-        // 0
-        let ret = BoxedMontyParams::new(BoxedUint::zero());
-        assert!(bool::from(ret.is_none()));
-
-        // 2
-        let ret = BoxedMontyParams::new(BoxedUint::from(2u8));
-        assert!(bool::from(ret.is_none()));
-    }
+    use super::{BoxedMontyForm, BoxedMontyParams, BoxedUint, Odd};
 
     #[test]
     fn new_params_with_valid_modulus() {
-        BoxedMontyParams::new(BoxedUint::from(3u8)).unwrap();
+        let modulus = Odd::new(BoxedUint::from(3u8)).unwrap();
+        BoxedMontyParams::new(modulus);
     }
 
     #[test]
     fn div_by_2() {
-        let params = BoxedMontyParams::new(BoxedUint::from(9u8)).unwrap();
+        let modulus = Odd::new(BoxedUint::from(9u8)).unwrap();
+        let params = BoxedMontyParams::new(modulus);
         let zero = BoxedMontyForm::zero(params.clone());
         let one = BoxedMontyForm::one(params.clone());
         let two = one.add(&one);

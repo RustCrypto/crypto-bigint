@@ -143,3 +143,16 @@ impl Odd<BoxedUint> {
         Odd(ret)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn not_odd_numbers() {
+        let zero = Odd::new(BoxedUint::zero());
+        assert!(bool::from(zero.is_none()));
+        let two = Odd::new(BoxedUint::from(2u8));
+        assert!(bool::from(two.is_none()));
+    }
+}
