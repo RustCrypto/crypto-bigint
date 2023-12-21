@@ -148,6 +148,7 @@ impl Odd<BoxedUint> {
 mod tests {
     use super::*;
 
+    #[cfg(feature = "alloc")]
     #[test]
     fn not_odd_numbers() {
         let zero = Odd::new(BoxedUint::zero());
