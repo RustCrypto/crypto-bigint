@@ -1,6 +1,6 @@
 //! Bit manipulation functions.
 
-use crate::{BoxedUint, Limb, Zero};
+use crate::{BoxedUint, ConstChoice, Limb, Zero};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 impl BoxedUint {
@@ -24,6 +24,11 @@ impl BoxedUint {
         Limb::BITS * n - leading_zeros
     }
 
+    /// `floor(log2(self.bits_precision()))`.
+    pub(crate) fn log2_bits(&self) -> u32 {
+        u32::BITS - self.bits_precision().leading_zeros() - 1
+    }
+
     /// Calculate the number of bits needed to represent this number in variable-time with respect
     /// to `self`.
     pub fn bits_vartime(&self) -> u32 {
@@ -34,6 +39,18 @@ impl BoxedUint {
 
         let limb = self.limbs[i];
         Limb::BITS * (i as u32 + 1) - limb.leading_zeros()
+    }
+
+    /// Returns `true` if the bit at position `index` is set, `false` otherwise.
+    ///
+    /// # Remarks
+    /// This operation is variable time with respect to `index` only.
+    pub fn bit_vartime(&self, index: u32) -> bool {
+        if index >= self.bits_precision() {
+            false
+        } else {
+            (self.limbs[(index / Limb::BITS) as usize].0 >> (index % Limb::BITS)) & 1 == 1
+        }
     }
 
     /// Get the precision of this [`BoxedUint`] in bits.
@@ -50,6 +67,45 @@ impl BoxedUint {
             let z = l.trailing_zeros();
             count += u32::conditional_select(&0, &z, nonzero_limb_not_encountered);
             nonzero_limb_not_encountered &= l.is_zero();
+        }
+
+        count
+    }
+
+    /// Calculate the number of trailing ones in the binary representation of this number.
+    pub fn trailing_ones(&self) -> u32 {
+        let limbs = self.as_limbs();
+
+        let mut count = 0;
+        let mut i = 0;
+        let mut nonmax_limb_not_encountered = ConstChoice::TRUE;
+        while i < limbs.len() {
+            let l = limbs[i];
+            let z = l.trailing_ones();
+            count += nonmax_limb_not_encountered.if_true_u32(z);
+            nonmax_limb_not_encountered =
+                nonmax_limb_not_encountered.and(ConstChoice::from_word_eq(l.0, Limb::MAX.0));
+            i += 1;
+        }
+
+        count
+    }
+
+    /// Calculate the number of trailing ones in the binary representation of this number,
+    /// variable time in `self`.
+    pub fn trailing_ones_vartime(&self) -> u32 {
+        let limbs = self.as_limbs();
+
+        let mut count = 0;
+        let mut i = 0;
+        while i < limbs.len() {
+            let l = limbs[i];
+            let z = l.trailing_ones();
+            count += z;
+            if z != Limb::BITS {
+                break;
+            }
+            i += 1;
         }
 
         count
@@ -90,6 +146,18 @@ mod tests {
     }
 
     #[test]
+    fn bit_vartime() {
+        let u = uint_with_bits_at(&[16, 48, 112, 127, 255]);
+        assert!(!u.bit_vartime(0));
+        assert!(!u.bit_vartime(1));
+        assert!(u.bit_vartime(16));
+        assert!(u.bit_vartime(127));
+        assert!(u.bit_vartime(255));
+        assert!(!u.bit_vartime(256));
+        assert!(!u.bit_vartime(260));
+    }
+
+    #[test]
     fn bits() {
         assert_eq!(0, BoxedUint::zero().bits());
         assert_eq!(128, BoxedUint::max(128).bits());
@@ -118,5 +186,41 @@ mod tests {
         let mut u = uint_with_bits_at(&[16, 79, 150]);
         u.set_bit(150, Choice::from(0));
         assert_eq!(u, uint_with_bits_at(&[16, 79]));
+    }
+
+    #[test]
+    fn trailing_ones() {
+        let u = !uint_with_bits_at(&[16, 79, 150]);
+        assert_eq!(u.trailing_ones(), 16);
+
+        let u = !uint_with_bits_at(&[79, 150]);
+        assert_eq!(u.trailing_ones(), 79);
+
+        let u = !uint_with_bits_at(&[150, 207]);
+        assert_eq!(u.trailing_ones(), 150);
+
+        let u = !uint_with_bits_at(&[0, 150, 207]);
+        assert_eq!(u.trailing_ones(), 0);
+
+        let u = !BoxedUint::zero_with_precision(256);
+        assert_eq!(u.trailing_ones(), 256);
+    }
+
+    #[test]
+    fn trailing_ones_vartime() {
+        let u = !uint_with_bits_at(&[16, 79, 150]);
+        assert_eq!(u.trailing_ones_vartime(), 16);
+
+        let u = !uint_with_bits_at(&[79, 150]);
+        assert_eq!(u.trailing_ones_vartime(), 79);
+
+        let u = !uint_with_bits_at(&[150, 207]);
+        assert_eq!(u.trailing_ones_vartime(), 150);
+
+        let u = !uint_with_bits_at(&[0, 150, 207]);
+        assert_eq!(u.trailing_ones_vartime(), 0);
+
+        let u = !BoxedUint::zero_with_precision(256);
+        assert_eq!(u.trailing_ones_vartime(), 256);
     }
 }

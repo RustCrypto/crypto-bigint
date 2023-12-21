@@ -74,6 +74,7 @@ pub const fn reciprocal(d: Word) -> Word {
 /// Returns `u32::MAX` if `a < b` and `0` otherwise.
 #[inline]
 const fn lt(a: u32, b: u32) -> u32 {
+    // TODO: Move to using ConstChoice::le
     let bit = (((!a) & b) | (((!a) | b) & (a.wrapping_sub(b)))) >> (u32::BITS - 1);
     bit.wrapping_neg()
 }
@@ -81,6 +82,7 @@ const fn lt(a: u32, b: u32) -> u32 {
 /// Returns `a` if `c == 0` and `b` if `c == u32::MAX`.
 #[inline(always)]
 const fn select(a: u32, b: u32, c: u32) -> u32 {
+    // TODO: Move to using ConstChoice::select
     a ^ (c & (a ^ b))
 }
 
@@ -117,7 +119,7 @@ const fn short_div(dividend: u32, dividend_bits: u32, divisor: u32, divisor_bits
 /// Calculate the quotient and the remainder of the division of a wide word
 /// (supplied as high and low words) by `d`, with a precalculated reciprocal `v`.
 #[inline(always)]
-const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Word, Word) {
+pub(crate) const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Word, Word) {
     let d = reciprocal.divisor_normalized;
 
     debug_assert!(d >= (1 << (Word::BITS - 1)));
@@ -183,6 +185,11 @@ impl Reciprocal {
             // This holds both for 32- and 64-bit versions.
             reciprocal: 1,
         }
+    }
+
+    /// Get the shift value
+    pub const fn shift(&self) -> u32 {
+        self.shift
     }
 }
 

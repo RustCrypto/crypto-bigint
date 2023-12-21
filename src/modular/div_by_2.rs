@@ -1,4 +1,6 @@
 use crate::Uint;
+#[cfg(feature = "alloc")]
+use crate::{BoxedUint, ConstantTimeSelect};
 
 pub(crate) fn div_by_2<const LIMBS: usize>(a: &Uint<LIMBS>, modulus: &Uint<LIMBS>) -> Uint<LIMBS> {
     // We are looking for such `x` that `x * 2 = y mod modulus`,
@@ -27,4 +29,20 @@ pub(crate) fn div_by_2<const LIMBS: usize>(a: &Uint<LIMBS>, modulus: &Uint<LIMBS
         .wrapping_add(&Uint::<LIMBS>::ONE);
 
     Uint::<LIMBS>::select(&if_even, &if_odd, is_odd)
+}
+
+#[cfg(feature = "alloc")]
+pub(crate) fn div_by_2_boxed(a: &BoxedUint, modulus: &BoxedUint) -> BoxedUint {
+    debug_assert_eq!(a.bits_precision(), modulus.bits_precision());
+
+    let (mut half, is_odd) = a.shr1_with_carry();
+    let half_modulus = modulus.shr1();
+
+    let if_odd = half
+        .wrapping_add(&half_modulus)
+        .wrapping_add(&BoxedUint::one_with_precision(a.bits_precision()));
+
+    half.ct_assign(&if_odd, is_odd);
+
+    half
 }

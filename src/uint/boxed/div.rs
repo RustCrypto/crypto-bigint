@@ -1,10 +1,23 @@
 //! [`BoxedUint`] division operations.
 
-use crate::{BoxedUint, CheckedDiv, ConstantTimeSelect, Limb, NonZero, Wrapping};
+use crate::{
+    uint::boxed, BoxedUint, CheckedDiv, ConstantTimeSelect, Limb, NonZero, Reciprocal, Wrapping,
+};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
 impl BoxedUint {
+    /// Computes `self` / `rhs` using a pre-made reciprocal,
+    /// returns the quotient (q) and remainder (r).
+    pub fn div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb) {
+        boxed::div_limb::div_rem_limb_with_reciprocal(self, reciprocal)
+    }
+
+    /// Computes `self` / `rhs`, returns the quotient (q) and remainder (r).
+    pub fn div_rem_limb(&self, rhs: NonZero<Limb>) -> (Self, Limb) {
+        boxed::div_limb::div_rem_limb_with_reciprocal(self, &Reciprocal::new(rhs))
+    }
+
     /// Computes self / rhs, returns the quotient, remainder.
     pub fn div_rem(&self, rhs: &NonZero<Self>) -> (Self, Self) {
         // Since `rhs` is nonzero, this should always hold.
@@ -59,6 +72,14 @@ impl BoxedUint {
     /// Panics if `rhs == 0`.
     pub fn wrapping_div(&self, rhs: &NonZero<Self>) -> Self {
         self.div_rem(rhs).0
+    }
+
+    /// Wrapped division is just normal division i.e. `self` / `rhs`
+    ///
+    /// There’s no way wrapping could ever happen.
+    /// This function exists, so that all operations are accounted for in the wrapping operations
+    pub fn wrapping_div_vartime(&self, rhs: &NonZero<Self>) -> Self {
+        self.div_rem_vartime(rhs).0
     }
 
     /// Perform checked division, returning a [`CtOption`] which `is_some`
