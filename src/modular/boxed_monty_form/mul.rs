@@ -23,7 +23,7 @@ impl BoxedMontyForm {
     /// Multiplies by `rhs`.
     pub fn mul(&self, rhs: &Self) -> Self {
         debug_assert_eq!(&self.params, &rhs.params);
-        let montgomery_form = MontgomeryMultiplier::from(self.params.borrow())
+        let montgomery_form = MontyMultiplier::from(self.params.borrow())
             .mul(&self.montgomery_form, &rhs.montgomery_form);
 
         Self {
@@ -35,7 +35,7 @@ impl BoxedMontyForm {
     /// Computes the (reduced) square.
     pub fn square(&self) -> Self {
         let montgomery_form =
-            MontgomeryMultiplier::from(self.params.borrow()).square(&self.montgomery_form);
+            MontyMultiplier::from(self.params.borrow()).square(&self.montgomery_form);
 
         Self {
             montgomery_form,
@@ -83,7 +83,7 @@ impl MulAssign<BoxedMontyForm> for BoxedMontyForm {
 impl MulAssign<&BoxedMontyForm> for BoxedMontyForm {
     fn mul_assign(&mut self, rhs: &BoxedMontyForm) {
         debug_assert_eq!(&self.params, &rhs.params);
-        MontgomeryMultiplier::from(self.params.borrow())
+        MontyMultiplier::from(self.params.borrow())
             .mul_assign(&mut self.montgomery_form, &rhs.montgomery_form);
     }
 }
@@ -96,24 +96,24 @@ impl Square for BoxedMontyForm {
 
 impl SquareAssign for BoxedMontyForm {
     fn square_assign(&mut self) {
-        MontgomeryMultiplier::from(self.params.borrow()).square_assign(&mut self.montgomery_form);
+        MontyMultiplier::from(self.params.borrow()).square_assign(&mut self.montgomery_form);
     }
 }
 
-impl<'a> From<&'a BoxedMontyParams> for MontgomeryMultiplier<'a> {
-    fn from(params: &'a BoxedMontyParams) -> MontgomeryMultiplier<'a> {
-        MontgomeryMultiplier::new(&params.modulus, params.mod_neg_inv)
+impl<'a> From<&'a BoxedMontyParams> for MontyMultiplier<'a> {
+    fn from(params: &'a BoxedMontyParams) -> MontyMultiplier<'a> {
+        MontyMultiplier::new(&params.modulus, params.mod_neg_inv)
     }
 }
 
 /// Montgomery multiplier with a pre-allocated internal buffer to avoid additional allocations.
-pub(super) struct MontgomeryMultiplier<'a> {
+pub(super) struct MontyMultiplier<'a> {
     product: BoxedUint,
     modulus: &'a BoxedUint,
     mod_neg_inv: Limb,
 }
 
-impl<'a> MontgomeryMultiplier<'a> {
+impl<'a> MontyMultiplier<'a> {
     /// Create a new Montgomery multiplier.
     pub(super) fn new(modulus: &'a BoxedUint, mod_neg_inv: Limb) -> Self {
         Self {
@@ -233,7 +233,7 @@ impl<'a> MontgomeryMultiplier<'a> {
 }
 
 #[cfg(feature = "zeroize")]
-impl Drop for MontgomeryMultiplier<'_> {
+impl Drop for MontyMultiplier<'_> {
     fn drop(&mut self) {
         self.product.zeroize();
     }
