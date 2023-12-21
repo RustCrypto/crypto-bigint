@@ -16,6 +16,8 @@ impl BoxedUint {
         debug_assert_eq!(self.limbs.len(), rhs.limbs.len());
         let mut i = self.limbs.len() - 1;
         loop {
+            // TODO: investigate if directly comparing limbs is faster than performing a
+            // subtraction between limbs
             let (val, borrow) = self.limbs[i].sbb(rhs.limbs[i], Limb::ZERO);
             if val.0 != 0 {
                 return if borrow.0 != 0 {
