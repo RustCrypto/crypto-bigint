@@ -14,7 +14,7 @@ use super::{
     Retrieve,
 };
 use crate::{Limb, Monty, Odd, Uint, Word};
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -204,8 +204,8 @@ impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
     type Integer = Uint<LIMBS>;
     type Params = MontyParams<LIMBS>;
 
-    fn new_params(modulus: Self::Integer) -> CtOption<Self::Params> {
-        Odd::new(modulus).map(MontyParams::new)
+    fn new_params(modulus: Odd<Self::Integer>) -> Self::Params {
+        MontyParams::new(modulus)
     }
 
     fn new(value: Self::Integer, params: Self::Params) -> Self {

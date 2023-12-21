@@ -8,7 +8,7 @@ pub use num_traits::{
 
 pub(crate) use sealed::PrecomputeInverterWithAdjuster;
 
-use crate::{Limb, NonZero};
+use crate::{Limb, NonZero, Odd};
 use core::fmt::Debug;
 use core::ops::{
     Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign,
@@ -553,9 +553,7 @@ pub trait Monty:
     type Params: Clone;
 
     /// Create the precomputed data for Montgomery representation of integers modulo `modulus`.
-    ///
-    /// `modulus` must be odd, otherwise returns `None`.
-    fn new_params(modulus: Self::Integer) -> CtOption<Self::Params>;
+    fn new_params(modulus: Odd<Self::Integer>) -> Self::Params;
 
     /// Convert the value into the representation using precomputed data.
     fn new(value: Self::Integer, params: Self::Params) -> Self;

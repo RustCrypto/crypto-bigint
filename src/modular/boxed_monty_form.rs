@@ -12,8 +12,7 @@ use super::{
     reduction::{montgomery_reduction_boxed, montgomery_reduction_boxed_mut},
     Retrieve,
 };
-use crate::{BoxedUint, Integer, Limb, Monty, Odd, Word};
-use subtle::CtOption;
+use crate::{BoxedUint, Limb, Monty, Odd, Word};
 
 #[cfg(feature = "std")]
 use std::sync::Arc;
@@ -233,12 +232,8 @@ impl Monty for BoxedMontyForm {
     type Integer = BoxedUint;
     type Params = BoxedMontyParams;
 
-    fn new_params(modulus: Self::Integer) -> CtOption<Self::Params> {
-        let is_odd = modulus.is_odd();
-
-        // Note: instantiates a potentially invalid `Odd`, but guards with `CtOption`.
-        let params = BoxedMontyParams::new(Odd(modulus));
-        CtOption::new(params, is_odd)
+    fn new_params(modulus: Odd<Self::Integer>) -> Self::Params {
+        BoxedMontyParams::new(modulus)
     }
 
     fn new(value: Self::Integer, params: Self::Params) -> Self {
