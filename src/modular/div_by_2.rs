@@ -1,4 +1,6 @@
-use crate::{BoxedUint, ConstantTimeSelect, Uint};
+use crate::Uint;
+#[cfg(feature = "alloc")]
+use crate::{BoxedUint, ConstantTimeSelect};
 
 pub(crate) fn div_by_2<const LIMBS: usize>(a: &Uint<LIMBS>, modulus: &Uint<LIMBS>) -> Uint<LIMBS> {
     // We are looking for such `x` that `x * 2 = y mod modulus`,
