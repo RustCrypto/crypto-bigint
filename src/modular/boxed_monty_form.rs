@@ -12,7 +12,7 @@ use super::{
     reduction::{montgomery_reduction_boxed, montgomery_reduction_boxed_mut},
     Retrieve,
 };
-use crate::{BoxedUint, ConstantTimeSelect, Integer, Limb, Monty, NonZero, Word};
+use crate::{BoxedUint, Integer, Limb, Monty, Odd, Word};
 use subtle::CtOption;
 
 #[cfg(feature = "std")]
@@ -26,7 +26,7 @@ use zeroize::Zeroize;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BoxedMontyParams {
     /// The constant modulus
-    modulus: BoxedUint,
+    modulus: Odd<BoxedUint>,
     /// Parameter used in Montgomery reduction
     one: BoxedUint,
     /// R^2, used to move into Montgomery form
@@ -44,28 +44,19 @@ impl BoxedMontyParams {
     ///
     /// Returns a `CtOption` that is `None` if the provided modulus is not odd.
     /// TODO(tarcieri): DRY out with `MontyParams::new`?
-    pub fn new(modulus: BoxedUint) -> CtOption<Self> {
+    pub fn new(modulus: Odd<BoxedUint>) -> Self {
         let bits_precision = modulus.bits_precision();
-
-        // Use a surrogate value of `1` in case a modulus of `0` is passed.
-        // This will be rejected by the `is_odd` check above, which will fail and return `None`.
-        let modulus_nz = NonZero::new(BoxedUint::ct_select(
-            &modulus,
-            &BoxedUint::one_with_precision(bits_precision),
-            modulus.is_zero(),
-        ))
-        .expect("modulus ensured non-zero");
 
         // `R mod modulus` where `R = 2^BITS`.
         // Represents 1 in Montgomery form.
         let one = BoxedUint::max(bits_precision)
-            .rem(&modulus_nz)
+            .rem(modulus.as_nz_ref())
             .wrapping_add(&BoxedUint::one());
 
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
         let r2 = one
             .square()
-            .rem(&modulus_nz.widen(bits_precision * 2))
+            .rem(&modulus.as_nz_ref().widen(bits_precision * 2))
             .shorten(bits_precision);
 
         Self::new_inner(modulus, one, r2)
@@ -76,56 +67,43 @@ impl BoxedMontyParams {
     ///
     /// Returns `None` if the provided modulus is not odd.
     /// TODO(tarcieri): DRY out with `MontyParams::new`?
-    pub fn new_vartime(modulus: BoxedUint) -> Option<Self> {
-        if modulus.is_even().into() {
-            return None;
-        }
-
+    pub fn new_vartime(modulus: Odd<BoxedUint>) -> Self {
         let bits_precision = modulus.bits_precision();
-
-        // Use a surrogate value of `1` in case a modulus of `0` is passed.
-        // This will be rejected by the `is_odd` check above, which will fail and return `None`.
-        let modulus_nz = NonZero::new(BoxedUint::ct_select(
-            &modulus,
-            &BoxedUint::one_with_precision(bits_precision),
-            modulus.is_zero(),
-        ))
-        .expect("modulus ensured non-zero");
 
         // `R mod modulus` where `R = 2^BITS`.
         // Represents 1 in Montgomery form.
         let one = BoxedUint::max(bits_precision)
-            .rem_vartime(&modulus_nz)
+            .rem_vartime(modulus.as_nz_ref())
             .wrapping_add(&BoxedUint::one());
 
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
         let r2 = one
             .square()
-            .rem_vartime(&modulus_nz.widen(bits_precision * 2))
+            .rem_vartime(&modulus.as_nz_ref().widen(bits_precision * 2))
             .shorten(bits_precision);
 
-        Self::new_inner(modulus, one, r2).into()
+        Self::new_inner(modulus, one, r2)
     }
 
     /// Common functionality of `new` and `new_vartime`.
-    fn new_inner(modulus: BoxedUint, one: BoxedUint, r2: BoxedUint) -> CtOption<Self> {
+    fn new_inner(modulus: Odd<BoxedUint>, one: BoxedUint, r2: BoxedUint) -> Self {
         debug_assert_eq!(one.bits_precision(), modulus.bits_precision());
         debug_assert_eq!(r2.bits_precision(), modulus.bits_precision());
 
         // If the inverse exists, it means the modulus is odd.
         let (inv_mod_limb, modulus_is_odd) = modulus.inv_mod2k(Word::BITS);
+        debug_assert!(bool::from(modulus_is_odd));
+
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));
         let r3 = montgomery_reduction_boxed(&mut r2.square(), &modulus, mod_neg_inv);
 
-        let params = Self {
+        Self {
             modulus,
             one,
             r2,
             r3,
             mod_neg_inv,
-        };
-
-        CtOption::new(params, modulus_is_odd)
+        }
     }
 
     /// Modulus value.
@@ -256,7 +234,11 @@ impl Monty for BoxedMontyForm {
     type Params = BoxedMontyParams;
 
     fn new_params(modulus: Self::Integer) -> CtOption<Self::Params> {
-        BoxedMontyParams::new(modulus)
+        let is_odd = modulus.is_odd();
+
+        // Note: instantiates a potentially invalid `Odd`, but guards with `CtOption`.
+        let params = BoxedMontyParams::new(Odd(modulus));
+        CtOption::new(params, is_odd)
     }
 
     fn new(value: Self::Integer, params: Self::Params) -> Self {
@@ -280,25 +262,4 @@ fn convert_to_montgomery(integer: &mut BoxedUint, params: &BoxedMontyParams) {
 
     #[cfg(feature = "zeroize")]
     product.zeroize();
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{BoxedMontyParams, BoxedUint};
-
-    #[test]
-    fn new_params_with_invalid_modulus() {
-        // 0
-        let ret = BoxedMontyParams::new(BoxedUint::zero());
-        assert!(bool::from(ret.is_none()));
-
-        // 2
-        let ret = BoxedMontyParams::new(BoxedUint::from(2u8));
-        assert!(bool::from(ret.is_none()));
-    }
-
-    #[test]
-    fn new_params_with_valid_modulus() {
-        BoxedMontyParams::new(BoxedUint::from(3u8)).unwrap();
-    }
 }

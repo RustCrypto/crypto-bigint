@@ -321,7 +321,7 @@ mod tests {
         let modulus = 0xB44677037A7DBDE04814256570DCBD8Du128;
 
         let boxed_modulus = BoxedUint::from(modulus);
-        let boxed_params = BoxedMontyParams::new(boxed_modulus).unwrap();
+        let boxed_params = BoxedMontyParams::new(boxed_modulus.to_odd().unwrap());
         let boxed_monty = BoxedMontyForm::new(BoxedUint::from(x), boxed_params);
         let boxed_square = boxed_monty.square();
 

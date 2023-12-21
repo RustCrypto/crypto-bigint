@@ -4,7 +4,7 @@
 
 use crypto_bigint::{
     modular::{BoxedMontyForm, BoxedMontyParams},
-    BoxedUint, Integer, Limb, NonZero,
+    BoxedUint, Integer, Limb, NonZero, Odd,
 };
 use num_bigint::{BigUint, ModInverse};
 use proptest::prelude::*;
@@ -48,7 +48,7 @@ prop_compose! {
             n = n.wrapping_add(&BoxedUint::one());
         }
 
-        BoxedMontyParams::new(n).expect("modulus should be valid")
+        BoxedMontyParams::new(Odd::new(n).expect("modulus should be odd"))
     }
 }
 prop_compose! {
@@ -71,8 +71,9 @@ proptest! {
             n = n.wrapping_add(&BoxedUint::one());
         }
 
-        let params1 = BoxedMontyParams::new(n.clone()).unwrap();
-        let params2 = BoxedMontyParams::new_vartime(n).unwrap();
+        let n = Odd::new(n).expect("ensured odd");
+        let params1 = BoxedMontyParams::new(n.clone());
+        let params2 = BoxedMontyParams::new_vartime(n);
         prop_assert_eq!(params1, params2);
     }
 

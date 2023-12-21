@@ -1,6 +1,5 @@
-use crate::{ConstChoice, Limb, Uint, Word};
-
 use super::mul::{mul_montgomery_form, square_montgomery_form};
+use crate::{ConstChoice, Limb, Odd, Uint, Word};
 
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
@@ -16,7 +15,7 @@ pub const fn pow_montgomery_form<const LIMBS: usize, const RHS_LIMBS: usize>(
     x: &Uint<LIMBS>,
     exponent: &Uint<RHS_LIMBS>,
     exponent_bits: u32,
-    modulus: &Uint<LIMBS>,
+    modulus: &Odd<Uint<LIMBS>>,
     one: &Uint<LIMBS>,
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {
@@ -36,7 +35,7 @@ pub const fn multi_exponentiate_montgomery_form_array<
 >(
     bases_and_exponents: &[(Uint<LIMBS>, Uint<RHS_LIMBS>); N],
     exponent_bits: u32,
-    modulus: &Uint<LIMBS>,
+    modulus: &Odd<Uint<LIMBS>>,
     one: &Uint<LIMBS>,
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {
@@ -73,7 +72,7 @@ pub const fn multi_exponentiate_montgomery_form_array<
 pub fn multi_exponentiate_montgomery_form_slice<const LIMBS: usize, const RHS_LIMBS: usize>(
     bases_and_exponents: &[(Uint<LIMBS>, Uint<RHS_LIMBS>)],
     exponent_bits: u32,
-    modulus: &Uint<LIMBS>,
+    modulus: &Odd<Uint<LIMBS>>,
     one: &Uint<LIMBS>,
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {
@@ -98,7 +97,7 @@ pub fn multi_exponentiate_montgomery_form_slice<const LIMBS: usize, const RHS_LI
 
 const fn compute_powers<const LIMBS: usize>(
     x: &Uint<LIMBS>,
-    modulus: &Uint<LIMBS>,
+    modulus: &Odd<Uint<LIMBS>>,
     one: &Uint<LIMBS>,
     mod_neg_inv: Limb,
 ) -> [Uint<LIMBS>; 1 << WINDOW] {
@@ -118,7 +117,7 @@ const fn compute_powers<const LIMBS: usize>(
 const fn multi_exponentiate_montgomery_form_internal<const LIMBS: usize, const RHS_LIMBS: usize>(
     powers_and_exponents: &[([Uint<LIMBS>; 1 << WINDOW], Uint<RHS_LIMBS>)],
     exponent_bits: u32,
-    modulus: &Uint<LIMBS>,
+    modulus: &Odd<Uint<LIMBS>>,
     one: &Uint<LIMBS>,
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {

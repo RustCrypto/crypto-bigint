@@ -1,11 +1,10 @@
-use crate::{Limb, Uint};
-
 use super::reduction::montgomery_reduction;
+use crate::{Limb, Odd, Uint};
 
 pub(crate) const fn mul_montgomery_form<const LIMBS: usize>(
     a: &Uint<LIMBS>,
     b: &Uint<LIMBS>,
-    modulus: &Uint<LIMBS>,
+    modulus: &Odd<Uint<LIMBS>>,
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {
     let product = a.split_mul(b);
@@ -14,7 +13,7 @@ pub(crate) const fn mul_montgomery_form<const LIMBS: usize>(
 
 pub(crate) const fn square_montgomery_form<const LIMBS: usize>(
     a: &Uint<LIMBS>,
-    modulus: &Uint<LIMBS>,
+    modulus: &Odd<Uint<LIMBS>>,
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {
     let product = a.square_wide();

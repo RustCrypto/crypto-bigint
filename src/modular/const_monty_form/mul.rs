@@ -19,7 +19,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
             montgomery_form: mul_montgomery_form(
                 &self.montgomery_form,
                 &rhs.montgomery_form,
-                &MOD::MODULUS.0,
+                &MOD::MODULUS,
                 MOD::MOD_NEG_INV,
             ),
             phantom: PhantomData,
@@ -31,7 +31,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
         Self {
             montgomery_form: square_montgomery_form(
                 &self.montgomery_form,
-                &MOD::MODULUS.0,
+                &MOD::MODULUS,
                 MOD::MOD_NEG_INV,
             ),
             phantom: PhantomData,

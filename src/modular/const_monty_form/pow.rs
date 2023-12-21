@@ -33,7 +33,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
                 &self.montgomery_form,
                 exponent,
                 exponent_bits,
-                &MOD::MODULUS.0,
+                &MOD::MODULUS,
                 &MOD::ONE,
                 MOD::MOD_NEG_INV,
             ),

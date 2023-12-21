@@ -1,6 +1,6 @@
 use subtle::{Choice, CtOption};
 
-use crate::{modular::BernsteinYangInverter, NonZero, Uint, Word};
+use crate::{modular::BernsteinYangInverter, NonZero, Odd, Uint, Word};
 
 /// A boolean value returned by constant-time `const fn`s.
 // TODO: should be replaced by `subtle::Choice` or `CtOption`
@@ -300,6 +300,20 @@ impl<const LIMBS: usize> ConstCtOption<NonZero<Uint<LIMBS>>> {
     /// `msg`.
     #[inline]
     pub const fn expect(self, msg: &str) -> NonZero<Uint<LIMBS>> {
+        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        self.value
+    }
+}
+
+impl<const LIMBS: usize> ConstCtOption<Odd<Uint<LIMBS>>> {
+    /// Returns the contained value, consuming the `self` value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value is none with a custom panic message provided by
+    /// `msg`.
+    #[inline]
+    pub const fn expect(self, msg: &str) -> Odd<Uint<LIMBS>> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
     }

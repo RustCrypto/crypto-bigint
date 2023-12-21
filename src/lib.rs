@@ -170,6 +170,7 @@ mod checked;
 mod const_choice;
 mod limb;
 mod non_zero;
+mod odd;
 mod primitives;
 mod traits;
 mod uint;
@@ -180,6 +181,7 @@ pub use crate::{
     const_choice::{ConstChoice, ConstCtOption},
     limb::{Limb, WideWord, Word},
     non_zero::NonZero,
+    odd::Odd,
     traits::*,
     uint::div_limb::Reciprocal,
     uint::*,

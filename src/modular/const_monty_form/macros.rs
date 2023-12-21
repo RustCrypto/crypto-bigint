@@ -21,27 +21,17 @@ macro_rules! impl_modulus {
             $uint_type: $crate::ConcatMixed<MixedOutput = $crate::Uint<DLIMBS>>,
         {
             const LIMBS: usize = <$uint_type>::LIMBS;
-            const MODULUS: $crate::NonZero<$uint_type> = {
-                let res = <$uint_type>::from_be_hex($value);
-
-                // Check that the modulus is odd
-                if res.as_limbs()[0].0 & 1 == 0 {
-                    panic!("modulus must be odd");
-                }
-
-                // Can unwrap here since `res` was asserted to be odd.
-                res.to_nz().expect("modulus ensured non-zero")
-            };
+            const MODULUS: $crate::Odd<$uint_type> = $crate::Odd::<$uint_type>::from_be_hex($value);
 
             // `R mod MODULUS` where `R = 2^BITS`.
             // Represents 1 in Montgomery form.
             const ONE: $uint_type = $crate::Uint::MAX
-                .rem_vartime(&Self::MODULUS)
+                .rem_vartime(Self::MODULUS.as_nz_ref())
                 .wrapping_add(&$crate::Uint::ONE);
 
             // `R^2 mod MODULUS`, used to convert integers to Montgomery form.
             const R2: $uint_type =
-                $crate::Uint::rem_wide_vartime(Self::ONE.square_wide(), &Self::MODULUS);
+                $crate::Uint::rem_wide_vartime(Self::ONE.square_wide(), Self::MODULUS.as_nz_ref());
 
             const MOD_NEG_INV: $crate::Limb = $crate::Limb(
                 $crate::Word::MIN.wrapping_sub(
@@ -56,7 +46,7 @@ macro_rules! impl_modulus {
 
             const R3: $uint_type = $crate::modular::montgomery_reduction(
                 &Self::R2.square_wide(),
-                Self::MODULUS.as_ref(),
+                &Self::MODULUS,
                 Self::MOD_NEG_INV,
             );
         }
