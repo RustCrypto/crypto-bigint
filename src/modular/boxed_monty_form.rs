@@ -228,7 +228,7 @@ impl BoxedMontyForm {
     pub fn div_by_2(&self) -> Self {
         Self {
             montgomery_form: div_by_2::boxed::div_by_2(&self.montgomery_form, &self.params.modulus),
-            params: self.params.clone(), // TODO: avoid clone?
+            params: self.params.clone(),
         }
     }
 }
