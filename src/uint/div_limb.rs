@@ -74,6 +74,7 @@ pub const fn reciprocal(d: Word) -> Word {
 /// Returns `u32::MAX` if `a < b` and `0` otherwise.
 #[inline]
 const fn lt(a: u32, b: u32) -> u32 {
+    // TODO: Move to using ConstChoice::le
     let bit = (((!a) & b) | (((!a) | b) & (a.wrapping_sub(b)))) >> (u32::BITS - 1);
     bit.wrapping_neg()
 }
@@ -81,6 +82,7 @@ const fn lt(a: u32, b: u32) -> u32 {
 /// Returns `a` if `c == 0` and `b` if `c == u32::MAX`.
 #[inline(always)]
 const fn select(a: u32, b: u32, c: u32) -> u32 {
+    // TODO: Move to using ConstChoice::select
     a ^ (c & (a ^ b))
 }
 
