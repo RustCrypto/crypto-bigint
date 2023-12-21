@@ -161,12 +161,7 @@ impl BoxedUint {
             res[nlimbs - i - 1] = Limb(Word::from_be_bytes(buf));
             i += 1;
         }
-
-        if err == 0 {
-            CtOption::new(Self { limbs: res.into() }, Choice::from(1))
-        } else {
-            CtOption::new(Self::zero_with_precision(bits_precision), Choice::from(0))
-        }
+        CtOption::new(Self { limbs: res.into() }, Choice::from((err == 0) as u8))
     }
 }
 
