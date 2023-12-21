@@ -146,11 +146,21 @@ impl Odd<BoxedUint> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    #[cfg(feature = "alloc")]
+    use super::BoxedUint;
+    use super::{Odd, Uint};
+
+    #[test]
+    fn not_odd_numbers() {
+        let zero = Odd::new(Uint::<4>::ZERO);
+        assert!(bool::from(zero.is_none()));
+        let two = Odd::new(Uint::<4>::from(2u8));
+        assert!(bool::from(two.is_none()));
+    }
 
     #[cfg(feature = "alloc")]
     #[test]
-    fn not_odd_numbers() {
+    fn not_odd_numbers_boxed() {
         let zero = Odd::new(BoxedUint::zero());
         assert!(bool::from(zero.is_none()));
         let two = Odd::new(BoxedUint::from(2u8));
