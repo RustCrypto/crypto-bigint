@@ -13,6 +13,9 @@
 #[macro_use]
 mod macros;
 
+#[cfg(feature = "alloc")]
+pub(crate) mod boxed;
+
 use crate::{ConstChoice, ConstCtOption, Inverter, Limb, Odd, Uint, Word};
 use subtle::CtOption;
 
@@ -80,7 +83,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
         let mut matrix;
 
         while !g.eq(&Int62L::ZERO) {
-            (delta, matrix) = Self::jump(&f, &g, delta);
+            (delta, matrix) = jump(&f.0, &g.0, delta);
             (f, g) = fg(f, g, matrix);
             (d, e) = de(&self.modulus, self.inverse, d, e, matrix);
         }
@@ -99,7 +102,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// `UNSAT_LIMBS` which are computed when defining `PrecomputeInverter::Inverter` for various
     /// `Uint` limb sizes.
     pub(crate) const fn gcd(f: &Uint<SAT_LIMBS>, g: &Uint<SAT_LIMBS>) -> Uint<SAT_LIMBS> {
-        let f_0 = Int62L::from_uint(f);
+        let f_0 = Int62L::<UNSAT_LIMBS>::from_uint(f);
         let inverse = inv_mod2_62(f.as_words());
 
         let mut d = Int62L::ZERO;
@@ -110,7 +113,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
         let mut matrix;
 
         while !g.eq(&Int62L::ZERO) {
-            (delta, matrix) = Self::jump(&f, &g, delta);
+            (delta, matrix) = jump(&f.0, &g.0, delta);
             (f, g) = fg(f, g, matrix);
             (d, e) = de(&f_0, inverse, d, e, matrix);
         }
@@ -120,52 +123,6 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
         }
 
         f.to_uint()
-    }
-
-    /// Returns the Bernstein-Yang transition matrix multiplied by 2^62 and the new value of the
-    /// delta variable for the 62 basic steps of the Bernstein-Yang method, which are to be
-    /// performed sequentially for specified initial values of f, g and delta
-    const fn jump(
-        f: &Int62L<UNSAT_LIMBS>,
-        g: &Int62L<UNSAT_LIMBS>,
-        mut delta: i64,
-    ) -> (i64, Matrix) {
-        // This function is defined because the method "min" of the i64 type is not constant
-        const fn min(a: i64, b: i64) -> i64 {
-            if a > b {
-                b
-            } else {
-                a
-            }
-        }
-
-        let (mut steps, mut f, mut g) = (62, f.lowest() as i64, g.lowest() as i128);
-        let mut t: Matrix = [[1, 0], [0, 1]];
-
-        loop {
-            let zeros = min(steps, g.trailing_zeros() as i64);
-            (steps, delta, g) = (steps - zeros, delta + zeros, g >> zeros);
-            t[0] = [t[0][0] << zeros, t[0][1] << zeros];
-
-            if steps == 0 {
-                break;
-            }
-            if delta > 0 {
-                (delta, f, g) = (-delta, g as i64, -f as i128);
-                (t[0], t[1]) = (t[1], [-t[0][0], -t[0][1]]);
-            }
-
-            // The formula (3 * x) xor 28 = -1 / x (mod 32) for an odd integer x in the two's
-            // complement code has been derived from the formula (3 * x) xor 2 = 1 / x (mod 32)
-            // attributed to Peter Montgomery.
-            let mask = (1 << min(min(steps, 1 - delta), 5)) - 1;
-            let w = (g as i64).wrapping_mul(f.wrapping_mul(3) ^ 28) & mask;
-
-            t[1] = [t[0][0] * w + t[1][0], t[0][1] * w + t[1][1]];
-            g += w as i128 * f as i128;
-        }
-
-        (delta, t)
     }
 
     /// Returns either "value (mod M)" or "-value (mod M)", where M is the modulus the inverter
@@ -207,8 +164,14 @@ const fn inv_mod2_62(value: &[Word]) -> i64 {
     let value = {
         #[cfg(target_pointer_width = "32")]
         {
-            debug_assert!(value.len() >= 2);
-            value[0] as u64 | (value[1] as u64) << 32
+            debug_assert!(value.len() >= 1);
+            let mut ret = value[0] as u64;
+
+            if value.len() >= 2 {
+                ret |= (value[1] as u64) << 32;
+            }
+
+            ret
         }
 
         #[cfg(target_pointer_width = "64")]
@@ -223,6 +186,48 @@ const fn inv_mod2_62(value: &[Word]) -> i64 {
     let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
     let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
     (x.wrapping_mul(y.wrapping_add(1)) & (u64::MAX >> 2)) as i64
+}
+
+/// Returns the Bernstein-Yang transition matrix multiplied by 2^62 and the new value of the
+/// delta variable for the 62 basic steps of the Bernstein-Yang method, which are to be
+/// performed sequentially for specified initial values of f, g and delta
+const fn jump(f: &[u64], g: &[u64], mut delta: i64) -> (i64, Matrix) {
+    // This function is defined because the method "min" of the i64 type is not constant
+    const fn min(a: i64, b: i64) -> i64 {
+        if a > b {
+            b
+        } else {
+            a
+        }
+    }
+
+    let (mut steps, mut f, mut g) = (62, f[0] as i64, g[0] as i128);
+    let mut t: Matrix = [[1, 0], [0, 1]];
+
+    loop {
+        let zeros = min(steps, g.trailing_zeros() as i64);
+        (steps, delta, g) = (steps - zeros, delta + zeros, g >> zeros);
+        t[0] = [t[0][0] << zeros, t[0][1] << zeros];
+
+        if steps == 0 {
+            break;
+        }
+        if delta > 0 {
+            (delta, f, g) = (-delta, g as i64, -f as i128);
+            (t[0], t[1]) = (t[1], [-t[0][0], -t[0][1]]);
+        }
+
+        // The formula (3 * x) xor 28 = -1 / x (mod 32) for an odd integer x in the two's
+        // complement code has been derived from the formula (3 * x) xor 2 = 1 / x (mod 32)
+        // attributed to Peter Montgomery.
+        let mask = (1 << min(min(steps, 1 - delta), 5)) - 1;
+        let w = (g as i64).wrapping_mul(f.wrapping_mul(3) ^ 28) & mask;
+
+        t[1] = [t[0][0] * w + t[1][0], t[0][1] * w + t[1][1]];
+        g += w as i128 * f as i128;
+    }
+
+    (delta, t)
 }
 
 /// Returns the updated values of the variables f and g for specified initial ones and
@@ -329,12 +334,10 @@ impl<const LIMBS: usize> Int62L<LIMBS> {
     /// The ordering of the chunks in these arrays is little-endian
     #[allow(trivial_numeric_casts, clippy::wrong_self_convention)]
     pub const fn to_uint<const SAT_LIMBS: usize>(&self) -> Uint<SAT_LIMBS> {
+        debug_assert!(!self.is_negative(), "can't convert negative number to Uint");
+
         if LIMBS != bernstein_yang_nlimbs!(SAT_LIMBS * Limb::BITS as usize) {
             panic!("incorrect number of limbs");
-        }
-
-        if self.is_negative() {
-            panic!("can't convert negative number to Uint");
         }
 
         let mut ret = [0 as Word; SAT_LIMBS];
@@ -366,8 +369,9 @@ impl<const LIMBS: usize> Int62L<LIMBS> {
         //
         // Since for the two's complement code the additive negation is the result of adding 1 to
         // the bitwise inverted argument's representation, for any encoded integers x and y we have
-        // x * y = (-x) * (-y) = (!x + 1) * (-y) = !x * (-y) + (-y),  where "!" is the bitwise
+        // x * y = (-x) * (-y) = (!x + 1) * (-y) = !x * (-y) + (-y), where "!" is the bitwise
         // inversion and arithmetic operations are performed according to the rules of the code.
+        //
         // If the short multiplicand is negative, the algorithm below uses this formula by
         // substituting the short multiplicand for y and turns into the modified standard
         // multiplication algorithm, where the carry flag is initialized with the additively
@@ -454,7 +458,25 @@ impl<const LIMBS: usize> PartialEq for Int62L<LIMBS> {
 
 #[cfg(test)]
 mod tests {
+    use crate::{Inverter, PrecomputeInverter, U256};
+
     type Int62L = super::Int62L<4>;
+
+    #[test]
+    fn invert() {
+        let g =
+            U256::from_be_hex("00000000CBF9350842F498CE441FC2DC23C7BF47D3DE91C327B2157C5E4EED77");
+        let modulus =
+            U256::from_be_hex("FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551")
+                .to_odd()
+                .unwrap();
+        let inverter = modulus.precompute_inverter();
+        let result = inverter.invert(&g).unwrap();
+        assert_eq!(
+            U256::from_be_hex("FB668F8F509790BC549B077098918604283D42901C92981062EB48BC723F617B"),
+            result
+        );
+    }
 
     #[test]
     fn int62l_add() {
@@ -485,5 +507,29 @@ mod tests {
         assert!(!Int62L::ZERO.is_negative());
         assert!(!Int62L::ONE.is_negative());
         assert!(Int62L::MINUS_ONE.is_negative());
+    }
+
+    #[test]
+    fn int62l_shr() {
+        let n = super::Int62L([
+            0,
+            1211048314408256470,
+            1344008336933394898,
+            3913497193346473913,
+            2764114971089162538,
+            4,
+        ]);
+
+        assert_eq!(
+            &n.shr().0,
+            &[
+                1211048314408256470,
+                1344008336933394898,
+                3913497193346473913,
+                2764114971089162538,
+                4,
+                0
+            ]
+        );
     }
 }

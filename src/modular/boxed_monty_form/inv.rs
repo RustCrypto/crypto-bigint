@@ -1,8 +1,15 @@
 //! Multiplicative inverses of boxed integers in Montgomery form.
 
-use super::BoxedMontyForm;
-use crate::{modular::reduction::montgomery_reduction_boxed_mut, Invert};
+use super::{BoxedMontyForm, BoxedMontyParams};
+use crate::{
+    modular::{reduction::montgomery_reduction_boxed_mut, BoxedBernsteinYangInverter},
+    Invert, Inverter, PrecomputeInverter, PrecomputeInverterWithAdjuster,
+};
+use core::fmt;
 use subtle::CtOption;
+
+#[cfg(feature = "std")]
+use std::sync::Arc;
 
 impl BoxedMontyForm {
     /// Computes `self^-1` representing the multiplicative inverse of `self`.
@@ -32,6 +39,59 @@ impl Invert for BoxedMontyForm {
     type Output = CtOption<Self>;
     fn invert(&self) -> Self::Output {
         self.invert()
+    }
+}
+
+impl PrecomputeInverter for BoxedMontyParams {
+    type Inverter = BoxedMontyFormInverter;
+    type Output = BoxedMontyForm;
+
+    fn precompute_inverter(&self) -> BoxedMontyFormInverter {
+        BoxedMontyFormInverter {
+            inverter: self.modulus.0.precompute_inverter_with_adjuster(&self.r2),
+            params: self.clone().into(),
+        }
+    }
+}
+
+/// Bernstein-Yang inverter which inverts [`DynResidue`] types.
+pub struct BoxedMontyFormInverter {
+    /// Precomputed Bernstein-Yang inverter.
+    inverter: BoxedBernsteinYangInverter,
+
+    /// Residue parameters.
+    #[cfg(not(feature = "std"))]
+    params: BoxedMontyParams,
+
+    /// Residue parameters.
+    // Uses `Arc` when `std` is available.
+    #[cfg(feature = "std")]
+    params: Arc<BoxedMontyParams>,
+}
+
+impl Inverter for BoxedMontyFormInverter {
+    type Output = BoxedMontyForm;
+
+    fn invert(&self, value: &BoxedMontyForm) -> CtOption<Self::Output> {
+        debug_assert_eq!(self.params, value.params);
+
+        let montgomery_form = self.inverter.invert(&value.montgomery_form);
+        let is_some = montgomery_form.is_some();
+        let montgomery_form2 = value.montgomery_form.clone();
+        let ret = BoxedMontyForm {
+            montgomery_form: Option::from(montgomery_form).unwrap_or(montgomery_form2),
+            params: value.params.clone(),
+        };
+
+        CtOption::new(ret, is_some)
+    }
+}
+
+impl fmt::Debug for BoxedMontyFormInverter {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("BoxedMontyFormInverter")
+            .field("modulus", &self.inverter.modulus)
+            .finish()
     }
 }
 

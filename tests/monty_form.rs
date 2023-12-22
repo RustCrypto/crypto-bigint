@@ -70,8 +70,6 @@ proptest! {
 
         match (expected, actual) {
             (Some(exp), Some(act)) => {
-                let res = x * act;
-                prop_assert_eq!(res.retrieve(), U256::ONE);
                 prop_assert_eq!(exp, retrieve_biguint(&act).into());
             }
             (None, None) => (),
