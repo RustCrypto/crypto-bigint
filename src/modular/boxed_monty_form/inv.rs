@@ -2,8 +2,8 @@
 
 use super::{BoxedMontyForm, BoxedMontyParams};
 use crate::{
-    modular::{reduction::montgomery_reduction_boxed_mut, BoxedBernsteinYangInverter},
-    Invert, Inverter, PrecomputeInverter, PrecomputeInverterWithAdjuster,
+    modular::BoxedBernsteinYangInverter, Invert, Inverter, PrecomputeInverter,
+    PrecomputeInverterWithAdjuster,
 };
 use core::fmt;
 use subtle::CtOption;
@@ -15,23 +15,8 @@ impl BoxedMontyForm {
     /// Computes `self^-1` representing the multiplicative inverse of `self`.
     /// I.e. `self * self^-1 = 1`.
     pub fn invert(&self) -> CtOption<Self> {
-        let (mut inverse, is_some) = self.montgomery_form.inv_odd_mod(&self.params.modulus);
-
-        let mut product = inverse.mul(&self.params.r3);
-
-        montgomery_reduction_boxed_mut(
-            &mut product,
-            &self.params.modulus,
-            self.params.mod_neg_inv,
-            &mut inverse,
-        );
-
-        let value = Self {
-            montgomery_form: inverse,
-            params: self.params.clone(),
-        };
-
-        CtOption::new(value, is_some)
+        let inverter = self.params.precompute_inverter();
+        inverter.invert(self)
     }
 }
 
