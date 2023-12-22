@@ -561,7 +561,7 @@ pub trait Monty:
     type Integer: Integer<Monty = Self>;
 
     /// The precomputed data needed for this representation.
-    type Params: Clone;
+    type Params: 'static + Clone + Debug + Eq + Sized + Send + Sync;
 
     /// Create the precomputed data for Montgomery representation of integers modulo `modulus`.
     fn new_params(modulus: Odd<Self::Integer>) -> Self::Params;
