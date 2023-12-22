@@ -38,7 +38,10 @@ pub use self::{
 };
 
 #[cfg(feature = "alloc")]
-pub use self::boxed_monty_form::{BoxedMontyForm, BoxedMontyParams};
+pub use self::{
+    bernstein_yang::boxed::BoxedBernsteinYangInverter,
+    boxed_monty_form::{BoxedMontyForm, BoxedMontyParams},
+};
 
 /// A generalization for numbers kept in optimized representations (e.g. Montgomery)
 /// that can be converted back to the original form.
