@@ -177,9 +177,9 @@ impl BoxedUint {
     }
 
     /// Convert into an [`Odd`].
-    pub fn to_odd(self) -> CtOption<Odd<Self>> {
+    pub fn to_odd(&self) -> CtOption<Odd<Self>> {
         let is_odd = self.is_odd();
-        CtOption::new(Odd(self), is_odd)
+        CtOption::new(Odd(self.clone()), is_odd)
     }
 
     /// Widen this type's precision to the given number of bits.

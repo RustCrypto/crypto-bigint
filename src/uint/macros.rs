@@ -18,6 +18,7 @@ macro_rules! impl_precompute_inverter_trait {
             }
         }
 
+        // TODO(tarcieri): only impl these traits for `Odd`?
         impl PrecomputeInverterWithAdjuster for $name {
             fn precompute_inverter_with_adjuster(&self, adjuster: &Self) -> Self::Inverter {
                 let modulus = self.to_odd().expect("modulus must be odd");
