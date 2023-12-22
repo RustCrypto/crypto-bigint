@@ -5,7 +5,7 @@
 
 use super::{inv_mod2_62, jump, Matrix};
 use crate::{BoxedUint, Inverter, Limb, Odd, Word};
-use alloc::boxed::Box;
+use alloc::{boxed::Box, vec::Vec};
 use subtle::{Choice, ConstantTimeEq, CtOption};
 
 /// Modular multiplicative inverter based on the Bernstein-Yang method.
@@ -59,15 +59,10 @@ impl Inverter for BoxedBernsteinYangInverter {
     type Output = BoxedUint;
 
     fn invert(&self, value: &BoxedUint) -> CtOption<Self::Output> {
-        debug_assert_eq!(
-            bernstein_yang_nlimbs!(value.bits_precision() as usize),
-            self.modulus.0.len()
-        );
-
         let mut d = BoxedInt62L::zero(self.modulus.0.len());
         let mut e = self.adjuster.clone();
         let mut f = self.modulus.clone();
-        let mut g = BoxedInt62L::from(value);
+        let mut g = BoxedInt62L::from(value).widen(d.0.len());
 
         debug_assert_eq!(g.0.len(), self.modulus.0.len());
 
@@ -152,9 +147,27 @@ pub(crate) struct BoxedInt62L(Box<[u64]>);
 impl From<&BoxedUint> for BoxedInt62L {
     #[allow(trivial_numeric_casts)]
     fn from(input: &BoxedUint) -> BoxedInt62L {
-        let nlimbs = bernstein_yang_nlimbs!(input.nlimbs() * Limb::BITS as usize);
+        let saturated_nlimbs = if Word::BITS == 32 && input.nlimbs() == 1 {
+            2
+        } else {
+            input.nlimbs()
+        };
+
+        let nlimbs = bernstein_yang_nlimbs!(saturated_nlimbs * Limb::BITS as usize);
+
+        // Workaround for 32-bit platforms: if the input is a single limb, it will be smaller input
+        // than is usable for Bernstein-Yang with is currently natively 64-bits on all targets
+        let mut tmp: [Word; 2] = [0; 2];
+
+        let input = if Word::BITS == 32 && input.nlimbs() == 1 {
+            tmp[0] = input.limbs[0].0;
+            &tmp
+        } else {
+            input.as_words()
+        };
+
         let mut output = vec![0u64; nlimbs];
-        impl_limb_convert!(Word, Word::BITS as usize, input.as_words(), u64, 62, output);
+        impl_limb_convert!(Word, Word::BITS as usize, input, u64, 62, output);
         Self(output.into())
     }
 }
@@ -168,7 +181,12 @@ impl BoxedInt62L {
 
     /// Convert to a `BoxedUint` of the given precision.
     #[allow(trivial_numeric_casts)]
-    fn to_uint(&self, bits_precision: u32) -> BoxedUint {
+    fn to_uint(&self, mut bits_precision: u32) -> BoxedUint {
+        // The current Bernstein-Yang implementation is natively 64-bit on all targets
+        if bits_precision == 32 {
+            bits_precision = 64;
+        }
+
         debug_assert_eq!(
             self.0.len(),
             bernstein_yang_nlimbs!(bits_precision as usize)
@@ -290,8 +308,16 @@ impl BoxedInt62L {
     }
 
     /// Get the value zero for the given number of limbs.
-    pub fn zero(limbs: usize) -> Self {
-        Self(vec![0; limbs].into())
+    pub fn zero(nlimbs: usize) -> Self {
+        Self(vec![0; nlimbs].into())
+    }
+
+    /// Widen self to the given number of limbs.
+    pub fn widen(self, nlimbs: usize) -> Self {
+        let mut limbs = Vec::from(self.0);
+        debug_assert!(nlimbs >= limbs.len());
+        limbs.truncate(nlimbs);
+        Self(limbs.into())
     }
 
     /// Is the current value -1?

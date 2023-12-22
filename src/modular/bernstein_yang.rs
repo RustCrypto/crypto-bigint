@@ -164,8 +164,14 @@ const fn inv_mod2_62(value: &[Word]) -> i64 {
     let value = {
         #[cfg(target_pointer_width = "32")]
         {
-            debug_assert!(value.len() >= 2);
-            value[0] as u64 | (value[1] as u64) << 32
+            debug_assert!(value.len() >= 1);
+            let mut ret = value[0] as u64;
+
+            if value.len() >= 2 {
+                ret |= (value[1] as u64) << 32;
+            }
+
+            ret
         }
 
         #[cfg(target_pointer_width = "64")]
