@@ -60,20 +60,9 @@ impl Inverter for BoxedBernsteinYangInverter {
 
     fn invert(&self, value: &BoxedUint) -> CtOption<Self::Output> {
         let mut d = BoxedInt62L::zero(self.modulus.0.len());
-        let mut e = self.adjuster.clone();
-        let mut f = self.modulus.clone();
         let mut g = BoxedInt62L::from(value).widen(d.0.len());
+        let f = divsteps(&mut d, &self.adjuster, &self.modulus, &mut g, self.inverse);
 
-        debug_assert_eq!(g.0.len(), self.modulus.0.len());
-
-        let mut delta = 1;
-        let mut matrix;
-
-        while !g.is_zero() {
-            (delta, matrix) = jump(&f.0, &g.0, delta);
-            (f, g) = fg(f, g, matrix);
-            (d, e) = de(&self.modulus, self.inverse, d, e, matrix);
-        }
         // At this point the absolute value of "f" equals the greatest common divisor of the
         // integer to be inverted and the modulus the inverter was created for.
         // Thus, if "f" is neither 1 nor -1, then the sought inverse does not exist.
@@ -85,14 +74,40 @@ impl Inverter for BoxedBernsteinYangInverter {
     }
 }
 
+/// Algorithm `divsteps2` to compute (δₙ, fₙ, gₙ) = divstepⁿ(δ, f, g) as described in Figure 10.1
+/// of <https://eprint.iacr.org/2019/266.pdf>.
+fn divsteps(
+    d: &mut BoxedInt62L,
+    e: &BoxedInt62L,
+    f_0: &BoxedInt62L,
+    g: &mut BoxedInt62L,
+    inverse: i64,
+) -> BoxedInt62L {
+    debug_assert_eq!(f_0.0.len(), g.0.len());
+
+    let mut e = e.clone();
+    let mut f = f_0.clone();
+    let mut delta = 1;
+    let mut matrix;
+
+    while !g.is_zero() {
+        (delta, matrix) = jump(&f.0, &g.0, delta);
+        fg(&mut f, g, matrix);
+        de(f_0, inverse, matrix, d, &mut e);
+    }
+
+    f
+}
+
 /// Returns the updated values of the variables f and g for specified initial ones and
 /// Bernstein-Yang transition matrix multiplied by 2^62. The returned vector is
 /// "matrix * (f, g)' / 2^62", where "'" is the transpose operator.
-fn fg(f: BoxedInt62L, g: BoxedInt62L, t: Matrix) -> (BoxedInt62L, BoxedInt62L) {
-    (
-        f.mul(t[0][0]).add(&g.mul(t[0][1])).shr(),
-        f.mul(t[1][0]).add(&g.mul(t[1][1])).shr(),
-    )
+fn fg(f: &mut BoxedInt62L, g: &mut BoxedInt62L, t: Matrix) {
+    // TODO(tarcieri): reduce allocations
+    let f2 = f.mul(t[0][0]).add(&g.mul(t[0][1])).shr();
+    let g2 = f.mul(t[1][0]).add(&g.mul(t[1][1])).shr();
+    *f = f2;
+    *g = g2;
 }
 
 /// Returns the updated values of the variables d and e for specified initial ones and
@@ -100,13 +115,7 @@ fn fg(f: BoxedInt62L, g: BoxedInt62L, t: Matrix) -> (BoxedInt62L, BoxedInt62L) {
 /// M to "matrix * (d, e)' / 2^62 (mod M)", where M is the modulus the inverter was created for
 /// and "'" stands for the transpose operator. Both the input and output values lie in the
 /// interval (-2 * M, M).
-fn de(
-    modulus: &BoxedInt62L,
-    inverse: i64,
-    d: BoxedInt62L,
-    e: BoxedInt62L,
-    t: Matrix,
-) -> (BoxedInt62L, BoxedInt62L) {
+fn de(modulus: &BoxedInt62L, inverse: i64, t: Matrix, d: &mut BoxedInt62L, e: &mut BoxedInt62L) {
     let mask = BoxedInt62L::MASK as i64;
     let mut md = t[0][0] * d.is_negative() as i64 + t[0][1] * e.is_negative() as i64;
     let mut me = t[1][0] * d.is_negative() as i64 + t[1][1] * e.is_negative() as i64;
@@ -127,7 +136,8 @@ fn de(
     let cd = d.mul(t[0][0]).add(&e.mul(t[0][1])).add(&modulus.mul(md));
     let ce = d.mul(t[1][0]).add(&e.mul(t[1][1])).add(&modulus.mul(me));
 
-    (cd.shr(), ce.shr())
+    *d = cd.shr();
+    *e = ce.shr();
 }
 
 /// "Bigint"-like (62 * LIMBS)-bit signed integer type, whose variables store numbers in the two's
@@ -402,7 +412,7 @@ mod tests {
             .into(),
         );
         let inverse = 3687945983376704433;
-        let d = BoxedInt62L(
+        let mut d = BoxedInt62L(
             vec![
                 3490544662636853909,
                 2211268325417683828,
@@ -413,7 +423,7 @@ mod tests {
             ]
             .into(),
         );
-        let e = BoxedInt62L(
+        let mut e = BoxedInt62L(
             vec![
                 4004071259428196451,
                 1262234674432503659,
@@ -426,9 +436,9 @@ mod tests {
         );
         let t = [[-45035996273704960, 409827566090715136], [-14, 25]];
 
-        let (new_d, new_e) = super::de(&modulus, inverse, d, e, t);
+        super::de(&modulus, inverse, t, &mut d, &mut e);
         assert_eq!(
-            new_d,
+            d,
             BoxedInt62L(
                 vec![
                     1211048314408256470,
@@ -442,7 +452,7 @@ mod tests {
             )
         );
 
-        assert_eq!(new_e, BoxedInt62L(vec![0, 0, 0, 0, 0, 0].into()));
+        assert_eq!(e, BoxedInt62L(vec![0, 0, 0, 0, 0, 0].into()));
     }
 
     #[test]
