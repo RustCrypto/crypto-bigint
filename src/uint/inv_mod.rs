@@ -1,6 +1,8 @@
 use super::Uint;
-use crate::modular::BernsteinYangInverter;
-use crate::{ConstChoice, ConstCtOption, Odd, PrecomputeInverter};
+use crate::{
+    modular::BernsteinYangInverter, ConstChoice, ConstCtOption, InvMod, Odd, PrecomputeInverter,
+};
+use subtle::CtOption;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes 1/`self` mod `2^k`.
@@ -92,8 +94,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`.
-    /// Returns `(inverse, ConstChoice::TRUE)` if an inverse exists,
-    /// otherwise `(undefined, ConstChoice::FALSE)`.
+    ///
+    /// Returns some if an inverse exists, otherwise none.
     pub const fn inv_mod<const UNSAT_LIMBS: usize>(&self, modulus: &Self) -> ConstCtOption<Self>
     where
         Odd<Self>: PrecomputeInverter<Inverter = BernsteinYangInverter<LIMBS, UNSAT_LIMBS>>,
@@ -130,6 +132,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // so `a + s * t <= s * 2^k - 1 == modulus - 1`.
         let result = a.wrapping_add(&s.wrapping_mul(&t));
         ConstCtOption::new(result, is_some)
+    }
+}
+
+impl<const LIMBS: usize, const UNSAT_LIMBS: usize> InvMod for Uint<LIMBS>
+where
+    Odd<Self>: PrecomputeInverter<Inverter = BernsteinYangInverter<LIMBS, UNSAT_LIMBS>>,
+{
+    fn inv_mod(&self, modulus: &Self) -> CtOption<Self> {
+        self.inv_mod(modulus).into()
     }
 }
 

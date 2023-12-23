@@ -1,8 +1,8 @@
 //! [`BoxedUint`] modular inverse (i.e. reciprocal) operations.
 
 use crate::{
-    modular::BoxedBernsteinYangInverter, BoxedUint, ConstantTimeSelect, Integer, Inverter, Odd,
-    PrecomputeInverter, PrecomputeInverterWithAdjuster,
+    modular::BoxedBernsteinYangInverter, BoxedUint, ConstantTimeSelect, Integer, InvMod, Inverter,
+    Odd, PrecomputeInverter, PrecomputeInverterWithAdjuster,
 };
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
@@ -42,6 +42,19 @@ impl BoxedUint {
         }
 
         (x, is_some)
+    }
+}
+
+impl InvMod for BoxedUint {
+    /// Note: currently only supports odd modulus
+    fn inv_mod(&self, modulus: &Self) -> CtOption<Self> {
+        let modulus = Odd(modulus.clone());
+        let is_odd = modulus.is_odd();
+        let maybe_ret = self.inv_odd_mod(&modulus);
+        let is_some = maybe_ret.is_some() & is_odd;
+
+        // use cloned modulus as dummy value for is_none case
+        CtOption::new(Option::from(maybe_ret).unwrap_or(modulus.get()), is_some)
     }
 }
 
