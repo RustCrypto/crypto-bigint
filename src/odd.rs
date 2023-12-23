@@ -126,20 +126,20 @@ impl PartialOrd<Odd<BoxedUint>> for BoxedUint {
 
 #[cfg(feature = "rand_core")]
 impl<const LIMBS: usize> Random for Odd<Uint<LIMBS>> {
-    /// Generate a random `NonZero<Uint<T>>`.
+    /// Generate a random `Odd<Uint<T>>`.
     fn random(rng: &mut impl CryptoRngCore) -> Self {
         let mut ret = Uint::random(rng);
-        ret.limbs[0] &= Limb::ONE;
+        ret.limbs[0] |= Limb::ONE;
         Odd(ret)
     }
 }
 
 #[cfg(all(feature = "alloc", feature = "rand_core"))]
 impl Odd<BoxedUint> {
-    /// Generate a random `NonZero<Uint<T>>`.
+    /// Generate a random `Odd<Uint<T>>`.
     pub fn random(rng: &mut impl CryptoRngCore, bits_precision: u32) -> Self {
         let mut ret = BoxedUint::random(rng, bits_precision);
-        ret.limbs[0] &= Limb::ONE;
+        ret.limbs[0] |= Limb::ONE;
         Odd(ret)
     }
 }
