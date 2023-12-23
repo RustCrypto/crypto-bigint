@@ -19,7 +19,7 @@ fn to_biguint(uint: &BoxedUint) -> BigUint {
 fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     let params = BoxedMontyParams::new(Odd::<BoxedUint>::random(&mut OsRng, UINT_BITS));
 
-    group.bench_function("invert, U256", |b| {
+    group.bench_function("invert, 4096-bit", |b| {
         b.iter_batched(
             || {
                 let modulus = NonZero::new(params.modulus().clone()).unwrap();
