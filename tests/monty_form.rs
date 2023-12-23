@@ -1,7 +1,8 @@
 //! Equivalence tests between `crypto_bigint::MontyForm` and `num-bigint`.
 
 use crypto_bigint::{Encoding, Integer, Invert, Inverter, NonZero, Odd, PrecomputeInverter, U256};
-use num_bigint::{BigUint, ModInverse};
+use num_bigint::BigUint;
+use num_modular::ModularUnaryOps;
 use proptest::prelude::*;
 
 type MontyForm = crypto_bigint::modular::MontyForm<{ U256::LIMBS }>;
@@ -45,7 +46,7 @@ proptest! {
 
         let x_bi = retrieve_biguint(&x);
         let n_bi = to_biguint(n.modulus());
-        let expected = x_bi.mod_inverse(&n_bi);
+        let expected = x_bi.invm(&n_bi);
 
         match (expected, actual) {
             (Some(exp), Some(act)) => {
@@ -66,7 +67,7 @@ proptest! {
 
         let x_bi = retrieve_biguint(&x);
         let n_bi = to_biguint(n.modulus());
-        let expected = x_bi.mod_inverse(&n_bi);
+        let expected = x_bi.invm(&n_bi);
 
         match (expected, actual) {
             (Some(exp), Some(act)) => {

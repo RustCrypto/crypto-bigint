@@ -32,8 +32,9 @@ zeroize = { version = "1", optional = true,  default-features = false }
 bincode = "1"
 criterion = { version = "0.5", features = ["html_reports"] }
 hex-literal = "0.4"
-num-bigint = { package = "num-bigint-dig", version = "0.8" }
+num-bigint = "0.4"
 num-integer = "0.1"
+num-modular = { version = "0.5", features = ["num-bigint"] }
 proptest = "1"
 rand_core = { version = "0.6", features = ["std"] }
 rand_chacha = "0.3"
