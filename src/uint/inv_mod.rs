@@ -81,8 +81,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
-    /// Returns `(inverse, ConstChoice::TRUE)` if an inverse exists,
-    /// otherwise `(undefined, ConstChoice::FALSE)`.
     pub const fn inv_odd_mod<const UNSAT_LIMBS: usize>(
         &self,
         modulus: &Odd<Self>,
