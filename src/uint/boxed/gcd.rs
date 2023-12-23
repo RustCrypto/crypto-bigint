@@ -1,18 +1,29 @@
 //! Support for computing greatest common divisor of two `BoxedUint`s.
 
 use super::BoxedUint;
-use crate::{modular::bernstein_yang, Odd};
+use crate::{modular::bernstein_yang, Gcd, Integer, Odd};
+use subtle::CtOption;
 
-impl Odd<BoxedUint> {
-    /// Compute the greatest common divisor (GCD) of this number and another.
-    pub fn gcd(&self, rhs: &BoxedUint) -> BoxedUint {
+impl Gcd for BoxedUint {
+    type Output = CtOption<Self>;
+
+    fn gcd(&self, rhs: &Self) -> CtOption<Self> {
+        let ret = bernstein_yang::boxed::gcd(self, rhs);
+        CtOption::new(ret, self.is_odd())
+    }
+}
+
+impl Gcd<BoxedUint> for Odd<BoxedUint> {
+    type Output = BoxedUint;
+
+    fn gcd(&self, rhs: &BoxedUint) -> BoxedUint {
         bernstein_yang::boxed::gcd(self, rhs)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::BoxedUint;
+    use crate::{BoxedUint, Gcd};
 
     #[test]
     fn gcd_relatively_prime() {
