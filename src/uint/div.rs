@@ -84,7 +84,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes `self` % `rhs`, returns the remainder.
     pub const fn rem(&self, rhs: &NonZero<Self>) -> Self {
-        self.div_rem_vartime(rhs).1
+        self.div_rem(rhs).1
     }
 
     /// Computes `self` % `rhs`, returns the remainder in variable-time with respect to `rhs`.
@@ -211,7 +211,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform checked reduction, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
     pub fn checked_rem(&self, rhs: &Self) -> CtOption<Self> {
-        NonZero::new(*rhs).map(|rhs| self.rem_vartime(&rhs))
+        NonZero::new(*rhs).map(|rhs| self.rem(&rhs))
     }
 }
 
