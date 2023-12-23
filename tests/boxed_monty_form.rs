@@ -6,7 +6,8 @@ use crypto_bigint::{
     modular::{BoxedMontyForm, BoxedMontyParams},
     BoxedUint, Integer, Inverter, Limb, NonZero, Odd, PrecomputeInverter,
 };
-use num_bigint::{BigUint, ModInverse};
+use num_bigint::BigUint;
+use num_modular::ModularUnaryOps;
 use proptest::prelude::*;
 use std::cmp::Ordering;
 
@@ -84,7 +85,7 @@ proptest! {
 
         let x_bi = retrieve_biguint(&x);
         let n_bi = to_biguint(n.modulus());
-        let expected = x_bi.mod_inverse(&n_bi);
+        let expected = x_bi.invm(&n_bi);
 
         match (expected, actual) {
             (Some(exp), Some(act)) => prop_assert_eq!(exp, to_biguint(&act).into()),
@@ -101,7 +102,7 @@ proptest! {
 
         let x_bi = retrieve_biguint(&x);
         let n_bi = to_biguint(n.modulus());
-        let expected = x_bi.mod_inverse(&n_bi);
+        let expected = x_bi.invm(&n_bi);
 
         match (expected, actual) {
             (Some(exp), Some(act)) => {

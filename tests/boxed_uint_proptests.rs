@@ -4,8 +4,9 @@
 
 use core::cmp::Ordering;
 use crypto_bigint::{BoxedUint, CheckedAdd, Gcd, Integer, Limb, NonZero};
-use num_bigint::{BigUint, ModInverse};
+use num_bigint::BigUint;
 use num_integer::Integer as _;
+use num_modular::ModularUnaryOps;
 use num_traits::identities::One;
 use proptest::prelude::*;
 
@@ -168,7 +169,7 @@ proptest! {
 
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
-        let expected = a_bi.mod_inverse(b_bi);
+        let expected = a_bi.invm(&b_bi);
         let actual = Option::from(a.inv_odd_mod(&b));
 
         match (expected, actual) {
