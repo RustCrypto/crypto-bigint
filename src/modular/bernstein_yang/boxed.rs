@@ -74,6 +74,24 @@ impl Inverter for BoxedBernsteinYangInverter {
     }
 }
 
+/// Returns the greatest common divisor (GCD) of the two given numbers.
+pub(crate) fn gcd(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
+    let bits_precision = f.bits_precision();
+    let inverse = inv_mod2_62(f.as_words());
+    let f = BoxedInt62L::from(f);
+    let mut g = BoxedInt62L::from(g);
+    let mut d = BoxedInt62L::zero(f.0.len());
+    let e = BoxedInt62L::one(f.0.len());
+
+    let mut f = divsteps(&mut d, &e, &f, &mut g, inverse);
+
+    if f.is_negative() {
+        f = f.neg();
+    }
+
+    f.to_uint(bits_precision)
+}
+
 /// Algorithm `divsteps2` to compute (δₙ, fₙ, gₙ) = divstepⁿ(δ, f, g) as described in Figure 10.1
 /// of <https://eprint.iacr.org/2019/266.pdf>.
 fn divsteps(
@@ -320,6 +338,13 @@ impl BoxedInt62L {
     /// Get the value zero for the given number of limbs.
     pub fn zero(nlimbs: usize) -> Self {
         Self(vec![0; nlimbs].into())
+    }
+
+    /// Get the value zero for the given number of limbs.
+    pub fn one(nlimbs: usize) -> Self {
+        let mut ret = Self::zero(nlimbs);
+        ret.0[0] = 0;
+        ret
     }
 
     /// Widen self to the given number of limbs.

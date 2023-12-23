@@ -21,7 +21,7 @@ mod monty_form;
 mod reduction;
 
 mod add;
-mod bernstein_yang;
+pub(crate) mod bernstein_yang;
 mod div_by_2;
 mod mul;
 mod pow;
