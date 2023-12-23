@@ -1,7 +1,7 @@
 //! Support for computing greatest common divisor of two `Uint`s.
 
-use super::Uint;
-use crate::{modular::BernsteinYangInverter, ConstCtOption, PrecomputeInverter};
+use crate::{modular::BernsteinYangInverter, ConstCtOption, Gcd, Odd, PrecomputeInverter, Uint};
+use subtle::CtOption;
 
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Uint<SAT_LIMBS>
 where
@@ -13,6 +13,28 @@ where
     pub const fn gcd(&self, rhs: &Self) -> ConstCtOption<Self> {
         let ret = <Self as PrecomputeInverter>::Inverter::gcd(self, rhs);
         ConstCtOption::new(ret, self.is_odd())
+    }
+}
+
+impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Gcd for Uint<SAT_LIMBS>
+where
+    Self: PrecomputeInverter<Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>>,
+{
+    type Output = CtOption<Uint<SAT_LIMBS>>;
+
+    fn gcd(&self, rhs: &Self) -> CtOption<Self> {
+        self.gcd(rhs).into()
+    }
+}
+
+impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Gcd<Uint<SAT_LIMBS>> for Odd<Uint<SAT_LIMBS>>
+where
+    Self: PrecomputeInverter<Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>>,
+{
+    type Output = Uint<SAT_LIMBS>;
+
+    fn gcd(&self, rhs: &Uint<SAT_LIMBS>) -> Uint<SAT_LIMBS> {
+        <Self as PrecomputeInverter>::Inverter::gcd(self, rhs)
     }
 }
 
