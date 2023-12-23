@@ -197,6 +197,27 @@ pub trait FixedInteger: Bounded + ConditionallySelectable + Constants + Copy + I
     const LIMBS: usize;
 }
 
+/// Compute greatest common divisor of two integers.
+pub trait Gcd<Rhs = Self>: Sized {
+    /// Output type.
+    type Output;
+
+    /// Compute greatest common divisor of `self` and `rhs`.
+    ///
+    /// Returns none unless `self` is odd (`rhs` may be even or odd)`.
+    fn gcd(&self, rhs: &Rhs) -> Self::Output;
+}
+
+/// Trait impl'd by precomputed modular inverters obtained via the [`PrecomputeInverter`] trait.
+pub trait Inverter {
+    /// Output of an inversion.
+    type Output;
+
+    /// Compute a modular inversion, returning `None` if the result is undefined (i.e. if `value` is zero or isn't
+    /// prime relative to the modulus).
+    fn invert(&self, value: &Self::Output) -> CtOption<Self::Output>;
+}
+
 /// Obtain a precomputed inverter for efficiently computing modular inversions for a given modulus.
 pub trait PrecomputeInverter {
     /// Inverter type for integers of this size.
@@ -209,16 +230,6 @@ pub trait PrecomputeInverter {
     ///
     /// Returns `None` if `self` is even.
     fn precompute_inverter(&self) -> Self::Inverter;
-}
-
-/// Trait impl'd by precomputed modular inverters.
-pub trait Inverter {
-    /// Output of an inversion.
-    type Output;
-
-    /// Compute a modular inversion, returning `None` if the result is undefined (i.e. if `value` is zero or isn't
-    /// prime relative to the modulus).
-    fn invert(&self, value: &Self::Output) -> CtOption<Self::Output>;
 }
 
 /// Zero values.
