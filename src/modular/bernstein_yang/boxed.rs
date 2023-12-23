@@ -6,6 +6,7 @@
 use super::{inv_mod2_62, jump, Matrix};
 use crate::{BoxedUint, Inverter, Limb, Odd, Word};
 use alloc::{boxed::Box, vec::Vec};
+use core::ops::{AddAssign, Mul, Neg};
 use subtle::{Choice, ConstantTimeEq, CtOption};
 
 /// Modular multiplicative inverter based on the Bernstein-Yang method.
@@ -40,7 +41,7 @@ impl BoxedBernsteinYangInverter {
     /// formula. The input integer lies in the interval (-2 * M, M).
     fn norm(&self, mut value: BoxedInt62L, negate: bool) -> BoxedInt62L {
         if value.is_negative() {
-            value = value.add(&self.modulus);
+            value += &self.modulus;
         }
 
         if negate {
@@ -48,7 +49,7 @@ impl BoxedBernsteinYangInverter {
         }
 
         if value.is_negative() {
-            value = value.add(&self.modulus);
+            value += &self.modulus;
         }
 
         value
@@ -59,8 +60,8 @@ impl Inverter for BoxedBernsteinYangInverter {
     type Output = BoxedUint;
 
     fn invert(&self, value: &BoxedUint) -> CtOption<Self::Output> {
-        let mut d = BoxedInt62L::zero(self.modulus.0.len());
-        let mut g = BoxedInt62L::from(value).widen(d.0.len());
+        let mut d = BoxedInt62L::zero(self.modulus.nlimbs());
+        let mut g = BoxedInt62L::from(value).widen(d.nlimbs());
         let f = divsteps(&mut d, &self.adjuster, &self.modulus, &mut g, self.inverse);
 
         // At this point the absolute value of "f" equals the greatest common divisor of the
@@ -80,8 +81,8 @@ pub(crate) fn gcd(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
     let inverse = inv_mod2_62(f.as_words());
     let f = BoxedInt62L::from(f);
     let mut g = BoxedInt62L::from(g);
-    let mut d = BoxedInt62L::zero(f.0.len());
-    let e = BoxedInt62L::one(f.0.len());
+    let mut d = BoxedInt62L::zero(f.nlimbs());
+    let e = BoxedInt62L::one(f.nlimbs());
 
     let mut f = divsteps(&mut d, &e, &f, &mut g, inverse);
 
@@ -101,7 +102,7 @@ fn divsteps(
     g: &mut BoxedInt62L,
     inverse: i64,
 ) -> BoxedInt62L {
-    debug_assert_eq!(f_0.0.len(), g.0.len());
+    debug_assert_eq!(f_0.nlimbs(), g.nlimbs());
 
     let mut e = e.clone();
     let mut f = f_0.clone();
@@ -122,8 +123,14 @@ fn divsteps(
 /// "matrix * (f, g)' / 2^62", where "'" is the transpose operator.
 fn fg(f: &mut BoxedInt62L, g: &mut BoxedInt62L, t: Matrix) {
     // TODO(tarcieri): reduce allocations
-    let f2 = f.mul(t[0][0]).add(&g.mul(t[0][1])).shr();
-    let g2 = f.mul(t[1][0]).add(&g.mul(t[1][1])).shr();
+    let mut f2 = &*f * t[0][0];
+    f2 += &*g * t[0][1];
+    f2.shr_assign();
+
+    let mut g2 = &*f * t[1][0];
+    g2 += &*g * t[1][1];
+    g2.shr_assign();
+
     *f = f2;
     *g = g2;
 }
@@ -151,11 +158,18 @@ fn de(modulus: &BoxedInt62L, inverse: i64, t: Matrix, d: &mut BoxedInt62L, e: &m
     md -= (inverse.wrapping_mul(cd).wrapping_add(md)) & mask;
     me -= (inverse.wrapping_mul(ce).wrapping_add(me)) & mask;
 
-    let cd = d.mul(t[0][0]).add(&e.mul(t[0][1])).add(&modulus.mul(md));
-    let ce = d.mul(t[1][0]).add(&e.mul(t[1][1])).add(&modulus.mul(me));
+    let mut cd = d.mul(t[0][0]);
+    cd += &e.mul(t[0][1]);
+    cd += &modulus.mul(md);
+    cd.shr_assign();
 
-    *d = cd.shr();
-    *e = ce.shr();
+    let mut ce = d.mul(t[1][0]);
+    ce += &e.mul(t[1][1]);
+    ce += &modulus.mul(me);
+    ce.shr_assign();
+
+    *d = cd;
+    *e = ce;
 }
 
 /// "Bigint"-like (62 * LIMBS)-bit signed integer type, whose variables store numbers in the two's
@@ -216,7 +230,7 @@ impl BoxedInt62L {
         }
 
         debug_assert_eq!(
-            self.0.len(),
+            self.nlimbs(),
             bernstein_yang_nlimbs!(bits_precision as usize)
         );
         assert!(
@@ -240,99 +254,15 @@ impl BoxedInt62L {
         ret
     }
 
-    /// Add.
-    #[must_use]
-    pub fn add(&self, other: &Self) -> Self {
-        let nlimbs = self.0.len();
-        debug_assert_eq!(nlimbs, other.0.len());
+    /// Apply 62-bit right arithmetical shift in-place.
+    pub fn shr_assign(&mut self) {
+        let is_negative = self.is_negative();
 
-        let mut ret = Self::zero(nlimbs);
-        let mut carry = 0;
-        let mut i = 0;
-
-        while i < nlimbs {
-            let sum = self.0[i] + other.0[i] + carry;
-            ret.0[i] = sum & Self::MASK;
-            carry = sum >> Self::LIMB_BITS;
-            i += 1;
+        for i in 0..(self.nlimbs() - 1) {
+            self.0[i] = self.0[i + 1];
         }
 
-        ret
-    }
-
-    /// Mul.
-    #[must_use]
-    pub fn mul(&self, other: i64) -> Self {
-        let nlimbs = self.0.len();
-        let mut ret = Self::zero(nlimbs);
-
-        // If the short multiplicand is non-negative, the standard multiplication algorithm is
-        // performed. Otherwise, the product of the additively negated multiplicands is found as
-        // follows.
-        //
-        // Since for the two's complement code the additive negation is the result of adding 1 to
-        // the bitwise inverted argument's representation, for any encoded integers x and y we have
-        // x * y = (-x) * (-y) = (!x + 1) * (-y) = !x * (-y) + (-y), where "!" is the bitwise
-        // inversion and arithmetic operations are performed according to the rules of the code.
-        //
-        // If the short multiplicand is negative, the algorithm below uses this formula by
-        // substituting the short multiplicand for y and turns into the modified standard
-        // multiplication algorithm, where the carry flag is initialized with the additively
-        // negated short multiplicand and the chunks of the long multiplicand are bitwise inverted.
-        let (other, mut carry, mask) = if other < 0 {
-            (-other, -other as u64, Self::MASK)
-        } else {
-            (other, 0, 0)
-        };
-
-        let mut i = 0;
-        while i < nlimbs {
-            let sum = (carry as u128) + ((self.0[i] ^ mask) as u128) * (other as u128);
-            ret.0[i] = sum as u64 & Self::MASK;
-            carry = (sum >> Self::LIMB_BITS) as u64;
-            i += 1;
-        }
-
-        ret
-    }
-
-    /// Negate.
-    #[must_use]
-    pub fn neg(&self) -> Self {
-        // For the two's complement code the additive negation is the result of adding 1 to the
-        // bitwise inverted argument's representation.
-        let nlimbs = self.0.len();
-        let mut ret = Self::zero(nlimbs);
-        let mut carry = 1;
-        let mut i = 0;
-
-        while i < nlimbs {
-            let sum = (self.0[i] ^ Self::MASK) + carry;
-            ret.0[i] = sum & Self::MASK;
-            carry = sum >> Self::LIMB_BITS;
-            i += 1;
-        }
-
-        ret
-    }
-
-    /// Returns the result of applying 62-bit right arithmetical shift to the current number.
-    #[must_use]
-    pub fn shr(&self) -> Self {
-        let nlimbs = self.0.len();
-        let mut ret = Self::zero(nlimbs);
-
-        if self.is_negative() {
-            ret.0[nlimbs - 1] = Self::MASK;
-        }
-
-        let mut i = 0;
-        while i < nlimbs - 1 {
-            ret.0[i] = self.0[i + 1];
-            i += 1;
-        }
-
-        ret
+        self.0[self.nlimbs() - 1] = if is_negative { Self::MASK } else { 0 };
     }
 
     /// Get the value zero for the given number of limbs.
@@ -364,7 +294,7 @@ impl BoxedInt62L {
 
     /// Returns "true" iff the current number is negative.
     pub fn is_negative(&self) -> bool {
-        self.0[self.0.len() - 1] > (Self::MASK >> 1)
+        self.0[self.nlimbs() - 1] > (Self::MASK >> 1)
     }
 
     /// Is the current value zero?
@@ -383,6 +313,86 @@ impl BoxedInt62L {
     pub fn lowest(&self) -> u64 {
         self.0[0]
     }
+
+    /// Returns the number of limbs used by this integer.
+    pub fn nlimbs(&self) -> usize {
+        self.0.len()
+    }
+}
+
+impl AddAssign<BoxedInt62L> for BoxedInt62L {
+    fn add_assign(&mut self, rhs: BoxedInt62L) {
+        self.add_assign(&rhs);
+    }
+}
+
+impl AddAssign<&BoxedInt62L> for BoxedInt62L {
+    fn add_assign(&mut self, rhs: &BoxedInt62L) {
+        debug_assert_eq!(self.nlimbs(), rhs.nlimbs());
+        let mut carry = 0;
+
+        for i in 0..self.nlimbs() {
+            let sum = self.0[i] + rhs.0[i] + carry;
+            self.0[i] = sum & Self::MASK;
+            carry = sum >> Self::LIMB_BITS;
+        }
+    }
+}
+
+impl Mul<i64> for &BoxedInt62L {
+    type Output = BoxedInt62L;
+
+    fn mul(self, other: i64) -> BoxedInt62L {
+        let nlimbs = self.nlimbs();
+        let mut ret = BoxedInt62L::zero(nlimbs);
+
+        // If the short multiplicand is non-negative, the standard multiplication algorithm is
+        // performed. Otherwise, the product of the additively negated multiplicands is found as
+        // follows.
+        //
+        // Since for the two's complement code the additive negation is the result of adding 1 to
+        // the bitwise inverted argument's representation, for any encoded integers x and y we have
+        // x * y = (-x) * (-y) = (!x + 1) * (-y) = !x * (-y) + (-y), where "!" is the bitwise
+        // inversion and arithmetic operations are performed according to the rules of the code.
+        //
+        // If the short multiplicand is negative, the algorithm below uses this formula by
+        // substituting the short multiplicand for y and turns into the modified standard
+        // multiplication algorithm, where the carry flag is initialized with the additively
+        // negated short multiplicand and the chunks of the long multiplicand are bitwise inverted.
+        let (other, mut carry, mask) = if other < 0 {
+            (-other, -other as u64, BoxedInt62L::MASK)
+        } else {
+            (other, 0, 0)
+        };
+
+        for i in 0..nlimbs {
+            let sum = (carry as u128) + ((self.0[i] ^ mask) as u128) * (other as u128);
+            ret.0[i] = sum as u64 & BoxedInt62L::MASK;
+            carry = (sum >> BoxedInt62L::LIMB_BITS) as u64;
+        }
+
+        ret
+    }
+}
+
+impl Neg for BoxedInt62L {
+    type Output = Self;
+
+    fn neg(self) -> Self {
+        // For the two's complement code the additive negation is the result of adding 1 to the
+        // bitwise inverted argument's representation.
+        let nlimbs = self.nlimbs();
+        let mut ret = Self::zero(nlimbs);
+        let mut carry = 1;
+
+        for i in 0..nlimbs {
+            let sum = (self.0[i] ^ Self::MASK) + carry;
+            ret.0[i] = sum & Self::MASK;
+            carry = sum >> Self::LIMB_BITS;
+        }
+
+        ret
+    }
 }
 
 impl PartialEq for BoxedInt62L {
@@ -395,6 +405,7 @@ impl PartialEq for BoxedInt62L {
 mod tests {
     use super::BoxedInt62L;
     use crate::{modular::bernstein_yang::Int62L, BoxedUint, Inverter, PrecomputeInverter, U256};
+    use core::ops::Neg;
     use proptest::prelude::*;
 
     #[test]
@@ -499,8 +510,8 @@ mod tests {
     }
 
     #[test]
-    fn int62l_shr() {
-        let n = BoxedInt62L(
+    fn int62l_shr_assign() {
+        let mut n = BoxedInt62L(
             vec![
                 0,
                 1211048314408256470,
@@ -511,9 +522,10 @@ mod tests {
             ]
             .into(),
         );
+        n.shr_assign();
 
         assert_eq!(
-            &*n.shr().0,
+            &*n.0,
             &[
                 1211048314408256470,
                 1344008336933394898,
@@ -536,12 +548,12 @@ mod tests {
         fn boxed_int62l_add(x in u256(), y in u256()) {
             let x_ref = Int62L::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
             let y_ref = Int62L::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&y);
-            let x_boxed = BoxedInt62L::from(&x.into());
+            let mut x_boxed = BoxedInt62L::from(&x.into());
             let y_boxed = BoxedInt62L::from(&y.into());
 
             let expected = x_ref.add(&y_ref);
-            let actual = x_boxed.add(&y_boxed);
-            prop_assert_eq!(&expected.0, &*actual.0);
+            x_boxed += &y_boxed;
+            prop_assert_eq!(&expected.0, &*x_boxed.0);
         }
 
         #[test]
@@ -550,7 +562,7 @@ mod tests {
             let x_boxed = BoxedInt62L::from(&x.into());
 
             let expected = x_ref.mul(y);
-            let actual = x_boxed.mul(y);
+            let actual = &x_boxed * y;
             prop_assert_eq!(&expected.0, &*actual.0);
         }
 
@@ -567,11 +579,11 @@ mod tests {
         #[test]
         fn boxed_int62l_shr(x in u256()) {
             let x_ref = Int62L::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
-            let x_boxed = BoxedInt62L::from(&x.into());
+            let mut x_boxed = BoxedInt62L::from(&x.into());
+            x_boxed.shr_assign();
 
             let expected = x_ref.shr();
-            let actual = x_boxed.shr();
-            prop_assert_eq!(&expected.0, &*actual.0);
+            prop_assert_eq!(&expected.0, &*x_boxed.0);
         }
 
         #[test]
