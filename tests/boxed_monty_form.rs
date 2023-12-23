@@ -2,6 +2,9 @@
 
 #![cfg(feature = "alloc")]
 
+mod common;
+
+use common::to_biguint;
 use crypto_bigint::{
     modular::{BoxedMontyForm, BoxedMontyParams},
     BoxedUint, Integer, Inverter, Limb, NonZero, Odd, PrecomputeInverter,
@@ -10,10 +13,6 @@ use num_bigint::BigUint;
 use num_modular::ModularUnaryOps;
 use proptest::prelude::*;
 use std::cmp::Ordering;
-
-fn to_biguint(uint: &BoxedUint) -> BigUint {
-    BigUint::from_bytes_be(&uint.to_be_bytes())
-}
 
 fn retrieve_biguint(monty_form: &BoxedMontyForm) -> BigUint {
     to_biguint(&monty_form.retrieve())
