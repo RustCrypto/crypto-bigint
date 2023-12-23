@@ -1,5 +1,8 @@
 //! Equivalence tests between `crypto_bigint::Uint` and `num_bigint::BigUint`.
 
+mod common;
+
+use common::to_biguint;
 use crypto_bigint::{
     modular::{MontyForm, MontyParams},
     Encoding, Integer, Limb, NonZero, Odd, Word, U256,
@@ -13,10 +16,6 @@ use std::mem;
 /// Example prime number (NIST P-256 curve order)
 const P: Odd<U256> =
     Odd::<U256>::from_be_hex("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551");
-
-fn to_biguint(uint: &U256) -> BigUint {
-    BigUint::from_bytes_le(uint.to_le_bytes().as_ref())
-}
 
 fn to_uint(big_uint: BigUint) -> U256 {
     let mut input = [0u8; U256::BYTES];

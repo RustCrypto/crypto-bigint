@@ -1,6 +1,9 @@
 //! Equivalence tests for Bernstein-Yang inversions.
 
-use crypto_bigint::{Encoding, Inverter, Odd, PrecomputeInverter, U256};
+mod common;
+
+use common::to_biguint;
+use crypto_bigint::{Inverter, Odd, PrecomputeInverter, U256};
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::One;
@@ -12,15 +15,6 @@ use crypto_bigint::BoxedUint;
 /// Example prime number (NIST P-256 curve order)
 const P: Odd<U256> =
     Odd::<U256>::from_be_hex("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551");
-
-fn to_biguint(uint: &U256) -> BigUint {
-    BigUint::from_bytes_le(uint.to_le_bytes().as_ref())
-}
-
-#[cfg(feature = "alloc")]
-fn to_biguint_boxed(boxed_uint: &BoxedUint) -> BigUint {
-    BigUint::from_bytes_le(boxed_uint.to_le_bytes().as_ref())
-}
 
 prop_compose! {
     fn uint()(bytes in any::<[u8; 32]>()) -> U256 {
@@ -53,7 +47,7 @@ proptest! {
 
         prop_assert_eq!(expected_is_some, bool::from(actual.is_some()));
 
-        if let Some(actual) = actual.into() {
+        if let Some(actual) = Option::<U256>::from(actual) {
             let inv_bi = to_biguint(&actual);
             let res = (inv_bi * x_bi) % p_bi;
             prop_assert_eq!(res, BigUint::one());
@@ -66,7 +60,7 @@ proptest! {
         let p = Odd::<BoxedUint>::from(&P);
         let x = x.rem_vartime(p.as_nz_ref()).widen(p.bits_precision());
 
-        let x_bi = to_biguint_boxed(&x);
+        let x_bi = to_biguint(&x);
         let p_bi = to_biguint(&P);
 
         let expected_is_some = x_bi.gcd(&p_bi) == BigUint::one();
@@ -75,8 +69,8 @@ proptest! {
 
         prop_assert_eq!(expected_is_some, bool::from(actual.is_some()));
 
-        if let Some(actual) = actual.into() {
-            let inv_bi = to_biguint_boxed(&actual);
+        if let Some(actual) = Option::<BoxedUint>::from(actual) {
+            let inv_bi = to_biguint(&actual);
             let res = (inv_bi * x_bi) % p_bi;
             prop_assert_eq!(res, BigUint::one());
         }

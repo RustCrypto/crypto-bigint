@@ -1,16 +1,15 @@
 //! Equivalence tests between `crypto_bigint::MontyForm` and `num-bigint`.
 
-use crypto_bigint::{Encoding, Integer, Invert, Inverter, NonZero, Odd, PrecomputeInverter, U256};
+mod common;
+
+use common::to_biguint;
+use crypto_bigint::{Integer, Invert, Inverter, NonZero, Odd, PrecomputeInverter, U256};
 use num_bigint::BigUint;
 use num_modular::ModularUnaryOps;
 use proptest::prelude::*;
 
 type MontyForm = crypto_bigint::modular::MontyForm<{ U256::LIMBS }>;
 type MontyParams = crypto_bigint::modular::MontyParams<{ U256::LIMBS }>;
-
-fn to_biguint(uint: &U256) -> BigUint {
-    BigUint::from_bytes_le(uint.to_le_bytes().as_ref())
-}
 
 fn retrieve_biguint(monty_form: &MontyForm) -> BigUint {
     to_biguint(&monty_form.retrieve())
