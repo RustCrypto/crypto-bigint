@@ -1,17 +1,17 @@
 //! Equivalence tests for Bernstein-Yang inversions.
 
-use crypto_bigint::{Encoding, Inverter, PrecomputeInverter, U256};
+use crypto_bigint::{Encoding, Inverter, Odd, PrecomputeInverter, U256};
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::One;
 use proptest::prelude::*;
 
 #[cfg(feature = "alloc")]
-use crypto_bigint::{BoxedUint, NonZero};
+use crypto_bigint::BoxedUint;
 
 /// Example prime number (NIST P-256 curve order)
-const P: U256 =
-    U256::from_be_hex("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551");
+const P: Odd<U256> =
+    Odd::<U256>::from_be_hex("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551");
 
 fn to_biguint(uint: &U256) -> BigUint {
     BigUint::from_bytes_le(uint.to_le_bytes().as_ref())
@@ -63,8 +63,8 @@ proptest! {
     #[cfg(feature = "alloc")]
     #[test]
     fn boxed_inv_mod(x in boxed_uint()) {
-        let p = BoxedUint::from(&P);
-        let x = x.rem_vartime(&NonZero::new(p.clone()).unwrap()).widen(p.bits_precision());
+        let p = Odd::<BoxedUint>::from(&P);
+        let x = x.rem_vartime(p.as_nz_ref()).widen(p.bits_precision());
 
         let x_bi = to_biguint_boxed(&x);
         let p_bi = to_biguint(&P);
