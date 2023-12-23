@@ -55,7 +55,7 @@ pub trait ConstMontyParams<const LIMBS: usize>:
     /// Use [`ConstMontyFormInverter::new`] if you need `const fn` access.
     fn precompute_inverter<const UNSAT_LIMBS: usize>() -> ConstMontyFormInverter<Self, LIMBS>
     where
-        Uint<LIMBS>: PrecomputeInverter<
+        Odd<Uint<LIMBS>>: PrecomputeInverter<
             Inverter = BernsteinYangInverter<LIMBS, UNSAT_LIMBS>,
             Output = Uint<LIMBS>,
         >,

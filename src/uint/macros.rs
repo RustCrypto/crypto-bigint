@@ -3,8 +3,8 @@
 /// Impl the `Inverter` trait, where we need to compute the number of unsaturated limbs for a given number of bits.
 macro_rules! impl_precompute_inverter_trait {
     ($name:ident, $bits:expr) => {
-        /// Precompute a Bernstein-Yang inverter using `self` as the modulus. Panics if called on an even number!
-        impl PrecomputeInverter for $name {
+        /// Precompute a Bernstein-Yang inverter using `self` as the modulus.
+        impl PrecomputeInverter for Odd<$name> {
             #[allow(trivial_numeric_casts)]
             type Inverter = BernsteinYangInverter<
                 { nlimbs!($bits) },
@@ -14,15 +14,14 @@ macro_rules! impl_precompute_inverter_trait {
             type Output = $name;
 
             fn precompute_inverter(&self) -> Self::Inverter {
-                Self::precompute_inverter_with_adjuster(self, &Self::ONE)
+                Self::precompute_inverter_with_adjuster(self, &Uint::ONE)
             }
         }
 
-        // TODO(tarcieri): only impl these traits for `Odd`?
-        impl PrecomputeInverterWithAdjuster for $name {
-            fn precompute_inverter_with_adjuster(&self, adjuster: &Self) -> Self::Inverter {
-                let modulus = self.to_odd().expect("modulus must be odd");
-                Self::Inverter::new(&modulus, adjuster)
+        /// Precompute a Bernstein-Yang inverter using `self` as the modulus.
+        impl PrecomputeInverterWithAdjuster<$name> for Odd<$name> {
+            fn precompute_inverter_with_adjuster(&self, adjuster: &$name) -> Self::Inverter {
+                Self::Inverter::new(self, adjuster)
             }
         }
     };

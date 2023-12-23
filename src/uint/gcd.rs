@@ -5,20 +5,20 @@ use subtle::CtOption;
 
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Uint<SAT_LIMBS>
 where
-    Self: PrecomputeInverter<Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>>,
+    Odd<Self>: PrecomputeInverter<Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>>,
 {
     /// Compute the greatest common divisor (GCD) of this number and another.
     ///
     /// Returns none in the event that `self` is even (i.e. `self` MUST be odd). However, `rhs` may be even.
     pub const fn gcd(&self, rhs: &Self) -> ConstCtOption<Self> {
-        let ret = <Self as PrecomputeInverter>::Inverter::gcd(self, rhs);
+        let ret = <Odd<Self> as PrecomputeInverter>::Inverter::gcd(self, rhs);
         ConstCtOption::new(ret, self.is_odd())
     }
 }
 
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Gcd for Uint<SAT_LIMBS>
 where
-    Self: PrecomputeInverter<Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>>,
+    Odd<Self>: PrecomputeInverter<Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>>,
 {
     type Output = CtOption<Uint<SAT_LIMBS>>;
 
@@ -29,12 +29,12 @@ where
 
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Gcd<Uint<SAT_LIMBS>> for Odd<Uint<SAT_LIMBS>>
 where
-    Self: PrecomputeInverter<Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>>,
+    Odd<Self>: PrecomputeInverter<Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>>,
 {
     type Output = Uint<SAT_LIMBS>;
 
     fn gcd(&self, rhs: &Uint<SAT_LIMBS>) -> Uint<SAT_LIMBS> {
-        <Self as PrecomputeInverter>::Inverter::gcd(self, rhs)
+        <Odd<Self> as PrecomputeInverter>::Inverter::gcd(self, rhs)
     }
 }
 
