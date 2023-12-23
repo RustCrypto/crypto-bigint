@@ -346,6 +346,12 @@ pub trait MulMod<Rhs = Self> {
     fn mul_mod(&self, rhs: &Rhs, p: &Self) -> Self::Output;
 }
 
+/// Compute `1 / self mod p`.
+pub trait InvMod: Sized {
+    /// Compute `1 / self mod p`.
+    fn inv_mod(&self, p: &Self) -> CtOption<Self>;
+}
+
 /// Checked addition.
 pub trait CheckedAdd<Rhs = Self>: Sized {
     /// Perform checked addition, returning a [`CtOption`] which `is_some` only if the operation
