@@ -1,6 +1,9 @@
 //! Equivalence tests between `crypto_bigint::ConstMontyForm` and `num-bigint`.
 
-use crypto_bigint::{impl_modulus, modular::ConstMontyParams, Encoding, Invert, Inverter, U256};
+mod common;
+
+use common::to_biguint;
+use crypto_bigint::{impl_modulus, modular::ConstMontyParams, Invert, Inverter, U256};
 use num_bigint::BigUint;
 use num_modular::ModularUnaryOps;
 use proptest::prelude::*;
@@ -12,10 +15,6 @@ impl_modulus!(
 );
 
 type ConstMontyForm = crypto_bigint::modular::ConstMontyForm<Modulus, { U256::LIMBS }>;
-
-fn to_biguint(uint: &U256) -> BigUint {
-    BigUint::from_bytes_le(uint.to_le_bytes().as_ref())
-}
 
 fn retrieve_biguint(monty_form: &ConstMontyForm) -> BigUint {
     to_biguint(&monty_form.retrieve())

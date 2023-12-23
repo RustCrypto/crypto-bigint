@@ -2,6 +2,9 @@
 
 #![cfg(feature = "alloc")]
 
+mod common;
+
+use common::to_biguint;
 use core::cmp::Ordering;
 use crypto_bigint::{BoxedUint, CheckedAdd, Gcd, Integer, Limb, NonZero};
 use num_bigint::BigUint;
@@ -9,10 +12,6 @@ use num_integer::Integer as _;
 use num_modular::ModularUnaryOps;
 use num_traits::identities::One;
 use proptest::prelude::*;
-
-fn to_biguint(uint: &BoxedUint) -> BigUint {
-    BigUint::from_bytes_be(&uint.to_be_bytes())
-}
 
 fn to_uint(big_uint: BigUint) -> BoxedUint {
     let bytes = big_uint.to_bytes_be();
@@ -170,7 +169,7 @@ proptest! {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
         let expected = a_bi.invm(&b_bi);
-        let actual = Option::from(a.inv_odd_mod(&b));
+        let actual = Option::<BoxedUint>::from(a.inv_odd_mod(&b));
 
         match (expected, actual) {
             (Some(exp), Some(act)) => prop_assert_eq!(exp, to_biguint(&act).into()),

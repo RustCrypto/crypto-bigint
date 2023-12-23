@@ -1,6 +1,6 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{Integer, NonZero, Uint};
+use crate::{Integer, Limb, NonZero, Uint};
 use core::{cmp::Ordering, ops::Deref};
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
@@ -8,10 +8,7 @@ use subtle::{Choice, ConditionallySelectable, CtOption};
 use crate::BoxedUint;
 
 #[cfg(feature = "rand_core")]
-use {
-    crate::{Limb, Random},
-    rand_core::CryptoRngCore,
-};
+use {crate::Random, rand_core::CryptoRngCore};
 
 /// Wrapper type for odd integers.
 ///
@@ -72,6 +69,15 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 impl<T> AsRef<T> for Odd<T> {
     fn as_ref(&self) -> &T {
         &self.0
+    }
+}
+
+impl<T> AsRef<[Limb]> for Odd<T>
+where
+    T: AsRef<[Limb]>,
+{
+    fn as_ref(&self) -> &[Limb] {
+        self.0.as_ref()
     }
 }
 
