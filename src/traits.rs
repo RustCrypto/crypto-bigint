@@ -115,6 +115,7 @@ pub trait Integer:
     + From<u16>
     + From<u32>
     + From<u64>
+    + From<Limb>
     + Mul<Output = Self>
     + for<'a> Mul<&'a Self, Output = Self>
     + MulMod<Output = Self>
