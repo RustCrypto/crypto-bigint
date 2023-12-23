@@ -31,18 +31,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn wrapping_add(&self, rhs: &Self) -> Self {
         self.adc(rhs, Limb::ZERO).0
     }
-
-    /// Perform wrapping addition, returning the truthy value as the second element of the tuple
-    /// if an overflow has occurred.
-    pub(crate) const fn conditional_wrapping_add(
-        &self,
-        rhs: &Self,
-        choice: ConstChoice,
-    ) -> (Self, ConstChoice) {
-        let actual_rhs = Uint::select(&Uint::ZERO, rhs, choice);
-        let (sum, carry) = self.adc(&actual_rhs, Limb::ZERO);
-        (sum, ConstChoice::from_word_lsb(carry.0))
-    }
 }
 
 impl<const LIMBS: usize> Add for Uint<LIMBS> {
