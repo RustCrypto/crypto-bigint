@@ -22,14 +22,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Uint { limbs }
     }
 
-    #[inline]
-    pub(crate) const fn swap(a: &Self, b: &Self, c: ConstChoice) -> (Self, Self) {
-        let new_a = Self::select(a, b, c);
-        let new_b = Self::select(b, a, c);
-
-        (new_a, new_b)
-    }
-
     /// Returns the truthy value if `self`!=0 or the falsy value otherwise.
     #[inline]
     pub(crate) const fn is_nonzero(&self) -> ConstChoice {

@@ -159,14 +159,12 @@ proptest! {
     }
 
     #[test]
-    fn mod_inv((mut a, mut b) in uint_pair()) {
-        if a.is_zero().into() {
-            a = BoxedUint::one_with_precision(b.bits_precision());
-        }
-
-        if b.is_zero().into() {
+    fn mod_inv((a, mut b) in uint_pair()) {
+        if b.is_even().into() {
             b = BoxedUint::one_with_precision(a.bits_precision());
         }
+
+        let b = b.to_odd().unwrap();
 
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);

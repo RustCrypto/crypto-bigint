@@ -33,18 +33,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn wrapping_sub(&self, rhs: &Self) -> Self {
         self.sbb(rhs, Limb::ZERO).0
     }
-
-    /// Perform wrapping subtraction, returning the truthy value as the second element of the tuple
-    /// if an underflow has occurred.
-    pub(crate) const fn conditional_wrapping_sub(
-        &self,
-        rhs: &Self,
-        choice: ConstChoice,
-    ) -> (Self, ConstChoice) {
-        let actual_rhs = Uint::select(&Uint::ZERO, rhs, choice);
-        let (res, borrow) = self.sbb(&actual_rhs, Limb::ZERO);
-        (res, ConstChoice::from_word_mask(borrow.0))
-    }
 }
 
 impl<const LIMBS: usize> CheckedSub for Uint<LIMBS> {
