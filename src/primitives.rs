@@ -66,8 +66,18 @@ pub(crate) const fn mac(a: Word, b: Word, c: Word, carry: Word) -> (Word, Word) 
     (ret as Word, (ret >> Word::BITS) as Word)
 }
 
-/// Computes `(a * b) % d`.
+/// Computes `(a * b) % d`. Not constant time in `d`.
 #[inline(always)]
-pub(crate) const fn mul_rem(a: Word, b: Word, d: Word) -> Word {
+pub(crate) const fn mul_rem_vartime(a: Word, b: Word, d: Word) -> Word {
     ((a as WideWord * b as WideWord) % (d as WideWord)) as Word
+}
+
+/// Returns `(hi * 2^Word::BITS + lo) / d`.
+/// Not constant-time in `d`.
+/// Assumes that the result fits in `Word`.
+#[inline(always)]
+pub(crate) const fn div_wide_vartime(hi: Word, lo: Word, d: Word) -> Word {
+    let q = (((hi as WideWord) << Word::BITS) + (lo as WideWord)) / (d as WideWord);
+    debug_assert!(q <= Word::MAX as WideWord);
+    q as Word
 }

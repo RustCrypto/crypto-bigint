@@ -33,6 +33,12 @@ prop_compose! {
     }
 }
 prop_compose! {
+    fn varsize_uint()(bytes in any::<[u8; 32]>(), size in any::<u32>()) -> U256 {
+        let size = size % 255 + 1;
+        U256::from_le_slice(&bytes) >> (256 - size)
+    }
+}
+prop_compose! {
     fn uint_mod_p(p: Odd<U256>)(a in uint()) -> U256 {
         a.wrapping_rem(&p)
     }
@@ -272,6 +278,24 @@ proptest! {
             let actual = a.wrapping_rem(&b);
 
             assert_eq!(expected, actual);
+        }
+    }
+
+    #[test]
+    fn div_rem_vartime(a in varsize_uint(), b in varsize_uint()) {
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+
+        println!("\n\n--- {} {}", a_bi, b_bi);
+        println!("--- {} {}", a, b);
+
+        if !b_bi.is_zero() {
+            let expected_q = to_uint(&a_bi / &b_bi);
+            let expected_r = to_uint(&a_bi % &b_bi);
+            let b_nz = NonZero::new(b).unwrap();
+            let (actual_q, actual_r) = a.div_rem_vartime(&b_nz);
+            assert_eq!(expected_q, actual_q);
+            assert_eq!(expected_r, actual_r);
         }
     }
 

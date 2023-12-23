@@ -54,6 +54,18 @@ macro_rules! impl_schoolbook_multiplication {
 }
 
 impl<const LIMBS: usize> Uint<LIMBS> {
+    pub(crate) fn mul_limb_vartime(&self, rhs: Limb) -> (Self, Limb) {
+        let mut carry = Limb::ZERO;
+        let mut result = Self::ZERO;
+        let limbs = ((self.bits_vartime() + Limb::BITS - 1) / Limb::BITS) as usize;
+        for i in 0..limbs {
+            let (x, new_carry) = self.limbs[i].mul_wide(rhs);
+            result.limbs[i] = x + carry;
+            carry = new_carry;
+        }
+        (result, carry)
+    }
+
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
     pub fn widening_mul<const RHS_LIMBS: usize>(
         &self,

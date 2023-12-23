@@ -1,7 +1,7 @@
 //! [`Uint`] division operations.
 
 use super::div_limb::{div_rem_limb_with_reciprocal, Reciprocal};
-use crate::{CheckedDiv, ConstChoice, Limb, NonZero, Uint, Word, Wrapping};
+use crate::{CheckedDiv, ConstChoice, Limb, NonZero, Uint, Word, Wrapping, primitives::div_wide_vartime};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::CtOption;
 
@@ -58,32 +58,72 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
     #[allow(trivial_numeric_casts)]
-    pub const fn div_rem_vartime(&self, rhs: &NonZero<Self>) -> (Self, Self) {
-        let mb = rhs.0.bits_vartime();
-        let mut bd = Self::BITS - mb;
-        let mut rem = *self;
-        let mut quo = Self::ZERO;
-        // If there is overflow, it means `mb == 0`, so `rhs == 0`.
-        let mut c = rhs.0.wrapping_shl_vartime(bd);
+    pub fn div_rem_vartime(&self, rhs: &NonZero<Self>) -> (Self, Self) {
+        let rhs = &rhs.0;
+        let n = ((self.bits_vartime() + Limb::BITS - 1) / Limb::BITS) as usize;
+        let t = ((rhs.bits_vartime() + Limb::BITS - 1) / Limb::BITS) as usize;
 
-        loop {
-            let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::select(&r, &rem, ConstChoice::from_word_mask(borrow.0));
-            r = quo.bitor(&Self::ONE);
-            quo = Self::select(&r, &quo, ConstChoice::from_word_mask(borrow.0));
-            if bd == 0 {
-                break;
-            }
-            bd -= 1;
-            c = c.shr1();
-            quo = quo.shl1();
+        extern crate std;
+
+        if n < t {
+            return (Self::ZERO, *self);
         }
 
-        (quo, rem)
+        let mut x = *self;
+        let y = *rhs;
+        let mut q = Self::ZERO;
+
+        let shift = (n - t) as u32 * Limb::BITS;
+        std::println!("{}", x);
+        std::println!("{}", y.wrapping_shl_vartime(shift));
+        while x >= y.wrapping_shl_vartime(shift) {
+            q.limbs[n-t].0 += 1;
+            x = x - y.wrapping_shl_vartime(shift);
+        }
+
+        std::println!("shifted");
+
+        for i in (t+1..=n).rev() {
+            if x.limbs[i] == y.limbs[t] {
+                q.limbs[i-t-1] = Limb::MAX;
+            }
+            else {
+                q.limbs[i-t-1] = Limb(div_wide_vartime(x.limbs[i].0, x.limbs[i-1].0, y.limbs[t].0));
+            }
+
+            loop {
+                let (limb2, limb1_1) = q.limbs[i-t-1].mul_wide(y.limbs[t]);
+                let (limb1_2, limb0) = q.limbs[i-t-1].mul_wide(y.limbs[t-1]);
+                let (limb1, carry) = limb1_1.overflowing_add(limb1_2);
+                let limb2 = limb2 + carry;
+
+                let u1 = Uint::<3>::new([limb0, limb1, limb2]);
+                let u2 = Uint::<3>::new([x.limbs[i-2], x.limbs[i-1], x.limbs[i]]);
+
+                if u1 <= u2 {
+                    break;
+                }
+
+                q.limbs[i-t-1].0 -= 1;
+            }
+
+            let shift = (i - t - 1) as u32 * Limb::BITS;
+            let (yq, _) = y.mul_limb_vartime(q.limbs[i-t-1]);
+            let (new_x, borrow) = x.sbb(&yq.wrapping_shl_vartime(shift), Limb::ZERO);
+            if borrow != Limb::ZERO {
+                x = new_x.wrapping_add(&y.wrapping_shl_vartime(shift));
+                q.limbs[i-t-1].0 -= 1;
+            }
+            else {
+                x = new_x;
+            }
+        }
+
+        (q, x)
     }
 
     /// Computes `self` % `rhs`, returns the remainder.
-    pub const fn rem(&self, rhs: &NonZero<Self>) -> Self {
+    pub fn rem(&self, rhs: &NonZero<Self>) -> Self {
         self.div_rem_vartime(rhs).1
     }
 
@@ -184,7 +224,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// There’s no way wrapping could ever happen.
     /// This function exists, so that all operations are accounted for in the wrapping operations.
-    pub const fn wrapping_div_vartime(&self, rhs: &NonZero<Self>) -> Self {
+    pub fn wrapping_div_vartime(&self, rhs: &NonZero<Self>) -> Self {
         let (q, _) = self.div_rem_vartime(rhs);
         q
     }
@@ -637,6 +677,22 @@ mod tests {
                 assert_eq!(q, num);
             }
         }
+    }
+
+    #[test]
+    fn div_rem_vartime2() {
+        let a =
+            U256::from_be_hex("0001630DA85CF425FC0DC8C5D061F3CCB6857377C47B4C4453C3B1802C8EB9D4");
+        let b =
+            U256::from_be_hex("0000000000000000000000000000000371504F1CD33B86D7C773D1754918AE29");
+
+        let (q, r) = a.div_rem_vartime(&NonZero::new(b).unwrap());
+
+        assert_eq!(q,
+            U256::from_be_hex("000000000000000000000000000000000000672260662b797714a02d29017bce"));
+        assert_eq!(r,
+            U256::from_be_hex("000000000000000000000000000000030b36e3a65057473ca45f50ce3fdbe1d6"));
+
     }
 
     #[test]

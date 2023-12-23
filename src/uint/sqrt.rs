@@ -49,7 +49,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes √(`self`)
     ///
     /// Callers can check if `self` is a square by squaring the result
-    pub const fn sqrt_vartime(&self) -> Self {
+    pub fn sqrt_vartime(&self) -> Self {
         // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13
 
         // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < b`.
@@ -92,7 +92,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Wrapped sqrt is just normal √(`self`)
     /// There’s no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations.
-    pub const fn wrapping_sqrt_vartime(&self) -> Self {
+    pub fn wrapping_sqrt_vartime(&self) -> Self {
         self.sqrt_vartime()
     }
 

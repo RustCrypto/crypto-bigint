@@ -2,7 +2,7 @@
 
 use crate::{
     modular::{BoxedMontyForm, BoxedMontyParams},
-    primitives::mul_rem,
+    primitives::mul_rem_vartime,
     BoxedUint, Limb, MulMod, Odd, WideWord, Word,
 };
 
@@ -42,7 +42,7 @@ impl BoxedUint {
         // We implicitly assume `LIMBS > 0`, because `Uint<0>` doesn't compile.
         // Still the case `LIMBS == 1` needs special handling.
         if self.nlimbs() == 1 {
-            let reduced = mul_rem(self.limbs[0].0, rhs.limbs[0].0, Word::MIN.wrapping_sub(c.0));
+            let reduced = mul_rem_vartime(self.limbs[0].0, rhs.limbs[0].0, Word::MIN.wrapping_sub(c.0));
             return Self::from(reduced);
         }
 
