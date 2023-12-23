@@ -1,22 +1,34 @@
 //! [`Uint`] division operations.
 
-use super::div_limb::{div_rem_limb_with_reciprocal, Reciprocal};
-use crate::{CheckedDiv, ConstChoice, Limb, NonZero, Uint, Word, Wrapping};
+use super::div_limb::{div_rem_limb_with_reciprocal, rem_limb_with_reciprocal, Reciprocal};
+use crate::{CheckedDiv, ConstChoice, DivRemLimb, Limb, NonZero, RemLimb, Uint, Word, Wrapping};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::CtOption;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Computes `self` / `rhs` using a pre-made reciprocal,
+    /// Computes `self / rhs` using a pre-made reciprocal,
     /// returns the quotient (q) and remainder (r).
     #[inline(always)]
     pub const fn div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb) {
         div_rem_limb_with_reciprocal(self, reciprocal)
     }
 
-    /// Computes `self` / `rhs`, returns the quotient (q) and remainder (r).
+    /// Computes `self / rhs`, returns the quotient (q) and remainder (r).
     #[inline(always)]
     pub const fn div_rem_limb(&self, rhs: NonZero<Limb>) -> (Self, Limb) {
         div_rem_limb_with_reciprocal(self, &Reciprocal::new(rhs))
+    }
+
+    /// Computes `self % rhs` using a pre-made reciprocal.
+    #[inline(always)]
+    pub const fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb {
+        rem_limb_with_reciprocal(self, reciprocal)
+    }
+
+    /// Computes `self % rhs`.
+    #[inline(always)]
+    pub const fn rem_limb(&self, rhs: NonZero<Limb>) -> Limb {
+        rem_limb_with_reciprocal(self, &Reciprocal::new(rhs))
     }
 
     /// Computes `self` / `rhs`, returns the quotient (q) and the remainder (r)
@@ -581,6 +593,18 @@ impl<const LIMBS: usize> RemAssign<NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS
 impl<const LIMBS: usize> RemAssign<&NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
     fn rem_assign(&mut self, rhs: &NonZero<Uint<LIMBS>>) {
         *self = Wrapping(self.0 % rhs)
+    }
+}
+
+impl<const LIMBS: usize> DivRemLimb for Uint<LIMBS> {
+    fn div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb) {
+        Self::div_rem_limb_with_reciprocal(self, reciprocal)
+    }
+}
+
+impl<const LIMBS: usize> RemLimb for Uint<LIMBS> {
+    fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb {
+        Self::rem_limb_with_reciprocal(self, reciprocal)
     }
 }
 
