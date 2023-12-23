@@ -1,7 +1,7 @@
 //! [`BoxedUint`] modular inverse (i.e. reciprocal) operations.
 
 use crate::{
-    modular::BoxedBernsteinYangInverter, BoxedUint, ConstantTimeSelect, Integer,
+    modular::BoxedBernsteinYangInverter, BoxedUint, ConstantTimeSelect, Integer, Odd,
     PrecomputeInverter, PrecomputeInverterWithAdjuster,
 };
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
@@ -146,22 +146,22 @@ impl BoxedUint {
 }
 
 /// Precompute a Bernstein-Yang inverter using `self` as the modulus.
-///
-/// Panics if called on an even number!
-impl PrecomputeInverter for BoxedUint {
+impl PrecomputeInverter for Odd<BoxedUint> {
     type Inverter = BoxedBernsteinYangInverter;
-    type Output = Self;
+    type Output = BoxedUint;
 
     fn precompute_inverter(&self) -> BoxedBernsteinYangInverter {
-        Self::precompute_inverter_with_adjuster(self, &Self::one())
+        Self::precompute_inverter_with_adjuster(self, &BoxedUint::one())
     }
 }
 
-// TODO(tarcieri): only impl these traits for `Odd`?
-impl PrecomputeInverterWithAdjuster for BoxedUint {
-    fn precompute_inverter_with_adjuster(&self, adjuster: &Self) -> BoxedBernsteinYangInverter {
-        let modulus = self.to_odd().expect("modulus must be odd");
-        BoxedBernsteinYangInverter::new(&modulus, adjuster)
+/// Precompute a Bernstein-Yang inverter using `self` as the modulus.
+impl PrecomputeInverterWithAdjuster<BoxedUint> for Odd<BoxedUint> {
+    fn precompute_inverter_with_adjuster(
+        &self,
+        adjuster: &BoxedUint,
+    ) -> BoxedBernsteinYangInverter {
+        BoxedBernsteinYangInverter::new(self, adjuster)
     }
 }
 

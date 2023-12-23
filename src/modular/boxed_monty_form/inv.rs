@@ -33,7 +33,7 @@ impl PrecomputeInverter for BoxedMontyParams {
 
     fn precompute_inverter(&self) -> BoxedMontyFormInverter {
         BoxedMontyFormInverter {
-            inverter: self.modulus.0.precompute_inverter_with_adjuster(&self.r2),
+            inverter: self.modulus.precompute_inverter_with_adjuster(&self.r2),
             params: self.clone().into(),
         }
     }

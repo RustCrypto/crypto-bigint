@@ -2,15 +2,15 @@
 
 use super::{MontyForm, MontyParams};
 use crate::{
-    modular::BernsteinYangInverter, traits::Invert, ConstCtOption, Inverter, PrecomputeInverter,
-    PrecomputeInverterWithAdjuster, Uint,
+    modular::BernsteinYangInverter, traits::Invert, ConstCtOption, Inverter, Odd,
+    PrecomputeInverter, PrecomputeInverterWithAdjuster, Uint,
 };
 use core::fmt;
 use subtle::CtOption;
 
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> MontyForm<SAT_LIMBS>
 where
-    Uint<SAT_LIMBS>: PrecomputeInverter<
+    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
         Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
         Output = Uint<SAT_LIMBS>,
     >,
@@ -20,7 +20,7 @@ where
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
     pub const fn inv(&self) -> ConstCtOption<Self> {
-        let inverter = <Uint<SAT_LIMBS> as PrecomputeInverter>::Inverter::new(
+        let inverter = <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(
             &self.params.modulus,
             &self.params.r2,
         );
@@ -39,7 +39,7 @@ where
 
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Invert for MontyForm<SAT_LIMBS>
 where
-    Uint<SAT_LIMBS>: PrecomputeInverter<
+    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
         Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
         Output = Uint<SAT_LIMBS>,
     >,
@@ -53,7 +53,8 @@ where
 
 impl<const LIMBS: usize> PrecomputeInverter for MontyParams<LIMBS>
 where
-    Uint<LIMBS>: PrecomputeInverter<Output = Uint<LIMBS>> + PrecomputeInverterWithAdjuster,
+    Odd<Uint<LIMBS>>:
+        PrecomputeInverter<Output = Uint<LIMBS>> + PrecomputeInverterWithAdjuster<Uint<LIMBS>>,
 {
     type Inverter = MontyFormInverter<LIMBS>;
     type Output = MontyForm<LIMBS>;
@@ -69,15 +70,15 @@ where
 /// Bernstein-Yang inverter which inverts [`MontyForm`] types.
 pub struct MontyFormInverter<const LIMBS: usize>
 where
-    Uint<LIMBS>: PrecomputeInverter<Output = Uint<LIMBS>>,
+    Odd<Uint<LIMBS>>: PrecomputeInverter<Output = Uint<LIMBS>>,
 {
-    inverter: <Uint<LIMBS> as PrecomputeInverter>::Inverter,
+    inverter: <Odd<Uint<LIMBS>> as PrecomputeInverter>::Inverter,
     params: MontyParams<LIMBS>,
 }
 
 impl<const LIMBS: usize> Inverter for MontyFormInverter<LIMBS>
 where
-    Uint<LIMBS>: PrecomputeInverter<Output = Uint<LIMBS>>,
+    Odd<Uint<LIMBS>>: PrecomputeInverter<Output = Uint<LIMBS>>,
 {
     type Output = MontyForm<LIMBS>;
 
@@ -95,7 +96,7 @@ where
 
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> fmt::Debug for MontyFormInverter<SAT_LIMBS>
 where
-    Uint<SAT_LIMBS>: PrecomputeInverter<
+    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
         Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
         Output = Uint<SAT_LIMBS>,
     >,
