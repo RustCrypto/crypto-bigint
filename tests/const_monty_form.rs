@@ -1,7 +1,8 @@
 //! Equivalence tests between `crypto_bigint::ConstMontyForm` and `num-bigint`.
 
 use crypto_bigint::{impl_modulus, modular::ConstMontyParams, Encoding, Invert, Inverter, U256};
-use num_bigint::{BigUint, ModInverse};
+use num_bigint::BigUint;
+use num_modular::ModularUnaryOps;
 use proptest::prelude::*;
 
 impl_modulus!(
@@ -38,7 +39,7 @@ proptest! {
 
         let x_bi = retrieve_biguint(&x);
         let n_bi = to_biguint(&Modulus::MODULUS);
-        let expected = x_bi.mod_inverse(&n_bi);
+        let expected = x_bi.invm(&n_bi);
 
         match (expected, actual) {
             (Some(exp), Some(act)) => {
@@ -59,7 +60,7 @@ proptest! {
 
         let x_bi = retrieve_biguint(&x);
         let n_bi = to_biguint(&Modulus::MODULUS);
-        let expected = x_bi.mod_inverse(&n_bi);
+        let expected = x_bi.invm(&n_bi);
 
         match (expected, actual) {
             (Some(exp), Some(act)) => {

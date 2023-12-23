@@ -8,7 +8,7 @@ pub use num_traits::{
 
 pub(crate) use sealed::PrecomputeInverterWithAdjuster;
 
-use crate::{Limb, NonZero, Odd};
+use crate::{Limb, NonZero, Odd, Reciprocal};
 use core::fmt::Debug;
 use core::ops::{
     Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign,
@@ -110,11 +110,13 @@ pub trait Integer:
     + for<'a> Div<&'a NonZero<Self>, Output = Self>
     + DivAssign<NonZero<Self>>
     + for<'a> DivAssign<&'a NonZero<Self>>
+    + DivRemLimb
     + Eq
     + From<u8>
     + From<u16>
     + From<u32>
     + From<u64>
+    + From<Limb>
     + Mul<Output = Self>
     + for<'a> Mul<&'a Self, Output = Self>
     + MulMod<Output = Self>
@@ -123,6 +125,7 @@ pub trait Integer:
     + Ord
     + Rem<NonZero<Self>, Output = Self>
     + for<'a> Rem<&'a NonZero<Self>, Output = Self>
+    + RemLimb
     + Send
     + Sized
     + Shl<u32, Output = Self>
@@ -452,6 +455,29 @@ pub trait SquareAssign {
     fn square_assign(&mut self);
 }
 
+/// Support for optimized division by a single limb.
+pub trait DivRemLimb: Sized {
+    /// Computes `self / rhs` using a pre-made reciprocal,
+    /// returns the quotient (q) and remainder (r).
+    fn div_rem_limb(&self, rhs: NonZero<Limb>) -> (Self, Limb) {
+        self.div_rem_limb_with_reciprocal(&Reciprocal::new(rhs))
+    }
+
+    /// Computes `self / rhs`, returns the quotient (q) and remainder (r).
+    fn div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb);
+}
+
+/// Support for optimized division by a single limb.
+pub trait RemLimb: Sized {
+    /// Computes `self % rhs` using a pre-made reciprocal.
+    fn rem_limb(&self, rhs: NonZero<Limb>) -> Limb {
+        self.rem_limb_with_reciprocal(&Reciprocal::new(rhs))
+    }
+
+    /// Computes `self % rhs`.
+    fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb;
+}
+
 /// Constant-time exponentiation.
 pub trait Pow<Exponent> {
     /// Raises to the `exponent` power.
@@ -561,7 +587,7 @@ pub trait Monty:
     type Integer: Integer<Monty = Self>;
 
     /// The precomputed data needed for this representation.
-    type Params: Clone;
+    type Params: 'static + Clone + Debug + Eq + Sized + Send + Sync;
 
     /// Create the precomputed data for Montgomery representation of integers modulo `modulus`.
     fn new_params(modulus: Odd<Self::Integer>) -> Self::Params;

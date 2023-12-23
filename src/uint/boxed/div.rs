@@ -1,21 +1,34 @@
 //! [`BoxedUint`] division operations.
 
 use crate::{
-    uint::boxed, BoxedUint, CheckedDiv, ConstantTimeSelect, Limb, NonZero, Reciprocal, Wrapping,
+    uint::boxed, BoxedUint, CheckedDiv, ConstantTimeSelect, DivRemLimb, Limb, NonZero, Reciprocal,
+    RemLimb, Wrapping,
 };
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
 impl BoxedUint {
-    /// Computes `self` / `rhs` using a pre-made reciprocal,
+    /// Computes `self / rhs` using a pre-made reciprocal,
     /// returns the quotient (q) and remainder (r).
     pub fn div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb) {
         boxed::div_limb::div_rem_limb_with_reciprocal(self, reciprocal)
     }
 
-    /// Computes `self` / `rhs`, returns the quotient (q) and remainder (r).
+    /// Computes `self / rhs`, returns the quotient (q) and remainder (r).
     pub fn div_rem_limb(&self, rhs: NonZero<Limb>) -> (Self, Limb) {
         boxed::div_limb::div_rem_limb_with_reciprocal(self, &Reciprocal::new(rhs))
+    }
+
+    /// Computes `self % rhs` using a pre-made reciprocal.
+    #[inline(always)]
+    pub fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb {
+        boxed::div_limb::rem_limb_with_reciprocal(self, reciprocal)
+    }
+
+    /// Computes `self % rhs`.
+    #[inline(always)]
+    pub fn rem_limb(&self, rhs: NonZero<Limb>) -> Limb {
+        boxed::div_limb::rem_limb_with_reciprocal(self, &Reciprocal::new(rhs))
     }
 
     /// Computes self / rhs, returns the quotient, remainder.
@@ -292,6 +305,18 @@ impl RemAssign<&NonZero<BoxedUint>> for BoxedUint {
 impl RemAssign<NonZero<BoxedUint>> for BoxedUint {
     fn rem_assign(&mut self, rhs: NonZero<BoxedUint>) {
         *self = Self::rem(self, &rhs)
+    }
+}
+
+impl DivRemLimb for BoxedUint {
+    fn div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb) {
+        Self::div_rem_limb_with_reciprocal(self, reciprocal)
+    }
+}
+
+impl RemLimb for BoxedUint {
+    fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb {
+        Self::rem_limb_with_reciprocal(self, reciprocal)
     }
 }
 

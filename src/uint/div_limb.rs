@@ -236,6 +236,24 @@ pub(crate) const fn div_rem_limb_with_reciprocal<const L: usize>(
     (Uint::<L>::new(q), Limb(r >> reciprocal.shift))
 }
 
+/// Divides `u` by the divisor encoded in the `reciprocal`, and returns the remainder.
+#[inline(always)]
+pub(crate) const fn rem_limb_with_reciprocal<const L: usize>(
+    u: &Uint<L>,
+    reciprocal: &Reciprocal,
+) -> Limb {
+    let (u_shifted, u_hi) = u.shl_limb(reciprocal.shift);
+    let mut r = u_hi.0;
+
+    let mut j = L;
+    while j > 0 {
+        j -= 1;
+        let (_, rj) = div2by1(r, u_shifted.as_limbs()[j].0, reciprocal);
+        r = rj;
+    }
+    Limb(r >> reciprocal.shift)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{div2by1, Reciprocal};
