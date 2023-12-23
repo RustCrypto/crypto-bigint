@@ -75,18 +75,13 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus
     pub const fn inv(&self, value: &Uint<SAT_LIMBS>) -> ConstCtOption<Uint<SAT_LIMBS>> {
-        let mut d = Int62L::ZERO;
-        let mut e = self.adjuster;
-        let mut f = self.modulus;
-        let mut g = Int62L::from_uint(value);
-        let mut delta = 1;
-        let mut matrix;
+        let (d, f) = divsteps(
+            self.adjuster,
+            self.modulus,
+            Int62L::from_uint(value),
+            self.inverse,
+        );
 
-        while !g.eq(&Int62L::ZERO) {
-            (delta, matrix) = jump(&f.0, &g.0, delta);
-            (f, g) = fg(f, g, matrix);
-            (d, e) = de(&self.modulus, self.inverse, d, e, matrix);
-        }
         // At this point the absolute value of "f" equals the greatest common divisor of the
         // integer to be inverted and the modulus the inverter was created for.
         // Thus, if "f" is neither 1 nor -1, then the sought inverse does not exist.
@@ -102,21 +97,11 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// `UNSAT_LIMBS` which are computed when defining `PrecomputeInverter::Inverter` for various
     /// `Uint` limb sizes.
     pub(crate) const fn gcd(f: &Uint<SAT_LIMBS>, g: &Uint<SAT_LIMBS>) -> Uint<SAT_LIMBS> {
-        let f_0 = Int62L::<UNSAT_LIMBS>::from_uint(f);
         let inverse = inv_mod2_62(f.as_words());
-
-        let mut d = Int62L::ZERO;
-        let mut e = Int62L::ONE;
-        let mut f = f_0;
-        let mut g = Int62L::from_uint(g);
-        let mut delta = 1;
-        let mut matrix;
-
-        while !g.eq(&Int62L::ZERO) {
-            (delta, matrix) = jump(&f.0, &g.0, delta);
-            (f, g) = fg(f, g, matrix);
-            (d, e) = de(&f_0, inverse, d, e, matrix);
-        }
+        let e = Int62L::<UNSAT_LIMBS>::ONE;
+        let f = Int62L::from_uint(f);
+        let g = Int62L::from_uint(g);
+        let (_, mut f) = divsteps(e, f, g, inverse);
 
         if f.is_negative() {
             f = f.neg();
@@ -188,6 +173,28 @@ const fn inv_mod2_62(value: &[Word]) -> i64 {
     (x.wrapping_mul(y.wrapping_add(1)) & (u64::MAX >> 2)) as i64
 }
 
+/// Algorithm `divsteps2` to compute (δₙ, fₙ, gₙ) = divstepⁿ(δ, f, g) as described in Figure 10.1
+/// of <https://eprint.iacr.org/2019/266.pdf>.
+const fn divsteps<const LIMBS: usize>(
+    mut e: Int62L<LIMBS>,
+    f_0: Int62L<LIMBS>,
+    mut g: Int62L<LIMBS>,
+    inverse: i64,
+) -> (Int62L<LIMBS>, Int62L<LIMBS>) {
+    let mut d = Int62L::ZERO;
+    let mut f = f_0;
+    let mut delta = 1;
+    let mut matrix;
+
+    while !g.eq(&Int62L::ZERO) {
+        (delta, matrix) = jump(&f.0, &g.0, delta);
+        (f, g) = fg(f, g, matrix);
+        (d, e) = de(&f_0, inverse, matrix, d, e);
+    }
+
+    (d, f)
+}
+
 /// Returns the Bernstein-Yang transition matrix multiplied by 2^62 and the new value of the
 /// delta variable for the 62 basic steps of the Bernstein-Yang method, which are to be
 /// performed sequentially for specified initial values of f, g and delta
@@ -252,9 +259,9 @@ const fn fg<const LIMBS: usize>(
 const fn de<const LIMBS: usize>(
     modulus: &Int62L<LIMBS>,
     inverse: i64,
+    t: Matrix,
     d: Int62L<LIMBS>,
     e: Int62L<LIMBS>,
-    t: Matrix,
 ) -> (Int62L<LIMBS>, Int62L<LIMBS>) {
     let mask = Int62L::<LIMBS>::MASK as i64;
     let mut md = t[0][0] * d.is_negative() as i64 + t[0][1] * e.is_negative() as i64;
