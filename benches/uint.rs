@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
-use crypto_bigint::{Limb, NonZero, Random, Reciprocal, Uint, U128, U2048, U256};
+use crypto_bigint::{Limb, NonZero, Odd, Random, Reciprocal, Uint, U128, U2048, U256};
 use rand_core::OsRng;
 
 fn bench_division(c: &mut Criterion) {
@@ -170,7 +170,7 @@ fn bench_inv_mod(c: &mut Criterion) {
     group.bench_function("inv_odd_mod, U256", |b| {
         b.iter_batched(
             || {
-                let m = U256::random(&mut OsRng) | U256::ONE;
+                let m = Odd::<U256>::random(&mut OsRng);
                 loop {
                     let x = U256::random(&mut OsRng);
                     let inv_x = x.inv_odd_mod(&m);
@@ -187,7 +187,7 @@ fn bench_inv_mod(c: &mut Criterion) {
     group.bench_function("inv_mod, U256, odd modulus", |b| {
         b.iter_batched(
             || {
-                let m = U256::random(&mut OsRng) | U256::ONE;
+                let m = Odd::<U256>::random(&mut OsRng);
                 loop {
                     let x = U256::random(&mut OsRng);
                     let inv_x = x.inv_odd_mod(&m);

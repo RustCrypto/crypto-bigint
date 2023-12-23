@@ -1,11 +1,6 @@
-use crate::{ConstChoice, Limb, Uint, WideWord, Word, WrappingNeg};
+use crate::{Limb, Uint, WideWord, Word, WrappingNeg};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Negates based on `choice` by wrapping the integer.
-    pub(crate) const fn conditional_wrapping_neg(&self, choice: ConstChoice) -> Uint<LIMBS> {
-        Uint::select(self, &self.wrapping_neg(), choice)
-    }
-
     /// Perform wrapping negation.
     pub const fn wrapping_neg(&self) -> Self {
         let mut ret = [Limb::ZERO; LIMBS];
