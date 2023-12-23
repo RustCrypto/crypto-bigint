@@ -5,6 +5,7 @@
 use core::cmp::Ordering;
 use crypto_bigint::{BoxedUint, CheckedAdd, Integer, Limb, NonZero};
 use num_bigint::{BigUint, ModInverse};
+use num_integer::Integer as _;
 use num_traits::identities::One;
 use proptest::prelude::*;
 
@@ -139,6 +140,22 @@ proptest! {
         let (actual_quotient, actual_remainder) = a.div_rem_vartime(&NonZero::new(b).unwrap());
         prop_assert_eq!(expected_quotient, to_biguint(&actual_quotient));
         prop_assert_eq!(expected_remainder, to_biguint(&actual_remainder));
+    }
+
+    #[test]
+    fn gcd((mut f, g) in uint_pair()) {
+        if f.is_even().into() {
+            // Ensure `f` is always odd (required by Bernstein-Yang)
+            f = f.wrapping_add(&BoxedUint::one());
+        }
+
+        let f = f.to_odd().unwrap();
+        let f_bi = to_biguint(&f);
+        let g_bi = to_biguint(&g);
+
+        let expected = to_uint(f_bi.gcd(&g_bi));
+        let actual = f.gcd(&g);
+        assert_eq!(expected, actual);
     }
 
     #[test]

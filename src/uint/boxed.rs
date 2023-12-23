@@ -13,6 +13,7 @@ mod div;
 mod div_limb;
 pub(crate) mod encoding;
 mod from;
+mod gcd;
 mod inv_mod;
 mod mul;
 mod mul_mod;
