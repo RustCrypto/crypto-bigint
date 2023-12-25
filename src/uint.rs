@@ -249,22 +249,6 @@ impl<const LIMBS: usize> Integer for Uint<LIMBS> {
         Self::ONE
     }
 
-    fn bits(&self) -> u32 {
-        self.bits()
-    }
-
-    fn bits_vartime(&self) -> u32 {
-        self.bits_vartime()
-    }
-
-    fn bits_precision(&self) -> u32 {
-        Self::BITS
-    }
-
-    fn bytes_precision(&self) -> usize {
-        Self::BYTES
-    }
-
     fn nlimbs(&self) -> usize {
         Self::LIMBS
     }

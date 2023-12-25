@@ -1,56 +1,47 @@
 //! Bit manipulation functions.
 
-use crate::{BoxedUint, ConstChoice, Limb, Zero};
+use crate::{
+    uint::bits::{
+        bit, bit_vartime, bits_vartime, leading_zeros, trailing_ones, trailing_ones_vartime,
+        trailing_zeros, trailing_zeros_vartime,
+    },
+    BitOps, BoxedUint, Limb, Word,
+};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 impl BoxedUint {
-    /// Calculate the number of bits needed to represent this number, i.e. the index of the highest
-    /// set bit.
-    ///
-    /// Use [`BoxedUint::bits_precision`] to get the total capacity of this integer.
-    pub fn bits(&self) -> u32 {
-        // Use `u32` because `subtle` can't select on `usize` and it matches what `core` uses for
-        // the return value of `leading_zeros`
-        let mut leading_zeros = 0u32;
-        let mut n = 0u32;
-
-        for limb in self.limbs.iter().rev() {
-            n.conditional_assign(&(n + 1), !limb.is_zero() | !n.ct_eq(&0));
-
-            // Set `leading_zeros` for the first nonzero limb we encounter
-            leading_zeros.conditional_assign(&limb.leading_zeros(), n.ct_eq(&1));
-        }
-
-        Limb::BITS * n - leading_zeros
-    }
-
-    /// `floor(log2(self.bits_precision()))`.
-    pub(crate) fn log2_bits(&self) -> u32 {
-        u32::BITS - self.bits_precision().leading_zeros() - 1
-    }
-
-    /// Calculate the number of bits needed to represent this number in variable-time with respect
-    /// to `self`.
-    pub fn bits_vartime(&self) -> u32 {
-        let mut i = self.nlimbs() - 1;
-        while i > 0 && self.limbs[i].0 == 0 {
-            i -= 1;
-        }
-
-        let limb = self.limbs[i];
-        Limb::BITS * (i as u32 + 1) - limb.leading_zeros()
+    /// Get the value of the bit at position `index`, as a truthy or falsy `Choice`.
+    /// Returns the falsy value for indices out of range.
+    pub fn bit(&self, index: u32) -> Choice {
+        bit(&self.limbs, index).into()
     }
 
     /// Returns `true` if the bit at position `index` is set, `false` otherwise.
     ///
     /// # Remarks
     /// This operation is variable time with respect to `index` only.
-    pub fn bit_vartime(&self, index: u32) -> bool {
-        if index >= self.bits_precision() {
-            false
-        } else {
-            (self.limbs[(index / Limb::BITS) as usize].0 >> (index % Limb::BITS)) & 1 == 1
-        }
+    #[inline(always)]
+    pub const fn bit_vartime(&self, index: u32) -> bool {
+        bit_vartime(&self.limbs, index)
+    }
+
+    /// Calculate the number of bits needed to represent this number, i.e. the index of the highest
+    /// set bit.
+    ///
+    /// Use [`BoxedUint::bits_precision`] to get the total capacity of this integer.
+    pub fn bits(&self) -> u32 {
+        self.bits_precision() - self.leading_zeros()
+    }
+
+    /// Calculate the number of bits needed to represent this number in variable-time with respect
+    /// to `self`.
+    pub fn bits_vartime(&self) -> u32 {
+        bits_vartime(&self.limbs)
+    }
+
+    /// Calculate the number of leading zeros in the binary representation of this number.
+    pub const fn leading_zeros(&self) -> u32 {
+        leading_zeros(&self.limbs)
     }
 
     /// Get the precision of this [`BoxedUint`] in bits.
@@ -60,55 +51,24 @@ impl BoxedUint {
 
     /// Calculate the number of trailing zeros in the binary representation of this number.
     pub fn trailing_zeros(&self) -> u32 {
-        let mut count = 0;
-        let mut nonzero_limb_not_encountered = Choice::from(1u8);
-
-        for l in &*self.limbs {
-            let z = l.trailing_zeros();
-            count += u32::conditional_select(&0, &z, nonzero_limb_not_encountered);
-            nonzero_limb_not_encountered &= l.is_zero();
-        }
-
-        count
+        trailing_zeros(&self.limbs)
     }
 
     /// Calculate the number of trailing ones in the binary representation of this number.
     pub fn trailing_ones(&self) -> u32 {
-        let limbs = self.as_limbs();
+        trailing_ones(&self.limbs)
+    }
 
-        let mut count = 0;
-        let mut i = 0;
-        let mut nonmax_limb_not_encountered = ConstChoice::TRUE;
-        while i < limbs.len() {
-            let l = limbs[i];
-            let z = l.trailing_ones();
-            count += nonmax_limb_not_encountered.if_true_u32(z);
-            nonmax_limb_not_encountered =
-                nonmax_limb_not_encountered.and(ConstChoice::from_word_eq(l.0, Limb::MAX.0));
-            i += 1;
-        }
-
-        count
+    /// Calculate the number of trailing zeros in the binary representation of this number in
+    /// variable-time with respect to `self`.
+    pub fn trailing_zeros_vartime(&self) -> u32 {
+        trailing_zeros_vartime(&self.limbs)
     }
 
     /// Calculate the number of trailing ones in the binary representation of this number,
     /// variable time in `self`.
     pub fn trailing_ones_vartime(&self) -> u32 {
-        let limbs = self.as_limbs();
-
-        let mut count = 0;
-        let mut i = 0;
-        while i < limbs.len() {
-            let l = limbs[i];
-            let z = l.trailing_ones();
-            count += z;
-            if z != Limb::BITS {
-                break;
-            }
-            i += 1;
-        }
-
-        count
+        trailing_ones_vartime(&self.limbs)
     }
 
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
@@ -128,6 +88,73 @@ impl BoxedUint {
             );
             *limb = Limb::conditional_select(&old_limb, &new_limb, is_right_limb);
         }
+    }
+
+    pub(crate) fn set_bit_vartime(&mut self, index: u32, bit_value: bool) {
+        let limb_num = (index / Limb::BITS) as usize;
+        let index_in_limb = index % Limb::BITS;
+        if bit_value {
+            self.limbs[limb_num].0 |= 1 << index_in_limb;
+        } else {
+            #[allow(trivial_numeric_casts)]
+            {
+                self.limbs[limb_num].0 &= !((1 as Word) << index_in_limb);
+            }
+        }
+    }
+}
+
+impl BitOps for BoxedUint {
+    fn bits_precision(&self) -> u32 {
+        self.bits_precision()
+    }
+
+    fn bytes_precision(&self) -> usize {
+        self.nlimbs() * Limb::BYTES
+    }
+
+    fn leading_zeros(&self) -> u32 {
+        self.leading_zeros()
+    }
+
+    fn bits(&self) -> u32 {
+        self.bits()
+    }
+
+    fn bit(&self, index: u32) -> Choice {
+        self.bit(index)
+    }
+
+    fn set_bit(&mut self, index: u32, bit_value: Choice) {
+        self.set_bit(index, bit_value)
+    }
+
+    fn trailing_zeros(&self) -> u32 {
+        self.trailing_zeros()
+    }
+
+    fn trailing_ones(&self) -> u32 {
+        self.trailing_ones()
+    }
+
+    fn bit_vartime(&self, index: u32) -> bool {
+        self.bit_vartime(index)
+    }
+
+    fn bits_vartime(&self) -> u32 {
+        self.bits_vartime()
+    }
+
+    fn set_bit_vartime(&mut self, index: u32, bit_value: bool) {
+        self.set_bit_vartime(index, bit_value)
+    }
+
+    fn trailing_zeros_vartime(&self) -> u32 {
+        self.trailing_zeros_vartime()
+    }
+
+    fn trailing_ones_vartime(&self) -> u32 {
+        self.trailing_ones_vartime()
     }
 }
 
