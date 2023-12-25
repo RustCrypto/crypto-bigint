@@ -1,7 +1,7 @@
 //! Random number generator support
 
 use super::Uint;
-use crate::{Encoding, Limb, NonZero, Random, RandomMod, Zero};
+use crate::{Encoding, Limb, NonZero, Random, RandomBits, RandomMod, Zero};
 use rand_core::CryptoRngCore;
 use subtle::ConstantTimeLess;
 
@@ -15,6 +15,20 @@ impl<const LIMBS: usize> Random for Uint<LIMBS> {
         }
 
         limbs.into()
+    }
+}
+
+impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
+    fn random_bits(rng: &mut impl CryptoRngCore, bit_length: u32, bits_precision: u32) -> Self {
+        if bits_precision != Self::BITS {
+            panic!("The requested precision ({bits_precision}) does not match the Uint size");
+        }
+        if bit_length > Self::BITS {
+            panic!("The requested bit length ({bit_length}) is larger than the chosen Uint size");
+        }
+        let random = Self::random(rng);
+
+        random >> (Self::BITS - bit_length)
     }
 }
 

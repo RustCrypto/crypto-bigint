@@ -1,25 +1,38 @@
 //! Random number generator support.
 
 use super::BoxedUint;
-use crate::{uint::rand::random_mod_core, Limb, NonZero, Random, RandomMod};
+use crate::{uint::rand::random_mod_core, Limb, NonZero, Random, RandomBits, RandomMod};
 use rand_core::CryptoRngCore;
 
 impl BoxedUint {
     /// Generate a cryptographically secure random [`BoxedUint`].
-    /// in range `[0, 2^bits_precision)`.
-    pub fn random(rng: &mut impl CryptoRngCore, bits_precision: u32) -> Self {
-        let mut ret = BoxedUint::zero_with_precision(bits_precision);
+    /// in range `[0, 2^bit_length)`, with the minimum precision that fits it.
+    pub fn random(rng: &mut impl CryptoRngCore, bit_length: u32) -> Self {
+        let mut ret = BoxedUint::zero_with_precision(bit_length);
 
         for limb in &mut *ret.limbs {
             *limb = Limb::random(rng)
         }
 
-        // Since `bits_precision` will be rounded up on creation of `ret`,
+        // Since `bit_length` will be rounded up on creation of `ret`,
         // we need to clear the high bits if the rounding occurred.
         ret.limbs[ret.limbs.len() - 1] =
-            ret.limbs[ret.limbs.len() - 1] & (Limb::MAX >> (ret.bits_precision() - bits_precision));
+            ret.limbs[ret.limbs.len() - 1] & (Limb::MAX >> (ret.bits_precision() - bit_length));
 
         ret
+    }
+}
+
+impl RandomBits for BoxedUint {
+    fn random_bits(rng: &mut impl CryptoRngCore, bit_length: u32, bits_precision: u32) -> Self {
+        if bit_length > bits_precision {
+            panic!(
+                "The requested bit length ({}) is larger than the requested precision ({})",
+                bit_length, bits_precision
+            );
+        }
+        let random = Self::random(rng, bits_precision);
+        random >> (bits_precision - bit_length)
     }
 }
 

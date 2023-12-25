@@ -274,6 +274,13 @@ pub trait Random: Sized {
     fn random(rng: &mut impl CryptoRngCore) -> Self;
 }
 
+/// Random number generation support.
+#[cfg(feature = "rand_core")]
+pub trait RandomBits: Sized {
+    /// Generate a cryptographically secure random value.
+    fn random_bits(rng: &mut impl CryptoRngCore, bit_length: u32, bits_precision: u32) -> Self;
+}
+
 /// Modular random number generation support.
 #[cfg(feature = "rand_core")]
 pub trait RandomMod: Sized + Zero {
