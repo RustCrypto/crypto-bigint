@@ -1,8 +1,8 @@
 //! [`BoxedUint`] bitwise right shift operations.
 
-use crate::{BoxedUint, ConstantTimeSelect, Limb, WrappingShr, Zero};
+use crate::{BoxedUint, ConstantTimeSelect, Limb, ShrVartime, WrappingShr, Zero};
 use core::ops::{Shr, ShrAssign};
-use subtle::{Choice, ConstantTimeLess};
+use subtle::{Choice, ConstantTimeLess, CtOption};
 
 impl BoxedUint {
     /// Computes `self >> shift`.
@@ -188,6 +188,16 @@ impl_shr!(i32, u32, usize);
 
 impl WrappingShr for BoxedUint {
     fn wrapping_shr(&self, shift: u32) -> BoxedUint {
+        self.wrapping_shr(shift)
+    }
+}
+
+impl ShrVartime for BoxedUint {
+    fn overflowing_shr_vartime(&self, shift: u32) -> CtOption<Self> {
+        let (result, overflow) = self.overflowing_shr(shift);
+        CtOption::new(result, !overflow)
+    }
+    fn wrapping_shr_vartime(&self, shift: u32) -> Self {
         self.wrapping_shr(shift)
     }
 }
