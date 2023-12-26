@@ -1,6 +1,6 @@
 //! [`Uint`] square root operations.
 
-use crate::Uint;
+use crate::{SquareRoot, Uint};
 use subtle::{ConstantTimeEq, CtOption};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -110,6 +110,16 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let r = self.sqrt_vartime();
         let s = r.wrapping_mul(&r);
         CtOption::new(r, ConstantTimeEq::ct_eq(self, &s))
+    }
+}
+
+impl<const LIMBS: usize> SquareRoot for Uint<LIMBS> {
+    fn sqrt(&self) -> Self {
+        self.sqrt()
+    }
+
+    fn sqrt_vartime(&self) -> Self {
+        self.sqrt_vartime()
     }
 }
 
