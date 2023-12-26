@@ -138,6 +138,7 @@ pub trait Integer:
     + for<'a> Sub<&'a Self, Output = Self>
     + SubMod<Output = Self>
     + Sync
+    + SquareRoot
     + WrappingAdd
     + WrappingSub
     + WrappingMul
@@ -461,6 +462,15 @@ pub trait SquareAssign {
     /// Computes the same as `self * self`, but may be more efficient.
     /// Writes the result in `self`.
     fn square_assign(&mut self);
+}
+
+/// Support for calucaling square roots.
+pub trait SquareRoot {
+    /// Computes `floor(sqrt(self))`.
+    fn sqrt(&self) -> Self;
+
+    /// Computes `floor(sqrt(self))`, variable time in `self`.
+    fn sqrt_vartime(&self) -> Self;
 }
 
 /// Support for optimized division by a single limb.

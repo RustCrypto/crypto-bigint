@@ -2,7 +2,7 @@
 
 use subtle::{ConstantTimeEq, ConstantTimeGreater, CtOption};
 
-use crate::{BoxedUint, ConstantTimeSelect, NonZero};
+use crate::{BoxedUint, ConstantTimeSelect, NonZero, SquareRoot};
 
 impl BoxedUint {
     /// Computes √(`self`) in constant time.
@@ -118,6 +118,16 @@ impl BoxedUint {
         let r = self.sqrt_vartime();
         let s = r.wrapping_mul(&r);
         CtOption::new(r, ConstantTimeEq::ct_eq(self, &s))
+    }
+}
+
+impl SquareRoot for BoxedUint {
+    fn sqrt(&self) -> Self {
+        self.sqrt()
+    }
+
+    fn sqrt_vartime(&self) -> Self {
+        self.sqrt_vartime()
     }
 }
 
