@@ -130,8 +130,10 @@ pub trait Integer:
     + Sized
     + Shl<u32, Output = Self>
     + ShlAssign<u32>
+    + ShlVartime
     + Shr<u32, Output = Self>
     + ShrAssign<u32>
+    + ShrVartime
     + Sub<Output = Self>
     + for<'a> Sub<&'a Self, Output = Self>
     + SubMod<Output = Self>
@@ -561,6 +563,30 @@ pub trait WideningMul<Rhs = Self>: Sized {
 
     /// Perform widening multiplication.
     fn widening_mul(&self, rhs: Rhs) -> Self::Output;
+}
+
+/// Left shifts, variable time in `shift`.
+pub trait ShlVartime: Sized {
+    /// Computes `self << shift`.
+    ///
+    /// Returns `None` if `shift >= self.bits_precision()`.
+    fn overflowing_shl_vartime(&self, shift: u32) -> CtOption<Self>;
+
+    /// Computes `self << shift` in a panic-free manner, masking off bits of `shift`
+    /// which would cause the shift to exceed the type's width.
+    fn wrapping_shl_vartime(&self, shift: u32) -> Self;
+}
+
+/// Right shifts, variable time in `shift`.
+pub trait ShrVartime: Sized {
+    /// Computes `self >> shift`.
+    ///
+    /// Returns `None` if `shift >= self.bits_precision()`.
+    fn overflowing_shr_vartime(&self, shift: u32) -> CtOption<Self>;
+
+    /// Computes `self >> shift` in a panic-free manner, masking off bits of `shift`
+    /// which would cause the shift to exceed the type's width.
+    fn wrapping_shr_vartime(&self, shift: u32) -> Self;
 }
 
 /// A representation of an integer optimized for the performance of modular operations.
