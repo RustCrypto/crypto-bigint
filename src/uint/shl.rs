@@ -1,7 +1,8 @@
 //! [`Uint`] bitwise left shift operations.
 
-use crate::{ConstChoice, ConstCtOption, Limb, Uint, Word, WrappingShl};
+use crate::{ConstChoice, ConstCtOption, Limb, ShlVartime, Uint, Word, WrappingShl};
 use core::ops::{Shl, ShlAssign};
+use subtle::CtOption;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self << shift`.
@@ -14,8 +15,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes `self << shift`.
     ///
-    /// If `shift >= Self::BITS`, returns zero as the first tuple element,
-    /// and `ConstChoice::TRUE` as the second element.
+    /// Returns `None` if `shift >= Self::BITS`.
     pub const fn overflowing_shl(&self, shift: u32) -> ConstCtOption<Self> {
         // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
         // (which lies in range `0 <= shift < BITS`).
@@ -41,8 +41,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes `self << shift`.
     ///
-    /// If `shift >= Self::BITS`, returns zero as the first tuple element,
-    /// and `ConstChoice::TRUE` as the second element.
+    /// Returns `None` if `shift >= Self::BITS`.
     ///
     /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
@@ -85,8 +84,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes a left shift on a wide input as `(lo, hi)`.
     ///
-    /// If `shift >= Self::BITS`, returns a tuple of zeros as the first element,
-    /// and `ConstChoice::TRUE` as the second element.
+    /// Returns `None` if `shift >= Self::BITS`.
     ///
     /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
@@ -214,6 +212,15 @@ impl_shl!(i32, u32, usize);
 
 impl<const LIMBS: usize> WrappingShl for Uint<LIMBS> {
     fn wrapping_shl(&self, shift: u32) -> Uint<LIMBS> {
+        self.wrapping_shl(shift)
+    }
+}
+
+impl<const LIMBS: usize> ShlVartime for Uint<LIMBS> {
+    fn overflowing_shl_vartime(&self, shift: u32) -> CtOption<Self> {
+        self.overflowing_shl(shift).into()
+    }
+    fn wrapping_shl_vartime(&self, shift: u32) -> Self {
         self.wrapping_shl(shift)
     }
 }
