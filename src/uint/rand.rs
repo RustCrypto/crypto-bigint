@@ -18,11 +18,18 @@ impl<const LIMBS: usize> Random for Uint<LIMBS> {
     }
 }
 
+/// Fill the given limbs slice with random bits.
+///
+/// NOTE: Assumes that the limbs in the given slice are zeroed!
 pub(crate) fn random_bits_core(
     rng: &mut impl CryptoRngCore,
-    limbs: &mut [Limb],
+    zeroed_limbs: &mut [Limb],
     bit_length: u32,
 ) -> Result<(), RandomBitsError> {
+    if bit_length == 0 {
+        return Ok(());
+    }
+
     let buffer: Word = 0;
     let mut buffer = buffer.to_be_bytes();
 
@@ -33,12 +40,12 @@ pub(crate) fn random_bits_core(
     for i in 0..nonzero_limbs - 1 {
         rng.try_fill_bytes(&mut buffer)
             .map_err(RandomBitsError::RandCore)?;
-        limbs[i] = Limb(Word::from_be_bytes(buffer));
+        zeroed_limbs[i] = Limb(Word::from_be_bytes(buffer));
     }
 
     rng.try_fill_bytes(&mut buffer)
         .map_err(RandomBitsError::RandCore)?;
-    limbs[nonzero_limbs - 1] = Limb(Word::from_be_bytes(buffer) & mask);
+    zeroed_limbs[nonzero_limbs - 1] = Limb(Word::from_be_bytes(buffer) & mask);
 
     Ok(())
 }
@@ -189,6 +196,20 @@ mod tests {
             let res = U256::random_bits(&mut rng, bit_length);
             assert!(res > (U256::ONE << (bit_length - lower_bound)));
             assert!(res < (U256::ONE << bit_length));
+        }
+
+        // One incomplete limb
+        let bit_length = 7;
+        for _ in 0..10 {
+            let res = U256::random_bits(&mut rng, bit_length);
+            assert!(res < (U256::ONE << bit_length));
+        }
+
+        // Zero bits
+        let bit_length = 0;
+        for _ in 0..10 {
+            let res = U256::random_bits(&mut rng, bit_length);
+            assert_eq!(res, U256::ZERO);
         }
     }
 }
