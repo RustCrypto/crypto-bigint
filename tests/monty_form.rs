@@ -38,6 +38,12 @@ prop_compose! {
 
 proptest! {
     #[test]
+    fn new(n in modulus()) {
+        let n2 = MontyParams::new(*n.modulus());
+        prop_assert_eq!(n, n2);
+    }
+
+    #[test]
     fn inv(x in uint(), n in modulus()) {
         let x = reduce(&x, n.clone());
         let actual = Option::<MontyForm>::from(x.invert());
