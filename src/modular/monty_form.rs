@@ -46,9 +46,9 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
         let r2 = one
             .square()
-            .rem(&NonZero(Uint::<LIMBS>::ZERO.concat(&modulus.0)))
+            .rem(&NonZero(modulus.0.concat(&Uint::ZERO)))
             .split()
-            .1;
+            .0;
 
         // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
         let inv_mod = modulus
