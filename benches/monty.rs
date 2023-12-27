@@ -12,7 +12,15 @@ use rand_core::OsRng;
 use crypto_bigint::MultiExponentiate;
 
 fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
-    group.bench_function("MontyParams creation", |b| {
+    group.bench_function("MontyParams::new", |b| {
+        b.iter_batched(
+            || Odd::<U256>::random(&mut OsRng),
+            |modulus| black_box(MontyParams::new(modulus)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("MontyParams::new_vartime", |b| {
         b.iter_batched(
             || Odd::<U256>::random(&mut OsRng),
             |modulus| black_box(MontyParams::new_vartime(modulus)),
@@ -21,7 +29,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
     });
 
     let params = MontyParams::new_vartime(Odd::<U256>::random(&mut OsRng));
-    group.bench_function("MontyForm creation", |b| {
+    group.bench_function("MontyForm::new", |b| {
         b.iter_batched(
             || Odd::<U256>::random(&mut OsRng),
             |x| black_box(MontyForm::new(&x, params)),
