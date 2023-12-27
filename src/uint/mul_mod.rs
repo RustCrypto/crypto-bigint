@@ -20,7 +20,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // It's worth potentially exploring other approaches to improve efficiency.
         match p.to_odd().into() {
             Some(odd_p) => {
-                let params = MontyParams::new(odd_p);
+                let params = MontyParams::new_vartime(odd_p);
                 let lhs = MontyForm::new(self, params);
                 let rhs = MontyForm::new(rhs, params);
                 let ret = lhs * rhs;

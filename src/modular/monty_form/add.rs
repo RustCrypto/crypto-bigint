@@ -70,7 +70,7 @@ mod tests {
 
     #[test]
     fn add_overflow() {
-        let params = MontyParams::new(Odd::<U256>::from_be_hex(
+        let params = MontyParams::new_vartime(Odd::<U256>::from_be_hex(
             "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551",
         ));
 
