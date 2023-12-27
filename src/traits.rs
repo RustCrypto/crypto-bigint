@@ -778,8 +778,9 @@ pub trait Monty:
     /// The precomputed data needed for this representation.
     type Params: 'static + Clone + Debug + Eq + Sized + Send + Sync;
 
-    /// Create the precomputed data for Montgomery representation of integers modulo `modulus`.
-    fn new_params(modulus: Odd<Self::Integer>) -> Self::Params;
+    /// Create the precomputed data for Montgomery representation of integers modulo `modulus`,
+    /// variable time in `modulus`.
+    fn new_params_vartime(modulus: Odd<Self::Integer>) -> Self::Params;
 
     /// Convert the value into the representation using precomputed data.
     fn new(value: Self::Integer, params: Self::Params) -> Self;

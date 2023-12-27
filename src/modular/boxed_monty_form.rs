@@ -240,8 +240,8 @@ impl Monty for BoxedMontyForm {
     type Integer = BoxedUint;
     type Params = BoxedMontyParams;
 
-    fn new_params(modulus: Odd<Self::Integer>) -> Self::Params {
-        BoxedMontyParams::new(modulus)
+    fn new_params_vartime(modulus: Odd<Self::Integer>) -> Self::Params {
+        BoxedMontyParams::new_vartime(modulus)
     }
 
     fn new(value: Self::Integer, params: Self::Params) -> Self {
