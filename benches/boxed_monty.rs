@@ -4,7 +4,7 @@ use criterion::{
 };
 use crypto_bigint::{
     modular::{BoxedMontyForm, BoxedMontyParams},
-    BoxedUint, NonZero, Odd, RandomMod,
+    BoxedUint, Odd, RandomMod,
 };
 use num_bigint::BigUint;
 use rand_core::OsRng;
@@ -22,8 +22,10 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("invert, 4096-bit", |b| {
         b.iter_batched(
             || {
-                let modulus = NonZero::new(params.modulus().clone()).unwrap();
-                BoxedMontyForm::new(BoxedUint::random_mod(&mut OsRng, &modulus), params.clone())
+                BoxedMontyForm::new(
+                    BoxedUint::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                    params.clone(),
+                )
             },
             |x| black_box(x).invert(),
             BatchSize::SmallInput,
