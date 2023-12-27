@@ -22,6 +22,9 @@ use subtle::{
 #[cfg(feature = "rand_core")]
 use rand_core::CryptoRngCore;
 
+#[cfg(feature = "rand_core")]
+use core::fmt;
+
 /// Integers whose representation takes a bounded amount of space.
 pub trait Bounded {
     /// Size of this integer in bits.
@@ -274,7 +277,7 @@ pub trait Random: Sized {
     fn random(rng: &mut impl CryptoRngCore) -> Self;
 }
 
-/// Possible errors of [`RandomBits::try_random_bits`].
+/// Possible errors of the methods in [`RandomBits`] trait.
 #[cfg(feature = "rand_core")]
 #[derive(Debug)]
 pub enum RandomBitsError {
@@ -296,6 +299,37 @@ pub enum RandomBitsError {
         bits_precision: u32,
     },
 }
+
+#[cfg(feature = "rand_core")]
+impl fmt::Display for RandomBitsError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::RandCore(err) => write!(f, "{}", err),
+            Self::BitsPrecisionMismatch {
+                bits_precision,
+                integer_bits,
+            } => write!(
+                f,
+                concat![
+                    "The requested `bits_precision` ({}) does not match ",
+                    "the size of the integer corresponding to the type ({})"
+                ],
+                bits_precision, integer_bits
+            ),
+            Self::BitLengthTooLarge {
+                bit_length,
+                bits_precision,
+            } => write!(
+                f,
+                "The requested `bit_length` ({}) is larger than `bits_precision` ({}).",
+                bit_length, bits_precision
+            ),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for RandomBitsError {}
 
 /// Random bits generation support.
 #[cfg(feature = "rand_core")]
