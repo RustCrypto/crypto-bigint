@@ -402,7 +402,7 @@ proptest! {
 
         let expected = to_uint(a_bi.modpow(&b_bi, &p_bi));
 
-        let params = MontyParams::new(P);
+        let params = MontyParams::new_vartime(P);
         let a_m = MontyForm::new(&a, params);
         let actual = a_m.pow(&b).retrieve();
 
@@ -419,7 +419,7 @@ proptest! {
 
         let expected = to_uint(a_bi.modpow(&b_bi, &p_bi));
 
-        let params = MontyParams::new(P);
+        let params = MontyParams::new_vartime(P);
         let a_m = MontyForm::new(&a, params);
         let actual = a_m.pow_bounded_exp(&b, exponent_bits.into()).retrieve();
 
@@ -440,7 +440,7 @@ proptest! {
         };
         let expected = to_uint(expected);
 
-        let params = MontyParams::new(P);
+        let params = MontyParams::new_vartime(P);
         let a_m = MontyForm::new(&a, params);
         let actual = a_m.div_by_2().retrieve();
 

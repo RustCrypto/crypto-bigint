@@ -15,12 +15,12 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
     group.bench_function("MontyParams creation", |b| {
         b.iter_batched(
             || Odd::<U256>::random(&mut OsRng),
-            |modulus| black_box(MontyParams::new(modulus)),
+            |modulus| black_box(MontyParams::new_vartime(modulus)),
             BatchSize::SmallInput,
         )
     });
 
-    let params = MontyParams::new(Odd::<U256>::random(&mut OsRng));
+    let params = MontyParams::new_vartime(Odd::<U256>::random(&mut OsRng));
     group.bench_function("MontyForm creation", |b| {
         b.iter_batched(
             || Odd::<U256>::random(&mut OsRng),
@@ -29,7 +29,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
         )
     });
 
-    let params = MontyParams::new(Odd::<U256>::random(&mut OsRng));
+    let params = MontyParams::new_vartime(Odd::<U256>::random(&mut OsRng));
     group.bench_function("MontyForm retrieve", |b| {
         b.iter_batched(
             || MontyForm::new(&U256::random(&mut OsRng), params),
@@ -40,7 +40,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
 }
 
 fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
-    let params = MontyParams::new(Odd::<U256>::random(&mut OsRng));
+    let params = MontyParams::new_vartime(Odd::<U256>::random(&mut OsRng));
 
     group.bench_function("invert, U256", |b| {
         b.iter_batched(
