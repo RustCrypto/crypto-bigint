@@ -33,7 +33,7 @@ prop_compose! {
             n = n.wrapping_add(&U256::one());
         }
 
-        MontyParams::new(Odd::new(n).expect("modulus ensured odd"))
+        MontyParams::new_vartime(Odd::new(n).expect("modulus ensured odd"))
     }
 }
 

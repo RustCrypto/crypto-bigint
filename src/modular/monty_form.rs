@@ -33,10 +33,8 @@ pub struct MontyParams<const LIMBS: usize> {
 }
 
 impl<const LIMBS: usize> MontyParams<LIMBS> {
-    /// Instantiates a new set of `MontyParams` representing the given `modulus` if it is odd.
-    ///
-    /// Returns `None` if the provided modulus is not odd.
-    pub fn new(modulus: Odd<Uint<LIMBS>>) -> Self {
+    /// Instantiates a new set of `MontyParams` representing the given odd `modulus`.
+    pub fn new_vartime(modulus: Odd<Uint<LIMBS>>) -> Self {
         // `R mod modulus` where `R = 2^BITS`.
         // Represents 1 in Montgomery form.
         let one = Uint::MAX
@@ -201,7 +199,7 @@ impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
     type Params = MontyParams<LIMBS>;
 
     fn new_params(modulus: Odd<Self::Integer>) -> Self::Params {
-        MontyParams::new(modulus)
+        MontyParams::new_vartime(modulus)
     }
 
     fn new(value: Self::Integer, params: Self::Params) -> Self {
