@@ -56,15 +56,15 @@ macro_rules! impl_schoolbook_multiplication {
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
-    pub fn widening_mul<const RHS_LIMBS: usize>(
+    pub const fn widening_mul<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
-    ) -> <Uint<RHS_LIMBS> as ConcatMixed<Self>>::MixedOutput
+    ) -> Uint<WIDE_LIMBS>
     where
-        Uint<RHS_LIMBS>: ConcatMixed<Self>,
+        Uint<RHS_LIMBS>: ConcatMixed<Self, MixedOutput = Uint<WIDE_LIMBS>>,
     {
         let (lo, hi) = self.split_mul(rhs);
-        hi.concat_mixed(&lo)
+        concat_mixed(&lo, &hi)
     }
 
     /// Compute "wide" multiplication as a 2-tuple containing the `(lo, hi)` components of the product, whose sizes
@@ -239,9 +239,10 @@ impl<const LIMBS: usize> MulAssign<&Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS
     }
 }
 
-impl<const LIMBS: usize, const RHS_LIMBS: usize> WideningMul<Uint<RHS_LIMBS>> for Uint<LIMBS>
+impl<const LIMBS: usize, const RHS_LIMBS: usize, const WIDE_LIMBS: usize>
+    WideningMul<Uint<RHS_LIMBS>> for Uint<LIMBS>
 where
-    Uint<RHS_LIMBS>: ConcatMixed<Self>,
+    Uint<RHS_LIMBS>: ConcatMixed<Self, MixedOutput = Uint<WIDE_LIMBS>>,
 {
     type Output = <Uint<RHS_LIMBS> as ConcatMixed<Self>>::MixedOutput;
 
@@ -251,9 +252,10 @@ where
     }
 }
 
-impl<const LIMBS: usize, const RHS_LIMBS: usize> WideningMul<&Uint<RHS_LIMBS>> for Uint<LIMBS>
+impl<const LIMBS: usize, const RHS_LIMBS: usize, const WIDE_LIMBS: usize>
+    WideningMul<&Uint<RHS_LIMBS>> for Uint<LIMBS>
 where
-    Uint<RHS_LIMBS>: ConcatMixed<Self>,
+    Uint<RHS_LIMBS>: ConcatMixed<Self, MixedOutput = Uint<WIDE_LIMBS>>,
 {
     type Output = <Uint<RHS_LIMBS> as ConcatMixed<Self>>::MixedOutput;
 
