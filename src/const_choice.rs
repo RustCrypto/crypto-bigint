@@ -186,7 +186,7 @@ impl PartialEq for ConstChoice {
 #[derive(Debug, Clone)]
 pub struct ConstCtOption<T> {
     value: T,
-    pub(crate) is_some: ConstChoice,
+    is_some: ConstChoice,
 }
 
 impl<T> ConstCtOption<T> {
