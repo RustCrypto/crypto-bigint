@@ -137,7 +137,7 @@ mod tests {
 
     #[cfg(feature = "rand")]
     use {
-        crate::CheckedMul,
+        crate::{CheckedMul, RandomBits},
         rand_chacha::ChaChaRng,
         rand_core::{RngCore, SeedableRng},
     };
@@ -303,7 +303,7 @@ mod tests {
         }
 
         for _ in 0..50 {
-            let s = BoxedUint::random(&mut rng, 512);
+            let s = BoxedUint::random_bits(&mut rng, 512);
             let mut s2 = BoxedUint::zero_with_precision(512);
             s2.limbs[..s.limbs.len()].copy_from_slice(&s.limbs);
             assert_eq!(s.square().sqrt(), s2);

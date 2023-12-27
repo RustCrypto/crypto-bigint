@@ -3,28 +3,9 @@
 use super::BoxedUint;
 use crate::{
     uint::rand::{random_bits_core, random_mod_core},
-    Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod,
+    NonZero, RandomBits, RandomBitsError, RandomMod,
 };
 use rand_core::CryptoRngCore;
-
-impl BoxedUint {
-    /// Generate a cryptographically secure random [`BoxedUint`].
-    /// in range `[0, 2^bit_length)`, with the minimum precision that fits it.
-    pub fn random(rng: &mut impl CryptoRngCore, bit_length: u32) -> Self {
-        let mut ret = BoxedUint::zero_with_precision(bit_length);
-
-        for limb in &mut *ret.limbs {
-            *limb = Limb::random(rng)
-        }
-
-        // Since `bit_length` will be rounded up on creation of `ret`,
-        // we need to clear the high bits if the rounding occurred.
-        ret.limbs[ret.limbs.len() - 1] =
-            ret.limbs[ret.limbs.len() - 1] & (Limb::MAX >> (ret.bits_precision() - bit_length));
-
-        ret
-    }
-}
 
 impl RandomBits for BoxedUint {
     fn try_random_bits(
@@ -71,17 +52,17 @@ impl RandomMod for BoxedUint {
 
 #[cfg(test)]
 mod tests {
-    use crate::{BoxedUint, NonZero, RandomMod};
+    use crate::{BoxedUint, NonZero, RandomBits, RandomMod};
     use rand_core::SeedableRng;
 
     #[test]
     fn random() {
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
 
-        let r = BoxedUint::random(&mut rng, 256);
+        let r = BoxedUint::random_bits(&mut rng, 256);
         assert!(r.bits_precision() == 256);
 
-        let r = BoxedUint::random(&mut rng, 256 - 32 + 1);
+        let r = BoxedUint::random_bits(&mut rng, 256 - 32 + 1);
         assert!(r.bits_precision() == 256);
         assert!(r < BoxedUint::one_with_precision(256) << (256 - 32 + 1));
     }

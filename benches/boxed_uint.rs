@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
-use crypto_bigint::BoxedUint;
+use crypto_bigint::{BoxedUint, RandomBits};
 use rand_core::OsRng;
 
 /// Size of `BoxedUint` to use in benchmark.
@@ -10,7 +10,7 @@ fn bench_shifts(c: &mut Criterion) {
 
     group.bench_function("shl_vartime", |b| {
         b.iter_batched(
-            || BoxedUint::random(&mut OsRng, UINT_BITS),
+            || BoxedUint::random_bits(&mut OsRng, UINT_BITS),
             |x| black_box(x.shl_vartime(UINT_BITS / 2 + 10)),
             BatchSize::SmallInput,
         )
@@ -18,7 +18,7 @@ fn bench_shifts(c: &mut Criterion) {
 
     group.bench_function("shl", |b| {
         b.iter_batched(
-            || BoxedUint::random(&mut OsRng, UINT_BITS),
+            || BoxedUint::random_bits(&mut OsRng, UINT_BITS),
             |x| x.overflowing_shl(UINT_BITS / 2 + 10),
             BatchSize::SmallInput,
         )
@@ -26,7 +26,7 @@ fn bench_shifts(c: &mut Criterion) {
 
     group.bench_function("shr_vartime", |b| {
         b.iter_batched(
-            || BoxedUint::random(&mut OsRng, UINT_BITS),
+            || BoxedUint::random_bits(&mut OsRng, UINT_BITS),
             |x| black_box(x.shr_vartime(UINT_BITS / 2 + 10)),
             BatchSize::SmallInput,
         )
@@ -34,7 +34,7 @@ fn bench_shifts(c: &mut Criterion) {
 
     group.bench_function("shr", |b| {
         b.iter_batched(
-            || BoxedUint::random(&mut OsRng, UINT_BITS),
+            || BoxedUint::random_bits(&mut OsRng, UINT_BITS),
             |x| x.overflowing_shr(UINT_BITS / 2 + 10),
             BatchSize::SmallInput,
         )

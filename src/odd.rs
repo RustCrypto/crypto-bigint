@@ -10,6 +10,9 @@ use crate::BoxedUint;
 #[cfg(feature = "rand_core")]
 use {crate::Random, rand_core::CryptoRngCore};
 
+#[cfg(all(feature = "alloc", feature = "rand_core"))]
+use crate::RandomBits;
+
 /// Wrapper type for odd integers.
 ///
 /// These are frequently used in cryptography, e.g. as a modulus.
@@ -143,8 +146,8 @@ impl<const LIMBS: usize> Random for Odd<Uint<LIMBS>> {
 #[cfg(all(feature = "alloc", feature = "rand_core"))]
 impl Odd<BoxedUint> {
     /// Generate a random `Odd<Uint<T>>`.
-    pub fn random(rng: &mut impl CryptoRngCore, bits_precision: u32) -> Self {
-        let mut ret = BoxedUint::random(rng, bits_precision);
+    pub fn random(rng: &mut impl CryptoRngCore, bit_length: u32) -> Self {
+        let mut ret = BoxedUint::random_bits(rng, bit_length);
         ret.limbs[0] |= Limb::ONE;
         Odd(ret)
     }
