@@ -13,7 +13,7 @@ use super::{
     reduction::montgomery_reduction,
     Retrieve,
 };
-use crate::{Limb, Monty, Odd, Uint, Word};
+use crate::{Concat, Limb, Monty, NonZero, Odd, Split, Uint, Word};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
@@ -33,6 +33,42 @@ pub struct MontyParams<const LIMBS: usize> {
 }
 
 impl<const LIMBS: usize> MontyParams<LIMBS> {
+    /// Instantiates a new set of `MontyParams` representing the given odd `modulus`.
+    pub fn new<const WIDE_LIMBS: usize>(modulus: Odd<Uint<LIMBS>>) -> Self
+    where
+        Uint<LIMBS>: Concat<Output = Uint<WIDE_LIMBS>>,
+        Uint<WIDE_LIMBS>: Split<Output = Uint<LIMBS>>,
+    {
+        // `R mod modulus` where `R = 2^BITS`.
+        // Represents 1 in Montgomery form.
+        let one = Uint::MAX.rem(modulus.as_nz_ref()).wrapping_add(&Uint::ONE);
+
+        // `R^2 mod modulus`, used to convert integers to Montgomery form.
+        let r2 = one
+            .square()
+            .rem(&NonZero(Uint::<LIMBS>::ZERO.concat(&modulus.0)))
+            .split()
+            .1;
+
+        // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
+        let inv_mod = modulus
+            .inv_mod2k(Word::BITS)
+            .expect("modular inverse should exist");
+
+        let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
+
+        // `R^3 mod modulus`, used for inversion in Montgomery form.
+        let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);
+
+        Self {
+            modulus,
+            one,
+            r2,
+            r3,
+            mod_neg_inv,
+        }
+    }
+
     /// Instantiates a new set of `MontyParams` representing the given odd `modulus`.
     pub fn new_vartime(modulus: Odd<Uint<LIMBS>>) -> Self {
         // `R mod modulus` where `R = 2^BITS`.
