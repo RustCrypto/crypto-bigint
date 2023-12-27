@@ -1,7 +1,7 @@
 //! Random number generator support
 
-use super::Uint;
-use crate::{Encoding, Limb, NonZero, Random, RandomMod, Zero};
+use super::{Uint, Word};
+use crate::{Encoding, Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod, Zero};
 use rand_core::CryptoRngCore;
 use subtle::ConstantTimeLess;
 
@@ -15,6 +15,62 @@ impl<const LIMBS: usize> Random for Uint<LIMBS> {
         }
 
         limbs.into()
+    }
+}
+
+pub(crate) fn random_bits_core(
+    rng: &mut impl CryptoRngCore,
+    limbs: &mut [Limb],
+    bit_length: u32,
+) -> Result<(), RandomBitsError> {
+    let buffer: Word = 0;
+    let mut buffer = buffer.to_be_bytes();
+
+    let nonzero_limbs = ((bit_length + Limb::BITS - 1) / Limb::BITS) as usize;
+    let partial_limb = bit_length % Limb::BITS;
+    let mask = Word::MAX >> ((Word::BITS - partial_limb) % Word::BITS);
+
+    for i in 0..nonzero_limbs - 1 {
+        rng.try_fill_bytes(&mut buffer)
+            .map_err(RandomBitsError::RandCore)?;
+        limbs[i] = Limb(Word::from_be_bytes(buffer));
+    }
+
+    rng.try_fill_bytes(&mut buffer)
+        .map_err(RandomBitsError::RandCore)?;
+    limbs[nonzero_limbs - 1] = Limb(Word::from_be_bytes(buffer) & mask);
+
+    Ok(())
+}
+
+impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
+    fn try_random_bits(
+        rng: &mut impl CryptoRngCore,
+        bit_length: u32,
+    ) -> Result<Self, RandomBitsError> {
+        Self::try_random_bits_with_precision(rng, bit_length, Self::BITS)
+    }
+
+    fn try_random_bits_with_precision(
+        rng: &mut impl CryptoRngCore,
+        bit_length: u32,
+        bits_precision: u32,
+    ) -> Result<Self, RandomBitsError> {
+        if bits_precision != Self::BITS {
+            return Err(RandomBitsError::BitsPrecisionMismatch {
+                bits_precision,
+                integer_bits: Self::BITS,
+            });
+        }
+        if bit_length > Self::BITS {
+            return Err(RandomBitsError::BitLengthTooLarge {
+                bit_length,
+                bits_precision,
+            });
+        }
+        let mut limbs = [Limb::ZERO; LIMBS];
+        random_bits_core(rng, &mut limbs, bit_length)?;
+        Ok(Self::from(limbs))
     }
 }
 
@@ -75,7 +131,7 @@ pub(super) fn random_mod_core<T>(
 
 #[cfg(test)]
 mod tests {
-    use crate::{NonZero, RandomMod, U256};
+    use crate::{Limb, NonZero, RandomBits, RandomMod, U256};
     use rand_core::SeedableRng;
 
     #[test]
@@ -96,5 +152,43 @@ mod tests {
 
         // Check that the value is in range
         assert!(res < U256::from(0x10000000000000001u128));
+    }
+
+    #[test]
+    fn random_bits() {
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+
+        let lower_bound = 16;
+
+        // Full length of the integer
+        let bit_length = U256::BITS;
+        for _ in 0..10 {
+            let res = U256::random_bits(&mut rng, bit_length);
+            assert!(res > (U256::ONE << (bit_length - lower_bound)));
+        }
+
+        // A multiple of limb size
+        let bit_length = U256::BITS - Limb::BITS;
+        for _ in 0..10 {
+            let res = U256::random_bits(&mut rng, bit_length);
+            assert!(res > (U256::ONE << (bit_length - lower_bound)));
+            assert!(res < (U256::ONE << bit_length));
+        }
+
+        // A multiple of 8
+        let bit_length = U256::BITS - Limb::BITS - 8;
+        for _ in 0..10 {
+            let res = U256::random_bits(&mut rng, bit_length);
+            assert!(res > (U256::ONE << (bit_length - lower_bound)));
+            assert!(res < (U256::ONE << bit_length));
+        }
+
+        // Not a multiple of 8
+        let bit_length = U256::BITS - Limb::BITS - 8 - 3;
+        for _ in 0..10 {
+            let res = U256::random_bits(&mut rng, bit_length);
+            assert!(res > (U256::ONE << (bit_length - lower_bound)));
+            assert!(res < (U256::ONE << bit_length));
+        }
     }
 }

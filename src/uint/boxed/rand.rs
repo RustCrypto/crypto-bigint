@@ -1,25 +1,35 @@
 //! Random number generator support.
 
 use super::BoxedUint;
-use crate::{uint::rand::random_mod_core, Limb, NonZero, Random, RandomMod};
+use crate::{
+    uint::rand::{random_bits_core, random_mod_core},
+    NonZero, RandomBits, RandomBitsError, RandomMod,
+};
 use rand_core::CryptoRngCore;
 
-impl BoxedUint {
-    /// Generate a cryptographically secure random [`BoxedUint`].
-    /// in range `[0, 2^bits_precision)`.
-    pub fn random(rng: &mut impl CryptoRngCore, bits_precision: u32) -> Self {
-        let mut ret = BoxedUint::zero_with_precision(bits_precision);
+impl RandomBits for BoxedUint {
+    fn try_random_bits(
+        rng: &mut impl CryptoRngCore,
+        bit_length: u32,
+    ) -> Result<Self, RandomBitsError> {
+        Self::try_random_bits_with_precision(rng, bit_length, bit_length)
+    }
 
-        for limb in &mut *ret.limbs {
-            *limb = Limb::random(rng)
+    fn try_random_bits_with_precision(
+        rng: &mut impl CryptoRngCore,
+        bit_length: u32,
+        bits_precision: u32,
+    ) -> Result<Self, RandomBitsError> {
+        if bit_length > bits_precision {
+            return Err(RandomBitsError::BitLengthTooLarge {
+                bit_length,
+                bits_precision,
+            });
         }
 
-        // Since `bits_precision` will be rounded up on creation of `ret`,
-        // we need to clear the high bits if the rounding occurred.
-        ret.limbs[ret.limbs.len() - 1] =
-            ret.limbs[ret.limbs.len() - 1] & (Limb::MAX >> (ret.bits_precision() - bits_precision));
-
-        ret
+        let mut ret = BoxedUint::zero_with_precision(bits_precision);
+        random_bits_core(rng, &mut ret.limbs, bit_length)?;
+        Ok(ret)
     }
 }
 
@@ -42,17 +52,17 @@ impl RandomMod for BoxedUint {
 
 #[cfg(test)]
 mod tests {
-    use crate::{BoxedUint, NonZero, RandomMod};
+    use crate::{BoxedUint, NonZero, RandomBits, RandomMod};
     use rand_core::SeedableRng;
 
     #[test]
     fn random() {
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
 
-        let r = BoxedUint::random(&mut rng, 256);
+        let r = BoxedUint::random_bits(&mut rng, 256);
         assert!(r.bits_precision() == 256);
 
-        let r = BoxedUint::random(&mut rng, 256 - 32 + 1);
+        let r = BoxedUint::random_bits(&mut rng, 256 - 32 + 1);
         assert!(r.bits_precision() == 256);
         assert!(r < BoxedUint::one_with_precision(256) << (256 - 32 + 1));
     }
