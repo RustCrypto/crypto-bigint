@@ -1,7 +1,10 @@
 //! Random number generator support.
 
 use super::BoxedUint;
-use crate::{uint::rand::random_mod_core, Limb, NonZero, Random, RandomBits, RandomMod};
+use crate::{
+    uint::rand::{random_bits_core, random_mod_core},
+    Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod,
+};
 use rand_core::CryptoRngCore;
 
 impl BoxedUint {
@@ -24,15 +27,28 @@ impl BoxedUint {
 }
 
 impl RandomBits for BoxedUint {
-    fn random_bits(rng: &mut impl CryptoRngCore, bit_length: u32, bits_precision: u32) -> Self {
+    fn try_random_bits(
+        rng: &mut impl CryptoRngCore,
+        bit_length: u32,
+    ) -> Result<Self, RandomBitsError> {
+        Self::try_random_bits_with_precision(rng, bit_length, bit_length)
+    }
+
+    fn try_random_bits_with_precision(
+        rng: &mut impl CryptoRngCore,
+        bit_length: u32,
+        bits_precision: u32,
+    ) -> Result<Self, RandomBitsError> {
         if bit_length > bits_precision {
-            panic!(
-                "The requested bit length ({}) is larger than the requested precision ({})",
-                bit_length, bits_precision
-            );
+            return Err(RandomBitsError::BitLengthTooLarge {
+                bit_length,
+                bits_precision,
+            });
         }
-        let random = Self::random(rng, bits_precision);
-        random >> (bits_precision - bit_length)
+
+        let mut ret = BoxedUint::zero_with_precision(bits_precision);
+        random_bits_core(rng, &mut ret.limbs, bit_length)?;
+        Ok(ret)
     }
 }
 

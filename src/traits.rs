@@ -274,11 +274,63 @@ pub trait Random: Sized {
     fn random(rng: &mut impl CryptoRngCore) -> Self;
 }
 
-/// Random number generation support.
+/// Possible errors of [`RandomBits::try_random_bits`].
+#[cfg(feature = "rand_core")]
+#[derive(Debug)]
+pub enum RandomBitsError {
+    /// An error of the internal RNG library.
+    RandCore(rand_core::Error),
+    /// The requested `bits_precision` does not match the size of the integer
+    /// corresponding to the type (in the cases where this is set in compile time).
+    BitsPrecisionMismatch {
+        /// The requested precision.
+        bits_precision: u32,
+        /// The compile-time size of the integer.
+        integer_bits: u32,
+    },
+    /// The requested `bit_length` is larger than `bits_precision`.
+    BitLengthTooLarge {
+        /// The requested bit length of the random number.
+        bit_length: u32,
+        /// The requested precision.
+        bits_precision: u32,
+    },
+}
+
+/// Random bits generation support.
 #[cfg(feature = "rand_core")]
 pub trait RandomBits: Sized {
+    /// Generate a cryptographically secure random value in range `[0, 2^bit_length)`.
+    fn random_bits(rng: &mut impl CryptoRngCore, bit_length: u32) -> Self {
+        Self::try_random_bits(rng, bit_length).expect("try_random_bits() failed")
+    }
+
+    /// Generate a cryptographically secure random value in range `[0, 2^bit_length)`.
+    fn try_random_bits(
+        rng: &mut impl CryptoRngCore,
+        bit_length: u32,
+    ) -> Result<Self, RandomBitsError>;
+
     /// Generate a cryptographically secure random value.
-    fn random_bits(rng: &mut impl CryptoRngCore, bit_length: u32, bits_precision: u32) -> Self;
+    ///
+    /// A wrapper for [`RandomBits::try_random_bits_with_precision`] that panics on error.
+    fn random_bits_with_precision(
+        rng: &mut impl CryptoRngCore,
+        bit_length: u32,
+        bits_precision: u32,
+    ) -> Self {
+        Self::try_random_bits_with_precision(rng, bit_length, bits_precision)
+            .expect("try_random_bits_with_precision() failed")
+    }
+
+    /// Generate a cryptographically secure random value in range `[0, 2^bit_length)`,
+    /// returning an integer with the closest available size to `bits_precision`
+    /// (if the implementing type supports runtime sizing).
+    fn try_random_bits_with_precision(
+        rng: &mut impl CryptoRngCore,
+        bit_length: u32,
+        bits_precision: u32,
+    ) -> Result<Self, RandomBitsError>;
 }
 
 /// Modular random number generation support.
