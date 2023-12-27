@@ -3,7 +3,7 @@
 mod common;
 
 use common::to_biguint;
-use crypto_bigint::{Integer, Invert, Inverter, NonZero, Odd, PrecomputeInverter, U256};
+use crypto_bigint::{Integer, Invert, Inverter, Odd, PrecomputeInverter, U256};
 use num_bigint::BigUint;
 use num_modular::ModularUnaryOps;
 use proptest::prelude::*;
@@ -16,8 +16,7 @@ fn retrieve_biguint(monty_form: &MontyForm) -> BigUint {
 }
 
 fn reduce(n: &U256, p: MontyParams) -> MontyForm {
-    let modulus = NonZero::new(p.modulus().clone()).unwrap();
-    let n_reduced = n.rem_vartime(&modulus);
+    let n_reduced = n.rem_vartime(p.modulus().as_nz_ref());
     MontyForm::new(&n_reduced, p)
 }
 

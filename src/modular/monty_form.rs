@@ -64,8 +64,8 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
     }
 
     /// Returns the modulus which was used to initialize these parameters.
-    pub const fn modulus(&self) -> &Uint<LIMBS> {
-        &self.modulus.0
+    pub const fn modulus(&self) -> &Odd<Uint<LIMBS>> {
+        &self.modulus
     }
 
     /// Create `MontyParams` corresponding to a `ConstMontyParams`.

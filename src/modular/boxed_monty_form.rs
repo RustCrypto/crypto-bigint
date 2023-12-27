@@ -106,7 +106,7 @@ impl BoxedMontyParams {
     }
 
     /// Modulus value.
-    pub fn modulus(&self) -> &BoxedUint {
+    pub fn modulus(&self) -> &Odd<BoxedUint> {
         &self.modulus
     }
 
