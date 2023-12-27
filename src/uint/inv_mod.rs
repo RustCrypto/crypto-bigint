@@ -107,8 +107,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Decompose `self` into RNS with moduli `2^k` and `s` and calculate the inverses.
         // Using the fact that `(z^{-1} mod (m1 * m2)) mod m1 == z^{-1} mod m1`
         let s_is_odd = s.is_odd();
-        let mut maybe_a = self.inv_odd_mod(&Odd(s));
-        maybe_a.is_some = maybe_a.is_some.and(s_is_odd);
+        let maybe_a = self.inv_odd_mod(&Odd(s)).and_choice(s_is_odd);
 
         let maybe_b = self.inv_mod2k(k);
         let is_some = maybe_a.is_some().and(maybe_b.is_some());

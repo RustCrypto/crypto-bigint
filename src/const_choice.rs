@@ -240,6 +240,13 @@ impl<T> ConstCtOption<T> {
         assert!(self.is_some.is_true_vartime());
         self.value
     }
+
+    /// Apply an additional [`ConstChoice`] requirement to `is_some`.
+    #[inline]
+    pub const fn and_choice(mut self, is_some: ConstChoice) -> Self {
+        self.is_some = self.is_some.and(is_some);
+        self
+    }
 }
 
 impl<T> From<ConstCtOption<T>> for CtOption<T> {
