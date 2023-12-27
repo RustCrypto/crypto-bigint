@@ -2,6 +2,7 @@
 
 // TODO(tarcieri): use Karatsuba for better performance
 
+use super::concat::concat_mixed;
 use crate::{
     Checked, CheckedMul, Concat, ConcatMixed, Limb, Uint, WideningMul, Wrapping, WrappingMul, Zero,
 };
@@ -90,12 +91,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Square self, returning a concatenated "wide" result.
-    pub fn square(&self) -> <Self as Concat>::Output
+    pub const fn square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS>
     where
-        Self: Concat,
+        Self: Concat<Output = Uint<WIDE_LIMBS>>,
     {
         let (lo, hi) = self.square_wide();
-        hi.concat(&lo)
+        concat_mixed(&lo, &hi)
     }
 
     /// Square self, returning a "wide" result in two parts as (lo, hi).
