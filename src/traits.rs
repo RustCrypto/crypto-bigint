@@ -95,6 +95,7 @@ pub trait Integer:
     + for<'a> BitXor<&'a Self, Output = Self>
     + BitXorAssign
     + for<'a> BitXorAssign<&'a Self>
+    + BitOps
     + CheckedAdd
     + CheckedSub
     + CheckedMul
@@ -153,24 +154,6 @@ pub trait Integer:
 
     /// The value `1`.
     fn one() -> Self;
-
-    /// Calculate the number of bits required to represent a given number.
-    fn bits(&self) -> u32;
-
-    /// Calculate the number of bits required to represent a given number in variable-time with
-    /// respect to `self`.
-    fn bits_vartime(&self) -> u32;
-
-    /// Precision of this integer in bits.
-    fn bits_precision(&self) -> u32;
-
-    /// Precision of this integer in bytes.
-    fn bytes_precision(&self) -> usize;
-
-    /// Calculate the number of leading zeros in the binary representation of this number.
-    fn leading_zeros(&self) -> u32 {
-        self.bits_precision() - self.bits()
-    }
 
     /// Number of limbs in this integer.
     fn nlimbs(&self) -> usize;
@@ -494,6 +477,69 @@ pub trait RemLimb: Sized {
 
     /// Computes `self % rhs`.
     fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb;
+}
+
+/// Bit counting and bit operations.
+pub trait BitOps {
+    /// Precision of this integer in bits.
+    fn bits_precision(&self) -> u32;
+
+    /// `floor(log2(self.bits_precision()))`.
+    fn log2_bits(&self) -> u32 {
+        u32::BITS - self.bits_precision().leading_zeros() - 1
+    }
+
+    /// Precision of this integer in bytes.
+    fn bytes_precision(&self) -> usize;
+
+    /// Calculate the number of bits needed to represent this number.
+    fn bit(&self, index: u32) -> Choice;
+
+    /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
+    fn set_bit(&mut self, index: u32, bit_value: Choice);
+
+    /// Calculate the number of bits required to represent a given number.
+    fn bits(&self) -> u32 {
+        self.bits_precision() - self.leading_zeros()
+    }
+
+    /// Calculate the number of trailing zeros in the binary representation of this number.
+    fn trailing_zeros(&self) -> u32;
+
+    /// Calculate the number of trailing ones in the binary representation of this number.
+    fn trailing_ones(&self) -> u32;
+
+    /// Calculate the number of leading zeros in the binary representation of this number.
+    fn leading_zeros(&self) -> u32;
+
+    /// Returns `true` if the bit at position `index` is set, `false` otherwise.
+    ///
+    /// # Remarks
+    /// This operation is variable time with respect to `index` only.
+    fn bit_vartime(&self, index: u32) -> bool;
+
+    /// Calculate the number of bits required to represent a given number in variable-time with
+    /// respect to `self`.
+    fn bits_vartime(&self) -> u32 {
+        self.bits_precision() - self.leading_zeros_vartime()
+    }
+
+    /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`,
+    /// variable time in `self`.
+    fn set_bit_vartime(&mut self, index: u32, bit_value: bool);
+
+    /// Calculate the number of leading zeros in the binary representation of this number.
+    fn leading_zeros_vartime(&self) -> u32 {
+        self.bits_precision() - self.bits_vartime()
+    }
+
+    /// Calculate the number of trailing zeros in the binary representation of this number in
+    /// variable-time with respect to `self`.
+    fn trailing_zeros_vartime(&self) -> u32;
+
+    /// Calculate the number of trailing ones in the binary representation of this number,
+    /// variable time in `self`.
+    fn trailing_ones_vartime(&self) -> u32;
 }
 
 /// Constant-time exponentiation.
