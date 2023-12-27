@@ -307,22 +307,6 @@ impl Integer for BoxedUint {
         Self::one()
     }
 
-    fn bits(&self) -> u32 {
-        self.bits()
-    }
-
-    fn bits_vartime(&self) -> u32 {
-        self.bits_vartime()
-    }
-
-    fn bits_precision(&self) -> u32 {
-        self.bits_precision()
-    }
-
-    fn bytes_precision(&self) -> usize {
-        self.nlimbs() * Limb::BYTES
-    }
-
     fn nlimbs(&self) -> usize {
         self.nlimbs()
     }

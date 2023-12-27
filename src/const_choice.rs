@@ -163,6 +163,13 @@ impl From<ConstChoice> for Choice {
     }
 }
 
+impl From<Choice> for ConstChoice {
+    #[inline]
+    fn from(choice: Choice) -> Self {
+        ConstChoice::from_word_lsb(choice.unwrap_u8() as Word)
+    }
+}
+
 impl From<ConstChoice> for bool {
     fn from(choice: ConstChoice) -> Self {
         choice.is_true_vartime()
