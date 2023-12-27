@@ -234,7 +234,7 @@ impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
     type Integer = Uint<LIMBS>;
     type Params = MontyParams<LIMBS>;
 
-    fn new_params(modulus: Odd<Self::Integer>) -> Self::Params {
+    fn new_params_vartime(modulus: Odd<Self::Integer>) -> Self::Params {
         MontyParams::new_vartime(modulus)
     }
 
