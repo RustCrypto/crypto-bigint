@@ -20,16 +20,24 @@
 
 //! ## Usage
 //!
-//! This crate defines a [`Uint`] type which is const generic around an inner
-//! [`Limb`] array, where a [`Limb`] is a newtype for a word-sized integer.
-//! Thus large integers are represented as arrays of smaller integers which
-//! are sized appropriately for the CPU, giving us some assurances of how
-//! arithmetic operations over those smaller integers will behave.
+//! The core types of `crypto-bigint` are as follows:
 //!
-//! To obtain appropriately sized integers regardless of what a given CPU's
-//! word size happens to be, a number of portable type aliases are provided for
-//! integer sizes commonly used in cryptography, for example:
-//! [`U128`], [`U384`], [`U256`], [`U2048`], [`U3072`], [`U4096`].
+//! - [`Uint`]: stack-allocated big integer type, const generic around a number of [`Limb`]s.
+//!   Type aliases are provided for various sizes, e.g. [`U128`], [`U384`], [`U256`], [`U2048`],
+//!   [`U3072`], [`U4096`].
+//! - [`BoxedUint`]: heap-allocated big integer type. Requires the `alloc` crate feature is enabled.
+//!
+//! Big integer types in this crate use a 32-bit or 64-bit saturated representation, depending on
+//! the underlying CPU's pointer width.
+//!
+//! The following types for modular arithmetic are available under the [`modular`] submodule:
+//!
+//! - [`modular::ConstMontyForm`]: stack-allocated type-safe modular arithmetic using Montgomery
+//!   form suitable for cases where the modulus is known at compile-time.
+//! - [`modular::MontyForm`]: stack-allocated modular arithmetic using Montgomery form for cases
+//!   where the modulus is only known at runtime.
+//! - [`modular::BoxedMontyForm`]: heap-allocated modular arithmetic using Montgomery form.
+//!   Requires the `alloc` crate feature is enabled.
 //!
 //! ### `const fn` usage
 //!
