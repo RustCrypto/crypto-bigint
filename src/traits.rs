@@ -335,17 +335,23 @@ impl std::error::Error for RandomBitsError {}
 #[cfg(feature = "rand_core")]
 pub trait RandomBits: Sized {
     /// Generate a cryptographically secure random value in range `[0, 2^bit_length)`.
+    ///
+    /// A wrapper for [`RandomBits::try_random_bits`] that panics on error.
     fn random_bits(rng: &mut impl CryptoRngCore, bit_length: u32) -> Self {
         Self::try_random_bits(rng, bit_length).expect("try_random_bits() failed")
     }
 
     /// Generate a cryptographically secure random value in range `[0, 2^bit_length)`.
+    ///
+    /// This method is variable time wrt `bit_length`.
     fn try_random_bits(
         rng: &mut impl CryptoRngCore,
         bit_length: u32,
     ) -> Result<Self, RandomBitsError>;
 
-    /// Generate a cryptographically secure random value.
+    /// Generate a cryptographically secure random value in range `[0, 2^bit_length)`,
+    /// returning an integer with the closest available size to `bits_precision`
+    /// (if the implementing type supports runtime sizing).
     ///
     /// A wrapper for [`RandomBits::try_random_bits_with_precision`] that panics on error.
     fn random_bits_with_precision(
@@ -360,6 +366,8 @@ pub trait RandomBits: Sized {
     /// Generate a cryptographically secure random value in range `[0, 2^bit_length)`,
     /// returning an integer with the closest available size to `bits_precision`
     /// (if the implementing type supports runtime sizing).
+    ///
+    /// This method is variable time wrt `bit_length`.
     fn try_random_bits_with_precision(
         rng: &mut impl CryptoRngCore,
         bit_length: u32,
