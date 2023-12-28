@@ -40,21 +40,21 @@ mod tests {
         let hi = U64::from_u64(0x0011223344556677);
         let lo = U64::from_u64(0x8899aabbccddeeff);
         assert_eq!(
-            hi.concat(&lo),
+            lo.concat(&hi),
             U128::from_be_hex("00112233445566778899aabbccddeeff")
         );
     }
 
     #[test]
     fn concat_mixed() {
-        let a = U64::from_u64(0x0011223344556677);
-        let b = U128::from_u128(0x8899aabbccddeeff_8899aabbccddeeff);
+        let hi = U64::from_u64(0x0011223344556677);
+        let lo = U128::from_u128(0x8899aabbccddeeff_8899aabbccddeeff);
         assert_eq!(
-            a.concat_mixed(&b),
+            lo.concat_mixed(&hi),
             U192::from_be_hex("00112233445566778899aabbccddeeff8899aabbccddeeff")
         );
         assert_eq!(
-            b.concat_mixed(&a),
+            hi.concat_mixed(&lo),
             U192::from_be_hex("8899aabbccddeeff8899aabbccddeeff0011223344556677")
         );
     }

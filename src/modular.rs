@@ -121,7 +121,7 @@ mod tests {
     #[test]
     fn test_reducing_r2_wide() {
         // Divide the value ONE^2 by R, which should equal ONE
-        let (hi, lo) = Modulus2::ONE.square().split();
+        let (lo, hi) = Modulus2::ONE.square().split();
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(
                 &(lo, hi),
@@ -157,9 +157,9 @@ mod tests {
 
         // Computing xR mod modulus without Montgomery reduction
         let (lo, hi) = x.split_mul(&Modulus2::ONE);
-        let c = hi.concat(&lo);
-        let red = c.rem_vartime(&NonZero::new(U256::ZERO.concat(&Modulus2::MODULUS)).unwrap());
-        let (hi, lo) = red.split();
+        let c = lo.concat(&hi);
+        let red = c.rem_vartime(&NonZero::new(Modulus2::MODULUS.0.concat(&U256::ZERO)).unwrap());
+        let (lo, hi) = red.split();
         assert_eq!(hi, Uint::ZERO);
 
         assert_eq!(
