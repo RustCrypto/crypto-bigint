@@ -198,19 +198,19 @@ impl<const LIMBS: usize> From<Limb> for Uint<LIMBS> {
 
 impl<const L: usize, const H: usize, const LIMBS: usize> From<(Uint<L>, Uint<H>)> for Uint<LIMBS>
 where
-    Uint<H>: ConcatMixed<Uint<L>, MixedOutput = Uint<LIMBS>>,
+    Uint<L>: ConcatMixed<Uint<H>, MixedOutput = Uint<LIMBS>>,
 {
     fn from(nums: (Uint<L>, Uint<H>)) -> Uint<LIMBS> {
-        nums.1.concat_mixed(&nums.0)
+        nums.0.concat_mixed(&nums.1)
     }
 }
 
 impl<const L: usize, const H: usize, const LIMBS: usize> From<&(Uint<L>, Uint<H>)> for Uint<LIMBS>
 where
-    Uint<H>: ConcatMixed<Uint<L>, MixedOutput = Uint<LIMBS>>,
+    Uint<L>: ConcatMixed<Uint<H>, MixedOutput = Uint<LIMBS>>,
 {
     fn from(nums: &(Uint<L>, Uint<H>)) -> Uint<LIMBS> {
-        nums.1.concat_mixed(&nums.0)
+        nums.0.concat_mixed(&nums.1)
     }
 }
 

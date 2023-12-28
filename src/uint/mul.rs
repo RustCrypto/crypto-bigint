@@ -358,7 +358,7 @@ mod tests {
     #[test]
     fn square() {
         let n = U64::from_u64(0xffff_ffff_ffff_ffff);
-        let (hi, lo) = n.square().split();
+        let (lo, hi) = n.square().split();
         assert_eq!(lo, U64::from_u64(1));
         assert_eq!(hi, U64::from_u64(0xffff_ffff_ffff_fffe));
     }
@@ -366,7 +366,7 @@ mod tests {
     #[test]
     fn square_larger() {
         let n = U256::MAX;
-        let (hi, lo) = n.square().split();
+        let (lo, hi) = n.square().split();
         assert_eq!(lo, U256::ONE);
         assert_eq!(hi, U256::MAX.wrapping_sub(&U256::ONE));
     }
