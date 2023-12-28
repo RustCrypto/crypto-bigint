@@ -56,15 +56,6 @@
 //! pub const MODULUS_SHR1: U256 = MODULUS.shr(1);
 //! ```
 //!
-//! Note that large constant computations may accidentally trigger a the `const_eval_limit` of the compiler.
-//! The current way to deal with this problem is to either simplify this computation,
-//! or increase the compiler's limit (currently a nightly feature).
-//! One can completely remove the compiler's limit using:
-//! ```ignore
-//! #![feature(const_eval_limit)]
-//! #![const_eval_limit = "0"]
-//! ```
-//!
 //! ### Trait-based usage
 //!
 //! The [`Uint`] type itself does not implement the standard arithmetic traits
