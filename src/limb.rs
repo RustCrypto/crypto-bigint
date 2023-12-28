@@ -53,8 +53,11 @@ pub type Word = u64;
 #[cfg(target_pointer_width = "64")]
 pub type WideWord = u128;
 
-/// Big integers are represented as an array of smaller CPU word-size integers
-/// called "limbs".
+/// Big integers are represented as an array/vector of smaller CPU word-size integers called
+/// "limbs".
+///
+/// The [`Limb`] type uses a 32-bit or 64-bit saturated representation, depending on the target.
+/// All bits of an inner [`Word`] are used to represent larger big integer types.
 // Our PartialEq impl only differs from the default one by being constant-time, so this is safe
 #[allow(clippy::derived_hash_with_manual_eq)]
 #[derive(Copy, Clone, Default, Hash)]

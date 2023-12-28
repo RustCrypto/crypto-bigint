@@ -119,8 +119,9 @@ fn divsteps(
 }
 
 /// Returns the updated values of the variables f and g for specified initial ones and
-/// Bernstein-Yang transition matrix multiplied by 2^62. The returned vector is
-/// "matrix * (f, g)' / 2^62", where "'" is the transpose operator.
+/// Bernstein-Yang transition matrix multiplied by 2^62.
+///
+/// The returned vector is "matrix * (f, g)' / 2^62", where "'" is the transpose operator.
 fn fg(f: &mut BoxedInt62L, g: &mut BoxedInt62L, t: Matrix) {
     // TODO(tarcieri): reduce allocations
     let mut f2 = &*f * t[0][0];
@@ -136,10 +137,12 @@ fn fg(f: &mut BoxedInt62L, g: &mut BoxedInt62L, t: Matrix) {
 }
 
 /// Returns the updated values of the variables d and e for specified initial ones and
-/// Bernstein-Yang transition matrix multiplied by 2^62. The returned vector is congruent modulo
-/// M to "matrix * (d, e)' / 2^62 (mod M)", where M is the modulus the inverter was created for
-/// and "'" stands for the transpose operator. Both the input and output values lie in the
-/// interval (-2 * M, M).
+/// Bernstein-Yang transition matrix multiplied by 2^62.
+///
+/// The returned vector is congruent modulo M to "matrix * (d, e)' / 2^62 (mod M)", where M is the
+/// modulus the inverter was created for and "'" stands for the transpose operator.
+///
+/// Both the input and output values lie in the interval (-2 * M, M).
 fn de(modulus: &BoxedInt62L, inverse: i64, t: Matrix, d: &mut BoxedInt62L, e: &mut BoxedInt62L) {
     let mask = BoxedInt62L::MASK as i64;
     let mut md = t[0][0] * d.is_negative() as i64 + t[0][1] * e.is_negative() as i64;
@@ -179,7 +182,7 @@ fn de(modulus: &BoxedInt62L, inverse: i64, t: Matrix, d: &mut BoxedInt62L, e: &m
 #[derive(Clone, Debug)]
 pub(crate) struct BoxedInt62L(Box<[u64]>);
 
-/// Convert from 64-bit saturated representation used by `Uint` to the 62-bit unsaturated
+/// Convert from 32/64-bit saturated representation used by `Uint` to the 62-bit unsaturated
 /// representation used by `BoxedInt62L`.
 ///
 /// Returns a big unsigned integer as an array of 62-bit chunks, which is equal modulo

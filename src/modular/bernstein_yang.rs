@@ -142,6 +142,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Inverter
 
 /// Returns the multiplicative inverse of the argument modulo 2^62. The implementation is based
 /// on the Hurchalla's method for computing the multiplicative inverse modulo a power of two.
+///
 /// For better understanding the implementation, the following paper is recommended:
 /// J. Hurchalla, "An Improved Integer Multiplicative Inverse (modulo 2^w)",
 /// https://arxiv.org/pdf/2204.04342.pdf
@@ -238,8 +239,9 @@ const fn jump(f: &[u64], g: &[u64], mut delta: i64) -> (i64, Matrix) {
 }
 
 /// Returns the updated values of the variables f and g for specified initial ones and
-/// Bernstein-Yang transition matrix multiplied by 2^62. The returned vector is
-/// "matrix * (f, g)' / 2^62", where "'" is the transpose operator.
+/// Bernstein-Yang transition matrix multiplied by 2^62.
+///
+/// The returned vector is "matrix * (f, g)' / 2^62", where "'" is the transpose operator.
 const fn fg<const LIMBS: usize>(
     f: Int62L<LIMBS>,
     g: Int62L<LIMBS>,
@@ -252,10 +254,12 @@ const fn fg<const LIMBS: usize>(
 }
 
 /// Returns the updated values of the variables d and e for specified initial ones and
-/// Bernstein-Yang transition matrix multiplied by 2^62. The returned vector is congruent modulo
-/// M to "matrix * (d, e)' / 2^62 (mod M)", where M is the modulus the inverter was created for
-/// and "'" stands for the transpose operator. Both the input and output values lie in the
-/// interval (-2 * M, M).
+/// Bernstein-Yang transition matrix multiplied by 2^62.
+///
+/// The returned vector is congruent modulo M to "matrix * (d, e)' / 2^62 (mod M)", where M is the
+/// modulus the inverter was created for and "'" stands for the transpose operator.
+///
+/// Both the input and output values lie in the interval (-2 * M, M).
 const fn de<const LIMBS: usize>(
     modulus: &Int62L<LIMBS>,
     inverse: i64,
@@ -313,7 +317,7 @@ impl<const LIMBS: usize> Int62L<LIMBS> {
         ret
     };
 
-    /// Convert from 64-bit saturated representation used by `Uint` to the 62-bit unsaturated
+    /// Convert from 32/64-bit saturated representation used by `Uint` to the 62-bit unsaturated
     /// representation used by `Int62L`.
     ///
     /// Returns a big unsigned integer as an array of 62-bit chunks, which is equal modulo
@@ -332,13 +336,13 @@ impl<const LIMBS: usize> Int62L<LIMBS> {
         Self(output)
     }
 
-    /// Convert from 62-bit unsaturated representation used by `Int62L` to the 64-bit saturated
+    /// Convert from 62-bit unsaturated representation used by `Int62L` to the 32/64-bit saturated
     /// representation used by `Uint`.
     ///
-    /// Returns a big unsigned integer as an array of 64-bit chunks, which is equal modulo
+    /// Returns a big unsigned integer as an array of 32/64-bit chunks, which is equal modulo
     /// 2 ^ (64 * S) to the input big unsigned integer stored as an array of 62-bit chunks.
     ///
-    /// The ordering of the chunks in these arrays is little-endian
+    /// The ordering of the chunks in these arrays is little-endian.
     #[allow(trivial_numeric_casts, clippy::wrong_self_convention)]
     pub const fn to_uint<const SAT_LIMBS: usize>(&self) -> Uint<SAT_LIMBS> {
         debug_assert!(!self.is_negative(), "can't convert negative number to Uint");
