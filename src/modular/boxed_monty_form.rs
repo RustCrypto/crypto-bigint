@@ -256,6 +256,14 @@ impl Monty for BoxedMontyForm {
         BoxedMontyForm::one(params)
     }
 
+    fn params(&self) -> &Self::Params {
+        &self.params
+    }
+
+    fn as_montgomery(&self) -> &Self::Integer {
+        &self.montgomery_form
+    }
+
     fn div_by_2(&self) -> Self {
         BoxedMontyForm::div_by_2(self)
     }

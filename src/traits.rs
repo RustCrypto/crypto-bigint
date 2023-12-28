@@ -800,6 +800,12 @@ pub trait Monty:
     /// Returns one in this representation.
     fn one(params: Self::Params) -> Self;
 
+    /// Returns the parameter struct used to initialize this object.
+    fn params(&self) -> &Self::Params;
+
+    /// Access the value in Montgomery form.
+    fn as_montgomery(&self) -> &Self::Integer;
+
     /// Performs division by 2, that is returns `x` such that `x + x = self`.
     fn div_by_2(&self) -> Self;
 }
