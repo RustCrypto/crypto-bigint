@@ -158,6 +158,19 @@ pub trait Integer:
     /// The value `1`.
     fn one() -> Self;
 
+    /// The value `0` with the same precision as `other`.
+    fn zero_like(other: &Self) -> Self {
+        Self::from_limb_like(Limb::ZERO, other)
+    }
+
+    /// The value `1` with the same precision as `other`.
+    fn one_like(other: &Self) -> Self {
+        Self::from_limb_like(Limb::ONE, other)
+    }
+
+    /// Returns an integer with the first limb set to `limb`, and the same precision as `other`.
+    fn from_limb_like(limb: Limb, other: &Self) -> Self;
+
     /// Number of limbs in this integer.
     fn nlimbs(&self) -> usize;
 
