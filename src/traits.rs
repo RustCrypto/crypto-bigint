@@ -473,8 +473,7 @@ pub trait Concat: ConcatMixed<Self, MixedOutput = Self::Output> {
     /// Concatenated output: twice the width of `Self`.
     type Output: Integer;
 
-    /// Concatenate the two halves, with `self` as least significant and `hi` as the least
-    /// significant.
+    /// Concatenate the two halves, with `self` as least significant and `hi` as the most significant.
     fn concat(&self, hi: &Self) -> Self::Output {
         self.concat_mixed(hi)
     }
