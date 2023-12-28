@@ -113,8 +113,8 @@ macro_rules! impl_uint_concat_split_even {
         }
 
         impl Uint<{ <$name>::LIMBS / 2 }> {
-            /// Concatenate the two values, with `self` as most significant and `rhs`
-            /// as the least significant.
+            /// Concatenate the two values, with `self` as least significant and `hi` as the most
+            /// significant.
             pub const fn concat(&self, hi: &Uint<{ <$name>::LIMBS / 2 }>) -> $name {
                 $crate::uint::concat::concat_mixed(self, hi)
             }
@@ -133,8 +133,7 @@ macro_rules! impl_uint_concat_split_even {
         }
 
         impl $name {
-            /// Split this number in half, returning its high and low components
-            /// respectively.
+            /// Split this number in half, returning its low and high components respectively.
             pub const fn split(&self) -> (Uint<{ <$name>::LIMBS / 2 }>, Uint<{ <$name>::LIMBS / 2 }>) {
                 $crate::uint::split::split_mixed(self)
             }
