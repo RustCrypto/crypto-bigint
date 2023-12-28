@@ -90,15 +90,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Self::select(&res, &Self::MAX, overflow.is_nonzero())
     }
 
-    /// Square self, returning a concatenated "wide" result.
-    pub const fn square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS>
-    where
-        Self: Concat<Output = Uint<WIDE_LIMBS>>,
-    {
-        let (lo, hi) = self.square_wide();
-        concat_mixed(&lo, &hi)
-    }
-
     /// Square self, returning a "wide" result in two parts as (lo, hi).
     pub const fn square_wide(&self) -> (Self, Self) {
         // Translated from https://github.com/ucbrise/jedi-pairing/blob/c4bf151/include/core/bigint.hpp#L410
@@ -171,6 +162,17 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         (lo, hi)
+    }
+}
+
+impl<const LIMBS: usize, const WIDE_LIMBS: usize> Uint<LIMBS>
+where
+    Self: Concat<Output = Uint<WIDE_LIMBS>>,
+{
+    /// Square self, returning a concatenated "wide" result.
+    pub const fn square(&self) -> Uint<WIDE_LIMBS> {
+        let (lo, hi) = self.square_wide();
+        concat_mixed(&lo, &hi)
     }
 }
 
