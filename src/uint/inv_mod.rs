@@ -81,25 +81,21 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         ConstCtOption::new(x, is_some)
     }
+}
 
+impl<const LIMBS: usize, const UNSAT_LIMBS: usize> Uint<LIMBS>
+where
+    Odd<Self>: PrecomputeInverter<Inverter = BernsteinYangInverter<LIMBS, UNSAT_LIMBS>>,
+{
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
-    pub const fn inv_odd_mod<const UNSAT_LIMBS: usize>(
-        &self,
-        modulus: &Odd<Self>,
-    ) -> ConstCtOption<Self>
-    where
-        Odd<Self>: PrecomputeInverter<Inverter = BernsteinYangInverter<LIMBS, UNSAT_LIMBS>>,
-    {
+    pub const fn inv_odd_mod(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
         BernsteinYangInverter::<LIMBS, UNSAT_LIMBS>::new(modulus, &Uint::ONE).inv(self)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`.
     ///
     /// Returns some if an inverse exists, otherwise none.
-    pub const fn inv_mod<const UNSAT_LIMBS: usize>(&self, modulus: &Self) -> ConstCtOption<Self>
-    where
-        Odd<Self>: PrecomputeInverter<Inverter = BernsteinYangInverter<LIMBS, UNSAT_LIMBS>>,
-    {
+    pub const fn inv_mod(&self, modulus: &Self) -> ConstCtOption<Self> {
         // Decompose `modulus = s * 2^k` where `s` is odd
         let k = modulus.trailing_zeros();
         let s = modulus.overflowing_shr(k).unwrap_or(Self::ZERO);
