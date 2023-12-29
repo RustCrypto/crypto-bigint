@@ -158,11 +158,6 @@ pub trait Integer:
     /// The value `1`.
     fn one() -> Self;
 
-    /// The value `0` with the same precision as `other`.
-    fn zero_like(other: &Self) -> Self {
-        Self::from_limb_like(Limb::ZERO, other)
-    }
-
     /// The value `1` with the same precision as `other`.
     fn one_like(other: &Self) -> Self {
         Self::from_limb_like(Limb::ONE, other)
@@ -256,6 +251,16 @@ pub trait Zero: ConstantTimeEq + Sized {
     #[inline]
     fn set_zero(&mut self) {
         *self = Zero::zero();
+    }
+
+    /// Return the value `0` with the same precision as `other`.
+    fn zero_like(other: &Self) -> Self
+    where
+        Self: Clone,
+    {
+        let mut ret = other.clone();
+        ret.set_zero();
+        ret
     }
 }
 
