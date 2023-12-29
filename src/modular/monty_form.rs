@@ -32,13 +32,13 @@ pub struct MontyParams<const LIMBS: usize> {
     mod_neg_inv: Limb,
 }
 
-impl<const LIMBS: usize> MontyParams<LIMBS> {
+impl<const LIMBS: usize, const WIDE_LIMBS: usize> MontyParams<LIMBS>
+where
+    Uint<LIMBS>: Concat<Output = Uint<WIDE_LIMBS>>,
+    Uint<WIDE_LIMBS>: Split<Output = Uint<LIMBS>>,
+{
     /// Instantiates a new set of `MontyParams` representing the given odd `modulus`.
-    pub fn new<const WIDE_LIMBS: usize>(modulus: Odd<Uint<LIMBS>>) -> Self
-    where
-        Uint<LIMBS>: Concat<Output = Uint<WIDE_LIMBS>>,
-        Uint<WIDE_LIMBS>: Split<Output = Uint<LIMBS>>,
-    {
+    pub fn new(modulus: Odd<Uint<LIMBS>>) -> Self {
         // `R mod modulus` where `R = 2^BITS`.
         // Represents 1 in Montgomery form.
         let one = Uint::MAX.rem(modulus.as_nz_ref()).wrapping_add(&Uint::ONE);
@@ -68,7 +68,9 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
             mod_neg_inv,
         }
     }
+}
 
+impl<const LIMBS: usize> MontyParams<LIMBS> {
     /// Instantiates a new set of `MontyParams` representing the given odd `modulus`.
     pub fn new_vartime(modulus: Odd<Uint<LIMBS>>) -> Self {
         // `R mod modulus` where `R = 2^BITS`.
