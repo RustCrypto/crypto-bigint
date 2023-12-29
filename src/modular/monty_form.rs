@@ -250,6 +250,14 @@ impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
         MontyForm::one(params)
     }
 
+    fn params(&self) -> &Self::Params {
+        &self.params
+    }
+
+    fn as_montgomery(&self) -> &Self::Integer {
+        &self.montgomery_form
+    }
+
     fn div_by_2(&self) -> Self {
         MontyForm::div_by_2(self)
     }

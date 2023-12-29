@@ -158,6 +158,14 @@ pub trait Integer:
     /// The value `1`.
     fn one() -> Self;
 
+    /// The value `1` with the same precision as `other`.
+    fn one_like(other: &Self) -> Self {
+        Self::from_limb_like(Limb::ONE, other)
+    }
+
+    /// Returns an integer with the first limb set to `limb`, and the same precision as `other`.
+    fn from_limb_like(limb: Limb, other: &Self) -> Self;
+
     /// Number of limbs in this integer.
     fn nlimbs(&self) -> usize;
 
@@ -243,6 +251,16 @@ pub trait Zero: ConstantTimeEq + Sized {
     #[inline]
     fn set_zero(&mut self) {
         *self = Zero::zero();
+    }
+
+    /// Return the value `0` with the same precision as `other`.
+    fn zero_like(other: &Self) -> Self
+    where
+        Self: Clone,
+    {
+        let mut ret = other.clone();
+        ret.set_zero();
+        ret
     }
 }
 
@@ -786,6 +804,12 @@ pub trait Monty:
 
     /// Returns one in this representation.
     fn one(params: Self::Params) -> Self;
+
+    /// Returns the parameter struct used to initialize this object.
+    fn params(&self) -> &Self::Params;
+
+    /// Access the value in Montgomery form.
+    fn as_montgomery(&self) -> &Self::Integer;
 
     /// Performs division by 2, that is returns `x` such that `x + x = self`.
     fn div_by_2(&self) -> Self;
