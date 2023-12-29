@@ -249,6 +249,10 @@ impl<const LIMBS: usize> Integer for Uint<LIMBS> {
         Self::ONE
     }
 
+    fn from_limb_like(limb: Limb, _other: &Self) -> Self {
+        Self::from(limb)
+    }
+
     fn nlimbs(&self) -> usize {
         Self::LIMBS
     }
