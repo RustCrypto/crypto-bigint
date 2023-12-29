@@ -115,6 +115,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
+      - run: cargo build --release
+        working-directory: dudect
       - run: cargo run --release
           | tee /dev/stderr
           | perl -n -e '/max t = [+-](\d*\.?\d*)/; if ($1 >= 100) { exit 1 }'
