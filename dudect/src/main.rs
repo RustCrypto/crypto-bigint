@@ -3,11 +3,11 @@
 //! These use the `dudect_bencher` crate to check certain operations for
 //! constant-time behavior.
 
-use crypto_bigint::{Random, U128, U256};
+use crypto_bigint::{NonZero, Random, U128, U256};
 use dudect_bencher::{ctbench_main, BenchRng, Class, CtRunner};
 
-/// Check `UInt::reduce` for constant-time operation.
-fn reduce(runner: &mut CtRunner, mut rng: &mut BenchRng) {
+/// Check `UInt::rem` for constant-time operation.
+fn rem(runner: &mut CtRunner, mut rng: &mut BenchRng) {
     const ITERATIONS_OUTER: usize = 10_000;
     const ITERATIONS_INNER: usize = 10_000;
 
@@ -18,7 +18,7 @@ fn reduce(runner: &mut CtRunner, mut rng: &mut BenchRng) {
     let b = U256::random(&mut rng);
 
     // Random modulus (256-bit)
-    let modulus = U256::random(&mut rng);
+    let modulus = NonZero::new(U256::random(&mut rng)).unwrap_or(NonZero::<U256>::ONE);
 
     // Precomputing the inputs appears to eliminate some noise
     let mut inputs = vec![];
@@ -40,4 +40,4 @@ fn reduce(runner: &mut CtRunner, mut rng: &mut BenchRng) {
     }
 }
 
-ctbench_main!(reduce);
+ctbench_main!(rem);
