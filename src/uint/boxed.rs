@@ -139,7 +139,7 @@ impl BoxedUint {
         // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
         #[allow(trivial_casts, unsafe_code)]
         unsafe {
-            &*((&*self.limbs as *const _) as *const [Word])
+            &*((&*self.limbs as *const [Limb]) as *const [Word])
         }
     }
 
@@ -148,7 +148,7 @@ impl BoxedUint {
         // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
         #[allow(trivial_casts, unsafe_code)]
         unsafe {
-            &mut *((&mut *self.limbs as *mut _) as *mut [Word])
+            &mut *((&mut *self.limbs as *mut [Limb]) as *mut [Word])
         }
     }
 
