@@ -143,7 +143,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
         #[allow(trivial_casts, unsafe_code)]
         unsafe {
-            &*((&self.limbs as *const _) as *const [Word; LIMBS])
+            &*((&self.limbs as *const [Limb; LIMBS]) as *const [Word; LIMBS])
         }
     }
 
@@ -152,7 +152,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
         #[allow(trivial_casts, unsafe_code)]
         unsafe {
-            &mut *((&mut self.limbs as *mut _) as *mut [Word; LIMBS])
+            &mut *((&mut self.limbs as *mut [Limb; LIMBS]) as *mut [Word; LIMBS])
         }
     }
 
