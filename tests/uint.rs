@@ -33,7 +33,7 @@ prop_compose! {
 }
 prop_compose! {
     fn uint_mod_p(p: Odd<U256>)(a in uint()) -> U256 {
-        a.wrapping_rem(&p)
+        a.wrapping_rem_vartime(&p)
     }
 }
 prop_compose! {
@@ -268,7 +268,7 @@ proptest! {
 
         if !b_bi.is_zero() {
             let expected = to_uint(a_bi % b_bi);
-            let actual = a.wrapping_rem(&b);
+            let actual = a.wrapping_rem_vartime(&b);
 
             assert_eq!(expected, actual);
         }
