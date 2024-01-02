@@ -272,7 +272,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// // Check reduction by zero
     /// let zero = U448::from(0_u64);
-    /// 
+    ///
     /// assert!(bool::from(a.checked_rem(&zero).is_none()), "Should be None for reduction by zero");
     /// ```
     pub fn checked_rem(&self, rhs: &Self) -> CtOption<Self> {
