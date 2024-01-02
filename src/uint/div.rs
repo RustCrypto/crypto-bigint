@@ -248,7 +248,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// let a = U448::from(10_u64);
     /// let b = U448::from(3_u64);
-    /// let remainder = a.wrapping_rem(&b);
+    /// let remainder = a.wrapping_rem_vartime(&b);
     ///
     /// assert_eq!(remainder, U448::from(1_u64));
     /// ```
