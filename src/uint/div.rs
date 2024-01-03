@@ -159,7 +159,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes `self` % 2^k. Faster than reduce since its a power of 2.
     /// Limited to 2^16-1 since Uint doesn't support higher.
-    /// TODO: this is not constant-time.
     ///
     /// ### Usage:
     /// ```
@@ -167,12 +166,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// let a = U448::from(10_u64);
     /// let k = 3; // 2^3 = 8
-    /// let remainder = a.rem2k(k);
+    /// let remainder = a.rem2k_vartime(k);
     ///
     /// // As 10 % 8 = 2
     /// assert_eq!(remainder, U448::from(2_u64));
     /// ```
-    pub const fn rem2k(&self, k: u32) -> Self {
+    pub const fn rem2k_vartime(&self, k: u32) -> Self {
         let highest = (LIMBS - 1) as u32;
         let index = k / Limb::BITS;
         let le = ConstChoice::from_u32_le(index, highest);
@@ -268,7 +267,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// let remainder_option = NonZero::new(U448::from(3_u64))
     ///     .map(|b| a.rem(&b));
     ///
-    /// assert!(bool::from(remainder_option.is_some()), "Reduction by zero");
+    /// assert!(bool::from(remainder_option.is_some()));
     ///
     /// // Check reduction by zero
     /// let zero = U448::from(0_u64);
@@ -796,7 +795,7 @@ mod tests {
             let k = rng.next_u32() % 256;
             let den = U256::ONE.overflowing_shl_vartime(k).unwrap();
 
-            let a = num.rem2k(k);
+            let a = num.rem2k_vartime(k);
             let e = num.wrapping_rem_vartime(&den);
             assert_eq!(a, e);
         }
