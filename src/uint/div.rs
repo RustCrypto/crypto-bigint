@@ -159,7 +159,19 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes `self` % 2^k. Faster than reduce since its a power of 2.
     /// Limited to 2^16-1 since Uint doesn't support higher.
-    pub const fn rem2k(&self, k: u32) -> Self {
+    ///
+    /// ### Usage:
+    /// ```
+    /// use crypto_bigint::{U448, Limb};
+    ///
+    /// let a = U448::from(10_u64);
+    /// let k = 3; // 2^3 = 8
+    /// let remainder = a.rem2k_vartime(k);
+    ///
+    /// // As 10 % 8 = 2
+    /// assert_eq!(remainder, U448::from(2_u64));
+    /// ```
+    pub const fn rem2k_vartime(&self, k: u32) -> Self {
         let highest = (LIMBS - 1) as u32;
         let index = k / Limb::BITS;
         let le = ConstChoice::from_u32_le(index, highest);
@@ -203,6 +215,22 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Perform checked division, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
+    ///
+    /// ### Usage:
+    /// ```
+    /// use crypto_bigint::{U448, NonZero, subtle::{CtOption, Choice}};
+    ///
+    /// let a = U448::from(8_u64);
+    /// let result = NonZero::new(U448::from(4_u64))
+    ///     .map(|b| a.div_rem(&b))
+    ///     .expect("Division by zero");
+    ///
+    /// assert_eq!(result.0, U448::from(2_u64));
+    ///
+    /// // Check division by zero
+    /// let zero = U448::from(0_u64);
+    /// assert!(bool::from(a.checked_div(&zero).is_none()), "Should be None for division by zero");
+    /// ```
     pub fn checked_div(&self, rhs: &Self) -> CtOption<Self> {
         NonZero::new(*rhs).map(|rhs| {
             let (q, _r) = self.div_rem(&rhs);
@@ -210,18 +238,42 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         })
     }
 
-    /// Wrapped (modular) remainder calculation is just `self` % `rhs`.
-    /// There’s no way wrapping could ever happen.
     /// This function exists, so that all operations are accounted for in the wrapping operations.
-    ///
     /// Panics if `rhs == 0`.
-    pub const fn wrapping_rem(&self, rhs: &Self) -> Self {
+    ///
+    /// ### Usage:
+    /// ```
+    /// use crypto_bigint::U448;
+    ///
+    /// let a = U448::from(10_u64);
+    /// let b = U448::from(3_u64);
+    /// let remainder = a.wrapping_rem_vartime(&b);
+    ///
+    /// assert_eq!(remainder, U448::from(1_u64));
+    /// ```
+    pub const fn wrapping_rem_vartime(&self, rhs: &Self) -> Self {
         let nz_rhs = rhs.to_nz().expect("non-zero divisor");
         self.rem_vartime(&nz_rhs)
     }
 
     /// Perform checked reduction, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
+    ///
+    /// ### Usage:
+    /// ```
+    /// use crypto_bigint::{U448, NonZero, subtle::{Choice,CtOption}};
+    ///
+    /// let a = U448::from(10_u64);
+    /// let remainder_option = NonZero::new(U448::from(3_u64))
+    ///     .map(|b| a.rem(&b));
+    ///
+    /// assert!(bool::from(remainder_option.is_some()));
+    ///
+    /// // Check reduction by zero
+    /// let zero = U448::from(0_u64);
+    ///
+    /// assert!(bool::from(a.checked_rem(&zero).is_none()), "Should be None for reduction by zero");
+    /// ```
     pub fn checked_rem(&self, rhs: &Self) -> CtOption<Self> {
         NonZero::new(*rhs).map(|rhs| self.rem(&rhs))
     }
@@ -726,11 +778,11 @@ mod tests {
         let mut a = U256::ZERO;
         let mut b = U256::ZERO;
         b.limbs[b.limbs.len() - 1] = Limb(Word::MAX);
-        let r = a.wrapping_rem(&b);
+        let r = a.wrapping_rem_vartime(&b);
         assert_eq!(r, Uint::ZERO);
         a.limbs[a.limbs.len() - 1] = Limb(1 << (Limb::HI_BIT - 7));
         b.limbs[b.limbs.len() - 1] = Limb(0x82 << (Limb::HI_BIT - 7));
-        let r = a.wrapping_rem(&b);
+        let r = a.wrapping_rem_vartime(&b);
         assert_eq!(r, a);
     }
 
@@ -743,8 +795,8 @@ mod tests {
             let k = rng.next_u32() % 256;
             let den = U256::ONE.overflowing_shl_vartime(k).unwrap();
 
-            let a = num.rem2k(k);
-            let e = num.wrapping_rem(&den);
+            let a = num.rem2k_vartime(k);
+            let e = num.wrapping_rem_vartime(&den);
             assert_eq!(a, e);
         }
     }
