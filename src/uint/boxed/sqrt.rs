@@ -22,12 +22,13 @@ impl BoxedUint {
 
         // Repeat enough times to guarantee result has stabilized.
         let mut i = 0;
-        // TODO: avoid this clone
         let mut x_prev = x.clone(); // keep the previous iteration in case we need to roll back.
 
         // TODO (#378): the tests indicate that just `Self::LOG2_BITS` may be enough.
         while i < self.log2_bits() + 2 {
-            x_prev = x.clone(); // TODO: can we avoid this clone?
+            // Use clone_from to avoid allocation
+            // TODO: check if `x_prev.clone_from(&x)` does the same thing
+            x_prev.limbs.clone_from(&x.limbs);
 
             // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
 

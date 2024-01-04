@@ -60,7 +60,6 @@ fn bench_boxed_sqrt(c: &mut Criterion) {
             BatchSize::SmallInput,
         )
     });
-
 }
 
 criterion_group!(benches, bench_shifts, bench_boxed_sqrt);
