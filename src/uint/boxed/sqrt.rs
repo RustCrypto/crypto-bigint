@@ -28,7 +28,7 @@ impl BoxedUint {
         while i < self.log2_bits() + 2 {
             // Use clone_from to avoid allocation
             // TODO: check if `x_prev.clone_from(&x)` does the same thing
-            x_prev.limbs.clone_from(&x.limbs);
+            x_prev.limbs.clone_from_slice(&x.limbs);
 
             // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
 
