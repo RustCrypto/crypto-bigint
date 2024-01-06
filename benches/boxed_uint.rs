@@ -43,6 +43,25 @@ fn bench_shifts(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_shifts);
+fn bench_boxed_sqrt(c: &mut Criterion) {
+    let mut group = c.benchmark_group("boxed_sqrt");
+    group.bench_function("boxed_sqrt, 4096", |b| {
+        b.iter_batched(
+            || BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+            |x| x.sqrt(),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("boxed_sqrt_vartime, 4096", |b| {
+        b.iter_batched(
+            || BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+            |x| x.sqrt_vartime(),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
+criterion_group!(benches, bench_shifts, bench_boxed_sqrt);
 
 criterion_main!(benches);
