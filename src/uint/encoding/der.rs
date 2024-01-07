@@ -1,6 +1,6 @@
 //! Support for decoding/encoding [`Uint`] as an ASN.1 DER `INTEGER`.
 
-use crate::{generic_array::GenericArray, ArrayEncoding, Uint};
+use crate::{hybrid_array::Array, ArrayEncoding, Uint};
 use ::der::{
     asn1::{AnyRef, UintRef},
     DecodeValue, EncodeValue, FixedTag, Length, Tag,
@@ -24,7 +24,7 @@ where
     type Error = der::Error;
 
     fn try_from(bytes: UintRef<'a>) -> der::Result<Uint<LIMBS>> {
-        let mut array = GenericArray::default();
+        let mut array = Array::default();
         let offset = array.len().saturating_sub(bytes.len().try_into()?);
         array[offset..].copy_from_slice(bytes.as_bytes());
         Ok(Uint::from_be_byte_array(array))

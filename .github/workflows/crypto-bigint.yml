@@ -34,12 +34,12 @@ jobs:
       - run: cargo build --target ${{ matrix.target }} --release --no-default-features
       - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features alloc
       - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features der
-      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features generic-array
+      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features hybrid-array
       - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features rand_core
       - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features rlp
       - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features serde
       - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features zeroize
-      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features alloc,der,generic-array,rand_core,rlp,serde,zeroize
+      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features alloc,der,hybrid-array,rand_core,rlp,serde,zeroize
 
   test:
     runs-on: ubuntu-latest

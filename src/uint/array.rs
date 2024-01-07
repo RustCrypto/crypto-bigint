@@ -1,8 +1,8 @@
-//! `generic-array` integration with `Uint`.
-// TODO(tarcieri): completely phase out `generic-array` when const generics are powerful enough
+//! `hybrid-array` integration with `Uint`.
+// TODO(tarcieri): completely phase out `hybrid-array` when const generics are powerful enough
 
 use crate::{ArrayDecoding, ArrayEncoding, ByteArray};
-use generic_array::{typenum, GenericArray};
+use hybrid_array::{typenum, Array};
 
 macro_rules! impl_uint_array_encoding {
     ($(($uint:ident, $bytes:path)),+) => {
@@ -22,20 +22,20 @@ macro_rules! impl_uint_array_encoding {
 
                 #[inline]
                 fn to_be_byte_array(&self) -> ByteArray<Self> {
-                    let mut result = GenericArray::default();
+                    let mut result = Array::default();
                     self.write_be_bytes(&mut result);
                     result
                 }
 
                 #[inline]
                 fn to_le_byte_array(&self) -> ByteArray<Self> {
-                    let mut result = GenericArray::default();
+                    let mut result = Array::default();
                     self.write_le_bytes(&mut result);
                     result
                 }
             }
 
-            impl ArrayDecoding for GenericArray<u8, $bytes> {
+            impl ArrayDecoding for Array<u8, $bytes> {
                 type Output = super::$uint;
 
                 fn into_uint_be(self) -> Self::Output {

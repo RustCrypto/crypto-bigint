@@ -1,6 +1,6 @@
 //! Const-friendly decoding/encoding operations for [`Uint`].
 
-#[cfg(all(feature = "der", feature = "generic-array"))]
+#[cfg(all(feature = "der", feature = "hybrid-array"))]
 mod der;
 
 #[cfg(feature = "rlp")]
@@ -9,7 +9,7 @@ mod rlp;
 use super::Uint;
 use crate::{Limb, Word};
 
-#[cfg(feature = "generic-array")]
+#[cfg(feature = "hybrid-array")]
 use crate::Encoding;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -131,7 +131,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Serialize this [`Uint`] as big-endian, writing it into the provided
     /// byte slice.
-    #[cfg(feature = "generic-array")]
+    #[cfg(feature = "hybrid-array")]
     #[inline]
     pub(crate) fn write_be_bytes(&self, out: &mut [u8]) {
         debug_assert_eq!(out.len(), Limb::BYTES * LIMBS);
@@ -149,7 +149,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Serialize this [`Uint`] as little-endian, writing it into the provided
     /// byte slice.
-    #[cfg(feature = "generic-array")]
+    #[cfg(feature = "hybrid-array")]
     #[inline]
     pub(crate) fn write_le_bytes(&self, out: &mut [u8]) {
         debug_assert_eq!(out.len(), Limb::BYTES * LIMBS);

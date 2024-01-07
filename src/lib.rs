@@ -163,7 +163,7 @@ mod macros;
 
 pub mod modular;
 
-#[cfg(feature = "generic-array")]
+#[cfg(feature = "hybrid-array")]
 mod array;
 mod checked;
 mod const_choice;
@@ -191,10 +191,10 @@ pub use subtle;
 #[cfg(feature = "alloc")]
 pub use crate::uint::boxed::{encoding::DecodeError, BoxedUint};
 
-#[cfg(feature = "generic-array")]
+#[cfg(feature = "hybrid-array")]
 pub use {
     crate::array::{ArrayDecoding, ArrayEncoding, ByteArray},
-    generic_array::{self, typenum::consts},
+    hybrid_array::{self, typenum::consts},
 };
 
 #[cfg(feature = "rand_core")]
@@ -210,7 +210,7 @@ pub use zeroize;
 pub mod prelude {
     pub use crate::traits::*;
 
-    #[cfg(feature = "generic-array")]
+    #[cfg(feature = "hybrid-array")]
     pub use crate::array::{ArrayDecoding, ArrayEncoding};
 }
 
