@@ -25,7 +25,7 @@ generic-array = { version = "0.14", optional = true }
 num-traits = { version = "0.2", default-features = false }
 rand_core = { version = "0.6.4", optional = true }
 rlp = { version = "0.5", optional = true, default-features = false }
-serdect = { version = "0.2", optional = true, default-features = false }
+serdect = { version = "=0.3.0-pre.0", optional = true, default-features = false }
 zeroize = { version = "1", optional = true,  default-features = false }
 
 [dev-dependencies]
