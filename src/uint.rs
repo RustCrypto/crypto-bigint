@@ -32,7 +32,7 @@ mod sqrt;
 mod sub;
 mod sub_mod;
 
-#[cfg(feature = "generic-array")]
+#[cfg(feature = "hybrid-array")]
 mod array;
 #[cfg(feature = "alloc")]
 pub(crate) mod boxed;
@@ -63,9 +63,9 @@ use zeroize::DefaultIsZeroes;
 /// encoding functions that can be used with [`Uint`] constants.
 ///
 /// Optional crate features for encoding (off-by-default):
-/// - `generic-array`: enables [`ArrayEncoding`][`crate::ArrayEncoding`] trait which can be used to
-///   [`Uint`] as `GenericArray<u8, N>` and a [`ArrayDecoding`][`crate::ArrayDecoding`] trait which
-///   can be used to `GenericArray<u8, N>` as [`Uint`].
+/// - `hybrid-array`: enables [`ArrayEncoding`][`crate::ArrayEncoding`] trait which can be used to
+///   [`Uint`] as `Array<u8, N>` and a [`ArrayDecoding`][`crate::ArrayDecoding`] trait which
+///   can be used to `Array<u8, N>` as [`Uint`].
 /// - `rlp`: support for [Recursive Length Prefix (RLP)][RLP] encoding.
 ///
 /// [RLP]: https://eth.wiki/fundamentals/rlp

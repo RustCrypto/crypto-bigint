@@ -8,7 +8,7 @@ use core::{
 };
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
-#[cfg(feature = "generic-array")]
+#[cfg(feature = "hybrid-array")]
 use crate::{ArrayEncoding, ByteArray};
 
 #[cfg(feature = "rand_core")]
@@ -142,7 +142,7 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     }
 }
 
-#[cfg(feature = "generic-array")]
+#[cfg(feature = "hybrid-array")]
 impl<T> NonZero<T>
 where
     T: ArrayEncoding + Zero,

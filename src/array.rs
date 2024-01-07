@@ -1,16 +1,16 @@
-//! Interop support for `generic-array`
+//! Interop support for `hybrid-array`
 
 use crate::{Encoding, Integer};
 use core::ops::Add;
-use generic_array::{typenum::Unsigned, ArrayLength, GenericArray};
+use hybrid_array::{typenum::Unsigned, Array, ArraySize};
 
 /// Alias for a byte array whose size is defined by [`ArrayEncoding::ByteSize`].
-pub type ByteArray<T> = GenericArray<u8, <T as ArrayEncoding>::ByteSize>;
+pub type ByteArray<T> = Array<u8, <T as ArrayEncoding>::ByteSize>;
 
-/// Support for encoding a big integer as a `GenericArray`.
+/// Support for encoding a big integer as a `Array`.
 pub trait ArrayEncoding: Encoding {
     /// Size of a byte array which encodes a big integer.
-    type ByteSize: ArrayLength<u8> + Add + Eq + Ord + Unsigned;
+    type ByteSize: ArraySize + Add + Eq + Ord + Unsigned;
 
     /// Deserialize from a big-endian byte array.
     fn from_be_byte_array(bytes: ByteArray<Self>) -> Self;
@@ -25,14 +25,14 @@ pub trait ArrayEncoding: Encoding {
     fn to_le_byte_array(&self) -> ByteArray<Self>;
 }
 
-/// Support for decoding a `GenericArray` as a big integer.
+/// Support for decoding a `Array` as a big integer.
 pub trait ArrayDecoding {
-    /// Big integer which decodes a `GenericArray`.
+    /// Big integer which decodes a `Array`.
     type Output: ArrayEncoding + Integer;
 
-    /// Deserialize from a big-endian `GenericArray`.
+    /// Deserialize from a big-endian `Array`.
     fn into_uint_be(self) -> Self::Output;
 
-    /// Deserialize from a little-endian `GenericArray`.
+    /// Deserialize from a little-endian `Array`.
     fn into_uint_le(self) -> Self::Output;
 }
