@@ -9,7 +9,7 @@ mod sub;
 
 use self::inv::ConstMontyFormInverter;
 use super::{div_by_2::div_by_2, reduction::montgomery_reduction, BernsteinYangInverter, Retrieve};
-use crate::{Limb, Odd, PrecomputeInverter, Uint, ZeroConstant};
+use crate::{ConstZero, Limb, Odd, PrecomputeInverter, Uint};
 use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
@@ -181,7 +181,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Default for ConstMontyFor
     }
 }
 
-impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ZeroConstant for ConstMontyForm<MOD, LIMBS> {
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstZero for ConstMontyForm<MOD, LIMBS> {
     const ZERO: Self = Self::ZERO;
 }
 
