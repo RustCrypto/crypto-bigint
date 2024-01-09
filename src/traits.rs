@@ -267,12 +267,12 @@ pub trait Zero: ConstantTimeEq + Sized {
 /// Trait for associating a constant representing zero.
 ///
 /// Types which impl this trait automatically receive a blanket impl of [`Zero`].
-pub trait ZeroConstant: Zero {
+pub trait ConstZero: Zero {
     /// The value `0`.
     const ZERO: Self;
 }
 
-impl<T: ZeroConstant> Zero for T {
+impl<T: ConstZero> Zero for T {
     #[inline(always)]
     fn zero() -> T {
         Self::ZERO
@@ -280,7 +280,7 @@ impl<T: ZeroConstant> Zero for T {
 }
 
 /// Trait for associating constant values with a type.
-pub trait Constants: ZeroConstant {
+pub trait Constants: ConstZero {
     /// The value `1`.
     const ONE: Self;
 
