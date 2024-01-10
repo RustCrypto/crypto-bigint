@@ -141,18 +141,18 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Borrow the inner limbs as an array of [`Word`]s.
     pub const fn as_words(&self) -> &[Word; LIMBS] {
         // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
-        #[allow(trivial_casts, unsafe_code)]
+        #[allow(unsafe_code)]
         unsafe {
-            &*((&self.limbs as *const [Limb; LIMBS]) as *const [Word; LIMBS])
+            &*self.limbs.as_ptr().cast()
         }
     }
 
     /// Borrow the inner limbs as a mutable array of [`Word`]s.
     pub fn as_words_mut(&mut self) -> &mut [Word; LIMBS] {
         // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
-        #[allow(trivial_casts, unsafe_code)]
+        #[allow(unsafe_code)]
         unsafe {
-            &mut *((&mut self.limbs as *mut [Limb; LIMBS]) as *mut [Word; LIMBS])
+            &mut *self.limbs.as_mut_ptr().cast()
         }
     }
 
@@ -453,11 +453,24 @@ mod tests {
     #[cfg(feature = "serde")]
     use crate::U64;
 
+    #[cfg(target_pointer_width = "64")]
+    #[test]
+    fn as_words() {
+        let n = U128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
+        assert_eq!(n.as_words(), &[0xCCCCCCCCDDDDDDDD, 0xAAAAAAAABBBBBBBB]);
+    }
+
+    #[cfg(target_pointer_width = "64")]
+    #[test]
+    fn as_words_mut() {
+        let mut n = U128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
+        assert_eq!(n.as_words_mut(), &[0xCCCCCCCCDDDDDDDD, 0xAAAAAAAABBBBBBBB]);
+    }
+
     #[cfg(feature = "alloc")]
     #[test]
     fn debug() {
-        let hex = "AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD";
-        let n = U128::from_be_hex(hex);
+        let n = U128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
 
         assert_eq!(
             format!("{:?}", n),
