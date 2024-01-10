@@ -1,0 +1,23 @@
+# dudect benchmarks: check for constant-time operation
+name: dudect
+
+on:
+  push:
+    branches: master
+    paths-ignore:
+      - README.md
+
+jobs:
+  dudect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - run: cargo build --release
+        working-directory: dudect
+      - run: cargo run --release
+          | tee /dev/stderr
+          | perl -n -e '/max t = [+-](\d*\.?\d*)/; if ($1 >= 100) { exit 1 }'
+        working-directory: dudect
