@@ -238,6 +238,19 @@ proptest! {
     }
 
     #[test]
+    fn wrapping_rem(a in uint(), b in uint()) {
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+
+        if !b_bi.is_zero() {
+            let expected = to_uint(a_bi % b_bi);
+            let actual = a.wrapping_rem_vartime(&b);
+
+            assert_eq!(expected, actual);
+        }
+    }
+
+    #[test]
     fn div_rem_limb(a in uint(), b in nonzero_limb()) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&U256::from(b));
@@ -258,19 +271,6 @@ proptest! {
             let (actual_quo, actual_rem) = a.div_rem_limb(NonZero::new(b).unwrap());
             assert_eq!(to_uint(expected_quo), actual_quo);
             assert_eq!(to_uint(expected_rem), U256::from(actual_rem));
-        }
-    }
-
-    #[test]
-    fn wrapping_rem(a in uint(), b in uint()) {
-        let a_bi = to_biguint(&a);
-        let b_bi = to_biguint(&b);
-
-        if !b_bi.is_zero() {
-            let expected = to_uint(a_bi % b_bi);
-            let actual = a.wrapping_rem_vartime(&b);
-
-            assert_eq!(expected, actual);
         }
     }
 
@@ -335,6 +335,7 @@ proptest! {
         let expected = to_uint(a_bi.sqrt());
         let actual_ct = a.wrapping_sqrt();
         assert_eq!(expected, actual_ct);
+
         let actual_vartime = a.wrapping_sqrt_vartime();
         assert_eq!(expected, actual_vartime);
     }
@@ -344,12 +345,9 @@ proptest! {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
 
-        if !b_bi.is_zero() {
-            let expected = to_uint(a_bi | b_bi);
-            let actual = a.wrapping_or(&b);
-
-            assert_eq!(expected, actual);
-        }
+        let expected = to_uint(a_bi | b_bi);
+        let actual = a.wrapping_or(&b);
+        assert_eq!(expected, actual);
     }
 
     #[test]
@@ -357,24 +355,19 @@ proptest! {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
 
-        if !b_bi.is_zero() {
-            let expected = to_uint(a_bi & b_bi);
-            let actual = a.wrapping_and(&b);
-
-            assert_eq!(expected, actual);
-        }
+        let expected = to_uint(a_bi & b_bi);
+        let actual = a.wrapping_and(&b);
+        assert_eq!(expected, actual);
     }
 
     #[test]
     fn wrapping_xor(a in uint(), b in uint()) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
-        if !b_bi.is_zero() {
-            let expected = to_uint(a_bi ^ b_bi);
-            let actual = a.wrapping_xor(&b);
 
-            assert_eq!(expected, actual);
-        }
+        let expected = to_uint(a_bi ^ b_bi);
+        let actual = a.wrapping_xor(&b);
+        assert_eq!(expected, actual);
     }
 
     #[test]
@@ -401,7 +394,6 @@ proptest! {
         let p_bi = to_biguint(&P);
 
         let expected = to_uint(a_bi.modpow(&b_bi, &p_bi));
-
         let params = MontyParams::new_vartime(P);
         let a_m = MontyForm::new(&a, params);
         let actual = a_m.pow(&b).retrieve();
