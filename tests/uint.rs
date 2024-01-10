@@ -371,6 +371,35 @@ proptest! {
     }
 
     #[test]
+    fn wrapping_shl(n in uint(), shift in any::<u32>()) {
+        let n_bi = to_biguint(&n);
+
+        let expected = if shift < U256::BITS {
+            to_uint(n_bi << shift)
+        } else {
+            U256::ZERO
+        };
+
+        let actual_ct = n.wrapping_shl(shift);
+        assert_eq!(expected, actual_ct);
+
+        let actual_vartime = n.wrapping_shl_vartime(shift);
+        assert_eq!(expected, actual_vartime);
+    }
+
+    #[test]
+    fn wrapping_shr(n in uint(), shift in any::<u32>()) {
+        let n_bi = to_biguint(&n);
+        let expected = to_uint(n_bi >> shift);
+
+        let actual_ct = n.wrapping_shr(shift);
+        assert_eq!(expected, actual_ct);
+
+        let actual_vartime = n.wrapping_shr_vartime(shift);
+        assert_eq!(expected, actual_vartime);
+    }
+
+    #[test]
     fn encoding(a in uint()) {
         assert_eq!(a, U256::from_be_bytes(a.to_be_bytes()));
         assert_eq!(a, U256::from_le_bytes(a.to_le_bytes()));
