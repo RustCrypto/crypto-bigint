@@ -1,7 +1,0 @@
-# Seeds for failure cases proptest has generated in the past. It is
-# automatically read and these particular cases re-run before any
-# novel cases are generated.
-#
-# It is recommended to check this file in to source control so that
-# everyone who runs the test benefits from these saved cases.
-cc 109dd02159bd1afed3bdf3b3a82407df5df8d5949115574175225e7e72d13056 # shrinks to a = Uint(0x0000000000000000000000000000000000000000000000000000000000000006), b = Uint(0x0000000000000000000000000000000000000000000000000000000000000068)

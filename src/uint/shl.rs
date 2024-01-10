@@ -117,18 +117,16 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
     }
 
-    /// Computes `self << shift` in a panic-free manner, masking off bits of `shift` which would cause the shift to
-    /// exceed the type's width.
+    /// Computes `self << shift` in a panic-free manner, returning zero if the shift exceeds the
+    /// precision.
     pub const fn wrapping_shl(&self, shift: u32) -> Self {
-        self.overflowing_shl(shift % Self::BITS)
-            .expect("shift within range")
+        self.overflowing_shl(shift).unwrap_or(Self::ZERO)
     }
 
-    /// Computes `self << shift` in variable-time in a panic-free manner, masking off bits of `shift` which would cause
-    /// the shift to exceed the type's width.
+    /// Computes `self << shift` in variable-time in a panic-free manner, returning zero if the
+    /// shift exceeds the precision.
     pub const fn wrapping_shl_vartime(&self, shift: u32) -> Self {
-        self.overflowing_shl_vartime(shift % Self::BITS)
-            .expect("shift within range")
+        self.overflowing_shl_vartime(shift).unwrap_or(Self::ZERO)
     }
 
     /// Computes `self << shift` where `0 <= shift < Limb::BITS`,
