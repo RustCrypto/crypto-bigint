@@ -13,6 +13,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             .expect("`shift` within the bit size of the integer")
     }
 
+    /// Computes `self >> shift` in variable time.
+    ///
+    /// Panics if `shift >= Self::BITS`.
+    pub const fn shr_vartime(&self, shift: u32) -> Self {
+        self.overflowing_shr_vartime(shift)
+            .expect("`shift` within the bit size of the integer")
+    }
+
     /// Computes `self >> shift`.
     ///
     /// Returns `None` if `shift >= Self::BITS`.
