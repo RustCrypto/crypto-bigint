@@ -40,6 +40,11 @@ macro_rules! impl_uint_aliases {
                 pub const fn to_be_bytes(&self) -> [u8; $bits / 8] {
                     encoding::uint_to_be_bytes::<{ nlimbs!($bits) }, { $bits / 8 }>(self)
                 }
+
+                /// Serialize as little endian bytes.
+                pub const fn to_le_bytes(&self) -> [u8; $bits / 8] {
+                    encoding::uint_to_le_bytes::<{ nlimbs!($bits) }, { $bits / 8 }>(self)
+                }
             }
 
             impl Encoding for $name {
