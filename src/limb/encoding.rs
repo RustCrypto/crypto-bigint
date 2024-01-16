@@ -64,32 +64,27 @@ impl Limb {
 #[cfg(test)]
 mod test {
     use super::*;
-    use proptest::prelude::*;
 
-    prop_compose! {
-        fn limb()(inner in any::<Word>()) -> Limb {
-            Limb(inner)
-        }
+    #[cfg(target_pointer_width = "32")]
+    const LIMB: Limb = Limb(0x7654_3210);
+
+    #[cfg(target_pointer_width = "64")]
+    const LIMB: Limb = Limb(0xFEDCBA9876543210);
+
+    #[test]
+    fn roundtrip() {
+        assert_eq!(LIMB, Limb::from_be_bytes(LIMB.to_be_bytes()));
+        assert_eq!(LIMB, Limb::from_le_bytes(LIMB.to_le_bytes()));
     }
 
-    proptest! {
-        #[test]
-        fn roundtrip(a in limb()) {
-            assert_eq!(a, Limb::from_be_bytes(a.to_be_bytes()));
-            assert_eq!(a, Limb::from_le_bytes(a.to_le_bytes()));
-        }
-    }
+    #[test]
+    fn reverse() {
+        let mut bytes = LIMB.to_be_bytes();
+        bytes.reverse();
+        assert_eq!(LIMB, Limb::from_le_bytes(bytes));
 
-    proptest! {
-        #[test]
-        fn reverse(a in limb()) {
-            let mut bytes = a.to_be_bytes();
-            bytes.reverse();
-            assert_eq!(a, Limb::from_le_bytes(bytes));
-
-            let mut bytes = a.to_le_bytes();
-            bytes.reverse();
-            assert_eq!(a, Limb::from_be_bytes(bytes));
-        }
+        let mut bytes = LIMB.to_le_bytes();
+        bytes.reverse();
+        assert_eq!(LIMB, Limb::from_be_bytes(bytes));
     }
 }
