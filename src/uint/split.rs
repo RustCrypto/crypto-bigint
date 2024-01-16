@@ -1,26 +1,29 @@
-use crate::{Limb, Uint};
+use crate::{Limb, SplitMixed, Uint};
 
-/// Split this number in half, returning its low and high components respectively.
-#[inline]
-pub(crate) const fn split_mixed<const L: usize, const H: usize, const O: usize>(
-    n: &Uint<O>,
-) -> (Uint<L>, Uint<H>) {
-    let top = L + H;
-    let top = if top < O { top } else { O };
-    let mut lo = [Limb::ZERO; L];
-    let mut hi = [Limb::ZERO; H];
-    let mut i = 0;
+impl<const I: usize> Uint<I> {
+    /// Split this number into low and high components respectively.
+    #[inline]
+    pub const fn split_mixed<const L: usize, const H: usize>(&self) -> (Uint<L>, Uint<H>)
+    where
+        Self: SplitMixed<Uint<L>, Uint<H>>,
+    {
+        let top = L + H;
+        let top = if top < I { top } else { I };
+        let mut lo = [Limb::ZERO; L];
+        let mut hi = [Limb::ZERO; H];
+        let mut i = 0;
 
-    while i < top {
-        if i < L {
-            lo[i] = n.limbs[i];
-        } else {
-            hi[i - L] = n.limbs[i];
+        while i < top {
+            if i < L {
+                lo[i] = self.limbs[i];
+            } else {
+                hi[i - L] = self.limbs[i];
+            }
+            i += 1;
         }
-        i += 1;
-    }
 
-    (Uint { limbs: lo }, Uint { limbs: hi })
+        (Uint { limbs: lo }, Uint { limbs: hi })
+    }
 }
 
 #[cfg(test)]
