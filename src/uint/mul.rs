@@ -2,7 +2,6 @@
 
 // TODO(tarcieri): use Karatsuba for better performance
 
-use super::concat::concat_mixed;
 use crate::{
     Checked, CheckedMul, Concat, ConcatMixed, Limb, Uint, WideningMul, Wrapping, WrappingMul, Zero,
 };
@@ -61,10 +60,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         rhs: &Uint<RHS_LIMBS>,
     ) -> Uint<WIDE_LIMBS>
     where
-        Uint<RHS_LIMBS>: ConcatMixed<Self, MixedOutput = Uint<WIDE_LIMBS>>,
+        Self: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
     {
         let (lo, hi) = self.split_mul(rhs);
-        concat_mixed(&lo, &hi)
+        Uint::concat_mixed(&lo, &hi)
     }
 
     /// Compute "wide" multiplication as a 2-tuple containing the `(lo, hi)` components of the product, whose sizes
@@ -172,7 +171,7 @@ where
     /// Square self, returning a concatenated "wide" result.
     pub const fn square(&self) -> Uint<WIDE_LIMBS> {
         let (lo, hi) = self.square_wide();
-        concat_mixed(&lo, &hi)
+        lo.concat(&hi)
     }
 }
 
@@ -244,9 +243,9 @@ impl<const LIMBS: usize> MulAssign<&Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS
 impl<const LIMBS: usize, const RHS_LIMBS: usize, const WIDE_LIMBS: usize>
     WideningMul<Uint<RHS_LIMBS>> for Uint<LIMBS>
 where
-    Uint<RHS_LIMBS>: ConcatMixed<Self, MixedOutput = Uint<WIDE_LIMBS>>,
+    Self: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
 {
-    type Output = <Uint<RHS_LIMBS> as ConcatMixed<Self>>::MixedOutput;
+    type Output = <Self as ConcatMixed<Uint<RHS_LIMBS>>>::MixedOutput;
 
     #[inline]
     fn widening_mul(&self, rhs: Uint<RHS_LIMBS>) -> Self::Output {
@@ -257,9 +256,9 @@ where
 impl<const LIMBS: usize, const RHS_LIMBS: usize, const WIDE_LIMBS: usize>
     WideningMul<&Uint<RHS_LIMBS>> for Uint<LIMBS>
 where
-    Uint<RHS_LIMBS>: ConcatMixed<Self, MixedOutput = Uint<WIDE_LIMBS>>,
+    Self: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
 {
-    type Output = <Uint<RHS_LIMBS> as ConcatMixed<Self>>::MixedOutput;
+    type Output = <Self as ConcatMixed<Uint<RHS_LIMBS>>>::MixedOutput;
 
     #[inline]
     fn widening_mul(&self, rhs: &Uint<RHS_LIMBS>) -> Self::Output {
