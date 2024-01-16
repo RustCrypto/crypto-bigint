@@ -407,9 +407,11 @@ impl PartialEq for BoxedInt62L {
 #[cfg(test)]
 mod tests {
     use super::BoxedInt62L;
-    use crate::{modular::bernstein_yang::Int62L, BoxedUint, Inverter, PrecomputeInverter, U256};
-    use core::ops::Neg;
+    use crate::{BoxedUint, Inverter, PrecomputeInverter, U256};
     use proptest::prelude::*;
+
+    #[cfg(not(miri))]
+    use {crate::modular::bernstein_yang::Int62L, core::ops::Neg};
 
     #[test]
     fn invert() {
@@ -548,6 +550,7 @@ mod tests {
 
     proptest! {
         #[test]
+        #[cfg(not(miri))]
         fn boxed_int62l_add(x in u256(), y in u256()) {
             let x_ref = Int62L::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
             let y_ref = Int62L::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&y);
@@ -560,6 +563,7 @@ mod tests {
         }
 
         #[test]
+        #[cfg(not(miri))]
         fn boxed_int62l_mul(x in u256(), y in any::<i64>()) {
             let x_ref = Int62L::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
             let x_boxed = BoxedInt62L::from(&x.into());
@@ -570,6 +574,7 @@ mod tests {
         }
 
         #[test]
+        #[cfg(not(miri))]
         fn boxed_int62l_neg(x in u256()) {
             let x_ref = Int62L::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
             let x_boxed = BoxedInt62L::from(&x.into());
@@ -580,6 +585,7 @@ mod tests {
         }
 
         #[test]
+        #[cfg(not(miri))]
         fn boxed_int62l_shr(x in u256()) {
             let x_ref = Int62L::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
             let mut x_boxed = BoxedInt62L::from(&x.into());
@@ -590,6 +596,8 @@ mod tests {
         }
 
         #[test]
+                #[cfg(not(miri))]
+
         fn boxed_int62l_is_negative(x in u256()) {
             let x_ref = Int62L::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
             let x_boxed = BoxedInt62L::from(&x.into());
@@ -597,6 +605,8 @@ mod tests {
         }
 
         #[test]
+                #[cfg(not(miri))]
+
         fn boxed_int62l_is_minus_one(x in u256()) {
             let x_ref = Int62L::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
             let x_boxed = BoxedInt62L::from(&x.into());
