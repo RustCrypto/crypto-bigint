@@ -83,7 +83,7 @@ macro_rules! impl_uint_concat_split_mixed {
             type MixedOutput = $name;
 
             fn concat_mixed(&self, hi: &Uint<{ U64::LIMBS * $size }>) -> Self::MixedOutput {
-                $crate::uint::concat::concat_mixed(self, hi)
+                Uint::concat_mixed(self, hi)
             }
         }
 
@@ -113,15 +113,7 @@ macro_rules! impl_uint_concat_split_even {
             type MixedOutput = $name;
 
             fn concat_mixed(&self, hi: &Uint<{ <$name>::LIMBS / 2 }>) -> Self::MixedOutput {
-                $crate::uint::concat::concat_mixed(self, hi)
-            }
-        }
-
-        impl Uint<{ <$name>::LIMBS / 2 }> {
-            /// Concatenate the two values, with `self` as least significant and `hi` as the most
-            /// significant.
-            pub const fn concat(&self, hi: &Uint<{ <$name>::LIMBS / 2 }>) -> $name {
-                $crate::uint::concat::concat_mixed(self, hi)
+                Uint::concat_mixed(self, hi)
             }
         }
 
