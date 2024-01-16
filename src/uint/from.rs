@@ -1,6 +1,6 @@
 //! `From`-like conversions for [`Uint`].
 
-use crate::{ConcatMixed, Limb, Uint, WideWord, Word, U128, U64};
+use crate::{ConcatMixed, Limb, SplitMixed, Uint, WideWord, Word, U128, U64};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a [`Uint`] from a `u8` (const-friendly)
@@ -214,9 +214,12 @@ where
     }
 }
 
-impl<const L: usize, const H: usize, const LIMBS: usize> From<Uint<LIMBS>> for (Uint<L>, Uint<H>) {
+impl<const L: usize, const H: usize, const LIMBS: usize> From<Uint<LIMBS>> for (Uint<L>, Uint<H>)
+where
+    Uint<LIMBS>: SplitMixed<Uint<L>, Uint<H>>,
+{
     fn from(num: Uint<LIMBS>) -> (Uint<L>, Uint<H>) {
-        crate::uint::split::split_mixed(&num)
+        num.split_mixed()
     }
 }
 

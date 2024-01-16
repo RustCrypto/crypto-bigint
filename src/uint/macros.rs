@@ -90,7 +90,7 @@ macro_rules! impl_uint_concat_split_mixed {
         impl $crate::traits::SplitMixed<Uint<{ U64::LIMBS * $size }>, Uint<{ <$name>::LIMBS - U64::LIMBS * $size }>> for $name
         {
             fn split_mixed(&self) -> (Uint<{ U64::LIMBS * $size }>, Uint<{ <$name>::LIMBS - U64::LIMBS * $size }>) {
-                $crate::uint::split::split_mixed(self)
+                self.split_mixed()
             }
         }
     };
@@ -128,7 +128,7 @@ macro_rules! impl_uint_concat_split_even {
         impl $crate::traits::SplitMixed<Uint<{ <$name>::LIMBS / 2 }>, Uint<{ <$name>::LIMBS / 2 }>> for $name
         {
             fn split_mixed(&self) -> (Uint<{ <$name>::LIMBS / 2 }>, Uint<{ <$name>::LIMBS / 2 }>) {
-                $crate::uint::split::split_mixed(self)
+                self.split_mixed()
             }
         }
 
@@ -140,7 +140,7 @@ macro_rules! impl_uint_concat_split_even {
         impl $name {
             /// Split this number in half, returning its low and high components respectively.
             pub const fn split(&self) -> (Uint<{ <$name>::LIMBS / 2 }>, Uint<{ <$name>::LIMBS / 2 }>) {
-                $crate::uint::split::split_mixed(self)
+                self.split_mixed()
             }
         }
     };
