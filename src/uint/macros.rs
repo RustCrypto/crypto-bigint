@@ -136,13 +136,6 @@ macro_rules! impl_uint_concat_split_even {
         {
             type Output = Uint<{ <$name>::LIMBS / 2 }>;
         }
-
-        impl $name {
-            /// Split this number in half, returning its low and high components respectively.
-            pub const fn split(&self) -> (Uint<{ <$name>::LIMBS / 2 }>, Uint<{ <$name>::LIMBS / 2 }>) {
-                self.split_mixed()
-            }
-        }
     };
     ($($name:ident,)+) => {
         $(
