@@ -27,7 +27,7 @@
 //! // RSA public exponent
 //! let e: Uint<2> = Uint::from(65537_u64);
 //!
-//! // obtained from crypto_primes::generate_safe_prime(32)
+//! // obtained from crypto_primes::generate_safe_prime(Some(32))
 //! let p: Uint<1> = Uint::from_be_hex("ECAF5ED6493129D7");
 //! let q: Uint<1> = Uint::from_be_hex("98E1FD7AE92F68F3");
 //!
@@ -36,22 +36,20 @@
 //! impl_modulus!(Modulus, U128, N);
 //!
 //! // Euler's totient
-//! let phi: Uint<2> =
-//!    (p.saturating_sub(&Uint::from(1_u64)))
-//!         .widening_mul(&q.saturating_sub(&Uint::from(1_u64)));
+//! let phi: Uint<2> = (p - Uint::ONE).widening_mul(&(q - Uint::ONE));
 //!
 //! // private decryption and signing key
-//! let d = e.inv_mod(&phi).expect("Modular inverse does not exist");
+//! let secret_d = e.inv_mod(&phi).expect("modular inverse does not exist");
 //!
 //! // super secret message
 //! let message = U128::from(42_u64);
 //! let m = const_monty_form!(message, Modulus);
 //!
 //! // sign the message
-//! let s = m.pow(&d);
+//! let s = m.pow(&secret_d);
 //!
-//! // verify the signature
-//! assert_eq!(m.retrieve(), s.pow(&e).retrieve());
+//! // verify the signature, reduction optional
+//! assert_eq!(m.retrieve(), s.pow(&e).retrieve(), "verification failed");
 //!
 mod const_monty_form;
 mod monty_form;
