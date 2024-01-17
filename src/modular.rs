@@ -69,7 +69,8 @@
 //!     // r_i^e = d
 //!     if b_i == 0 {
 //!         assert_eq!(d, z_i.pow(&e),);
-//!     // b_i = 1: Verifier checks that u^e = d * c mod n
+//!        // b_i = 1: Prover reveals r_i * s * z, and
+//!        // Verifier checks that u^e = d * c mod n
 //!     } else {
 //!         assert_eq!(d * c, z_i.pow(&e))
 //!     }
