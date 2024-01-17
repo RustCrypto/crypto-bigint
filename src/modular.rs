@@ -27,7 +27,6 @@
 //! # {
 //! use crate::crypto_bigint::Random;
 //! use crypto_bigint::modular::ConstMontyParams;
-//! use crypto_bigint::RandomBits;
 //! use crypto_bigint::{const_monty_form, impl_modulus, U128};
 //! use crypto_bigint::rand_core::OsRng;
 //!
