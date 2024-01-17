@@ -19,9 +19,9 @@
 //! # Usage
 //!
 //! Suppose some prover claims to have a valid signature for some message. Perfect zero-knowledge
-//! proof-of-posession of this message-signature pair can be obtained with the 
+//! proof-of-posession of this message-signature pair can be obtained with the
 //! partially-homomorphic properties of RSA:
-//! 
+//!
 //! ```
 //! use crypto_bigint::modular::ConstMontyParams;
 //! use crypto_bigint::RandomBits;
