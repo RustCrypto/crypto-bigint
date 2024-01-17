@@ -126,8 +126,8 @@ pub(super) fn random_mod_core<T>(
         }
 
         // Generate the high limb which may need to only be filled partially.
-        bytes.as_mut().fill(0);
-        rng.fill_bytes(&mut (bytes.as_mut()[0..hi_bytes]));
+        bytes = Limb::ZERO.to_le_bytes();
+        rng.fill_bytes(&mut bytes[..hi_bytes]);
         n.as_mut()[n_limbs - 1] = Limb::from_le_bytes(bytes);
 
         if n.ct_lt(modulus).into() {
