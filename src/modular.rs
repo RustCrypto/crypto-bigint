@@ -23,31 +23,33 @@
 //! partially-homomorphic properties of RSA:
 //!
 //! ```
+//! # #[cfg(feature = "rand")]
+//! # {
+//! use crate::crypto_bigint::Random;
 //! use crypto_bigint::modular::ConstMontyParams;
 //! use crypto_bigint::RandomBits;
-//! use crypto_bigint::{const_monty_form, impl_modulus, Uint, U128};
-//! use crypto_bigint::{rand_core::OsRng, NonZero, RandomMod};
+//! use crypto_bigint::{const_monty_form, impl_modulus, U128};
+//! use crypto_bigint::rand_core::OsRng;
 //!
 //! // p * q
 //! const N: &str = "8D5910CC89AFF00D40B1ADB4D0230F15";
 //! impl_modulus!(Modulus, U128, N);
 //!
 //! // Public key (e, n) from an unknown party
-//! let e: Uint<2> = Uint::from(65537_u64);
-//! let n = &NonZero::new(Uint::from_be_hex(N)).unwrap();
+//! let e: U128 = U128::from(65537_u64);
 //!
 //! // Secret message m
 //! let message = U128::from(42_u64);
 //! let m = const_monty_form!(message, Modulus);
 //!
 //! // Secret signature for m
-//! let s_hex: Uint<2> = Uint::from_be_hex("681EF43CD9FBD9D042524769873A4056");
+//! let s_hex: U128 = U128::from_be_hex("681EF43CD9FBD9D042524769873A4056");
 //! let s = const_monty_form!(s_hex, Modulus);
 //!
 //! // Prover commits to c = z^e * m mod n for
 //! // some random non-zero z
 //! let mut rng = OsRng;
-//! let z_rand = Uint::random_mod(&mut OsRng, n);
+//! let z_rand = U128::random(&mut OsRng);
 //! let z = const_monty_form!(z_rand, Modulus);
 //! let c = z.pow(&e) * m;
 //!
@@ -55,7 +57,7 @@
 //! let k = 20;
 //! for _ in 0..k {
 //!     // Prover picks a random r_i and keeps it secret
-//!     let r_i_rand = Uint::random_mod(&mut OsRng, n);
+//!     let r_i_rand = U128::random(&mut OsRng);
 //!     let r_i = const_monty_form!(r_i_rand, Modulus);
 //!
 //!     // d = r^e mod n is publicly known
@@ -69,12 +71,13 @@
 //!     // r_i^e = d
 //!     if b_i == 0 {
 //!         assert_eq!(d, z_i.pow(&e),);
-//!        // b_i = 1: Prover reveals r_i * s * z, and
-//!        // Verifier checks that u^e = d * c mod n
+//!     // b_i = 1: Prover reveals r_i * s * z, and
+//!     // Verifier checks that u^e = d * c mod n
 //!     } else {
 //!         assert_eq!(d * c, z_i.pow(&e))
 //!     }
 //! }
+//! # }
 //! ```
 //!
 mod const_monty_form;
