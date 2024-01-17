@@ -15,7 +15,44 @@
 //!
 //! The [`MontyForm`] and [`MontyParams`] types implement support for modular arithmetic where
 //! the modulus can vary at runtime.
-
+//!
+//! # Usage
+//!
+//! What follows is an entirely insecure, albeit constant-time example of RSA signature verification:
+//!
+//! ```
+//! use crypto_bigint::modular::ConstMontyParams;
+//! use crypto_bigint::{const_monty_form, impl_modulus, Uint, U128};
+//!
+//! // RSA public exponent
+//! let e: Uint<2> = Uint::from(65537_u64);
+//!
+//! // obtained from crypto_primes::generate_safe_prime(32)
+//! let p: Uint<1> = Uint::from_be_hex("ECAF5ED6493129D7");
+//! let q: Uint<1> = Uint::from_be_hex("98E1FD7AE92F68F3");
+//!
+//! // p * q
+//! const N: &str = "8D5910CC89AFF00D40B1ADB4D0230F15";
+//! impl_modulus!(Modulus, U128, N);
+//!
+//! // Euler's totient
+//! let phi: Uint<2> =
+//!    (p.saturating_sub(&Uint::from(1_u64)))
+//!         .widening_mul(&q.saturating_sub(&Uint::from(1_u64)));
+//!
+//! // private decryption and signing key
+//! let d = e.inv_mod(&phi).expect("Modular inverse does not exist");
+//!
+//! // super secret message
+//! let message = U128::from(42_u64);
+//! let m = const_monty_form!(message, Modulus);
+//!
+//! // sign the message
+//! let s = m.pow(&d);
+//!
+//! // verify the signature
+//! assert_eq!(m.retrieve(), s.pow(&e).retrieve());
+//!
 mod const_monty_form;
 mod monty_form;
 mod reduction;
