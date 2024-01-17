@@ -18,37 +18,63 @@
 //!
 //! # Usage
 //!
-//! What follows is an entirely insecure, albeit constant-time example of RSA signature verification:
-//!
+//! Suppose some prover claims to have a valid signature for some message. Perfect zero-knowledge
+//! proof-of-posession of this message-signature pair can be obtained with the 
+//! partially-homomorphic properties of RSA:
+//! 
 //! ```
 //! use crypto_bigint::modular::ConstMontyParams;
+//! use crypto_bigint::RandomBits;
 //! use crypto_bigint::{const_monty_form, impl_modulus, Uint, U128};
-//!
-//! // RSA public exponent
-//! let e: Uint<2> = Uint::from(65537_u64);
-//!
-//! // obtained from crypto_primes::generate_safe_prime(Some(32))
-//! let p: Uint<1> = Uint::from_be_hex("ECAF5ED6493129D7");
-//! let q: Uint<1> = Uint::from_be_hex("98E1FD7AE92F68F3");
+//! use crypto_bigint::{rand_core::OsRng, NonZero, RandomMod};
 //!
 //! // p * q
-//! impl_modulus!(Modulus, U128, "8D5910CC89AFF00D40B1ADB4D0230F15");
+//! const N: &str = "8D5910CC89AFF00D40B1ADB4D0230F15";
+//! impl_modulus!(Modulus, U128, N);
 //!
-//! // Euler's totient
-//! let phi: Uint<2> = (p - Uint::ONE).widening_mul(&(q - Uint::ONE));
+//! // Public key (e, n) from an unknown party
+//! let e: Uint<2> = Uint::from(65537_u64);
+//! let n = &NonZero::new(Uint::from_be_hex(N)).unwrap();
 //!
-//! // private decryption and signing key
-//! let d = e.inv_mod(&phi).expect("modular inverse does not exist");
-//!
-//! // super secret message
+//! // Secret message m
 //! let message = U128::from(42_u64);
 //! let m = const_monty_form!(message, Modulus);
 //!
-//! // sign the message
-//! let s = m.pow(&d);
+//! // Secret signature for m
+//! let s_hex: Uint<2> = Uint::from_be_hex("681EF43CD9FBD9D042524769873A4056");
+//! let s = const_monty_form!(s_hex, Modulus);
 //!
-//! // verify the signature, reduction optional
-//! assert_eq!(m.retrieve(), s.pow(&e).retrieve(), "verification failed");
+//! // Prover commits to c = z^e * m mod n for
+//! // some random non-zero z
+//! let mut rng = OsRng;
+//! let z_rand = Uint::random_mod(&mut OsRng, n);
+//! let z = const_monty_form!(z_rand, Modulus);
+//! let c = z.pow(&e) * m;
+//!
+//! // Soundness error = 1/2^k
+//! let k = 20;
+//! for _ in 0..k {
+//!     // Prover picks a random r_i and keeps it secret
+//!     let r_i_rand = Uint::random_mod(&mut OsRng, n);
+//!     let r_i = const_monty_form!(r_i_rand, Modulus);
+//!
+//!     // d = r^e mod n is publicly known
+//!     let d = r_i.pow(&e);
+//!
+//!     // Verifier picks a random bit b_i
+//!     let b_i = U128::random_bits(&mut rng, 2).bits();
+//!     let z_i = if b_i == 0 { r_i } else { r_i * s * z };
+//!
+//!     // if b = 0, Prover reveals r_i and verifier checks:
+//!     // r_i^e = d
+//!     if b_i == 0 {
+//!         assert_eq!(d, z_i.pow(&e),);
+//!     // b_i = 1: Verifier checks that u^e = d * c mod n
+//!     } else {
+//!         assert_eq!(d * c, z_i.pow(&e))
+//!     }
+//! }
+//! ```
 //!
 mod const_monty_form;
 mod monty_form;
