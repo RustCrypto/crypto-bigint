@@ -39,14 +39,14 @@
 //! let phi: Uint<2> = (p - Uint::ONE).widening_mul(&(q - Uint::ONE));
 //!
 //! // private decryption and signing key
-//! let secret_d = e.inv_mod(&phi).expect("modular inverse does not exist");
+//! let d = e.inv_mod(&phi).expect("modular inverse does not exist");
 //!
 //! // super secret message
 //! let message = U128::from(42_u64);
 //! let m = const_monty_form!(message, Modulus);
 //!
 //! // sign the message
-//! let s = m.pow(&secret_d);
+//! let s = m.pow(&d);
 //!
 //! // verify the signature, reduction optional
 //! assert_eq!(m.retrieve(), s.pow(&e).retrieve(), "verification failed");
