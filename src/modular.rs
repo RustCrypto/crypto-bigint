@@ -32,8 +32,7 @@
 //! let q: Uint<1> = Uint::from_be_hex("98E1FD7AE92F68F3");
 //!
 //! // p * q
-//! const N: &str = "8D5910CC89AFF00D40B1ADB4D0230F15";
-//! impl_modulus!(Modulus, U128, N);
+//! impl_modulus!(Modulus, U128, "8D5910CC89AFF00D40B1ADB4D0230F15");
 //!
 //! // Euler's totient
 //! let phi: Uint<2> = (p - Uint::ONE).widening_mul(&(q - Uint::ONE));
