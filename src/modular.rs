@@ -27,6 +27,7 @@
 //! # {
 //! use crate::crypto_bigint::Random;
 //! use crypto_bigint::modular::ConstMontyParams;
+//! use crypto_bigint::RandomBits;
 //! use crypto_bigint::{const_monty_form, impl_modulus, U128};
 //! use crypto_bigint::rand_core::OsRng;
 //!
@@ -47,7 +48,6 @@
 //!
 //! // Prover commits to c = z^e * m mod n for
 //! // some random non-zero z
-//! let mut rng = OsRng;
 //! let z_rand = U128::random(&mut OsRng);
 //! let z = const_monty_form!(z_rand, Modulus);
 //! let c = z.pow(&e) * m;
@@ -63,7 +63,7 @@
 //!     let d = r_i.pow(&e);
 //!
 //!     // Verifier picks a random bit b_i
-//!     let b_i = U128::random_bits(&mut rng, 2).bits();
+//!     let b_i = U128::random_bits(&mut OsRng, 2).bits();
 //!     let z_i = if b_i == 0 { r_i } else { r_i * s * z };
 //!
 //!     // if b = 0, Prover reveals r_i and verifier checks:
