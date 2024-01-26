@@ -216,6 +216,13 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
         self.montgomery_form
     }
 
+    /// In-place cloning from another monty, assuming that the other has the same parameter as self
+    pub fn clone_from_montgomery(&mut self, other: &Self) {
+        self.montgomery_form
+            .limbs
+            .copy_from_slice(other.montgomery_form.as_limbs())
+    }
+
     /// Performs division by 2, that is returns `x` such that `x + x = self`.
     pub const fn div_by_2(&self) -> Self {
         Self {
@@ -260,6 +267,10 @@ impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
         &self.montgomery_form
     }
 
+    fn clone_from_montgomery(&mut self, other: &Self) {
+        self.clone_from_montgomery(other)
+    }
+
     fn div_by_2(&self) -> Self {
         MontyForm::div_by_2(self)
     }
@@ -300,5 +311,22 @@ impl<const LIMBS: usize> ConstantTimeEq for MontyForm<LIMBS> {
 impl<const LIMBS: usize> zeroize::Zeroize for MontyForm<LIMBS> {
     fn zeroize(&mut self) {
         self.montgomery_form.zeroize()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn inplace_cloning() {
+        let modulus = Odd::new(Uint::<4>::from(9u8)).unwrap();
+        let params = MontyParams::new(modulus);
+        let zero = MontyForm::zero(params.clone());
+        let mut target = MontyForm::one(params.clone());
+
+        assert_ne!(target, zero);
+        target.clone_from_montgomery(&zero);
+        assert_eq!(target, zero);
     }
 }

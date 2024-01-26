@@ -220,6 +220,14 @@ impl BoxedMontyForm {
         self.montgomery_form.clone()
     }
 
+    /// Directly clone from another boxed monty. This method assumes that other has the same
+    /// parameter as self and will not check
+    pub fn clone_from_montgomery(&mut self, other: &Self) {
+        self.montgomery_form
+            .limbs
+            .copy_from_slice(other.montgomery_form.as_limbs())
+    }
+
     /// Performs division by 2, that is returns `x` such that `x + x = self`.
     pub fn div_by_2(&self) -> Self {
         Self {
@@ -264,6 +272,10 @@ impl Monty for BoxedMontyForm {
         &self.montgomery_form
     }
 
+    fn clone_from_montgomery(&mut self, other: &Self) {
+        self.clone_from_montgomery(other)
+    }
+
     fn div_by_2(&self) -> Self {
         BoxedMontyForm::div_by_2(self)
     }
@@ -299,5 +311,17 @@ mod tests {
 
         assert_eq!(zero.div_by_2(), zero);
         assert_eq!(one.div_by_2().mul(&two), one);
+    }
+
+    #[test]
+    fn inplace_cloning() {
+        let modulus = Odd::new(BoxedUint::from(9u8)).unwrap();
+        let params = BoxedMontyParams::new(modulus);
+        let zero = BoxedMontyForm::zero(params.clone());
+        let mut target = BoxedMontyForm::one(params.clone());
+
+        assert_ne!(target, zero);
+        target.clone_from_montgomery(&zero);
+        assert_eq!(target, zero);
     }
 }

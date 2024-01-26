@@ -811,6 +811,9 @@ pub trait Monty:
     /// Access the value in Montgomery form.
     fn as_montgomery(&self) -> &Self::Integer;
 
+    /// In-place cloning of Montgomery form, assuming tha parameters are equal
+    fn clone_from_montgomery(&mut self, other: &Self);
+
     /// Performs division by 2, that is returns `x` such that `x + x = self`.
     fn div_by_2(&self) -> Self;
 }
