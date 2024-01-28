@@ -95,12 +95,10 @@ impl BoxedUint {
             .fold(Choice::from(1), |acc, limb| acc & limb.is_zero())
     }
 
-    /// Is this [`BoxedUint`] not equal to zero?
+    /// Is this [`BoxedUint`] *NOT* equal to zero?
+    #[inline]
     pub fn is_nonzero(&self) -> Choice {
-        // TODO: why not just !self.is_zero()?
-        self.limbs
-            .iter()
-            .fold(Choice::from(0), |acc, limb| acc | limb.is_nonzero().into())
+        !self.is_zero()
     }
 
     /// Is this [`BoxedUint`] equal to one?
