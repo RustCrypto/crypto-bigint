@@ -8,6 +8,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self << shift`.
     ///
     /// Panics if `shift >= Self::BITS`.
+    #[must_use]
     pub const fn shl(&self, shift: u32) -> Self {
         self.overflowing_shl(shift)
             .expect("`shift` within the bit size of the integer")
@@ -16,6 +17,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self << shift` in variable time.
     ///
     /// Panics if `shift >= Self::BITS`.
+    #[must_use]
     pub const fn shl_vartime(&self, shift: u32) -> Self {
         self.overflowing_shl_vartime(shift)
             .expect("`shift` within the bit size of the integer")
@@ -24,6 +26,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self << shift`.
     ///
     /// Returns `None` if `shift >= Self::BITS`.
+    #[must_use]
     pub const fn overflowing_shl(&self, shift: u32) -> ConstCtOption<Self> {
         // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
         // (which lies in range `0 <= shift < BITS`).
@@ -56,6 +59,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
     #[inline(always)]
+    #[must_use]
     pub const fn overflowing_shl_vartime(&self, shift: u32) -> ConstCtOption<Self> {
         let mut limbs = [Limb::ZERO; LIMBS];
 
@@ -99,6 +103,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
     #[inline(always)]
+    #[must_use]
     pub const fn overflowing_shl_vartime_wide(
         lower_upper: (Self, Self),
         shift: u32,
@@ -127,12 +132,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes `self << shift` in a panic-free manner, returning zero if the shift exceeds the
     /// precision.
+    #[must_use]
     pub const fn wrapping_shl(&self, shift: u32) -> Self {
         self.overflowing_shl(shift).unwrap_or(Self::ZERO)
     }
 
     /// Computes `self << shift` in variable-time in a panic-free manner, returning zero if the
     /// shift exceeds the precision.
+    #[must_use]
     pub const fn wrapping_shl_vartime(&self, shift: u32) -> Self {
         self.overflowing_shl_vartime(shift).unwrap_or(Self::ZERO)
     }

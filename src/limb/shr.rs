@@ -7,6 +7,7 @@ impl Limb {
     /// Computes `self >> shift`.
     /// Panics if `shift` overflows `Limb::BITS`.
     #[inline(always)]
+    #[must_use]
     pub const fn shr(self, shift: u32) -> Self {
         Limb(self.0 >> shift)
     }

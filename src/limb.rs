@@ -98,6 +98,7 @@ impl Limb {
     /// Convert to a [`NonZero<Limb>`].
     ///
     /// Returns some if the original value is non-zero, and false otherwise.
+    #[must_use]
     pub const fn to_nz(self) -> ConstCtOption<NonZero<Self>> {
         ConstCtOption::new(NonZero(self), self.is_nonzero())
     }

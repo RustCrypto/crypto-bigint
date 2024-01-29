@@ -10,6 +10,7 @@ use subtle::CtOption;
 impl Limb {
     /// Computes `self + rhs`, returning the result along with the carry.
     #[inline(always)]
+    #[must_use]
     pub const fn overflowing_add(self, rhs: Limb) -> (Limb, Limb) {
         let (res, carry) = overflowing_add(self.0, rhs.0);
         (Limb(res), Limb(carry))
@@ -17,6 +18,7 @@ impl Limb {
 
     /// Computes `self + rhs + carry`, returning the result along with the new carry.
     #[inline(always)]
+    #[must_use]
     pub const fn adc(self, rhs: Limb, carry: Limb) -> (Limb, Limb) {
         let (res, carry) = adc(self.0, rhs.0, carry.0);
         (Limb(res), Limb(carry))
@@ -24,12 +26,14 @@ impl Limb {
 
     /// Perform saturating addition.
     #[inline]
+    #[must_use]
     pub const fn saturating_add(&self, rhs: Self) -> Self {
         Limb(self.0.saturating_add(rhs.0))
     }
 
     /// Perform wrapping addition, discarding overflow.
     #[inline(always)]
+    #[must_use]
     pub const fn wrapping_add(&self, rhs: Self) -> Self {
         Limb(self.0.wrapping_add(rhs.0))
     }

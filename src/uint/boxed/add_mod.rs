@@ -6,6 +6,7 @@ impl BoxedUint {
     /// Computes `self + rhs mod p`.
     ///
     /// Assumes `self + rhs` as unbounded integer is `< 2p`.
+    #[must_use]
     pub fn add_mod(&self, rhs: &Self, p: &Self) -> Self {
         debug_assert_eq!(self.bits_precision(), p.bits_precision());
         debug_assert_eq!(rhs.bits_precision(), p.bits_precision());

@@ -14,6 +14,7 @@ use std::sync::Arc;
 impl BoxedMontyForm {
     /// Computes `self^-1` representing the multiplicative inverse of `self`.
     /// I.e. `self * self^-1 = 1`.
+    #[must_use]
     pub fn invert(&self) -> CtOption<Self> {
         let inverter = self.params.precompute_inverter();
         inverter.invert(self)

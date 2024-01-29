@@ -7,6 +7,7 @@ use subtle::{ConstantTimeEq, ConstantTimeLess};
 
 impl BoxedMontyForm {
     /// Raises to the `exponent` power.
+    #[must_use]
     pub fn pow(&self, exponent: &BoxedUint) -> Self {
         self.pow_bounded_exp(exponent, exponent.bits_precision())
     }
@@ -16,6 +17,7 @@ impl BoxedMontyForm {
     /// to take into account for the exponent.
     ///
     /// NOTE: `exponent_bits` may be leaked in the time pattern.
+    #[must_use]
     pub fn pow_bounded_exp(&self, exponent: &BoxedUint, exponent_bits: u32) -> Self {
         let ret = Self {
             montgomery_form: pow_montgomery_form(

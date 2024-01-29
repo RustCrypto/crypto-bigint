@@ -9,24 +9,28 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self / rhs` using a pre-made reciprocal,
     /// returns the quotient (q) and remainder (r).
     #[inline(always)]
+    #[must_use]
     pub const fn div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb) {
         div_rem_limb_with_reciprocal(self, reciprocal)
     }
 
     /// Computes `self / rhs`, returns the quotient (q) and remainder (r).
     #[inline(always)]
+    #[must_use]
     pub const fn div_rem_limb(&self, rhs: NonZero<Limb>) -> (Self, Limb) {
         div_rem_limb_with_reciprocal(self, &Reciprocal::new(rhs))
     }
 
     /// Computes `self % rhs` using a pre-made reciprocal.
     #[inline(always)]
+    #[must_use]
     pub const fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb {
         rem_limb_with_reciprocal(self, reciprocal)
     }
 
     /// Computes `self % rhs`.
     #[inline(always)]
+    #[must_use]
     pub const fn rem_limb(&self, rhs: NonZero<Limb>) -> Limb {
         rem_limb_with_reciprocal(self, &Reciprocal::new(rhs))
     }
@@ -35,6 +39,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// This function is constant-time with respect to both `self` and `rhs`.
     #[allow(trivial_numeric_casts)]
+    #[must_use]
     pub const fn div_rem(&self, rhs: &NonZero<Self>) -> (Self, Self) {
         let mb = rhs.0.bits();
         let mut rem = *self;
@@ -70,6 +75,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
     #[allow(trivial_numeric_casts)]
+    #[must_use]
     pub const fn div_rem_vartime(&self, rhs: &NonZero<Self>) -> (Self, Self) {
         let mb = rhs.0.bits_vartime();
         let mut bd = Self::BITS - mb;
@@ -95,6 +101,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes `self` % `rhs`, returns the remainder.
+    #[must_use]
     pub const fn rem(&self, rhs: &NonZero<Self>) -> Self {
         self.div_rem(rhs).1
     }
@@ -103,6 +110,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
+    #[must_use]
     pub const fn rem_vartime(&self, rhs: &NonZero<Self>) -> Self {
         let mb = rhs.0.bits_vartime();
         let mut bd = Self::BITS - mb;
@@ -128,6 +136,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
+    #[must_use]
     pub const fn rem_wide_vartime(lower_upper: (Self, Self), rhs: &NonZero<Self>) -> Self {
         let mb = rhs.0.bits_vartime();
 
@@ -171,6 +180,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// // As 10 % 8 = 2
     /// assert_eq!(remainder, U448::from(2_u64));
     /// ```
+    #[must_use]
     pub const fn rem2k_vartime(&self, k: u32) -> Self {
         let highest = (LIMBS - 1) as u32;
         let index = k / Limb::BITS;
@@ -199,6 +209,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// There’s no way wrapping could ever happen.
     /// This function exists, so that all operations are accounted for in the wrapping operations.
+    #[must_use]
     pub const fn wrapping_div(&self, rhs: &NonZero<Self>) -> Self {
         let (q, _) = self.div_rem(rhs);
         q
@@ -208,6 +219,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// There’s no way wrapping could ever happen.
     /// This function exists, so that all operations are accounted for in the wrapping operations.
+    #[must_use]
     pub const fn wrapping_div_vartime(&self, rhs: &NonZero<Self>) -> Self {
         let (q, _) = self.div_rem_vartime(rhs);
         q
@@ -231,6 +243,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// let zero = U448::from(0_u64);
     /// assert!(bool::from(a.checked_div(&zero).is_none()), "Should be None for division by zero");
     /// ```
+    #[must_use]
     pub fn checked_div(&self, rhs: &Self) -> CtOption<Self> {
         NonZero::new(*rhs).map(|rhs| {
             let (q, _r) = self.div_rem(&rhs);
@@ -251,6 +264,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// assert_eq!(remainder, U448::from(1_u64));
     /// ```
+    #[must_use]
     pub const fn wrapping_rem_vartime(&self, rhs: &Self) -> Self {
         let nz_rhs = rhs.to_nz().expect("non-zero divisor");
         self.rem_vartime(&nz_rhs)
@@ -274,6 +288,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// assert!(bool::from(a.checked_rem(&zero).is_none()), "Should be None for reduction by zero");
     /// ```
+    #[must_use]
     pub fn checked_rem(&self, rhs: &Self) -> CtOption<Self> {
         NonZero::new(*rhs).map(|rhs| self.rem(&rhs))
     }

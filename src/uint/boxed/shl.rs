@@ -10,6 +10,7 @@ impl BoxedUint {
     /// Computes `self << shift`.
     ///
     /// Panics if `shift >= Self::BITS`.
+    #[must_use]
     pub fn shl(&self, shift: u32) -> BoxedUint {
         let (result, overflow) = self.overflowing_shl(shift);
         assert!(!bool::from(overflow), "attempt to shift left with overflow");
@@ -28,6 +29,7 @@ impl BoxedUint {
     ///
     /// Returns a zero and a truthy `Choice` if `shift >= self.bits_precision()`,
     /// or the result and a falsy `Choice` otherwise.
+    #[must_use]
     pub fn overflowing_shl(&self, shift: u32) -> (Self, Choice) {
         let mut result = self.clone();
         let overflow = result.overflowing_shl_assign(shift);
@@ -63,12 +65,14 @@ impl BoxedUint {
 
     /// Computes `self << shift` in a panic-free manner, masking off bits of `shift` which would cause the shift to
     /// exceed the type's width.
+    #[must_use]
     pub fn wrapping_shl(&self, shift: u32) -> Self {
         self.overflowing_shl(shift).0
     }
 
     /// Computes `self << shift` in variable-time in a panic-free manner, masking off bits of `shift` which would cause
     /// the shift to exceed the type's width.
+    #[must_use]
     pub fn wrapping_shl_vartime(&self, shift: u32) -> Self {
         let mut result = Self::zero_with_precision(self.bits_precision());
         let _ = self.shl_vartime_into(&mut result, shift);
@@ -120,6 +124,7 @@ impl BoxedUint {
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
+    #[must_use]
     pub fn shl_vartime(&self, shift: u32) -> Option<Self> {
         let mut result = Self::zero_with_precision(self.bits_precision());
         let success = self.shl_vartime_into(&mut result, shift);

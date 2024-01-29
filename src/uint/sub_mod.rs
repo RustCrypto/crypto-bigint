@@ -6,6 +6,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self - rhs mod p`.
     ///
     /// Assumes `self - rhs` as unbounded signed integer is in `[-p, p)`.
+    #[must_use]
     pub const fn sub_mod(&self, rhs: &Self, p: &Self) -> Self {
         let (out, mask) = self.sbb(rhs, Limb::ZERO);
 
@@ -34,6 +35,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// `p = MAX+1-c` where `c` is small enough to fit in a single [`Limb`].
     ///
     /// Assumes `self - rhs` as unbounded signed integer is in `[-p, p)`.
+    #[must_use]
     pub const fn sub_mod_special(&self, rhs: &Self, c: Limb) -> Self {
         let (out, borrow) = self.sbb(rhs, Limb::ZERO);
 

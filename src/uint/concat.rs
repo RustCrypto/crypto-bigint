@@ -3,6 +3,7 @@ use crate::{Concat, ConcatMixed, Limb, Uint};
 impl<const L: usize> Uint<L> {
     /// Concatenate the two values, with `self` as least significant and `hi` as the most
     /// significant.
+    #[must_use]
     pub const fn concat<const O: usize>(&self, hi: &Self) -> Uint<O>
     where
         Self: Concat<Output = Uint<O>>,
@@ -13,6 +14,7 @@ impl<const L: usize> Uint<L> {
     /// Concatenate the two values, with `lo` as least significant and `hi`
     /// as the most significant.
     #[inline]
+    #[must_use]
     pub const fn concat_mixed<const H: usize, const O: usize>(lo: &Uint<L>, hi: &Uint<H>) -> Uint<O>
     where
         Self: ConcatMixed<Uint<H>, MixedOutput = Uint<O>>,

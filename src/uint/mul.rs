@@ -55,6 +55,7 @@ macro_rules! impl_schoolbook_multiplication {
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
+    #[must_use]
     pub const fn widening_mul<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
@@ -68,6 +69,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Compute "wide" multiplication as a 2-tuple containing the `(lo, hi)` components of the product, whose sizes
     /// correspond to the sizes of the operands.
+    #[must_use]
     pub const fn split_mul<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
@@ -79,17 +81,20 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform wrapping multiplication, discarding overflow.
+    #[must_use]
     pub const fn wrapping_mul<const H: usize>(&self, rhs: &Uint<H>) -> Self {
         self.split_mul(rhs).0
     }
 
     /// Perform saturating multiplication, returning `MAX` on overflow.
+    #[must_use]
     pub const fn saturating_mul<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> Self {
         let (res, overflow) = self.split_mul(rhs);
         Self::select(&res, &Self::MAX, overflow.is_nonzero())
     }
 
     /// Square self, returning a "wide" result in two parts as (lo, hi).
+    #[must_use]
     pub const fn square_wide(&self) -> (Self, Self) {
         // Translated from https://github.com/ucbrise/jedi-pairing/blob/c4bf151/include/core/bigint.hpp#L410
         //
@@ -169,6 +174,7 @@ where
     Self: Concat<Output = Uint<WIDE_LIMBS>>,
 {
     /// Square self, returning a concatenated "wide" result.
+    #[must_use]
     pub const fn square(&self) -> Uint<WIDE_LIMBS> {
         let (lo, hi) = self.square_wide();
         lo.concat(&hi)

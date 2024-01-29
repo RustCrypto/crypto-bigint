@@ -7,6 +7,7 @@ use subtle::CtOption;
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `a + b + carry`, returning the result along with the new carry.
     #[inline(always)]
+    #[must_use]
     pub const fn adc(&self, rhs: &Self, mut carry: Limb) -> (Self, Limb) {
         let mut limbs = [Limb::ZERO; LIMBS];
         let mut i = 0;
@@ -22,12 +23,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform saturating addition, returning `MAX` on overflow.
+    #[must_use]
     pub const fn saturating_add(&self, rhs: &Self) -> Self {
         let (res, overflow) = self.adc(rhs, Limb::ZERO);
         Self::select(&res, &Self::MAX, ConstChoice::from_word_lsb(overflow.0))
     }
 
     /// Perform wrapping addition, discarding overflow.
+    #[must_use]
     pub const fn wrapping_add(&self, rhs: &Self) -> Self {
         self.adc(rhs, Limb::ZERO).0
     }

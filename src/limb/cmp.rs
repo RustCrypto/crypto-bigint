@@ -9,6 +9,7 @@ use subtle::{
 impl Limb {
     /// Is this limb an odd number?
     #[inline]
+    #[must_use]
     pub fn is_odd(&self) -> Choice {
         Choice::from(self.0 as u8 & 1)
     }
@@ -17,11 +18,13 @@ impl Limb {
     ///
     /// Note that the [`PartialOrd`] and [`Ord`] impls wrap constant-time
     /// comparisons using the `subtle` crate.
+    #[must_use]
     pub fn cmp_vartime(&self, other: &Self) -> Ordering {
         self.0.cmp(&other.0)
     }
 
     /// Performs an equality check in variable-time.
+    #[must_use]
     pub const fn eq_vartime(&self, other: &Self) -> bool {
         self.0 == other.0
     }

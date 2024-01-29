@@ -5,6 +5,7 @@ use core::ops::{Add, AddAssign};
 
 impl BoxedMontyForm {
     /// Adds `rhs`.
+    #[must_use]
     pub fn add(&self, rhs: &Self) -> Self {
         debug_assert_eq!(self.params, rhs.params);
 

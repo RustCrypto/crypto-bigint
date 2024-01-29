@@ -7,6 +7,7 @@ use core::ops::Not;
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes bitwise `!a`.
     #[inline(always)]
+    #[must_use]
     pub const fn not(&self) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
         let mut i = 0;

@@ -86,18 +86,21 @@ where
 impl NonZero<Limb> {
     /// Create a [`NonZero<Limb>`] from a [`NonZeroU8`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU8>` when stable
+    #[must_use]
     pub const fn from_u8(n: NonZeroU8) -> Self {
         Self(Limb::from_u8(n.get()))
     }
 
     /// Create a [`NonZero<Limb>`] from a [`NonZeroU16`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU16>` when stable
+    #[must_use]
     pub const fn from_u16(n: NonZeroU16) -> Self {
         Self(Limb::from_u16(n.get()))
     }
 
     /// Create a [`NonZero<Limb>`] from a [`NonZeroU32`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU32>` when stable
+    #[must_use]
     pub const fn from_u32(n: NonZeroU32) -> Self {
         Self(Limb::from_u32(n.get()))
     }
@@ -105,6 +108,7 @@ impl NonZero<Limb> {
     /// Create a [`NonZero<Limb>`] from a [`NonZeroU64`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU64>` when stable
     #[cfg(target_pointer_width = "64")]
+    #[must_use]
     pub const fn from_u64(n: NonZeroU64) -> Self {
         Self(Limb::from_u64(n.get()))
     }
@@ -113,30 +117,35 @@ impl NonZero<Limb> {
 impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     /// Create a [`NonZero<Uint>`] from a [`NonZeroU8`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU8>` when stable
+    #[must_use]
     pub const fn from_u8(n: NonZeroU8) -> Self {
         Self(Uint::from_u8(n.get()))
     }
 
     /// Create a [`NonZero<Uint>`] from a [`NonZeroU16`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU16>` when stable
+    #[must_use]
     pub const fn from_u16(n: NonZeroU16) -> Self {
         Self(Uint::from_u16(n.get()))
     }
 
     /// Create a [`NonZero<Uint>`] from a [`NonZeroU32`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU32>` when stable
+    #[must_use]
     pub const fn from_u32(n: NonZeroU32) -> Self {
         Self(Uint::from_u32(n.get()))
     }
 
     /// Create a [`NonZero<Uint>`] from a [`NonZeroU64`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU64>` when stable
+    #[must_use]
     pub const fn from_u64(n: NonZeroU64) -> Self {
         Self(Uint::from_u64(n.get()))
     }
 
     /// Create a [`NonZero<Uint>`] from a [`NonZeroU128`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU128>` when stable
+    #[must_use]
     pub const fn from_u128(n: NonZeroU128) -> Self {
         Self(Uint::from_u128(n.get()))
     }

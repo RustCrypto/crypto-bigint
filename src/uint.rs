@@ -104,6 +104,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const LIMBS: usize = LIMBS;
 
     /// Const-friendly [`Uint`] constructor.
+    #[must_use]
     pub const fn new(limbs: [Limb; LIMBS]) -> Self {
         Self { limbs }
     }
@@ -111,6 +112,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a [`Uint`] from an array of [`Word`]s (i.e. word-sized unsigned
     /// integers).
     #[inline]
+    #[must_use]
     pub const fn from_words(arr: [Word; LIMBS]) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
         let mut i = 0;
@@ -126,6 +128,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create an array of [`Word`]s (i.e. word-sized unsigned integers) from
     /// a [`Uint`].
     #[inline]
+    #[must_use]
     pub const fn to_words(self) -> [Word; LIMBS] {
         let mut arr = [0; LIMBS];
         let mut i = 0;
@@ -139,6 +142,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Borrow the inner limbs as an array of [`Word`]s.
+    #[must_use]
     pub const fn as_words(&self) -> &[Word; LIMBS] {
         // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
         #[allow(unsafe_code)]
@@ -157,6 +161,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Borrow the limbs of this [`Uint`].
+    #[must_use]
     pub const fn as_limbs(&self) -> &[Limb; LIMBS] {
         &self.limbs
     }
@@ -167,6 +172,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Convert this [`Uint`] into its inner limbs.
+    #[must_use]
     pub const fn to_limbs(self) -> [Limb; LIMBS] {
         self.limbs
     }
@@ -174,6 +180,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Convert to a [`NonZero<Uint<LIMBS>>`].
     ///
     /// Returns some if the original value is non-zero, and false otherwise.
+    #[must_use]
     pub const fn to_nz(self) -> ConstCtOption<NonZero<Self>> {
         ConstCtOption::new(NonZero(self), self.is_nonzero())
     }
@@ -181,6 +188,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Convert to a [`Odd<Uint<LIMBS>>`].
     ///
     /// Returns some if the original value is odd, and false otherwise.
+    #[must_use]
     pub const fn to_odd(self) -> ConstCtOption<Odd<Self>> {
         ConstCtOption::new(Odd(self), self.is_odd())
     }

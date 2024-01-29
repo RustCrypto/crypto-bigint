@@ -8,6 +8,7 @@ use subtle::{Choice, CtOption};
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes bitwise `a & b`.
     #[inline(always)]
+    #[must_use]
     pub const fn bitor(&self, rhs: &Self) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
         let mut i = 0;
@@ -24,11 +25,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// There's no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations
+    #[must_use]
     pub const fn wrapping_or(&self, rhs: &Self) -> Self {
         self.bitor(rhs)
     }
 
     /// Perform checked bitwise `OR`, returning a [`CtOption`] which `is_some` always
+    #[must_use]
     pub fn checked_or(&self, rhs: &Self) -> CtOption<Self> {
         let result = self.bitor(rhs);
         CtOption::new(result, Choice::from(1))

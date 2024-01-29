@@ -8,6 +8,7 @@
 #![deny(unsafe_code)]
 #![warn(
     clippy::mod_module_files,
+    clippy::must_use_candidate,
     clippy::unwrap_used,
     missing_docs,
     missing_debug_implementations,

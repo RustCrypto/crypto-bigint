@@ -19,6 +19,7 @@ where
     /// I.e. `self * self^-1 = 1`.
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
+    #[must_use]
     pub const fn inv(&self) -> ConstCtOption<Self> {
         let inverter = <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(
             &self.params.modulus,

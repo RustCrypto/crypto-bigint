@@ -10,6 +10,7 @@ impl BoxedUint {
     /// Multiply `self` by `rhs`.
     ///
     /// Returns a widened output with a limb count equal to the sums of the input limb counts.
+    #[must_use]
     pub fn mul(&self, rhs: &Self) -> Self {
         let mut limbs = vec![Limb::ZERO; self.nlimbs() + rhs.nlimbs()];
         mul_limbs(&self.limbs, &rhs.limbs, &mut limbs);
@@ -17,11 +18,13 @@ impl BoxedUint {
     }
 
     /// Perform wrapping multiplication, wrapping to the width of `self`.
+    #[must_use]
     pub fn wrapping_mul(&self, rhs: &Self) -> Self {
         self.mul(rhs).shorten(self.bits_precision())
     }
 
     /// Multiply `self` by itself.
+    #[must_use]
     pub fn square(&self) -> Self {
         // TODO(tarcieri): more optimized implementation (shared with `Uint`?)
         self.mul(self)

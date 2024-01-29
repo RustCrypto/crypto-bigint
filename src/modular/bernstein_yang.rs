@@ -64,6 +64,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// Creates the inverter for specified modulus and adjusting parameter.
     ///
     /// Modulus must be odd. Returns `None` if it is not.
+    #[must_use]
     pub const fn new(modulus: &Odd<Uint<SAT_LIMBS>>, adjuster: &Uint<SAT_LIMBS>) -> Self {
         Self {
             modulus: Int62L::from_uint(&modulus.0),
@@ -74,6 +75,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
 
     /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus
+    #[must_use]
     pub const fn inv(&self, value: &Uint<SAT_LIMBS>) -> ConstCtOption<Uint<SAT_LIMBS>> {
         let (d, f) = divsteps(
             self.adjuster,

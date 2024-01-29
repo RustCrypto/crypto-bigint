@@ -8,6 +8,7 @@ impl BoxedUint {
     /// Computes `self >> shift`.
     ///
     /// Panics if `shift >= Self::BITS`.
+    #[must_use]
     pub fn shr(&self, shift: u32) -> BoxedUint {
         let (result, overflow) = self.overflowing_shr(shift);
         assert!(
@@ -32,6 +33,7 @@ impl BoxedUint {
     ///
     /// Returns a zero and a truthy `Choice` if `shift >= self.bits_precision()`,
     /// or the result and a falsy `Choice` otherwise.
+    #[must_use]
     pub fn overflowing_shr(&self, shift: u32) -> (Self, Choice) {
         let mut result = self.clone();
         let overflow = result.overflowing_shr_assign(shift);
@@ -67,12 +69,14 @@ impl BoxedUint {
 
     /// Computes `self >> shift` in a panic-free manner, masking off bits of `shift` which would cause the shift to
     /// exceed the type's width.
+    #[must_use]
     pub fn wrapping_shr(&self, shift: u32) -> Self {
         self.overflowing_shr(shift).0
     }
 
     /// Computes `self >> shift` in variable-time in a panic-free manner, masking off bits of `shift` which would cause
     /// the shift to exceed the type's width.
+    #[must_use]
     pub fn wrapping_shr_vartime(&self, shift: u32) -> Self {
         let mut result = Self::zero_with_precision(self.bits_precision());
         let _ = self.shr_vartime_into(&mut result, shift);
@@ -122,6 +126,7 @@ impl BoxedUint {
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
+    #[must_use]
     pub fn shr_vartime(&self, shift: u32) -> Option<Self> {
         let mut result = Self::zero_with_precision(self.bits_precision());
         let success = self.shr_vartime_into(&mut result, shift);

@@ -21,6 +21,7 @@ use zeroize::Zeroize;
 
 impl BoxedMontyForm {
     /// Multiplies by `rhs`.
+    #[must_use]
     pub fn mul(&self, rhs: &Self) -> Self {
         debug_assert_eq!(&self.params, &rhs.params);
         let montgomery_form = MontyMultiplier::from(self.params.borrow())
@@ -33,6 +34,7 @@ impl BoxedMontyForm {
     }
 
     /// Computes the (reduced) square.
+    #[must_use]
     pub fn square(&self) -> Self {
         let montgomery_form =
             MontyMultiplier::from(self.params.borrow()).square(&self.montgomery_form);

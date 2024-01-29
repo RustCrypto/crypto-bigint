@@ -5,6 +5,7 @@ use core::ops::{Sub, SubAssign};
 
 impl BoxedMontyForm {
     /// Subtracts `rhs`.
+    #[must_use]
     pub fn sub(&self, rhs: &Self) -> Self {
         debug_assert_eq!(self.params, rhs.params);
 

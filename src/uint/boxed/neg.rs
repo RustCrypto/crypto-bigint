@@ -4,6 +4,7 @@ use crate::{BoxedUint, Limb, WideWord, Word, WrappingNeg};
 
 impl BoxedUint {
     /// Perform wrapping negation.
+    #[must_use]
     pub fn wrapping_neg(&self) -> Self {
         let mut ret = vec![Limb::ZERO; self.nlimbs()];
         let mut carry = 1;

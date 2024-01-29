@@ -8,6 +8,7 @@ use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
 impl BoxedUint {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
+    #[must_use]
     pub fn inv_odd_mod(&self, modulus: &Odd<Self>) -> CtOption<Self> {
         modulus.precompute_inverter().invert(self)
     }

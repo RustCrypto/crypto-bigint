@@ -5,6 +5,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// truncating the upper bits if the value is too large to be
     /// represented.
     #[inline(always)]
+    #[must_use]
     pub const fn resize<const T: usize>(&self) -> Uint<T> {
         let mut res = Uint::ZERO;
         let mut i = 0;

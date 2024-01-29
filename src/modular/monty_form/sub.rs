@@ -6,6 +6,7 @@ use core::ops::{Sub, SubAssign};
 
 impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Subtracts `rhs`.
+    #[must_use]
     pub const fn sub(&self, rhs: &Self) -> Self {
         Self {
             montgomery_form: sub_montgomery_form(

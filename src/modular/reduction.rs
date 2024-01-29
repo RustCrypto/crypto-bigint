@@ -45,6 +45,7 @@ macro_rules! impl_montgomery_reduction {
 }
 
 /// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
+#[must_use]
 pub const fn montgomery_reduction<const LIMBS: usize>(
     lower_upper: &(Uint<LIMBS>, Uint<LIMBS>),
     modulus: &Odd<Uint<LIMBS>>,

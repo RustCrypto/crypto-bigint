@@ -10,6 +10,7 @@ where
     /// Compute the greatest common divisor (GCD) of this number and another.
     ///
     /// Returns none in the event that `self` is even (i.e. `self` MUST be odd). However, `rhs` may be even.
+    #[must_use]
     pub const fn gcd(&self, rhs: &Self) -> ConstCtOption<Self> {
         let ret = <Odd<Self> as PrecomputeInverter>::Inverter::gcd(self, rhs);
         ConstCtOption::new(ret, self.is_odd())

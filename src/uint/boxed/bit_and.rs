@@ -8,12 +8,14 @@ use subtle::{Choice, CtOption};
 impl BoxedUint {
     /// Computes bitwise `a & b`.
     #[inline(always)]
+    #[must_use]
     pub fn bitand(&self, rhs: &Self) -> Self {
         Self::map_limbs(self, rhs, |a, b| a.bitand(b))
     }
 
     /// Perform bitwise `AND` between `self` and the given [`Limb`], performing the `AND` operation
     /// on every limb of `self`.
+    #[must_use]
     pub fn bitand_limb(&self, rhs: Limb) -> Self {
         Self {
             limbs: self.limbs.iter().map(|limb| limb.bitand(rhs)).collect(),
@@ -24,11 +26,13 @@ impl BoxedUint {
     ///
     /// There's no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations
+    #[must_use]
     pub fn wrapping_and(&self, rhs: &Self) -> Self {
         self.bitand(rhs)
     }
 
     /// Perform checked bitwise `AND`, returning a [`CtOption`] which `is_some` always
+    #[must_use]
     pub fn checked_and(&self, rhs: &Self) -> CtOption<Self> {
         let result = self.bitand(rhs);
         CtOption::new(result, Choice::from(1))

@@ -5,6 +5,7 @@ use crate::{ConcatMixed, Limb, SplitMixed, Uint, WideWord, Word, U128, U64};
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a [`Uint`] from a `u8` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u8>` when stable
+    #[must_use]
     pub const fn from_u8(n: u8) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         let mut limbs = [Limb::ZERO; LIMBS];
@@ -14,6 +15,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Create a [`Uint`] from a `u16` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u16>` when stable
+    #[must_use]
     pub const fn from_u16(n: u16) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         let mut limbs = [Limb::ZERO; LIMBS];
@@ -24,6 +26,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a [`Uint`] from a `u32` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u32>` when stable
     #[allow(trivial_numeric_casts)]
+    #[must_use]
     pub const fn from_u32(n: u32) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         let mut limbs = [Limb::ZERO; LIMBS];
@@ -45,6 +48,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a [`Uint`] from a `u64` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u64>` when stable
     #[cfg(target_pointer_width = "64")]
+    #[must_use]
     pub const fn from_u64(n: u64) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         let mut limbs = [Limb::ZERO; LIMBS];
@@ -54,6 +58,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Create a [`Uint`] from a `u128` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u128>` when stable
+    #[must_use]
     pub const fn from_u128(n: u128) -> Self {
         assert!(
             LIMBS >= 16 / Limb::BYTES,
@@ -82,6 +87,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Create a [`Uint`] from a `Word` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<Word>` when stable
+    #[must_use]
     pub const fn from_word(n: Word) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         let mut limbs = [Limb::ZERO; LIMBS];
@@ -91,6 +97,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Create a [`Uint`] from a `WideWord` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<WideWord>` when stable
+    #[must_use]
     pub const fn from_wide_word(n: WideWord) -> Self {
         assert!(LIMBS >= 2, "number of limbs must be two or greater");
         let mut limbs = [Limb::ZERO; LIMBS];

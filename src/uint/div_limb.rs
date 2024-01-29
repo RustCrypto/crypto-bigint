@@ -156,6 +156,7 @@ pub struct Reciprocal {
 impl Reciprocal {
     /// Pre-calculates a reciprocal for a known divisor,
     /// to be used in the single-limb division later.
+    #[must_use]
     pub const fn new(divisor: NonZero<Limb>) -> Self {
         let divisor = divisor.0;
 
@@ -177,6 +178,7 @@ impl Reciprocal {
     ///
     /// NOTE: intended for using it as a placeholder during compile-time array generation,
     /// don't rely on the contents.
+    #[must_use]
     pub const fn default() -> Self {
         Self {
             divisor_normalized: Word::MAX,
@@ -188,6 +190,7 @@ impl Reciprocal {
     }
 
     /// Get the shift value
+    #[must_use]
     pub const fn shift(&self) -> u32 {
         self.shift
     }

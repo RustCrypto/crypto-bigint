@@ -93,6 +93,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Returns the Ordering between `self` and `rhs` in variable time.
+    #[must_use]
     pub const fn cmp_vartime(&self, rhs: &Self) -> Ordering {
         let mut i = LIMBS - 1;
         loop {

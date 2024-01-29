@@ -2,6 +2,7 @@ use crate::{Limb, Uint, WideWord, Word, WrappingNeg};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform wrapping negation.
+    #[must_use]
     pub const fn wrapping_neg(&self) -> Self {
         let mut ret = [Limb::ZERO; LIMBS];
         let mut carry = 1;

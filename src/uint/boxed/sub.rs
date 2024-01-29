@@ -7,6 +7,7 @@ use subtle::{Choice, ConditionallySelectable, CtOption};
 impl BoxedUint {
     /// Computes `a - (b + borrow)`, returning the result along with the new borrow.
     #[inline(always)]
+    #[must_use]
     pub fn sbb(&self, rhs: &Self, borrow: Limb) -> (Self, Limb) {
         Self::fold_limbs(self, rhs, borrow, |a, b, c| a.sbb(b, c))
     }
@@ -28,6 +29,7 @@ impl BoxedUint {
     }
 
     /// Perform wrapping subtraction, discarding overflow.
+    #[must_use]
     pub fn wrapping_sub(&self, rhs: &Self) -> Self {
         self.sbb(rhs, Limb::ZERO).0
     }

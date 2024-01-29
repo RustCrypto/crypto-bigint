@@ -28,6 +28,7 @@ impl BoxedBernsteinYangInverter {
     /// Creates the inverter for specified modulus and adjusting parameter.
     ///
     /// Modulus must be odd. Returns `None` if it is not.
+    #[must_use]
     pub fn new(modulus: &Odd<BoxedUint>, adjuster: &BoxedUint) -> Self {
         Self {
             modulus: BoxedInt62L::from(&modulus.0),

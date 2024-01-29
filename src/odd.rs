@@ -53,6 +53,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Create a new [`Odd<Uint<LIMBS>>`] from the provided big endian hex string.
     ///
     /// Panics if the hex is malformed or not zero-padded accordingly for the size, or if the value is even.
+    #[must_use]
     pub const fn from_be_hex(hex: &str) -> Self {
         let uint = Uint::<LIMBS>::from_be_hex(hex);
         assert!(uint.is_odd().is_true_vartime(), "number must be odd");
@@ -62,6 +63,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Create a new [`Odd<Uint<LIMBS>>`] from the provided little endian hex string.
     ///
     /// Panics if the hex is malformed or not zero-padded accordingly for the size, or if the value is even.
+    #[must_use]
     pub const fn from_le_hex(hex: &str) -> Self {
         let uint = Uint::<LIMBS>::from_be_hex(hex);
         assert!(uint.is_odd().is_true_vartime(), "number must be odd");

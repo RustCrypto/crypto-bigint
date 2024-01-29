@@ -10,34 +10,40 @@ use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 impl BoxedUint {
     /// Computes `self / rhs` using a pre-made reciprocal,
     /// returns the quotient (q) and remainder (r).
+    #[must_use]
     pub fn div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb) {
         boxed::div_limb::div_rem_limb_with_reciprocal(self, reciprocal)
     }
 
     /// Computes `self / rhs`, returns the quotient (q) and remainder (r).
+    #[must_use]
     pub fn div_rem_limb(&self, rhs: NonZero<Limb>) -> (Self, Limb) {
         boxed::div_limb::div_rem_limb_with_reciprocal(self, &Reciprocal::new(rhs))
     }
 
     /// Computes `self % rhs` using a pre-made reciprocal.
     #[inline(always)]
+    #[must_use]
     pub fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb {
         boxed::div_limb::rem_limb_with_reciprocal(self, reciprocal)
     }
 
     /// Computes `self % rhs`.
     #[inline(always)]
+    #[must_use]
     pub fn rem_limb(&self, rhs: NonZero<Limb>) -> Limb {
         boxed::div_limb::rem_limb_with_reciprocal(self, &Reciprocal::new(rhs))
     }
 
     /// Computes self / rhs, returns the quotient, remainder.
+    #[must_use]
     pub fn div_rem(&self, rhs: &NonZero<Self>) -> (Self, Self) {
         // Since `rhs` is nonzero, this should always hold.
         self.div_rem_unchecked(rhs.as_ref())
     }
 
     /// Computes self % rhs, returns the remainder.
+    #[must_use]
     pub fn rem(&self, rhs: &NonZero<Self>) -> Self {
         self.div_rem(rhs).1
     }
@@ -45,6 +51,7 @@ impl BoxedUint {
     /// Computes self / rhs, returns the quotient, remainder.
     ///
     /// Variable-time with respect to `rhs`
+    #[must_use]
     pub fn div_rem_vartime(&self, rhs: &NonZero<Self>) -> (Self, Self) {
         // Since `rhs` is nonzero, this should always hold.
         self.div_rem_vartime_unchecked(rhs.as_ref())
@@ -58,6 +65,7 @@ impl BoxedUint {
     ///
     /// Panics if `self` and `rhs` have different precisions.
     // TODO(tarcieri): handle different precisions without panicking
+    #[must_use]
     pub fn rem_vartime(&self, rhs: &NonZero<Self>) -> Self {
         debug_assert_eq!(self.bits_precision(), rhs.bits_precision());
         let mb = rhs.bits();
@@ -83,6 +91,7 @@ impl BoxedUint {
     /// This function exists, so that all operations are accounted for in the wrapping operations.
     ///
     /// Panics if `rhs == 0`.
+    #[must_use]
     pub fn wrapping_div(&self, rhs: &NonZero<Self>) -> Self {
         self.div_rem(rhs).0
     }
@@ -91,12 +100,14 @@ impl BoxedUint {
     ///
     /// There’s no way wrapping could ever happen.
     /// This function exists, so that all operations are accounted for in the wrapping operations
+    #[must_use]
     pub fn wrapping_div_vartime(&self, rhs: &NonZero<Self>) -> Self {
         self.div_rem_vartime(rhs).0
     }
 
     /// Perform checked division, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
+    #[must_use]
     pub fn checked_div(&self, rhs: &Self) -> CtOption<Self> {
         let q = self.div_rem_unchecked(rhs).0;
         CtOption::new(q, !rhs.is_zero())

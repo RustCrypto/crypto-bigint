@@ -8,6 +8,7 @@ use subtle::CtOption;
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `a - (b + borrow)`, returning the result along with the new borrow.
     #[inline(always)]
+    #[must_use]
     pub const fn sbb(&self, rhs: &Self, mut borrow: Limb) -> (Self, Limb) {
         let mut limbs = [Limb::ZERO; LIMBS];
         let mut i = 0;
@@ -23,6 +24,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform saturating subtraction, returning `ZERO` on underflow.
+    #[must_use]
     pub const fn saturating_sub(&self, rhs: &Self) -> Self {
         let (res, underflow) = self.sbb(rhs, Limb::ZERO);
         Self::select(&res, &Self::ZERO, ConstChoice::from_word_mask(underflow.0))
@@ -30,6 +32,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Perform wrapping subtraction, discarding underflow and wrapping around
     /// the boundary of the type.
+    #[must_use]
     pub const fn wrapping_sub(&self, rhs: &Self) -> Self {
         self.sbb(rhs, Limb::ZERO).0
     }

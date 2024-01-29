@@ -11,6 +11,7 @@ use subtle::CtOption;
 impl Limb {
     /// Computes `self + (b * c) + carry`, returning the result along with the new carry.
     #[inline(always)]
+    #[must_use]
     pub const fn mac(self, b: Limb, c: Limb, carry: Limb) -> (Limb, Limb) {
         let (res, carry) = mac(self.0, b.0, c.0, carry.0);
         (Limb(res), Limb(carry))
@@ -18,12 +19,14 @@ impl Limb {
 
     /// Perform saturating multiplication.
     #[inline(always)]
+    #[must_use]
     pub const fn saturating_mul(&self, rhs: Self) -> Self {
         Limb(self.0.saturating_mul(rhs.0))
     }
 
     /// Perform wrapping multiplication, discarding overflow.
     #[inline(always)]
+    #[must_use]
     pub const fn wrapping_mul(&self, rhs: Self) -> Self {
         Limb(self.0.wrapping_mul(rhs.0))
     }

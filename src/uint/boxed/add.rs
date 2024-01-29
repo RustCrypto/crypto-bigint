@@ -7,6 +7,7 @@ use subtle::{Choice, ConditionallySelectable, CtOption};
 impl BoxedUint {
     /// Computes `a + b + carry`, returning the result along with the new carry.
     #[inline(always)]
+    #[must_use]
     pub fn adc(&self, rhs: &Self, carry: Limb) -> (Self, Limb) {
         Self::fold_limbs(self, rhs, carry, |a, b, c| a.adc(b, c))
     }
@@ -28,6 +29,7 @@ impl BoxedUint {
     }
 
     /// Perform wrapping addition, discarding overflow.
+    #[must_use]
     pub fn wrapping_add(&self, rhs: &Self) -> Self {
         self.adc(rhs, Limb::ZERO).0
     }

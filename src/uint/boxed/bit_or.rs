@@ -7,6 +7,7 @@ use subtle::{Choice, CtOption};
 impl BoxedUint {
     /// Computes bitwise `a & b`.
     #[inline(always)]
+    #[must_use]
     pub fn bitor(&self, rhs: &Self) -> Self {
         Self::map_limbs(self, rhs, |a, b| a.bitor(b))
     }
@@ -15,11 +16,13 @@ impl BoxedUint {
     ///
     /// There's no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations
+    #[must_use]
     pub fn wrapping_or(&self, rhs: &Self) -> Self {
         self.bitor(rhs)
     }
 
     /// Perform checked bitwise `OR`, returning a [`CtOption`] which `is_some` always
+    #[must_use]
     pub fn checked_or(&self, rhs: &Self) -> CtOption<Self> {
         let result = self.bitor(rhs);
         CtOption::new(result, Choice::from(1))

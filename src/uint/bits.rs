@@ -130,6 +130,7 @@ pub(crate) const fn trailing_ones_vartime(limbs: &[Limb]) -> u32 {
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Get the value of the bit at position `index`, as a truthy or falsy `ConstChoice`.
     /// Returns the falsy value for indices out of range.
+    #[must_use]
     pub const fn bit(&self, index: u32) -> ConstChoice {
         bit(&self.limbs, index)
     }
@@ -139,51 +140,60 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// # Remarks
     /// This operation is variable time with respect to `index` only.
     #[inline(always)]
+    #[must_use]
     pub const fn bit_vartime(&self, index: u32) -> bool {
         bit_vartime(&self.limbs, index)
     }
 
     /// Calculate the number of bits needed to represent this number.
     #[inline]
+    #[must_use]
     pub const fn bits(&self) -> u32 {
         Self::BITS - self.leading_zeros()
     }
 
     /// Calculate the number of bits needed to represent this number in variable-time with respect
     /// to `self`.
+    #[must_use]
     pub const fn bits_vartime(&self) -> u32 {
         bits_vartime(&self.limbs)
     }
 
     /// Calculate the number of leading zeros in the binary representation of this number.
+    #[must_use]
     pub const fn leading_zeros(&self) -> u32 {
         leading_zeros(&self.limbs)
     }
 
     /// Calculate the number of leading zeros in the binary representation of this number in
     /// variable-time with respect to `self`.
+    #[must_use]
     pub const fn leading_zeros_vartime(&self) -> u32 {
         Self::BITS - self.bits_vartime()
     }
 
     /// Calculate the number of trailing zeros in the binary representation of this number.
+    #[must_use]
     pub const fn trailing_zeros(&self) -> u32 {
         trailing_zeros(&self.limbs)
     }
 
     /// Calculate the number of trailing zeros in the binary representation of this number in
     /// variable-time with respect to `self`.
+    #[must_use]
     pub const fn trailing_zeros_vartime(&self) -> u32 {
         trailing_zeros_vartime(&self.limbs)
     }
 
     /// Calculate the number of trailing ones in the binary representation of this number.
+    #[must_use]
     pub const fn trailing_ones(&self) -> u32 {
         trailing_ones(&self.limbs)
     }
 
     /// Calculate the number of trailing ones in the binary representation of this number,
     /// variable time in `self`.
+    #[must_use]
     pub const fn trailing_ones_vartime(&self) -> u32 {
         trailing_ones_vartime(&self.limbs)
     }

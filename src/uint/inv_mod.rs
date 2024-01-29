@@ -11,6 +11,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// If the inverse does not exist (`k > 0` and `self` is even),
     /// returns `ConstChoice::FALSE` as the second element of the tuple,
     /// otherwise returns `ConstChoice::TRUE`.
+    #[must_use]
     pub const fn inv_mod2k_vartime(&self, k: u32) -> ConstCtOption<Self> {
         // Using the Algorithm 3 from "A Secure Algorithm for Inversion Modulo 2k"
         // by Sadiel de la Fe and Carles Ferrer.
@@ -49,6 +50,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// If the inverse does not exist (`k > 0` and `self` is even),
     /// returns `ConstChoice::FALSE` as the second element of the tuple,
     /// otherwise returns `ConstChoice::TRUE`.
+    #[must_use]
     pub const fn inv_mod2k(&self, k: u32) -> ConstCtOption<Self> {
         // This is the same algorithm as in `inv_mod2k_vartime()`,
         // but made constant-time w.r.t `k` as well.
@@ -88,6 +90,7 @@ where
     Odd<Self>: PrecomputeInverter<Inverter = BernsteinYangInverter<LIMBS, UNSAT_LIMBS>>,
 {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
+    #[must_use]
     pub const fn inv_odd_mod(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
         BernsteinYangInverter::<LIMBS, UNSAT_LIMBS>::new(modulus, &Uint::ONE).inv(self)
     }
@@ -95,6 +98,7 @@ where
     /// Computes the multiplicative inverse of `self` mod `modulus`.
     ///
     /// Returns some if an inverse exists, otherwise none.
+    #[must_use]
     pub const fn inv_mod(&self, modulus: &Self) -> ConstCtOption<Self> {
         // Decompose `modulus = s * 2^k` where `s` is odd
         let k = modulus.trailing_zeros();

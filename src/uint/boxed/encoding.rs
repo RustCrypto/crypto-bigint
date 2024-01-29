@@ -100,6 +100,7 @@ impl BoxedUint {
 
     /// Serialize this [`BoxedUint`] as big-endian.
     #[inline]
+    #[must_use]
     pub fn to_be_bytes(&self) -> Box<[u8]> {
         let mut out = vec![0u8; self.limbs.len() * Limb::BYTES];
 
@@ -118,6 +119,7 @@ impl BoxedUint {
 
     /// Serialize this [`BoxedUint`] as little-endian.
     #[inline]
+    #[must_use]
     pub fn to_le_bytes(&self) -> Box<[u8]> {
         let mut out = vec![0u8; self.limbs.len() * Limb::BYTES];
 
@@ -134,6 +136,7 @@ impl BoxedUint {
     }
 
     /// Create a new [`BoxedUint`] from the provided big endian hex string.
+    #[must_use]
     pub fn from_be_hex(hex: &str, bits_precision: u32) -> CtOption<Self> {
         let nlimbs = (bits_precision / Limb::BITS) as usize;
         let bytes = hex.as_bytes();

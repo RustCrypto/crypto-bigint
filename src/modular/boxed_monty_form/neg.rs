@@ -6,6 +6,7 @@ use core::ops::Neg;
 
 impl BoxedMontyForm {
     /// Negates the number.
+    #[must_use]
     pub fn neg(&self) -> Self {
         let zero = Self {
             montgomery_form: BoxedUint::zero_with_precision(self.params.bits_precision()),

@@ -6,6 +6,7 @@ use num_traits::WrappingNeg;
 impl Limb {
     /// Perform wrapping negation.
     #[inline(always)]
+    #[must_use]
     pub const fn wrapping_neg(self) -> Self {
         Limb(self.0.wrapping_neg())
     }

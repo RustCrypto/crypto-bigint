@@ -11,6 +11,7 @@ impl BoxedUint {
     ///
     /// Panics if `p` is even.
     // TODO(tarcieri): support for even `p`?
+    #[must_use]
     pub fn mul_mod(&self, rhs: &BoxedUint, p: &BoxedUint) -> BoxedUint {
         // NOTE: the overhead of converting to Montgomery form to perform this operation and then
         // immediately converting out of Montgomery form after just a single operation is likely to
@@ -36,6 +37,7 @@ impl BoxedUint {
     /// For the modulus reduction, this function implements Algorithm 14.47 from
     /// the "Handbook of Applied Cryptography", by A. Menezes, P. van Oorschot,
     /// and S. Vanstone, CRC Press, 1996.
+    #[must_use]
     pub fn mul_mod_special(&self, rhs: &Self, c: Limb) -> Self {
         debug_assert_eq!(self.bits_precision(), rhs.bits_precision());
 

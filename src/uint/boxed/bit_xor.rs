@@ -8,6 +8,7 @@ use subtle::{Choice, CtOption};
 impl BoxedUint {
     /// Computes bitwise `a ^ b`.
     #[inline(always)]
+    #[must_use]
     pub fn bitxor(&self, rhs: &Self) -> Self {
         Self::map_limbs(self, rhs, |a, b| a.bitxor(b))
     }
@@ -16,11 +17,13 @@ impl BoxedUint {
     ///
     /// There's no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations
+    #[must_use]
     pub fn wrapping_xor(&self, rhs: &Self) -> Self {
         self.bitxor(rhs)
     }
 
     /// Perform checked bitwise `XOR`, returning a [`CtOption`] which `is_some` always
+    #[must_use]
     pub fn checked_xor(&self, rhs: &Self) -> CtOption<Self> {
         let result = self.bitxor(rhs);
         CtOption::new(result, Choice::from(1))

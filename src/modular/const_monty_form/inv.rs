@@ -19,6 +19,7 @@ where
     /// I.e. `self * self^-1 = 1`.
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
+    #[must_use]
     pub const fn inv(&self) -> ConstCtOption<Self> {
         let inverter =
             <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(&MOD::MODULUS, &MOD::R2);
@@ -67,6 +68,7 @@ where
     >,
 {
     /// Create a new [`ConstMontyFormInverter`] for the given [`ConstMontyParams`].
+    #[must_use]
     pub const fn new() -> Self {
         let inverter = BernsteinYangInverter::new(&MOD::MODULUS, &MOD::R2);
 
@@ -78,6 +80,7 @@ where
 
     /// Returns either the adjusted modular multiplicative inverse for the argument or None
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
+    #[must_use]
     pub const fn inv(
         &self,
         value: &ConstMontyForm<MOD, SAT_LIMBS>,

@@ -43,6 +43,7 @@ impl BoxedMontyParams {
     ///
     /// Returns a `CtOption` that is `None` if the provided modulus is not odd.
     /// TODO(tarcieri): DRY out with `MontyParams::new`?
+    #[must_use]
     pub fn new(modulus: Odd<BoxedUint>) -> Self {
         let bits_precision = modulus.bits_precision();
 
@@ -66,6 +67,7 @@ impl BoxedMontyParams {
     ///
     /// Returns `None` if the provided modulus is not odd.
     /// TODO(tarcieri): DRY out with `MontyParams::new`?
+    #[must_use]
     pub fn new_vartime(modulus: Odd<BoxedUint>) -> Self {
         let bits_precision = modulus.bits_precision();
 
@@ -106,11 +108,13 @@ impl BoxedMontyParams {
     }
 
     /// Modulus value.
+    #[must_use]
     pub fn modulus(&self) -> &Odd<BoxedUint> {
         &self.modulus
     }
 
     /// Bits of precision in the modulus.
+    #[must_use]
     pub fn bits_precision(&self) -> u32 {
         self.modulus.bits_precision()
     }
@@ -134,6 +138,7 @@ pub struct BoxedMontyForm {
 
 impl BoxedMontyForm {
     /// Instantiates a new [`BoxedMontyForm`] that represents an integer modulo the provided params.
+    #[must_use]
     pub fn new(mut integer: BoxedUint, params: BoxedMontyParams) -> Self {
         debug_assert_eq!(integer.bits_precision(), params.bits_precision());
         convert_to_montgomery(&mut integer, &params);
@@ -147,6 +152,7 @@ impl BoxedMontyForm {
 
     /// Instantiates a new [`BoxedMontyForm`] that represents an integer modulo the provided params.
     #[cfg(feature = "std")]
+    #[must_use]
     pub fn new_with_arc(mut integer: BoxedUint, params: Arc<BoxedMontyParams>) -> Self {
         debug_assert_eq!(integer.bits_precision(), params.bits_precision());
         convert_to_montgomery(&mut integer, &params);
@@ -157,11 +163,13 @@ impl BoxedMontyForm {
     }
 
     /// Bits of precision in the modulus.
+    #[must_use]
     pub fn bits_precision(&self) -> u32 {
         self.params.bits_precision()
     }
 
     /// Retrieves the integer currently encoded in this [`BoxedMontyForm`], guaranteed to be reduced.
+    #[must_use]
     pub fn retrieve(&self) -> BoxedUint {
         let mut montgomery_form = self.montgomery_form.widen(self.bits_precision() * 2);
 
@@ -179,6 +187,7 @@ impl BoxedMontyForm {
     }
 
     /// Instantiates a new `ConstMontyForm` that represents zero.
+    #[must_use]
     pub fn zero(params: BoxedMontyParams) -> Self {
         Self {
             montgomery_form: BoxedUint::zero_with_precision(params.bits_precision()),
@@ -187,6 +196,7 @@ impl BoxedMontyForm {
     }
 
     /// Instantiates a new `ConstMontyForm` that represents 1.
+    #[must_use]
     pub fn one(params: BoxedMontyParams) -> Self {
         Self {
             montgomery_form: params.one.clone(),
@@ -195,17 +205,20 @@ impl BoxedMontyForm {
     }
 
     /// Returns the parameter struct used to initialize this object.
+    #[must_use]
     pub fn params(&self) -> &BoxedMontyParams {
         &self.params
     }
 
     /// Access the [`BoxedMontyForm`] value in Montgomery form.
+    #[must_use]
     pub fn as_montgomery(&self) -> &BoxedUint {
         debug_assert!(self.montgomery_form < self.params.modulus);
         &self.montgomery_form
     }
 
     /// Create a [`BoxedMontyForm`] from a value in Montgomery form.
+    #[must_use]
     pub fn from_montgomery(integer: BoxedUint, params: BoxedMontyParams) -> Self {
         debug_assert_eq!(integer.bits_precision(), params.bits_precision());
         Self {
@@ -215,12 +228,14 @@ impl BoxedMontyForm {
     }
 
     /// Extract the value from the [`BoxedMontyForm`] in Montgomery form.
+    #[must_use]
     pub fn to_montgomery(&self) -> BoxedUint {
         debug_assert!(self.montgomery_form < self.params.modulus);
         self.montgomery_form.clone()
     }
 
     /// Performs division by 2, that is returns `x` such that `x + x = self`.
+    #[must_use]
     pub fn div_by_2(&self) -> Self {
         Self {
             montgomery_form: div_by_2::div_by_2_boxed(&self.montgomery_form, &self.params.modulus),
@@ -286,7 +301,7 @@ mod tests {
     #[test]
     fn new_params_with_valid_modulus() {
         let modulus = Odd::new(BoxedUint::from(3u8)).unwrap();
-        BoxedMontyParams::new(modulus);
+        let _ = BoxedMontyParams::new(modulus);
     }
 
     #[test]

@@ -274,6 +274,7 @@ impl<T> From<ConstCtOption<T>> for Option<T> {
 impl<const LIMBS: usize> ConstCtOption<Uint<LIMBS>> {
     /// This returns the underlying value if it is `Some` or the provided value otherwise.
     #[inline]
+    #[must_use]
     pub const fn unwrap_or(self, def: Uint<LIMBS>) -> Uint<LIMBS> {
         Uint::select(&def, &self.value, self.is_some)
     }
@@ -285,6 +286,7 @@ impl<const LIMBS: usize> ConstCtOption<Uint<LIMBS>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[must_use]
     pub const fn expect(self, msg: &str) -> Uint<LIMBS> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -299,6 +301,7 @@ impl<const LIMBS: usize> ConstCtOption<(Uint<LIMBS>, Uint<LIMBS>)> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[must_use]
     pub const fn expect(self, msg: &str) -> (Uint<LIMBS>, Uint<LIMBS>) {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -313,6 +316,7 @@ impl<const LIMBS: usize> ConstCtOption<NonZero<Uint<LIMBS>>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[must_use]
     pub const fn expect(self, msg: &str) -> NonZero<Uint<LIMBS>> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -327,6 +331,7 @@ impl<const LIMBS: usize> ConstCtOption<Odd<Uint<LIMBS>>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[must_use]
     pub const fn expect(self, msg: &str) -> Odd<Uint<LIMBS>> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -341,6 +346,7 @@ impl ConstCtOption<NonZero<Limb>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[must_use]
     pub const fn expect(self, msg: &str) -> NonZero<Limb> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -357,6 +363,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[must_use]
     pub const fn expect(self, msg: &str) -> BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value

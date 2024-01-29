@@ -7,6 +7,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes √(`self`) in constant time.
     ///
     /// Callers can check if `self` is a square by squaring the result
+    #[must_use]
     pub const fn sqrt(&self) -> Self {
         // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13.
         //
@@ -49,6 +50,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes √(`self`)
     ///
     /// Callers can check if `self` is a square by squaring the result
+    #[must_use]
     pub const fn sqrt_vartime(&self) -> Self {
         // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13
 
@@ -85,6 +87,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Wrapped sqrt is just normal √(`self`)
     /// There’s no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations.
+    #[must_use]
     pub const fn wrapping_sqrt(&self) -> Self {
         self.sqrt()
     }
@@ -92,12 +95,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Wrapped sqrt is just normal √(`self`)
     /// There’s no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations.
+    #[must_use]
     pub const fn wrapping_sqrt_vartime(&self) -> Self {
         self.sqrt_vartime()
     }
 
     /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
     /// only if the √(`self`)² == self
+    #[must_use]
     pub fn checked_sqrt(&self) -> CtOption<Self> {
         let r = self.sqrt();
         let s = r.wrapping_mul(&r);
@@ -106,6 +111,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
     /// only if the √(`self`)² == self
+    #[must_use]
     pub fn checked_sqrt_vartime(&self) -> CtOption<Self> {
         let r = self.sqrt_vartime();
         let s = r.wrapping_mul(&r);

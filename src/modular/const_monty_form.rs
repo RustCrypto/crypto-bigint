@@ -53,6 +53,7 @@ pub trait ConstMontyParams<const LIMBS: usize>:
     /// Precompute a Bernstein-Yang inverter for this modulus.
     ///
     /// Use [`ConstMontyFormInverter::new`] if you need `const fn` access.
+    #[must_use]
     fn precompute_inverter<const UNSAT_LIMBS: usize>() -> ConstMontyFormInverter<Self, LIMBS>
     where
         Odd<Uint<LIMBS>>: PrecomputeInverter<
@@ -107,11 +108,13 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     }
 
     /// Instantiates a new [`ConstMontyForm`] that represents this `integer` mod `MOD`.
+    #[must_use]
     pub const fn new(integer: &Uint<LIMBS>) -> Self {
         Self::from_integer(integer)
     }
 
     /// Retrieves the integer currently encoded in this [`ConstMontyForm`], guaranteed to be reduced.
+    #[must_use]
     pub const fn retrieve(&self) -> Uint<LIMBS> {
         montgomery_reduction::<LIMBS>(
             &(self.montgomery_form, Uint::ZERO),
@@ -121,6 +124,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     }
 
     /// Access the `ConstMontyForm` value in Montgomery form.
+    #[must_use]
     pub const fn as_montgomery(&self) -> &Uint<LIMBS> {
         &self.montgomery_form
     }
@@ -131,6 +135,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     }
 
     /// Create a `ConstMontyForm` from a value in Montgomery form.
+    #[must_use]
     pub const fn from_montgomery(integer: Uint<LIMBS>) -> Self {
         Self {
             montgomery_form: integer,
@@ -139,11 +144,13 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     }
 
     /// Extract the value from the `ConstMontyForm` in Montgomery form.
+    #[must_use]
     pub const fn to_montgomery(&self) -> Uint<LIMBS> {
         self.montgomery_form
     }
 
     /// Performs division by 2, that is returns `x` such that `x + x = self`.
+    #[must_use]
     pub const fn div_by_2(&self) -> Self {
         Self {
             montgomery_form: div_by_2(&self.montgomery_form, &MOD::MODULUS),
