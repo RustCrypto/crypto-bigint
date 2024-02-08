@@ -185,6 +185,18 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstZero for ConstMontyF
     const ZERO: Self = Self::ZERO;
 }
 
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> num_traits::Zero
+    for ConstMontyForm<MOD, LIMBS>
+{
+    fn zero() -> Self {
+        Self::ZERO
+    }
+
+    fn is_zero(&self) -> bool {
+        self.ct_eq(&Self::ZERO).into()
+    }
+}
+
 #[cfg(feature = "rand_core")]
 impl<MOD, const LIMBS: usize> Random for ConstMontyForm<MOD, LIMBS>
 where
