@@ -3,7 +3,7 @@
 mod sealed;
 
 pub use num_traits::{
-    WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr, WrappingSub,
+    ConstZero, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr, WrappingSub,
 };
 
 pub(crate) use sealed::PrecomputeInverterWithAdjuster;
@@ -264,15 +264,7 @@ pub trait Zero: ConstantTimeEq + Sized {
     }
 }
 
-/// Trait for associating a constant representing zero.
-///
-/// Types which impl this trait automatically receive a blanket impl of [`Zero`].
-pub trait ConstZero: Zero {
-    /// The value `0`.
-    const ZERO: Self;
-}
-
-impl<T: ConstZero> Zero for T {
+impl<T: ConstZero + ConstantTimeEq> Zero for T {
     #[inline(always)]
     fn zero() -> T {
         Self::ZERO
