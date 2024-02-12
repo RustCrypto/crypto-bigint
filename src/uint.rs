@@ -184,6 +184,20 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn to_odd(self) -> ConstCtOption<Odd<Self>> {
         ConstCtOption::new(Odd(self), self.is_odd())
     }
+
+    /// Convert a single-limb `Uint` to a `u64` (const-friendly)
+    #[cfg(target_pointer_width = "32")]
+    pub const fn to_u64(self) -> u64 {
+        assert!(LIMBS == 1, "number of limbs must be 1");
+        self.as_words()[0] as u64
+    }
+
+    /// Convert a single-limb `Uint` to a `u64` (const-friendly)
+    #[cfg(target_pointer_width = "64")]
+    pub const fn to_u64(self) -> u64 {
+        assert!(LIMBS == 1, "number of limbs must be 1");
+        self.as_words()[0]
+    }
 }
 
 impl<const LIMBS: usize> AsRef<[Word; LIMBS]> for Uint<LIMBS> {
