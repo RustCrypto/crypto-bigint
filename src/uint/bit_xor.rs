@@ -20,7 +20,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Self { limbs }
     }
 
-    /// Perform wrapping bitwise `XOR``.
+    /// Perform wrapping bitwise `XOR`.
     ///
     /// There's no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations
