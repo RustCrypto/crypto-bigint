@@ -45,10 +45,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut i = Self::BITS;
         let mut done = ConstChoice::FALSE;
         loop {
-            let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::select(&r, &rem, ConstChoice::from_word_mask(borrow.0).or(done));
-            r = quo.bitor(&Self::ONE);
-            quo = Self::select(&r, &quo, ConstChoice::from_word_mask(borrow.0).or(done));
+            let (r, borrow) = rem.sbb(&c, Limb::ZERO);
+            let choice = ConstChoice::from_word_mask(borrow.0).or(done);
+            rem = Self::select(&r, &rem, choice);
+            quo = Self::select(&quo.bitor(&Self::ONE), &quo, choice);
             if i == 0 {
                 break;
             }
@@ -79,10 +79,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut c = rhs.0.wrapping_shl_vartime(bd);
 
         loop {
-            let (mut r, borrow) = rem.sbb(&c, Limb::ZERO);
-            rem = Self::select(&r, &rem, ConstChoice::from_word_mask(borrow.0));
-            r = quo.bitor(&Self::ONE);
-            quo = Self::select(&r, &quo, ConstChoice::from_word_mask(borrow.0));
+            let (r, borrow) = rem.sbb(&c, Limb::ZERO);
+            let choice = ConstChoice::from_word_mask(borrow.0);
+            rem = Self::select(&r, &rem, choice);
+            quo = Self::select(&quo.bitor(&Self::ONE), &quo, choice);
             if bd == 0 {
                 break;
             }
