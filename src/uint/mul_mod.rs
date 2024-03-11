@@ -21,10 +21,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         match p.to_odd().into() {
             Some(odd_p) => {
                 let params = MontyParams::new_vartime(odd_p);
-                let lhs = MontyForm::new(self, params);
-                let rhs = MontyForm::new(rhs, params);
-                let ret = lhs * rhs;
-                ret.retrieve()
+                (MontyForm::new(self, params) * MontyForm::new(rhs, params)).retrieve()
             }
             None => todo!("even moduli are currently unsupported"),
         }
@@ -83,9 +80,7 @@ const fn mac_by_limb<const LIMBS: usize>(
     let mut carry = carry;
 
     while i < LIMBS {
-        let (n, c) = a.limbs[i].mac(b.limbs[i], c, carry);
-        a.limbs[i] = n;
-        carry = c;
+        (a.limbs[i], carry) = a.limbs[i].mac(b.limbs[i], c, carry);
         i += 1;
     }
 
