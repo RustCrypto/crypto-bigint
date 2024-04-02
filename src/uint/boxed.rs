@@ -33,6 +33,9 @@ use alloc::{boxed::Box, vec, vec::Vec};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
+#[cfg(feature = "serde")]
+use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
 
@@ -395,11 +398,44 @@ impl fmt::UpperHex for BoxedUint {
     }
 }
 
+#[cfg(feature = "serde")]
+impl<'de, const LIMBS: usize> Deserialize<'de> for Uint<LIMBS>
+where
+    Uint<LIMBS>: Encoding,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let mut buffer = Self::ZERO.to_le_bytes();
+        serdect::array::deserialize_hex_or_bin(buffer.as_mut(), deserializer)?;
+
+        Ok(Self::from_le_bytes(buffer))
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<const LIMBS: usize> Serialize for Uint<LIMBS>
+where
+    Uint<LIMBS>: Encoding,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serdect::array::serialize_hex_lower_or_bin(&Encoding::to_le_bytes(self), serializer)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::BoxedUint;
     use crate::Word;
     use alloc::vec::Vec;
+
+    /* TODO: U64 but for BoxedUInt ? */
+    #[cfg(feature = "serde")]
+    use crate::U64;
 
     #[test]
     fn from_word_vec() {
@@ -407,5 +443,27 @@ mod tests {
         let uint = BoxedUint::from(Vec::from(words));
         assert_eq!(uint.nlimbs(), 4);
         assert_eq!(uint.as_words(), words);
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn serde() {
+        const TEST: U64 = U64::from_u64(0x0011223344556677);
+
+        let serialized = bincode::serialize(&TEST).unwrap();
+        let deserialized: U64 = bincode::deserialize(&serialized).unwrap();
+
+        assert_eq!(TEST, deserialized);
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn serde_owned() {
+        const TEST: U64 = U64::from_u64(0x0011223344556677);
+
+        let serialized = bincode::serialize(&TEST).unwrap();
+        let deserialized: U64 = bincode::deserialize_from(serialized.as_slice()).unwrap();
+
+        assert_eq!(TEST, deserialized);
     }
 }
