@@ -29,7 +29,6 @@ mod sub_mod;
 mod rand;
 
 use crate::{modular::BoxedMontyForm, Integer, Limb, NonZero, Odd, Word, Zero};
-use encoding::Encoding;
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
@@ -401,30 +400,33 @@ impl fmt::UpperHex for BoxedUint {
 
 #[cfg(feature = "serde")]
 impl<'de> Deserialize<'de> for BoxedUint
-where
-    BoxedUint: Encoding,
+// TODO
+//where
+//    BoxedUint: Encoding,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        let mut buffer = Self::ZERO.to_le_bytes();
+        let mut buffer = Self::zero().to_le_bytes();
         serdect::array::deserialize_hex_or_bin(buffer.as_mut(), deserializer)?;
 
-        Ok(Self::from_le_bytes(buffer))
+        // TODO what precision ? /? TODO this is fallible - form_le_slice
+        Ok(Self::from_le_slice(&buffer, 0)
+            .expect("TODO: What should we do with fallible impl here"))
     }
 }
 
 #[cfg(feature = "serde")]
 impl Serialize for BoxedUint
-where
-    BoxedUint: Encoding,
+//where
+//    BoxedUint: Encoding,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        serdect::array::serialize_hex_lower_or_bin(&Encoding::to_le_bytes(self), serializer)
+        serdect::array::serialize_hex_lower_or_bin(&self.to_le_bytes(), serializer)
     }
 }
 
