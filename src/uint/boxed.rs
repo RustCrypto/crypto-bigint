@@ -28,7 +28,7 @@ mod sub_mod;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{modular::BoxedMontyForm, Integer, Limb, NonZero, Odd, Word, Zero};
+use crate::{modular::BoxedMontyForm, Encoding, Integer, Limb, NonZero, Odd, Word, Zero};
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
@@ -399,9 +399,9 @@ impl fmt::UpperHex for BoxedUint {
 }
 
 #[cfg(feature = "serde")]
-impl<'de, const LIMBS: usize> Deserialize<'de> for Uint<LIMBS>
+impl<'de> Deserialize<'de> for BoxedUint
 where
-    Uint<LIMBS>: Encoding,
+    BoxedUint: Encoding,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -415,9 +415,9 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<const LIMBS: usize> Serialize for Uint<LIMBS>
+impl Serialize for BoxedUint
 where
-    Uint<LIMBS>: Encoding,
+    BoxedUint: Encoding,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
