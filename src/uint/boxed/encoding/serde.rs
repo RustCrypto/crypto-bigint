@@ -40,6 +40,7 @@ mod tests {
     use super::BoxedUint;
 
     #[test]
+    #[cfg(target_pointer_width = "64")]
     fn serde() {
         #[allow(trivial_numeric_casts)]
         let test: BoxedUint = BoxedUint::from_be_hex("7711223344556600", 64).unwrap();
@@ -51,6 +52,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_pointer_width = "64")]
     fn serde_owned() {
         #[allow(trivial_numeric_casts)]
         let test: BoxedUint = BoxedUint::from_be_hex("7711223344556600", 64).unwrap();
@@ -59,5 +61,20 @@ mod tests {
         let deserialized: BoxedUint = bincode::deserialize_from(serialized.as_slice()).unwrap();
 
         assert_eq!(test, deserialized);
+    }
+
+    #[test]
+    #[cfg(target_pointer_width = "32")]
+    fn from_le_slice_eq() {
+        let test = hex!("7766554433221100");
+        let box_uint = BoxedUint::from_le_slice(&bytes, 64).unwrap();
+
+        let serialized = bincode::serialize(&box_uint).unwrap();
+        let deserialized: BoxedUint = bincode::deserialize_from(serialized.as_slice()).unwrap();
+
+        assert_eq!(
+            deserialized.as_limbs(),
+            &[Limb(0x44556677), Limb(0x00112233)]
+        );
     }
 }
