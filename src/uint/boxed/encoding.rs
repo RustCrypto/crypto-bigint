@@ -1,5 +1,8 @@
 //! Const-friendly decoding operations for [`BoxedUint`].
 
+#[cfg(feature = "serde")]
+mod serde;
+
 use super::BoxedUint;
 use crate::{uint::encoding, Limb, Word};
 use alloc::boxed::Box;
@@ -138,8 +141,9 @@ impl BoxedUint {
         let nlimbs = (bits_precision / Limb::BITS) as usize;
         let bytes = hex.as_bytes();
 
-        assert!(
-            bytes.len() == Limb::BYTES * nlimbs * 2,
+        assert_eq!(
+            bytes.len(),
+            (Limb::BYTES * nlimbs * 2),
             "hex string is not the expected size"
         );
 
@@ -161,6 +165,7 @@ impl BoxedUint {
             res[nlimbs - i - 1] = Limb(Word::from_be_bytes(buf));
             i += 1;
         }
+
         CtOption::new(Self { limbs: res.into() }, Choice::from((err == 0) as u8))
     }
 }
