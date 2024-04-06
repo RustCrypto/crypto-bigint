@@ -42,7 +42,7 @@ mod tests {
     #[test]
     fn serde() {
         #[allow(trivial_numeric_casts)]
-        let test: BoxedUint = BoxedUint::from(0x0011223344556677 as u64);
+        let test: BoxedUint = BoxedUint::from_be_hex("7711223344556600", 64).unwrap();
 
         let serialized = bincode::serialize(&test).unwrap();
         let deserialized: BoxedUint = bincode::deserialize(&serialized).unwrap();
@@ -53,7 +53,7 @@ mod tests {
     #[test]
     fn serde_owned() {
         #[allow(trivial_numeric_casts)]
-        let test: BoxedUint = BoxedUint::from(0x0011223344556677 as u64);
+        let test: BoxedUint = BoxedUint::from_be_hex("7711223344556600", 64).unwrap();
 
         let serialized = bincode::serialize(&test).unwrap();
         let deserialized: BoxedUint = bincode::deserialize_from(serialized.as_slice()).unwrap();
