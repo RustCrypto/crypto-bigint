@@ -1,4 +1,4 @@
-//! Support for serdect encoding/decoding [`BoxedUint`]
+//! Support for serdect on [`BoxedUint`]
 
 use serdect::serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
