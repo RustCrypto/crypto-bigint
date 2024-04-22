@@ -57,13 +57,14 @@ impl BoxedUint {
         let s_is_odd = s.is_odd();
         let inv_mod_s = self.inv_odd_mod(&Odd(s.clone()));
         let invertible_mod_s = inv_mod_s.is_some() & s_is_odd;
+        // NOTE: this is some strange acrobatics to get around BoxedUint not supporting
+        // ConditionallySelectable
         let inv_mod_s =
             Option::from(inv_mod_s).unwrap_or(Self::zero_with_precision(self.bits_precision()));
 
         let (inv_mod_2k, invertible_mod_2k) = self.inv_mod2k(k);
         let is_some = invertible_mod_s & invertible_mod_2k;
 
-        // TODO: need to implement ConditionallySelectable for BoxedUint
         let (s_inv_mod_2k, _) = s.inv_mod2k(k);
         let (shifted, _overflowed) =
             BoxedUint::one_with_precision(self.bits_precision()).overflowing_shl(k);
