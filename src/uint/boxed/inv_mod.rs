@@ -43,18 +43,44 @@ impl BoxedUint {
 
         (x, is_some)
     }
+
+    /// Computes the multiplicaitve inverse of `self` mod `modulus`
+    ///
+    /// `self` and `modulus` must have the same number of limbs, or the function will panic
+    ///
+    /// TODO: maybe some better documentation is needed
+    pub fn inv_mod(&self, modulus: &Self) -> CtOption<Self> {
+        debug_assert_eq!(self.bits_precision(), modulus.bits_precision());
+        let k = modulus.trailing_zeros();
+        let (s, _overflowed) = modulus.overflowing_shr(k);
+
+        let s_is_odd = s.is_odd();
+        let inv_mod_s = self.inv_odd_mod(&Odd(s.clone()));
+        let invertible_mod_s = inv_mod_s.is_some() & s_is_odd;
+        let inv_mod_s =
+            Option::from(inv_mod_s).unwrap_or(Self::zero_with_precision(self.bits_precision()));
+
+        let (inv_mod_2k, invertible_mod_2k) = self.inv_mod2k(k);
+        let is_some = invertible_mod_s & invertible_mod_2k;
+
+        // TODO: need to implement ConditionallySelectable for BoxedUint
+        let (s_inv_mod_2k, _) = s.inv_mod2k(k);
+        let (shifted, _overflowed) =
+            BoxedUint::one_with_precision(self.bits_precision()).overflowing_shl(k);
+        let mask = shifted.wrapping_sub(&BoxedUint::one_with_precision(self.bits_precision()));
+        let t = inv_mod_2k
+            .wrapping_sub(&inv_mod_s)
+            .wrapping_mul(&s_inv_mod_2k)
+            .bitand(&mask);
+        let result = inv_mod_s.wrapping_add(&s.wrapping_mul(&t));
+
+        CtOption::new(result, is_some)
+    }
 }
 
 impl InvMod for BoxedUint {
-    /// Note: currently only supports odd modulus
     fn inv_mod(&self, modulus: &Self) -> CtOption<Self> {
-        let modulus = Odd(modulus.clone());
-        let is_odd = modulus.is_odd();
-        let maybe_ret = self.inv_odd_mod(&modulus);
-        let is_some = maybe_ret.is_some() & is_odd;
-
-        // use cloned modulus as dummy value for is_none case
-        CtOption::new(Option::from(maybe_ret).unwrap_or(modulus.get()), is_some)
+        self.inv_mod(modulus)
     }
 }
 
@@ -80,8 +106,6 @@ impl PrecomputeInverterWithAdjuster<BoxedUint> for Odd<BoxedUint> {
 
 #[cfg(test)]
 mod tests {
-    use crate::InvMod;
-
     use super::BoxedUint;
     use hex_literal::hex;
 
@@ -179,7 +203,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic] // TODO: implement inv_mod so it supports even modulus
     fn test_invert_even() {
         let a = BoxedUint::from_be_hex(
             concat![
