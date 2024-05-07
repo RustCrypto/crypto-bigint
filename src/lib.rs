@@ -213,10 +213,3 @@ pub mod prelude {
     #[cfg(feature = "hybrid-array")]
     pub use crate::array::{ArrayDecoding, ArrayEncoding};
 }
-
-#[cfg(sidefuzz)]
-#[no_mangle]
-pub extern "C" fn fuzz() {
-    let input = sidefuzz::fetch_input(32); // 32 bytes of of fuzzing input as a &[u8]
-    sidefuzz::black_box(my_hopefully_constant_fn(input));
-}
