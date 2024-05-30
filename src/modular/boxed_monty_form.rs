@@ -244,8 +244,8 @@ impl Monty for BoxedMontyForm {
         BoxedMontyParams::new_vartime(modulus)
     }
 
-    fn new(value: Self::Integer, params: Self::Params) -> Self {
-        BoxedMontyForm::new(value, params)
+    fn new(value: &Self::Integer, params: Self::Params) -> Self {
+        BoxedMontyForm::new(value.clone(), params)
     }
 
     fn zero(params: Self::Params) -> Self {
