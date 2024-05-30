@@ -240,8 +240,8 @@ impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
         MontyParams::new_vartime(modulus)
     }
 
-    fn new(value: Self::Integer, params: Self::Params) -> Self {
-        MontyForm::new(&value, params)
+    fn new(value: &Self::Integer, params: Self::Params) -> Self {
+        MontyForm::new(value, params)
     }
 
     fn zero(params: Self::Params) -> Self {

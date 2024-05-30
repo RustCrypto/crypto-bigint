@@ -789,7 +789,7 @@ pub trait Monty:
     fn new_params_vartime(modulus: Odd<Self::Integer>) -> Self::Params;
 
     /// Convert the value into the representation using precomputed data.
-    fn new(value: Self::Integer, params: Self::Params) -> Self;
+    fn new(value: &Self::Integer, params: Self::Params) -> Self;
 
     /// Returns zero in this representation.
     fn zero(params: Self::Params) -> Self;
