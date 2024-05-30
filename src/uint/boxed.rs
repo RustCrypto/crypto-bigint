@@ -369,6 +369,19 @@ impl fmt::Display for BoxedUint {
     }
 }
 
+impl fmt::Binary for BoxedUint {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.limbs.is_empty() {
+            return fmt::Binary::fmt(&Limb::ZERO, f);
+        }
+
+        for limb in self.limbs.iter().rev() {
+            fmt::Binary::fmt(limb, f)?;
+        }
+        Ok(())
+    }
+}
+
 impl fmt::LowerHex for BoxedUint {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.limbs.is_empty() {
