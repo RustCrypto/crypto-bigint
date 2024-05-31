@@ -350,4 +350,15 @@ mod tests {
         let n = U128::from_be_hex(hex);
         assert_eq!(hex, format!("{:x}", n));
     }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn fmt_binary() {
+        let hex = "AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD";
+        let n = U128::from_be_hex(hex);
+        let expect = "\
+            1010101010101010101010101010101010111011101110111011101110111011\
+            1100110011001100110011001100110011011101110111011101110111011101";
+        assert_eq!(expect, format!("{:b}", n));
+    }
 }

@@ -288,6 +288,15 @@ impl<const LIMBS: usize> fmt::Debug for Uint<LIMBS> {
     }
 }
 
+impl<const LIMBS: usize> fmt::Binary for Uint<LIMBS> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for limb in self.limbs.iter().rev() {
+            fmt::Binary::fmt(limb, f)?;
+        }
+        Ok(())
+    }
+}
+
 impl<const LIMBS: usize> fmt::Display for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::UpperHex::fmt(self, f)
