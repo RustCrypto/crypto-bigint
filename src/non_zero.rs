@@ -35,6 +35,11 @@ impl<T> NonZero<T> {
         CtOption::new(Self(n), !is_zero)
     }
 
+    /// Create a new non-zero integer without zero-checks.
+    pub const fn new_unchecked(n: T) -> Self {
+        Self(n)
+    }
+
     /// Provides access to the contents of `NonZero` in a `const` context.
     pub const fn as_ref(&self) -> &T {
         &self.0
