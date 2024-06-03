@@ -541,6 +541,41 @@ pub trait Encoding: Sized {
     fn to_le_bytes(&self) -> Self::Repr;
 }
 
+/// Possible errors in variable-time integer decoding methods.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DecodeError {
+    /// The input value was empty.
+    Empty,
+
+    /// The input was not consistent with the format restrictions.
+    InvalidDigit,
+
+    /// Input size is too small to fit in the given precision.
+    InputSize,
+
+    /// The deserialized number is larger than the given precision.
+    Precision,
+}
+
+impl fmt::Display for DecodeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => write!(f, "empty value provided"),
+            Self::InvalidDigit => {
+                write!(f, "invalid digit character")
+            }
+            Self::InputSize => write!(f, "input size is too small to fit in the given precision"),
+            Self::Precision => write!(
+                f,
+                "the deserialized number is larger than the given precision"
+            ),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for DecodeError {}
+
 /// Support for optimized squaring
 pub trait Square {
     /// Computes the same as `self * self`, but may be more efficient.
