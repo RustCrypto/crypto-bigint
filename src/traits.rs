@@ -9,7 +9,7 @@ pub use num_traits::{
 pub(crate) use sealed::PrecomputeInverterWithAdjuster;
 
 use crate::{Limb, NonZero, Odd, Reciprocal};
-use core::fmt::Debug;
+use core::fmt::{self, Debug};
 use core::ops::{
     Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign,
     Mul, MulAssign, Neg, Not, Rem, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
@@ -21,9 +21,6 @@ use subtle::{
 
 #[cfg(feature = "rand_core")]
 use rand_core::CryptoRngCore;
-
-#[cfg(feature = "rand_core")]
-use core::fmt;
 
 /// Integers whose representation takes a bounded amount of space.
 pub trait Bounded {
