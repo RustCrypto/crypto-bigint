@@ -268,7 +268,8 @@ mod tests {
         // @reviewers: I expected an error when deserializing an Odd<U128> into an Odd<U64>, instead I get a truncated number. Is this a big or known limitation?
         #[test]
         fn silently_coerces_bigger_type_into_smaller_type() {
-            let three = Odd::new(U128::from_u128(0x33333333333333333333333333333333)).unwrap();
+            let three = Odd::new(U128::from_u128(0x77777777777777773333333333333333)).unwrap();
+
             let three_ser = bincode::serialize(&three).unwrap();
 
             // This doesn't fail, which is unexpected
