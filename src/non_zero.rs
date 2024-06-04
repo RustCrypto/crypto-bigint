@@ -35,11 +35,6 @@ impl<T> NonZero<T> {
         CtOption::new(Self(n), !is_zero)
     }
 
-    /// Create a new non-zero integer without zero-checks.
-    pub const fn new_unchecked(n: T) -> Self {
-        Self(n)
-    }
-
     /// Provides access to the contents of `NonZero` in a `const` context.
     pub const fn as_ref(&self) -> &T {
         &self.0
@@ -116,6 +111,18 @@ impl NonZero<Limb> {
 }
 
 impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
+    /// Creates a new non-zero integer in a const context.
+    /// # Panics
+    ///
+    /// Panics if the value is zero.
+    pub const fn const_new(n: Uint<LIMBS>) -> Self {
+        if n.is_nonzero().is_true_vartime() {
+            Self(n)
+        } else {
+            panic!("Invalid value: zero")
+        }
+    }
+
     /// Create a [`NonZero<Uint>`] from a [`NonZeroU8`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU8>` when stable
     pub const fn from_u8(n: NonZeroU8) -> Self {
