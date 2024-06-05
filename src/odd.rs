@@ -168,15 +168,10 @@ impl<'de, T: Deserialize<'de> + Integer + Zero> Deserialize<'de> for Odd<T> {
         D: Deserializer<'de>,
     {
         let value: T = T::deserialize(deserializer)?;
-        let odd = Self::new(value);
-        if bool::from(odd.is_some()) {
-            Ok(odd.unwrap())
-        } else {
-            Err(D::Error::invalid_value(
-                Unexpected::Other("even"),
-                &"a non-zero odd value",
-            ))
-        }
+        Option::<Self>::from(Self::new(value)).ok_or(D::Error::invalid_value(
+            Unexpected::Other("even"),
+            &"a non-zero odd value",
+        ))
     }
 }
 
