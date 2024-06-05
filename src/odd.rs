@@ -168,9 +168,9 @@ impl<'de, T: Deserialize<'de> + Integer + Zero> Deserialize<'de> for Odd<T> {
         D: Deserializer<'de>,
     {
         let value: T = T::deserialize(deserializer)?;
-
-        if bool::from(value.is_odd()) {
-            Ok(Self(value))
+        let odd = Self::new(value);
+        if bool::from(odd.is_some()) {
+            Ok(odd.unwrap())
         } else {
             Err(D::Error::invalid_value(
                 Unexpected::Other("even"),
