@@ -171,15 +171,10 @@ impl<'de, T: Deserialize<'de> + Integer + Zero> Deserialize<'de> for Odd<T> {
 
         if bool::from(value.is_odd()) {
             Ok(Self(value))
-        } else if bool::from(value.is_zero()) {
-            Err(D::Error::invalid_value(
-                Unexpected::Other("zero"),
-                &"a non-zero odd value",
-            ))
         } else {
             Err(D::Error::invalid_value(
                 Unexpected::Other("even"),
-                &"an odd value",
+                &"a non-zero odd value",
             ))
         }
     }
@@ -239,7 +234,7 @@ mod tests {
             let two_ser = bincode::serialize(&two).unwrap();
             assert!(matches!(
                 *bincode::deserialize::<Odd<U128>>(&two_ser).unwrap_err(),
-                ErrorKind::Custom(mess) if mess == "invalid value: even, expected an odd value"
+                ErrorKind::Custom(mess) if mess == "invalid value: even, expected a non-zero odd value"
             ))
         }
 
@@ -250,7 +245,7 @@ mod tests {
 
             assert!(matches!(
                 *bincode::deserialize::<Odd<U64>>(&zero_ser).unwrap_err(),
-                ErrorKind::Custom(mess) if mess == "invalid value: zero, expected a non-zero odd value"
+                ErrorKind::Custom(mess) if mess == "invalid value: even, expected a non-zero odd value"
             ))
         }
 
