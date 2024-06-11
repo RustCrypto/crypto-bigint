@@ -152,10 +152,20 @@ mod tests {
     /// Synedrion signining library (i.e. parameters are generated with an
     /// unseeded CSPRNG).
     ///
+    /// Run the test with `cargo t inversion_v06_vs_v055`.
+    ///
     /// For convenience, after this test follows a commented out version of the
     /// same that passes with crypto-bigint v0.5.5.
     ///
-    /// Run the test with `cargo t inversion_v06_vs_v055`.
+    /// To compare with v0.5.5 do the following:
+    ///
+    /// 1. Checkout the old code: `git checkout v0.5.5`
+    /// 1. Run `cargo update -p proc-macro2` to work around a recent compiler
+    ///    incompatibility
+    /// 1. Paste the commented out v0.5 test in the test module of
+    ///    `runtime_mod.rs`
+    /// 1. Run the test with `cargo t inversion_v06v_v055`
+    /// 1. Notice it passes
     ///
     /// [homomorphic_mul]: https://github.com/dvdplm/synedrion/blob/520e3246e6032a100db64eef47b3dee62cd7c055/synedrion/src/paillier/encryption.rs#L518
     #[test]
@@ -187,7 +197,7 @@ mod tests {
 
     // Version of the above test using v0.5.5:
     // #[test]
-    // fn inverson_v0.6v_v0.5.5() {
+    // fn inversion_v06_vs_v055() {
     //     use crate::U2048;
 
     //     let params = DynResidueParams {
