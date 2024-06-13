@@ -18,6 +18,18 @@ fn bench_division(c: &mut Criterion) {
         )
     });
 
+    group.bench_function("div/rem_vartime, U256/U128, full size", |b| {
+        b.iter_batched(
+            || {
+                let x = U256::random(&mut OsRng);
+                let y: U256 = (U128::MAX, U128::ZERO).into();
+                (x, NonZero::new(y).unwrap())
+            },
+            |(x, y)| black_box(x.div_rem_vartime(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
     group.bench_function("rem, U256/U128, full size", |b| {
         b.iter_batched(
             || {
@@ -35,11 +47,22 @@ fn bench_division(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let x = U256::random(&mut OsRng);
-                let y_half = U128::random(&mut OsRng);
-                let y: U256 = (y_half, U128::ZERO).into();
+                let y: U256 = (U128::MAX, U128::ZERO).into();
                 (x, NonZero::new(y).unwrap())
             },
             |(x, y)| black_box(x.rem_vartime(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("rem_wide_vartime, U256", |b| {
+        b.iter_batched(
+            || {
+                let (x_lo, x_hi) = (U256::random(&mut OsRng), U256::random(&mut OsRng));
+                let y: U256 = (U128::MAX, U128::ZERO).into();
+                (x_lo, x_hi, NonZero::new(y).unwrap())
+            },
+            |(x_lo, x_hi, y)| black_box(Uint::rem_wide_vartime((x_lo, x_hi), &y)),
             BatchSize::SmallInput,
         )
     });
