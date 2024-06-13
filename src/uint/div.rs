@@ -675,10 +675,8 @@ pub(crate) const fn div_rem_vartime<const N1: usize, const N2: usize>(
                 ((((!rx) & qy) | (((!rx) | qy) & (rx.wrapping_sub(qy)))) >> (WideWord::BITS - 1))
                     as Word,
             );
-            {
-                quo = quo.saturating_sub(diff.select_word(0, 1));
-                rem = rem.saturating_add(diff.select_word(0, y[yc - 1].0));
-            }
+            quo = quo.saturating_sub(diff.select_word(0, 1));
+            rem = rem.saturating_add(diff.select_word(0, y[yc - 1].0));
             i += 1;
         }
 
@@ -814,10 +812,8 @@ pub(crate) const fn rem_wide_vartime<const N: usize>(
                 ((((!rx) & qy) | (((!rx) | qy) & (rx.wrapping_sub(qy)))) >> (WideWord::BITS - 1))
                     as Word,
             );
-            {
-                quo = quo.saturating_sub(diff.select_word(0, 1));
-                rem = rem.saturating_add(diff.select_word(0, y[yc - 1].0));
-            }
+            quo = quo.saturating_sub(diff.select_word(0, 1));
+            rem = rem.saturating_add(diff.select_word(0, y[yc - 1].0));
             i += 1;
         }
 
