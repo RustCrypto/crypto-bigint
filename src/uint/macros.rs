@@ -25,6 +25,8 @@ macro_rules! impl_precompute_inverter_trait {
             }
         }
 
+        /// Const assertion that the unsaturated integer is sufficiently sized to hold the maximum
+        /// value represented by a saturated `$bits`-sized integer.
         #[cfg(debug_assertions)]
         #[allow(trivial_numeric_casts)]
         const _: () = assert!((bernstein_yang_nlimbs!($bits as usize) * 62) - 64 >= $bits);
