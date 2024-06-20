@@ -24,6 +24,10 @@ macro_rules! impl_precompute_inverter_trait {
                 Self::Inverter::new(self, adjuster)
             }
         }
+
+        #[cfg(debug_assertions)]
+        #[allow(trivial_numeric_casts)]
+        const _: () = assert!((bernstein_yang_nlimbs!($bits as usize) * 62) - 64 >= $bits);
     };
 }
 
