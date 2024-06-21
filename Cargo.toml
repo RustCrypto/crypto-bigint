@@ -38,6 +38,7 @@ num-modular = { version = "0.6", features = ["num-bigint", "num-integer", "num-t
 proptest = "1"
 rand_core = { version = "0.6", features = ["std"] }
 rand_chacha = "0.3"
+crypto_bigint_05 = {package = "crypto-bigint", version = "0.5.5"}
 
 [features]
 default = ["rand"]
