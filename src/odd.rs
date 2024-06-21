@@ -255,19 +255,23 @@ mod tests {
             assert_eq!(&error_message, "io error: unexpected end of file");
         }
 
-        // @reviewers: I expected an error when deserializing an Odd<U128> into an Odd<U64>, instead I get a truncated number. Is this a big or known limitation?
         #[test]
         fn silently_coerces_bigger_type_into_smaller_type() {
+            use bincode::Options;
+
+            // Use custom options to disallow trailing bytes.
+            let options = bincode::DefaultOptions::new();
+
             let three = Odd::new(U128::from_u128(0x77777777777777773333333333333333)).unwrap();
-
-            let three_ser = bincode::serialize(&three).unwrap();
-
-            // This doesn't fail, which is unexpected
-            let smaller = bincode::deserialize::<Odd<U64>>(&three_ser).unwrap();
+            let three_ser = options.serialize(&three).unwrap();
+            let error_message = options
+                .deserialize::<Odd<U64>>(&three_ser)
+                .unwrap_err()
+                .to_string();
 
             assert_eq!(
-                smaller,
-                Odd::new(U64::from_u64(0x3333333333333333)).unwrap()
+                &error_message,
+                "Slice had bytes remaining after deserialization"
             );
         }
     }
