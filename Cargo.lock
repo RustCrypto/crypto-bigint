@@ -218,7 +218,7 @@ dependencies = [
 
 [[package]]
 name = "crypto-bigint"
-version = "0.6.0-pre.12"
+version = "0.6.0-rc.0"
 dependencies = [
  "bincode",
  "criterion",
