@@ -1,35 +1,9 @@
 //! Const-friendly decoding operations for [`BoxedUint`].
 
 use super::BoxedUint;
-use crate::{uint::encoding, Limb, Word};
-use alloc::boxed::Box;
-use core::fmt;
+use crate::{uint::encoding, DecodeError, Limb, Word};
+use alloc::{boxed::Box, vec::Vec};
 use subtle::{Choice, CtOption};
-
-/// Decoding errors for [`BoxedUint`].
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum DecodeError {
-    /// Input size is too small to fit in the given precision.
-    InputSize,
-
-    /// The deserialized number is larger than the given precision.
-    Precision,
-}
-
-impl fmt::Display for DecodeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::InputSize => write!(f, "input size is too small to fit in the given precision"),
-            Self::Precision => write!(
-                f,
-                "the deserialized number is larger than the given precision"
-            ),
-        }
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for DecodeError {}
 
 impl BoxedUint {
     /// Create a new [`BoxedUint`] from the provided big endian bytes.
@@ -142,7 +116,6 @@ impl BoxedUint {
             bytes.len() == Limb::BYTES * nlimbs * 2,
             "hex string is not the expected size"
         );
-
         let mut res = vec![Limb::ZERO; nlimbs];
         let mut buf = [0u8; Limb::BYTES];
         let mut i = 0;
@@ -162,6 +135,76 @@ impl BoxedUint {
             i += 1;
         }
         CtOption::new(Self { limbs: res.into() }, Choice::from((err == 0) as u8))
+    }
+
+    /// Create a new [`BoxedUint`] from a big-endian string in a given base.
+    ///
+    /// The string may begin with a `+` character, and may use underscore
+    /// characters to separate digits.
+    ///
+    /// If the input value contains non-digit characters or digits outside of the range `0..radix`
+    /// this function will return [`DecodeError::InvalidDigit`].
+    /// Panics if `radix` is not in the range from 2 to 36.
+    pub fn from_str_radix_vartime(src: &str, radix: u32) -> Result<Self, DecodeError> {
+        let mut dec = VecDecodeByLimb::default();
+        encoding::decode_str_radix(src, radix, &mut dec)?;
+        Ok(Self {
+            limbs: dec.limbs.into(),
+        })
+    }
+
+    /// Create a new [`BoxedUint`] from a big-endian string in a given base,
+    /// with a given precision.
+    ///
+    /// The string may begin with a `+` character, and may use underscore
+    /// characters to separate digits.
+    ///
+    /// The `bits_precision` argument represents the precision of the resulting integer, which is
+    /// fixed as this type is not arbitrary-precision.
+    /// The new [`BoxedUint`] will be created with `bits_precision` rounded up to a multiple
+    /// of [`Limb::BITS`].
+    ///
+    /// If the input value contains non-digit characters or digits outside of the range `0..radix`
+    /// this function will return [`DecodeError::InvalidDigit`].
+    /// If the length of `bytes` is larger than `bits_precision` (rounded up to a multiple of 8)
+    /// this function will return [`DecodeError::InputSize`].
+    /// If the size of the decoded integer is larger than `bits_precision`,
+    /// this function will return [`DecodeError::Precision`].
+    /// Panics if `radix` is not in the range from 2 to 36.
+    pub fn from_str_radix_with_precision_vartime(
+        src: &str,
+        radix: u32,
+        bits_precision: u32,
+    ) -> Result<Self, DecodeError> {
+        let mut ret = Self::zero_with_precision(bits_precision);
+        encoding::decode_str_radix(
+            src,
+            radix,
+            &mut encoding::SliceDecodeByLimb::new(&mut ret.limbs),
+        )?;
+        if bits_precision < ret.bits() {
+            return Err(DecodeError::Precision);
+        }
+        Ok(ret)
+    }
+}
+
+/// Decoder target producing a Vec<Limb>
+#[derive(Default)]
+struct VecDecodeByLimb {
+    limbs: Vec<Limb>,
+}
+
+impl encoding::DecodeByLimb for VecDecodeByLimb {
+    #[inline]
+    fn limbs_mut(&mut self) -> &mut [Limb] {
+        self.limbs.as_mut_slice()
+    }
+
+    #[inline]
+    fn push_limb(&mut self, limb: Limb) -> bool {
+        self.limbs.push(limb);
+        true
     }
 }
 
@@ -380,5 +423,39 @@ mod tests {
         let bytes = hex!("ffeeddccbbaa99887766554433221100");
         let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
         assert_eq!(bytes.as_slice(), &*n.to_be_bytes());
+    }
+
+    #[test]
+    fn from_str_radix_invalid() {
+        assert_eq!(
+            BoxedUint::from_str_radix_vartime("?", 10,),
+            Err(DecodeError::InvalidDigit)
+        );
+        assert_eq!(
+            BoxedUint::from_str_radix_with_precision_vartime(
+                "ffffffffffffffff_ffffffffffffffff_f",
+                16,
+                128
+            ),
+            Err(DecodeError::InputSize)
+        );
+        assert_eq!(
+            BoxedUint::from_str_radix_with_precision_vartime("1111111111111111", 2, 10),
+            Err(DecodeError::Precision)
+        );
+    }
+
+    #[test]
+    fn from_str_radix_10() {
+        let dec = "+340_282_366_920_938_463_463_374_607_431_768_211_455";
+        let res = BoxedUint::from_str_radix_vartime(dec, 10).expect("error decoding");
+        assert_eq!(res, BoxedUint::max(128));
+    }
+
+    #[test]
+    fn from_str_radix_16() {
+        let hex = "fedcba9876543210fedcba9876543210";
+        let res = BoxedUint::from_str_radix_vartime(hex, 16).expect("error decoding");
+        assert_eq!(hex, format!("{res:x}"));
     }
 }
