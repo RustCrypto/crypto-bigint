@@ -77,8 +77,9 @@ mod tests {
 
     #[test]
     fn gcd_zero() {
-        let f = U256::ZERO;
-        assert!(f.gcd(&U256::ONE).is_none().is_true_vartime());
+        assert!(U256::ZERO.gcd(&U256::ZERO).is_none().is_true_vartime());
+        assert!(U256::ZERO.gcd(&U256::ONE).is_none().is_true_vartime());
+        assert!(U256::ONE.gcd(&U256::ZERO).is_none().is_true_vartime());
     }
 
     #[test]
