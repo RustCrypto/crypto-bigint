@@ -5,7 +5,7 @@ mod common;
 use common::to_biguint;
 use crypto_bigint::{
     modular::{MontyForm, MontyParams},
-    Encoding, Integer, Limb, NonZero, Odd, Word, U256,
+    Encoding, Limb, NonZero, Odd, Word, U256,
 };
 use num_bigint::BigUint;
 use num_integer::Integer as _;
@@ -275,12 +275,7 @@ proptest! {
     }
 
     #[test]
-    fn gcd(mut f in uint(), g in uint()) {
-        if f.is_even().into() {
-            // Ensure `f` is always odd (required by Bernstein-Yang)
-            f = f.wrapping_add(&U256::ONE);
-        }
-
+    fn gcd(f in uint(), g in uint()) {
         let f_bi = to_biguint(&f);
         let g_bi = to_biguint(&g);
 
