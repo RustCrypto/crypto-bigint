@@ -87,4 +87,14 @@ mod tests {
         assert_eq!(U256::ONE, f.gcd(&U256::ONE).unwrap());
         assert_eq!(U256::ONE, f.gcd(&U256::from(2u8)).unwrap());
     }
+
+    #[test]
+    fn gcd_two() {
+        let f = U256::from_u8(2);
+        assert_eq!(f, f.gcd(&f).unwrap());
+
+        let g = U256::from_u8(4);
+        assert_eq!(f, f.gcd(&g).unwrap());
+        assert_eq!(f, g.gcd(&f).unwrap());
+    }
 }
