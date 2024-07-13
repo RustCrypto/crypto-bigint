@@ -1,6 +1,8 @@
-//! Support for computing greatest common divisor of two `Uint`s.
+//! Support for computing the greatest common divisor of two `Uint`s.
 
-use crate::{modular::BernsteinYangInverter, ConstCtOption, Gcd, Odd, PrecomputeInverter, Uint};
+use crate::{
+    modular::BernsteinYangInverter, ConstChoice, ConstCtOption, Gcd, Odd, PrecomputeInverter, Uint,
+};
 use subtle::CtOption;
 
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Uint<SAT_LIMBS>
@@ -8,11 +10,25 @@ where
     Odd<Self>: PrecomputeInverter<Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>>,
 {
     /// Compute the greatest common divisor (GCD) of this number and another.
-    ///
-    /// Returns none in the event that `self` is even (i.e. `self` MUST be odd). However, `rhs` may be even.
     pub const fn gcd(&self, rhs: &Self) -> ConstCtOption<Self> {
-        let ret = <Odd<Self> as PrecomputeInverter>::Inverter::gcd(self, rhs);
-        ConstCtOption::new(ret, self.is_odd())
+        let k1 = self.trailing_zeros();
+        let k2 = rhs.trailing_zeros();
+
+        // Select the smaller of the two `k` values, making 2^k the common even divisor
+        let k = ConstChoice::from_u32_lt(k2, k1).select_u32(k1, k2);
+
+        // Decompose `self` and `rhs` into `s{1, 2} * 2^k` where either `s1` or `s2` is odd
+        let s1 = self.overflowing_shr(k).unwrap_or(Self::ZERO);
+        let s2 = rhs.overflowing_shr(k).unwrap_or(Self::ZERO);
+
+        let f = Self::select(&s1, &s2, s2.is_odd().not());
+        let g = Self::select(&s1, &s2, s2.is_odd());
+
+        let ret = <Odd<Self> as PrecomputeInverter>::Inverter::gcd(&f, &g);
+        ConstCtOption::new(
+            ret.overflowing_shl(k).unwrap_or(Self::ZERO),
+            f.is_nonzero().and(g.is_odd()),
+        )
     }
 }
 
@@ -61,8 +77,9 @@ mod tests {
 
     #[test]
     fn gcd_zero() {
-        let f = U256::ZERO;
-        assert!(f.gcd(&U256::ONE).is_none().is_true_vartime());
+        assert!(U256::ZERO.gcd(&U256::ZERO).is_none().is_true_vartime());
+        assert!(U256::ZERO.gcd(&U256::ONE).is_none().is_true_vartime());
+        assert!(U256::ONE.gcd(&U256::ZERO).is_none().is_true_vartime());
     }
 
     #[test]
@@ -70,5 +87,15 @@ mod tests {
         let f = U256::ONE;
         assert_eq!(U256::ONE, f.gcd(&U256::ONE).unwrap());
         assert_eq!(U256::ONE, f.gcd(&U256::from(2u8)).unwrap());
+    }
+
+    #[test]
+    fn gcd_two() {
+        let f = U256::from_u8(2);
+        assert_eq!(f, f.gcd(&f).unwrap());
+
+        let g = U256::from_u8(4);
+        assert_eq!(f, f.gcd(&g).unwrap());
+        assert_eq!(f, g.gcd(&f).unwrap());
     }
 }
