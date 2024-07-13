@@ -280,7 +280,7 @@ proptest! {
         let g_bi = to_biguint(&g);
 
         let expected = to_uint(f_bi.gcd(&g_bi));
-        let actual = f.gcd(&g).unwrap();
+        let actual = f.gcd(&g);
         assert_eq!(expected, actual);
     }
 
