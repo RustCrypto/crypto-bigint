@@ -197,12 +197,12 @@ pub trait FixedInteger: Bounded + ConditionallySelectable + Constants + Copy + I
     const LIMBS: usize;
 }
 
-/// Compute greatest common divisor of two integers.
+/// Compute the greatest common divisor of two integers.
 pub trait Gcd<Rhs = Self>: Sized {
     /// Output type.
     type Output;
 
-    /// Compute greatest common divisor of `self` and `rhs`.
+    /// Compute the greatest common divisor of `self` and `rhs`.
     ///
     /// Returns none unless `self` is odd (`rhs` may be even or odd)`.
     fn gcd(&self, rhs: &Rhs) -> Self::Output;
