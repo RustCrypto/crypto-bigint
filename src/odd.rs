@@ -1,8 +1,8 @@
 //! Wrapper type for non-zero integers.
 
 use crate::{Integer, Limb, NonZero, Uint};
-use core::{cmp::Ordering, ops::Deref};
-use subtle::{Choice, ConditionallySelectable, CtOption};
+use core::{cmp::Ordering, fmt, ops::Deref};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "alloc")]
 use crate::BoxedUint;
@@ -107,6 +107,15 @@ where
     }
 }
 
+impl<T> ConstantTimeEq for Odd<T>
+where
+    T: ConstantTimeEq,
+{
+    fn ct_eq(&self, other: &Self) -> Choice {
+        self.0.ct_eq(&other.0)
+    }
+}
+
 impl<T> Deref for Odd<T> {
     type Target = T;
 
@@ -161,6 +170,51 @@ impl Odd<BoxedUint> {
     }
 }
 
+impl<T> fmt::Display for Odd<T>
+where
+    T: fmt::Display,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Display::fmt(&self.0, f)
+    }
+}
+
+impl<T> fmt::Binary for Odd<T>
+where
+    T: fmt::Binary,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Binary::fmt(&self.0, f)
+    }
+}
+
+impl<T> fmt::Octal for Odd<T>
+where
+    T: fmt::Octal,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::Octal::fmt(&self.0, f)
+    }
+}
+
+impl<T> fmt::LowerHex for Odd<T>
+where
+    T: fmt::LowerHex,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::LowerHex::fmt(&self.0, f)
+    }
+}
+
+impl<T> fmt::UpperHex for Odd<T>
+where
+    T: fmt::UpperHex,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt::UpperHex::fmt(&self.0, f)
+    }
+}
+
 #[cfg(feature = "serde")]
 impl<'de, T: Deserialize<'de> + Integer + Zero> Deserialize<'de> for Odd<T> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -184,7 +238,12 @@ impl<T: Serialize + Zero> Serialize for Odd<T> {
         self.0.serialize(serializer)
     }
 }
-
+#[cfg(feature = "zeroize")]
+impl<T: zeroize::Zeroize> zeroize::Zeroize for Odd<T> {
+    fn zeroize(&mut self) {
+        self.0.zeroize();
+    }
+}
 #[cfg(test)]
 mod tests {
     #[cfg(feature = "alloc")]
