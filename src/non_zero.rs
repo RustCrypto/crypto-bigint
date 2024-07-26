@@ -116,7 +116,7 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     ///
     /// In future versions of Rust it should be possible to replace this with
     /// `NonZero::new(…).unwrap()`
-    // TODO: Remove when `Result::unwrap` is const (https://github.com/rust-lang/rust/issues/82814)
+    // TODO: Remove when `Self::new` and `CtOption::unwrap` support `const fn`
     pub const fn new_unwrap(n: Uint<LIMBS>) -> Self {
         if n.is_nonzero().is_true_vartime() {
             Self(n)
