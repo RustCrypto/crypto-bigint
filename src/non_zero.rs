@@ -112,10 +112,12 @@ impl NonZero<Limb> {
 
 impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     /// Creates a new non-zero integer in a const context.
-    /// # Panics
-    ///
     /// Panics if the value is zero.
-    pub const fn const_new(n: Uint<LIMBS>) -> Self {
+    ///
+    /// In future versions of Rust it should be possible to replace this with
+    /// `NonZero::new(…).unwrap()`
+    // TODO: Remove when `Result::unwrap` is const (https://github.com/rust-lang/rust/issues/82814)
+    pub const fn new_unwrap(n: Uint<LIMBS>) -> Self {
         if n.is_nonzero().is_true_vartime() {
             Self(n)
         } else {
