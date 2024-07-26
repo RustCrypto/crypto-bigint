@@ -111,6 +111,20 @@ impl NonZero<Limb> {
 }
 
 impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
+    /// Creates a new non-zero integer in a const context.
+    /// Panics if the value is zero.
+    ///
+    /// In future versions of Rust it should be possible to replace this with
+    /// `NonZero::new(…).unwrap()`
+    // TODO: Remove when `Self::new` and `CtOption::unwrap` support `const fn`
+    pub const fn new_unwrap(n: Uint<LIMBS>) -> Self {
+        if n.is_nonzero().is_true_vartime() {
+            Self(n)
+        } else {
+            panic!("Invalid value: zero")
+        }
+    }
+
     /// Create a [`NonZero<Uint>`] from a [`NonZeroU8`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU8>` when stable
     pub const fn from_u8(n: NonZeroU8) -> Self {
