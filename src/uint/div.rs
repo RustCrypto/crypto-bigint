@@ -86,7 +86,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         // Short circuit for small or extra large divisors
         match yc {
-            0 => panic!("divisor must be non-zero"),
             1 => {
                 // If the divisor is a single limb, use limb division
                 let (q, r) = div_rem_limb_with_reciprocal(
@@ -241,19 +240,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let dbits = rhs.0.bits_vartime();
         let yc = ((dbits + Limb::BITS - 1) / Limb::BITS) as usize;
 
-        // Short circuit for small divisors
-        match yc {
-            0 => panic!("divisor must be non-zero"),
-            1 => {
-                // If the divisor is a single limb, use limb division
-                let r = rem_limb_with_reciprocal_wide(
-                    (&lower_upper.0, &lower_upper.1),
-                    &Reciprocal::new(rhs.0.limbs[0].to_nz().expect("zero divisor")),
-                );
-                return Uint::from_word(r.0);
-            }
-            _ => {}
-        };
+        // If the divisor is a single limb, use limb division
+        if yc == 1 {
+            let r = rem_limb_with_reciprocal_wide(
+                (&lower_upper.0, &lower_upper.1),
+                &Reciprocal::new(rhs.0.limbs[0].to_nz().expect("zero divisor")),
+            );
+            return Uint::from_word(r.0);
+        }
 
         let lshift = (Limb::BITS - (dbits % Limb::BITS)) % Limb::BITS;
         let rshift = if lshift == 0 { 0 } else { Limb::BITS - lshift };
