@@ -3,28 +3,40 @@
 use crate::{
     modular::{MontyForm, MontyParams},
     primitives::mul_rem,
-    Limb, MulMod, Uint, WideWord, Word,
+    Concat, Limb, MulMod, Odd, Split, Uint, WideWord, Word,
 };
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self * rhs mod p` for odd `p`.
-    ///
-    /// Panics if `p` is even.
-    // TODO(tarcieri): support for even `p`?
-    pub fn mul_mod(&self, rhs: &Uint<LIMBS>, p: &Uint<LIMBS>) -> Uint<LIMBS> {
+    pub fn mul_mod<const WIDE_LIMBS: usize>(
+        &self,
+        rhs: &Uint<LIMBS>,
+        p: &Odd<Uint<LIMBS>>,
+    ) -> Uint<LIMBS>
+    where
+        Uint<LIMBS>: Concat<Output = Uint<WIDE_LIMBS>>,
+        Uint<WIDE_LIMBS>: Split<Output = Uint<LIMBS>>,
+    {
         // NOTE: the overhead of converting to Montgomery form to perform this operation and then
         // immediately converting out of Montgomery form after just a single operation is likely to
         // be higher than other possible implementations of this function, such as using a
         // Barrett reduction instead.
         //
         // It's worth potentially exploring other approaches to improve efficiency.
-        match p.to_odd().into() {
-            Some(odd_p) => {
-                let params = MontyParams::new_vartime(odd_p);
-                (MontyForm::new(self, params) * MontyForm::new(rhs, params)).retrieve()
-            }
-            None => todo!("even moduli are currently unsupported"),
-        }
+        let params = MontyParams::new(*p);
+        (MontyForm::new(self, params) * MontyForm::new(rhs, params)).retrieve()
+    }
+
+    /// Computes `self * rhs mod p` for odd `p` in variable time with respect to `p`,
+    pub fn mul_mod_vartime(&self, rhs: &Uint<LIMBS>, p: &Odd<Uint<LIMBS>>) -> Uint<LIMBS> {
+        // NOTE: the overhead of converting to Montgomery form to perform this operation and then
+        // immediately converting out of Montgomery form after just a single operation is likely to
+        // be higher than other possible implementations of this function, such as using a
+        // Barrett reduction instead.
+        //
+        // It's worth potentially exploring other approaches to improve efficiency.
+        let params = MontyParams::new_vartime(*p);
+        (MontyForm::new(self, params) * MontyForm::new(rhs, params)).retrieve()
     }
 
     /// Computes `self * rhs mod p` for the special modulus
@@ -64,7 +76,7 @@ impl<const LIMBS: usize> MulMod for Uint<LIMBS> {
     type Output = Self;
 
     fn mul_mod(&self, rhs: &Self, p: &Self) -> Self {
-        self.mul_mod(rhs, p)
+        self.mul_mod_vartime(rhs, &p.to_odd().expect("only odd moduli supported"))
     }
 }
 
