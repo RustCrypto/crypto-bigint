@@ -188,7 +188,7 @@ proptest! {
         let p_bi = to_biguint(&P);
 
         let expected = to_uint((a_bi * b_bi) % p_bi);
-        let actual = a.mul_mod_vartime(&b, &P);
+        let actual = a.mul_mod_vartime(&b, P.as_nz_ref());
 
         assert!(expected < P);
         assert!(actual < P);
