@@ -280,6 +280,14 @@ pub(crate) const fn rem_limb_with_reciprocal_wide<const L: usize>(
     Limb(r >> reciprocal.shift)
 }
 
+/// Computes `(a * b) % d`.
+#[inline(always)]
+pub(crate) const fn mul_rem(a: Limb, b: Limb, d: NonZero<Limb>) -> Limb {
+    let rec = Reciprocal::new(d);
+    let (hi, lo) = mulhilo(a.0, b.0);
+    rem_limb_with_reciprocal(&Uint::from_words([lo, hi]), &rec)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{div2by1, Reciprocal};
