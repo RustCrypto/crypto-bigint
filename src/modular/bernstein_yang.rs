@@ -260,9 +260,9 @@ const fn de<const LIMBS: usize>(
 ) -> (Int62L<LIMBS>, Int62L<LIMBS>) {
     let mask = Int62L::<LIMBS>::MASK as i64;
     let mut md =
-        t[0][0] * d.is_negative().to_u8() as i64 + t[0][1] * e.is_negative().to_bool() as i64;
+        t[0][0] * d.is_negative().to_u8() as i64 + t[0][1] * e.is_negative().to_u8() as i64;
     let mut me =
-        t[1][0] * d.is_negative().to_u8() as i64 + t[1][1] * e.is_negative().to_bool() as i64;
+        t[1][0] * d.is_negative().to_u8() as i64 + t[1][1] * e.is_negative().to_u8() as i64;
 
     let cd = t[0][0]
         .wrapping_mul(d.lowest() as i64)
@@ -339,7 +339,7 @@ impl<const LIMBS: usize> Int62L<LIMBS> {
     #[allow(trivial_numeric_casts, clippy::wrong_self_convention)]
     pub const fn to_uint<const SAT_LIMBS: usize>(&self) -> Uint<SAT_LIMBS> {
         debug_assert!(
-            !self.is_negative().to_bool(),
+            !self.is_negative().to_bool_vartime(),
             "can't convert negative number to Uint"
         );
 
@@ -522,9 +522,9 @@ mod tests {
 
     #[test]
     fn int62l_is_negative() {
-        assert!(!Int62L::ZERO.is_negative().to_bool());
-        assert!(!Int62L::ONE.is_negative().to_bool());
-        assert!(Int62L::MINUS_ONE.is_negative().to_bool());
+        assert!(!Int62L::ZERO.is_negative().to_bool_vartime());
+        assert!(!Int62L::ONE.is_negative().to_bool_vartime());
+        assert!(Int62L::MINUS_ONE.is_negative().to_bool_vartime());
     }
 
     #[test]

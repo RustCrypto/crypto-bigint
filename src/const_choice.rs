@@ -196,7 +196,7 @@ impl ConstChoice {
 
     /// WARNING: this method should only be used in contexts that aren't constant-time critical!
     #[inline]
-    pub(crate) const fn to_bool(self) -> bool {
+    pub(crate) const fn to_bool_vartime(self) -> bool {
         self.to_u8() != 0
     }
 }
