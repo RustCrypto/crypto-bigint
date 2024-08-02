@@ -1,8 +1,8 @@
 //! [`Uint`] modular multiplication operations.
 
 use crate::{
+    div_limb::mul_rem,
     modular::{MontyForm, MontyParams},
-    primitives::mul_rem,
     Concat, Limb, MulMod, NonZero, Split, Uint, WideWord, Word,
 };
 
@@ -53,8 +53,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // We implicitly assume `LIMBS > 0`, because `Uint<0>` doesn't compile.
         // Still the case `LIMBS == 1` needs special handling.
         if LIMBS == 1 {
-            let reduced = mul_rem(self.limbs[0].0, rhs.limbs[0].0, Word::MIN.wrapping_sub(c.0));
-            return Self::from_word(reduced);
+            let reduced = mul_rem(
+                self.limbs[0],
+                rhs.limbs[0],
+                NonZero::<Limb>::new_unwrap(Limb(Word::MIN.wrapping_sub(c.0))),
+            );
+            return Self::from_word(reduced.0);
         }
 
         let (lo, hi) = self.split_mul(rhs);
