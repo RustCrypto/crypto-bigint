@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
-use crypto_bigint::{BoxedUint, RandomBits};
+use crypto_bigint::{BoxedUint, Limb, NonZero, RandomBits};
 use rand_core::OsRng;
 
 /// Size of `BoxedUint` to use in benchmark.
@@ -43,6 +43,100 @@ fn bench_shifts(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_division(c: &mut Criterion) {
+    let mut group = c.benchmark_group("wrapping ops");
+
+    group.bench_function("boxed_div_rem", |b| {
+        b.iter_batched(
+            || {
+                (
+                    BoxedUint::max(UINT_BITS),
+                    NonZero::new(BoxedUint::random_bits_with_precision(
+                        &mut OsRng,
+                        UINT_BITS / 2,
+                        UINT_BITS,
+                    ))
+                    .unwrap(),
+                )
+            },
+            |(x, y)| black_box(x.div_rem(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("boxed_div_rem_vartime", |b| {
+        b.iter_batched(
+            || {
+                (
+                    BoxedUint::max(UINT_BITS),
+                    NonZero::new(BoxedUint::random_bits_with_precision(
+                        &mut OsRng,
+                        UINT_BITS / 2,
+                        UINT_BITS,
+                    ))
+                    .unwrap(),
+                )
+            },
+            |(x, y)| black_box(x.div_rem_vartime(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("boxed_div_rem_limb", |b| {
+        b.iter_batched(
+            || (BoxedUint::max(UINT_BITS), NonZero::new(Limb::ONE).unwrap()),
+            |(x, y)| black_box(x.div_rem_limb(y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("boxed_rem", |b| {
+        b.iter_batched(
+            || {
+                (
+                    BoxedUint::max(UINT_BITS),
+                    NonZero::new(BoxedUint::random_bits_with_precision(
+                        &mut OsRng,
+                        UINT_BITS / 2,
+                        UINT_BITS,
+                    ))
+                    .unwrap(),
+                )
+            },
+            |(x, y)| black_box(x.rem(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("boxed_rem_vartime", |b| {
+        b.iter_batched(
+            || {
+                (
+                    BoxedUint::max(UINT_BITS),
+                    NonZero::new(BoxedUint::random_bits_with_precision(
+                        &mut OsRng,
+                        UINT_BITS / 2,
+                        UINT_BITS,
+                    ))
+                    .unwrap(),
+                )
+            },
+            |(x, y)| black_box(x.rem_vartime(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("boxed_rem_limb", |b| {
+        b.iter_batched(
+            || (BoxedUint::max(UINT_BITS), NonZero::new(Limb::ONE).unwrap()),
+            |(x, y)| black_box(x.rem_limb(y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.finish();
+}
+
 fn bench_boxed_sqrt(c: &mut Criterion) {
     let mut group = c.benchmark_group("boxed_sqrt");
     group.bench_function("boxed_sqrt, 4096", |b| {
@@ -62,6 +156,6 @@ fn bench_boxed_sqrt(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, bench_shifts, bench_boxed_sqrt);
+criterion_group!(benches, bench_division, bench_shifts, bench_boxed_sqrt);
 
 criterion_main!(benches);
