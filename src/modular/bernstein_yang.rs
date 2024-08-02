@@ -86,7 +86,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
         // integer to be inverted and the modulus the inverter was created for.
         // Thus, if "f" is neither 1 nor -1, then the sought inverse does not exist.
         let antiunit = f.eq(&Int62L::MINUS_ONE);
-        let ret = self.norm(d, antiunit);
+        let ret = self.norm(d, ConstChoice::from_word_lsb(antiunit as Word));
         let is_some = ConstChoice::from_word_lsb((f.eq(&Int62L::ONE) || antiunit) as Word);
         ConstCtOption::new(ret.to_uint(), is_some)
     }
@@ -102,30 +102,21 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
         let f = Int62L::from_uint(f);
         let g = Int62L::from_uint(g);
         let (_, mut f) = divsteps(e, f, g, inverse);
-
-        if f.is_negative() {
-            f = f.neg();
-        }
-
+        f = Int62L::select(&f, &f.neg(), f.is_negative());
         f.to_uint()
     }
 
     /// Returns either "value (mod M)" or "-value (mod M)", where M is the modulus the inverter
     /// was created for, depending on "negate", which determines the presence of "-" in the used
     /// formula. The input integer lies in the interval (-2 * M, M).
-    const fn norm(&self, mut value: Int62L<UNSAT_LIMBS>, negate: bool) -> Int62L<UNSAT_LIMBS> {
-        if value.is_negative() {
-            value = value.add(&self.modulus);
-        }
-
-        if negate {
-            value = value.neg();
-        }
-
-        if value.is_negative() {
-            value = value.add(&self.modulus);
-        }
-
+    const fn norm(
+        &self,
+        mut value: Int62L<UNSAT_LIMBS>,
+        negate: ConstChoice,
+    ) -> Int62L<UNSAT_LIMBS> {
+        value = Int62L::select(&value, &value.add(&self.modulus), value.is_negative());
+        value = Int62L::select(&value, &value.neg(), negate);
+        value = Int62L::select(&value, &value.add(&self.modulus), value.is_negative());
         value
     }
 }
@@ -268,8 +259,10 @@ const fn de<const LIMBS: usize>(
     e: Int62L<LIMBS>,
 ) -> (Int62L<LIMBS>, Int62L<LIMBS>) {
     let mask = Int62L::<LIMBS>::MASK as i64;
-    let mut md = t[0][0] * d.is_negative() as i64 + t[0][1] * e.is_negative() as i64;
-    let mut me = t[1][0] * d.is_negative() as i64 + t[1][1] * e.is_negative() as i64;
+    let mut md =
+        t[0][0] * d.is_negative().to_u8() as i64 + t[0][1] * e.is_negative().to_u8() as i64;
+    let mut me =
+        t[1][0] * d.is_negative().to_u8() as i64 + t[1][1] * e.is_negative().to_u8() as i64;
 
     let cd = t[0][0]
         .wrapping_mul(d.lowest() as i64)
@@ -345,7 +338,10 @@ impl<const LIMBS: usize> Int62L<LIMBS> {
     /// The ordering of the chunks in these arrays is little-endian.
     #[allow(trivial_numeric_casts, clippy::wrong_self_convention)]
     pub const fn to_uint<const SAT_LIMBS: usize>(&self) -> Uint<SAT_LIMBS> {
-        debug_assert!(!self.is_negative(), "can't convert negative number to Uint");
+        debug_assert!(
+            !self.is_negative().to_bool_vartime(),
+            "can't convert negative number to Uint"
+        );
 
         if LIMBS != bernstein_yang_nlimbs!(SAT_LIMBS * Limb::BITS as usize) {
             panic!("incorrect number of limbs");
@@ -424,9 +420,7 @@ impl<const LIMBS: usize> Int62L<LIMBS> {
     /// Returns the result of applying 62-bit right arithmetical shift to the current number.
     pub const fn shr(&self) -> Self {
         let mut ret = Self::ZERO;
-        if self.is_negative() {
-            ret.0[LIMBS - 1] = Self::MASK;
-        }
+        ret.0[LIMBS - 1] = self.is_negative().select_u64(ret.0[LIMBS - 1], Self::MASK);
 
         let mut i = 0;
         while i < LIMBS - 1 {
@@ -451,13 +445,26 @@ impl<const LIMBS: usize> Int62L<LIMBS> {
     }
 
     /// Returns "true" iff the current number is negative.
-    pub const fn is_negative(&self) -> bool {
-        self.0[LIMBS - 1] > (Self::MASK >> 1)
+    pub const fn is_negative(&self) -> ConstChoice {
+        ConstChoice::from_u64_gt(self.0[LIMBS - 1], Self::MASK >> 1)
     }
 
     /// Returns the lowest 62 bits of the current number.
     pub const fn lowest(&self) -> u64 {
         self.0[0]
+    }
+
+    /// Select between two [`Int62L`] values in constant time.
+    pub const fn select(a: &Self, b: &Self, choice: ConstChoice) -> Self {
+        let mut ret = Self::ZERO;
+        let mut i = 0;
+
+        while i < LIMBS {
+            ret.0[i] = choice.select_u64(a.0[i], b.0[i]);
+            i += 1;
+        }
+
+        ret
     }
 }
 
@@ -515,9 +522,9 @@ mod tests {
 
     #[test]
     fn int62l_is_negative() {
-        assert!(!Int62L::ZERO.is_negative());
-        assert!(!Int62L::ONE.is_negative());
-        assert!(Int62L::MINUS_ONE.is_negative());
+        assert!(!Int62L::ZERO.is_negative().to_bool_vartime());
+        assert!(!Int62L::ONE.is_negative().to_bool_vartime());
+        assert!(Int62L::MINUS_ONE.is_negative().to_bool_vartime());
     }
 
     #[test]

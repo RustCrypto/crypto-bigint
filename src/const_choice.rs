@@ -21,6 +21,18 @@ impl ConstChoice {
         self.0 as u32
     }
 
+    #[inline]
+    #[cfg(target_pointer_width = "32")]
+    pub(crate) const fn as_u64_mask(&self) -> u64 {
+        ((self.0 as u64) << 32) | (self.0 as u64)
+    }
+
+    #[inline]
+    #[cfg(target_pointer_width = "64")]
+    pub(crate) const fn as_u64_mask(&self) -> u64 {
+        self.0
+    }
+
     /// Returns the truthy value if `value == Word::MAX`, and the falsy value if `value == 0`.
     /// Panics for other values.
     #[inline]
@@ -39,6 +51,13 @@ impl ConstChoice {
 
     #[inline]
     pub(crate) const fn from_u32_lsb(value: u32) -> Self {
+        debug_assert!(value == 0 || value == 1);
+        #[allow(trivial_numeric_casts)]
+        Self((value as Word).wrapping_neg())
+    }
+
+    #[inline]
+    pub(crate) const fn from_u64_lsb(value: u64) -> Self {
         debug_assert!(value == 0 || value == 1);
         #[allow(trivial_numeric_casts)]
         Self((value as Word).wrapping_neg())
@@ -106,6 +125,20 @@ impl ConstChoice {
         Self::from_u32_lsb(bit)
     }
 
+    /// Returns the truthy value if `x < y`, and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn from_u64_lt(x: u64, y: u64) -> Self {
+        // See "Hacker's Delight" 2nd ed, section 2-12 (Comparison predicates)
+        let bit = (((!x) & y) | (((!x) | y) & (x.wrapping_sub(y)))) >> (u64::BITS - 1);
+        Self::from_u64_lsb(bit)
+    }
+
+    /// Returns the truthy value if `x > y`, and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn from_u64_gt(x: u64, y: u64) -> Self {
+        Self::from_u64_lt(y, x)
+    }
+
     #[inline]
     pub(crate) const fn not(&self) -> Self {
         Self(!self.0)
@@ -133,6 +166,12 @@ impl ConstChoice {
         a ^ (self.as_u32_mask() & (a ^ b))
     }
 
+    /// Return `b` if `self` is truthy, otherwise return `a`.
+    #[inline]
+    pub(crate) const fn select_u64(&self, a: u64, b: u64) -> u64 {
+        a ^ (self.as_u64_mask() & (a ^ b))
+    }
+
     /// Return `x` if `self` is truthy, otherwise return 0.
     #[inline]
     pub(crate) const fn if_true_word(&self, x: Word) -> Word {
@@ -153,6 +192,12 @@ impl ConstChoice {
     #[inline]
     pub(crate) const fn to_u8(self) -> u8 {
         (self.0 as u8) & 1
+    }
+
+    /// WARNING: this method should only be used in contexts that aren't constant-time critical!
+    #[inline]
+    pub(crate) const fn to_bool_vartime(self) -> bool {
+        self.to_u8() != 0
     }
 }
 
@@ -369,6 +414,12 @@ mod tests {
     use crate::Word;
 
     #[test]
+    fn from_u64_lsb() {
+        assert_eq!(ConstChoice::from_u64_lsb(0), ConstChoice::FALSE);
+        assert_eq!(ConstChoice::from_u64_lsb(1), ConstChoice::TRUE);
+    }
+
+    #[test]
     fn from_word_lt() {
         assert_eq!(ConstChoice::from_word_lt(4, 5), ConstChoice::TRUE);
         assert_eq!(ConstChoice::from_word_lt(5, 5), ConstChoice::FALSE);
@@ -383,7 +434,23 @@ mod tests {
     }
 
     #[test]
-    fn select() {
+    fn select_u32() {
+        let a: u32 = 1;
+        let b: u32 = 2;
+        assert_eq!(ConstChoice::TRUE.select_u32(a, b), b);
+        assert_eq!(ConstChoice::FALSE.select_u32(a, b), a);
+    }
+
+    #[test]
+    fn select_u64() {
+        let a: u64 = 1;
+        let b: u64 = 2;
+        assert_eq!(ConstChoice::TRUE.select_u64(a, b), b);
+        assert_eq!(ConstChoice::FALSE.select_u64(a, b), a);
+    }
+
+    #[test]
+    fn select_word() {
         let a: Word = 1;
         let b: Word = 2;
         assert_eq!(ConstChoice::TRUE.select_word(a, b), b);
