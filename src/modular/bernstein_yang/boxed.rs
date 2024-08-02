@@ -601,7 +601,7 @@ mod tests {
         fn boxed_int62l_is_negative(x in u256()) {
             let x_ref = Int62L::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
             let x_boxed = BoxedInt62L::from(&x.into());
-            assert_eq!(x_ref.is_negative(), x_boxed.is_negative());
+            assert_eq!(x_ref.is_negative().to_bool(), x_boxed.is_negative());
         }
 
         #[test]
