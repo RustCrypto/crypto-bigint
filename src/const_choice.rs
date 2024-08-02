@@ -55,7 +55,7 @@ impl ConstChoice {
     pub(crate) const fn from_u64_lsb(value: u64) -> Self {
         debug_assert!(value == 0 || value == 1);
         #[allow(trivial_numeric_casts)]
-        Self((value as Word).wrapping_neg())
+        Self(value.wrapping_neg())
     }
 
     /// Returns the truthy value if `value != 0`, and the falsy value otherwise.
@@ -407,6 +407,12 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
 mod tests {
     use super::ConstChoice;
     use crate::Word;
+
+    #[test]
+    fn from_u64_lsb() {
+        assert_eq!(ConstChoice::from_u64_lsb(0), ConstChoice::FALSE);
+        assert_eq!(ConstChoice::from_u64_lsb(1), ConstChoice::TRUE);
+    }
 
     #[test]
     fn from_word_lt() {
