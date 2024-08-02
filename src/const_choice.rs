@@ -22,10 +22,15 @@ impl ConstChoice {
     }
 
     #[inline]
-    #[allow(trivial_numeric_casts)]
-    #[allow(clippy::unnecessary_cast)]
+    #[cfg(target_pointer_width = "32")]
     pub(crate) const fn as_u64_mask(&self) -> u64 {
-        self.0 as u64
+        ((self.0 as u64) << 32) | (self.0 as u64)
+    }
+
+    #[inline]
+    #[cfg(target_pointer_width = "64")]
+    pub(crate) const fn as_u64_mask(&self) -> u64 {
+        self.0
     }
 
     /// Returns the truthy value if `value == Word::MAX`, and the falsy value if `value == 0`.
@@ -55,7 +60,7 @@ impl ConstChoice {
     pub(crate) const fn from_u64_lsb(value: u64) -> Self {
         debug_assert!(value == 0 || value == 1);
         #[allow(trivial_numeric_casts)]
-        Self(value.wrapping_neg())
+        Self((value as Word).wrapping_neg())
     }
 
     /// Returns the truthy value if `value != 0`, and the falsy value otherwise.
