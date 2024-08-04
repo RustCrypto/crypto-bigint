@@ -60,7 +60,7 @@ impl Inverter for BoxedBernsteinYangInverter {
         // Thus, if "f" is neither 1 nor -1, then the sought inverse does not exist.
         let antiunit = f.is_minus_one();
         let ret = self.norm(d, antiunit);
-        let is_some = Choice::from(f.is_one() as u8) | antiunit;
+        let is_some = f.is_one() | antiunit;
 
         CtOption::new(ret.to_uint(value.bits_precision()), is_some)
     }
@@ -96,7 +96,8 @@ fn divsteps(
     let mut delta = 1;
     let mut matrix;
 
-    while !g.is_zero() {
+    // TODO(tarcieri): run in a fixed number of iterations
+    while !bool::from(g.is_zero()) {
         (delta, matrix) = jump(&f.0, &g.0, delta);
         fg(&mut f, g, matrix);
         de(f_0, inverse, matrix, d, &mut e);
@@ -337,15 +338,17 @@ impl BoxedInt62L {
     }
 
     /// Is the current value zero?
-    pub fn is_zero(&self) -> bool {
-        self.0.iter().fold(true, |acc, &limb| acc & (limb == 0))
+    pub fn is_zero(&self) -> Choice {
+        self.0
+            .iter()
+            .fold(Choice::from(1), |acc, &limb| acc & limb.ct_eq(&0))
     }
 
     /// Is the current value one?
-    pub fn is_one(&self) -> bool {
+    pub fn is_one(&self) -> Choice {
         self.0[1..]
             .iter()
-            .fold(self.lowest() == 1, |acc, &limb| acc & (limb == 0))
+            .fold(self.lowest().ct_eq(&1), |acc, &limb| acc & limb.ct_eq(&0))
     }
 
     /// Returns the lowest 62 bits of the current number.
@@ -414,12 +417,6 @@ impl Mul<i64> for &BoxedInt62L {
     }
 }
 
-impl PartialEq for BoxedInt62L {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.ct_eq(&other.0).into()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::BoxedInt62L;
@@ -429,6 +426,12 @@ mod tests {
 
     #[cfg(not(miri))]
     use crate::modular::bernstein_yang::Int62L;
+
+    impl PartialEq for BoxedInt62L {
+        fn eq(&self, other: &Self) -> bool {
+            self.0.ct_eq(&other.0).into()
+        }
+    }
 
     #[test]
     fn invert() {
@@ -516,19 +519,19 @@ mod tests {
     #[test]
     fn boxed_int62l_is_zero() {
         let zero = BoxedInt62L::from(&U256::ZERO.into());
-        assert!(zero.is_zero());
+        assert!(bool::from(zero.is_zero()));
 
         let one = BoxedInt62L::from(&U256::ONE.into());
-        assert!(!one.is_zero());
+        assert!(!bool::from(one.is_zero()));
     }
 
     #[test]
     fn boxed_int62l_is_one() {
         let zero = BoxedInt62L::from(&U256::ZERO.into());
-        assert!(!zero.is_one());
+        assert!(!bool::from(zero.is_one()));
 
         let one = BoxedInt62L::from(&U256::ONE.into());
-        assert!(one.is_one());
+        assert!(bool::from(one.is_one()));
     }
 
     #[test]

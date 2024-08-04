@@ -178,6 +178,7 @@ const fn divsteps<const LIMBS: usize>(
     let mut delta = 1;
     let mut matrix;
 
+    // TODO(tarcieri): run in a fixed number of iterations
     while !g.eq(&Int62L::ZERO).to_bool_vartime() {
         (delta, matrix) = jump(&f.0, &g.0, delta);
         (f, g) = fg(f, g, matrix);
