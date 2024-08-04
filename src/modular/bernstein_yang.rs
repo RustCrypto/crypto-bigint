@@ -197,7 +197,7 @@ const fn divsteps<const LIMBS: usize>(
     let mut delta = 1;
     let mut matrix;
     let mut i = 0;
-    let m = iterations(&f_0, &g);
+    let m = iterations(f_0.bits(), g.bits());
 
     while i < m {
         (delta, matrix) = jump(&f.0, &g.0, delta);
@@ -339,10 +339,7 @@ const fn de<const LIMBS: usize>(
 ///
 /// Once `g` reaches `0`, continuing to run the algorithm will have no effect.
 // TODO(tarcieri): improved bounds using https://github.com/sipa/safegcd-bounds
-const fn iterations<const LIMBS: usize>(f: &Int62L<LIMBS>, g: &Int62L<LIMBS>) -> usize {
-    let f_bits = f.bits();
-    let g_bits = g.bits();
-
+pub(crate) const fn iterations(f_bits: u32, g_bits: u32) -> usize {
     // Select max of `f_bits`, `g_bits`
     let d = ConstChoice::from_u32_lt(f_bits, g_bits).select_u32(f_bits, g_bits) as usize;
 
