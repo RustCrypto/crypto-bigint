@@ -333,6 +333,12 @@ const fn de<const LIMBS: usize>(
 /// Compute the number of iterations required to compute Bernstein-Yang on the two values.
 ///
 /// Adapted from Fig 11.1 of <https://eprint.iacr.org/2019/266.pdf>
+///
+/// The paper proves that the algorithm will converge (i.e. `g` will be `0`) in all cases when
+/// the algorithm runs this particular number of iterations.
+///
+/// Once `g` reaches `0`, continuing to run the algorithm will have no effect.
+// TODO(tarcieri): improved bounds using https://github.com/sipa/safegcd-bounds
 const fn iterations<const LIMBS: usize>(f: &Int62L<LIMBS>, g: &Int62L<LIMBS>) -> usize {
     let f_bits = f.bits();
     let g_bits = g.bits();
