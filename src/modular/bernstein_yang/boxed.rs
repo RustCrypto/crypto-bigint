@@ -6,8 +6,8 @@
 use super::{inv_mod2_62, jump, Matrix};
 use crate::{BoxedUint, Inverter, Limb, Odd, Word};
 use alloc::{boxed::Box, vec::Vec};
-use core::ops::{AddAssign, Mul, Neg};
-use subtle::{Choice, ConstantTimeEq, CtOption};
+use core::ops::{AddAssign, Mul};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, CtOption};
 
 /// Modular multiplicative inverter based on the Bernstein-Yang method.
 ///
@@ -39,19 +39,10 @@ impl BoxedBernsteinYangInverter {
     /// Returns either "value (mod M)" or "-value (mod M)", where M is the modulus the inverter
     /// was created for, depending on "negate", which determines the presence of "-" in the used
     /// formula. The input integer lies in the interval (-2 * M, M).
-    fn norm(&self, mut value: BoxedInt62L, negate: bool) -> BoxedInt62L {
-        if value.is_negative() {
-            value += &self.modulus;
-        }
-
-        if negate {
-            value = value.neg();
-        }
-
-        if value.is_negative() {
-            value += &self.modulus;
-        }
-
+    fn norm(&self, mut value: BoxedInt62L, negate: Choice) -> BoxedInt62L {
+        value.conditional_add(&self.modulus, value.is_negative());
+        value.conditional_assign(&value.neg(), negate);
+        value.conditional_add(&self.modulus, value.is_negative());
         value
     }
 }
@@ -69,7 +60,7 @@ impl Inverter for BoxedBernsteinYangInverter {
         // Thus, if "f" is neither 1 nor -1, then the sought inverse does not exist.
         let antiunit = f.is_minus_one();
         let ret = self.norm(d, antiunit);
-        let is_some = Choice::from(f.is_one() as u8) | Choice::from(antiunit as u8);
+        let is_some = Choice::from(f.is_one() as u8) | antiunit;
 
         CtOption::new(ret.to_uint(value.bits_precision()), is_some)
     }
@@ -85,11 +76,7 @@ pub(crate) fn gcd(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
     let e = BoxedInt62L::one(f.nlimbs());
 
     let mut f = divsteps(&mut d, &e, &f, &mut g, inverse);
-
-    if f.is_negative() {
-        f = f.neg();
-    }
-
+    f.conditional_negate(f.is_negative());
     f.to_uint(bits_precision)
 }
 
@@ -145,8 +132,10 @@ fn fg(f: &mut BoxedInt62L, g: &mut BoxedInt62L, t: Matrix) {
 /// Both the input and output values lie in the interval (-2 * M, M).
 fn de(modulus: &BoxedInt62L, inverse: i64, t: Matrix, d: &mut BoxedInt62L, e: &mut BoxedInt62L) {
     let mask = BoxedInt62L::MASK as i64;
-    let mut md = t[0][0] * d.is_negative() as i64 + t[0][1] * e.is_negative() as i64;
-    let mut me = t[1][0] * d.is_negative() as i64 + t[1][1] * e.is_negative() as i64;
+    let mut md =
+        t[0][0] * d.is_negative().unwrap_u8() as i64 + t[0][1] * e.is_negative().unwrap_u8() as i64;
+    let mut me =
+        t[1][0] * d.is_negative().unwrap_u8() as i64 + t[1][1] * e.is_negative().unwrap_u8() as i64;
 
     let cd = t[0][0]
         .wrapping_mul(d.lowest() as i64)
@@ -237,7 +226,7 @@ impl BoxedInt62L {
             bernstein_yang_nlimbs!(bits_precision as usize)
         );
         assert!(
-            !self.is_negative(),
+            !bool::from(self.is_negative()),
             "can't convert negative number to BoxedUint"
         );
 
@@ -257,6 +246,53 @@ impl BoxedInt62L {
         ret
     }
 
+    /// Conditionally add the given value to this one depending on the given [`Choice`].
+    pub fn conditional_add(&mut self, other: &Self, choice: Choice) {
+        debug_assert_eq!(self.nlimbs(), other.nlimbs());
+        let mut carry = 0;
+
+        for i in 0..self.nlimbs() {
+            let addend = u64::conditional_select(&0, &other.0[i], choice);
+            let sum = self.0[i] + addend + carry;
+            self.0[i] = sum & Self::MASK;
+            carry = sum >> Self::LIMB_BITS;
+        }
+    }
+
+    /// Conditionally assign a value to this one depending on the given [`Choice`].
+    // NOTE: we can't impl `subtle::ConditionallySelectable` due to its `Copy` bound.
+    pub fn conditional_assign(&mut self, other: &Self, choice: Choice) {
+        for i in 0..self.nlimbs() {
+            self.0[i] = u64::conditional_select(&self.0[i], &other.0[i], choice);
+        }
+    }
+
+    /// Conditionally negate this value depending on the given [`Choice`].
+    // NOTE: we can't impl `subtle::ConditionallyNegatable` due to its `Copy` bound.
+    pub fn conditional_negate(&mut self, choice: Choice) {
+        // TODO(tarcieri): avoid allocations
+        self.conditional_assign(&self.neg(), choice);
+    }
+
+    /// Negate this value.
+    ///
+    /// This is an inherent method rather than a `Neg` trait impl so it can borrow.
+    pub fn neg(&self) -> Self {
+        // For the two's complement code the additive negation is the result of adding 1 to the
+        // bitwise inverted argument's representation.
+        let nlimbs = self.nlimbs();
+        let mut ret = Self::zero(nlimbs);
+        let mut carry = 1;
+
+        for i in 0..nlimbs {
+            let sum = (self.0[i] ^ Self::MASK) + carry;
+            ret.0[i] = sum & Self::MASK;
+            carry = sum >> Self::LIMB_BITS;
+        }
+
+        ret
+    }
+
     /// Apply 62-bit right arithmetical shift in-place.
     pub fn shr_assign(&mut self) {
         let is_negative = self.is_negative();
@@ -265,7 +301,7 @@ impl BoxedInt62L {
             self.0[i] = self.0[i + 1];
         }
 
-        self.0[self.nlimbs() - 1] = if is_negative { Self::MASK } else { 0 };
+        self.0[self.nlimbs() - 1] = u64::conditional_select(&0, &Self::MASK, is_negative);
     }
 
     /// Get the value zero for the given number of limbs.
@@ -289,15 +325,15 @@ impl BoxedInt62L {
     }
 
     /// Is the current value -1?
-    pub fn is_minus_one(&self) -> bool {
+    pub fn is_minus_one(&self) -> Choice {
         self.0
             .iter()
-            .fold(true, |acc, &limb| acc & (limb == Self::MASK))
+            .fold(Choice::from(1), |acc, &limb| acc & limb.ct_eq(&Self::MASK))
     }
 
     /// Returns "true" iff the current number is negative.
-    pub fn is_negative(&self) -> bool {
-        self.0[self.nlimbs() - 1] > (Self::MASK >> 1)
+    pub fn is_negative(&self) -> Choice {
+        self.0[self.nlimbs() - 1].ct_gt(&(Self::MASK >> 1))
     }
 
     /// Is the current value zero?
@@ -378,26 +414,6 @@ impl Mul<i64> for &BoxedInt62L {
     }
 }
 
-impl Neg for BoxedInt62L {
-    type Output = Self;
-
-    fn neg(self) -> Self {
-        // For the two's complement code the additive negation is the result of adding 1 to the
-        // bitwise inverted argument's representation.
-        let nlimbs = self.nlimbs();
-        let mut ret = Self::zero(nlimbs);
-        let mut carry = 1;
-
-        for i in 0..nlimbs {
-            let sum = (self.0[i] ^ Self::MASK) + carry;
-            ret.0[i] = sum & Self::MASK;
-            carry = sum >> Self::LIMB_BITS;
-        }
-
-        ret
-    }
-}
-
 impl PartialEq for BoxedInt62L {
     fn eq(&self, other: &Self) -> bool {
         self.0.ct_eq(&other.0).into()
@@ -411,7 +427,7 @@ mod tests {
     use proptest::prelude::*;
 
     #[cfg(not(miri))]
-    use {crate::modular::bernstein_yang::Int62L, core::ops::Neg};
+    use crate::modular::bernstein_yang::Int62L;
 
     #[test]
     fn invert() {
@@ -601,7 +617,7 @@ mod tests {
         fn boxed_int62l_is_negative(x in u256()) {
             let x_ref = Int62L::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
             let x_boxed = BoxedInt62L::from(&x.into());
-            assert_eq!(x_ref.is_negative().to_bool_vartime(), x_boxed.is_negative());
+            assert_eq!(x_ref.is_negative().to_bool_vartime(), bool::from(x_boxed.is_negative()));
         }
 
         #[test]
@@ -610,7 +626,7 @@ mod tests {
         fn boxed_int62l_is_minus_one(x in u256()) {
             let x_ref = Int62L::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
             let x_boxed = BoxedInt62L::from(&x.into());
-            assert_eq!(x_ref.eq(&Int62L::MINUS_ONE), x_boxed.is_minus_one());
+            assert_eq!(x_ref.eq(&Int62L::MINUS_ONE), bool::from(x_boxed.is_minus_one()));
         }
     }
 }
