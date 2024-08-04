@@ -5,7 +5,7 @@ mod common;
 use common::to_biguint;
 use crypto_bigint::{
     modular::{MontyForm, MontyParams},
-    Encoding, Limb, NonZero, Odd, Word, U256,
+    Encoding, Integer, Limb, NonZero, Odd, Word, U256,
 };
 use num_bigint::BigUint;
 use num_integer::Integer as _;
@@ -281,6 +281,21 @@ proptest! {
 
         let expected = to_uint(f_bi.gcd(&g_bi));
         let actual = f.gcd(&g);
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn gcd_vartime(mut f in uint(), g in uint()) {
+        if bool::from(f.is_even()) {
+            f += U256::ONE;
+        }
+
+        let f_bi = to_biguint(&f);
+        let g_bi = to_biguint(&g);
+        let expected = to_uint(f_bi.gcd(&g_bi));
+
+        let f = Odd::new(f).unwrap();
+        let actual = f.gcd_vartime(&g);
         assert_eq!(expected, actual);
     }
 

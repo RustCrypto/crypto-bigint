@@ -7,6 +7,9 @@ where
     Odd<Self>: PrecomputeInverter<Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>>,
 {
     /// Compute the greatest common divisor (GCD) of this number and another.
+    ///
+    /// Runs in a constant number of iterations depending on the maximum highest bit of either
+    /// `self` or `rhs`.
     pub const fn gcd(&self, rhs: &Self) -> Self {
         let k1 = self.trailing_zeros();
         let k2 = rhs.trailing_zeros();
@@ -24,6 +27,18 @@ where
         <Odd<Self> as PrecomputeInverter>::Inverter::gcd(&f, &g)
             .overflowing_shl(k)
             .unwrap_or(Self::ZERO)
+    }
+}
+
+impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Odd<Uint<SAT_LIMBS>>
+where
+    Self: PrecomputeInverter<Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>>,
+{
+    /// Compute the greatest common divisor (GCD) of this number and another.
+    ///
+    /// Runs in variable time with respect to `rhs`.
+    pub const fn gcd_vartime(&self, rhs: &Uint<SAT_LIMBS>) -> Uint<SAT_LIMBS> {
+        <Self as PrecomputeInverter>::Inverter::gcd_vartime(self.as_ref(), rhs)
     }
 }
 
