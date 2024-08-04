@@ -50,6 +50,18 @@ impl<const LIMBS: usize> Add<&Uint<LIMBS>> for Uint<LIMBS> {
     }
 }
 
+impl<const LIMBS: usize> AddAssign for Uint<LIMBS> {
+    fn add_assign(&mut self, other: Self) {
+        *self += &other;
+    }
+}
+
+impl<const LIMBS: usize> AddAssign<&Uint<LIMBS>> for Uint<LIMBS> {
+    fn add_assign(&mut self, other: &Self) {
+        *self = *self + other;
+    }
+}
+
 impl<const LIMBS: usize> AddAssign for Wrapping<Uint<LIMBS>> {
     fn add_assign(&mut self, other: Self) {
         *self = *self + other;

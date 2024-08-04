@@ -111,6 +111,36 @@ fn bench_division(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_gcd(c: &mut Criterion) {
+    let mut group = c.benchmark_group("greatest common divisor");
+
+    group.bench_function("gcd, U256", |b| {
+        b.iter_batched(
+            || {
+                let f = U256::random(&mut OsRng);
+                let g = U256::random(&mut OsRng);
+                (f, g)
+            },
+            |(f, g)| black_box(f.gcd(&g)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("gcd_vartime, U256", |b| {
+        b.iter_batched(
+            || {
+                let f = Odd::<U256>::random(&mut OsRng);
+                let g = U256::random(&mut OsRng);
+                (f, g)
+            },
+            |(f, g)| black_box(f.gcd_vartime(&g)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.finish();
+}
+
 fn bench_shl(c: &mut Criterion) {
     let mut group = c.benchmark_group("left shift");
 
@@ -258,9 +288,10 @@ fn bench_sqrt(c: &mut Criterion) {
 
 criterion_group!(
     benches,
+    bench_division,
+    bench_gcd,
     bench_shl,
     bench_shr,
-    bench_division,
     bench_inv_mod,
     bench_sqrt
 );

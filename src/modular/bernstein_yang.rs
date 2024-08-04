@@ -106,6 +106,19 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
         f.to_uint()
     }
 
+    /// Returns the greatest common divisor (GCD) of the two given numbers.
+    ///
+    /// This version is variable-time with respect to `g`.
+    pub(crate) const fn gcd_vartime(f: &Uint<SAT_LIMBS>, g: &Uint<SAT_LIMBS>) -> Uint<SAT_LIMBS> {
+        let inverse = inv_mod2_62(f.as_words());
+        let e = Int62L::<UNSAT_LIMBS>::ONE;
+        let f = Int62L::from_uint(f);
+        let g = Int62L::from_uint(g);
+        let (_, mut f) = divsteps_vartime(e, f, g, inverse);
+        f = Int62L::select(&f, &f.neg(), f.is_negative());
+        f.to_uint()
+    }
+
     /// Returns either "value (mod M)" or "-value (mod M)", where M is the modulus the inverter
     /// was created for, depending on "negate", which determines the presence of "-" in the used
     /// formula. The input integer lies in the interval (-2 * M, M).
@@ -136,7 +149,10 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Inverter
 ///
 /// For better understanding the implementation, the following paper is recommended:
 /// J. Hurchalla, "An Improved Integer Multiplicative Inverse (modulo 2^w)",
-/// https://arxiv.org/pdf/2204.04342.pdf
+/// <https://arxiv.org/pdf/2204.04342.pdf>
+///
+/// Variable time with respect to the number of words in `value`, however that number will be
+/// fixed for a given integer size.
 const fn inv_mod2_62(value: &[Word]) -> i64 {
     let value = {
         #[cfg(target_pointer_width = "32")]
@@ -167,6 +183,9 @@ const fn inv_mod2_62(value: &[Word]) -> i64 {
 
 /// Algorithm `divsteps2` to compute (δₙ, fₙ, gₙ) = divstepⁿ(δ, f, g) as described in Figure 10.1
 /// of <https://eprint.iacr.org/2019/266.pdf>.
+///
+/// This version runs in a fixed number of iterations relative to the highest bit of `f` or `g`
+/// as described in Figure 11.1.
 const fn divsteps<const LIMBS: usize>(
     mut e: Int62L<LIMBS>,
     f_0: Int62L<LIMBS>,
@@ -177,8 +196,35 @@ const fn divsteps<const LIMBS: usize>(
     let mut f = f_0;
     let mut delta = 1;
     let mut matrix;
+    let mut i = 0;
+    let m = iterations(&f_0, &g);
 
-    // TODO(tarcieri): run in a fixed number of iterations
+    while i < m {
+        (delta, matrix) = jump(&f.0, &g.0, delta);
+        (f, g) = fg(f, g, matrix);
+        (d, e) = de(&f_0, inverse, matrix, d, e);
+        i += 1;
+    }
+
+    debug_assert!(g.eq(&Int62L::ZERO).to_bool_vartime());
+    (d, f)
+}
+
+/// Algorithm `divsteps2` to compute (δₙ, fₙ, gₙ) = divstepⁿ(δ, f, g) as described in Figure 10.1
+/// of <https://eprint.iacr.org/2019/266.pdf>.
+///
+/// This version is variable-time with respect to `g`.
+const fn divsteps_vartime<const LIMBS: usize>(
+    mut e: Int62L<LIMBS>,
+    f_0: Int62L<LIMBS>,
+    mut g: Int62L<LIMBS>,
+    inverse: i64,
+) -> (Int62L<LIMBS>, Int62L<LIMBS>) {
+    let mut d = Int62L::ZERO;
+    let mut f = f_0;
+    let mut delta = 1;
+    let mut matrix;
+
     while !g.eq(&Int62L::ZERO).to_bool_vartime() {
         (delta, matrix) = jump(&f.0, &g.0, delta);
         (f, g) = fg(f, g, matrix);
@@ -282,6 +328,29 @@ const fn de<const LIMBS: usize>(
     let ce = d.mul(t[1][0]).add(&e.mul(t[1][1])).add(&modulus.mul(me));
 
     (cd.shr(), ce.shr())
+}
+
+/// Compute the number of iterations required to compute Bernstein-Yang on the two values.
+///
+/// Adapted from Fig 11.1 of <https://eprint.iacr.org/2019/266.pdf>
+///
+/// The paper proves that the algorithm will converge (i.e. `g` will be `0`) in all cases when
+/// the algorithm runs this particular number of iterations.
+///
+/// Once `g` reaches `0`, continuing to run the algorithm will have no effect.
+// TODO(tarcieri): improved bounds using https://github.com/sipa/safegcd-bounds
+const fn iterations<const LIMBS: usize>(f: &Int62L<LIMBS>, g: &Int62L<LIMBS>) -> usize {
+    let f_bits = f.bits();
+    let g_bits = g.bits();
+
+    // Select max of `f_bits`, `g_bits`
+    let d = ConstChoice::from_u32_lt(f_bits, g_bits).select_u32(f_bits, g_bits) as usize;
+
+    if d < 46 {
+        (49 * d + 80) / 17
+    } else {
+        (49 * d + 57) / 17
+    }
 }
 
 /// "Bigint"-like (62 * LIMBS)-bit signed integer type, whose variables store numbers in the two's
@@ -466,6 +535,29 @@ impl<const LIMBS: usize> Int62L<LIMBS> {
         }
 
         ret
+    }
+
+    /// Calculate the number of leading zeros in the binary representation of this number.
+    pub const fn leading_zeros(&self) -> u32 {
+        let mut count = 0;
+        let mut i = LIMBS;
+        let mut nonzero_limb_not_encountered = ConstChoice::TRUE;
+
+        while i > 0 {
+            i -= 1;
+            let l = self.0[i];
+            let z = l.leading_zeros() - 2;
+            count += nonzero_limb_not_encountered.if_true_u32(z);
+            nonzero_limb_not_encountered =
+                nonzero_limb_not_encountered.and(ConstChoice::from_u64_nonzero(l).not());
+        }
+
+        count
+    }
+
+    /// Calculate the number of bits in this value (i.e. index of the highest bit) in constant time.
+    pub const fn bits(&self) -> u32 {
+        (LIMBS as u32 * 62) - self.leading_zeros()
     }
 }
 
