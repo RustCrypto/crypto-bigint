@@ -86,8 +86,8 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
         // integer to be inverted and the modulus the inverter was created for.
         // Thus, if "f" is neither 1 nor -1, then the sought inverse does not exist.
         let antiunit = f.eq(&Int62L::MINUS_ONE);
-        let ret = self.norm(d, ConstChoice::from_word_lsb(antiunit as Word));
-        let is_some = ConstChoice::from_word_lsb((f.eq(&Int62L::ONE) || antiunit) as Word);
+        let ret = self.norm(d, antiunit);
+        let is_some = f.eq(&Int62L::ONE).or(antiunit);
         ConstCtOption::new(ret.to_uint(), is_some)
     }
 
@@ -178,7 +178,7 @@ const fn divsteps<const LIMBS: usize>(
     let mut delta = 1;
     let mut matrix;
 
-    while !g.eq(&Int62L::ZERO) {
+    while !g.eq(&Int62L::ZERO).to_bool_vartime() {
         (delta, matrix) = jump(&f.0, &g.0, delta);
         (f, g) = fg(f, g, matrix);
         (d, e) = de(&f_0, inverse, matrix, d, e);
@@ -432,12 +432,12 @@ impl<const LIMBS: usize> Int62L<LIMBS> {
     }
 
     /// Const fn equivalent for `PartialEq::eq`.
-    pub const fn eq(&self, other: &Self) -> bool {
-        let mut ret = true;
+    pub const fn eq(&self, other: &Self) -> ConstChoice {
+        let mut ret = ConstChoice::TRUE;
         let mut i = 0;
 
         while i < LIMBS {
-            ret &= self.0[i] == other.0[i];
+            ret = ret.and(ConstChoice::from_u64_eq(self.0[i], other.0[i]));
             i += 1;
         }
 
@@ -468,17 +468,17 @@ impl<const LIMBS: usize> Int62L<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> PartialEq for Int62L<LIMBS> {
-    fn eq(&self, other: &Self) -> bool {
-        self.eq(other)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::{Inverter, PrecomputeInverter, U256};
 
     type Int62L = super::Int62L<4>;
+
+    impl<const LIMBS: usize> PartialEq for crate::modular::bernstein_yang::Int62L<LIMBS> {
+        fn eq(&self, other: &Self) -> bool {
+            self.eq(other).to_bool_vartime()
+        }
+    }
 
     #[test]
     fn invert() {

@@ -425,6 +425,7 @@ mod tests {
     use super::BoxedInt62L;
     use crate::{BoxedUint, Inverter, PrecomputeInverter, U256};
     use proptest::prelude::*;
+    use subtle::ConstantTimeEq;
 
     #[cfg(not(miri))]
     use crate::modular::bernstein_yang::Int62L;
@@ -626,7 +627,7 @@ mod tests {
         fn boxed_int62l_is_minus_one(x in u256()) {
             let x_ref = Int62L::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
             let x_boxed = BoxedInt62L::from(&x.into());
-            assert_eq!(x_ref.eq(&Int62L::MINUS_ONE), bool::from(x_boxed.is_minus_one()));
+            assert!(bool::from(x_boxed.is_minus_one().ct_eq(&x_ref.eq(&Int62L::MINUS_ONE).into())));
         }
     }
 }
