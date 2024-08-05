@@ -200,9 +200,10 @@ pub trait Gcd<Rhs = Self>: Sized {
     type Output;
 
     /// Compute the greatest common divisor of `self` and `rhs`.
-    ///
-    /// Returns none unless `self` is odd (`rhs` may be even or odd)`.
     fn gcd(&self, rhs: &Rhs) -> Self::Output;
+
+    /// Compute the greatest common divisor of `self` and `rhs` in variable time.
+    fn gcd_vartime(&self, rhs: &Rhs) -> Self::Output;
 }
 
 /// Trait impl'd by precomputed modular inverters obtained via the [`PrecomputeInverter`] trait.

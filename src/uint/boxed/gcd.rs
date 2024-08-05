@@ -23,14 +23,12 @@ impl Gcd for BoxedUint {
         let g = Self::ct_select(&s1, &s2, s2.is_odd());
         bernstein_yang::boxed::gcd(&f, &g).overflowing_shl(k).0
     }
-}
 
-impl Odd<BoxedUint> {
-    /// Compute the greatest common divisor (GCD) of this number and another.
-    ///
-    /// Runs in variable time with respect to `rhs`.
-    pub fn gcd_vartime(&self, rhs: &BoxedUint) -> BoxedUint {
-        bernstein_yang::boxed::gcd_vartime(self, rhs)
+    fn gcd_vartime(&self, rhs: &Self) -> Self::Output {
+        match Odd::<Self>::new(self.clone()).into_option() {
+            Some(odd) => odd.gcd_vartime(rhs),
+            None => self.gcd(rhs), // TODO(tarcieri): vartime support for even `self`?
+        }
     }
 }
 
@@ -39,6 +37,10 @@ impl Gcd<BoxedUint> for Odd<BoxedUint> {
 
     fn gcd(&self, rhs: &BoxedUint) -> BoxedUint {
         bernstein_yang::boxed::gcd(self, rhs)
+    }
+
+    fn gcd_vartime(&self, rhs: &BoxedUint) -> Self::Output {
+        bernstein_yang::boxed::gcd_vartime(self, rhs)
     }
 }
 
