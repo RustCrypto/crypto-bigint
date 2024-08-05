@@ -53,7 +53,7 @@ where
     }
 
     fn gcd_vartime(&self, rhs: &Self) -> Self::Output {
-        match Odd::<Self>::new(self.clone()).into_option() {
+        match Odd::<Self>::new(*self).into_option() {
             Some(odd) => odd.gcd_vartime(rhs),
             None => self.gcd(rhs), // TODO(tarcieri): vartime support for even `self`?
         }
