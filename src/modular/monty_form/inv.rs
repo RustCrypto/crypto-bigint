@@ -116,89 +116,306 @@ mod tests {
     use num_traits::{FromBytes, One};
 
     use super::{MontyForm, MontyParams};
-    use crate::{
-        Integer, Invert, Inverter, NonZero, Odd, PrecomputeInverter, RandomMod, Uint, U1024, U2048,
-        U256, U4096, U8192,
-    };
+    use crate::{Invert, Inverter, Odd, PrecomputeInverter, U2048, U256};
 
-    use rand_chacha::ChaChaRng;
-    use rand_core::{CryptoRngCore, SeedableRng};
-
-    // Seed used to ensure deterministc random sequences in tests.
-    const RANDOM_SEED: [u8; 32] = [17; 32];
     // Random modulus.
     const MODULUS: [u8; 256] = hex!("5DC56576A9F077F2FD05CC35DD0B1060857CD5A44011891ED05D8C56359A9302FC9FB1D6B2FF411FAC318009C519FB7D883ACF327C2FC1181642B7A076C7DB244AB265D20605AA55EB04B5F5100B961A684033BD4E98A45DFD2AAD4B13625808FF3C947BC3712CE8D2A5688579F08B5B523B9C6EC3361535379620F49E94C85508A6E0D264A284E3F6B3C54447D5DB9A421D1FBE2A1F59FFF92D1D9F68985E51C316CA027B4E6D9AAEED0D9F41DF77CFF021BF8F7A2E55E1F2B80859C466686305671C615757BA9712513A92764F399B486723549976024BEFF7A9484C40F5E765904E3477E1B6849468D513C26997D2A9BD038511C98E48FAE3493EC6A7FE49");
 
-    // Generates a random `U1024` and returns it as a tuple in: normal form, montgomery form,
-    // inverted montgomery form and the normal form inverse from the num_modular crate.
-    fn random_invertible_u1024(
-        monty_params: MontyParams<16>,
-        rng: &mut impl CryptoRngCore,
-    ) -> (U1024, MontyForm<16>, MontyForm<16>, BigUint) {
-        let modulus = monty_params.modulus().to_nz().unwrap();
-        loop {
-            let r = Uint::random_mod(rng, &modulus);
-            let rm = <U1024 as Integer>::Monty::new(&r, monty_params);
-            let rm_inv = rm.invert();
-            if rm_inv.is_some().into() {
-                // Calculate the inverse using the num_modular crate as well
-                let num_modular_modulus =
-                    BigUint::from_be_bytes(&monty_params.modulus().0.to_be_bytes());
-                let num_modular_inverse = BigUint::from_be_bytes(&r.to_be_bytes())
-                    .clone()
-                    .invm(&num_modular_modulus)
-                    .unwrap();
+    #[cfg(feature = "rand_core")]
+    mod randomized_tests {
+        use super::*;
+        use crate::{Integer, NonZero, Uint, U1024, U4096, U8192};
 
-                return (r, rm, rm_inv.unwrap(), num_modular_inverse);
+        use crate::RandomMod;
+        use rand_chacha::ChaChaRng;
+        use rand_core::{CryptoRngCore, SeedableRng};
+
+        // Seed used to ensure deterministc random sequences in tests.
+        const RANDOM_SEED: [u8; 32] = [17; 32];
+
+        // Generates a random `U1024` and returns it as a tuple in: normal form, montgomery form,
+        // inverted montgomery form and the normal form inverse from the num_modular crate.
+        fn random_invertible_u1024(
+            monty_params: MontyParams<16>,
+            rng: &mut impl CryptoRngCore,
+        ) -> (U1024, MontyForm<16>, MontyForm<16>, BigUint) {
+            let modulus = monty_params.modulus().to_nz().unwrap();
+            loop {
+                let r = Uint::random_mod(rng, &modulus);
+                let rm = <U1024 as Integer>::Monty::new(&r, monty_params);
+                let rm_inv = rm.invert();
+                if rm_inv.is_some().into() {
+                    // Calculate the inverse using the num_modular crate as well
+                    let num_modular_modulus =
+                        BigUint::from_be_bytes(&monty_params.modulus().0.to_be_bytes());
+                    let num_modular_inverse = BigUint::from_be_bytes(&r.to_be_bytes())
+                        .clone()
+                        .invm(&num_modular_modulus)
+                        .unwrap();
+
+                    return (r, rm, rm_inv.unwrap(), num_modular_inverse);
+                }
             }
         }
-    }
-    // Generates a random `U2048` and returns it as a tuple in: normal form, montgomery form,
-    // inverted montgomery form and the normal form inverse from the num_modular crate.
-    fn random_invertible_u2048(
-        monty_params: MontyParams<32>,
-        rng: &mut impl CryptoRngCore,
-    ) -> (U2048, MontyForm<32>, MontyForm<32>, BigUint) {
-        let modulus = monty_params.modulus().to_nz().unwrap();
-        loop {
-            let r = Uint::random_mod(rng, &modulus);
-            let rm = <U2048 as Integer>::Monty::new(&r, monty_params);
-            let rm_inv = rm.invert();
-            if rm_inv.is_some().into() {
-                // Calculate the inverse using the num_modular crate as well
-                let num_modular_modulus =
-                    BigUint::from_be_bytes(&monty_params.modulus().0.to_be_bytes());
-                let num_modular_inverse = BigUint::from_be_bytes(&r.to_be_bytes())
-                    .clone()
-                    .invm(&num_modular_modulus)
-                    .unwrap();
+        // Generates a random `U2048` and returns it as a tuple in: normal form, montgomery form,
+        // inverted montgomery form and the normal form inverse from the num_modular crate.
+        fn random_invertible_u2048(
+            monty_params: MontyParams<32>,
+            rng: &mut impl CryptoRngCore,
+        ) -> (U2048, MontyForm<32>, MontyForm<32>, BigUint) {
+            let modulus = monty_params.modulus().to_nz().unwrap();
+            loop {
+                let r = Uint::random_mod(rng, &modulus);
+                let rm = <U2048 as Integer>::Monty::new(&r, monty_params);
+                let rm_inv = rm.invert();
+                if rm_inv.is_some().into() {
+                    // Calculate the inverse using the num_modular crate as well
+                    let num_modular_modulus =
+                        BigUint::from_be_bytes(&monty_params.modulus().0.to_be_bytes());
+                    let num_modular_inverse = BigUint::from_be_bytes(&r.to_be_bytes())
+                        .clone()
+                        .invm(&num_modular_modulus)
+                        .unwrap();
 
-                return (r, rm, rm_inv.unwrap(), num_modular_inverse);
+                    return (r, rm, rm_inv.unwrap(), num_modular_inverse);
+                }
             }
         }
-    }
 
-    // Generates a random `U4096` and returns it as a tuple in: normal form, montgomery form,
-    // inverted montgomery form and the normal form inverse from the num_modular crate.
-    fn random_invertible_u4096(
-        monty_params: MontyParams<64>,
-        rng: &mut impl CryptoRngCore,
-    ) -> (U4096, MontyForm<64>, MontyForm<64>, BigUint) {
-        let modulus = monty_params.modulus().to_nz().unwrap();
-        loop {
-            let r = Uint::random_mod(rng, &modulus);
-            let rm = <U4096 as Integer>::Monty::new(&r, monty_params);
-            let rm_inv = rm.invert();
-            if rm_inv.is_some().into() {
-                // Calculate the inverse using the num_modular crate as well
-                let num_modular_modulus =
-                    BigUint::from_be_bytes(&monty_params.modulus().0.to_be_bytes());
-                let num_modular_inverse = BigUint::from_be_bytes(&r.to_be_bytes())
-                    .clone()
-                    .invm(&num_modular_modulus)
-                    .unwrap();
+        // Generates a random `U4096` and returns it as a tuple in: normal form, montgomery form,
+        // inverted montgomery form and the normal form inverse from the num_modular crate.
+        fn random_invertible_u4096(
+            monty_params: MontyParams<64>,
+            rng: &mut impl CryptoRngCore,
+        ) -> (U4096, MontyForm<64>, MontyForm<64>, BigUint) {
+            let modulus = monty_params.modulus().to_nz().unwrap();
+            loop {
+                let r = Uint::random_mod(rng, &modulus);
+                let rm = <U4096 as Integer>::Monty::new(&r, monty_params);
+                let rm_inv = rm.invert();
+                if rm_inv.is_some().into() {
+                    // Calculate the inverse using the num_modular crate as well
+                    let num_modular_modulus =
+                        BigUint::from_be_bytes(&monty_params.modulus().0.to_be_bytes());
+                    let num_modular_inverse = BigUint::from_be_bytes(&r.to_be_bytes())
+                        .clone()
+                        .invm(&num_modular_modulus)
+                        .unwrap();
 
-                return (r, rm, rm_inv.unwrap(), num_modular_inverse);
+                    return (r, rm, rm_inv.unwrap(), num_modular_inverse);
+                }
+            }
+        }
+
+        // Creates random U1024s, inverts and sanity checks the result.
+        #[test]
+        fn inversion_random_uints_u1024() {
+            let mut rng = ChaChaRng::from_seed(RANDOM_SEED);
+            let modulus = U1024::from_be_hex(concat!(
+                "1fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            ));
+            let wide_modulus = NonZero::new(Into::<U2048>::into(&modulus)).unwrap();
+            let monty_params = MontyParams::new_vartime(modulus.to_odd().unwrap());
+
+            // Tested up to 10_000_000
+            for _ in 0..100 {
+                let (rand_uint, rand_uint_monty, rand_uint_monty_inv, num_modular_inv) =
+                    random_invertible_u1024(monty_params, &mut rng);
+                let one_monty = rand_uint_monty * rand_uint_monty_inv;
+
+                // Inversion works in monty form
+                assert_eq!(
+                    one_monty,
+                    MontyForm::one(monty_params),
+                    "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:01024b}",
+                    modulus
+                );
+                // …and in normal form
+                assert_eq!(one_monty.retrieve(), U1024::ONE, "a*a⁻¹ ≠ 1 (normal form)");
+
+                // …and when converted back to normal form and used in a widening operation
+                let one = rand_uint_monty_inv.retrieve().widening_mul(&rand_uint);
+                assert_eq!(
+                    one % wide_modulus,
+                    U2048::ONE,
+                    "a*a⁻¹ ≠ 1 (normal form, wide)"
+                );
+
+                // …and agrees with normal form inversion
+                let normal_form_inv = rand_uint.inv_mod(&modulus).unwrap();
+                assert_eq!(
+                    normal_form_inv,
+                    rand_uint_monty_inv.retrieve(),
+                    "a*a⁻¹ ≠ 1 (normal form inverted)"
+                );
+
+                // …and agrees with the num_modular crate
+                assert_eq!(
+                    BigUint::from_be_bytes(&normal_form_inv.to_be_bytes()),
+                    num_modular_inv,
+                    "num_modular ≠ crypto_bigint"
+                )
+            }
+        }
+
+        #[test]
+        fn inversion_random_uints_u2048() {
+            let mut rng = ChaChaRng::from_seed(RANDOM_SEED);
+            let modulus = U2048::from_be_hex(concat!(
+                "1fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+            ));
+            let wide_modulus = NonZero::new(Into::<U4096>::into(&modulus)).unwrap();
+            let monty_params = MontyParams::new_vartime(modulus.to_odd().unwrap());
+            for _ in 0..100 {
+                let (rand_uint, rand_uint_monty, rand_uint_monty_inv, num_modular_inv) =
+                    random_invertible_u2048(monty_params, &mut rng);
+                let one_monty = rand_uint_monty * rand_uint_monty_inv;
+
+                // Inversion works in monty form
+                assert_eq!(
+                    one_monty,
+                    MontyForm::one(monty_params),
+                    "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:02048b}",
+                    modulus
+                );
+                // …and in normal form
+                assert_eq!(one_monty.retrieve(), U2048::ONE, "a*a⁻¹ ≠ 1 (normal form)");
+
+                // …and when converted back to normal form and used in a widening operation
+                let one = rand_uint_monty_inv.retrieve().widening_mul(&rand_uint);
+                assert_eq!(
+                    one % wide_modulus,
+                    U4096::ONE,
+                    "a*a⁻¹ ≠ 1 (normal form, wide)"
+                );
+
+                // …and agrees with normal form inversion
+                let normal_form_inv = rand_uint.inv_mod(&modulus).unwrap();
+                assert_eq!(
+                    normal_form_inv,
+                    rand_uint_monty_inv.retrieve(),
+                    "a*a⁻¹ ≠ 1 (normal form inverted)"
+                );
+
+                // …and agrees with the num_modular crate
+                assert_eq!(
+                    BigUint::from_be_bytes(&normal_form_inv.to_be_bytes()),
+                    num_modular_inv,
+                    "num_modular ≠ crypto_bigint"
+                )
+            }
+        }
+
+        #[test]
+        fn inversion_random_uints_u4096() {
+            let mut rng = ChaChaRng::from_seed(RANDOM_SEED);
+            let modulus = U4096::from_be_hex(concat!(
+                "07ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            ));
+            let wide_modulus = NonZero::new(Into::<U8192>::into(&modulus)).unwrap();
+            let monty_params = MontyParams::new_vartime(modulus.to_odd().unwrap());
+
+            for _ in 0..20 {
+                let (rand_uint, rand_uint_monty, rand_uint_monty_inv, num_modular_inv) =
+                    random_invertible_u4096(monty_params, &mut rng);
+                let one_monty = rand_uint_monty * rand_uint_monty_inv;
+
+                // Inversion works in monty form
+                assert_eq!(
+                    one_monty,
+                    MontyForm::one(monty_params),
+                    "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:02048b}",
+                    modulus
+                );
+                // …and in normal form
+                assert_eq!(one_monty.retrieve(), U4096::ONE, "a*a⁻¹ ≠ 1 (normal form)");
+
+                // …and when converted back to normal form and used in a widening operation
+                let one = rand_uint_monty_inv.retrieve().widening_mul(&rand_uint);
+                assert_eq!(
+                    one % wide_modulus,
+                    U8192::ONE,
+                    "a*a⁻¹ ≠ 1 (normal form, wide)"
+                );
+
+                // …and agrees with normal form inversion
+                let normal_form_inv = rand_uint.inv_mod(&modulus).unwrap();
+                assert_eq!(
+                    normal_form_inv,
+                    rand_uint_monty_inv.retrieve(),
+                    "a*a⁻¹ ≠ 1 (normal form inverted)"
+                );
+
+                // …and agrees with the num_modular crate
+                assert_eq!(
+                    BigUint::from_be_bytes(&normal_form_inv.to_be_bytes()),
+                    num_modular_inv,
+                    "num_modular ≠ crypto_bigint"
+                )
+            }
+        }
+
+        // Creates random U1024s, inverts and sanity checks the result.
+        #[test]
+        fn invert_random_u1024s() {
+            let mut rng = ChaChaRng::from_seed(RANDOM_SEED);
+            let modulus = U1024::from([
+                0xd69d42ede255db9d,
+                0x20d23f0e7e55c2f3,
+                0xb11955f4354ad01e,
+                0xe1598344a83da132,
+                0xa40162a5315c9b7f,
+                0xa3e41cc5720f4dca,
+                0x3a28db743e07f87b,
+                0x717d2332171a2bd7,
+                0x7f6917818473334e,
+                0x7fc6c2ffd071667d,
+                0x1bdb77d72f57ac49,
+                0x3c857fff2fe7f7ee,
+                0x33ca8e3a359428ad,
+                0x12a442daca8af09d,
+                0x872ac90b36ebd1bc,
+                0x9aefced07fa13351,
+            ]);
+
+            let monty_params = MontyParams::new_vartime(modulus.to_odd().unwrap());
+            for _ in 0..100 {
+                let (r, rm, rmi, _) = random_invertible_u1024(monty_params, &mut rng);
+                let one_monty = rm * rmi;
+                assert_eq!(one_monty, MontyForm::one(monty_params));
+                assert_eq!(one_monty.retrieve(), U1024::ONE);
+
+                let one = rmi.retrieve().widening_mul(&r);
+                let wide_modulus = NonZero::new(Into::<U2048>::into(&modulus)).unwrap();
+                assert_eq!(one % wide_modulus, U2048::ONE);
+
+                let ri = r.inv_mod(&modulus).unwrap();
+                assert_eq!(ri, rmi.retrieve());
             }
         }
     }
@@ -271,217 +488,5 @@ mod tests {
         assert_eq!(inverted, expected_inv);
         let one = int.mulm(inverted, &modulus);
         assert_eq!(one, BigUint::one());
-    }
-
-    // Creates random U1024s, inverts and sanity checks the result.
-    #[test]
-    fn inversion_random_uints_u1024() {
-        let mut rng = ChaChaRng::from_seed(RANDOM_SEED);
-        let modulus = U1024::from_be_hex(concat!(
-            "1fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-        ));
-        let wide_modulus = NonZero::new(Into::<U2048>::into(&modulus)).unwrap();
-        let monty_params = MontyParams::new_vartime(modulus.to_odd().unwrap());
-
-        // Tested up to 10_000_000
-        for _ in 0..100 {
-            let (rand_uint, rand_uint_monty, rand_uint_monty_inv, num_modular_inv) =
-                random_invertible_u1024(monty_params, &mut rng);
-            let one_monty = rand_uint_monty * rand_uint_monty_inv;
-
-            // Inversion works in monty form
-            assert_eq!(
-                one_monty,
-                MontyForm::one(monty_params),
-                "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:01024b}",
-                modulus
-            );
-            // …and in normal form
-            assert_eq!(one_monty.retrieve(), U1024::ONE, "a*a⁻¹ ≠ 1 (normal form)");
-
-            // …and when converted back to normal form and used in a widening operation
-            let one = rand_uint_monty_inv.retrieve().widening_mul(&rand_uint);
-            assert_eq!(
-                one % wide_modulus,
-                U2048::ONE,
-                "a*a⁻¹ ≠ 1 (normal form, wide)"
-            );
-
-            // …and agrees with normal form inversion
-            let normal_form_inv = rand_uint.inv_mod(&modulus).unwrap();
-            assert_eq!(
-                normal_form_inv,
-                rand_uint_monty_inv.retrieve(),
-                "a*a⁻¹ ≠ 1 (normal form inverted)"
-            );
-
-            // …and agrees with the num_modular crate
-            assert_eq!(
-                BigUint::from_be_bytes(&normal_form_inv.to_be_bytes()),
-                num_modular_inv,
-                "num_modular ≠ crypto_bigint"
-            )
-        }
-    }
-
-    #[test]
-    fn inversion_random_uints_u2048() {
-        let mut rng = ChaChaRng::from_seed(RANDOM_SEED);
-        let modulus = U2048::from_be_hex(concat!(
-            "1fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-        ));
-        let wide_modulus = NonZero::new(Into::<U4096>::into(&modulus)).unwrap();
-        let monty_params = MontyParams::new_vartime(modulus.to_odd().unwrap());
-        for _ in 0..100 {
-            let (rand_uint, rand_uint_monty, rand_uint_monty_inv, num_modular_inv) =
-                random_invertible_u2048(monty_params, &mut rng);
-            let one_monty = rand_uint_monty * rand_uint_monty_inv;
-
-            // Inversion works in monty form
-            assert_eq!(
-                one_monty,
-                MontyForm::one(monty_params),
-                "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:02048b}",
-                modulus
-            );
-            // …and in normal form
-            assert_eq!(one_monty.retrieve(), U2048::ONE, "a*a⁻¹ ≠ 1 (normal form)");
-
-            // …and when converted back to normal form and used in a widening operation
-            let one = rand_uint_monty_inv.retrieve().widening_mul(&rand_uint);
-            assert_eq!(
-                one % wide_modulus,
-                U4096::ONE,
-                "a*a⁻¹ ≠ 1 (normal form, wide)"
-            );
-
-            // …and agrees with normal form inversion
-            let normal_form_inv = rand_uint.inv_mod(&modulus).unwrap();
-            assert_eq!(
-                normal_form_inv,
-                rand_uint_monty_inv.retrieve(),
-                "a*a⁻¹ ≠ 1 (normal form inverted)"
-            );
-
-            // …and agrees with the num_modular crate
-            assert_eq!(
-                BigUint::from_be_bytes(&normal_form_inv.to_be_bytes()),
-                num_modular_inv,
-                "num_modular ≠ crypto_bigint"
-            )
-        }
-    }
-
-    #[test]
-    fn inversion_random_uints_u4096() {
-        let mut rng = ChaChaRng::from_seed(RANDOM_SEED);
-        let modulus = U4096::from_be_hex(concat!(
-            "07ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-        ));
-        let wide_modulus = NonZero::new(Into::<U8192>::into(&modulus)).unwrap();
-        let monty_params = MontyParams::new_vartime(modulus.to_odd().unwrap());
-
-        for _ in 0..20 {
-            let (rand_uint, rand_uint_monty, rand_uint_monty_inv, num_modular_inv) =
-                random_invertible_u4096(monty_params, &mut rng);
-            let one_monty = rand_uint_monty * rand_uint_monty_inv;
-
-            // Inversion works in monty form
-            assert_eq!(
-                one_monty,
-                MontyForm::one(monty_params),
-                "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:02048b}",
-                modulus
-            );
-            // …and in normal form
-            assert_eq!(one_monty.retrieve(), U4096::ONE, "a*a⁻¹ ≠ 1 (normal form)");
-
-            // …and when converted back to normal form and used in a widening operation
-            let one = rand_uint_monty_inv.retrieve().widening_mul(&rand_uint);
-            assert_eq!(
-                one % wide_modulus,
-                U8192::ONE,
-                "a*a⁻¹ ≠ 1 (normal form, wide)"
-            );
-
-            // …and agrees with normal form inversion
-            let normal_form_inv = rand_uint.inv_mod(&modulus).unwrap();
-            assert_eq!(
-                normal_form_inv,
-                rand_uint_monty_inv.retrieve(),
-                "a*a⁻¹ ≠ 1 (normal form inverted)"
-            );
-
-            // …and agrees with the num_modular crate
-            assert_eq!(
-                BigUint::from_be_bytes(&normal_form_inv.to_be_bytes()),
-                num_modular_inv,
-                "num_modular ≠ crypto_bigint"
-            )
-        }
-    }
-
-    // Creates random U1024s, inverts and sanity checks the result.
-    #[test]
-    fn invert_random_u1024s() {
-        let mut rng = ChaChaRng::from_seed(RANDOM_SEED);
-        let modulus = U1024::from([
-            0xd69d42ede255db9d,
-            0x20d23f0e7e55c2f3,
-            0xb11955f4354ad01e,
-            0xe1598344a83da132,
-            0xa40162a5315c9b7f,
-            0xa3e41cc5720f4dca,
-            0x3a28db743e07f87b,
-            0x717d2332171a2bd7,
-            0x7f6917818473334e,
-            0x7fc6c2ffd071667d,
-            0x1bdb77d72f57ac49,
-            0x3c857fff2fe7f7ee,
-            0x33ca8e3a359428ad,
-            0x12a442daca8af09d,
-            0x872ac90b36ebd1bc,
-            0x9aefced07fa13351,
-        ]);
-
-        let monty_params = MontyParams::new_vartime(modulus.to_odd().unwrap());
-        for _ in 0..100 {
-            let (r, rm, rmi, _) = random_invertible_u1024(monty_params, &mut rng);
-            let one_monty = rm * rmi;
-            assert_eq!(one_monty, MontyForm::one(monty_params));
-            assert_eq!(one_monty.retrieve(), U1024::ONE);
-
-            let one = rmi.retrieve().widening_mul(&r);
-            let wide_modulus = NonZero::new(Into::<U2048>::into(&modulus)).unwrap();
-            assert_eq!(one % wide_modulus, U2048::ONE);
-
-            let ri = r.inv_mod(&modulus).unwrap();
-            assert_eq!(ri, rmi.retrieve());
-        }
     }
 }
