@@ -1,9 +1,9 @@
 //! [`BoxedUint`] modular multiplication operations.
 
 use crate::{
+    div_limb::mul_rem,
     modular::{BoxedMontyForm, BoxedMontyParams},
-    primitives::mul_rem,
-    BoxedUint, Limb, MulMod, Odd, WideWord, Word,
+    BoxedUint, Limb, MulMod, NonZero, Odd, WideWord, Word,
 };
 
 impl BoxedUint {
@@ -42,7 +42,11 @@ impl BoxedUint {
         // We implicitly assume `LIMBS > 0`, because `Uint<0>` doesn't compile.
         // Still the case `LIMBS == 1` needs special handling.
         if self.nlimbs() == 1 {
-            let reduced = mul_rem(self.limbs[0].0, rhs.limbs[0].0, Word::MIN.wrapping_sub(c.0));
+            let reduced = mul_rem(
+                self.limbs[0],
+                rhs.limbs[0],
+                NonZero::<Limb>::new_unwrap(Limb(Word::MIN.wrapping_sub(c.0))),
+            );
             return Self::from(reduced);
         }
 

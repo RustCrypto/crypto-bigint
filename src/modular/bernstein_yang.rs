@@ -46,10 +46,10 @@ use subtle::CtOption;
 #[derive(Clone, Debug)]
 pub struct BernsteinYangInverter<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> {
     /// Modulus
-    pub(super) modulus: Int62L<UNSAT_LIMBS>,
+    pub(super) modulus: UnsatInt<UNSAT_LIMBS>,
 
     /// Adjusting parameter (see toplevel documentation).
-    adjuster: Int62L<UNSAT_LIMBS>,
+    adjuster: UnsatInt<UNSAT_LIMBS>,
 
     /// Multiplicative inverse of the modulus modulo 2^62
     inverse: i64,
@@ -66,8 +66,8 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// Modulus must be odd. Returns `None` if it is not.
     pub const fn new(modulus: &Odd<Uint<SAT_LIMBS>>, adjuster: &Uint<SAT_LIMBS>) -> Self {
         Self {
-            modulus: Int62L::from_uint(&modulus.0),
-            adjuster: Int62L::from_uint(adjuster),
+            modulus: UnsatInt::from_uint(&modulus.0),
+            adjuster: UnsatInt::from_uint(adjuster),
             inverse: inv_mod2_62(modulus.0.as_words()),
         }
     }
@@ -78,16 +78,16 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
         let (d, f) = divsteps(
             self.adjuster,
             self.modulus,
-            Int62L::from_uint(value),
+            UnsatInt::from_uint(value),
             self.inverse,
         );
 
         // At this point the absolute value of "f" equals the greatest common divisor of the
         // integer to be inverted and the modulus the inverter was created for.
         // Thus, if "f" is neither 1 nor -1, then the sought inverse does not exist.
-        let antiunit = f.eq(&Int62L::MINUS_ONE);
+        let antiunit = f.eq(&UnsatInt::MINUS_ONE);
         let ret = self.norm(d, antiunit);
-        let is_some = ConstChoice::from_word_lsb((f.eq(&Int62L::ONE) || antiunit) as Word);
+        let is_some = f.eq(&UnsatInt::ONE).or(antiunit);
         ConstCtOption::new(ret.to_uint(), is_some)
     }
 
@@ -98,34 +98,38 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// `Uint` limb sizes.
     pub(crate) const fn gcd(f: &Uint<SAT_LIMBS>, g: &Uint<SAT_LIMBS>) -> Uint<SAT_LIMBS> {
         let inverse = inv_mod2_62(f.as_words());
-        let e = Int62L::<UNSAT_LIMBS>::ONE;
-        let f = Int62L::from_uint(f);
-        let g = Int62L::from_uint(g);
+        let e = UnsatInt::<UNSAT_LIMBS>::ONE;
+        let f = UnsatInt::from_uint(f);
+        let g = UnsatInt::from_uint(g);
         let (_, mut f) = divsteps(e, f, g, inverse);
+        f = UnsatInt::select(&f, &f.neg(), f.is_negative());
+        f.to_uint()
+    }
 
-        if f.is_negative() {
-            f = f.neg();
-        }
-
+    /// Returns the greatest common divisor (GCD) of the two given numbers.
+    ///
+    /// This version is variable-time with respect to `g`.
+    pub(crate) const fn gcd_vartime(f: &Uint<SAT_LIMBS>, g: &Uint<SAT_LIMBS>) -> Uint<SAT_LIMBS> {
+        let inverse = inv_mod2_62(f.as_words());
+        let e = UnsatInt::<UNSAT_LIMBS>::ONE;
+        let f = UnsatInt::from_uint(f);
+        let g = UnsatInt::from_uint(g);
+        let (_, mut f) = divsteps_vartime(e, f, g, inverse);
+        f = UnsatInt::select(&f, &f.neg(), f.is_negative());
         f.to_uint()
     }
 
     /// Returns either "value (mod M)" or "-value (mod M)", where M is the modulus the inverter
     /// was created for, depending on "negate", which determines the presence of "-" in the used
     /// formula. The input integer lies in the interval (-2 * M, M).
-    const fn norm(&self, mut value: Int62L<UNSAT_LIMBS>, negate: bool) -> Int62L<UNSAT_LIMBS> {
-        if value.is_negative() {
-            value = value.add(&self.modulus);
-        }
-
-        if negate {
-            value = value.neg();
-        }
-
-        if value.is_negative() {
-            value = value.add(&self.modulus);
-        }
-
+    const fn norm(
+        &self,
+        mut value: UnsatInt<UNSAT_LIMBS>,
+        negate: ConstChoice,
+    ) -> UnsatInt<UNSAT_LIMBS> {
+        value = UnsatInt::select(&value, &value.add(&self.modulus), value.is_negative());
+        value = UnsatInt::select(&value, &value.neg(), negate);
+        value = UnsatInt::select(&value, &value.add(&self.modulus), value.is_negative());
         value
     }
 }
@@ -145,7 +149,10 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Inverter
 ///
 /// For better understanding the implementation, the following paper is recommended:
 /// J. Hurchalla, "An Improved Integer Multiplicative Inverse (modulo 2^w)",
-/// https://arxiv.org/pdf/2204.04342.pdf
+/// <https://arxiv.org/pdf/2204.04342.pdf>
+///
+/// Variable time with respect to the number of words in `value`, however that number will be
+/// fixed for a given integer size.
 const fn inv_mod2_62(value: &[Word]) -> i64 {
     let value = {
         #[cfg(target_pointer_width = "32")]
@@ -176,18 +183,49 @@ const fn inv_mod2_62(value: &[Word]) -> i64 {
 
 /// Algorithm `divsteps2` to compute (δₙ, fₙ, gₙ) = divstepⁿ(δ, f, g) as described in Figure 10.1
 /// of <https://eprint.iacr.org/2019/266.pdf>.
+///
+/// This version runs in a fixed number of iterations relative to the highest bit of `f` or `g`
+/// as described in Figure 11.1.
 const fn divsteps<const LIMBS: usize>(
-    mut e: Int62L<LIMBS>,
-    f_0: Int62L<LIMBS>,
-    mut g: Int62L<LIMBS>,
+    mut e: UnsatInt<LIMBS>,
+    f_0: UnsatInt<LIMBS>,
+    mut g: UnsatInt<LIMBS>,
     inverse: i64,
-) -> (Int62L<LIMBS>, Int62L<LIMBS>) {
-    let mut d = Int62L::ZERO;
+) -> (UnsatInt<LIMBS>, UnsatInt<LIMBS>) {
+    let mut d = UnsatInt::ZERO;
+    let mut f = f_0;
+    let mut delta = 1;
+    let mut matrix;
+    let mut i = 0;
+    let m = iterations(f_0.bits(), g.bits());
+
+    while i < m {
+        (delta, matrix) = jump(&f.0, &g.0, delta);
+        (f, g) = fg(f, g, matrix);
+        (d, e) = de(&f_0, inverse, matrix, d, e);
+        i += 1;
+    }
+
+    debug_assert!(g.eq(&UnsatInt::ZERO).to_bool_vartime());
+    (d, f)
+}
+
+/// Algorithm `divsteps2` to compute (δₙ, fₙ, gₙ) = divstepⁿ(δ, f, g) as described in Figure 10.1
+/// of <https://eprint.iacr.org/2019/266.pdf>.
+///
+/// This version is variable-time with respect to `g`.
+const fn divsteps_vartime<const LIMBS: usize>(
+    mut e: UnsatInt<LIMBS>,
+    f_0: UnsatInt<LIMBS>,
+    mut g: UnsatInt<LIMBS>,
+    inverse: i64,
+) -> (UnsatInt<LIMBS>, UnsatInt<LIMBS>) {
+    let mut d = UnsatInt::ZERO;
     let mut f = f_0;
     let mut delta = 1;
     let mut matrix;
 
-    while !g.eq(&Int62L::ZERO) {
+    while !g.eq(&UnsatInt::ZERO).to_bool_vartime() {
         (delta, matrix) = jump(&f.0, &g.0, delta);
         (f, g) = fg(f, g, matrix);
         (d, e) = de(&f_0, inverse, matrix, d, e);
@@ -243,10 +281,10 @@ const fn jump(f: &[u64], g: &[u64], mut delta: i64) -> (i64, Matrix) {
 ///
 /// The returned vector is "matrix * (f, g)' / 2^62", where "'" is the transpose operator.
 const fn fg<const LIMBS: usize>(
-    f: Int62L<LIMBS>,
-    g: Int62L<LIMBS>,
+    f: UnsatInt<LIMBS>,
+    g: UnsatInt<LIMBS>,
     t: Matrix,
-) -> (Int62L<LIMBS>, Int62L<LIMBS>) {
+) -> (UnsatInt<LIMBS>, UnsatInt<LIMBS>) {
     (
         f.mul(t[0][0]).add(&g.mul(t[0][1])).shr(),
         f.mul(t[1][0]).add(&g.mul(t[1][1])).shr(),
@@ -261,15 +299,17 @@ const fn fg<const LIMBS: usize>(
 ///
 /// Both the input and output values lie in the interval (-2 * M, M).
 const fn de<const LIMBS: usize>(
-    modulus: &Int62L<LIMBS>,
+    modulus: &UnsatInt<LIMBS>,
     inverse: i64,
     t: Matrix,
-    d: Int62L<LIMBS>,
-    e: Int62L<LIMBS>,
-) -> (Int62L<LIMBS>, Int62L<LIMBS>) {
-    let mask = Int62L::<LIMBS>::MASK as i64;
-    let mut md = t[0][0] * d.is_negative() as i64 + t[0][1] * e.is_negative() as i64;
-    let mut me = t[1][0] * d.is_negative() as i64 + t[1][1] * e.is_negative() as i64;
+    d: UnsatInt<LIMBS>,
+    e: UnsatInt<LIMBS>,
+) -> (UnsatInt<LIMBS>, UnsatInt<LIMBS>) {
+    let mask = UnsatInt::<LIMBS>::MASK as i64;
+    let mut md =
+        t[0][0] * d.is_negative().to_u8() as i64 + t[0][1] * e.is_negative().to_u8() as i64;
+    let mut me =
+        t[1][0] * d.is_negative().to_u8() as i64 + t[1][1] * e.is_negative().to_u8() as i64;
 
     let cd = t[0][0]
         .wrapping_mul(d.lowest() as i64)
@@ -290,14 +330,34 @@ const fn de<const LIMBS: usize>(
     (cd.shr(), ce.shr())
 }
 
+/// Compute the number of iterations required to compute Bernstein-Yang on the two values.
+///
+/// Adapted from Fig 11.1 of <https://eprint.iacr.org/2019/266.pdf>
+///
+/// The paper proves that the algorithm will converge (i.e. `g` will be `0`) in all cases when
+/// the algorithm runs this particular number of iterations.
+///
+/// Once `g` reaches `0`, continuing to run the algorithm will have no effect.
+// TODO(tarcieri): improved bounds using https://github.com/sipa/safegcd-bounds
+pub(crate) const fn iterations(f_bits: u32, g_bits: u32) -> usize {
+    // Select max of `f_bits`, `g_bits`
+    let d = ConstChoice::from_u32_lt(f_bits, g_bits).select_u32(f_bits, g_bits) as usize;
+
+    if d < 46 {
+        (49 * d + 80) / 17
+    } else {
+        (49 * d + 57) / 17
+    }
+}
+
 /// "Bigint"-like (62 * LIMBS)-bit signed integer type, whose variables store numbers in the two's
 /// complement code as arrays of 62-bit limbs in little endian order.
 ///
 /// The arithmetic operations for this type are wrapping ones.
 #[derive(Clone, Copy, Debug)]
-pub(super) struct Int62L<const LIMBS: usize>(pub [u64; LIMBS]);
+pub(super) struct UnsatInt<const LIMBS: usize>(pub [u64; LIMBS]);
 
-impl<const LIMBS: usize> Int62L<LIMBS> {
+impl<const LIMBS: usize> UnsatInt<LIMBS> {
     /// Number of bits in each limb.
     pub const LIMB_BITS: usize = 62;
 
@@ -318,7 +378,7 @@ impl<const LIMBS: usize> Int62L<LIMBS> {
     };
 
     /// Convert from 32/64-bit saturated representation used by `Uint` to the 62-bit unsaturated
-    /// representation used by `Int62L`.
+    /// representation used by `UnsatInt`.
     ///
     /// Returns a big unsigned integer as an array of 62-bit chunks, which is equal modulo
     /// 2 ^ (62 * S) to the input big unsigned integer stored as an array of 64-bit chunks.
@@ -336,7 +396,7 @@ impl<const LIMBS: usize> Int62L<LIMBS> {
         Self(output)
     }
 
-    /// Convert from 62-bit unsaturated representation used by `Int62L` to the 32/64-bit saturated
+    /// Convert from 62-bit unsaturated representation used by `UnsatInt` to the 32/64-bit saturated
     /// representation used by `Uint`.
     ///
     /// Returns a big unsigned integer as an array of 32/64-bit chunks, which is equal modulo
@@ -345,7 +405,10 @@ impl<const LIMBS: usize> Int62L<LIMBS> {
     /// The ordering of the chunks in these arrays is little-endian.
     #[allow(trivial_numeric_casts, clippy::wrong_self_convention)]
     pub const fn to_uint<const SAT_LIMBS: usize>(&self) -> Uint<SAT_LIMBS> {
-        debug_assert!(!self.is_negative(), "can't convert negative number to Uint");
+        debug_assert!(
+            !self.is_negative().to_bool_vartime(),
+            "can't convert negative number to Uint"
+        );
 
         if LIMBS != bernstein_yang_nlimbs!(SAT_LIMBS * Limb::BITS as usize) {
             panic!("incorrect number of limbs");
@@ -424,9 +487,7 @@ impl<const LIMBS: usize> Int62L<LIMBS> {
     /// Returns the result of applying 62-bit right arithmetical shift to the current number.
     pub const fn shr(&self) -> Self {
         let mut ret = Self::ZERO;
-        if self.is_negative() {
-            ret.0[LIMBS - 1] = Self::MASK;
-        }
+        ret.0[LIMBS - 1] = self.is_negative().select_u64(ret.0[LIMBS - 1], Self::MASK);
 
         let mut i = 0;
         while i < LIMBS - 1 {
@@ -438,12 +499,12 @@ impl<const LIMBS: usize> Int62L<LIMBS> {
     }
 
     /// Const fn equivalent for `PartialEq::eq`.
-    pub const fn eq(&self, other: &Self) -> bool {
-        let mut ret = true;
+    pub const fn eq(&self, other: &Self) -> ConstChoice {
+        let mut ret = ConstChoice::TRUE;
         let mut i = 0;
 
         while i < LIMBS {
-            ret &= self.0[i] == other.0[i];
+            ret = ret.and(ConstChoice::from_u64_eq(self.0[i], other.0[i]));
             i += 1;
         }
 
@@ -451,19 +512,49 @@ impl<const LIMBS: usize> Int62L<LIMBS> {
     }
 
     /// Returns "true" iff the current number is negative.
-    pub const fn is_negative(&self) -> bool {
-        self.0[LIMBS - 1] > (Self::MASK >> 1)
+    pub const fn is_negative(&self) -> ConstChoice {
+        ConstChoice::from_u64_gt(self.0[LIMBS - 1], Self::MASK >> 1)
     }
 
     /// Returns the lowest 62 bits of the current number.
     pub const fn lowest(&self) -> u64 {
         self.0[0]
     }
-}
 
-impl<const LIMBS: usize> PartialEq for Int62L<LIMBS> {
-    fn eq(&self, other: &Self) -> bool {
-        self.eq(other)
+    /// Select between two [`UnsatInt`] values in constant time.
+    pub const fn select(a: &Self, b: &Self, choice: ConstChoice) -> Self {
+        let mut ret = Self::ZERO;
+        let mut i = 0;
+
+        while i < LIMBS {
+            ret.0[i] = choice.select_u64(a.0[i], b.0[i]);
+            i += 1;
+        }
+
+        ret
+    }
+
+    /// Calculate the number of leading zeros in the binary representation of this number.
+    pub const fn leading_zeros(&self) -> u32 {
+        let mut count = 0;
+        let mut i = LIMBS;
+        let mut nonzero_limb_not_encountered = ConstChoice::TRUE;
+
+        while i > 0 {
+            i -= 1;
+            let l = self.0[i];
+            let z = l.leading_zeros() - 2;
+            count += nonzero_limb_not_encountered.if_true_u32(z);
+            nonzero_limb_not_encountered =
+                nonzero_limb_not_encountered.and(ConstChoice::from_u64_nonzero(l).not());
+        }
+
+        count
+    }
+
+    /// Calculate the number of bits in this value (i.e. index of the highest bit) in constant time.
+    pub const fn bits(&self) -> u32 {
+        (LIMBS as u32 * 62) - self.leading_zeros()
     }
 }
 
@@ -471,7 +562,13 @@ impl<const LIMBS: usize> PartialEq for Int62L<LIMBS> {
 mod tests {
     use crate::{Inverter, PrecomputeInverter, U256};
 
-    type Int62L = super::Int62L<4>;
+    type UnsatInt = super::UnsatInt<4>;
+
+    impl<const LIMBS: usize> PartialEq for crate::modular::bernstein_yang::UnsatInt<LIMBS> {
+        fn eq(&self, other: &Self) -> bool {
+            self.eq(other).to_bool_vartime()
+        }
+    }
 
     #[test]
     fn invert() {
@@ -491,38 +588,38 @@ mod tests {
 
     #[test]
     fn int62l_add() {
-        assert_eq!(Int62L::ZERO, Int62L::ZERO.add(&Int62L::ZERO));
-        assert_eq!(Int62L::ONE, Int62L::ONE.add(&Int62L::ZERO));
-        assert_eq!(Int62L::ZERO, Int62L::MINUS_ONE.add(&Int62L::ONE));
+        assert_eq!(UnsatInt::ZERO, UnsatInt::ZERO.add(&UnsatInt::ZERO));
+        assert_eq!(UnsatInt::ONE, UnsatInt::ONE.add(&UnsatInt::ZERO));
+        assert_eq!(UnsatInt::ZERO, UnsatInt::MINUS_ONE.add(&UnsatInt::ONE));
     }
 
     #[test]
     fn int62l_mul() {
-        assert_eq!(Int62L::ZERO, Int62L::ZERO.mul(0));
-        assert_eq!(Int62L::ZERO, Int62L::ZERO.mul(1));
-        assert_eq!(Int62L::ZERO, Int62L::ONE.mul(0));
-        assert_eq!(Int62L::ZERO, Int62L::MINUS_ONE.mul(0));
-        assert_eq!(Int62L::ONE, Int62L::ONE.mul(1));
-        assert_eq!(Int62L::MINUS_ONE, Int62L::MINUS_ONE.mul(1));
+        assert_eq!(UnsatInt::ZERO, UnsatInt::ZERO.mul(0));
+        assert_eq!(UnsatInt::ZERO, UnsatInt::ZERO.mul(1));
+        assert_eq!(UnsatInt::ZERO, UnsatInt::ONE.mul(0));
+        assert_eq!(UnsatInt::ZERO, UnsatInt::MINUS_ONE.mul(0));
+        assert_eq!(UnsatInt::ONE, UnsatInt::ONE.mul(1));
+        assert_eq!(UnsatInt::MINUS_ONE, UnsatInt::MINUS_ONE.mul(1));
     }
 
     #[test]
     fn int62l_neg() {
-        assert_eq!(Int62L::ZERO, Int62L::ZERO.neg());
-        assert_eq!(Int62L::MINUS_ONE, Int62L::ONE.neg());
-        assert_eq!(Int62L::ONE, Int62L::MINUS_ONE.neg());
+        assert_eq!(UnsatInt::ZERO, UnsatInt::ZERO.neg());
+        assert_eq!(UnsatInt::MINUS_ONE, UnsatInt::ONE.neg());
+        assert_eq!(UnsatInt::ONE, UnsatInt::MINUS_ONE.neg());
     }
 
     #[test]
     fn int62l_is_negative() {
-        assert!(!Int62L::ZERO.is_negative());
-        assert!(!Int62L::ONE.is_negative());
-        assert!(Int62L::MINUS_ONE.is_negative());
+        assert!(!UnsatInt::ZERO.is_negative().to_bool_vartime());
+        assert!(!UnsatInt::ONE.is_negative().to_bool_vartime());
+        assert!(UnsatInt::MINUS_ONE.is_negative().to_bool_vartime());
     }
 
     #[test]
     fn int62l_shr() {
-        let n = super::Int62L([
+        let n = super::UnsatInt([
             0,
             1211048314408256470,
             1344008336933394898,

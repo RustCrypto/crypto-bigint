@@ -143,13 +143,7 @@ proptest! {
     }
 
     #[test]
-    fn gcd((mut f, g) in uint_pair()) {
-        if f.is_even().into() {
-            // Ensure `f` is always odd (required by Bernstein-Yang)
-            f = f.wrapping_add(&BoxedUint::one());
-        }
-
-        let f = f.to_odd().unwrap();
+    fn gcd((f, g) in uint_pair()) {
         let f_bi = to_biguint(&f);
         let g_bi = to_biguint(&g);
 

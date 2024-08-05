@@ -188,7 +188,7 @@ proptest! {
         let p_bi = to_biguint(&P);
 
         let expected = to_uint((a_bi * b_bi) % p_bi);
-        let actual = a.mul_mod(&b, &P);
+        let actual = a.mul_mod_vartime(&b, P.as_nz_ref());
 
         assert!(expected < P);
         assert!(actual < P);
@@ -275,17 +275,27 @@ proptest! {
     }
 
     #[test]
-    fn gcd(mut f in uint(), g in uint()) {
-        if f.is_even().into() {
-            // Ensure `f` is always odd (required by Bernstein-Yang)
-            f = f.wrapping_add(&U256::ONE);
-        }
-
+    fn gcd(f in uint(), g in uint()) {
         let f_bi = to_biguint(&f);
         let g_bi = to_biguint(&g);
 
         let expected = to_uint(f_bi.gcd(&g_bi));
-        let actual = f.gcd(&g).unwrap();
+        let actual = f.gcd(&g);
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn gcd_vartime(mut f in uint(), g in uint()) {
+        if bool::from(f.is_even()) {
+            f += U256::ONE;
+        }
+
+        let f_bi = to_biguint(&f);
+        let g_bi = to_biguint(&g);
+        let expected = to_uint(f_bi.gcd(&g_bi));
+
+        let f = Odd::new(f).unwrap();
+        let actual = f.gcd_vartime(&g);
         assert_eq!(expected, actual);
     }
 

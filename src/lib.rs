@@ -189,7 +189,7 @@ pub use crate::{
 pub use subtle;
 
 #[cfg(feature = "alloc")]
-pub use crate::uint::boxed::{encoding::DecodeError, BoxedUint};
+pub use crate::uint::boxed::BoxedUint;
 
 #[cfg(feature = "hybrid-array")]
 pub use {

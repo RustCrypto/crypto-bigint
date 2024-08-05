@@ -9,7 +9,7 @@ pub use num_traits::{
 pub(crate) use sealed::PrecomputeInverterWithAdjuster;
 
 use crate::{Limb, NonZero, Odd, Reciprocal};
-use core::fmt::Debug;
+use core::fmt::{self, Debug};
 use core::ops::{
     Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign,
     Mul, MulAssign, Neg, Not, Rem, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
@@ -21,9 +21,6 @@ use subtle::{
 
 #[cfg(feature = "rand_core")]
 use rand_core::CryptoRngCore;
-
-#[cfg(feature = "rand_core")]
-use core::fmt;
 
 /// Integers whose representation takes a bounded amount of space.
 pub trait Bounded {
@@ -197,15 +194,16 @@ pub trait FixedInteger: Bounded + ConditionallySelectable + Constants + Copy + I
     const LIMBS: usize;
 }
 
-/// Compute greatest common divisor of two integers.
+/// Compute the greatest common divisor of two integers.
 pub trait Gcd<Rhs = Self>: Sized {
     /// Output type.
     type Output;
 
-    /// Compute greatest common divisor of `self` and `rhs`.
-    ///
-    /// Returns none unless `self` is odd (`rhs` may be even or odd)`.
+    /// Compute the greatest common divisor of `self` and `rhs`.
     fn gcd(&self, rhs: &Rhs) -> Self::Output;
+
+    /// Compute the greatest common divisor of `self` and `rhs` in variable time.
+    fn gcd_vartime(&self, rhs: &Rhs) -> Self::Output;
 }
 
 /// Trait impl'd by precomputed modular inverters obtained via the [`PrecomputeInverter`] trait.
@@ -540,6 +538,41 @@ pub trait Encoding: Sized {
     /// Encode to little endian bytes.
     fn to_le_bytes(&self) -> Self::Repr;
 }
+
+/// Possible errors in variable-time integer decoding methods.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DecodeError {
+    /// The input value was empty.
+    Empty,
+
+    /// The input was not consistent with the format restrictions.
+    InvalidDigit,
+
+    /// Input size is too small to fit in the given precision.
+    InputSize,
+
+    /// The deserialized number is larger than the given precision.
+    Precision,
+}
+
+impl fmt::Display for DecodeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Empty => write!(f, "empty value provided"),
+            Self::InvalidDigit => {
+                write!(f, "invalid digit character")
+            }
+            Self::InputSize => write!(f, "input size is too small to fit in the given precision"),
+            Self::Precision => write!(
+                f,
+                "the deserialized number is larger than the given precision"
+            ),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for DecodeError {}
 
 /// Support for optimized squaring
 pub trait Square {

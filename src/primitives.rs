@@ -65,9 +65,3 @@ pub(crate) const fn mac(a: Word, b: Word, c: Word, carry: Word) -> (Word, Word) 
     let ret = a + (b * c) + carry;
     (ret as Word, (ret >> Word::BITS) as Word)
 }
-
-/// Computes `(a * b) % d`.
-#[inline(always)]
-pub(crate) const fn mul_rem(a: Word, b: Word, d: Word) -> Word {
-    ((a as WideWord * b as WideWord) % (d as WideWord)) as Word
-}
