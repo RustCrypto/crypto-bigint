@@ -587,7 +587,7 @@ mod tests {
     }
 
     #[test]
-    fn boxed_int62l_is_zero() {
+    fn boxed_unsatint_is_zero() {
         let zero = BoxedUnsatInt::from(&U256::ZERO.into());
         assert!(bool::from(zero.is_zero()));
 
@@ -596,7 +596,7 @@ mod tests {
     }
 
     #[test]
-    fn boxed_int62l_is_one() {
+    fn boxed_unsatint_is_one() {
         let zero = BoxedUnsatInt::from(&U256::ZERO.into());
         assert!(!bool::from(zero.is_one()));
 
@@ -605,7 +605,7 @@ mod tests {
     }
 
     #[test]
-    fn int62l_shr_assign() {
+    fn unsatint_shr_assign() {
         let mut n = BoxedUnsatInt(
             vec![
                 0,
@@ -641,7 +641,7 @@ mod tests {
     proptest! {
         #[test]
         #[cfg(not(miri))]
-        fn boxed_int62l_add(x in u256(), y in u256()) {
+        fn boxed_unsatint_add(x in u256(), y in u256()) {
             let x_ref = UnsatInt::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
             let y_ref = UnsatInt::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&y);
             let mut x_boxed = BoxedUnsatInt::from(&x.into());
@@ -654,7 +654,7 @@ mod tests {
 
         #[test]
         #[cfg(not(miri))]
-        fn boxed_int62l_mul(x in u256(), y in any::<i64>()) {
+        fn boxed_unsatint_mul(x in u256(), y in any::<i64>()) {
             let x_ref = UnsatInt::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
             let x_boxed = BoxedUnsatInt::from(&x.into());
 
@@ -665,7 +665,7 @@ mod tests {
 
         #[test]
         #[cfg(not(miri))]
-        fn boxed_int62l_neg(x in u256()) {
+        fn boxed_unsatint_neg(x in u256()) {
             let x_ref = UnsatInt::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
             let x_boxed = BoxedUnsatInt::from(&x.into());
 
@@ -676,7 +676,7 @@ mod tests {
 
         #[test]
         #[cfg(not(miri))]
-        fn boxed_int62l_shr(x in u256()) {
+        fn boxed_unsatint_shr(x in u256()) {
             let x_ref = UnsatInt::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
             let mut x_boxed = BoxedUnsatInt::from(&x.into());
             x_boxed.shr_assign();
@@ -688,7 +688,7 @@ mod tests {
         #[test]
                 #[cfg(not(miri))]
 
-        fn boxed_int62l_is_negative(x in u256()) {
+        fn boxed_unsatint_is_negative(x in u256()) {
             let x_ref = UnsatInt::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
             let x_boxed = BoxedUnsatInt::from(&x.into());
             assert_eq!(x_ref.is_negative().to_bool_vartime(), bool::from(x_boxed.is_negative()));
@@ -697,7 +697,7 @@ mod tests {
         #[test]
                 #[cfg(not(miri))]
 
-        fn boxed_int62l_is_minus_one(x in u256()) {
+        fn boxed_unsatint_is_minus_one(x in u256()) {
             let x_ref = UnsatInt::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
             let x_boxed = BoxedUnsatInt::from(&x.into());
             assert!(bool::from(x_boxed.is_minus_one().ct_eq(&x_ref.eq(&UnsatInt::MINUS_ONE).into())));
