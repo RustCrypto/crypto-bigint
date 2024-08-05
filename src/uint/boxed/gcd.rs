@@ -25,6 +25,15 @@ impl Gcd for BoxedUint {
     }
 }
 
+impl Odd<BoxedUint> {
+    /// Compute the greatest common divisor (GCD) of this number and another.
+    ///
+    /// Runs in variable time with respect to `rhs`.
+    pub fn gcd_vartime(&self, rhs: &BoxedUint) -> BoxedUint {
+        bernstein_yang::boxed::gcd_vartime(self, rhs)
+    }
+}
+
 impl Gcd<BoxedUint> for Odd<BoxedUint> {
     type Output = BoxedUint;
 

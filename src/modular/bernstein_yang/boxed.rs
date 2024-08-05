@@ -3,7 +3,7 @@
 //!
 //! See parent module for more information.
 
-use super::{inv_mod2_62, jump, Matrix};
+use super::{inv_mod2_62, iterations, jump, Matrix};
 use crate::{BoxedUint, Inverter, Limb, Odd, Word};
 use alloc::{boxed::Box, vec::Vec};
 use core::ops::{AddAssign, Mul};
@@ -80,8 +80,26 @@ pub(crate) fn gcd(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
     f.to_uint(bits_precision)
 }
 
+/// Returns the greatest common divisor (GCD) of the two given numbers.
+///
+/// Variable time with respect to `g`.
+pub(crate) fn gcd_vartime(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
+    let bits_precision = f.bits_precision();
+    let inverse = inv_mod2_62(f.as_words());
+    let f = BoxedInt62L::from(f);
+    let mut g = BoxedInt62L::from(g);
+    let mut d = BoxedInt62L::zero(f.nlimbs());
+    let e = BoxedInt62L::one(f.nlimbs());
+
+    let mut f = divsteps_vartime(&mut d, &e, &f, &mut g, inverse);
+    f.conditional_negate(f.is_negative());
+    f.to_uint(bits_precision)
+}
+
 /// Algorithm `divsteps2` to compute (δₙ, fₙ, gₙ) = divstepⁿ(δ, f, g) as described in Figure 10.1
 /// of <https://eprint.iacr.org/2019/266.pdf>.
+///
+/// This version is variable-time with respect to `g`.
 fn divsteps(
     d: &mut BoxedInt62L,
     e: &BoxedInt62L,
@@ -96,7 +114,34 @@ fn divsteps(
     let mut delta = 1;
     let mut matrix;
 
-    // TODO(tarcieri): run in a fixed number of iterations
+    for _ in 0..iterations(f_0.bits(), g.bits()) {
+        (delta, matrix) = jump(&f.0, &g.0, delta);
+        fg(&mut f, g, matrix);
+        de(f_0, inverse, matrix, d, &mut e);
+    }
+
+    f
+}
+
+/// Algorithm `divsteps2` to compute (δₙ, fₙ, gₙ) = divstepⁿ(δ, f, g) as described in Figure 10.1
+/// of <https://eprint.iacr.org/2019/266.pdf>.
+///
+/// This version runs in a fixed number of iterations relative to the highest bit of `f` or `g`
+/// as described in Figure 11.1.
+fn divsteps_vartime(
+    d: &mut BoxedInt62L,
+    e: &BoxedInt62L,
+    f_0: &BoxedInt62L,
+    g: &mut BoxedInt62L,
+    inverse: i64,
+) -> BoxedInt62L {
+    debug_assert_eq!(f_0.nlimbs(), g.nlimbs());
+
+    let mut e = e.clone();
+    let mut f = f_0.clone();
+    let mut delta = 1;
+    let mut matrix;
+
     while !bool::from(g.is_zero()) {
         (delta, matrix) = jump(&f.0, &g.0, delta);
         fg(&mut f, g, matrix);
@@ -359,6 +404,25 @@ impl BoxedInt62L {
     /// Returns the number of limbs used by this integer.
     pub fn nlimbs(&self) -> usize {
         self.0.len()
+    }
+
+    /// Calculate the number of leading zeros in the binary representation of this number.
+    pub fn leading_zeros(&self) -> u32 {
+        let mut count = 0;
+        let mut nonzero_limb_not_encountered = Choice::from(1);
+
+        for l in self.0.iter() {
+            let z = l.leading_zeros() - 2;
+            count += u32::conditional_select(&0, &z, nonzero_limb_not_encountered);
+            nonzero_limb_not_encountered &= !l.ct_eq(&0);
+        }
+
+        count
+    }
+
+    /// Calculate the number of bits in this value (i.e. index of the highest bit) in constant time.
+    pub fn bits(&self) -> u32 {
+        (self.0.len() as u32 * 62) - self.leading_zeros()
     }
 }
 
