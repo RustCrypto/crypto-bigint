@@ -587,14 +587,14 @@ mod tests {
     }
 
     #[test]
-    fn int62l_add() {
+    fn unsatint_add() {
         assert_eq!(UnsatInt::ZERO, UnsatInt::ZERO.add(&UnsatInt::ZERO));
         assert_eq!(UnsatInt::ONE, UnsatInt::ONE.add(&UnsatInt::ZERO));
         assert_eq!(UnsatInt::ZERO, UnsatInt::MINUS_ONE.add(&UnsatInt::ONE));
     }
 
     #[test]
-    fn int62l_mul() {
+    fn unsatint_mul() {
         assert_eq!(UnsatInt::ZERO, UnsatInt::ZERO.mul(0));
         assert_eq!(UnsatInt::ZERO, UnsatInt::ZERO.mul(1));
         assert_eq!(UnsatInt::ZERO, UnsatInt::ONE.mul(0));
@@ -604,21 +604,21 @@ mod tests {
     }
 
     #[test]
-    fn int62l_neg() {
+    fn unsatint_neg() {
         assert_eq!(UnsatInt::ZERO, UnsatInt::ZERO.neg());
         assert_eq!(UnsatInt::MINUS_ONE, UnsatInt::ONE.neg());
         assert_eq!(UnsatInt::ONE, UnsatInt::MINUS_ONE.neg());
     }
 
     #[test]
-    fn int62l_is_negative() {
+    fn unsatint_is_negative() {
         assert!(!UnsatInt::ZERO.is_negative().to_bool_vartime());
         assert!(!UnsatInt::ONE.is_negative().to_bool_vartime());
         assert!(UnsatInt::MINUS_ONE.is_negative().to_bool_vartime());
     }
 
     #[test]
-    fn int62l_shr() {
+    fn unsatint_shr() {
         let n = super::UnsatInt([
             0,
             1211048314408256470,
