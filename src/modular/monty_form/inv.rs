@@ -133,12 +133,25 @@ mod tests {
         // Seed used to ensure deterministc random sequences in tests.
         const RANDOM_SEED: [u8; 32] = [17; 32];
 
+        #[cfg(target_pointer_width = "32")]
+        const LIMBS_1024: usize = 32;
+        #[cfg(target_pointer_width = "32")]
+        const LIMBS_2048: usize = 64;
+        #[cfg(target_pointer_width = "32")]
+        const LIMBS_4096: usize = 128;
+
+        #[cfg(target_pointer_width = "64")]
+        pub const LIMBS_1024: usize = 16;
+        #[cfg(target_pointer_width = "64")]
+        pub const LIMBS_2048: usize = 32;
+        #[cfg(target_pointer_width = "64")]
+        pub const LIMBS_4096: usize = 64;
         // Generates a random `U1024` and returns it as a tuple in: normal form, montgomery form,
         // inverted montgomery form and the normal form inverse from the num_modular crate.
         fn random_invertible_u1024(
-            monty_params: MontyParams<16>,
+            monty_params: MontyParams<LIMBS_1024>,
             rng: &mut impl CryptoRngCore,
-        ) -> (U1024, MontyForm<16>, MontyForm<16>, BigUint) {
+        ) -> (U1024, MontyForm<LIMBS_1024>, MontyForm<LIMBS_1024>, BigUint) {
             let modulus = monty_params.modulus().to_nz().unwrap();
             loop {
                 let r = Uint::random_mod(rng, &modulus);
@@ -160,9 +173,9 @@ mod tests {
         // Generates a random `U2048` and returns it as a tuple in: normal form, montgomery form,
         // inverted montgomery form and the normal form inverse from the num_modular crate.
         fn random_invertible_u2048(
-            monty_params: MontyParams<32>,
+            monty_params: MontyParams<LIMBS_2048>,
             rng: &mut impl CryptoRngCore,
-        ) -> (U2048, MontyForm<32>, MontyForm<32>, BigUint) {
+        ) -> (U2048, MontyForm<LIMBS_2048>, MontyForm<LIMBS_2048>, BigUint) {
             let modulus = monty_params.modulus().to_nz().unwrap();
             loop {
                 let r = Uint::random_mod(rng, &modulus);
@@ -185,9 +198,9 @@ mod tests {
         // Generates a random `U4096` and returns it as a tuple in: normal form, montgomery form,
         // inverted montgomery form and the normal form inverse from the num_modular crate.
         fn random_invertible_u4096(
-            monty_params: MontyParams<64>,
+            monty_params: MontyParams<LIMBS_4096>,
             rng: &mut impl CryptoRngCore,
-        ) -> (U4096, MontyForm<64>, MontyForm<64>, BigUint) {
+        ) -> (U4096, MontyForm<LIMBS_4096>, MontyForm<LIMBS_4096>, BigUint) {
             let modulus = monty_params.modulus().to_nz().unwrap();
             loop {
                 let r = Uint::random_mod(rng, &modulus);
