@@ -834,7 +834,7 @@ impl<const LIMBS: usize> RemLimb for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, NonZero, Uint, Word, U256};
+    use crate::{Limb, NonZero, Uint, Word, U128, U256, U64};
 
     #[cfg(feature = "rand")]
     use {
@@ -912,15 +912,14 @@ mod tests {
 
     #[test]
     fn div_edge() {
-        use crate::U128;
         let lo = U128::from_be_hex("00000000000000000000000000000001");
         let hi = U128::from_be_hex("00000000000000000000000000000001");
         let y = U128::from_be_hex("00000000000000010000000000000001");
         let x = U256::from((lo, hi));
-        let expect = (U256::from(Limb::MAX), U256::from(2u64));
+        let expect = (U64::MAX.resize::<{ U256::LIMBS }>(), U256::from(2u64));
 
-        let q_r = Uint::div_rem(&x, &NonZero::new(y.resize()).unwrap());
-        assert_eq!(q_r, expect);
+        let (q1, r1) = Uint::div_rem(&x, &NonZero::new(y.resize()).unwrap());
+        assert_eq!((q1, r1), expect);
         let (q2, r2) = Uint::div_rem_vartime(&x, &NonZero::new(y).unwrap());
         assert_eq!((q2, r2.resize()), expect);
         let r3 = Uint::rem(&x, &NonZero::new(y.resize()).unwrap());
