@@ -1,12 +1,10 @@
 //! [`Uint`] division operations.
 
 use super::div_limb::{
-    div2by1, div_rem_limb_with_reciprocal, rem_limb_with_reciprocal, rem_limb_with_reciprocal_wide,
+    div3by2, div_rem_limb_with_reciprocal, rem_limb_with_reciprocal, rem_limb_with_reciprocal_wide,
     Reciprocal,
 };
-use crate::{
-    CheckedDiv, ConstChoice, DivRemLimb, Limb, NonZero, RemLimb, Uint, WideWord, Word, Wrapping,
-};
+use crate::{CheckedDiv, ConstChoice, DivRemLimb, Limb, NonZero, RemLimb, Uint, Word, Wrapping};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::CtOption;
 
@@ -135,21 +133,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         loop {
             // Divide high dividend words by the high divisor word to estimate the quotient word
-            let (mut quo, mut rem) = div2by1(x_hi.0, x[xi].0, &reciprocal);
-
-            i = 0;
-            while i < 2 {
-                let qy = (quo as WideWord) * (y[yc - 2].0 as WideWord);
-                let rx = ((rem as WideWord) << Word::BITS) | (x[xi - 1].0 as WideWord);
-                // Constant-time check for q*y[-2] < r*x[-1], based on ConstChoice::from_word_lt
-                let diff = ConstChoice::from_word_lsb(
-                    ((((!rx) & qy) | (((!rx) | qy) & (rx.wrapping_sub(qy))))
-                        >> (WideWord::BITS - 1)) as Word,
-                );
-                quo = diff.select_word(quo, quo.saturating_sub(1));
-                rem = diff.select_word(rem, rem.saturating_add(y[yc - 1].0));
-                i += 1;
-            }
+            let (mut quo, _) = div3by2(x_hi.0, x[xi].0, x[xi - 1].0, &reciprocal, y[yc - 2].0);
 
             // Subtract q*divisor from the dividend
             carry = Limb::ZERO;
@@ -283,21 +267,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         loop {
             // Divide high dividend words by the high divisor word to estimate the quotient word
-            let (mut quo, mut rem) = div2by1(x_hi.0, x[xi].0, &reciprocal);
-
-            i = 0;
-            while i < 2 {
-                let qy = (quo as WideWord) * (y[yc - 2].0 as WideWord);
-                let rx = ((rem as WideWord) << Word::BITS) | (x[xi - 1].0 as WideWord);
-                // Constant-time check for q*y[-2] < r*x[-1], based on ConstChoice::from_word_lt
-                let diff = ConstChoice::from_word_lsb(
-                    ((((!rx) & qy) | (((!rx) | qy) & (rx.wrapping_sub(qy))))
-                        >> (WideWord::BITS - 1)) as Word,
-                );
-                quo = diff.select_word(quo, quo.saturating_sub(1));
-                rem = diff.select_word(rem, rem.saturating_add(y[yc - 1].0));
-                i += 1;
-            }
+            let (quo, _) = div3by2(x_hi.0, x[xi].0, x[xi - 1].0, &reciprocal, y[yc - 2].0);
 
             // Subtract q*divisor from the dividend
             carry = Limb::ZERO;
@@ -938,6 +908,27 @@ mod tests {
         let (q, r) = U256::from(10u8).div_rem_vartime(&NonZero::new(U256::ONE).unwrap());
         assert_eq!(q, U256::from(10u8));
         assert_eq!(r, U256::ZERO);
+    }
+
+    #[test]
+    fn div_edge() {
+        use crate::U128;
+        let lo = U128::from_be_hex("00000000000000000000000000000001");
+        let hi = U128::from_be_hex("00000000000000000000000000000001");
+        let y = U128::from_be_hex("00000000000000010000000000000001");
+        let x = U256::from((lo, hi));
+        let expect = (U256::from(Limb::MAX), U256::from(2u64));
+
+        let q_r = Uint::div_rem(&x, &NonZero::new(y.resize()).unwrap());
+        assert_eq!(q_r, expect);
+        let (q2, r2) = Uint::div_rem_vartime(&x, &NonZero::new(y).unwrap());
+        assert_eq!((q2, r2.resize()), expect);
+        let r3 = Uint::rem(&x, &NonZero::new(y.resize()).unwrap());
+        assert_eq!(r3, expect.1);
+        let r4 = Uint::rem_vartime(&x, &NonZero::new(y.resize()).unwrap());
+        assert_eq!(r4, expect.1);
+        let r5 = Uint::rem_wide_vartime((lo, hi), &NonZero::new(y).unwrap());
+        assert_eq!(r5.resize(), expect.1);
     }
 
     #[test]

@@ -1,9 +1,9 @@
 //! [`BoxedUint`] division operations.
 
 use crate::{
-    uint::{boxed, div_limb::div2by1},
+    uint::{boxed, div_limb::div3by2},
     BoxedUint, CheckedDiv, ConstChoice, ConstantTimeSelect, DivRemLimb, Limb, NonZero, Reciprocal,
-    RemLimb, WideWord, Word, Wrapping,
+    RemLimb, Wrapping,
 };
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::{Choice, ConstantTimeLess, CtOption};
@@ -360,19 +360,7 @@ pub(crate) fn div_rem_vartime_in_place(x: &mut [Limb], y: &mut [Limb]) {
 
     for xi in (yc - 1..xc).rev() {
         // Divide high dividend words by the high divisor word to estimate the quotient word
-        let (mut quo, mut rem) = div2by1(x_hi.0, x[xi].0, &reciprocal);
-
-        for _ in 0..2 {
-            let qy = (quo as WideWord) * (y[yc - 2].0 as WideWord);
-            let rx = ((rem as WideWord) << Word::BITS) | (x[xi - 1].0 as WideWord);
-            // Constant-time check for q*y[-2] < r*x[-1], based on ConstChoice::from_word_lt
-            let diff = ConstChoice::from_word_lsb(
-                ((((!rx) & qy) | (((!rx) | qy) & (rx.wrapping_sub(qy)))) >> (WideWord::BITS - 1))
-                    as Word,
-            );
-            quo = diff.select_word(quo, quo.saturating_sub(1));
-            rem = diff.select_word(rem, rem.saturating_add(y[yc - 1].0));
-        }
+        let (mut quo, _) = div3by2(x_hi.0, x[xi].0, x[xi - 1].0, &reciprocal, y[yc - 2].0);
 
         // Subtract q*divisor from the dividend
         carry = Limb::ZERO;
