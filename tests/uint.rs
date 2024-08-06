@@ -251,6 +251,22 @@ proptest! {
     }
 
     #[test]
+    fn div_rem(a in uint(), b in uint()) {
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+
+        if !b_bi.is_zero() {
+            let (q, r) = a_bi.div_rem(&b_bi);
+            let expected = (to_uint(q), to_uint(r));
+            let b_nz = NonZero::new(b).unwrap();
+            let actual = a.div_rem(&b_nz);
+            assert_eq!(expected, actual);
+            let actual_vartime = a.div_rem_vartime(&b_nz);
+            assert_eq!(expected, actual_vartime);
+        }
+    }
+
+    #[test]
     fn div_rem_limb(a in uint(), b in nonzero_limb()) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&U256::from(b));
