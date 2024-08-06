@@ -5,7 +5,7 @@ use subtle::{Choice, ConditionallySelectable};
 
 use crate::{
     primitives::{addhilo, mulhilo},
-    ConstChoice, Limb, NonZero, Uint, Word,
+    ConstChoice, Limb, NonZero, Uint, WideWord, Word,
 };
 
 /// Calculates the reciprocal of the given 32-bit divisor with the highmost bit set.
@@ -143,6 +143,45 @@ pub(crate) const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Wor
     let r = r_ge_d.select_word(r, r.wrapping_sub(d));
 
     (q1, r)
+}
+
+/// Calculate the quotient and the remainder of the division of a 3-word
+/// dividend `u`, with a precalculated leading-word reciprocal `v` and a second
+/// divisor word `v0`. The dividend and the lower divisor word must be left-shifted
+/// according to the `shift` value  of the reciprocal.
+#[inline(always)]
+pub(crate) const fn div3by2(
+    u2: Word,
+    u1: Word,
+    u0: Word,
+    reciprocal: &Reciprocal,
+    v0: Word,
+) -> (Word, Word) {
+    // This method corresponds to Algorithm Q:
+    // https://janmr.com/blog/2014/04/basic-multiple-precision-long-division/
+
+    let maxed = ConstChoice::from_word_eq(u2, reciprocal.divisor_normalized);
+    let (mut quo, mut rem) = div2by1(maxed.select_word(u2, 0), u1, reciprocal);
+    // When the leading dividend word equals the leading divisor word, cap the quotient
+    // at Word::MAX and set the remainder to the sum of the top dividend words.
+    quo = maxed.select_word(quo, Word::MAX);
+    rem = maxed.select_word(rem, u2.saturating_add(u1));
+
+    let mut i = 0;
+    while i < 2 {
+        let qy = (quo as WideWord) * (v0 as WideWord);
+        let rx = ((rem as WideWord) << Word::BITS) | (u0 as WideWord);
+        // Constant-time check for q*y[-2] < r*x[-1], based on ConstChoice::from_word_lt
+        let diff = ConstChoice::from_word_lsb(
+            ((((!rx) & qy) | (((!rx) | qy) & (rx.wrapping_sub(qy)))) >> (WideWord::BITS - 1))
+                as Word,
+        );
+        quo = diff.select_word(quo, quo.saturating_sub(1));
+        rem = diff.select_word(rem, rem.saturating_add(reciprocal.divisor_normalized));
+        i += 1;
+    }
+
+    (quo, rem)
 }
 
 /// A pre-calculated reciprocal for division by a single limb.
