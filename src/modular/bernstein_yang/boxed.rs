@@ -68,6 +68,11 @@ impl Inverter for BoxedBernsteinYangInverter {
 
 /// Returns the greatest common divisor (GCD) of the two given numbers.
 pub(crate) fn gcd(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
+    // TODO (#312): depending on the decision there, this may be relaxed.
+    if f.nlimbs() != g.nlimbs() {
+        panic!("Both arguments to `gcd()` must have the same number of limbs");
+    }
+
     let bits_precision = f.bits_precision();
     let inverse = inv_mod2_62(f.as_words());
     let f = BoxedUnsatInt::from(f);
@@ -84,6 +89,11 @@ pub(crate) fn gcd(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
 ///
 /// Variable time with respect to `g`.
 pub(crate) fn gcd_vartime(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
+    // TODO (#312): depending on the decision there, this may be relaxed.
+    if f.nlimbs() != g.nlimbs() {
+        panic!("Both arguments to `gcd()` must have the same number of limbs");
+    }
+
     let bits_precision = f.bits_precision();
     let inverse = inv_mod2_62(f.as_words());
     let f = BoxedUnsatInt::from(f);
