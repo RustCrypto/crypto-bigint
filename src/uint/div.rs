@@ -327,6 +327,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 (x[i], carry) = (Limb((x[i].0 >> lshift) | carry.0), Limb(x[i].0 << rshift));
             }
         }
+        // Clear upper limbs
+        i = LIMBS - 1;
+        while i >= yc {
+            x[i] = Limb::ZERO;
+            i -= 1;
+        }
 
         Uint::new(x)
     }
