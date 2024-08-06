@@ -397,25 +397,7 @@ mod tests {
         #[test]
         fn invert_random_u1024s() {
             let mut rng = ChaChaRng::from_seed(RANDOM_SEED);
-            let modulus = U1024::from([
-                0xd69d42ede255db9d,
-                0x20d23f0e7e55c2f3,
-                0xb11955f4354ad01e,
-                0xe1598344a83da132,
-                0xa40162a5315c9b7f,
-                0xa3e41cc5720f4dca,
-                0x3a28db743e07f87b,
-                0x717d2332171a2bd7,
-                0x7f6917818473334e,
-                0x7fc6c2ffd071667d,
-                0x1bdb77d72f57ac49,
-                0x3c857fff2fe7f7ee,
-                0x33ca8e3a359428ad,
-                0x12a442daca8af09d,
-                0x872ac90b36ebd1bc,
-                0x9aefced07fa13351,
-            ]);
-
+            let modulus = U1024::from_be_hex("d69d42ede255db9d20d23f0e7e55c2f3b11955f4354ad01ee1598344a83da132a40162a5315c9b7fa3e41cc5720f4dca3a28db743e07f87b717d2332171a2bd77f6917818473334e7fc6c2ffd071667d1bdb77d72f57ac493c857fff2fe7f7ee33ca8e3a359428ad12a442daca8af09d872ac90b36ebd1bc9aefced07fa13351");
             let monty_params = MontyParams::new_vartime(modulus.to_odd().unwrap());
             for _ in 0..100 {
                 let (r, rm, rmi, _) = random_invertible_u1024(monty_params, &mut rng);
