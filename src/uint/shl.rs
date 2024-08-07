@@ -160,28 +160,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         (Uint::<LIMBS>::new(limbs), Limb(carry))
     }
-
-    /// Computes `self << 1` in constant-time.
-    pub(crate) const fn shl1(&self) -> Self {
-        self.shl1_with_carry().0
-    }
-
-    /// Computes `self << 1` in constant-time, returning [`ConstChoice::TRUE`]
-    /// if the most significant bit was set, and [`ConstChoice::FALSE`] otherwise.
-    #[inline(always)]
-    pub(crate) const fn shl1_with_carry(&self) -> (Self, ConstChoice) {
-        let mut ret = Self::ZERO;
-        let mut i = 0;
-        let mut carry = Limb::ZERO;
-        while i < LIMBS {
-            let (shifted, new_carry) = self.limbs[i].shl1();
-            ret.limbs[i] = shifted.bitor(carry);
-            carry = new_carry;
-            i += 1;
-        }
-
-        (ret, ConstChoice::from_word_lsb(carry.0))
-    }
 }
 
 macro_rules! impl_shl {
@@ -264,7 +242,6 @@ mod tests {
     #[test]
     fn shl1() {
         assert_eq!(N << 1, TWO_N);
-        assert_eq!(N.shl1(), TWO_N);
     }
 
     #[test]
