@@ -126,25 +126,6 @@ impl BoxedUint {
         success.map(|_| result)
     }
 
-    /// Computes `self << 1` in constant-time.
-    pub(crate) fn shl1(&self) -> Self {
-        let mut ret = self.clone();
-        ret.shl1_assign();
-        ret
-    }
-
-    /// Computes `self << 1` in-place in constant-time.
-    pub(crate) fn shl1_assign(&mut self) {
-        let mut carry = self.limbs[0].0 >> Limb::HI_BIT;
-        self.limbs[0].shl_assign(1);
-        for i in 1..self.limbs.len() {
-            let new_carry = self.limbs[i].0 >> Limb::HI_BIT;
-            self.limbs[i].shl_assign(1);
-            self.limbs[i].0 |= carry;
-            carry = new_carry
-        }
-    }
-
     /// Computes `self << shift` where `0 <= shift < Limb::BITS`,
     /// returning the result and the carry.
     pub(crate) fn shl_limb(&self, shift: u32) -> (Self, Limb) {
@@ -229,14 +210,6 @@ impl ShlVartime for BoxedUint {
 #[cfg(test)]
 mod tests {
     use super::BoxedUint;
-
-    #[test]
-    fn shl1_assign() {
-        let mut n = BoxedUint::from(0x3c442b21f19185fe433f0a65af902b8fu128);
-        let n_shl1 = BoxedUint::from(0x78885643e3230bfc867e14cb5f20571eu128);
-        n.shl1_assign();
-        assert_eq!(n, n_shl1);
-    }
 
     #[test]
     fn shl() {
