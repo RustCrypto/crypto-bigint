@@ -320,6 +320,14 @@ fn bench_sqrt(c: &mut Criterion) {
             BatchSize::SmallInput,
         )
     });
+
+    group.bench_function("sqrt_vartime, U256", |b| {
+        b.iter_batched(
+            || U256::random(&mut OsRng),
+            |x| x.sqrt_vartime(),
+            BatchSize::SmallInput,
+        )
+    });
 }
 
 criterion_group!(
