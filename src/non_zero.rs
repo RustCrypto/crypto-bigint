@@ -21,7 +21,7 @@ use serdect::serde::{
 };
 
 /// Wrapper type for non-zero integers.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 #[repr(transparent)]
 pub struct NonZero<T>(pub(crate) T);
 
@@ -207,6 +207,15 @@ where
 {
     fn ct_eq(&self, other: &Self) -> Choice {
         self.0.ct_eq(&other.0)
+    }
+}
+
+impl<T> Default for NonZero<T>
+where
+    T: Constants,
+{
+    fn default() -> Self {
+        Self(T::ONE)
     }
 }
 
