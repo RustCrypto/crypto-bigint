@@ -4,8 +4,9 @@ use super::div_limb::{
     div3by2, div_rem_limb_with_reciprocal, rem_limb_with_reciprocal, rem_limb_with_reciprocal_wide,
     Reciprocal,
 };
-use crate::{CheckedDiv, ConstChoice, DivRemLimb, Limb, NonZero, RemLimb, Uint, Word, Wrapping};
+use crate::{CheckedDiv, ConstChoice, DivRemLimb, Limb, NonZero, RemLimb, Uint, Wrapping};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
+
 use subtle::CtOption;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -37,33 +38,96 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self` / `rhs`, returns the quotient (q) and the remainder (r)
     ///
     /// This function is constant-time with respect to both `self` and `rhs`.
-    #[allow(trivial_numeric_casts)]
     pub const fn div_rem(&self, rhs: &NonZero<Self>) -> (Self, Self) {
-        let mb = rhs.0.bits();
-        let mut rem = *self;
-        let mut quo = Self::ZERO;
-        // If there is overflow, it means `mb == 0`, so `rhs == 0`.
-        let mut c = rhs.0.wrapping_shl(Self::BITS - mb);
+        // Based on Section 4.3.1, of The Art of Computer Programming, Volume 2, by Donald E. Knuth.
+        // Further explanation at https://janmr.com/blog/2014/04/basic-multiple-precision-long-division/
 
-        let mut i = Self::BITS;
-        let mut done = ConstChoice::FALSE;
-        loop {
-            let (r, borrow) = rem.sbb(&c, Limb::ZERO);
-            let choice = ConstChoice::from_word_mask(borrow.0).or(done);
-            rem = Self::select(&r, &rem, choice);
-            quo = Self::select(&quo.bitor(&Self::ONE), &quo, choice);
-            if i == 0 {
-                break;
-            }
-            i -= 1;
-            // when `i < mb`, the computation is actually done, so we ensure `quo` and `rem`
-            // aren't modified further (but do the remaining iterations anyway to be constant-time)
-            done = ConstChoice::from_word_lt(i as Word, mb as Word);
-            c = c.shr1();
-            quo = Self::select(&quo.shl1(), &quo, done);
+        // Statically determined short circuit for Uint<1>
+        if LIMBS == 1 {
+            let (quo, rem_limb) = self.div_rem_limb(rhs.0.limbs[0].to_nz().expect("zero divisor"));
+            let mut rem = Self::ZERO;
+            rem.limbs[0] = rem_limb;
+            return (quo, rem);
         }
 
-        (quo, rem)
+        let dbits = rhs.0.bits();
+        assert!(dbits > 0, "zero divisor");
+        let dwords = (dbits + Limb::BITS - 1) / Limb::BITS;
+        let lshift = (Limb::BITS - (dbits % Limb::BITS)) % Limb::BITS;
+
+        // Shift entire divisor such that the high bit is set
+        let mut y = rhs.0.shl(Self::BITS - dbits).to_limbs();
+        // Shift the dividend to align the words
+        let (x, mut x_hi) = self.shl_limb(lshift);
+        let mut x = x.to_limbs();
+        let mut xi = LIMBS - 1;
+        let mut x_lo = x[LIMBS - 1];
+        let mut i;
+        let mut carry;
+
+        let reciprocal = Reciprocal::new(y[LIMBS - 1].to_nz().expect("zero divisor"));
+
+        while xi > 0 {
+            // Divide high dividend words by the high divisor word to estimate the quotient word
+            let (mut quo, _) = div3by2(x_hi.0, x_lo.0, x[xi - 1].0, &reciprocal, y[LIMBS - 2].0);
+
+            // This loop is a no-op once xi is smaller than the number of words in the divisor
+            let done = ConstChoice::from_u32_lt(xi as u32, dwords - 1);
+            quo = done.select_word(quo, 0);
+
+            // Subtract q*divisor from the dividend
+            carry = Limb::ZERO;
+            let mut borrow = Limb::ZERO;
+            let mut tmp;
+            i = 0;
+            while i <= xi {
+                (tmp, carry) = Limb::ZERO.mac(y[LIMBS - xi + i - 1], Limb(quo), carry);
+                (x[i], borrow) = x[i].sbb(tmp, borrow);
+                i += 1;
+            }
+            (_, borrow) = x_hi.sbb(carry, borrow);
+
+            // If the subtraction borrowed, then decrement q and add back the divisor
+            // The probability of this being needed is very low, about 2/(Limb::MAX+1)
+            let ct_borrow = ConstChoice::from_word_mask(borrow.0);
+            carry = Limb::ZERO;
+            i = 0;
+            while i <= xi {
+                (x[i], carry) = x[i].adc(
+                    Limb::select(Limb::ZERO, y[LIMBS - xi + i - 1], ct_borrow),
+                    carry,
+                );
+                i += 1;
+            }
+            quo = ct_borrow.select_word(quo, quo.saturating_sub(1));
+
+            // Store the quotient within dividend and set x_hi to the current highest word
+            x_hi = Limb::select(x[xi], x_hi, done);
+            x[xi] = Limb::select(Limb(quo), x[xi], done);
+            x_lo = Limb::select(x[xi - 1], x_lo, done);
+            xi -= 1;
+        }
+
+        let limb_div = ConstChoice::from_u32_eq(1, dwords);
+        // Calculate quotient and remainder for the case where the divisor is a single word
+        let (quo2, rem2) = div3by2(x_hi.0, x_lo.0, 0, &reciprocal, 0);
+
+        // Adjust the quotient for single limb division
+        x[0] = Limb::select(x[0], Limb(quo2), limb_div);
+
+        // Copy out the remainder
+        y[0] = Limb::select(x[0], Limb(rem2), limb_div);
+        i = 1;
+        while i < LIMBS {
+            y[i] = Limb::select(Limb::ZERO, x[i], ConstChoice::from_u32_lt(i as u32, dwords));
+            y[i] = Limb::select(y[i], x_hi, ConstChoice::from_u32_eq(i as u32, dwords - 1));
+            i += 1;
+        }
+
+        (
+            Uint::new(x).shr((dwords - 1) * Limb::BITS),
+            Uint::new(y).shr(lshift),
+        )
     }
 
     /// Computes `self` / `rhs`, returns the quotient (q) and the remainder (r)
