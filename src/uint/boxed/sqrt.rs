@@ -1,6 +1,6 @@
 //! [`BoxedUint`] square root operations.
 
-use subtle::{ConstantTimeEq, ConstantTimeGreater, CtOption};
+use subtle::{ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, CtOption};
 
 use crate::{BitOps, BoxedUint, ConstantTimeSelect, NonZero, SquareRoot};
 
@@ -23,24 +23,22 @@ impl BoxedUint {
         // Repeat enough times to guarantee result has stabilized.
         let mut i = 0;
         let mut x_prev = x.clone(); // keep the previous iteration in case we need to roll back.
+        let mut nz_x = NonZero(x.clone());
 
         // TODO (#378): the tests indicate that just `Self::LOG2_BITS` may be enough.
         while i < self.log2_bits() + 2 {
             x_prev.limbs.clone_from_slice(&x.limbs);
 
             // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
-
-            let (nz_x, is_nonzero) = (NonZero(x.clone()), x.is_nonzero());
+            let x_nonzero = x.is_nonzero();
+            let mut j = 0;
+            while j < nz_x.0.limbs.len() {
+                nz_x.0.limbs[j].conditional_assign(&x.limbs[j], x_nonzero);
+                j += 1;
+            }
             let (q, _) = self.div_rem(&nz_x);
-
-            // A protection in case `self == 0`, which will make `x == 0`
-            let q = Self::ct_select(
-                &Self::zero_with_precision(self.bits_precision()),
-                &q,
-                is_nonzero,
-            );
-
-            x = x.wrapping_add(&q).shr1();
+            x.conditional_adc_assign(&q, x_nonzero);
+            x.shr1_assign();
             i += 1;
         }
 
