@@ -21,7 +21,7 @@ fn retrieve_biguint(monty_form: &ConstMontyForm) -> BigUint {
 }
 
 fn reduce(n: &U256) -> ConstMontyForm {
-    ConstMontyForm::new(&n)
+    ConstMontyForm::new(n)
 }
 
 prop_compose! {
@@ -44,7 +44,7 @@ proptest! {
             (Some(exp), Some(act)) => {
                 let res = x * act;
                 prop_assert_eq!(res.retrieve(), U256::ONE);
-                prop_assert_eq!(exp, retrieve_biguint(&act).into());
+                prop_assert_eq!(exp, retrieve_biguint(&act));
             }
             (None, None) => (),
             (_, _) => panic!("disagreement on if modular inverse exists")
@@ -65,7 +65,7 @@ proptest! {
             (Some(exp), Some(act)) => {
                 let res = x * act;
                 prop_assert_eq!(res.retrieve(), U256::ONE);
-                prop_assert_eq!(exp, retrieve_biguint(&act).into());
+                prop_assert_eq!(exp, retrieve_biguint(&act));
             }
             (None, None) => (),
             (_, _) => panic!("disagreement on if modular inverse exists")
