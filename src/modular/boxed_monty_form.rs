@@ -13,9 +13,7 @@ use super::{
     Retrieve,
 };
 use crate::{BoxedUint, Limb, Monty, Odd, Word};
-
-#[cfg(feature = "std")]
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -123,12 +121,6 @@ pub struct BoxedMontyForm {
     montgomery_form: BoxedUint,
 
     /// Montgomery form parameters.
-    #[cfg(not(feature = "std"))]
-    params: BoxedMontyParams,
-
-    /// Montgomery form parameters.
-    // Uses `Arc` when `std` is available.
-    #[cfg(feature = "std")]
     params: Arc<BoxedMontyParams>,
 }
 
