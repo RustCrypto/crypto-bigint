@@ -45,7 +45,7 @@ proptest! {
 
     #[test]
     fn inv(x in uint(), n in modulus()) {
-        let x = reduce(&x, n.clone());
+        let x = reduce(&x, n);
         let actual = Option::<MontyForm>::from(x.invert());
 
         let x_bi = retrieve_biguint(&x);
@@ -56,7 +56,7 @@ proptest! {
             (Some(exp), Some(act)) => {
                 let res = x * act;
                 prop_assert_eq!(res.retrieve(), U256::ONE);
-                prop_assert_eq!(exp, retrieve_biguint(&act).into());
+                prop_assert_eq!(exp, retrieve_biguint(&act));
             }
             (None, None) => (),
             (_, _) => panic!("disagreement on if modular inverse exists")
@@ -65,7 +65,7 @@ proptest! {
 
     #[test]
     fn precomputed_inv(x in uint(), n in modulus()) {
-        let x = reduce(&x, n.clone());
+        let x = reduce(&x, n);
         let inverter = x.params().precompute_inverter();
         let actual = Option::<MontyForm>::from(inverter.invert(&x));
 
@@ -75,7 +75,7 @@ proptest! {
 
         match (expected, actual) {
             (Some(exp), Some(act)) => {
-                prop_assert_eq!(exp, retrieve_biguint(&act).into());
+                prop_assert_eq!(exp, retrieve_biguint(&act));
             }
             (None, None) => (),
             (_, _) => panic!("disagreement on if modular inverse exists")
