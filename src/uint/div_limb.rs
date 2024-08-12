@@ -156,28 +156,26 @@ pub(crate) const fn div3by2(
     u0: Word,
     reciprocal: &Reciprocal,
     v0: Word,
-) -> (Word, Word) {
+) -> (Word, WideWord) {
     // This method corresponds to Algorithm Q:
     // https://janmr.com/blog/2014/04/basic-multiple-precision-long-division/
 
-    let maxed = ConstChoice::from_word_eq(u2, reciprocal.divisor_normalized);
-    let (mut quo, mut rem) = div2by1(maxed.select_word(u2, 0), u1, reciprocal);
+    let q_maxed = ConstChoice::from_word_eq(u2, reciprocal.divisor_normalized);
+    let (mut quo, rem) = div2by1(q_maxed.select_word(u2, 0), u1, reciprocal);
     // When the leading dividend word equals the leading divisor word, cap the quotient
     // at Word::MAX and set the remainder to the sum of the top dividend words.
-    quo = maxed.select_word(quo, Word::MAX);
-    rem = maxed.select_word(rem, u2.saturating_add(u1));
+    quo = q_maxed.select_word(quo, Word::MAX);
+    let mut rem = q_maxed.select_wide_word(rem as WideWord, (u2 as WideWord) + (u1 as WideWord));
 
     let mut i = 0;
     while i < 2 {
         let qy = (quo as WideWord) * (v0 as WideWord);
-        let rx = ((rem as WideWord) << Word::BITS) | (u0 as WideWord);
-        // Constant-time check for q*y[-2] < r*x[-1], based on ConstChoice::from_word_lt
-        let diff = ConstChoice::from_word_lsb(
-            ((((!rx) & qy) | (((!rx) | qy) & (rx.wrapping_sub(qy)))) >> (WideWord::BITS - 1))
-                as Word,
-        );
-        quo = diff.select_word(quo, quo.saturating_sub(1));
-        rem = diff.select_word(rem, rem.saturating_add(reciprocal.divisor_normalized));
+        let rx = (rem << Word::BITS) | (u0 as WideWord);
+        // If r < b and q*y[-2] > r*x[-1], then set q = q - 1 and r = r + v1
+        let done = ConstChoice::from_word_nonzero((rem >> Word::BITS) as Word)
+            .or(ConstChoice::from_wide_word_le(qy, rx));
+        quo = done.select_word(quo.saturating_sub(1), quo);
+        rem = done.select_wide_word(rem + (reciprocal.divisor_normalized as WideWord), rem);
         i += 1;
     }
 
