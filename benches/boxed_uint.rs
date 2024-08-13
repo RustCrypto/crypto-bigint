@@ -43,6 +43,31 @@ fn bench_shifts(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_mul(c: &mut Criterion) {
+    let mut group = c.benchmark_group("wrapping ops");
+
+    group.bench_function("boxed_mul", |b| {
+        b.iter_batched(
+            || {
+                (
+                    BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+                    BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+                )
+            },
+            |(x, y)| black_box(x.mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("boxed_square", |b| {
+        b.iter_batched(
+            || BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+            |x| black_box(x.square()),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
 fn bench_division(c: &mut Criterion) {
     let mut group = c.benchmark_group("wrapping ops");
 
@@ -156,6 +181,12 @@ fn bench_boxed_sqrt(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, bench_division, bench_shifts, bench_boxed_sqrt);
+criterion_group!(
+    benches,
+    bench_mul,
+    bench_division,
+    bench_shifts,
+    bench_boxed_sqrt
+);
 
 criterion_main!(benches);
