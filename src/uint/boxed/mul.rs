@@ -1,7 +1,8 @@
 //! [`BoxedUint`] multiplication operations.
 
 use crate::{
-    uint::mul::mul_limbs, BoxedUint, CheckedMul, Limb, WideningMul, Wrapping, WrappingMul, Zero,
+    uint::mul::{mul_limbs, square_limbs},
+    BoxedUint, CheckedMul, Limb, WideningMul, Wrapping, WrappingMul, Zero,
 };
 use core::ops::{Mul, MulAssign};
 use subtle::{Choice, CtOption};
@@ -23,8 +24,9 @@ impl BoxedUint {
 
     /// Multiply `self` by itself.
     pub fn square(&self) -> Self {
-        // TODO(tarcieri): more optimized implementation (shared with `Uint`?)
-        self.mul(self)
+        let mut limbs = vec![Limb::ZERO; self.nlimbs() * 2];
+        square_limbs(&self.limbs, &mut limbs);
+        limbs.into()
     }
 }
 

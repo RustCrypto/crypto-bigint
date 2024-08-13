@@ -8,7 +8,7 @@ use crate::{
 use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
 
-/// Impl the core schoolbook multiplication algorithm.
+/// Implement the core schoolbook multiplication algorithm.
 ///
 /// This is implemented as a macro to abstract over `const fn` and boxed use cases, since the latter
 /// needs mutable references and thus the unstable `const_mut_refs` feature (rust-lang/rust#57349).
@@ -53,6 +53,95 @@ macro_rules! impl_schoolbook_multiplication {
     }};
 }
 
+/// Implement the schoolbook method for squaring.
+///
+/// Like schoolbook multiplication, but only considering half of the multiplication grid.
+// TODO: change this into a `const fn` when `const_mut_refs` is stable.
+macro_rules! impl_schoolbook_squaring {
+    ($limbs:expr, $lo:expr, $hi:expr) => {{
+        // Translated from https://github.com/ucbrise/jedi-pairing/blob/c4bf151/include/core/bigint.hpp#L410
+        //
+        // Permission to relicense the resulting translation as Apache 2.0 + MIT was given
+        // by the original author Sam Kumar: https://github.com/RustCrypto/crypto-bigint/pull/133#discussion_r1056870411
+
+        if $limbs.len() != $lo.len() || $lo.len() != $hi.len() {
+            panic!("schoolbook squaring length mismatch");
+        }
+
+        let mut i = 1;
+        while i < $limbs.len() {
+            let mut j = 0;
+            let mut carry = Limb::ZERO;
+
+            while j < i {
+                let k = i + j;
+
+                if k >= $limbs.len() {
+                    let (n, c) = $hi[k - $limbs.len()].mac($limbs[i], $limbs[j], carry);
+                    $hi[k - $limbs.len()] = n;
+                    carry = c;
+                } else {
+                    let (n, c) = $lo[k].mac($limbs[i], $limbs[j], carry);
+                    $lo[k] = n;
+                    carry = c;
+                }
+
+                j += 1;
+            }
+
+            if (2 * i) < $limbs.len() {
+                $lo[2 * i] = carry;
+            } else {
+                $hi[2 * i - $limbs.len()] = carry;
+            }
+
+            i += 1;
+        }
+
+        // Double the current result, this accounts for the other half of the multiplication grid.
+        // The top word is empty, so we use a special purpose shl.
+        let mut carry = Limb::ZERO;
+        let mut i = 0;
+        while i < $limbs.len() {
+            ($lo[i].0, carry) = ($lo[i].0 << 1 | carry.0, $lo[i].shr(Limb::BITS - 1));
+            i += 1;
+        }
+        i = 0;
+        while i < $limbs.len() - 1 {
+            ($hi[i].0, carry) = ($hi[i].0 << 1 | carry.0, $hi[i].shr(Limb::BITS - 1));
+            i += 1;
+        }
+        $hi[$limbs.len() - 1] = carry;
+
+        // Handle the diagonal of the multiplication grid, which finishes the multiplication grid.
+        let mut carry = Limb::ZERO;
+        let mut i = 0;
+        while i < $limbs.len() {
+            if (i * 2) < $limbs.len() {
+                let (n, c) = $lo[i * 2].mac($limbs[i], $limbs[i], carry);
+                $lo[i * 2] = n;
+                carry = c;
+            } else {
+                let (n, c) = $hi[i * 2 - $limbs.len()].mac($limbs[i], $limbs[i], carry);
+                $hi[i * 2 - $limbs.len()] = n;
+                carry = c;
+            }
+
+            if (i * 2 + 1) < $limbs.len() {
+                let (n, c) = $lo[i * 2 + 1].overflowing_add(carry);
+                $lo[i * 2 + 1] = n;
+                carry = c;
+            } else {
+                let (n, c) = $hi[i * 2 + 1 - $limbs.len()].overflowing_add(carry);
+                $hi[i * 2 + 1 - $limbs.len()] = n;
+                carry = c;
+            }
+
+            i += 1;
+        }
+    }};
+}
+
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
     pub const fn widening_mul<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
@@ -91,75 +180,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Square self, returning a "wide" result in two parts as (lo, hi).
     pub const fn square_wide(&self) -> (Self, Self) {
-        // Translated from https://github.com/ucbrise/jedi-pairing/blob/c4bf151/include/core/bigint.hpp#L410
-        //
-        // Permission to relicense the resulting translation as Apache 2.0 + MIT was given
-        // by the original author Sam Kumar: https://github.com/RustCrypto/crypto-bigint/pull/133#discussion_r1056870411
         let mut lo = Self::ZERO;
         let mut hi = Self::ZERO;
-
-        // Schoolbook multiplication, but only considering half of the multiplication grid
-        let mut i = 1;
-        while i < LIMBS {
-            let mut j = 0;
-            let mut carry = Limb::ZERO;
-
-            while j < i {
-                let k = i + j;
-
-                if k >= LIMBS {
-                    let (n, c) = hi.limbs[k - LIMBS].mac(self.limbs[i], self.limbs[j], carry);
-                    hi.limbs[k - LIMBS] = n;
-                    carry = c;
-                } else {
-                    let (n, c) = lo.limbs[k].mac(self.limbs[i], self.limbs[j], carry);
-                    lo.limbs[k] = n;
-                    carry = c;
-                }
-
-                j += 1;
-            }
-
-            if (2 * i) < LIMBS {
-                lo.limbs[2 * i] = carry;
-            } else {
-                hi.limbs[2 * i - LIMBS] = carry;
-            }
-
-            i += 1;
-        }
-
-        // Double the current result, this accounts for the other half of the multiplication grid.
-        // TODO: The top word is empty so we can also use a special purpose shl.
-        (lo, hi) = Self::overflowing_shl_vartime_wide((lo, hi), 1).expect("shift within range");
-
-        // Handle the diagonal of the multiplication grid, which finishes the multiplication grid.
-        let mut carry = Limb::ZERO;
-        let mut i = 0;
-        while i < LIMBS {
-            if (i * 2) < LIMBS {
-                let (n, c) = lo.limbs[i * 2].mac(self.limbs[i], self.limbs[i], carry);
-                lo.limbs[i * 2] = n;
-                carry = c;
-            } else {
-                let (n, c) = hi.limbs[i * 2 - LIMBS].mac(self.limbs[i], self.limbs[i], carry);
-                hi.limbs[i * 2 - LIMBS] = n;
-                carry = c;
-            }
-
-            if (i * 2 + 1) < LIMBS {
-                let (n, c) = lo.limbs[i * 2 + 1].overflowing_add(carry);
-                lo.limbs[i * 2 + 1] = n;
-                carry = c;
-            } else {
-                let (n, c) = hi.limbs[i * 2 + 1 - LIMBS].overflowing_add(carry);
-                hi.limbs[i * 2 + 1 - LIMBS] = n;
-                carry = c;
-            }
-
-            i += 1;
-        }
-
+        impl_schoolbook_squaring!(&self.limbs, lo.limbs, hi.limbs);
         (lo, hi)
     }
 }
@@ -278,6 +301,14 @@ pub(crate) fn mul_limbs(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) {
     debug_assert_eq!(lhs.len() + rhs.len(), out.len());
     let (lo, hi) = out.split_at_mut(lhs.len());
     impl_schoolbook_multiplication!(lhs, rhs, lo, hi);
+}
+
+/// Wrapper function used by `BoxedUint`
+#[cfg(feature = "alloc")]
+pub(crate) fn square_limbs(limbs: &[Limb], out: &mut [Limb]) {
+    debug_assert_eq!(limbs.len() * 2, out.len());
+    let (lo, hi) = out.split_at_mut(limbs.len());
+    impl_schoolbook_squaring!(limbs, lo, hi);
 }
 
 #[cfg(test)]
