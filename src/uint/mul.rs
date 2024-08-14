@@ -25,14 +25,15 @@ macro_rules! impl_schoolbook_multiplication {
         while i < $lhs.len() {
             let mut j = 0;
             let mut carry = Limb::ZERO;
+            let xi = $lhs[i];
 
             while j < $rhs.len() {
                 let k = i + j;
 
                 if k >= $lhs.len() {
-                    ($hi[k - $lhs.len()], carry) = $hi[k - $lhs.len()].mac($lhs[i], $rhs[j], carry);
+                    ($hi[k - $lhs.len()], carry) = $hi[k - $lhs.len()].mac(xi, $rhs[j], carry);
                 } else {
-                    ($lo[k], carry) = $lo[k].mac($lhs[i], $rhs[j], carry);
+                    ($lo[k], carry) = $lo[k].mac(xi, $rhs[j], carry);
                 }
 
                 j += 1;
@@ -67,14 +68,15 @@ macro_rules! impl_schoolbook_squaring {
         while i < $limbs.len() {
             let mut j = 0;
             let mut carry = Limb::ZERO;
+            let xi = $limbs[i];
 
             while j < i {
                 let k = i + j;
 
                 if k >= $limbs.len() {
-                    ($hi[k - $limbs.len()], carry) = $hi[k - $limbs.len()].mac($limbs[i], $limbs[j], carry);
+                    ($hi[k - $limbs.len()], carry) = $hi[k - $limbs.len()].mac(xi, $limbs[j], carry);
                 } else {
-                    ($lo[k], carry) = $lo[k].mac($limbs[i], $limbs[j], carry);
+                    ($lo[k], carry) = $lo[k].mac(xi, $limbs[j], carry);
                 }
 
                 j += 1;
@@ -108,10 +110,11 @@ macro_rules! impl_schoolbook_squaring {
         let mut carry = Limb::ZERO;
         let mut i = 0;
         while i < $limbs.len() {
+            let xi = $limbs[i];
             if (i * 2) < $limbs.len() {
-                ($lo[i * 2], carry) = $lo[i * 2].mac($limbs[i], $limbs[i], carry);
+                ($lo[i * 2], carry) = $lo[i * 2].mac(xi, xi, carry);
             } else {
-                ($hi[i * 2 - $limbs.len()], carry) = $hi[i * 2 - $limbs.len()].mac($limbs[i], $limbs[i], carry);
+                ($hi[i * 2 - $limbs.len()], carry) = $hi[i * 2 - $limbs.len()].mac(xi, xi, carry);
             }
 
             if (i * 2 + 1) < $limbs.len() {

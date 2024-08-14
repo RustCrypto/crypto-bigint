@@ -394,10 +394,11 @@ fn adc_mul_limbs(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) -> Limb {
     while i < lhs.len() {
         let mut j = 0;
         let mut carry2 = Limb::ZERO;
+        let xi = lhs[i];
 
         while j < rhs.len() {
             let k = i + j;
-            (out[k], carry2) = out[k].mac(lhs[i], rhs[j], carry2);
+            (out[k], carry2) = out[k].mac(xi, rhs[j], carry2);
             j += 1;
         }
 
