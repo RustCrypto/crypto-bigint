@@ -20,6 +20,7 @@ mod encoding;
 mod from;
 mod gcd;
 mod inv_mod;
+pub(crate) mod karatsuba_mul;
 pub(crate) mod mul;
 mod mul_mod;
 mod neg;
