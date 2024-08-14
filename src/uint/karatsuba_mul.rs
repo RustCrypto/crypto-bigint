@@ -19,12 +19,12 @@
 //!
 
 use super::mul::{uint_mul_limbs, uint_square_limbs};
-use crate::{Limb, Uint};
+use crate::{ConstChoice, Limb, Uint};
 
 #[cfg(feature = "alloc")]
 use super::mul::square_limbs;
 #[cfg(feature = "alloc")]
-use crate::{ConstChoice, WideWord, Word};
+use crate::{WideWord, Word};
 
 /// A helper struct for performing Karatsuba multiplication on Uints.
 pub(crate) struct UintKaratsubaMul<const LIMBS: usize>;
@@ -54,16 +54,16 @@ macro_rules! impl_uint_karatsuba_multiplication {
                 l0 = Uint::select(
                     &l0,
                     &l0.wrapping_neg(),
-                    crate::ConstChoice::from_word_mask(l0b.0),
+                    ConstChoice::from_word_mask(l0b.0),
                 );
                 l1 = Uint::select(
                     &l1,
                     &l1.wrapping_neg(),
-                    crate::ConstChoice::from_word_mask(l1b.0),
+                    ConstChoice::from_word_mask(l1b.0),
                 );
                 let z1 = UintKaratsubaMul::<$half_size>::multiply(&l0.limbs, &l1.limbs);
-                let z1_neg = crate::ConstChoice::from_word_mask(l0b.0)
-                    .xor(crate::ConstChoice::from_word_mask(l1b.0));
+                let z1_neg = ConstChoice::from_word_mask(l0b.0)
+                    .xor(ConstChoice::from_word_mask(l1b.0));
 
                 // Conditionally add or subtract z1•b depending on its sign
                 let mut res = (Uint::ZERO, z1.0, z1.1, Uint::ZERO);
@@ -137,7 +137,7 @@ macro_rules! impl_uint_karatsuba_squaring {
                 l0 = Uint::select(
                     &l0,
                     &l0.wrapping_neg(),
-                    crate::ConstChoice::from_word_mask(l0b.0),
+                    ConstChoice::from_word_mask(l0b.0),
                 );
 
                 let z1 = UintKaratsubaMul::<$half_size>::square(&l0.limbs);
@@ -224,8 +224,7 @@ pub(crate) fn karatsuba_mul_limbs(
         &mut out[half..size + half],
         ext_scratch,
     );
-    let z1_neg = crate::ConstChoice::from_word_mask(borrow0.0)
-        .xor(crate::ConstChoice::from_word_mask(borrow1.0));
+    let z1_neg = ConstChoice::from_word_mask(borrow0.0).xor(ConstChoice::from_word_mask(borrow1.0));
     // Conditionally negate the output
     conditional_wrapping_neg_assign(&mut out[..2 * size], z1_neg);
 
