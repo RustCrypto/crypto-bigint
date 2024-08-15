@@ -1,6 +1,6 @@
 use subtle::{Choice, CtOption};
 
-use crate::{modular::BernsteinYangInverter, Limb, NonZero, Odd, Uint, Word};
+use crate::{modular::BernsteinYangInverter, Limb, NonZero, Odd, Uint, WideWord, Word};
 
 /// A boolean value returned by constant-time `const fn`s.
 // TODO: should be replaced by `subtle::Choice` or `CtOption`
@@ -47,6 +47,14 @@ impl ConstChoice {
     pub(crate) const fn from_word_lsb(value: Word) -> Self {
         debug_assert!(value == 0 || value == 1);
         Self(value.wrapping_neg())
+    }
+
+    /// Returns the truthy value if `value == 1`, and the falsy value if `value == 0`.
+    /// Panics for other values.
+    #[inline]
+    pub(crate) const fn from_wide_word_lsb(value: WideWord) -> Self {
+        debug_assert!(value == 0 || value == 1);
+        Self(value.wrapping_neg() as Word)
     }
 
     #[inline]
@@ -131,6 +139,14 @@ impl ConstChoice {
 
     /// Returns the truthy value if `x <= y` and the falsy value otherwise.
     #[inline]
+    pub(crate) const fn from_wide_word_le(x: WideWord, y: WideWord) -> Self {
+        // See "Hacker's Delight" 2nd ed, section 2-12 (Comparison predicates)
+        let bit = (((!x) | y) & ((x ^ y) | !(y.wrapping_sub(x)))) >> (WideWord::BITS - 1);
+        Self::from_wide_word_lsb(bit)
+    }
+
+    /// Returns the truthy value if `x <= y` and the falsy value otherwise.
+    #[inline]
     pub(crate) const fn from_u32_le(x: u32, y: u32) -> Self {
         // See "Hacker's Delight" 2nd ed, section 2-12 (Comparison predicates)
         let bit = (((!x) | y) & ((x ^ y) | !(y.wrapping_sub(x)))) >> (u32::BITS - 1);
@@ -170,6 +186,13 @@ impl ConstChoice {
     #[inline]
     pub(crate) const fn select_word(&self, a: Word, b: Word) -> Word {
         a ^ (self.0 & (a ^ b))
+    }
+
+    /// Return `b` if `self` is truthy, otherwise return `a`.
+    #[inline]
+    pub(crate) const fn select_wide_word(&self, a: WideWord, b: WideWord) -> WideWord {
+        let mask = ((self.0 as WideWord) << Word::BITS) | (self.0 as WideWord);
+        a ^ (mask & (a ^ b))
     }
 
     /// Return `b` if `self` is truthy, otherwise return `a`.
@@ -423,7 +446,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
 #[cfg(test)]
 mod tests {
     use super::ConstChoice;
-    use crate::Word;
+    use crate::{WideWord, Word};
 
     #[test]
     fn from_u64_lsb() {
@@ -443,6 +466,13 @@ mod tests {
         assert_eq!(ConstChoice::from_word_gt(4, 5), ConstChoice::FALSE);
         assert_eq!(ConstChoice::from_word_gt(5, 5), ConstChoice::FALSE);
         assert_eq!(ConstChoice::from_word_gt(6, 5), ConstChoice::TRUE);
+    }
+
+    #[test]
+    fn from_wide_word_le() {
+        assert_eq!(ConstChoice::from_wide_word_le(4, 5), ConstChoice::TRUE);
+        assert_eq!(ConstChoice::from_wide_word_le(5, 5), ConstChoice::TRUE);
+        assert_eq!(ConstChoice::from_wide_word_le(6, 5), ConstChoice::FALSE);
     }
 
     #[test]
@@ -467,5 +497,13 @@ mod tests {
         let b: Word = 2;
         assert_eq!(ConstChoice::TRUE.select_word(a, b), b);
         assert_eq!(ConstChoice::FALSE.select_word(a, b), a);
+    }
+
+    #[test]
+    fn select_wide_word() {
+        let a: WideWord = (1 << Word::BITS) + 1;
+        let b: WideWord = (3 << Word::BITS) + 4;
+        assert_eq!(ConstChoice::TRUE.select_wide_word(a, b), b);
+        assert_eq!(ConstChoice::FALSE.select_wide_word(a, b), a);
     }
 }
