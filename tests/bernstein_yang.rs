@@ -31,7 +31,7 @@ prop_compose! {
             bytes = &bytes[..32];
         }
 
-        BoxedUint::from_le_slice(&bytes, 256).unwrap()
+        BoxedUint::from_le_slice(bytes, 256).unwrap()
     }
 }
 

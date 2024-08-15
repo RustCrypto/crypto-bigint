@@ -89,7 +89,7 @@ proptest! {
         let expected = x_bi.invm(&n_bi);
 
         match (expected, actual) {
-            (Some(exp), Some(act)) => prop_assert_eq!(exp, to_biguint(&act).into()),
+            (Some(exp), Some(act)) => prop_assert_eq!(exp, to_biguint(&act)),
             (None, None) => (),
             (_, _) => panic!("disagreement on if modular inverse exists")
         }
@@ -107,7 +107,7 @@ proptest! {
 
         match (expected, actual) {
             (Some(exp), Some(act)) => {
-                prop_assert_eq!(exp, retrieve_biguint(&act).into());
+                prop_assert_eq!(exp, retrieve_biguint(&act));
             }
             (None, None) => (),
             (_, _) => panic!("disagreement on if modular inverse exists")
