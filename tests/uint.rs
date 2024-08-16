@@ -5,7 +5,7 @@ mod common;
 use common::to_biguint;
 use crypto_bigint::{
     modular::{MontyForm, MontyParams},
-    Encoding, Integer, Limb, NonZero, Odd, Uint, Word, U256,
+    Encoding, Integer, Limb, NonZero, Odd, Uint, Word, U256, U4096, U8192,
 };
 use num_bigint::BigUint;
 use num_integer::Integer as _;
@@ -26,9 +26,23 @@ fn to_uint(big_uint: BigUint) -> U256 {
     U256::from_le_slice(&input)
 }
 
+fn to_uint_xlarge(big_uint: BigUint) -> U8192 {
+    let mut input = [0u8; U8192::BYTES];
+    let encoded = big_uint.to_bytes_le();
+    let l = encoded.len().min(U8192::BYTES);
+    input[..l].copy_from_slice(&encoded[..l]);
+
+    U8192::from_le_slice(&input)
+}
+
 prop_compose! {
     fn uint()(bytes in any::<[u8; 32]>()) -> U256 {
         U256::from_le_slice(&bytes)
+    }
+}
+prop_compose! {
+    fn uint_large()(bytes in any::<[u8; 512]>()) -> U4096 {
+        U4096::from_le_slice(&bytes)
     }
 }
 prop_compose! {
@@ -248,6 +262,28 @@ proptest! {
 
             prop_assert_eq!(expected, actual);
         }
+    }
+
+    #[test]
+    fn widening_mul_large(a in uint_large(), b in uint_large()) {
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+
+        let expected = to_uint_xlarge(a_bi * b_bi);
+        let actual = a.widening_mul(&b);
+
+        assert_eq!(expected, actual);
+    }
+
+
+    #[test]
+    fn square_large(a in uint_large()) {
+        let a_bi = to_biguint(&a);
+
+        let expected = to_uint_xlarge(&a_bi * &a_bi);
+        let actual = a.square();
+
+        assert_eq!(expected, actual);
     }
 
     #[test]

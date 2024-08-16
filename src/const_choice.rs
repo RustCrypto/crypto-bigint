@@ -182,6 +182,11 @@ impl ConstChoice {
         Self(self.0 & other.0)
     }
 
+    #[inline]
+    pub(crate) const fn xor(&self, other: Self) -> Self {
+        Self(self.0 ^ other.0)
+    }
+
     /// Return `b` if `self` is truthy, otherwise return `a`.
     #[inline]
     pub(crate) const fn select_word(&self, a: Word, b: Word) -> Word {
