@@ -408,7 +408,7 @@ pub(crate) fn div_rem_vartime_in_place(x: &mut [Limb], y: &mut [Limb]) {
                 (x[xi + i + 1 - yc], carry) =
                     x[xi + i + 1 - yc].adc(Limb::select(Limb::ZERO, y[i], ct_borrow), carry);
             }
-            ct_borrow.select_word(quo, quo.saturating_sub(1))
+            ct_borrow.select_word(quo, quo.wrapping_sub(1))
         };
 
         // Store the quotient within dividend and set x_hi to the current highest word
