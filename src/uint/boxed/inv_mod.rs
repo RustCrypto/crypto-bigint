@@ -1,8 +1,8 @@
 //! [`BoxedUint`] modular inverse (i.e. reciprocal) operations.
 
 use crate::{
-    modular::BoxedBernsteinYangInverter, BoxedUint, ConstantTimeSelect, Integer, InvMod, Inverter,
-    Odd, PrecomputeInverter, PrecomputeInverterWithAdjuster,
+    modular::BoxedSafeGcdInverter, BoxedUint, ConstantTimeSelect, Integer, InvMod, Inverter, Odd,
+    PrecomputeInverter, PrecomputeInverterWithAdjuster,
 };
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
@@ -87,21 +87,18 @@ impl InvMod for BoxedUint {
 
 /// Precompute a Bernstein-Yang inverter using `self` as the modulus.
 impl PrecomputeInverter for Odd<BoxedUint> {
-    type Inverter = BoxedBernsteinYangInverter;
+    type Inverter = BoxedSafeGcdInverter;
     type Output = BoxedUint;
 
-    fn precompute_inverter(&self) -> BoxedBernsteinYangInverter {
+    fn precompute_inverter(&self) -> BoxedSafeGcdInverter {
         Self::precompute_inverter_with_adjuster(self, &BoxedUint::one())
     }
 }
 
 /// Precompute a Bernstein-Yang inverter using `self` as the modulus.
 impl PrecomputeInverterWithAdjuster<BoxedUint> for Odd<BoxedUint> {
-    fn precompute_inverter_with_adjuster(
-        &self,
-        adjuster: &BoxedUint,
-    ) -> BoxedBernsteinYangInverter {
-        BoxedBernsteinYangInverter::new(self, adjuster)
+    fn precompute_inverter_with_adjuster(&self, adjuster: &BoxedUint) -> BoxedSafeGcdInverter {
+        BoxedSafeGcdInverter::new(self, adjuster)
     }
 }
 

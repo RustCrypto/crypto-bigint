@@ -2,7 +2,7 @@
 
 use super::{ConstMontyForm, ConstMontyParams};
 use crate::{
-    modular::BernsteinYangInverter, ConstCtOption, Invert, Inverter, Odd, PrecomputeInverter, Uint,
+    modular::SafeGcdInverter, ConstCtOption, Invert, Inverter, Odd, PrecomputeInverter, Uint,
 };
 use core::{fmt, marker::PhantomData};
 use subtle::CtOption;
@@ -11,7 +11,7 @@ impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS
     ConstMontyForm<MOD, SAT_LIMBS>
 where
     Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-        Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
+        Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
         Output = Uint<SAT_LIMBS>,
     >,
 {
@@ -39,7 +39,7 @@ impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS
     for ConstMontyForm<MOD, SAT_LIMBS>
 where
     Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-        Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
+        Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
         Output = Uint<SAT_LIMBS>,
     >,
 {
@@ -62,13 +62,13 @@ impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS
     ConstMontyFormInverter<MOD, SAT_LIMBS>
 where
     Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-        Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
+        Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
         Output = Uint<SAT_LIMBS>,
     >,
 {
     /// Create a new [`ConstMontyFormInverter`] for the given [`ConstMontyParams`].
     pub const fn new() -> Self {
-        let inverter = BernsteinYangInverter::new(&MOD::MODULUS, &MOD::R2);
+        let inverter = SafeGcdInverter::new(&MOD::MODULUS, &MOD::R2);
 
         Self {
             inverter,
@@ -96,7 +96,7 @@ impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS
     for ConstMontyFormInverter<MOD, SAT_LIMBS>
 where
     Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-        Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
+        Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
         Output = Uint<SAT_LIMBS>,
     >,
 {
@@ -111,7 +111,7 @@ impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS
     for ConstMontyFormInverter<MOD, SAT_LIMBS>
 where
     Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-        Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
+        Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
         Output = Uint<SAT_LIMBS>,
     >,
 {
