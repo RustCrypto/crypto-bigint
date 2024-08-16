@@ -69,14 +69,26 @@ impl Inverter for BoxedBernsteinYangInverter {
     }
 }
 
+/// Compute the number of unsaturated limbs needed to represent a saturated integer with the given
+/// number of saturated limbs.
+fn unsat_nlimbs_for_sat_nlimbs(saturated_nlimbs: usize) -> usize {
+    let saturated_nlimbs = if Word::BITS == 32 && saturated_nlimbs == 1 {
+        2
+    } else {
+        saturated_nlimbs
+    };
+
+    bernstein_yang_nlimbs!(saturated_nlimbs * Limb::BITS as usize)
+}
+
 /// Returns the greatest common divisor (GCD) of the two given numbers.
 pub(crate) fn gcd(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
-    let nlimbs = bernstein_yang_nlimbs!(max(f.nlimbs(), g.nlimbs()) * Limb::BITS as usize);
-
+    let nlimbs = unsat_nlimbs_for_sat_nlimbs(max(f.nlimbs(), g.nlimbs()));
     let bits_precision = f.bits_precision();
+
     let inverse = inv_mod2_62(f.as_words());
-    let f = BoxedUnsatInt::from(f).widen(nlimbs);
-    let mut g = BoxedUnsatInt::from(g).widen(nlimbs);
+    let f = BoxedUnsatInt::from_uint_widened(f, nlimbs);
+    let mut g = BoxedUnsatInt::from_uint_widened(g, nlimbs);
     let mut d = BoxedUnsatInt::zero(nlimbs);
     let e = BoxedUnsatInt::one(nlimbs);
 
@@ -89,12 +101,12 @@ pub(crate) fn gcd(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
 ///
 /// Variable time with respect to `g`.
 pub(crate) fn gcd_vartime(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
-    let nlimbs = bernstein_yang_nlimbs!(max(f.nlimbs(), g.nlimbs()) * Limb::BITS as usize);
-
+    let nlimbs = unsat_nlimbs_for_sat_nlimbs(max(f.nlimbs(), g.nlimbs()));
     let bits_precision = f.bits_precision();
+
     let inverse = inv_mod2_62(f.as_words());
-    let f = BoxedUnsatInt::from(f).widen(nlimbs);
-    let mut g = BoxedUnsatInt::from(g).widen(nlimbs);
+    let f = BoxedUnsatInt::from_uint_widened(f, nlimbs);
+    let mut g = BoxedUnsatInt::from_uint_widened(g, nlimbs);
     let mut d = BoxedUnsatInt::zero(nlimbs);
     let e = BoxedUnsatInt::one(nlimbs);
 
@@ -238,15 +250,31 @@ pub(crate) struct BoxedUnsatInt(Box<[u64]>);
 ///
 /// The ordering of the chunks in these arrays is little-endian.
 impl From<&BoxedUint> for BoxedUnsatInt {
-    #[allow(trivial_numeric_casts)]
     fn from(input: &BoxedUint) -> BoxedUnsatInt {
-        let saturated_nlimbs = if Word::BITS == 32 && input.nlimbs() == 1 {
-            2
-        } else {
-            input.nlimbs()
-        };
+        Self::from_uint_widened(input, unsat_nlimbs_for_sat_nlimbs(input.nlimbs()))
+    }
+}
 
-        let nlimbs = bernstein_yang_nlimbs!(saturated_nlimbs * Limb::BITS as usize);
+impl BoxedUnsatInt {
+    /// Number of bits in each limb.
+    pub const LIMB_BITS: usize = 62;
+
+    /// Mask, in which the 62 lowest bits are 1.
+    pub const MASK: u64 = u64::MAX >> (64 - Self::LIMB_BITS);
+
+    /// Convert from 32/64-bit saturated representation used by `BoxedUint` to the 62-bit
+    /// unsaturated representation used by `BoxedUnsatInt`.
+    ///
+    /// Returns a big unsigned integer as an array of 62-bit chunks, which is equal modulo
+    /// 2 ^ (62 * S) to the input big unsigned integer stored as an array of 64-bit chunks.
+    ///
+    /// The ordering of the chunks in these arrays is little-endian.
+    ///
+    /// The `nlimbs` parameter defines the number of unsaturated limbs in the output.
+    /// It's provided explicitly so multiple values can be padded to the same size.
+    #[allow(trivial_numeric_casts)]
+    fn from_uint_widened(input: &BoxedUint, nlimbs: usize) -> BoxedUnsatInt {
+        debug_assert!(nlimbs >= unsat_nlimbs_for_sat_nlimbs(input.nlimbs()));
 
         // Workaround for 32-bit platforms: if the input is a single limb, it will be smaller input
         // than is usable for Bernstein-Yang with is currently natively 64-bits on all targets
@@ -263,14 +291,6 @@ impl From<&BoxedUint> for BoxedUnsatInt {
         impl_limb_convert!(Word, Word::BITS as usize, input, u64, 62, output);
         Self(output.into())
     }
-}
-
-impl BoxedUnsatInt {
-    /// Number of bits in each limb.
-    pub const LIMB_BITS: usize = 62;
-
-    /// Mask, in which the 62 lowest bits are 1.
-    pub const MASK: u64 = u64::MAX >> (64 - Self::LIMB_BITS);
 
     /// Convert to a `BoxedUint` of the given precision.
     #[allow(trivial_numeric_casts)]
