@@ -371,10 +371,10 @@ impl BoxedUnsatInt {
         Self(vec![0; nlimbs].into())
     }
 
-    /// Get the value zero for the given number of limbs.
+    /// Get the value one for the given number of limbs.
     pub fn one(nlimbs: usize) -> Self {
         let mut ret = Self::zero(nlimbs);
-        ret.0[0] = 0;
+        ret.0[0] = 1;
         ret
     }
 
