@@ -4,7 +4,7 @@ use super::div_limb::{
     div3by2, div_rem_limb_with_reciprocal, rem_limb_with_reciprocal, rem_limb_with_reciprocal_wide,
     Reciprocal,
 };
-use crate::{CheckedDiv, ConstChoice, DivRemLimb, Limb, NonZero, RemLimb, Uint, Wrapping};
+use crate::{CheckedDiv, ConstChoice, DivRemLimb, Limb, NonZero, RemLimb, Uint, Word, Wrapping};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 
 use subtle::CtOption;
@@ -116,7 +116,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         x[0] = Limb::select(x[0], Limb(quo2), limb_div);
 
         // Copy out the remainder
-        y[0] = Limb::select(x[0], Limb(rem2), limb_div);
+        y[0] = Limb::select(x[0], Limb(rem2 as Word), limb_div);
         i = 1;
         while i < LIMBS {
             y[i] = Limb::select(Limb::ZERO, x[i], ConstChoice::from_u32_lt(i as u32, dwords));
