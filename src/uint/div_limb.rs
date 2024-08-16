@@ -178,7 +178,7 @@ pub(crate) const fn div3by2(
         // If r < b and q*y[-2] > r*x[-1], then set q = q - 1 and r = r + v1
         let done = ConstChoice::from_word_nonzero((rem >> Word::BITS) as Word)
             .or(ConstChoice::from_wide_word_le(qy, rx));
-        quo = done.select_word(quo.saturating_sub(1), quo);
+        quo = done.select_word(quo.wrapping_sub(1), quo);
         rem = done.select_wide_word(rem + (v1_reciprocal.divisor_normalized as WideWord), rem);
         i += 1;
     }
