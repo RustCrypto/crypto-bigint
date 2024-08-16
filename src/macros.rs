@@ -15,10 +15,10 @@ macro_rules! nlimbs {
 /// We need to ensure that:
 ///
 /// ```text
-/// $bits <= (bernstein_yang_nlimbs($bits) * 62) - 64
+/// $bits <= (safegcd_nlimbs($bits) * 62) - 64
 /// ```
 // TODO(tarcieri): replace with `generic_const_exprs` (rust-lang/rust#76560) when stable
-macro_rules! bernstein_yang_nlimbs {
+macro_rules! safegcd_nlimbs {
     ($bits:expr) => {
         ($bits + 64).div_ceil(62)
     };

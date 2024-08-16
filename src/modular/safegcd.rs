@@ -1,7 +1,8 @@
-//! Implementation of Bernstein-Yang modular inversion and GCD algorithm as described in:
-//! <https://eprint.iacr.org/2019/266>.
+//! Implementation of Bernstein-Yang modular inversion and GCD algorithm (a.k.a. safegcd)
+//! as described in: <https://eprint.iacr.org/2019/266>.
 //!
 //! Adapted from the Apache 2.0+MIT licensed implementation originally from:
+//! <https://github.com/taikoxyz/halo2curves/pull/2>
 //! <https://github.com/privacy-scaling-explorations/halo2curves/pull/83>
 //!
 //! Copyright (c) 2023 Privacy Scaling Explorations Team
@@ -44,7 +45,7 @@ use subtle::CtOption;
 /// - P. Wuille, "The safegcd implementation in libsecp256k1 explained",
 /// <https://github.com/bitcoin-core/secp256k1/blob/master/doc/safegcd_implementation.md>
 #[derive(Clone, Debug)]
-pub struct BernsteinYangInverter<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> {
+pub struct SafeGcdInverter<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> {
     /// Modulus
     pub(super) modulus: UnsatInt<UNSAT_LIMBS>,
 
@@ -58,9 +59,7 @@ pub struct BernsteinYangInverter<const SAT_LIMBS: usize, const UNSAT_LIMBS: usiz
 /// Type of the Bernstein-Yang transition matrix multiplied by 2^62
 type Matrix = [[i64; 2]; 2];
 
-impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
-    BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>
-{
+impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS> {
     /// Creates the inverter for specified modulus and adjusting parameter.
     ///
     /// Modulus must be odd. Returns `None` if it is not.
@@ -135,7 +134,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
 }
 
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Inverter
-    for BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>
+    for SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>
 {
     type Output = Uint<SAT_LIMBS>;
 
@@ -386,7 +385,7 @@ impl<const LIMBS: usize> UnsatInt<LIMBS> {
     /// The ordering of the chunks in these arrays is little-endian.
     #[allow(trivial_numeric_casts)]
     pub const fn from_uint<const SAT_LIMBS: usize>(input: &Uint<SAT_LIMBS>) -> Self {
-        if LIMBS != bernstein_yang_nlimbs!(SAT_LIMBS * Limb::BITS as usize) {
+        if LIMBS != safegcd_nlimbs!(SAT_LIMBS * Limb::BITS as usize) {
             panic!("incorrect number of limbs");
         }
 
@@ -410,7 +409,7 @@ impl<const LIMBS: usize> UnsatInt<LIMBS> {
             "can't convert negative number to Uint"
         );
 
-        if LIMBS != bernstein_yang_nlimbs!(SAT_LIMBS * Limb::BITS as usize) {
+        if LIMBS != safegcd_nlimbs!(SAT_LIMBS * Limb::BITS as usize) {
             panic!("incorrect number of limbs");
         }
 
@@ -564,7 +563,7 @@ mod tests {
 
     type UnsatInt = super::UnsatInt<4>;
 
-    impl<const LIMBS: usize> PartialEq for crate::modular::bernstein_yang::UnsatInt<LIMBS> {
+    impl<const LIMBS: usize> PartialEq for crate::modular::safegcd::UnsatInt<LIMBS> {
         fn eq(&self, other: &Self) -> bool {
             self.eq(other).to_bool_vartime()
         }

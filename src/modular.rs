@@ -21,26 +21,26 @@ mod monty_form;
 mod reduction;
 
 mod add;
-pub(crate) mod bernstein_yang;
 mod div_by_2;
 mod mul;
 mod pow;
+pub(crate) mod safegcd;
 mod sub;
 
 #[cfg(feature = "alloc")]
 pub(crate) mod boxed_monty_form;
 
 pub use self::{
-    bernstein_yang::BernsteinYangInverter,
     const_monty_form::{inv::ConstMontyFormInverter, ConstMontyForm, ConstMontyParams},
     monty_form::{inv::MontyFormInverter, MontyForm, MontyParams},
     reduction::montgomery_reduction,
+    safegcd::SafeGcdInverter,
 };
 
 #[cfg(feature = "alloc")]
 pub use self::{
-    bernstein_yang::boxed::BoxedBernsteinYangInverter,
     boxed_monty_form::{BoxedMontyForm, BoxedMontyParams},
+    safegcd::boxed::BoxedSafeGcdInverter,
 };
 
 /// A generalization for numbers kept in optimized representations (e.g. Montgomery)

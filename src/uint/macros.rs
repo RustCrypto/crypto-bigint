@@ -6,10 +6,8 @@ macro_rules! impl_precompute_inverter_trait {
         /// Precompute a Bernstein-Yang inverter using `self` as the modulus.
         impl PrecomputeInverter for Odd<$name> {
             #[allow(trivial_numeric_casts)]
-            type Inverter = BernsteinYangInverter<
-                { nlimbs!($bits) },
-                { bernstein_yang_nlimbs!($bits as usize) },
-            >;
+            type Inverter =
+                SafeGcdInverter<{ nlimbs!($bits) }, { safegcd_nlimbs!($bits as usize) }>;
 
             type Output = $name;
 
@@ -29,7 +27,7 @@ macro_rules! impl_precompute_inverter_trait {
         /// value represented by a saturated `$bits`-sized integer.
         #[cfg(debug_assertions)]
         #[allow(trivial_numeric_casts)]
-        const _: () = assert!((bernstein_yang_nlimbs!($bits as usize) * 62) - 64 >= $bits);
+        const _: () = assert!((safegcd_nlimbs!($bits as usize) * 62) - 64 >= $bits);
     };
 }
 

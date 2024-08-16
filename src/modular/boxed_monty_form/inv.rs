@@ -2,7 +2,7 @@
 
 use super::{BoxedMontyForm, BoxedMontyParams};
 use crate::{
-    modular::BoxedBernsteinYangInverter, Invert, Inverter, PrecomputeInverter,
+    modular::BoxedSafeGcdInverter, Invert, Inverter, PrecomputeInverter,
     PrecomputeInverterWithAdjuster,
 };
 use alloc::sync::Arc;
@@ -40,7 +40,7 @@ impl PrecomputeInverter for BoxedMontyParams {
 /// Bernstein-Yang inverter which inverts [`DynResidue`] types.
 pub struct BoxedMontyFormInverter {
     /// Precomputed Bernstein-Yang inverter.
-    inverter: BoxedBernsteinYangInverter,
+    inverter: BoxedSafeGcdInverter,
 
     /// Residue parameters.
     params: Arc<BoxedMontyParams>,

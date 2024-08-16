@@ -1,7 +1,7 @@
 //! Support for computing greatest common divisor of two `BoxedUint`s.
 
 use super::BoxedUint;
-use crate::{modular::bernstein_yang, ConstantTimeSelect, Gcd, Integer, Odd};
+use crate::{modular::safegcd, ConstantTimeSelect, Gcd, Integer, Odd};
 use subtle::{ConditionallySelectable, ConstantTimeLess};
 
 impl Gcd for BoxedUint {
@@ -21,7 +21,7 @@ impl Gcd for BoxedUint {
 
         let f = Self::ct_select(&s1, &s2, !s2.is_odd());
         let g = Self::ct_select(&s1, &s2, s2.is_odd());
-        bernstein_yang::boxed::gcd(&f, &g).overflowing_shl(k).0
+        safegcd::boxed::gcd(&f, &g).overflowing_shl(k).0
     }
 
     fn gcd_vartime(&self, rhs: &Self) -> Self::Output {
@@ -36,11 +36,11 @@ impl Gcd<BoxedUint> for Odd<BoxedUint> {
     type Output = BoxedUint;
 
     fn gcd(&self, rhs: &BoxedUint) -> BoxedUint {
-        bernstein_yang::boxed::gcd(self, rhs)
+        safegcd::boxed::gcd(self, rhs)
     }
 
     fn gcd_vartime(&self, rhs: &BoxedUint) -> Self::Output {
-        bernstein_yang::boxed::gcd_vartime(self, rhs)
+        safegcd::boxed::gcd_vartime(self, rhs)
     }
 }
 

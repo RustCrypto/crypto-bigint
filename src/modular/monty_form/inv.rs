@@ -2,8 +2,8 @@
 
 use super::{MontyForm, MontyParams};
 use crate::{
-    modular::BernsteinYangInverter, traits::Invert, ConstCtOption, Inverter, Odd,
-    PrecomputeInverter, PrecomputeInverterWithAdjuster, Uint,
+    modular::SafeGcdInverter, traits::Invert, ConstCtOption, Inverter, Odd, PrecomputeInverter,
+    PrecomputeInverterWithAdjuster, Uint,
 };
 use core::fmt;
 use subtle::CtOption;
@@ -11,7 +11,7 @@ use subtle::CtOption;
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> MontyForm<SAT_LIMBS>
 where
     Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-        Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
+        Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
         Output = Uint<SAT_LIMBS>,
     >,
 {
@@ -40,7 +40,7 @@ where
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Invert for MontyForm<SAT_LIMBS>
 where
     Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-        Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
+        Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
         Output = Uint<SAT_LIMBS>,
     >,
 {
@@ -97,7 +97,7 @@ where
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> fmt::Debug for MontyFormInverter<SAT_LIMBS>
 where
     Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-        Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>,
+        Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
         Output = Uint<SAT_LIMBS>,
     >,
 {

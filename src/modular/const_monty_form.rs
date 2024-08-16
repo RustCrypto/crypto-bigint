@@ -8,7 +8,7 @@ mod pow;
 mod sub;
 
 use self::inv::ConstMontyFormInverter;
-use super::{div_by_2::div_by_2, reduction::montgomery_reduction, BernsteinYangInverter, Retrieve};
+use super::{div_by_2::div_by_2, reduction::montgomery_reduction, Retrieve, SafeGcdInverter};
 use crate::{ConstZero, Limb, Odd, PrecomputeInverter, Uint};
 use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
@@ -56,7 +56,7 @@ pub trait ConstMontyParams<const LIMBS: usize>:
     fn precompute_inverter<const UNSAT_LIMBS: usize>() -> ConstMontyFormInverter<Self, LIMBS>
     where
         Odd<Uint<LIMBS>>: PrecomputeInverter<
-            Inverter = BernsteinYangInverter<LIMBS, UNSAT_LIMBS>,
+            Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>,
             Output = Uint<LIMBS>,
         >,
     {
