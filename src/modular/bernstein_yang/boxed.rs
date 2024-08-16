@@ -5,8 +5,11 @@
 
 use super::{inv_mod2_62, iterations, jump, Matrix};
 use crate::{BoxedUint, Inverter, Limb, Odd, Word};
-use alloc::{boxed::Box, vec::Vec};
-use core::ops::{AddAssign, Mul};
+use alloc::boxed::Box;
+use core::{
+    cmp::max,
+    ops::{AddAssign, Mul},
+};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, CtOption};
 
 /// Modular multiplicative inverter based on the Bernstein-Yang method.
@@ -68,17 +71,14 @@ impl Inverter for BoxedBernsteinYangInverter {
 
 /// Returns the greatest common divisor (GCD) of the two given numbers.
 pub(crate) fn gcd(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
-    // TODO (#312): depending on the decision there, this may be relaxed.
-    if f.nlimbs() != g.nlimbs() {
-        panic!("Both arguments to `gcd()` must have the same number of limbs");
-    }
+    let nlimbs = bernstein_yang_nlimbs!(max(f.nlimbs(), g.nlimbs()) * Limb::BITS as usize);
 
     let bits_precision = f.bits_precision();
     let inverse = inv_mod2_62(f.as_words());
-    let f = BoxedUnsatInt::from(f);
-    let mut g = BoxedUnsatInt::from(g);
-    let mut d = BoxedUnsatInt::zero(f.nlimbs());
-    let e = BoxedUnsatInt::one(f.nlimbs());
+    let f = BoxedUnsatInt::from(f).widen(nlimbs);
+    let mut g = BoxedUnsatInt::from(g).widen(nlimbs);
+    let mut d = BoxedUnsatInt::zero(nlimbs);
+    let e = BoxedUnsatInt::one(nlimbs);
 
     let mut f = divsteps(&mut d, &e, &f, &mut g, inverse);
     f.conditional_negate(f.is_negative());
@@ -89,17 +89,14 @@ pub(crate) fn gcd(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
 ///
 /// Variable time with respect to `g`.
 pub(crate) fn gcd_vartime(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
-    // TODO (#312): depending on the decision there, this may be relaxed.
-    if f.nlimbs() != g.nlimbs() {
-        panic!("Both arguments to `gcd()` must have the same number of limbs");
-    }
+    let nlimbs = bernstein_yang_nlimbs!(max(f.nlimbs(), g.nlimbs()) * Limb::BITS as usize);
 
     let bits_precision = f.bits_precision();
     let inverse = inv_mod2_62(f.as_words());
-    let f = BoxedUnsatInt::from(f);
-    let mut g = BoxedUnsatInt::from(g);
-    let mut d = BoxedUnsatInt::zero(f.nlimbs());
-    let e = BoxedUnsatInt::one(f.nlimbs());
+    let f = BoxedUnsatInt::from(f).widen(nlimbs);
+    let mut g = BoxedUnsatInt::from(g).widen(nlimbs);
+    let mut d = BoxedUnsatInt::zero(nlimbs);
+    let e = BoxedUnsatInt::one(nlimbs);
 
     let mut f = divsteps_vartime(&mut d, &e, &f, &mut g, inverse);
     f.conditional_negate(f.is_negative());
@@ -380,9 +377,9 @@ impl BoxedUnsatInt {
 
     /// Widen self to the given number of limbs.
     pub fn widen(self, nlimbs: usize) -> Self {
-        let mut limbs = Vec::from(self.0);
-        debug_assert!(nlimbs >= limbs.len());
-        limbs.truncate(nlimbs);
+        debug_assert!(nlimbs >= self.nlimbs(),);
+        let mut limbs = self.0.into_vec();
+        limbs.resize(nlimbs, 0);
         Self(limbs.into())
     }
 

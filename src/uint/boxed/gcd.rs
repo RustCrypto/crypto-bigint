@@ -93,20 +93,20 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Both arguments to `gcd()` must have the same number of limbs")]
     fn gcd_different_sizes() {
         // Test that gcd works for boxed Uints with different numbers of limbs
         let f = BoxedUint::from(4391633u32).widen(128).to_odd().unwrap();
         let g = BoxedUint::from(2022161u32);
-        let _gcd = f.gcd(&g);
+        let gcd = f.gcd(&g);
+        assert_eq!(gcd, BoxedUint::from(1763u32));
     }
 
     #[test]
-    #[should_panic(expected = "Both arguments to `gcd()` must have the same number of limbs")]
     fn gcd_vartime_different_sizes() {
         // Test that gcd works for boxed Uints with different numbers of limbs
         let f = BoxedUint::from(4391633u32).widen(128).to_odd().unwrap();
         let g = BoxedUint::from(2022161u32);
-        let _gcd = f.gcd_vartime(&g);
+        let gcd = f.gcd_vartime(&g);
+        assert_eq!(gcd, BoxedUint::from(1763u32));
     }
 }
