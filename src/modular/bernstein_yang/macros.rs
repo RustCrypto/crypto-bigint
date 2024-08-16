@@ -2,7 +2,8 @@
 
 /// Write an impl of a limb conversion function.
 ///
-/// Workaround for making this function generic around limb types while still allowing it to be `const fn`.
+/// Workaround for making this function generic around limb types while still allowing it to be
+/// `const fn`.
 macro_rules! impl_limb_convert {
     ($input_type:ty, $input_bits:expr, $input:expr, $output_type:ty, $output_bits:expr, $output:expr) => {{
         // This function is defined because the method "min" of the usize type is not constant
