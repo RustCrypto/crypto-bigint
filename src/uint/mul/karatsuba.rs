@@ -26,6 +26,11 @@ use super::square_limbs;
 #[cfg(feature = "alloc")]
 use crate::{WideWord, Word};
 
+#[cfg(feature = "alloc")]
+pub const KARATSUBA_MIN_STARTING_LIMBS: usize = 32;
+#[cfg(feature = "alloc")]
+pub const KARATSUBA_MAX_REDUCE_LIMBS: usize = 24;
+
 /// A helper struct for performing Karatsuba multiplication on Uints.
 pub(crate) struct UintKaratsubaMul<const LIMBS: usize>;
 
@@ -182,7 +187,7 @@ pub(crate) fn karatsuba_mul_limbs(
             overlap
         }
     };
-    if size <= 24 {
+    if size <= KARATSUBA_MAX_REDUCE_LIMBS {
         out.fill(Limb::ZERO);
         adc_mul_limbs(lhs, rhs, out);
         return;
@@ -290,7 +295,7 @@ pub(crate) fn karatsuba_mul_limbs(
 #[inline(never)]
 pub(crate) fn karatsuba_square_limbs(limbs: &[Limb], out: &mut [Limb], scratch: &mut [Limb]) {
     let size = limbs.len();
-    if size < 48 || (size & 1) == 1 {
+    if size <= KARATSUBA_MAX_REDUCE_LIMBS * 2 || (size & 1) == 1 {
         out.fill(Limb::ZERO);
         square_limbs(limbs, out);
         return;

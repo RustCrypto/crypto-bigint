@@ -2,7 +2,7 @@
 
 use crate::{
     uint::mul::{
-        karatsuba::{karatsuba_mul_limbs, karatsuba_square_limbs},
+        karatsuba::{karatsuba_mul_limbs, karatsuba_square_limbs, KARATSUBA_MIN_STARTING_LIMBS},
         mul_limbs, square_limbs,
     },
     BoxedUint, CheckedMul, Limb, WideningMul, Wrapping, WrappingMul, Zero,
@@ -18,7 +18,7 @@ impl BoxedUint {
         let size = self.nlimbs() + rhs.nlimbs();
         let overlap = self.nlimbs().min(rhs.nlimbs());
 
-        if self.nlimbs().min(rhs.nlimbs()) >= 32 {
+        if self.nlimbs().min(rhs.nlimbs()) >= KARATSUBA_MIN_STARTING_LIMBS {
             let mut limbs = vec![Limb::ZERO; size + overlap * 2];
             let (out, scratch) = limbs.as_mut_slice().split_at_mut(size);
             karatsuba_mul_limbs(&self.limbs, &rhs.limbs, out, scratch);
@@ -40,7 +40,7 @@ impl BoxedUint {
     pub fn square(&self) -> Self {
         let size = self.nlimbs() * 2;
 
-        if self.nlimbs() >= 64 {
+        if self.nlimbs() >= KARATSUBA_MIN_STARTING_LIMBS * 2 {
             let mut limbs = vec![Limb::ZERO; size * 2];
             let (out, scratch) = limbs.as_mut_slice().split_at_mut(size);
             karatsuba_square_limbs(&self.limbs, out, scratch);
