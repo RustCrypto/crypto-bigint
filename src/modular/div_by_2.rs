@@ -17,7 +17,7 @@ pub(crate) const fn div_by_2<const LIMBS: usize>(
     // Note that this also works if `a` is a Montgomery representation modulo `modulus`
     // of some integer `x`.
     // If `b + b = a mod modulus` it means that `y + y = x mod modulus` where `y` is the integer
-    // whose Mongtgomery representation is `b`.
+    // whose Montgomery representation is `b`.
 
     let (half, is_odd) = a.shr1_with_carry();
     let half_modulus = modulus.0.shr1();
