@@ -18,11 +18,11 @@
 //!   [z0.0, z0.0 + z0.1 - z1.0 + z2.0, z0.1 - z1.1 + z2.0 + z2.1, z2.1]
 //!
 
-use super::mul::{uint_mul_limbs, uint_square_limbs};
+use super::{uint_mul_limbs, uint_square_limbs};
 use crate::{ConstChoice, Limb, Uint};
 
 #[cfg(feature = "alloc")]
-use super::mul::square_limbs;
+use super::square_limbs;
 #[cfg(feature = "alloc")]
 use crate::{WideWord, Word};
 

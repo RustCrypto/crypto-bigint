@@ -1,9 +1,9 @@
 //! [`BoxedUint`] multiplication operations.
 
 use crate::{
-    uint::{
-        karatsuba_mul::{karatsuba_mul_limbs, karatsuba_square_limbs},
-        mul::{mul_limbs, square_limbs},
+    uint::mul::{
+        karatsuba::{karatsuba_mul_limbs, karatsuba_square_limbs},
+        mul_limbs, square_limbs,
     },
     BoxedUint, CheckedMul, Limb, WideningMul, Wrapping, WrappingMul, Zero,
 };

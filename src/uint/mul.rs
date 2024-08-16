@@ -1,11 +1,13 @@
 //! [`Uint`] multiplication operations.
 
-use super::karatsuba_mul::UintKaratsubaMul;
+use self::karatsuba::UintKaratsubaMul;
 use crate::{
     Checked, CheckedMul, Concat, ConcatMixed, Limb, Uint, WideningMul, Wrapping, WrappingMul, Zero,
 };
 use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
+
+pub(crate) mod karatsuba;
 
 /// Implement the core schoolbook multiplication algorithm.
 ///
