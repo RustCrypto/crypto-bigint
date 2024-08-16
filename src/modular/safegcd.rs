@@ -8,6 +8,7 @@
 //! Copyright (c) 2023 Privacy Scaling Explorations Team
 
 // TODO(tarcieri): optimized implementation for 32-bit platforms (#380)
+// TODO(tarcieri): optimize using safegcd-bounds (#634)
 
 #![allow(clippy::needless_range_loop)]
 
