@@ -341,13 +341,9 @@ const fn de<const LIMBS: usize>(
 // TODO(tarcieri): improved bounds using https://github.com/sipa/safegcd-bounds
 pub(crate) const fn iterations(f_bits: u32, g_bits: u32) -> usize {
     // Select max of `f_bits`, `g_bits`
-    let d = ConstChoice::from_u32_lt(f_bits, g_bits).select_u32(f_bits, g_bits) as usize;
-
-    if d < 46 {
-        (49 * d + 80) / 17
-    } else {
-        (49 * d + 57) / 17
-    }
+    let d = ConstChoice::from_u32_lt(f_bits, g_bits).select_u32(f_bits, g_bits);
+    let addend = ConstChoice::from_u32_lt(d, 46).select_u32(57, 80);
+    ((49 * d + addend) / 17) as usize
 }
 
 /// "Bigint"-like (62 * LIMBS)-bit signed integer type, whose variables store numbers in the two's
@@ -560,6 +556,7 @@ impl<const LIMBS: usize> UnsatInt<LIMBS> {
 
 #[cfg(test)]
 mod tests {
+    use super::iterations;
     use crate::{Inverter, PrecomputeInverter, U256};
 
     type UnsatInt = super::UnsatInt<4>;
@@ -584,6 +581,13 @@ mod tests {
             U256::from_be_hex("FB668F8F509790BC549B077098918604283D42901C92981062EB48BC723F617B"),
             result
         );
+    }
+
+    #[test]
+    fn iterations_boundary_conditions() {
+        assert_eq!(iterations(0, 0), 4);
+        assert_eq!(iterations(0, 45), 134);
+        assert_eq!(iterations(0, 46), 135);
     }
 
     #[test]
