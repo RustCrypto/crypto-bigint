@@ -67,6 +67,7 @@ where
     >,
 {
     /// Create a new [`ConstMontyFormInverter`] for the given [`ConstMontyParams`].
+    #[allow(clippy::new_without_default)]
     pub const fn new() -> Self {
         let inverter = SafeGcdInverter::new(&MOD::MODULUS, &MOD::R2);
 
