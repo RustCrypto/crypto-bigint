@@ -34,7 +34,7 @@ use subtle::CtOption;
 /// - A = 1, if both the input and the expected output are in the standard form
 /// - A = R^2 mod M, if both the input and the expected output are in the Montgomery form
 /// - A = R mod M, if either the input or the expected output is in the Montgomery form,
-/// but not both of them
+///   but not both of them
 ///
 /// The public methods of this type receive and return unsigned big integers as arrays of 64-bit
 /// chunks, the ordering of which is little-endian. Both the modulus and the integer to be
@@ -42,9 +42,9 @@ use subtle::CtOption;
 ///
 /// For better understanding the implementation, the following resources are recommended:
 /// - D. Bernstein, B.-Y. Yang, "Fast constant-time gcd computation and modular inversion",
-/// <https://gcd.cr.yp.to/safegcd-20190413.pdf>
+///   <https://gcd.cr.yp.to/safegcd-20190413.pdf>
 /// - P. Wuille, "The safegcd implementation in libsecp256k1 explained",
-/// <https://github.com/bitcoin-core/secp256k1/blob/master/doc/safegcd_implementation.md>
+///   <https://github.com/bitcoin-core/secp256k1/blob/master/doc/safegcd_implementation.md>
 #[derive(Clone, Debug)]
 pub struct SafeGcdInverter<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> {
     /// Modulus
