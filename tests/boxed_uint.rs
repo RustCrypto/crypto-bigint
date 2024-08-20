@@ -296,4 +296,19 @@ proptest! {
             prop_assert_eq!(expected, actual.unwrap());
         }
     }
+
+
+    #[test]
+    fn radix_encode_vartime(a in uint(), radix in 2u32..=26) {
+        let a_bi = to_biguint(&a);
+
+        let expected_enc = a_bi.to_str_radix(radix);
+        let actual_enc = a.to_string_radix_vartime(radix);
+        prop_assert_eq!(&expected_enc, &actual_enc);
+
+        let decoded = BoxedUint::from_str_radix_vartime(&actual_enc, radix).expect("decoding error");
+        let dec_bi = to_biguint(&decoded);
+        prop_assert_eq!(dec_bi, a_bi);
+
+    }
 }
