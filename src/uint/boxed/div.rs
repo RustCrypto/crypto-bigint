@@ -382,6 +382,42 @@ impl RemLimb for BoxedUint {
     }
 }
 
+/// Computes `limbs << shift` inplace, where `0 <= shift < Limb::BITS`, returning the carry.
+fn shl_limb_vartime(limbs: &mut [Limb], shift: u32) -> Limb {
+    if shift == 0 {
+        return Limb::ZERO;
+    }
+
+    let lshift = shift;
+    let rshift = Limb::BITS - shift;
+    let limbs_num = limbs.len();
+
+    let carry = limbs[limbs_num - 1] >> rshift;
+    for i in (1..limbs_num).rev() {
+        limbs[i] = (limbs[i] << lshift) | (limbs[i - 1] >> rshift);
+    }
+    limbs[0] <<= lshift;
+
+    carry
+}
+
+/// Computes `limbs >> shift` inplace, where `0 <= shift < Limb::BITS`.
+fn shr_limb_vartime(limbs: &mut [Limb], shift: u32) {
+    if shift == 0 {
+        return;
+    }
+
+    let lshift = Limb::BITS - shift;
+    let rshift = shift;
+
+    let limbs_num = limbs.len();
+
+    for i in 0..limbs_num - 1 {
+        limbs[i] = (limbs[i] >> rshift) | (limbs[i + 1] << lshift);
+    }
+    limbs[limbs_num - 1] >>= rshift;
+}
+
 /// Computes `x` / `y`, returning the quotient in `x` and the remainder in `y`.
 ///
 /// This function operates in variable-time. It will panic if the divisor is zero
@@ -408,51 +444,44 @@ pub(crate) fn div_rem_vartime_in_place(x: &mut [Limb], y: &mut [Limb]) {
     }
 
     let lshift = y[yc - 1].leading_zeros();
-    let rshift = if lshift == 0 { 0 } else { Limb::BITS - lshift };
-    let mut x_hi = Limb::ZERO;
-    let mut carry;
 
-    if lshift != 0 {
-        // Shift divisor such that it has no leading zeros
-        // This means that div2by1 requires no extra shifts, and ensures that the high word >= b/2
-        carry = Limb::ZERO;
-        for i in 0..yc {
-            (y[i], carry) = (Limb((y[i].0 << lshift) | carry.0), Limb(y[i].0 >> rshift));
-        }
+    // Shift divisor such that it has no leading zeros
+    // This means that div2by1 requires no extra shifts, and ensures that the high word >= b/2
+    shl_limb_vartime(y, lshift);
 
-        // Shift the dividend to match
-        carry = Limb::ZERO;
-        for i in 0..xc {
-            (x[i], carry) = (Limb((x[i].0 << lshift) | carry.0), Limb(x[i].0 >> rshift));
-        }
-        x_hi = carry;
-    }
+    // Shift the dividend to match
+    let mut x_hi = shl_limb_vartime(x, lshift);
 
     let reciprocal = Reciprocal::new(y[yc - 1].to_nz().expect("zero divisor"));
 
     for xi in (yc - 1..xc).rev() {
         // Divide high dividend words by the high divisor word to estimate the quotient word
-        let (mut quo, _) = div3by2(x_hi.0, x[xi].0, x[xi - 1].0, &reciprocal, y[yc - 2].0);
+        let mut quo = div3by2(x_hi.0, x[xi].0, x[xi - 1].0, &reciprocal, y[yc - 2].0);
 
         // Subtract q*divisor from the dividend
-        carry = Limb::ZERO;
-        let mut borrow = Limb::ZERO;
-        let mut tmp;
-        for i in 0..yc {
-            (tmp, carry) = Limb::ZERO.mac(y[i], Limb(quo), carry);
-            (x[xi + i + 1 - yc], borrow) = x[xi + i + 1 - yc].sbb(tmp, borrow);
-        }
-        (_, borrow) = x_hi.sbb(carry, borrow);
+        let borrow = {
+            let mut carry = Limb::ZERO;
+            let mut borrow = Limb::ZERO;
+            let mut tmp;
+            for i in 0..yc {
+                (tmp, carry) = Limb::ZERO.mac(y[i], Limb(quo), carry);
+                (x[xi + i + 1 - yc], borrow) = x[xi + i + 1 - yc].sbb(tmp, borrow);
+            }
+            (_, borrow) = x_hi.sbb(carry, borrow);
+            borrow
+        };
 
         // If the subtraction borrowed, then decrement q and add back the divisor
         // The probability of this being needed is very low, about 2/(Limb::MAX+1)
-        let ct_borrow = ConstChoice::from_word_mask(borrow.0);
-        carry = Limb::ZERO;
-        for i in 0..yc {
-            (x[xi + i + 1 - yc], carry) =
-                x[xi + i + 1 - yc].adc(Limb::select(Limb::ZERO, y[i], ct_borrow), carry);
-        }
-        quo = ct_borrow.select_word(quo, quo.saturating_sub(1));
+        quo = {
+            let ct_borrow = ConstChoice::from_word_mask(borrow.0);
+            let mut carry = Limb::ZERO;
+            for i in 0..yc {
+                (x[xi + i + 1 - yc], carry) =
+                    x[xi + i + 1 - yc].adc(Limb::select(Limb::ZERO, y[i], ct_borrow), carry);
+            }
+            ct_borrow.select_word(quo, quo.wrapping_sub(1))
+        };
 
         // Store the quotient within dividend and set x_hi to the current highest word
         x_hi = x[xi];
@@ -464,12 +493,7 @@ pub(crate) fn div_rem_vartime_in_place(x: &mut [Limb], y: &mut [Limb]) {
     y[yc - 1] = x_hi;
 
     // Unshift the remainder from the earlier adjustment
-    if lshift != 0 {
-        carry = Limb::ZERO;
-        for i in (0..yc).rev() {
-            (y[i], carry) = (Limb((y[i].0 >> lshift) | carry.0), Limb(y[i].0 << rshift));
-        }
-    }
+    shr_limb_vartime(y, lshift);
 
     // Shift the quotient to the low limbs within dividend
     // let x_size = xc - yc + 1;

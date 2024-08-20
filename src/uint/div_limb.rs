@@ -145,23 +145,27 @@ pub(crate) const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Wor
     (q1, r)
 }
 
-/// Calculate the quotient and the remainder of the division of a 3-word
-/// dividend `u`, with a precalculated leading-word reciprocal `v` and a second
-/// divisor word `v0`. The dividend and the lower divisor word must be left-shifted
-/// according to the `shift` value  of the reciprocal.
+/// Given two long integers `u = (..., u0, u1, u2)` and `v = (..., v0, v1)`
+/// (where `u2` and `v1` are the most significant limbs), where `floor(u / v) <= Limb::MAX`,
+/// calculates `q` such that `q - 1 <= floor(u / v) <= q`.
+/// In place of `v1` takes its reciprocal, and assumes that `v` was already pre-shifted
+/// so that v1 has its most significant bit set (that is, the reciprocal's `shift` is 0).
 #[inline(always)]
 pub(crate) const fn div3by2(
     u2: Word,
     u1: Word,
     u0: Word,
-    reciprocal: &Reciprocal,
+    v1_reciprocal: &Reciprocal,
     v0: Word,
-) -> (Word, WideWord) {
+) -> Word {
+    debug_assert!(v1_reciprocal.shift == 0);
+    debug_assert!(u2 <= v1_reciprocal.divisor_normalized);
+
     // This method corresponds to Algorithm Q:
     // https://janmr.com/blog/2014/04/basic-multiple-precision-long-division/
 
-    let q_maxed = ConstChoice::from_word_eq(u2, reciprocal.divisor_normalized);
-    let (mut quo, rem) = div2by1(q_maxed.select_word(u2, 0), u1, reciprocal);
+    let q_maxed = ConstChoice::from_word_eq(u2, v1_reciprocal.divisor_normalized);
+    let (mut quo, rem) = div2by1(q_maxed.select_word(u2, 0), u1, v1_reciprocal);
     // When the leading dividend word equals the leading divisor word, cap the quotient
     // at Word::MAX and set the remainder to the sum of the top dividend words.
     quo = q_maxed.select_word(quo, Word::MAX);
@@ -174,12 +178,12 @@ pub(crate) const fn div3by2(
         // If r < b and q*y[-2] > r*x[-1], then set q = q - 1 and r = r + v1
         let done = ConstChoice::from_word_nonzero((rem >> Word::BITS) as Word)
             .or(ConstChoice::from_wide_word_le(qy, rx));
-        quo = done.select_word(quo.saturating_sub(1), quo);
-        rem = done.select_wide_word(rem + (reciprocal.divisor_normalized as WideWord), rem);
+        quo = done.select_word(quo.wrapping_sub(1), quo);
+        rem = done.select_wide_word(rem + (v1_reciprocal.divisor_normalized as WideWord), rem);
         i += 1;
     }
 
-    (quo, rem)
+    quo
 }
 
 /// A pre-calculated reciprocal for division by a single limb.
