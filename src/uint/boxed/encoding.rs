@@ -475,7 +475,7 @@ mod tests {
 
         for _ in 0..100 {
             let uint = BoxedUint::random_bits(&mut rng, 4096);
-            for radix in 2..=26 {
+            for radix in 2..=36 {
                 let enc = uint.to_string_radix_vartime(radix);
                 let res = BoxedUint::from_str_radix_vartime(&enc, radix).expect("decoding error");
                 assert_eq!(

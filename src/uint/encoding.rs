@@ -515,7 +515,7 @@ pub(crate) fn radix_encode_limbs_to_string(radix: u32, limbs: &[Limb]) -> String
 
 #[cfg(feature = "alloc")]
 pub(crate) fn radix_encode_limbs_mut_to_string(radix: u32, limbs: &mut [Limb]) -> String {
-    if !(2..=26).contains(&radix) {
+    if !(2..=36).contains(&radix) {
         panic!("unsupported radix");
     }
 
@@ -586,17 +586,17 @@ pub(crate) struct RadixDivisionParams {
 #[cfg(feature = "alloc")]
 impl RadixDivisionParams {
     #[allow(trivial_numeric_casts)]
-    const ALL: [Self; 22] = {
+    const ALL: [Self; 31] = {
         let mut res = [Self {
             radix: 0,
             digits_limb: 0,
             reciprocal: Reciprocal::default(),
             digits_large: 0,
             div_large: [Limb::ZERO; RADIX_ENCODING_LIMBS_LARGE],
-        }; 22];
+        }; 31];
         let mut radix: u32 = 3;
         let mut i: usize = 0;
-        while radix <= 26 {
+        while radix <= 36 {
             if radix.is_power_of_two() {
                 radix += 1;
                 continue;
@@ -619,7 +619,7 @@ impl RadixDivisionParams {
 
     #[allow(trivial_numeric_casts)]
     pub const fn for_radix(radix: u32) -> Self {
-        if radix < 3 || radix > 26 || radix.is_power_of_two() {
+        if radix < 3 || radix > 36 || radix.is_power_of_two() {
             panic!("invalid radix for division");
         }
         let ret = Self::ALL[(radix + radix.leading_zeros() - 33) as usize];
@@ -986,7 +986,7 @@ mod tests {
 
         for _ in 0..100 {
             let uint = U256::random(&mut rng);
-            for radix in 2..=26 {
+            for radix in 2..=36 {
                 let enc = uint.to_string_radix_vartime(radix);
                 let res = U256::from_str_radix_vartime(&enc, radix).expect("decoding error");
                 assert_eq!(

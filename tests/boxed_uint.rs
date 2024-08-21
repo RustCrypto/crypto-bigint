@@ -299,7 +299,7 @@ proptest! {
 
 
     #[test]
-    fn radix_encode_vartime(a in uint(), radix in 2u32..=26) {
+    fn radix_encode_vartime(a in uint(), radix in 2u32..=36) {
         let a_bi = to_biguint(&a);
 
         let expected_enc = a_bi.to_str_radix(radix);
