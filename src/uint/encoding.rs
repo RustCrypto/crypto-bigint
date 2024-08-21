@@ -585,6 +585,7 @@ pub(crate) struct RadixDivisionParams {
 
 #[cfg(feature = "alloc")]
 impl RadixDivisionParams {
+    #[allow(trivial_numeric_casts)]
     const ALL: [Self; 22] = {
         let mut res = [Self {
             radix: 0,
@@ -622,7 +623,7 @@ impl RadixDivisionParams {
             panic!("invalid radix for division");
         }
         let ret = Self::ALL[(radix + radix.leading_zeros() - 33) as usize];
-        if cfg!(debug) && ret.radix != radix {
+        if ret.radix != radix {
             panic!("radix lookup failure");
         }
         ret
@@ -633,6 +634,7 @@ impl RadixDivisionParams {
         limb_count * (self.digits_limb + 1)
     }
 
+    #[allow(trivial_numeric_casts)]
     fn encode_limbs(&self, limbs: &mut [Limb], out: &mut [u8]) {
         debug_assert!(!limbs.is_empty());
 
