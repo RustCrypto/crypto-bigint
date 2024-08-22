@@ -37,7 +37,7 @@ impl PrecomputeInverter for BoxedMontyParams {
     }
 }
 
-/// Bernstein-Yang inverter which inverts [`DynResidue`] types.
+/// Bernstein-Yang inverter which inverts [`MontyForm`] types.
 pub struct BoxedMontyFormInverter {
     /// Precomputed Bernstein-Yang inverter.
     inverter: BoxedSafeGcdInverter,

@@ -68,7 +68,7 @@ pub trait ConstMontyParams<const LIMBS: usize>:
 /// The modulus is constant, so it cannot be set at runtime.
 ///
 /// Internally, the value is stored in Montgomery form (multiplied by MOD::ONE) until it is retrieved.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ConstMontyForm<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> {
     montgomery_form: Uint<LIMBS>,
     phantom: PhantomData<MOD>,

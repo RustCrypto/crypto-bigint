@@ -17,7 +17,7 @@ use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 ///
 /// This is analogous to [`core::num::Wrapping`] but allows this crate to
 /// define trait impls for this type.
-#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord, Hash)]
 pub struct Wrapping<T>(pub T);
 
 impl<T: WrappingAdd> Add<Self> for Wrapping<T> {

@@ -17,7 +17,7 @@ use crate::{Concat, Limb, Monty, NonZero, Odd, Split, Uint, Word};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct MontyParams<const LIMBS: usize> {
     /// The constant modulus
     modulus: Odd<Uint<LIMBS>>,
@@ -145,7 +145,7 @@ impl<const LIMBS: usize> ConstantTimeEq for MontyParams<LIMBS> {
 
 /// An integer in Montgomery form represented using `LIMBS` limbs.
 /// The odd modulus is set at runtime.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MontyForm<const LIMBS: usize> {
     montgomery_form: Uint<LIMBS>,
     params: MontyParams<LIMBS>,

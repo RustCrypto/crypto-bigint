@@ -187,7 +187,7 @@ pub(crate) const fn div3by2(
 }
 
 /// A pre-calculated reciprocal for division by a single limb.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Reciprocal {
     divisor_normalized: Word,
     shift: u32,

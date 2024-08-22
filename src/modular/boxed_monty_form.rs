@@ -20,7 +20,7 @@ use zeroize::Zeroize;
 
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus whose size and value
 /// are both chosen at runtime.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct BoxedMontyParams {
     /// The constant modulus
     modulus: Odd<BoxedUint>,
@@ -115,7 +115,7 @@ impl BoxedMontyParams {
 }
 
 /// An integer in Montgomery form represented using heap-allocated limbs.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct BoxedMontyForm {
     /// Value in the Montgomery form.
     montgomery_form: BoxedUint,
