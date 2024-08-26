@@ -2,7 +2,9 @@ use criterion::{
     black_box, criterion_group, criterion_main, measurement::Measurement, BatchSize,
     BenchmarkGroup, Criterion,
 };
-use crypto_bigint::{impl_modulus, modular::ConstMontyParams, Invert, Inverter, Random, U256};
+use crypto_bigint::{
+    impl_modulus, modular::ConstMontyParams, Invert, Inverter, Random, RandomMod, U256,
+};
 use rand_core::OsRng;
 
 #[cfg(feature = "alloc")]
@@ -14,12 +16,19 @@ impl_modulus!(
     "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"
 );
 
+impl_modulus!(
+    UnsatModulus,
+    U256,
+    "4fffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"
+);
+
 type ConstMontyForm = crypto_bigint::modular::ConstMontyForm<Modulus, { U256::LIMBS }>;
+type UnsatConstMontyForm = crypto_bigint::modular::ConstMontyForm<UnsatModulus, { U256::LIMBS }>;
 
 fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("ConstMontyForm creation", |b| {
         b.iter_batched(
-            || U256::random(&mut OsRng),
+            || U256::random_mod(&mut OsRng, Modulus::MODULUS.as_nz_ref()),
             |x| black_box(ConstMontyForm::new(&x)),
             BatchSize::SmallInput,
         )
@@ -27,7 +36,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
 
     group.bench_function("ConstMontyForm retrieve", |b| {
         b.iter_batched(
-            || ConstMontyForm::new(&U256::random(&mut OsRng)),
+            || ConstMontyForm::random(&mut OsRng),
             |x| black_box(x.retrieve()),
             BatchSize::SmallInput,
         )
@@ -35,9 +44,69 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
 }
 
 fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
+    group.bench_function("add, U256", |b| {
+        b.iter_batched(
+            || {
+                let a = ConstMontyForm::random(&mut OsRng);
+                let b = ConstMontyForm::random(&mut OsRng);
+                (a, b)
+            },
+            |(a, b)| black_box(a).add(&black_box(b)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("add, U256, unsaturated", |b| {
+        b.iter_batched(
+            || {
+                let a = UnsatConstMontyForm::random(&mut OsRng);
+                let b = UnsatConstMontyForm::random(&mut OsRng);
+                (a, b)
+            },
+            |(a, b)| black_box(&a).add(&black_box(b)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    // group.bench_function("double, U256", |b| {
+    //     b.iter_batched(
+    //         || ConstMontyForm::random(&mut OsRng),
+    //         |a| black_box(a).double(),
+    //         BatchSize::SmallInput,
+    //     )
+    // });
+
+    // group.bench_function("double, U256, unsaturated", |b| {
+    //     b.iter_batched(
+    //         || UnsatConstMontyForm::random(&mut OsRng),
+    //         |a| black_box(a).double(),
+    //         BatchSize::SmallInput,
+    //     )
+    // });
+
+    group.bench_function("sub, U256", |b| {
+        b.iter_batched(
+            || {
+                let a = ConstMontyForm::random(&mut OsRng);
+                let b = ConstMontyForm::random(&mut OsRng);
+                (a, b)
+            },
+            |(a, b)| black_box(a).sub(&black_box(b)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("neg, U256", |b| {
+        b.iter_batched(
+            || ConstMontyForm::random(&mut OsRng),
+            |a| black_box(a).neg(),
+            BatchSize::SmallInput,
+        )
+    });
+
     group.bench_function("invert, U256", |b| {
         b.iter_batched(
-            || ConstMontyForm::new(&U256::random(&mut OsRng)),
+            || ConstMontyForm::random(&mut OsRng),
             |x| black_box(x).invert(),
             BatchSize::SmallInput,
         )
@@ -46,7 +115,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("Bernstein-Yang invert, U256", |b| {
         b.iter_batched(
             || {
-                let x = ConstMontyForm::new(&U256::random(&mut OsRng));
+                let x = ConstMontyForm::random(&mut OsRng);
                 let inverter = Modulus::precompute_inverter();
                 (x, inverter)
             },
@@ -58,11 +127,19 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("multiplication, U256*U256", |b| {
         b.iter_batched(
             || {
-                let x = ConstMontyForm::new(&U256::random(&mut OsRng));
-                let y = ConstMontyForm::new(&U256::random(&mut OsRng));
+                let x = ConstMontyForm::random(&mut OsRng);
+                let y = ConstMontyForm::random(&mut OsRng);
                 (x, y)
             },
-            |(x, y)| black_box(x * y),
+            |(x, y)| black_box(x).mul(&black_box(y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("squaring, U256*U256", |b| {
+        b.iter_batched(
+            || ConstMontyForm::random(&mut OsRng),
+            |x| black_box(x).square(),
             BatchSize::SmallInput,
         )
     });
@@ -70,8 +147,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("modpow, U256^U256", |b| {
         b.iter_batched(
             || {
-                let x = U256::random(&mut OsRng);
-                let x_m = ConstMontyForm::new(&x);
+                let x_m = ConstMontyForm::random(&mut OsRng);
                 let p = U256::random(&mut OsRng) | (U256::ONE << (U256::BITS - 1));
                 (x_m, p)
             },
@@ -89,8 +165,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                     || {
                         let bases_and_exponents: Vec<(ConstMontyForm, U256)> = (1..=i)
                             .map(|_| {
-                                let x = U256::random(&mut OsRng);
-                                let x_m = ConstMontyForm::new(&x);
+                                let x_m = ConstMontyForm::random(&mut OsRng);
                                 let p = U256::random(&mut OsRng) | (U256::ONE << (U256::BITS - 1));
                                 (x_m, p)
                             })
