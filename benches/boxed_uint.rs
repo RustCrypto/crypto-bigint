@@ -191,7 +191,7 @@ fn bench_radix_encoding(c: &mut Criterion) {
                 || BoxedUint::random_bits(&mut OsRng, UINT_BITS).to_string_radix_vartime(10),
                 |x| {
                     black_box(BoxedUint::from_str_radix_with_precision_vartime(
-                        &x, 10, UINT_BITS,
+                        &x, radix, UINT_BITS,
                     ))
                 },
                 BatchSize::SmallInput,
@@ -201,7 +201,7 @@ fn bench_radix_encoding(c: &mut Criterion) {
         group.bench_function(format!("parse_bytes, {radix} (num-bigint-dig)"), |b| {
             b.iter_batched(
                 || BoxedUint::random_bits(&mut OsRng, UINT_BITS).to_string_radix_vartime(10),
-                |x| black_box(BigUint::parse_bytes(x.as_bytes(), 10)),
+                |x| black_box(BigUint::parse_bytes(x.as_bytes(), radix)),
                 BatchSize::SmallInput,
             )
         });
@@ -209,7 +209,7 @@ fn bench_radix_encoding(c: &mut Criterion) {
         group.bench_function(format!("to_str_radix_vartime, {radix}"), |b| {
             b.iter_batched(
                 || BoxedUint::random_bits(&mut OsRng, UINT_BITS),
-                |x| black_box(x.to_string_radix_vartime(10)),
+                |x| black_box(x.to_string_radix_vartime(radix)),
                 BatchSize::SmallInput,
             )
         });
@@ -220,7 +220,7 @@ fn bench_radix_encoding(c: &mut Criterion) {
                     let u = BoxedUint::random_bits(&mut OsRng, UINT_BITS);
                     BigUint::from_bytes_be(&u.to_be_bytes())
                 },
-                |x| black_box(x.to_str_radix(10)),
+                |x| black_box(x.to_str_radix(radix)),
                 BatchSize::SmallInput,
             )
         });
