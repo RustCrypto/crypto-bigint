@@ -607,7 +607,8 @@ impl RadixDivisionParams {
             }
             let digits_limb = Word::MAX.ilog(radix as Word);
             let div_limb = NonZero(Limb((radix as Word).pow(digits_limb)));
-            let (div_large, digits_large) = radix_large_divisor(div_limb, digits_limb as usize);
+            let (div_large, digits_large) =
+                radix_large_divisor(radix, div_limb, digits_limb as usize);
             res[i] = Self {
                 radix,
                 digits_limb: digits_limb as usize,
@@ -724,8 +725,10 @@ impl RadixDivisionParams {
 }
 
 #[cfg(feature = "alloc")]
+#[allow(trivial_numeric_casts)]
 /// The maximum radix divisor for a number of limbs, returning the number of output digits
 const fn radix_large_divisor(
+    radix: u32,
     div_limb: NonZero<Limb>,
     digits_limb: usize,
 ) -> ([Limb; RADIX_ENCODING_LIMBS_LARGE], usize) {
@@ -747,7 +750,22 @@ const fn radix_large_divisor(
         }
         digits_large += digits_limb;
     }
-    // FIXME add multiple of radix to top limb
+    // Multiply by radix while we can do so without overflowing
+    let mut out_test = out;
+    loop {
+        let mut carry = Limb::ZERO;
+        let mut j = 0;
+        while j < RADIX_ENCODING_LIMBS_LARGE {
+            (out_test[j], carry) = Limb::ZERO.mac(out[j], Limb(radix as Word), carry);
+            j += 1;
+        }
+        if carry.0 == 0 {
+            out = out_test;
+            digits_large += 1;
+        } else {
+            break;
+        }
+    }
     (out, digits_large)
 }
 
