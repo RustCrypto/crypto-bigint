@@ -25,6 +25,9 @@ use crate::Encoding;
 #[cfg(feature = "alloc")]
 const RADIX_ENCODING_LIMBS_LARGE: usize = 32;
 
+const RADIX_ENCODING_MIN: u32 = 2;
+const RADIX_ENCODING_MAX: u32 = 36;
+
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a new [`Uint`] from the provided big endian bytes.
     pub const fn from_be_slice(bytes: &[u8]) -> Self {
@@ -336,7 +339,7 @@ pub(crate) fn radix_decode_str<D: DecodeByLimb>(
     radix: u32,
     out: &mut D,
 ) -> Result<(), DecodeError> {
-    if !(2u32..=36).contains(&radix) {
+    if !(RADIX_ENCODING_MIN..=RADIX_ENCODING_MAX).contains(&radix) {
         panic!("unsupported radix");
     }
     if radix == 2 || radix == 4 || radix == 16 {
@@ -515,7 +518,7 @@ pub(crate) fn radix_encode_limbs_to_string(radix: u32, limbs: &[Limb]) -> String
 
 #[cfg(feature = "alloc")]
 pub(crate) fn radix_encode_limbs_mut_to_string(radix: u32, limbs: &mut [Limb]) -> String {
-    if !(2..=36).contains(&radix) {
+    if !(RADIX_ENCODING_MIN..=RADIX_ENCODING_MAX).contains(&radix) {
         panic!("unsupported radix");
     }
 
@@ -585,6 +588,7 @@ pub(crate) struct RadixDivisionParams {
 
 #[cfg(feature = "alloc")]
 impl RadixDivisionParams {
+    // Generate all valid parameters ahead of time
     #[allow(trivial_numeric_casts)]
     const ALL: [Self; 31] = {
         let mut res = [Self {
@@ -596,7 +600,7 @@ impl RadixDivisionParams {
         }; 31];
         let mut radix: u32 = 3;
         let mut i: usize = 0;
-        while radix <= 36 {
+        while radix <= RADIX_ENCODING_MAX {
             if radix.is_power_of_two() {
                 radix += 1;
                 continue;
@@ -619,7 +623,7 @@ impl RadixDivisionParams {
 
     #[allow(trivial_numeric_casts)]
     pub const fn for_radix(radix: u32) -> Self {
-        if radix < 3 || radix > 36 || radix.is_power_of_two() {
+        if radix < RADIX_ENCODING_MIN || radix > RADIX_ENCODING_MAX {
             panic!("invalid radix for division");
         }
         let ret = Self::ALL[(radix + radix.leading_zeros() - 33) as usize];
@@ -694,6 +698,7 @@ impl RadixDivisionParams {
                 // The remainder represents a digit in base `radix ** digits_per_limb`
                 carry.0 >> lshift
             } else {
+                // Use up the remainder in `hi`, and on any further loops continue with `0` if necessary
                 let res = hi.0;
                 hi = Limb::ZERO;
                 res
@@ -710,6 +715,7 @@ impl RadixDivisionParams {
                 };
             }
 
+            // Finished when the buffer is full
             if out_idx == 0 {
                 break;
             }
@@ -727,7 +733,8 @@ const fn radix_large_divisor(
     let mut digits_large = digits_limb;
     let mut top = 1;
     out[0] = div_limb.0;
-    while top < out.len() {
+    // Calculate largest power of div_limb (itself a power of radix)
+    while top < RADIX_ENCODING_LIMBS_LARGE {
         let mut carry = Limb::ZERO;
         let mut j = 0;
         while j < top {
