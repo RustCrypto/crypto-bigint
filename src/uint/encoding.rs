@@ -374,7 +374,7 @@ fn radix_preprocess_str(src: &str) -> Result<&[u8], DecodeError> {
     }
 }
 
-// Decode a string of digits in base `radix`
+/// Decode a string of digits in base `radix`
 fn radix_decode_str_digits<D: DecodeByLimb>(
     src: &str,
     radix: u8,
@@ -440,8 +440,8 @@ fn radix_decode_str_digits<D: DecodeByLimb>(
     Ok(())
 }
 
-// Decode digits for bases where an integer number of characters
-// can represent a saturated Limb (specifically 2, 4, and 16).
+/// Decode digits for bases where an integer number of characters
+/// can represent a saturated Limb (specifically 2, 4, and 16).
 fn radix_decode_str_aligned_digits<D: DecodeByLimb>(
     src: &str,
     radix: u8,
@@ -501,6 +501,9 @@ fn radix_decode_str_aligned_digits<D: DecodeByLimb>(
     Ok(())
 }
 
+/// Encode a slice of limbs to a string in base `radix`. The result will have no leading
+/// zeros unless the value itself is zero.
+/// Panics if `radix` is not in the range from 2 to 36.
 #[cfg(feature = "alloc")]
 pub(crate) fn radix_encode_limbs_to_string(radix: u32, limbs: &[Limb]) -> String {
     let mut array_buf = [Limb::ZERO; 128];
@@ -516,6 +519,10 @@ pub(crate) fn radix_encode_limbs_to_string(radix: u32, limbs: &[Limb]) -> String
     radix_encode_limbs_mut_to_string(radix, buf)
 }
 
+/// Encode a slice of limbs to a string in base `radix`. The contents of the slice
+/// will be used as a working buffer. The result will have no leading zeros unless
+/// the value itself is zero.
+/// Panics if `radix` is not in the range from 2 to 36.
 #[cfg(feature = "alloc")]
 pub(crate) fn radix_encode_limbs_mut_to_string(radix: u32, limbs: &mut [Limb]) -> String {
     if !(RADIX_ENCODING_MIN..=RADIX_ENCODING_MAX).contains(&radix) {
@@ -546,6 +553,10 @@ pub(crate) fn radix_encode_limbs_mut_to_string(radix: u32, limbs: &mut [Limb]) -
     String::from_utf8(out).expect("utf-8 decoding error")
 }
 
+/// For `radix` values which are a power of two, encode the mutable limb slice to
+/// the output buffer as ASCII characters in base `radix`. Leading zeros are added to
+/// fill `out`. The slice `limbs` is used as a working buffer. Output will be truncated
+/// if the provided buffer is too small.
 #[cfg(feature = "alloc")]
 fn radix_encode_limbs_by_shifting(radix: u32, limbs: &mut [Limb], out: &mut [u8]) {
     debug_assert!(radix.is_power_of_two());
@@ -576,6 +587,7 @@ fn radix_encode_limbs_by_shifting(radix: u32, limbs: &mut [Limb], out: &mut [u8]
     out[0..out_idx].fill(b'0');
 }
 
+/// Parameter set used to perform radix encoding by division.
 #[cfg(feature = "alloc")]
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RadixDivisionParams {
@@ -634,11 +646,15 @@ impl RadixDivisionParams {
         ret
     }
 
+    /// Get the minimum size of the required output buffer for encoding a set of limbs.
     pub const fn encoded_size(&self, limb_count: usize) -> usize {
         // a slightly pessimistic estimate
         limb_count * (self.digits_limb + 1)
     }
 
+    /// Encode the mutable limb slice to the output buffer as ASCII characters in base
+    /// `radix`. Leading zeros are added to fill `out`. The slice `limbs` is used as a
+    /// working buffer. Output will be truncated if the provided buffer is too small.
     #[allow(trivial_numeric_casts)]
     fn encode_limbs(&self, limbs: &mut [Limb], out: &mut [u8]) {
         debug_assert!(!limbs.is_empty());
@@ -724,9 +740,12 @@ impl RadixDivisionParams {
     }
 }
 
+/// Compute the maximum radix divisor for a number of limbs.
+/// Returns a pair of the large divisor value and the number of digits,
+/// such that `divisor = radix ** digits`. The value `div_limb` is the
+/// largest power of `radix` that can fit within a limb.
 #[cfg(feature = "alloc")]
 #[allow(trivial_numeric_casts)]
-/// The maximum radix divisor for a number of limbs, returning the number of output digits
 const fn radix_large_divisor(
     radix: u32,
     div_limb: NonZero<Limb>,
