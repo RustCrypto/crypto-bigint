@@ -1,6 +1,6 @@
 //! [`BoxedUint`] modular subtraction operations.
 
-use crate::{BoxedUint, Limb, SubMod};
+use crate::{BoxedUint, Limb, SubMod, Zero};
 
 impl BoxedUint {
     /// Computes `self - rhs mod p`.
@@ -12,11 +12,12 @@ impl BoxedUint {
         debug_assert!(self < p);
         debug_assert!(rhs < p);
 
-        let (out, mask) = self.sbb(rhs, Limb::ZERO);
+        let (mut out, borrow) = self.sbb(rhs, Limb::ZERO);
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-        out.wrapping_add(&p.bitand_limb(mask))
+        out.conditional_adc_assign(p, !borrow.is_zero());
+        out
     }
 
     /// Computes `self - rhs mod p` for the special modulus
