@@ -15,6 +15,14 @@ impl BoxedMontyForm {
             params: self.params.clone(),
         }
     }
+
+    /// Double `self`.
+    pub fn double(&self) -> Self {
+        Self {
+            montgomery_form: self.montgomery_form.double_mod(&self.params.modulus),
+            params: self.params.clone(),
+        }
+    }
 }
 
 impl Add<&BoxedMontyForm> for &BoxedMontyForm {

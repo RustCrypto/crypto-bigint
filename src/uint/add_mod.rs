@@ -33,6 +33,22 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let l = carry.0.wrapping_sub(1) & c.0;
         out.wrapping_sub(&Self::from_word(l))
     }
+
+    /// Computes `self + self mod p`.
+    ///
+    /// Assumes `self` as unbounded integer is `< p`.
+    pub const fn double_mod(&self, p: &Self) -> Self {
+        let (w, carry) = self.overflowing_shl1();
+
+        // Attempt to subtract the modulus, to ensure the result is in the field.
+        let (w, borrow) = w.sbb(p, Limb::ZERO);
+        let (_, mask) = carry.sbb(Limb::ZERO, borrow);
+
+        // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
+        // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the
+        // modulus.
+        w.wrapping_add(&p.bitand_limb(mask))
+    }
 }
 
 impl<const LIMBS: usize> AddMod for Uint<LIMBS> {
@@ -64,6 +80,16 @@ mod tests {
             U256::from_be_hex("1a2472fde50286541d97ca6a3592dd75beb9c9646e40c511b82496cfc3926956");
 
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn double_mod_expected() {
+        let a =
+            U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
+        let n =
+            U256::from_be_hex("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551");
+
+        assert_eq!(a.add_mod(&a, &n), a.double_mod(&n));
     }
 
     macro_rules! test_add_mod_special {

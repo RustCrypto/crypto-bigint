@@ -23,6 +23,13 @@ impl BoxedUint {
         // modulus.
         w.wrapping_add(&p.bitand_limb(mask))
     }
+
+    /// Computes `self + self mod p`.
+    ///
+    /// Assumes `self` as unbounded integer is `< p`.
+    pub fn double_mod(&self, p: &Self) -> Self {
+        self.add_mod(self, p)
+    }
 }
 
 impl AddMod for BoxedUint {
