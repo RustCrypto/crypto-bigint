@@ -16,14 +16,7 @@ impl_modulus!(
     "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"
 );
 
-impl_modulus!(
-    UnsatModulus,
-    U256,
-    "4fffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"
-);
-
 type ConstMontyForm = crypto_bigint::modular::ConstMontyForm<Modulus, { U256::LIMBS }>;
-type UnsatConstMontyForm = crypto_bigint::modular::ConstMontyForm<UnsatModulus, { U256::LIMBS }>;
 
 fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("ConstMontyForm creation", |b| {
@@ -56,33 +49,13 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         )
     });
 
-    group.bench_function("add, U256, unsaturated", |b| {
+    group.bench_function("double, U256", |b| {
         b.iter_batched(
-            || {
-                let a = UnsatConstMontyForm::random(&mut OsRng);
-                let b = UnsatConstMontyForm::random(&mut OsRng);
-                (a, b)
-            },
-            |(a, b)| black_box(&a).add(&black_box(b)),
+            || ConstMontyForm::random(&mut OsRng),
+            |a| black_box(a).double(),
             BatchSize::SmallInput,
         )
     });
-
-    // group.bench_function("double, U256", |b| {
-    //     b.iter_batched(
-    //         || ConstMontyForm::random(&mut OsRng),
-    //         |a| black_box(a).double(),
-    //         BatchSize::SmallInput,
-    //     )
-    // });
-
-    // group.bench_function("double, U256, unsaturated", |b| {
-    //     b.iter_batched(
-    //         || UnsatConstMontyForm::random(&mut OsRng),
-    //         |a| black_box(a).double(),
-    //         BatchSize::SmallInput,
-    //     )
-    // });
 
     group.bench_function("sub, U256", |b| {
         b.iter_batched(
