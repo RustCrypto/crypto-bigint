@@ -29,7 +29,17 @@ impl BoxedUint {
     ///
     /// Assumes `self` as unbounded integer is `< p`.
     pub fn double_mod(&self, p: &Self) -> Self {
-        self.add_mod(self, p)
+        let (mut w, carry) = self.overflowing_shl1();
+
+        // Attempt to subtract the modulus, to ensure the result is in the field.
+        let borrow = w.sbb_assign(p, Limb::ZERO);
+        let (_, borrow) = carry.sbb(Limb::ZERO, borrow);
+
+        // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
+        // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the
+        // modulus.
+        w.conditional_adc_assign(p, !borrow.is_zero());
+        w
     }
 }
 
@@ -74,5 +84,21 @@ mod tests {
         .unwrap();
 
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn double_mod_expected() {
+        let a = BoxedUint::from_be_hex(
+            "44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56",
+            256,
+        )
+        .unwrap();
+        let n = BoxedUint::from_be_hex(
+            "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551",
+            256,
+        )
+        .unwrap();
+
+        assert_eq!(a.add_mod(&a, &n), a.double_mod(&n));
     }
 }
