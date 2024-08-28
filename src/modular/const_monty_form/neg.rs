@@ -6,7 +6,10 @@ use core::ops::Neg;
 impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
     /// Negates the number.
     pub const fn neg(&self) -> Self {
-        Self::ZERO.sub(self)
+        Self {
+            montgomery_form: self.montgomery_form.neg_mod(MOD::MODULUS.as_ref()),
+            phantom: self.phantom,
+        }
     }
 }
 

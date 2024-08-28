@@ -1,18 +1,15 @@
 //! Negations of boxed integers in Montgomery form.
 
 use super::BoxedMontyForm;
-use crate::BoxedUint;
 use core::ops::Neg;
 
 impl BoxedMontyForm {
     /// Negates the number.
     pub fn neg(&self) -> Self {
-        let zero = Self {
-            montgomery_form: BoxedUint::zero_with_precision(self.params.bits_precision()),
+        Self {
+            montgomery_form: self.montgomery_form.neg_mod(&self.params.modulus),
             params: self.params.clone(),
-        };
-
-        zero.sub(self)
+        }
     }
 }
 
