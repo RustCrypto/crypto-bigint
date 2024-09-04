@@ -28,15 +28,14 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::U256;
-    use crate::{
-        modular::{MontyForm, MontyParams},
-        Odd, Random, RandomMod,
-    };
-
     #[cfg(feature = "rand")]
     #[test]
     fn lincomb_expected() {
+        use crate::U256;
+        use crate::{
+            modular::{MontyForm, MontyParams},
+            Odd, Random, RandomMod,
+        };
         use rand_core::SeedableRng;
 
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
