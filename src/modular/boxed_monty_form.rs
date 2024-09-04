@@ -1,4 +1,4 @@
-//! is chosen at runtime.
+//! Implements heap-allocated `BoxedMontyForm`s, supporting modular arithmetic with a modulus set at runtime.
 
 mod add;
 mod inv;
