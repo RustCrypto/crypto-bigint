@@ -17,6 +17,7 @@
 //! the modulus can vary at runtime.
 
 mod const_monty_form;
+mod lincomb;
 mod monty_form;
 mod reduction;
 

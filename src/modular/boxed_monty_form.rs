@@ -2,6 +2,7 @@
 
 mod add;
 mod inv;
+mod lincomb;
 mod mul;
 mod neg;
 mod pow;

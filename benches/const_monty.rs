@@ -11,7 +11,7 @@ use crypto_bigint::MultiExponentiate;
 impl_modulus!(
     Modulus,
     U256,
-    "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"
+    "7fffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"
 );
 
 type ConstMontyForm = crypto_bigint::modular::ConstMontyForm<Modulus, { U256::LIMBS }>;
@@ -76,6 +76,19 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                 (x_m, p)
             },
             |(x, p)| black_box(x.pow(&p)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("lincomb_vartime, U256*U256+U256*U256", |b| {
+        b.iter_batched(
+            || ConstMontyForm::random(&mut OsRng),
+            |a| {
+                ConstMontyForm::lincomb_vartime(&[
+                    (black_box(a), black_box(a)),
+                    (black_box(a), black_box(a)),
+                ])
+            },
             BatchSize::SmallInput,
         )
     });
