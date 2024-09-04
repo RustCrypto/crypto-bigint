@@ -33,6 +33,8 @@ pub struct BoxedMontyParams {
     /// The lowest limbs of -(MODULUS^-1) mod R
     /// We only need the LSB because during reduction this value is multiplied modulo 2**Limb::BITS.
     mod_neg_inv: Limb,
+    /// Leading zeros in the modulus, used to choose optimized algorithms
+    mod_leading_zeros: u32,
 }
 
 impl BoxedMontyParams {
@@ -92,6 +94,9 @@ impl BoxedMontyParams {
         debug_assert!(bool::from(modulus_is_odd));
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));
+
+        let mod_leading_zeros = modulus.as_ref().leading_zeros().max(Word::BITS - 1);
+
         let r3 = montgomery_reduction_boxed(&mut r2.square(), &modulus, mod_neg_inv);
 
         Self {
@@ -100,6 +105,7 @@ impl BoxedMontyParams {
             r2,
             r3,
             mod_neg_inv,
+            mod_leading_zeros,
         }
     }
 
