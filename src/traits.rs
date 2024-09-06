@@ -31,9 +31,10 @@ pub trait Bounded {
     const BYTES: usize;
 }
 
-/// Trait for types which are conditionally selectable in constant time, similar to (and blanket impl'd for) `subtle`'s
-/// [`ConditionallySelectable`] trait, but without the `Copy` bound which allows it to be impl'd for heap allocated
-/// types such as `BoxedUint`.
+/// Trait for types which are conditionally selectable in constant time.
+///
+/// Similar to (and blanket impl'd for) `subtle`'s [`ConditionallySelectable`] trait, but without
+/// the `Copy` bound which allows it to be impl'd for heap allocated types such as `BoxedUint`.
 ///
 /// It also provides generic implementations of conditional assignment and conditional swaps.
 pub trait ConstantTimeSelect: Clone {
