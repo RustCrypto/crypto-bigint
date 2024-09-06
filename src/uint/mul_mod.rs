@@ -30,17 +30,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes `self * rhs mod p` for odd `p` in variable time with respect to `p`.
-    ///
-    /// Panics if `p` is even. (TODO: support even `p`)
     pub fn mul_mod_vartime(&self, rhs: &Uint<LIMBS>, p: &NonZero<Uint<LIMBS>>) -> Uint<LIMBS> {
-        // NOTE: the overhead of converting to Montgomery form to perform this operation and then
-        // immediately converting out of Montgomery form after just a single operation is likely to
-        // be higher than other possible implementations of this function, such as using a
-        // Barrett reduction instead.
-        //
-        // It's worth potentially exploring other approaches to improve efficiency.
-        let params = MontyParams::new_vartime(p.to_odd().expect("p should be odd"));
-        (MontyForm::new(self, params) * MontyForm::new(rhs, params)).retrieve()
+        let lo_hi = self.split_mul(rhs);
+        Self::rem_wide_vartime(lo_hi, p)
     }
 
     /// Computes `self * rhs mod p` for the special modulus
