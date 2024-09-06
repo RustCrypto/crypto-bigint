@@ -5,43 +5,46 @@ use crate::{Limb, Odd, Uint};
 #[cfg(feature = "alloc")]
 use {crate::BoxedUint, subtle::Choice};
 
-/// Implement the Montgomery reduction algorithm.
-///
-/// This is implemented as a macro to abstract over `const fn` and boxed use cases, since the latter
-/// needs mutable references and thus the unstable `const_mut_refs` feature (rust-lang/rust#57349).
-// TODO(tarcieri): change this into a `const fn` when `const_mut_refs` is stable
-macro_rules! impl_montgomery_reduction {
-    ($upper:expr, $lower:expr, $modulus:expr, $mod_neg_inv:expr, $limbs:expr) => {{
-        let mut meta_carry = Limb::ZERO;
-        let mut new_sum;
+/// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
+const fn montgomery_reduction_inner(
+    upper: &mut [Limb],
+    lower: &mut [Limb],
+    modulus: &[Limb],
+    mod_neg_inv: Limb,
+) -> Limb {
+    let nlimbs = modulus.len();
+    debug_assert!(nlimbs == upper.len());
+    debug_assert!(nlimbs == lower.len());
 
-        let mut i = 0;
-        while i < $limbs {
-            let u = $lower[i].wrapping_mul($mod_neg_inv);
+    let mut meta_carry = Limb::ZERO;
+    let mut new_sum;
 
-            let (_, mut carry) = $lower[i].mac(u, $modulus[0], Limb::ZERO);
-            let mut new_limb;
+    let mut i = 0;
+    while i < nlimbs {
+        let u = lower[i].wrapping_mul(mod_neg_inv);
 
-            let mut j = 1;
-            while j < ($limbs - i) {
-                (new_limb, carry) = $lower[i + j].mac(u, $modulus[j], carry);
-                $lower[i + j] = new_limb;
-                j += 1;
-            }
-            while j < $limbs {
-                (new_limb, carry) = $upper[i + j - $limbs].mac(u, $modulus[j], carry);
-                $upper[i + j - $limbs] = new_limb;
-                j += 1;
-            }
+        let (_, mut carry) = lower[i].mac(u, modulus[0], Limb::ZERO);
+        let mut new_limb;
 
-            (new_sum, meta_carry) = $upper[i].adc(carry, meta_carry);
-            $upper[i] = new_sum;
-
-            i += 1;
+        let mut j = 1;
+        while j < (nlimbs - i) {
+            (new_limb, carry) = lower[i + j].mac(u, modulus[j], carry);
+            lower[i + j] = new_limb;
+            j += 1;
+        }
+        while j < nlimbs {
+            (new_limb, carry) = upper[i + j - nlimbs].mac(u, modulus[j], carry);
+            upper[i + j - nlimbs] = new_limb;
+            j += 1;
         }
 
-        meta_carry
-    }};
+        (new_sum, meta_carry) = upper[i].adc(carry, meta_carry);
+        upper[i] = new_sum;
+
+        i += 1;
+    }
+
+    meta_carry
 }
 
 /// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
@@ -51,12 +54,11 @@ pub const fn montgomery_reduction<const LIMBS: usize>(
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {
     let (mut lower, mut upper) = *lower_upper;
-    let meta_carry = impl_montgomery_reduction!(
-        upper.limbs,
-        lower.limbs,
+    let meta_carry = montgomery_reduction_inner(
+        &mut upper.limbs,
+        &mut lower.limbs,
         &modulus.0.limbs,
         mod_neg_inv,
-        LIMBS
     );
 
     // Division is simply taking the upper half of the limbs
@@ -79,8 +81,7 @@ pub(crate) fn montgomery_reduction_boxed_mut(
     debug_assert_eq!(out.nlimbs(), modulus.nlimbs());
 
     let (lower, upper) = x.limbs.split_at_mut(modulus.nlimbs());
-    let meta_carry =
-        impl_montgomery_reduction!(upper, lower, &modulus.limbs, mod_neg_inv, modulus.nlimbs());
+    let meta_carry = montgomery_reduction_inner(upper, lower, &modulus.limbs, mod_neg_inv);
 
     out.limbs.copy_from_slice(upper);
     let borrow = out.sbb_assign(modulus, Limb::ZERO);
