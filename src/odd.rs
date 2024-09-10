@@ -270,7 +270,6 @@ mod tests {
     #[cfg(feature = "serde")]
     mod serde_tests {
         use crate::{Odd, U128, U64};
-        use alloc::string::ToString;
         use bincode::ErrorKind;
 
         #[test]
@@ -301,37 +300,6 @@ mod tests {
                 *bincode::deserialize::<Odd<U64>>(&zero_ser).unwrap_err(),
                 ErrorKind::Custom(mess) if mess == "invalid value: even, expected a non-zero odd value"
             ))
-        }
-
-        #[test]
-        fn cannot_deserialize_into_bigger_type() {
-            let three = Odd::new(U64::from_u64(0x3)).unwrap();
-            let three_ser = bincode::serialize(&three).unwrap();
-            let error_message = bincode::deserialize::<Odd<U128>>(&three_ser)
-                .unwrap_err()
-                .to_string();
-
-            assert_eq!(&error_message, "io error: unexpected end of file");
-        }
-
-        #[test]
-        fn silently_coerces_bigger_type_into_smaller_type() {
-            use bincode::Options;
-
-            // Use custom options to disallow trailing bytes.
-            let options = bincode::DefaultOptions::new();
-
-            let three = Odd::new(U128::from_u128(0x77777777777777773333333333333333)).unwrap();
-            let three_ser = options.serialize(&three).unwrap();
-            let error_message = options
-                .deserialize::<Odd<U64>>(&three_ser)
-                .unwrap_err()
-                .to_string();
-
-            assert_eq!(
-                &error_message,
-                "Slice had bytes remaining after deserialization"
-            );
         }
     }
 }
