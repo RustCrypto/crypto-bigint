@@ -9,7 +9,7 @@ mod bit_xor;
 mod bits;
 mod cmp;
 mod ct;
-mod div;
+pub(crate) mod div;
 mod div_limb;
 pub(crate) mod encoding;
 mod from;

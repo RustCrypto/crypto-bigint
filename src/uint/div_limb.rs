@@ -228,6 +228,11 @@ impl Reciprocal {
         }
     }
 
+    #[cfg(feature = "alloc")]
+    pub(crate) const fn divisor(&self) -> NonZero<Limb> {
+        NonZero(Limb(self.divisor_normalized >> self.shift))
+    }
+
     /// Get the shift value
     pub const fn shift(&self) -> u32 {
         self.shift
