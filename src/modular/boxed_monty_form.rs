@@ -14,6 +14,7 @@ use super::{
 };
 use crate::{BoxedUint, Limb, Monty, Odd, Word};
 use alloc::sync::Arc;
+use subtle::Choice;
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -184,6 +185,25 @@ impl BoxedMontyForm {
             montgomery_form: params.one.clone(),
             params: params.into(),
         }
+    }
+
+    /// Determine if this value is equal to zero.
+    ///
+    /// # Returns
+    ///
+    /// If zero, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
+    pub fn is_zero(&self) -> Choice {
+        self.montgomery_form.is_zero()
+    }
+
+    /// Determine if this value is not equal to zero.
+    ///
+    /// # Returns
+    ///
+    /// If zero, returns `Choice(0)`. Otherwise, returns `Choice(1)`.
+    #[inline]
+    pub fn is_nonzero(&self) -> Choice {
+        !self.is_zero()
     }
 
     /// Returns the parameter struct used to initialize this object.
