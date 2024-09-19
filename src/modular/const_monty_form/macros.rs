@@ -53,6 +53,16 @@ macro_rules! impl_modulus {
                 ),
             );
 
+            // Leading zeros in the modulus, used to choose optimized algorithms.
+            const MOD_LEADING_ZEROS: u32 = {
+                let z = Self::MODULUS.as_ref().leading_zeros();
+                if z >= $crate::Word::BITS {
+                    $crate::Word::BITS - 1
+                } else {
+                    z
+                }
+            };
+
             const R3: $uint_type = $crate::modular::montgomery_reduction(
                 &Self::R2.square_wide(),
                 &Self::MODULUS,

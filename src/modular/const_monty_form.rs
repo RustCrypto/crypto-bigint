@@ -2,6 +2,7 @@
 
 mod add;
 pub(super) mod inv;
+mod lincomb;
 mod mul;
 mod neg;
 mod pow;
@@ -50,6 +51,8 @@ pub trait ConstMontyParams<const LIMBS: usize>:
     /// The lowest limbs of -(MODULUS^-1) mod R
     // We only need the LSB because during reduction this value is multiplied modulo 2**Limb::BITS.
     const MOD_NEG_INV: Limb;
+    /// Leading zeros in the modulus, used to choose optimized algorithms
+    const MOD_LEADING_ZEROS: u32;
 
     /// Precompute a Bernstein-Yang inverter for this modulus.
     ///

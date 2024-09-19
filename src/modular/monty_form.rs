@@ -2,6 +2,7 @@
 
 mod add;
 pub(super) mod inv;
+mod lincomb;
 mod mul;
 mod neg;
 mod pow;
@@ -30,6 +31,8 @@ pub struct MontyParams<const LIMBS: usize> {
     /// The lowest limbs of -(MODULUS^-1) mod R
     /// We only need the LSB because during reduction this value is multiplied modulo 2**Limb::BITS.
     mod_neg_inv: Limb,
+    /// Leading zeros in the modulus, used to choose optimized algorithms
+    mod_leading_zeros: u32,
 }
 
 impl<const LIMBS: usize, const WIDE_LIMBS: usize> MontyParams<LIMBS>
@@ -57,6 +60,8 @@ where
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
 
+        let mod_leading_zeros = modulus.as_ref().leading_zeros().max(Word::BITS - 1);
+
         // `R^3 mod modulus`, used for inversion in Montgomery form.
         let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);
 
@@ -66,6 +71,7 @@ where
             r2,
             r3,
             mod_neg_inv,
+            mod_leading_zeros,
         }
     }
 }
@@ -89,6 +95,8 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
 
+        let mod_leading_zeros = modulus.as_ref().leading_zeros().max(Word::BITS - 1);
+
         // `R^3 mod modulus`, used for inversion in Montgomery form.
         let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);
 
@@ -98,6 +106,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
             r2,
             r3,
             mod_neg_inv,
+            mod_leading_zeros,
         }
     }
 
@@ -117,6 +126,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
             r2: P::R2,
             r3: P::R3,
             mod_neg_inv: P::MOD_NEG_INV,
+            mod_leading_zeros: P::MOD_LEADING_ZEROS,
         }
     }
 }
@@ -129,6 +139,11 @@ impl<const LIMBS: usize> ConditionallySelectable for MontyParams<LIMBS> {
             r2: Uint::conditional_select(&a.r2, &b.r2, choice),
             r3: Uint::conditional_select(&a.r3, &b.r3, choice),
             mod_neg_inv: Limb::conditional_select(&a.mod_neg_inv, &b.mod_neg_inv, choice),
+            mod_leading_zeros: u32::conditional_select(
+                &a.mod_leading_zeros,
+                &b.mod_leading_zeros,
+                choice,
+            ),
         }
     }
 }

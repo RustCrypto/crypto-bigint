@@ -156,6 +156,27 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             BatchSize::SmallInput,
         )
     });
+
+    group.bench_function(
+        "lincomb_vartime, BoxedUint*BoxedUint+BoxedUint*BoxedUint",
+        |b| {
+            b.iter_batched(
+                || {
+                    BoxedMontyForm::new(
+                        BoxedUint::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                        params.clone(),
+                    )
+                },
+                |a| {
+                    BoxedMontyForm::lincomb_vartime(&[
+                        (black_box(&a), black_box(&a)),
+                        (black_box(&a), black_box(&a)),
+                    ])
+                },
+                BatchSize::SmallInput,
+            )
+        },
+    );
 }
 
 fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
