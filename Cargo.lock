@@ -210,7 +210,7 @@ checksum = "7a81dae078cea95a014a339291cec439d2f232ebe854a9d672b796c6afafa9b7"
 
 [[package]]
 name = "crypto-bigint"
-version = "0.6.0-rc.4"
+version = "0.6.0-rc.5"
 dependencies = [
  "bincode",
  "criterion",
