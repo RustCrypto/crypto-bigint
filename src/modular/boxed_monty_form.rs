@@ -11,7 +11,7 @@ mod sub;
 use super::{
     div_by_2,
     reduction::{montgomery_reduction_boxed, montgomery_reduction_boxed_mut},
-    Retrieve,
+    ConstMontyParams, Retrieve,
 };
 use crate::{BoxedUint, Limb, Monty, Odd, Word};
 use alloc::sync::Arc;
@@ -119,6 +119,18 @@ impl BoxedMontyParams {
     /// Bits of precision in the modulus.
     pub fn bits_precision(&self) -> u32 {
         self.modulus.bits_precision()
+    }
+
+    /// Create from a set of [`ConstMontyParams`].
+    pub fn from_const_params<const LIMBS: usize, P: ConstMontyParams<LIMBS>>() -> Self {
+        Self {
+            modulus: P::MODULUS.into(),
+            one: P::ONE.into(),
+            r2: P::R2.into(),
+            r3: P::R3.into(),
+            mod_neg_inv: P::MOD_NEG_INV,
+            mod_leading_zeros: P::MOD_LEADING_ZEROS,
+        }
     }
 }
 
