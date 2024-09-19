@@ -13,6 +13,15 @@
 #[macro_export]
 macro_rules! impl_modulus {
     ($name:ident, $uint_type:ty, $value:expr) => {
+        impl_modulus!(
+            $name,
+            $uint_type,
+            $value,
+            "Modulus which impls `ConstMontyParams`"
+        );
+    };
+    ($name:ident, $uint_type:ty, $value:expr, $doc:expr) => {
+        #[doc = $doc]
         #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
         pub struct $name;
         impl<const DLIMBS: usize> $crate::modular::ConstMontyParams<{ <$uint_type>::LIMBS }>
