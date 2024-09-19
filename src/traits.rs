@@ -337,8 +337,8 @@ impl fmt::Display for RandomBitsError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for RandomBitsError {}
+#[cfg(feature = "rand_core")]
+impl core::error::Error for RandomBitsError {}
 
 /// Random bits generation support.
 #[cfg(feature = "rand_core")]
@@ -572,8 +572,7 @@ impl fmt::Display for DecodeError {
     }
 }
 
-#[cfg(feature = "std")]
-impl std::error::Error for DecodeError {}
+impl core::error::Error for DecodeError {}
 
 /// Support for optimized squaring
 pub trait Square {

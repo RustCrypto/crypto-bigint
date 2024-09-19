@@ -158,7 +158,6 @@ impl BoxedMontyForm {
     }
 
     /// Instantiates a new [`BoxedMontyForm`] that represents an integer modulo the provided params.
-    #[cfg(feature = "std")]
     pub fn new_with_arc(mut integer: BoxedUint, params: Arc<BoxedMontyParams>) -> Self {
         debug_assert_eq!(integer.bits_precision(), params.bits_precision());
         convert_to_montgomery(&mut integer, &params);
