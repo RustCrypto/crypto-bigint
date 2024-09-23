@@ -165,6 +165,7 @@ mod array;
 mod checked;
 mod const_choice;
 mod limb;
+mod int;
 mod non_zero;
 mod odd;
 mod primitives;
@@ -176,6 +177,7 @@ pub use crate::{
     checked::Checked,
     const_choice::{ConstChoice, ConstCtOption},
     limb::{Limb, WideWord, Word},
+    int::*,
     non_zero::NonZero,
     odd::Odd,
     traits::*,
