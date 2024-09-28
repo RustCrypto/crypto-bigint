@@ -54,7 +54,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Limb(acc).is_nonzero().not()
     }
 
-    /// Returns the truthy value if `self <= rhs` and the falsy value otherwise.
+    /// Returns the truthy value if `self < rhs` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn lt(lhs: &Self, rhs: &Self) -> ConstChoice {
         // We could use the same approach as in Limb::ct_lt(),
@@ -64,7 +64,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         ConstChoice::from_word_mask(borrow.0)
     }
 
-    /// Returns the truthy value if `self >= rhs` and the falsy value otherwise.
+    /// Returns the truthy value if `self > rhs` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn gt(lhs: &Self, rhs: &Self) -> ConstChoice {
         let (_res, borrow) = rhs.sbb(lhs, Limb::ZERO);
