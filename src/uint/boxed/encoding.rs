@@ -1,5 +1,8 @@
 //! Const-friendly decoding operations for [`BoxedUint`].
 
+#[cfg(feature = "serde")]
+mod serde;
+
 use super::BoxedUint;
 use crate::{uint::encoding, DecodeError, Limb, Word};
 use alloc::{boxed::Box, string::String, vec::Vec};
