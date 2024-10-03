@@ -405,6 +405,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 if xi == yc - 1 {
                     break;
                 }
+                x[xi] = Limb::ZERO;
                 xi -= 1;
             }
         }
@@ -1054,21 +1055,18 @@ mod tests {
 
     #[test]
     fn rem_wide_vartime_corner_case() {
-        // Moduli with the 33rd byte higher than 8 triggers the bug (e.g. "…81…1" below)
         let modulus = "0000000000000000000000000000000081000000000000000000000000000001";
         let modulus = NonZero::new(U256::from_be_hex(modulus)).expect("it's odd and not zero");
-        let one_squared_wide = (
-            // Result of `square_wide()` applied to the `one` variable from `MontyParams::new_vartime`
-            U256::from_be_hex("40F9003F02F813D06F023B0AE83390F2FDE8ADA6AEAA9AE9ECA5B68EEA1BE809"),
+        let lo_hi = (
+            U256::from_be_hex("1000000000000000000000000000000000000000000000000000000000000001"),
             U256::ZERO,
         );
-        // The problem is somewhere in here
-        let r2 = U256::rem_wide_vartime(one_squared_wide, &modulus);
-
-        // This is the output of v0.6.0-rc.2
-        let expected_r2 =
-            U256::from_be_hex("0000000000000000000000000000000025F88D6923D0282E856FAC8D1D4E6132");
-        assert_eq!(r2, expected_r2);
+        let rem = U256::rem_wide_vartime(lo_hi, &modulus);
+        // Lower half is zero
+        assert_eq!(rem.to_be_bytes()[0..16], U128::ZERO.to_be_bytes());
+        // Upper half
+        let expected = U128::from_be_hex("203F80FE03F80FE03F80FE03F80FE041");
+        assert_eq!(rem.to_be_bytes()[16..], expected.to_be_bytes());
     }
 
     #[test]
