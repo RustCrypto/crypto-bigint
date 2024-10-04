@@ -11,7 +11,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     ///
     /// This method will panic if `products` is empty. All terms must be associated
     /// with equivalent `MontyParams`.
-    pub const fn lincomb_vartime(products: &[(Self, Self)]) -> Self {
+    pub const fn lincomb_vartime(products: &[(&Self, &Self)]) -> Self {
         assert!(!products.is_empty(), "empty products");
         let params = &products[0].0.params;
         Self {
@@ -51,8 +51,8 @@ mod tests {
             assert_eq!(
                 a.mul_mod(&b, m).add_mod(&c.mul_mod(&d, m), m),
                 MontyForm::lincomb_vartime(&[
-                    (MontyForm::new(&a, params), MontyForm::new(&b, params)),
-                    (MontyForm::new(&c, params), MontyForm::new(&d, params)),
+                    (&MontyForm::new(&a, params), &MontyForm::new(&b, params)),
+                    (&MontyForm::new(&c, params), &MontyForm::new(&d, params)),
                 ])
                 .retrieve(),
                 "n={n}, a={a}, b={b}, c={c}, d={d}"

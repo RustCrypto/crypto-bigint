@@ -836,6 +836,18 @@ pub trait Monty:
     /// Access the value in Montgomery form.
     fn as_montgomery(&self) -> &Self::Integer;
 
+    /// Performs doubling, returning `self + self`.
+    fn double(&self) -> Self;
+
     /// Performs division by 2, that is returns `x` such that `x + x = self`.
     fn div_by_2(&self) -> Self;
+
+    /// Calculate the sum of products of pairs `(a, b)` in `products`.
+    ///
+    /// This method is variable time only with the value of the modulus.
+    /// For a modulus with leading zeros, this method is more efficient than a naive sum of products.
+    ///
+    /// This method will panic if `products` is empty. All terms must be associated with equivalent
+    /// Montgomery parameters.
+    fn lincomb_vartime(products: &[(&Self, &Self)]) -> Self;
 }

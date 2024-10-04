@@ -103,7 +103,7 @@ pub const fn lincomb_const_monty_form<MOD: ConstMontyParams<LIMBS>, const LIMBS:
 }
 
 pub const fn lincomb_monty_form<const LIMBS: usize>(
-    mut products: &[(MontyForm<LIMBS>, MontyForm<LIMBS>)],
+    mut products: &[(&MontyForm<LIMBS>, &MontyForm<LIMBS>)],
     modulus: &Odd<Uint<LIMBS>>,
     mod_neg_inv: Limb,
     mod_leading_zeros: u32,
