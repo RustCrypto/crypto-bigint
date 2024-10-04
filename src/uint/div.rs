@@ -405,6 +405,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 if xi == yc - 1 {
                     break;
                 }
+                x[xi] = Limb::ZERO;
                 xi -= 1;
             }
         }
@@ -1050,6 +1051,22 @@ mod tests {
             &NonZero::new(U256::MAX).unwrap(),
         );
         assert_eq!(r, U256::from(10u8));
+    }
+
+    #[test]
+    fn rem_wide_vartime_corner_case() {
+        let modulus = "0000000000000000000000000000000081000000000000000000000000000001";
+        let modulus = NonZero::new(U256::from_be_hex(modulus)).expect("it's odd and not zero");
+        let lo_hi = (
+            U256::from_be_hex("1000000000000000000000000000000000000000000000000000000000000001"),
+            U256::ZERO,
+        );
+        let rem = U256::rem_wide_vartime(lo_hi, &modulus);
+        // Lower half is zero
+        assert_eq!(rem.to_be_bytes()[0..16], U128::ZERO.to_be_bytes());
+        // Upper half
+        let expected = U128::from_be_hex("203F80FE03F80FE03F80FE03F80FE041");
+        assert_eq!(rem.to_be_bytes()[16..], expected.to_be_bytes());
     }
 
     #[test]
