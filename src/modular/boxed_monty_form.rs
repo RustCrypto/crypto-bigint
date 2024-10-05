@@ -294,8 +294,16 @@ impl Monty for BoxedMontyForm {
         &self.montgomery_form
     }
 
+    fn double(&self) -> Self {
+        BoxedMontyForm::double(self)
+    }
+
     fn div_by_2(&self) -> Self {
         BoxedMontyForm::div_by_2(self)
+    }
+
+    fn lincomb_vartime(products: &[(&Self, &Self)]) -> Self {
+        BoxedMontyForm::lincomb_vartime(products)
     }
 }
 

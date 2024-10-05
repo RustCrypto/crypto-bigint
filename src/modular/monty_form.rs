@@ -275,8 +275,16 @@ impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
         &self.montgomery_form
     }
 
+    fn double(&self) -> Self {
+        MontyForm::double(self)
+    }
+
     fn div_by_2(&self) -> Self {
         MontyForm::div_by_2(self)
+    }
+
+    fn lincomb_vartime(products: &[(&Self, &Self)]) -> Self {
+        MontyForm::lincomb_vartime(products)
     }
 }
 
