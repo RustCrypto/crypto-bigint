@@ -33,7 +33,7 @@ pub(crate) fn random_bits_core(
     let buffer: Word = 0;
     let mut buffer = buffer.to_be_bytes();
 
-    let nonzero_limbs = ((bit_length + Limb::BITS - 1) / Limb::BITS) as usize;
+    let nonzero_limbs = bit_length.div_ceil(Limb::BITS) as usize;
     let partial_limb = bit_length % Limb::BITS;
     let mask = Word::MAX >> ((Word::BITS - partial_limb) % Word::BITS);
 
@@ -111,7 +111,7 @@ pub(super) fn random_mod_core<T>(
     T: AsMut<[Limb]> + ConstantTimeLess + Zero,
 {
     let n_bytes = ((n_bits + 7) / 8) as usize;
-    let n_limbs = ((n_bits + Limb::BITS - 1) / Limb::BITS) as usize;
+    let n_limbs = n_bits.div_ceil(Limb::BITS) as usize;
     let hi_bytes = n_bytes - (n_limbs - 1) * Limb::BYTES;
 
     let mut bytes = Limb::ZERO.to_le_bytes();

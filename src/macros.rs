@@ -5,7 +5,7 @@
 #[macro_export]
 macro_rules! nlimbs {
     ($bits:expr) => {
-        (($bits + $crate::Limb::BITS - 1) / $crate::Limb::BITS) as usize
+        u32::div_ceil($bits, $crate::Limb::BITS) as usize
     };
 }
 

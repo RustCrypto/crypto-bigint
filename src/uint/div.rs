@@ -52,7 +52,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         let dbits = rhs.0.bits();
         assert!(dbits > 0, "zero divisor");
-        let dwords = (dbits + Limb::BITS - 1) / Limb::BITS;
+        let dwords = dbits.div_ceil(Limb::BITS);
         let lshift = (Limb::BITS - (dbits % Limb::BITS)) % Limb::BITS;
 
         // Shift entire divisor such that the high bit is set
@@ -198,7 +198,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Further explanation at https://janmr.com/blog/2014/04/basic-multiple-precision-long-division/
 
         let dbits = rhs.0.bits_vartime();
-        let yc = ((dbits + Limb::BITS - 1) / Limb::BITS) as usize;
+        let yc = dbits.div_ceil(Limb::BITS) as usize;
 
         // Short circuit for small or extra large divisors
         if yc == 1 {
@@ -319,7 +319,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// to `self`.
     pub const fn rem_wide_vartime(lower_upper: (Self, Self), rhs: &NonZero<Self>) -> Self {
         let dbits = rhs.0.bits_vartime();
-        let yc = ((dbits + Limb::BITS - 1) / Limb::BITS) as usize;
+        let yc = dbits.div_ceil(Limb::BITS) as usize;
 
         // If the divisor is a single limb, use limb division
         if yc == 1 {
