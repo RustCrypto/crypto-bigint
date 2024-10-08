@@ -50,7 +50,7 @@ impl BoxedUint {
     ///
     /// Variable-time with respect to `rhs`
     pub fn div_rem_vartime(&self, rhs: &NonZero<Self>) -> (Self, Self) {
-        let yc = ((rhs.0.bits_vartime() + Limb::BITS - 1) / Limb::BITS) as usize;
+        let yc = rhs.0.bits_vartime().div_ceil(Limb::BITS) as usize;
 
         match yc {
             0 => panic!("zero divisor"),
@@ -75,7 +75,7 @@ impl BoxedUint {
     ///
     /// Variable-time with respect to `rhs`.
     pub fn rem_vartime(&self, rhs: &NonZero<Self>) -> Self {
-        let yc = ((rhs.0.bits_vartime() + Limb::BITS - 1) / Limb::BITS) as usize;
+        let yc = rhs.0.bits_vartime().div_ceil(Limb::BITS) as usize;
 
         match yc {
             0 => panic!("zero divisor"),
