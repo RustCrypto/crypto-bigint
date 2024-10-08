@@ -532,7 +532,7 @@ pub(crate) fn radix_encode_limbs_mut_to_string(radix: u32, limbs: &mut [Limb]) -
     let mut out;
     if radix.is_power_of_two() {
         let bits = radix.trailing_zeros() as usize;
-        let size = (limbs.len() * Limb::BITS as usize + bits - 1) / bits;
+        let size = (limbs.len() * Limb::BITS as usize).div_ceil(bits);
         out = vec![0u8; size];
         radix_encode_limbs_by_shifting(radix, limbs, &mut out[..]);
     } else {
