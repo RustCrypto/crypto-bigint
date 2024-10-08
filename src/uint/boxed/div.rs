@@ -152,7 +152,7 @@ impl BoxedUint {
 
         let dbits = rhs.bits();
         assert!(dbits > 0, "zero divisor");
-        let dwords = (dbits + Limb::BITS - 1) / Limb::BITS;
+        let dwords = dbits.div_ceil(Limb::BITS);
         let lshift = (Limb::BITS - (dbits % Limb::BITS)) % Limb::BITS;
 
         // Shift entire divisor such that the high bit is set

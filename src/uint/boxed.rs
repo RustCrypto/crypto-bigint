@@ -55,7 +55,7 @@ pub struct BoxedUint {
 
 impl BoxedUint {
     fn limbs_for_precision(at_least_bits_precision: u32) -> usize {
-        ((at_least_bits_precision + Limb::BITS - 1) / Limb::BITS) as usize
+        at_least_bits_precision.div_ceil(Limb::BITS) as usize
     }
 
     /// Get the value `0` represented as succinctly as possible.
