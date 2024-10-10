@@ -1,11 +1,14 @@
 //! Stack-allocated big signed integers.
 
-use subtle::{Choice, ConditionallySelectable};
+use num_traits::Zero;
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 use crate::{Limb, Uint};
 
 mod add;
 mod cmp;
+mod neg;
+mod sub;
 
 #[derive(Copy, Clone, Hash, Debug, PartialEq)]
 pub struct Int<const LIMBS: usize> {
@@ -69,6 +72,11 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub fn is_negative(&self) -> Choice {
         Choice::from(u8::from(self.is_negative))
     }
+
+    /// Whether this [`Int`] is zero
+    pub fn is_zero(&self) -> bool {
+        self.magnitude.is_zero()
+    }
 }
 
 impl<const LIMBS: usize> ConditionallySelectable for Int<LIMBS> {
@@ -89,6 +97,16 @@ impl<const LIMBS: usize> Default for Int<LIMBS> {
     }
 }
 
+impl<const LIMBS: usize> Zero for Int<LIMBS> {
+    fn zero() -> Self {
+        Self::ZERO
+    }
+
+    fn is_zero(&self) -> bool {
+        self.ct_eq(&Self::ZERO).into()
+    }
+}
+
 #[cfg(target_pointer_width = "64")]
 type I128 = Int<2>;
 
@@ -98,8 +116,7 @@ type I128 = Int<4>;
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use crate::int::{Int, I128};
-    use crate::{Uint, U128};
+    use crate::{U128, Uint, int::{I128, Int}};
 
     #[test]
     fn zero() {
