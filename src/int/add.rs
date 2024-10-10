@@ -34,13 +34,14 @@ impl<const LIMBS: usize> CheckedAdd for Int<LIMBS> {
         let magnitude_sub = lhs.magnitude.checked_sub(&rhs.magnitude);
 
         // Step 3. Select magnitude_sub when the signs of the two elements are not the same.
-        let unequal_sign = !lhs.is_negative().ct_eq(&rhs.is_negative());
-        let magnitude = CtOption::ct_select(&magnitude_add, &magnitude_sub, unequal_sign);
+        let different_signs = lhs.is_negative().ct_ne(&rhs.is_negative());
+        let magnitude = CtOption::ct_select(&magnitude_add, &magnitude_sub, different_signs);
 
-        // Step 4. Determine whether the result is negative.
-        // This is the case when `lhs` is negative and |lhs| =/= |rhs|
-        let is_negative = lhs.is_negative()
-            ^ (lhs.is_negative() & !rhs.is_negative() & lhs.magnitude.ct_eq(&rhs.magnitude));
+        // Step 4. Determine the sign of the result.
+        // This is always the same as the sign of the lhs (since it has the larger magnitude),
+        // except when the sum is zero.
+        let sum_is_zero = different_signs & lhs.magnitude.ct_eq(&rhs.magnitude);
+        let is_negative = lhs.is_negative() & !sum_is_zero;
 
         magnitude.and_then(|magnitude| {
             CtOption::new(
