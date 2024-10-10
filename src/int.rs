@@ -7,6 +7,7 @@ use crate::{Limb, Uint};
 
 mod add;
 mod cmp;
+mod mul;
 mod neg;
 mod sub;
 
