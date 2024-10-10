@@ -83,6 +83,12 @@ impl<const LIMBS: usize> ConditionallySelectable for Int<LIMBS> {
     }
 }
 
+impl<const LIMBS: usize> Default for Int<LIMBS> {
+    fn default() -> Self {
+        Self::ZERO
+    }
+}
+
 #[cfg(target_pointer_width = "64")]
 type I128 = Int<2>;
 
@@ -92,8 +98,8 @@ type I128 = Int<4>;
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use crate::{U128, Uint};
-    use crate::int::{I128, Int};
+    use crate::int::{Int, I128};
+    use crate::{Uint, U128};
 
     #[test]
     fn zero() {
