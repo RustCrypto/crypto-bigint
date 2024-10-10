@@ -2,7 +2,7 @@
 
 use core::ops::Add;
 
-use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess, CtOption};
+use subtle::{Choice, ConstantTimeEq, CtOption};
 
 use crate::{CheckedAdd, CheckedSub, ConstantTimeSelect};
 use crate::int::Int;

@@ -1,6 +1,5 @@
 //! Stack-allocated big signed integers.
 
-use num_traits::Zero;
 use subtle::{Choice, ConditionallySelectable};
 
 use crate::{Limb, Uint};
@@ -70,26 +69,16 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub fn is_negative(&self) -> Choice {
         Choice::from(u8::from(self.is_negative))
     }
-
-    /// Whether this [`Int`] is zero
-    pub fn is_zero(&self) -> Choice {
-        Choice::from(u8::from(self.magnitude.is_zero()))
-    }
-
-    /// Whether this [`Int`] is non-negative, i.e. >= 0.
-    pub fn is_non_negative(&self) -> Choice {
-        !Choice::from(u8::from(self.is_negative))
-    }
 }
 
 impl<const LIMBS: usize> ConditionallySelectable for Int<LIMBS> {
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         let magnitude = Uint::conditional_select(&a.magnitude, &b.magnitude, choice);
         let is_negative = Choice::conditional_select(&a.is_negative(), &b.is_negative(), choice);
-        
+
         Self {
             is_negative: is_negative.unwrap_u8() == 1,
-            magnitude
+            magnitude,
         }
     }
 }
