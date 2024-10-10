@@ -1,8 +1,13 @@
 //! Stack-allocated big signed integers.
 
+use num_traits::Zero;
+use subtle::Choice;
+
 use crate::{Limb, Uint};
 
-#[derive(Copy, Clone, Hash)]
+mod add;
+
+#[derive(Copy, Clone, Hash, Debug, PartialEq)]
 pub struct Int<const LIMBS: usize> {
     // TODO(erik): replace with Choice once I've figured how to const-construct those.
     is_negative: bool,
@@ -51,19 +56,42 @@ impl<const LIMBS: usize> Int<LIMBS> {
             magnitude: Uint::new(limbs),
         }
     }
+
+    /// Const-friendly [`Int`] constructor, using a `Uint`.
+    pub const fn new_from_uint(is_negative: bool, magnitude: Uint<LIMBS>) -> Self {
+        Self {
+            is_negative,
+            magnitude,
+        }
+    }
+
+    /// Whether this [`Int`] is negative
+    pub fn is_negative(&self) -> Choice {
+        Choice::from(u8::from(self.is_negative))
+    }
+
+    /// Whether this [`Int`] is zero
+    pub fn is_zero(&self) -> Choice {
+        Choice::from(u8::from(self.magnitude.is_zero()))
+    }
+
+    /// Whether this [`Int`] is non-negative, i.e. >= 0.
+    pub fn is_non_negative(&self) -> Choice {
+        !Choice::from(u8::from(self.is_negative))
+    }
 }
+
+#[cfg(target_pointer_width = "64")]
+type I128 = Int<2>;
+
+#[cfg(target_pointer_width = "32")]
+type I128 = Int<4>;
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
     use crate::{U128, Uint};
-    use crate::int::Int;
-
-    #[cfg(target_pointer_width = "64")]
-    type I128 = Int<2>;
-
-    #[cfg(target_pointer_width = "32")]
-    type I128 = Int<4>;
+    use crate::int::{I128, Int};
 
     #[test]
     fn zero() {
