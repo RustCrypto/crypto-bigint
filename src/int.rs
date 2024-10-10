@@ -7,6 +7,7 @@ use crate::{Limb, Uint};
 
 mod add;
 mod cmp;
+mod div;
 mod mul;
 mod neg;
 mod sub;
@@ -117,7 +118,10 @@ type I128 = Int<4>;
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use crate::{U128, Uint, int::{I128, Int}};
+    use crate::{
+        int::{I128, Int},
+        U128, Uint,
+    };
 
     #[test]
     fn zero() {
