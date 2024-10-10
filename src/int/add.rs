@@ -2,29 +2,30 @@
 
 use core::ops::{Add, AddAssign};
 
-use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
+use subtle::{Choice, ConstantTimeEq, CtOption};
 
-use crate::{Checked, CheckedAdd, CheckedSub, ConstantTimeSelect, Uint};
+use crate::{Checked, CheckedAdd, CheckedSub, ConstantTimeSelect};
 use crate::int::Int;
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Add two [`Int`]s, checking for overflow.
-    ///
-    /// Assumes `self.magnitude >= rhs.magnitude`.
     fn checked_adc(&self, rhs: &Self) -> CtOption<Self> {
-        // Step 1. Add/subtract the magnitudes of the two sides to/from each other
-        let magnitude_add = self.magnitude.checked_add(&rhs.magnitude);
-        let magnitude_sub = self.magnitude.checked_sub(&rhs.magnitude);
+        // Step 1. Select the element with the largest magnitude to be the lhs.
+        let (lhs, rhs) = Int::abs_max_min(self, rhs);
 
-        // Step 2. Select magnitude_sub when the signs of the two elements are not the same.
-        let different_signs = self.is_negative().ct_ne(&rhs.is_negative());
+        // Step 2. Add/subtract the magnitudes of the two sides to/from each other
+        let magnitude_add = lhs.magnitude.checked_add(&rhs.magnitude);
+        let magnitude_sub = lhs.magnitude.checked_sub(&rhs.magnitude);
+
+        // Step 3. Select magnitude_sub when the signs of the two elements are not the same.
+        let different_signs = lhs.is_negative().ct_ne(&rhs.is_negative());
         let magnitude = CtOption::ct_select(&magnitude_add, &magnitude_sub, different_signs);
 
-        // Step 3. Determine the sign of the result.
+        // Step 4. Determine the sign of the result.
         // This is always the same as the sign of the self (since it assumed to have the
         // larger magnitude), except when the sum is zero.
-        let sum_is_zero = different_signs & self.magnitude.ct_eq(&rhs.magnitude);
-        let is_negative = self.is_negative() & !sum_is_zero;
+        let sum_is_zero = different_signs & lhs.magnitude.ct_eq(&rhs.magnitude);
+        let is_negative = lhs.is_negative() & !sum_is_zero;
 
         magnitude.and_then(|magnitude| {
             CtOption::new(
@@ -56,14 +57,8 @@ impl<const LIMBS: usize> Add<&Int<LIMBS>> for Int<LIMBS> {
 }
 
 impl<const LIMBS: usize> AddAssign for Int<LIMBS> {
-    fn add_assign(&mut self, mut rhs: Self) {
-        // Order the elements, such that |lhs| >= |rhs|
-        let self_lt_other = self.magnitude.ct_lt(&rhs.magnitude);
-        Uint::ct_swap(&mut self.magnitude, &mut rhs.magnitude, self_lt_other);
-
-        *self = self
-            .checked_adc(&rhs)
-            .expect("attempted to add with overflow");
+    fn add_assign(&mut self, other: Self) {
+        *self += &other;
     }
 }
 
@@ -88,9 +83,7 @@ impl<const LIMBS: usize> AddAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
 impl<const LIMBS: usize> CheckedAdd for Int<LIMBS> {
     /// Add two [`Int`]s, checking for overflow.
     fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
-        // Select the element with the largest magnitude to be the lhs.
-        let (lhs, rhs) = Int::abs_max_min(self, rhs);
-        lhs.checked_adc(&rhs)
+        self.checked_adc(rhs)
     }
 }
 
