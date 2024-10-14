@@ -110,9 +110,11 @@ impl<const LIMBS: usize> Zero for Int<LIMBS> {
 }
 
 #[cfg(target_pointer_width = "64")]
+#[allow(dead_code)]
 type I128 = Int<2>;
 
 #[cfg(target_pointer_width = "32")]
+#[allow(dead_code)]
 type I128 = Int<4>;
 
 #[cfg(test)]
