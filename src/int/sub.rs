@@ -4,8 +4,8 @@ use core::ops::{Sub, SubAssign};
 
 use subtle::CtOption;
 
-use crate::{Checked, CheckedAdd, CheckedSub};
 use crate::int::Int;
+use crate::{Checked, CheckedAdd, CheckedSub};
 
 impl<const LIMBS: usize> CheckedSub for Int<LIMBS> {
     fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
@@ -56,8 +56,8 @@ impl<const LIMBS: usize> SubAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
 
 #[cfg(test)]
 mod tests {
-    use crate::CheckedSub;
     use crate::int::I128;
+    use crate::CheckedSub;
 
     #[test]
     fn checked_sub_ok() {

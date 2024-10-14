@@ -4,8 +4,8 @@ use core::ops::{Add, AddAssign};
 
 use subtle::{Choice, ConstantTimeEq, CtOption};
 
-use crate::{Checked, CheckedAdd, CheckedSub, ConstantTimeSelect};
 use crate::int::Int;
+use crate::{Checked, CheckedAdd, CheckedSub, ConstantTimeSelect};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Add two [`Int`]s, checking for overflow.
@@ -90,8 +90,8 @@ impl<const LIMBS: usize> CheckedAdd for Int<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{CheckedAdd, U128};
     use crate::int::I128;
+    use crate::{CheckedAdd, U128};
 
     #[test]
     fn checked_add() {

@@ -2,8 +2,8 @@
 
 use subtle::{ConstantTimeEq, CtOption};
 
-use crate::{CheckedMul, Uint, Zero};
 use crate::int::Int;
+use crate::{CheckedMul, Uint, Zero};
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Int<RHS_LIMBS>> for Int<LIMBS> {
     #[inline]

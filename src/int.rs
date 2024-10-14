@@ -121,8 +121,8 @@ type I128 = Int<4>;
 #[allow(clippy::unwrap_used)]
 mod tests {
     use crate::{
-        int::{I128, Int},
-        U128, Uint,
+        int::{Int, I128},
+        Uint, U128,
     };
 
     #[test]
