@@ -17,7 +17,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let magnitude_add = lhs.magnitude.checked_add(&rhs.magnitude);
         let magnitude_sub = lhs.magnitude.checked_sub(&rhs.magnitude);
 
-        // Step 3. Select magnitude_sub when the signs of the two elements are not the same.
+        // Step 3. Select the correct magnitude.
+        // magnitude_sub is used when the signs of the two elements are not the same.
         let different_signs = lhs.is_negative().ct_ne(&rhs.is_negative());
         let magnitude = CtOption::ct_select(&magnitude_add, &magnitude_sub, different_signs);
 
