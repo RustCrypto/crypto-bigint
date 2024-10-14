@@ -79,7 +79,10 @@ mod tests {
 
     #[test]
     fn checked_sub_overflow() {
-        let result = I128::ZERO.checked_sub(&I128::ONE);
-        assert!(!bool::from(result.is_some()));
+        let result = I128::MIN.checked_sub(&I128::ONE);
+        assert!(bool::from(result.is_none()));
+
+        let result = I128::MAX.checked_sub(&I128::MINUS_ONE);
+        assert!(bool::from(result.is_none()));
     }
 }
