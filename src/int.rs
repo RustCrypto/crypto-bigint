@@ -7,6 +7,7 @@ use crate::{Bounded, ConstantTimeSelect, ConstChoice, ConstCtOption, Limb, NonZe
 mod encoding;
 mod add;
 mod mul;
+mod div;
 
 /// Stack-allocated big _signed_ integer.
 /// See [`Uint`] for _unsigned_ integers.
