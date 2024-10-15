@@ -5,6 +5,8 @@ use subtle::{Choice, ConditionallySelectable, CtOption};
 use crate::{Bounded, ConstCtOption, Limb, NonZero, Odd, Uint, Word};
 
 mod encoding;
+mod add;
+mod mul;
 
 /// Stack-allocated big _signed_ integer.
 /// See [`Uint`] for _unsigned_ integers.
