@@ -18,8 +18,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
         // - overflow occurs if and only if the result has the opposite sign of both inputs.
         //
         // We can thus express the overflow flag as: (self.msb ==  rhs.msb) & (self.msb != res.msb)
-        let self_msb = self.is_negative();
-        let overflow= self_msb.ct_eq(&rhs.is_negative()) & self_msb.ct_ne(&res.is_negative());
+        let self_msb = self.sign_bit();
+        let overflow= self_msb.ct_eq(&rhs.sign_bit()) & self_msb.ct_ne(&res.sign_bit());
 
         // Step 3. Construct result
         CtOption::new(
@@ -137,7 +137,7 @@ mod tests {
             assert!(bool::from(result.is_none()));
 
             let result = I128::MINUS_ONE.checked_add(&I128::MINUS_ONE);
-            assert_eq!(result.unwrap(), two.negated().unwrap());
+            assert_eq!(result.unwrap(), two.neg().unwrap());
 
             let result = I128::MINUS_ONE.checked_add(&I128::ZERO);
             assert_eq!(result.unwrap(), I128::MINUS_ONE);

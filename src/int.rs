@@ -1,8 +1,8 @@
-use core::{fmt, ops::Not};
+use core::fmt;
 
-use subtle::{Choice, ConditionallySelectable, CtOption};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, CtOption};
 
-use crate::{Bounded, ConstCtOption, Limb, NonZero, Odd, Uint, Word};
+use crate::{Bounded, ConstantTimeSelect, ConstChoice, ConstCtOption, Limb, NonZero, Odd, Uint, Word};
 
 mod encoding;
 mod add;
@@ -49,6 +49,15 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Const-friendly [`Int`] constructor.
     pub const fn new(limbs: [Limb; LIMBS]) -> Self {
         Self(Uint::new(limbs))
+    }
+
+    /// Construct new [`Int`] from a sign and magnitude.
+    /// Returns `None` when the magnitude does not fit in an [`Int<LIMBS>`].
+    pub fn new_from_sign_and_magnitude(is_negative: Choice, magnitude: Uint<LIMBS>) -> CtOption<Self> {
+        CtOption::new(
+            Self(magnitude).negate_if_unsafe(is_negative).0,
+            !magnitude.ct_gt(&Int::MAX.0) | is_negative & magnitude.ct_eq(&Int::MIN.0),
+        )
     }
 
     /// Create an [`Int`] from an array of [`Word`]s (i.e. word-sized unsigned
@@ -104,11 +113,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
         ConstCtOption::new(Odd(self), self.0.is_odd())
     }
 
-    /// Compute the sign bit of this [`Int`].
-    ///
-    /// Returns some if the original value is odd, and false otherwise.
-    pub const fn sign_bit(&self) -> Word {
-        self.0.bitand(&Self::SIGN_BIT_MASK.0).to_words()[LIMBS - 1] >> (Word::BITS - 1)
+    /// Get the sign bit of this [`Int`] as `Choice`.
+    pub fn sign_bit(&self) -> Choice {
+        Choice::from((self.0.to_words()[LIMBS - 1] >> (Word::BITS - 1)) as u8)
     }
 
     /// View the data in this type as an [`Uint`] instead.
@@ -116,22 +123,68 @@ impl<const LIMBS: usize> Int<LIMBS> {
         self.0
     }
 
-    /// Whether this [`Int`] is equal to Self::MIN.
+    /// Whether this [`Int`] is equal to `Self::MIN`.
     pub fn is_minimal(&self) -> Choice {
         Choice::from((self == &Self::MIN) as u8)
     }
 
-    /// Whether this [`Int`] is equal to Self::MIN.
+    /// Whether this [`Int`] is equal to `Self::MAX`.
     pub fn is_maximal(&self) -> Choice {
         Choice::from((self == &Self::MAX) as u8)
     }
 
+    /// Perform the two's complement "negate" operation on this [`Int`]:
+    /// map `self` to `(self ^ 1111...1111) + 0000...0001`
+    ///
+    /// Returns
+    /// - the result, as well as
+    /// - whether the addition overflowed (indicating `self` is zero).
+    ///
+    /// Warning: this operation is unsafe; when `self == Self::MIN`, the negation fails.
+    #[inline]
+    fn negate_unsafe(&self) -> (Self, Choice) {
+        let inverted = self.0.bitxor(&Self::FULL_MASK.0);
+        let (res, carry) = inverted.adc(&Uint::ONE, Limb::ZERO);
+        let is_zero = ConstChoice::from_word_lsb(carry.0).into();
+        (Self(res), is_zero)
+    }
+
+    /// Perform the [two's complement "negate" operation](Int::negate_unsafe) on this [`Int`]
+    /// if `negate` is truthy.
+    ///
+    /// Returns
+    /// - the result, as well as
+    /// - whether the addition overflowed (indicating `self` is zero).
+    ///
+    /// Warning: this operation is unsafe; when `self == Self::MIN` and `negate` is truthy,
+    /// the negation fails.
+    #[inline]
+    fn negate_if_unsafe(&self, negate: Choice) -> (Int<LIMBS>, Choice) {
+        let (negated, is_zero) = self.negate_unsafe();
+        (Self(Uint::ct_select(&self.0, &negated.0, negate)), is_zero)
+    }
+
     /// Map this [`Int`] to `-self` if possible.
-    pub fn negated(&self) -> CtOption<Int<LIMBS>> {
+    ///
+    /// Yields `None` when `self == Self::MIN`, since an [`Int`] cannot represent the positive
+    /// equivalent of that.
+    pub fn neg(&self) -> CtOption<Self> {
         CtOption::new(
-            Self(self.0.bitxor(&Self::FULL_MASK.0).wrapping_add(&Self::ONE.0)),
-            self.is_minimal().not(),
+            self.negate_unsafe().0,
+            !self.is_minimal()
         )
+    }
+
+    /// The sign and magnitude of this [`Int`], as well as whether it is zero.
+    pub fn sign_magnitude_is_zero(&self) -> (Choice, Uint<LIMBS>, Choice) {
+        let sign = self.sign_bit();
+        let (magnitude, is_zero) = self.negate_if_unsafe(sign);
+        (sign, magnitude.0, is_zero)
+    }
+
+    /// The magnitude of this [`Int`].
+    pub fn magnitude(&self) -> Uint<LIMBS> {
+        self.sign_magnitude_is_zero().1
     }
 }
 
@@ -218,14 +271,18 @@ impl<const LIMBS: usize> fmt::UpperHex for Int<LIMBS> {
     }
 }
 
+#[cfg(target_pointer_width = "64")]
+type I128 = Int<2>;
+
+#[cfg(target_pointer_width = "32")]
+type I128 = Int<4>;
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
     use subtle::ConditionallySelectable;
 
-    use crate::Int;
-
-    type I128 = Int<2>;
+    use crate::int::I128;
 
     #[cfg(target_pointer_width = "64")]
     #[test]
@@ -288,17 +345,17 @@ mod tests {
 
     #[test]
     fn sign_bit() {
-        assert_eq!(I128::MIN.sign_bit(), 1u32.into());
-        assert_eq!(I128::MINUS_ONE.sign_bit(), 1u32.into());
-        assert_eq!(I128::ZERO.sign_bit(), 0u32.into());
-        assert_eq!(I128::ONE.sign_bit(), 0u32.into());
-        assert_eq!(I128::MAX.sign_bit(), 0u32.into());
+        assert_eq!(I128::MIN.sign_bit().unwrap_u8(), 1u8);
+        assert_eq!(I128::MINUS_ONE.sign_bit().unwrap_u8(), 1u8);
+        assert_eq!(I128::ZERO.sign_bit().unwrap_u8(), 0u8);
+        assert_eq!(I128::ONE.sign_bit().unwrap_u8(), 0u8);
+        assert_eq!(I128::MAX.sign_bit().unwrap_u8(), 0u8);
 
         let random_negative = I128::from_be_hex("91113333555577779999BBBBDDDDFFFF");
-        assert_eq!(random_negative.sign_bit(), 1u32.into());
+        assert_eq!(random_negative.sign_bit().unwrap_u8(), 1u8);
 
         let random_positive = I128::from_be_hex("71113333555577779999BBBBDDDDFFFF");
-        assert_eq!(random_positive.sign_bit(), 0u32.into());
+        assert_eq!(random_positive.sign_bit().unwrap_u8(), 0u8);
     }
 
     #[test]
@@ -321,19 +378,19 @@ mod tests {
 
     #[test]
     fn negated() {
-        assert_eq!(I128::MIN.negated().is_none().unwrap_u8(), 1u8);
-        assert_eq!(I128::MINUS_ONE.negated().unwrap(), I128::ONE);
-        assert_eq!(I128::ZERO.negated().unwrap(), I128::ZERO);
-        assert_eq!(I128::ONE.negated().unwrap(), I128::MINUS_ONE);
+        assert_eq!(I128::MIN.neg().is_none().unwrap_u8(), 1u8);
+        assert_eq!(I128::MINUS_ONE.neg().unwrap(), I128::ONE);
+        assert_eq!(I128::ZERO.neg().unwrap(), I128::ZERO);
+        assert_eq!(I128::ONE.neg().unwrap(), I128::MINUS_ONE);
         assert_eq!(
-            I128::MAX.negated().unwrap(),
+            I128::MAX.neg().unwrap(),
             I128::from_be_hex("80000000000000000000000000000001")
         );
 
         let negative = I128::from_be_hex("91113333555577779999BBBBDDDDFFFF");
         let positive = I128::from_be_hex("6EEECCCCAAAA88886666444422220001");
-        assert_eq!(negative.negated().unwrap(), positive);
-        assert_eq!(positive.negated().unwrap(), negative);
-        assert_eq!(positive.negated().unwrap().negated().unwrap(), positive);
+        assert_eq!(negative.neg().unwrap(), positive);
+        assert_eq!(positive.neg().unwrap(), negative);
+        assert_eq!(positive.neg().unwrap().neg().unwrap(), positive);
     }
 }
