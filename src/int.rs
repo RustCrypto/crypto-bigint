@@ -9,12 +9,13 @@ mod add;
 mod mul;
 mod div;
 mod sub;
+mod cmp;
 
 /// Stack-allocated big _signed_ integer.
 /// See [`Uint`] for _unsigned_ integers.
 ///
 /// Created as a [`Uint`] newtype.
-#[derive(Copy, Clone, PartialEq, Hash)]
+#[derive(Copy, Clone, Hash)]
 pub struct Int<const LIMBS: usize>(Uint<LIMBS>);
 
 impl<const LIMBS: usize> Int<LIMBS> {
@@ -187,6 +188,11 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// The magnitude of this [`Int`].
     pub fn magnitude(&self) -> Uint<LIMBS> {
         self.sign_magnitude_is_zero().1
+    }
+
+    /// Invert the most significant bit (msb) of this [`Int`]
+    const fn invert_msb(&self) -> Self {
+        Self(self.0.bitxor(&Self::SIGN_BIT_MASK.0))
     }
 }
 
