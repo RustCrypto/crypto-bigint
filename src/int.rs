@@ -142,7 +142,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Get the sign bit of this [`Int`] as `Choice`.
     pub fn sign_bit(&self) -> Choice {
-        Choice::from((self.0.to_words()[LIMBS - 1] >> (Word::BITS - 1)) as u8)
+        ConstChoice::from_word_msb(self.0.to_words()[LIMBS - 1]).into()
     }
 
     /// View the data in this type as an [`Uint`] instead.
@@ -202,7 +202,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// The sign and magnitude of this [`Int`], as well as whether it is zero.
     pub fn sign_magnitude_is_zero(&self) -> (Choice, Uint<LIMBS>, Choice) {
-        let sign = self.sign_bit();
+        let sign = self.sign_bit().into();
         let (magnitude, is_zero) = self.negate_if_unsafe(sign);
         (sign, magnitude.0, is_zero)
     }
