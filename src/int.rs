@@ -66,6 +66,13 @@ impl<const LIMBS: usize> Int<LIMBS> {
         Self(Uint::new(limbs))
     }
 
+    /// Const-friendly [`Int`] constructor.
+    /// Note: interprets the `value` as an `Int`. For a proper conversion,
+    /// see [`Int::new_from_sign_and_magnitude`].
+    pub const fn new_from_uint(value: Uint<LIMBS>) -> Self {
+        Self(value)
+    }
+
     /// Construct new [`Int`] from a sign and magnitude.
     /// Returns `None` when the magnitude does not fit in an [`Int<LIMBS>`].
     pub fn new_from_sign_and_magnitude(
