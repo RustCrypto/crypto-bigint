@@ -19,8 +19,10 @@ mod div;
 mod encoding;
 mod expand;
 mod mul;
-mod rand;
 mod sub;
+
+#[cfg(feature = "rand_core")]
+mod rand;
 
 /// Stack-allocated big _signed_ integer.
 /// See [`Uint`] for _unsigned_ integers.
