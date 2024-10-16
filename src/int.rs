@@ -250,11 +250,30 @@ impl<const LIMBS: usize> Default for Int<LIMBS> {
 
 // TODO: impl Integer
 
-// TODO: impl ConstZero
+impl<const LIMBS: usize> ConstZero for Int<LIMBS> {
+    const ZERO: Self = Self::ZERO;
+}
 
-// TODO: impl num_traits::One
+impl<const LIMBS: usize> num_traits::Zero for Int<LIMBS> {
+    fn zero() -> Self {
+        Self::ZERO
+    }
 
-// TODO: impl num_traits::One
+    fn is_zero(&self) -> bool {
+        self.0.ct_eq(&Self::ZERO.0).into()
+    }
+}
+
+impl<const LIMBS: usize> num_traits::One for Int<LIMBS> {
+    fn one() -> Self {
+        Self::ONE
+    }
+
+    fn is_one(&self) -> bool {
+        self.0.ct_eq(&Self::ONE.0).into()
+    }
+}
+
 
 impl<const LIMBS: usize> fmt::Debug for Int<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
