@@ -10,6 +10,7 @@ mod mul;
 mod div;
 mod sub;
 mod rand;
+mod expand;
 mod cmp;
 
 /// Stack-allocated big _signed_ integer.
