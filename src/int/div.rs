@@ -1,7 +1,10 @@
 //! [`Int`] division operations.
 
+use core::ops::{Div, DivAssign};
+
 use subtle::{ConstantTimeEq, CtOption};
-use crate::Int;
+
+use crate::{CheckedDiv, Int, NonZero};
 
 impl<const LIMBS: usize> Int<LIMBS> {
 
@@ -13,11 +16,49 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let (rhs_sgn, rhs_mag, ..) = rhs.sign_magnitude_is_zero();
 
         // Step 2: divide the magnitudes
-        lhs_mag.checked_div(&rhs_mag).and_then(| magnitude | {
+        lhs_mag.checked_div(&rhs_mag).and_then(|magnitude| {
             // Step 3: construct the sign of the result
             let is_negative = !lhs_is_zero & lhs_sgn.ct_ne(&rhs_sgn);
             Self::new_from_sign_and_magnitude(is_negative, magnitude)
         })
+    }
+}
+
+impl<const LIMBS: usize> CheckedDiv for Int<LIMBS> {
+    fn checked_div(&self, rhs: &Int<LIMBS>) -> CtOption<Self> {
+        self.checked_div(rhs)
+    }
+}
+
+impl<const LIMBS: usize> Div<&NonZero<Int<LIMBS>>> for &Int<LIMBS> {
+    type Output = CtOption<Int<LIMBS>>;
+
+    fn div(self, rhs: &NonZero<Int<LIMBS>>) -> Self::Output {
+        *self / *rhs
+    }
+}
+
+impl<const LIMBS: usize> Div<&NonZero<Int<LIMBS>>> for Int<LIMBS> {
+    type Output = CtOption<Int<LIMBS>>;
+
+    fn div(self, rhs: &NonZero<Int<LIMBS>>) -> Self::Output {
+        self / *rhs
+    }
+}
+
+impl<const LIMBS: usize> Div<NonZero<Int<LIMBS>>> for &Int<LIMBS> {
+    type Output = CtOption<Int<LIMBS>>;
+
+    fn div(self, rhs: NonZero<Int<LIMBS>>) -> Self::Output {
+        *self / rhs
+    }
+}
+
+impl<const LIMBS: usize> Div<NonZero<Int<LIMBS>>> for Int<LIMBS> {
+    type Output = CtOption<Int<LIMBS>>;
+
+    fn div(self, rhs: NonZero<Int<LIMBS>>) -> Self::Output {
+        self.checked_div(&rhs)
     }
 }
 
