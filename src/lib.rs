@@ -155,6 +155,35 @@
 #[macro_use]
 extern crate alloc;
 
+#[cfg(feature = "rand_core")]
+pub use rand_core;
+#[cfg(feature = "rlp")]
+pub use rlp;
+pub use subtle;
+#[cfg(feature = "zeroize")]
+pub use zeroize;
+
+#[cfg(feature = "hybrid-array")]
+pub use {
+    crate::array::{ArrayDecoding, ArrayEncoding, ByteArray},
+    hybrid_array::{self, typenum::consts},
+};
+
+#[cfg(feature = "alloc")]
+pub use crate::uint::boxed::BoxedUint;
+pub use crate::{
+    checked::Checked,
+    const_choice::{ConstChoice, ConstCtOption},
+    int::*,
+    limb::{Limb, WideWord, Word},
+    non_zero::NonZero,
+    odd::Odd,
+    traits::*,
+    uint::div_limb::Reciprocal,
+    uint::*,
+    wrapping::Wrapping,
+};
+
 #[macro_use]
 mod macros;
 
@@ -164,8 +193,8 @@ pub mod modular;
 mod array;
 mod checked;
 mod const_choice;
-mod limb;
 mod int;
+mod limb;
 mod non_zero;
 mod odd;
 mod primitives;
@@ -173,42 +202,9 @@ mod traits;
 mod uint;
 mod wrapping;
 
-pub use crate::{
-    checked::Checked,
-    const_choice::{ConstChoice, ConstCtOption},
-    limb::{Limb, WideWord, Word},
-    int::*,
-    non_zero::NonZero,
-    odd::Odd,
-    traits::*,
-    uint::div_limb::Reciprocal,
-    uint::*,
-    wrapping::Wrapping,
-};
-pub use subtle;
-
-#[cfg(feature = "alloc")]
-pub use crate::uint::boxed::BoxedUint;
-
-#[cfg(feature = "hybrid-array")]
-pub use {
-    crate::array::{ArrayDecoding, ArrayEncoding, ByteArray},
-    hybrid_array::{self, typenum::consts},
-};
-
-#[cfg(feature = "rand_core")]
-pub use rand_core;
-
-#[cfg(feature = "rlp")]
-pub use rlp;
-
-#[cfg(feature = "zeroize")]
-pub use zeroize;
-
 /// Import prelude for this crate: includes important traits.
 pub mod prelude {
-    pub use crate::traits::*;
-
     #[cfg(feature = "hybrid-array")]
     pub use crate::array::{ArrayDecoding, ArrayEncoding};
+    pub use crate::traits::*;
 }

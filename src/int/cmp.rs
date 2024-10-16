@@ -4,9 +4,10 @@
 #![allow(dead_code)]
 
 use core::cmp::Ordering;
-use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
-use crate::{ConstChoice, Int, Uint};
 
+use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
+
+use crate::{ConstChoice, Int, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Return `b` if `c` is truthy, otherwise return `a`.
@@ -59,7 +60,6 @@ impl<const LIMBS: usize> Int<LIMBS> {
         self.invert_msb().0.cmp_vartime(&rhs.invert_msb().0)
     }
 }
-
 
 impl<const LIMBS: usize> ConstantTimeEq for Int<LIMBS> {
     #[inline]

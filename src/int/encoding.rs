@@ -43,7 +43,6 @@ pub(crate) const fn int_to_be_bytes<const LIMBS: usize, const BYTES: usize>(
     crate::uint::encoding::uint_to_be_bytes(&int.0)
 }
 
-
 /// Encode an [`Int`] to a little endian byte array of the given size.
 pub(crate) const fn int_to_le_bytes<const LIMBS: usize, const BYTES: usize>(
     int: &Int<LIMBS>,

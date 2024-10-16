@@ -1,12 +1,13 @@
 //! [`Int`] addition operations.
 
 use core::ops::{Add, AddAssign};
+
 use num_traits::WrappingAdd;
 use subtle::{ConstantTimeEq, CtOption};
+
 use crate::{Checked, CheckedAdd, Int, Wrapping};
 
 impl<const LIMBS: usize> Int<LIMBS> {
-
     /// Perform checked addition.
     fn checked_add_internal(&self, rhs: &Self) -> CtOption<Self> {
         // Step 1. add operands
@@ -19,13 +20,10 @@ impl<const LIMBS: usize> Int<LIMBS> {
         //
         // We can thus express the overflow flag as: (self.msb == rhs.msb) & (self.msb != res.msb)
         let self_msb = self.sign_bit();
-        let overflow= self_msb.ct_eq(&rhs.sign_bit()) & self_msb.ct_ne(&res.sign_bit());
+        let overflow = self_msb.ct_eq(&rhs.sign_bit()) & self_msb.ct_ne(&res.sign_bit());
 
         // Step 3. Construct result
-        CtOption::new(
-            res,
-            !overflow,
-        )
+        CtOption::new(res, !overflow)
     }
 
     /// Perform wrapping addition, discarding overflow.
@@ -33,7 +31,6 @@ impl<const LIMBS: usize> Int<LIMBS> {
         Self(self.0.wrapping_add(&rhs.0))
     }
 }
-
 
 impl<const LIMBS: usize> Add for Int<LIMBS> {
     type Output = Self;
@@ -105,14 +102,20 @@ mod tests {
 
     #[cfg(test)]
     mod tests {
-        use crate::{CheckedAdd, Int, U128};
         use crate::int::I128;
+        use crate::{CheckedAdd, Int, U128};
 
         #[test]
         fn checked_add() {
-            let min_plus_one = Int{ 0: I128::MIN.0.wrapping_add(&I128::ONE.0) };
-            let max_minus_one = Int{ 0: I128::MAX.0.wrapping_sub(&I128::ONE.0) };
-            let two = Int{ 0: U128::from(2u32) };
+            let min_plus_one = Int {
+                0: I128::MIN.0.wrapping_add(&I128::ONE.0),
+            };
+            let max_minus_one = Int {
+                0: I128::MAX.0.wrapping_sub(&I128::ONE.0),
+            };
+            let two = Int {
+                0: U128::from(2u32),
+            };
 
             // lhs = MIN
 

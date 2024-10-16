@@ -1,6 +1,7 @@
 //! [`Int`] multiplication operations.
 
 use core::ops::{Mul, MulAssign};
+
 use subtle::{Choice, ConstantTimeEq, CtOption};
 
 use crate::{Checked, CheckedMul, Int, Uint, Zero};
@@ -32,7 +33,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Int<RHS_LIMBS>> for 
     fn checked_mul(&self, rhs: &Int<RHS_LIMBS>) -> CtOption<Self> {
         let (lo, hi, is_negative) = self.split_mul(rhs);
         let val = Self::new_from_sign_and_magnitude(is_negative, lo);
-        val.and_then(|int| { CtOption::new(int, hi.is_zero()) })
+        val.and_then(|int| CtOption::new(int, hi.is_zero()))
     }
 }
 
@@ -83,12 +84,14 @@ impl<const LIMBS: usize> MulAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
 
 #[cfg(test)]
 mod tests {
+    use crate::int::{Int, I128};
     use crate::CheckedMul;
-    use crate::int::{I128, Int};
 
     #[test]
     fn test_checked_mul() {
-        let min_plus_one = Int { 0: I128::MIN.0.wrapping_add(&I128::ONE.0) };
+        let min_plus_one = Int {
+            0: I128::MIN.0.wrapping_add(&I128::ONE.0),
+        };
 
         // lhs = min
 

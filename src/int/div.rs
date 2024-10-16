@@ -7,7 +7,6 @@ use subtle::{ConstantTimeEq, CtOption};
 use crate::{CheckedDiv, Int, NonZero};
 
 impl<const LIMBS: usize> Int<LIMBS> {
-
     /// Perform checked division, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
     pub fn checked_div(&self, rhs: &Self) -> CtOption<Self> {
@@ -62,14 +61,15 @@ impl<const LIMBS: usize> Div<NonZero<Int<LIMBS>>> for Int<LIMBS> {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::int::{I128, Int};
+    use crate::int::{Int, I128};
 
     #[test]
     fn test_checked_div() {
-        let min_plus_one = Int { 0: I128::MIN.0.wrapping_add(&I128::ONE.0) };
+        let min_plus_one = Int {
+            0: I128::MIN.0.wrapping_add(&I128::ONE.0),
+        };
 
         // lhs = min
 

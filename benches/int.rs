@@ -1,7 +1,9 @@
 use std::ops::{Add, Div, Sub};
-use criterion::{BatchSize, black_box, Criterion, criterion_group, criterion_main};
+
+use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
 use rand_core::OsRng;
-use crypto_bigint::{I1024, I128, I2048, I256, I4096, I512, NonZero, Random};
+
+use crypto_bigint::{NonZero, Random, I1024, I128, I2048, I256, I4096, I512};
 
 fn bench_mul(c: &mut Criterion) {
     let mut group = c.benchmark_group("wrapping ops");
@@ -38,7 +40,7 @@ fn bench_div(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let x = I256::random(&mut OsRng);
-                let y = I128::random(&mut OsRng).expand::<{I256::LIMBS}>();
+                let y = I128::random(&mut OsRng).expand::<{ I256::LIMBS }>();
                 (x, NonZero::new(y).unwrap())
             },
             |(x, y)| black_box(x.div(&y)),
@@ -50,7 +52,7 @@ fn bench_div(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let x = I512::random(&mut OsRng);
-                let y = I256::random(&mut OsRng).expand::<{I512::LIMBS}>();
+                let y = I256::random(&mut OsRng).expand::<{ I512::LIMBS }>();
                 (x, NonZero::new(y).unwrap())
             },
             |(x, y)| black_box(x.div(&y)),
@@ -62,7 +64,7 @@ fn bench_div(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let x = I4096::random(&mut OsRng);
-                let y = I2048::random(&mut OsRng).expand::<{I4096::LIMBS}>();
+                let y = I2048::random(&mut OsRng).expand::<{ I4096::LIMBS }>();
                 (x, NonZero::new(y).unwrap())
             },
             |(x, y)| black_box(x.div(&y)),
@@ -181,12 +183,6 @@ fn bench_sub(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(
-    benches,
-    bench_mul,
-    bench_div,
-    bench_add,
-    bench_sub,
-);
+criterion_group!(benches, bench_mul, bench_div, bench_add, bench_sub,);
 
 criterion_main!(benches);

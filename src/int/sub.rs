@@ -1,8 +1,10 @@
 //! [`Int`] subtraction operations.
 
 use core::ops::{Sub, SubAssign};
+
 use num_traits::WrappingSub;
 use subtle::{ConstantTimeEq, CtOption};
+
 use crate::{Checked, CheckedSub, Int, Wrapping};
 
 impl<const LIMBS: usize> CheckedSub for Int<LIMBS> {
@@ -20,10 +22,7 @@ impl<const LIMBS: usize> CheckedSub for Int<LIMBS> {
         let underflow = self_msb.ct_ne(&rhs.sign_bit()) & self_msb.ct_ne(&res.sign_bit());
 
         // Step 3. Construct result
-        CtOption::new(
-            res,
-            !underflow,
-        )
+        CtOption::new(res, !underflow)
     }
 }
 
@@ -80,15 +79,24 @@ mod tests {
     #[cfg(test)]
     mod tests {
         use num_traits::WrappingSub;
-        use crate::{CheckedSub, Int, U128};
+
         use crate::int::I128;
+        use crate::{CheckedSub, Int, U128};
 
         #[test]
         fn checked_sub() {
-            let min_plus_one = Int{ 0: I128::MIN.0.wrapping_add(&I128::ONE.0) };
-            let max_minus_one = Int{ 0: I128::MAX.0.wrapping_sub(&I128::ONE.0) };
-            let two = Int{ 0: U128::from(2u32) };
-            let min_plus_two = Int{ 0: I128::MIN.0.wrapping_add(&two.0) };
+            let min_plus_one = Int {
+                0: I128::MIN.0.wrapping_add(&I128::ONE.0),
+            };
+            let max_minus_one = Int {
+                0: I128::MAX.0.wrapping_sub(&I128::ONE.0),
+            };
+            let two = Int {
+                0: U128::from(2u32),
+            };
+            let min_plus_two = Int {
+                0: I128::MIN.0.wrapping_add(&two.0),
+            };
 
             // lhs = MIN
 
@@ -178,9 +186,15 @@ mod tests {
 
         #[test]
         fn wrapping_sub() {
-            let min_plus_one = Int{ 0: I128::MIN.0.wrapping_add(&I128::ONE.0) };
-            let two = Int{ 0: U128::from(2u32) };
-            let max_minus_one = Int{ 0: I128::MAX.0.wrapping_sub(&I128::ONE.0) };
+            let min_plus_one = Int {
+                0: I128::MIN.0.wrapping_add(&I128::ONE.0),
+            };
+            let two = Int {
+                0: U128::from(2u32),
+            };
+            let max_minus_one = Int {
+                0: I128::MAX.0.wrapping_sub(&I128::ONE.0),
+            };
 
             // + sub -
             let result = I128::ONE.wrapping_sub(&I128::MIN);

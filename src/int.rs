@@ -1,27 +1,32 @@
 //! Stack-allocated big signed integers.
 
-#[macro_use]
-mod macros;
-
-mod encoding;
-mod add;
-mod mul;
-mod div;
-mod sub;
-mod rand;
-mod expand;
-mod cmp;
-
 use core::fmt;
+
 use num_traits::ConstZero;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, CtOption};
 
-use crate::{Bounded, ConstantTimeSelect, ConstChoice, ConstCtOption, Encoding, Limb, NonZero, Odd, Uint, Word};
+use crate::{
+    Bounded, ConstChoice, ConstCtOption, ConstantTimeSelect, Encoding, Limb, NonZero, Odd, Uint,
+    Word,
+};
+
+#[macro_use]
+mod macros;
+
+mod add;
+mod cmp;
+mod div;
+mod encoding;
+mod expand;
+mod mul;
+mod rand;
+mod sub;
 
 /// Stack-allocated big _signed_ integer.
 /// See [`Uint`] for _unsigned_ integers.
 ///
 /// Created as a [`Uint`] newtype.
+#[allow(clippy::derived_hash_with_manual_eq)]
 #[derive(Copy, Clone, Hash)]
 pub struct Int<const LIMBS: usize>(Uint<LIMBS>);
 
@@ -63,7 +68,10 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Construct new [`Int`] from a sign and magnitude.
     /// Returns `None` when the magnitude does not fit in an [`Int<LIMBS>`].
-    pub fn new_from_sign_and_magnitude(is_negative: Choice, magnitude: Uint<LIMBS>) -> CtOption<Self> {
+    pub fn new_from_sign_and_magnitude(
+        is_negative: Choice,
+        magnitude: Uint<LIMBS>,
+    ) -> CtOption<Self> {
         CtOption::new(
             Self(magnitude).negate_if_unsafe(is_negative).0,
             !magnitude.ct_gt(&Int::MAX.0) | is_negative & magnitude.ct_eq(&Int::MIN.0),
@@ -179,10 +187,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Yields `None` when `self == Self::MIN`, since an [`Int`] cannot represent the positive
     /// equivalent of that.
     pub fn neg(&self) -> CtOption<Self> {
-        CtOption::new(
-            self.negate_unsafe().0,
-            !self.is_minimal()
-        )
+        CtOption::new(self.negate_unsafe().0, !self.is_minimal())
     }
 
     /// The sign and magnitude of this [`Int`], as well as whether it is zero.
@@ -273,7 +278,6 @@ impl<const LIMBS: usize> num_traits::One for Int<LIMBS> {
         self.0.ct_eq(&Self::ONE.0).into()
     }
 }
-
 
 impl<const LIMBS: usize> fmt::Debug for Int<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

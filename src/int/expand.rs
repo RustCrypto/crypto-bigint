@@ -12,6 +12,6 @@ impl<const LIMBS: usize> Int<LIMBS> {
             res.limbs[i] = self.0.limbs[i];
             i += 1;
         }
-        Int::<T>{ 0: res }
+        Int::<T>(res)
     }
 }
