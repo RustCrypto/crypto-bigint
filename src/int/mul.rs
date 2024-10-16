@@ -174,6 +174,5 @@ mod tests {
 
         let result = I128::MAX.checked_mul(&I128::MAX);
         assert!(bool::from(result.is_none()));
-
     }
 }

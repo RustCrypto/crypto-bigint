@@ -8,7 +8,7 @@ use crate::{Checked, CheckedAdd, Int, Wrapping};
 impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Perform checked addition.
-    pub fn checked_add_(&self, rhs: &Self) -> CtOption<Self> {
+    fn checked_add_internal(&self, rhs: &Self) -> CtOption<Self> {
         // Step 1. add operands
         let res = Self(self.0.wrapping_add(&rhs.0));
 
@@ -17,7 +17,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         // - overflow can only happen when the inputs have the same sign, and then
         // - overflow occurs if and only if the result has the opposite sign of both inputs.
         //
-        // We can thus express the overflow flag as: (self.msb ==  rhs.msb) & (self.msb != res.msb)
+        // We can thus express the overflow flag as: (self.msb == rhs.msb) & (self.msb != res.msb)
         let self_msb = self.sign_bit();
         let overflow= self_msb.ct_eq(&rhs.sign_bit()) & self_msb.ct_ne(&res.sign_bit());
 
@@ -90,7 +90,7 @@ impl<const LIMBS: usize> AddAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
 
 impl<const LIMBS: usize> CheckedAdd for Int<LIMBS> {
     fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
-        self.checked_add_(rhs)
+        self.checked_add_internal(rhs)
     }
 }
 

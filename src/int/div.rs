@@ -1,6 +1,6 @@
 //! [`Int`] division operations.
 
-use core::ops::{Div, DivAssign};
+use core::ops::Div;
 
 use subtle::{ConstantTimeEq, CtOption};
 
