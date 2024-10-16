@@ -20,8 +20,8 @@ jobs:
     strategy:
       matrix:
         rust:
-          - 1.81.0 # MSRV
-          - stable
+          #- 1.81.0 # MSRV
+          - beta
         target:
           - thumbv7em-none-eabi
           - wasm32-unknown-unknown
@@ -47,18 +47,18 @@ jobs:
       matrix:
         include:
           # 32-bit Linux
+          #- target: i686-unknown-linux-gnu
+          #  rust: 1.81.0 # MSRV
+          #  deps: sudo apt update && sudo apt install gcc-multilib
           - target: i686-unknown-linux-gnu
-            rust: 1.81.0 # MSRV
-            deps: sudo apt update && sudo apt install gcc-multilib
-          - target: i686-unknown-linux-gnu
-            rust: stable
+            rust: beta
             deps: sudo apt update && sudo apt install gcc-multilib
 
           # 64-bit Linux
+          #- target: x86_64-unknown-linux-gnu
+          #  rust: 1.81.0 # MSRV
           - target: x86_64-unknown-linux-gnu
-            rust: 1.81.0 # MSRV
-          - target: x86_64-unknown-linux-gnu
-            rust: stable
+            rust: beta
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
@@ -77,11 +77,11 @@ jobs:
         include:
           # ARM64
           - target: aarch64-unknown-linux-gnu
-            rust: stable
+            rust: beta
 
           # PPC32 (big endian)
           - target: powerpc-unknown-linux-gnu
-            rust: stable
+            rust: beta
 
     runs-on: ubuntu-latest
     steps:
@@ -105,7 +105,10 @@ jobs:
         with:
           toolchain: nightly
       - run: cargo update -Z minimal-versions
-      - run: cargo +stable build --release --all-features
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: beta
+      - run: cargo +beta build --release --all-features
 
   miri:
     runs-on: ubuntu-latest
@@ -136,7 +139,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.81.0
+          toolchain: beta
           components: clippy
       - run: cargo clippy --all --all-features -- -D warnings
 
@@ -146,7 +149,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: stable
+          toolchain: beta
           components: rustfmt
       - run: cargo fmt --all -- --check
 
@@ -156,7 +159,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.81.0
+          toolchain: beta
       - run: cargo build --benches
       - run: cargo build --all-features --benches
 
@@ -166,5 +169,5 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: stable
+          toolchain: beta
       - run: cargo doc --all-features
