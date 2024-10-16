@@ -1,8 +1,9 @@
 //! [`Int`] subtraction operations.
 
 use core::ops::{Sub, SubAssign};
+use num_traits::WrappingSub;
 use subtle::{ConstantTimeEq, CtOption};
-use crate::{Checked, CheckedSub, Int};
+use crate::{Checked, CheckedSub, Int, Wrapping};
 
 impl<const LIMBS: usize> CheckedSub for Int<LIMBS> {
     fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
@@ -43,6 +44,17 @@ impl<const LIMBS: usize> Sub<&Int<LIMBS>> for Int<LIMBS> {
     }
 }
 
+impl<const LIMBS: usize> SubAssign for Wrapping<Int<LIMBS>> {
+    fn sub_assign(&mut self, other: Self) {
+        *self = *self - other;
+    }
+}
+
+impl<const LIMBS: usize> SubAssign<&Wrapping<Int<LIMBS>>> for Wrapping<Int<LIMBS>> {
+    fn sub_assign(&mut self, other: &Self) {
+        *self = *self - other;
+    }
+}
 
 impl<const LIMBS: usize> SubAssign for Checked<Int<LIMBS>> {
     fn sub_assign(&mut self, other: Self) {
@@ -56,12 +68,18 @@ impl<const LIMBS: usize> SubAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
     }
 }
 
+impl<const LIMBS: usize> WrappingSub for Int<LIMBS> {
+    fn wrapping_sub(&self, v: &Self) -> Self {
+        Self(self.0.wrapping_sub(&v.0))
+    }
+}
 
 #[cfg(test)]
 mod tests {
 
     #[cfg(test)]
     mod tests {
+        use num_traits::WrappingSub;
         use crate::{CheckedSub, Int, U128};
         use crate::int::I128;
 
@@ -156,6 +174,25 @@ mod tests {
 
             let result = I128::MAX.checked_sub(&I128::MAX);
             assert_eq!(result.unwrap(), I128::ZERO);
+        }
+
+        #[test]
+        fn wrapping_sub() {
+            let min_plus_one = Int{ 0: I128::MIN.0.wrapping_add(&I128::ONE.0) };
+            let two = Int{ 0: U128::from(2u32) };
+            let max_minus_one = Int{ 0: I128::MAX.0.wrapping_sub(&I128::ONE.0) };
+
+            // + sub -
+            let result = I128::ONE.wrapping_sub(&I128::MIN);
+            assert_eq!(result, min_plus_one);
+
+            // 0 sub -
+            let result = I128::ZERO.wrapping_sub(&I128::MIN);
+            assert_eq!(result, I128::MIN);
+
+            // - sub +
+            let result = I128::MIN.wrapping_sub(&two);
+            assert_eq!(result, max_minus_one);
         }
     }
 }
