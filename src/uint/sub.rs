@@ -1,4 +1,4 @@
-//! [`Uint`] addition operations.
+//! [`Uint`] subtraction operations.
 
 use super::Uint;
 use crate::{Checked, CheckedSub, ConstChoice, Limb, Wrapping, WrappingSub, Zero};
