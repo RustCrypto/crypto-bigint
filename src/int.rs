@@ -202,7 +202,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// The sign and magnitude of this [`Int`], as well as whether it is zero.
     pub fn sign_magnitude_is_zero(&self) -> (Choice, Uint<LIMBS>, Choice) {
-        let sign = self.sign_bit().into();
+        let sign = self.sign_bit();
         let (magnitude, is_zero) = self.negate_if_unsafe(sign);
         (sign, magnitude.0, is_zero)
     }
