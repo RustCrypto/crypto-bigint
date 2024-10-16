@@ -106,3 +106,70 @@ impl<const LIMBS: usize> PartialEq for Int<LIMBS> {
         self.ct_eq(other).into()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{I128, U128};
+
+    #[test]
+    fn test_is_nonzero() {
+        assert_eq!(I128::MAX.is_nonzero().to_u8(), 1u8);
+        assert_eq!(I128::ONE.is_nonzero().to_u8(), 1u8);
+        assert_eq!(I128::ZERO.is_nonzero().to_u8(), 0u8);
+        assert_eq!(I128::MINUS_ONE.is_nonzero().to_u8(), 1u8);
+        assert_eq!(I128::MAX.is_nonzero().to_u8(), 1u8);
+    }
+
+    #[test]
+    fn test_is_odd() {
+        let two = I128::new_from_uint(U128::from(2u32));
+        assert_eq!(I128::MAX.is_odd().to_u8(), 1u8);
+        assert_eq!(two.is_odd().to_u8(), 0u8);
+        assert_eq!(I128::ONE.is_odd().to_u8(), 1u8);
+        assert_eq!(I128::ZERO.is_odd().to_u8(), 0u8);
+        assert_eq!(I128::MINUS_ONE.is_odd().to_u8(), 1u8);
+        assert_eq!(two.neg().unwrap().is_odd().to_u8(), 0u8);
+        assert_eq!(I128::MAX.is_odd().to_u8(), 1u8);
+    }
+
+    #[test]
+    fn test_eq() {
+        assert_eq!(I128::ZERO, I128::ONE.wrapping_add(&I128::MINUS_ONE));
+        assert_eq!(I128::ONE, I128::ZERO.wrapping_add(&I128::ONE));
+        assert_ne!(I128::ONE, I128::ZERO);
+    }
+
+    #[test]
+    fn test_gt() {
+        // x > y
+        assert!(I128::MAX > I128::ONE);
+        assert!(I128::ONE > I128::ZERO);
+        assert!(I128::ZERO > I128::MINUS_ONE);
+        assert!(I128::MINUS_ONE > I128::MIN);
+        assert!(I128::MAX > I128::MIN);
+
+        // a !> a
+        assert_ne!(true, I128::MAX > I128::MAX);
+        assert_ne!(true, I128::ONE > I128::ONE);
+        assert_ne!(true, I128::ZERO > I128::ZERO);
+        assert_ne!(true, I128::MINUS_ONE > I128::MINUS_ONE);
+        assert_ne!(true, I128::MIN > I128::MIN);
+    }
+
+    #[test]
+    fn test_lt() {
+        // x < y
+        assert!(I128::ONE < I128::MAX);
+        assert!(I128::ZERO < I128::ONE);
+        assert!(I128::MINUS_ONE < I128::ZERO);
+        assert!(I128::MIN < I128::MINUS_ONE);
+        assert!(I128::MIN < I128::MAX);
+
+        // a !< a
+        assert_ne!(true, I128::MAX < I128::MAX);
+        assert_ne!(true, I128::ONE < I128::ONE);
+        assert_ne!(true, I128::ZERO < I128::ZERO);
+        assert_ne!(true, I128::MINUS_ONE < I128::MINUS_ONE);
+        assert_ne!(true, I128::MIN < I128::MIN);
+    }
+}
