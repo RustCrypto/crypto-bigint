@@ -169,11 +169,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// Warning: this operation is unsafe; when `self == Self::MIN`, the negation fails.
     #[inline]
-    fn negate_unsafe(&self) -> (Self, Choice) {
-        let inverted = self.0.bitxor(&Self::FULL_MASK.0);
-        let (res, carry) = inverted.adc(&Uint::ONE, Limb::ZERO);
-        let is_zero = ConstChoice::from_word_lsb(carry.0).into();
-        (Self(res), is_zero)
+    pub const fn negate_unsafe(&self) -> (Self, ConstChoice) {
+        let (val, carry) = self.0.wrapping_negc();
+        (Self(val), ConstChoice::from_word_lsb(carry))
     }
 
     /// Perform the [two's complement "negate" operation](Int::negate_unsafe) on this [`Int`]
@@ -188,7 +186,10 @@ impl<const LIMBS: usize> Int<LIMBS> {
     #[inline]
     fn negate_if_unsafe(&self, negate: Choice) -> (Int<LIMBS>, Choice) {
         let (negated, is_zero) = self.negate_unsafe();
-        (Self(Uint::ct_select(&self.0, &negated.0, negate)), is_zero)
+        (
+            Self(Uint::ct_select(&self.0, &negated.0, negate)),
+            is_zero.into(),
+        )
     }
 
     /// Map this [`Int`] to `-self` if possible.
