@@ -8,6 +8,7 @@ mod encoding;
 mod add;
 mod mul;
 mod div;
+mod sub;
 
 /// Stack-allocated big _signed_ integer.
 /// See [`Uint`] for _unsigned_ integers.
