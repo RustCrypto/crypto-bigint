@@ -104,17 +104,17 @@ mod tests {
     #[cfg(test)]
     mod tests {
         use crate::int::I128;
-        use crate::{CheckedAdd, Int, U128};
+        use crate::{CheckedAdd, U128};
 
         #[test]
         fn checked_add() {
-            let min_plus_one = Int {
+            let min_plus_one = I128 {
                 0: I128::MIN.0.wrapping_add(&I128::ONE.0),
             };
-            let max_minus_one = Int {
+            let max_minus_one = I128 {
                 0: I128::MAX.0.wrapping_sub(&I128::ONE.0),
             };
-            let two = Int {
+            let two = I128 {
                 0: U128::from(2u32),
             };
 

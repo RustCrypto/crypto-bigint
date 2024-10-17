@@ -5,10 +5,7 @@ use core::fmt;
 use num_traits::ConstZero;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, CtOption};
 
-use crate::{
-    Bounded, ConstChoice, ConstCtOption, ConstantTimeSelect, Encoding, Limb, NonZero, Odd, Uint,
-    Word,
-};
+use crate::{Bounded, ConstCtOption, Encoding, Limb, NonZero, Odd, Uint, Word};
 
 #[macro_use]
 mod macros;
