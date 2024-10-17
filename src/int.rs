@@ -141,7 +141,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Whether this [`Int`] is negative, as a `ConstChoice`.
-    pub const fn sign_bit(&self) -> ConstChoice {
+    pub const fn is_negative(&self) -> ConstChoice {
         ConstChoice::from_word_msb(self.0.to_words()[LIMBS - 1])
     }
 
@@ -202,7 +202,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// The sign and magnitude of this [`Int`], as well as whether it is zero.
     pub fn sign_magnitude_is_zero(&self) -> (Choice, Uint<LIMBS>, Choice) {
-        let sign = self.sign_bit().into();
+        let sign = self.is_negative().into();
         let (magnitude, is_zero) = self.negate_if_unsafe(sign);
         (sign, magnitude.0, is_zero)
     }
@@ -420,17 +420,17 @@ mod tests {
 
     #[test]
     fn sign_bit() {
-        assert_eq!(I128::MIN.sign_bit(), ConstChoice::TRUE);
-        assert_eq!(I128::MINUS_ONE.sign_bit(), ConstChoice::TRUE);
-        assert_eq!(I128::ZERO.sign_bit(), ConstChoice::FALSE);
-        assert_eq!(I128::ONE.sign_bit(), ConstChoice::FALSE);
-        assert_eq!(I128::MAX.sign_bit(), ConstChoice::FALSE);
+        assert_eq!(I128::MIN.is_negative(), ConstChoice::TRUE);
+        assert_eq!(I128::MINUS_ONE.is_negative(), ConstChoice::TRUE);
+        assert_eq!(I128::ZERO.is_negative(), ConstChoice::FALSE);
+        assert_eq!(I128::ONE.is_negative(), ConstChoice::FALSE);
+        assert_eq!(I128::MAX.is_negative(), ConstChoice::FALSE);
 
         let random_negative = I128::from_be_hex("91113333555577779999BBBBDDDDFFFF");
-        assert_eq!(random_negative.sign_bit(), ConstChoice::TRUE);
+        assert_eq!(random_negative.is_negative(), ConstChoice::TRUE);
 
         let random_positive = I128::from_be_hex("71113333555577779999BBBBDDDDFFFF");
-        assert_eq!(random_positive.sign_bit(), ConstChoice::FALSE);
+        assert_eq!(random_positive.is_negative(), ConstChoice::FALSE);
     }
 
     #[test]
