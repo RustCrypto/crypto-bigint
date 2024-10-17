@@ -280,7 +280,7 @@ impl<const LIMBS: usize> fmt::UpperHex for Int<LIMBS> {
 #[cfg(feature = "serde")]
 impl<'de, const LIMBS: usize> Deserialize<'de> for Int<LIMBS>
 where
-    Uint<LIMBS>: Encoding,
+    Int<LIMBS>: Encoding,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -293,7 +293,7 @@ where
 #[cfg(feature = "serde")]
 impl<const LIMBS: usize> Serialize for Int<LIMBS>
 where
-    Uint<LIMBS>: Encoding,
+    Int<LIMBS>: Encoding,
 {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
