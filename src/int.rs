@@ -80,7 +80,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         magnitude: Uint<LIMBS>,
     ) -> ConstCtOption<Self> {
         ConstCtOption::new(
-            Self(magnitude).negate_if_unsafe(is_negative),
+            Self(magnitude).wrapping_neg_if(is_negative),
             Uint::gt(&magnitude, &Int::MAX.0)
                 .not()
                 .or(is_negative.and(Uint::eq(&magnitude, &Int::MIN.0))),
@@ -159,7 +159,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub const fn sign_and_magnitude(&self) -> (ConstChoice, Uint<LIMBS>) {
         let sign = self.is_negative();
         // Note: this negate_if is safe to use, since we are negating based on self.is_negative()
-        let magnitude = self.negate_if_unsafe(sign);
+        let magnitude = self.wrapping_neg_if(sign);
         (sign, magnitude.0)
     }
 

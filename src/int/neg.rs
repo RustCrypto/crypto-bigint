@@ -2,7 +2,7 @@
 
 use subtle::CtOption;
 
-use crate::{ConstChoice, Int};
+use crate::{ConstChoice, Int, Word};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Whether this [`Int`] is negative, as a `ConstChoice`.
@@ -11,30 +11,24 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Perform the two's complement "negate" operation on this [`Int`]:
-    /// map `self` to `(self ^ 1111...1111) + 0000...0001`
+    /// map `self` to `(self ^ 1111...1111) + 0000...0001` and return the carry.
     ///
-    /// Returns
-    /// - the result, as well as
-    /// - whether the addition overflowed (indicating `self` is zero).
+    /// Note: a non-zero carry indicates `self == Self::ZERO`.
     ///
-    /// Warning: this operation is unsafe; when `self == Self::MIN`, the negation fails.
+    /// Warning: this operation is unsafe to use as negation; the negation is incorrect when
+    /// `self == Self::MIN`.
     #[inline]
-    pub(crate) const fn negate_unsafe(&self) -> (Self, ConstChoice) {
+    pub(crate) const fn negc(&self) -> (Self, Word) {
         let (val, carry) = self.0.negc();
-        (Self(val), ConstChoice::from_word_lsb(carry))
+        (Self(val), carry)
     }
 
-    /// Perform the [two's complement "negate" operation](Int::negate_unsafe) on this [`Int`]
-    /// if `negate` is truthy.
+    /// Wrapping negate this [`Int`] if `negate` is truthy; otherwise do nothing.
     ///
-    /// Returns
-    /// - the result, as well as
-    /// - whether the addition overflowed (indicating `self` is zero).
-    ///
-    /// Warning: this operation is unsafe; when `self == Self::MIN` and `negate` is truthy,
-    /// the negation fails.
+    /// Warning: this operation is unsafe to use as negation; the result is incorrect when
+    /// `self == Self::MIN` and `negate` is truthy.
     #[inline]
-    pub(crate) const fn negate_if_unsafe(&self, negate: ConstChoice) -> Int<LIMBS> {
+    pub(crate) const fn wrapping_neg_if(&self, negate: ConstChoice) -> Int<LIMBS> {
         Self(self.0.wrapping_neg_if(negate))
     }
 
@@ -43,13 +37,15 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Yields `None` when `self == Self::MIN`, since an [`Int`] cannot represent the positive
     /// equivalent of that.
     pub fn neg(&self) -> CtOption<Self> {
-        CtOption::new(self.negate_unsafe().0, !self.is_minimal())
+        CtOption::new(self.negc().0, !self.is_minimal())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, I128};
+    use num_traits::{ConstOne, ConstZero};
+
+    use crate::{ConstChoice, Word, I128};
 
     #[test]
     fn is_negative() {
@@ -72,24 +68,24 @@ mod tests {
             0: I128::MIN.0.wrapping_add(&I128::ONE.0),
         };
 
-        let (res, is_zero) = I128::MIN.negate_unsafe();
-        assert!(!is_zero.to_bool_vartime());
+        let (res, carry) = I128::MIN.negc();
+        assert_eq!(carry, Word::ZERO);
         assert_eq!(res, I128::MIN);
 
-        let (res, is_zero) = I128::MINUS_ONE.negate_unsafe();
-        assert!(!is_zero.to_bool_vartime());
+        let (res, carry) = I128::MINUS_ONE.negc();
+        assert_eq!(carry, Word::ZERO);
         assert_eq!(res, I128::ONE);
 
-        let (res, is_zero) = I128::ZERO.negate_unsafe();
-        assert!(is_zero.to_bool_vartime());
+        let (res, carry) = I128::ZERO.negc();
+        assert_eq!(carry, Word::ONE);
         assert_eq!(res, I128::ZERO);
 
-        let (res, is_zero) = I128::ONE.negate_unsafe();
-        assert!(!is_zero.to_bool_vartime());
+        let (res, carry) = I128::ONE.negc();
+        assert_eq!(carry, Word::ZERO);
         assert_eq!(res, I128::MINUS_ONE);
 
-        let (res, is_zero) = I128::MAX.negate_unsafe();
-        assert!(!is_zero.to_bool_vartime());
+        let (res, carry) = I128::MAX.negc();
+        assert_eq!(carry, Word::ZERO);
         assert_eq!(res, min_plus_one);
     }
 
@@ -100,21 +96,21 @@ mod tests {
         };
 
         let do_negate = ConstChoice::TRUE.into();
-        assert_eq!(I128::MIN.negate_if_unsafe(do_negate), I128::MIN);
-        assert_eq!(I128::MINUS_ONE.negate_if_unsafe(do_negate), I128::ONE);
-        assert_eq!(I128::ZERO.negate_if_unsafe(do_negate), I128::ZERO);
-        assert_eq!(I128::ONE.negate_if_unsafe(do_negate), I128::MINUS_ONE);
-        assert_eq!(I128::MAX.negate_if_unsafe(do_negate), min_plus_one);
+        assert_eq!(I128::MIN.wrapping_neg_if(do_negate), I128::MIN);
+        assert_eq!(I128::MINUS_ONE.wrapping_neg_if(do_negate), I128::ONE);
+        assert_eq!(I128::ZERO.wrapping_neg_if(do_negate), I128::ZERO);
+        assert_eq!(I128::ONE.wrapping_neg_if(do_negate), I128::MINUS_ONE);
+        assert_eq!(I128::MAX.wrapping_neg_if(do_negate), min_plus_one);
 
         let do_not_negate = ConstChoice::FALSE.into();
-        assert_eq!(I128::MIN.negate_if_unsafe(do_not_negate), I128::MIN);
+        assert_eq!(I128::MIN.wrapping_neg_if(do_not_negate), I128::MIN);
         assert_eq!(
-            I128::MINUS_ONE.negate_if_unsafe(do_not_negate),
+            I128::MINUS_ONE.wrapping_neg_if(do_not_negate),
             I128::MINUS_ONE
         );
-        assert_eq!(I128::ZERO.negate_if_unsafe(do_not_negate), I128::ZERO);
-        assert_eq!(I128::ONE.negate_if_unsafe(do_not_negate), I128::ONE);
-        assert_eq!(I128::MAX.negate_if_unsafe(do_not_negate), I128::MAX);
+        assert_eq!(I128::ZERO.wrapping_neg_if(do_not_negate), I128::ZERO);
+        assert_eq!(I128::ONE.wrapping_neg_if(do_not_negate), I128::ONE);
+        assert_eq!(I128::MAX.wrapping_neg_if(do_not_negate), I128::MAX);
     }
 
     #[test]
