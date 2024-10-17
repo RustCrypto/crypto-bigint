@@ -9,7 +9,7 @@ use crate::{Checked, CheckedAdd, ConstCtOption, Int, Wrapping};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Perform checked addition.
-    pub const fn checked_add_internal(&self, rhs: &Self) -> ConstCtOption<Self> {
+    pub const fn checked_add(&self, rhs: &Self) -> ConstCtOption<Self> {
         // Step 1. add operands
         let res = Self(self.0.wrapping_add(&rhs.0));
 
@@ -47,8 +47,7 @@ impl<const LIMBS: usize> Add<&Int<LIMBS>> for Int<LIMBS> {
     type Output = Self;
 
     fn add(self, rhs: &Self) -> Self {
-        self.checked_add(rhs)
-            .expect("attempted to add with overflow")
+        CtOption::from(self.checked_add(rhs)).expect("attempted to add with overflow")
     }
 }
 
@@ -90,7 +89,7 @@ impl<const LIMBS: usize> AddAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
 
 impl<const LIMBS: usize> CheckedAdd for Int<LIMBS> {
     fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
-        self.checked_add_internal(rhs).into()
+        self.checked_add(rhs).into()
     }
 }
 
@@ -106,7 +105,7 @@ mod tests {
     #[cfg(test)]
     mod tests {
         use crate::int::I128;
-        use crate::{CheckedAdd, U128};
+        use crate::U128;
 
         #[test]
         fn checked_add() {
