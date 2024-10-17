@@ -6,7 +6,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     #[inline(always)]
     pub fn expand<const T: usize>(&self) -> Int<T> {
         assert!(T >= LIMBS);
-        let mut res = Uint::ct_select(&Int::ZERO.0, &Int::FULL_MASK.0, self.sign_bit());
+        let mut res = Uint::ct_select(&Int::ZERO.0, &Int::FULL_MASK.0, self.sign_bit().into());
         let mut i = 0;
         while i < LIMBS {
             res.limbs[i] = self.0.limbs[i];

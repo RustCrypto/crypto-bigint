@@ -3,7 +3,7 @@
 use core::ops::{Add, AddAssign};
 
 use num_traits::WrappingAdd;
-use subtle::{ConstantTimeEq, CtOption};
+use subtle::{Choice, ConstantTimeEq, CtOption};
 
 use crate::{Checked, CheckedAdd, Int, Wrapping};
 
@@ -19,8 +19,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
         // - overflow occurs if and only if the result has the opposite sign of both inputs.
         //
         // We can thus express the overflow flag as: (self.msb == rhs.msb) & (self.msb != res.msb)
-        let self_msb = self.sign_bit();
-        let overflow = self_msb.ct_eq(&rhs.sign_bit()) & self_msb.ct_ne(&res.sign_bit());
+        let self_msb: Choice = self.sign_bit().into();
+        let overflow =
+            self_msb.ct_eq(&rhs.sign_bit().into()) & self_msb.ct_ne(&res.sign_bit().into());
 
         // Step 3. Construct result
         CtOption::new(res, !overflow)

@@ -3,7 +3,7 @@
 use core::ops::{Sub, SubAssign};
 
 use num_traits::WrappingSub;
-use subtle::{ConstantTimeEq, CtOption};
+use subtle::{Choice, ConstantTimeEq, CtOption};
 
 use crate::{Checked, CheckedSub, Int, Wrapping};
 
@@ -18,8 +18,9 @@ impl<const LIMBS: usize> CheckedSub for Int<LIMBS> {
         // - underflow occurs if and only if the result and the lhs have opposing signs.
         //
         // We can thus express the overflow flag as: (self.msb != rhs.msb) & (self.msb != res.msb)
-        let self_msb = self.sign_bit();
-        let underflow = self_msb.ct_ne(&rhs.sign_bit()) & self_msb.ct_ne(&res.sign_bit());
+        let self_msb: Choice = self.sign_bit().into();
+        let underflow =
+            self_msb.ct_ne(&rhs.sign_bit().into()) & self_msb.ct_ne(&res.sign_bit().into());
 
         // Step 3. Construct result
         CtOption::new(res, !underflow)

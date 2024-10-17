@@ -140,9 +140,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
         ConstCtOption::new(Odd(self), self.0.is_odd())
     }
 
-    /// Get the sign bit of this [`Int`] as `Choice`.
-    pub fn sign_bit(&self) -> Choice {
-        ConstChoice::from_word_msb(self.0.to_words()[LIMBS - 1]).into()
+    /// Whether this [`Int`] is negative, as a `ConstChoice`.
+    pub const fn sign_bit(&self) -> ConstChoice {
+        ConstChoice::from_word_msb(self.0.to_words()[LIMBS - 1])
     }
 
     /// Interpret the data in this type as a [`Uint`] instead.
@@ -202,7 +202,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// The sign and magnitude of this [`Int`], as well as whether it is zero.
     pub fn sign_magnitude_is_zero(&self) -> (Choice, Uint<LIMBS>, Choice) {
-        let sign = self.sign_bit();
+        let sign = self.sign_bit().into();
         let (magnitude, is_zero) = self.negate_if_unsafe(sign);
         (sign, magnitude.0, is_zero)
     }
@@ -357,6 +357,7 @@ mod tests {
     use subtle::ConditionallySelectable;
 
     use crate::int::I128;
+    use crate::ConstChoice;
 
     #[cfg(target_pointer_width = "64")]
     #[test]
@@ -419,17 +420,17 @@ mod tests {
 
     #[test]
     fn sign_bit() {
-        assert_eq!(I128::MIN.sign_bit().unwrap_u8(), 1u8);
-        assert_eq!(I128::MINUS_ONE.sign_bit().unwrap_u8(), 1u8);
-        assert_eq!(I128::ZERO.sign_bit().unwrap_u8(), 0u8);
-        assert_eq!(I128::ONE.sign_bit().unwrap_u8(), 0u8);
-        assert_eq!(I128::MAX.sign_bit().unwrap_u8(), 0u8);
+        assert_eq!(I128::MIN.sign_bit(), ConstChoice::TRUE);
+        assert_eq!(I128::MINUS_ONE.sign_bit(), ConstChoice::TRUE);
+        assert_eq!(I128::ZERO.sign_bit(), ConstChoice::FALSE);
+        assert_eq!(I128::ONE.sign_bit(), ConstChoice::FALSE);
+        assert_eq!(I128::MAX.sign_bit(), ConstChoice::FALSE);
 
         let random_negative = I128::from_be_hex("91113333555577779999BBBBDDDDFFFF");
-        assert_eq!(random_negative.sign_bit().unwrap_u8(), 1u8);
+        assert_eq!(random_negative.sign_bit(), ConstChoice::TRUE);
 
         let random_positive = I128::from_be_hex("71113333555577779999BBBBDDDDFFFF");
-        assert_eq!(random_positive.sign_bit().unwrap_u8(), 0u8);
+        assert_eq!(random_positive.sign_bit(), ConstChoice::FALSE);
     }
 
     #[test]
