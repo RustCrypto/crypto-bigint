@@ -151,8 +151,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Whether this [`Int`] is equal to `Self::MAX`.
-    pub fn is_maximal(&self) -> Choice {
-        Choice::from((self == &Self::MAX) as u8)
+    pub fn is_max(&self) -> ConstChoice {
+        Self::eq(&self, &Self::MAX)
     }
 
     /// The sign and magnitude of this [`Int`].
@@ -386,9 +386,9 @@ mod tests {
     #[test]
     fn is_maximal() {
         let max = I128::from_be_hex("7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
-        assert_eq!(max.is_maximal().unwrap_u8(), 1u8);
+        assert_eq!(max.is_max(), ConstChoice::TRUE);
 
         let random = I128::from_be_hex("11113333555577779999BBBBDDDDFFFF");
-        assert_eq!(random.is_maximal().unwrap_u8(), 0u8);
+        assert_eq!(random.is_max(), ConstChoice::FALSE);
     }
 }
