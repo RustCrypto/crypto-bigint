@@ -147,12 +147,12 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Whether this [`Int`] is equal to `Self::MIN`.
     pub fn is_min(&self) -> ConstChoice {
-        Self::eq(&self, &Self::MIN)
+        Self::eq(self, &Self::MIN)
     }
 
     /// Whether this [`Int`] is equal to `Self::MAX`.
     pub fn is_max(&self) -> ConstChoice {
-        Self::eq(&self, &Self::MAX)
+        Self::eq(self, &Self::MAX)
     }
 
     /// The sign and magnitude of this [`Int`].
