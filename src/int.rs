@@ -3,6 +3,8 @@
 use core::fmt;
 
 use num_traits::ConstZero;
+#[cfg(feature = "serde")]
+use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 use crate::{Bounded, ConstChoice, ConstCtOption, Encoding, Limb, NonZero, Odd, Uint, Word};
@@ -275,6 +277,32 @@ impl<const LIMBS: usize> fmt::UpperHex for Int<LIMBS> {
     }
 }
 
+#[cfg(feature = "serde")]
+impl<'de, const LIMBS: usize> Deserialize<'de> for Int<LIMBS>
+where
+    Uint<LIMBS>: Encoding,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        Ok(Self(Uint::deserialize(deserializer)?))
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<const LIMBS: usize> Serialize for Int<LIMBS>
+where
+    Uint<LIMBS>: Encoding,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
 impl_int_aliases! {
     (I64, 64, "64-bit"),
     (I128, 128, "128-bit"),
@@ -314,6 +342,8 @@ mod tests {
 
     use crate::int::I128;
     use crate::ConstChoice;
+    #[cfg(feature = "serde")]
+    use crate::U128;
 
     #[cfg(target_pointer_width = "64")]
     #[test]
@@ -390,5 +420,27 @@ mod tests {
 
         let random = I128::from_be_hex("11113333555577779999BBBBDDDDFFFF");
         assert_eq!(random.is_max(), ConstChoice::FALSE);
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn serde() {
+        const TEST: I128 = I128::new_from_uint(U128::from_u64(0x0011223344556677));
+
+        let serialized = bincode::serialize(&TEST).unwrap();
+        let deserialized: I128 = bincode::deserialize(&serialized).unwrap();
+
+        assert_eq!(TEST, deserialized);
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn serde_owned() {
+        const TEST: I128 = I128::new_from_uint(U128::from_u64(0x0011223344556677));
+
+        let serialized = bincode::serialize(&TEST).unwrap();
+        let deserialized: I128 = bincode::deserialize_from(serialized.as_slice()).unwrap();
+
+        assert_eq!(TEST, deserialized);
     }
 }
