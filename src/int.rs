@@ -5,7 +5,7 @@ use core::fmt;
 use num_traits::ConstZero;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, CtOption};
 
-use crate::{Bounded, ConstCtOption, Encoding, Limb, NonZero, Odd, Uint, Word};
+use crate::{Bounded, ConstChoice, ConstCtOption, Encoding, Limb, NonZero, Odd, Uint, Word};
 
 #[macro_use]
 mod macros;
@@ -76,12 +76,13 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Construct new [`Int`] from a sign and magnitude.
     /// Returns `None` when the magnitude does not fit in an [`Int<LIMBS>`].
     pub fn new_from_sign_and_magnitude(
-        is_negative: Choice,
+        is_negative: ConstChoice,
         magnitude: Uint<LIMBS>,
     ) -> CtOption<Self> {
         CtOption::new(
-            Self(magnitude).negate_if_unsafe(is_negative).0,
-            !magnitude.ct_gt(&Int::MAX.0) | is_negative & magnitude.ct_eq(&Int::MIN.0),
+            Self(magnitude).negate_if_unsafe(is_negative),
+            !magnitude.ct_gt(&Int::MAX.0)
+                | Choice::from(is_negative) & magnitude.ct_eq(&Int::MIN.0),
         )
     }
 
@@ -153,16 +154,17 @@ impl<const LIMBS: usize> Int<LIMBS> {
         Choice::from((self == &Self::MAX) as u8)
     }
 
-    /// The sign and magnitude of this [`Int`], as well as whether it is zero.
-    pub fn sign_magnitude_is_zero(&self) -> (Choice, Uint<LIMBS>, Choice) {
-        let sign = self.is_negative().into();
-        let (magnitude, is_zero) = self.negate_if_unsafe(sign);
-        (sign, magnitude.0, is_zero)
+    /// The sign and magnitude of this [`Int`].
+    pub const fn sign_and_magnitude(&self) -> (ConstChoice, Uint<LIMBS>) {
+        let sign = self.is_negative();
+        // Note: this negate_if is safe to use, since we are negating based on self.is_negative()
+        let magnitude = self.negate_if_unsafe(sign);
+        (sign, magnitude.0)
     }
 
     /// The magnitude of this [`Int`].
-    pub fn magnitude(&self) -> Uint<LIMBS> {
-        self.sign_magnitude_is_zero().1
+    pub const fn magnitude(&self) -> Uint<LIMBS> {
+        self.sign_and_magnitude().1
     }
 
     /// Invert the most significant bit (msb) of this [`Int`]

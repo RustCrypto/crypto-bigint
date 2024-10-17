@@ -1,8 +1,8 @@
 //! [`Int`] negation-related operations.
 
-use subtle::{Choice, CtOption};
+use subtle::CtOption;
 
-use crate::{ConstChoice, ConstantTimeSelect, Int, Uint};
+use crate::{ConstChoice, Int};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Whether this [`Int`] is negative, as a `ConstChoice`.
@@ -34,12 +34,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Warning: this operation is unsafe; when `self == Self::MIN` and `negate` is truthy,
     /// the negation fails.
     #[inline]
-    pub(crate) fn negate_if_unsafe(&self, negate: Choice) -> (Int<LIMBS>, Choice) {
-        let (negated, is_zero) = self.negate_unsafe();
-        (
-            Self(Uint::ct_select(&self.0, &negated.0, negate)),
-            is_zero.into(),
-        )
+    pub(crate) const fn negate_if_unsafe(&self, negate: ConstChoice) -> Int<LIMBS> {
+        Self(self.0.wrapping_neg_if(negate))
     }
 
     /// Map this [`Int`] to `-self`.
@@ -104,47 +100,21 @@ mod tests {
         };
 
         let do_negate = ConstChoice::TRUE.into();
+        assert_eq!(I128::MIN.negate_if_unsafe(do_negate), I128::MIN);
+        assert_eq!(I128::MINUS_ONE.negate_if_unsafe(do_negate), I128::ONE);
+        assert_eq!(I128::ZERO.negate_if_unsafe(do_negate), I128::ZERO);
+        assert_eq!(I128::ONE.negate_if_unsafe(do_negate), I128::MINUS_ONE);
+        assert_eq!(I128::MAX.negate_if_unsafe(do_negate), min_plus_one);
+
         let do_not_negate = ConstChoice::FALSE.into();
-
-        let (res, is_zero) = I128::MIN.negate_if_unsafe(do_negate);
-        assert_eq!(is_zero.unwrap_u8(), 0u8);
-        assert_eq!(res, I128::MIN);
-
-        let (res, is_zero) = I128::MIN.negate_if_unsafe(do_not_negate);
-        assert_eq!(is_zero.unwrap_u8(), 0u8);
-        assert_eq!(res, I128::MIN);
-
-        let (res, is_zero) = I128::MINUS_ONE.negate_if_unsafe(do_negate);
-        assert_eq!(is_zero.unwrap_u8(), 0u8);
-        assert_eq!(res, I128::ONE);
-
-        let (res, is_zero) = I128::MINUS_ONE.negate_if_unsafe(do_not_negate);
-        assert_eq!(is_zero.unwrap_u8(), 0u8);
-        assert_eq!(res, I128::MINUS_ONE);
-
-        let (res, is_zero) = I128::ZERO.negate_if_unsafe(do_negate);
-        assert_eq!(is_zero.unwrap_u8(), 1u8);
-        assert_eq!(res, I128::ZERO);
-
-        let (res, is_zero) = I128::ZERO.negate_if_unsafe(do_not_negate);
-        assert_eq!(is_zero.unwrap_u8(), 1u8);
-        assert_eq!(res, I128::ZERO);
-
-        let (res, is_zero) = I128::ONE.negate_if_unsafe(do_negate);
-        assert_eq!(is_zero.unwrap_u8(), 0u8);
-        assert_eq!(res, I128::MINUS_ONE);
-
-        let (res, is_zero) = I128::ONE.negate_if_unsafe(do_not_negate);
-        assert_eq!(is_zero.unwrap_u8(), 0u8);
-        assert_eq!(res, I128::ONE);
-
-        let (res, is_zero) = I128::MAX.negate_if_unsafe(do_negate);
-        assert_eq!(is_zero.unwrap_u8(), 0u8);
-        assert_eq!(res, min_plus_one);
-
-        let (res, is_zero) = I128::MAX.negate_if_unsafe(do_not_negate);
-        assert_eq!(is_zero.unwrap_u8(), 0u8);
-        assert_eq!(res, I128::MAX);
+        assert_eq!(I128::MIN.negate_if_unsafe(do_not_negate), I128::MIN);
+        assert_eq!(
+            I128::MINUS_ONE.negate_if_unsafe(do_not_negate),
+            I128::MINUS_ONE
+        );
+        assert_eq!(I128::ZERO.negate_if_unsafe(do_not_negate), I128::ZERO);
+        assert_eq!(I128::ONE.negate_if_unsafe(do_not_negate), I128::ONE);
+        assert_eq!(I128::MAX.negate_if_unsafe(do_not_negate), I128::MAX);
     }
 
     #[test]

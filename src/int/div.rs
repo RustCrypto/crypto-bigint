@@ -2,7 +2,7 @@
 
 use core::ops::Div;
 
-use subtle::{ConstantTimeEq, CtOption};
+use subtle::CtOption;
 
 use crate::{CheckedDiv, Int, NonZero};
 
@@ -11,15 +11,19 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// only if the rhs != 0
     pub fn checked_div(&self, rhs: &Self) -> CtOption<Self> {
         // Step 1: split operands into signs, magnitudes and whether they are zero.
-        let (lhs_sgn, lhs_mag, lhs_is_zero) = self.sign_magnitude_is_zero();
-        let (rhs_sgn, rhs_mag, ..) = rhs.sign_magnitude_is_zero();
+        let (lhs_sgn, lhs_mag) = self.sign_and_magnitude();
+        let (rhs_sgn, rhs_mag) = rhs.sign_and_magnitude();
 
-        // Step 2: divide the magnitudes
-        lhs_mag.checked_div(&rhs_mag).and_then(|magnitude| {
-            // Step 3: construct the sign of the result
-            let is_negative = !lhs_is_zero & lhs_sgn.ct_ne(&rhs_sgn);
-            Self::new_from_sign_and_magnitude(is_negative, magnitude)
-        })
+        // Step 2. Determine if the result should be negated.
+        // This should be done if and only if lhs and rhs have opposing signs.
+        // Note: if the lhs is zero, the resulting magnitude will also be zero. Negating zero,
+        // however, still yields zero, so having a truthy `negate_result` in that scenario is OK.
+        let negate_result = lhs_sgn.xor(rhs_sgn);
+
+        // Step 3. Construct result
+        lhs_mag
+            .checked_div(&rhs_mag)
+            .and_then(|magnitude| Self::new_from_sign_and_magnitude(negate_result, magnitude))
     }
 }
 

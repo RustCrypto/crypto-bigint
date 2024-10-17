@@ -2,29 +2,34 @@
 
 use core::ops::{Mul, MulAssign};
 
-use subtle::{Choice, ConstantTimeEq, CtOption};
+use subtle::CtOption;
 
-use crate::{Checked, CheckedMul, Int, Uint, Zero};
+use crate::{Checked, CheckedMul, ConstChoice, Int, Uint, Zero};
 
 impl<const LIMBS: usize> Int<LIMBS> {
-    /// Compute "wide" multiplication as a 3-tuple `(lo, hi, sgn)`.
+    /// Compute "wide" multiplication as a 3-tuple `(lo, hi, negate)`.
     /// The `(lo, hi)` components contain the _magnitude of the product_, with sizes
-    /// correspond to the sizes of the operands; the `sgn` indicates the sign of the result.
-    pub fn split_mul<const RHS_LIMBS: usize>(
+    /// corresponding to the sizes of the operands; `negate` indicates whether the result should be
+    /// negated when converted from `Uint` to `Int`. Note: even if `negate` is truthy, the magnitude
+    /// might be zero!
+    pub const fn split_mul<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
-    ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, Choice) {
-        // Step 1: split operands into signs, magnitudes and whether they are zero.
-        let (lhs_sgn, lhs_mag, lhs_is_zero) = self.sign_magnitude_is_zero();
-        let (rhs_sgn, rhs_mag, rhs_is_zero) = rhs.sign_magnitude_is_zero();
+    ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, ConstChoice) {
+        // Step 1: split operands into their signs and magnitudes.
+        let (lhs_sgn, lhs_mag) = self.sign_and_magnitude();
+        let (rhs_sgn, rhs_mag) = rhs.sign_and_magnitude();
 
         // Step 2: multiply the magnitudes
         let (lo, hi) = lhs_mag.split_mul(&rhs_mag);
 
-        // Step 3: construct the sign of the result
-        let is_negative = !lhs_is_zero & !rhs_is_zero & lhs_sgn.ct_ne(&rhs_sgn);
+        // Step 3. Determine if the result should be negated.
+        // This should be done if and only if lhs and rhs have opposing signs.
+        // Note: if either operand is zero, the resulting magnitude will also be zero. Negating
+        // zero, however, still yields zero, so having a truthy `negate` in that scenario is OK.
+        let negate = lhs_sgn.xor(rhs_sgn);
 
-        (lo, hi, is_negative)
+        (lo, hi, negate)
     }
 }
 
