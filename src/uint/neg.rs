@@ -5,11 +5,11 @@ use crate::{ConstChoice, Limb, Uint, WideWord, Word, WrappingNeg};
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform wrapping negation.
     pub const fn wrapping_neg(&self) -> Self {
-        self.wrapping_neg_with_carry().0
+        self.negc().0
     }
 
-    /// Perform wrapping negation; also returns the resulting carry.
-    pub const fn wrapping_neg_with_carry(&self) -> (Self, Word) {
+    /// Perform negation; additionally return the carry.
+    pub const fn negc(&self) -> (Self, Word) {
         let mut ret = [Limb::ZERO; LIMBS];
         let mut carry = 1;
         let mut i = 0;
@@ -22,8 +22,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         (Uint::new(ret), carry as Word)
     }
 
-    /// Perform wrapping negation, if `negate` is truthy.
-    /// Also returns the resulting carry.
+    /// Perform negation, if `negate` is truthy.
     pub const fn wrapping_neg_if(&self, negate: ConstChoice) -> Self {
         let mut ret = [Limb::ZERO; LIMBS];
         let mut i = 0;

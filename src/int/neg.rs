@@ -20,7 +20,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Warning: this operation is unsafe; when `self == Self::MIN`, the negation fails.
     #[inline]
     pub(crate) const fn negate_unsafe(&self) -> (Self, ConstChoice) {
-        let (val, carry) = self.0.wrapping_neg_with_carry();
+        let (val, carry) = self.0.negc();
         (Self(val), ConstChoice::from_word_lsb(carry))
     }
 
