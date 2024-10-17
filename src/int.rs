@@ -3,7 +3,7 @@
 use core::fmt;
 
 use num_traits::ConstZero;
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, CtOption};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 use crate::{Bounded, ConstChoice, ConstCtOption, Encoding, Limb, NonZero, Odd, Uint, Word};
 
@@ -75,14 +75,15 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Construct new [`Int`] from a sign and magnitude.
     /// Returns `None` when the magnitude does not fit in an [`Int<LIMBS>`].
-    pub fn new_from_sign_and_magnitude(
+    pub const fn new_from_sign_and_magnitude(
         is_negative: ConstChoice,
         magnitude: Uint<LIMBS>,
-    ) -> CtOption<Self> {
-        CtOption::new(
+    ) -> ConstCtOption<Self> {
+        ConstCtOption::new(
             Self(magnitude).negate_if_unsafe(is_negative),
-            !magnitude.ct_gt(&Int::MAX.0)
-                | Choice::from(is_negative) & magnitude.ct_eq(&Int::MIN.0),
+            Uint::gt(&magnitude, &Int::MAX.0)
+                .not()
+                .or(is_negative.and(Uint::eq(&magnitude, &Int::MIN.0))),
         )
     }
 

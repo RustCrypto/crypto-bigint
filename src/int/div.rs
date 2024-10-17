@@ -21,9 +21,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let negate_result = lhs_sgn.xor(rhs_sgn);
 
         // Step 3. Construct result
-        lhs_mag
-            .checked_div(&rhs_mag)
-            .and_then(|magnitude| Self::new_from_sign_and_magnitude(negate_result, magnitude))
+        lhs_mag.checked_div(&rhs_mag).and_then(|magnitude| {
+            Self::new_from_sign_and_magnitude(negate_result, magnitude).into()
+        })
     }
 }
 

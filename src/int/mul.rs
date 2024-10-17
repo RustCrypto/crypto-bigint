@@ -38,7 +38,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Int<RHS_LIMBS>> for 
     fn checked_mul(&self, rhs: &Int<RHS_LIMBS>) -> CtOption<Self> {
         let (lo, hi, is_negative) = self.split_mul(rhs);
         let val = Self::new_from_sign_and_magnitude(is_negative, lo);
-        val.and_then(|int| CtOption::new(int, hi.is_zero()))
+        CtOption::from(val).and_then(|int| CtOption::new(int, hi.is_zero()))
     }
 }
 
