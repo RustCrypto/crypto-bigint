@@ -146,8 +146,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Whether this [`Int`] is equal to `Self::MIN`.
-    pub fn is_minimal(&self) -> Choice {
-        Choice::from((self == &Self::MIN) as u8)
+    pub fn is_min(&self) -> ConstChoice {
+        Self::eq(&self, &Self::MIN)
     }
 
     /// Whether this [`Int`] is equal to `Self::MAX`.
@@ -313,6 +313,7 @@ mod tests {
     use subtle::ConditionallySelectable;
 
     use crate::int::I128;
+    use crate::ConstChoice;
 
     #[cfg(target_pointer_width = "64")]
     #[test]
@@ -376,10 +377,10 @@ mod tests {
     #[test]
     fn is_minimal() {
         let min = I128::from_be_hex("80000000000000000000000000000000");
-        assert_eq!(min.is_minimal().unwrap_u8(), 1u8);
+        assert_eq!(min.is_min(), ConstChoice::TRUE);
 
         let random = I128::from_be_hex("11113333555577779999BBBBDDDDFFFF");
-        assert_eq!(random.is_minimal().unwrap_u8(), 0u8);
+        assert_eq!(random.is_min(), ConstChoice::FALSE);
     }
 
     #[test]

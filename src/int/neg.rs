@@ -37,7 +37,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Yields `None` when `self == Self::MIN`, since an [`Int`] cannot represent the positive
     /// equivalent of that.
     pub fn neg(&self) -> CtOption<Self> {
-        CtOption::new(self.negc().0, !self.is_minimal())
+        CtOption::new(self.negc().0, self.is_min().not().into())
     }
 }
 
