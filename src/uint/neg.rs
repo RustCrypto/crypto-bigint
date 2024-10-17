@@ -3,11 +3,11 @@ use crate::{Limb, Uint, WideWord, Word, WrappingNeg};
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform wrapping negation.
     pub const fn wrapping_neg(&self) -> Self {
-        self.wrapping_negc().0
+        self.wrapping_neg_with_carry().0
     }
 
-    /// Perform wrapping negation; returns the resulting carry.
-    pub const fn wrapping_negc(&self) -> (Self, Word) {
+    /// Perform wrapping negation; also returns the resulting carry.
+    pub const fn wrapping_neg_with_carry(&self) -> (Self, Word) {
         let mut ret = [Limb::ZERO; LIMBS];
         let mut carry = 1;
         let mut i = 0;
