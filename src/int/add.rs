@@ -3,13 +3,13 @@
 use core::ops::{Add, AddAssign};
 
 use num_traits::WrappingAdd;
-use subtle::{Choice, ConstantTimeEq, CtOption};
+use subtle::CtOption;
 
-use crate::{Checked, CheckedAdd, Int, Wrapping};
+use crate::{Checked, CheckedAdd, ConstCtOption, Int, Wrapping};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Perform checked addition.
-    fn checked_add_internal(&self, rhs: &Self) -> CtOption<Self> {
+    pub const fn checked_add_internal(&self, rhs: &Self) -> ConstCtOption<Self> {
         // Step 1. add operands
         let res = Self(self.0.wrapping_add(&rhs.0));
 
@@ -19,12 +19,14 @@ impl<const LIMBS: usize> Int<LIMBS> {
         // - overflow occurs if and only if the result has the opposite sign of both inputs.
         //
         // We can thus express the overflow flag as: (self.msb == rhs.msb) & (self.msb != res.msb)
-        let self_msb: Choice = self.is_negative().into();
-        let overflow =
-            self_msb.ct_eq(&rhs.is_negative().into()) & self_msb.ct_ne(&res.is_negative().into());
+        let self_msb = self.is_negative();
+        let overflow = self_msb
+            .xor(rhs.is_negative())
+            .not()
+            .and(self_msb.xor(res.is_negative()));
 
         // Step 3. Construct result
-        CtOption::new(res, !overflow)
+        ConstCtOption::new(res, overflow.not())
     }
 
     /// Perform wrapping addition, discarding overflow.
@@ -88,7 +90,7 @@ impl<const LIMBS: usize> AddAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
 
 impl<const LIMBS: usize> CheckedAdd for Int<LIMBS> {
     fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
-        self.checked_add_internal(rhs)
+        self.checked_add_internal(rhs).into()
     }
 }
 
