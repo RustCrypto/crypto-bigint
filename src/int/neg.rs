@@ -13,7 +13,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Perform the two's complement "negate" operation on this [`Int`]:
     /// map `self` to `(self ^ 1111...1111) + 0000...0001` and return the carry.
     ///
-    /// Note: a non-zero carry indicates `self == Self::ZERO`.
+    /// Note: a zero carry indicates `self == Self::ZERO`.
     ///
     /// Warning: this operation is unsafe to use as negation; the negation is incorrect when
     /// `self == Self::MIN`.
@@ -43,7 +43,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use num_traits::{ConstOne, ConstZero};
+    use num_traits::ConstZero;
 
     use crate::{ConstChoice, Word, I128};
 
@@ -63,29 +63,29 @@ mod tests {
     }
 
     #[test]
-    fn negate_unsafe() {
+    fn negc() {
         let min_plus_one = I128 {
             0: I128::MIN.0.wrapping_add(&I128::ONE.0),
         };
 
         let (res, carry) = I128::MIN.negc();
-        assert_eq!(carry, Word::ZERO);
+        assert_eq!(carry, Word::MAX);
         assert_eq!(res, I128::MIN);
 
         let (res, carry) = I128::MINUS_ONE.negc();
-        assert_eq!(carry, Word::ZERO);
+        assert_eq!(carry, Word::MAX);
         assert_eq!(res, I128::ONE);
 
         let (res, carry) = I128::ZERO.negc();
-        assert_eq!(carry, Word::ONE);
+        assert_eq!(carry, Word::ZERO);
         assert_eq!(res, I128::ZERO);
 
         let (res, carry) = I128::ONE.negc();
-        assert_eq!(carry, Word::ZERO);
+        assert_eq!(carry, Word::MAX);
         assert_eq!(res, I128::MINUS_ONE);
 
         let (res, carry) = I128::MAX.negc();
-        assert_eq!(carry, Word::ZERO);
+        assert_eq!(carry, Word::MAX);
         assert_eq!(res, min_plus_one);
     }
 
