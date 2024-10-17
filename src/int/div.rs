@@ -16,8 +16,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
         rhs: &NonZero<Self>,
     ) -> (Uint<{ LIMBS }>, Uint<{ LIMBS }>, ConstChoice, ConstChoice) {
         // Step 1: split operands into signs and magnitudes.
-        let (lhs_sgn, lhs_mag) = self.sign_and_magnitude();
-        let (rhs_sgn, rhs_mag) = rhs.0.sign_and_magnitude();
+        let (lhs_mag, lhs_sgn) = self.abs_sign();
+        let (rhs_mag, rhs_sgn) = rhs.0.abs_sign();
 
         // Step 2. Divide magnitudes
         // safe to unwrap since rhs is NonZero.

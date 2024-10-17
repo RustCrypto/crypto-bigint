@@ -22,6 +22,7 @@ mod from;
 mod mul;
 mod neg;
 mod resize;
+mod sign;
 mod sub;
 
 #[cfg(feature = "rand_core")]
@@ -73,23 +74,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Const-friendly [`Int`] constructor.
     /// Note: interprets the `value` as an `Int`. For a proper conversion,
-    /// see [`Int::new_from_sign_and_magnitude`].
+    /// see [`Int::new_from_abs_sign`].
     pub const fn new_from_uint(value: Uint<LIMBS>) -> Self {
         Self(value)
-    }
-
-    /// Construct new [`Int`] from a sign and magnitude.
-    /// Returns `None` when the magnitude does not fit in an [`Int<LIMBS>`].
-    pub const fn new_from_sign_and_magnitude(
-        is_negative: ConstChoice,
-        magnitude: Uint<LIMBS>,
-    ) -> ConstCtOption<Self> {
-        ConstCtOption::new(
-            Self(magnitude).wrapping_neg_if(is_negative),
-            Uint::gt(&magnitude, &Int::MAX.0)
-                .not()
-                .or(is_negative.and(Uint::eq(&magnitude, &Int::MIN.0))),
-        )
     }
 
     /// Create an [`Int`] from an array of [`Word`]s (i.e. word-sized unsigned
@@ -158,19 +145,6 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Whether this [`Int`] is equal to `Self::MAX`.
     pub fn is_max(&self) -> ConstChoice {
         Self::eq(self, &Self::MAX)
-    }
-
-    /// The sign and magnitude of this [`Int`].
-    pub const fn sign_and_magnitude(&self) -> (ConstChoice, Uint<LIMBS>) {
-        let sign = self.is_negative();
-        // Note: this negate_if is safe to use, since we are negating based on self.is_negative()
-        let magnitude = self.wrapping_neg_if(sign);
-        (sign, magnitude.0)
-    }
-
-    /// The magnitude of this [`Int`].
-    pub const fn magnitude(&self) -> Uint<LIMBS> {
-        self.sign_and_magnitude().1
     }
 
     /// Invert the most significant bit (msb) of this [`Int`]

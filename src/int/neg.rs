@@ -5,11 +5,6 @@ use subtle::CtOption;
 use crate::{ConstChoice, Int, Word};
 
 impl<const LIMBS: usize> Int<LIMBS> {
-    /// Whether this [`Int`] is negative, as a `ConstChoice`.
-    pub const fn is_negative(&self) -> ConstChoice {
-        ConstChoice::from_word_msb(self.0.to_words()[LIMBS - 1])
-    }
-
     /// Perform the two's complement "negate" operation on this [`Int`]:
     /// map `self` to `(self ^ 1111...1111) + 0000...0001` and return the carry.
     ///
@@ -43,24 +38,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use num_traits::ConstZero;
-
     use crate::{ConstChoice, Word, I128};
-
-    #[test]
-    fn is_negative() {
-        assert_eq!(I128::MIN.is_negative(), ConstChoice::TRUE);
-        assert_eq!(I128::MINUS_ONE.is_negative(), ConstChoice::TRUE);
-        assert_eq!(I128::ZERO.is_negative(), ConstChoice::FALSE);
-        assert_eq!(I128::ONE.is_negative(), ConstChoice::FALSE);
-        assert_eq!(I128::MAX.is_negative(), ConstChoice::FALSE);
-
-        let random_negative = I128::from_be_hex("91113333555577779999BBBBDDDDFFFF");
-        assert_eq!(random_negative.is_negative(), ConstChoice::TRUE);
-
-        let random_positive = I128::from_be_hex("71113333555577779999BBBBDDDDFFFF");
-        assert_eq!(random_positive.is_negative(), ConstChoice::FALSE);
-    }
+    use num_traits::ConstZero;
 
     #[test]
     fn negc() {
