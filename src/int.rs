@@ -47,7 +47,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub const MAX: Self = Self(Uint::MAX.shr(1u32)); // Bit sequence (be): 0111....1111
 
     /// Bit mask for the sign bit of this [`Int`].
-    pub const SIGN_BIT_MASK: Self = Self::MIN; // Bit sequence (be): 1000....0000
+    pub const SIGN_MASK: Self = Self::MIN; // Bit sequence (be): 1000....0000
 
     /// All-one bit mask.
     pub const FULL_MASK: Self = Self(Uint::MAX); // Bit sequence (be): 1111...1111
@@ -170,7 +170,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Invert the most significant bit (msb) of this [`Int`]
     const fn invert_msb(&self) -> Self {
-        Self(self.0.bitxor(&Self::SIGN_BIT_MASK.0))
+        Self(self.0.bitxor(&Self::SIGN_MASK.0))
     }
 }
 
