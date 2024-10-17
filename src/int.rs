@@ -145,9 +145,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
         ConstChoice::from_word_msb(self.0.to_words()[LIMBS - 1]).into()
     }
 
-    /// View the data in this type as an [`Uint`] instead.
-    pub const fn as_uint(&self) -> Uint<LIMBS> {
-        self.0
+    /// Interpret the data in this type as a [`Uint`] instead.
+    pub const fn as_uint(&self) -> &Uint<LIMBS> {
+        &self.0
     }
 
     /// Whether this [`Int`] is equal to `Self::MIN`.
