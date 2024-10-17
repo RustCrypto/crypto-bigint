@@ -286,7 +286,9 @@ where
     where
         D: Deserializer<'de>,
     {
-        Ok(Self(Uint::deserialize(deserializer)?))
+        let mut buffer = Self::ZERO.to_le_bytes();
+        serdect::array::deserialize_hex_or_bin(buffer.as_mut(), deserializer)?;
+        Ok(Self::from_le_bytes(buffer))
     }
 }
 
@@ -299,7 +301,7 @@ where
     where
         S: Serializer,
     {
-        self.0.serialize(serializer)
+        serdect::array::serialize_hex_lower_or_bin(&Encoding::to_le_bytes(self), serializer)
     }
 }
 
