@@ -65,7 +65,7 @@ fn bench_div(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let x = I256::random(&mut OsRng);
-                let y = I128::random(&mut OsRng).expand::<{ I256::LIMBS }>();
+                let y = I128::random(&mut OsRng).resize::<{ I256::LIMBS }>();
                 (x, NonZero::new(y).unwrap())
             },
             |(x, y)| black_box(x.div(&y)),
@@ -77,7 +77,7 @@ fn bench_div(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let x = I512::random(&mut OsRng);
-                let y = I256::random(&mut OsRng).expand::<{ I512::LIMBS }>();
+                let y = I256::random(&mut OsRng).resize::<{ I512::LIMBS }>();
                 (x, NonZero::new(y).unwrap())
             },
             |(x, y)| black_box(x.div(&y)),
@@ -89,7 +89,7 @@ fn bench_div(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let x = I1024::random(&mut OsRng);
-                let y = I512::random(&mut OsRng).expand::<{ I1024::LIMBS }>();
+                let y = I512::random(&mut OsRng).resize::<{ I1024::LIMBS }>();
                 (x, NonZero::new(y).unwrap())
             },
             |(x, y)| black_box(x.div(&y)),
@@ -101,7 +101,7 @@ fn bench_div(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let x = I2048::random(&mut OsRng);
-                let y = I1024::random(&mut OsRng).expand::<{ I2048::LIMBS }>();
+                let y = I1024::random(&mut OsRng).resize::<{ I2048::LIMBS }>();
                 (x, NonZero::new(y).unwrap())
             },
             |(x, y)| black_box(x.div(&y)),
@@ -113,7 +113,7 @@ fn bench_div(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let x = I4096::random(&mut OsRng);
-                let y = I2048::random(&mut OsRng).expand::<{ I4096::LIMBS }>();
+                let y = I2048::random(&mut OsRng).resize::<{ I4096::LIMBS }>();
                 (x, NonZero::new(y).unwrap())
             },
             |(x, y)| black_box(x.div(&y)),

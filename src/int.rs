@@ -14,9 +14,9 @@ mod add;
 mod cmp;
 mod div;
 mod encoding;
-mod expand;
 mod mul;
 mod neg;
+mod resize;
 mod sub;
 
 #[cfg(feature = "rand_core")]
