@@ -12,7 +12,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
             limbs[i] = self.0.limbs[i];
             i += 1;
         }
-        Int { 0: Uint { limbs } }
+        Int::new_from_uint(Uint { limbs })
     }
 }
 

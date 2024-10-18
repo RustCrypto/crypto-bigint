@@ -1,5 +1,7 @@
 //! `From`-like conversions for [`Int`].
 
+#[cfg(target_pointer_width = "32")]
+use crate::ConstChoice;
 use crate::{Int, Limb, Uint, Word, I128, I64};
 
 impl<const LIMBS: usize> Int<LIMBS> {
