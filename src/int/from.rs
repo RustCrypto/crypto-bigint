@@ -30,14 +30,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     // TODO(tarcieri): replace with `const impl From<i64>` when stable
     #[cfg(target_pointer_width = "32")]
     pub const fn from_i64(n: i64) -> Self {
-        assert!(LIMBS >= 2, "number of limbs must be two or greater");
-        let hi = (n >> 32) as u32;
-        let is_negative = ConstChoice::from_word_msb(hi);
-        let limb = Limb::select(Limb::ZERO, Limb::MAX, is_negative);
-        let mut limbs = [limb; LIMBS];
-        limbs[0].0 = (n & 0xFFFFFFFF) as u32;
-        limbs[0].0 = hi;
-        Self(Uint::new(limbs))
+        Int::new_from_uint(Uint::<{ I64::LIMBS }>::from_i64(n as u64)).resize()
     }
 
     /// Create a [`Int`] from an `i64` (const-friendly)
