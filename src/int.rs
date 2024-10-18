@@ -16,6 +16,7 @@ mod add;
 mod cmp;
 mod div;
 mod encoding;
+mod from;
 mod mul;
 mod neg;
 mod resize;
