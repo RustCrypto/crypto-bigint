@@ -58,6 +58,58 @@ fn bench_mul(c: &mut Criterion) {
     });
 }
 
+fn bench_widening_mul(c: &mut Criterion) {
+    let mut group = c.benchmark_group("widening ops");
+
+    group.bench_function("widening_mul, I128xI128", |b| {
+        b.iter_batched(
+            || (I128::random(&mut OsRng), I128::random(&mut OsRng)),
+            |(x, y)| black_box(x.widening_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("widening_mul, I256xI256", |b| {
+        b.iter_batched(
+            || (I256::random(&mut OsRng), I256::random(&mut OsRng)),
+            |(x, y)| black_box(x.widening_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("widening_mul, I512xI512", |b| {
+        b.iter_batched(
+            || (I512::random(&mut OsRng), I512::random(&mut OsRng)),
+            |(x, y)| black_box(x.widening_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("widening_mul, I1024xI1024", |b| {
+        b.iter_batched(
+            || (I1024::random(&mut OsRng), I1024::random(&mut OsRng)),
+            |(x, y)| black_box(x.widening_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("widening_mul, I2048xI2048", |b| {
+        b.iter_batched(
+            || (I2048::random(&mut OsRng), I2048::random(&mut OsRng)),
+            |(x, y)| black_box(x.widening_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("widening_mul, I4096xI4096", |b| {
+        b.iter_batched(
+            || (I4096::random(&mut OsRng), I4096::random(&mut OsRng)),
+            |(x, y)| black_box(x.widening_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
 fn bench_div(c: &mut Criterion) {
     let mut group = c.benchmark_group("wrapping ops");
 
@@ -280,6 +332,6 @@ fn bench_sub(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_mul, bench_div, bench_add, bench_sub,);
+criterion_group!(benches, bench_mul, bench_widening_mul, bench_div, bench_add, bench_sub,);
 
 criterion_main!(benches);
