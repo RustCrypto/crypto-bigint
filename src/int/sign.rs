@@ -1,8 +1,8 @@
 use crate::{ConstChoice, ConstCtOption, Int, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {
-    /// Construct new [`Int`] from a sign and magnitude.
-    /// Returns `None` when the magnitude does not fit in an [`Int<LIMBS>`].
+    /// Construct new [`Int`] from an absolute value and sign.
+    /// Returns `None` when the absolute value does not fit in an [`Int<LIMBS>`].
     pub const fn new_from_abs_sign(
         abs: Uint<LIMBS>,
         is_negative: ConstChoice,

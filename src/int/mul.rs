@@ -4,7 +4,7 @@ use core::ops::{Mul, MulAssign};
 
 use subtle::CtOption;
 
-use crate::{Checked, CheckedMul, ConcatMixed, ConstChoice, Int, Uint, WideningMul, Zero};
+use crate::{Checked, CheckedMul, ConcatMixed, ConstChoice, Int, Uint, Zero};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute "wide" multiplication as a 3-tuple `(lo, hi, negate)`.

@@ -332,6 +332,13 @@ fn bench_sub(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_mul, bench_widening_mul, bench_div, bench_add, bench_sub,);
+criterion_group!(
+    benches,
+    bench_mul,
+    bench_widening_mul,
+    bench_div,
+    bench_add,
+    bench_sub,
+);
 
 criterion_main!(benches);
