@@ -7,7 +7,9 @@ use num_traits::ConstZero;
 use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
-use crate::{Bounded, ConstChoice, ConstCtOption, Encoding, Limb, NonZero, Odd, Uint, Word};
+use crate::{
+    Bounded, ConstChoice, ConstCtOption, Constants, Encoding, Limb, NonZero, Odd, Uint, Word,
+};
 
 #[macro_use]
 mod macros;
@@ -212,7 +214,10 @@ impl<const LIMBS: usize> Bounded for Int<LIMBS> {
     const BYTES: usize = Self::BYTES;
 }
 
-// TODO: impl Constants
+impl<const LIMBS: usize> Constants for Int<LIMBS> {
+    const ONE: Self = Self::ONE;
+    const MAX: Self = Self::MAX;
+}
 
 impl<const LIMBS: usize> Default for Int<LIMBS> {
     fn default() -> Self {
