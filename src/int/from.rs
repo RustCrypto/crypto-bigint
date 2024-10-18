@@ -1,7 +1,5 @@
 //! `From`-like conversions for [`Int`].
 
-#[cfg(target_pointer_width = "32")]
-use crate::ConstChoice;
 use crate::{Int, Limb, Uint, Word, I128, I64};
 
 impl<const LIMBS: usize> Int<LIMBS> {
@@ -30,7 +28,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     // TODO(tarcieri): replace with `const impl From<i64>` when stable
     #[cfg(target_pointer_width = "32")]
     pub const fn from_i64(n: i64) -> Self {
-        Int::new_from_uint(Uint::<{ I64::LIMBS }>::from_i64(n as u64)).resize()
+        Int::new_from_uint(Uint::<{ I64::LIMBS }>::from_u64(n as u64)).resize()
     }
 
     /// Create a [`Int`] from an `i64` (const-friendly)
