@@ -21,7 +21,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Whether this [`Int`] is positive, as a `ConstChoice`.
     pub const fn is_positive(&self) -> ConstChoice {
-        Int::is_negative(self).not().and(Int::is_nonzero(self))
+        self.is_negative().not().and(self.is_nonzero())
     }
 
     /// The sign and magnitude of this [`Int`].
