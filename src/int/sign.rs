@@ -1,6 +1,19 @@
-use crate::{ConstChoice, ConstCtOption, Int, Uint};
+use num_traits::ConstZero;
+use crate::{ConstChoice, ConstCtOption, Int, Uint, Word};
 
 impl<const LIMBS: usize> Int<LIMBS> {
+    /// Returns the word of most significant [`Limb`].
+    /// For the generative case where the number of limbs is zero,
+    /// zeroed word is returned (which is semantically correct).
+    /// This method leaks the limb length of the value, which is also OK.
+    const fn most_significant_word(&self) -> Word {
+        if Self::LIMBS == 0 {
+            Word::ZERO
+        } else {
+            self.0.to_words()[LIMBS - 1]
+        }
+    }
+
     /// Construct new [`Int`] from an absolute value and sign.
     /// Returns `None` when the absolute value does not fit in an [`Int<LIMBS>`].
     pub const fn new_from_abs_sign(
@@ -8,15 +21,14 @@ impl<const LIMBS: usize> Int<LIMBS> {
         is_negative: ConstChoice,
     ) -> ConstCtOption<Self> {
         let magnitude = Self(abs).wrapping_neg_if(is_negative);
-        let fits = Uint::gt(&abs, &Int::MAX.0)
-            .not()
+        let fits = Uint::lte(&abs, &Int::MAX.0)
             .or(is_negative.and(Uint::eq(&abs, &Int::MIN.0)));
         ConstCtOption::new(magnitude, fits)
     }
 
     /// Whether this [`Int`] is negative, as a `ConstChoice`.
     pub const fn is_negative(&self) -> ConstChoice {
-        ConstChoice::from_word_msb(self.0.to_words()[LIMBS - 1])
+        ConstChoice::from_word_msb(self.most_significant_word())
     }
 
     /// Whether this [`Int`] is positive, as a `ConstChoice`.
