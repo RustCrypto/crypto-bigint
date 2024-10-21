@@ -4,41 +4,64 @@ use core::ops::Div;
 
 use subtle::{Choice, CtOption};
 
-use crate::{CheckedDiv, ConstChoice, Int, NonZero, Uint};
+use crate::{CheckedDiv, ConstChoice, ConstCtOption, Int, NonZero, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     #[inline]
-    /// Base checked_div_mod operation.
-    /// Given `(a, b)` computes the quotient and remainder of the absolute
-    /// Note: this operation rounds towards zero, truncating any fractional part of the exact result.
-    fn checked_div_mod(
+    /// Base div_rem operation.
+    /// Given `(a, b)`, computes the quotient and remainder of their absolute values. Furthermore,
+    /// returns the signs of `a` and `b`.
+    fn div_rem_base(
         &self,
         rhs: &NonZero<Self>,
-    ) -> (Uint<{ LIMBS }>, Uint<{ LIMBS }>, ConstChoice) {
-        // Step 1: split operands into signs, magnitudes and whether they are zero.
+    ) -> (Uint<{ LIMBS }>, Uint<{ LIMBS }>, ConstChoice, ConstChoice) {
+        // Step 1: split operands into signs and magnitudes.
         let (lhs_sgn, lhs_mag) = self.sign_and_magnitude();
-        let (rhs_sgn, rhs_mag) = rhs.sign_and_magnitude();
+        let (rhs_sgn, rhs_mag) = rhs.0.sign_and_magnitude();
 
-        // Step 2. Determine if the result should be negated.
-        // This should be done if and only if lhs and rhs have opposing signs.
-        // Note: if the lhs is zero, the resulting magnitude will also be zero. Negating zero,
-        // however, still yields zero, so having a truthy `negate_result` in that scenario is OK.
-        let opposing_signs = lhs_sgn.xor(rhs_sgn);
-
-        // Step 3. Construct result
+        // Step 2. Divide magnitudes
         // safe to unwrap since rhs is NonZero.
         let (quotient, remainder) = lhs_mag.div_rem(&NonZero::new(rhs_mag).unwrap());
 
-        (quotient, remainder, opposing_signs)
+        (quotient, remainder, lhs_sgn, rhs_sgn)
+    }
+
+    ///
+    /// Example:
+    /// ```
+    /// use crypto_bigint::{I128, NonZero};
+    /// let (quotient, remainder) = I128::from(8).checked_div_rem(&I128::from(3).to_nz().unwrap());
+    /// assert_eq!(quotient.unwrap(), I128::from(2));
+    /// assert_eq!(remainder.unwrap(), I128::from(2));
+    ///
+    /// let (quotient, remainder) = I128::from(-8).checked_div_rem(&I128::from(3).to_nz().unwrap());
+    /// assert_eq!(quotient.unwrap(), I128::from(-2));
+    /// assert_eq!(remainder.unwrap(), I128::from(-2));
+    ///
+    /// let (quotient, remainder) = I128::from(8).checked_div_rem(&I128::from(-3).to_nz().unwrap());
+    /// assert_eq!(quotient.unwrap(), I128::from(-2));
+    /// assert_eq!(remainder.unwrap(), I128::from(2));
+    ///
+    /// let (quotient, remainder) = I128::from(-8).checked_div_rem(&I128::from(-3).to_nz().unwrap());
+    /// assert_eq!(quotient.unwrap(), I128::from(2));
+    /// assert_eq!(remainder.unwrap(), I128::from(-2));
+    /// ```
+    pub fn checked_div_rem(
+        &self,
+        rhs: &NonZero<Self>,
+    ) -> (ConstCtOption<Self>, ConstCtOption<Self>) {
+        let (quotient, remainder, lhs_sgn, rhs_sgn) = self.div_rem_base(rhs);
+        let opposing_signs = lhs_sgn.ne(rhs_sgn);
+        (
+            Self::new_from_sign_and_magnitude(opposing_signs, quotient),
+            Self::new_from_sign_and_magnitude(lhs_sgn, remainder),
+        )
     }
 
     /// Perform checked division, returning a [`CtOption`] which `is_some` only if the rhs != 0.
     /// Note: this operation rounds towards zero, truncating any fractional part of the exact result.
     pub fn checked_div(&self, rhs: &Self) -> CtOption<Self> {
-        NonZero::new(*rhs).and_then(|rhs| {
-            let (quotient, _, opposing_signs) = self.checked_div_mod(&rhs);
-            Self::new_from_sign_and_magnitude(opposing_signs, quotient).into()
-        })
+        NonZero::new(*rhs).and_then(|rhs| self.checked_div_rem(&rhs).0.into())
     }
 
     /// Perform checked division, returning a [`CtOption`] which `is_some` only if the rhs != 0.
@@ -66,10 +89,12 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// ```
     pub fn checked_div_floor(&self, rhs: &Self) -> CtOption<Self> {
         NonZero::new(*rhs).and_then(|rhs| {
-            let (quotient, remainder, opposing_signs) = self.checked_div_mod(&rhs);
+            let (quotient, remainder, lhs_sgn, rhs_sgn) = self.div_rem_base(&rhs);
 
-            // Increase the quotient by one when lhs and rhs have opposing signs and there
-            // is a non-zero remainder.
+            // Increment the quotient when
+            // - lhs and rhs have opposing signs, and
+            // - there is a non-zero remainder.
+            let opposing_signs = lhs_sgn.ne(rhs_sgn);
             let increment_quotient = remainder.is_nonzero().and(opposing_signs);
             let quotient_sub_one = quotient.wrapping_add(&Uint::ONE);
             let quotient = Uint::select(&quotient, &quotient_sub_one, increment_quotient);
@@ -134,7 +159,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
 impl<const LIMBS: usize> CheckedDiv for Int<LIMBS> {
     fn checked_div(&self, rhs: &Int<LIMBS>) -> CtOption<Self> {
-        self.checked_div(rhs)
+        self.checked_div(rhs).into()
     }
 }
 
@@ -166,7 +191,7 @@ impl<const LIMBS: usize> Div<NonZero<Int<LIMBS>>> for Int<LIMBS> {
     type Output = CtOption<Int<LIMBS>>;
 
     fn div(self, rhs: NonZero<Int<LIMBS>>) -> Self::Output {
-        self.checked_div(&rhs)
+        self.checked_div(&rhs).into()
     }
 }
 
