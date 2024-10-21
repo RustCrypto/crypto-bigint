@@ -39,10 +39,22 @@ impl<const LIMBS: usize> Int<LIMBS> {
         Uint::lt(&lhs.invert_msb().0, &rhs.invert_msb().0)
     }
 
+    /// Returns the truthy value if `self <= rhs` and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn lte(lhs: &Self, rhs: &Self) -> ConstChoice {
+        Self::gt(lhs, rhs).not()
+    }
+
     /// Returns the truthy value if `self > rhs` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn gt(lhs: &Self, rhs: &Self) -> ConstChoice {
         Uint::gt(&lhs.invert_msb().0, &rhs.invert_msb().0)
+    }
+
+    /// Returns the truthy value if `self >= rhs` and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn gte(lhs: &Self, rhs: &Self) -> ConstChoice {
+        Self::lt(lhs, rhs).not()
     }
 
     /// Returns the ordering between `self` and `rhs` as an i8.
@@ -109,7 +121,9 @@ impl<const LIMBS: usize> PartialEq for Int<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{I128, U128};
+    use subtle::{ConstantTimeGreater, ConstantTimeLess};
+
+    use crate::{Int, I128, U128};
 
     #[test]
     fn test_is_nonzero() {
@@ -171,5 +185,81 @@ mod tests {
         assert_ne!(true, I128::ZERO < I128::ZERO);
         assert_ne!(true, I128::MINUS_ONE < I128::MINUS_ONE);
         assert_ne!(true, I128::MIN < I128::MIN);
+    }
+
+    #[test]
+    fn ct_gt() {
+        let a = I128::MIN;
+        let b = I128::ZERO;
+        let c = I128::MAX;
+
+        assert!(bool::from(b.ct_gt(&a)));
+        assert!(bool::from(c.ct_gt(&a)));
+        assert!(bool::from(c.ct_gt(&b)));
+
+        assert!(!bool::from(a.ct_gt(&a)));
+        assert!(!bool::from(b.ct_gt(&b)));
+        assert!(!bool::from(c.ct_gt(&c)));
+
+        assert!(!bool::from(a.ct_gt(&b)));
+        assert!(!bool::from(a.ct_gt(&c)));
+        assert!(!bool::from(b.ct_gt(&c)));
+    }
+
+    #[test]
+    fn gte() {
+        let a = I128::MIN;
+        let b = I128::ZERO;
+        let c = I128::MAX;
+
+        assert!(bool::from(Int::gte(&b, &a)));
+        assert!(bool::from(Int::gte(&c, &a)));
+        assert!(bool::from(Int::gte(&c, &b)));
+
+        assert!(bool::from(Int::gte(&a, &a)));
+        assert!(bool::from(Int::gte(&b, &b)));
+        assert!(bool::from(Int::gte(&c, &c)));
+
+        assert!(!bool::from(Int::gte(&a, &b)));
+        assert!(!bool::from(Int::gte(&a, &c)));
+        assert!(!bool::from(Int::gte(&b, &c)));
+    }
+
+    #[test]
+    fn ct_lt() {
+        let a = I128::ZERO;
+        let b = I128::ONE;
+        let c = I128::MAX;
+
+        assert!(bool::from(a.ct_lt(&b)));
+        assert!(bool::from(a.ct_lt(&c)));
+        assert!(bool::from(b.ct_lt(&c)));
+
+        assert!(!bool::from(a.ct_lt(&a)));
+        assert!(!bool::from(b.ct_lt(&b)));
+        assert!(!bool::from(c.ct_lt(&c)));
+
+        assert!(!bool::from(b.ct_lt(&a)));
+        assert!(!bool::from(c.ct_lt(&a)));
+        assert!(!bool::from(c.ct_lt(&b)));
+    }
+
+    #[test]
+    fn lte() {
+        let a = I128::ZERO;
+        let b = I128::ONE;
+        let c = I128::MAX;
+
+        assert!(bool::from(Int::lte(&a, &b)));
+        assert!(bool::from(Int::lte(&a, &c)));
+        assert!(bool::from(Int::lte(&b, &c)));
+
+        assert!(bool::from(Int::lte(&a, &a)));
+        assert!(bool::from(Int::lte(&b, &b)));
+        assert!(bool::from(Int::lte(&c, &c)));
+
+        assert!(!bool::from(Int::lte(&b, &a)));
+        assert!(!bool::from(Int::lte(&c, &a)));
+        assert!(!bool::from(Int::lte(&c, &b)));
     }
 }
