@@ -1,5 +1,5 @@
-use num_traits::ConstZero;
 use crate::{ConstChoice, ConstCtOption, Int, Uint, Word};
+use num_traits::ConstZero;
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Returns the word of most significant [`Limb`].
@@ -21,8 +21,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         is_negative: ConstChoice,
     ) -> ConstCtOption<Self> {
         let magnitude = Self(abs).wrapping_neg_if(is_negative);
-        let fits = Uint::lte(&abs, &Int::MAX.0)
-            .or(is_negative.and(Uint::eq(&abs, &Int::MIN.0)));
+        let fits = Uint::lte(&abs, &Int::MAX.0).or(is_negative.and(Uint::eq(&abs, &Int::MIN.0)));
         ConstCtOption::new(magnitude, fits)
     }
 
