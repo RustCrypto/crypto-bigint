@@ -2,10 +2,13 @@
 //!
 //! By default these are all constant-time and use the `subtle` crate.
 
-use super::Uint;
-use crate::{ConstChoice, Limb};
 use core::cmp::Ordering;
+
 use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
+
+use crate::{ConstChoice, Limb};
+
+use super::Uint;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Return `b` if `c` is truthy, otherwise return `a`.
@@ -64,11 +67,23 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         ConstChoice::from_word_mask(borrow.0)
     }
 
+    /// Returns the truthy value if `self <= rhs` and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn lte(lhs: &Self, rhs: &Self) -> ConstChoice {
+        Self::gt(lhs, rhs).not()
+    }
+
     /// Returns the truthy value if `self > rhs` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn gt(lhs: &Self, rhs: &Self) -> ConstChoice {
         let (_res, borrow) = rhs.sbb(lhs, Limb::ZERO);
         ConstChoice::from_word_mask(borrow.0)
+    }
+
+    /// Returns the truthy value if `self >= rhs` and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn gte(lhs: &Self, rhs: &Self) -> ConstChoice {
+        Self::lt(lhs, rhs).not()
     }
 
     /// Returns the ordering between `self` and `rhs` as an i8.
@@ -160,9 +175,11 @@ impl<const LIMBS: usize> PartialEq for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Integer, Zero, U128};
     use core::cmp::Ordering;
+
     use subtle::{ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
+
+    use crate::{Integer, Uint, Zero, U128};
 
     #[test]
     fn is_zero() {
@@ -215,6 +232,25 @@ mod tests {
     }
 
     #[test]
+    fn gte() {
+        let a = U128::ZERO;
+        let b = U128::ONE;
+        let c = U128::MAX;
+
+        assert!(bool::from(Uint::gte(&b, &a)));
+        assert!(bool::from(Uint::gte(&c, &a)));
+        assert!(bool::from(Uint::gte(&c, &b)));
+
+        assert!(bool::from(Uint::gte(&a, &a)));
+        assert!(bool::from(Uint::gte(&b, &b)));
+        assert!(bool::from(Uint::gte(&c, &c)));
+
+        assert!(!bool::from(Uint::gte(&a, &b)));
+        assert!(!bool::from(Uint::gte(&a, &c)));
+        assert!(!bool::from(Uint::gte(&b, &c)));
+    }
+
+    #[test]
     fn ct_lt() {
         let a = U128::ZERO;
         let b = U128::ONE;
@@ -231,6 +267,25 @@ mod tests {
         assert!(!bool::from(b.ct_lt(&a)));
         assert!(!bool::from(c.ct_lt(&a)));
         assert!(!bool::from(c.ct_lt(&b)));
+    }
+
+    #[test]
+    fn lte() {
+        let a = U128::ZERO;
+        let b = U128::ONE;
+        let c = U128::MAX;
+
+        assert!(bool::from(Uint::lte(&a, &b)));
+        assert!(bool::from(Uint::lte(&a, &c)));
+        assert!(bool::from(Uint::lte(&b, &c)));
+
+        assert!(bool::from(Uint::lte(&a, &a)));
+        assert!(bool::from(Uint::lte(&b, &b)));
+        assert!(bool::from(Uint::lte(&c, &c)));
+
+        assert!(!bool::from(Uint::lte(&b, &a)));
+        assert!(!bool::from(Uint::lte(&c, &a)));
+        assert!(!bool::from(Uint::lte(&c, &b)));
     }
 
     #[test]
