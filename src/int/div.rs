@@ -155,7 +155,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
 impl<const LIMBS: usize> CheckedDiv for Int<LIMBS> {
     fn checked_div(&self, rhs: &Int<LIMBS>) -> CtOption<Self> {
-        self.checked_div(rhs).into()
+        self.checked_div(rhs)
     }
 }
 
@@ -187,7 +187,7 @@ impl<const LIMBS: usize> Div<NonZero<Int<LIMBS>>> for Int<LIMBS> {
     type Output = CtOption<Int<LIMBS>>;
 
     fn div(self, rhs: NonZero<Int<LIMBS>>) -> Self::Output {
-        self.checked_div(&rhs).into()
+        self.checked_div(&rhs)
     }
 }
 
