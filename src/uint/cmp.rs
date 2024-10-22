@@ -80,12 +80,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         ConstChoice::from_word_mask(borrow.0)
     }
 
-    /// Returns the truthy value if `self >= rhs` and the falsy value otherwise.
-    #[inline]
-    pub(crate) const fn gte(lhs: &Self, rhs: &Self) -> ConstChoice {
-        Self::lt(lhs, rhs).not()
-    }
-
     /// Returns the ordering between `self` and `rhs` as an i8.
     /// Values correspond to the Ordering enum:
     ///   -1 is Less
@@ -229,25 +223,6 @@ mod tests {
         assert!(!bool::from(a.ct_gt(&b)));
         assert!(!bool::from(a.ct_gt(&c)));
         assert!(!bool::from(b.ct_gt(&c)));
-    }
-
-    #[test]
-    fn gte() {
-        let a = U128::ZERO;
-        let b = U128::ONE;
-        let c = U128::MAX;
-
-        assert!(bool::from(Uint::gte(&b, &a)));
-        assert!(bool::from(Uint::gte(&c, &a)));
-        assert!(bool::from(Uint::gte(&c, &b)));
-
-        assert!(bool::from(Uint::gte(&a, &a)));
-        assert!(bool::from(Uint::gte(&b, &b)));
-        assert!(bool::from(Uint::gte(&c, &c)));
-
-        assert!(!bool::from(Uint::gte(&a, &b)));
-        assert!(!bool::from(Uint::gte(&a, &c)));
-        assert!(!bool::from(Uint::gte(&b, &c)));
     }
 
     #[test]
