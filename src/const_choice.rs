@@ -33,6 +33,18 @@ impl ConstChoice {
         self.0
     }
 
+    #[inline]
+    #[cfg(target_pointer_width = "32")]
+    pub(crate) const fn as_word_mask(&self) -> Word {
+        self.as_u32_mask()
+    }
+
+    #[inline]
+    #[cfg(target_pointer_width = "64")]
+    pub(crate) const fn as_word_mask(&self) -> Word {
+        self.as_u64_mask()
+    }
+
     /// Returns the truthy value if `value == Word::MAX`, and the falsy value if `value == 0`.
     /// Panics for other values.
     #[inline]
@@ -47,6 +59,13 @@ impl ConstChoice {
     pub(crate) const fn from_word_lsb(value: Word) -> Self {
         debug_assert!(value == 0 || value == 1);
         Self(value.wrapping_neg())
+    }
+
+    /// Returns the truthy value if the most significant bit of `value` is `1`,
+    /// and the falsy value if it equals `0`.
+    #[inline]
+    pub(crate) const fn from_word_msb(value: Word) -> Self {
+        Self::from_word_lsb(value >> (Word::BITS - 1))
     }
 
     /// Returns the truthy value if `value == 1`, and the falsy value if `value == 0`.
@@ -185,6 +204,11 @@ impl ConstChoice {
     #[inline]
     pub(crate) const fn xor(&self, other: Self) -> Self {
         Self(self.0 ^ other.0)
+    }
+
+    #[inline]
+    pub(crate) const fn ne(&self, other: Self) -> Self {
+        Self::xor(self, other)
     }
 
     /// Return `b` if `self` is truthy, otherwise return `a`.
@@ -450,8 +474,9 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
 
 #[cfg(test)]
 mod tests {
-    use super::ConstChoice;
     use crate::{WideWord, Word};
+
+    use super::ConstChoice;
 
     #[test]
     fn from_u64_lsb() {
