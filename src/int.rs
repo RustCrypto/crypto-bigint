@@ -23,6 +23,7 @@ mod cmp;
 mod div;
 mod encoding;
 mod from;
+mod gcd;
 mod mul;
 mod neg;
 mod resize;
