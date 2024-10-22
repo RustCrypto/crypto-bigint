@@ -27,6 +27,7 @@ mod mul;
 mod neg;
 mod resize;
 mod shl;
+mod shr;
 mod sign;
 mod sub;
 
