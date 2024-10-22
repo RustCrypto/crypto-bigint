@@ -12,6 +12,7 @@ use crate::Encoding;
 use crate::{Bounded, ConstChoice, ConstCtOption, Constants, Limb, NonZero, Odd, Uint, Word};
 
 mod add;
+mod bit_and;
 mod cmp;
 mod div;
 mod encoding;
