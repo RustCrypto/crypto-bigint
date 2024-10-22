@@ -76,14 +76,14 @@ mod tests {
             0: I128::MIN.0.wrapping_add(&I128::ONE.0),
         };
 
-        let do_negate = ConstChoice::TRUE.into();
+        let do_negate = ConstChoice::TRUE;
         assert_eq!(I128::MIN.wrapping_neg_if(do_negate), I128::MIN);
         assert_eq!(I128::MINUS_ONE.wrapping_neg_if(do_negate), I128::ONE);
         assert_eq!(I128::ZERO.wrapping_neg_if(do_negate), I128::ZERO);
         assert_eq!(I128::ONE.wrapping_neg_if(do_negate), I128::MINUS_ONE);
         assert_eq!(I128::MAX.wrapping_neg_if(do_negate), min_plus_one);
 
-        let do_not_negate = ConstChoice::FALSE.into();
+        let do_not_negate = ConstChoice::FALSE;
         assert_eq!(I128::MIN.wrapping_neg_if(do_not_negate), I128::MIN);
         assert_eq!(
             I128::MINUS_ONE.wrapping_neg_if(do_not_negate),
