@@ -76,3 +76,7 @@ harness = false
 [[bench]]
 name = "uint"
 harness = false
+
+[[bench]]
+name = "int"
+harness = false

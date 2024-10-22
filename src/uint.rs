@@ -16,7 +16,7 @@ mod cmp;
 mod concat;
 mod div;
 pub(crate) mod div_limb;
-mod encoding;
+pub(crate) mod encoding;
 mod from;
 mod gcd;
 mod inv_mod;
