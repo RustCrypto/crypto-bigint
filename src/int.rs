@@ -13,6 +13,7 @@ use crate::{Bounded, ConstChoice, ConstCtOption, Constants, Limb, NonZero, Odd, 
 
 mod add;
 mod bit_and;
+mod bit_not;
 mod bit_or;
 mod bit_xor;
 mod cmp;
