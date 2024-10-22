@@ -16,6 +16,7 @@ mod macros;
 
 mod add;
 mod bit_and;
+mod bit_or;
 mod cmp;
 mod div;
 mod encoding;
