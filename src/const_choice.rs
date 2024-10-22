@@ -441,6 +441,26 @@ impl<const LIMBS: usize> ConstCtOption<Odd<Uint<LIMBS>>> {
     }
 }
 
+impl<const LIMBS: usize> ConstCtOption<Int<LIMBS>> {
+    /// This returns the underlying value if it is `Some` or the provided value otherwise.
+    #[inline]
+    pub const fn unwrap_or(self, def: Int<LIMBS>) -> Int<LIMBS> {
+        Int::select(&def, &self.value, self.is_some)
+    }
+
+    /// Returns the contained value, consuming the `self` value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value is none with a custom panic message provided by
+    /// `msg`.
+    #[inline]
+    pub const fn expect(self, msg: &str) -> Int<LIMBS> {
+        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        self.value
+    }
+}
+
 impl ConstCtOption<NonZero<Limb>> {
     /// Returns the contained value, consuming the `self` value.
     ///
