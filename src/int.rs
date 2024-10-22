@@ -15,6 +15,7 @@ use crate::{
 mod macros;
 
 mod add;
+mod bit_and;
 mod cmp;
 mod div;
 mod encoding;
