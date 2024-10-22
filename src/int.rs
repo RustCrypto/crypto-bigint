@@ -23,6 +23,7 @@ mod from;
 mod mul;
 mod neg;
 mod resize;
+mod shl;
 mod sign;
 mod sub;
 pub(crate) mod types;

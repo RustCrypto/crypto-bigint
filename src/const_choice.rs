@@ -1,6 +1,6 @@
 use subtle::{Choice, CtOption};
 
-use crate::{modular::SafeGcdInverter, Limb, NonZero, Odd, Uint, WideWord, Word};
+use crate::{modular::SafeGcdInverter, Int, Limb, NonZero, Odd, Uint, WideWord, Word};
 
 /// A boolean value returned by constant-time `const fn`s.
 // TODO: should be replaced by `subtle::Choice` or `CtOption`
@@ -390,6 +390,12 @@ impl<const LIMBS: usize> ConstCtOption<Uint<LIMBS>> {
     pub const fn expect(self, msg: &str) -> Uint<LIMBS> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
+    }
+
+    /// Returns the contained value, interpreting the underlying [`Uint`] value as an [`Int`].
+    #[inline]
+    pub const fn as_int(&self) -> ConstCtOption<Int<LIMBS>> {
+        ConstCtOption::new(Int::new_from_uint(self.value), self.is_some)
     }
 }
 
