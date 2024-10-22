@@ -332,6 +332,84 @@ fn bench_sub(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_gcd(c: &mut Criterion) {
+    let mut group = c.benchmark_group("gcd");
+
+    group.bench_function("gcd, I128-I128", |b| {
+        b.iter_batched(
+            || {
+                let x = I128::random(&mut OsRng);
+                let y = I128::random(&mut OsRng);
+                (x, y)
+            },
+            |(x, y)| black_box(x.gcd(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("gcd, I256-I256", |b| {
+        b.iter_batched(
+            || {
+                let x = I256::random(&mut OsRng);
+                let y = I256::random(&mut OsRng);
+                (x, y)
+            },
+            |(x, y)| black_box(x.gcd(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("gcd, I512-I512", |b| {
+        b.iter_batched(
+            || {
+                let x = I512::random(&mut OsRng);
+                let y = I512::random(&mut OsRng);
+                (x, y)
+            },
+            |(x, y)| black_box(x.gcd(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("gcd, I1024-I1024", |b| {
+        b.iter_batched(
+            || {
+                let x = I1024::random(&mut OsRng);
+                let y = I1024::random(&mut OsRng);
+                (x, y)
+            },
+            |(x, y)| black_box(x.gcd(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("gcd, I2048-I2048", |b| {
+        b.iter_batched(
+            || {
+                let x = I2048::random(&mut OsRng);
+                let y = I2048::random(&mut OsRng);
+                (x, y)
+            },
+            |(x, y)| black_box(x.gcd(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("gcd, I4096-I4096", |b| {
+        b.iter_batched(
+            || {
+                let x = I4096::random(&mut OsRng);
+                let y = I4096::random(&mut OsRng);
+                (x, y)
+            },
+            |(x, y)| black_box(x.gcd(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_mul,
@@ -339,6 +417,7 @@ criterion_group!(
     bench_div,
     bench_add,
     bench_sub,
+    bench_gcd,
 );
 
 criterion_main!(benches);
