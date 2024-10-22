@@ -11,17 +11,17 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Base div_rem operation.
     /// Given `(a, b)`, computes the quotient and remainder of their absolute values. Furthermore,
     /// returns the signs of `a` and `b`.
-    fn div_rem_base(
+    const fn div_rem_base(
         &self,
         rhs: &NonZero<Self>,
     ) -> (Uint<{ LIMBS }>, Uint<{ LIMBS }>, ConstChoice, ConstChoice) {
         // Step 1: split operands into signs and magnitudes.
-        let (lhs_sgn, lhs_mag) = self.sign_and_magnitude();
-        let (rhs_sgn, rhs_mag) = rhs.0.sign_and_magnitude();
+        let (lhs_mag, lhs_sgn) = self.abs_sign();
+        let (rhs_mag, rhs_sgn) = rhs.0.abs_sign();
 
         // Step 2. Divide magnitudes
         // safe to unwrap since rhs is NonZero.
-        let (quotient, remainder) = lhs_mag.div_rem(&NonZero::new(rhs_mag).unwrap());
+        let (quotient, remainder) = lhs_mag.div_rem(&NonZero::<Uint<LIMBS>>::new_unwrap(rhs_mag));
 
         (quotient, remainder, lhs_sgn, rhs_sgn)
     }
@@ -46,15 +46,15 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// assert_eq!(quotient.unwrap(), I128::from(2));
     /// assert_eq!(remainder.unwrap(), I128::from(-2));
     /// ```
-    pub fn checked_div_rem(
+    pub const fn checked_div_rem(
         &self,
         rhs: &NonZero<Self>,
     ) -> (ConstCtOption<Self>, ConstCtOption<Self>) {
         let (quotient, remainder, lhs_sgn, rhs_sgn) = self.div_rem_base(rhs);
         let opposing_signs = lhs_sgn.ne(rhs_sgn);
         (
-            Self::new_from_sign_and_magnitude(opposing_signs, quotient),
-            Self::new_from_sign_and_magnitude(lhs_sgn, remainder),
+            Self::new_from_abs_sign(quotient, opposing_signs),
+            Self::new_from_abs_sign(remainder, lhs_sgn),
         )
     }
 
@@ -99,7 +99,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
             let quotient_sub_one = quotient.wrapping_add(&Uint::ONE);
             let quotient = Uint::select(&quotient, &quotient_sub_one, increment_quotient);
 
-            Self::new_from_sign_and_magnitude(opposing_signs, quotient).into()
+            Self::new_from_abs_sign(quotient, opposing_signs).into()
         })
     }
 
@@ -128,8 +128,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// );
     /// ```
     pub fn checked_div_mod_floor(&self, rhs: &Self) -> CtOption<(Self, Self)> {
-        let (lhs_sgn, lhs_mag) = self.sign_and_magnitude();
-        let (rhs_sgn, rhs_mag) = rhs.sign_and_magnitude();
+        let (lhs_mag, lhs_sgn) = self.abs_sign();
+        let (rhs_mag, rhs_sgn) = rhs.abs_sign();
         let opposing_signs = lhs_sgn.xor(rhs_sgn);
         NonZero::new(rhs_mag).and_then(|rhs_mag| {
             let (quotient, remainder) = lhs_mag.div_rem(&rhs_mag);
@@ -145,14 +145,10 @@ impl<const LIMBS: usize> Int<LIMBS> {
             let inv_remainder = rhs_mag.wrapping_sub(&remainder);
             let remainder = Uint::select(&remainder, &inv_remainder, modify);
 
-            CtOption::from(Int::new_from_sign_and_magnitude(opposing_signs, quotient)).and_then(
-                |quotient| {
-                    CtOption::from(Int::new_from_sign_and_magnitude(opposing_signs, remainder))
-                        .and_then(|remainder| {
-                            CtOption::new((quotient, remainder), Choice::from(1u8))
-                        })
-                },
-            )
+            CtOption::from(Int::new_from_abs_sign(quotient, opposing_signs)).and_then(|quotient| {
+                CtOption::from(Int::new_from_abs_sign(remainder, opposing_signs))
+                    .and_then(|remainder| CtOption::new((quotient, remainder), Choice::from(1u8)))
+            })
         })
     }
 }
