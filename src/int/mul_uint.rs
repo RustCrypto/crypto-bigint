@@ -19,7 +19,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let (lhs_abs, lhs_sgn) = self.abs_sign();
 
         // Step 2. Multiply the magnitudes
-        let (lo, hi) = lhs_abs.split_mul(&rhs);
+        let (lo, hi) = lhs_abs.split_mul(rhs);
 
         // Step 3. negate if and only if self has a negative sign.
         (lo, hi, lhs_sgn)
@@ -34,7 +34,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         Uint<LIMBS>: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
     {
         let (lhs_abs, lhs_sign) = self.abs_sign();
-        let product_abs = lhs_abs.widening_mul(&rhs);
+        let product_abs = lhs_abs.widening_mul(rhs);
 
         // always fits
         Int::new_from_uint(product_abs.wrapping_neg_if(lhs_sign))

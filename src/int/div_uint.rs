@@ -20,7 +20,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
         // Step 2. Divide magnitudes
         // safe to unwrap since rhs is NonZero.
-        let (quotient, remainder) = lhs_mag.div_rem(&rhs);
+        let (quotient, remainder) = lhs_mag.div_rem(rhs);
 
         (quotient, remainder, lhs_sgn)
     }
