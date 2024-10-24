@@ -25,6 +25,7 @@ mod encoding;
 mod from;
 mod gcd;
 mod mul;
+mod mul_uint;
 mod neg;
 mod resize;
 mod shl;
