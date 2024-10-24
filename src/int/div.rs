@@ -8,9 +8,9 @@ use crate::{CheckedDiv, ConstChoice, ConstCtOption, Int, NonZero, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     #[inline]
-    /// Base div_rem operation.
-    /// Given `(a, b)`, computes the quotient and remainder of their absolute values. Furthermore,
-    /// returns the signs of `a` and `b`.
+    /// Base div_rem operation on dividing [`Int`]s.
+    /// Computes the quotient and remainder of `self / rhs`.
+    /// Furthermore, returns the signs of `self` and `rhs`.
     const fn div_rem_base(
         &self,
         rhs: &NonZero<Self>,
@@ -26,6 +26,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         (quotient, remainder, lhs_sgn, rhs_sgn)
     }
 
+    /// Compute the quotient and remainder of `self / rhs`.
     ///
     /// Example:
     /// ```

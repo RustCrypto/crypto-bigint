@@ -21,6 +21,7 @@ mod bit_or;
 mod bit_xor;
 mod cmp;
 mod div;
+mod div_uint;
 mod encoding;
 mod from;
 mod gcd;

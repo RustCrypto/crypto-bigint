@@ -282,6 +282,72 @@ fn bench_div(c: &mut Criterion) {
     group.finish();
 }
 
+fn bench_div_uint(c: &mut Criterion) {
+    let mut group = c.benchmark_group("wrapping ops");
+
+    group.bench_function("div, I256/U128, full size", |b| {
+        b.iter_batched(
+            || {
+                let x = I256::random(&mut OsRng);
+                let y = U128::random(&mut OsRng).resize::<{ I256::LIMBS }>();
+                (x, NonZero::new(y).unwrap())
+            },
+            |(x, y)| black_box(x.div(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("div, I512/U256, full size", |b| {
+        b.iter_batched(
+            || {
+                let x = I512::random(&mut OsRng);
+                let y = U256::random(&mut OsRng).resize::<{ I512::LIMBS }>();
+                (x, NonZero::new(y).unwrap())
+            },
+            |(x, y)| black_box(x.div(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("div, I1024/U512, full size", |b| {
+        b.iter_batched(
+            || {
+                let x = I1024::random(&mut OsRng);
+                let y = U512::random(&mut OsRng).resize::<{ I1024::LIMBS }>();
+                (x, NonZero::new(y).unwrap())
+            },
+            |(x, y)| black_box(x.div(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("div, I2048/U1024, full size", |b| {
+        b.iter_batched(
+            || {
+                let x = I2048::random(&mut OsRng);
+                let y = U1024::random(&mut OsRng).resize::<{ I2048::LIMBS }>();
+                (x, NonZero::new(y).unwrap())
+            },
+            |(x, y)| black_box(x.div(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("div, I4096/U2048, full size", |b| {
+        b.iter_batched(
+            || {
+                let x = I4096::random(&mut OsRng);
+                let y = U2048::random(&mut OsRng).resize::<{ I4096::LIMBS }>();
+                (x, NonZero::new(y).unwrap())
+            },
+            |(x, y)| black_box(x.div(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.finish();
+}
+
 fn bench_add(c: &mut Criterion) {
     let mut group = c.benchmark_group("wrapping ops");
 
@@ -523,6 +589,7 @@ criterion_group!(
     bench_widening_mul,
     bench_widening_mul_uint,
     bench_div,
+    bench_div_uint,
     bench_add,
     bench_sub,
     bench_gcd,
