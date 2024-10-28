@@ -12,7 +12,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
             limbs[i] = self.0.limbs[i];
             i += 1;
         }
-        Int::new_from_uint(Uint { limbs })
+        Uint { limbs }.as_int()
     }
 }
 
@@ -44,7 +44,7 @@ mod tests {
         assert_eq!(I128::ONE.resize::<{ I256::LIMBS }>(), I256::ONE);
         assert_eq!(
             I128::MAX.resize::<{ I256::LIMBS }>(),
-            I256::new_from_uint(I128::MAX.0.resize())
+            I128::MAX.0.resize().as_int()
         );
     }
 }

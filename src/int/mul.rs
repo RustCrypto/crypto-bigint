@@ -46,7 +46,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let product_sign = lhs_sign.xor(rhs_sign);
 
         // always fits
-        Int::new_from_uint(product_abs.wrapping_neg_if(product_sign))
+        Int::from_bits(product_abs.wrapping_neg_if(product_sign))
     }
 }
 

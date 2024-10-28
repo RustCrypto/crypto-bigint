@@ -7,28 +7,28 @@ impl<const LIMBS: usize> Int<LIMBS> {
     // TODO(tarcieri): replace with `const impl From<i8>` when stable
     pub const fn from_i8(n: i8) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
-        Int::new_from_uint(Uint::new([Limb(n as Word)])).resize()
+        Uint::new([Limb(n as Word)]).as_int().resize()
     }
 
     /// Create a [`Int`] from an `i16` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<i16>` when stable
     pub const fn from_i16(n: i16) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
-        Int::new_from_uint(Uint::new([Limb(n as Word)])).resize()
+        Uint::new([Limb(n as Word)]).as_int().resize()
     }
 
     /// Create a [`Int`] from an `i32` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<i32>` when stable
     pub fn from_i32(n: i32) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
-        Int::new_from_uint(Uint::new([Limb(n as Word)])).resize()
+        Uint::new([Limb(n as Word)]).as_int().resize()
     }
 
     /// Create a [`Int`] from an `i64` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<i64>` when stable
     #[cfg(target_pointer_width = "32")]
     pub const fn from_i64(n: i64) -> Self {
-        Int::new_from_uint(Uint::<{ I64::LIMBS }>::from_u64(n as u64)).resize()
+        Uint::<{ I64::LIMBS }>::from_u64(n as u64).as_int().resize()
     }
 
     /// Create a [`Int`] from an `i64` (const-friendly)
@@ -36,13 +36,15 @@ impl<const LIMBS: usize> Int<LIMBS> {
     #[cfg(target_pointer_width = "64")]
     pub const fn from_i64(n: i64) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
-        Int::new_from_uint(Uint::new([Limb(n as Word)])).resize()
+        Uint::new([Limb(n as Word)]).as_int().resize()
     }
 
     /// Create a [`Int`] from an `i128` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<i128>` when stable
     pub const fn from_i128(n: i128) -> Self {
-        Int::new_from_uint(Uint::<{ I128::LIMBS }>::from_u128(n as u128)).resize()
+        Uint::<{ I128::LIMBS }>::from_u128(n as u128)
+            .as_int()
+            .resize()
     }
 }
 

@@ -73,9 +73,11 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Const-friendly [`Int`] constructor.
-    /// Note: interprets the `value` as an `Int`. For a proper conversion,
-    /// see [`Int::new_from_abs_sign`].
-    pub const fn new_from_uint(value: Uint<LIMBS>) -> Self {
+    ///
+    /// Reinterprets the bits of a value of type [`Uint`] as an [`Int`].
+    /// For a proper conversion, see [`Int::new_from_abs_sign`];
+    /// the public interface of this function is available at [`Uint::as_int`].
+    pub(crate) const fn from_bits(value: Uint<LIMBS>) -> Self {
         Self(value)
     }
 
@@ -133,8 +135,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Interpret the data in this type as a [`Uint`] instead.
-    pub const fn as_uint(&self) -> &Uint<LIMBS> {
-        &self.0
+    pub const fn as_uint(&self) -> Uint<LIMBS> {
+        self.0
     }
 
     /// Whether this [`Int`] is equal to `Self::MIN`.
@@ -324,7 +326,6 @@ mod tests {
 
     use crate::int::I128;
     use crate::ConstChoice;
-    #[cfg(feature = "serde")]
     use crate::U128;
 
     #[cfg(target_pointer_width = "64")]
@@ -404,10 +405,19 @@ mod tests {
         assert_eq!(random.is_max(), ConstChoice::FALSE);
     }
 
+    #[test]
+    fn as_uint() {
+        assert_eq!(I128::MIN.as_uint(), U128::ONE << 127);
+        assert_eq!(I128::MINUS_ONE.as_uint(), U128::MAX);
+        assert_eq!(I128::ZERO.as_uint(), U128::ZERO);
+        assert_eq!(I128::ONE.as_uint(), U128::ONE);
+        assert_eq!(I128::MAX.as_uint(), U128::MAX >> 1);
+    }
+
     #[cfg(feature = "serde")]
     #[test]
     fn serde() {
-        const TEST: I128 = I128::new_from_uint(U128::from_u64(0x0011223344556677));
+        const TEST: I128 = I128::from_i64(0x0011223344556677i64);
 
         let serialized = bincode::serialize(&TEST).unwrap();
         let deserialized: I128 = bincode::deserialize(&serialized).unwrap();
@@ -418,7 +428,7 @@ mod tests {
     #[cfg(feature = "serde")]
     #[test]
     fn serde_owned() {
-        const TEST: I128 = I128::new_from_uint(U128::from_u64(0x0011223344556677));
+        const TEST: I128 = I128::from_i64(0x0011223344556677i64);
 
         let serialized = bincode::serialize(&TEST).unwrap();
         let deserialized: I128 = bincode::deserialize_from(serialized.as_slice()).unwrap();
