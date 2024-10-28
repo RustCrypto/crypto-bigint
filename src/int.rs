@@ -135,8 +135,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Interpret the data in this type as a [`Uint`] instead.
-    pub const fn as_uint(&self) -> Uint<LIMBS> {
-        self.0
+    pub const fn as_uint(&self) -> &Uint<LIMBS> {
+        &self.0
     }
 
     /// Whether this [`Int`] is equal to `Self::MIN`.
