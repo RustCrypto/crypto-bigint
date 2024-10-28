@@ -5,12 +5,12 @@ use crate::{ConstChoice, Limb, Uint, WideWord, Word, WrappingNeg};
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform wrapping negation.
     pub const fn wrapping_neg(&self) -> Self {
-        self.negc().0
+        self.carrying_neg().0
     }
 
     /// Perform negation; additionally return the carry.
     /// Note: the carry equals `Word::ZERO` when `self == Self::ZERO`, and `Word::MAX` otherwise.
-    pub const fn negc(&self) -> (Self, Word) {
+    pub const fn carrying_neg(&self) -> (Self, Word) {
         let mut ret = [Limb::ZERO; LIMBS];
         let mut carry = 1;
         let mut i = 0;
@@ -67,10 +67,10 @@ mod tests {
     }
 
     #[test]
-    fn negc() {
-        assert_eq!(U256::ZERO.negc(), (U256::ZERO, Word::ZERO));
-        assert_eq!(U256::ONE.negc(), (U256::MAX, Word::MAX));
-        assert_eq!(U256::MAX.negc(), (U256::ONE, Word::MAX));
+    fn carrying_neg() {
+        assert_eq!(U256::ZERO.carrying_neg(), (U256::ZERO, Word::ZERO));
+        assert_eq!(U256::ONE.carrying_neg(), (U256::MAX, Word::MAX));
+        assert_eq!(U256::MAX.carrying_neg(), (U256::ONE, Word::MAX));
     }
 
     #[test]

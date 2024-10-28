@@ -13,8 +13,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Warning: this operation is unsafe to use as negation; the negation is incorrect when
     /// `self == Self::MIN`.
     #[inline]
-    pub(crate) const fn negc(&self) -> (Self, Word) {
-        let (val, carry) = self.0.negc();
+    pub(crate) const fn carrying_neg(&self) -> (Self, Word) {
+        let (val, carry) = self.0.carrying_neg();
         (Self(val), carry)
     }
 
@@ -32,38 +32,39 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Yields `None` when `self == Self::MIN`, since an [`Int`] cannot represent the positive
     /// equivalent of that.
     pub fn neg(&self) -> CtOption<Self> {
-        CtOption::new(self.negc().0, self.is_min().not().into())
+        CtOption::new(self.carrying_neg().0, self.is_min().not().into())
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, Word, I128};
     use num_traits::ConstZero;
 
+    use crate::{ConstChoice, Word, I128};
+
     #[test]
-    fn negc() {
+    fn carrying_neg() {
         let min_plus_one = I128 {
             0: I128::MIN.0.wrapping_add(&I128::ONE.0),
         };
 
-        let (res, carry) = I128::MIN.negc();
+        let (res, carry) = I128::MIN.carrying_neg();
         assert_eq!(carry, Word::MAX);
         assert_eq!(res, I128::MIN);
 
-        let (res, carry) = I128::MINUS_ONE.negc();
+        let (res, carry) = I128::MINUS_ONE.carrying_neg();
         assert_eq!(carry, Word::MAX);
         assert_eq!(res, I128::ONE);
 
-        let (res, carry) = I128::ZERO.negc();
+        let (res, carry) = I128::ZERO.carrying_neg();
         assert_eq!(carry, Word::ZERO);
         assert_eq!(res, I128::ZERO);
 
-        let (res, carry) = I128::ONE.negc();
+        let (res, carry) = I128::ONE.carrying_neg();
         assert_eq!(carry, Word::MAX);
         assert_eq!(res, I128::MINUS_ONE);
 
-        let (res, carry) = I128::MAX.negc();
+        let (res, carry) = I128::MAX.carrying_neg();
         assert_eq!(carry, Word::MAX);
         assert_eq!(res, min_plus_one);
     }
