@@ -1,5 +1,3 @@
-use num_traits::ConstOne;
-
 use crate::{ConstChoice, Limb, Uint, WideWord, Word, WrappingNeg};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -25,17 +23,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Perform negation, if `negate` is truthy.
     pub const fn wrapping_neg_if(&self, negate: ConstChoice) -> Self {
-        let mut ret = [Limb::ZERO; LIMBS];
-        let mut i = 0;
-        let mask = negate.as_word_mask() as WideWord;
-        let mut carry = mask & WideWord::ONE;
-        while i < LIMBS {
-            let r = ((self.limbs[i].0 as WideWord) ^ mask) + carry;
-            ret[i] = Limb(r as Word);
-            carry = r >> Limb::BITS;
-            i += 1;
-        }
-        Uint::new(ret)
+        Uint::select(self, &self.wrapping_neg(), negate)
     }
 }
 

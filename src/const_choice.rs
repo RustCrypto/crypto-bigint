@@ -33,18 +33,6 @@ impl ConstChoice {
         self.0
     }
 
-    #[inline]
-    #[cfg(target_pointer_width = "32")]
-    pub(crate) const fn as_word_mask(&self) -> Word {
-        self.as_u32_mask()
-    }
-
-    #[inline]
-    #[cfg(target_pointer_width = "64")]
-    pub(crate) const fn as_word_mask(&self) -> Word {
-        self.as_u64_mask()
-    }
-
     /// Returns the truthy value if `value == Word::MAX`, and the falsy value if `value == 0`.
     /// Panics for other values.
     #[inline]
