@@ -407,11 +407,11 @@ mod tests {
 
     #[test]
     fn as_uint() {
-        assert_eq!(I128::MIN.as_uint(), U128::ONE << 127);
-        assert_eq!(I128::MINUS_ONE.as_uint(), U128::MAX);
-        assert_eq!(I128::ZERO.as_uint(), U128::ZERO);
-        assert_eq!(I128::ONE.as_uint(), U128::ONE);
-        assert_eq!(I128::MAX.as_uint(), U128::MAX >> 1);
+        assert_eq!(*I128::MIN.as_uint(), U128::ONE << 127);
+        assert_eq!(*I128::MINUS_ONE.as_uint(), U128::MAX);
+        assert_eq!(*I128::ZERO.as_uint(), U128::ZERO);
+        assert_eq!(*I128::ONE.as_uint(), U128::ONE);
+        assert_eq!(*I128::MAX.as_uint(), U128::MAX >> 1);
     }
 
     #[cfg(feature = "serde")]
