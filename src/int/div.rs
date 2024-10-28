@@ -18,11 +18,11 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ) -> (Uint<{ LIMBS }>, Uint<{ LIMBS }>, ConstChoice, ConstChoice) {
         // Step 1: split operands into signs and magnitudes.
         let (lhs_mag, lhs_sgn) = self.abs_sign();
-        let (rhs_mag, rhs_sgn) = rhs.0.abs_sign();
+        let (rhs_mag, rhs_sgn) = rhs.abs_sign();
 
         // Step 2. Divide magnitudes
         // safe to unwrap since rhs is NonZero.
-        let (quotient, remainder) = lhs_mag.div_rem(&NonZero::<Uint<LIMBS>>::new_unwrap(rhs_mag));
+        let (quotient, remainder) = lhs_mag.div_rem(&rhs_mag);
 
         (quotient, remainder, lhs_sgn, rhs_sgn)
     }
