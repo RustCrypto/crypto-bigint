@@ -15,11 +15,6 @@ impl<const LIMBS: usize> Int<LIMBS> {
         Uint::is_nonzero(&self.0)
     }
 
-    /// Returns the truthy value if `self` is odd or the falsy value otherwise.
-    pub(crate) const fn is_odd(&self) -> ConstChoice {
-        Uint::is_odd(&self.0)
-    }
-
     /// Returns the truthy value if `self == rhs` or the falsy value otherwise.
     #[inline]
     pub(crate) const fn eq(lhs: &Self, rhs: &Self) -> ConstChoice {
@@ -32,22 +27,10 @@ impl<const LIMBS: usize> Int<LIMBS> {
         Uint::lt(&lhs.invert_msb().0, &rhs.invert_msb().0)
     }
 
-    /// Returns the truthy value if `self <= rhs` and the falsy value otherwise.
-    #[inline]
-    pub(crate) const fn lte(lhs: &Self, rhs: &Self) -> ConstChoice {
-        Self::gt(lhs, rhs).not()
-    }
-
     /// Returns the truthy value if `self > rhs` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn gt(lhs: &Self, rhs: &Self) -> ConstChoice {
         Uint::gt(&lhs.invert_msb().0, &rhs.invert_msb().0)
-    }
-
-    /// Returns the truthy value if `self >= rhs` and the falsy value otherwise.
-    #[inline]
-    pub(crate) const fn gte(lhs: &Self, rhs: &Self) -> ConstChoice {
-        Self::lt(lhs, rhs).not()
     }
 
     /// Returns the ordering between `self` and `rhs` as an i8.
