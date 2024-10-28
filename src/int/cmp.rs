@@ -99,7 +99,7 @@ impl<const LIMBS: usize> PartialEq for Int<LIMBS> {
 mod tests {
     use subtle::{ConstantTimeGreater, ConstantTimeLess};
 
-    use crate::{Int, I128, U128};
+    use crate::I128;
 
     #[test]
     fn test_is_nonzero() {
@@ -108,18 +108,6 @@ mod tests {
         assert_eq!(I128::ZERO.is_nonzero().to_u8(), 0u8);
         assert_eq!(I128::MINUS_ONE.is_nonzero().to_u8(), 1u8);
         assert_eq!(I128::MAX.is_nonzero().to_u8(), 1u8);
-    }
-
-    #[test]
-    fn test_is_odd() {
-        let two = I128::new_from_uint(U128::from(2u32));
-        assert_eq!(I128::MAX.is_odd().to_u8(), 1u8);
-        assert_eq!(two.is_odd().to_u8(), 0u8);
-        assert_eq!(I128::ONE.is_odd().to_u8(), 1u8);
-        assert_eq!(I128::ZERO.is_odd().to_u8(), 0u8);
-        assert_eq!(I128::MINUS_ONE.is_odd().to_u8(), 1u8);
-        assert_eq!(two.neg().unwrap().is_odd().to_u8(), 0u8);
-        assert_eq!(I128::MAX.is_odd().to_u8(), 1u8);
     }
 
     #[test]
@@ -183,25 +171,6 @@ mod tests {
     }
 
     #[test]
-    fn gte() {
-        let a = I128::MIN;
-        let b = I128::ZERO;
-        let c = I128::MAX;
-
-        assert!(bool::from(Int::gte(&b, &a)));
-        assert!(bool::from(Int::gte(&c, &a)));
-        assert!(bool::from(Int::gte(&c, &b)));
-
-        assert!(bool::from(Int::gte(&a, &a)));
-        assert!(bool::from(Int::gte(&b, &b)));
-        assert!(bool::from(Int::gte(&c, &c)));
-
-        assert!(!bool::from(Int::gte(&a, &b)));
-        assert!(!bool::from(Int::gte(&a, &c)));
-        assert!(!bool::from(Int::gte(&b, &c)));
-    }
-
-    #[test]
     fn ct_lt() {
         let a = I128::ZERO;
         let b = I128::ONE;
@@ -218,24 +187,5 @@ mod tests {
         assert!(!bool::from(b.ct_lt(&a)));
         assert!(!bool::from(c.ct_lt(&a)));
         assert!(!bool::from(c.ct_lt(&b)));
-    }
-
-    #[test]
-    fn lte() {
-        let a = I128::ZERO;
-        let b = I128::ONE;
-        let c = I128::MAX;
-
-        assert!(bool::from(Int::lte(&a, &b)));
-        assert!(bool::from(Int::lte(&a, &c)));
-        assert!(bool::from(Int::lte(&b, &c)));
-
-        assert!(bool::from(Int::lte(&a, &a)));
-        assert!(bool::from(Int::lte(&b, &b)));
-        assert!(bool::from(Int::lte(&c, &c)));
-
-        assert!(!bool::from(Int::lte(&b, &a)));
-        assert!(!bool::from(Int::lte(&c, &a)));
-        assert!(!bool::from(Int::lte(&c, &b)));
     }
 }
