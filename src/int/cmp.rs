@@ -1,6 +1,6 @@
 //! [`Int`] comparisons.
 //!
-//! By default, these are all constant-time and use the `subtle` crate.
+//! By default, these are all constant-time.
 #![allow(dead_code)]
 
 use core::cmp::Ordering;

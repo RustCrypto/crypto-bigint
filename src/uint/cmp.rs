@@ -1,6 +1,6 @@
 //! [`Uint`] comparisons.
 //!
-//! By default these are all constant-time and use the `subtle` crate.
+//! By default, these are all constant-time.
 
 use core::cmp::Ordering;
 
