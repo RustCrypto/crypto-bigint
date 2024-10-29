@@ -8,7 +8,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Perform the two's complement "negate" operation on this [`Int`]:
     /// map `self` to `(self ^ 1111...1111) + 0000...0001` and return the carry.
     ///
-    /// Note: a zero carry indicates `self == Self::ZERO`.
+    /// Note: a non-zero carry indicates `self == Self::ZERO`.
     ///
     /// Warning: this operation is unsafe to use as negation; the negation is incorrect when
     /// `self == Self::MIN`.

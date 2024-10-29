@@ -7,7 +7,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform negation; additionally return the carry.
-    /// Note: the carry equals `Word::ZERO` when `self == Self::ZERO`, and `Word::MAX` otherwise.
+    /// Note: the carry equals `Word::MAX` when `self == Self::ZERO`, and `Word::ZERO` otherwise.
     pub const fn carrying_neg(&self) -> (Self, Word) {
         let mut ret = [Limb::ZERO; LIMBS];
         let mut carry = 1;
