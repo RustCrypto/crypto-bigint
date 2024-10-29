@@ -1,5 +1,6 @@
-///! Selection of [`Int`] types.
-/// todo: replace with macro implementation once serde is set up.
+//! Selection of [`Int`] types.
+//! todo: replace with macro implementation once serde is set up.
+
 use crate::Int;
 
 #[cfg(target_pointer_width = "64")]
