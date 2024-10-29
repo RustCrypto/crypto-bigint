@@ -120,8 +120,7 @@ impl<const LIMBS: usize> MulAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
 
 #[cfg(test)]
 mod tests {
-    use crate::int::{Int, I128};
-    use crate::{CheckedMul, I256};
+    use crate::{CheckedMul, Int, I128, I256};
 
     #[test]
     fn test_checked_mul() {

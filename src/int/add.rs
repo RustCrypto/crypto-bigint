@@ -104,8 +104,7 @@ mod tests {
 
     #[cfg(test)]
     mod tests {
-        use crate::int::I128;
-        use crate::U128;
+        use crate::{I128, U128};
 
         #[test]
         fn checked_add() {

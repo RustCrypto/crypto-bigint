@@ -194,7 +194,7 @@ impl<const LIMBS: usize> Div<NonZero<Int<LIMBS>>> for Int<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::int::{Int, I128};
+    use crate::{Int, I128};
 
     #[test]
     fn test_checked_div() {

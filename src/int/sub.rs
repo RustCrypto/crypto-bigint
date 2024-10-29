@@ -81,8 +81,7 @@ mod tests {
     mod tests {
         use num_traits::WrappingSub;
 
-        use crate::int::I128;
-        use crate::{CheckedSub, Int, U128};
+        use crate::{CheckedSub, Int, I128, U128};
 
         #[test]
         fn checked_sub() {
