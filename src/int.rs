@@ -138,7 +138,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Whether this [`Int`] is equal to `Self::MIN`.
-    pub fn is_min(&self) -> ConstChoice {
+    pub const fn is_min(&self) -> ConstChoice {
         Self::eq(self, &Self::MIN)
     }
 

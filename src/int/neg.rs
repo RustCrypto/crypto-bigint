@@ -1,8 +1,6 @@
 //! [`Int`] negation-related operations.
 
-use subtle::CtOption;
-
-use crate::{ConstChoice, Int, Word};
+use crate::{ConstChoice, ConstCtOption, Int, Word};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Perform the two's complement "negate" operation on this [`Int`]:
@@ -31,8 +29,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// Yields `None` when `self == Self::MIN`, since an [`Int`] cannot represent the positive
     /// equivalent of that.
-    pub fn neg(&self) -> CtOption<Self> {
-        CtOption::new(self.carrying_neg().0, self.is_min().not().into())
+    pub const fn neg(&self) -> ConstCtOption<Self> {
+        ConstCtOption::new(self.carrying_neg().0, self.is_min().not())
     }
 }
 
@@ -95,7 +93,7 @@ mod tests {
 
     #[test]
     fn neg() {
-        assert_eq!(I128::MIN.neg().is_none().unwrap_u8(), 1u8);
+        assert_eq!(I128::MIN.neg().is_none(), ConstChoice::TRUE);
         assert_eq!(I128::MINUS_ONE.neg().unwrap(), I128::ONE);
         assert_eq!(I128::ZERO.neg().unwrap(), I128::ZERO);
         assert_eq!(I128::ONE.neg().unwrap(), I128::MINUS_ONE);
