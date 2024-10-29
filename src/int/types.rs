@@ -27,6 +27,10 @@ pub type I1024 = Int<16>;
 /// Signed bit integer.
 pub type I2048 = Int<32>;
 
+#[cfg(target_pointer_width = "64")]
+/// Signed bit integer.
+pub type I4096 = Int<64>;
+
 #[cfg(target_pointer_width = "32")]
 /// Signed bit integer.
 pub type I64 = Int<2>;
@@ -50,3 +54,7 @@ pub type I1024 = Int<32>;
 #[cfg(target_pointer_width = "32")]
 /// Signed bit integer.
 pub type I2048 = Int<64>;
+
+#[cfg(target_pointer_width = "32")]
+/// Signed bit integer.
+pub type I4096 = Int<128>;
