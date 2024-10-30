@@ -199,6 +199,11 @@ impl ConstChoice {
         Self::xor(self, other)
     }
 
+    #[inline]
+    pub(crate) const fn eq(&self, other: Self) -> Self {
+        Self::ne(self, other).not()
+    }
+
     /// Return `b` if `self` is truthy, otherwise return `a`.
     #[inline]
     pub(crate) const fn select_word(&self, a: Word, b: Word) -> Word {

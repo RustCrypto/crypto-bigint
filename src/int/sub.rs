@@ -127,7 +127,7 @@ mod tests {
             assert_eq!(result.unwrap(), I128::MINUS_ONE);
 
             let result = I128::MINUS_ONE.checked_sub(&I128::ONE);
-            assert_eq!(result.unwrap(), two.neg().unwrap());
+            assert_eq!(result.unwrap(), two.checked_neg().unwrap());
 
             let result = I128::MINUS_ONE.checked_sub(&I128::MAX);
             assert_eq!(result.unwrap(), I128::MIN);

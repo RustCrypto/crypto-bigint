@@ -5,15 +5,22 @@ use core::ops::{Add, AddAssign};
 use num_traits::WrappingAdd;
 use subtle::CtOption;
 
-use crate::{Checked, CheckedAdd, ConstCtOption, Int, Wrapping};
+use crate::{Checked, CheckedAdd, ConstChoice, ConstCtOption, Int, Wrapping};
 
 impl<const LIMBS: usize> Int<LIMBS> {
-    /// Perform checked addition.
+    /// Perform checked addition. Returns `none` when the addition overflowed.
     pub const fn checked_add(&self, rhs: &Self) -> ConstCtOption<Self> {
+        let (value, overflow) = self.overflowing_add(rhs);
+        ConstCtOption::new(value, overflow.not())
+    }
+
+    /// Perform `self + rhs`, returns the result, as well as a flag indicating whether the
+    /// addition overflowed.
+    pub const fn overflowing_add(&self, rhs: &Self) -> (Self, ConstChoice) {
         // Step 1. add operands
         let res = Self(self.0.wrapping_add(&rhs.0));
 
-        // Step 2. check whether overflow happened.
+        // Step 2. determine whether overflow happened.
         // Note:
         // - overflow can only happen when the inputs have the same sign, and then
         // - overflow occurs if and only if the result has the opposite sign of both inputs.
@@ -21,12 +28,10 @@ impl<const LIMBS: usize> Int<LIMBS> {
         // We can thus express the overflow flag as: (self.msb == rhs.msb) & (self.msb != res.msb)
         let self_msb = self.is_negative();
         let overflow = self_msb
-            .xor(rhs.is_negative())
-            .not()
-            .and(self_msb.xor(res.is_negative()));
+            .eq(rhs.is_negative())
+            .and(self_msb.ne(res.is_negative()));
 
-        // Step 3. Construct result
-        ConstCtOption::new(res, overflow.not())
+        (res, overflow)
     }
 
     /// Perform wrapping addition, discarding overflow.
@@ -141,7 +146,7 @@ mod tests {
             assert!(bool::from(result.is_none()));
 
             let result = I128::MINUS_ONE.checked_add(&I128::MINUS_ONE);
-            assert_eq!(result.unwrap(), two.neg().unwrap());
+            assert_eq!(result.unwrap(), two.checked_neg().unwrap());
 
             let result = I128::MINUS_ONE.checked_add(&I128::ZERO);
             assert_eq!(result.unwrap(), I128::MINUS_ONE);

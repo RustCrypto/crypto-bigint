@@ -6,9 +6,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         self.carrying_neg().0
     }
 
-    /// Perform negation; additionally return the carry.
-    /// Note: the carry equals `Word::MAX` when `self == Self::ZERO`, and `Word::ZERO` otherwise.
-    pub const fn carrying_neg(&self) -> (Self, Word) {
+    /// Perform negation: map `self` to `(self ^ 1111...1111) + 0000...0001`.
+    /// Additionally return whether the carry flag is set on the addition.
+    ///
+    /// Note: the carry is set if and only if `self == Self::ZERO`.
+    pub const fn carrying_neg(&self) -> (Self, ConstChoice) {
         let mut ret = [Limb::ZERO; LIMBS];
         let mut carry = 1;
         let mut i = 0;
@@ -18,10 +20,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             carry = r >> Limb::BITS;
             i += 1;
         }
-        (Uint::new(ret), carry.wrapping_add(!0) as Word)
+        (Uint::new(ret), ConstChoice::from_word_lsb(carry as Word))
     }
 
-    /// Perform negation, if `negate` is truthy.
+    /// Perform wrapping negation, if `negate` is truthy. Otherwise, return `self`.
     pub const fn wrapping_neg_if(&self, negate: ConstChoice) -> Self {
         Uint::select(self, &self.wrapping_neg(), negate)
     }
@@ -36,9 +38,7 @@ impl<const LIMBS: usize> WrappingNeg for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use num_traits::ConstZero;
-
-    use crate::{ConstChoice, Word, U256};
+    use crate::{ConstChoice, U256};
 
     #[test]
     fn wrapping_neg() {
@@ -56,9 +56,9 @@ mod tests {
 
     #[test]
     fn carrying_neg() {
-        assert_eq!(U256::ZERO.carrying_neg(), (U256::ZERO, Word::ZERO));
-        assert_eq!(U256::ONE.carrying_neg(), (U256::MAX, Word::MAX));
-        assert_eq!(U256::MAX.carrying_neg(), (U256::ONE, Word::MAX));
+        assert_eq!(U256::ZERO.carrying_neg(), (U256::ZERO, ConstChoice::TRUE));
+        assert_eq!(U256::ONE.carrying_neg(), (U256::MAX, ConstChoice::FALSE));
+        assert_eq!(U256::MAX.carrying_neg(), (U256::ONE, ConstChoice::FALSE));
     }
 
     #[test]
