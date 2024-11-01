@@ -1,24 +1,24 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{Bounded, Constants, Encoding, Limb, Uint, Zero};
 use core::{
     fmt,
     num::{NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8},
     ops::Deref,
 };
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-#[cfg(feature = "hybrid-array")]
-use crate::{ArrayEncoding, ByteArray};
-
-#[cfg(feature = "rand_core")]
-use {crate::Random, rand_core::CryptoRngCore};
 
 #[cfg(feature = "serde")]
 use serdect::serde::{
     de::{Error, Unexpected},
     Deserialize, Deserializer, Serialize, Serializer,
 };
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+#[cfg(feature = "rand_core")]
+use {crate::Random, rand_core::CryptoRngCore};
+
+#[cfg(feature = "hybrid-array")]
+use crate::{ArrayEncoding, ByteArray};
+use crate::{Bounded, ConstChoice, Constants, Encoding, Int, Limb, Uint, Zero};
 
 /// Wrapper type for non-zero integers.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
@@ -167,6 +167,15 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     // TODO(tarcieri): replace with `const impl From<NonZeroU128>` when stable
     pub const fn from_u128(n: NonZeroU128) -> Self {
         Self(Uint::from_u128(n.get()))
+    }
+}
+
+impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
+    /// Convert a [`NonZero<Int>`] to its sign and [`NonZero<Uint>`] magnitude.
+    pub const fn abs_sign(&self) -> (NonZero<Uint<LIMBS>>, ConstChoice) {
+        let (abs, sign) = self.0.abs_sign();
+        // Note: a NonZero<Int> always has a non-zero magnitude, so it is safe to unwrap.
+        (NonZero::<Uint<LIMBS>>::new_unwrap(abs), sign)
     }
 }
 
@@ -381,11 +390,25 @@ impl<T: zeroize::Zeroize + Zero> zeroize::Zeroize for NonZero<T> {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use crate::{ConstChoice, I128, U128};
+
+    #[test]
+    fn int_abs_sign() {
+        let x = I128::from(-55).to_nz().unwrap();
+        let (abs, sgn) = x.abs_sign();
+        assert_eq!(abs, U128::from(55u32).to_nz().unwrap());
+        assert_eq!(sgn, ConstChoice::TRUE);
+    }
+}
+
 #[cfg(all(test, feature = "serde"))]
 #[allow(clippy::unwrap_used)]
-mod tests {
-    use crate::{NonZero, U64};
+mod tests_serde {
     use bincode::ErrorKind;
+
+    use crate::{NonZero, U64};
 
     #[test]
     fn serde() {
