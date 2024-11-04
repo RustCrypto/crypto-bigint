@@ -4,12 +4,12 @@ use core::ops::{Shr, ShrAssign};
 
 use subtle::CtOption;
 
-use crate::{ConstChoice, ConstCtOption, Int, ShrVartime, Uint, WrappingShr};
+use crate::{ConstChoice, ConstCtOption, Int, Limb, ShrVartime, Uint, WrappingShr};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Computes `self >> shift`.
     ///
-    /// Note, this is signed shift right, i.e., the value shifted in on the left is equal to
+    /// Note, this is _signed_ shift right, i.e., the value shifted in on the left is equal to
     /// the most significant bit.
     ///
     /// Panics if `shift >= Self::BITS`.
@@ -20,7 +20,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Computes `self >> shift` in variable time.
     ///
-    /// Note, this is signed shift right, i.e., the value shifted in on the left is equal to
+    /// Note, this is _signed_ shift right, i.e., the value shifted in on the left is equal to
     /// the most significant bit.
     ///
     /// Panics if `shift >= Self::BITS`.
@@ -31,7 +31,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Computes `self >> shift`.
     ///
-    /// Note, this is signed shift right, i.e., the value shifted in on the left is equal to
+    /// Note, this is _signed_ shift right, i.e., the value shifted in on the left is equal to
     /// the most significant bit.
     ///
     /// Returns `None` if `shift >= Self::BITS`.
@@ -60,6 +60,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Computes `self >> shift`.
     ///
+    /// NOTE: this is _signed_ shift right, i.e., the value shifted in on the left is equal to
+    /// the most significant bit.
+    ///
     /// Returns `None` if `shift >= Self::BITS`.
     ///
     /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
@@ -68,34 +71,63 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// to `self`.
     #[inline(always)]
     pub const fn overflowing_shr_vartime(&self, shift: u32) -> ConstCtOption<Self> {
+        let is_negative = self.is_negative();
+
         if shift >= Self::BITS {
-            return ConstCtOption::none(Self::ZERO);
+            return ConstCtOption::none(Self::select(&Self::ZERO, &Self::MINUS_ONE, is_negative));
         }
 
-        // safe to unwrap, due to above check
-        let logical_shr = Self(Uint::overflowing_shr_vartime(&self.0, shift).unwrap_or(Uint::ZERO));
+        // Select the base limb, based on the sign of this value.
+        let base = Limb::select(Limb::ZERO, Limb::MAX, is_negative);
+        let mut limbs = [base; LIMBS];
 
-        // To turn a logical shr into an arithmetical, the shifted in bits need to match the
-        // msb of self.
+        let shift_num = (shift / Limb::BITS) as usize;
+        let rem = shift % Limb::BITS;
 
-        let masked_msb = self.bitand(&Self::SIGN_MASK);
-        let inverse_shift = shift.saturating_sub(1);
-        let shifted_masked_msb = Uint::shr_vartime(&masked_msb.0, inverse_shift);
-        let msbs = Self(shifted_masked_msb).negc().0;
+        let mut i = 0;
+        while i < LIMBS - shift_num {
+            limbs[i] = self.0.limbs[i + shift_num];
+            i += 1;
+        }
 
-        ConstCtOption::some(logical_shr.bitxor(&msbs))
+        if rem == 0 {
+            return ConstCtOption::some(Self(Uint::new(limbs)));
+        }
+
+        // construct the carry s.t. the `rem`-most significant bits of `carry` are 1 when self
+        // is negative, i.e., shift in 1s when the msb is 1.
+        let mut carry = Limb::select(Limb::ZERO, Limb::MAX, is_negative);
+        carry = carry.bitxor(carry.shr(rem)); // logical shift right; shifts in zeroes.
+
+        while i > 0 {
+            i -= 1;
+            let shifted = limbs[i].shr(rem);
+            let new_carry = limbs[i].shl(Limb::BITS - rem);
+            limbs[i] = shifted.bitor(carry);
+            carry = new_carry;
+        }
+
+        ConstCtOption::some(Self(Uint::new(limbs)))
     }
 
-    /// Computes `self >> shift` in a panic-free manner, returning zero if the shift exceeds the
-    /// precision.
+    /// Computes `self >> shift` in a panic-free manner.
+    ///
+    /// If the shift exceeds the precision, returns
+    /// - `0` when `self` is non-negative, and
+    /// - `-1` when `self` is negative.
     pub const fn wrapping_shr(&self, shift: u32) -> Self {
-        self.overflowing_shr(shift).unwrap_or(Self::ZERO)
+        let default = Self::select(&Self::ZERO, &Self::MINUS_ONE, self.is_negative());
+        self.overflowing_shr(shift).unwrap_or(default)
     }
 
-    /// Computes `self >> shift` in variable-time in a panic-free manner, returning zero if the
-    /// shift exceeds the precision.
+    /// Computes `self >> shift` in variable-time in a panic-free manner.
+    ///
+    /// If the shift exceeds the precision, returns
+    /// - `0` when `self` is non-negative, and
+    /// - `-1` when `self` is negative.
     pub const fn wrapping_shr_vartime(&self, shift: u32) -> Self {
-        self.overflowing_shr_vartime(shift).unwrap_or(Self::ZERO)
+        let default = Self::select(&Self::ZERO, &Self::MINUS_ONE, self.is_negative());
+        self.overflowing_shr_vartime(shift).unwrap_or(default)
     }
 }
 
@@ -148,8 +180,6 @@ impl<const LIMBS: usize> ShrVartime for Int<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use core::ops::Div;
-
     use crate::I256;
 
     const N: I256 =
@@ -173,11 +203,11 @@ mod tests {
     fn shr5() {
         assert_eq!(
             I256::MAX >> 5,
-            I256::MAX.div(I256::from(32).to_nz().unwrap()).unwrap()
+            I256::from_be_hex("03FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
         );
         assert_eq!(
             I256::MIN >> 5,
-            I256::MIN.div(I256::from(32).to_nz().unwrap()).unwrap()
+            I256::from_be_hex("FC00000000000000000000000000000000000000000000000000000000000000")
         );
     }
 
@@ -185,11 +215,11 @@ mod tests {
     fn shr7_vartime() {
         assert_eq!(
             I256::MAX.shr_vartime(7),
-            I256::MAX.div(I256::from(128).to_nz().unwrap()).unwrap()
+            I256::from_be_hex("00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
         );
         assert_eq!(
             I256::MIN.shr_vartime(7),
-            I256::MIN.div(I256::from(128).to_nz().unwrap()).unwrap()
+            I256::from_be_hex("FF00000000000000000000000000000000000000000000000000000000000000")
         );
     }
 
@@ -203,5 +233,17 @@ mod tests {
     #[should_panic(expected = "`shift` within the bit size of the integer")]
     fn shr256() {
         let _ = N >> 256;
+    }
+
+    #[test]
+    fn wrapping_shr() {
+        assert_eq!(
+            I256::MAX.wrapping_shr(257),
+            I256::ZERO
+        );
+        assert_eq!(
+            I256::MIN.wrapping_shr(257),
+            I256::MINUS_ONE
+        )
     }
 }
