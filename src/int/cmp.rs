@@ -9,6 +9,12 @@ use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 use crate::{ConstChoice, Int, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {
+    /// Return `b` if `c` is truthy, otherwise return `a`.
+    #[inline]
+    pub(crate) const fn select(a: &Self, b: &Self, c: ConstChoice) -> Self {
+        Self(Uint::select(&a.0, &b.0, c))
+    }
+
     /// Returns the truthy value if `self`!=0 or the falsy value otherwise.
     #[inline]
     pub(crate) const fn is_nonzero(&self) -> ConstChoice {
