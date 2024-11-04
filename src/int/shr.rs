@@ -237,13 +237,7 @@ mod tests {
 
     #[test]
     fn wrapping_shr() {
-        assert_eq!(
-            I256::MAX.wrapping_shr(257),
-            I256::ZERO
-        );
-        assert_eq!(
-            I256::MIN.wrapping_shr(257),
-            I256::MINUS_ONE
-        )
+        assert_eq!(I256::MAX.wrapping_shr(257), I256::ZERO);
+        assert_eq!(I256::MIN.wrapping_shr(257), I256::MINUS_ONE);
     }
 }
