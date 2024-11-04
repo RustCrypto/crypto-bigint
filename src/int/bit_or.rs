@@ -2,9 +2,7 @@
 
 use core::ops::{BitOr, BitOrAssign};
 
-use subtle::{Choice, CtOption};
-
-use crate::{Uint, Wrapping};
+use crate::{ConstCtOption, Uint, Wrapping};
 
 use super::Int;
 
@@ -23,10 +21,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
         self.bitor(rhs)
     }
 
-    /// Perform checked bitwise `OR`, returning a [`CtOption`] which `is_some` always
-    pub fn checked_or(&self, rhs: &Self) -> CtOption<Self> {
-        let result = self.bitor(rhs);
-        CtOption::new(result, Choice::from(1))
+    /// Perform checked bitwise `OR`, returning a [`ConstCtOption`] which `is_some` always
+    pub const fn checked_or(&self, rhs: &Self) -> ConstCtOption<Self> {
+        ConstCtOption::some(self.bitor(rhs))
     }
 }
 
@@ -116,5 +113,20 @@ impl<const LIMBS: usize> BitOrAssign for Wrapping<Int<LIMBS>> {
 impl<const LIMBS: usize> BitOrAssign<&Wrapping<Int<LIMBS>>> for Wrapping<Int<LIMBS>> {
     fn bitor_assign(&mut self, other: &Self) {
         *self = *self | other;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::I128;
+
+    #[test]
+    fn checked_or_ok() {
+        assert_eq!(I128::ZERO.checked_or(&I128::ONE).unwrap(), I128::ONE);
+    }
+
+    #[test]
+    fn overlapping_or_ok() {
+        assert_eq!(I128::MAX.wrapping_or(&I128::ONE), I128::MAX);
     }
 }

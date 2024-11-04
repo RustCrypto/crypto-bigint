@@ -2,9 +2,7 @@
 
 use core::ops::{BitAnd, BitAndAssign};
 
-use subtle::{Choice, CtOption};
-
-use crate::{Int, Limb, Uint, Wrapping};
+use crate::{ConstCtOption, Int, Limb, Uint, Wrapping};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Computes bitwise `a & b`.
@@ -27,10 +25,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
         self.bitand(rhs)
     }
 
-    /// Perform checked bitwise `AND`, returning a [`CtOption`] which `is_some` always
-    pub fn checked_and(&self, rhs: &Self) -> CtOption<Self> {
-        let result = self.bitand(rhs);
-        CtOption::new(result, Choice::from(1))
+    /// Perform checked bitwise `AND`, returning a [`ConstCtOption`] which `is_some` always
+    pub const fn checked_and(&self, rhs: &Self) -> ConstCtOption<Self> {
+        ConstCtOption::some(self.bitand(rhs))
     }
 }
 
@@ -124,5 +121,20 @@ impl<const LIMBS: usize> BitAndAssign<&Wrapping<Int<LIMBS>>> for Wrapping<Int<LI
     #[allow(clippy::assign_op_pattern)]
     fn bitand_assign(&mut self, other: &Self) {
         *self = *self & other;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::I128;
+
+    #[test]
+    fn checked_and_ok() {
+        assert_eq!(I128::ZERO.checked_and(&I128::ONE).unwrap(), I128::ZERO);
+    }
+
+    #[test]
+    fn overlapping_and_ok() {
+        assert_eq!(I128::MAX.wrapping_and(&I128::ONE), I128::ONE);
     }
 }
