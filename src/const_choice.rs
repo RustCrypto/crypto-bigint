@@ -1,6 +1,6 @@
 use subtle::{Choice, CtOption};
 
-use crate::{modular::SafeGcdInverter, Limb, NonZero, Odd, Uint, WideWord, Word};
+use crate::{modular::SafeGcdInverter, Int, Limb, NonZero, Odd, Uint, WideWord, Word};
 
 /// A boolean value returned by constant-time `const fn`s.
 // TODO: should be replaced by `subtle::Choice` or `CtOption`
@@ -391,6 +391,12 @@ impl<const LIMBS: usize> ConstCtOption<Uint<LIMBS>> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
     }
+
+    /// Returns the contained value, interpreting the underlying [`Uint`] value as an [`Int`].
+    #[inline]
+    pub const fn as_int(&self) -> ConstCtOption<Int<LIMBS>> {
+        ConstCtOption::new(Int::from_bits(self.value), self.is_some)
+    }
 }
 
 impl<const LIMBS: usize> ConstCtOption<(Uint<LIMBS>, Uint<LIMBS>)> {
@@ -430,6 +436,26 @@ impl<const LIMBS: usize> ConstCtOption<Odd<Uint<LIMBS>>> {
     /// `msg`.
     #[inline]
     pub const fn expect(self, msg: &str) -> Odd<Uint<LIMBS>> {
+        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        self.value
+    }
+}
+
+impl<const LIMBS: usize> ConstCtOption<Int<LIMBS>> {
+    /// This returns the underlying value if it is `Some` or the provided value otherwise.
+    #[inline]
+    pub const fn unwrap_or(self, def: Int<LIMBS>) -> Int<LIMBS> {
+        Int::select(&def, &self.value, self.is_some)
+    }
+
+    /// Returns the contained value, consuming the `self` value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value is none with a custom panic message provided by
+    /// `msg`.
+    #[inline]
+    pub const fn expect(self, msg: &str) -> Int<LIMBS> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
     }

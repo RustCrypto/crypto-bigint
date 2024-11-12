@@ -19,7 +19,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Create a [`Int`] from an `i32` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<i32>` when stable
-    pub fn from_i32(n: i32) -> Self {
+    pub const fn from_i32(n: i32) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         Uint::new([Limb(n as Word)]).as_int().resize()
     }
