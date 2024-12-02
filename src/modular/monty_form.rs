@@ -158,6 +158,18 @@ impl<const LIMBS: usize> ConstantTimeEq for MontyParams<LIMBS> {
     }
 }
 
+#[cfg(feature = "zeroize")]
+impl<const LIMBS: usize> zeroize::Zeroize for MontyParams<LIMBS> {
+    fn zeroize(&mut self) {
+        self.modulus.zeroize();
+        self.one.zeroize();
+        self.r2.zeroize();
+        self.r3.zeroize();
+        self.mod_neg_inv.zeroize();
+        self.mod_leading_zeros.zeroize();
+    }
+}
+
 /// An integer in Montgomery form represented using `LIMBS` limbs.
 /// The odd modulus is set at runtime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -318,10 +330,10 @@ impl<const LIMBS: usize> ConstantTimeEq for MontyForm<LIMBS> {
     }
 }
 
-/// NOTE: this does _not_ zeroize the parameters, in order to maintain some form of type consistency
 #[cfg(feature = "zeroize")]
 impl<const LIMBS: usize> zeroize::Zeroize for MontyForm<LIMBS> {
     fn zeroize(&mut self) {
-        self.montgomery_form.zeroize()
+        self.montgomery_form.zeroize();
+        self.params.zeroize();
     }
 }
