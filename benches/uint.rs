@@ -96,6 +96,29 @@ fn bench_random(c: &mut Criterion) {
             black_box(r)
         });
     });
+
+    // Slow case: the hi limb is just `2`
+    let mut rng = make_rng();
+    group.bench_function("random_mod, U1024, tiny high limb", |b| {
+        let hex_1024 = "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000291A6B42D1C7D2A7184D13E36F65773BBEFB4FA7996101300D49F09962A361F00";
+        let modulus = U1024::from_be_hex(hex_1024);
+        let modulus_nz = NonZero::new(modulus).unwrap();
+        b.iter(|| black_box(U1024::random_mod(&mut rng, &modulus_nz)));
+    });
+
+    // Slow case: the hi limb is just `2`
+    let mut rng = make_rng();
+    group.bench_function("random_bits, U1024, tiny high limb", |b| {
+        let hex_1024 = "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000291A6B42D1C7D2A7184D13E36F65773BBEFB4FA7996101300D49F09962A361F00";
+        let bound = U1024::from_be_hex(hex_1024);
+        let bound_bits = bound.bits_vartime();
+        b.iter(|| {
+            let mut r = U1024::random_bits(&mut rng, bound_bits);
+            while r >= bound {
+                r = U1024::random_bits(&mut rng, bound_bits);
+            }
+        });
+    });
 }
 
 fn bench_mul(c: &mut Criterion) {
