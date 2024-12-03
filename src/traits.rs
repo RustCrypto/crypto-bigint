@@ -12,7 +12,7 @@ use crate::{Limb, NonZero, Odd, Reciprocal};
 use core::fmt::{self, Debug};
 use core::ops::{
     Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign,
-    Mul, MulAssign, Neg, Not, Rem, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
+    Mul, MulAssign, Neg, Not, Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
 use subtle::{
     Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
@@ -127,6 +127,8 @@ pub trait Integer:
     + Ord
     + Rem<NonZero<Self>, Output = Self>
     + for<'a> Rem<&'a NonZero<Self>, Output = Self>
+    + RemAssign<NonZero<Self>>
+    + for<'a> RemAssign<&'a NonZero<Self>>
     + RemLimb
     + Send
     + Sized
