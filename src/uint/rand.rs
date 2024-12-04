@@ -139,6 +139,7 @@ pub(super) fn random_mod_core<T>(
         if n.ct_lt(modulus).into() {
             break;
         }
+        hi_word = next_word() & mask;
     }
 }
 
