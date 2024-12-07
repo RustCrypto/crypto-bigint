@@ -20,7 +20,7 @@ use subtle::{
 };
 
 #[cfg(feature = "rand_core")]
-use rand_core::CryptoRngCore;
+use rand_core::RngCore;
 
 /// Integers whose representation takes a bounded amount of space.
 pub trait Bounded {
@@ -283,7 +283,7 @@ pub trait Constants: ConstZero {
 #[cfg(feature = "rand_core")]
 pub trait Random: Sized {
     /// Generate a cryptographically secure random value.
-    fn random(rng: &mut impl CryptoRngCore) -> Self;
+    fn random(rng: &mut impl RngCore) -> Self;
 }
 
 /// Possible errors of the methods in [`RandomBits`] trait.
@@ -346,17 +346,14 @@ pub trait RandomBits: Sized {
     /// Generate a cryptographically secure random value in range `[0, 2^bit_length)`.
     ///
     /// A wrapper for [`RandomBits::try_random_bits`] that panics on error.
-    fn random_bits(rng: &mut impl CryptoRngCore, bit_length: u32) -> Self {
+    fn random_bits(rng: &mut impl RngCore, bit_length: u32) -> Self {
         Self::try_random_bits(rng, bit_length).expect("try_random_bits() failed")
     }
 
     /// Generate a cryptographically secure random value in range `[0, 2^bit_length)`.
     ///
     /// This method is variable time wrt `bit_length`.
-    fn try_random_bits(
-        rng: &mut impl CryptoRngCore,
-        bit_length: u32,
-    ) -> Result<Self, RandomBitsError>;
+    fn try_random_bits(rng: &mut impl RngCore, bit_length: u32) -> Result<Self, RandomBitsError>;
 
     /// Generate a cryptographically secure random value in range `[0, 2^bit_length)`,
     /// returning an integer with the closest available size to `bits_precision`
@@ -364,7 +361,7 @@ pub trait RandomBits: Sized {
     ///
     /// A wrapper for [`RandomBits::try_random_bits_with_precision`] that panics on error.
     fn random_bits_with_precision(
-        rng: &mut impl CryptoRngCore,
+        rng: &mut impl RngCore,
         bit_length: u32,
         bits_precision: u32,
     ) -> Self {
@@ -378,7 +375,7 @@ pub trait RandomBits: Sized {
     ///
     /// This method is variable time wrt `bit_length`.
     fn try_random_bits_with_precision(
-        rng: &mut impl CryptoRngCore,
+        rng: &mut impl RngCore,
         bit_length: u32,
         bits_precision: u32,
     ) -> Result<Self, RandomBitsError>;
@@ -398,7 +395,7 @@ pub trait RandomMod: Sized + Zero {
     /// issue so long as the underlying random number generator is truly a
     /// CSRNG, where previous outputs are unrelated to subsequent
     /// outputs and do not reveal information about the RNG's internal state.
-    fn random_mod(rng: &mut impl CryptoRngCore, modulus: &NonZero<Self>) -> Self;
+    fn random_mod(rng: &mut impl RngCore, modulus: &NonZero<Self>) -> Self;
 }
 
 /// Compute `self + rhs mod p`.

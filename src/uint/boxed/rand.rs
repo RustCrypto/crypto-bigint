@@ -5,18 +5,15 @@ use crate::{
     uint::rand::{random_bits_core, random_mod_core},
     NonZero, RandomBits, RandomBitsError, RandomMod,
 };
-use rand_core::CryptoRngCore;
+use rand_core::RngCore;
 
 impl RandomBits for BoxedUint {
-    fn try_random_bits(
-        rng: &mut impl CryptoRngCore,
-        bit_length: u32,
-    ) -> Result<Self, RandomBitsError> {
+    fn try_random_bits(rng: &mut impl RngCore, bit_length: u32) -> Result<Self, RandomBitsError> {
         Self::try_random_bits_with_precision(rng, bit_length, bit_length)
     }
 
     fn try_random_bits_with_precision(
-        rng: &mut impl CryptoRngCore,
+        rng: &mut impl RngCore,
         bit_length: u32,
         bits_precision: u32,
     ) -> Result<Self, RandomBitsError> {
@@ -43,7 +40,7 @@ impl RandomMod for BoxedUint {
     /// The variable-time nature of the algorithm should not pose a security issue so long as the
     /// underlying random number generator is truly a CSRNG, where previous outputs are unrelated to
     /// subsequent outputs and do not reveal information about the RNG's internal state.
-    fn random_mod(rng: &mut impl CryptoRngCore, modulus: &NonZero<Self>) -> Self {
+    fn random_mod(rng: &mut impl RngCore, modulus: &NonZero<Self>) -> Self {
         let mut n = BoxedUint::zero_with_precision(modulus.bits_precision());
         random_mod_core(rng, &mut n, modulus, modulus.bits());
         n
