@@ -282,7 +282,9 @@ pub trait Constants: ConstZero {
 /// Random number generation support.
 #[cfg(feature = "rand_core")]
 pub trait Random: Sized {
-    /// Generate a cryptographically secure random value.
+    /// Generate a random value.
+    ///
+    /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
     fn random(rng: &mut impl RngCore) -> Self;
 }
 
@@ -343,19 +345,21 @@ impl core::error::Error for RandomBitsError {}
 /// Random bits generation support.
 #[cfg(feature = "rand_core")]
 pub trait RandomBits: Sized {
-    /// Generate a cryptographically secure random value in range `[0, 2^bit_length)`.
+    /// Generate a random value in range `[0, 2^bit_length)`.
     ///
     /// A wrapper for [`RandomBits::try_random_bits`] that panics on error.
     fn random_bits(rng: &mut impl RngCore, bit_length: u32) -> Self {
         Self::try_random_bits(rng, bit_length).expect("try_random_bits() failed")
     }
 
-    /// Generate a cryptographically secure random value in range `[0, 2^bit_length)`.
+    /// Generate a random value in range `[0, 2^bit_length)`.
     ///
     /// This method is variable time wrt `bit_length`.
+    ///
+    /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
     fn try_random_bits(rng: &mut impl RngCore, bit_length: u32) -> Result<Self, RandomBitsError>;
 
-    /// Generate a cryptographically secure random value in range `[0, 2^bit_length)`,
+    /// Generate a random value in range `[0, 2^bit_length)`,
     /// returning an integer with the closest available size to `bits_precision`
     /// (if the implementing type supports runtime sizing).
     ///
@@ -369,11 +373,13 @@ pub trait RandomBits: Sized {
             .expect("try_random_bits_with_precision() failed")
     }
 
-    /// Generate a cryptographically secure random value in range `[0, 2^bit_length)`,
+    /// Generate a random value in range `[0, 2^bit_length)`,
     /// returning an integer with the closest available size to `bits_precision`
     /// (if the implementing type supports runtime sizing).
     ///
     /// This method is variable time wrt `bit_length`.
+    ///
+    /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
     fn try_random_bits_with_precision(
         rng: &mut impl RngCore,
         bit_length: u32,
@@ -384,15 +390,14 @@ pub trait RandomBits: Sized {
 /// Modular random number generation support.
 #[cfg(feature = "rand_core")]
 pub trait RandomMod: Sized + Zero {
-    /// Generate a cryptographically secure random number which is less than
-    /// a given `modulus`.
+    /// Generate a random number which is less than a given `modulus`.
     ///
     /// This function uses rejection sampling, a method which produces an
     /// unbiased distribution of in-range values provided the underlying
-    /// CSRNG is unbiased, but runs in variable-time.
+    /// RNG is unbiased, but runs in variable-time.
     ///
     /// The variable-time nature of the algorithm should not pose a security
-    /// issue so long as the underlying random number generator is truly a
+    /// issue so long as the underlying random number generator is a
     /// CSRNG, where previous outputs are unrelated to subsequent
     /// outputs and do not reveal information about the RNG's internal state.
     fn random_mod(rng: &mut impl RngCore, modulus: &NonZero<Self>) -> Self;

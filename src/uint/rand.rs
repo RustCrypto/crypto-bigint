@@ -6,7 +6,6 @@ use rand_core::RngCore;
 use subtle::ConstantTimeLess;
 
 impl<const LIMBS: usize> Random for Uint<LIMBS> {
-    /// Generate a cryptographically secure random [`Uint`].
     fn random(mut rng: &mut impl RngCore) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
 
@@ -79,15 +78,14 @@ impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
-    /// Generate a cryptographically secure random [`Uint`] which is less than
-    /// a given `modulus`.
+    /// Generate a random number which is less than a given `modulus`.
     ///
     /// This function uses rejection sampling, a method which produces an
     /// unbiased distribution of in-range values provided the underlying
-    /// CSRNG is unbiased, but runs in variable-time.
+    /// RNG is unbiased, but runs in variable-time.
     ///
     /// The variable-time nature of the algorithm should not pose a security
-    /// issue so long as the underlying random number generator is truly a
+    /// issue so long as the underlying random number generator is a
     /// CSRNG, where previous outputs are unrelated to subsequent
     /// outputs and do not reveal information about the RNG's internal state.
     fn random_mod(rng: &mut impl RngCore, modulus: &NonZero<Self>) -> Self {

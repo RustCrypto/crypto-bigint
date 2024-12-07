@@ -232,7 +232,6 @@ impl<T> Random for NonZero<T>
 where
     T: Random + Zero,
 {
-    /// Generate a random `NonZero<T>`.
     fn random(mut rng: &mut impl RngCore) -> Self {
         // Use rejection sampling to eliminate zero values.
         // While this method isn't constant-time, the attacker shouldn't learn
