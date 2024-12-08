@@ -307,6 +307,14 @@ impl Monty for BoxedMontyForm {
     }
 }
 
+/// NOTE: This zeroizes the value, but _not_ the associated parameters!
+#[cfg(feature = "zeroize")]
+impl Zeroize for BoxedMontyForm {
+    fn zeroize(&mut self) {
+        self.montgomery_form.zeroize();
+    }
+}
+
 /// Convert the given integer into the Montgomery domain.
 #[inline]
 fn convert_to_montgomery(integer: &mut BoxedUint, params: &BoxedMontyParams) {
