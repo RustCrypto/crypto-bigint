@@ -232,10 +232,12 @@ impl<T> Random for NonZero<T>
 where
     T: Random + Zero,
 {
+    /// This uses rejection sampling to avoid zero.
+    ///
+    /// As a result, it runs in variable time. If the generator `rng` is
+    /// cryptographically secure (for example, it implements `CryptoRng`),
+    /// then this is guaranteed not to leak anything about the output value.
     fn random(mut rng: &mut impl RngCore) -> Self {
-        // Use rejection sampling to eliminate zero values.
-        // While this method isn't constant-time, the attacker shouldn't learn
-        // anything about unrelated outputs so long as `rng` is a CSRNG.
         loop {
             if let Some(result) = Self::new(T::random(&mut rng)).into() {
                 break result;
