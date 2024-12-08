@@ -392,14 +392,13 @@ pub trait RandomBits: Sized {
 pub trait RandomMod: Sized + Zero {
     /// Generate a random number which is less than a given `modulus`.
     ///
-    /// This function uses rejection sampling, a method which produces an
-    /// unbiased distribution of in-range values provided the underlying
-    /// RNG is unbiased, but runs in variable-time.
+    /// This uses rejection sampling.
     ///
-    /// The variable-time nature of the algorithm should not pose a security
-    /// issue so long as the underlying random number generator is a
-    /// CSRNG, where previous outputs are unrelated to subsequent
-    /// outputs and do not reveal information about the RNG's internal state.
+    /// As a result, it runs in variable time that depends in part on
+    /// `modulus`. If the generator `rng` is cryptographically secure (for
+    /// example, it implements `CryptoRng`), then this is guaranteed not to
+    /// leak anything about the output value aside from it being less than
+    /// `modulus`.
     fn random_mod(rng: &mut impl RngCore, modulus: &NonZero<Self>) -> Self;
 }
 
