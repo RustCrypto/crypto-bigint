@@ -12,7 +12,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use crate::{ArrayEncoding, ByteArray};
 
 #[cfg(feature = "rand_core")]
-use {crate::Random, rand_core::CryptoRngCore};
+use {crate::Random, rand_core::RngCore};
 
 #[cfg(feature = "serde")]
 use serdect::serde::{
@@ -21,7 +21,7 @@ use serdect::serde::{
 };
 
 /// Wrapper type for non-zero integers.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 #[repr(transparent)]
 pub struct NonZero<T>(pub(crate) T);
 
@@ -210,6 +210,15 @@ where
     }
 }
 
+impl<T> Default for NonZero<T>
+where
+    T: Constants,
+{
+    fn default() -> Self {
+        Self(T::ONE)
+    }
+}
+
 impl<T> Deref for NonZero<T> {
     type Target = T;
 
@@ -223,11 +232,12 @@ impl<T> Random for NonZero<T>
 where
     T: Random + Zero,
 {
-    /// Generate a random `NonZero<T>`.
-    fn random(mut rng: &mut impl CryptoRngCore) -> Self {
-        // Use rejection sampling to eliminate zero values.
-        // While this method isn't constant-time, the attacker shouldn't learn
-        // anything about unrelated outputs so long as `rng` is a CSRNG.
+    /// This uses rejection sampling to avoid zero.
+    ///
+    /// As a result, it runs in variable time. If the generator `rng` is
+    /// cryptographically secure (for example, it implements `CryptoRng`),
+    /// then this is guaranteed not to leak anything about the output value.
+    fn random(mut rng: &mut impl RngCore) -> Self {
         loop {
             if let Some(result) = Self::new(T::random(&mut rng)).into() {
                 break result;

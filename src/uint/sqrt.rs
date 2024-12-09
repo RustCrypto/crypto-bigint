@@ -1,6 +1,6 @@
 //! [`Uint`] square root operations.
 
-use crate::{SquareRoot, Uint};
+use crate::{NonZero, SquareRoot, Uint};
 use subtle::{ConstantTimeEq, CtOption};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -29,14 +29,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             x_prev = x;
 
             // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
-            let maybe_nz_x = x.to_nz();
-            let (nz_x, is_some) = maybe_nz_x.components_ref();
-            let (q, _) = self.div_rem(nz_x);
-
-            // A protection in case `self == 0`, which will make `x == 0`
-            let q = Self::select(&Self::ZERO, &q, is_some);
-
-            x = x.wrapping_add(&q).shr1();
+            let x_nonzero = x.is_nonzero();
+            let (q, _) = self.div_rem(&NonZero(Self::select(&Self::ONE, &x, x_nonzero)));
+            x = Self::select(&Self::ZERO, &x.wrapping_add(&q).shr1(), x_nonzero);
             i += 1;
         }
 
@@ -51,6 +46,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Callers can check if `self` is a square by squaring the result
     pub const fn sqrt_vartime(&self) -> Self {
         // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13
+
+        if self.cmp_vartime(&Self::ZERO).is_eq() {
+            return Self::ZERO;
+        }
 
         // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < b`.
         // Will not overflow since `b <= BITS`.
@@ -75,11 +74,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             x = next_x;
         }
 
-        if self.is_nonzero().is_true_vartime() {
-            x
-        } else {
-            Self::ZERO
-        }
+        x
     }
 
     /// Wrapped sqrt is just normal √(`self`)

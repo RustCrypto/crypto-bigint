@@ -1,6 +1,6 @@
 //! [`BoxedUint`] subtraction operations.
 
-use crate::{BoxedUint, CheckedSub, Limb, Wrapping, WrappingSub, Zero};
+use crate::{BoxedUint, CheckedSub, Limb, Uint, Wrapping, WrappingSub, Zero, U128, U64};
 use core::ops::{Sub, SubAssign};
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
@@ -15,11 +15,11 @@ impl BoxedUint {
     ///
     /// Panics if `rhs` has a larger precision than `self`.
     #[inline(always)]
-    pub fn sbb_assign(&mut self, rhs: &Self, mut borrow: Limb) -> Limb {
-        debug_assert!(self.bits_precision() <= rhs.bits_precision());
+    pub fn sbb_assign(&mut self, rhs: impl AsRef<[Limb]>, mut borrow: Limb) -> Limb {
+        debug_assert!(self.bits_precision() <= (rhs.as_ref().len() as u32 * Limb::BITS));
 
         for i in 0..self.nlimbs() {
-            let (limb, b) = self.limbs[i].sbb(*rhs.limbs.get(i).unwrap_or(&Limb::ZERO), borrow);
+            let (limb, b) = self.limbs[i].sbb(*rhs.as_ref().get(i).unwrap_or(&Limb::ZERO), borrow);
             self.limbs[i] = limb;
             borrow = b;
         }
@@ -82,6 +82,52 @@ impl Sub<&BoxedUint> for &BoxedUint {
     }
 }
 
+impl<const LIMBS: usize> Sub<Uint<LIMBS>> for BoxedUint {
+    type Output = BoxedUint;
+
+    fn sub(self, rhs: Uint<LIMBS>) -> BoxedUint {
+        self.sub(&rhs)
+    }
+}
+
+impl<const LIMBS: usize> Sub<&Uint<LIMBS>> for BoxedUint {
+    type Output = BoxedUint;
+
+    fn sub(mut self, rhs: &Uint<LIMBS>) -> BoxedUint {
+        self -= rhs;
+        self
+    }
+}
+
+impl<const LIMBS: usize> Sub<Uint<LIMBS>> for &BoxedUint {
+    type Output = BoxedUint;
+
+    fn sub(self, rhs: Uint<LIMBS>) -> BoxedUint {
+        self.clone().sub(rhs)
+    }
+}
+
+impl<const LIMBS: usize> Sub<&Uint<LIMBS>> for &BoxedUint {
+    type Output = BoxedUint;
+
+    fn sub(self, rhs: &Uint<LIMBS>) -> BoxedUint {
+        self.clone().sub(rhs)
+    }
+}
+
+impl<const LIMBS: usize> SubAssign<Uint<LIMBS>> for BoxedUint {
+    fn sub_assign(&mut self, rhs: Uint<LIMBS>) {
+        *self -= &rhs;
+    }
+}
+
+impl<const LIMBS: usize> SubAssign<&Uint<LIMBS>> for BoxedUint {
+    fn sub_assign(&mut self, rhs: &Uint<LIMBS>) {
+        let carry = self.sbb_assign(rhs.as_limbs(), Limb::ZERO);
+        assert_eq!(carry.0, 0, "attempted to sub with overflow");
+    }
+}
+
 impl SubAssign<Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     fn sub_assign(&mut self, other: Wrapping<BoxedUint>) {
         self.0.sbb_assign(&other.0, Limb::ZERO);
@@ -97,6 +143,62 @@ impl SubAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
 impl WrappingSub for BoxedUint {
     fn wrapping_sub(&self, v: &Self) -> Self {
         self.wrapping_sub(v)
+    }
+}
+
+macro_rules! impl_sub_primitive {
+    ($($primitive:ty),+) => {
+        $(
+            impl Sub<$primitive> for BoxedUint {
+                type Output = BoxedUint;
+
+                #[inline]
+                fn sub(self, rhs: $primitive) -> BoxedUint {
+                     self - U64::from(rhs)
+                }
+            }
+
+            impl Sub<$primitive> for &BoxedUint {
+                type Output = BoxedUint;
+
+                #[inline]
+                fn sub(self, rhs: $primitive) -> BoxedUint {
+                     self - U64::from(rhs)
+                }
+            }
+
+            impl SubAssign<$primitive> for BoxedUint {
+                fn sub_assign(&mut self, rhs: $primitive) {
+                    *self -= U64::from(rhs);
+                }
+            }
+        )+
+    };
+}
+
+impl_sub_primitive!(u8, u16, u32, u64);
+
+impl Sub<u128> for BoxedUint {
+    type Output = BoxedUint;
+
+    #[inline]
+    fn sub(self, rhs: u128) -> BoxedUint {
+        self - U128::from(rhs)
+    }
+}
+
+impl Sub<u128> for &BoxedUint {
+    type Output = BoxedUint;
+
+    #[inline]
+    fn sub(self, rhs: u128) -> BoxedUint {
+        self - U128::from(rhs)
+    }
+}
+
+impl SubAssign<u128> for BoxedUint {
+    fn sub_assign(&mut self, rhs: u128) {
+        *self -= U128::from(rhs);
     }
 }
 
@@ -121,6 +223,13 @@ mod tests {
         let (res, borrow) = BoxedUint::zero().sbb(&BoxedUint::one(), Limb::ZERO);
         assert_eq!(res, BoxedUint::max(Limb::BITS));
         assert_eq!(borrow, Limb::MAX);
+    }
+
+    #[test]
+    fn sub_with_u32_rhs() {
+        let a = BoxedUint::from(0x100000000u64);
+        let b = a - u32::MAX;
+        assert_eq!(b, BoxedUint::one());
     }
 
     #[test]

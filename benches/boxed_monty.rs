@@ -19,7 +19,69 @@ fn to_biguint(uint: &BoxedUint) -> BigUint {
 fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     let params = BoxedMontyParams::new(Odd::<BoxedUint>::random(&mut OsRng, UINT_BITS));
 
-    group.bench_function("invert, 4096-bit", |b| {
+    group.bench_function(format!("add, {UINT_BITS}-bit"), |b| {
+        b.iter_batched(
+            || {
+                let a = BoxedMontyForm::new(
+                    BoxedUint::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                    params.clone(),
+                );
+                let b = BoxedMontyForm::new(
+                    BoxedUint::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                    params.clone(),
+                );
+                (a, b)
+            },
+            |(a, b)| black_box(a).add(&black_box(b)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function(format!("double, {UINT_BITS}-bit"), |b| {
+        b.iter_batched(
+            || {
+                BoxedMontyForm::new(
+                    BoxedUint::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                    params.clone(),
+                )
+            },
+            |a| black_box(a).double(),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function(format!("sub, {UINT_BITS}-bit"), |b| {
+        b.iter_batched(
+            || {
+                let a = BoxedMontyForm::new(
+                    BoxedUint::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                    params.clone(),
+                );
+                let b = BoxedMontyForm::new(
+                    BoxedUint::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                    params.clone(),
+                );
+                (a, b)
+            },
+            |(a, b)| black_box(a).sub(&black_box(b)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function(format!("neg, {UINT_BITS}-bit"), |b| {
+        b.iter_batched(
+            || {
+                BoxedMontyForm::new(
+                    BoxedUint::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                    params.clone(),
+                )
+            },
+            |a| black_box(a).neg(),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function(format!("invert, {UINT_BITS}-bit"), |b| {
         b.iter_batched(
             || {
                 BoxedMontyForm::new(
@@ -36,11 +98,11 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         b.iter_batched(
             || {
                 let x = BoxedMontyForm::new(
-                    BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+                    BoxedUint::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
                     params.clone(),
                 );
                 let y = BoxedMontyForm::new(
-                    BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+                    BoxedUint::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
                     params.clone(),
                 );
                 (x, y)
@@ -94,6 +156,27 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             BatchSize::SmallInput,
         )
     });
+
+    group.bench_function(
+        "lincomb_vartime, BoxedUint*BoxedUint+BoxedUint*BoxedUint",
+        |b| {
+            b.iter_batched(
+                || {
+                    BoxedMontyForm::new(
+                        BoxedUint::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                        params.clone(),
+                    )
+                },
+                |a| {
+                    BoxedMontyForm::lincomb_vartime(&[
+                        (black_box(&a), black_box(&a)),
+                        (black_box(&a), black_box(&a)),
+                    ])
+                },
+                BatchSize::SmallInput,
+            )
+        },
+    );
 }
 
 fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {

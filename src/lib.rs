@@ -117,7 +117,7 @@
 //! ### Random number generation
 //!
 //! When the `rand_core` or `rand` features of this crate are enabled, it's
-//! possible to generate random numbers using any CSRNG by using the
+//! possible to generate random numbers using any RNG by using the
 //! [`Random`] trait:
 //!
 //! ```
@@ -154,9 +154,6 @@
 #[allow(unused_imports)]
 #[macro_use]
 extern crate alloc;
-
-#[cfg(feature = "std")]
-extern crate std;
 
 #[macro_use]
 mod macros;

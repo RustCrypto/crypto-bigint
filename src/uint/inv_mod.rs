@@ -1,6 +1,6 @@
 use super::Uint;
 use crate::{
-    modular::BernsteinYangInverter, ConstChoice, ConstCtOption, InvMod, Odd, PrecomputeInverter,
+    modular::SafeGcdInverter, ConstChoice, ConstCtOption, InvMod, Odd, PrecomputeInverter,
 };
 use subtle::CtOption;
 
@@ -85,11 +85,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
 impl<const LIMBS: usize, const UNSAT_LIMBS: usize> Uint<LIMBS>
 where
-    Odd<Self>: PrecomputeInverter<Inverter = BernsteinYangInverter<LIMBS, UNSAT_LIMBS>>,
+    Odd<Self>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
 {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     pub const fn inv_odd_mod(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
-        BernsteinYangInverter::<LIMBS, UNSAT_LIMBS>::new(modulus, &Uint::ONE).inv(self)
+        SafeGcdInverter::<LIMBS, UNSAT_LIMBS>::new(modulus, &Uint::ONE).inv(self)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`.
@@ -135,7 +135,7 @@ where
 
 impl<const LIMBS: usize, const UNSAT_LIMBS: usize> InvMod for Uint<LIMBS>
 where
-    Odd<Self>: PrecomputeInverter<Inverter = BernsteinYangInverter<LIMBS, UNSAT_LIMBS>>,
+    Odd<Self>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
 {
     fn inv_mod(&self, modulus: &Self) -> CtOption<Self> {
         self.inv_mod(modulus).into()

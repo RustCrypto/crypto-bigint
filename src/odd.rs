@@ -8,7 +8,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use crate::BoxedUint;
 
 #[cfg(feature = "rand_core")]
-use {crate::Random, rand_core::CryptoRngCore};
+use {crate::Random, rand_core::RngCore};
 
 #[cfg(all(feature = "alloc", feature = "rand_core"))]
 use crate::RandomBits;
@@ -153,7 +153,7 @@ impl PartialOrd<Odd<BoxedUint>> for BoxedUint {
 #[cfg(feature = "rand_core")]
 impl<const LIMBS: usize> Random for Odd<Uint<LIMBS>> {
     /// Generate a random `Odd<Uint<T>>`.
-    fn random(rng: &mut impl CryptoRngCore) -> Self {
+    fn random(rng: &mut impl RngCore) -> Self {
         let mut ret = Uint::random(rng);
         ret.limbs[0] |= Limb::ONE;
         Odd(ret)
@@ -163,7 +163,7 @@ impl<const LIMBS: usize> Random for Odd<Uint<LIMBS>> {
 #[cfg(all(feature = "alloc", feature = "rand_core"))]
 impl Odd<BoxedUint> {
     /// Generate a random `Odd<Uint<T>>`.
-    pub fn random(rng: &mut impl CryptoRngCore, bit_length: u32) -> Self {
+    pub fn random(rng: &mut impl RngCore, bit_length: u32) -> Self {
         let mut ret = BoxedUint::random_bits(rng, bit_length);
         ret.limbs[0] |= Limb::ONE;
         Odd(ret)
@@ -270,7 +270,6 @@ mod tests {
     #[cfg(feature = "serde")]
     mod serde_tests {
         use crate::{Odd, U128, U64};
-        use alloc::string::ToString;
         use bincode::ErrorKind;
 
         #[test]
@@ -301,37 +300,6 @@ mod tests {
                 *bincode::deserialize::<Odd<U64>>(&zero_ser).unwrap_err(),
                 ErrorKind::Custom(mess) if mess == "invalid value: even, expected a non-zero odd value"
             ))
-        }
-
-        #[test]
-        fn cannot_deserialize_into_bigger_type() {
-            let three = Odd::new(U64::from_u64(0x3)).unwrap();
-            let three_ser = bincode::serialize(&three).unwrap();
-            let error_message = bincode::deserialize::<Odd<U128>>(&three_ser)
-                .unwrap_err()
-                .to_string();
-
-            assert_eq!(&error_message, "io error: unexpected end of file");
-        }
-
-        #[test]
-        fn silently_coerces_bigger_type_into_smaller_type() {
-            use bincode::Options;
-
-            // Use custom options to disallow trailing bytes.
-            let options = bincode::DefaultOptions::new();
-
-            let three = Odd::new(U128::from_u128(0x77777777777777773333333333333333)).unwrap();
-            let three_ser = options.serialize(&three).unwrap();
-            let error_message = options
-                .deserialize::<Odd<U64>>(&three_ser)
-                .unwrap_err()
-                .to_string();
-
-            assert_eq!(
-                &error_message,
-                "Slice had bytes remaining after deserialization"
-            );
         }
     }
 }

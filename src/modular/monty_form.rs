@@ -2,6 +2,7 @@
 
 mod add;
 pub(super) mod inv;
+mod lincomb;
 mod mul;
 mod neg;
 mod pow;
@@ -30,6 +31,8 @@ pub struct MontyParams<const LIMBS: usize> {
     /// The lowest limbs of -(MODULUS^-1) mod R
     /// We only need the LSB because during reduction this value is multiplied modulo 2**Limb::BITS.
     mod_neg_inv: Limb,
+    /// Leading zeros in the modulus, used to choose optimized algorithms
+    mod_leading_zeros: u32,
 }
 
 impl<const LIMBS: usize, const WIDE_LIMBS: usize> MontyParams<LIMBS>
@@ -57,6 +60,8 @@ where
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
 
+        let mod_leading_zeros = modulus.as_ref().leading_zeros().max(Word::BITS - 1);
+
         // `R^3 mod modulus`, used for inversion in Montgomery form.
         let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);
 
@@ -66,6 +71,7 @@ where
             r2,
             r3,
             mod_neg_inv,
+            mod_leading_zeros,
         }
     }
 }
@@ -89,6 +95,8 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
 
+        let mod_leading_zeros = modulus.as_ref().leading_zeros().max(Word::BITS - 1);
+
         // `R^3 mod modulus`, used for inversion in Montgomery form.
         let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);
 
@@ -98,6 +106,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
             r2,
             r3,
             mod_neg_inv,
+            mod_leading_zeros,
         }
     }
 
@@ -117,6 +126,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
             r2: P::R2,
             r3: P::R3,
             mod_neg_inv: P::MOD_NEG_INV,
+            mod_leading_zeros: P::MOD_LEADING_ZEROS,
         }
     }
 }
@@ -129,6 +139,11 @@ impl<const LIMBS: usize> ConditionallySelectable for MontyParams<LIMBS> {
             r2: Uint::conditional_select(&a.r2, &b.r2, choice),
             r3: Uint::conditional_select(&a.r3, &b.r3, choice),
             mod_neg_inv: Limb::conditional_select(&a.mod_neg_inv, &b.mod_neg_inv, choice),
+            mod_leading_zeros: u32::conditional_select(
+                &a.mod_leading_zeros,
+                &b.mod_leading_zeros,
+                choice,
+            ),
         }
     }
 }
@@ -140,6 +155,18 @@ impl<const LIMBS: usize> ConstantTimeEq for MontyParams<LIMBS> {
             & self.r2.ct_eq(&other.r2)
             & self.r3.ct_eq(&other.r3)
             & self.mod_neg_inv.ct_eq(&other.mod_neg_inv)
+    }
+}
+
+#[cfg(feature = "zeroize")]
+impl<const LIMBS: usize> zeroize::Zeroize for MontyParams<LIMBS> {
+    fn zeroize(&mut self) {
+        self.modulus.zeroize();
+        self.one.zeroize();
+        self.r2.zeroize();
+        self.r3.zeroize();
+        self.mod_neg_inv.zeroize();
+        self.mod_leading_zeros.zeroize();
     }
 }
 
@@ -260,8 +287,16 @@ impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
         &self.montgomery_form
     }
 
+    fn double(&self) -> Self {
+        MontyForm::double(self)
+    }
+
     fn div_by_2(&self) -> Self {
         MontyForm::div_by_2(self)
+    }
+
+    fn lincomb_vartime(products: &[(&Self, &Self)]) -> Self {
+        MontyForm::lincomb_vartime(products)
     }
 }
 
@@ -295,10 +330,10 @@ impl<const LIMBS: usize> ConstantTimeEq for MontyForm<LIMBS> {
     }
 }
 
-/// NOTE: this does _not_ zeroize the parameters, in order to maintain some form of type consistency
 #[cfg(feature = "zeroize")]
 impl<const LIMBS: usize> zeroize::Zeroize for MontyForm<LIMBS> {
     fn zeroize(&mut self) {
-        self.montgomery_form.zeroize()
+        self.montgomery_form.zeroize();
+        self.params.zeroize();
     }
 }

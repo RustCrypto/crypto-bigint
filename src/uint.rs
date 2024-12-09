@@ -40,7 +40,7 @@ pub(crate) mod boxed;
 mod rand;
 
 use crate::{
-    modular::{BernsteinYangInverter, MontyForm},
+    modular::{MontyForm, SafeGcdInverter},
     Bounded, ConstCtOption, ConstZero, Constants, Encoding, FixedInteger, Integer, Limb, NonZero,
     Odd, PrecomputeInverter, PrecomputeInverterWithAdjuster, Word,
 };

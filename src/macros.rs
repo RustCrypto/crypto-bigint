@@ -5,7 +5,7 @@
 #[macro_export]
 macro_rules! nlimbs {
     ($bits:expr) => {
-        (($bits + $crate::Limb::BITS - 1) / $crate::Limb::BITS) as usize
+        u32::div_ceil($bits, $crate::Limb::BITS) as usize
     };
 }
 
@@ -15,66 +15,13 @@ macro_rules! nlimbs {
 /// We need to ensure that:
 ///
 /// ```text
-/// $bits <= (bernstein_yang_nlimbs($bits) * 62) - 64
+/// $bits <= (safegcd_nlimbs($bits) * 62) - 64
 /// ```
 // TODO(tarcieri): replace with `generic_const_exprs` (rust-lang/rust#76560) when stable
-macro_rules! bernstein_yang_nlimbs {
+macro_rules! safegcd_nlimbs {
     ($bits:expr) => {
         ($bits + 64).div_ceil(62)
     };
-}
-
-/// Internal implementation detail of [`const_assert_eq`] and [`const_assert_ne`].
-#[doc(hidden)]
-#[macro_export]
-macro_rules! const_assert_n {
-    ($n:ident, $($arg:tt)*) => {{
-        // TODO(tarcieri): gensym a name so it's unique per invocation of the macro?
-        mod __const_assert {
-            pub(super) struct Assert<const $n: usize>;
-
-            impl<const $n: usize> Assert<$n> {
-                pub(super) const ASSERT: () = assert!($($arg)*);
-            }
-        }
-
-        __const_assert::Assert::<$n>::ASSERT
-    }};
-}
-
-/// Const-friendly assertion that two values are equal.
-///
-/// The first/leftmost operand MUST be a `usize` constant.
-///
-/// ```ignore
-/// const N: usize = 0;
-/// const _: () = crypto_bigint::const_assert_eq!(N, 0, "zero equals zero");
-/// ```
-#[allow(unused_macros)] // TODO(tarcieri): not ready for external use
-macro_rules! const_assert_eq {
-    ($left:ident, $right:expr $(,)?) => (
-        $crate::const_assert_n!($left, $left == $right)
-    );
-    ($left:ident, $right:expr, $($arg:tt)+) => (
-        $crate::const_assert_n!($left, $left == $right, $($arg)+)
-    );
-}
-
-/// Const-friendly assertion that two values are NOT equal.
-///
-/// The first/leftmost operand MUST be a `usize` constant.
-///
-/// ```ignore
-/// const N: usize = 0;
-/// const _: () = crypto_bigint::const_assert_ne!(N, 1, "zero is NOT equal to one");
-/// ```
-macro_rules! const_assert_ne {
-    ($left:ident, $right:expr $(,)?) => (
-        $crate::const_assert_n!($left, $left != $right)
-    );
-    ($left:ident, $right:expr, $($arg:tt)+) => (
-        $crate::const_assert_n!($left, $left != $right, $($arg)+)
-    );
 }
 
 #[cfg(test)]

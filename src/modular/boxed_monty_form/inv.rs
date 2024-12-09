@@ -2,14 +2,12 @@
 
 use super::{BoxedMontyForm, BoxedMontyParams};
 use crate::{
-    modular::BoxedBernsteinYangInverter, Invert, Inverter, PrecomputeInverter,
+    modular::BoxedSafeGcdInverter, Invert, Inverter, PrecomputeInverter,
     PrecomputeInverterWithAdjuster,
 };
+use alloc::sync::Arc;
 use core::fmt;
 use subtle::CtOption;
-
-#[cfg(feature = "std")]
-use std::sync::Arc;
 
 impl BoxedMontyForm {
     /// Computes `self^-1` representing the multiplicative inverse of `self`.
@@ -42,15 +40,9 @@ impl PrecomputeInverter for BoxedMontyParams {
 /// Bernstein-Yang inverter which inverts [`DynResidue`] types.
 pub struct BoxedMontyFormInverter {
     /// Precomputed Bernstein-Yang inverter.
-    inverter: BoxedBernsteinYangInverter,
+    inverter: BoxedSafeGcdInverter,
 
     /// Residue parameters.
-    #[cfg(not(feature = "std"))]
-    params: BoxedMontyParams,
-
-    /// Residue parameters.
-    // Uses `Arc` when `std` is available.
-    #[cfg(feature = "std")]
     params: Arc<BoxedMontyParams>,
 }
 

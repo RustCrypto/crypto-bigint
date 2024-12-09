@@ -1,7 +1,8 @@
-//! is chosen at runtime.
+//! Implements heap-allocated `BoxedMontyForm`s, supporting modular arithmetic with a modulus set at runtime.
 
 mod add;
 mod inv;
+mod lincomb;
 mod mul;
 mod neg;
 mod pow;
@@ -10,12 +11,11 @@ mod sub;
 use super::{
     div_by_2,
     reduction::{montgomery_reduction_boxed, montgomery_reduction_boxed_mut},
-    Retrieve,
+    ConstMontyParams, Retrieve,
 };
 use crate::{BoxedUint, Limb, Monty, Odd, Word};
-
-#[cfg(feature = "std")]
-use std::sync::Arc;
+use alloc::sync::Arc;
+use subtle::Choice;
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -35,6 +35,8 @@ pub struct BoxedMontyParams {
     /// The lowest limbs of -(MODULUS^-1) mod R
     /// We only need the LSB because during reduction this value is multiplied modulo 2**Limb::BITS.
     mod_neg_inv: Limb,
+    /// Leading zeros in the modulus, used to choose optimized algorithms
+    mod_leading_zeros: u32,
 }
 
 impl BoxedMontyParams {
@@ -94,6 +96,9 @@ impl BoxedMontyParams {
         debug_assert!(bool::from(modulus_is_odd));
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));
+
+        let mod_leading_zeros = modulus.as_ref().leading_zeros().max(Word::BITS - 1);
+
         let r3 = montgomery_reduction_boxed(&mut r2.square(), &modulus, mod_neg_inv);
 
         Self {
@@ -102,6 +107,7 @@ impl BoxedMontyParams {
             r2,
             r3,
             mod_neg_inv,
+            mod_leading_zeros,
         }
     }
 
@@ -114,6 +120,18 @@ impl BoxedMontyParams {
     pub fn bits_precision(&self) -> u32 {
         self.modulus.bits_precision()
     }
+
+    /// Create from a set of [`ConstMontyParams`].
+    pub fn from_const_params<const LIMBS: usize, P: ConstMontyParams<LIMBS>>() -> Self {
+        Self {
+            modulus: P::MODULUS.into(),
+            one: P::ONE.into(),
+            r2: P::R2.into(),
+            r3: P::R3.into(),
+            mod_neg_inv: P::MOD_NEG_INV,
+            mod_leading_zeros: P::MOD_LEADING_ZEROS,
+        }
+    }
 }
 
 /// An integer in Montgomery form represented using heap-allocated limbs.
@@ -123,12 +141,6 @@ pub struct BoxedMontyForm {
     montgomery_form: BoxedUint,
 
     /// Montgomery form parameters.
-    #[cfg(not(feature = "std"))]
-    params: BoxedMontyParams,
-
-    /// Montgomery form parameters.
-    // Uses `Arc` when `std` is available.
-    #[cfg(feature = "std")]
     params: Arc<BoxedMontyParams>,
 }
 
@@ -146,7 +158,6 @@ impl BoxedMontyForm {
     }
 
     /// Instantiates a new [`BoxedMontyForm`] that represents an integer modulo the provided params.
-    #[cfg(feature = "std")]
     pub fn new_with_arc(mut integer: BoxedUint, params: Arc<BoxedMontyParams>) -> Self {
         debug_assert_eq!(integer.bits_precision(), params.bits_precision());
         convert_to_montgomery(&mut integer, &params);
@@ -192,6 +203,25 @@ impl BoxedMontyForm {
             montgomery_form: params.one.clone(),
             params: params.into(),
         }
+    }
+
+    /// Determine if this value is equal to zero.
+    ///
+    /// # Returns
+    ///
+    /// If zero, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
+    pub fn is_zero(&self) -> Choice {
+        self.montgomery_form.is_zero()
+    }
+
+    /// Determine if this value is not equal to zero.
+    ///
+    /// # Returns
+    ///
+    /// If zero, returns `Choice(0)`. Otherwise, returns `Choice(1)`.
+    #[inline]
+    pub fn is_nonzero(&self) -> Choice {
+        !self.is_zero()
     }
 
     /// Returns the parameter struct used to initialize this object.
@@ -264,8 +294,24 @@ impl Monty for BoxedMontyForm {
         &self.montgomery_form
     }
 
+    fn double(&self) -> Self {
+        BoxedMontyForm::double(self)
+    }
+
     fn div_by_2(&self) -> Self {
         BoxedMontyForm::div_by_2(self)
+    }
+
+    fn lincomb_vartime(products: &[(&Self, &Self)]) -> Self {
+        BoxedMontyForm::lincomb_vartime(products)
+    }
+}
+
+/// NOTE: This zeroizes the value, but _not_ the associated parameters!
+#[cfg(feature = "zeroize")]
+impl Zeroize for BoxedMontyForm {
+    fn zeroize(&mut self) {
+        self.montgomery_form.zeroize();
     }
 }
 

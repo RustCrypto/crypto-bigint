@@ -1,10 +1,10 @@
 //! Support for computing the greatest common divisor of two `Uint`s.
 
-use crate::{modular::BernsteinYangInverter, ConstChoice, Gcd, Odd, PrecomputeInverter, Uint};
+use crate::{modular::SafeGcdInverter, ConstChoice, Gcd, Odd, PrecomputeInverter, Uint};
 
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Uint<SAT_LIMBS>
 where
-    Odd<Self>: PrecomputeInverter<Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>>,
+    Odd<Self>: PrecomputeInverter<Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>>,
 {
     /// Compute the greatest common divisor (GCD) of this number and another.
     ///
@@ -32,7 +32,7 @@ where
 
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Odd<Uint<SAT_LIMBS>>
 where
-    Self: PrecomputeInverter<Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>>,
+    Self: PrecomputeInverter<Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>>,
 {
     /// Compute the greatest common divisor (GCD) of this number and another.
     ///
@@ -44,7 +44,7 @@ where
 
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Gcd for Uint<SAT_LIMBS>
 where
-    Odd<Self>: PrecomputeInverter<Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>>,
+    Odd<Self>: PrecomputeInverter<Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>>,
 {
     type Output = Uint<SAT_LIMBS>;
 
@@ -62,7 +62,7 @@ where
 
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Gcd<Uint<SAT_LIMBS>> for Odd<Uint<SAT_LIMBS>>
 where
-    Odd<Self>: PrecomputeInverter<Inverter = BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>>,
+    Odd<Self>: PrecomputeInverter<Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>>,
 {
     type Output = Uint<SAT_LIMBS>;
 

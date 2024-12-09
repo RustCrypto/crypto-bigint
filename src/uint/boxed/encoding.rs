@@ -2,7 +2,7 @@
 
 use super::BoxedUint;
 use crate::{uint::encoding, DecodeError, Limb, Word};
-use alloc::{boxed::Box, vec::Vec};
+use alloc::{boxed::Box, string::String, vec::Vec};
 use subtle::{Choice, CtOption};
 
 impl BoxedUint {
@@ -147,7 +147,7 @@ impl BoxedUint {
     /// Panics if `radix` is not in the range from 2 to 36.
     pub fn from_str_radix_vartime(src: &str, radix: u32) -> Result<Self, DecodeError> {
         let mut dec = VecDecodeByLimb::default();
-        encoding::decode_str_radix(src, radix, &mut dec)?;
+        encoding::radix_decode_str(src, radix, &mut dec)?;
         Ok(Self {
             limbs: dec.limbs.into(),
         })
@@ -177,7 +177,7 @@ impl BoxedUint {
         bits_precision: u32,
     ) -> Result<Self, DecodeError> {
         let mut ret = Self::zero_with_precision(bits_precision);
-        encoding::decode_str_radix(
+        encoding::radix_decode_str(
             src,
             radix,
             &mut encoding::SliceDecodeByLimb::new(&mut ret.limbs),
@@ -186,6 +186,13 @@ impl BoxedUint {
             return Err(DecodeError::Precision);
         }
         Ok(ret)
+    }
+
+    /// Format a [`BoxedUint`] as a string in a given base.
+    ///
+    /// Panics if `radix` is not in the range from 2 to 36.
+    pub fn to_string_radix_vartime(&self, radix: u32) -> String {
+        encoding::radix_encode_limbs_to_string(radix, &self.limbs)
     }
 }
 
@@ -457,5 +464,25 @@ mod tests {
         let hex = "fedcba9876543210fedcba9876543210";
         let res = BoxedUint::from_str_radix_vartime(hex, 16).expect("error decoding");
         assert_eq!(hex, format!("{res:x}"));
+    }
+
+    #[test]
+    #[cfg(feature = "rand_core")]
+    fn encode_radix_round_trip() {
+        use crate::RandomBits;
+        use rand_core::SeedableRng;
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+
+        for _ in 0..100 {
+            let uint = BoxedUint::random_bits(&mut rng, 4096);
+            for radix in 2..=36 {
+                let enc = uint.to_string_radix_vartime(radix);
+                let res = BoxedUint::from_str_radix_vartime(&enc, radix).expect("decoding error");
+                assert_eq!(
+                    res, uint,
+                    "round trip failure: radix {radix} encoded {uint} as {enc}"
+                );
+            }
+        }
     }
 }

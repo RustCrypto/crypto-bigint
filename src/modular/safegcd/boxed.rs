@@ -1,19 +1,22 @@
-//! Implementation of Bernstein-Yang modular inversion and GCD algorithm as described in:
-//! <https://eprint.iacr.org/2019/266>.
+//! Implementation of Bernstein-Yang modular inversion and GCD algorithm (a.k.a. safegcd)
+//! as described in: <https://eprint.iacr.org/2019/266>.
 //!
 //! See parent module for more information.
 
 use super::{inv_mod2_62, iterations, jump, Matrix};
 use crate::{BoxedUint, Inverter, Limb, Odd, Word};
-use alloc::{boxed::Box, vec::Vec};
-use core::ops::{AddAssign, Mul};
+use alloc::boxed::Box;
+use core::{
+    cmp::max,
+    ops::{AddAssign, Mul},
+};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, CtOption};
 
 /// Modular multiplicative inverter based on the Bernstein-Yang method.
 ///
-/// See [`super::BernsteinYangInverter`] for more information.
+/// See [`super::SafeGcdInverter`] for more information.
 #[derive(Clone, Debug)]
-pub struct BoxedBernsteinYangInverter {
+pub struct BoxedSafeGcdInverter {
     /// Modulus
     pub(crate) modulus: BoxedUnsatInt,
 
@@ -24,7 +27,7 @@ pub struct BoxedBernsteinYangInverter {
     inverse: i64,
 }
 
-impl BoxedBernsteinYangInverter {
+impl BoxedSafeGcdInverter {
     /// Creates the inverter for specified modulus and adjusting parameter.
     ///
     /// Modulus must be odd. Returns `None` if it is not.
@@ -47,7 +50,7 @@ impl BoxedBernsteinYangInverter {
     }
 }
 
-impl Inverter for BoxedBernsteinYangInverter {
+impl Inverter for BoxedSafeGcdInverter {
     type Output = BoxedUint;
 
     fn invert(&self, value: &BoxedUint) -> CtOption<Self::Output> {
@@ -66,14 +69,28 @@ impl Inverter for BoxedBernsteinYangInverter {
     }
 }
 
+/// Compute the number of unsaturated limbs needed to represent a saturated integer with the given
+/// number of saturated limbs.
+fn unsat_nlimbs_for_sat_nlimbs(saturated_nlimbs: usize) -> usize {
+    let saturated_nlimbs = if Word::BITS == 32 && saturated_nlimbs == 1 {
+        2
+    } else {
+        saturated_nlimbs
+    };
+
+    safegcd_nlimbs!(saturated_nlimbs * Limb::BITS as usize)
+}
+
 /// Returns the greatest common divisor (GCD) of the two given numbers.
 pub(crate) fn gcd(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
+    let nlimbs = unsat_nlimbs_for_sat_nlimbs(max(f.nlimbs(), g.nlimbs()));
     let bits_precision = f.bits_precision();
+
     let inverse = inv_mod2_62(f.as_words());
-    let f = BoxedUnsatInt::from(f);
-    let mut g = BoxedUnsatInt::from(g);
-    let mut d = BoxedUnsatInt::zero(f.nlimbs());
-    let e = BoxedUnsatInt::one(f.nlimbs());
+    let f = BoxedUnsatInt::from_uint_widened(f, nlimbs);
+    let mut g = BoxedUnsatInt::from_uint_widened(g, nlimbs);
+    let mut d = BoxedUnsatInt::zero(nlimbs);
+    let e = BoxedUnsatInt::one(nlimbs);
 
     let mut f = divsteps(&mut d, &e, &f, &mut g, inverse);
     f.conditional_negate(f.is_negative());
@@ -84,12 +101,14 @@ pub(crate) fn gcd(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
 ///
 /// Variable time with respect to `g`.
 pub(crate) fn gcd_vartime(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
+    let nlimbs = unsat_nlimbs_for_sat_nlimbs(max(f.nlimbs(), g.nlimbs()));
     let bits_precision = f.bits_precision();
+
     let inverse = inv_mod2_62(f.as_words());
-    let f = BoxedUnsatInt::from(f);
-    let mut g = BoxedUnsatInt::from(g);
-    let mut d = BoxedUnsatInt::zero(f.nlimbs());
-    let e = BoxedUnsatInt::one(f.nlimbs());
+    let f = BoxedUnsatInt::from_uint_widened(f, nlimbs);
+    let mut g = BoxedUnsatInt::from_uint_widened(g, nlimbs);
+    let mut d = BoxedUnsatInt::zero(nlimbs);
+    let e = BoxedUnsatInt::one(nlimbs);
 
     let mut f = divsteps_vartime(&mut d, &e, &f, &mut g, inverse);
     f.conditional_negate(f.is_negative());
@@ -231,15 +250,31 @@ pub(crate) struct BoxedUnsatInt(Box<[u64]>);
 ///
 /// The ordering of the chunks in these arrays is little-endian.
 impl From<&BoxedUint> for BoxedUnsatInt {
-    #[allow(trivial_numeric_casts)]
     fn from(input: &BoxedUint) -> BoxedUnsatInt {
-        let saturated_nlimbs = if Word::BITS == 32 && input.nlimbs() == 1 {
-            2
-        } else {
-            input.nlimbs()
-        };
+        Self::from_uint_widened(input, unsat_nlimbs_for_sat_nlimbs(input.nlimbs()))
+    }
+}
 
-        let nlimbs = bernstein_yang_nlimbs!(saturated_nlimbs * Limb::BITS as usize);
+impl BoxedUnsatInt {
+    /// Number of bits in each limb.
+    pub const LIMB_BITS: usize = 62;
+
+    /// Mask, in which the 62 lowest bits are 1.
+    pub const MASK: u64 = u64::MAX >> (64 - Self::LIMB_BITS);
+
+    /// Convert from 32/64-bit saturated representation used by `BoxedUint` to the 62-bit
+    /// unsaturated representation used by `BoxedUnsatInt`.
+    ///
+    /// Returns a big unsigned integer as an array of 62-bit chunks, which is equal modulo
+    /// 2 ^ (62 * S) to the input big unsigned integer stored as an array of 64-bit chunks.
+    ///
+    /// The ordering of the chunks in these arrays is little-endian.
+    ///
+    /// The `nlimbs` parameter defines the number of unsaturated limbs in the output.
+    /// It's provided explicitly so multiple values can be padded to the same size.
+    #[allow(trivial_numeric_casts)]
+    fn from_uint_widened(input: &BoxedUint, nlimbs: usize) -> BoxedUnsatInt {
+        debug_assert!(nlimbs >= unsat_nlimbs_for_sat_nlimbs(input.nlimbs()));
 
         // Workaround for 32-bit platforms: if the input is a single limb, it will be smaller input
         // than is usable for Bernstein-Yang with is currently natively 64-bits on all targets
@@ -256,14 +291,6 @@ impl From<&BoxedUint> for BoxedUnsatInt {
         impl_limb_convert!(Word, Word::BITS as usize, input, u64, 62, output);
         Self(output.into())
     }
-}
-
-impl BoxedUnsatInt {
-    /// Number of bits in each limb.
-    pub const LIMB_BITS: usize = 62;
-
-    /// Mask, in which the 62 lowest bits are 1.
-    pub const MASK: u64 = u64::MAX >> (64 - Self::LIMB_BITS);
 
     /// Convert to a `BoxedUint` of the given precision.
     #[allow(trivial_numeric_casts)]
@@ -273,10 +300,7 @@ impl BoxedUnsatInt {
             bits_precision = 64;
         }
 
-        debug_assert_eq!(
-            self.nlimbs(),
-            bernstein_yang_nlimbs!(bits_precision as usize)
-        );
+        debug_assert_eq!(self.nlimbs(), safegcd_nlimbs!(bits_precision as usize));
         assert!(
             !bool::from(self.is_negative()),
             "can't convert negative number to BoxedUint"
@@ -361,18 +385,18 @@ impl BoxedUnsatInt {
         Self(vec![0; nlimbs].into())
     }
 
-    /// Get the value zero for the given number of limbs.
+    /// Get the value one for the given number of limbs.
     pub fn one(nlimbs: usize) -> Self {
         let mut ret = Self::zero(nlimbs);
-        ret.0[0] = 0;
+        ret.0[0] = 1;
         ret
     }
 
     /// Widen self to the given number of limbs.
     pub fn widen(self, nlimbs: usize) -> Self {
-        let mut limbs = Vec::from(self.0);
-        debug_assert!(nlimbs >= limbs.len());
-        limbs.truncate(nlimbs);
+        debug_assert!(nlimbs >= self.nlimbs(),);
+        let mut limbs = self.0.into_vec();
+        limbs.resize(nlimbs, 0);
         Self(limbs.into())
     }
 
@@ -495,7 +519,7 @@ mod tests {
     use subtle::ConstantTimeEq;
 
     #[cfg(not(miri))]
-    use crate::modular::bernstein_yang::UnsatInt;
+    use crate::modular::safegcd::UnsatInt;
 
     impl PartialEq for BoxedUnsatInt {
         fn eq(&self, other: &Self) -> bool {
@@ -587,7 +611,7 @@ mod tests {
     }
 
     #[test]
-    fn boxed_int62l_is_zero() {
+    fn boxed_unsatint_is_zero() {
         let zero = BoxedUnsatInt::from(&U256::ZERO.into());
         assert!(bool::from(zero.is_zero()));
 
@@ -596,7 +620,7 @@ mod tests {
     }
 
     #[test]
-    fn boxed_int62l_is_one() {
+    fn boxed_unsatint_is_one() {
         let zero = BoxedUnsatInt::from(&U256::ZERO.into());
         assert!(!bool::from(zero.is_one()));
 
@@ -605,7 +629,7 @@ mod tests {
     }
 
     #[test]
-    fn int62l_shr_assign() {
+    fn unsatint_shr_assign() {
         let mut n = BoxedUnsatInt(
             vec![
                 0,
@@ -641,9 +665,9 @@ mod tests {
     proptest! {
         #[test]
         #[cfg(not(miri))]
-        fn boxed_int62l_add(x in u256(), y in u256()) {
-            let x_ref = UnsatInt::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
-            let y_ref = UnsatInt::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&y);
+        fn boxed_unsatint_add(x in u256(), y in u256()) {
+            let x_ref = UnsatInt::<{ safegcd_nlimbs!(256usize) }>::from_uint(&x);
+            let y_ref = UnsatInt::<{ safegcd_nlimbs!(256usize) }>::from_uint(&y);
             let mut x_boxed = BoxedUnsatInt::from(&x.into());
             let y_boxed = BoxedUnsatInt::from(&y.into());
 
@@ -654,8 +678,8 @@ mod tests {
 
         #[test]
         #[cfg(not(miri))]
-        fn boxed_int62l_mul(x in u256(), y in any::<i64>()) {
-            let x_ref = UnsatInt::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
+        fn boxed_unsatint_mul(x in u256(), y in any::<i64>()) {
+            let x_ref = UnsatInt::<{ safegcd_nlimbs!(256usize) }>::from_uint(&x);
             let x_boxed = BoxedUnsatInt::from(&x.into());
 
             let expected = x_ref.mul(y);
@@ -665,8 +689,8 @@ mod tests {
 
         #[test]
         #[cfg(not(miri))]
-        fn boxed_int62l_neg(x in u256()) {
-            let x_ref = UnsatInt::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
+        fn boxed_unsatint_neg(x in u256()) {
+            let x_ref = UnsatInt::<{ safegcd_nlimbs!(256usize) }>::from_uint(&x);
             let x_boxed = BoxedUnsatInt::from(&x.into());
 
             let expected = x_ref.neg();
@@ -676,8 +700,8 @@ mod tests {
 
         #[test]
         #[cfg(not(miri))]
-        fn boxed_int62l_shr(x in u256()) {
-            let x_ref = UnsatInt::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
+        fn boxed_unsatint_shr(x in u256()) {
+            let x_ref = UnsatInt::<{ safegcd_nlimbs!(256usize) }>::from_uint(&x);
             let mut x_boxed = BoxedUnsatInt::from(&x.into());
             x_boxed.shr_assign();
 
@@ -688,8 +712,8 @@ mod tests {
         #[test]
                 #[cfg(not(miri))]
 
-        fn boxed_int62l_is_negative(x in u256()) {
-            let x_ref = UnsatInt::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
+        fn boxed_unsatint_is_negative(x in u256()) {
+            let x_ref = UnsatInt::<{ safegcd_nlimbs!(256usize) }>::from_uint(&x);
             let x_boxed = BoxedUnsatInt::from(&x.into());
             assert_eq!(x_ref.is_negative().to_bool_vartime(), bool::from(x_boxed.is_negative()));
         }
@@ -697,8 +721,8 @@ mod tests {
         #[test]
                 #[cfg(not(miri))]
 
-        fn boxed_int62l_is_minus_one(x in u256()) {
-            let x_ref = UnsatInt::<{ bernstein_yang_nlimbs!(256usize) }>::from_uint(&x);
+        fn boxed_unsatint_is_minus_one(x in u256()) {
+            let x_ref = UnsatInt::<{ safegcd_nlimbs!(256usize) }>::from_uint(&x);
             let x_boxed = BoxedUnsatInt::from(&x.into());
             assert!(bool::from(x_boxed.is_minus_one().ct_eq(&x_ref.eq(&UnsatInt::MINUS_ONE).into())));
         }

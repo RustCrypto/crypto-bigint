@@ -5,7 +5,7 @@ use subtle::{Choice, ConditionallySelectable};
 
 use crate::{
     primitives::{addhilo, mulhilo},
-    ConstChoice, Limb, NonZero, Uint, Word,
+    ConstChoice, Limb, NonZero, Uint, WideWord, Word,
 };
 
 /// Calculates the reciprocal of the given 32-bit divisor with the highmost bit set.
@@ -145,6 +145,47 @@ pub(crate) const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Wor
     (q1, r)
 }
 
+/// Given two long integers `u = (..., u0, u1, u2)` and `v = (..., v0, v1)`
+/// (where `u2` and `v1` are the most significant limbs), where `floor(u / v) <= Limb::MAX`,
+/// calculates `q` such that `q - 1 <= floor(u / v) <= q`.
+/// In place of `v1` takes its reciprocal, and assumes that `v` was already pre-shifted
+/// so that v1 has its most significant bit set (that is, the reciprocal's `shift` is 0).
+#[inline(always)]
+pub(crate) const fn div3by2(
+    u2: Word,
+    u1: Word,
+    u0: Word,
+    v1_reciprocal: &Reciprocal,
+    v0: Word,
+) -> Word {
+    debug_assert!(v1_reciprocal.shift == 0);
+    debug_assert!(u2 <= v1_reciprocal.divisor_normalized);
+
+    // This method corresponds to Algorithm Q:
+    // https://janmr.com/blog/2014/04/basic-multiple-precision-long-division/
+
+    let q_maxed = ConstChoice::from_word_eq(u2, v1_reciprocal.divisor_normalized);
+    let (mut quo, rem) = div2by1(q_maxed.select_word(u2, 0), u1, v1_reciprocal);
+    // When the leading dividend word equals the leading divisor word, cap the quotient
+    // at Word::MAX and set the remainder to the sum of the top dividend words.
+    quo = q_maxed.select_word(quo, Word::MAX);
+    let mut rem = q_maxed.select_wide_word(rem as WideWord, (u2 as WideWord) + (u1 as WideWord));
+
+    let mut i = 0;
+    while i < 2 {
+        let qy = (quo as WideWord) * (v0 as WideWord);
+        let rx = (rem << Word::BITS) | (u0 as WideWord);
+        // If r < b and q*y[-2] > r*x[-1], then set q = q - 1 and r = r + v1
+        let done = ConstChoice::from_word_nonzero((rem >> Word::BITS) as Word)
+            .or(ConstChoice::from_wide_word_le(qy, rx));
+        quo = done.select_word(quo.wrapping_sub(1), quo);
+        rem = done.select_wide_word(rem + (v1_reciprocal.divisor_normalized as WideWord), rem);
+        i += 1;
+    }
+
+    quo
+}
+
 /// A pre-calculated reciprocal for division by a single limb.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Reciprocal {
@@ -185,6 +226,11 @@ impl Reciprocal {
             // This holds both for 32- and 64-bit versions.
             reciprocal: 1,
         }
+    }
+
+    #[cfg(feature = "alloc")]
+    pub(crate) const fn divisor(&self) -> NonZero<Limb> {
+        NonZero(Limb(self.divisor_normalized >> self.shift))
     }
 
     /// Get the shift value

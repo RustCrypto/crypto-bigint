@@ -1,7 +1,7 @@
 //! Support for computing greatest common divisor of two `BoxedUint`s.
 
 use super::BoxedUint;
-use crate::{modular::bernstein_yang, ConstantTimeSelect, Gcd, Integer, Odd};
+use crate::{modular::safegcd, ConstantTimeSelect, Gcd, Integer, Odd};
 use subtle::{ConditionallySelectable, ConstantTimeLess};
 
 impl Gcd for BoxedUint {
@@ -21,7 +21,7 @@ impl Gcd for BoxedUint {
 
         let f = Self::ct_select(&s1, &s2, !s2.is_odd());
         let g = Self::ct_select(&s1, &s2, s2.is_odd());
-        bernstein_yang::boxed::gcd(&f, &g).overflowing_shl(k).0
+        safegcd::boxed::gcd(&f, &g).overflowing_shl(k).0
     }
 
     fn gcd_vartime(&self, rhs: &Self) -> Self::Output {
@@ -36,11 +36,11 @@ impl Gcd<BoxedUint> for Odd<BoxedUint> {
     type Output = BoxedUint;
 
     fn gcd(&self, rhs: &BoxedUint) -> BoxedUint {
-        bernstein_yang::boxed::gcd(self, rhs)
+        safegcd::boxed::gcd(self, rhs)
     }
 
     fn gcd_vartime(&self, rhs: &BoxedUint) -> Self::Output {
-        bernstein_yang::boxed::gcd_vartime(self, rhs)
+        safegcd::boxed::gcd_vartime(self, rhs)
     }
 }
 
@@ -90,5 +90,23 @@ mod tests {
         let g = BoxedUint::from(4u32);
         assert_eq!(f, f.gcd(&g));
         assert_eq!(f, g.gcd(&f));
+    }
+
+    #[test]
+    fn gcd_different_sizes() {
+        // Test that gcd works for boxed Uints with different numbers of limbs
+        let f = BoxedUint::from(4391633u32).widen(128).to_odd().unwrap();
+        let g = BoxedUint::from(2022161u32);
+        let gcd = f.gcd(&g);
+        assert_eq!(gcd, BoxedUint::from(1763u32));
+    }
+
+    #[test]
+    fn gcd_vartime_different_sizes() {
+        // Test that gcd works for boxed Uints with different numbers of limbs
+        let f = BoxedUint::from(4391633u32).widen(128).to_odd().unwrap();
+        let g = BoxedUint::from(2022161u32);
+        let gcd = f.gcd_vartime(&g);
+        assert_eq!(gcd, BoxedUint::from(1763u32));
     }
 }

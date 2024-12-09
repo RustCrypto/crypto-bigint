@@ -1,7 +1,7 @@
 //! Additions between integers in Montgomery form with a constant modulus.
 
 use super::{ConstMontyForm, ConstMontyParams};
-use crate::modular::add::add_montgomery_form;
+use crate::modular::add::{add_montgomery_form, double_montgomery_form};
 use core::ops::{Add, AddAssign};
 
 impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
@@ -13,6 +13,14 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
                 &rhs.montgomery_form,
                 &MOD::MODULUS,
             ),
+            phantom: core::marker::PhantomData,
+        }
+    }
+
+    /// Double `self`.
+    pub const fn double(&self) -> Self {
+        Self {
+            montgomery_form: double_montgomery_form(&self.montgomery_form, &MOD::MODULUS),
             phantom: core::marker::PhantomData,
         }
     }

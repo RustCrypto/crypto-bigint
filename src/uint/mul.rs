@@ -1,56 +1,126 @@
 //! [`Uint`] multiplication operations.
 
-// TODO(tarcieri): use Karatsuba for better performance
-
+use self::karatsuba::UintKaratsubaMul;
 use crate::{
     Checked, CheckedMul, Concat, ConcatMixed, Limb, Uint, WideningMul, Wrapping, WrappingMul, Zero,
 };
 use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
 
-/// Impl the core schoolbook multiplication algorithm.
+pub(crate) mod karatsuba;
+
+/// Schoolbook multiplication a.k.a. long multiplication, i.e. the traditional method taught in
+/// schools.
 ///
-/// This is implemented as a macro to abstract over `const fn` and boxed use cases, since the latter
-/// needs mutable references and thus the unstable `const_mut_refs` feature (rust-lang/rust#57349).
-///
-/// It allows us to have a single place (this module) to improve the multiplication implementation
-/// which will also be reused for `BoxedUint`.
-// TODO(tarcieri): change this into a `const fn` when `const_mut_refs` is stable
-macro_rules! impl_schoolbook_multiplication {
-    ($lhs:expr, $rhs:expr, $lo:expr, $hi:expr) => {{
-        if $lhs.len() != $lo.len() || $rhs.len() != $hi.len() {
-            panic!("schoolbook multiplication length mismatch");
-        }
+/// The most efficient method for small numbers.
+const fn schoolbook_multiplication(lhs: &[Limb], rhs: &[Limb], lo: &mut [Limb], hi: &mut [Limb]) {
+    if lhs.len() != lo.len() || rhs.len() != hi.len() {
+        panic!("schoolbook multiplication length mismatch");
+    }
 
-        let mut i = 0;
-        while i < $lhs.len() {
-            let mut j = 0;
-            let mut carry = Limb::ZERO;
+    let mut i = 0;
+    while i < lhs.len() {
+        let mut j = 0;
+        let mut carry = Limb::ZERO;
+        let xi = lhs[i];
 
-            while j < $rhs.len() {
-                let k = i + j;
+        while j < rhs.len() {
+            let k = i + j;
 
-                if k >= $lhs.len() {
-                    let (n, c) = $hi[k - $lhs.len()].mac($lhs[i], $rhs[j], carry);
-                    $hi[k - $lhs.len()] = n;
-                    carry = c;
-                } else {
-                    let (n, c) = $lo[k].mac($lhs[i], $rhs[j], carry);
-                    $lo[k] = n;
-                    carry = c;
-                }
-
-                j += 1;
-            }
-
-            if i + j >= $lhs.len() {
-                $hi[i + j - $lhs.len()] = carry;
+            if k >= lhs.len() {
+                (hi[k - lhs.len()], carry) = hi[k - lhs.len()].mac(xi, rhs[j], carry);
             } else {
-                $lo[i + j] = carry;
+                (lo[k], carry) = lo[k].mac(xi, rhs[j], carry);
             }
-            i += 1;
+
+            j += 1;
         }
-    }};
+
+        if i + j >= lhs.len() {
+            hi[i + j - lhs.len()] = carry;
+        } else {
+            lo[i + j] = carry;
+        }
+        i += 1;
+    }
+}
+
+/// Schoolbook method of squaring.
+///
+/// Like schoolbook multiplication, but only considering half of the multiplication grid.
+pub(crate) const fn schoolbook_squaring(limbs: &[Limb], lo: &mut [Limb], hi: &mut [Limb]) {
+    // Translated from https://github.com/ucbrise/jedi-pairing/blob/c4bf151/include/core/bigint.hpp#L410
+    //
+    // Permission to relicense the resulting translation as Apache 2.0 + MIT was given
+    // by the original author Sam Kumar: https://github.com/RustCrypto/crypto-bigint/pull/133#discussion_r1056870411
+
+    if limbs.len() != lo.len() || lo.len() != hi.len() {
+        panic!("schoolbook squaring length mismatch");
+    }
+
+    let mut i = 1;
+    while i < limbs.len() {
+        let mut j = 0;
+        let mut carry = Limb::ZERO;
+        let xi = limbs[i];
+
+        while j < i {
+            let k = i + j;
+
+            if k >= limbs.len() {
+                (hi[k - limbs.len()], carry) = hi[k - limbs.len()].mac(xi, limbs[j], carry);
+            } else {
+                (lo[k], carry) = lo[k].mac(xi, limbs[j], carry);
+            }
+
+            j += 1;
+        }
+
+        if (2 * i) < limbs.len() {
+            lo[2 * i] = carry;
+        } else {
+            hi[2 * i - limbs.len()] = carry;
+        }
+
+        i += 1;
+    }
+
+    // Double the current result, this accounts for the other half of the multiplication grid.
+    // The top word is empty, so we use a special purpose shl.
+    let mut carry = Limb::ZERO;
+    let mut i = 0;
+    while i < limbs.len() {
+        (lo[i].0, carry) = (lo[i].0 << 1 | carry.0, lo[i].shr(Limb::BITS - 1));
+        i += 1;
+    }
+
+    let mut i = 0;
+    while i < limbs.len() - 1 {
+        (hi[i].0, carry) = (hi[i].0 << 1 | carry.0, hi[i].shr(Limb::BITS - 1));
+        i += 1;
+    }
+    hi[limbs.len() - 1] = carry;
+
+    // Handle the diagonal of the multiplication grid, which finishes the multiplication grid.
+    let mut carry = Limb::ZERO;
+    let mut i = 0;
+    while i < limbs.len() {
+        let xi = limbs[i];
+        if (i * 2) < limbs.len() {
+            (lo[i * 2], carry) = lo[i * 2].mac(xi, xi, carry);
+        } else {
+            (hi[i * 2 - limbs.len()], carry) = hi[i * 2 - limbs.len()].mac(xi, xi, carry);
+        }
+
+        if (i * 2 + 1) < limbs.len() {
+            (lo[i * 2 + 1], carry) = lo[i * 2 + 1].overflowing_add(carry);
+        } else {
+            (hi[i * 2 + 1 - limbs.len()], carry) =
+                hi[i * 2 + 1 - limbs.len()].overflowing_add(carry);
+        }
+
+        i += 1;
+    }
 }
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -72,10 +142,27 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> (Self, Uint<RHS_LIMBS>) {
-        let mut lo = Self::ZERO;
-        let mut hi = Uint::<RHS_LIMBS>::ZERO;
-        impl_schoolbook_multiplication!(&self.limbs, &rhs.limbs, lo.limbs, hi.limbs);
-        (lo, hi)
+        if LIMBS == RHS_LIMBS {
+            if LIMBS == 128 {
+                let (a, b) = UintKaratsubaMul::<128>::multiply(&self.limbs, &rhs.limbs);
+                // resize() should be a no-op, but the compiler can't infer that Uint<LIMBS> is Uint<128>
+                return (a.resize(), b.resize());
+            }
+            if LIMBS == 64 {
+                let (a, b) = UintKaratsubaMul::<64>::multiply(&self.limbs, &rhs.limbs);
+                return (a.resize(), b.resize());
+            }
+            if LIMBS == 32 {
+                let (a, b) = UintKaratsubaMul::<32>::multiply(&self.limbs, &rhs.limbs);
+                return (a.resize(), b.resize());
+            }
+            if LIMBS == 16 {
+                let (a, b) = UintKaratsubaMul::<16>::multiply(&self.limbs, &rhs.limbs);
+                return (a.resize(), b.resize());
+            }
+        }
+
+        uint_mul_limbs(&self.limbs, &rhs.limbs)
     }
 
     /// Perform wrapping multiplication, discarding overflow.
@@ -91,76 +178,17 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Square self, returning a "wide" result in two parts as (lo, hi).
     pub const fn square_wide(&self) -> (Self, Self) {
-        // Translated from https://github.com/ucbrise/jedi-pairing/blob/c4bf151/include/core/bigint.hpp#L410
-        //
-        // Permission to relicense the resulting translation as Apache 2.0 + MIT was given
-        // by the original author Sam Kumar: https://github.com/RustCrypto/crypto-bigint/pull/133#discussion_r1056870411
-        let mut lo = Self::ZERO;
-        let mut hi = Self::ZERO;
-
-        // Schoolbook multiplication, but only considering half of the multiplication grid
-        let mut i = 1;
-        while i < LIMBS {
-            let mut j = 0;
-            let mut carry = Limb::ZERO;
-
-            while j < i {
-                let k = i + j;
-
-                if k >= LIMBS {
-                    let (n, c) = hi.limbs[k - LIMBS].mac(self.limbs[i], self.limbs[j], carry);
-                    hi.limbs[k - LIMBS] = n;
-                    carry = c;
-                } else {
-                    let (n, c) = lo.limbs[k].mac(self.limbs[i], self.limbs[j], carry);
-                    lo.limbs[k] = n;
-                    carry = c;
-                }
-
-                j += 1;
-            }
-
-            if (2 * i) < LIMBS {
-                lo.limbs[2 * i] = carry;
-            } else {
-                hi.limbs[2 * i - LIMBS] = carry;
-            }
-
-            i += 1;
+        if LIMBS == 128 {
+            let (a, b) = UintKaratsubaMul::<128>::square(&self.limbs);
+            // resize() should be a no-op, but the compiler can't infer that Uint<LIMBS> is Uint<128>
+            return (a.resize(), b.resize());
+        }
+        if LIMBS == 64 {
+            let (a, b) = UintKaratsubaMul::<64>::square(&self.limbs);
+            return (a.resize(), b.resize());
         }
 
-        // Double the current result, this accounts for the other half of the multiplication grid.
-        // TODO: The top word is empty so we can also use a special purpose shl.
-        (lo, hi) = Self::overflowing_shl_vartime_wide((lo, hi), 1).expect("shift within range");
-
-        // Handle the diagonal of the multiplication grid, which finishes the multiplication grid.
-        let mut carry = Limb::ZERO;
-        let mut i = 0;
-        while i < LIMBS {
-            if (i * 2) < LIMBS {
-                let (n, c) = lo.limbs[i * 2].mac(self.limbs[i], self.limbs[i], carry);
-                lo.limbs[i * 2] = n;
-                carry = c;
-            } else {
-                let (n, c) = hi.limbs[i * 2 - LIMBS].mac(self.limbs[i], self.limbs[i], carry);
-                hi.limbs[i * 2 - LIMBS] = n;
-                carry = c;
-            }
-
-            if (i * 2 + 1) < LIMBS {
-                let (n, c) = lo.limbs[i * 2 + 1].overflowing_add(carry);
-                lo.limbs[i * 2 + 1] = n;
-                carry = c;
-            } else {
-                let (n, c) = hi.limbs[i * 2 + 1 - LIMBS].overflowing_add(carry);
-                hi.limbs[i * 2 + 1 - LIMBS] = n;
-                carry = c;
-            }
-
-            i += 1;
-        }
-
-        (lo, hi)
+        uint_square_limbs(&self.limbs)
     }
 }
 
@@ -272,12 +300,44 @@ impl<const LIMBS: usize> WrappingMul for Uint<LIMBS> {
     }
 }
 
+/// Helper method to perform schoolbook multiplication
+#[inline]
+pub(crate) const fn uint_mul_limbs<const LIMBS: usize, const RHS_LIMBS: usize>(
+    lhs: &[Limb],
+    rhs: &[Limb],
+) -> (Uint<LIMBS>, Uint<RHS_LIMBS>) {
+    debug_assert!(lhs.len() == LIMBS && rhs.len() == RHS_LIMBS);
+    let mut lo: Uint<LIMBS> = Uint::<LIMBS>::ZERO;
+    let mut hi = Uint::<RHS_LIMBS>::ZERO;
+    schoolbook_multiplication(lhs, rhs, &mut lo.limbs, &mut hi.limbs);
+    (lo, hi)
+}
+
+/// Helper method to perform schoolbook multiplication
+#[inline]
+pub(crate) const fn uint_square_limbs<const LIMBS: usize>(
+    limbs: &[Limb],
+) -> (Uint<LIMBS>, Uint<LIMBS>) {
+    let mut lo = Uint::<LIMBS>::ZERO;
+    let mut hi = Uint::<LIMBS>::ZERO;
+    schoolbook_squaring(limbs, &mut lo.limbs, &mut hi.limbs);
+    (lo, hi)
+}
+
 /// Wrapper function used by `BoxedUint`
 #[cfg(feature = "alloc")]
 pub(crate) fn mul_limbs(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) {
     debug_assert_eq!(lhs.len() + rhs.len(), out.len());
     let (lo, hi) = out.split_at_mut(lhs.len());
-    impl_schoolbook_multiplication!(lhs, rhs, lo, hi);
+    schoolbook_multiplication(lhs, rhs, lo, hi);
+}
+
+/// Wrapper function used by `BoxedUint`
+#[cfg(feature = "alloc")]
+pub(crate) fn square_limbs(limbs: &[Limb], out: &mut [Limb]) {
+    debug_assert_eq!(limbs.len() * 2, out.len());
+    let (lo, hi) = out.split_at_mut(limbs.len());
+    schoolbook_squaring(limbs, lo, hi);
 }
 
 #[cfg(test)]
@@ -370,5 +430,18 @@ mod tests {
         let (lo, hi) = n.square().split();
         assert_eq!(lo, U256::ONE);
         assert_eq!(hi, U256::MAX.wrapping_sub(&U256::ONE));
+    }
+
+    #[cfg(feature = "rand_core")]
+    #[test]
+    fn mul_cmp() {
+        use crate::{Random, U4096};
+        use rand_core::SeedableRng;
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+
+        for _ in 0..50 {
+            let a = U4096::random(&mut rng);
+            assert_eq!(a.split_mul(&a), a.square_wide(), "a = {a}");
+        }
     }
 }

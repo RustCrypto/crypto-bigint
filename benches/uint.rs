@@ -1,6 +1,80 @@
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
-use crypto_bigint::{Limb, NonZero, Odd, Random, Reciprocal, Uint, U128, U2048, U256};
+use crypto_bigint::{
+    Limb, NonZero, Odd, Random, RandomMod, Reciprocal, Uint, U128, U2048, U256, U4096,
+};
 use rand_core::OsRng;
+
+fn bench_mul(c: &mut Criterion) {
+    let mut group = c.benchmark_group("wrapping ops");
+
+    group.bench_function("split_mul, U256xU256", |b| {
+        b.iter_batched(
+            || (U256::random(&mut OsRng), U256::random(&mut OsRng)),
+            |(x, y)| black_box(x.split_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("split_mul, U4096xU4096", |b| {
+        b.iter_batched(
+            || (U4096::random(&mut OsRng), U4096::random(&mut OsRng)),
+            |(x, y)| black_box(x.split_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("square_wide, U256", |b| {
+        b.iter_batched(
+            || U256::random(&mut OsRng),
+            |x| black_box(x.square_wide()),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("square_wide, U4096", |b| {
+        b.iter_batched(
+            || U4096::random(&mut OsRng),
+            |x| black_box(x.square_wide()),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("mul_mod, U256", |b| {
+        b.iter_batched(
+            || {
+                let m = Odd::<U256>::random(&mut OsRng);
+                let x = U256::random_mod(&mut OsRng, m.as_nz_ref());
+                (m.to_nz().unwrap(), x)
+            },
+            |(m, x)| black_box(x).mul_mod(black_box(&x), &m),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("mul_mod_vartime, U256", |b| {
+        b.iter_batched(
+            || {
+                let m = Odd::<U256>::random(&mut OsRng);
+                let x = U256::random_mod(&mut OsRng, m.as_nz_ref());
+                (m.to_nz().unwrap(), x)
+            },
+            |(m, x)| black_box(x).mul_mod_vartime(black_box(&x), &m),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("mul_mod_special, U256", |b| {
+        b.iter_batched(
+            || {
+                let m = Limb::random(&mut OsRng);
+                let x = U256::random(&mut OsRng);
+                (m, x)
+            },
+            |(m, x)| black_box(x).mul_mod_special(black_box(&x), m),
+            BatchSize::SmallInput,
+        )
+    });
+}
 
 fn bench_division(c: &mut Criterion) {
     let mut group = c.benchmark_group("wrapping ops");
@@ -284,10 +358,19 @@ fn bench_sqrt(c: &mut Criterion) {
             BatchSize::SmallInput,
         )
     });
+
+    group.bench_function("sqrt_vartime, U256", |b| {
+        b.iter_batched(
+            || U256::random(&mut OsRng),
+            |x| x.sqrt_vartime(),
+            BatchSize::SmallInput,
+        )
+    });
 }
 
 criterion_group!(
     benches,
+    bench_mul,
     bench_division,
     bench_gcd,
     bench_shl,

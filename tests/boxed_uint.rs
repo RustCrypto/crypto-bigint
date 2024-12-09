@@ -48,12 +48,15 @@ prop_compose! {
 prop_compose! {
     /// Generate a pair of random `BoxedUint`s with the same precision.
     fn uint_pair()(mut a in uint(), mut b in uint()) -> (BoxedUint, BoxedUint) {
-        if a.bits_precision() > b.bits_precision() {
-            b = b.widen(a.bits_precision());
-        } else if a.bits_precision() < b.bits_precision() {
-            a = a.widen(b.bits_precision());
-        }
-
+        match a.bits_precision().cmp(&b.bits_precision()) {
+            Ordering::Greater => {
+                b = b.widen(a.bits_precision());
+            }
+            Ordering::Less => {
+                a = a.widen(b.bits_precision());
+            },
+            _ => ()
+        };
         (a, b)
     }
 }
@@ -77,8 +80,8 @@ proptest! {
     #[test]
     fn bits(a in uint()) {
         let expected = to_biguint(&a).bits() as u32;
-        assert_eq!(expected, a.bits());
-        assert_eq!(expected, a.bits_vartime());
+        prop_assert_eq!(expected, a.bits());
+        prop_assert_eq!(expected, a.bits_vartime());
     }
 
     #[test]
@@ -149,7 +152,7 @@ proptest! {
 
         let expected = to_uint(f_bi.gcd(&g_bi));
         let actual = f.gcd(&g);
-        assert_eq!(expected, actual);
+        prop_assert_eq!(expected, actual);
     }
 
     #[test]
@@ -166,7 +169,7 @@ proptest! {
         let actual = Option::<BoxedUint>::from(a.inv_odd_mod(&b));
 
         match (expected, actual) {
-            (Some(exp), Some(act)) => prop_assert_eq!(exp, to_biguint(&act).into()),
+            (Some(exp), Some(act)) => prop_assert_eq!(exp, to_biguint(&act)),
             (None, None) => (),
             (_, _) => panic!("disagreement on if modular inverse exists")
         }
@@ -183,7 +186,7 @@ proptest! {
 
         let expected = to_uint((a_bi * b_bi) % n_bi);
         let actual = a.mul_mod(&b, &n);
-        assert_eq!(expected, actual);
+        prop_assert_eq!(expected, actual);
     }
 
     #[test]
@@ -233,10 +236,10 @@ proptest! {
         let expected = to_uint((a_bi << shift as usize) & ((BigUint::one() << a.bits_precision() as usize) - BigUint::one()));
         let (actual, overflow) = a.overflowing_shl(shift);
 
-        assert_eq!(expected, actual);
+        prop_assert_eq!(&expected, &actual);
         if shift >= a.bits_precision() {
-            assert_eq!(actual, BoxedUint::zero());
-            assert!(bool::from(overflow));
+            prop_assert_eq!(actual, BoxedUint::zero());
+            prop_assert!(bool::from(overflow));
         }
     }
 
@@ -251,10 +254,10 @@ proptest! {
         let actual = a.shl_vartime(shift);
 
         if shift >= a.bits_precision() {
-            assert!(actual.is_none());
+            prop_assert!(actual.is_none());
         }
         else {
-            assert_eq!(expected, actual.unwrap());
+            prop_assert_eq!(expected, actual.unwrap());
         }
     }
 
@@ -268,10 +271,10 @@ proptest! {
         let expected = to_uint(a_bi >> shift as usize);
         let (actual, overflow) = a.overflowing_shr(shift);
 
-        assert_eq!(expected, actual);
+        prop_assert_eq!(&expected, &actual);
         if shift >= a.bits_precision() {
-            assert_eq!(actual, BoxedUint::zero());
-            assert!(bool::from(overflow));
+            prop_assert_eq!(actual, BoxedUint::zero());
+            prop_assert!(bool::from(overflow));
         }
     }
 
@@ -287,10 +290,25 @@ proptest! {
         let actual = a.shr_vartime(shift);
 
         if shift >= a.bits_precision() {
-            assert!(actual.is_none());
+            prop_assert!(actual.is_none());
         }
         else {
-            assert_eq!(expected, actual.unwrap());
+            prop_assert_eq!(expected, actual.unwrap());
         }
+    }
+
+
+    #[test]
+    fn radix_encode_vartime(a in uint(), radix in 2u32..=36) {
+        let a_bi = to_biguint(&a);
+
+        let expected_enc = a_bi.to_str_radix(radix);
+        let actual_enc = a.to_string_radix_vartime(radix);
+        prop_assert_eq!(&expected_enc, &actual_enc);
+
+        let decoded = BoxedUint::from_str_radix_vartime(&actual_enc, radix).expect("decoding error");
+        let dec_bi = to_biguint(&decoded);
+        prop_assert_eq!(dec_bi, a_bi);
+
     }
 }

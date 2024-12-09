@@ -1,6 +1,6 @@
 //! [`BoxedUint`] modular subtraction operations.
 
-use crate::{BoxedUint, Limb, SubMod};
+use crate::{BoxedUint, Limb, SubMod, Zero};
 
 impl BoxedUint {
     /// Computes `self - rhs mod p`.
@@ -12,11 +12,28 @@ impl BoxedUint {
         debug_assert!(self < p);
         debug_assert!(rhs < p);
 
-        let (out, mask) = self.sbb(rhs, Limb::ZERO);
+        let (mut out, borrow) = self.sbb(rhs, Limb::ZERO);
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-        out.wrapping_add(&p.bitand_limb(mask))
+        out.conditional_adc_assign(p, !borrow.is_zero());
+        out
+    }
+
+    /// Returns `(self..., carry) - (rhs...) mod (p...)`, where `carry <= 1`.
+    /// Assumes `-(p...) <= (self..., carry) - (rhs...) < (p...)`.
+    #[inline(always)]
+    pub(crate) fn sub_assign_mod_with_carry(&mut self, carry: Limb, rhs: &Self, p: &Self) {
+        debug_assert!(carry.0 <= 1);
+
+        let borrow = self.sbb_assign(rhs, Limb::ZERO);
+
+        // The new `borrow = Word::MAX` iff `carry == 0` and `borrow == Word::MAX`.
+        let mask = carry.wrapping_neg().not().bitand(borrow);
+
+        // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
+        // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
+        self.conditional_adc_assign(p, !mask.is_zero());
     }
 
     /// Computes `self - rhs mod p` for the special modulus

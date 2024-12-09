@@ -2,12 +2,11 @@
 
 use super::{Uint, Word};
 use crate::{Encoding, Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod, Zero};
-use rand_core::CryptoRngCore;
+use rand_core::RngCore;
 use subtle::ConstantTimeLess;
 
 impl<const LIMBS: usize> Random for Uint<LIMBS> {
-    /// Generate a cryptographically secure random [`Uint`].
-    fn random(mut rng: &mut impl CryptoRngCore) -> Self {
+    fn random(mut rng: &mut impl RngCore) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
 
         for limb in &mut limbs {
@@ -22,7 +21,7 @@ impl<const LIMBS: usize> Random for Uint<LIMBS> {
 ///
 /// NOTE: Assumes that the limbs in the given slice are zeroed!
 pub(crate) fn random_bits_core(
-    rng: &mut impl CryptoRngCore,
+    rng: &mut impl RngCore,
     zeroed_limbs: &mut [Limb],
     bit_length: u32,
 ) -> Result<(), RandomBitsError> {
@@ -33,7 +32,7 @@ pub(crate) fn random_bits_core(
     let buffer: Word = 0;
     let mut buffer = buffer.to_be_bytes();
 
-    let nonzero_limbs = ((bit_length + Limb::BITS - 1) / Limb::BITS) as usize;
+    let nonzero_limbs = bit_length.div_ceil(Limb::BITS) as usize;
     let partial_limb = bit_length % Limb::BITS;
     let mask = Word::MAX >> ((Word::BITS - partial_limb) % Word::BITS);
 
@@ -51,15 +50,12 @@ pub(crate) fn random_bits_core(
 }
 
 impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
-    fn try_random_bits(
-        rng: &mut impl CryptoRngCore,
-        bit_length: u32,
-    ) -> Result<Self, RandomBitsError> {
+    fn try_random_bits(rng: &mut impl RngCore, bit_length: u32) -> Result<Self, RandomBitsError> {
         Self::try_random_bits_with_precision(rng, bit_length, Self::BITS)
     }
 
     fn try_random_bits_with_precision(
-        rng: &mut impl CryptoRngCore,
+        rng: &mut impl RngCore,
         bit_length: u32,
         bits_precision: u32,
     ) -> Result<Self, RandomBitsError> {
@@ -82,18 +78,7 @@ impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
-    /// Generate a cryptographically secure random [`Uint`] which is less than
-    /// a given `modulus`.
-    ///
-    /// This function uses rejection sampling, a method which produces an
-    /// unbiased distribution of in-range values provided the underlying
-    /// CSRNG is unbiased, but runs in variable-time.
-    ///
-    /// The variable-time nature of the algorithm should not pose a security
-    /// issue so long as the underlying random number generator is truly a
-    /// CSRNG, where previous outputs are unrelated to subsequent
-    /// outputs and do not reveal information about the RNG's internal state.
-    fn random_mod(rng: &mut impl CryptoRngCore, modulus: &NonZero<Self>) -> Self {
+    fn random_mod(rng: &mut impl RngCore, modulus: &NonZero<Self>) -> Self {
         let mut n = Self::ZERO;
         random_mod_core(rng, &mut n, modulus, modulus.bits_vartime());
         n
@@ -103,7 +88,7 @@ impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
 /// Generic implementation of `random_mod` which can be shared with `BoxedUint`.
 // TODO(tarcieri): obtain `n_bits` via a trait like `Integer`
 pub(super) fn random_mod_core<T>(
-    rng: &mut impl CryptoRngCore,
+    rng: &mut impl RngCore,
     n: &mut T,
     modulus: &NonZero<T>,
     n_bits: u32,
@@ -111,7 +96,7 @@ pub(super) fn random_mod_core<T>(
     T: AsMut<[Limb]> + ConstantTimeLess + Zero,
 {
     let n_bytes = ((n_bits + 7) / 8) as usize;
-    let n_limbs = ((n_bits + Limb::BITS - 1) / Limb::BITS) as usize;
+    let n_limbs = n_bits.div_ceil(Limb::BITS) as usize;
     let hi_bytes = n_bytes - (n_limbs - 1) * Limb::BYTES;
 
     let mut bytes = Limb::ZERO.to_le_bytes();

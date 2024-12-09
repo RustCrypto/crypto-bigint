@@ -1,7 +1,11 @@
 //! [`BoxedUint`] multiplication operations.
 
 use crate::{
-    uint::mul::mul_limbs, BoxedUint, CheckedMul, Limb, WideningMul, Wrapping, WrappingMul, Zero,
+    uint::mul::{
+        karatsuba::{karatsuba_mul_limbs, karatsuba_square_limbs, KARATSUBA_MIN_STARTING_LIMBS},
+        mul_limbs, square_limbs,
+    },
+    BoxedUint, CheckedMul, Limb, WideningMul, Wrapping, WrappingMul, Zero,
 };
 use core::ops::{Mul, MulAssign};
 use subtle::{Choice, CtOption};
@@ -11,7 +15,18 @@ impl BoxedUint {
     ///
     /// Returns a widened output with a limb count equal to the sums of the input limb counts.
     pub fn mul(&self, rhs: &Self) -> Self {
-        let mut limbs = vec![Limb::ZERO; self.nlimbs() + rhs.nlimbs()];
+        let size = self.nlimbs() + rhs.nlimbs();
+        let overlap = self.nlimbs().min(rhs.nlimbs());
+
+        if self.nlimbs().min(rhs.nlimbs()) >= KARATSUBA_MIN_STARTING_LIMBS {
+            let mut limbs = vec![Limb::ZERO; size + overlap * 2];
+            let (out, scratch) = limbs.as_mut_slice().split_at_mut(size);
+            karatsuba_mul_limbs(&self.limbs, &rhs.limbs, out, scratch);
+            limbs.truncate(size);
+            return limbs.into();
+        }
+
+        let mut limbs = vec![Limb::ZERO; size];
         mul_limbs(&self.limbs, &rhs.limbs, &mut limbs);
         limbs.into()
     }
@@ -23,8 +38,19 @@ impl BoxedUint {
 
     /// Multiply `self` by itself.
     pub fn square(&self) -> Self {
-        // TODO(tarcieri): more optimized implementation (shared with `Uint`?)
-        self.mul(self)
+        let size = self.nlimbs() * 2;
+
+        if self.nlimbs() >= KARATSUBA_MIN_STARTING_LIMBS * 2 {
+            let mut limbs = vec![Limb::ZERO; size * 2];
+            let (out, scratch) = limbs.as_mut_slice().split_at_mut(size);
+            karatsuba_square_limbs(&self.limbs, out, scratch);
+            limbs.truncate(size);
+            return limbs.into();
+        }
+
+        let mut limbs = vec![Limb::ZERO; size];
+        square_limbs(&self.limbs, &mut limbs);
+        limbs.into()
     }
 }
 
@@ -140,6 +166,25 @@ mod tests {
                 let expected = BoxedUint::from(a_int as u64 * b_int as u64);
                 assert_eq!(actual, expected);
             }
+        }
+    }
+
+    #[cfg(feature = "rand_core")]
+    #[test]
+    fn mul_cmp() {
+        use crate::RandomBits;
+        use rand_core::SeedableRng;
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+
+        for _ in 0..50 {
+            let a = BoxedUint::random_bits(&mut rng, 4096);
+            assert_eq!(a.mul(&a), a.square(), "a = {a}");
+        }
+
+        for _ in 0..50 {
+            let a = BoxedUint::random_bits(&mut rng, 4096);
+            let b = BoxedUint::random_bits(&mut rng, 5000);
+            assert_eq!(a.mul(&b), b.mul(&a), "a={a}, b={b}");
         }
     }
 }

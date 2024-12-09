@@ -1,6 +1,6 @@
 //! [`BoxedUint`] addition operations.
 
-use crate::{BoxedUint, CheckedAdd, Limb, Wrapping, WrappingAdd, Zero};
+use crate::{BoxedUint, CheckedAdd, Limb, Uint, Wrapping, WrappingAdd, Zero, U128, U64};
 use core::ops::{Add, AddAssign};
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
@@ -15,11 +15,11 @@ impl BoxedUint {
     ///
     /// Panics if `rhs` has a larger precision than `self`.
     #[inline]
-    pub fn adc_assign(&mut self, rhs: &Self, mut carry: Limb) -> Limb {
-        debug_assert!(self.bits_precision() <= rhs.bits_precision());
+    pub fn adc_assign(&mut self, rhs: impl AsRef<[Limb]>, mut carry: Limb) -> Limb {
+        debug_assert!(self.bits_precision() <= (rhs.as_ref().len() as u32 * Limb::BITS));
 
         for i in 0..self.nlimbs() {
-            let (limb, b) = self.limbs[i].adc(*rhs.limbs.get(i).unwrap_or(&Limb::ZERO), carry);
+            let (limb, b) = self.limbs[i].adc(*rhs.as_ref().get(i).unwrap_or(&Limb::ZERO), carry);
             self.limbs[i] = limb;
             carry = b;
         }
@@ -75,6 +75,52 @@ impl Add<&BoxedUint> for &BoxedUint {
     }
 }
 
+impl<const LIMBS: usize> Add<Uint<LIMBS>> for BoxedUint {
+    type Output = BoxedUint;
+
+    fn add(self, rhs: Uint<LIMBS>) -> BoxedUint {
+        self.add(&rhs)
+    }
+}
+
+impl<const LIMBS: usize> Add<&Uint<LIMBS>> for BoxedUint {
+    type Output = BoxedUint;
+
+    fn add(mut self, rhs: &Uint<LIMBS>) -> BoxedUint {
+        self += rhs;
+        self
+    }
+}
+
+impl<const LIMBS: usize> Add<Uint<LIMBS>> for &BoxedUint {
+    type Output = BoxedUint;
+
+    fn add(self, rhs: Uint<LIMBS>) -> BoxedUint {
+        self.clone().add(rhs)
+    }
+}
+
+impl<const LIMBS: usize> Add<&Uint<LIMBS>> for &BoxedUint {
+    type Output = BoxedUint;
+
+    fn add(self, rhs: &Uint<LIMBS>) -> BoxedUint {
+        self.clone().add(rhs)
+    }
+}
+
+impl<const LIMBS: usize> AddAssign<Uint<LIMBS>> for BoxedUint {
+    fn add_assign(&mut self, rhs: Uint<LIMBS>) {
+        *self += &rhs;
+    }
+}
+
+impl<const LIMBS: usize> AddAssign<&Uint<LIMBS>> for BoxedUint {
+    fn add_assign(&mut self, rhs: &Uint<LIMBS>) {
+        let carry = self.adc_assign(rhs.as_limbs(), Limb::ZERO);
+        assert_eq!(carry.0, 0, "attempted to add with overflow");
+    }
+}
+
 impl AddAssign<Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     fn add_assign(&mut self, other: Wrapping<BoxedUint>) {
         self.0.adc_assign(&other.0, Limb::ZERO);
@@ -100,6 +146,62 @@ impl WrappingAdd for BoxedUint {
     }
 }
 
+macro_rules! impl_add_primitive {
+    ($($primitive:ty),+) => {
+        $(
+            impl Add<$primitive> for BoxedUint {
+                type Output = BoxedUint;
+
+                #[inline]
+                fn add(self, rhs: $primitive) -> BoxedUint {
+                     self + U64::from(rhs)
+                }
+            }
+
+            impl Add<$primitive> for &BoxedUint {
+                type Output = BoxedUint;
+
+                #[inline]
+                fn add(self, rhs: $primitive) -> BoxedUint {
+                     self + U64::from(rhs)
+                }
+            }
+
+            impl AddAssign<$primitive> for BoxedUint {
+                fn add_assign(&mut self, rhs: $primitive) {
+                    *self += U64::from(rhs);
+                }
+            }
+        )+
+    };
+}
+
+impl_add_primitive!(u8, u16, u32, u64);
+
+impl Add<u128> for BoxedUint {
+    type Output = BoxedUint;
+
+    #[inline]
+    fn add(self, rhs: u128) -> BoxedUint {
+        self + U128::from(rhs)
+    }
+}
+
+impl Add<u128> for &BoxedUint {
+    type Output = BoxedUint;
+
+    #[inline]
+    fn add(self, rhs: u128) -> BoxedUint {
+        self + U128::from(rhs)
+    }
+}
+
+impl AddAssign<u128> for BoxedUint {
+    fn add_assign(&mut self, rhs: u128) {
+        *self += U128::from(rhs);
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -117,6 +219,13 @@ mod tests {
         let (res, carry) = BoxedUint::max(Limb::BITS).adc(&BoxedUint::one(), Limb::ZERO);
         assert_eq!(res, BoxedUint::zero());
         assert_eq!(carry, Limb::ONE);
+    }
+
+    #[test]
+    fn add_with_u32_rhs() {
+        let a = BoxedUint::from(1u64);
+        let b = a + u32::MAX;
+        assert_eq!(b, BoxedUint::from(0x100000000u64));
     }
 
     #[test]

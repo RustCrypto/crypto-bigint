@@ -1,12 +1,14 @@
-//! Implementation of Bernstein-Yang modular inversion and GCD algorithm as described in:
-//! <https://eprint.iacr.org/2019/266>.
+//! Implementation of Bernstein-Yang modular inversion and GCD algorithm (a.k.a. safegcd)
+//! as described in: <https://eprint.iacr.org/2019/266>.
 //!
 //! Adapted from the Apache 2.0+MIT licensed implementation originally from:
+//! <https://github.com/taikoxyz/halo2curves/pull/2>
 //! <https://github.com/privacy-scaling-explorations/halo2curves/pull/83>
 //!
 //! Copyright (c) 2023 Privacy Scaling Explorations Team
 
 // TODO(tarcieri): optimized implementation for 32-bit platforms (#380)
+// TODO(tarcieri): optimize using safegcd-bounds (#634)
 
 #![allow(clippy::needless_range_loop)]
 
@@ -32,7 +34,7 @@ use subtle::CtOption;
 /// - A = 1, if both the input and the expected output are in the standard form
 /// - A = R^2 mod M, if both the input and the expected output are in the Montgomery form
 /// - A = R mod M, if either the input or the expected output is in the Montgomery form,
-/// but not both of them
+///   but not both of them
 ///
 /// The public methods of this type receive and return unsigned big integers as arrays of 64-bit
 /// chunks, the ordering of which is little-endian. Both the modulus and the integer to be
@@ -40,11 +42,11 @@ use subtle::CtOption;
 ///
 /// For better understanding the implementation, the following resources are recommended:
 /// - D. Bernstein, B.-Y. Yang, "Fast constant-time gcd computation and modular inversion",
-/// <https://gcd.cr.yp.to/safegcd-20190413.pdf>
+///   <https://gcd.cr.yp.to/safegcd-20190413.pdf>
 /// - P. Wuille, "The safegcd implementation in libsecp256k1 explained",
-/// <https://github.com/bitcoin-core/secp256k1/blob/master/doc/safegcd_implementation.md>
+///   <https://github.com/bitcoin-core/secp256k1/blob/master/doc/safegcd_implementation.md>
 #[derive(Clone, Debug)]
-pub struct BernsteinYangInverter<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> {
+pub struct SafeGcdInverter<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> {
     /// Modulus
     pub(super) modulus: UnsatInt<UNSAT_LIMBS>,
 
@@ -58,9 +60,7 @@ pub struct BernsteinYangInverter<const SAT_LIMBS: usize, const UNSAT_LIMBS: usiz
 /// Type of the Bernstein-Yang transition matrix multiplied by 2^62
 type Matrix = [[i64; 2]; 2];
 
-impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
-    BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>
-{
+impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS> {
     /// Creates the inverter for specified modulus and adjusting parameter.
     ///
     /// Modulus must be odd. Returns `None` if it is not.
@@ -135,7 +135,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
 }
 
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Inverter
-    for BernsteinYangInverter<SAT_LIMBS, UNSAT_LIMBS>
+    for SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>
 {
     type Output = Uint<SAT_LIMBS>;
 
@@ -341,13 +341,9 @@ const fn de<const LIMBS: usize>(
 // TODO(tarcieri): improved bounds using https://github.com/sipa/safegcd-bounds
 pub(crate) const fn iterations(f_bits: u32, g_bits: u32) -> usize {
     // Select max of `f_bits`, `g_bits`
-    let d = ConstChoice::from_u32_lt(f_bits, g_bits).select_u32(f_bits, g_bits) as usize;
-
-    if d < 46 {
-        (49 * d + 80) / 17
-    } else {
-        (49 * d + 57) / 17
-    }
+    let d = ConstChoice::from_u32_lt(f_bits, g_bits).select_u32(f_bits, g_bits);
+    let addend = ConstChoice::from_u32_lt(d, 46).select_u32(57, 80);
+    ((49 * d + addend) / 17) as usize
 }
 
 /// "Bigint"-like (62 * LIMBS)-bit signed integer type, whose variables store numbers in the two's
@@ -386,7 +382,7 @@ impl<const LIMBS: usize> UnsatInt<LIMBS> {
     /// The ordering of the chunks in these arrays is little-endian.
     #[allow(trivial_numeric_casts)]
     pub const fn from_uint<const SAT_LIMBS: usize>(input: &Uint<SAT_LIMBS>) -> Self {
-        if LIMBS != bernstein_yang_nlimbs!(SAT_LIMBS * Limb::BITS as usize) {
+        if LIMBS != safegcd_nlimbs!(SAT_LIMBS * Limb::BITS as usize) {
             panic!("incorrect number of limbs");
         }
 
@@ -410,7 +406,7 @@ impl<const LIMBS: usize> UnsatInt<LIMBS> {
             "can't convert negative number to Uint"
         );
 
-        if LIMBS != bernstein_yang_nlimbs!(SAT_LIMBS * Limb::BITS as usize) {
+        if LIMBS != safegcd_nlimbs!(SAT_LIMBS * Limb::BITS as usize) {
             panic!("incorrect number of limbs");
         }
 
@@ -560,11 +556,12 @@ impl<const LIMBS: usize> UnsatInt<LIMBS> {
 
 #[cfg(test)]
 mod tests {
+    use super::iterations;
     use crate::{Inverter, PrecomputeInverter, U256};
 
     type UnsatInt = super::UnsatInt<4>;
 
-    impl<const LIMBS: usize> PartialEq for crate::modular::bernstein_yang::UnsatInt<LIMBS> {
+    impl<const LIMBS: usize> PartialEq for crate::modular::safegcd::UnsatInt<LIMBS> {
         fn eq(&self, other: &Self) -> bool {
             self.eq(other).to_bool_vartime()
         }
@@ -587,14 +584,21 @@ mod tests {
     }
 
     #[test]
-    fn int62l_add() {
+    fn iterations_boundary_conditions() {
+        assert_eq!(iterations(0, 0), 4);
+        assert_eq!(iterations(0, 45), 134);
+        assert_eq!(iterations(0, 46), 135);
+    }
+
+    #[test]
+    fn unsatint_add() {
         assert_eq!(UnsatInt::ZERO, UnsatInt::ZERO.add(&UnsatInt::ZERO));
         assert_eq!(UnsatInt::ONE, UnsatInt::ONE.add(&UnsatInt::ZERO));
         assert_eq!(UnsatInt::ZERO, UnsatInt::MINUS_ONE.add(&UnsatInt::ONE));
     }
 
     #[test]
-    fn int62l_mul() {
+    fn unsatint_mul() {
         assert_eq!(UnsatInt::ZERO, UnsatInt::ZERO.mul(0));
         assert_eq!(UnsatInt::ZERO, UnsatInt::ZERO.mul(1));
         assert_eq!(UnsatInt::ZERO, UnsatInt::ONE.mul(0));
@@ -604,21 +608,21 @@ mod tests {
     }
 
     #[test]
-    fn int62l_neg() {
+    fn unsatint_neg() {
         assert_eq!(UnsatInt::ZERO, UnsatInt::ZERO.neg());
         assert_eq!(UnsatInt::MINUS_ONE, UnsatInt::ONE.neg());
         assert_eq!(UnsatInt::ONE, UnsatInt::MINUS_ONE.neg());
     }
 
     #[test]
-    fn int62l_is_negative() {
+    fn unsatint_is_negative() {
         assert!(!UnsatInt::ZERO.is_negative().to_bool_vartime());
         assert!(!UnsatInt::ONE.is_negative().to_bool_vartime());
         assert!(UnsatInt::MINUS_ONE.is_negative().to_bool_vartime());
     }
 
     #[test]
-    fn int62l_shr() {
+    fn unsatint_shr() {
         let n = super::UnsatInt([
             0,
             1211048314408256470,

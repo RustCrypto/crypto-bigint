@@ -2,19 +2,20 @@
 
 mod add;
 pub(super) mod inv;
+mod lincomb;
 mod mul;
 mod neg;
 mod pow;
 mod sub;
 
 use self::inv::ConstMontyFormInverter;
-use super::{div_by_2::div_by_2, reduction::montgomery_reduction, BernsteinYangInverter, Retrieve};
+use super::{div_by_2::div_by_2, reduction::montgomery_reduction, Retrieve, SafeGcdInverter};
 use crate::{ConstZero, Limb, Odd, PrecomputeInverter, Uint};
 use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "rand_core")]
-use crate::{rand_core::CryptoRngCore, Random, RandomMod};
+use crate::{rand_core::RngCore, Random, RandomMod};
 
 #[cfg(feature = "serde")]
 use {
@@ -27,8 +28,9 @@ use {
 #[macro_use]
 mod macros;
 
-/// The parameters to efficiently go to and from the Montgomery form for a given odd modulus. An
-/// easy way to generate these parameters is using the [`impl_modulus!`][`crate::impl_modulus`]
+/// The parameters to efficiently go to and from the Montgomery form for a given odd modulus.
+///
+/// An easy way to generate these parameters is using the [`impl_modulus!`][`crate::impl_modulus`]
 /// macro. These parameters are constant, so they cannot be set at runtime.
 ///
 /// Unfortunately, `LIMBS` must be generic for now until const generics are stabilized.
@@ -49,6 +51,8 @@ pub trait ConstMontyParams<const LIMBS: usize>:
     /// The lowest limbs of -(MODULUS^-1) mod R
     // We only need the LSB because during reduction this value is multiplied modulo 2**Limb::BITS.
     const MOD_NEG_INV: Limb;
+    /// Leading zeros in the modulus, used to choose optimized algorithms
+    const MOD_LEADING_ZEROS: u32;
 
     /// Precompute a Bernstein-Yang inverter for this modulus.
     ///
@@ -56,7 +60,7 @@ pub trait ConstMontyParams<const LIMBS: usize>:
     fn precompute_inverter<const UNSAT_LIMBS: usize>() -> ConstMontyFormInverter<Self, LIMBS>
     where
         Odd<Uint<LIMBS>>: PrecomputeInverter<
-            Inverter = BernsteinYangInverter<LIMBS, UNSAT_LIMBS>,
+            Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>,
             Output = Uint<LIMBS>,
         >,
     {
@@ -203,7 +207,7 @@ where
     MOD: ConstMontyParams<LIMBS>,
 {
     #[inline]
-    fn random(rng: &mut impl CryptoRngCore) -> Self {
+    fn random(rng: &mut impl RngCore) -> Self {
         Self::new(&Uint::random_mod(rng, MOD::MODULUS.as_nz_ref()))
     }
 }
