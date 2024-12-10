@@ -337,3 +337,16 @@ impl<const LIMBS: usize> zeroize::Zeroize for MontyForm<LIMBS> {
         self.params.zeroize();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{Limb, MontyParams, Odd, Uint};
+
+    #[test]
+    fn new_params_with_valid_modulus() {
+        let modulus = Odd::new(Uint::from(3u8)).unwrap();
+        let params = MontyParams::<1>::new(modulus);
+
+        assert_eq!(params.mod_leading_zeros, Limb::BITS - 2);
+    }
+}
