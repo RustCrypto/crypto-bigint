@@ -97,7 +97,7 @@ impl BoxedMontyParams {
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));
 
-        let mod_leading_zeros = modulus.as_ref().leading_zeros().max(Word::BITS - 1);
+        let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
 
         let r3 = montgomery_reduction_boxed(&mut r2.square(), &modulus, mod_neg_inv);
 

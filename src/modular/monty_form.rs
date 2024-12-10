@@ -60,7 +60,7 @@ where
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
 
-        let mod_leading_zeros = modulus.as_ref().leading_zeros().max(Word::BITS - 1);
+        let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
 
         // `R^3 mod modulus`, used for inversion in Montgomery form.
         let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);
@@ -95,7 +95,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
 
-        let mod_leading_zeros = modulus.as_ref().leading_zeros().max(Word::BITS - 1);
+        let mod_leading_zeros = modulus.as_ref().leading_zeros_vartime().min(Word::BITS - 1);
 
         // `R^3 mod modulus`, used for inversion in Montgomery form.
         let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);
