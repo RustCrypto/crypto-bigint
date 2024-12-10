@@ -84,3 +84,16 @@ macro_rules! const_monty_form {
         $crate::modular::ConstMontyForm::<$modulus, { $modulus::LIMBS }>::new(&$variable)
     };
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::modular::ConstMontyParams;
+    use crate::{Limb, U64};
+
+    #[test]
+    fn new_params_with_valid_modulus() {
+        impl_modulus!(Mod, U64, "0000000000000003");
+
+        assert_eq!(Mod::MOD_LEADING_ZEROS, core::cmp::min(Limb::BITS - 1, 62));
+    }
+}

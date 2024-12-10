@@ -97,7 +97,7 @@ impl BoxedMontyParams {
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));
 
-        let mod_leading_zeros = modulus.as_ref().leading_zeros().max(Word::BITS - 1);
+        let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
 
         let r3 = montgomery_reduction_boxed(&mut r2.square(), &modulus, mod_neg_inv);
 
@@ -327,12 +327,14 @@ fn convert_to_montgomery(integer: &mut BoxedUint, params: &BoxedMontyParams) {
 
 #[cfg(test)]
 mod tests {
-    use super::{BoxedMontyForm, BoxedMontyParams, BoxedUint, Odd};
+    use super::{BoxedMontyForm, BoxedMontyParams, BoxedUint, Limb, Odd};
 
     #[test]
     fn new_params_with_valid_modulus() {
         let modulus = Odd::new(BoxedUint::from(3u8)).unwrap();
-        BoxedMontyParams::new(modulus);
+        let params = BoxedMontyParams::new(modulus);
+
+        assert_eq!(params.mod_leading_zeros, Limb::BITS - 2);
     }
 
     #[test]

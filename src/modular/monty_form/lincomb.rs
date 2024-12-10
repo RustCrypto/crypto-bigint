@@ -39,7 +39,7 @@ mod tests {
         use rand_core::SeedableRng;
 
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
-        for n in 0..1000 {
+        for n in 0..1500 {
             let modulus = Odd::<U256>::random(&mut rng);
             let params = MontyParams::new_vartime(modulus);
             let m = modulus.as_nz_ref();
