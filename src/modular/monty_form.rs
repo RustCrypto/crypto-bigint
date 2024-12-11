@@ -60,7 +60,7 @@ where
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
 
-        let mod_leading_zeros = modulus.as_ref().leading_zeros().max(Word::BITS - 1);
+        let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
 
         // `R^3 mod modulus`, used for inversion in Montgomery form.
         let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);
@@ -95,7 +95,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
 
-        let mod_leading_zeros = modulus.as_ref().leading_zeros().max(Word::BITS - 1);
+        let mod_leading_zeros = modulus.as_ref().leading_zeros_vartime().min(Word::BITS - 1);
 
         // `R^3 mod modulus`, used for inversion in Montgomery form.
         let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);
@@ -335,5 +335,18 @@ impl<const LIMBS: usize> zeroize::Zeroize for MontyForm<LIMBS> {
     fn zeroize(&mut self) {
         self.montgomery_form.zeroize();
         self.params.zeroize();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Limb, MontyParams, Odd, Uint};
+
+    #[test]
+    fn new_params_with_valid_modulus() {
+        let modulus = Odd::new(Uint::from(3u8)).unwrap();
+        let params = MontyParams::<1>::new(modulus);
+
+        assert_eq!(params.mod_leading_zeros, Limb::BITS - 2);
     }
 }
