@@ -3,21 +3,27 @@
 mod common;
 
 use common::to_biguint;
-use crypto_bigint::{Integer, Invert, Inverter, Odd, PrecomputeInverter, U256};
+use crypto_bigint::{
+    modular::MontyForm, Bounded, Constants, Encoding, Integer, Invert, Inverter, Monty, NonZero,
+    Odd, PrecomputeInverter, U1024, U128, U2048, U256, U4096, U512,
+};
 use num_bigint::BigUint;
 use num_modular::ModularUnaryOps;
+use num_traits::FromBytes;
+use prop::test_runner::TestRng;
 use proptest::prelude::*;
+use subtle::CtOption;
 
-type MontyForm = crypto_bigint::modular::MontyForm<{ U256::LIMBS }>;
-type MontyParams = crypto_bigint::modular::MontyParams<{ U256::LIMBS }>;
+type MontyForm256 = crypto_bigint::modular::MontyForm<{ U256::LIMBS }>;
+type MontyParams256 = crypto_bigint::modular::MontyParams<{ U256::LIMBS }>;
 
-fn retrieve_biguint(monty_form: &MontyForm) -> BigUint {
+fn retrieve_biguint(monty_form: &MontyForm256) -> BigUint {
     to_biguint(&monty_form.retrieve())
 }
 
-fn reduce(n: &U256, p: MontyParams) -> MontyForm {
+fn reduce(n: &U256, p: MontyParams256) -> MontyForm256 {
     let n_reduced = n.rem_vartime(p.modulus().as_nz_ref());
-    MontyForm::new(&n_reduced, p)
+    MontyForm256::new(&n_reduced, p)
 }
 
 prop_compose! {
@@ -27,26 +33,271 @@ prop_compose! {
 }
 prop_compose! {
     /// Generate a random odd modulus.
-    fn modulus()(mut n in uint()) -> MontyParams {
+    fn modulus()(mut n in uint()) -> MontyParams256 {
         if n.is_even().into() {
-            n = n.wrapping_add(&U256::one());
+            n = n.wrapping_add(&U256::ONE);
         }
 
-        MontyParams::new_vartime(Odd::new(n).expect("modulus ensured odd"))
+        MontyParams256::new_vartime(Odd::new(n).expect("modulus ensured odd"))
     }
 }
+// Generates a random `T` and returns it as a tuple in: normal form, montgomery form,
+// inverted montgomery form and the normal form inverse from the num_modular crate.
+fn random_invertible_uint<T>(
+    bytes: T::Repr,
+    monty_params: <<T as Integer>::Monty as Monty>::Params,
+    modulus: T,
+) -> Result<(T, <T as Integer>::Monty, <T as Integer>::Monty, BigUint), TestCaseError>
+where
+    T: Integer + Bounded + Encoding,
+    <T as Integer>::Monty: Invert<Output = CtOption<T::Monty>>,
+{
+    let r = T::from_be_bytes(bytes);
+    let rm = <T as Integer>::Monty::new(r.clone(), monty_params);
+    let rm_inv = rm.invert();
+    prop_assume!(bool::from(rm_inv.is_some()), "r={:?} is not invertible", r);
+    let num_modular_modulus = BigUint::from_be_bytes(modulus.to_be_bytes().as_ref());
+    let num_modular_inverse = BigUint::from_be_bytes(bytes.as_ref())
+        .clone()
+        .invm(&num_modular_modulus)
+        .unwrap();
 
+    return Ok((r, rm, rm_inv.unwrap(), num_modular_inverse));
+}
+
+// Given two bytes, presumed to be random, construct edge-case MontyParams with the first, last or
+// middle bytes set to the edge case bytes.
+fn monty_params_from_edge<T>(
+    edge_bytes: [u8; 2],
+    rng: &mut TestRng,
+) -> <<T as Integer>::Monty as Monty>::Params
+where
+    T: Integer + Constants + Encoding,
+{
+    let mut bytes = T::MAX.to_be_bytes();
+    let len = bytes.as_ref().len();
+    let edge = match rng.gen_range(0..3) {
+        // Hi
+        0 => (len - 2)..len,
+        // Mid
+        1 => len / 2 - 1..len / 2 + 1,
+        // Lo
+        2 => 0..2,
+        _ => unimplemented!("shut up rust"),
+    };
+    bytes.as_mut()[edge].copy_from_slice(&edge_bytes);
+    let mut modulus = T::from_be_bytes(bytes);
+    modulus.set_bit_vartime(0, true);
+    <T as Integer>::Monty::new_params_vartime(Odd::new(modulus).unwrap())
+}
+
+prop_compose! {
+    fn random_invertible_u128()(
+        bytes in any::<[u8; U128::BYTES]>(),
+        monty_params in any::<[u8;2]>().prop_perturb(|edge_bytes, mut rng|{
+            monty_params_from_edge::<U128>(edge_bytes, &mut rng)
+        })
+    ) -> Result<(U128, <U128 as Integer>::Monty , <U128 as Integer>::Monty, BigUint),TestCaseError> {
+        random_invertible_uint(bytes, monty_params, monty_params.modulus().get())
+    }
+}
+prop_compose! {
+    fn random_invertible_u256()(
+        bytes in any::<[u8; U256::BYTES]>(),
+        monty_params in any::<[u8;2]>().prop_perturb(|edge_bytes, mut rng|{
+            monty_params_from_edge::<U256>(edge_bytes, &mut rng)
+        })
+    ) -> Result<(U256, <U256 as Integer>::Monty , <U256 as Integer>::Monty, BigUint),TestCaseError> {
+        random_invertible_uint(bytes, monty_params, monty_params.modulus().get())
+    }
+}
+prop_compose! {
+    fn random_invertible_u2048()(
+        bytes in any::<[u8; U2048::BYTES]>(),
+        monty_params in any::<[u8;2]>().prop_perturb(|edge_bytes, mut rng|{
+            monty_params_from_edge::<U2048>(edge_bytes, &mut rng)
+        })
+    ) -> Result<(U2048, <U2048 as Integer>::Monty , <U2048 as Integer>::Monty, BigUint),TestCaseError> {
+        random_invertible_uint(bytes, monty_params, monty_params.modulus().get())
+    }
+}
+prop_compose! {
+    fn random_invertible_u1024()(
+        bytes in any::<[u8; U1024::BYTES]>(),
+        monty_params in any::<[u8;2]>().prop_perturb(|edge_bytes, mut rng|{
+            monty_params_from_edge::<U1024>(edge_bytes, &mut rng)
+        })
+    ) -> Result<(U1024, <U1024 as Integer>::Monty, <U1024 as Integer>::Monty, BigUint),TestCaseError> {
+        random_invertible_uint(bytes, monty_params, monty_params.modulus().get())
+    }
+}
 proptest! {
     #[test]
+    fn inversion_u128(
+        inputs in random_invertible_u128(),
+    ) {
+        let (r,r_monty, r_monty_inv, r_num_modular_inv) = inputs?;
+        let monty_params = r_monty.params().clone();
+        let one_monty = r_monty * r_monty_inv;
+        // Inversion works in monty form
+        assert_eq!(
+            one_monty,
+            MontyForm::one(monty_params),
+            "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:0128b}",
+            monty_params.modulus()
+        );
+        // …and in normal form
+        assert_eq!(one_monty.retrieve(), U128::ONE, "a*a⁻¹ ≠ 1 (normal form)");
+        // …and when converted back to normal form and used in a widening operation
+        let wide_modulus = NonZero::new(Into::<U256>::into(&monty_params.modulus().get())).unwrap();
+        let one = r_monty_inv.retrieve().widening_mul(&r);
+        assert_eq!(
+            one % wide_modulus,
+            U256::ONE,
+            "a*a⁻¹ ≠ 1 (normal form, wide)"
+        );
+        // …and agrees with normal form inversion
+        let normal_form_inv = r.inv_mod(&monty_params.modulus()).unwrap();
+        assert_eq!(
+            normal_form_inv,
+            r_monty_inv.retrieve(),
+            "a*a⁻¹ ≠ 1 (normal form inverted)"
+        );
+        // …and agrees with the num_modular crate
+        assert_eq!(
+            BigUint::from_be_bytes(&normal_form_inv.to_be_bytes()),
+            r_num_modular_inv,
+            "num_modular ≠ crypto_bigint"
+        )
+    }
+
+    #[test]
+    fn inversion_u256(
+        inputs in random_invertible_u256(),
+    ) {
+        let (r,r_monty, r_monty_inv, r_num_modular_inv) = inputs?;
+        let monty_params = r_monty.params().clone();
+        let one_monty = r_monty * r_monty_inv;
+        // Inversion works in monty form
+        assert_eq!(
+            one_monty,
+            MontyForm::one(monty_params),
+            "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:0256b}",
+            monty_params.modulus()
+        );
+        // …and in normal form
+        assert_eq!(one_monty.retrieve(), U256::ONE, "a*a⁻¹ ≠ 1 (normal form)");
+        // …and when converted back to normal form and used in a widening operation
+        let wide_modulus = NonZero::new(Into::<U512>::into(&monty_params.modulus().get())).unwrap();
+        let one = r_monty_inv.retrieve().widening_mul(&r);
+        assert_eq!(
+            one % wide_modulus,
+            U512::ONE,
+            "a*a⁻¹ ≠ 1 (normal form, wide)"
+        );
+        // …and agrees with normal form inversion
+        let normal_form_inv = r.inv_mod(&monty_params.modulus()).unwrap();
+        assert_eq!(
+            normal_form_inv,
+            r_monty_inv.retrieve(),
+            "a*a⁻¹ ≠ 1 (normal form inverted)"
+        );
+        // …and agrees with the num_modular crate
+        assert_eq!(
+            BigUint::from_be_bytes(&normal_form_inv.to_be_bytes()),
+            r_num_modular_inv,
+            "num_modular ≠ crypto_bigint"
+        )
+    }
+
+    #[test]
+    fn inversion_u1024(
+        inputs in random_invertible_u1024(),
+    ) {
+        let (r,r_monty, r_monty_inv, r_num_modular_inv) = inputs?;
+        let monty_params = r_monty.params().clone();
+        let one_monty = r_monty * r_monty_inv;
+        // Inversion works in monty form
+        assert_eq!(
+            one_monty,
+            MontyForm::one(monty_params),
+            "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:01024b}",
+            monty_params.modulus()
+        );
+        // …and in normal form
+        assert_eq!(one_monty.retrieve(), U1024::ONE, "a*a⁻¹ ≠ 1 (normal form)");
+        // …and when converted back to normal form and used in a widening operation
+        let wide_modulus = NonZero::new(Into::<U2048>::into(&monty_params.modulus().get())).unwrap();
+        let one = r_monty_inv.retrieve().widening_mul(&r);
+        assert_eq!(
+            one % wide_modulus,
+            U2048::ONE,
+            "a*a⁻¹ ≠ 1 (normal form, wide)"
+        );
+        // …and agrees with normal form inversion
+        let normal_form_inv = r.inv_mod(&monty_params.modulus()).unwrap();
+        assert_eq!(
+            normal_form_inv,
+            r_monty_inv.retrieve(),
+            "a*a⁻¹ ≠ 1 (normal form inverted)"
+        );
+        // …and agrees with the num_modular crate
+        assert_eq!(
+            BigUint::from_be_bytes(&normal_form_inv.to_be_bytes()),
+            r_num_modular_inv,
+            "num_modular ≠ crypto_bigint"
+        )
+    }
+
+    #[test]
+    fn inversion_u2048(
+        inputs in random_invertible_u2048(),
+    ) {
+        let (r,r_monty, r_monty_inv, r_num_modular_inv) = inputs?;
+        let monty_params = r_monty.params().clone();
+        let one_monty = r_monty * r_monty_inv;
+        // Inversion works in monty form
+        assert_eq!(
+            one_monty,
+            MontyForm::one(monty_params),
+            "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:02048b}",
+            monty_params.modulus()
+        );
+        // …and in normal form
+        assert_eq!(one_monty.retrieve(), U2048::ONE, "a*a⁻¹ ≠ 1 (normal form)");
+        // …and when converted back to normal form and used in a widening operation
+        let wide_modulus = NonZero::new(Into::<U4096>::into(&monty_params.modulus().get())).unwrap();
+        let one = r_monty_inv.retrieve().widening_mul(&r);
+        assert_eq!(
+            one % wide_modulus,
+            U4096::ONE,
+            "a*a⁻¹ ≠ 1 (normal form, wide)"
+        );
+        // …and agrees with normal form inversion
+        let normal_form_inv = r.inv_mod(&monty_params.modulus()).unwrap();
+        assert_eq!(
+            normal_form_inv,
+            r_monty_inv.retrieve(),
+            "a*a⁻¹ ≠ 1 (normal form inverted)"
+        );
+        // …and agrees with the num_modular crate
+        assert_eq!(
+            BigUint::from_be_bytes(&normal_form_inv.to_be_bytes()),
+            r_num_modular_inv,
+            "num_modular ≠ crypto_bigint"
+        )
+    }
+
+    #[test]
     fn new(n in modulus()) {
-        let n2 = MontyParams::new(*n.modulus());
+        let n2 = MontyParams256::new(*n.modulus());
         prop_assert_eq!(n, n2);
     }
 
     #[test]
     fn inv(x in uint(), n in modulus()) {
         let x = reduce(&x, n);
-        let actual = Option::<MontyForm>::from(x.invert());
+        let actual = Option::<MontyForm256>::from(x.invert());
 
         let x_bi = retrieve_biguint(&x);
         let n_bi = to_biguint(n.modulus());
@@ -67,7 +318,7 @@ proptest! {
     fn precomputed_inv(x in uint(), n in modulus()) {
         let x = reduce(&x, n);
         let inverter = x.params().precompute_inverter();
-        let actual = Option::<MontyForm>::from(inverter.invert(&x));
+        let actual = Option::<MontyForm256>::from(inverter.invert(&x));
 
         let x_bi = retrieve_biguint(&x);
         let n_bi = to_biguint(n.modulus());
