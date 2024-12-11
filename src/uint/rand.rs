@@ -93,7 +93,7 @@ pub(super) fn random_mod_core<T>(
     modulus: &NonZero<T>,
     n_bits: u32,
 ) where
-    T: AsMut<[Limb]> + AsRef<[Limb]> + ConstantTimeLess + Zero + core::fmt::Debug,
+    T: AsMut<[Limb]> + AsRef<[Limb]> + ConstantTimeLess + Zero,
 {
     #[cfg(target_pointer_width = "64")]
     let mut next_word = || rng.next_u64();

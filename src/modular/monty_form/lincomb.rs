@@ -29,7 +29,6 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
 #[cfg(test)]
 mod tests {
     #[cfg(feature = "rand")]
-    #[ignore = "Issue #707"]
     #[test]
     fn lincomb_expected() {
         use crate::U256;
