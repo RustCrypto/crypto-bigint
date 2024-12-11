@@ -3,9 +3,9 @@ on:
   pull_request:
     paths:
       - Cargo.lock
+      - .github/workflows/security-audit.yml
   push:
-    branches:
-      - master
+    branches: master
     paths:
       - Cargo.lock
   schedule:
@@ -21,7 +21,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cargo/bin
-          key: ${{ runner.os }}-cargo-audit-v0.13.0
-      - uses: actions-rs/audit-check@v1
+          key: ${{ runner.os }}-cargo-audit-v0.21.0
+      - uses: rustsec/audit-check@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
