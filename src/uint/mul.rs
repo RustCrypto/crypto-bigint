@@ -244,6 +244,18 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Uint<RHS_LIMBS>> for &Uint
     }
 }
 
+impl<const LIMBS: usize, const RHS_LIMBS: usize> MulAssign<Uint<RHS_LIMBS>> for Uint<LIMBS> {
+    fn mul_assign(&mut self, rhs: Uint<RHS_LIMBS>) {
+        *self = self.mul(&rhs)
+    }
+}
+
+impl<const LIMBS: usize, const RHS_LIMBS: usize> MulAssign<&Uint<RHS_LIMBS>> for Uint<LIMBS> {
+    fn mul_assign(&mut self, rhs: &Uint<RHS_LIMBS>) {
+        *self = self.mul(rhs)
+    }
+}
+
 impl<const LIMBS: usize> MulAssign<Wrapping<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
     fn mul_assign(&mut self, other: Wrapping<Uint<LIMBS>>) {
         *self = *self * other;
