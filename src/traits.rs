@@ -82,6 +82,8 @@ pub trait Integer:
     'static
     + Add<Output = Self>
     + for<'a> Add<&'a Self, Output = Self>
+    + AddAssign<Self>
+    + for<'a> AddAssign<&'a Self>
     + AddMod<Output = Self>
     + AsRef<[Limb]>
     + BitAnd<Output = Self>
@@ -121,6 +123,8 @@ pub trait Integer:
     + From<Limb>
     + Mul<Output = Self>
     + for<'a> Mul<&'a Self, Output = Self>
+    + MulAssign<Self>
+    + for<'a> MulAssign<&'a Self>
     + MulMod<Output = Self>
     + NegMod<Output = Self>
     + Not<Output = Self>
@@ -140,6 +144,8 @@ pub trait Integer:
     + ShrVartime
     + Sub<Output = Self>
     + for<'a> Sub<&'a Self, Output = Self>
+    + SubAssign<Self>
+    + for<'a> SubAssign<&'a Self>
     + SubMod<Output = Self>
     + Sync
     + SquareRoot

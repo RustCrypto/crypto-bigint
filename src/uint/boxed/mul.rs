@@ -102,6 +102,18 @@ impl Mul<&BoxedUint> for &BoxedUint {
     }
 }
 
+impl MulAssign<BoxedUint> for BoxedUint {
+    fn mul_assign(&mut self, rhs: BoxedUint) {
+        self.mul_assign(&rhs)
+    }
+}
+
+impl MulAssign<&BoxedUint> for BoxedUint {
+    fn mul_assign(&mut self, rhs: &BoxedUint) {
+        *self = self.clone().mul(rhs)
+    }
+}
+
 impl MulAssign<Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     fn mul_assign(&mut self, other: Wrapping<BoxedUint>) {
         *self = Wrapping(self.0.wrapping_mul(&other.0));

@@ -66,12 +66,37 @@ impl Add<&BoxedUint> for BoxedUint {
     }
 }
 
+impl Add<BoxedUint> for &BoxedUint {
+    type Output = BoxedUint;
+
+    fn add(self, rhs: BoxedUint) -> BoxedUint {
+        Add::add(self, &rhs)
+    }
+}
+
 impl Add<&BoxedUint> for &BoxedUint {
     type Output = BoxedUint;
 
     fn add(self, rhs: &BoxedUint) -> BoxedUint {
         self.checked_add(rhs)
             .expect("attempted to add with overflow")
+    }
+}
+
+impl AddAssign<BoxedUint> for BoxedUint {
+    fn add_assign(&mut self, rhs: BoxedUint) {
+        self.add_assign(&rhs)
+    }
+}
+
+impl AddAssign<&BoxedUint> for BoxedUint {
+    fn add_assign(&mut self, rhs: &BoxedUint) {
+        let carry = self.adc_assign(rhs, Limb::ZERO);
+        assert_eq!(
+            carry.is_zero().unwrap_u8(),
+            1,
+            "attempted to add with overflow"
+        );
     }
 }
 
