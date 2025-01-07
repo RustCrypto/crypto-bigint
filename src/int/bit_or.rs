@@ -123,10 +123,14 @@ mod tests {
     #[test]
     fn checked_or_ok() {
         assert_eq!(I128::ZERO.checked_or(&I128::ONE).unwrap(), I128::ONE);
+        assert_eq!(I128::ONE.checked_or(&I128::ONE).unwrap(), I128::ONE);
+        assert_eq!(I128::MAX.checked_or(&I128::ONE).unwrap(), I128::MAX);
     }
 
     #[test]
-    fn overlapping_or_ok() {
+    fn wrapping_or_ok() {
+        assert_eq!(I128::ZERO.wrapping_or(&I128::ONE), I128::ONE);
+        assert_eq!(I128::ONE.wrapping_or(&I128::ONE), I128::ONE);
         assert_eq!(I128::MAX.wrapping_or(&I128::ONE), I128::MAX);
     }
 }
