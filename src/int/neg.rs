@@ -95,7 +95,7 @@ mod tests {
     }
 
     #[test]
-    fn neg() {
+    fn checked_neg() {
         assert_eq!(I128::MIN.checked_neg().is_none(), ConstChoice::TRUE);
         assert_eq!(I128::MINUS_ONE.checked_neg().unwrap(), I128::ONE);
         assert_eq!(I128::ZERO.checked_neg().unwrap(), I128::ZERO);
