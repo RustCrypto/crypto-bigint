@@ -81,7 +81,7 @@ mod tests {
     mod tests {
         use num_traits::WrappingSub;
 
-        use crate::{CheckedSub, Int, I128, U128};
+        use crate::{CheckedSub, I128, Int, U128};
 
         #[test]
         fn checked_sub() {
@@ -127,7 +127,7 @@ mod tests {
             assert_eq!(result.unwrap(), I128::MINUS_ONE);
 
             let result = I128::MINUS_ONE.checked_sub(&I128::ONE);
-            assert_eq!(result.unwrap(), two.checked_neg().unwrap());
+            assert_eq!(result.unwrap(), two.wrapping_neg());
 
             let result = I128::MINUS_ONE.checked_sub(&I128::MAX);
             assert_eq!(result.unwrap(), I128::MIN);
