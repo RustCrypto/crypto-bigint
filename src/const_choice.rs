@@ -1,6 +1,6 @@
 use subtle::{Choice, CtOption};
 
-use crate::{modular::SafeGcdInverter, Int, Limb, NonZero, Odd, Uint, WideWord, Word};
+use crate::{Int, Limb, modular::SafeGcdInverter, NonZero, Odd, Uint, WideWord, Word};
 
 /// A boolean value returned by constant-time `const fn`s.
 // TODO: should be replaced by `subtle::Choice` or `CtOption`
@@ -395,7 +395,7 @@ impl<const LIMBS: usize> ConstCtOption<Uint<LIMBS>> {
     /// Returns the contained value, interpreting the underlying [`Uint`] value as an [`Int`].
     #[inline]
     pub const fn as_int(&self) -> ConstCtOption<Int<LIMBS>> {
-        ConstCtOption::new(Int::from_bits(self.value), self.is_some)
+        ConstCtOption::new(self.value.as_int(), self.is_some)
     }
 }
 
