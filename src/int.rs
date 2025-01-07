@@ -7,9 +7,9 @@ use num_traits::ConstZero;
 use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
+use crate::{Bounded, Constants, ConstChoice, ConstCtOption, Limb, NonZero, Odd, Uint, Word};
 #[cfg(feature = "serde")]
 use crate::Encoding;
-use crate::{Bounded, ConstChoice, ConstCtOption, Constants, Limb, NonZero, Odd, Uint, Word};
 
 mod add;
 mod bit_and;
@@ -18,6 +18,7 @@ mod bit_or;
 mod bit_xor;
 mod cmp;
 mod div;
+mod div_uint;
 mod encoding;
 mod from;
 mod mul;
