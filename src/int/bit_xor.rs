@@ -123,10 +123,17 @@ mod tests {
     #[test]
     fn checked_xor_ok() {
         assert_eq!(I128::ZERO.checked_xor(&I128::ONE).unwrap(), I128::ONE);
+        assert_eq!(I128::ONE.checked_xor(&I128::ONE).unwrap(), I128::ZERO);
+        assert_eq!(
+            I128::MAX.checked_xor(&I128::ONE).unwrap(),
+            I128::MAX - I128::ONE
+        );
     }
 
     #[test]
-    fn overlapping_xor_ok() {
+    fn wrapping_xor_ok() {
         assert_eq!(I128::ZERO.wrapping_xor(&I128::ONE), I128::ONE);
+        assert_eq!(I128::ONE.wrapping_xor(&I128::ONE), I128::ZERO);
+        assert_eq!(I128::MAX.wrapping_xor(&I128::ONE), I128::MAX - I128::ONE);
     }
 }
