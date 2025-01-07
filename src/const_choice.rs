@@ -1,6 +1,6 @@
 use subtle::{Choice, CtOption};
 
-use crate::{Int, Limb, modular::SafeGcdInverter, NonZero, Odd, Uint, WideWord, Word};
+use crate::{modular::SafeGcdInverter, Int, Limb, NonZero, Odd, Uint, WideWord, Word};
 
 /// A boolean value returned by constant-time `const fn`s.
 // TODO: should be replaced by `subtle::Choice` or `CtOption`
