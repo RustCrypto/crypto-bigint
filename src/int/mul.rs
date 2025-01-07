@@ -10,8 +10,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute "wide" multiplication as a 3-tuple `(lo, hi, negate)`.
     /// The `(lo, hi)` components contain the _magnitude of the product_, with sizes
     /// corresponding to the sizes of the operands; `negate` indicates whether the result should be
-    /// negated when converted from `Uint` to `Int`. Note: even if `negate` is truthy, the magnitude
-    /// might be zero!
+    /// negated when converted from [`Uint`] to [`Int`].
+    ///
+    /// Note: even if `negate` is truthy, the magnitude might be zero!
     pub const fn split_mul<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
