@@ -131,10 +131,14 @@ mod tests {
     #[test]
     fn checked_and_ok() {
         assert_eq!(I128::ZERO.checked_and(&I128::ONE).unwrap(), I128::ZERO);
+        assert_eq!(I128::ONE.checked_and(&I128::ONE).unwrap(), I128::ONE);
+        assert_eq!(I128::MAX.checked_and(&I128::ONE).unwrap(), I128::ONE);
     }
 
     #[test]
-    fn overlapping_and_ok() {
+    fn wrapping_and_ok() {
+        assert_eq!(I128::ZERO.wrapping_and(&I128::ONE), I128::ZERO);
+        assert_eq!(I128::ONE.wrapping_and(&I128::ONE), I128::ONE);
         assert_eq!(I128::MAX.wrapping_and(&I128::ONE), I128::ONE);
     }
 }
