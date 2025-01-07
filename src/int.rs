@@ -22,6 +22,7 @@ mod div_uint;
 mod encoding;
 mod from;
 mod mul;
+mod mul_uint;
 mod neg;
 mod resize;
 mod shl;
