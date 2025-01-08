@@ -1,26 +1,26 @@
 //! Traits provided by this crate
 
-mod sealed;
-
-pub use num_traits::{
-    ConstZero, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr, WrappingSub,
-};
-
-pub(crate) use sealed::PrecomputeInverterWithAdjuster;
-
-use crate::{Limb, NonZero, Odd, Reciprocal};
 use core::fmt::{self, Debug};
 use core::ops::{
     Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign,
     Mul, MulAssign, Neg, Not, Rem, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
+
+pub use num_traits::{
+    ConstZero, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr, WrappingSub,
+};
+#[cfg(feature = "rand_core")]
+use rand_core::CryptoRngCore;
 use subtle::{
     Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
     CtOption,
 };
 
-#[cfg(feature = "rand_core")]
-use rand_core::CryptoRngCore;
+pub(crate) use sealed::PrecomputeInverterWithAdjuster;
+
+use crate::{Limb, NonZero, Odd, Reciprocal};
+
+mod sealed;
 
 /// Integers whose representation takes a bounded amount of space.
 pub trait Bounded {
@@ -443,9 +443,9 @@ pub trait MulMod<Rhs = Self> {
 }
 
 /// Compute `1 / self mod p`.
-pub trait InvMod: Sized {
+pub trait InvMod<Rhs = Self, Output = Self>: Sized {
     /// Compute `1 / self mod p`.
-    fn inv_mod(&self, p: &Self) -> CtOption<Self>;
+    fn inv_mod(&self, p: &Rhs) -> CtOption<Output>;
 }
 
 /// Checked addition.
