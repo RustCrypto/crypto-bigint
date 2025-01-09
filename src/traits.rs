@@ -669,9 +669,7 @@ pub trait BitOps {
 
     /// Calculate the number of bits required to represent a given number in variable-time with
     /// respect to `self`.
-    fn bits_vartime(&self) -> u32 {
-        self.bits_precision() - self.leading_zeros_vartime()
-    }
+    fn bits_vartime(&self) -> u32;
 
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`,
     /// variable time in `self`.
