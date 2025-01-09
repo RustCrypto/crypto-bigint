@@ -1,6 +1,6 @@
 use subtle::{Choice, CtOption};
 
-use crate::{modular::SafeGcdInverter, Limb, NonZero, Odd, Uint, WideWord, Word};
+use crate::{modular::SafeGcdInverter, Int, Limb, NonZero, Odd, Uint, WideWord, Word};
 
 /// A boolean value returned by constant-time `const fn`s.
 // TODO: should be replaced by `subtle::Choice` or `CtOption`
@@ -47,6 +47,13 @@ impl ConstChoice {
     pub(crate) const fn from_word_lsb(value: Word) -> Self {
         debug_assert!(value == 0 || value == 1);
         Self(value.wrapping_neg())
+    }
+
+    /// Returns the truthy value if the most significant bit of `value` is `1`,
+    /// and the falsy value if it equals `0`.
+    #[inline]
+    pub(crate) const fn from_word_msb(value: Word) -> Self {
+        Self::from_word_lsb(value >> (Word::BITS - 1))
     }
 
     /// Returns the truthy value if `value == 1`, and the falsy value if `value == 0`.
@@ -185,6 +192,16 @@ impl ConstChoice {
     #[inline]
     pub(crate) const fn xor(&self, other: Self) -> Self {
         Self(self.0 ^ other.0)
+    }
+
+    #[inline]
+    pub(crate) const fn ne(&self, other: Self) -> Self {
+        Self::xor(self, other)
+    }
+
+    #[inline]
+    pub(crate) const fn eq(&self, other: Self) -> Self {
+        Self::ne(self, other).not()
     }
 
     /// Return `b` if `self` is truthy, otherwise return `a`.
@@ -374,6 +391,12 @@ impl<const LIMBS: usize> ConstCtOption<Uint<LIMBS>> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
     }
+
+    /// Returns the contained value, interpreting the underlying [`Uint`] value as an [`Int`].
+    #[inline]
+    pub const fn as_int(&self) -> ConstCtOption<Int<LIMBS>> {
+        ConstCtOption::new(Int::from_bits(self.value), self.is_some)
+    }
 }
 
 impl<const LIMBS: usize> ConstCtOption<(Uint<LIMBS>, Uint<LIMBS>)> {
@@ -418,6 +441,26 @@ impl<const LIMBS: usize> ConstCtOption<Odd<Uint<LIMBS>>> {
     }
 }
 
+impl<const LIMBS: usize> ConstCtOption<Int<LIMBS>> {
+    /// This returns the underlying value if it is `Some` or the provided value otherwise.
+    #[inline]
+    pub const fn unwrap_or(self, def: Int<LIMBS>) -> Int<LIMBS> {
+        Int::select(&def, &self.value, self.is_some)
+    }
+
+    /// Returns the contained value, consuming the `self` value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value is none with a custom panic message provided by
+    /// `msg`.
+    #[inline]
+    pub const fn expect(self, msg: &str) -> Int<LIMBS> {
+        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        self.value
+    }
+}
+
 impl ConstCtOption<NonZero<Limb>> {
     /// Returns the contained value, consuming the `self` value.
     ///
@@ -450,8 +493,9 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
 
 #[cfg(test)]
 mod tests {
-    use super::ConstChoice;
     use crate::{WideWord, Word};
+
+    use super::ConstChoice;
 
     #[test]
     fn from_u64_lsb() {

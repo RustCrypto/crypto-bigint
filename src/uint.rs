@@ -2,6 +2,23 @@
 
 #![allow(clippy::needless_range_loop, clippy::many_single_char_names)]
 
+use core::fmt;
+
+#[cfg(feature = "serde")]
+use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
+#[cfg(feature = "zeroize")]
+use zeroize::DefaultIsZeroes;
+
+#[cfg(feature = "extra-sizes")]
+pub use extra_sizes::*;
+
+use crate::{
+    modular::{MontyForm, SafeGcdInverter},
+    Bounded, ConstCtOption, ConstZero, Constants, Encoding, FixedInteger, Int, Integer, Limb,
+    NonZero, Odd, PrecomputeInverter, PrecomputeInverterWithAdjuster, Word,
+};
+
 #[macro_use]
 mod macros;
 
@@ -16,7 +33,7 @@ mod cmp;
 mod concat;
 mod div;
 pub(crate) mod div_limb;
-mod encoding;
+pub(crate) mod encoding;
 mod from;
 mod gcd;
 mod inv_mod;
@@ -38,20 +55,6 @@ mod array;
 pub(crate) mod boxed;
 #[cfg(feature = "rand_core")]
 mod rand;
-
-use crate::{
-    modular::{MontyForm, SafeGcdInverter},
-    Bounded, ConstCtOption, ConstZero, Constants, Encoding, FixedInteger, Integer, Limb, NonZero,
-    Odd, PrecomputeInverter, PrecomputeInverterWithAdjuster, Word,
-};
-use core::fmt;
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
-
-#[cfg(feature = "serde")]
-use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-#[cfg(feature = "zeroize")]
-use zeroize::DefaultIsZeroes;
 
 /// Stack-allocated big unsigned integer.
 ///
@@ -183,6 +186,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Returns some if the original value is odd, and false otherwise.
     pub const fn to_odd(self) -> ConstCtOption<Odd<Self>> {
         ConstCtOption::new(Odd(self), self.is_odd())
+    }
+
+    /// Interpret the data in this type as an [`Int`] instead.
+    pub const fn as_int(&self) -> Int<LIMBS> {
+        Int::from_bits(*self)
     }
 }
 
@@ -456,20 +464,17 @@ impl_uint_concat_split_mixed! {
 #[cfg(feature = "extra-sizes")]
 mod extra_sizes;
 
-#[cfg(feature = "extra-sizes")]
-pub use extra_sizes::*;
-
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use crate::{Encoding, U128};
-    use subtle::ConditionallySelectable;
-
     #[cfg(feature = "alloc")]
     use alloc::format;
 
+    use subtle::ConditionallySelectable;
+
     #[cfg(feature = "serde")]
     use crate::U64;
+    use crate::{Encoding, U128};
 
     #[cfg(target_pointer_width = "64")]
     #[test]
