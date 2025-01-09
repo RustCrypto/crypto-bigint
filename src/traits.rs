@@ -220,9 +220,15 @@ pub trait Inverter {
     /// Output of an inversion.
     type Output;
 
-    /// Compute a modular inversion, returning `None` if the result is undefined (i.e. if `value` is zero or isn't
-    /// prime relative to the modulus).
+    /// Compute a modular inversion, returning `None` if the result is undefined (i.e. if `value` is
+    /// zero or isn't prime relative to the modulus).
     fn invert(&self, value: &Self::Output) -> CtOption<Self::Output>;
+
+    /// Compute a modular inversion, returning `None` if the result is undefined (i.e. if `value` is
+    /// zero or isn't prime relative to the modulus).
+    ///
+    /// This version is variable-time with respect to `value`.
+    fn invert_vartime(&self, value: &Self::Output) -> CtOption<Self::Output>;
 }
 
 /// Obtain a precomputed inverter for efficiently computing modular inversions for a given modulus.
@@ -759,6 +765,9 @@ pub trait Invert: Sized {
 
     /// Computes the inverse.
     fn invert(&self) -> Self::Output;
+
+    /// Computes the inverse in variable-time.
+    fn invert_vartime(&self) -> Self::Output;
 }
 
 /// Widening multiply: returns a value with a number of limbs equal to the sum of the inputs.

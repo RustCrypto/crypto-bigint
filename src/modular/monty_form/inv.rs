@@ -16,7 +16,8 @@ where
     >,
 {
     /// Computes `self^-1` representing the multiplicative inverse of `self`.
-    /// I.e. `self * self^-1 = 1`.
+    /// i.e. `self * self^-1 = 1`.
+    ///
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
     pub const fn inv(&self) -> ConstCtOption<Self> {
@@ -26,6 +27,31 @@ where
         );
 
         let maybe_inverse = inverter.inv(&self.montgomery_form);
+        let (inverse, inverse_is_some) = maybe_inverse.components_ref();
+
+        let ret = Self {
+            montgomery_form: *inverse,
+            params: self.params,
+        };
+
+        ConstCtOption::new(ret, inverse_is_some)
+    }
+
+    /// Computes `self^-1` representing the multiplicative inverse of `self`.
+    /// i.e. `self * self^-1 = 1`.
+    ///
+    /// If the number was invertible, the second element of the tuple is the truthy value,
+    /// otherwise it is the falsy value (in which case the first element's value is unspecified).
+    ///
+    /// This version is variable-time with respect to the value of `self`, but constant-time with
+    /// respect to `self`'s `params`.
+    pub const fn inv_vartime(&self) -> ConstCtOption<Self> {
+        let inverter = <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(
+            &self.params.modulus,
+            &self.params.r2,
+        );
+
+        let maybe_inverse = inverter.inv_vartime(&self.montgomery_form);
         let (inverse, inverse_is_some) = maybe_inverse.components_ref();
 
         let ret = Self {
@@ -48,6 +74,10 @@ where
 
     fn invert(&self) -> Self::Output {
         self.inv().into()
+    }
+
+    fn invert_vartime(&self) -> Self::Output {
+        self.inv_vartime().into()
     }
 }
 
@@ -87,6 +117,17 @@ where
 
         self.inverter
             .invert(&value.montgomery_form)
+            .map(|montgomery_form| MontyForm {
+                montgomery_form,
+                params: value.params,
+            })
+    }
+
+    fn invert_vartime(&self, value: &MontyForm<LIMBS>) -> CtOption<Self::Output> {
+        debug_assert_eq!(self.params, value.params);
+
+        self.inverter
+            .invert_vartime(&value.montgomery_form)
             .map(|montgomery_form| MontyForm {
                 montgomery_form,
                 params: value.params,
