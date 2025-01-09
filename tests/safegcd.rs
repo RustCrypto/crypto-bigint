@@ -51,6 +51,10 @@ proptest! {
             let inv_bi = to_biguint(&actual);
             let res = (inv_bi * x_bi) % p_bi;
             prop_assert_eq!(res, BigUint::one());
+
+            // check vartime implementation equivalence
+            let actual_vartime = inverter.invert_vartime(&x).unwrap();
+            prop_assert_eq!(actual, actual_vartime);
         }
     }
 
@@ -73,6 +77,10 @@ proptest! {
             let inv_bi = to_biguint(&actual);
             let res = (inv_bi * x_bi) % p_bi;
             prop_assert_eq!(res, BigUint::one());
+
+            // check vartime implementation equivalence
+            let actual_vartime = inverter.invert_vartime(&x).unwrap();
+            prop_assert_eq!(actual, actual_vartime);
         }
     }
 }
