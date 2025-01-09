@@ -2,12 +2,11 @@
 
 use super::{Uint, Word};
 use crate::{Encoding, Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod, Zero};
-use rand_core::CryptoRngCore;
+use rand_core::RngCore;
 use subtle::ConstantTimeLess;
 
 impl<const LIMBS: usize> Random for Uint<LIMBS> {
-    /// Generate a cryptographically secure random [`Uint`].
-    fn random(mut rng: &mut impl CryptoRngCore) -> Self {
+    fn random(mut rng: &mut impl RngCore) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
 
         for limb in &mut limbs {
@@ -22,7 +21,7 @@ impl<const LIMBS: usize> Random for Uint<LIMBS> {
 ///
 /// NOTE: Assumes that the limbs in the given slice are zeroed!
 pub(crate) fn random_bits_core(
-    rng: &mut impl CryptoRngCore,
+    rng: &mut impl RngCore,
     zeroed_limbs: &mut [Limb],
     bit_length: u32,
 ) -> Result<(), RandomBitsError> {
@@ -51,15 +50,12 @@ pub(crate) fn random_bits_core(
 }
 
 impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
-    fn try_random_bits(
-        rng: &mut impl CryptoRngCore,
-        bit_length: u32,
-    ) -> Result<Self, RandomBitsError> {
+    fn try_random_bits(rng: &mut impl RngCore, bit_length: u32) -> Result<Self, RandomBitsError> {
         Self::try_random_bits_with_precision(rng, bit_length, Self::BITS)
     }
 
     fn try_random_bits_with_precision(
-        rng: &mut impl CryptoRngCore,
+        rng: &mut impl RngCore,
         bit_length: u32,
         bits_precision: u32,
     ) -> Result<Self, RandomBitsError> {
@@ -82,18 +78,7 @@ impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
-    /// Generate a cryptographically secure random [`Uint`] which is less than
-    /// a given `modulus`.
-    ///
-    /// This function uses rejection sampling, a method which produces an
-    /// unbiased distribution of in-range values provided the underlying
-    /// CSRNG is unbiased, but runs in variable-time.
-    ///
-    /// The variable-time nature of the algorithm should not pose a security
-    /// issue so long as the underlying random number generator is truly a
-    /// CSRNG, where previous outputs are unrelated to subsequent
-    /// outputs and do not reveal information about the RNG's internal state.
-    fn random_mod(rng: &mut impl CryptoRngCore, modulus: &NonZero<Self>) -> Self {
+    fn random_mod(rng: &mut impl RngCore, modulus: &NonZero<Self>) -> Self {
         let mut n = Self::ZERO;
         random_mod_core(rng, &mut n, modulus, modulus.bits_vartime());
         n
@@ -103,47 +88,55 @@ impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
 /// Generic implementation of `random_mod` which can be shared with `BoxedUint`.
 // TODO(tarcieri): obtain `n_bits` via a trait like `Integer`
 pub(super) fn random_mod_core<T>(
-    rng: &mut impl CryptoRngCore,
+    rng: &mut impl RngCore,
     n: &mut T,
     modulus: &NonZero<T>,
     n_bits: u32,
 ) where
-    T: AsMut<[Limb]> + ConstantTimeLess + Zero,
+    T: AsMut<[Limb]> + AsRef<[Limb]> + ConstantTimeLess + Zero,
 {
-    let n_bytes = ((n_bits + 7) / 8) as usize;
-    let n_limbs = n_bits.div_ceil(Limb::BITS) as usize;
-    let hi_bytes = n_bytes - (n_limbs - 1) * Limb::BYTES;
+    #[cfg(target_pointer_width = "64")]
+    let mut next_word = || rng.next_u64();
+    #[cfg(target_pointer_width = "32")]
+    let mut next_word = || rng.next_u32();
 
-    let mut bytes = Limb::ZERO.to_le_bytes();
+    let n_limbs = n_bits.div_ceil(Limb::BITS) as usize;
+
+    let hi_word_modulus = modulus.as_ref().as_ref()[n_limbs - 1].0;
+    let mask = !0 >> hi_word_modulus.leading_zeros();
+    let mut hi_word = next_word() & mask;
 
     loop {
+        while hi_word > hi_word_modulus {
+            hi_word = next_word() & mask;
+        }
+        // Set high limb
+        n.as_mut()[n_limbs - 1] = Limb::from_le_bytes(hi_word.to_le_bytes());
+        // Set low limbs
         for i in 0..n_limbs - 1 {
-            rng.fill_bytes(bytes.as_mut());
             // Need to deserialize from little-endian to make sure that two 32-bit limbs
             // deserialized sequentially are equal to one 64-bit limb produced from the same
             // byte stream.
-            n.as_mut()[i] = Limb::from_le_bytes(bytes);
+            n.as_mut()[i] = Limb::from_le_bytes(next_word().to_le_bytes());
         }
-
-        // Generate the high limb which may need to only be filled partially.
-        bytes = Limb::ZERO.to_le_bytes();
-        rng.fill_bytes(&mut bytes[..hi_bytes]);
-        n.as_mut()[n_limbs - 1] = Limb::from_le_bytes(bytes);
-
+        // If the high limb is equal to the modulus' high limb, it's still possible
+        // that the full uint is too big so we check and repeat if it is.
         if n.ct_lt(modulus).into() {
             break;
         }
+        hi_word = next_word() & mask;
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{Limb, NonZero, RandomBits, RandomMod, U256};
+    use rand_chacha::ChaCha8Rng;
     use rand_core::SeedableRng;
 
     #[test]
     fn random_mod() {
-        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+        let mut rng = ChaCha8Rng::seed_from_u64(1);
 
         // Ensure `random_mod` runs in a reasonable amount of time
         let modulus = NonZero::new(U256::from(42u8)).unwrap();
@@ -163,7 +156,7 @@ mod tests {
 
     #[test]
     fn random_bits() {
-        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+        let mut rng = ChaCha8Rng::seed_from_u64(1);
 
         let lower_bound = 16;
 

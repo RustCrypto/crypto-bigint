@@ -1,24 +1,24 @@
 //! Wrapper type for non-zero integers.
 
+use crate::{Bounded, ConstChoice, Constants, Encoding, Int, Limb, Uint, Zero};
 use core::{
     fmt,
     num::{NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8},
     ops::Deref,
 };
+use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+#[cfg(feature = "hybrid-array")]
+use crate::{ArrayEncoding, ByteArray};
+
+#[cfg(feature = "rand_core")]
+use {crate::Random, rand_core::RngCore};
 
 #[cfg(feature = "serde")]
 use serdect::serde::{
     de::{Error, Unexpected},
     Deserialize, Deserializer, Serialize, Serializer,
 };
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
-
-#[cfg(feature = "rand_core")]
-use {crate::Random, rand_core::CryptoRngCore};
-
-#[cfg(feature = "hybrid-array")]
-use crate::{ArrayEncoding, ByteArray};
-use crate::{Bounded, ConstChoice, Constants, Encoding, Int, Limb, Uint, Zero};
 
 /// Wrapper type for non-zero integers.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
@@ -241,11 +241,12 @@ impl<T> Random for NonZero<T>
 where
     T: Random + Zero,
 {
-    /// Generate a random `NonZero<T>`.
-    fn random(mut rng: &mut impl CryptoRngCore) -> Self {
-        // Use rejection sampling to eliminate zero values.
-        // While this method isn't constant-time, the attacker shouldn't learn
-        // anything about unrelated outputs so long as `rng` is a CSRNG.
+    /// This uses rejection sampling to avoid zero.
+    ///
+    /// As a result, it runs in variable time. If the generator `rng` is
+    /// cryptographically secure (for example, it implements `CryptoRng`),
+    /// then this is guaranteed not to leak anything about the output value.
+    fn random(mut rng: &mut impl RngCore) -> Self {
         loop {
             if let Some(result) = Self::new(T::random(&mut rng)).into() {
                 break result;

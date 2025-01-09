@@ -73,12 +73,37 @@ impl Sub<&BoxedUint> for BoxedUint {
     }
 }
 
+impl Sub<BoxedUint> for &BoxedUint {
+    type Output = BoxedUint;
+
+    fn sub(self, rhs: BoxedUint) -> BoxedUint {
+        Sub::sub(self, &rhs)
+    }
+}
+
 impl Sub<&BoxedUint> for &BoxedUint {
     type Output = BoxedUint;
 
     fn sub(self, rhs: &BoxedUint) -> BoxedUint {
         self.checked_sub(rhs)
             .expect("attempted to subtract with underflow")
+    }
+}
+
+impl SubAssign<BoxedUint> for BoxedUint {
+    fn sub_assign(&mut self, rhs: BoxedUint) {
+        self.sub_assign(&rhs)
+    }
+}
+
+impl SubAssign<&BoxedUint> for BoxedUint {
+    fn sub_assign(&mut self, rhs: &BoxedUint) {
+        let carry = self.sbb_assign(rhs, Limb::ZERO);
+        assert_eq!(
+            carry.is_zero().unwrap_u8(),
+            1,
+            "attempted to subtract with underflow"
+        );
     }
 }
 

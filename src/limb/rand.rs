@@ -2,23 +2,23 @@
 
 use super::Limb;
 use crate::{Encoding, NonZero, Random, RandomMod};
-use rand_core::CryptoRngCore;
+use rand_core::RngCore;
 use subtle::ConstantTimeLess;
 
 impl Random for Limb {
     #[cfg(target_pointer_width = "32")]
-    fn random(rng: &mut impl CryptoRngCore) -> Self {
+    fn random(rng: &mut impl RngCore) -> Self {
         Self(rng.next_u32())
     }
 
     #[cfg(target_pointer_width = "64")]
-    fn random(rng: &mut impl CryptoRngCore) -> Self {
+    fn random(rng: &mut impl RngCore) -> Self {
         Self(rng.next_u64())
     }
 }
 
 impl RandomMod for Limb {
-    fn random_mod(rng: &mut impl CryptoRngCore, modulus: &NonZero<Self>) -> Self {
+    fn random_mod(rng: &mut impl RngCore, modulus: &NonZero<Self>) -> Self {
         let mut bytes = <Self as Encoding>::Repr::default();
 
         let n_bits = modulus.bits() as usize;

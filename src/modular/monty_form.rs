@@ -60,7 +60,7 @@ where
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
 
-        let mod_leading_zeros = modulus.as_ref().leading_zeros().max(Word::BITS - 1);
+        let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
 
         // `R^3 mod modulus`, used for inversion in Montgomery form.
         let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);
@@ -95,7 +95,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
 
-        let mod_leading_zeros = modulus.as_ref().leading_zeros().max(Word::BITS - 1);
+        let mod_leading_zeros = modulus.as_ref().leading_zeros_vartime().min(Word::BITS - 1);
 
         // `R^3 mod modulus`, used for inversion in Montgomery form.
         let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);
@@ -155,6 +155,18 @@ impl<const LIMBS: usize> ConstantTimeEq for MontyParams<LIMBS> {
             & self.r2.ct_eq(&other.r2)
             & self.r3.ct_eq(&other.r3)
             & self.mod_neg_inv.ct_eq(&other.mod_neg_inv)
+    }
+}
+
+#[cfg(feature = "zeroize")]
+impl<const LIMBS: usize> zeroize::Zeroize for MontyParams<LIMBS> {
+    fn zeroize(&mut self) {
+        self.modulus.zeroize();
+        self.one.zeroize();
+        self.r2.zeroize();
+        self.r3.zeroize();
+        self.mod_neg_inv.zeroize();
+        self.mod_leading_zeros.zeroize();
     }
 }
 
@@ -318,10 +330,23 @@ impl<const LIMBS: usize> ConstantTimeEq for MontyForm<LIMBS> {
     }
 }
 
-/// NOTE: this does _not_ zeroize the parameters, in order to maintain some form of type consistency
 #[cfg(feature = "zeroize")]
 impl<const LIMBS: usize> zeroize::Zeroize for MontyForm<LIMBS> {
     fn zeroize(&mut self) {
-        self.montgomery_form.zeroize()
+        self.montgomery_form.zeroize();
+        self.params.zeroize();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Limb, MontyParams, Odd, Uint};
+
+    #[test]
+    fn new_params_with_valid_modulus() {
+        let modulus = Odd::new(Uint::from(3u8)).unwrap();
+        let params = MontyParams::<1>::new(modulus);
+
+        assert_eq!(params.mod_leading_zeros, Limb::BITS - 2);
     }
 }

@@ -1,8 +1,125 @@
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
 use crypto_bigint::{
-    Limb, NonZero, Odd, Random, RandomMod, Reciprocal, Uint, U128, U2048, U256, U4096,
+    Limb, NonZero, Odd, Random, RandomBits, RandomMod, Reciprocal, Uint, U1024, U128, U2048, U256,
+    U4096, U512,
 };
-use rand_core::OsRng;
+use rand_chacha::ChaCha8Rng;
+use rand_core::{OsRng, RngCore, SeedableRng};
+
+fn make_rng() -> ChaCha8Rng {
+    ChaCha8Rng::from_seed(*b"01234567890123456789012345678901")
+}
+
+fn bench_random(c: &mut Criterion) {
+    let mut group = c.benchmark_group("bounded random");
+
+    let mut rng = make_rng();
+    group.bench_function("random_mod, U1024", |b| {
+        let bound = U1024::random(&mut rng);
+        let bound_nz = NonZero::new(bound).unwrap();
+        b.iter(|| black_box(U1024::random_mod(&mut rng, &bound_nz)));
+    });
+
+    let mut rng = make_rng();
+    group.bench_function("random_bits, U1024", |b| {
+        let bound = U1024::random(&mut rng);
+        let bound_bits = bound.bits_vartime();
+        b.iter(|| {
+            let mut r = U1024::random_bits(&mut rng, bound_bits);
+            while r >= bound {
+                r = U1024::random_bits(&mut rng, bound_bits);
+            }
+            black_box(r)
+        });
+    });
+
+    let mut rng = make_rng();
+    group.bench_function("random_mod, U1024, small bound", |b| {
+        let bound = U1024::from_u64(rng.next_u64());
+        let bound_nz = NonZero::new(bound).unwrap();
+        b.iter(|| black_box(U1024::random_mod(&mut rng, &bound_nz)));
+    });
+
+    let mut rng = make_rng();
+    group.bench_function("random_bits, U1024, small bound", |b| {
+        let bound = U1024::from_u64(rng.next_u64());
+        let bound_bits = bound.bits_vartime();
+        b.iter(|| {
+            let mut r = U1024::random_bits(&mut rng, bound_bits);
+            while r >= bound {
+                r = U1024::random_bits(&mut rng, bound_bits);
+            }
+            black_box(r)
+        });
+    });
+
+    let mut rng = make_rng();
+    group.bench_function("random_mod, U1024, 512 bit bound low", |b| {
+        let bound = U512::random(&mut rng);
+        let bound = U1024::from((bound, U512::ZERO));
+        let bound_nz = NonZero::new(bound).unwrap();
+        b.iter(|| black_box(U1024::random_mod(&mut rng, &bound_nz)));
+    });
+
+    let mut rng = make_rng();
+    group.bench_function("random_bits, U1024, 512 bit bound low", |b| {
+        let bound = U512::random(&mut rng);
+        let bound = U1024::from((bound, U512::ZERO));
+        let bound_bits = bound.bits_vartime();
+        b.iter(|| {
+            let mut r = U1024::random_bits(&mut rng, bound_bits);
+            while r >= bound {
+                r = U1024::random_bits(&mut rng, bound_bits);
+            }
+            black_box(r)
+        });
+    });
+
+    let mut rng = make_rng();
+    group.bench_function("random_mod, U1024, 512 bit bound hi", |b| {
+        let bound = U512::random(&mut rng);
+        let bound = U1024::from((U512::ZERO, bound));
+        let bound_nz = NonZero::new(bound).unwrap();
+        b.iter(|| black_box(U1024::random_mod(&mut rng, &bound_nz)));
+    });
+
+    let mut rng = make_rng();
+    group.bench_function("random_bits, U1024, 512 bit bound hi", |b| {
+        let bound = U512::random(&mut rng);
+        let bound = U1024::from((U512::ZERO, bound));
+        let bound_bits = bound.bits_vartime();
+        b.iter(|| {
+            let mut r = U1024::random_bits(&mut rng, bound_bits);
+            while r >= bound {
+                r = U1024::random_bits(&mut rng, bound_bits);
+            }
+            black_box(r)
+        });
+    });
+
+    // Slow case: the hi limb is just `2`
+    let mut rng = make_rng();
+    group.bench_function("random_mod, U1024, tiny high limb", |b| {
+        let hex_1024 = "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000291A6B42D1C7D2A7184D13E36F65773BBEFB4FA7996101300D49F09962A361F00";
+        let modulus = U1024::from_be_hex(hex_1024);
+        let modulus_nz = NonZero::new(modulus).unwrap();
+        b.iter(|| black_box(U1024::random_mod(&mut rng, &modulus_nz)));
+    });
+
+    // Slow case: the hi limb is just `2`
+    let mut rng = make_rng();
+    group.bench_function("random_bits, U1024, tiny high limb", |b| {
+        let hex_1024 = "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000291A6B42D1C7D2A7184D13E36F65773BBEFB4FA7996101300D49F09962A361F00";
+        let bound = U1024::from_be_hex(hex_1024);
+        let bound_bits = bound.bits_vartime();
+        b.iter(|| {
+            let mut r = U1024::random_bits(&mut rng, bound_bits);
+            while r >= bound {
+                r = U1024::random_bits(&mut rng, bound_bits);
+            }
+        });
+    });
+}
 
 fn bench_mul(c: &mut Criterion) {
     let mut group = c.benchmark_group("wrapping ops");
@@ -370,6 +487,7 @@ fn bench_sqrt(c: &mut Criterion) {
 
 criterion_group!(
     benches,
+    bench_random,
     bench_mul,
     bench_division,
     bench_gcd,
