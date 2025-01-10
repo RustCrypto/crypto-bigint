@@ -14,18 +14,18 @@ keywords = ["arbitrary", "crypto", "bignum", "integer", "precision"]
 readme = "README.md"
 resolver = "2"
 edition = "2021"
-rust-version = "1.81"
+rust-version = "1.83"
 
 [dependencies]
 subtle = { version = "2.6", default-features = false }
 
 # optional dependencies
 der = { version = "0.8.0-rc.1", optional = true, default-features = false }
-hybrid-array = { version = "0.2.0-rc.11", optional = true }
+hybrid-array = { version = "0.2", optional = true }
 num-traits = { version = "0.2.19", default-features = false }
 rand_core = { version = "0.6.4", optional = true }
 rlp = { version = "0.6", optional = true, default-features = false }
-serdect = { version = "0.3.0-rc.0", optional = true, default-features = false }
+serdect = { version = "0.3", optional = true, default-features = false }
 zeroize = { version = "1", optional = true, default-features = false }
 
 [dev-dependencies]
@@ -35,7 +35,7 @@ hex-literal = "0.4"
 num-bigint = "0.4"
 num-integer = "0.1"
 num-modular = { version = "0.6", features = ["num-bigint", "num-integer", "num-traits"] }
-proptest = "1"
+proptest = "1.5"
 rand_core = { version = "0.6", features = ["std"] }
 rand_chacha = "0.3"
 

@@ -73,9 +73,30 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> SafeGcdInverter<SAT_LIMBS
     }
 
     /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
-    /// depending on invertibility of the argument, i.e. its coprimality with the modulus
+    /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
     pub const fn inv(&self, value: &Uint<SAT_LIMBS>) -> ConstCtOption<Uint<SAT_LIMBS>> {
         let (d, f) = divsteps(
+            self.adjuster,
+            self.modulus,
+            UnsatInt::from_uint(value),
+            self.inverse,
+        );
+
+        // At this point the absolute value of "f" equals the greatest common divisor of the
+        // integer to be inverted and the modulus the inverter was created for.
+        // Thus, if "f" is neither 1 nor -1, then the sought inverse does not exist.
+        let antiunit = f.eq(&UnsatInt::MINUS_ONE);
+        let ret = self.norm(d, antiunit);
+        let is_some = f.eq(&UnsatInt::ONE).or(antiunit);
+        ConstCtOption::new(ret.to_uint(), is_some)
+    }
+
+    /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
+    /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
+    ///
+    /// This version is variable-time with respect to `value`.
+    pub const fn inv_vartime(&self, value: &Uint<SAT_LIMBS>) -> ConstCtOption<Uint<SAT_LIMBS>> {
+        let (d, f) = divsteps_vartime(
             self.adjuster,
             self.modulus,
             UnsatInt::from_uint(value),
@@ -141,6 +162,10 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Inverter
 
     fn invert(&self, value: &Uint<SAT_LIMBS>) -> CtOption<Self::Output> {
         self.inv(value).into()
+    }
+
+    fn invert_vartime(&self, value: &Uint<SAT_LIMBS>) -> CtOption<Self::Output> {
+        self.inv_vartime(value).into()
     }
 }
 

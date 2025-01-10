@@ -266,6 +266,15 @@ impl<const LIMBS: usize> Integer for Uint<LIMBS> {
     }
 }
 
+impl<const LIMBS: usize> num_traits::Num for Uint<LIMBS> {
+    type FromStrRadixErr = crate::DecodeError;
+
+    /// ⚠️ WARNING: `from_str_radix` impl operates in variable-time with respect to the input.
+    fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
+        Self::from_str_radix_vartime(str, radix)
+    }
+}
+
 impl<const LIMBS: usize> ConstZero for Uint<LIMBS> {
     const ZERO: Self = Self::ZERO;
 }
