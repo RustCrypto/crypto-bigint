@@ -180,6 +180,8 @@ impl<const LIMBS: usize> ShrVartime for Int<LIMBS> {
 
 #[cfg(test)]
 mod tests {
+    use core::ops::Div;
+
     use crate::I256;
 
     const N: I256 =
@@ -203,11 +205,11 @@ mod tests {
     fn shr5() {
         assert_eq!(
             I256::MAX >> 5,
-            I256::from_be_hex("03FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+            I256::MAX.div(I256::from(32).to_nz().unwrap()).unwrap()
         );
         assert_eq!(
             I256::MIN >> 5,
-            I256::from_be_hex("FC00000000000000000000000000000000000000000000000000000000000000")
+            I256::MIN.div(I256::from(32).to_nz().unwrap()).unwrap()
         );
     }
 
@@ -215,11 +217,11 @@ mod tests {
     fn shr7_vartime() {
         assert_eq!(
             I256::MAX.shr_vartime(7),
-            I256::from_be_hex("00FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+            I256::MAX.div(I256::from(128).to_nz().unwrap()).unwrap()
         );
         assert_eq!(
             I256::MIN.shr_vartime(7),
-            I256::from_be_hex("FF00000000000000000000000000000000000000000000000000000000000000")
+            I256::MIN.div(I256::from(128).to_nz().unwrap()).unwrap()
         );
     }
 
