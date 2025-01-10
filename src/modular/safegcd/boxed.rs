@@ -67,6 +67,21 @@ impl Inverter for BoxedSafeGcdInverter {
 
         CtOption::new(ret.to_uint(value.bits_precision()), is_some)
     }
+
+    fn invert_vartime(&self, value: &BoxedUint) -> CtOption<Self::Output> {
+        let mut d = BoxedUnsatInt::zero(self.modulus.nlimbs());
+        let mut g = BoxedUnsatInt::from(value).widen(d.nlimbs());
+        let f = divsteps_vartime(&mut d, &self.adjuster, &self.modulus, &mut g, self.inverse);
+
+        // At this point the absolute value of "f" equals the greatest common divisor of the
+        // integer to be inverted and the modulus the inverter was created for.
+        // Thus, if "f" is neither 1 nor -1, then the sought inverse does not exist.
+        let antiunit = f.is_minus_one();
+        let ret = self.norm(d, antiunit);
+        let is_some = f.is_one() | antiunit;
+
+        CtOption::new(ret.to_uint(value.bits_precision()), is_some)
+    }
 }
 
 /// Compute the number of unsaturated limbs needed to represent a saturated integer with the given
