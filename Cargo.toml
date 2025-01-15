@@ -28,16 +28,25 @@ rlp = { version = "0.6", optional = true, default-features = false }
 serdect = { version = "0.3", optional = true, default-features = false }
 zeroize = { version = "1", optional = true, default-features = false }
 
+[target.'cfg(all(target_os = "zkvm", target_arch = "riscv32"))'.dependencies]
+getrandom = { version = "0.2", features = ["custom"] }
+powdr-riscv-runtime = { git = "https://github.com/powdr-labs/powdr.git"}
+
 [dev-dependencies]
 bincode = "1"
-criterion = { version = "0.5", features = ["html_reports"] }
 hex-literal = "0.4"
 num-bigint = "0.4"
 num-integer = "0.1"
 num-modular = { version = "0.6", features = ["num-bigint", "num-integer", "num-traits"] }
-proptest = "1.5"
-rand_core = { version = "0.6", features = ["std"] }
+rand_core = { version = "0.6", features = ["alloc"] }
 rand_chacha = "0.3"
+
+[target.'cfg(not(all(target_os = "zkvm", target_arch = "riscv32")))'.dev-dependencies]
+criterion = { version = "0.4", features = ["html_reports"] }
+proptest = "1.5"
+
+[target.'cfg(all(target_os = "zkvm", target_arch = "riscv32"))'.dev-dependencies]
+proptest = { version = "1.5", default-features = false, features = ["alloc"] }
 
 [features]
 default = ["rand"]

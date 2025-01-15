@@ -14,6 +14,9 @@ use crate::{ConstZero, Limb, Odd, PrecomputeInverter, Uint};
 use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
+#[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+use crate::powdr;
+
 #[cfg(feature = "rand_core")]
 use crate::{rand_core::RngCore, Random, RandomMod};
 
@@ -92,6 +95,23 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     };
 
     /// The representation of 1 mod `MOD`.
+    #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+    pub const ONE: Self = {
+        if LIMBS == powdr::BIGINT_WIDTH_WORDS {
+            Self {
+                montgomery_form: Uint::<LIMBS>::ONE,
+                phantom: PhantomData,
+            }
+        } else {
+            Self {
+                montgomery_form: MOD::ONE,
+                phantom: PhantomData,
+            }
+        }
+    };
+
+    /// The representation of 1 mod `MOD`.
+    #[cfg(not(all(target_os = "zkvm", target_arch = "riscv32")))]
     pub const ONE: Self = Self {
         montgomery_form: MOD::ONE,
         phantom: PhantomData,
@@ -99,7 +119,21 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
 
     /// Internal helper function to convert to Montgomery form;
     /// this lets us cleanly wrap the constructors.
-    const fn from_integer(integer: &Uint<LIMBS>) -> Self {
+    fn from_integer(integer: &Uint<LIMBS>) -> Self {
+        #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+        if LIMBS == powdr::BIGINT_WIDTH_WORDS {
+            // When working with U256 in the Powdr zkVM, leave the value in standard form.
+            // Ensure that the input is reduced by passing it though a modmul by one.
+            return Self {
+                montgomery_form: powdr::modmul_uint_256(
+                    &integer,
+                    &Uint::<LIMBS>::ONE,
+                    &MOD::MODULUS,
+                ),
+                phantom: PhantomData,
+            };
+        }
+
         let product = integer.split_mul(&MOD::R2);
         let montgomery_form =
             montgomery_reduction::<LIMBS>(&product, &MOD::MODULUS, MOD::MOD_NEG_INV);
@@ -111,12 +145,18 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     }
 
     /// Instantiates a new [`ConstMontyForm`] that represents this `integer` mod `MOD`.
-    pub const fn new(integer: &Uint<LIMBS>) -> Self {
+    pub fn new(integer: &Uint<LIMBS>) -> Self {
         Self::from_integer(integer)
     }
 
     /// Retrieves the integer currently encoded in this [`ConstMontyForm`], guaranteed to be reduced.
-    pub const fn retrieve(&self) -> Uint<LIMBS> {
+    pub fn retrieve(&self) -> Uint<LIMBS> {
+        #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+        if LIMBS == powdr::BIGINT_WIDTH_WORDS {
+            // In the Powdr zkVM 256-bit residues are represented in standard form.
+            return self.montgomery_form;
+        }
+
         montgomery_reduction::<LIMBS>(
             &(self.montgomery_form, Uint::ZERO),
             &MOD::MODULUS,
@@ -229,8 +269,21 @@ where
     where
         D: Deserializer<'de>,
     {
+        #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+        let r_inv: Uint<{ LIMBS }> = MOD::ONE.inv_odd_mod(&MOD::MODULUS).0;
+
         Uint::<LIMBS>::deserialize(deserializer).and_then(|montgomery_form| {
             if montgomery_form < MOD::MODULUS.0 {
+                #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+                if LIMBS == powdr::BIGINT_WIDTH_WORDS {
+                    // In the Powdr zkVM 256-bit residues are represented in standard form.
+                    // To ensure this is interoperable with the host, convert to standard form.
+                    let value = powdr::modmul_uint_256(&montgomery_form, &r_inv, &MOD::MODULUS);
+                    return Ok(Self {
+                        montgomery_form: value,
+                        phantom: PhantomData,
+                    });
+                }
                 Ok(Self {
                     montgomery_form,
                     phantom: PhantomData,
@@ -252,6 +305,36 @@ where
     where
         S: Serializer,
     {
+        #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+        if LIMBS == powdr::BIGINT_WIDTH_WORDS {
+            // In the Powdr zkVM 256-bit residues are represented in standard form.
+            // To ensure this is interoperable with the host, convert to Montgomery form.
+            let value = powdr::modmul_uint_256(&self.montgomery_form, &MOD::ONE, &MOD::MODULUS);
+            return value.serialize(serializer);
+        }
+
         self.montgomery_form.serialize(serializer)
+    }
+}
+
+#[cfg(all(test, feature = "serde"))]
+mod tests {
+    use crate::{const_residue, impl_modulus, modular::constant_mod::ResidueParams, U256};
+
+    impl_modulus!(
+        Modulus,
+        U256,
+        "9CC24C5DF431A864188AB905AC751B727C9447A8E99E6366E1AD78A21E8D882B"
+    );
+
+    #[test]
+    fn serde_roundtrip() {
+        let value_uint = U256::from(105u64);
+        let value = const_residue!(value_uint, Modulus);
+
+        let value_encoded = bincode::serialize(&value).unwrap();
+        let value_decoded = bincode::deserialize(&value_encoded).unwrap();
+
+        assert_eq!(value, value_decoded);
     }
 }

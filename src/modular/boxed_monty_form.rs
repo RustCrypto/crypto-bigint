@@ -17,6 +17,9 @@ use crate::{BoxedUint, Limb, Monty, Odd, Word};
 use alloc::sync::Arc;
 use subtle::Choice;
 
+#[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+use crate::powdr;
+
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
 
@@ -148,6 +151,21 @@ impl BoxedMontyForm {
     /// Instantiates a new [`BoxedMontyForm`] that represents an integer modulo the provided params.
     pub fn new(mut integer: BoxedUint, params: BoxedMontyParams) -> Self {
         debug_assert_eq!(integer.bits_precision(), params.bits_precision());
+
+        #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+        if LIMBS == powdr::BIGINT_WIDTH_WORDS {
+            // When working with U256 in the Powdr zkVM, leave the value in standard form.
+            // Ensure that the input is reduced by passing it though a modmul by one.
+            return Self {
+                montgomery_form: powdr::modmul_uint_256(
+                    &integer,
+                    &Uint::<LIMBS>::ONE,
+                    &params.modulus,
+                ),
+                params: params.into(),
+            };
+        }
+
         convert_to_montgomery(&mut integer, &params);
 
         #[allow(clippy::useless_conversion)]
@@ -160,6 +178,21 @@ impl BoxedMontyForm {
     /// Instantiates a new [`BoxedMontyForm`] that represents an integer modulo the provided params.
     pub fn new_with_arc(mut integer: BoxedUint, params: Arc<BoxedMontyParams>) -> Self {
         debug_assert_eq!(integer.bits_precision(), params.bits_precision());
+        
+        #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+        if LIMBS == powdr::BIGINT_WIDTH_WORDS {
+            // When working with U256 in the Powdr zkVM, leave the value in standard form.
+            // Ensure that the input is reduced by passing it though a modmul by one.
+            return Self {
+                montgomery_form: powdr::modmul_uint_256(
+                    &integer,
+                    &Uint::<LIMBS>::ONE,
+                    &params.modulus,
+                ),
+                params,
+            };
+        }
+        
         convert_to_montgomery(&mut integer, &params);
         Self {
             montgomery_form: integer,
@@ -174,6 +207,12 @@ impl BoxedMontyForm {
 
     /// Retrieves the integer currently encoded in this [`BoxedMontyForm`], guaranteed to be reduced.
     pub fn retrieve(&self) -> BoxedUint {
+        #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+        if LIMBS == powdr::BIGINT_WIDTH_WORDS {
+            // In the Powdr zkVM 256-bit residues are represented in standard form.
+            return self.montgomery_form;
+        }
+
         let mut montgomery_form = self.montgomery_form.widen(self.bits_precision() * 2);
 
         let ret = montgomery_reduction_boxed(
@@ -199,6 +238,20 @@ impl BoxedMontyForm {
 
     /// Instantiates a new `ConstMontyForm` that represents 1.
     pub fn one(params: BoxedMontyParams) -> Self {
+        #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+        if LIMBS == powdr::BIGINT_WIDTH_WORDS {
+            Self {
+                montgomery_form: Uint::<LIMBS>::ONE,
+                params: params.into(),
+            }
+        } else {
+            Self {
+                montgomery_form: params.one.clone(),
+                params: params.into(),
+            }
+        }
+
+        #[cfg(not(all(target_os = "zkvm", target_arch = "riscv32")))]
         Self {
             montgomery_form: params.one.clone(),
             params: params.into(),

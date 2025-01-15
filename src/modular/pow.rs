@@ -4,6 +4,9 @@ use crate::{ConstChoice, Limb, Odd, Uint, Word};
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
+#[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+use crate::powdr;
+
 const WINDOW: u32 = 4;
 const WINDOW_MASK: Word = (1 << WINDOW) - 1;
 
@@ -11,7 +14,7 @@ const WINDOW_MASK: Word = (1 << WINDOW) - 1;
 /// `exponent_bits` represents the number of bits to take into account for the exponent.
 ///
 /// NOTE: this value is leaked in the time pattern.
-pub const fn pow_montgomery_form<const LIMBS: usize, const RHS_LIMBS: usize>(
+pub fn pow_montgomery_form<const LIMBS: usize, const RHS_LIMBS: usize>(
     x: &Uint<LIMBS>,
     exponent: &Uint<RHS_LIMBS>,
     exponent_bits: u32,
@@ -28,7 +31,7 @@ pub const fn pow_montgomery_form<const LIMBS: usize, const RHS_LIMBS: usize>(
     )
 }
 
-pub const fn multi_exponentiate_montgomery_form_array<
+pub fn multi_exponentiate_montgomery_form_array<
     const LIMBS: usize,
     const RHS_LIMBS: usize,
     const N: usize,
@@ -39,8 +42,18 @@ pub const fn multi_exponentiate_montgomery_form_array<
     one: &Uint<LIMBS>,
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {
+    #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+    let r = if LIMBS == powdr::BIGINT_WIDTH_WORDS {
+        Uint::<LIMBS>::ONE
+    } else {
+        *one // 1 in Montgomery form
+    };
+
+    #[cfg(not(all(target_os = "zkvm", target_arch = "riscv32")))]
+    let r = *one; // 1 in Montgomery form
+
     if exponent_bits == 0 {
-        return *one; // 1 in Montgomery form
+        return r; // 1 in Montgomery form
     }
 
     let mut powers_and_exponents =
@@ -49,7 +62,7 @@ pub const fn multi_exponentiate_montgomery_form_array<
     let mut i = 0;
     while i < N {
         let (base, exponent) = bases_and_exponents[i];
-        powers_and_exponents[i] = (compute_powers(&base, modulus, one, mod_neg_inv), exponent);
+        powers_and_exponents[i] = (compute_powers(&base, modulus, &r, mod_neg_inv), exponent);
         i += 1;
     }
 
@@ -57,7 +70,7 @@ pub const fn multi_exponentiate_montgomery_form_array<
         &powers_and_exponents,
         exponent_bits,
         modulus,
-        one,
+        &r,
         mod_neg_inv,
     )
 }
@@ -76,26 +89,36 @@ pub fn multi_exponentiate_montgomery_form_slice<const LIMBS: usize, const RHS_LI
     one: &Uint<LIMBS>,
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {
+    #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+    let r = if LIMBS == powdr::BIGINT_WIDTH_WORDS {
+        Uint::<LIMBS>::ONE
+    } else {
+        *one // 1 in Montgomery form
+    };
+
+    #[cfg(not(all(target_os = "zkvm", target_arch = "riscv32")))]
+    let r = *one; // 1 in Montgomery form
+
     if exponent_bits == 0 {
-        return *one; // 1 in Montgomery form
+        return r; // 1 in Montgomery form
     }
 
     let powers_and_exponents: Vec<([Uint<LIMBS>; 1 << WINDOW], Uint<RHS_LIMBS>)> =
         bases_and_exponents
             .iter()
-            .map(|(base, exponent)| (compute_powers(base, modulus, one, mod_neg_inv), *exponent))
+            .map(|(base, exponent)| (compute_powers(base, modulus, &r, mod_neg_inv), *exponent))
             .collect();
 
     multi_exponentiate_montgomery_form_internal(
         powers_and_exponents.as_slice(),
         exponent_bits,
         modulus,
-        one,
+        &r,
         mod_neg_inv,
     )
 }
 
-const fn compute_powers<const LIMBS: usize>(
+fn compute_powers<const LIMBS: usize>(
     x: &Uint<LIMBS>,
     modulus: &Odd<Uint<LIMBS>>,
     one: &Uint<LIMBS>,
@@ -114,7 +137,7 @@ const fn compute_powers<const LIMBS: usize>(
     powers
 }
 
-const fn multi_exponentiate_montgomery_form_internal<const LIMBS: usize, const RHS_LIMBS: usize>(
+fn multi_exponentiate_montgomery_form_internal<const LIMBS: usize, const RHS_LIMBS: usize>(
     powers_and_exponents: &[([Uint<LIMBS>; 1 << WINDOW], Uint<RHS_LIMBS>)],
     exponent_bits: u32,
     modulus: &Odd<Uint<LIMBS>>,

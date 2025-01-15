@@ -17,6 +17,9 @@ use super::{
 use crate::{Concat, Limb, Monty, NonZero, Odd, Split, Uint, Word};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
+#[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+use crate::powdr;
+
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct MontyParams<const LIMBS: usize> {
@@ -180,7 +183,21 @@ pub struct MontyForm<const LIMBS: usize> {
 
 impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Instantiates a new `MontyForm` that represents this `integer` mod `MOD`.
-    pub const fn new(integer: &Uint<LIMBS>, params: MontyParams<LIMBS>) -> Self {
+    pub fn new(integer: &Uint<LIMBS>, params: MontyParams<LIMBS>) -> Self {
+        #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+        if LIMBS == powdr::BIGINT_WIDTH_WORDS {
+            // When working with U256 in the Powdr zkVM, leave the value in standard form.
+            // Ensure that the input is reduced by passing it though a modmul by one.
+            return Self {
+                montgomery_form: powdr::modmul_uint_256(
+                    &integer,
+                    &Uint::<LIMBS>::ONE,
+                    &params.modulus,
+                ),
+                params,
+            };
+        }
+
         let product = integer.split_mul(&params.r2);
         let montgomery_form = montgomery_reduction(&product, &params.modulus, params.mod_neg_inv);
 
@@ -192,6 +209,12 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
 
     /// Retrieves the integer currently encoded in this `MontyForm`, guaranteed to be reduced.
     pub const fn retrieve(&self) -> Uint<LIMBS> {
+        #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+        if LIMBS == powdr::BIGINT_WIDTH_WORDS {
+            // In the Powdr zkVM 256-bit residues are represented in standard form.
+            return self.montgomery_form;
+        }
+
         montgomery_reduction(
             &(self.montgomery_form, Uint::ZERO),
             &self.params.modulus,
@@ -209,6 +232,20 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
 
     /// Instantiates a new `MontyForm` that represents 1.
     pub const fn one(params: MontyParams<LIMBS>) -> Self {
+        #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+        if LIMBS == powdr::BIGINT_WIDTH_WORDS {
+            Self {
+                montgomery_form: Uint::<LIMBS>::ONE,
+                params,
+            }
+        } else {
+            Self {
+                montgomery_form: params.one,
+                params,
+            }
+        }
+
+        #[cfg(not(all(target_os = "zkvm", target_arch = "riscv32")))]
         Self {
             montgomery_form: params.one,
             params,

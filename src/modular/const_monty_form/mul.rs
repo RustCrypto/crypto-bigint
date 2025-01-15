@@ -14,7 +14,7 @@ use super::{ConstMontyForm, ConstMontyParams};
 
 impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
     /// Multiplies by `rhs`.
-    pub const fn mul(&self, rhs: &Self) -> Self {
+    pub fn mul(&self, rhs: &Self) -> Self {
         Self {
             montgomery_form: mul_montgomery_form(
                 &self.montgomery_form,
@@ -27,7 +27,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     }
 
     /// Computes the (reduced) square.
-    pub const fn square(&self) -> Self {
+    pub fn square(&self) -> Self {
         Self {
             montgomery_form: square_montgomery_form(
                 &self.montgomery_form,

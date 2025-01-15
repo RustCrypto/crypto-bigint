@@ -203,6 +203,14 @@ mod traits;
 mod uint;
 mod wrapping;
 
+/// Powdr accelerator support for use in zkVM guest.
+///
+/// Provides a direct interface for calling big integer arithmetic accelerator with U256 and U128
+/// types. You may prefer to use the Residue types in crypto_bigint::modular, which have
+/// automatic accelerator support when used with a 256-bit modulus.
+#[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+pub mod powdr;
+
 /// Import prelude for this crate: includes important traits.
 pub mod prelude {
     #[cfg(feature = "hybrid-array")]

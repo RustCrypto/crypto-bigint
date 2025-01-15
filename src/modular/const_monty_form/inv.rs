@@ -20,7 +20,7 @@ where
     ///
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
-    pub const fn inv(&self) -> ConstCtOption<Self> {
+    pub fn inv(&self) -> ConstCtOption<Self> {
         let inverter =
             <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(&MOD::MODULUS, &MOD::R2);
 
@@ -43,7 +43,7 @@ where
     ///
     /// This version is variable-time with respect to the value of `self`, but constant-time with
     /// respect to `MOD`.
-    pub const fn inv_vartime(&self) -> ConstCtOption<Self> {
+    pub fn inv_vartime(&self) -> ConstCtOption<Self> {
         let inverter =
             <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(&MOD::MODULUS, &MOD::R2);
 

@@ -6,6 +6,9 @@ use crate::{
     Concat, Limb, MulMod, NonZero, Split, Uint, WideWord, Word,
 };
 
+#[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+use crate::powdr;
+
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self * rhs mod p` for odd `p`.
     ///
@@ -41,7 +44,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// For the modulus reduction, this function implements Algorithm 14.47 from
     /// the "Handbook of Applied Cryptography", by A. Menezes, P. van Oorschot,
     /// and S. Vanstone, CRC Press, 1996.
-    pub const fn mul_mod_special(&self, rhs: &Self, c: Limb) -> Self {
+    pub fn mul_mod_special(&self, rhs: &Self, c: Limb) -> Self {
         // We implicitly assume `LIMBS > 0`, because `Uint<0>` doesn't compile.
         // Still the case `LIMBS == 1` needs special handling.
         if LIMBS == 1 {
@@ -51,6 +54,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 NonZero::<Limb>::new_unwrap(Limb(Word::MIN.wrapping_sub(c.0))),
             );
             return Self::from_word(reduced.0);
+        }
+
+        #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+        if LIMBS == powdr::BIGINT_WIDTH_WORDS {
+            return powdr::modmul_uint_256(
+                &self,
+                rhs,
+                &Uint::<LIMBS>::ZERO.wrapping_sub(&c.into()),
+            );
         }
 
         let (lo, hi) = self.split_mul(rhs);
