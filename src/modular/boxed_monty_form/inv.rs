@@ -13,8 +13,7 @@ impl BoxedMontyForm {
     /// Computes `self^-1` representing the multiplicative inverse of `self`,
     /// i.e. `self * self^-1 = 1`.
     pub fn invert(&self) -> CtOption<Self> {
-        let inverter = self.params.precompute_inverter();
-        inverter.invert(self)
+        self.params.precompute_inverter().invert(self)
     }
 
     /// Computes `self^-1` representing the multiplicative inverse of `self`,
@@ -23,8 +22,7 @@ impl BoxedMontyForm {
     /// This version is variable-time with respect to the value of `self`, but constant-time with
     /// respect to `self`'s `params`.
     pub fn invert_vartime(&self) -> CtOption<Self> {
-        let inverter = self.params.precompute_inverter();
-        inverter.invert_vartime(self)
+        self.params.precompute_inverter().invert_vartime(self)
     }
 }
 
