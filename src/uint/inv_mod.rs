@@ -137,6 +137,8 @@ impl<const LIMBS: usize, const UNSAT_LIMBS: usize> InvMod for Uint<LIMBS>
 where
     Odd<Self>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
 {
+    type Output = Self;
+
     fn inv_mod(&self, modulus: &Self) -> CtOption<Self> {
         self.inv_mod(modulus).into()
     }
