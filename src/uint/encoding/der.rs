@@ -35,8 +35,6 @@ impl<'a, const LIMBS: usize> DecodeValue<'a> for Uint<LIMBS>
 where
     Uint<LIMBS>: ArrayEncoding,
 {
-    type Error = der::Error;
-
     fn decode_value<R: der::Reader<'a>>(reader: &mut R, header: der::Header) -> der::Result<Self> {
         UintRef::decode_value(reader, header)?.try_into()
     }
