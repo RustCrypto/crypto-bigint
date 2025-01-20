@@ -861,7 +861,7 @@ impl<const LIMBS: usize> Rem<NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn rem(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
-        Self::rem_vartime(&self, &rhs)
+        Self::rem(&self, &rhs)
     }
 }
 
