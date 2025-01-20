@@ -32,7 +32,7 @@ where
 
     fn inv_mod(&self, modulus: &NonZero<Uint<LIMBS>>) -> CtOption<Self::Output> {
         let (abs, sgn) = self.abs_sign();
-        let abs_inv = abs.inv_mod(modulus).into();
+        let abs_inv = abs.inv_mod(modulus);
 
         // Note: when `self` is negative and modulus is non-zero, then
         // self^{-1} % modulus = modulus - |self|^{-1} % modulus
