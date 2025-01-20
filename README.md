@@ -20,9 +20,9 @@ using const generics.
 - Supports `no_std`-friendly const generic stack-allocated big integers.
 - Constant-time by default. Variable-time functions are explicitly marked as such.
 - Leverage what is possible today with const generics on `stable` rust.
-- Support `const fn` as much as possible, including decoding big integers from
-  bytes/hex and performing arithmetic operations on them, with the goal of
-  being able to compute values at compile-time.
+- Support `const fn` as much as possible with the goal of being able to compute
+  values at compile-time.
+- Optional heap-allocated `Boxed*` types gated under an `alloc` feature.
 
 ## Security Notes
 
