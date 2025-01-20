@@ -44,7 +44,7 @@ default = ["rand"]
 alloc = ["serdect?/alloc"]
 
 extra-sizes = []
-rand = ["rand_core/std"]
+rand = ["rand_core/getrandom"]
 serde = ["dep:serdect"]
 
 [package.metadata.docs.rs]
