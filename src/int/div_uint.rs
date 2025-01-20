@@ -426,9 +426,9 @@ impl<const LIMBS: usize> RemAssign<&NonZero<Uint<LIMBS>>> for Wrapping<Int<LIMBS
 #[cfg(test)]
 mod tests {
     #[cfg(feature = "rand_core")]
-    use {crate::Random, rand_core::OsRng};
+    use {crate::{Random, I1024, U1024, U512}, rand_core::OsRng};
 
-    use crate::{I1024, I128, U1024, U128, U512};
+    use crate::{I128, U128};
 
     #[test]
     fn test_div_uint() {
