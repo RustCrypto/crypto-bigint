@@ -1160,8 +1160,10 @@ mod tests {
         let rem_control = x.rem(&NonZero::new(y2).unwrap());
 
         assert_eq!(rem.bits(), rem_control.bits());
-        assert_eq!(rem.as_words(), &rem_control.as_words()[0..2]);
-        assert!(rem_control.as_words()[2..].iter().all(|w| *w == 0));
+        assert_eq!(rem.as_words(), &rem_control.as_words()[0..U128::LIMBS]);
+        assert!(rem_control.as_words()[U128::LIMBS..]
+            .iter()
+            .all(|w| *w == 0));
     }
 
     #[test]
