@@ -425,9 +425,10 @@ impl<const LIMBS: usize> RemAssign<&NonZero<Uint<LIMBS>>> for Wrapping<Int<LIMBS
 
 #[cfg(test)]
 mod tests {
-    use rand_core::OsRng;
+    #[cfg(feature = "rand_core")]
+    use {crate::Random, rand_core::OsRng};
 
-    use crate::{NonZero, Random, I1024, I128, U128, U512};
+    use crate::{I1024, I128, U1024, U128, U512};
 
     #[test]
     fn test_div_uint() {
@@ -455,16 +456,14 @@ mod tests {
         assert_eq!(I128::MAX / U128::MAX.to_nz().unwrap(), I128::ZERO);
     }
 
+    #[cfg(feature = "rand_core")]
     #[test]
     fn test_div_ct_vs_vt() {
         for _ in 0..50 {
             let num = I1024::random(&mut OsRng);
-            let denom = NonZero::<U512>::random(&mut OsRng);
+            let denom = U1024::from(&U512::random(&mut OsRng)).to_nz().unwrap();
 
-            assert_eq!(
-                num.div_uint(&denom.resize::<{ I1024::LIMBS }>().to_nz().unwrap()),
-                num.div_uint_vartime(&denom)
-            )
+            assert_eq!(num.div_uint(&denom), num.div_uint_vartime(&denom))
         }
     }
 
@@ -524,14 +523,15 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "rand_core")]
     #[test]
     fn test_div_floor_ct_vs_vt() {
         for _ in 0..50 {
             let num = I1024::random(&mut OsRng);
-            let denom = NonZero::<U512>::random(&mut OsRng);
+            let denom = U1024::from(&U512::random(&mut OsRng)).to_nz().unwrap();
 
             assert_eq!(
-                num.div_floor_uint(&denom.resize::<{ I1024::LIMBS }>().to_nz().unwrap()),
+                num.div_floor_uint(&denom),
                 num.div_floor_uint_vartime(&denom)
             )
         }
