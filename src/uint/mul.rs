@@ -1,11 +1,15 @@
 //! [`Uint`] multiplication operations.
 
-use self::karatsuba::UintKaratsubaMul;
-use crate::{
-    Checked, CheckedMul, Concat, ConcatMixed, Limb, Uint, WideningMul, Wrapping, WrappingMul, Zero,
-};
 use core::ops::{Mul, MulAssign};
+
 use subtle::CtOption;
+
+use crate::{
+    Checked, CheckedMul, Concat, ConcatMixed, ConstCtOption, Limb, Uint, WideningMul, Wrapping,
+    WrappingMul, Zero,
+};
+
+use self::karatsuba::UintKaratsubaMul;
 
 pub(crate) mod karatsuba;
 
@@ -175,7 +179,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let (res, overflow) = self.split_mul(rhs);
         Self::select(&res, &Self::MAX, overflow.is_nonzero())
     }
+}
 
+/// Squaring operations
+impl<const LIMBS: usize> Uint<LIMBS> {
     /// Square self, returning a "wide" result in two parts as (lo, hi).
     pub const fn square_wide(&self) -> (Self, Self) {
         if LIMBS == 128 {
@@ -189,6 +196,32 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         uint_square_limbs(&self.limbs)
+    }
+
+    /// Square self, returning a concatenated "wide" result.
+    pub const fn widening_square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS>
+    where
+        Self: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+    {
+        let (lo, hi) = self.square_wide();
+        Uint::concat_mixed(&lo, &hi)
+    }
+
+    /// Square self, checking that the result fits in the original [`Uint`] size.
+    pub const fn checked_square(&self) -> ConstCtOption<Uint<LIMBS>> {
+        let (lo, hi) = self.square_wide();
+        ConstCtOption::new(lo, Self::eq(&hi, &Self::ZERO))
+    }
+
+    /// Perform wrapping square, discarding overflow.
+    pub const fn wrapping_square(&self) -> Uint<LIMBS> {
+        self.square_wide().0
+    }
+
+    /// Perform saturating squaring, returning `MAX` on overflow.
+    pub const fn saturating_square(&self) -> Self {
+        let (res, overflow) = self.square_wide();
+        Self::select(&res, &Self::MAX, overflow.is_nonzero())
     }
 }
 
@@ -354,7 +387,7 @@ pub(crate) fn square_limbs(limbs: &[Limb], out: &mut [Limb]) {
 
 #[cfg(test)]
 mod tests {
-    use crate::{CheckedMul, Zero, U128, U192, U256, U64};
+    use crate::{CheckedMul, ConstChoice, Zero, U128, U192, U256, U64};
 
     #[test]
     fn mul_wide_zero_and_one() {
@@ -442,6 +475,33 @@ mod tests {
         let (lo, hi) = n.square().split();
         assert_eq!(lo, U256::ONE);
         assert_eq!(hi, U256::MAX.wrapping_sub(&U256::ONE));
+    }
+
+    #[test]
+    fn checked_square() {
+        let n = U256::from_u64(u64::MAX).wrapping_add(&U256::ONE);
+        let n2 = n.checked_square();
+        assert_eq!(n2.is_some(), ConstChoice::TRUE);
+        let n4 = n2.unwrap().checked_square();
+        assert_eq!(n4.is_none(), ConstChoice::TRUE);
+    }
+
+    #[test]
+    fn wrapping_square() {
+        let n = U256::from_u64(u64::MAX).wrapping_add(&U256::ONE);
+        let n2 = n.wrapping_square();
+        assert_eq!(n2, U256::from_u128(u128::MAX).wrapping_add(&U256::ONE));
+        let n4 = n2.wrapping_square();
+        assert_eq!(n4, U256::ZERO);
+    }
+
+    #[test]
+    fn saturating_square() {
+        let n = U256::from_u64(u64::MAX).wrapping_add(&U256::ONE);
+        let n2 = n.saturating_square();
+        assert_eq!(n2, U256::from_u128(u128::MAX).wrapping_add(&U256::ONE));
+        let n4 = n2.saturating_square();
+        assert_eq!(n4, U256::MAX);
     }
 
     #[cfg(feature = "rand_core")]

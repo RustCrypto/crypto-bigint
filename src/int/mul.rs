@@ -4,7 +4,7 @@ use core::ops::{Mul, MulAssign};
 
 use subtle::CtOption;
 
-use crate::{Checked, CheckedMul, ConcatMixed, ConstChoice, Int, Uint, Zero};
+use crate::{Checked, CheckedMul, ConcatMixed, ConstChoice, ConstCtOption, Int, Uint, Zero};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute "wide" multiplication as a 3-tuple `(lo, hi, negate)`.
@@ -48,6 +48,32 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
         // always fits
         Int::from_bits(product_abs.wrapping_neg_if(product_sign))
+    }
+}
+
+/// Squaring operations.
+impl<const LIMBS: usize> Int<LIMBS> {
+    /// Square self, returning a concatenated "wide" result.
+    pub fn widening_square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS>
+    where
+        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+    {
+        self.abs().widening_square()
+    }
+
+    /// Square self, checking that the result fits in the original [`Uint`] size.
+    pub fn checked_square(&self) -> ConstCtOption<Uint<LIMBS>> {
+        self.abs().checked_square()
+    }
+
+    /// Perform wrapping square, discarding overflow.
+    pub const fn wrapping_square(&self) -> Uint<LIMBS> {
+        self.abs().wrapping_square()
+    }
+
+    /// Perform saturating squaring, returning `MAX` on overflow.
+    pub const fn saturating_square(&self) -> Uint<LIMBS> {
+        self.abs().saturating_square()
     }
 }
 
@@ -121,7 +147,7 @@ impl<const LIMBS: usize> MulAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
 
 #[cfg(test)]
 mod tests {
-    use crate::{CheckedMul, Int, I128, I256};
+    use crate::{CheckedMul, ConstChoice, Int, I128, I256, U128, U256};
 
     #[test]
     fn test_checked_mul() {
@@ -282,5 +308,59 @@ mod tests {
             I128::MAX.widening_mul(&I128::MAX),
             I256::from_be_hex("3FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000000000000000000000000001")
         );
+    }
+
+    #[test]
+    fn test_widening_square() {
+        let res = I128::from_i64(i64::MIN).widening_square();
+        assert_eq!(
+            res,
+            U256::from_be_hex("0000000000000000000000000000000040000000000000000000000000000000")
+        );
+
+        let x: I128 = I128::MINUS_ONE << 64;
+        let res = x.widening_square();
+        assert_eq!(
+            res,
+            U256::from_be_hex("0000000000000000000000000000000100000000000000000000000000000000")
+        )
+    }
+
+    #[test]
+    fn test_checked_square() {
+        let res = I128::from_i64(i64::MIN).checked_square();
+        assert_eq!(res.is_some(), ConstChoice::TRUE);
+        assert_eq!(
+            res.unwrap(),
+            U128::from_be_hex("40000000000000000000000000000000")
+        );
+
+        let x: I128 = I128::MINUS_ONE << 64;
+        let res = x.checked_square();
+        assert_eq!(res.is_none(), ConstChoice::TRUE)
+    }
+
+    #[test]
+    fn test_wrapping_square() {
+        let res = I128::from_i64(i64::MIN).wrapping_square();
+        assert_eq!(res, U128::from_be_hex("40000000000000000000000000000000"));
+
+        let x: I128 = I128::MINUS_ONE << 64;
+        let res = x.wrapping_square();
+        assert_eq!(res, U128::ZERO);
+
+        let x: I128 = I128::from_i64(i64::MAX);
+        let res = x.wrapping_square();
+        assert_eq!(res, U128::from_be_hex("3FFFFFFFFFFFFFFF0000000000000001"))
+    }
+
+    #[test]
+    fn test_saturating_square() {
+        assert_eq!(
+            I128::from_i64(i64::MIN).saturating_square(),
+            U128::from_be_hex("40000000000000000000000000000000")
+        );
+        let x: I128 = I128::MINUS_ONE << 64;
+        assert_eq!(x.saturating_square(), U128::MAX);
     }
 }
