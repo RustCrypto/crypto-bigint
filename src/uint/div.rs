@@ -1161,7 +1161,7 @@ mod tests {
 
         assert_eq!(rem.bits(), rem_control.bits());
         assert_eq!(rem.as_words(), &rem_control.as_words()[0..2]);
-        assert!(rem_control.as_words()[2..].iter().all(|w| *w == 0u64));
+        assert!(rem_control.as_words()[2..].iter().all(|w| *w == 0));
     }
 
     #[test]
