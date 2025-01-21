@@ -94,13 +94,13 @@ pub(crate) const fn schoolbook_squaring(limbs: &[Limb], lo: &mut [Limb], hi: &mu
     let mut carry = Limb::ZERO;
     let mut i = 0;
     while i < limbs.len() {
-        (lo[i].0, carry) = (lo[i].0 << 1 | carry.0, lo[i].shr(Limb::BITS - 1));
+        (lo[i].0, carry) = ((lo[i].0 << 1) | carry.0, lo[i].shr(Limb::BITS - 1));
         i += 1;
     }
 
     let mut i = 0;
     while i < limbs.len() - 1 {
-        (hi[i].0, carry) = (hi[i].0 << 1 | carry.0, hi[i].shr(Limb::BITS - 1));
+        (hi[i].0, carry) = ((hi[i].0 << 1) | carry.0, hi[i].shr(Limb::BITS - 1));
         i += 1;
     }
     hi[limbs.len() - 1] = carry;
