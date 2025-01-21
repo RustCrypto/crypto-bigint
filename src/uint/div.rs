@@ -953,11 +953,7 @@ impl<const LIMBS: usize> RemLimb for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use core::marker::PhantomData;
-
-    use crate::{
-        ConcatMixed, Limb, NonZero, RemMixed, Uint, Word, Zero, U1024, U128, U256, U64, U896,
-    };
+    use crate::{Limb, NonZero, RemMixed, Uint, Word, Zero, U1024, U128, U256, U64, U896};
 
     #[cfg(feature = "rand")]
     use {
@@ -1152,7 +1148,7 @@ mod tests {
 
     #[test]
     fn rem_mixed() {
-        let x= U1024::from_be_hex("3740C11DB8F260753BC6B97DD2B8746D3E2694412772AC6ABD975119EE0A6190F27F6F0969BCA069D8D151031AF83EE2283CC2E3E4FADBBDB9EEDBF0B8F4C1FD51912C0D329FDC37D49176DB0A1A2D17E5E6D4F9F6B217FE9412EAA2F881F7027A831C1B06D31D3618D218D6E667DBD85BFC7B6B6B93422D52516989376AA29A");
+        let x = U1024::from_be_hex("3740C11DB8F260753BC6B97DD2B8746D3E2694412772AC6ABD975119EE0A6190F27F6F0969BCA069D8D151031AF83EE2283CC2E3E4FADBBDB9EEDBF0B8F4C1FD51912C0D329FDC37D49176DB0A1A2D17E5E6D4F9F6B217FE9412EAA2F881F7027A831C1B06D31D3618D218D6E667DBD85BFC7B6B6B93422D52516989376AA29A");
         let y = U128::from_u64(1234567890987654321);
         let rem = x.rem_mixed(&y.to_nz().unwrap());
 
@@ -1168,16 +1164,14 @@ mod tests {
 
     #[test]
     fn rem_mixed_through_traits() {
-        struct A<T, U, V> {
+        struct A<T, U> {
             t: T,
             u: U,
-            _phantom: PhantomData<V>,
         }
-        impl<T, U, V> A<T, U, V>
+        impl<T, U> A<T, U>
         where
-            T: RemMixed<U, V>,
+            T: RemMixed<U>,
             U: Clone + Zero,
-            U: ConcatMixed<V>,
         {
             fn reduce_t_by_u(&self) -> U {
                 let rhs = &NonZero::new(self.u.clone()).unwrap();
@@ -1188,7 +1182,6 @@ mod tests {
         let a = A {
             t: U1024::from(1234567890u64),
             u: U128::from(456u64),
-            _phantom: PhantomData,
         };
         assert_eq!(a.reduce_t_by_u(), U128::from(330u64));
     }

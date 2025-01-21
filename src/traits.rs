@@ -627,7 +627,7 @@ pub trait DivRemLimb: Sized {
 }
 
 /// Support for calculating the remainder of two differently sized integers.
-pub trait RemMixed<Reductor, Tail>: Sized {
+pub trait RemMixed<Reductor>: Sized {
     /// Calculate the remainder of `self` by the `reductor`.
     fn rem_mixed(&self, reductor: &NonZero<Reductor>) -> Reductor;
 }
