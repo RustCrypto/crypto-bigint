@@ -393,7 +393,7 @@ impl RemLimb for BoxedUint {
 
 impl RemMixed<BoxedUint> for BoxedUint {
     fn rem_mixed(&self, reductor: &NonZero<BoxedUint>) -> BoxedUint {
-        Self::div_rem_vartime(&self, reductor).1
+        Self::div_rem_vartime(self, reductor).1
     }
 }
 
