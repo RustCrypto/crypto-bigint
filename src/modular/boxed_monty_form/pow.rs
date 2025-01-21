@@ -41,9 +41,10 @@ impl PowBoundedExp<BoxedUint> for BoxedMontyForm {
 }
 
 /// Performs modular exponentiation using Montgomery's ladder.
-/// `exponent_bits` represents the number of bits to take into account for the exponent.
 ///
-/// NOTE: this value is leaked in the time pattern.
+/// `exponent_bits` represents the length of the exponent in bits.
+///
+/// NOTE: `exponent_bits` is leaked in the time pattern.
 fn pow_montgomery_form(
     x: &BoxedUint,
     exponent: &BoxedUint,
@@ -110,9 +111,12 @@ fn pow_montgomery_form(
         }
     }
 
-    // Ensure output is fully reduced (AMM only reduces to the bit length of the modulus)
+    // Ensure output is properly reduced: AMM only reduces to the bit length of `modulus`
     // See RustCrypto/crypto-bigint#441
     z.conditional_sbb_assign(modulus, !z.ct_lt(modulus));
+
+    // Subtract again to ensure output is fully reduced
+    // See RustCrypto/crypto-bigint#455 and golang.org/issue/13907
     z.conditional_sbb_assign(modulus, !z.ct_lt(modulus));
     debug_assert!(&z < modulus);
 
