@@ -6,7 +6,7 @@ use crate::{
         div_limb::{div2by1, div3by2},
     },
     BoxedUint, CheckedDiv, ConstChoice, ConstantTimeSelect, DivRemLimb, Limb, NonZero, Reciprocal,
-    RemLimb, Wrapping,
+    RemLimb, RemMixed, Wrapping,
 };
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::CtOption;
@@ -388,6 +388,12 @@ impl DivRemLimb for BoxedUint {
 impl RemLimb for BoxedUint {
     fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb {
         Self::rem_limb_with_reciprocal(self, reciprocal)
+    }
+}
+
+impl RemMixed<BoxedUint> for BoxedUint {
+    fn rem_mixed(&self, reductor: &NonZero<BoxedUint>) -> BoxedUint {
+        Self::div_rem_vartime(self, reductor).1
     }
 }
 

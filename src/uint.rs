@@ -439,7 +439,7 @@ impl_uint_concat_split_even! {
     U16384,
 }
 
-// Implement mixed concat and split for combinations not implemented by
+// Implement mixed concat, split and reduce for combinations not implemented by
 // impl_uint_concat_split_even. The numbers represent the size of each
 // component Uint in multiple of 64 bits. For example,
 // (U256, [1, 3]) will allow splitting U256 into (U64, U192) as well as

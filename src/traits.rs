@@ -626,6 +626,12 @@ pub trait DivRemLimb: Sized {
     fn div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb);
 }
 
+/// Support for calculating the remainder of two differently sized integers.
+pub trait RemMixed<Reductor>: Sized {
+    /// Calculate the remainder of `self` by the `reductor`.
+    fn rem_mixed(&self, reductor: &NonZero<Reductor>) -> Reductor;
+}
+
 /// Support for optimized division by a single limb.
 pub trait RemLimb: Sized {
     /// Computes `self % rhs` using a pre-made reciprocal.

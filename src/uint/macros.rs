@@ -97,6 +97,13 @@ macro_rules! impl_uint_concat_split_mixed {
                 self.split_mixed()
             }
         }
+
+        impl $crate::traits::RemMixed<Uint<{ U64::LIMBS * $size }>> for $name
+        {
+            fn rem_mixed(&self, reductor: &NonZero<Uint<{ U64::LIMBS * $size }>>) -> Uint<{ U64::LIMBS * $size }> {
+                self.div_rem_vartime(reductor).1
+            }
+        }
     };
     ($name:ident, [ $($size:literal),+ ]) => {
         $(
