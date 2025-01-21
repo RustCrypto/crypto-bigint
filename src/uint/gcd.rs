@@ -1,6 +1,6 @@
 //! Support for computing the greatest common divisor of two `Uint`s.
 
-use crate::{modular::SafeGcdInverter, ConstChoice, Gcd, Odd, PrecomputeInverter, Uint, Int};
+use crate::{modular::SafeGcdInverter, ConstChoice, Gcd, Int, Odd, PrecomputeInverter, Uint};
 
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Uint<SAT_LIMBS>
 where
@@ -78,7 +78,7 @@ where
 /// Gcd of a [Uint] and an [Int].
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Gcd<Int<SAT_LIMBS>> for Uint<SAT_LIMBS>
 where
-    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<Inverter=SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>>,
+    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>>,
 {
     type Output = Uint<SAT_LIMBS>;
 

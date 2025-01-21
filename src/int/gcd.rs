@@ -1,12 +1,12 @@
 //! Support for computing the greatest common divisor of `Int`s.
 
-use crate::{Gcd, Int, Odd, PrecomputeInverter, Uint};
 use crate::modular::SafeGcdInverter;
+use crate::{Gcd, Int, Odd, PrecomputeInverter, Uint};
 
 /// Gcd of two [Int]s
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Gcd for Int<SAT_LIMBS>
 where
-    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<Inverter=SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>>,
+    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>>,
 {
     type Output = Uint<SAT_LIMBS>;
 
@@ -22,12 +22,12 @@ where
 /// Gcd of an [Int] and a [Uint].
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Gcd<Uint<SAT_LIMBS>> for Int<SAT_LIMBS>
 where
-    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<Inverter=SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>>,
+    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>>,
 {
     type Output = Uint<SAT_LIMBS>;
 
     fn gcd(&self, rhs: &Uint<SAT_LIMBS>) -> Self::Output {
-        self.abs().gcd(&rhs)
+        self.abs().gcd(rhs)
     }
 
     fn gcd_vartime(&self, rhs: &Uint<SAT_LIMBS>) -> Self::Output {
