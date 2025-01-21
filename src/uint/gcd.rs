@@ -1,6 +1,6 @@
 //! Support for computing the greatest common divisor of two `Uint`s.
 
-use crate::{modular::SafeGcdInverter, ConstChoice, Gcd, Odd, PrecomputeInverter, Uint};
+use crate::{modular::SafeGcdInverter, ConstChoice, Gcd, Odd, PrecomputeInverter, Uint, Int};
 
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Uint<SAT_LIMBS>
 where
@@ -75,9 +75,25 @@ where
     }
 }
 
+/// Gcd of a [Uint] and an [Int].
+impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Gcd<Int<SAT_LIMBS>> for Uint<SAT_LIMBS>
+where
+    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<Inverter=SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>>,
+{
+    type Output = Uint<SAT_LIMBS>;
+
+    fn gcd(&self, rhs: &Int<SAT_LIMBS>) -> Self::Output {
+        self.gcd(&rhs.abs())
+    }
+
+    fn gcd_vartime(&self, rhs: &Int<SAT_LIMBS>) -> Self::Output {
+        self.gcd_vartime(&rhs.abs())
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::U256;
+    use crate::{Gcd, I256, U256};
 
     #[test]
     fn gcd_relatively_prime() {
@@ -118,5 +134,16 @@ mod tests {
         let g = U256::from_u8(4);
         assert_eq!(f, f.gcd(&g));
         assert_eq!(f, g.gcd(&f));
+    }
+
+    #[test]
+    fn gcd_uint_int() {
+        // Two numbers with a shared factor of 61
+        let f = U256::from(61u32 * 71);
+        let g = I256::from(59i32 * 61);
+
+        let sixty_one = U256::from(61u32);
+        assert_eq!(sixty_one, <U256 as Gcd<I256>>::gcd(&f, &g));
+        assert_eq!(sixty_one, <U256 as Gcd<I256>>::gcd(&f, &g.wrapping_neg()));
     }
 }
