@@ -4,6 +4,229 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.6.0 (2025-01-22)
+### Added
+- `TryFrom<&[u8]>` bound on `Encoding::Repr` ([#261])
+- New `Uint` functionality:
+  - New methods: `bitand_limb` ([#322]), `gcd` ([#472]), `from_str_radix_vartime` ([#603]),
+    `to_string_radix_vartime` ([#659])
+  - New trait impls: `MulMod` ([#313]), `Div`/`Rem` ([#720])
+- New `BoxedUint` functionality:
+  - New methods: `sbb`/`wrapping_sub`/`checked_sub` ([#303]), `mul` ([#306]),
+    `from_be_slice`/`from_le_slice` ([#307]), `to_be_bytes`/`to_le_bytes` ([#308]),
+    `bits` ([#328]), `conditional_select` ([#329]), `shl_vartime` ([#330]), `shr_vartime` ([#331]),
+    `rem_vartime` ([#332]), `inv_mod2k`/`bitor` ([#334]), `pow` ([#337]), `inv_mod` ([#341]),
+    `random` ([#349]), `cond_map`/`cond_and_then` ([#352]), `map_limbs` ([#357]),
+    `div_rem`/`rem` ([#398]), `new_with_arc` ([#407]), `gcd` ([#497]),
+    `from_str_radix_vartime` ([#603]), `to_string_radix_vartime` ([#659])
+  - New trait impls: `BitAnd*` ([#314]), `ConstantTimeGreater/Less`/`PartialOrd/Ord` ([#316]),
+    `AddMod` ([#317]), `SubMod` ([#320]), `Hash`/`BoxedUint` ([#350]),
+    `MulMod`/`BoxedUint` ([#343]), `RandomMod` ([#349]), `Rem` ([#356]), `BitNot`/`BitXor` ([#358]),
+    `CheckedMul`/`Mul` ([#361]), `NegMod` ([#362]), `Div` ([#366]), `Integer` ([#367])
+  - Montgomery multiplication support ([#323])
+- New traits: `FixedInteger` ([#363]), `CheckedDiv` ([#369]), `WideningMul` ([#371]),
+  `ConstantTimeSelect` ([#454]), `SquareAssign` ([#431]), `Gcd` ([#499]),
+  `DivRemLimb`/`RemLimb` ([#496]), `InvMod` ([#505], [#741]), `SquareRoot` ([#508]),
+  `BitOperations` ([#507]), `ShrVartime`/`ShlVartime` ([#509]), `RandomBits` ([#510]),
+  `RemMixed` ([#746])
+- `num-traits` impls: `Wrapping*` ([#425]), `Zero`/`One` ([#433]), `ConstZero` ([#573]),
+  `Num` ([#720])
+- safegcd (Bernstein-Yang) GCD + inv mod algorithm ([#372], [#493], [#632], [#635], [#655])
+- Constant-time square root and division ([#376])
+- Implement `Zeroize` for `NonZero` wrapper ([#406])
+- `Zero::set_zero` method ([#426])
+- `Inverter`/`PrecomputeInverter` traits ([#438], [#444])
+- Uint: `const fn` encoders ([#453])
+- Traits to connect integers and Montgomery form representations ([#431]):
+  - `Integer::Monty` associated type
+  - `Monty` trait with arithmetic bounds and an associated `Monty::Integer` type
+- `Odd` wrapper type ([#487])
+- `NonZero::new_unwrap` ([#602])
+- Implement Karatsuba multiplication for `Uint` and `BoxedUint` ([#649])
+- Efficient linear combination for Montgomery forms ([#666])
+- Doc comment support for `impl_modulus!` ([#676])
+- `core::error::Error` support ([#680])
+- `Int` type providing initial signed integer support using two's complement ([#695], [#730])
+- Variable-time modular inversion support ([#731])
+
+### Changed
+- Toplevel `modular` module now contains all modular functionality ([#300], [#324])
+- `Integer` trait: expand bounds to include `*Mod` ([#318]), `Add`/`Sub`/`Mul` ([#435]),
+  `RemAssign` ([#709]), `AddAssign`/`MulAssign`/`SubAssign` ([#716])
+- `Integer` trait: add new methods `bits(_vartime)`/`leading_zeros` ([#368]),
+  `from_limb_like/`one_like`/`zero_like` ([#533])
+- Replace `BoxedUint::new` with `::zero_with_precision` ([#327])
+- Split `Zero` trait into `Zero` + `ZeroConstant` ([#335])
+- Refactor `Integer` trait; add `Constants`/`LimbsConstant` ([#355])
+  - The existing `Bounded` trait subsumes `BITS`/`BYTES`
+  - `Constants` provides `ONE` and `MAX`
+  - `LimbsConstant` provides `LIMBS`
+- Rename `BoxedUint::mul_wide` to `mul` ([#359])
+- Round up `bits_precision` when creating `BoxedUint` ([#365])
+- Make bit ops use `u32` for shifts and bit counts ([#373])
+- Align with `core`/`std` on overflow behavior for bit shifts ([#395])
+- Make `inv_mod2k(_vartime)` return a `CtChoice` ([#416])
+- Rename `CtChoice` to `ConstChoice` ([#417])
+- Make division methods take `NonZero`-wrapped divisors ([#419])
+- Align with `core`/`std` on `overflowing_sh*` for functions which return an overflow flag ([#430])
+- `Uint`: rename `HLIMBS` to `RHS_LIMBS` ([#432])
+- Bring `Checked*` traits in line with `Wrapping*` ([#434])
+- Rename `*Residue*` types i.e. Montgomery form representations ([#485]):
+  - `Residue` -> `ConstMontyForm`
+  - `DynResidue` -> `MontyForm`
+  - `BoxedResidue` -> `BoxedMontyForm`
+  - `*ResidueParams` -> `*MontyParams`
+  - `residue_params` -> `params`
+  - `params.r` -> `params.one`
+- Make `Monty::new_params()` take an `Odd`-wrapped modulus ([#488])
+- Expand `Uint` support for `const fn`: `square` ([#514]), `widening_mul` ([#515]),
+  `to_le_bytes` ([#555])
+- Have `(Boxed)MontyParams::modulus` return `&Odd<_>` ([#517])
+- Split `MontyParams::new` and `new_vartime` ([#516], [#518])
+- Reverse `Concat(Mixed)`/`Split(Mixed)` argument ordering ([#526])
+- Migrate from `generic-array` to `hybrid-array` ([#544])
+- Replace `ZeroConstant` with `ConstZero` trait from `num-traits` ([#546], [#573])
+- Change `Uint::concat_mixed` and `split_mixed` to accept `self`; make `pub` ([#556], [#558])
+- Make `Uint::concat` and `split` const generic over inputs ([#557], [#558])
+- Split `Uint::mul_mod` and `Uint::mul_mod_vartime` ([#623])
+- Faster constant-time division ([#643])
+- `BoxedMontyForm`: always use `Arc` for `params` ([#645])
+- Leverage `const_mut_refs`; MSRV 1.83 ([#667])
+- Bump `rlp` dependency from 0.5 to 0.6 ([#673])
+- Require `RngCore` instead of `CryptoRngCore` for various random methods ([#710])
+- Bump `serdect` dependency to v0.3 ([#719])
+- Have `rand` feature enable `rand_core/getrandom` instead of `rand_core/std` ([#745])
+
+### Fixed
+- Argument ordering to `BoxedUint::chain` ([#315])
+- Modulus leading zeros calculation for `MontyForm`/`BoxedMontyForm` ([#713])
+
+### Removed
+- `ct_*` prefixes from method names since we're constant-time by default ([#417])
+- `const_assert_*` macros ([#452], [#690])
+
+[#261]: https://github.com/RustCrypto/crypto-bigint/pull/261
+[#300]: https://github.com/RustCrypto/crypto-bigint/pull/300
+[#303]: https://github.com/RustCrypto/crypto-bigint/pull/303
+[#306]: https://github.com/RustCrypto/crypto-bigint/pull/306
+[#307]: https://github.com/RustCrypto/crypto-bigint/pull/307
+[#308]: https://github.com/RustCrypto/crypto-bigint/pull/308
+[#313]: https://github.com/RustCrypto/crypto-bigint/pull/313
+[#314]: https://github.com/RustCrypto/crypto-bigint/pull/314
+[#315]: https://github.com/RustCrypto/crypto-bigint/pull/315
+[#316]: https://github.com/RustCrypto/crypto-bigint/pull/316
+[#317]: https://github.com/RustCrypto/crypto-bigint/pull/317
+[#318]: https://github.com/RustCrypto/crypto-bigint/pull/318
+[#320]: https://github.com/RustCrypto/crypto-bigint/pull/320
+[#322]: https://github.com/RustCrypto/crypto-bigint/pull/322
+[#323]: https://github.com/RustCrypto/crypto-bigint/pull/323
+[#324]: https://github.com/RustCrypto/crypto-bigint/pull/324
+[#327]: https://github.com/RustCrypto/crypto-bigint/pull/327
+[#328]: https://github.com/RustCrypto/crypto-bigint/pull/328
+[#329]: https://github.com/RustCrypto/crypto-bigint/pull/329
+[#330]: https://github.com/RustCrypto/crypto-bigint/pull/330
+[#331]: https://github.com/RustCrypto/crypto-bigint/pull/331
+[#332]: https://github.com/RustCrypto/crypto-bigint/pull/332
+[#334]: https://github.com/RustCrypto/crypto-bigint/pull/334
+[#335]: https://github.com/RustCrypto/crypto-bigint/pull/335
+[#337]: https://github.com/RustCrypto/crypto-bigint/pull/337
+[#341]: https://github.com/RustCrypto/crypto-bigint/pull/341
+[#343]: https://github.com/RustCrypto/crypto-bigint/pull/343
+[#349]: https://github.com/RustCrypto/crypto-bigint/pull/349
+[#350]: https://github.com/RustCrypto/crypto-bigint/pull/350
+[#352]: https://github.com/RustCrypto/crypto-bigint/pull/352
+[#355]: https://github.com/RustCrypto/crypto-bigint/pull/355
+[#356]: https://github.com/RustCrypto/crypto-bigint/pull/356
+[#357]: https://github.com/RustCrypto/crypto-bigint/pull/357
+[#358]: https://github.com/RustCrypto/crypto-bigint/pull/358
+[#359]: https://github.com/RustCrypto/crypto-bigint/pull/359
+[#361]: https://github.com/RustCrypto/crypto-bigint/pull/361
+[#362]: https://github.com/RustCrypto/crypto-bigint/pull/362
+[#363]: https://github.com/RustCrypto/crypto-bigint/pull/363
+[#365]: https://github.com/RustCrypto/crypto-bigint/pull/365
+[#366]: https://github.com/RustCrypto/crypto-bigint/pull/366
+[#367]: https://github.com/RustCrypto/crypto-bigint/pull/367
+[#368]: https://github.com/RustCrypto/crypto-bigint/pull/368
+[#369]: https://github.com/RustCrypto/crypto-bigint/pull/369
+[#371]: https://github.com/RustCrypto/crypto-bigint/pull/371
+[#372]: https://github.com/RustCrypto/crypto-bigint/pull/372
+[#373]: https://github.com/RustCrypto/crypto-bigint/pull/373
+[#376]: https://github.com/RustCrypto/crypto-bigint/pull/376
+[#395]: https://github.com/RustCrypto/crypto-bigint/pull/395
+[#398]: https://github.com/RustCrypto/crypto-bigint/pull/398
+[#406]: https://github.com/RustCrypto/crypto-bigint/pull/406
+[#407]: https://github.com/RustCrypto/crypto-bigint/pull/407
+[#416]: https://github.com/RustCrypto/crypto-bigint/pull/416
+[#417]: https://github.com/RustCrypto/crypto-bigint/pull/417
+[#419]: https://github.com/RustCrypto/crypto-bigint/pull/419
+[#425]: https://github.com/RustCrypto/crypto-bigint/pull/425
+[#426]: https://github.com/RustCrypto/crypto-bigint/pull/426
+[#430]: https://github.com/RustCrypto/crypto-bigint/pull/430
+[#431]: https://github.com/RustCrypto/crypto-bigint/pull/431
+[#432]: https://github.com/RustCrypto/crypto-bigint/pull/432
+[#433]: https://github.com/RustCrypto/crypto-bigint/pull/433
+[#434]: https://github.com/RustCrypto/crypto-bigint/pull/434
+[#435]: https://github.com/RustCrypto/crypto-bigint/pull/435
+[#438]: https://github.com/RustCrypto/crypto-bigint/pull/438
+[#444]: https://github.com/RustCrypto/crypto-bigint/pull/444
+[#452]: https://github.com/RustCrypto/crypto-bigint/pull/452
+[#453]: https://github.com/RustCrypto/crypto-bigint/pull/453
+[#454]: https://github.com/RustCrypto/crypto-bigint/pull/454
+[#472]: https://github.com/RustCrypto/crypto-bigint/pull/472
+[#485]: https://github.com/RustCrypto/crypto-bigint/pull/485
+[#487]: https://github.com/RustCrypto/crypto-bigint/pull/487
+[#488]: https://github.com/RustCrypto/crypto-bigint/pull/488
+[#493]: https://github.com/RustCrypto/crypto-bigint/pull/493
+[#496]: https://github.com/RustCrypto/crypto-bigint/pull/496
+[#497]: https://github.com/RustCrypto/crypto-bigint/pull/497
+[#499]: https://github.com/RustCrypto/crypto-bigint/pull/499
+[#505]: https://github.com/RustCrypto/crypto-bigint/pull/505
+[#507]: https://github.com/RustCrypto/crypto-bigint/pull/507
+[#508]: https://github.com/RustCrypto/crypto-bigint/pull/508
+[#509]: https://github.com/RustCrypto/crypto-bigint/pull/509
+[#510]: https://github.com/RustCrypto/crypto-bigint/pull/510
+[#514]: https://github.com/RustCrypto/crypto-bigint/pull/514
+[#515]: https://github.com/RustCrypto/crypto-bigint/pull/515
+[#517]: https://github.com/RustCrypto/crypto-bigint/pull/517
+[#518]: https://github.com/RustCrypto/crypto-bigint/pull/518
+[#526]: https://github.com/RustCrypto/crypto-bigint/pull/526
+[#533]: https://github.com/RustCrypto/crypto-bigint/pull/533
+[#544]: https://github.com/RustCrypto/crypto-bigint/pull/544
+[#546]: https://github.com/RustCrypto/crypto-bigint/pull/546
+[#555]: https://github.com/RustCrypto/crypto-bigint/pull/555
+[#556]: https://github.com/RustCrypto/crypto-bigint/pull/556
+[#557]: https://github.com/RustCrypto/crypto-bigint/pull/557
+[#558]: https://github.com/RustCrypto/crypto-bigint/pull/558
+[#573]: https://github.com/RustCrypto/crypto-bigint/pull/573
+[#602]: https://github.com/RustCrypto/crypto-bigint/pull/602
+[#603]: https://github.com/RustCrypto/crypto-bigint/pull/603
+[#623]: https://github.com/RustCrypto/crypto-bigint/pull/623
+[#632]: https://github.com/RustCrypto/crypto-bigint/pull/632
+[#635]: https://github.com/RustCrypto/crypto-bigint/pull/635
+[#643]: https://github.com/RustCrypto/crypto-bigint/pull/643
+[#645]: https://github.com/RustCrypto/crypto-bigint/pull/645
+[#649]: https://github.com/RustCrypto/crypto-bigint/pull/649
+[#655]: https://github.com/RustCrypto/crypto-bigint/pull/655
+[#659]: https://github.com/RustCrypto/crypto-bigint/pull/659
+[#666]: https://github.com/RustCrypto/crypto-bigint/pull/666
+[#667]: https://github.com/RustCrypto/crypto-bigint/pull/667
+[#673]: https://github.com/RustCrypto/crypto-bigint/pull/673
+[#676]: https://github.com/RustCrypto/crypto-bigint/pull/676
+[#680]: https://github.com/RustCrypto/crypto-bigint/pull/680
+[#690]: https://github.com/RustCrypto/crypto-bigint/pull/690
+[#695]: https://github.com/RustCrypto/crypto-bigint/pull/695
+[#709]: https://github.com/RustCrypto/crypto-bigint/pull/709
+[#710]: https://github.com/RustCrypto/crypto-bigint/pull/710
+[#713]: https://github.com/RustCrypto/crypto-bigint/pull/713
+[#716]: https://github.com/RustCrypto/crypto-bigint/pull/716
+[#719]: https://github.com/RustCrypto/crypto-bigint/pull/719
+[#720]: https://github.com/RustCrypto/crypto-bigint/pull/720
+[#730]: https://github.com/RustCrypto/crypto-bigint/pull/730
+[#731]: https://github.com/RustCrypto/crypto-bigint/pull/731
+[#741]: https://github.com/RustCrypto/crypto-bigint/pull/741
+[#745]: https://github.com/RustCrypto/crypto-bigint/pull/745
+[#746]: https://github.com/RustCrypto/crypto-bigint/pull/746
+
 ## 0.5.5 (2023-11-18)
 ### Added
 - Multi-exponentiation ([#248])
