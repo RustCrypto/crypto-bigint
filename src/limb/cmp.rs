@@ -37,6 +37,12 @@ impl Limb {
     pub(crate) const fn is_nonzero(&self) -> ConstChoice {
         ConstChoice::from_word_nonzero(self.0)
     }
+
+    /// Returns the truthy value if `self == rhs` or the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn eq(lhs: Self, rhs: Self) -> ConstChoice {
+        Limb(lhs.0 ^ rhs.0).is_nonzero().not()
+    }
 }
 
 impl ConstantTimeEq for Limb {
