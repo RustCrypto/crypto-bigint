@@ -37,7 +37,7 @@ num-integer = "0.1"
 num-modular = { version = "0.6", features = ["num-bigint", "num-integer", "num-traits"] }
 proptest = "1.5"
 rand_core = { version = "0.6", features = ["std"] }
-rand_chacha = "0.3"
+rand_chacha = "0.9"
 
 [features]
 default = ["rand"]
