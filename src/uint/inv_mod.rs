@@ -1,7 +1,6 @@
+use core::cmp::max;
 use super::Uint;
-use crate::{
-    modular::SafeGcdInverter, ConstChoice, ConstCtOption, InvMod, Odd, PrecomputeInverter,
-};
+use crate::{modular::SafeGcdInverter, ConstChoice, ConstCtOption, InvMod, Odd, PrecomputeInverter, U128, U64, ConstantTimeSelect};
 use subtle::CtOption;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -90,6 +89,98 @@ where
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     pub const fn inv_odd_mod(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
         SafeGcdInverter::<LIMBS, UNSAT_LIMBS>::new(modulus, &Uint::ONE).inv(self)
+    }
+
+
+    pub fn new_inv_mod_odd(&self, modulus: &Self) -> ConstCtOption<Self> {
+        const K: u32 = 64;
+        // Smallest Uint that fits K bits
+        type Word = U64;
+        // Smallest Uint that fits 2K bits.
+        type WideWord = U128;
+        debug_assert!(WideWord::BITS >= 2 * K);
+        const K_BITMASK: Uint<LIMBS> = Uint::ONE.shl_vartime(K - 1).wrapping_sub(&Uint::ONE);
+
+        let (mut a, mut b) = (*self, modulus.get());
+        let (mut u, mut v) = (Self::ONE, Self::ZERO);
+
+        let mut i = 0;
+        while i < (2 * modulus.bits_vartime() - 1).div_ceil(K) {
+            i += 1;
+
+            // Construct a_ and b_ as the concatenation of the K most significant and the K least
+            // significant bits of a and b, respectively. If those bits overlap, TODO
+            let n = max(max(a.bits(), b.bits()), 2 * K);
+
+            let top_a = a.shr(n - K - 1);
+            let bottom_a = a.bitand(&K_BITMASK);
+            let mut a_ = WideWord::from(&top_a)
+                .shl_vartime(K - 1)
+                .bitxor(&WideWord::from(bottom_a));
+
+            let top_b = WideWord::from(&b.shr(n - K - 1));
+            let bottom_b = WideWord::from(&b.bitand(&K_BITMASK));
+            let mut b_: WideWord = top_b.shl_vartime(K - 1).bitxor(&bottom_b);
+
+            // Unit matrix
+            let (mut f0, mut g0) = (Word::ONE, Word::ZERO);
+            let (mut f1, mut g1) = (Word::ZERO, Word::ONE);
+
+            // Compute the update matrix.
+            let mut j = 0;
+            while j < K - 1 {
+                j += 1;
+
+                let a_odd = a_.is_odd();
+                let a_lt_b = Uint::lt(&a_, &b_);
+
+                // swap if a odd and a < b
+                let do_swap = a_odd.and(a_lt_b);
+                Uint::ct_swap(&mut a_, &mut b_, do_swap.into());
+                Uint::ct_swap(&mut f0, &mut f1, do_swap.into());
+                Uint::ct_swap(&mut g0, &mut g1, do_swap.into());
+
+                // subtract b from a
+                // TODO: perhaps change something about `a_odd` to make this xgcd?
+                a_ = Uint::select(&a_, &a_.wrapping_sub(&b_), a_odd);
+                f0 = U64::select(&f0, &f0.wrapping_sub(&f1), a_odd);
+                g0 = U64::select(&g0, &g0.wrapping_sub(&g1), a_odd);
+
+                // div a by 2
+                a_ = a_.shr_vartime(1);
+                f1 = f1.shl_vartime(1);
+                g1 = g1.shl_vartime(1);
+            }
+
+            // Apply matrix to (a, b)
+            (a, b) = (
+                a.widening_mul(&f0)
+                    .wrapping_add(&b.widening_mul(&g0))
+                    .shr_vartime(K - 1),
+                a.widening_mul(&f1)
+                    .wrapping_add(&b.widening_mul(&g1))
+                    .shr_vartime(K - 1),
+            );
+
+            // TODO
+            let a_is_neg = ConstChoice::TRUE;
+            a = a.wrapping_neg_if(a_is_neg);
+            f0 = f0.wrapping_neg_if(a_is_neg);
+            g0 = g0.wrapping_neg_if(a_is_neg);
+
+            // TODO
+            let b_is_neg = ConstChoice::TRUE;
+            b = b.wrapping_neg_if(b_is_neg);
+            f1 = f1.wrapping_neg_if(b_is_neg);
+            g1 = g1.wrapping_neg_if(b_is_neg);
+
+            (u, v) = (
+                u.widening_mul(&f0).add_mod(&v.widening_mul(&g0), modulus),
+                u.widening_mul(&f1).add_mod(&v.widening_mul(&g1), modulus),
+            );
+        }
+
+        ConstCtOption::new(v, Uint::eq(&b, &Uint::ONE))
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`.
