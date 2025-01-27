@@ -395,6 +395,13 @@ fn shr_benchmark<const LIMBS: usize>(group: &mut BenchmarkGroup<WallTime>) {
             BatchSize::SmallInput,
         )
     });
+    group.bench_function(BenchmarkId::new("fast_split_overflowing_shr", LIMBS), |b| {
+        b.iter_batched(
+            || Uint::<LIMBS>::ONE,
+            |x| x.fast_split_overflowing_shr(Uint::<LIMBS>::BITS / 2 + 10),
+            BatchSize::SmallInput,
+        )
+    });
 }
 
 fn bench_shr(c: &mut Criterion) {
@@ -522,14 +529,14 @@ fn bench_sqrt(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    bench_random,
-    bench_mul,
-    bench_division,
-    bench_gcd,
-    bench_shl,
+    // bench_random,
+    // bench_mul,
+    // bench_division,
+    // bench_gcd,
+    // bench_shl,
     bench_shr,
-    bench_inv_mod,
-    bench_sqrt
+    // bench_inv_mod,
+    // bench_sqrt
 );
 
 criterion_main!(benches);

@@ -115,6 +115,47 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self >> shift`.
     ///
     /// Returns `None` if `shift >= Self::BITS`.
+    pub const fn fast_split_overflowing_shr(&self, shift: u32) -> ConstCtOption<Self> {
+        let (intra_limb_shift, limb_shift) = (shift % Limb::BITS, shift / Limb::BITS);
+        self.intra_limb_carrying_shr_internal(intra_limb_shift)
+            .fast_full_limb_shr(limb_shift)
+    }
+
+    /// Compute `self >> (Limb::BITS * limb_shift)`, for `limb_shift < Self::LIMBS`.
+    ///
+    /// Returns `None` if `limb_shift >= Self::LIMBS`.
+    #[inline(always)]
+    pub const fn fast_full_limb_shr(&self, limb_shift: u32) -> ConstCtOption<Self> {
+        let shift_bits = u32::BITS - (LIMBS as u32 - 1).leading_zeros();
+        let overflow = ConstChoice::from_u32_lt(limb_shift, LIMBS as u32).not();
+        let limb_shift = limb_shift % LIMBS as u32;
+
+        let mut result = *self;
+        let mut i = 0;
+        while i < shift_bits {
+            let bit = ConstChoice::from_u32_lsb((limb_shift >> i) & 1);
+
+            let mut j = 0;
+            let limbs = result.as_limbs_mut();
+            let offset = 1 << i;
+            while j < Self::LIMBS.saturating_sub(offset) {
+                limbs[j] = Limb::select(limbs[j], limbs[j + offset], bit);
+                j += 1;
+            }
+            while j < Self::LIMBS {
+                limbs[j] = Limb::select(limbs[j], Limb::ZERO, bit);
+                j += 1;
+            }
+
+            i += 1;
+        }
+
+        ConstCtOption::new(Uint::select(&result, &Self::ZERO, overflow), overflow.not())
+    }
+
+    /// Computes `self >> shift`.
+    ///
+    /// Returns `None` if `shift >= Self::BITS`.
     ///
     /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
