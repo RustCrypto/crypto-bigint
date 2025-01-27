@@ -50,6 +50,71 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self >> shift`.
     ///
     /// Returns `None` if `shift >= Self::BITS`.
+    pub const fn split_overflowing_shr(&self, shift: u32) -> ConstCtOption<Self> {
+        let (intra_limb_shift, limb_shift) = (shift % Limb::BITS, shift / Limb::BITS);
+        self.intra_limb_carrying_shr_internal(intra_limb_shift)
+            .full_limb_shr(limb_shift)
+    }
+
+    /// Computes `self >> shift`, for `shift < Limb::BITS`.
+    ///
+    /// Returns `None` if `shift >= Limb::BITS`.
+    pub const fn intra_limb_overflowing_shr(&self, shift: u32) -> ConstCtOption<Self> {
+        let overflow = ConstChoice::from_u32_lt(shift, Limb::BITS).not();
+        let result = self.intra_limb_carrying_shr_internal(shift % Limb::BITS);
+        ConstCtOption::new(Uint::select(&result, &Self::ZERO, overflow), overflow.not())
+    }
+
+    /// Computes `self >> shift`, for `shift < Limb::BITS`.
+    ///
+    /// Panics if `shift >= Limb::BITS`.
+    #[inline(always)]
+    const fn intra_limb_carrying_shr_internal(&self, shift: u32) -> Self {
+        debug_assert!(shift < Limb::BITS);
+
+        let (mut result, mut carry) = (*self, Limb::ZERO);
+
+        let limbs = result.as_limbs_mut();
+        let mut i = limbs.len();
+        while i > 0 {
+            i -= 1;
+            let (shifted, new_carry) = limbs[i].carrying_shr(shift);
+            limbs[i] = shifted.bitxor(carry);
+            carry = new_carry;
+        }
+
+        result
+    }
+
+    /// Compute `self >> (Limb::BITS * limb_shift)`, for `limb_shift < Self::LIMBS`.
+    ///
+    /// Returns `None` if `limb_shift >= Self::LIMBS`.
+    #[inline(always)]
+    pub const fn full_limb_shr(&self, limb_shift: u32) -> ConstCtOption<Self> {
+        let shift_bits = u32::BITS - (LIMBS as u32 - 1).leading_zeros();
+        let overflow = ConstChoice::from_u32_lt(limb_shift, LIMBS as u32).not();
+        let limb_shift = limb_shift % LIMBS as u32;
+
+        let mut result = *self;
+        let mut i = 0;
+        while i < shift_bits {
+            let bit = ConstChoice::from_u32_lsb((limb_shift >> i) & 1);
+            result = Uint::select(
+                &result,
+                &result
+                    .overflowing_shr_vartime(Limb::BITS << i)
+                    .expect("shift within range"),
+                bit,
+            );
+            i += 1;
+        }
+
+        ConstCtOption::new(Uint::select(&result, &Self::ZERO, overflow), overflow.not())
+    }
+
+    /// Computes `self >> shift`.
+    ///
+    /// Returns `None` if `shift >= Self::BITS`.
     ///
     /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///

@@ -1,7 +1,10 @@
-use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
+use criterion::measurement::WallTime;
+use criterion::{
+    black_box, criterion_group, criterion_main, BatchSize, BenchmarkGroup, BenchmarkId, Criterion,
+};
 use crypto_bigint::{
-    Limb, NonZero, Odd, Random, RandomBits, RandomMod, Reciprocal, Uint, U1024, U128, U2048, U256,
-    U4096, U512,
+    Limb, NonZero, Odd, Random, RandomBits, RandomMod, Reciprocal, Uint, U1024, U128, U16384,
+    U2048, U256, U4096, U512, U8192,
 };
 use rand_chacha::ChaCha8Rng;
 use rand_core::{OsRng, RngCore, SeedableRng};
@@ -370,6 +373,30 @@ fn bench_shl(c: &mut Criterion) {
     group.finish();
 }
 
+fn shr_benchmark<const LIMBS: usize>(group: &mut BenchmarkGroup<WallTime>) {
+    group.bench_function(BenchmarkId::new("overflowing_shr_vartime", LIMBS), |b| {
+        b.iter_batched(
+            || Uint::<LIMBS>::ONE,
+            |x| x.overflowing_shr_vartime(Uint::<LIMBS>::BITS / 2 + 10),
+            BatchSize::SmallInput,
+        )
+    });
+    group.bench_function(BenchmarkId::new("overflowing_shr", LIMBS), |b| {
+        b.iter_batched(
+            || Uint::<LIMBS>::ONE,
+            |x| x.overflowing_shr(Uint::<LIMBS>::BITS / 2 + 10),
+            BatchSize::SmallInput,
+        )
+    });
+    group.bench_function(BenchmarkId::new("split_overflowing_shr", LIMBS), |b| {
+        b.iter_batched(
+            || Uint::<LIMBS>::ONE,
+            |x| x.split_overflowing_shr(Uint::<LIMBS>::BITS / 2 + 10),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
 fn bench_shr(c: &mut Criterion) {
     let mut group = c.benchmark_group("right shift");
 
@@ -404,6 +431,14 @@ fn bench_shr(c: &mut Criterion) {
             BatchSize::SmallInput,
         )
     });
+
+    shr_benchmark::<{ U256::LIMBS }>(&mut group);
+    shr_benchmark::<{ U512::LIMBS }>(&mut group);
+    shr_benchmark::<{ U1024::LIMBS }>(&mut group);
+    shr_benchmark::<{ U2048::LIMBS }>(&mut group);
+    shr_benchmark::<{ U4096::LIMBS }>(&mut group);
+    shr_benchmark::<{ U8192::LIMBS }>(&mut group);
+    shr_benchmark::<{ U16384::LIMBS }>(&mut group);
 
     group.finish();
 }
