@@ -388,14 +388,4 @@ mod tests {
         let res = a.inv_odd_mod(&m);
         assert!(res.is_none().is_true_vartime());
     }
-
-    #[test]
-    fn test_new_inv_mod_odd() {
-        let x = U64::from(2u64);
-        let modulus = U64::from(7u64).to_odd().unwrap();
-
-        let inv_x = x.new_inv_mod_odd(&modulus).unwrap();
-
-        assert_eq!(inv_x, U64::from(4u64));
-    }
 }

@@ -463,6 +463,7 @@ impl_uint_concat_split_mixed! {
 
 #[cfg(feature = "extra-sizes")]
 mod extra_sizes;
+mod new_gcd;
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
