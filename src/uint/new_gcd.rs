@@ -1,4 +1,7 @@
-use crate::{ConstChoice, Int, Limb, Uint, Word, I64, U64, CheckedSub, CheckedMul};
+use core::cmp::min;
+use num_traits::WrappingSub;
+use subtle::Choice;
+use crate::{ConstChoice, Int, Limb, Uint, Word, I64, U64, CheckedSub, CheckedMul, ConcatMixed, Split, Odd};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Given `a, b, f` and `g`, compute `(a*f + b*g) / 2^{k-1}`, where it is given that
@@ -68,7 +71,74 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         ConstChoice::from_u32_lt(a, b).select_u32(a, b)
     }
 
-    pub fn new_xgcd_odd_vartime(&self, rhs: &Self) -> (Self, Self, Int<LIMBS>, Int<LIMBS>) {
+    pub fn new_gcd(mut a: Self, mut b: Self) -> Self {
+        // Using identities 2 and 3:
+        // gcd(2ⁱ u, 2ʲ v) = 2ᵏ gcd(u, v) with u, v odd and k = min(i, j)
+        // 2ᵏ is the greatest power of two that divides both 2ⁱ u and 2ʲ v
+        let i = a.trailing_zeros(); a = a.shr(i);
+        let j = b.trailing_zeros(); b = b.shr(j);
+        let k = min(i, j);
+
+        // Note: at this point both elements are odd.
+        Self::new_odd_gcd(a, b).shl(k)
+    }
+
+    pub fn new_odd_gcd(mut a: Self, mut b: Self) -> Self {
+        let mut i = 0;
+        while i < 2 * Self::BITS {
+            // Swap s.t. a ≤ b
+            let do_swap = Uint::gt(&a, &b);
+            Uint::conditional_swap(&mut a, &mut b, do_swap);
+
+            // Identity 4: gcd(a, b) = gcd(a, b-a)
+            b -= a;
+
+            // Identity 3: gcd(a, 2ʲ b) = gcd(a, b) as a is odd
+            let do_shift = a.is_nonzero().and(b.is_nonzero());
+            let shift = do_shift.select_u32(0, b.trailing_zeros());
+            b = b.shr(shift);
+
+            i += 1;
+        }
+
+        b
+    }
+
+    #[inline]
+    fn cutdown<const K: u32, const CUTDOWN_LIMBS: usize>(a: Self, b: Self) -> (Uint<CUTDOWN_LIMBS>, Uint<CUTDOWN_LIMBS>) {
+        let k_sub_one_bitmask = Uint::<CUTDOWN_LIMBS>::ONE.shl_vartime(K-1).wrapping_sub(&Uint::<CUTDOWN_LIMBS>::ONE);
+
+        // Construct a_ and b_ as the concatenation of the K most significant and the K least
+        // significant bits of a and b, respectively. If those bits overlap, ... TODO
+        let n = Self::const_max(2 * K, Self::const_max(a.bits(), b.bits()));
+
+        let hi_a = a.shr(n - K - 1).resize::<{ CUTDOWN_LIMBS }>(); // top k+1 bits
+        let lo_a = a.resize::<CUTDOWN_LIMBS>().bitand(&k_sub_one_bitmask); // bottom k-1 bits
+        let mut a_ = hi_a.shl_vartime(K - 1).bitxor(&lo_a);
+
+        let hi_b = b.shr(n - K - 1).resize::<CUTDOWN_LIMBS>();
+        let lo_b = b.resize::<CUTDOWN_LIMBS>().bitand(&k_sub_one_bitmask);
+        let mut b_ = hi_b.shl_vartime(K - 1).bitxor(&lo_b);
+
+        (a_, b_)
+    }
+
+    pub fn new_gcd_<const DOUBLE: usize>(&self, rhs: &Self) -> Self
+    where
+        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput=Uint<DOUBLE>>,
+        Uint<DOUBLE>: Split,
+    {
+        let i = self.trailing_zeros();
+        let j = rhs.trailing_zeros();
+        let k = min(i, j);
+        Self::new_gcd_odd(&self.shr(i), &rhs.shr(j).to_odd().unwrap()).shl(k)
+    }
+
+    pub fn new_gcd_odd<const DOUBLE: usize>(&self, rhs: &Odd<Self>) -> Self
+    where
+        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput=Uint<DOUBLE>>,
+        Uint<DOUBLE>: Split,
+    {
         /// Window size.
         const K: u32 = 32;
         /// Smallest [Uint] that fits K bits
@@ -79,114 +149,94 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         const K_SUB_ONE_BITMASK: DoubleK =
             DoubleK::ONE.shl_vartime(K - 1).wrapping_sub(&DoubleK::ONE);
 
-        let (mut a, mut b) = (*self, *rhs);
-        let (mut u, mut v) = (Int::<LIMBS>::ONE, Int::<LIMBS>::ZERO);
-
-        let (mut sgn_a, mut sgn_b);
+        let (mut a, mut b) = (*self, rhs.get());
 
         let mut i = 0;
         while i < (2 * rhs.bits_vartime() - 1).div_ceil(K) {
             i += 1;
 
-            // Construct a_ and b_ as the concatenation of the K most significant and the K least
-            // significant bits of a and b, respectively. If those bits overlap, ... TODO
-            let n = Self::const_max(2 * K, Self::const_max(a.bits(), b.bits()));
-
-            let hi_a = a.shr(n - K - 1).resize::<{ DoubleK::LIMBS }>(); // top k+1 bits
-            let lo_a = a.resize::<{ DoubleK::LIMBS }>().bitand(&K_SUB_ONE_BITMASK); // bottom k-1 bits
-            let mut a_: DoubleK = hi_a.shl_vartime(K - 1).bitxor(&lo_a);
-
-            let hi_b = b.shr(n - K - 1).resize::<{ DoubleK::LIMBS }>();
-            let lo_b = b.resize::<{ DoubleK::LIMBS }>().bitand(&K_SUB_ONE_BITMASK);
-            let mut b_: DoubleK = hi_b.shl_vartime(K - 1).bitxor(&lo_b);
+            let (mut a_, mut b_) = Self::cutdown::<K, {DoubleK::LIMBS}>(a, b);
 
             // Unit matrix
             let (mut f0, mut g0) = (SingleK::ONE, SingleK::ZERO);
             let (mut f1, mut g1) = (SingleK::ZERO, SingleK::ONE);
 
             // Compute the update matrix.
+            let mut used_increments = 0;
             let mut j = 0;
             while j < K - 1 {
                 j += 1;
-
-                // Only apply operations when b ≠ 0, otherwise do nothing.
-                let b_is_non_zero = b_.is_nonzero();
 
                 let a_odd = a_.is_odd();
                 let a_lt_b = DoubleK::lt(&a_, &b_);
 
                 // swap if a odd and a < b
-                let do_swap = a_odd.and(a_lt_b).and(b_is_non_zero);
+                let do_swap = a_odd.and(a_lt_b);
                 DoubleK::conditional_swap(&mut a_, &mut b_, do_swap);
                 SingleK::conditional_swap(&mut f0, &mut f1, do_swap);
                 SingleK::conditional_swap(&mut g0, &mut g1, do_swap);
 
                 // subtract a from b when a is odd and b is non-zero
-                let do_sub = a_odd.and(b_is_non_zero);
-                a_ = DoubleK::select(&a_, &a_.wrapping_sub(&b_), do_sub);
-                f0 = SingleK::select(
-                    &f0,
-                    &f0.checked_sub(&f1).expect("no overflow"),
-                    do_sub,
-                );
-                g0 = SingleK::select(
-                    &g0,
-                    &g0.checked_sub(&g1).expect("no overflow"),
-                    do_sub,
-                );
+                a_ = DoubleK::select(&a_, &a_.wrapping_sub(&b_), a_odd);
+                f0 = SingleK::select(&f0, &f0.wrapping_sub(&f1), a_odd);
+                g0 = SingleK::select(&g0, &g0.wrapping_sub(&g1), a_odd);
 
                 // mul/div by 2 when b is non-zero.
-                a_ = DoubleK::select(&a_, &a_.shr_vartime(1), b_is_non_zero);
-                f1 = SingleK::select(&f1, &f1.shl_vartime(1), b_is_non_zero);
-                g1 = SingleK::select(&g1, &g1.shl_vartime(1), b_is_non_zero);
+                // Only apply operations when b ≠ 0, otherwise do nothing.
+                let do_apply = b_.is_nonzero();
+                a_ = DoubleK::select(&a_, &a_.shr_vartime(1), do_apply);
+                f1 = SingleK::select(&f1, &f1.shl_vartime(1), do_apply);
+                g1 = SingleK::select(&g1, &g1.shl_vartime(1), do_apply);
+                used_increments = do_apply.select_u32(used_increments, used_increments + 1);
             }
 
+            // TODO: fix this
+            let mut f0 = f0.resize::<LIMBS>();
+            let mut f1 = f1.resize::<LIMBS>();
+            let mut g0 = g0.resize::<LIMBS>();
+            let mut g1 = g1.resize::<LIMBS>();
+
             let (new_a, new_b) = (
-                Self::addmul_shr_k_sub_1::<K, { SingleK::LIMBS }>(a, b, f0, g0),
-                Self::addmul_shr_k_sub_1::<K, { SingleK::LIMBS }>(a, b, f1, g1),
+                f0.widening_mul_uint(&a).wrapping_add(&g0.widening_mul_uint(&b)).shr(used_increments),
+                f1.widening_mul_uint(&a).wrapping_add(&g1.widening_mul_uint(&b)).shr(used_increments)
             );
 
-            // Correct for case where `a` is negative.
-            (a, sgn_a) = new_a.abs_sign();
-            f0 = f0.wrapping_neg_if(sgn_a);
-            g0 = g0.wrapping_neg_if(sgn_a);
-
-            // Correct for case where `b` is negative.
-            (b, sgn_b) = new_b.abs_sign();
-            f1 = f1.wrapping_neg_if(sgn_b);
-            g1 = g1.wrapping_neg_if(sgn_b);
-
-            // Update u and v
-            (u, v) = (
-                u.checked_mul(&f0)
-                    .expect("TODO")
-                    .wrapping_add(&v.checked_mul(&g0).expect("TODO")),
-                u.checked_mul(&f1)
-                    .expect("TODO")
-                    .wrapping_add(&v.checked_mul(&g1).expect("TODO")),
-            );
+            a = new_a.resize::<LIMBS>().abs();
+            b = new_b.resize::<LIMBS>().abs();
         }
 
-        (a, b, u, v)
+        b
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{Random, Uint, U128};
+    use crate::{Uint, Random, U2048, Gcd, ConcatMixed, Split};
     use rand_core::OsRng;
+
+    fn gcd_comparison_test<const LIMBS: usize, const DOUBLE: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
+    where
+        Uint<LIMBS>: Gcd<Output=Uint<LIMBS>>,
+        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput=Uint<DOUBLE>>,
+        Uint<DOUBLE>: Split
+    {
+        let gcd = lhs.gcd(&rhs);
+        let new_gcd = Uint::new_gcd(lhs, rhs);
+        let bingcd = lhs.new_gcd_odd(&rhs.to_odd().unwrap());
+
+        assert_eq!(gcd, new_gcd);
+        assert_eq!(gcd, bingcd);
+    }
 
     #[test]
     fn test_new_gcd() {
-        let x = U128::random(&mut OsRng);
-        let y = U128::random(&mut OsRng);
+        for _ in 0..500 {
+            let x = U2048::random(&mut OsRng);
+            let mut y = U2048::random(&mut OsRng);
 
-        // make y odd:
-        let y = Uint::select(&y, &(y + Uint::ONE), y.is_odd().not());
+            y = Uint::select(&(y.wrapping_add(&Uint::ONE)), &y, y.is_odd());
 
-        // let inv_x = x.new_inv_mod_odd(&modulus).unwrap();
-        let (x, gcd, a, b) = x.new_xgcd_odd_vartime(&y);
-
-        assert_eq!(gcd, x.gcd(&y), "{} {} {} {}", x, gcd, a, b);
+            gcd_comparison_test(x,y);
+        }
     }
 }

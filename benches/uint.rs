@@ -1,8 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
-use crypto_bigint::{
-    Limb, NonZero, Odd, Random, RandomBits, RandomMod, Reciprocal, Uint, U1024, U128, U2048, U256,
-    U4096, U512,
-};
+use crypto_bigint::{Limb, NonZero, Odd, Random, RandomBits, RandomMod, Reciprocal, Uint, U1024, U128, U2048, U256, U4096, U512, Integer, ConstantTimeSelect};
 use rand_chacha::ChaCha8Rng;
 use rand_core::{OsRng, RngCore, SeedableRng};
 
@@ -305,14 +302,38 @@ fn bench_division(c: &mut Criterion) {
 fn bench_gcd(c: &mut Criterion) {
     let mut group = c.benchmark_group("greatest common divisor");
 
-    group.bench_function("gcd, U256", |b| {
+    group.bench_function("gcd, U2048", |b| {
         b.iter_batched(
             || {
-                let f = U256::random(&mut OsRng);
-                let g = U256::random(&mut OsRng);
+                let f = U2048::random(&mut OsRng);
+                let g = U2048::random(&mut OsRng);
                 (f, g)
             },
             |(f, g)| black_box(f.gcd(&g)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("new_gcd, U2048", |b| {
+        b.iter_batched(
+            || {
+                let f = U2048::random(&mut OsRng);
+                let g = U2048::random(&mut OsRng);
+                (f, g)
+            },
+            |(f, g)| black_box(Uint::new_gcd(f, g)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("test_gcd, U2048", |b| {
+        b.iter_batched(
+            || {
+                let f = U2048::random(&mut OsRng);
+                let g = U2048::random(&mut OsRng);
+                (f, g)
+            },
+            |(f, g)| black_box(Uint::new_gcd_(&f, &g)),
             BatchSize::SmallInput,
         )
     });
@@ -487,14 +508,14 @@ fn bench_sqrt(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    bench_random,
-    bench_mul,
-    bench_division,
+    // bench_random,
+    // bench_mul,
+    // bench_division,
     bench_gcd,
-    bench_shl,
-    bench_shr,
-    bench_inv_mod,
-    bench_sqrt
+    // bench_shl,
+    // bench_shr,
+    // bench_inv_mod,
+    // bench_sqrt
 );
 
 criterion_main!(benches);
