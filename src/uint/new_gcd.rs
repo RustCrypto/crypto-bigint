@@ -59,33 +59,51 @@ const fn const_min(a: u32, b: u32) -> u32 {
 }
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    #[inline]
-    const fn summarize<const K: u32, const SUMMARY_LIMBS: usize>(
-        a: Self,
-        b: Self,
-    ) -> (Uint<SUMMARY_LIMBS>, Uint<SUMMARY_LIMBS>) {
-        let k_plus_one_bitmask = Uint::ONE.shl_vartime(K + 1).wrapping_sub(&Uint::ONE);
-        let k_sub_one_bitmask = Uint::ONE.shl_vartime(K - 1).wrapping_sub(&Uint::ONE);
+    /// Construct a [Uint] containing the bits in `self` in the range `[idx, idx + length)`.
+    ///
+    /// Assumes `length ≤ Uint::<SECTION_LIMBS>::BITS` and `idx + length ≤ Self::BITS`.
+    #[inline(always)]
+    const fn section<const SECTION_LIMBS: usize>(&self, idx: u32, length: u32) -> Uint<SECTION_LIMBS> {
+        debug_assert!(length <= Uint::<SECTION_LIMBS>::BITS);
+        debug_assert!(idx + length <= Self::BITS);
 
-        // Construct a_ and b_ as the concatenation of the K most significant and the K least
-        // significant bits of a and b, respectively. If those bits overlap, ... TODO
-        let n = const_max(2 * K, const_max(a.bits(), b.bits()));
+        let mask = Uint::ONE.shl(length).wrapping_sub(&Uint::ONE);
+        self.shr(idx).resize::<SECTION_LIMBS>().bitand(&mask)
+    }
 
-        let hi_a = a
-            .shr(n - K - 1)
-            .resize::<SUMMARY_LIMBS>()
-            .bitand(&k_plus_one_bitmask);
-        let lo_a = a.resize::<SUMMARY_LIMBS>().bitand(&k_sub_one_bitmask);
-        let a_ = hi_a.shl_vartime(K - 1).bitxor(&lo_a);
+    /// Construct a [Uint] containing the bits in `self` in the range `[idx, idx + length)`.
+    ///
+    /// Assumes `length ≤ Uint::<SECTION_LIMBS>::BITS` and `idx + length ≤ Self::BITS`.
+    ///
+    /// Executes in time variable in `idx` only.
+    #[inline(always)]
+    const fn section_vartime<const SECTION_LIMBS: usize>(
+        &self,
+        idx: u32,
+        length: u32,
+    ) -> Uint<SECTION_LIMBS> {
+        debug_assert!(length <= Uint::<SECTION_LIMBS>::BITS);
+        debug_assert!(idx + length <= Self::BITS);
 
-        let hi_b = b
-            .shr(n - K - 1)
-            .resize::<SUMMARY_LIMBS>()
-            .bitand(&k_plus_one_bitmask);
-        let lo_b = b.resize::<SUMMARY_LIMBS>().bitand(&k_sub_one_bitmask);
-        let b_ = hi_b.shl_vartime(K - 1).bitxor(&lo_b);
+        let mask = Uint::ONE.shl_vartime(length).wrapping_sub(&Uint::ONE);
+        self.shr_vartime(idx)
+            .resize::<SECTION_LIMBS>()
+            .bitand(&mask)
+    }
 
-        (a_, b_)
+    /// Compact `self` to a form containing the concatenation of its bit ranges `[0, k-1)`
+    /// and `[n-k-1, n)`.
+    ///
+    /// Assumes `k ≤ Uint::<SUMMARY_LIMBS>::BITS`, `n ≤ Self::BITS` and `n ≥ 2k`.
+    #[inline(always)]
+    const fn compact<const SUMMARY_LIMBS: usize>(&self, n: u32, k: u32) -> Uint<SUMMARY_LIMBS> {
+        debug_assert!(k <= Uint::<SUMMARY_LIMBS>::BITS);
+        debug_assert!(n <= Self::BITS);
+        debug_assert!(n >= 2 * k);
+
+        let hi = self.section(n - k - 1, k + 1);
+        let lo = self.section_vartime(0, k - 1);
+        hi.shl_vartime(k - 1).bitxor(&lo)
     }
 
     #[inline]
@@ -154,7 +172,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         while i < (2 * rhs.bits_vartime() - 1).div_ceil(K) {
             i += 1;
 
-            let (a_, b_) = Self::summarize::<K, { DoubleK::LIMBS }>(a, b);
+            // Construct a_ and b_ as the summary of a and b, respectively.
+            let n = const_max(2 * K, const_max(a.bits(), b.bits()));
+            let a_: DoubleK = a.compact(n, K);
+            let b_: DoubleK = b.compact(n, K);
 
             // Compute the K-1 iteration update matrix from a_ and b_
             let (matrix, used_increments) =

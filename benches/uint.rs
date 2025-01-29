@@ -305,29 +305,29 @@ fn bench_division(c: &mut Criterion) {
 fn bench_gcd(c: &mut Criterion) {
     let mut group = c.benchmark_group("greatest common divisor");
 
-    group.bench_function("gcd, U2048", |b| {
-        b.iter_batched(
-            || {
-                let f = U2048::random(&mut OsRng);
-                let g = U2048::random(&mut OsRng);
-                (f, g)
-            },
-            |(f, g)| black_box(f.gcd(&g)),
-            BatchSize::SmallInput,
-        )
-    });
-
-    group.bench_function("gcd, U1024", |b| {
-        b.iter_batched(
-            || {
-                let f = U1024::random(&mut OsRng);
-                let g = U1024::random(&mut OsRng);
-                (f, g)
-            },
-            |(f, g)| black_box(f.gcd(&g)),
-            BatchSize::SmallInput,
-        )
-    });
+    // group.bench_function("gcd, U2048", |b| {
+    //     b.iter_batched(
+    //         || {
+    //             let f = U2048::random(&mut OsRng);
+    //             let g = U2048::random(&mut OsRng);
+    //             (f, g)
+    //         },
+    //         |(f, g)| black_box(f.gcd(&g)),
+    //         BatchSize::SmallInput,
+    //     )
+    // });
+    //
+    // group.bench_function("gcd, U1024", |b| {
+    //     b.iter_batched(
+    //         || {
+    //             let f = U1024::random(&mut OsRng);
+    //             let g = U1024::random(&mut OsRng);
+    //             (f, g)
+    //         },
+    //         |(f, g)| black_box(f.gcd(&g)),
+    //         BatchSize::SmallInput,
+    //     )
+    // });
 
     group.bench_function("test_gcd, U2048", |b| {
         b.iter_batched(
