@@ -51,11 +51,17 @@ impl<const LIMBS: usize> UintPlus<LIMBS> {
 
 type UpdateMatrix<const LIMBS: usize> = (Int<LIMBS>, Int<LIMBS>, Int<LIMBS>, Int<LIMBS>);
 
-impl<const LIMBS: usize> Uint<LIMBS> {
+/// `const` equivalent of `u32::max(a, b)`.
+const fn const_max(a: u32, b: u32) -> u32 {
+    ConstChoice::from_u32_lt(a, b).select_u32(a, b)
+}
 
-    const fn const_max(a: u32, b: u32) -> u32 {
-        ConstChoice::from_u32_lt(a, b).select_u32(a, b)
-    }
+/// `const` equivalent of `u32::min(a, b)`.
+const fn const_min(a: u32, b: u32) -> u32 {
+    ConstChoice::from_u32_lt(a, b).select_u32(b, a)
+}
+
+impl<const LIMBS: usize> Uint<LIMBS> {
 
     #[inline]
     fn cutdown<const K: u32, const CUTDOWN_LIMBS: usize>(
@@ -68,7 +74,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         // Construct a_ and b_ as the concatenation of the K most significant and the K least
         // significant bits of a and b, respectively. If those bits overlap, ... TODO
-        let n = Self::const_max(2 * K, Self::const_max(a.bits(), b.bits()));
+        let n = const_max(2 * K, const_max(a.bits(), b.bits()));
 
         let hi_a = a.shr(n - K - 1).resize::<{ CUTDOWN_LIMBS }>(); // top k+1 bits
         let lo_a = a.resize::<CUTDOWN_LIMBS>().bitand(&k_sub_one_bitmask); // bottom k-1 bits
@@ -128,7 +134,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub fn new_gcd(&self, rhs: &Self) -> Self {
         let i = self.trailing_zeros();
         let j = rhs.trailing_zeros();
-        let k = min(i, j);
+        let k = const_min(i, j);
         Self::new_odd_gcd(&self.shr(i), &rhs.shr(j).to_odd().unwrap()).shl(k)
     }
 
