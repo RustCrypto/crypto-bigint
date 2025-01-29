@@ -56,13 +56,11 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
         Self(lo, hi)
     }
 
-    pub const fn abs(&self) -> Self {
-        let is_negative = self.1.as_int().is_negative();
-        self.wrapping_neg_if(is_negative)
-    }
-
-    pub const fn unpack(&self) -> ConstCtOption<Uint<LIMBS>> {
-        ConstCtOption::new(self.0, self.1.is_nonzero().not())
+    pub const fn unpack(&self) -> ConstCtOption<Int<LIMBS>> {
+        let lo_is_negative = self.0.as_int().is_negative();
+        let proper_positive = Int::eq(&self.1.as_int(), &Int::ZERO).and(lo_is_negative.not());
+        let proper_negative = Int::eq(&self.1.as_int(), &Int::MINUS_ONE).and(lo_is_negative);
+        ConstCtOption::new(self.0.as_int(), proper_negative.or(proper_positive))
     }
 
     /// Return `b` if `c` is truthy, otherwise return `a`.
@@ -236,15 +234,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let (updated_a, updated_b) = matrix.extended_apply_to((a, b));
 
             a = updated_a
-                .abs()
                 .div_2k(used_increments)
                 .unpack()
-                .expect("top limb is zero");
+                .expect("top limb is zero")
+                .abs();
             b = updated_b
-                .abs()
                 .div_2k(used_increments)
                 .unpack()
-                .expect("top limb is zero");
+                .expect("top limb is zero")
+                .abs();
         }
 
         b
