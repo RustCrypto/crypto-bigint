@@ -1,7 +1,4 @@
-use crate::{
-    ConcatMixed, ConstChoice, ConstCtOption, Int, Limb, Odd, Split, Uint,
-    I64, U64,
-};
+use crate::{ConcatMixed, ConstChoice, ConstCtOption, Int, Limb, Odd, Split, Uint, I64, U64};
 use core::cmp::min;
 use num_traits::WrappingSub;
 
@@ -62,26 +59,30 @@ const fn const_min(a: u32, b: u32) -> u32 {
 }
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-
     #[inline]
-    fn cutdown<const K: u32, const CUTDOWN_LIMBS: usize>(
+    const fn summarize<const K: u32, const SUMMARY_LIMBS: usize>(
         a: Self,
         b: Self,
-    ) -> (Uint<CUTDOWN_LIMBS>, Uint<CUTDOWN_LIMBS>) {
-        let k_sub_one_bitmask = Uint::<CUTDOWN_LIMBS>::ONE
-            .shl_vartime(K - 1)
-            .wrapping_sub(&Uint::<CUTDOWN_LIMBS>::ONE);
+    ) -> (Uint<SUMMARY_LIMBS>, Uint<SUMMARY_LIMBS>) {
+        let k_plus_one_bitmask = Uint::ONE.shl_vartime(K + 1).wrapping_sub(&Uint::ONE);
+        let k_sub_one_bitmask = Uint::ONE.shl_vartime(K - 1).wrapping_sub(&Uint::ONE);
 
         // Construct a_ and b_ as the concatenation of the K most significant and the K least
         // significant bits of a and b, respectively. If those bits overlap, ... TODO
         let n = const_max(2 * K, const_max(a.bits(), b.bits()));
 
-        let hi_a = a.shr(n - K - 1).resize::<{ CUTDOWN_LIMBS }>(); // top k+1 bits
-        let lo_a = a.resize::<CUTDOWN_LIMBS>().bitand(&k_sub_one_bitmask); // bottom k-1 bits
+        let hi_a = a
+            .shr(n - K - 1)
+            .resize::<SUMMARY_LIMBS>()
+            .bitand(&k_plus_one_bitmask);
+        let lo_a = a.resize::<SUMMARY_LIMBS>().bitand(&k_sub_one_bitmask);
         let a_ = hi_a.shl_vartime(K - 1).bitxor(&lo_a);
 
-        let hi_b = b.shr(n - K - 1).resize::<CUTDOWN_LIMBS>();
-        let lo_b = b.resize::<CUTDOWN_LIMBS>().bitand(&k_sub_one_bitmask);
+        let hi_b = b
+            .shr(n - K - 1)
+            .resize::<SUMMARY_LIMBS>()
+            .bitand(&k_plus_one_bitmask);
+        let lo_b = b.resize::<SUMMARY_LIMBS>().bitand(&k_sub_one_bitmask);
         let b_ = hi_b.shl_vartime(K - 1).bitxor(&lo_b);
 
         (a_, b_)
@@ -153,8 +154,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         while i < (2 * rhs.bits_vartime() - 1).div_ceil(K) {
             i += 1;
 
-            let (a_, b_) = Self::cutdown::<K, { DoubleK::LIMBS }>(a, b);
-
+            let (a_, b_) = Self::summarize::<K, { DoubleK::LIMBS }>(a, b);
 
             // Compute the K-1 iteration update matrix from a_ and b_
             let (matrix, used_increments) =
