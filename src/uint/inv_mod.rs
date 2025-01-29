@@ -1,6 +1,9 @@
-use core::cmp::max;
 use super::Uint;
-use crate::{modular::SafeGcdInverter, ConstChoice, ConstCtOption, InvMod, Odd, PrecomputeInverter, U128, U64, ConstantTimeSelect, CheckedMul, Split, Limb};
+use crate::{
+    modular::SafeGcdInverter, CheckedMul, ConstChoice, ConstCtOption, ConstantTimeSelect, InvMod,
+    Limb, Odd, PrecomputeInverter, Split, U64,
+};
+use core::cmp::max;
 use subtle::{Choice, CtOption};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -91,7 +94,6 @@ where
         SafeGcdInverter::<LIMBS, UNSAT_LIMBS>::new(modulus, &Uint::ONE).inv(self)
     }
 
-
     // TODO: assumes `self` < `modulus`
     pub fn new_inv_mod_odd(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
         const K: u32 = 32;
@@ -171,7 +173,10 @@ where
                 let (_, carry) = hi_b0.adc(&hi_b1, carry);
                 let overflow_b: ConstChoice = Limb::eq(carry, Limb::ZERO).not();
 
-                (lo_a.wrapping_neg_if(overflow_a).shr_vartime(K-1), lo_b.wrapping_neg_if(overflow_b).shr_vartime(K-1))
+                (
+                    lo_a.wrapping_neg_if(overflow_a).shr_vartime(K - 1),
+                    lo_b.wrapping_neg_if(overflow_b).shr_vartime(K - 1),
+                )
             };
 
             let a_is_neg = a.as_int().is_negative();
@@ -187,8 +192,12 @@ where
             // TODO: fix checked_mul.unwrap failing
             // TODO: assumes uf0 + vg0 < 2*modulus... :thinking:
             (u, v) = (
-                u.checked_mul(&f0).unwrap().add_mod(&v.checked_mul(&g0).unwrap(), modulus),
-                u.checked_mul(&f1).unwrap().add_mod(&v.checked_mul(&g1).unwrap(), modulus),
+                u.checked_mul(&f0)
+                    .unwrap()
+                    .add_mod(&v.checked_mul(&g0).unwrap(), modulus),
+                u.checked_mul(&f1)
+                    .unwrap()
+                    .add_mod(&v.checked_mul(&g1).unwrap(), modulus),
             );
         }
 

@@ -1,7 +1,52 @@
+use crate::{
+    CheckedMul, CheckedSub, ConcatMixed, ConstChoice, ConstCtOption, Int, Limb, Odd, Split, Uint,
+    Word, I64, U64,
+};
 use core::cmp::min;
-use num_traits::WrappingSub;
-use subtle::Choice;
-use crate::{ConstChoice, Int, Limb, Uint, Word, I64, U64, CheckedSub, CheckedMul, ConcatMixed, Split, Odd};
+use num_traits::{WrappingSub};
+struct UintPlus<const LIMBS: usize>(Uint<LIMBS>, Limb);
+
+impl<const LIMBS: usize> UintPlus<LIMBS> {
+    pub const fn wrapping_neg(&self) -> Self {
+        let (lhs, carry) = self.0.carrying_neg();
+        let mut rhs = self.1.not();
+        rhs = Limb::select(rhs, rhs.wrapping_add(Limb::ONE), carry);
+        Self(lhs, rhs)
+    }
+
+    pub const fn wrapping_neg_if(&self, negate: ConstChoice) -> Self {
+        let neg = self.wrapping_neg();
+        Self(
+            Uint::select(&self.0, &neg.0, negate),
+            Limb::select(self.1, neg.1, negate),
+        )
+    }
+
+    pub const fn wrapping_add(&self, rhs: &Self) -> Self {
+        let (lo, carry) = self.0.adc(&rhs.0, Limb::ZERO);
+        let (hi, _) = self.1.adc(rhs.1, carry);
+        Self(lo, hi)
+    }
+
+    pub const fn shr(&self, shift: u32) -> Self {
+        let hi = self.1.shr(shift);
+        let zero_shift = ConstChoice::from_u32_eq(shift, 0);
+        let leftshift = zero_shift.select_u32(Limb::BITS - shift, 0);
+        let carry = Limb::select(self.1.shl(leftshift), Limb::ZERO, zero_shift);
+        let mut lo = self.0.shr(shift);
+        lo.as_limbs_mut()[LIMBS - 1] = lo.as_limbs_mut()[LIMBS - 1].bitxor(carry);
+        Self(lo, hi)
+    }
+
+    pub const fn abs(&self) -> Self {
+        let is_negative = ConstChoice::from_word_msb(self.1.bitand(Limb::ONE.shl(Limb::HI_BIT)).0);
+        self.wrapping_neg_if(is_negative)
+    }
+
+    pub const fn unpack(&self) -> ConstCtOption<Uint<LIMBS>> {
+        ConstCtOption::new(self.0, self.1.is_nonzero().not())
+    }
+}
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Given `a, b, f` and `g`, compute `(a*f + b*g) / 2^{k-1}`, where it is given that
@@ -63,7 +108,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut shifted_hi_sum = hi_sum.shl_vartime(I64::BITS - K + 1);
         // Note: we're assuming K-1 <= Word::BITS here.
         debug_assert!(K - 1 <= Word::BITS);
-        shifted_hi_sum.as_limbs_mut()[0] = shifted_hi_sum.as_limbs_mut()[0].bitxor(shifted_lo_sum.as_limbs()[0]);
+        shifted_hi_sum.as_limbs_mut()[0] =
+            shifted_hi_sum.as_limbs_mut()[0].bitxor(shifted_lo_sum.as_limbs()[0]);
         shifted_hi_sum
     }
 
@@ -75,8 +121,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Using identities 2 and 3:
         // gcd(2ⁱ u, 2ʲ v) = 2ᵏ gcd(u, v) with u, v odd and k = min(i, j)
         // 2ᵏ is the greatest power of two that divides both 2ⁱ u and 2ʲ v
-        let i = a.trailing_zeros(); a = a.shr(i);
-        let j = b.trailing_zeros(); b = b.shr(j);
+        let i = a.trailing_zeros();
+        a = a.shr(i);
+        let j = b.trailing_zeros();
+        b = b.shr(j);
         let k = min(i, j);
 
         // Note: at this point both elements are odd.
@@ -105,8 +153,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     #[inline]
-    fn cutdown<const K: u32, const CUTDOWN_LIMBS: usize>(a: Self, b: Self) -> (Uint<CUTDOWN_LIMBS>, Uint<CUTDOWN_LIMBS>) {
-        let k_sub_one_bitmask = Uint::<CUTDOWN_LIMBS>::ONE.shl_vartime(K-1).wrapping_sub(&Uint::<CUTDOWN_LIMBS>::ONE);
+    fn cutdown<const K: u32, const CUTDOWN_LIMBS: usize>(
+        a: Self,
+        b: Self,
+    ) -> (Uint<CUTDOWN_LIMBS>, Uint<CUTDOWN_LIMBS>) {
+        let k_sub_one_bitmask = Uint::<CUTDOWN_LIMBS>::ONE
+            .shl_vartime(K - 1)
+            .wrapping_sub(&Uint::<CUTDOWN_LIMBS>::ONE);
 
         // Construct a_ and b_ as the concatenation of the K most significant and the K least
         // significant bits of a and b, respectively. If those bits overlap, ... TODO
@@ -114,18 +167,18 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         let hi_a = a.shr(n - K - 1).resize::<{ CUTDOWN_LIMBS }>(); // top k+1 bits
         let lo_a = a.resize::<CUTDOWN_LIMBS>().bitand(&k_sub_one_bitmask); // bottom k-1 bits
-        let mut a_ = hi_a.shl_vartime(K - 1).bitxor(&lo_a);
+        let a_ = hi_a.shl_vartime(K - 1).bitxor(&lo_a);
 
         let hi_b = b.shr(n - K - 1).resize::<CUTDOWN_LIMBS>();
         let lo_b = b.resize::<CUTDOWN_LIMBS>().bitand(&k_sub_one_bitmask);
-        let mut b_ = hi_b.shl_vartime(K - 1).bitxor(&lo_b);
+        let b_ = hi_b.shl_vartime(K - 1).bitxor(&lo_b);
 
         (a_, b_)
     }
 
     pub fn new_gcd_<const DOUBLE: usize>(&self, rhs: &Self) -> Self
     where
-        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput=Uint<DOUBLE>>,
+        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         Uint<DOUBLE>: Split,
     {
         let i = self.trailing_zeros();
@@ -136,7 +189,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     pub fn new_gcd_odd<const DOUBLE: usize>(&self, rhs: &Odd<Self>) -> Self
     where
-        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput=Uint<DOUBLE>>,
+        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         Uint<DOUBLE>: Split,
     {
         /// Window size.
@@ -146,8 +199,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         /// Smallest [Uint] that fits 2K bits.
         type DoubleK = U64;
         debug_assert!(DoubleK::BITS >= 2 * K);
-        const K_SUB_ONE_BITMASK: DoubleK =
-            DoubleK::ONE.shl_vartime(K - 1).wrapping_sub(&DoubleK::ONE);
 
         let (mut a, mut b) = (*self, rhs.get());
 
@@ -155,7 +206,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         while i < (2 * rhs.bits_vartime() - 1).div_ceil(K) {
             i += 1;
 
-            let (mut a_, mut b_) = Self::cutdown::<K, {DoubleK::LIMBS}>(a, b);
+            let (mut a_, mut b_) = Self::cutdown::<K, { DoubleK::LIMBS }>(a, b);
 
             // Unit matrix
             let (mut f0, mut g0) = (SingleK::ONE, SingleK::ZERO);
@@ -190,19 +241,74 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 used_increments = do_apply.select_u32(used_increments, used_increments + 1);
             }
 
-            // TODO: fix this
-            let mut f0 = f0.resize::<LIMBS>();
-            let mut f1 = f1.resize::<LIMBS>();
-            let mut g0 = g0.resize::<LIMBS>();
-            let mut g1 = g1.resize::<LIMBS>();
+            // Pack together into one object
+            let (lo_af0, hi_af0, sgn_af0) = f0.split_mul_uint_right(&a);
+            let (lo_bg0, hi_bg0, sgn_bg0) = g0.split_mul_uint_right(&b);
+            let af0 = UintPlus(lo_af0, hi_af0.as_limbs()[0]).wrapping_neg_if(sgn_af0);
+            let bg0 = UintPlus(lo_bg0, hi_bg0.as_limbs()[0]).wrapping_neg_if(sgn_bg0);
 
-            let (new_a, new_b) = (
-                f0.widening_mul_uint(&a).wrapping_add(&g0.widening_mul_uint(&b)).shr(used_increments),
-                f1.widening_mul_uint(&a).wrapping_add(&g1.widening_mul_uint(&b)).shr(used_increments)
-            );
+            // Pack together into one object
+            let (lo_af1, hi_af1, sgn_af1) = f1.split_mul_uint_right(&a);
+            let (lo_bg1, hi_bg1, sgn_bg1) = g1.split_mul_uint_right(&b);
+            let af1 = UintPlus(lo_af1, hi_af1.as_limbs()[0]).wrapping_neg_if(sgn_af1);
+            let bg1 = UintPlus(lo_bg1, hi_bg1.as_limbs()[0]).wrapping_neg_if(sgn_bg1);
 
-            a = new_a.resize::<LIMBS>().abs();
-            b = new_b.resize::<LIMBS>().abs();
+            a = af0
+                .wrapping_add(&bg0)
+                .abs()
+                .shr(used_increments)
+                .unpack()
+                .expect("top limb is zero");
+            b = af1
+                .wrapping_add(&bg1)
+                .abs()
+                .shr(used_increments)
+                .unpack()
+                .expect("top limb is zero");
+
+            // //
+            //
+            // //
+            // // let (lo_af0, hi_af0, sgn_af0) = f0.split_mul_uint_right(&a);
+            // // let (lo_bg0, hi_bg0, sgn_bg0) = g0.split_mul_uint_right(&b);
+            // //
+            // // // Pack together into one object
+            // // let mut af0 = UintPlus(lo_af0, hi_af0.as_limbs()[0]);
+            // // let mut bg0 = UintPlus(lo_bg0, hi_bg0.as_limbs()[0]);
+            // //
+            // // // Wrapping neg if
+            // // af0 = af0.wrapping_neg_if(sgn_af0);
+            // // bg0 = bg0.wrapping_neg_if(sgn_bg0);
+            // //
+            // // let a = af0.wrapping_add(&bg0).shr(used_increments).unpack().expect("top limb is zero");
+            // //
+            // //
+            // // let (lo_a, carry) = lo_af0.adc(&lo_bg0, Limb::ZERO);
+            // // let (hi_a, _) = hi_af0.adc(&hi_bg0, carry); // will not overflow
+            // //
+            // // let is_negative = hi_a.as_int().is_negative();
+            //
+            // // construct new a
+            // a = abs_hi_a.shl(used_increments);
+            // a.as_limbs_mut()[0] = a.as_limbs_mut()[0].bitxor(lo_a.as_limbs_mut()[0]);
+            //
+            // // TODO: fix this
+            // let mut f0 = f0.resize::<LIMBS>();
+            // let mut f1 = f1.resize::<LIMBS>();
+            // let mut g0 = g0.resize::<LIMBS>();
+            // let mut g1 = g1.resize::<LIMBS>();
+            //
+            // let (new_a, new_b) = (
+            //     f0.widening_mul_uint(&a)
+            //         .wrapping_add(&g0.widening_mul_uint(&b))
+            //         .shr(used_increments),
+            //     f1.widening_mul_uint(&a)
+            //         .wrapping_add(&g1.widening_mul_uint(&b))
+            //         .shr(used_increments),
+            // );
+            //
+            // a = new_a.resize::<LIMBS>().abs();
+            // b = new_b.resize::<LIMBS>().abs();
         }
 
         b
@@ -211,14 +317,16 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Uint, Random, U2048, Gcd, ConcatMixed, Split};
+    use crate::{ConcatMixed, Gcd, Random, Split, Uint, U2048};
     use rand_core::OsRng;
 
-    fn gcd_comparison_test<const LIMBS: usize, const DOUBLE: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
-    where
-        Uint<LIMBS>: Gcd<Output=Uint<LIMBS>>,
-        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput=Uint<DOUBLE>>,
-        Uint<DOUBLE>: Split
+    fn gcd_comparison_test<const LIMBS: usize, const DOUBLE: usize>(
+        lhs: Uint<LIMBS>,
+        rhs: Uint<LIMBS>,
+    ) where
+        Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
+        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+        Uint<DOUBLE>: Split,
     {
         let gcd = lhs.gcd(&rhs);
         let new_gcd = Uint::new_gcd(lhs, rhs);
@@ -236,7 +344,7 @@ mod tests {
 
             y = Uint::select(&(y.wrapping_add(&Uint::ONE)), &y, y.is_odd());
 
-            gcd_comparison_test(x,y);
+            gcd_comparison_test(x, y);
         }
     }
 }

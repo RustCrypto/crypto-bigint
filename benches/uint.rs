@@ -1,5 +1,8 @@
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
-use crypto_bigint::{Limb, NonZero, Odd, Random, RandomBits, RandomMod, Reciprocal, Uint, U1024, U128, U2048, U256, U4096, U512, Integer, ConstantTimeSelect};
+use crypto_bigint::{
+    ConstantTimeSelect, Integer, Limb, NonZero, Odd, Random, RandomBits, RandomMod, Reciprocal,
+    Uint, U1024, U128, U2048, U256, U4096, U512,
+};
 use rand_chacha::ChaCha8Rng;
 use rand_core::{OsRng, RngCore, SeedableRng};
 
@@ -331,6 +334,18 @@ fn bench_gcd(c: &mut Criterion) {
             || {
                 let f = U2048::random(&mut OsRng);
                 let g = U2048::random(&mut OsRng);
+                (f, g)
+            },
+            |(f, g)| black_box(Uint::new_gcd_(&f, &g)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("test_gcd, U1024", |b| {
+        b.iter_batched(
+            || {
+                let f = U1024::random(&mut OsRng);
+                let g = U1024::random(&mut OsRng);
                 (f, g)
             },
             |(f, g)| black_box(Uint::new_gcd_(&f, &g)),

@@ -28,7 +28,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Swap `a` and `b` if `c` is truthy, otherwise, do nothing.
     #[inline]
     pub(crate) const fn conditional_swap(a: &mut Self, b: &mut Self, c: ConstChoice) {
-        (*a, *b) = (Self::select(&a, &b, c), Self::select(&b, &a, c));
+        (*a, *b) = (Self::select(a, b, c), Self::select(b, a, c));
     }
 
     /// Returns the truthy value if `self`!=0 or the falsy value otherwise.
