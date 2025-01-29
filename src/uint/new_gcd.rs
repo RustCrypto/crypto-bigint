@@ -7,7 +7,6 @@ struct ExtendedInt<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
 );
 
 impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
-
     const ZERO: ExtendedInt<LIMBS, EXTRA> = Self(Uint::ZERO, Uint::ZERO);
 
     /// Construct an [ExtendedInt] from the product of a [Uint<LIMBS>] and an [Int<EXTRA>].
@@ -76,14 +75,16 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     }
 }
 
-struct Matrix<T, const DIM: usize>([[T; DIM]; DIM]);
-impl<const LIMBS: usize> Matrix<Int<LIMBS>, 2> {
-
+type Vector<T> = (T, T);
+struct IntMatrix<const LIMBS: usize, const DIM: usize>([[Int<LIMBS>; DIM]; DIM]);
+impl<const LIMBS: usize> IntMatrix<LIMBS, 2> {
+    /// Apply this matrix to a vector of [Uint]s, returning the result as a vector of
+    /// [ExtendedInt]s.
     #[inline]
     const fn extended_apply_to<const VEC_LIMBS: usize>(
         &self,
-        vec: (Uint<VEC_LIMBS>, Uint<VEC_LIMBS>),
-    ) -> (ExtendedInt<VEC_LIMBS, LIMBS>, ExtendedInt<VEC_LIMBS, LIMBS>) {
+        vec: Vector<Uint<VEC_LIMBS>>,
+    ) -> Vector<ExtendedInt<VEC_LIMBS, LIMBS>> {
         let (a, b) = vec;
         let a00 = ExtendedInt::from_product(a, self.0[0][0]);
         let a01 = ExtendedInt::from_product(a, self.0[0][1]);
@@ -158,7 +159,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Constructs a matrix `M` s.t. for `(A, B) = M(a,b)` it holds that  
     /// - `gcd(A, B) = gcd(a, b)`, and
     /// - `A.bits() < a.bits()` and/or `B.bits() < b.bits()`.
-    /// 
+    ///
     /// Moreover, it returns `log_upper_bound: u32` s.t. each element in `M` lies in the interval
     /// `(-2^log_upper_bound, 2^log_upper_bound]`.
     ///
@@ -168,7 +169,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         mut a: Uint<LIMBS>,
         mut b: Uint<LIMBS>,
         iterations: u32,
-    ) -> (Matrix<Int<UPDATE_LIMBS>, 2>, u32) {
+    ) -> (IntMatrix<UPDATE_LIMBS, 2>, u32) {
         debug_assert!(iterations < Uint::<UPDATE_LIMBS>::BITS / 2);
 
         // Unit matrix
@@ -204,7 +205,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             log_upper_bound = do_apply.select_u32(log_upper_bound, log_upper_bound + 1);
         }
 
-        (Matrix([[f00, f10], [f01, f11]]), log_upper_bound)
+        (IntMatrix([[f00, f10], [f01, f11]]), log_upper_bound)
     }
 
     /// Compute the greatest common divisor of `self` and `rhs`.
