@@ -1,5 +1,5 @@
 use crate::{
-    CheckedMul, CheckedSub, ConcatMixed, ConstChoice, ConstCtOption, Limb, Odd, Split, Uint,
+    ConcatMixed, ConstChoice, ConstCtOption, Limb, Odd, Split, Uint,
     I64, U64,
 };
 use core::cmp::min;

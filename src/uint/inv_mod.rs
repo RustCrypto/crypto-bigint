@@ -1,7 +1,7 @@
 use super::Uint;
 use crate::{
     modular::SafeGcdInverter, CheckedMul, ConstChoice, ConstCtOption, ConstantTimeSelect, InvMod,
-    Limb, Odd, PrecomputeInverter, Split, U64,
+    Limb, Odd, PrecomputeInverter, U64,
 };
 use core::cmp::max;
 use subtle::{Choice, CtOption};

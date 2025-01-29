@@ -2,7 +2,7 @@ use core::ops::Mul;
 
 use subtle::CtOption;
 
-use crate::{CheckedMul, ConcatMixed, ConstChoice, Int, Uint, Zero};
+use crate::{CheckedMul, ConcatMixed, ConstChoice, Int, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute "wide" multiplication between an [`Int`] and [`Uint`] as 3-tuple `(lo, hi, negate)`.

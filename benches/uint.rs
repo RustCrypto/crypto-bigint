@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
 use crypto_bigint::{
-    ConstantTimeSelect, Integer, Limb, NonZero, Odd, Random, RandomBits, RandomMod, Reciprocal,
+    Limb, NonZero, Odd, Random, RandomBits, RandomMod, Reciprocal,
     Uint, U1024, U128, U2048, U256, U4096, U512,
 };
 use rand_chacha::ChaCha8Rng;
