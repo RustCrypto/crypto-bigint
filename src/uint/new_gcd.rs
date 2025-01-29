@@ -1,5 +1,5 @@
-use crate::{ConcatMixed, ConstChoice, ConstCtOption, Int, Limb, Odd, Split, Uint, I64, U128};
-use num_traits::{ToPrimitive, WrappingSub};
+use crate::{ConstChoice, ConstCtOption, Int, Limb, Odd, Uint, I64, U128};
+use num_traits::WrappingSub;
 
 struct ExtendedInt<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
     Uint<LIMBS>,
@@ -7,6 +7,9 @@ struct ExtendedInt<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
 );
 
 impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
+
+    const ZERO: ExtendedInt<LIMBS, EXTRA> = Self(Uint::ZERO, Uint::ZERO);
+
     /// Construct an [ExtendedInt] from the product of a [Uint<LIMBS>] and an [Int<EXTRA>].
     pub const fn from_product(lhs: Uint<LIMBS>, rhs: Int<EXTRA>) -> Self {
         let (lo, hi, sgn) = rhs.split_mul_uint_right(&lhs);
@@ -35,10 +38,12 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     }
 
     pub const fn shr(&self, shift: u32) -> Self {
+        debug_assert!(shift <= Uint::<EXTRA>::BITS);
+
         let shift_is_zero = ConstChoice::from_u32_eq(shift, 0);
         let left_shift = shift_is_zero.select_u32(Uint::<EXTRA>::BITS - shift, 0);
 
-        let hi = self.1.shr(shift);
+        let hi = *self.1.as_int().shr(shift).as_uint();
         // TODO: replace with carrying_shl
         let carry = Uint::select(&self.1, &Uint::ZERO, shift_is_zero).shl(left_shift);
         let mut lo = self.0.shr(shift);
@@ -58,6 +63,18 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
 
     pub const fn unpack(&self) -> ConstCtOption<Uint<LIMBS>> {
         ConstCtOption::new(self.0, self.1.is_nonzero().not())
+    }
+
+    /// Return `b` if `c` is truthy, otherwise return `a`.
+    pub const fn select(a: &Self, b: &Self, c: ConstChoice) -> Self {
+        Self(Uint::select(&a.0, &b.0, c), Uint::select(&a.1, &b.1, c))
+    }
+
+    /// Divide self by `2^k`.
+    pub const fn div_2k(&self, k: u32) -> Self {
+        let lo_is_minus_one = Int::eq(&self.0.as_int(), &Int::MINUS_ONE);
+        let ext_is_minus_one = Int::eq(&self.1.as_int(), &Int::MINUS_ONE);
+        Self::select(&self.shr(k), &Self::ZERO, lo_is_minus_one.and(ext_is_minus_one))
     }
 }
 
@@ -220,12 +237,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
             a = updated_a
                 .abs()
-                .shr(used_increments)
+                .div_2k(used_increments)
                 .unpack()
                 .expect("top limb is zero");
             b = updated_b
                 .abs()
-                .shr(used_increments)
+                .div_2k(used_increments)
                 .unpack()
                 .expect("top limb is zero");
         }
