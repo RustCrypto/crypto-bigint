@@ -317,14 +317,14 @@ fn bench_gcd(c: &mut Criterion) {
         )
     });
 
-    group.bench_function("new_gcd, U2048", |b| {
+    group.bench_function("gcd, U1024", |b| {
         b.iter_batched(
             || {
-                let f = U2048::random(&mut OsRng);
-                let g = U2048::random(&mut OsRng);
+                let f = U1024::random(&mut OsRng);
+                let g = U1024::random(&mut OsRng);
                 (f, g)
             },
-            |(f, g)| black_box(Uint::new_gcd(f, g)),
+            |(f, g)| black_box(f.gcd(&g)),
             BatchSize::SmallInput,
         )
     });
@@ -336,7 +336,7 @@ fn bench_gcd(c: &mut Criterion) {
                 let g = U2048::random(&mut OsRng);
                 (f, g)
             },
-            |(f, g)| black_box(Uint::new_gcd_(&f, &g)),
+            |(f, g)| black_box(Uint::new_gcd(&f, &g)),
             BatchSize::SmallInput,
         )
     });
@@ -348,7 +348,7 @@ fn bench_gcd(c: &mut Criterion) {
                 let g = U1024::random(&mut OsRng);
                 (f, g)
             },
-            |(f, g)| black_box(Uint::new_gcd_(&f, &g)),
+            |(f, g)| black_box(Uint::new_gcd(&f, &g)),
             BatchSize::SmallInput,
         )
     });
