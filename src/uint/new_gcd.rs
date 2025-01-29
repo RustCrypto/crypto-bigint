@@ -155,20 +155,28 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         hi.shl_vartime(k - 1).bitxor(&lo)
     }
 
+    /// Constructs a matrix `M` s.t. for `(A, B) = M(a,b)` it holds that  
+    /// - `gcd(A, B) = gcd(a, b)`, and
+    /// - `A.bits() < a.bits()` and/or `B.bits() < b.bits()`.
+    /// 
+    /// Moreover, it returns `log_upper_bound: u32` s.t. each element in `M` lies in the interval
+    /// `(-2^log_upper_bound, 2^log_upper_bound]`.
+    ///
+    /// Assumes `iterations < Uint::<UPDATE_LIMBS>::BITS / 2`.
     #[inline]
     fn restricted_extended_gcd<const UPDATE_LIMBS: usize>(
         mut a: Uint<LIMBS>,
         mut b: Uint<LIMBS>,
         iterations: u32,
     ) -> (Matrix<Int<UPDATE_LIMBS>, 2>, u32) {
-        debug_assert!(iterations < Uint::<UPDATE_LIMBS>::BITS);
+        debug_assert!(iterations < Uint::<UPDATE_LIMBS>::BITS / 2);
 
         // Unit matrix
-        let (mut f0, mut g0) = (Int::ONE, Int::ZERO);
-        let (mut f1, mut g1) = (Int::ZERO, Int::ONE);
+        let (mut f00, mut f01) = (Int::ONE, Int::ZERO);
+        let (mut f10, mut f11) = (Int::ZERO, Int::ONE);
 
         // Compute the update matrix.
-        let mut used_increments = 0;
+        let mut log_upper_bound = 0;
         let mut j = 0;
         while j < iterations {
             j += 1;
@@ -179,24 +187,24 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             // swap if a odd and a < b
             let do_swap = a_odd.and(a_lt_b);
             Uint::conditional_swap(&mut a, &mut b, do_swap);
-            Int::conditional_swap(&mut f0, &mut f1, do_swap);
-            Int::conditional_swap(&mut g0, &mut g1, do_swap);
+            Int::conditional_swap(&mut f00, &mut f10, do_swap);
+            Int::conditional_swap(&mut f01, &mut f11, do_swap);
 
             // subtract a from b when a is odd
             a = Uint::select(&a, &a.wrapping_sub(&b), a_odd);
-            f0 = Int::select(&f0, &f0.wrapping_sub(&f1), a_odd);
-            g0 = Int::select(&g0, &g0.wrapping_sub(&g1), a_odd);
+            f00 = Int::select(&f00, &f00.wrapping_sub(&f10), a_odd);
+            f01 = Int::select(&f01, &f01.wrapping_sub(&f11), a_odd);
 
             // mul/div by 2 when b is non-zero.
             // Only apply operations when b ≠ 0, otherwise do nothing.
             let do_apply = b.is_nonzero();
             a = Uint::select(&a, &a.shr_vartime(1), do_apply);
-            f1 = Int::select(&f1, &f1.shl_vartime(1), do_apply);
-            g1 = Int::select(&g1, &g1.shl_vartime(1), do_apply);
-            used_increments = do_apply.select_u32(used_increments, used_increments + 1);
+            f10 = Int::select(&f10, &f10.shl_vartime(1), do_apply);
+            f11 = Int::select(&f11, &f11.shl_vartime(1), do_apply);
+            log_upper_bound = do_apply.select_u32(log_upper_bound, log_upper_bound + 1);
         }
 
-        (Matrix([[f0, f1], [g0, g1]]), used_increments)
+        (Matrix([[f00, f10], [f01, f11]]), log_upper_bound)
     }
 
     pub fn new_gcd(&self, rhs: &Self) -> Self {
