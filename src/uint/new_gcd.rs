@@ -207,13 +207,18 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         (Matrix([[f00, f10], [f01, f11]]), log_upper_bound)
     }
 
+    /// Compute the greatest common divisor of `self` and `rhs`.
     pub fn new_gcd(&self, rhs: &Self) -> Self {
+        // Leverage two GCD identity rules to make self and rhs odd.
+        // 1) gcd(2a, 2b) = 2 * gcd(a, b)
+        // 2) gcd(a, 2b) = gcd(a, b) if a is odd.
         let i = self.trailing_zeros();
         let j = rhs.trailing_zeros();
         let k = const_min(i, j);
         Self::new_odd_gcd(&self.shr(i), &rhs.shr(j).to_odd().unwrap()).shl(k)
     }
 
+    /// Compute the greatest common divisor of `self` and `rhs`.
     pub fn new_odd_gcd(&self, rhs: &Odd<Self>) -> Self {
         /// Window size.
         const K: u32 = 63;
