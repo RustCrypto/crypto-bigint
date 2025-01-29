@@ -1,14 +1,19 @@
-use crate::{ConcatMixed, ConstChoice, ConstCtOption, Int, Limb, Odd, Split, Uint, I64, U64};
-use core::cmp::min;
-use num_traits::WrappingSub;
+use crate::{ConcatMixed, ConstChoice, ConstCtOption, Int, Limb, Odd, Split, Uint, I64, U128};
+use num_traits::{ToPrimitive, WrappingSub};
 
-struct UintPlus<const LIMBS: usize>(Uint<LIMBS>, Limb);
+struct ExtendedInt<const LIMBS: usize, const EXTENSION_LIMBS: usize>(Uint<LIMBS>, Uint<EXTENSION_LIMBS>);
 
-impl<const LIMBS: usize> UintPlus<LIMBS> {
+impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
+    /// Construct an [ExtendedInt] from the product of a [Uint<LIMBS>] and an [Int<EXTRA>].
+    pub const fn from_product(lhs: Uint<LIMBS>, rhs: Int<EXTRA>) -> Self {
+        let (lo, hi, sgn) = rhs.split_mul_uint_right(&lhs);
+        ExtendedInt(lo, hi).wrapping_neg_if(sgn)
+    }
+
     pub const fn wrapping_neg(&self) -> Self {
         let (lhs, carry) = self.0.carrying_neg();
         let mut rhs = self.1.not();
-        rhs = Limb::select(rhs, rhs.wrapping_add(Limb::ONE), carry);
+        rhs = Uint::select(&rhs, &rhs.wrapping_add(&Uint::ONE), carry);
         Self(lhs, rhs)
     }
 
@@ -16,28 +21,35 @@ impl<const LIMBS: usize> UintPlus<LIMBS> {
         let neg = self.wrapping_neg();
         Self(
             Uint::select(&self.0, &neg.0, negate),
-            Limb::select(self.1, neg.1, negate),
+            Uint::select(&self.1, &neg.1, negate),
         )
     }
 
     pub const fn wrapping_add(&self, rhs: &Self) -> Self {
         let (lo, carry) = self.0.adc(&rhs.0, Limb::ZERO);
-        let (hi, _) = self.1.adc(rhs.1, carry);
+        let (hi, _) = self.1.adc(&rhs.1, carry);
         Self(lo, hi)
     }
 
     pub const fn shr(&self, shift: u32) -> Self {
+        let shift_is_zero = ConstChoice::from_u32_eq(shift, 0);
+        let left_shift = shift_is_zero.select_u32(Uint::<EXTRA>::BITS - shift, 0);
+
         let hi = self.1.shr(shift);
-        let zero_shift = ConstChoice::from_u32_eq(shift, 0);
-        let leftshift = zero_shift.select_u32(Limb::BITS - shift, 0);
-        let carry = Limb::select(self.1.shl(leftshift), Limb::ZERO, zero_shift);
+        // TODO: replace with carrying_shl
+        let carry = Uint::select(&self.1, &Uint::ZERO, shift_is_zero).shl(left_shift);
         let mut lo = self.0.shr(shift);
-        lo.as_limbs_mut()[LIMBS - 1] = lo.as_limbs_mut()[LIMBS - 1].bitxor(carry);
+
+        // Apply carry
+        let limb_diff = LIMBS.wrapping_sub(EXTRA) as u32;
+        let carry = carry.resize::<LIMBS>().shl_vartime(limb_diff * Limb::BITS);
+        lo = lo.bitxor(&carry);
+
         Self(lo, hi)
     }
 
     pub const fn abs(&self) -> Self {
-        let is_negative = ConstChoice::from_word_msb(self.1.bitand(Limb::ONE.shl(Limb::HI_BIT)).0);
+        let is_negative = self.1.as_int().is_negative();
         self.wrapping_neg_if(is_negative)
     }
 
@@ -63,7 +75,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Assumes `length ≤ Uint::<SECTION_LIMBS>::BITS` and `idx + length ≤ Self::BITS`.
     #[inline(always)]
-    const fn section<const SECTION_LIMBS: usize>(&self, idx: u32, length: u32) -> Uint<SECTION_LIMBS> {
+    const fn section<const SECTION_LIMBS: usize>(
+        &self,
+        idx: u32,
+        length: u32,
+    ) -> Uint<SECTION_LIMBS> {
         debug_assert!(length <= Uint::<SECTION_LIMBS>::BITS);
         debug_assert!(idx + length <= Self::BITS);
 
@@ -159,11 +175,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     pub fn new_odd_gcd(&self, rhs: &Odd<Self>) -> Self {
         /// Window size.
-        const K: u32 = 32;
+        const K: u32 = 63;
         /// Smallest [Int] that fits a K-bit [Uint].
         type SingleK = I64;
         /// Smallest [Uint] that fits 2K bits.
-        type DoubleK = U64;
+        type DoubleK = U128;
         debug_assert!(DoubleK::BITS >= 2 * K);
 
         let (mut a, mut b) = (*self, rhs.get());
@@ -182,17 +198,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 Uint::restricted_extended_gcd::<{ SingleK::LIMBS }>(a_, b_, K - 1);
             let (f0, f1, g0, g1) = matrix;
 
-            // Pack together into one object
-            let (lo_af0, hi_af0, sgn_af0) = f0.split_mul_uint_right(&a);
-            let (lo_bg0, hi_bg0, sgn_bg0) = g0.split_mul_uint_right(&b);
-            let af0 = UintPlus(lo_af0, hi_af0.as_limbs()[0]).wrapping_neg_if(sgn_af0);
-            let bg0 = UintPlus(lo_bg0, hi_bg0.as_limbs()[0]).wrapping_neg_if(sgn_bg0);
-
-            // Pack together into one object
-            let (lo_af1, hi_af1, sgn_af1) = f1.split_mul_uint_right(&a);
-            let (lo_bg1, hi_bg1, sgn_bg1) = g1.split_mul_uint_right(&b);
-            let af1 = UintPlus(lo_af1, hi_af1.as_limbs()[0]).wrapping_neg_if(sgn_af1);
-            let bg1 = UintPlus(lo_bg1, hi_bg1.as_limbs()[0]).wrapping_neg_if(sgn_bg1);
+            let af0 = ExtendedInt::from_product(a, f0);
+            let af1 = ExtendedInt::from_product(a, f1);
+            let bg0 = ExtendedInt::from_product(b, g0);
+            let bg1 = ExtendedInt::from_product(b, g1);
 
             a = af0
                 .wrapping_add(&bg0)
