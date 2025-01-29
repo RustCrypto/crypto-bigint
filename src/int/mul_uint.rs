@@ -62,7 +62,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
         rhs: &Uint<RHS_LIMBS>,
     ) -> CtOption<Int<RHS_LIMBS>> {
         let (lo, hi, is_negative) = self.split_mul_uint_right(rhs);
-        Int::<RHS_LIMBS>::new_from_abs_sign(lo, is_negative).and_choice(hi.is_nonzero().not()).into()
+        Int::<RHS_LIMBS>::new_from_abs_sign(lo, is_negative)
+            .and_choice(hi.is_nonzero().not())
+            .into()
     }
 }
 
@@ -70,7 +72,9 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Uint<RHS_LIMBS>> for
     #[inline]
     fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
         let (lo, hi, is_negative) = self.split_mul_uint(rhs);
-        Self::new_from_abs_sign(lo, is_negative).and_choice(hi.is_nonzero().not()).into()
+        Self::new_from_abs_sign(lo, is_negative)
+            .and_choice(hi.is_nonzero().not())
+            .into()
     }
 }
 
