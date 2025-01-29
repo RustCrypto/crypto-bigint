@@ -51,7 +51,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Returns `None` if `shift >= Self::BITS`.
     pub const fn split_overflowing_shr(&self, shift: u32) -> ConstCtOption<Self> {
-        let (intra_limb_shift, limb_shift) = (shift % Limb::BITS, shift / Limb::BITS);
+        let limb_bits_bits = u32::BITS - (Limb::BITS - 1).leading_zeros();
+        let intra_limb_shift = shift & (Limb::BITS - 1);
+        let limb_shift = shift >> limb_bits_bits;
         self.intra_limb_carrying_shr_internal(intra_limb_shift)
             .full_limb_shr(limb_shift)
     }
@@ -116,7 +118,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Returns `None` if `shift >= Self::BITS`.
     pub const fn fast_split_overflowing_shr(&self, shift: u32) -> ConstCtOption<Self> {
-        let (intra_limb_shift, limb_shift) = (shift % Limb::BITS, shift / Limb::BITS);
+        let limb_bits_bits = u32::BITS - (Limb::BITS - 1).leading_zeros();
+        let intra_limb_shift = shift & (Limb::BITS - 1);
+        let limb_shift = shift >> limb_bits_bits;
         self.intra_limb_carrying_shr_internal(intra_limb_shift)
             .fast_full_limb_shr(limb_shift)
     }
