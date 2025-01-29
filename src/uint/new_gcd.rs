@@ -1,7 +1,10 @@
 use crate::{ConcatMixed, ConstChoice, ConstCtOption, Int, Limb, Odd, Split, Uint, I64, U128};
 use num_traits::{ToPrimitive, WrappingSub};
 
-struct ExtendedInt<const LIMBS: usize, const EXTENSION_LIMBS: usize>(Uint<LIMBS>, Uint<EXTENSION_LIMBS>);
+struct ExtendedInt<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
+    Uint<LIMBS>,
+    Uint<EXTENSION_LIMBS>,
+);
 
 impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     /// Construct an [ExtendedInt] from the product of a [Uint<LIMBS>] and an [Int<EXTRA>].
@@ -58,7 +61,22 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     }
 }
 
-type UpdateMatrix<const LIMBS: usize> = (Int<LIMBS>, Int<LIMBS>, Int<LIMBS>, Int<LIMBS>);
+struct Matrix<T, const DIM: usize>([[T; DIM]; DIM]);
+impl<const LIMBS: usize> Matrix<Int<LIMBS>, 2> {
+
+    #[inline]
+    const fn extended_apply_to<const VEC_LIMBS: usize>(
+        &self,
+        vec: (Uint<VEC_LIMBS>, Uint<VEC_LIMBS>),
+    ) -> (ExtendedInt<VEC_LIMBS, LIMBS>, ExtendedInt<VEC_LIMBS, LIMBS>) {
+        let (a, b) = vec;
+        let a00 = ExtendedInt::from_product(a, self.0[0][0]);
+        let a01 = ExtendedInt::from_product(a, self.0[0][1]);
+        let b10 = ExtendedInt::from_product(b, self.0[1][0]);
+        let b11 = ExtendedInt::from_product(b, self.0[1][1]);
+        (a00.wrapping_add(&b10), a01.wrapping_add(&b11))
+    }
+}
 
 /// `const` equivalent of `u32::max(a, b)`.
 const fn const_max(a: u32, b: u32) -> u32 {
@@ -127,7 +145,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         mut a: Uint<LIMBS>,
         mut b: Uint<LIMBS>,
         iterations: u32,
-    ) -> (UpdateMatrix<UPDATE_LIMBS>, u32) {
+    ) -> (Matrix<Int<UPDATE_LIMBS>, 2>, u32) {
         debug_assert!(iterations < Uint::<UPDATE_LIMBS>::BITS);
 
         // Unit matrix
@@ -163,7 +181,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             used_increments = do_apply.select_u32(used_increments, used_increments + 1);
         }
 
-        ((f0, f1, g0, g1), used_increments)
+        (Matrix([[f0, f1], [g0, g1]]), used_increments)
     }
 
     pub fn new_gcd(&self, rhs: &Self) -> Self {
@@ -196,21 +214,16 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             // Compute the K-1 iteration update matrix from a_ and b_
             let (matrix, used_increments) =
                 Uint::restricted_extended_gcd::<{ SingleK::LIMBS }>(a_, b_, K - 1);
-            let (f0, f1, g0, g1) = matrix;
 
-            let af0 = ExtendedInt::from_product(a, f0);
-            let af1 = ExtendedInt::from_product(a, f1);
-            let bg0 = ExtendedInt::from_product(b, g0);
-            let bg1 = ExtendedInt::from_product(b, g1);
+            // Update `a` and `b` using the update matrix
+            let (updated_a, updated_b) = matrix.extended_apply_to((a, b));
 
-            a = af0
-                .wrapping_add(&bg0)
+            a = updated_a
                 .abs()
                 .shr(used_increments)
                 .unpack()
                 .expect("top limb is zero");
-            b = af1
-                .wrapping_add(&bg1)
+            b = updated_b
                 .abs()
                 .shr(used_increments)
                 .unpack()
