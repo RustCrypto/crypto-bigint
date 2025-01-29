@@ -7,7 +7,6 @@ struct ExtendedUint<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
 );
 
 impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
-    const ZERO: ExtendedUint<LIMBS, EXTRA> = Self(Uint::ZERO, Uint::ZERO);
 
     /// Interpret `self` as an [ExtendedInt]
     pub const fn as_extended_int(&self) -> ExtendedInt<LIMBS, EXTRA> {
@@ -62,7 +61,6 @@ struct ExtendedInt<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
 );
 
 impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
-    const ZERO: ExtendedInt<LIMBS, EXTRA> = Self(Uint::ZERO, Uint::ZERO);
 
     /// Construct an [ExtendedInt] from the product of a [Uint<LIMBS>] and an [Int<EXTRA>].
     ///
@@ -98,11 +96,6 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
         let proper_positive = Int::eq(&self.1.as_int(), &Int::ZERO).and(lo_is_negative.not());
         let proper_negative = Int::eq(&self.1.as_int(), &Int::MINUS_ONE).and(lo_is_negative);
         ConstCtOption::new(self.0.as_int(), proper_negative.or(proper_positive))
-    }
-
-    /// Return `b` if `c` is truthy, otherwise return `a`.
-    pub const fn select(a: &Self, b: &Self, c: ConstChoice) -> Self {
-        Self(Uint::select(&a.0, &b.0, c), Uint::select(&a.1, &b.1, c))
     }
 
     /// Decompose `self` into is absolute value and signum.
@@ -206,14 +199,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Moreover, it returns `log_upper_bound: u32` s.t. each element in `M` lies in the interval
     /// `(-2^log_upper_bound, 2^log_upper_bound]`.
     ///
-    /// Assumes `iterations < Uint::<UPDATE_LIMBS>::BITS / 2`.
+    /// Assumes `iterations < Uint::<UPDATE_LIMBS>::BITS`.
     #[inline]
     fn restricted_extended_gcd<const UPDATE_LIMBS: usize>(
         mut a: Uint<LIMBS>,
         mut b: Uint<LIMBS>,
         iterations: u32,
     ) -> (IntMatrix<UPDATE_LIMBS, 2>, u32) {
-        debug_assert!(iterations < Uint::<UPDATE_LIMBS>::BITS / 2);
+        debug_assert!(iterations < Uint::<UPDATE_LIMBS>::BITS);
 
         // Unit matrix
         let (mut f00, mut f01) = (Int::ONE, Int::ZERO);
