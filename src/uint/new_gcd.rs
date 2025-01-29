@@ -1,20 +1,22 @@
 use crate::{ConstChoice, ConstCtOption, Int, Limb, Odd, Uint, I64, U128};
 use num_traits::WrappingSub;
 
-struct ExtendedInt<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
+struct ExtendedUint<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
     Uint<LIMBS>,
     Uint<EXTENSION_LIMBS>,
 );
 
-impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
-    const ZERO: ExtendedInt<LIMBS, EXTRA> = Self(Uint::ZERO, Uint::ZERO);
+impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
+    const ZERO: ExtendedUint<LIMBS, EXTRA> = Self(Uint::ZERO, Uint::ZERO);
 
-    /// Construct an [ExtendedInt] from the product of a [Uint<LIMBS>] and an [Int<EXTRA>].
-    pub const fn from_product(lhs: Uint<LIMBS>, rhs: Int<EXTRA>) -> Self {
-        let (lo, hi, sgn) = rhs.split_mul_uint_right(&lhs);
-        ExtendedInt(lo, hi).wrapping_neg_if(sgn)
+    /// Interpret `self` as an [ExtendedInt]
+    pub const fn as_extended_int(&self) -> ExtendedInt<LIMBS, EXTRA> {
+        ExtendedInt(self.0, self.1)
     }
 
+    /// Construction the binary negation of `self`, i.e., map `self` to `!self + 1`.
+    ///
+    /// Note: maps `0` to itself.
     pub const fn wrapping_neg(&self) -> Self {
         let (lhs, carry) = self.0.carrying_neg();
         let mut rhs = self.1.not();
@@ -22,6 +24,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
         Self(lhs, rhs)
     }
 
+    /// Negate `self` if `negate` is truthy. Otherwise returns `self`.
     pub const fn wrapping_neg_if(&self, negate: ConstChoice) -> Self {
         let neg = self.wrapping_neg();
         Self(
@@ -30,19 +33,16 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
         )
     }
 
-    pub const fn wrapping_add(&self, rhs: &Self) -> Self {
-        let (lo, carry) = self.0.adc(&rhs.0, Limb::ZERO);
-        let (hi, _) = self.1.adc(&rhs.1, carry);
-        Self(lo, hi)
-    }
-
+    /// Shift `self` right by `shift` bits.
+    ///
+    /// Assumes `shift <= Uint::<EXTRA>::BITS`.
     pub const fn shr(&self, shift: u32) -> Self {
         debug_assert!(shift <= Uint::<EXTRA>::BITS);
 
         let shift_is_zero = ConstChoice::from_u32_eq(shift, 0);
         let left_shift = shift_is_zero.select_u32(Uint::<EXTRA>::BITS - shift, 0);
 
-        let hi = *self.1.as_int().shr(shift).as_uint();
+        let hi = self.1.shr(shift);
         // TODO: replace with carrying_shl
         let carry = Uint::select(&self.1, &Uint::ZERO, shift_is_zero).shl(left_shift);
         let mut lo = self.0.shr(shift);
@@ -54,8 +54,46 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
 
         Self(lo, hi)
     }
+}
 
-    pub const fn unpack(&self) -> ConstCtOption<Int<LIMBS>> {
+struct ExtendedInt<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
+    Uint<LIMBS>,
+    Uint<EXTENSION_LIMBS>,
+);
+
+impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
+    const ZERO: ExtendedInt<LIMBS, EXTRA> = Self(Uint::ZERO, Uint::ZERO);
+
+    /// Construct an [ExtendedInt] from the product of a [Uint<LIMBS>] and an [Int<EXTRA>].
+    ///
+    /// Assumes the top bit of the product is not set.
+    pub const fn from_product(lhs: Uint<LIMBS>, rhs: Int<EXTRA>) -> Self {
+        let (lo, hi, sgn) = rhs.split_mul_uint_right(&lhs);
+        ExtendedUint(lo, hi).wrapping_neg_if(sgn).as_extended_int()
+    }
+
+    /// Interpret this as an [ExtendedUint].
+    pub const fn as_extended_uint(&self) -> ExtendedUint<LIMBS, EXTRA> {
+        ExtendedUint(self.0, self.1)
+    }
+
+    /// Return the negation of `self` if `negate` is truthy. Otherwise, return `self`.
+    pub const fn wrapping_neg_if(&self, negate: ConstChoice) -> Self {
+        self.as_extended_uint().wrapping_neg_if(negate).as_extended_int()
+    }
+
+    /// Compute `self + rhs`, wrapping any overflow.
+    pub const fn wrapping_add(&self, rhs: &Self) -> Self {
+        let (lo, carry) = self.0.adc(&rhs.0, Limb::ZERO);
+        let (hi, _) = self.1.adc(&rhs.1, carry);
+        Self(lo, hi)
+    }
+
+    /// Returns self without the extension.
+    ///
+    /// Is `None` if the extension cannot be dropped, i.e., when there is a bit in the extension
+    /// that does not equal the MSB in the base.
+    pub const fn drop_extension(&self) -> ConstCtOption<Int<LIMBS>> {
         let lo_is_negative = self.0.as_int().is_negative();
         let proper_positive = Int::eq(&self.1.as_int(), &Int::ZERO).and(lo_is_negative.not());
         let proper_negative = Int::eq(&self.1.as_int(), &Int::MINUS_ONE).and(lo_is_negative);
@@ -67,11 +105,16 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
         Self(Uint::select(&a.0, &b.0, c), Uint::select(&a.1, &b.1, c))
     }
 
-    /// Divide self by `2^k`.
+    /// Decompose `self` into is absolute value and signum.
+    pub const fn abs_sgn(&self) -> (ExtendedUint<LIMBS, EXTRA>, ConstChoice) {
+        let is_negative = self.1.as_int().is_negative();
+        (self.wrapping_neg_if(is_negative).as_extended_uint(), is_negative)
+    }
+
+    /// Divide self by `2^k`, rounding towards zero.
     pub const fn div_2k(&self, k: u32) -> Self {
-        let lo_is_minus_one = Int::eq(&self.0.as_int(), &Int::MINUS_ONE);
-        let ext_is_minus_one = Int::eq(&self.1.as_int(), &Int::MINUS_ONE);
-        Self::select(&self.shr(k), &Self::ZERO, lo_is_minus_one.and(ext_is_minus_one))
+        let (abs, sgn) = self.abs_sgn();
+        abs.shr(k).wrapping_neg_if(sgn).as_extended_int()
     }
 }
 
@@ -249,12 +292,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
             a = updated_a
                 .div_2k(used_increments)
-                .unpack()
+                .drop_extension()
                 .expect("top limb is zero")
                 .abs();
             b = updated_b
                 .div_2k(used_increments)
-                .unpack()
+                .drop_extension()
                 .expect("top limb is zero")
                 .abs();
         }
