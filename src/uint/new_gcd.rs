@@ -1,9 +1,9 @@
 use crate::{
-    ConcatMixed, ConstChoice, ConstCtOption, Limb, Odd, Split, Uint,
+    ConcatMixed, ConstChoice, ConstCtOption, Int, Limb, Odd, Split, Uint,
     I64, U64,
 };
 use core::cmp::min;
-use num_traits::{WrappingSub};
+use num_traits::WrappingSub;
 
 struct UintPlus<const LIMBS: usize>(Uint<LIMBS>, Limb);
 
@@ -49,6 +49,8 @@ impl<const LIMBS: usize> UintPlus<LIMBS> {
     }
 }
 
+type UpdateMatrix<const LIMBS: usize> = (Int<LIMBS>, Int<LIMBS>, Int<LIMBS>, Int<LIMBS>);
+
 impl<const LIMBS: usize> Uint<LIMBS> {
 
     const fn const_max(a: u32, b: u32) -> u32 {
@@ -79,6 +81,50 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         (a_, b_)
     }
 
+    #[inline]
+    fn restricted_extended_gcd<const UPDATE_LIMBS: usize>(
+        mut a: Uint<LIMBS>,
+        mut b: Uint<LIMBS>,
+        iterations: u32,
+    ) -> (UpdateMatrix<UPDATE_LIMBS>, u32) {
+        debug_assert!(iterations < Uint::<UPDATE_LIMBS>::BITS);
+
+        // Unit matrix
+        let (mut f0, mut g0) = (Int::ONE, Int::ZERO);
+        let (mut f1, mut g1) = (Int::ZERO, Int::ONE);
+
+        // Compute the update matrix.
+        let mut used_increments = 0;
+        let mut j = 0;
+        while j < iterations {
+            j += 1;
+
+            let a_odd = a.is_odd();
+            let a_lt_b = Uint::lt(&a, &b);
+
+            // swap if a odd and a < b
+            let do_swap = a_odd.and(a_lt_b);
+            Uint::conditional_swap(&mut a, &mut b, do_swap);
+            Int::conditional_swap(&mut f0, &mut f1, do_swap);
+            Int::conditional_swap(&mut g0, &mut g1, do_swap);
+
+            // subtract a from b when a is odd
+            a = Uint::select(&a, &a.wrapping_sub(&b), a_odd);
+            f0 = Int::select(&f0, &f0.wrapping_sub(&f1), a_odd);
+            g0 = Int::select(&g0, &g0.wrapping_sub(&g1), a_odd);
+
+            // mul/div by 2 when b is non-zero.
+            // Only apply operations when b ≠ 0, otherwise do nothing.
+            let do_apply = b.is_nonzero();
+            a = Uint::select(&a, &a.shr_vartime(1), do_apply);
+            f1 = Int::select(&f1, &f1.shl_vartime(1), do_apply);
+            g1 = Int::select(&g1, &g1.shl_vartime(1), do_apply);
+            used_increments = do_apply.select_u32(used_increments, used_increments + 1);
+        }
+
+        ((f0, f1, g0, g1), used_increments)
+    }
+
     pub fn new_gcd(&self, rhs: &Self) -> Self {
         let i = self.trailing_zeros();
         let j = rhs.trailing_zeros();
@@ -89,7 +135,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub fn new_odd_gcd(&self, rhs: &Odd<Self>) -> Self {
         /// Window size.
         const K: u32 = 32;
-        /// Smallest [Uint] that fits K bits
+        /// Smallest [Int] that fits a K-bit [Uint].
         type SingleK = I64;
         /// Smallest [Uint] that fits 2K bits.
         type DoubleK = U64;
@@ -101,40 +147,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         while i < (2 * rhs.bits_vartime() - 1).div_ceil(K) {
             i += 1;
 
-            let (mut a_, mut b_) = Self::cutdown::<K, { DoubleK::LIMBS }>(a, b);
+            let (a_, b_) = Self::cutdown::<K, { DoubleK::LIMBS }>(a, b);
 
-            // Unit matrix
-            let (mut f0, mut g0) = (SingleK::ONE, SingleK::ZERO);
-            let (mut f1, mut g1) = (SingleK::ZERO, SingleK::ONE);
 
-            // Compute the update matrix.
-            let mut used_increments = 0;
-            let mut j = 0;
-            while j < K - 1 {
-                j += 1;
-
-                let a_odd = a_.is_odd();
-                let a_lt_b = DoubleK::lt(&a_, &b_);
-
-                // swap if a odd and a < b
-                let do_swap = a_odd.and(a_lt_b);
-                DoubleK::conditional_swap(&mut a_, &mut b_, do_swap);
-                SingleK::conditional_swap(&mut f0, &mut f1, do_swap);
-                SingleK::conditional_swap(&mut g0, &mut g1, do_swap);
-
-                // subtract a from b when a is odd and b is non-zero
-                a_ = DoubleK::select(&a_, &a_.wrapping_sub(&b_), a_odd);
-                f0 = SingleK::select(&f0, &f0.wrapping_sub(&f1), a_odd);
-                g0 = SingleK::select(&g0, &g0.wrapping_sub(&g1), a_odd);
-
-                // mul/div by 2 when b is non-zero.
-                // Only apply operations when b ≠ 0, otherwise do nothing.
-                let do_apply = b_.is_nonzero();
-                a_ = DoubleK::select(&a_, &a_.shr_vartime(1), do_apply);
-                f1 = SingleK::select(&f1, &f1.shl_vartime(1), do_apply);
-                g1 = SingleK::select(&g1, &g1.shl_vartime(1), do_apply);
-                used_increments = do_apply.select_u32(used_increments, used_increments + 1);
-            }
+            // Compute the K-1 iteration update matrix from a_ and b_
+            let (matrix, used_increments) =
+                Uint::restricted_extended_gcd::<{ SingleK::LIMBS }>(a_, b_, K - 1);
+            let (f0, f1, g0, g1) = matrix;
 
             // Pack together into one object
             let (lo_af0, hi_af0, sgn_af0) = f0.split_mul_uint_right(&a);
