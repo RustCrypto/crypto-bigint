@@ -79,22 +79,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         (a_, b_)
     }
 
-    pub fn new_gcd<const DOUBLE: usize>(&self, rhs: &Self) -> Self
-    where
-        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
-        Uint<DOUBLE>: Split,
-    {
+    pub fn new_gcd(&self, rhs: &Self) -> Self {
         let i = self.trailing_zeros();
         let j = rhs.trailing_zeros();
         let k = min(i, j);
         Self::new_odd_gcd(&self.shr(i), &rhs.shr(j).to_odd().unwrap()).shl(k)
     }
 
-    pub fn new_odd_gcd<const DOUBLE: usize>(&self, rhs: &Odd<Self>) -> Self
-    where
-        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
-        Uint<DOUBLE>: Split,
-    {
+    pub fn new_odd_gcd(&self, rhs: &Odd<Self>) -> Self {
         /// Window size.
         const K: u32 = 32;
         /// Smallest [Uint] that fits K bits
