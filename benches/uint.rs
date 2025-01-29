@@ -1,9 +1,14 @@
-use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion, BenchmarkGroup, BenchmarkId};
 use criterion::measurement::WallTime;
-use crypto_bigint::{Limb, NonZero, Odd, Random, RandomBits, RandomMod, Reciprocal, Uint, U1024, U128, U2048, U256, U4096, U512, Gcd, U16384, U8192, PrecomputeInverter};
+use criterion::{
+    black_box, criterion_group, criterion_main, BatchSize, BenchmarkGroup, BenchmarkId, Criterion,
+};
+use crypto_bigint::modular::SafeGcdInverter;
+use crypto_bigint::{
+    Gcd, Limb, NonZero, Odd, PrecomputeInverter, Random, RandomBits, RandomMod, Reciprocal, Uint,
+    U1024, U128, U16384, U2048, U256, U4096, U512, U8192,
+};
 use rand_chacha::ChaCha8Rng;
 use rand_core::{OsRng, RngCore, SeedableRng};
-use crypto_bigint::modular::SafeGcdInverter;
 
 fn make_rng() -> ChaCha8Rng {
     ChaCha8Rng::from_seed(*b"01234567890123456789012345678901")
@@ -301,9 +306,11 @@ fn bench_division(c: &mut Criterion) {
     group.finish();
 }
 
-fn gcd_bench<const LIMBS: usize, const UNSAT_LIMBS: usize>(g: &mut BenchmarkGroup<WallTime>, x: Uint<LIMBS>)
-where
-    Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>
+fn gcd_bench<const LIMBS: usize, const UNSAT_LIMBS: usize>(
+    g: &mut BenchmarkGroup<WallTime>,
+    _x: Uint<LIMBS>,
+) where
+    Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
 {
     g.bench_function(BenchmarkId::new("gcd (vt)", LIMBS), |b| {
         b.iter_batched(

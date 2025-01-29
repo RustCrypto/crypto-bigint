@@ -315,31 +315,40 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConcatMixed, Gcd, Random, Split, Uint, U2048};
+    use crate::{Gcd, Random, Uint, U1024, U16384, U2048, U256, U4096, U512, U8192};
     use rand_core::OsRng;
 
-    fn gcd_comparison_test<const LIMBS: usize, const DOUBLE: usize>(
-        lhs: Uint<LIMBS>,
-        rhs: Uint<LIMBS>,
-    ) where
+    fn gcd_comparison_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
+    where
         Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
-        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
-        Uint<DOUBLE>: Split,
     {
         let gcd = lhs.gcd(&rhs);
         let bingcd = lhs.new_odd_gcd(&rhs.to_odd().unwrap());
         assert_eq!(gcd, bingcd);
     }
 
-    #[test]
-    fn test_new_gcd() {
+    fn test_new_gcd<const LIMBS: usize>()
+    where
+        Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
+    {
         for _ in 0..500 {
-            let x = U2048::random(&mut OsRng);
-            let mut y = U2048::random(&mut OsRng);
+            let x = Uint::<LIMBS>::random(&mut OsRng);
+            let mut y = Uint::<LIMBS>::random(&mut OsRng);
 
             y = Uint::select(&(y.wrapping_add(&Uint::ONE)), &y, y.is_odd());
 
             gcd_comparison_test(x, y);
         }
+    }
+
+    #[test]
+    fn testing() {
+        test_new_gcd::<{ U256::LIMBS }>();
+        test_new_gcd::<{ U512::LIMBS }>();
+        test_new_gcd::<{ U1024::LIMBS }>();
+        test_new_gcd::<{ U2048::LIMBS }>();
+        test_new_gcd::<{ U4096::LIMBS }>();
+        test_new_gcd::<{ U8192::LIMBS }>();
+        test_new_gcd::<{ U16384::LIMBS }>();
     }
 }
