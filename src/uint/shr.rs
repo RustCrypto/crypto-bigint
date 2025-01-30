@@ -34,7 +34,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let intra_limb_shift = shift & (Limb::BITS - 1);
         let limb_shift = shift >> limb_bits_bits;
         self.intra_limb_shr(intra_limb_shift)
-            .full_limb_shr(limb_shift)
+            .full_limb_overflowing_shr(limb_shift)
     }
 
     /// Computes `self >> shift`, for `shift < Limb::BITS`.
@@ -63,7 +63,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Returns `None` if `limb_shift >= Self::LIMBS`.
     #[inline]
-    pub const fn full_limb_shr(&self, limb_shift: u32) -> ConstCtOption<Self> {
+    pub const fn full_limb_overflowing_shr(&self, limb_shift: u32) -> ConstCtOption<Self> {
         let shift_bits = u32::BITS - (LIMBS as u32 - 1).leading_zeros();
         let overflow = ConstChoice::from_u32_lt(limb_shift, LIMBS as u32).not();
         let limb_shift = limb_shift % LIMBS as u32;
