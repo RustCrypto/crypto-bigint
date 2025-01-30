@@ -27,30 +27,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn overflowing_shr(&self, shift: u32) -> ConstCtOption<Self> {
         // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
         // (which lies in range `0 <= shift < BITS`).
-        let shift_bits = u32::BITS - (Self::BITS - 1).leading_zeros();
-        let overflow = ConstChoice::from_u32_lt(shift, Self::BITS).not();
-        let shift = shift % Self::BITS;
-        let mut result = *self;
-        let mut i = 0;
-        while i < shift_bits {
-            let bit = ConstChoice::from_u32_lsb((shift >> i) & 1);
-            result = Uint::select(
-                &result,
-                &result
-                    .overflowing_shr_vartime(1 << i)
-                    .expect("shift within range"),
-                bit,
-            );
-            i += 1;
-        }
-
-        ConstCtOption::new(Uint::select(&result, &Self::ZERO, overflow), overflow.not())
-    }
-
-    /// Computes `self >> shift`.
-    ///
-    /// Returns `None` if `shift >= Self::BITS`.
-    pub const fn split_overflowing_shr(&self, shift: u32) -> ConstCtOption<Self> {
+        //
         // Split shift into (shift % Limb::BITS, shift / Limb::BITS)
         // Since Limb::BITS is known to be a power of two, this can also be computed as follows:
         let limb_bits_bits = u32::BITS - (Limb::BITS - 1).leading_zeros();
@@ -93,47 +70,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute `self >> (Limb::BITS * limb_shift)`, for `limb_shift < Self::LIMBS`.
     ///
     /// Returns `None` if `limb_shift >= Self::LIMBS`.
-    #[inline(always)]
+    #[inline]
     pub const fn full_limb_shr(&self, limb_shift: u32) -> ConstCtOption<Self> {
-        let shift_bits = u32::BITS - (LIMBS as u32 - 1).leading_zeros();
-        let overflow = ConstChoice::from_u32_lt(limb_shift, LIMBS as u32).not();
-        let limb_shift = limb_shift % LIMBS as u32;
-
-        let mut result = *self;
-        let mut i = 0;
-        while i < shift_bits {
-            let bit = ConstChoice::from_u32_lsb((limb_shift >> i) & 1);
-            result = Uint::select(
-                &result,
-                &result
-                    .overflowing_shr_vartime(Limb::BITS << i)
-                    .expect("shift within range"),
-                bit,
-            );
-            i += 1;
-        }
-
-        ConstCtOption::new(Uint::select(&result, &Self::ZERO, overflow), overflow.not())
-    }
-
-    /// Computes `self >> shift`.
-    ///
-    /// Returns `None` if `shift >= Self::BITS`.
-    pub const fn fast_split_overflowing_shr(&self, shift: u32) -> ConstCtOption<Self> {
-        // Split shift into (shift % Limb::BITS, shift / Limb::BITS)
-        // Since Limb::BITS is known to be a power of two, this can also be computed as follows:
-        let limb_bits_bits = u32::BITS - (Limb::BITS - 1).leading_zeros();
-        let intra_limb_shift = shift & (Limb::BITS - 1);
-        let limb_shift = shift >> limb_bits_bits;
-        self.intra_limb_carrying_shr_internal(intra_limb_shift)
-            .fast_full_limb_shr(limb_shift)
-    }
-
-    /// Compute `self >> (Limb::BITS * limb_shift)`, for `limb_shift < Self::LIMBS`.
-    ///
-    /// Returns `None` if `limb_shift >= Self::LIMBS`.
-    #[inline(always)]
-    pub const fn fast_full_limb_shr(&self, limb_shift: u32) -> ConstCtOption<Self> {
         let shift_bits = u32::BITS - (LIMBS as u32 - 1).leading_zeros();
         let overflow = ConstChoice::from_u32_lt(limb_shift, LIMBS as u32).not();
         let limb_shift = limb_shift % LIMBS as u32;

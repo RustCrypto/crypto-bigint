@@ -388,20 +388,6 @@ fn shr_benchmark<const LIMBS: usize>(group: &mut BenchmarkGroup<WallTime>) {
             BatchSize::SmallInput,
         )
     });
-    group.bench_function(BenchmarkId::new("split_overflowing_shr", LIMBS), |b| {
-        b.iter_batched(
-            || Uint::<LIMBS>::ONE,
-            |x| x.split_overflowing_shr(Uint::<LIMBS>::BITS / 2 + 10),
-            BatchSize::SmallInput,
-        )
-    });
-    group.bench_function(BenchmarkId::new("fast_split_overflowing_shr", LIMBS), |b| {
-        b.iter_batched(
-            || Uint::<LIMBS>::ONE,
-            |x| x.fast_split_overflowing_shr(Uint::<LIMBS>::BITS / 2 + 10),
-            BatchSize::SmallInput,
-        )
-    });
 }
 
 fn bench_shr(c: &mut Criterion) {
