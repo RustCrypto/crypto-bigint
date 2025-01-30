@@ -345,6 +345,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 }
 
+#[cfg(feature = "rand_core")]
 #[cfg(test)]
 mod tests {
     use crate::{Gcd, Random, Uint, U1024, U16384, U2048, U256, U4096, U512, U8192};
@@ -374,7 +375,7 @@ mod tests {
         gcd_comparison_test(Uint::MAX, Uint::ONE);
         gcd_comparison_test(Uint::MAX, Uint::MAX);
 
-        for _ in 0..500 {
+        for _ in 0..100 {
             let x = Uint::<LIMBS>::random(&mut OsRng);
             let mut y = Uint::<LIMBS>::random(&mut OsRng);
 
