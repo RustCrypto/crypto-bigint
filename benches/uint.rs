@@ -374,14 +374,35 @@ fn bench_shl(c: &mut Criterion) {
 }
 
 fn shr_benchmark<const LIMBS: usize>(group: &mut BenchmarkGroup<WallTime>) {
-    group.bench_function(BenchmarkId::new("overflowing_shr_vartime", LIMBS), |b| {
+    group.bench_function(BenchmarkId::new("shr_vartime, small", LIMBS), |b| {
+        b.iter_batched(
+            || Uint::<LIMBS>::ONE,
+            |x| x.overflowing_shr_vartime(10),
+            BatchSize::SmallInput,
+        )
+    });
+    group.bench_function(BenchmarkId::new("shr_vartime, large", LIMBS), |b| {
         b.iter_batched(
             || Uint::<LIMBS>::ONE,
             |x| x.overflowing_shr_vartime(Uint::<LIMBS>::BITS / 2 + 10),
             BatchSize::SmallInput,
         )
     });
-    group.bench_function(BenchmarkId::new("overflowing_shr", LIMBS), |b| {
+    group.bench_function(BenchmarkId::new("shr_vartime_wide, large", LIMBS), |b| {
+        b.iter_batched(
+            || ( Uint::<LIMBS>::ONE,  Uint::<LIMBS>::ONE),
+            |x| Uint::overflowing_shr_vartime_wide(x, Uint::<LIMBS>::BITS / 2 + 10),
+            BatchSize::SmallInput,
+        )
+    });
+    group.bench_function(BenchmarkId::new("shr, small", LIMBS), |b| {
+        b.iter_batched(
+            || Uint::<LIMBS>::ONE,
+            |x| x.overflowing_shr(10),
+            BatchSize::SmallInput,
+        )
+    });
+    group.bench_function(BenchmarkId::new("shr, large", LIMBS), |b| {
         b.iter_batched(
             || Uint::<LIMBS>::ONE,
             |x| x.overflowing_shr(Uint::<LIMBS>::BITS / 2 + 10),
@@ -392,38 +413,6 @@ fn shr_benchmark<const LIMBS: usize>(group: &mut BenchmarkGroup<WallTime>) {
 
 fn bench_shr(c: &mut Criterion) {
     let mut group = c.benchmark_group("right shift");
-
-    group.bench_function("shr_vartime, small, U2048", |b| {
-        b.iter_batched(
-            || U2048::ONE,
-            |x| x.overflowing_shr_vartime(10),
-            BatchSize::SmallInput,
-        )
-    });
-
-    group.bench_function("shr_vartime, large, U2048", |b| {
-        b.iter_batched(
-            || U2048::ONE,
-            |x| x.overflowing_shr_vartime(1024 + 10),
-            BatchSize::SmallInput,
-        )
-    });
-
-    group.bench_function("shr_vartime_wide, large, U2048", |b| {
-        b.iter_batched(
-            || (U2048::ONE, U2048::ONE),
-            |x| Uint::overflowing_shr_vartime_wide(x, 1024 + 10),
-            BatchSize::SmallInput,
-        )
-    });
-
-    group.bench_function("shr, U2048", |b| {
-        b.iter_batched(
-            || U2048::ONE,
-            |x| x.overflowing_shr(1024 + 10),
-            BatchSize::SmallInput,
-        )
-    });
 
     shr_benchmark::<{ U256::LIMBS }>(&mut group);
     shr_benchmark::<{ U512::LIMBS }>(&mut group);
