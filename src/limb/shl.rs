@@ -1,6 +1,6 @@
 //! Limb left bitshift
 
-use crate::Limb;
+use crate::{ConstChoice, Limb};
 use core::ops::{Shl, ShlAssign};
 use num_traits::WrappingShl;
 
@@ -16,6 +16,23 @@ impl Limb {
     #[inline(always)]
     pub(crate) const fn shl1(self) -> (Self, Self) {
         (Self(self.0 << 1), Self(self.0 >> Self::HI_BIT))
+    }
+
+    /// Computes `self << shift` and returns the result as well as the carry: the `shift` _least_
+    /// significant bits of the `carry` are equal to the `shift` _most_ significant bits of `self`.
+    ///
+    /// Panics if `shift` overflows `Limb::BITS`.
+    #[inline(always)]
+    pub const fn carrying_shl(self, shift: u32) -> (Self, Self) {
+        // Note that we can compute carry = self >> (Self::BITS - shift) whenever shift > 0.
+        // However, we need to account for the case that shift = 0:
+        // - the carry should be 0, and
+        // - the value by which carry is left shifted should be made to be < Self::BITS.
+        let shift_is_zero = ConstChoice::from_u32_eq(shift, 0);
+        let carry = Self::select(self, Self::ZERO, shift_is_zero);
+        let left_shift = shift_is_zero.select_u32(Self::BITS - shift, 0);
+
+        (self.shl(shift), carry.shr(left_shift))
     }
 }
 
