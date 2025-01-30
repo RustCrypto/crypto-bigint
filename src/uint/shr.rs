@@ -33,24 +33,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let limb_bits_bits = u32::BITS - (Limb::BITS - 1).leading_zeros();
         let intra_limb_shift = shift & (Limb::BITS - 1);
         let limb_shift = shift >> limb_bits_bits;
-        self.intra_limb_carrying_shr_internal(intra_limb_shift)
+        self.intra_limb_shr(intra_limb_shift)
             .full_limb_shr(limb_shift)
-    }
-
-    /// Computes `self >> shift`, for `shift < Limb::BITS`.
-    ///
-    /// Returns `None` if `shift >= Limb::BITS`.
-    pub const fn intra_limb_overflowing_shr(&self, shift: u32) -> ConstCtOption<Self> {
-        let overflow = ConstChoice::from_u32_lt(shift, Limb::BITS).not();
-        let result = self.intra_limb_carrying_shr_internal(shift % Limb::BITS);
-        ConstCtOption::new(Uint::select(&result, &Self::ZERO, overflow), overflow.not())
     }
 
     /// Computes `self >> shift`, for `shift < Limb::BITS`.
     ///
     /// Panics if `shift >= Limb::BITS`.
     #[inline(always)]
-    const fn intra_limb_carrying_shr_internal(&self, shift: u32) -> Self {
+    const fn intra_limb_shr(&self, shift: u32) -> Self {
         debug_assert!(shift < Limb::BITS);
 
         let (mut result, mut carry) = (*self, Limb::ZERO);
@@ -68,6 +59,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Compute `self >> (Limb::BITS * limb_shift)`, for `limb_shift < Self::LIMBS`.
+    /// In other words, shift `self` right by `limb_shift` full limbs.
     ///
     /// Returns `None` if `limb_shift >= Self::LIMBS`.
     #[inline]
