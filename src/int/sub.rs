@@ -32,13 +32,13 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Perform wrapping subtraction, discarding underflow and wrapping around the boundary of the
     /// type.
     pub const fn wrapping_sub(&self, rhs: &Self) -> Self {
-        self.underflowing_sub(&rhs).0
+        self.underflowing_sub(rhs).0
     }
 }
 
 impl<const LIMBS: usize> CheckedSub for Int<LIMBS> {
     fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
-        let (res, underflow) = Self::underflowing_sub(&self, &rhs);
+        let (res, underflow) = Self::underflowing_sub(self, rhs);
         ConstCtOption::new(res, underflow.not()).into()
     }
 }

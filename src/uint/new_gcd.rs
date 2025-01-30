@@ -312,7 +312,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         type SingleK = I64;
         /// Smallest [Uint] that fits 2K bits.
         type DoubleK = U128;
-        debug_assert!(DoubleK::BITS >= 2 * K);
 
         let (mut a, mut b) = (*self, *rhs.as_ref());
 
