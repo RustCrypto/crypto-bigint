@@ -119,7 +119,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Borrow the limbs of this [`Int`] mutably.
-    pub fn as_limbs_mut(&mut self) -> &mut [Limb; LIMBS] {
+    pub const fn as_limbs_mut(&mut self) -> &mut [Limb; LIMBS] {
         self.0.as_limbs_mut()
     }
 

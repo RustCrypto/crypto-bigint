@@ -165,7 +165,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Borrow the limbs of this [`Uint`] mutably.
-    pub fn as_limbs_mut(&mut self) -> &mut [Limb; LIMBS] {
+    pub const fn as_limbs_mut(&mut self) -> &mut [Limb; LIMBS] {
         &mut self.limbs
     }
 
@@ -463,6 +463,7 @@ impl_uint_concat_split_mixed! {
 
 #[cfg(feature = "extra-sizes")]
 mod extra_sizes;
+mod new_gcd;
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
