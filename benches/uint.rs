@@ -390,7 +390,7 @@ fn shr_benchmark<const LIMBS: usize>(group: &mut BenchmarkGroup<WallTime>) {
     });
     group.bench_function(BenchmarkId::new("shr_vartime_wide, large", LIMBS), |b| {
         b.iter_batched(
-            || ( Uint::<LIMBS>::ONE,  Uint::<LIMBS>::ONE),
+            || (Uint::<LIMBS>::ONE, Uint::<LIMBS>::ONE),
             |x| Uint::overflowing_shr_vartime_wide(x, Uint::<LIMBS>::BITS / 2 + 10),
             BatchSize::SmallInput,
         )
