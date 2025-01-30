@@ -346,28 +346,28 @@ fn shl_benchmarks<const LIMBS: usize>(group: &mut BenchmarkGroup<WallTime>) {
     group.bench_function(BenchmarkId::new("shl_vartime, large", LIMBS), |b| {
         b.iter_batched(
             || Uint::<LIMBS>::ONE,
-            |x| black_box(x.overflowing_shl_vartime(Uint::<LIMBS>::BITS/2 + 10)),
+            |x| black_box(x.overflowing_shl_vartime(Uint::<LIMBS>::BITS / 2 + 10)),
             BatchSize::SmallInput,
         )
     });
     group.bench_function(BenchmarkId::new("shl_vartime_wide, large", LIMBS), |b| {
         b.iter_batched(
             || (Uint::<LIMBS>::ONE, Uint::<LIMBS>::ONE),
-            |x| Uint::overflowing_shl_vartime_wide(x, Uint::<LIMBS>::BITS/2 + 10),
+            |x| Uint::overflowing_shl_vartime_wide(x, Uint::<LIMBS>::BITS / 2 + 10),
             BatchSize::SmallInput,
         )
     });
     group.bench_function(BenchmarkId::new("shl, small", LIMBS), |b| {
         b.iter_batched(
             || Uint::<LIMBS>::ONE,
-            |x| x.overflowing_shl( 10),
+            |x| x.overflowing_shl(10),
             BatchSize::SmallInput,
         )
     });
     group.bench_function(BenchmarkId::new("shl, large", LIMBS), |b| {
         b.iter_batched(
             || Uint::<LIMBS>::ONE,
-            |x| x.overflowing_shl( Uint::<LIMBS>::BITS/2 + 10),
+            |x| x.overflowing_shl(Uint::<LIMBS>::BITS / 2 + 10),
             BatchSize::SmallInput,
         )
     });
