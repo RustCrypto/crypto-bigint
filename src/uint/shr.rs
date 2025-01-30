@@ -26,15 +26,17 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Returns `None` if `shift >= Self::BITS`.
     pub const fn overflowing_shr(&self, shift: u32) -> ConstCtOption<Self> {
         let (intra_limb_shift, limb_shift) = Self::decompose_shift(shift);
-        self.intra_limb_shr(intra_limb_shift)
+        self.intra_limb_carrying_shr(intra_limb_shift)
+            .0
             .full_limb_overflowing_shr(limb_shift)
     }
 
-    /// Computes `self >> shift`, for `shift < Limb::BITS`.
+    /// Computes `self >> shift` for `shift < Limb::BITS`. Also returns a [Limb] containing the
+    /// `carry`.
     ///
     /// Panics if `shift >= Limb::BITS`.
     #[inline(always)]
-    const fn intra_limb_shr(&self, shift: u32) -> Self {
+    const fn intra_limb_carrying_shr(&self, shift: u32) -> (Self, Limb) {
         debug_assert!(shift < Limb::BITS);
 
         let (mut result, mut carry) = (*self, Limb::ZERO);
@@ -48,7 +50,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             carry = new_carry;
         }
 
-        result
+        (result, carry)
     }
 
     /// Compute `self >> (Limb::BITS * limb_shift)`, for `limb_shift < Self::LIMBS`.
@@ -110,7 +112,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         let mut shifted = Self { limbs };
         if rem != 0 {
-            shifted = shifted.intra_limb_shr(rem);
+            shifted = shifted.intra_limb_carrying_shr(rem).0;
         }
         ConstCtOption::some(shifted)
     }
@@ -171,16 +173,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// if the least significant bit was set, and [`ConstChoice::FALSE`] otherwise.
     #[inline(always)]
     pub(crate) const fn shr1_with_carry(&self) -> (Self, ConstChoice) {
-        let mut ret = Self::ZERO;
-        let mut i = LIMBS;
-        let mut carry = Limb::ZERO;
-        while i > 0 {
-            i -= 1;
-            let (shifted, new_carry) = self.limbs[i].shr1();
-            ret.limbs[i] = shifted.bitor(carry);
-            carry = new_carry;
-        }
-
+        let (ret, carry) = self.intra_limb_carrying_shr(1);
         (ret, ConstChoice::from_word_lsb(carry.0 >> Limb::HI_BIT))
     }
 }
