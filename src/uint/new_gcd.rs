@@ -276,7 +276,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute the greatest common divisor of `self` and `rhs`.
     pub fn new_odd_gcd(&self, rhs: &Odd<Self>) -> Self {
         /// Window size.
-        const K: u32 = 63;
+        const K: u32 = 62;
         /// Smallest [Int] that fits a K-bit [Uint].
         type SingleK = I64;
         /// Smallest [Uint] that fits 2K bits.
