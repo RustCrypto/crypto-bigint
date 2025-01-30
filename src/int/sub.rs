@@ -3,12 +3,14 @@
 use core::ops::{Sub, SubAssign};
 
 use num_traits::WrappingSub;
-use subtle::{Choice, ConstantTimeEq, CtOption};
+use subtle::CtOption;
 
-use crate::{Checked, CheckedSub, Int, Wrapping};
+use crate::{Checked, CheckedSub, ConstChoice, ConstCtOption, Int, Wrapping};
 
-impl<const LIMBS: usize> CheckedSub for Int<LIMBS> {
-    fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
+impl<const LIMBS: usize> Int<LIMBS> {
+    /// Perform subtraction, returning the result along with a [ConstChoice] which `is_true`
+    /// only if the operation underflowed.
+    pub const fn underflowing_sub(&self, rhs: &Self) -> (Self, ConstChoice) {
         // Step 1. subtract operands
         let res = Self(self.0.wrapping_sub(&rhs.0));
 
@@ -18,12 +20,26 @@ impl<const LIMBS: usize> CheckedSub for Int<LIMBS> {
         // - underflow occurs if and only if the result and the lhs have opposing signs.
         //
         // We can thus express the overflow flag as: (self.msb != rhs.msb) & (self.msb != res.msb)
-        let self_msb: Choice = self.is_negative().into();
-        let underflow =
-            self_msb.ct_ne(&rhs.is_negative().into()) & self_msb.ct_ne(&res.is_negative().into());
+        let self_msb = self.is_negative();
+        let underflow = self_msb
+            .ne(rhs.is_negative())
+            .and(self_msb.ne(res.is_negative()));
 
         // Step 3. Construct result
-        CtOption::new(res, !underflow)
+        (res, underflow)
+    }
+
+    /// Perform wrapping subtraction, discarding underflow and wrapping around the boundary of the
+    /// type.
+    pub const fn wrapping_sub(&self, rhs: &Self) -> Self {
+        self.underflowing_sub(&rhs).0
+    }
+}
+
+impl<const LIMBS: usize> CheckedSub for Int<LIMBS> {
+    fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
+        let (res, underflow) = Self::underflowing_sub(&self, &rhs);
+        ConstCtOption::new(res, underflow.not()).into()
     }
 }
 
@@ -79,8 +95,6 @@ mod tests {
 
     #[cfg(test)]
     mod tests {
-        use num_traits::WrappingSub;
-
         use crate::{CheckedSub, Int, I128, U128};
 
         #[test]

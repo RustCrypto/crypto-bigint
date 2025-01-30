@@ -3,7 +3,6 @@
 //! Ref: https://eprint.iacr.org/2020/972.pdf
 
 use crate::{ConstChoice, ConstCtOption, Int, Limb, Odd, Uint, I64, U128};
-use num_traits::WrappingSub;
 
 struct ExtendedUint<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
     Uint<LIMBS>,
