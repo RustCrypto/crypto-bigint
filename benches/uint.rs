@@ -335,45 +335,59 @@ fn bench_gcd(c: &mut Criterion) {
     group.finish();
 }
 
-fn bench_shl(c: &mut Criterion) {
-    let mut group = c.benchmark_group("left shift");
-
-    group.bench_function("shl_vartime, small, U2048", |b| {
+fn shl_benchmarks<const LIMBS: usize>(group: &mut BenchmarkGroup<WallTime>) {
+    group.bench_function(BenchmarkId::new("shl_vartime, small", LIMBS), |b| {
         b.iter_batched(
-            || U2048::ONE,
+            || Uint::<LIMBS>::ONE,
             |x| x.overflowing_shl_vartime(10),
             BatchSize::SmallInput,
         )
     });
-
-    group.bench_function("shl_vartime, large, U2048", |b| {
+    group.bench_function(BenchmarkId::new("shl_vartime, large", LIMBS), |b| {
         b.iter_batched(
-            || U2048::ONE,
-            |x| black_box(x.overflowing_shl_vartime(1024 + 10)),
+            || Uint::<LIMBS>::ONE,
+            |x| black_box(x.overflowing_shl_vartime(Uint::<LIMBS>::BITS/2 + 10)),
             BatchSize::SmallInput,
         )
     });
-
-    group.bench_function("shl_vartime_wide, large, U2048", |b| {
+    group.bench_function(BenchmarkId::new("shl_vartime_wide, large", LIMBS), |b| {
         b.iter_batched(
-            || (U2048::ONE, U2048::ONE),
-            |x| Uint::overflowing_shl_vartime_wide(x, 1024 + 10),
+            || (Uint::<LIMBS>::ONE, Uint::<LIMBS>::ONE),
+            |x| Uint::overflowing_shl_vartime_wide(x, Uint::<LIMBS>::BITS/2 + 10),
             BatchSize::SmallInput,
         )
     });
-
-    group.bench_function("shl, U2048", |b| {
+    group.bench_function(BenchmarkId::new("shl, small", LIMBS), |b| {
         b.iter_batched(
-            || U2048::ONE,
-            |x| x.overflowing_shl(1024 + 10),
+            || Uint::<LIMBS>::ONE,
+            |x| x.overflowing_shl( 10),
             BatchSize::SmallInput,
         )
     });
+    group.bench_function(BenchmarkId::new("shl, large", LIMBS), |b| {
+        b.iter_batched(
+            || Uint::<LIMBS>::ONE,
+            |x| x.overflowing_shl( Uint::<LIMBS>::BITS/2 + 10),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
+fn bench_shl(c: &mut Criterion) {
+    let mut group = c.benchmark_group("left shift");
+
+    shl_benchmarks::<{ U256::LIMBS }>(&mut group);
+    shl_benchmarks::<{ U512::LIMBS }>(&mut group);
+    shl_benchmarks::<{ U1024::LIMBS }>(&mut group);
+    shl_benchmarks::<{ U2048::LIMBS }>(&mut group);
+    shl_benchmarks::<{ U4096::LIMBS }>(&mut group);
+    shl_benchmarks::<{ U8192::LIMBS }>(&mut group);
+    shl_benchmarks::<{ U16384::LIMBS }>(&mut group);
 
     group.finish();
 }
 
-fn shr_benchmark<const LIMBS: usize>(group: &mut BenchmarkGroup<WallTime>) {
+fn shr_benchmarks<const LIMBS: usize>(group: &mut BenchmarkGroup<WallTime>) {
     group.bench_function(BenchmarkId::new("shr_vartime, small", LIMBS), |b| {
         b.iter_batched(
             || Uint::<LIMBS>::ONE,
@@ -414,13 +428,13 @@ fn shr_benchmark<const LIMBS: usize>(group: &mut BenchmarkGroup<WallTime>) {
 fn bench_shr(c: &mut Criterion) {
     let mut group = c.benchmark_group("right shift");
 
-    shr_benchmark::<{ U256::LIMBS }>(&mut group);
-    shr_benchmark::<{ U512::LIMBS }>(&mut group);
-    shr_benchmark::<{ U1024::LIMBS }>(&mut group);
-    shr_benchmark::<{ U2048::LIMBS }>(&mut group);
-    shr_benchmark::<{ U4096::LIMBS }>(&mut group);
-    shr_benchmark::<{ U8192::LIMBS }>(&mut group);
-    shr_benchmark::<{ U16384::LIMBS }>(&mut group);
+    shr_benchmarks::<{ U256::LIMBS }>(&mut group);
+    shr_benchmarks::<{ U512::LIMBS }>(&mut group);
+    shr_benchmarks::<{ U1024::LIMBS }>(&mut group);
+    shr_benchmarks::<{ U2048::LIMBS }>(&mut group);
+    shr_benchmarks::<{ U4096::LIMBS }>(&mut group);
+    shr_benchmarks::<{ U8192::LIMBS }>(&mut group);
+    shr_benchmarks::<{ U16384::LIMBS }>(&mut group);
 
     group.finish();
 }
