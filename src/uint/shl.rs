@@ -26,15 +26,17 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Returns `None` if `shift >= Self::BITS`.
     pub const fn overflowing_shl(&self, shift: u32) -> ConstCtOption<Self> {
         let (intra_limb_shift, limb_shift) = Self::decompose_shift(shift);
-        self.intra_limb_shl(intra_limb_shift)
+        self.intra_limb_carrying_shl(intra_limb_shift)
+            .0
             .full_limb_overflowing_shl(limb_shift)
     }
 
-    /// Computes `self << shift`, for `shift < Limb::BITS`.
+    /// Computes `self << shift`, for `shift < Limb::BITS`. Also returns a [Limb] containing the
+    /// `carry`.
     ///
     /// Panics if `shift >= Limb::BITS`.
     #[inline(always)]
-    const fn intra_limb_shl(&self, shift: u32) -> Self {
+    const fn intra_limb_carrying_shl(&self, shift: u32) -> (Self, Limb) {
         debug_assert!(shift < Limb::BITS);
 
         let (mut result, mut carry) = (*self, Limb::ZERO);
@@ -49,7 +51,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             i += 1;
         }
 
-        result
+        (result, carry)
     }
 
     /// Compute `self << (Limb::BITS * limb_shift)`, for `limb_shift < Self::LIMBS`.
@@ -111,7 +113,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         let mut shifted = Self { limbs };
         if rem != 0 {
-            shifted = shifted.intra_limb_shl(rem);
+            shifted = shifted.intra_limb_carrying_shl(rem).0;
         }
         ConstCtOption::some(shifted)
     }
@@ -204,21 +206,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         (Uint::<LIMBS>::new(limbs), Limb(carry))
     }
 
-    /// Computes `self << 1` in constant-time, returning [`ConstChoice::TRUE`]
-    /// if the most significant bit was set, and [`ConstChoice::FALSE`] otherwise.
+    /// Computes `self << 1` in constant-time, furthermore returning a [Limb] containing the
+    /// `carry`.
     #[inline(always)]
-    pub(crate) const fn overflowing_shl1(&self) -> (Self, Limb) {
-        let mut ret = Self::ZERO;
-        let mut i = 0;
-        let mut carry = Limb::ZERO;
-        while i < LIMBS {
-            let (shifted, new_carry) = self.limbs[i].shl1();
-            ret.limbs[i] = shifted.bitor(carry);
-            carry = new_carry;
-            i += 1;
-        }
-
-        (ret, carry)
+    pub(crate) const fn carrying_shl1(&self) -> (Self, Limb) {
+        self.intra_limb_carrying_shl(1)
     }
 }
 
@@ -302,7 +294,7 @@ mod tests {
     #[test]
     fn shl1() {
         assert_eq!(N << 1, TWO_N);
-        assert_eq!(N.overflowing_shl1(), (TWO_N, Limb::ONE));
+        assert_eq!(N.carrying_shl1(), (TWO_N, Limb::ONE));
     }
 
     #[test]
