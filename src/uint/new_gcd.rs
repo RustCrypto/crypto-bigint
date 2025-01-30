@@ -1,6 +1,6 @@
 //! This module implements (a constant variant of) the Optimized Extended Binary GCD algorithm,
 //! which is described by Pornin as Algorithm 2 in "Optimized Binary GCD for Modular Inversion".
-//! Ref: https://eprint.iacr.org/2020/972.pdf
+//! Ref: <https://eprint.iacr.org/2020/972.pdf>
 
 use crate::{ConstChoice, ConstCtOption, Int, Limb, NonZero, Odd, Uint, I64, U128};
 
