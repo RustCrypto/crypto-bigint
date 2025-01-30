@@ -2,7 +2,7 @@
 //! which is described by Pornin as Algorithm 2 in "Optimized Binary GCD for Modular Inversion".
 //! Ref: https://eprint.iacr.org/2020/972.pdf
 
-use crate::{ConstChoice, ConstCtOption, Int, Limb, Odd, Uint, I64, U128};
+use crate::{ConstChoice, ConstCtOption, Int, Limb, NonZero, Odd, Uint, I64, U128};
 
 struct ExtendedUint<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
     Uint<LIMBS>,
@@ -103,11 +103,14 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     /// Is `None` if the extension cannot be dropped, i.e., when there is a bit in the extension
     /// that does not equal the MSB in the base.
     #[inline]
-    pub const fn drop_extension(&self) -> ConstCtOption<Int<LIMBS>> {
-        let lo_is_negative = self.0.as_int().is_negative();
-        let proper_positive = Int::eq(&self.1.as_int(), &Int::ZERO).and(lo_is_negative.not());
-        let proper_negative = Int::eq(&self.1.as_int(), &Int::MINUS_ONE).and(lo_is_negative);
-        ConstCtOption::new(self.0.as_int(), proper_negative.or(proper_positive))
+    pub const fn abs_drop_extension(&self) -> ConstCtOption<Uint<LIMBS>> {
+        // should succeed when
+        // - extension is ZERO, or
+        // - extension is MAX, and the top bit in base is set.
+        let proper_positive = Int::eq(&self.1.as_int(), &Int::ZERO);
+        let proper_negative =
+            Int::eq(&self.1.as_int(), &Int::MINUS_ONE).and(self.0.as_int().is_negative());
+        ConstCtOption::new(self.abs().0, proper_negative.or(proper_positive))
     }
 
     /// Decompose `self` into is absolute value and signum.
@@ -118,6 +121,12 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
             self.wrapping_neg_if(is_negative).as_extended_uint(),
             is_negative,
         )
+    }
+
+    /// Decompose `self` into is absolute value and signum.
+    #[inline]
+    pub const fn abs(&self) -> ExtendedUint<LIMBS, EXTRA> {
+        self.abs_sgn().0
     }
 
     /// Divide self by `2^k`, rounding towards zero.
@@ -218,7 +227,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Assumes `iterations < Uint::<UPDATE_LIMBS>::BITS`.
     #[inline]
-    fn restricted_extended_gcd<const UPDATE_LIMBS: usize>(
+    const fn restricted_extended_gcd<const UPDATE_LIMBS: usize>(
         mut a: Uint<LIMBS>,
         mut b: Uint<LIMBS>,
         iterations: u32,
@@ -262,18 +271,41 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Compute the greatest common divisor of `self` and `rhs`.
-    pub fn new_gcd(&self, rhs: &Self) -> Self {
+    pub const fn new_gcd(&self, rhs: &Self) -> Self {
+        // Account for the case where rhs is zero
+        let rhs_is_zero = rhs.is_nonzero().not();
+        let rhs_ = Uint::select(rhs, &Uint::ONE, rhs_is_zero)
+            .to_nz()
+            .expect("rhs is non zero by construction");
+        let result = self.new_gcd_nonzero(&rhs_);
+        Uint::select(&result, self, rhs_is_zero)
+    }
+
+    /// Compute the greatest common divisor of `self` and `rhs`, where `rhs` is known to be nonzero.
+    const fn new_gcd_nonzero(&self, rhs: &NonZero<Self>) -> Self {
         // Leverage two GCD identity rules to make self and rhs odd.
         // 1) gcd(2a, 2b) = 2 * gcd(a, b)
         // 2) gcd(a, 2b) = gcd(a, b) if a is odd.
-        let i = self.trailing_zeros();
-        let j = rhs.trailing_zeros();
+        let i = self.is_nonzero().select_u32(0, self.trailing_zeros());
+        let j = rhs
+            .as_ref()
+            .is_nonzero()
+            .select_u32(0, rhs.as_ref().trailing_zeros());
         let k = const_min(i, j);
-        Self::new_odd_gcd(&self.shr(i), &rhs.shr(j).to_odd().unwrap()).shl(k)
+
+        Self::new_odd_gcd(
+            &self.shr(i),
+            &rhs.as_ref()
+                .shr(j)
+                .to_odd()
+                .expect("rhs is odd by construction"),
+        )
+        .shl(k)
     }
 
-    /// Compute the greatest common divisor of `self` and `rhs`.
-    pub fn new_odd_gcd(&self, rhs: &Odd<Self>) -> Self {
+    /// Compute the greatest common divisor of `self` and `rhs`, where `rhs` is known to be odd.
+    #[inline(always)]
+    const fn new_odd_gcd(&self, rhs: &Odd<Self>) -> Self {
         /// Window size.
         const K: u32 = 62;
         /// Smallest [Int] that fits a K-bit [Uint].
@@ -282,7 +314,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         type DoubleK = U128;
         debug_assert!(DoubleK::BITS >= 2 * K);
 
-        let (mut a, mut b) = (*self, rhs.get());
+        let (mut a, mut b) = (*self, *rhs.as_ref());
 
         let mut i = 0;
         while i < (2 * Self::BITS - 1).div_ceil(K) {
@@ -302,14 +334,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
             a = updated_a
                 .div_2k(used_increments)
-                .drop_extension()
-                .expect("top limb is zero")
-                .abs();
+                .abs_drop_extension()
+                .expect("extension is zero");
             b = updated_b
                 .div_2k(used_increments)
-                .drop_extension()
-                .expect("top limb is zero")
-                .abs();
+                .abs_drop_extension()
+                .expect("extension is zero");
         }
 
         b
@@ -326,7 +356,7 @@ mod tests {
         Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
     {
         let gcd = lhs.gcd(&rhs);
-        let bingcd = lhs.new_odd_gcd(&rhs.to_odd().unwrap());
+        let bingcd = lhs.new_gcd(&rhs);
         assert_eq!(gcd, bingcd);
     }
 
@@ -334,6 +364,17 @@ mod tests {
     where
         Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
     {
+        // some basic test
+        gcd_comparison_test(Uint::ZERO, Uint::ZERO);
+        gcd_comparison_test(Uint::ZERO, Uint::ONE);
+        gcd_comparison_test(Uint::ZERO, Uint::MAX);
+        gcd_comparison_test(Uint::ONE, Uint::ZERO);
+        gcd_comparison_test(Uint::ONE, Uint::ONE);
+        gcd_comparison_test(Uint::ONE, Uint::MAX);
+        gcd_comparison_test(Uint::MAX, Uint::ZERO);
+        gcd_comparison_test(Uint::MAX, Uint::ONE);
+        gcd_comparison_test(Uint::MAX, Uint::MAX);
+
         for _ in 0..500 {
             let x = Uint::<LIMBS>::random(&mut OsRng);
             let mut y = Uint::<LIMBS>::random(&mut OsRng);
