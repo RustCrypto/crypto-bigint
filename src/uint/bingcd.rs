@@ -70,7 +70,34 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         hi.shl_vartime(k - 1).bitxor(&lo)
     }
 
-    /// Constructs a matrix `M` s.t. for `(A, B) = M(a,b)` it holds that  
+    /// Computes `gcd(self, rhs)`, leveraging the Binary GCD algorithm.
+    /// Is efficient only for relatively small `LIMBS`.
+    #[inline]
+    const fn odd_bingcd_small(mut a: Uint<LIMBS>, b: &Odd<Uint<LIMBS>>) -> Uint<LIMBS> {
+        let mut b = *b.as_ref();
+        let mut j = 0;
+        while j < Uint::<LIMBS>::BITS {
+            j += 1;
+
+            let a_odd = a.is_odd();
+
+            // swap if a odd and a < b
+            let a_lt_b = Uint::lt(&a, &b);
+            let do_swap = a_odd.and(a_lt_b);
+            Uint::conditional_swap(&mut a, &mut b, do_swap);
+
+            // subtract b from a when a is odd
+            a = Uint::select(&a, &a.wrapping_sub(&b), a_odd);
+
+            // Div a by two when b ≠ 0, otherwise do nothing.
+            let do_apply = b.is_nonzero();
+            a = Uint::select(&a, &a.shr_vartime(1), do_apply);
+        }
+
+        b
+    }
+
+    /// Constructs a matrix `M` s.t. for `(A, B) = M(a,b)` it holds that
     /// - `gcd(A, B) = gcd(a, b)`, and
     /// - `A.bits() < a.bits()` and/or `B.bits() < b.bits()`.
     ///
