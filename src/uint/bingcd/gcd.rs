@@ -28,7 +28,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     #[inline(always)]
     pub const fn bingcd(&self, rhs: &Uint<LIMBS>) -> Uint<LIMBS> {
         // Todo: tweak this threshold
-        if LIMBS <= 16 {
+        if LIMBS < 8 {
             self.bingcd_small(rhs)
         } else {
             self.bingcd_large::<{ U64::BITS - 2 }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
