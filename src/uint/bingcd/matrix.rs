@@ -3,6 +3,7 @@ use crate::{ConstChoice, Int, Uint};
 
 type Vector<T> = (T, T);
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct IntMatrix<const LIMBS: usize> {
     m00: Int<LIMBS>,
     m01: Int<LIMBS>,
@@ -38,9 +39,9 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
         (a0.wrapping_add(&b0), a1.wrapping_add(&b1))
     }
 
-    /// Swap the columns of this matrix if `swap` is truthy. Otherwise, do nothing.
+    /// Swap the rows of this matrix if `swap` is truthy. Otherwise, do nothing.
     #[inline]
-    pub(crate) const fn conditional_swap_columns(&mut self, swap: ConstChoice) {
+    pub(crate) const fn conditional_swap_rows(&mut self, swap: ConstChoice) {
         Int::conditional_swap(&mut self.m00, &mut self.m10, swap);
         Int::conditional_swap(&mut self.m01, &mut self.m11, swap);
     }
@@ -57,5 +58,34 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
     pub(crate) const fn conditional_double_right_column(&mut self, double: ConstChoice) {
         self.m10 = Int::select(&self.m10, &self.m10.shl_vartime(1), double);
         self.m11 = Int::select(&self.m11, &self.m11.shl_vartime(1), double);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::uint::bingcd::matrix::IntMatrix;
+    use crate::{ConstChoice, Int};
+
+    #[test]
+    fn test_conditional_swap() {
+        let x = IntMatrix::<2>::new(
+            Int::from(1i32),
+            Int::from(2i32),
+            Int::from(3i32),
+            Int::from(4i32),
+        );
+        let mut y = x.clone();
+        y.conditional_swap_rows(ConstChoice::FALSE);
+        assert_eq!(y, x);
+        y.conditional_swap_rows(ConstChoice::TRUE);
+        assert_eq!(
+            y,
+            IntMatrix::new(
+                Int::from(3i32),
+                Int::from(4i32),
+                Int::from(1i32),
+                Int::from(2i32)
+            )
+        );
     }
 }

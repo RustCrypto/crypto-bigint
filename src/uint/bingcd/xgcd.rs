@@ -31,7 +31,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             // swap if a odd and a < b
             let do_swap = a_odd.and(a_lt_b);
             Uint::conditional_swap(&mut a, &mut b, do_swap);
-            matrix.conditional_swap_columns(do_swap);
+            matrix.conditional_swap_rows(do_swap);
 
             // subtract a from b when a is odd
             a = Uint::select(&a, &a.wrapping_sub(&b), a_odd);
