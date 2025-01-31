@@ -3,28 +3,10 @@
 //! Ref: <https://eprint.iacr.org/2020/972.pdf>
 
 use crate::{ConstChoice, I64, Int, NonZero, Odd, U128, Uint};
-use crate::uint::new_gcd::extension::ExtendedInt;
+use crate::uint::new_gcd::matrix::IntMatrix;
 
 mod extension;
-
-type Vector<T> = (T, T);
-struct IntMatrix<const LIMBS: usize, const DIM: usize>([[Int<LIMBS>; DIM]; DIM]);
-impl<const LIMBS: usize> IntMatrix<LIMBS, 2> {
-    /// Apply this matrix to a vector of [Uint]s, returning the result as a vector of
-    /// [ExtendedInt]s.
-    #[inline]
-    const fn extended_apply_to<const VEC_LIMBS: usize>(
-        &self,
-        vec: Vector<Uint<VEC_LIMBS>>,
-    ) -> Vector<ExtendedInt<VEC_LIMBS, LIMBS>> {
-        let (a, b) = vec;
-        let a00 = ExtendedInt::from_product(a, self.0[0][0]);
-        let a01 = ExtendedInt::from_product(a, self.0[0][1]);
-        let b10 = ExtendedInt::from_product(b, self.0[1][0]);
-        let b11 = ExtendedInt::from_product(b, self.0[1][1]);
-        (a00.wrapping_add(&b10), a01.wrapping_add(&b11))
-    }
-}
+mod matrix;
 
 /// `const` equivalent of `u32::max(a, b)`.
 const fn const_max(a: u32, b: u32) -> u32 {
@@ -137,7 +119,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             log_upper_bound = do_apply.select_u32(log_upper_bound, log_upper_bound + 1);
         }
 
-        (IntMatrix([[f00, f10], [f01, f11]]), log_upper_bound)
+        (IntMatrix::new(f00, f01, f10, f11), log_upper_bound)
     }
 
     /// Compute the greatest common divisor of `self` and `rhs`.
