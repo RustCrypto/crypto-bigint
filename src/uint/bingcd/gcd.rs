@@ -81,17 +81,17 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let b_ = b.compact::<LIMBS_2K>(n, K);
 
             // Compute the K-1 iteration update matrix from a_ and b_
-            let (matrix, used_increments) = Uint::restricted_extended_gcd::<LIMBS_K>(a_, b_, K - 1);
+            let (matrix, log_upper_bound) = Uint::restricted_extended_gcd::<LIMBS_K>(a_, b_, K - 1);
 
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = matrix.extended_apply_to((a, b));
 
             a = updated_a
-                .div_2k(used_increments)
+                .div_2k(log_upper_bound)
                 .abs_drop_extension()
                 .expect("extension is zero");
             b = updated_b
-                .div_2k(used_increments)
+                .div_2k(log_upper_bound)
                 .abs_drop_extension()
                 .expect("extension is zero");
         }
