@@ -39,6 +39,25 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
         (a0.wrapping_add(&b0), a1.wrapping_add(&b1))
     }
 
+    /// Apply this matrix to `rhs`. Panics if a multiplication overflows.
+    /// TODO: consider implementing (a variation to) Strassen. Doing so will save a multiplication.
+    #[inline]
+    const fn checked_mul<const RHS_LIMBS: usize>(&self, rhs: &IntMatrix<RHS_LIMBS>) -> Self {
+        let a0 = self.m00.const_checked_mul(&rhs.m00).expect("no overflow");
+        let a1 = self.m01.const_checked_mul(&rhs.m10).expect("no overflow");
+        let a = a0.checked_add(&a1).expect("no overflow");
+        let b0 = self.m00.const_checked_mul(&rhs.m01).expect("no overflow");
+        let b1 = self.m01.const_checked_mul(&rhs.m11).expect("no overflow");
+        let b = b0.checked_add(&b1).expect("no overflow");
+        let c0 = self.m10.const_checked_mul(&rhs.m00).expect("no overflow");
+        let c1 = self.m11.const_checked_mul(&rhs.m10).expect("no overflow");
+        let c = c0.checked_add(&c1).expect("no overflow");
+        let d0 = self.m10.const_checked_mul(&rhs.m01).expect("no overflow");
+        let d1 = self.m11.const_checked_mul(&rhs.m11).expect("no overflow");
+        let d = d0.checked_add(&d1).expect("no overflow");
+        IntMatrix::new(a, b, c, d)
+    }
+
     /// Swap the rows of this matrix if `swap` is truthy. Otherwise, do nothing.
     #[inline]
     pub(crate) const fn conditional_swap_rows(&mut self, swap: ConstChoice) {
@@ -64,7 +83,7 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
 #[cfg(test)]
 mod tests {
     use crate::uint::bingcd::matrix::IntMatrix;
-    use crate::{ConstChoice, Int, U256};
+    use crate::{ConstChoice, I256, Int, U256};
 
     const X: IntMatrix<{ U256::LIMBS }> = IntMatrix::new(
         Int::from_i64(1i64),
@@ -122,5 +141,16 @@ mod tests {
                 Int::from(53i32),
             )
         );
+    }
+
+    #[test]
+    fn test_checked_mul() {
+        let res = X.checked_mul(&X);
+        assert_eq!(res, IntMatrix::new(
+            I256::from_i64(162i64),
+            I256::from_i64(378i64),
+            I256::from_i64(1242i64),
+            I256::from_i64(2970i64),
+        ))
     }
 }
