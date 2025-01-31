@@ -4,7 +4,7 @@ use core::ops::{Mul, MulAssign};
 
 use subtle::CtOption;
 
-use crate::{Checked, CheckedMul, ConcatMixed, ConstChoice, ConstCtOption, Int, Uint, Zero};
+use crate::{Checked, CheckedMul, ConcatMixed, ConstChoice, ConstCtOption, Int, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute "wide" multiplication as a 3-tuple `(lo, hi, negate)`.
@@ -49,6 +49,16 @@ impl<const LIMBS: usize> Int<LIMBS> {
         // always fits
         Int::from_bits(product_abs.wrapping_neg_if(product_sign))
     }
+
+    /// Multiply `self` with `rhs`, returning a [ConstCtOption] that `is_some` only if the result
+    /// fits in an `Int<LIMBS>`.
+    pub(crate) const fn const_checked_mul<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Int<RHS_LIMBS>,
+    ) -> ConstCtOption<Int<LIMBS>> {
+        let (lo, hi, is_negative) = self.split_mul(rhs);
+        Self::new_from_abs_sign(lo, is_negative).and_choice(hi.is_nonzero().not())
+    }
 }
 
 /// Squaring operations.
@@ -80,9 +90,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Int<RHS_LIMBS>> for Int<LIMBS> {
     #[inline]
     fn checked_mul(&self, rhs: &Int<RHS_LIMBS>) -> CtOption<Self> {
-        let (lo, hi, is_negative) = self.split_mul(rhs);
-        let val = Self::new_from_abs_sign(lo, is_negative);
-        CtOption::from(val).and_then(|int| CtOption::new(int, hi.is_zero()))
+        Self::const_checked_mul(self, rhs).into()
     }
 }
 
@@ -114,7 +122,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Int<RHS_LIMBS>> for &Int<L
     type Output = Int<LIMBS>;
 
     fn mul(self, rhs: &Int<RHS_LIMBS>) -> Self::Output {
-        self.checked_mul(rhs)
+        self.const_checked_mul(rhs)
             .expect("attempted to multiply with overflow")
     }
 }
