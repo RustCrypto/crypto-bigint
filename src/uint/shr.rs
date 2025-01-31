@@ -25,22 +25,61 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Returns `None` if `shift >= Self::BITS`.
     pub const fn overflowing_shr(&self, shift: u32) -> ConstCtOption<Self> {
-        // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
-        // (which lies in range `0 <= shift < BITS`).
-        let shift_bits = u32::BITS - (Self::BITS - 1).leading_zeros();
-        let overflow = ConstChoice::from_u32_lt(shift, Self::BITS).not();
-        let shift = shift % Self::BITS;
+        let (intra_limb_shift, limb_shift) = Self::decompose_shift(shift);
+        self.intra_limb_carrying_shr(intra_limb_shift)
+            .0
+            .full_limb_overflowing_shr(limb_shift)
+    }
+
+    /// Computes `self >> shift` for `shift < Limb::BITS`. Also returns a [Limb] containing the
+    /// `carry`.
+    ///
+    /// Panics if `shift >= Limb::BITS`.
+    #[inline(always)]
+    const fn intra_limb_carrying_shr(&self, shift: u32) -> (Self, Limb) {
+        debug_assert!(shift < Limb::BITS);
+
+        let (mut result, mut carry) = (*self, Limb::ZERO);
+
+        let limbs = result.as_limbs_mut();
+        let mut i = limbs.len();
+        while i > 0 {
+            i -= 1;
+            let (shifted, new_carry) = limbs[i].carrying_shr(shift);
+            limbs[i] = shifted.bitxor(carry);
+            carry = new_carry;
+        }
+
+        (result, carry)
+    }
+
+    /// Compute `self >> (Limb::BITS * limb_shift)`, for `limb_shift < Self::LIMBS`.
+    /// In other words, shift `self` right by `limb_shift` full limbs.
+    ///
+    /// Returns `None` if `limb_shift >= Self::LIMBS`.
+    #[inline]
+    pub const fn full_limb_overflowing_shr(&self, limb_shift: u32) -> ConstCtOption<Self> {
+        let shift_bits = u32::BITS - (LIMBS as u32 - 1).leading_zeros();
+        let overflow = ConstChoice::from_u32_lt(limb_shift, LIMBS as u32).not();
+        let limb_shift = limb_shift % LIMBS as u32;
+
         let mut result = *self;
         let mut i = 0;
         while i < shift_bits {
-            let bit = ConstChoice::from_u32_lsb((shift >> i) & 1);
-            result = Uint::select(
-                &result,
-                &result
-                    .overflowing_shr_vartime(1 << i)
-                    .expect("shift within range"),
-                bit,
-            );
+            let bit = ConstChoice::from_u32_lsb((limb_shift >> i) & 1);
+
+            let mut j = 0;
+            let limbs = result.as_limbs_mut();
+            let offset = 1 << i;
+            while j < Self::LIMBS.saturating_sub(offset) {
+                limbs[j] = Limb::select(limbs[j], limbs[j + offset], bit);
+                j += 1;
+            }
+            while j < Self::LIMBS {
+                limbs[j] = Limb::select(limbs[j], Limb::ZERO, bit);
+                j += 1;
+            }
+
             i += 1;
         }
 
@@ -63,30 +102,19 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             return ConstCtOption::none(Self::ZERO);
         }
 
-        let shift_num = (shift / Limb::BITS) as usize;
-        let rem = shift % Limb::BITS;
-
+        let (rem, shift_num) = Self::decompose_shift(shift);
+        let shift_num = shift_num as usize;
         let mut i = 0;
         while i < LIMBS - shift_num {
             limbs[i] = self.limbs[i + shift_num];
             i += 1;
         }
 
-        if rem == 0 {
-            return ConstCtOption::some(Self { limbs });
+        let mut shifted = Self { limbs };
+        if rem != 0 {
+            shifted = shifted.intra_limb_carrying_shr(rem).0;
         }
-
-        let mut carry = Limb::ZERO;
-
-        while i > 0 {
-            i -= 1;
-            let shifted = limbs[i].shr(rem);
-            let new_carry = limbs[i].shl(Limb::BITS - rem);
-            limbs[i] = shifted.bitor(carry);
-            carry = new_carry;
-        }
-
-        ConstCtOption::some(Self { limbs })
+        ConstCtOption::some(shifted)
     }
 
     /// Computes a right shift on a wide input as `(lo, hi)`.
@@ -145,16 +173,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// if the least significant bit was set, and [`ConstChoice::FALSE`] otherwise.
     #[inline(always)]
     pub(crate) const fn shr1_with_carry(&self) -> (Self, ConstChoice) {
-        let mut ret = Self::ZERO;
-        let mut i = LIMBS;
-        let mut carry = Limb::ZERO;
-        while i > 0 {
-            i -= 1;
-            let (shifted, new_carry) = self.limbs[i].shr1();
-            ret.limbs[i] = shifted.bitor(carry);
-            carry = new_carry;
-        }
-
+        let (ret, carry) = self.intra_limb_carrying_shr(1);
         (ret, ConstChoice::from_word_lsb(carry.0 >> Limb::HI_BIT))
     }
 }

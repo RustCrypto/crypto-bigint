@@ -38,7 +38,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Assumes `self` as unbounded integer is `< p`.
     pub const fn double_mod(&self, p: &Self) -> Self {
-        let (w, carry) = self.overflowing_shl1();
+        let (w, carry) = self.carrying_shl1();
 
         // Attempt to subtract the modulus, to ensure the result is in the field.
         let (w, borrow) = w.sbb(p, Limb::ZERO);
