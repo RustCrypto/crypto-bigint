@@ -5,7 +5,7 @@ use criterion::{
 use crypto_bigint::modular::SafeGcdInverter;
 use crypto_bigint::{
     Gcd, Limb, NonZero, Odd, PrecomputeInverter, Random, RandomBits, RandomMod, Reciprocal, Uint,
-    U1024, U128, U16384, U2048, U256, U4096, U512, U8192,
+    U1024, U128, U16384, U192, U2048, U256, U4096, U512, U64, U8192,
 };
 use rand_chacha::ChaCha8Rng;
 use rand_core::{OsRng, RngCore, SeedableRng};
@@ -312,17 +312,17 @@ fn gcd_bench<const LIMBS: usize, const UNSAT_LIMBS: usize>(
 ) where
     Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
 {
-    g.bench_function(BenchmarkId::new("gcd (vt)", LIMBS), |b| {
-        b.iter_batched(
-            || {
-                let f = Uint::<LIMBS>::random(&mut OsRng);
-                let g = Uint::<LIMBS>::random(&mut OsRng);
-                (f, g)
-            },
-            |(f, g)| black_box(Uint::gcd_vartime(&f, &g)),
-            BatchSize::SmallInput,
-        )
-    });
+    // g.bench_function(BenchmarkId::new("gcd (vt)", LIMBS), |b| {
+    //     b.iter_batched(
+    //         || {
+    //             let f = Uint::<LIMBS>::random(&mut OsRng);
+    //             let g = Uint::<LIMBS>::random(&mut OsRng);
+    //             (f, g)
+    //         },
+    //         |(f, g)| black_box(Uint::gcd_vartime(&f, &g)),
+    //         BatchSize::SmallInput,
+    //     )
+    // });
 
     g.bench_function(BenchmarkId::new("gcd (ct)", LIMBS), |b| {
         b.iter_batched(
@@ -352,7 +352,9 @@ fn gcd_bench<const LIMBS: usize, const UNSAT_LIMBS: usize>(
 fn bench_gcd(c: &mut Criterion) {
     let mut group = c.benchmark_group("greatest common divisor");
 
+    gcd_bench(&mut group, U64::ZERO);
     gcd_bench(&mut group, U128::ZERO);
+    gcd_bench(&mut group, U192::ZERO);
     gcd_bench(&mut group, U256::ZERO);
     gcd_bench(&mut group, U512::ZERO);
     gcd_bench(&mut group, U1024::ZERO);
