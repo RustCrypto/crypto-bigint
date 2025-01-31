@@ -336,14 +336,14 @@ fn gcd_bench<const LIMBS: usize, const UNSAT_LIMBS: usize>(
         )
     });
 
-    g.bench_function(BenchmarkId::new("new_gcd (ct)", LIMBS), |b| {
+    g.bench_function(BenchmarkId::new("bingcd (ct)", LIMBS), |b| {
         b.iter_batched(
             || {
                 let f = Uint::<LIMBS>::random(&mut OsRng);
                 let g = Uint::<LIMBS>::random(&mut OsRng);
                 (f, g)
             },
-            |(f, g)| black_box(Uint::new_gcd(&f, &g)),
+            |(f, g)| black_box(Uint::bingcd(&f, &g)),
             BatchSize::SmallInput,
         )
     });

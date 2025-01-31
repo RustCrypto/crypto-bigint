@@ -2,8 +2,8 @@
 //! which is described by Pornin as Algorithm 2 in "Optimized Binary GCD for Modular Inversion".
 //! Ref: <https://eprint.iacr.org/2020/972.pdf>
 
-use crate::{ConstChoice, I64, Int, NonZero, Odd, U128, Uint};
-use crate::uint::new_gcd::matrix::IntMatrix;
+use crate::uint::bingcd::matrix::IntMatrix;
+use crate::{ConstChoice, Int, NonZero, Odd, Uint, I64, U128};
 
 mod extension;
 mod matrix;
@@ -123,18 +123,18 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Compute the greatest common divisor of `self` and `rhs`.
-    pub const fn new_gcd(&self, rhs: &Self) -> Self {
+    pub const fn bingcd(&self, rhs: &Self) -> Self {
         // Account for the case where rhs is zero
         let rhs_is_zero = rhs.is_nonzero().not();
         let rhs_ = Uint::select(rhs, &Uint::ONE, rhs_is_zero)
             .to_nz()
             .expect("rhs is non zero by construction");
-        let result = self.new_gcd_nonzero(&rhs_);
+        let result = self.bingcd_nonzero(&rhs_);
         Uint::select(&result, self, rhs_is_zero)
     }
 
     /// Compute the greatest common divisor of `self` and `rhs`, where `rhs` is known to be nonzero.
-    const fn new_gcd_nonzero(&self, rhs: &NonZero<Self>) -> Self {
+    const fn bingcd_nonzero(&self, rhs: &NonZero<Self>) -> Self {
         // Leverage two GCD identity rules to make self and rhs odd.
         // 1) gcd(2a, 2b) = 2 * gcd(a, b)
         // 2) gcd(a, 2b) = gcd(a, b) if a is odd.
@@ -145,7 +145,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             .select_u32(0, rhs.as_ref().trailing_zeros());
         let k = min(i, j);
 
-        Self::new_odd_gcd(
+        Self::odd_bingcd(
             &self.shr(i),
             &rhs.as_ref()
                 .shr(j)
@@ -157,7 +157,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Compute the greatest common divisor of `self` and `rhs`, where `rhs` is known to be odd.
     #[inline(always)]
-    const fn new_odd_gcd(&self, rhs: &Odd<Self>) -> Self {
+    const fn odd_bingcd(&self, rhs: &Odd<Self>) -> Self {
         /// Window size.
         const K: u32 = 62;
         /// Smallest [Int] that fits a K-bit [Uint].
@@ -202,14 +202,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 mod tests {
     use rand_core::OsRng;
 
-    use crate::{Gcd, Random, U1024, U16384, U2048, U256, U4096, U512, U8192, Uint};
+    use crate::{Gcd, Random, Uint, U1024, U16384, U2048, U256, U4096, U512, U8192};
 
     fn gcd_comparison_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
     where
         Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
     {
         let gcd = lhs.gcd(&rhs);
-        let bingcd = lhs.new_gcd(&rhs);
+        let bingcd = lhs.bingcd(&rhs);
         assert_eq!(gcd, bingcd);
     }
 

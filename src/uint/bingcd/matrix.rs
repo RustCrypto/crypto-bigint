@@ -1,13 +1,17 @@
+use crate::uint::bingcd::extension::ExtendedInt;
 use crate::{Int, Uint};
-use crate::uint::new_gcd::extension::ExtendedInt;
 
 type Vector<T> = (T, T);
 
 pub(crate) struct IntMatrix<const LIMBS: usize, const DIM: usize>([[Int<LIMBS>; DIM]; DIM]);
 
 impl<const LIMBS: usize> IntMatrix<LIMBS, 2> {
-
-    pub(crate) const fn new(m00: Int<LIMBS>, m01: Int<LIMBS>, m10: Int<LIMBS>, m11: Int<LIMBS>) -> Self {
+    pub(crate) const fn new(
+        m00: Int<LIMBS>,
+        m01: Int<LIMBS>,
+        m10: Int<LIMBS>,
+        m11: Int<LIMBS>,
+    ) -> Self {
         Self([[m00, m10], [m01, m11]])
     }
 
