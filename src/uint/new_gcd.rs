@@ -9,12 +9,12 @@ mod extension;
 mod matrix;
 
 /// `const` equivalent of `u32::max(a, b)`.
-const fn const_max(a: u32, b: u32) -> u32 {
+const fn max(a: u32, b: u32) -> u32 {
     ConstChoice::from_u32_lt(a, b).select_u32(a, b)
 }
 
 /// `const` equivalent of `u32::min(a, b)`.
-const fn const_min(a: u32, b: u32) -> u32 {
+const fn min(a: u32, b: u32) -> u32 {
     ConstChoice::from_u32_lt(a, b).select_u32(b, a)
 }
 
@@ -143,7 +143,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             .as_ref()
             .is_nonzero()
             .select_u32(0, rhs.as_ref().trailing_zeros());
-        let k = const_min(i, j);
+        let k = min(i, j);
 
         Self::new_odd_gcd(
             &self.shr(i),
@@ -172,7 +172,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             i += 1;
 
             // Construct a_ and b_ as the summary of a and b, respectively.
-            let n = const_max(2 * K, const_max(a.bits(), b.bits()));
+            let n = max(2 * K, max(a.bits(), b.bits()));
             let a_: DoubleK = a.compact(n, K);
             let b_: DoubleK = b.compact(n, K);
 
