@@ -2,7 +2,7 @@
 
 use super::{Uint, Word};
 use crate::{Encoding, Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod, Zero};
-use rand_core::RngCore;
+use rand_core::{RngCore, TryRngCore};
 use subtle::ConstantTimeLess;
 
 impl<const LIMBS: usize> Random for Uint<LIMBS> {
@@ -20,11 +20,11 @@ impl<const LIMBS: usize> Random for Uint<LIMBS> {
 /// Fill the given limbs slice with random bits.
 ///
 /// NOTE: Assumes that the limbs in the given slice are zeroed!
-pub(crate) fn random_bits_core(
-    rng: &mut impl RngCore,
+pub(crate) fn random_bits_core<R: TryRngCore>(
+    rng: &mut R,
     zeroed_limbs: &mut [Limb],
     bit_length: u32,
-) -> Result<(), RandomBitsError> {
+) -> Result<(), RandomBitsError<R::Error>> {
     if bit_length == 0 {
         return Ok(());
     }
@@ -50,15 +50,15 @@ pub(crate) fn random_bits_core(
 }
 
 impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
-    fn try_random_bits(rng: &mut impl RngCore, bit_length: u32) -> Result<Self, RandomBitsError> {
+    fn try_random_bits<R: TryRngCore>(rng: &mut R, bit_length: u32) -> Result<Self, RandomBitsError<R::Error>> {
         Self::try_random_bits_with_precision(rng, bit_length, Self::BITS)
     }
 
-    fn try_random_bits_with_precision(
-        rng: &mut impl RngCore,
+    fn try_random_bits_with_precision<R: TryRngCore>(
+        rng: &mut R,
         bit_length: u32,
         bits_precision: u32,
-    ) -> Result<Self, RandomBitsError> {
+    ) -> Result<Self, RandomBitsError<R::Error>> {
         if bits_precision != Self::BITS {
             return Err(RandomBitsError::BitsPrecisionMismatch {
                 bits_precision,
@@ -78,7 +78,7 @@ impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
-    fn random_mod(rng: &mut impl RngCore, modulus: &NonZero<Self>) -> Self {
+    fn random_mod(rng: &mut (impl TryRngCore + RngCore), modulus: &NonZero<Self>) -> Self {
         let mut n = Self::ZERO;
         random_mod_core(rng, &mut n, modulus, modulus.bits_vartime());
         n
@@ -88,7 +88,7 @@ impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
 /// Generic implementation of `random_mod` which can be shared with `BoxedUint`.
 // TODO(tarcieri): obtain `n_bits` via a trait like `Integer`
 pub(super) fn random_mod_core<T>(
-    rng: &mut impl RngCore,
+    rng: &mut (impl TryRngCore + RngCore),
     n: &mut T,
     modulus: &NonZero<T>,
     n_bits: u32,
