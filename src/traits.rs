@@ -20,7 +20,7 @@ use subtle::{
 };
 
 #[cfg(feature = "rand_core")]
-use rand_core::{TryRngCore, RngCore};
+use rand_core::{RngCore, TryRngCore};
 
 /// Integers whose representation takes a bounded amount of space.
 pub trait Bounded {
@@ -326,7 +326,10 @@ pub enum RandomBitsError<T> {
 }
 
 #[cfg(feature = "rand_core")]
-impl<T> fmt::Display for RandomBitsError<T> where T: fmt::Display {
+impl<T> fmt::Display for RandomBitsError<T>
+where
+    T: fmt::Display,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::RandCore(err) => write!(f, "{}", err),
@@ -354,7 +357,7 @@ impl<T> fmt::Display for RandomBitsError<T> where T: fmt::Display {
 }
 
 #[cfg(feature = "rand_core")]
-impl<T> core::error::Error for RandomBitsError<T> where T: Debug + fmt::Display  {}
+impl<T> core::error::Error for RandomBitsError<T> where T: Debug + fmt::Display {}
 
 /// Random bits generation support.
 #[cfg(feature = "rand_core")]
@@ -371,7 +374,10 @@ pub trait RandomBits: Sized {
     /// This method is variable time wrt `bit_length`.
     ///
     /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
-    fn try_random_bits<R: TryRngCore>(rng: &mut R, bit_length: u32) -> Result<Self, RandomBitsError<R::Error>>;
+    fn try_random_bits<R: TryRngCore>(
+        rng: &mut R,
+        bit_length: u32,
+    ) -> Result<Self, RandomBitsError<R::Error>>;
 
     /// Generate a random value in range `[0, 2^bit_length)`,
     /// returning an integer with the closest available size to `bits_precision`

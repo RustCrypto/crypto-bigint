@@ -50,7 +50,10 @@ pub(crate) fn random_bits_core<R: TryRngCore>(
 }
 
 impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
-    fn try_random_bits<R: TryRngCore>(rng: &mut R, bit_length: u32) -> Result<Self, RandomBitsError<R::Error>> {
+    fn try_random_bits<R: TryRngCore>(
+        rng: &mut R,
+        bit_length: u32,
+    ) -> Result<Self, RandomBitsError<R::Error>> {
         Self::try_random_bits_with_precision(rng, bit_length, Self::BITS)
     }
 

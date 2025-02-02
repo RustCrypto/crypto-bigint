@@ -5,10 +5,13 @@ use crate::{
     uint::rand::{random_bits_core, random_mod_core},
     NonZero, RandomBits, RandomBitsError, RandomMod,
 };
-use rand_core::{TryRngCore, RngCore};
+use rand_core::{RngCore, TryRngCore};
 
 impl RandomBits for BoxedUint {
-    fn try_random_bits<R: TryRngCore>(rng: &mut R, bit_length: u32) -> Result<Self, RandomBitsError<R::Error>> {
+    fn try_random_bits<R: TryRngCore>(
+        rng: &mut R,
+        bit_length: u32,
+    ) -> Result<Self, RandomBitsError<R::Error>> {
         Self::try_random_bits_with_precision(rng, bit_length, bit_length)
     }
 
