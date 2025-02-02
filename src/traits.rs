@@ -20,7 +20,7 @@ use subtle::{
 };
 
 #[cfg(feature = "rand_core")]
-use rand_core::RngCore;
+use rand_core::{RngCore, TryRngCore};
 
 /// Integers whose representation takes a bounded amount of space.
 pub trait Bounded {
@@ -299,15 +299,15 @@ pub trait Random: Sized {
     /// Generate a random value.
     ///
     /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
-    fn random(rng: &mut (impl RngCore + ?Sized)) -> Self;
+    fn random<R: RngCore + ?Sized>(rng: &mut R) -> Self;
 }
 
 /// Possible errors of the methods in [`RandomBits`] trait.
 #[cfg(feature = "rand_core")]
 #[derive(Debug)]
-pub enum RandomBitsError {
+pub enum RandomBitsError<T> {
     /// An error of the internal RNG library.
-    RandCore(rand_core::Error),
+    RandCore(T),
     /// The requested `bits_precision` does not match the size of the integer
     /// corresponding to the type (in the cases where this is set in compile time).
     BitsPrecisionMismatch {
@@ -326,7 +326,10 @@ pub enum RandomBitsError {
 }
 
 #[cfg(feature = "rand_core")]
-impl fmt::Display for RandomBitsError {
+impl<T> fmt::Display for RandomBitsError<T>
+where
+    T: fmt::Display,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::RandCore(err) => write!(f, "{}", err),
@@ -354,7 +357,7 @@ impl fmt::Display for RandomBitsError {
 }
 
 #[cfg(feature = "rand_core")]
-impl core::error::Error for RandomBitsError {}
+impl<T> core::error::Error for RandomBitsError<T> where T: Debug + fmt::Display {}
 
 /// Random bits generation support.
 #[cfg(feature = "rand_core")]
@@ -362,7 +365,7 @@ pub trait RandomBits: Sized {
     /// Generate a random value in range `[0, 2^bit_length)`.
     ///
     /// A wrapper for [`RandomBits::try_random_bits`] that panics on error.
-    fn random_bits(rng: &mut (impl RngCore + ?Sized), bit_length: u32) -> Self {
+    fn random_bits<R: TryRngCore + ?Sized>(rng: &mut R, bit_length: u32) -> Self {
         Self::try_random_bits(rng, bit_length).expect("try_random_bits() failed")
     }
 
@@ -371,18 +374,18 @@ pub trait RandomBits: Sized {
     /// This method is variable time wrt `bit_length`.
     ///
     /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
-    fn try_random_bits(
-        rng: &mut (impl RngCore + ?Sized),
+    fn try_random_bits<R: TryRngCore + ?Sized>(
+        rng: &mut R,
         bit_length: u32,
-    ) -> Result<Self, RandomBitsError>;
+    ) -> Result<Self, RandomBitsError<R::Error>>;
 
     /// Generate a random value in range `[0, 2^bit_length)`,
     /// returning an integer with the closest available size to `bits_precision`
     /// (if the implementing type supports runtime sizing).
     ///
     /// A wrapper for [`RandomBits::try_random_bits_with_precision`] that panics on error.
-    fn random_bits_with_precision(
-        rng: &mut (impl RngCore + ?Sized),
+    fn random_bits_with_precision<R: TryRngCore + ?Sized>(
+        rng: &mut R,
         bit_length: u32,
         bits_precision: u32,
     ) -> Self {
@@ -397,11 +400,11 @@ pub trait RandomBits: Sized {
     /// This method is variable time wrt `bit_length`.
     ///
     /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
-    fn try_random_bits_with_precision(
-        rng: &mut (impl RngCore + ?Sized),
+    fn try_random_bits_with_precision<R: TryRngCore + ?Sized>(
+        rng: &mut R,
         bit_length: u32,
         bits_precision: u32,
-    ) -> Result<Self, RandomBitsError>;
+    ) -> Result<Self, RandomBitsError<R::Error>>;
 }
 
 /// Modular random number generation support.
@@ -416,7 +419,7 @@ pub trait RandomMod: Sized + Zero {
     /// example, it implements `CryptoRng`), then this is guaranteed not to
     /// leak anything about the output value aside from it being less than
     /// `modulus`.
-    fn random_mod(rng: &mut (impl RngCore + ?Sized), modulus: &NonZero<Self>) -> Self;
+    fn random_mod<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self;
 }
 
 /// Compute `self + rhs mod p`.

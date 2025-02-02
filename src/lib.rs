@@ -123,9 +123,14 @@
 //! ```
 //! # #[cfg(feature = "rand")]
 //! # {
-//! use crypto_bigint::{Random, U256, rand_core::OsRng};
+//! # use rand_chacha::ChaCha8Rng;
+//! # use rand_core::SeedableRng;
+//! # fn rng() -> ChaCha8Rng {
+//! #     ChaCha8Rng::from_seed(*b"01234567890123456789012345678901")
+//! # }
+//! use crypto_bigint::{Random, U256};
 //!
-//! let n = U256::random(&mut OsRng);
+//! let n = U256::random(&mut rng());
 //! # }
 //! ```
 //!
@@ -137,10 +142,15 @@
 //! ```
 //! # #[cfg(feature = "rand")]
 //! # {
-//! use crypto_bigint::{NonZero, RandomMod, U256, rand_core::OsRng};
+//! # use rand_chacha::ChaCha8Rng;
+//! # use rand_core::SeedableRng;
+//! # fn rng() -> ChaCha8Rng {
+//! #     ChaCha8Rng::from_seed(*b"01234567890123456789012345678901")
+//! # }
+//! use crypto_bigint::{NonZero, RandomMod, U256};
 //!
 //! let modulus = NonZero::new(U256::from(3u8)).unwrap();
-//! let n = U256::random_mod(&mut OsRng, &modulus);
+//! let n = U256::random_mod(&mut rng(), &modulus);
 //! # }
 //! ```
 //!

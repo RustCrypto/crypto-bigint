@@ -11,7 +11,7 @@ use crate::BoxedUint;
 use {crate::Random, rand_core::RngCore};
 
 #[cfg(all(feature = "alloc", feature = "rand_core"))]
-use crate::RandomBits;
+use {crate::RandomBits, rand_core::TryRngCore};
 
 #[cfg(feature = "serde")]
 use crate::Zero;
@@ -153,7 +153,7 @@ impl PartialOrd<Odd<BoxedUint>> for BoxedUint {
 #[cfg(feature = "rand_core")]
 impl<const LIMBS: usize> Random for Odd<Uint<LIMBS>> {
     /// Generate a random `Odd<Uint<T>>`.
-    fn random(rng: &mut (impl RngCore + ?Sized)) -> Self {
+    fn random<R: RngCore + ?Sized>(rng: &mut R) -> Self {
         let mut ret = Uint::random(rng);
         ret.limbs[0] |= Limb::ONE;
         Odd(ret)
@@ -163,7 +163,7 @@ impl<const LIMBS: usize> Random for Odd<Uint<LIMBS>> {
 #[cfg(all(feature = "alloc", feature = "rand_core"))]
 impl Odd<BoxedUint> {
     /// Generate a random `Odd<Uint<T>>`.
-    pub fn random(rng: &mut (impl RngCore + ?Sized), bit_length: u32) -> Self {
+    pub fn random<R: TryRngCore + ?Sized>(rng: &mut R, bit_length: u32) -> Self {
         let mut ret = BoxedUint::random_bits(rng, bit_length);
         ret.limbs[0] |= Limb::ONE;
         Odd(ret)

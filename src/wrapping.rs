@@ -259,7 +259,7 @@ impl<T: fmt::UpperHex> fmt::UpperHex for Wrapping<T> {
 
 #[cfg(feature = "rand_core")]
 impl<T: Random> Random for Wrapping<T> {
-    fn random(rng: &mut (impl RngCore + ?Sized)) -> Self {
+    fn random<R: RngCore + ?Sized>(rng: &mut R) -> Self {
         Wrapping(Random::random(rng))
     }
 }

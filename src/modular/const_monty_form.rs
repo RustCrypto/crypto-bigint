@@ -207,7 +207,7 @@ where
     MOD: ConstMontyParams<LIMBS>,
 {
     #[inline]
-    fn random(rng: &mut (impl RngCore + ?Sized)) -> Self {
+    fn random<R: RngCore + ?Sized>(rng: &mut R) -> Self {
         Self::new(&Uint::random_mod(rng, MOD::MODULUS.as_nz_ref()))
     }
 }

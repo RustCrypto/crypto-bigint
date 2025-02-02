@@ -4,7 +4,7 @@ use crypto_bigint::{
     U4096, U512,
 };
 use rand_chacha::ChaCha8Rng;
-use rand_core::{OsRng, RngCore, SeedableRng};
+use rand_core::{RngCore, SeedableRng};
 
 fn make_rng() -> ChaCha8Rng {
     ChaCha8Rng::from_seed(*b"01234567890123456789012345678901")
@@ -124,9 +124,10 @@ fn bench_random(c: &mut Criterion) {
 fn bench_mul(c: &mut Criterion) {
     let mut group = c.benchmark_group("wrapping ops");
 
+    let mut rng = make_rng();
     group.bench_function("split_mul, U256xU256", |b| {
         b.iter_batched(
-            || (U256::random(&mut OsRng), U256::random(&mut OsRng)),
+            || (U256::random(&mut rng), U256::random(&mut rng)),
             |(x, y)| black_box(x.split_mul(&y)),
             BatchSize::SmallInput,
         )
@@ -134,7 +135,7 @@ fn bench_mul(c: &mut Criterion) {
 
     group.bench_function("split_mul, U4096xU4096", |b| {
         b.iter_batched(
-            || (U4096::random(&mut OsRng), U4096::random(&mut OsRng)),
+            || (U4096::random(&mut rng), U4096::random(&mut rng)),
             |(x, y)| black_box(x.split_mul(&y)),
             BatchSize::SmallInput,
         )
@@ -142,7 +143,7 @@ fn bench_mul(c: &mut Criterion) {
 
     group.bench_function("square_wide, U256", |b| {
         b.iter_batched(
-            || U256::random(&mut OsRng),
+            || U256::random(&mut rng),
             |x| black_box(x.square_wide()),
             BatchSize::SmallInput,
         )
@@ -150,7 +151,7 @@ fn bench_mul(c: &mut Criterion) {
 
     group.bench_function("square_wide, U4096", |b| {
         b.iter_batched(
-            || U4096::random(&mut OsRng),
+            || U4096::random(&mut rng),
             |x| black_box(x.square_wide()),
             BatchSize::SmallInput,
         )
@@ -159,8 +160,8 @@ fn bench_mul(c: &mut Criterion) {
     group.bench_function("mul_mod, U256", |b| {
         b.iter_batched(
             || {
-                let m = Odd::<U256>::random(&mut OsRng);
-                let x = U256::random_mod(&mut OsRng, m.as_nz_ref());
+                let m = Odd::<U256>::random(&mut rng);
+                let x = U256::random_mod(&mut rng, m.as_nz_ref());
                 (m.to_nz().unwrap(), x)
             },
             |(m, x)| black_box(x).mul_mod(black_box(&x), &m),
@@ -171,8 +172,8 @@ fn bench_mul(c: &mut Criterion) {
     group.bench_function("mul_mod_vartime, U256", |b| {
         b.iter_batched(
             || {
-                let m = Odd::<U256>::random(&mut OsRng);
-                let x = U256::random_mod(&mut OsRng, m.as_nz_ref());
+                let m = Odd::<U256>::random(&mut rng);
+                let x = U256::random_mod(&mut rng, m.as_nz_ref());
                 (m.to_nz().unwrap(), x)
             },
             |(m, x)| black_box(x).mul_mod_vartime(black_box(&x), &m),
@@ -183,8 +184,8 @@ fn bench_mul(c: &mut Criterion) {
     group.bench_function("mul_mod_special, U256", |b| {
         b.iter_batched(
             || {
-                let m = Limb::random(&mut OsRng);
-                let x = U256::random(&mut OsRng);
+                let m = Limb::random(&mut rng);
+                let x = U256::random(&mut rng);
                 (m, x)
             },
             |(m, x)| black_box(x).mul_mod_special(black_box(&x), m),
@@ -194,13 +195,14 @@ fn bench_mul(c: &mut Criterion) {
 }
 
 fn bench_division(c: &mut Criterion) {
+    let mut rng = make_rng();
     let mut group = c.benchmark_group("wrapping ops");
 
     group.bench_function("div/rem, U256/U128, full size", |b| {
         b.iter_batched(
             || {
-                let x = U256::random(&mut OsRng);
-                let y_half = U128::random(&mut OsRng);
+                let x = U256::random(&mut rng);
+                let y_half = U128::random(&mut rng);
                 let y: U256 = (y_half, U128::ZERO).into();
                 (x, NonZero::new(y).unwrap())
             },
@@ -212,7 +214,7 @@ fn bench_division(c: &mut Criterion) {
     group.bench_function("div/rem_vartime, U256/U128, full size", |b| {
         b.iter_batched(
             || {
-                let x = U256::random(&mut OsRng);
+                let x = U256::random(&mut rng);
                 let y: U256 = (U128::MAX, U128::ZERO).into();
                 (x, NonZero::new(y).unwrap())
             },
@@ -224,8 +226,8 @@ fn bench_division(c: &mut Criterion) {
     group.bench_function("rem, U256/U128, full size", |b| {
         b.iter_batched(
             || {
-                let x = U256::random(&mut OsRng);
-                let y_half = U128::random(&mut OsRng);
+                let x = U256::random(&mut rng);
+                let y_half = U128::random(&mut rng);
                 let y: U256 = (y_half, U128::ZERO).into();
                 (x, NonZero::new(y).unwrap())
             },
@@ -237,7 +239,7 @@ fn bench_division(c: &mut Criterion) {
     group.bench_function("rem_vartime, U256/U128, full size", |b| {
         b.iter_batched(
             || {
-                let x = U256::random(&mut OsRng);
+                let x = U256::random(&mut rng);
                 let y: U256 = (U128::MAX, U128::ZERO).into();
                 (x, NonZero::new(y).unwrap())
             },
@@ -249,7 +251,7 @@ fn bench_division(c: &mut Criterion) {
     group.bench_function("rem_wide_vartime, U256", |b| {
         b.iter_batched(
             || {
-                let (x_lo, x_hi) = (U256::random(&mut OsRng), U256::random(&mut OsRng));
+                let (x_lo, x_hi) = (U256::random(&mut rng), U256::random(&mut rng));
                 let y: U256 = (U128::MAX, U128::ZERO).into();
                 (x_lo, x_hi, NonZero::new(y).unwrap())
             },
@@ -261,8 +263,8 @@ fn bench_division(c: &mut Criterion) {
     group.bench_function("div/rem, U256/Limb, full size", |b| {
         b.iter_batched(
             || {
-                let x = U256::random(&mut OsRng);
-                let y_small = Limb::random(&mut OsRng);
+                let x = U256::random(&mut rng);
+                let y_small = Limb::random(&mut rng);
                 let y = U256::from_word(y_small.0);
                 (x, NonZero::new(y).unwrap())
             },
@@ -274,8 +276,8 @@ fn bench_division(c: &mut Criterion) {
     group.bench_function("div/rem, U256/Limb, single limb", |b| {
         b.iter_batched(
             || {
-                let x = U256::random(&mut OsRng);
-                let y = Limb::random(&mut OsRng);
+                let x = U256::random(&mut rng);
+                let y = Limb::random(&mut rng);
                 (x, NonZero::new(y).unwrap())
             },
             |(x, y)| black_box(x.div_rem_limb(y)),
@@ -286,8 +288,8 @@ fn bench_division(c: &mut Criterion) {
     group.bench_function("div/rem, U256/Limb, single limb with reciprocal", |b| {
         b.iter_batched(
             || {
-                let x = U256::random(&mut OsRng);
-                let mut y = Limb::random(&mut OsRng);
+                let x = U256::random(&mut rng);
+                let mut y = Limb::random(&mut rng);
                 if y == Limb::ZERO {
                     y = Limb::ONE;
                 }
@@ -303,13 +305,14 @@ fn bench_division(c: &mut Criterion) {
 }
 
 fn bench_gcd(c: &mut Criterion) {
+    let mut rng = make_rng();
     let mut group = c.benchmark_group("greatest common divisor");
 
     group.bench_function("gcd, U256", |b| {
         b.iter_batched(
             || {
-                let f = U256::random(&mut OsRng);
-                let g = U256::random(&mut OsRng);
+                let f = U256::random(&mut rng);
+                let g = U256::random(&mut rng);
                 (f, g)
             },
             |(f, g)| black_box(f.gcd(&g)),
@@ -320,8 +323,8 @@ fn bench_gcd(c: &mut Criterion) {
     group.bench_function("gcd_vartime, U256", |b| {
         b.iter_batched(
             || {
-                let f = Odd::<U256>::random(&mut OsRng);
-                let g = U256::random(&mut OsRng);
+                let f = Odd::<U256>::random(&mut rng);
+                let g = U256::random(&mut rng);
                 (f, g)
             },
             |(f, g)| black_box(f.gcd_vartime(&g)),
@@ -409,14 +412,15 @@ fn bench_shr(c: &mut Criterion) {
 }
 
 fn bench_inv_mod(c: &mut Criterion) {
+    let mut rng = make_rng();
     let mut group = c.benchmark_group("modular ops");
 
     group.bench_function("inv_odd_mod, U256", |b| {
         b.iter_batched(
             || {
-                let m = Odd::<U256>::random(&mut OsRng);
+                let m = Odd::<U256>::random(&mut rng);
                 loop {
-                    let x = U256::random(&mut OsRng);
+                    let x = U256::random(&mut rng);
                     let inv_x = x.inv_odd_mod(&m);
                     if inv_x.is_some().into() {
                         break (x, m);
@@ -431,9 +435,9 @@ fn bench_inv_mod(c: &mut Criterion) {
     group.bench_function("inv_mod, U256, odd modulus", |b| {
         b.iter_batched(
             || {
-                let m = Odd::<U256>::random(&mut OsRng);
+                let m = Odd::<U256>::random(&mut rng);
                 loop {
-                    let x = U256::random(&mut OsRng);
+                    let x = U256::random(&mut rng);
                     let inv_x = x.inv_odd_mod(&m);
                     if inv_x.is_some().into() {
                         break (x, m);
@@ -448,9 +452,9 @@ fn bench_inv_mod(c: &mut Criterion) {
     group.bench_function("inv_mod, U256", |b| {
         b.iter_batched(
             || {
-                let m = U256::random(&mut OsRng);
+                let m = U256::random(&mut rng);
                 loop {
-                    let x = U256::random(&mut OsRng);
+                    let x = U256::random(&mut rng);
                     let inv_x = x.inv_mod(&m);
                     if inv_x.is_some().into() {
                         break (x, m);
@@ -466,11 +470,12 @@ fn bench_inv_mod(c: &mut Criterion) {
 }
 
 fn bench_sqrt(c: &mut Criterion) {
+    let mut rng = make_rng();
     let mut group = c.benchmark_group("sqrt");
 
     group.bench_function("sqrt, U256", |b| {
         b.iter_batched(
-            || U256::random(&mut OsRng),
+            || U256::random(&mut rng),
             |x| x.sqrt(),
             BatchSize::SmallInput,
         )
@@ -478,7 +483,7 @@ fn bench_sqrt(c: &mut Criterion) {
 
     group.bench_function("sqrt_vartime, U256", |b| {
         b.iter_batched(
-            || U256::random(&mut OsRng),
+            || U256::random(&mut rng),
             |x| x.sqrt_vartime(),
             BatchSize::SmallInput,
         )
