@@ -40,7 +40,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             // Div `a` by 2 and double the right column of the matrix when b ≠ 0.
             let do_apply = b.is_nonzero();
             a = Uint::select(&a, &a.shr_vartime(1), do_apply);
-            matrix.conditional_double_right_column(do_apply);
+            matrix.conditional_double_bottom_row(do_apply);
             log_upper_bound = do_apply.select_u32(log_upper_bound, log_upper_bound + 1);
         }
 

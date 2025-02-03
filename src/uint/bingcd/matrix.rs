@@ -55,7 +55,7 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
 
     /// Double the right column of this matrix if `double` is truthy. Otherwise, do nothing.
     #[inline]
-    pub(crate) const fn conditional_double_right_column(&mut self, double: ConstChoice) {
+    pub(crate) const fn conditional_double_bottom_row(&mut self, double: ConstChoice) {
         self.m10 = Int::select(&self.m10, &self.m10.shl_vartime(1), double);
         self.m11 = Int::select(&self.m11, &self.m11.shl_vartime(1), double);
     }
@@ -64,27 +64,62 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
 #[cfg(test)]
 mod tests {
     use crate::uint::bingcd::matrix::IntMatrix;
-    use crate::{ConstChoice, Int};
+    use crate::{ConstChoice, Int, U256};
+
+    const X: IntMatrix<{ U256::LIMBS }> = IntMatrix::new(
+        Int::from_i64(1i64),
+        Int::from_i64(7i64),
+        Int::from_i64(23i64),
+        Int::from_i64(53i64),
+    );
 
     #[test]
     fn test_conditional_swap() {
-        let x = IntMatrix::<2>::new(
-            Int::from(1i32),
-            Int::from(2i32),
-            Int::from(3i32),
-            Int::from(4i32),
-        );
-        let mut y = x.clone();
+        let mut y = X.clone();
         y.conditional_swap_rows(ConstChoice::FALSE);
-        assert_eq!(y, x);
+        assert_eq!(y, X);
         y.conditional_swap_rows(ConstChoice::TRUE);
         assert_eq!(
             y,
             IntMatrix::new(
-                Int::from(3i32),
-                Int::from(4i32),
+                Int::from(23i32),
+                Int::from(53i32),
                 Int::from(1i32),
-                Int::from(2i32)
+                Int::from(7i32)
+            )
+        );
+    }
+
+    #[test]
+    fn test_conditional_subtract() {
+        let mut y = X.clone();
+        y.conditional_subtract_bottom_row_from_top(ConstChoice::FALSE);
+        assert_eq!(y, X);
+        y.conditional_subtract_bottom_row_from_top(ConstChoice::TRUE);
+        assert_eq!(
+            y,
+            IntMatrix::new(
+                Int::from(-22i32),
+                Int::from(-46i32),
+                Int::from(23i32),
+                Int::from(53i32)
+            )
+        );
+    }
+
+    #[test]
+    fn test_conditional_double() {
+        let mut y = X.clone();
+        y.conditional_double_bottom_row(ConstChoice::FALSE);
+        assert_eq!(y, X);
+        y.conditional_double_bottom_row(ConstChoice::TRUE);
+        assert_eq!(
+            y,
+            IntMatrix::new(
+                Int::from(1i32),
+                Int::from(7i32),
+                Int::from(46i32),
+                Int::from(106i32),
             )
         );
     }
