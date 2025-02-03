@@ -18,7 +18,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let self_nz = Uint::select(self, &Uint::ONE, self_is_zero)
             .to_nz()
             .expect("self is non zero by construction");
-        Uint::select(&self_nz.bingcd(rhs), rhs, self_is_zero)
+        Uint::select(self_nz.bingcd(rhs).as_ref(), rhs, self_is_zero)
     }
 }
 

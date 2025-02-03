@@ -3,7 +3,7 @@ use crate::{NonZero, Odd, Uint, U128, U64};
 
 impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     /// Compute the greatest common divisor of `self` and `rhs`.
-    pub const fn bingcd(&self, rhs: &Uint<LIMBS>) -> Uint<LIMBS> {
+    pub const fn bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
         let val = self.as_ref();
         // Leverage two GCD identity rules to make self and rhs odd.
         // 1) gcd(2a, 2b) = 2 * gcd(a, b)
@@ -12,12 +12,14 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
         let j = rhs.is_nonzero().select_u32(0, rhs.trailing_zeros());
         let k = const_min(i, j);
 
-        self.as_ref()
-            .shr(i)
+        val.shr(i)
             .to_odd()
             .expect("self is odd by construction")
             .bingcd(rhs)
+            .as_ref()
             .shl(k)
+            .to_nz()
+            .expect("gcd of non-zero element with zero is non-zero")
     }
 }
 
@@ -26,7 +28,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
     /// Compute the greatest common divisor of `self` and `rhs`.
     #[inline(always)]
-    pub const fn bingcd(&self, rhs: &Uint<LIMBS>) -> Uint<LIMBS> {
+    pub const fn bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
         // Todo: tweak this threshold
         if LIMBS < 8 {
             self.bingcd_small(rhs)
@@ -38,7 +40,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Computes `gcd(self, rhs)`, leveraging the Binary GCD algorithm.
     /// Is efficient only for relatively small `LIMBS`.
     #[inline]
-    pub const fn bingcd_small(&self, rhs: &Uint<LIMBS>) -> Uint<LIMBS> {
+    pub const fn bingcd_small(&self, rhs: &Uint<LIMBS>) -> Self {
         let (mut a, mut b) = (*rhs, *self.as_ref());
         let mut j = 0;
         while j < (2 * Self::BITS - 1) {
@@ -59,7 +61,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             a = Uint::select(&a, &a.shr_vartime(1), do_apply);
         }
 
-        b
+        b.to_odd().expect("gcd of an odd value with something else is always odd")
     }
 
     /// Computes `gcd(self, rhs)`, leveraging the Binary GCD algorithm.
@@ -68,7 +70,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     pub const fn bingcd_large<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
         &self,
         rhs: &Uint<LIMBS>,
-    ) -> Uint<LIMBS> {
+    ) -> Self {
         let (mut a, mut b) = (*rhs, *self.as_ref());
 
         let mut i = 0;
@@ -96,7 +98,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
                 .expect("extension is zero");
         }
 
-        b
+        b.to_odd().expect("gcd of an odd value with something else is always odd")
     }
 }
 
