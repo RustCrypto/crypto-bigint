@@ -37,13 +37,40 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             a = Uint::select(&a, &a.wrapping_sub(&b), a_odd);
             matrix.conditional_subtract_bottom_row_from_top(a_odd);
 
-            // Div `a` by 2 and double the right column of the matrix when b ≠ 0.
-            let do_apply = b.is_nonzero();
+            // Div `a` by 2 and double the right column of the matrix when both a ≠ 0 and b ≠ 0.
+            let do_apply = a.is_nonzero().and(b.is_nonzero());
             a = Uint::select(&a, &a.shr_vartime(1), do_apply);
             matrix.conditional_double_bottom_row(do_apply);
             log_upper_bound = do_apply.select_u32(log_upper_bound, log_upper_bound + 1);
         }
 
         (matrix, log_upper_bound)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::uint::bingcd::matrix::IntMatrix;
+    use crate::{Uint, I64, U64};
+
+    #[test]
+    fn test_restricted_extended_gcd() {
+        let a = U64::from_be_hex("AE693BF7BE8E5566");
+        let b = U64::from_be_hex("CA048AFA63CD6A1F");
+        let (matrix, iters) = Uint::restricted_extended_gcd(a, b, 5);
+        assert_eq!(iters, 5);
+        assert_eq!(
+            matrix,
+            IntMatrix::new(I64::from(5), I64::from(-2), I64::from(-4), I64::from(8))
+        );
+    }
+
+    #[test]
+    fn test_restricted_extended_gcd_stops_early() {
+        // Stop before max_iters
+        let a = U64::from_be_hex("000000000E8E5566");
+        let b = U64::from_be_hex("0000000003CD6A1F");
+        let (.., iters) = Uint::restricted_extended_gcd::<{I64::LIMBS}>(a, b, 60);
+        assert_eq!(iters, 35);
     }
 }
