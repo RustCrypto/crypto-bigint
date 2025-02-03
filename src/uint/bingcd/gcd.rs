@@ -100,6 +100,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     }
 }
 
+#[cfg(feature = "rand_core")]
 #[cfg(test)]
 mod tests {
     use crate::{Gcd, Random, Uint, U256, U512};

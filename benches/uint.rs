@@ -4,8 +4,8 @@ use criterion::{
 };
 use crypto_bigint::modular::SafeGcdInverter;
 use crypto_bigint::{
-    Gcd, Limb, NonZero, Odd, PrecomputeInverter, Random, RandomBits, RandomMod, Reciprocal, Uint,
-    U1024, U128, U16384, U192, U2048, U256, U320, U384, U4096, U448, U512, U64, U8192,
+    Limb, NonZero, Odd, PrecomputeInverter, Random, RandomBits, RandomMod, Reciprocal, Uint, U1024,
+    U128, U16384, U192, U2048, U256, U320, U384, U4096, U448, U512, U64, U8192,
 };
 use rand_chacha::ChaCha8Rng;
 use rand_core::{OsRng, RngCore, SeedableRng};
