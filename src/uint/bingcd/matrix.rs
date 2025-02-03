@@ -3,16 +3,21 @@ use crate::{Int, Uint};
 
 type Vector<T> = (T, T);
 
-pub(crate) struct IntMatrix<const LIMBS: usize, const DIM: usize>([[Int<LIMBS>; DIM]; DIM]);
+pub(crate) struct IntMatrix<const LIMBS: usize> {
+    m00: Int<LIMBS>,
+    m01: Int<LIMBS>,
+    m10: Int<LIMBS>,
+    m11: Int<LIMBS>,
+}
 
-impl<const LIMBS: usize> IntMatrix<LIMBS, 2> {
+impl<const LIMBS: usize> IntMatrix<LIMBS> {
     pub(crate) const fn new(
         m00: Int<LIMBS>,
         m01: Int<LIMBS>,
         m10: Int<LIMBS>,
         m11: Int<LIMBS>,
     ) -> Self {
-        Self([[m00, m10], [m01, m11]])
+        Self { m00, m01, m10, m11 }
     }
 
     /// Apply this matrix to a vector of [Uint]s, returning the result as a vector of
@@ -23,10 +28,10 @@ impl<const LIMBS: usize> IntMatrix<LIMBS, 2> {
         vec: Vector<Uint<VEC_LIMBS>>,
     ) -> Vector<ExtendedInt<VEC_LIMBS, LIMBS>> {
         let (a, b) = vec;
-        let a00 = ExtendedInt::from_product(a, self.0[0][0]);
-        let a01 = ExtendedInt::from_product(a, self.0[0][1]);
-        let b10 = ExtendedInt::from_product(b, self.0[1][0]);
-        let b11 = ExtendedInt::from_product(b, self.0[1][1]);
-        (a00.wrapping_add(&b10), a01.wrapping_add(&b11))
+        let a0 = ExtendedInt::from_product(a, self.m00);
+        let a1 = ExtendedInt::from_product(a, self.m10);
+        let b0 = ExtendedInt::from_product(b, self.m01);
+        let b1 = ExtendedInt::from_product(b, self.m11);
+        (a0.wrapping_add(&b0), a1.wrapping_add(&b1))
     }
 }

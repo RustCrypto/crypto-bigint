@@ -15,7 +15,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         mut a: Uint<LIMBS>,
         mut b: Uint<LIMBS>,
         iterations: u32,
-    ) -> (IntMatrix<UPDATE_LIMBS, 2>, u32) {
+    ) -> (IntMatrix<UPDATE_LIMBS>, u32) {
         debug_assert!(iterations < Uint::<UPDATE_LIMBS>::BITS);
 
         // Unit matrix
