@@ -41,27 +41,28 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Is efficient only for relatively small `LIMBS`.
     #[inline]
     pub const fn bingcd_small(&self, rhs: &Uint<LIMBS>) -> Self {
-        let (mut a, mut b) = (*rhs, *self.as_ref());
+        let (mut a, mut b) = (*self.as_ref(), *rhs);
         let mut j = 0;
         while j < (2 * Self::BITS - 1) {
             j += 1;
 
-            let a_odd = a.is_odd();
+            let b_odd = b.is_odd();
 
-            // swap if a odd and a < b
-            let a_lt_b = Uint::lt(&a, &b);
-            let do_swap = a_odd.and(a_lt_b);
+            // swap if b odd and a > b
+            let a_gt_b = Uint::gt(&a, &b);
+            let do_swap = b_odd.and(a_gt_b);
             Uint::conditional_swap(&mut a, &mut b, do_swap);
 
-            // subtract b from a when a is odd
-            a = Uint::select(&a, &a.wrapping_sub(&b), a_odd);
+            // subtract a from b when b is odd
+            b = Uint::select(&b, &b.wrapping_sub(&a), b_odd);
 
-            // Div a by two when b ≠ 0, otherwise do nothing.
-            let do_apply = b.is_nonzero();
-            a = Uint::select(&a, &a.shr_vartime(1), do_apply);
+            // Div b by two when a ≠ 0, otherwise do nothing.
+            let do_apply = a.is_nonzero();
+            b = Uint::select(&b, &b.shr_vartime(1), do_apply);
         }
 
-        b.to_odd().expect("gcd of an odd value with something else is always odd")
+        a.to_odd()
+            .expect("gcd of an odd value with something else is always odd")
     }
 
     /// Computes `gcd(self, rhs)`, leveraging the Binary GCD algorithm.
@@ -71,7 +72,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         &self,
         rhs: &Uint<LIMBS>,
     ) -> Self {
-        let (mut a, mut b) = (*rhs, *self.as_ref());
+        let (mut a, mut b) = (*self.as_ref(), *rhs);
 
         let mut i = 0;
         while i < (2 * Self::BITS - 1).div_ceil(K) {
@@ -83,7 +84,10 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let b_ = b.compact::<LIMBS_2K>(n, K);
 
             // Compute the K-1 iteration update matrix from a_ and b_
-            let (matrix, log_upper_bound) = Uint::restricted_extended_gcd::<LIMBS_K>(a_, b_, K - 1);
+            let (matrix, log_upper_bound) = a_
+                .to_odd()
+                .expect("a is always odd")
+                .restricted_extended_gcd::<LIMBS_K>(&b_, K - 1);
 
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = matrix.extended_apply_to((a, b));
@@ -98,7 +102,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
                 .expect("extension is zero");
         }
 
-        b.to_odd().expect("gcd of an odd value with something else is always odd")
+        a.to_odd()
+            .expect("gcd of an odd value with something else is always odd")
     }
 }
 

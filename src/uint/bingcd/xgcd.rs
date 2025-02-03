@@ -1,7 +1,7 @@
 use crate::uint::bingcd::matrix::IntMatrix;
-use crate::Uint;
+use crate::{Odd, Uint};
 
-impl<const LIMBS: usize> Uint<LIMBS> {
+impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Constructs a matrix `M` s.t. for `(A, B) = M(a,b)` it holds that
     /// - `gcd(A, B) = gcd(a, b)`, and
     /// - `A.bits() < a.bits()` and/or `B.bits() < b.bits()`.
@@ -12,11 +12,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Assumes `iterations < Uint::<UPDATE_LIMBS>::BITS`.
     #[inline]
     pub(super) const fn restricted_extended_gcd<const UPDATE_LIMBS: usize>(
-        mut a: Uint<LIMBS>,
-        mut b: Uint<LIMBS>,
+        &self,
+        rhs: &Uint<LIMBS>,
         iterations: u32,
     ) -> (IntMatrix<UPDATE_LIMBS>, u32) {
         debug_assert!(iterations < Uint::<UPDATE_LIMBS>::BITS);
+        let (mut a, mut b) = (*self.as_ref(), *rhs);
 
         // Compute the update matrix.
         let mut matrix = IntMatrix::UNIT;
@@ -25,22 +26,22 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         while j < iterations {
             j += 1;
 
-            let a_odd = a.is_odd();
-            let a_lt_b = Uint::lt(&a, &b);
+            let b_odd = b.is_odd();
+            let a_gt_b = Uint::gt(&a, &b);
 
-            // swap if a odd and a < b
-            let do_swap = a_odd.and(a_lt_b);
+            // swap if b odd and a > b
+            let do_swap = b_odd.and(a_gt_b);
             Uint::conditional_swap(&mut a, &mut b, do_swap);
             matrix.conditional_swap_rows(do_swap);
 
-            // subtract a from b when a is odd
-            a = Uint::select(&a, &a.wrapping_sub(&b), a_odd);
-            matrix.conditional_subtract_bottom_row_from_top(a_odd);
+            // subtract a from b when b is odd
+            b = Uint::select(&b, &b.wrapping_sub(&a), b_odd);
+            matrix.conditional_subtract_top_row_from_bottom(b_odd);
 
-            // Div `a` by 2 and double the right column of the matrix when both a ≠ 0 and b ≠ 0.
+            // Div b by two and double the top row of the matrix when a, b ≠ 0.
             let do_apply = a.is_nonzero().and(b.is_nonzero());
-            a = Uint::select(&a, &a.shr_vartime(1), do_apply);
-            matrix.conditional_double_bottom_row(do_apply);
+            b = Uint::select(&b, &b.shr_vartime(1), do_apply);
+            matrix.conditional_double_top_row(do_apply);
             log_upper_bound = do_apply.select_u32(log_upper_bound, log_upper_bound + 1);
         }
 
@@ -51,26 +52,26 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 #[cfg(test)]
 mod tests {
     use crate::uint::bingcd::matrix::IntMatrix;
-    use crate::{Uint, I64, U64};
+    use crate::{I64, U64};
 
     #[test]
     fn test_restricted_extended_gcd() {
-        let a = U64::from_be_hex("AE693BF7BE8E5566");
-        let b = U64::from_be_hex("CA048AFA63CD6A1F");
-        let (matrix, iters) = Uint::restricted_extended_gcd(a, b, 5);
+        let a = U64::from_be_hex("CA048AFA63CD6A1F").to_odd().unwrap();
+        let b = U64::from_be_hex("AE693BF7BE8E5566");
+        let (matrix, iters) = a.restricted_extended_gcd(&b, 5);
         assert_eq!(iters, 5);
         assert_eq!(
             matrix,
-            IntMatrix::new(I64::from(5), I64::from(-2), I64::from(-4), I64::from(8))
+            IntMatrix::new(I64::from(8), I64::from(-4), I64::from(-2), I64::from(5))
         );
     }
 
     #[test]
     fn test_restricted_extended_gcd_stops_early() {
         // Stop before max_iters
-        let a = U64::from_be_hex("000000000E8E5566");
-        let b = U64::from_be_hex("0000000003CD6A1F");
-        let (.., iters) = Uint::restricted_extended_gcd::<{I64::LIMBS}>(a, b, 60);
+        let a = U64::from_be_hex("0000000003CD6A1F").to_odd().unwrap();
+        let b = U64::from_be_hex("000000000E8E5566");
+        let (.., iters) = a.restricted_extended_gcd::<{ U64::LIMBS }>(&b, 60);
         assert_eq!(iters, 35);
     }
 }
