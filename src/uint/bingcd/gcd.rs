@@ -24,7 +24,8 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
 }
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
-    const BITS: u32 = Uint::<LIMBS>::BITS;
+    /// Total size of the represented integer in bits.
+    pub const BITS: u32 = Uint::<LIMBS>::BITS;
 
     /// Compute the greatest common divisor of `self` and `rhs`.
     #[inline(always)]
@@ -92,13 +93,13 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = matrix.extended_apply_to((a, b));
 
-            a = updated_a
+            (a, _) = updated_a
                 .div_2k(log_upper_bound)
-                .abs_drop_extension()
+                .drop_extension()
                 .expect("extension is zero");
-            b = updated_b
+            (b, _) = updated_b
                 .div_2k(log_upper_bound)
-                .abs_drop_extension()
+                .drop_extension()
                 .expect("extension is zero");
         }
 
@@ -135,6 +136,10 @@ mod tests {
             bingcd_small_test(Uint::MAX, Uint::ZERO);
             bingcd_small_test(Uint::MAX, Uint::ONE);
             bingcd_small_test(Uint::MAX, Uint::MAX);
+            // bingcd_small_test(
+            //     Uint::from_be_hex("7BE417F8D79B2A7EAE8E4E9621C36FF3"),
+            //     Uint::from_be_hex("02427A8560599FD5183B0375455A895F"),
+            // );
 
             // Randomized test cases
             for _ in 0..100 {
@@ -185,6 +190,10 @@ mod tests {
             bingcd_large_test(Uint::MAX, Uint::ZERO);
             bingcd_large_test(Uint::MAX, Uint::ONE);
             bingcd_large_test(Uint::MAX, Uint::MAX);
+            // bingcd_large_test(
+            //     Uint::from_be_hex("7BE417F8D79B2A7EAE8E4E9621C36FF3"),
+            //     Uint::from_be_hex("02427A8560599FD5183B0375455A895F"),
+            // );
 
             // Randomized testing
             for _ in 0..100 {

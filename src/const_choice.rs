@@ -413,6 +413,21 @@ impl<const LIMBS: usize> ConstCtOption<(Uint<LIMBS>, Uint<LIMBS>)> {
     }
 }
 
+impl<const LIMBS: usize> ConstCtOption<(Uint<LIMBS>, ConstChoice)> {
+    /// Returns the contained value, consuming the `self` value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value is none with a custom panic message provided by
+    /// `msg`.
+    #[inline]
+    pub const fn expect(self, msg: &str) -> (Uint<LIMBS>, ConstChoice) {
+        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        self.value
+    }
+}
+
+
 impl<const LIMBS: usize> ConstCtOption<NonZero<Uint<LIMBS>>> {
     /// Returns the contained value, consuming the `self` value.
     ///

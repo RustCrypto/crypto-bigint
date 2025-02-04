@@ -1,4 +1,4 @@
-use crate::{ConstChoice, ConstCtOption, Int, Limb, Uint};
+use crate::{ConstChoice, ConstCtOption, Int, Limb, NonZero, Uint};
 
 pub(crate) struct ExtendedUint<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
     Uint<LIMBS>,
@@ -126,14 +126,15 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     /// Is `None` if the extension cannot be dropped, i.e., when there is a bit in the extension
     /// that does not equal the MSB in the base.
     #[inline]
-    pub const fn abs_drop_extension(&self) -> ConstCtOption<Uint<LIMBS>> {
+    pub const fn drop_extension(&self) -> ConstCtOption<(Uint<LIMBS>, ConstChoice)> {
         // should succeed when
         // - extension is ZERO, or
         // - extension is MAX, and the top bit in base is set.
         let proper_positive = Int::eq(&self.1.as_int(), &Int::ZERO);
         let proper_negative =
             Int::eq(&self.1.as_int(), &Int::MINUS_ONE).and(self.0.as_int().is_negative());
-        ConstCtOption::new(self.abs().0, proper_negative.or(proper_positive))
+        let (abs, sgn) = self.abs_sgn();
+        ConstCtOption::new((abs.0, sgn), proper_negative.or(proper_positive))
     }
 
     /// Decompose `self` into is absolute value and signum.
@@ -144,12 +145,6 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
             self.wrapping_neg_if(is_negative).as_extended_uint(),
             is_negative,
         )
-    }
-
-    /// Decompose `self` into is absolute value and signum.
-    #[inline]
-    pub const fn abs(&self) -> ExtendedUint<LIMBS, EXTRA> {
-        self.abs_sgn().0
     }
 
     /// Decompose `self` into is absolute value and signum.

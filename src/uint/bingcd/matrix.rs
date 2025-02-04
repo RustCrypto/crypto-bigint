@@ -5,10 +5,10 @@ type Vector<T> = (T, T);
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct IntMatrix<const LIMBS: usize> {
-    m00: Int<LIMBS>,
-    m01: Int<LIMBS>,
-    m10: Int<LIMBS>,
-    m11: Int<LIMBS>,
+    pub(crate) m00: Int<LIMBS>,
+    pub(crate) m01: Int<LIMBS>,
+    pub(crate) m10: Int<LIMBS>,
+    pub(crate) m11: Int<LIMBS>,
 }
 
 impl<const LIMBS: usize> IntMatrix<LIMBS> {
@@ -36,24 +36,31 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
         let a1 = ExtendedInt::from_product(a, self.m10);
         let b0 = ExtendedInt::from_product(b, self.m01);
         let b1 = ExtendedInt::from_product(b, self.m11);
-        (a0.wrapping_add(&b0), a1.wrapping_add(&b1))
+        let (left, left_overflow) = a0.overflowing_add(&b0);
+        let (right, right_overflow) = a1.overflowing_add(&b1);
+        assert!(!left_overflow.to_bool_vartime());
+        assert!(!right_overflow.to_bool_vartime());
+        (left, right)
     }
 
     /// Apply this matrix to `rhs`. Panics if a multiplication overflows.
     /// TODO: consider implementing (a variation to) Strassen. Doing so will save a multiplication.
     #[inline]
-    const fn checked_mul<const RHS_LIMBS: usize>(&self, rhs: &IntMatrix<RHS_LIMBS>) -> Self {
-        let a0 = self.m00.const_checked_mul(&rhs.m00).expect("no overflow");
-        let a1 = self.m01.const_checked_mul(&rhs.m10).expect("no overflow");
+    pub(crate) const fn checked_mul_right<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &IntMatrix<RHS_LIMBS>,
+    ) -> IntMatrix<RHS_LIMBS> {
+        let a0 = rhs.m00.const_checked_mul(&self.m00).expect("no overflow");
+        let a1 = rhs.m10.const_checked_mul(&self.m01).expect("no overflow");
         let a = a0.checked_add(&a1).expect("no overflow");
-        let b0 = self.m00.const_checked_mul(&rhs.m01).expect("no overflow");
-        let b1 = self.m01.const_checked_mul(&rhs.m11).expect("no overflow");
+        let b0 = rhs.m01.const_checked_mul(&self.m00).expect("no overflow");
+        let b1 = rhs.m11.const_checked_mul(&self.m01).expect("no overflow");
         let b = b0.checked_add(&b1).expect("no overflow");
-        let c0 = self.m10.const_checked_mul(&rhs.m00).expect("no overflow");
-        let c1 = self.m11.const_checked_mul(&rhs.m10).expect("no overflow");
+        let c0 = rhs.m00.const_checked_mul(&self.m10).expect("no overflow");
+        let c1 = rhs.m10.const_checked_mul(&self.m11).expect("no overflow");
         let c = c0.checked_add(&c1).expect("no overflow");
-        let d0 = self.m10.const_checked_mul(&rhs.m01).expect("no overflow");
-        let d1 = self.m11.const_checked_mul(&rhs.m11).expect("no overflow");
+        let d0 = rhs.m01.const_checked_mul(&self.m10).expect("no overflow");
+        let d1 = rhs.m11.const_checked_mul(&self.m11).expect("no overflow");
         let d = d0.checked_add(&d1).expect("no overflow");
         IntMatrix::new(a, b, c, d)
     }
@@ -77,6 +84,20 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
     pub(crate) const fn conditional_double_top_row(&mut self, double: ConstChoice) {
         self.m00 = Int::select(&self.m00, &self.m00.shl_vartime(1), double);
         self.m01 = Int::select(&self.m01, &self.m01.shl_vartime(1), double);
+    }
+
+    /// Negate the elements in the top row if `negate` is truthy. Otherwise, do nothing.
+    #[inline]
+    pub(crate) const fn conditional_negate_top_row(&mut self, negate: ConstChoice) {
+        self.m00 = self.m00.wrapping_neg_if(negate);
+        self.m01 = self.m01.wrapping_neg_if(negate);
+    }
+
+    /// Negate the elements in the bottom row if `negate` is truthy. Otherwise, do nothing.
+    #[inline]
+    pub(crate) const fn conditional_negate_bottom_row(&mut self, negate: ConstChoice) {
+        self.m10 = self.m10.wrapping_neg_if(negate);
+        self.m11 = self.m11.wrapping_neg_if(negate);
     }
 }
 
@@ -145,7 +166,7 @@ mod tests {
 
     #[test]
     fn test_checked_mul() {
-        let res = X.checked_mul(&X);
+        let res = X.checked_mul_right(&X);
         assert_eq!(
             res,
             IntMatrix::new(
