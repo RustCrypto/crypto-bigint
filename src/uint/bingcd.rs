@@ -29,7 +29,7 @@ mod tests {
 
     use crate::{Gcd, Random, Uint, U1024, U16384, U2048, U256, U4096, U512, U8192};
 
-    fn gcd_comparison_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
+    fn bingcd_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
     where
         Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
     {
@@ -38,39 +38,37 @@ mod tests {
         assert_eq!(gcd, bingcd);
     }
 
-    fn test_bingcd<const LIMBS: usize>()
+    fn bingcd_tests<const LIMBS: usize>()
     where
         Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
     {
-        // some basic test
-        gcd_comparison_test(Uint::ZERO, Uint::ZERO);
-        gcd_comparison_test(Uint::ZERO, Uint::ONE);
-        gcd_comparison_test(Uint::ZERO, Uint::MAX);
-        gcd_comparison_test(Uint::ONE, Uint::ZERO);
-        gcd_comparison_test(Uint::ONE, Uint::ONE);
-        gcd_comparison_test(Uint::ONE, Uint::MAX);
-        gcd_comparison_test(Uint::MAX, Uint::ZERO);
-        gcd_comparison_test(Uint::MAX, Uint::ONE);
-        gcd_comparison_test(Uint::MAX, Uint::MAX);
+        // Edge cases
+        bingcd_test(Uint::ZERO, Uint::ZERO);
+        bingcd_test(Uint::ZERO, Uint::ONE);
+        bingcd_test(Uint::ZERO, Uint::MAX);
+        bingcd_test(Uint::ONE, Uint::ZERO);
+        bingcd_test(Uint::ONE, Uint::ONE);
+        bingcd_test(Uint::ONE, Uint::MAX);
+        bingcd_test(Uint::MAX, Uint::ZERO);
+        bingcd_test(Uint::MAX, Uint::ONE);
+        bingcd_test(Uint::MAX, Uint::MAX);
 
+        // Randomized test cases
         for _ in 0..100 {
             let x = Uint::<LIMBS>::random(&mut OsRng);
-            let mut y = Uint::<LIMBS>::random(&mut OsRng);
-
-            y = Uint::select(&(y.wrapping_add(&Uint::ONE)), &y, y.is_odd());
-
-            gcd_comparison_test(x, y);
+            let y = Uint::<LIMBS>::random(&mut OsRng);
+            bingcd_test(x, y);
         }
     }
 
     #[test]
-    fn testing() {
-        test_bingcd::<{ U256::LIMBS }>();
-        test_bingcd::<{ U512::LIMBS }>();
-        test_bingcd::<{ U1024::LIMBS }>();
-        test_bingcd::<{ U2048::LIMBS }>();
-        test_bingcd::<{ U4096::LIMBS }>();
-        test_bingcd::<{ U8192::LIMBS }>();
-        test_bingcd::<{ U16384::LIMBS }>();
+    fn test_bingcd() {
+        bingcd_tests::<{ U256::LIMBS }>();
+        bingcd_tests::<{ U512::LIMBS }>();
+        bingcd_tests::<{ U1024::LIMBS }>();
+        bingcd_tests::<{ U2048::LIMBS }>();
+        bingcd_tests::<{ U4096::LIMBS }>();
+        bingcd_tests::<{ U8192::LIMBS }>();
+        bingcd_tests::<{ U16384::LIMBS }>();
     }
 }
