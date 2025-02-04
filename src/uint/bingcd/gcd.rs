@@ -84,10 +84,10 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let b_ = b.compact::<LIMBS_2K>(n, K);
 
             // Compute the K-1 iteration update matrix from a_ and b_
-            let (matrix, log_upper_bound) = a_
+            let (.., matrix, log_upper_bound) = a_
                 .to_odd()
                 .expect("a is always odd")
-                .restricted_extended_gcd::<LIMBS_K>(&b_, K - 1);
+                .partial_binxgcd::<LIMBS_K>(&b_, K - 1);
 
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = matrix.extended_apply_to((a, b));
