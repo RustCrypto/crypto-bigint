@@ -1,4 +1,4 @@
-use crate::{ConstChoice, ConstCtOption, Int, Limb, NonZero, Uint};
+use crate::{ConstChoice, ConstCtOption, Int, Limb, Uint};
 
 pub(crate) struct ExtendedUint<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
     Uint<LIMBS>,

@@ -427,7 +427,6 @@ impl<const LIMBS: usize> ConstCtOption<(Uint<LIMBS>, ConstChoice)> {
     }
 }
 
-
 impl<const LIMBS: usize> ConstCtOption<NonZero<Uint<LIMBS>>> {
     /// Returns the contained value, consuming the `self` value.
     ///

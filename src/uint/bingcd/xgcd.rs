@@ -1,38 +1,39 @@
 use crate::uint::bingcd::matrix::IntMatrix;
 use crate::uint::bingcd::tools::const_max;
-use crate::{ConcatMixed, Odd, Uint};
+use crate::{ConcatMixed, Int, Odd, Uint};
+
+impl<const LIMBS: usize> Uint<LIMBS> {
+    /// Compute `self / 2^k  mod q`. Execute in time variable in `k`
+    #[inline]
+    const fn div_2k_mod_q_vartime(mut self, k: u32, q: &Odd<Self>) -> Self {
+        // TODO: fix wrapping add. Q could be Uint::MAX.
+        let one_half_mod_q = q.as_ref().wrapping_add(&Uint::ONE).shr_vartime(1);
+
+        let mut add_one_half;
+        let mut i = 0;
+        while i < k {
+            add_one_half = self.is_odd();
+            self = self.shr_vartime(1);
+            self = Self::select(&self, &self.wrapping_add(&one_half_mod_q), add_one_half);
+            i += 1;
+        }
+
+        self
+    }
+}
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
-    pub(super) fn binxgcd<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize, const DOUBLE: usize> (
+    pub(super) const fn binxgcd<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
         &self,
-        rhs: &Uint<LIMBS>,
-    ) -> (Self, IntMatrix<LIMBS>, u32)
-    where
-        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput=Uint<DOUBLE>>
-    {
-        let (mut a, mut b) = (*self.as_ref(), *rhs);
+        rhs: &Self,
+    ) -> (Self, Int<LIMBS>, Int<LIMBS>) {
+        let (mut a, mut b) = (*self.as_ref(), *rhs.as_ref());
 
         let mut matrix = IntMatrix::UNIT;
         let mut i = 0;
         let mut total_bound_shift = 0;
         while i < (2 * Self::BITS - 1).div_ceil(K) {
             i += 1;
-
-            // check identity
-            // assert!(
-            //     Int::eq(
-            //         &matrix.m00.widening_mul_uint(&a).checked_add(&matrix.m01.widening_mul_uint(&b)).expect("no overflow"),
-            //         &self.as_ref().resize().as_int()
-            //     ).to_bool_vartime(),
-            //     "{}", i
-            // );
-            // assert!(
-            //     Int::eq(
-            //         &matrix.m10.widening_mul_uint(&a).checked_add(&matrix.m11.widening_mul_uint(&b)).expect("no overflow"),
-            //         &rhs.resize().as_int()
-            //     ).to_bool_vartime(),
-            //     "{}", i
-            // );
 
             // Construct a_ and b_ as the summary of a and b, respectively.
             let n = const_max(2 * K, const_max(a.bits(), b.bits()));
@@ -63,29 +64,23 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             matrix.conditional_double_top_row(b_sgn);
 
             total_bound_shift += log_upper_bound;
-
-            // check identity
-            // assert!(
-            //     Int::eq(
-            //         &matrix.m00.widening_mul_uint(&a).checked_add(&matrix.m01.widening_mul_uint(&b)).expect("no overflow"),
-            //         &self.as_ref().resize().as_int()
-            //     ).to_bool_vartime(),
-            //     "{} {}", i, total_bound_shift
-            // );
-            // assert!(
-            //     Int::eq(
-            //         &matrix.m10.widening_mul_uint(&a).checked_add(&matrix.m11.widening_mul_uint(&b)).expect("no overflow"),
-            //         &rhs.resize().as_int()
-            //     ).to_bool_vartime(),
-            //     "{} {}", i, total_bound_shift
-            // );
         }
+
+        // Extract the Bezout coefficients
+        // TODO: fix vartime use
+        let (mut x, mut y) = (matrix.m00, matrix.m01);
+        let (abs_x, sgn_x) = x.abs_sign();
+        x = Int::new_from_abs_sign(abs_x.div_2k_mod_q_vartime(total_bound_shift, &rhs), sgn_x)
+            .expect("no overflow");
+        let (abs_y, sgn_y) = y.abs_sign();
+        y = Int::new_from_abs_sign(abs_y.div_2k_mod_q_vartime(total_bound_shift, &self), sgn_y)
+            .expect("no overflow");
 
         (
             a.to_odd()
                 .expect("gcd of an odd value with something else is always odd"),
-            matrix,
-            total_bound_shift
+            x,
+            y,
         )
     }
 
@@ -182,7 +177,6 @@ mod tests {
             ConcatMixed, Gcd, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U64,
             U768, U8192,
         };
-        use core::ops::Div;
         use rand_core::OsRng;
 
         fn binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
@@ -191,27 +185,23 @@ mod tests {
                 Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
             let gcd = lhs.gcd(&rhs);
-            let (binxgcd, matrix, total_shift) = lhs
+            let (binxgcd, x, y) = lhs
                 .to_odd()
                 .unwrap()
-                .binxgcd::<64, { U64::LIMBS }, { U128::LIMBS }, DOUBLE>(&rhs);
+                .binxgcd::<64, { U64::LIMBS }, { U128::LIMBS }>(&rhs.to_odd().unwrap());
             assert_eq!(gcd, binxgcd);
-            // test divisors
-            assert_eq!(matrix.m11.abs(), lhs.div(gcd));
-            assert_eq!(matrix.m10.abs(), rhs.div(gcd));
             // test bezout coefficients
-            let prod = matrix.m00.widening_mul_uint(&lhs) + matrix.m01.widening_mul_uint(&rhs);
+            let prod = x.widening_mul_uint(&lhs) + y.widening_mul_uint(&rhs);
             assert_eq!(
-                prod.shr(total_shift),
+                prod,
                 binxgcd.resize().as_int(),
-                "{} {} {} {} {} {} {}",
+                "{} {} {} {} {} {}",
                 lhs,
                 rhs,
                 prod,
                 binxgcd,
-                matrix.m00,
-                matrix.m01,
-                total_shift
+                x,
+                y
             )
         }
 
@@ -221,12 +211,10 @@ mod tests {
                 Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
             // Edge cases
-            // binxgcd_test(Uint::ONE, Uint::ZERO);
-            // binxgcd_test(Uint::ONE, Uint::ONE);
-            // // binxgcd_test(Uint::ONE, Uint::MAX);
-            // binxgcd_test(Uint::MAX, Uint::ZERO);
-            // // binxgcd_test(Uint::MAX, Uint::ONE);
-            // binxgcd_test(Uint::MAX, Uint::MAX);
+            binxgcd_test(Uint::ONE, Uint::ONE);
+            binxgcd_test(Uint::ONE, Uint::MAX);
+            binxgcd_test(Uint::MAX, Uint::ONE);
+            binxgcd_test(Uint::MAX, Uint::MAX);
             binxgcd_test(
                 Uint::from_be_hex("7BE417F8D79B2A7EAE8E4E9621C36FF3"),
                 Uint::from_be_hex("02427A8560599FD5183B0375455A895F"),
@@ -235,7 +223,7 @@ mod tests {
             // Randomized test cases
             for _ in 0..100 {
                 let x = Uint::<LIMBS>::random(&mut OsRng).bitor(&Uint::ONE);
-                let y = Uint::<LIMBS>::random(&mut OsRng);
+                let y = Uint::<LIMBS>::random(&mut OsRng).bitor(&Uint::ONE);
                 binxgcd_test(x, y);
             }
         }
