@@ -51,15 +51,21 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             log_upper_bound = do_apply.select_u32(log_upper_bound, log_upper_bound + 1);
         }
 
-        (a.to_odd().expect("a is always odd"), b, matrix, log_upper_bound)
+        (
+            a.to_odd().expect("a is always odd"),
+            b,
+            matrix,
+            log_upper_bound,
+        )
     }
 }
 
 #[cfg(test)]
 mod tests {
+
     mod test_partial_binxgcd {
-    use crate::uint::bingcd::matrix::IntMatrix;
-    use crate::{I64, U64};
+        use crate::uint::bingcd::matrix::IntMatrix;
+        use crate::{I64, U64};
 
         #[test]
         fn test_partial_binxgcd() {

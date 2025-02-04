@@ -83,7 +83,7 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
 #[cfg(test)]
 mod tests {
     use crate::uint::bingcd::matrix::IntMatrix;
-    use crate::{ConstChoice, I256, Int, U256};
+    use crate::{ConstChoice, Int, I256, U256};
 
     const X: IntMatrix<{ U256::LIMBS }> = IntMatrix::new(
         Int::from_i64(1i64),
@@ -146,11 +146,14 @@ mod tests {
     #[test]
     fn test_checked_mul() {
         let res = X.checked_mul(&X);
-        assert_eq!(res, IntMatrix::new(
-            I256::from_i64(162i64),
-            I256::from_i64(378i64),
-            I256::from_i64(1242i64),
-            I256::from_i64(2970i64),
-        ))
+        assert_eq!(
+            res,
+            IntMatrix::new(
+                I256::from_i64(162i64),
+                I256::from_i64(378i64),
+                I256::from_i64(1242i64),
+                I256::from_i64(2970i64),
+            )
+        )
     }
 }
