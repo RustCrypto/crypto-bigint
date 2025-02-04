@@ -94,6 +94,33 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
         Self(lo, hi)
     }
 
+    /// Perform addition, raising the `overflow` flag on overflow.
+    pub const fn overflowing_add(&self, rhs: &Self) -> (Self, ConstChoice) {
+        // Step 1. add operands
+        let res = self.wrapping_add(&rhs);
+
+        // Step 2. determine whether overflow happened.
+        // Note:
+        // - overflow can only happen when the inputs have the same sign, and then
+        // - overflow occurs if and only if the result has the opposite sign of both inputs.
+        //
+        // We can thus express the overflow flag as: (self.msb == rhs.msb) & (self.msb != res.msb)
+        let self_msb = self.is_negative();
+        let overflow = self_msb
+            .eq(rhs.is_negative())
+            .and(self_msb.ne(res.is_negative()));
+
+        // Step 3. Construct result
+        (res, overflow)
+    }
+
+    /// Compute `self + rhs`, wrapping any overflow.
+    #[inline]
+    pub const fn checked_add(&self, rhs: &Self) -> ConstCtOption<Self> {
+        let (res, overflow) = self.overflowing_add(rhs);
+        ConstCtOption::new(res, overflow.not())
+    }
+
     /// Returns self without the extension.
     ///
     /// Is `None` if the extension cannot be dropped, i.e., when there is a bit in the extension
@@ -123,6 +150,12 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     #[inline]
     pub const fn abs(&self) -> ExtendedUint<LIMBS, EXTRA> {
         self.abs_sgn().0
+    }
+
+    /// Decompose `self` into is absolute value and signum.
+    #[inline]
+    pub const fn is_negative(&self) -> ConstChoice {
+        self.abs_sgn().1
     }
 
     /// Divide self by `2^k`, rounding towards zero.
