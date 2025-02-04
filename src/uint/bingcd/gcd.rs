@@ -56,9 +56,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             // subtract a from b when b is odd
             b = Uint::select(&b, &b.wrapping_sub(&a), b_odd);
 
-            // Div b by two when a ≠ 0, otherwise do nothing.
-            let do_apply = a.is_nonzero();
-            b = Uint::select(&b, &b.shr_vartime(1), do_apply);
+            // Div b by two
+            b = b.shr_vartime(1);
         }
 
         a.to_odd()
