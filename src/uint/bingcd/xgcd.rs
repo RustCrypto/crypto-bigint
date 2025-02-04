@@ -61,8 +61,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
             matrix = update_matrix.checked_mul_right(&matrix);
             matrix.conditional_negate_top_row(a_sgn);
-            matrix.conditional_double_top_row(b_sgn);
-
+            matrix.conditional_negate_bottom_row(b_sgn);
             total_bound_shift += log_upper_bound;
         }
 
