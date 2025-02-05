@@ -45,24 +45,31 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         let (mut a, mut b) = (*self.as_ref(), *rhs);
         let mut j = 0;
         while j < (2 * Self::BITS - 1) {
+            Self::bingcd_step(&mut a, &mut b);
             j += 1;
-
-            let b_odd = b.is_odd();
-
-            // swap if b odd and a > b
-            let a_gt_b = Uint::gt(&a, &b);
-            let do_swap = b_odd.and(a_gt_b);
-            Uint::conditional_swap(&mut a, &mut b, do_swap);
-
-            // subtract a from b when b is odd
-            b = Uint::select(&b, &b.wrapping_sub(&a), b_odd);
-
-            // Div b by two
-            b = b.shr_vartime(1);
         }
 
         a.to_odd()
             .expect("gcd of an odd value with something else is always odd")
+    }
+
+    /// Binary GCD update step.
+    ///
+    /// This is a condensed, constant time execution of the following algorithm:
+    /// ```text
+    /// if b mod 2 == 1
+    ///    if a > b
+    ///        (a, b) ← (b, a)
+    ///    b ← b - a
+    /// b ← b/2
+    /// ```
+    /// Ref: Pornin, Algorithm 2, L8-17, <https://eprint.iacr.org/2020/972.pdf>.
+    #[inline]
+    const fn bingcd_step(a: &mut Uint<LIMBS>, b: &mut Uint<LIMBS>) {
+        let b_odd = b.is_odd();
+        let a_gt_b = Uint::gt(&a, &b);
+        Uint::conditional_swap(a, b, b_odd.and(a_gt_b));
+        *b = Uint::select(b, &b.wrapping_sub(a), b_odd).shr_vartime(1);
     }
 
     /// Computes `gcd(self, rhs)`, leveraging the Binary GCD algorithm.
