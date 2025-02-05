@@ -9,7 +9,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     const fn div_2k_mod_q(&self, k: u32, k_bound: u32, q: &Odd<Uint<LIMBS>>) -> Self {
         let (abs, sgn) = self.abs_sign();
         let abs_div_2k_mod_q = abs.div_2k_mod_q(k, k_bound, &q);
-        Int::new_from_abs_sign(abs_div_2k_mod_q,sgn,).expect("no overflow")
+        Int::new_from_abs_sign(abs_div_2k_mod_q, sgn).expect("no overflow")
     }
 }
 
@@ -134,25 +134,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         let mut log_upper_bound = 0;
         let mut j = 0;
         while j < iterations {
+            Self::binxgcd_step(&mut a, &mut b, &mut matrix, &mut log_upper_bound);
             j += 1;
-
-            let b_odd = b.is_odd();
-            let a_gt_b = Uint::gt(&a, &b);
-
-            // swap if b odd and a > b
-            let do_swap = b_odd.and(a_gt_b);
-            Uint::conditional_swap(&mut a, &mut b, do_swap);
-            matrix.conditional_swap_rows(do_swap);
-
-            // subtract a from b when b is odd
-            b = Uint::select(&b, &b.wrapping_sub(&a), b_odd);
-            matrix.conditional_subtract_top_row_from_bottom(b_odd);
-
-            // Div b by two and double the top row of the matrix when a, b ≠ 0.
-            let do_apply = a.is_nonzero().and(b.is_nonzero());
-            b = Uint::select(&b, &b.shr_vartime(1), do_apply);
-            matrix.conditional_double_top_row(do_apply);
-            log_upper_bound = do_apply.select_u32(log_upper_bound, log_upper_bound + 1);
         }
 
         (
@@ -161,6 +144,46 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             matrix,
             log_upper_bound,
         )
+    }
+
+    /// Binary XGCD update step.
+    ///
+    /// This is a condensed, constant time execution of the following algorithm:
+    /// ```text
+    /// if b mod 2 == 1
+    ///    if a > b
+    ///        (a, b) ← (b, a)
+    ///        (f0, g0, f1, g1) ← (f1, g1, f0, g0)
+    ///    b ← b - a
+    ///    (f1, g1) ← (f1 - f0, g1 - g0)
+    /// b ← b/2
+    /// (f0, g0) ← (2f0, 2g0)
+    /// ```
+    /// Ref: Pornin, Algorithm 2, L8-17, <https://eprint.iacr.org/2020/972.pdf>.
+    #[inline]
+    const fn binxgcd_step<const MATRIX_LIMBS: usize>(
+        a: &mut Uint<LIMBS>,
+        b: &mut Uint<LIMBS>,
+        matrix: &mut IntMatrix<MATRIX_LIMBS>,
+        log_upper_bound: &mut u32,
+    ){
+        let b_odd = b.is_odd();
+        let a_gt_b = Uint::gt(&a, &b);
+
+        // swap if b odd and a > b
+        let swap = b_odd.and(a_gt_b);
+        Uint::conditional_swap(a, b, swap);
+        matrix.conditional_swap_rows(swap);
+
+        // subtract a from b when b is odd
+        *b = Uint::select(&b, &b.wrapping_sub(&a), b_odd);
+        matrix.conditional_subtract_top_row_from_bottom(b_odd);
+
+        // Div b by two and double the top row of the matrix when a, b ≠ 0.
+        let double = b.is_nonzero();
+        *b = b.shr_vartime(1);
+        matrix.conditional_double_top_row(double);
+        *log_upper_bound = double.select_u32(*log_upper_bound, *log_upper_bound + 1);
     }
 }
 
