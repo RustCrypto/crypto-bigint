@@ -94,9 +94,10 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         }
 
         // Extract the Bezout coefficients.
-        let total_iterations = reduction_rounds * (K-1);
-        let x = matrix.m00.div_2k_mod_q(total_bound_shift, total_iterations, &rhs);
-        let y = matrix.m01.div_2k_mod_q(total_bound_shift, total_iterations, &self);
+        let total_iterations = reduction_rounds * (K - 1);
+        let IntMatrix { m00, m01, .. } = matrix;
+        let x = m00.div_2k_mod_q(total_bound_shift, total_iterations, &rhs);
+        let y = m01.div_2k_mod_q(total_bound_shift, total_iterations, &self);
 
         (
             a.to_odd()
@@ -166,7 +167,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         b: &mut Uint<LIMBS>,
         matrix: &mut IntMatrix<MATRIX_LIMBS>,
         log_upper_bound: &mut u32,
-    ){
+    ) {
         let b_odd = b.is_odd();
         let a_gt_b = Uint::gt(&a, &b);
 
