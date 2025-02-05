@@ -387,6 +387,52 @@ fn bench_gcd(c: &mut Criterion) {
     group.finish();
 }
 
+fn xgcd_bench<const LIMBS: usize, const UNSAT_LIMBS: usize>(
+    g: &mut BenchmarkGroup<WallTime>,
+    _x: Uint<LIMBS>,
+) where
+    Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
+{
+    g.bench_function(BenchmarkId::new("binxgcd", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                let modulus = Uint::MAX.shr_vartime(1).to_nz().unwrap();
+                let f = Uint::<LIMBS>::random_mod(&mut OsRng, &modulus)
+                    .bitor(&Uint::ONE)
+                    .to_odd()
+                    .unwrap();
+                let g = Uint::<LIMBS>::random_mod(&mut OsRng, &modulus)
+                    .bitor(&Uint::ONE)
+                    .to_odd()
+                    .unwrap();
+                (f, g)
+            },
+            |(f, g)| black_box(f.binxgcd::<63, { U64::LIMBS }, { U128::LIMBS }>(&g)),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
+fn bench_xgcd(c: &mut Criterion) {
+    let mut group = c.benchmark_group("greatest common divisor");
+
+    xgcd_bench(&mut group, U64::ZERO);
+    xgcd_bench(&mut group, U128::ZERO);
+    xgcd_bench(&mut group, U192::ZERO);
+    xgcd_bench(&mut group, U256::ZERO);
+    xgcd_bench(&mut group, U320::ZERO);
+    xgcd_bench(&mut group, U384::ZERO);
+    xgcd_bench(&mut group, U448::ZERO);
+    xgcd_bench(&mut group, U512::ZERO);
+    xgcd_bench(&mut group, U1024::ZERO);
+    xgcd_bench(&mut group, U2048::ZERO);
+    xgcd_bench(&mut group, U4096::ZERO);
+    xgcd_bench(&mut group, U8192::ZERO);
+    xgcd_bench(&mut group, U16384::ZERO);
+
+    group.finish();
+}
+
 fn bench_shl(c: &mut Criterion) {
     let mut group = c.benchmark_group("left shift");
 
@@ -546,6 +592,7 @@ criterion_group!(
     bench_mul,
     bench_division,
     bench_gcd,
+    bench_xgcd,
     bench_shl,
     bench_shr,
     bench_inv_mod,
