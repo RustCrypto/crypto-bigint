@@ -1,29 +1,56 @@
 use crate::uint::bingcd::matrix::IntMatrix;
 use crate::uint::bingcd::tools::const_max;
-use crate::{ConcatMixed, Int, Odd, Uint};
+use crate::{ConstChoice, Int, Odd, Uint};
+
+impl<const LIMBS: usize> Int<LIMBS> {
+    /// Compute `self / 2^k  mod q`. Executes in time variable in `k_bound`. This value should be
+    /// chosen as an inclusive upperbound to the value of `k`.
+    #[inline]
+    const fn div_2k_mod_q(&self, k: u32, k_bound: u32, q: &Odd<Uint<LIMBS>>) -> Self {
+        let (abs, sgn) = self.abs_sign();
+        let abs_div_2k_mod_q = abs.div_2k_mod_q(k, k_bound, &q);
+        Int::new_from_abs_sign(abs_div_2k_mod_q,sgn,).expect("no overflow")
+    }
+}
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Compute `self / 2^k  mod q`. Execute in time variable in `k`
+    /// Compute `self / 2^k  mod q`. Executes in time variable in `k_bound`. This value should be
+    /// chosen as an inclusive upperbound to the value of `k`.
     #[inline]
-    const fn div_2k_mod_q_vartime(mut self, k: u32, q: &Odd<Self>) -> Self {
-        // TODO: fix wrapping add. Q could be Uint::MAX.
-        let one_half_mod_q = q.as_ref().wrapping_add(&Uint::ONE).shr_vartime(1);
-
-        let mut add_one_half;
+    const fn div_2k_mod_q(mut self, k: u32, k_bound: u32, q: &Odd<Self>) -> Self {
+        //        1  / 2      mod q
+        // = (q + 1) / 2      mod q
+        // = (q - 1) / 2  + 1 mod q
+        // = floor(q / 2) + 1 mod q, since q is odd.
+        let one_half_mod_q = q.as_ref().shr_vartime(1).wrapping_add(&Uint::ONE);
         let mut i = 0;
-        while i < k {
-            add_one_half = self.is_odd();
-            self = self.shr_vartime(1);
-            self = Self::select(&self, &self.wrapping_add(&one_half_mod_q), add_one_half);
+        while i < k_bound {
+            // Apply only while i < k
+            let apply = ConstChoice::from_u32_lt(i, k);
+            self = Self::select(&self, &self.div_2_mod_q(&one_half_mod_q), apply);
             i += 1;
         }
 
         self
     }
+
+    /// Compute `self / 2 mod q`.
+    #[inline]
+    const fn div_2_mod_q(self, half_mod_q: &Self) -> Self {
+        // Floor-divide self by 2. When self was odd, add back 1/2 mod q.
+        let add_one_half = self.is_odd();
+        let floored_half = self.shr_vartime(1);
+        Self::select(
+            &floored_half,
+            &floored_half.wrapping_add(&half_mod_q),
+            add_one_half,
+        )
+    }
 }
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
-    pub(super) const fn binxgcd<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
+    /// Given `(self, rhs)`, compute `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
+    pub const fn binxgcd<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
         &self,
         rhs: &Self,
     ) -> (Self, Int<LIMBS>, Int<LIMBS>) {
@@ -32,7 +59,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         let mut matrix = IntMatrix::UNIT;
         let mut i = 0;
         let mut total_bound_shift = 0;
-        while i < (2 * Self::BITS - 1).div_ceil(K) {
+        let reduction_rounds = (2 * Self::BITS - 1).div_ceil(K);
+        while i < reduction_rounds {
             i += 1;
 
             // Construct a_ and b_ as the summary of a and b, respectively.
@@ -65,15 +93,10 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             total_bound_shift += log_upper_bound;
         }
 
-        // Extract the Bezout coefficients
-        // TODO: fix vartime use
-        let (mut x, mut y) = (matrix.m00, matrix.m01);
-        let (abs_x, sgn_x) = x.abs_sign();
-        x = Int::new_from_abs_sign(abs_x.div_2k_mod_q_vartime(total_bound_shift, &rhs), sgn_x)
-            .expect("no overflow");
-        let (abs_y, sgn_y) = y.abs_sign();
-        y = Int::new_from_abs_sign(abs_y.div_2k_mod_q_vartime(total_bound_shift, &self), sgn_y)
-            .expect("no overflow");
+        // Extract the Bezout coefficients.
+        let total_iterations = reduction_rounds * (K-1);
+        let x = matrix.m00.div_2k_mod_q(total_bound_shift, total_iterations, &rhs);
+        let y = matrix.m01.div_2k_mod_q(total_bound_shift, total_iterations, &self);
 
         (
             a.to_odd()
