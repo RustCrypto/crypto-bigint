@@ -86,7 +86,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// <https://eprint.iacr.org/2020/972.pdf>
     #[inline(always)]
     pub const fn optimized_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
-        self.optimized_bingcd_::<{ U64::BITS - 2 }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
+        self.optimized_bingcd_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
     }
 
     /// Computes `gcd(self, rhs)`, leveraging the optimized Binary GCD algorithm.
@@ -174,7 +174,7 @@ mod tests {
             bingcd_small_test(Uint::MAX, Uint::MAX);
 
             // Randomized test cases
-            for _ in 0..100 {
+            for _ in 0..1000 {
                 let x = Uint::<LIMBS>::random(&mut OsRng).bitor(&Uint::ONE);
                 let y = Uint::<LIMBS>::random(&mut OsRng);
                 bingcd_small_test(x, y);
@@ -221,7 +221,7 @@ mod tests {
             bingcd_large_test(Uint::MAX, Uint::MAX);
 
             // Randomized testing
-            for _ in 0..100 {
+            for _ in 0..1000 {
                 let x = Uint::<LIMBS>::random(&mut OsRng).bitor(&Uint::ONE);
                 let y = Uint::<LIMBS>::random(&mut OsRng);
                 bingcd_large_test(x, y);
