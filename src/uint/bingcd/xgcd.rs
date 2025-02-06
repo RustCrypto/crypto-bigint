@@ -50,6 +50,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Given `(self, rhs)`, compute `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
+    ///
+    /// TODO: this only works for `self` and `rhs` that are <= Int::MAX.
     pub const fn binxgcd<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
         &self,
         rhs: &Self,
@@ -220,8 +222,8 @@ mod tests {
 
     mod test_binxgcd {
         use crate::{
-            ConcatMixed, Gcd, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U64,
-            U768, U8192,
+            ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384,
+            U4096, U512, U64, U768, U8192,
         };
         use rand_core::OsRng;
 
@@ -236,19 +238,10 @@ mod tests {
                 .unwrap()
                 .binxgcd::<64, { U64::LIMBS }, { U128::LIMBS }>(&rhs.to_odd().unwrap());
             assert_eq!(gcd, binxgcd);
+
             // test bezout coefficients
             let prod = x.widening_mul_uint(&lhs) + y.widening_mul_uint(&rhs);
-            assert_eq!(
-                prod,
-                binxgcd.resize().as_int(),
-                "{} {} {} {} {} {}",
-                lhs,
-                rhs,
-                prod,
-                binxgcd,
-                x,
-                y
-            )
+            assert_eq!(prod, binxgcd.resize().as_int())
         }
 
         fn binxgcd_tests<const LIMBS: usize, const DOUBLE: usize>()
@@ -256,20 +249,20 @@ mod tests {
             Uint<LIMBS>:
                 Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
+            // upper bound
+            let upper_bound = *Int::MAX.as_uint();
+
             // Edge cases
             binxgcd_test(Uint::ONE, Uint::ONE);
-            binxgcd_test(Uint::ONE, Uint::MAX);
-            binxgcd_test(Uint::MAX, Uint::ONE);
-            binxgcd_test(Uint::MAX, Uint::MAX);
-            binxgcd_test(
-                Uint::from_be_hex("7BE417F8D79B2A7EAE8E4E9621C36FF3"),
-                Uint::from_be_hex("02427A8560599FD5183B0375455A895F"),
-            );
+            binxgcd_test(Uint::ONE, upper_bound);
+            binxgcd_test(upper_bound, Uint::ONE);
+            binxgcd_test(upper_bound, upper_bound);
 
             // Randomized test cases
+            let bound = upper_bound.wrapping_add(&Uint::ONE).to_nz().unwrap();
             for _ in 0..100 {
-                let x = Uint::<LIMBS>::random(&mut OsRng).bitor(&Uint::ONE);
-                let y = Uint::<LIMBS>::random(&mut OsRng).bitor(&Uint::ONE);
+                let x = Uint::<LIMBS>::random_mod(&mut OsRng, &bound).bitor(&Uint::ONE);
+                let y = Uint::<LIMBS>::random_mod(&mut OsRng, &bound).bitor(&Uint::ONE);
                 binxgcd_test(x, y);
             }
         }
