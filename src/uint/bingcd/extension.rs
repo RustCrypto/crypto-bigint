@@ -114,13 +114,6 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
         (res, overflow)
     }
 
-    /// Compute `self + rhs`, wrapping any overflow.
-    #[inline]
-    pub const fn checked_add(&self, rhs: &Self) -> ConstCtOption<Self> {
-        let (res, overflow) = self.overflowing_add(rhs);
-        ConstCtOption::new(res, overflow.not())
-    }
-
     /// Returns self without the extension.
     ///
     /// Is `None` if the extension cannot be dropped, i.e., when there is a bit in the extension
