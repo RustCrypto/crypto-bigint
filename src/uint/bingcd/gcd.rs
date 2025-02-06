@@ -37,7 +37,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         if LIMBS < 8 {
             self.classic_bingcd(rhs)
         } else {
-            self.optimized_bingcd::<{ U64::BITS - 2 }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
+            self.optimized_bingcd(rhs)
         }
     }
 
@@ -78,10 +78,34 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Note: this algorithm becomes more efficient than the classical algorithm for [Uint]s with
     /// relatively many `LIMBS`. A best-effort threshold is presented in [Self::bingcd].
     ///
+    /// Note: the full algorithm has an additional parameter; this function selects the best-effort
+    /// value for this parameter. You might be able to further tune your performance by calling the
+    /// [Self::optimized_bingcd_] function directly.
+    ///
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
     /// <https://eprint.iacr.org/2020/972.pdf>
     #[inline(always)]
-    pub const fn optimized_bingcd<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
+    pub const fn optimized_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
+        self.optimized_bingcd_::<{ U64::BITS - 2 }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
+    }
+
+    /// Computes `gcd(self, rhs)`, leveraging the optimized Binary GCD algorithm.
+    ///
+    /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
+    /// <https://eprint.iacr.org/2020/972.pdf>
+    ///
+    /// In summary, the optimized algorithm does not operate on `self` and `rhs` directly, but
+    /// instead of condensed summaries that fit in few registers. Based on these summaries, an
+    /// update matrix is constructed by which `self` and `rhs` are updated in larger steps.
+    ///
+    /// This function is generic over the following three values:
+    /// - `K`: the number of bits used when summarizing `self` and `rhs` for the inner loop. The
+    /// `K+1` top bits and `K-1` least significant bits are selected. It is recommended to keep `K`
+    /// close to a (multiple of) the number of bits that fit in a single register.
+    /// - `LIMBS_K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ K`,
+    /// - `LIMBS_2K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ 2K`.
+    #[inline(always)]
+    pub const fn optimized_bingcd_<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
         &self,
         rhs: &Uint<LIMBS>,
     ) -> Self {
@@ -172,7 +196,7 @@ mod tests {
     }
 
     mod test_bingcd_large {
-        use crate::{Gcd, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U64};
+        use crate::{Gcd, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512};
         use rand_core::OsRng;
 
         fn bingcd_large_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
@@ -180,10 +204,7 @@ mod tests {
             Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
         {
             let gcd = lhs.gcd(&rhs);
-            let bingcd = lhs
-                .to_odd()
-                .unwrap()
-                .optimized_bingcd::<62, { U64::LIMBS }, { U128::LIMBS }>(&rhs);
+            let bingcd = lhs.to_odd().unwrap().optimized_bingcd(&rhs);
             assert_eq!(gcd, bingcd);
         }
 
