@@ -10,8 +10,10 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// `(-2^log_upper_bound, 2^log_upper_bound]`.
     ///
     /// Assumes `iterations < Uint::<UPDATE_LIMBS>::BITS`.
+    ///
+    /// The function executes in time variable in `iterations`.
     #[inline]
-    pub(super) const fn restricted_extended_gcd<const UPDATE_LIMBS: usize>(
+    pub(super) const fn restricted_extended_gcd_vartime<const UPDATE_LIMBS: usize>(
         &self,
         rhs: &Uint<LIMBS>,
         iterations: u32,
@@ -60,7 +62,7 @@ mod tests {
     fn test_restricted_extended_gcd() {
         let a = U64::from_be_hex("CA048AFA63CD6A1F").to_odd().unwrap();
         let b = U64::from_be_hex("AE693BF7BE8E5566");
-        let (matrix, iters) = a.restricted_extended_gcd(&b, 5);
+        let (matrix, iters) = a.restricted_extended_gcd_vartime(&b, 5);
         assert_eq!(iters, 5);
         assert_eq!(
             matrix,
@@ -73,7 +75,7 @@ mod tests {
         // Stop before max_iters
         let a = U64::from_be_hex("0000000003CD6A1F").to_odd().unwrap();
         let b = U64::from_be_hex("000000000E8E5566");
-        let (.., iters) = a.restricted_extended_gcd::<{ U64::LIMBS }>(&b, 60);
+        let (.., iters) = a.restricted_extended_gcd_vartime::<{ U64::LIMBS }>(&b, 60);
         assert_eq!(iters, 35);
     }
 }
