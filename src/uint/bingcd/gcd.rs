@@ -135,7 +135,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let (matrix, log_upper_bound) = b_
                 .to_odd()
                 .expect("b_ is always odd")
-                .restricted_extended_gcd_vartime::<LIMBS_K>(&a_, K - 1);
+                .partial_binxgcd_vartime::<LIMBS_K>(&a_, K - 1);
 
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = matrix.extended_apply_to((a, b));
