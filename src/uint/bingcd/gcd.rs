@@ -14,33 +14,42 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
 
         val.shr(i)
             .to_odd()
-            .expect("self is odd by construction")
+            .expect("val.shr(i) is odd by construction")
             .bingcd(rhs)
             .as_ref()
             .shl(k)
             .to_nz()
-            .expect("gcd of non-zero element with zero is non-zero")
+            .expect("gcd of non-zero element with another element is non-zero")
     }
 }
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     const BITS: u32 = Uint::<LIMBS>::BITS;
 
-    /// Compute the greatest common divisor of `self` and `rhs`.
+    /// Compute the greatest common divisor of `self` and `rhs` using the Binary GCD algorithm.
+    ///
+    /// This function switches between the "classic" and "optimized" algorithm at a best-effort
+    /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
+    /// manually test whether the classic or optimized algorithm is faster for your machine.
     #[inline(always)]
     pub const fn bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
         // Todo: tweak this threshold
         if LIMBS < 8 {
-            self.bingcd_small(rhs)
+            self.classic_bingcd(rhs)
         } else {
-            self.bingcd_large::<{ U64::BITS - 2 }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
+            self.optimized_bingcd::<{ U64::BITS - 2 }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
         }
     }
 
-    /// Computes `gcd(self, rhs)`, leveraging the Binary GCD algorithm.
-    /// Is efficient only for relatively small `LIMBS`.
+    /// Computes `gcd(self, rhs)`, leveraging the (a constant time implementation of) the classic
+    /// Binary GCD algorithm.
+    ///
+    /// Note: this algorithm is efficient for [Uint]s with relatively few `LIMBS`.
+    ///
+    /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
+    /// <https://eprint.iacr.org/2020/972.pdf>
     #[inline]
-    pub const fn bingcd_small(&self, rhs: &Uint<LIMBS>) -> Self {
+    pub const fn classic_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
         let (mut a, mut b) = (*self.as_ref(), *rhs);
         let mut j = 0;
         while j < (2 * Self::BITS - 1) {
@@ -64,10 +73,15 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             .expect("gcd of an odd value with something else is always odd")
     }
 
-    /// Computes `gcd(self, rhs)`, leveraging the Binary GCD algorithm.
-    /// Is efficient for larger `LIMBS`.
+    /// Computes `gcd(self, rhs)`, leveraging the optimized Binary GCD algorithm.
+    ///
+    /// Note: this algorithm becomes more efficient than the classical algorithm for [Uint]s with
+    /// relatively many `LIMBS`. A best-effort threshold is presented in [Self::bingcd].
+    ///
+    /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
+    /// <https://eprint.iacr.org/2020/972.pdf>
     #[inline(always)]
-    pub const fn bingcd_large<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
+    pub const fn optimized_bingcd<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
         &self,
         rhs: &Uint<LIMBS>,
     ) -> Self {
@@ -119,7 +133,7 @@ mod tests {
             Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
         {
             let gcd = lhs.gcd(&rhs);
-            let bingcd = lhs.to_odd().unwrap().bingcd_small(&rhs);
+            let bingcd = lhs.to_odd().unwrap().classic_bingcd(&rhs);
             assert_eq!(gcd, bingcd);
         }
 
@@ -169,7 +183,7 @@ mod tests {
             let bingcd = lhs
                 .to_odd()
                 .unwrap()
-                .bingcd_large::<62, { U64::LIMBS }, { U128::LIMBS }>(&rhs);
+                .optimized_bingcd::<62, { U64::LIMBS }, { U128::LIMBS }>(&rhs);
             assert_eq!(gcd, bingcd);
         }
 
