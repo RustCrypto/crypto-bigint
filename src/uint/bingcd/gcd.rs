@@ -117,8 +117,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
             // Construct a_ and b_ as the summary of a and b, respectively.
             let n = const_max(2 * K, const_max(a.bits(), b.bits()));
-            let a_ = a.compact::<LIMBS_2K>(n, K);
-            let b_ = b.compact::<LIMBS_2K>(n, K);
+            let a_ = a.compact::<K, LIMBS_2K>(n);
+            let b_ = b.compact::<K, LIMBS_2K>(n);
 
             // Compute the K-1 iteration update matrix from a_ and b_
             let (matrix, log_upper_bound) = a_
