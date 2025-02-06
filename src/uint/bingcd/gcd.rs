@@ -113,8 +113,9 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ) -> Self {
         let (mut a, mut b) = (*self.as_ref(), *rhs);
 
+        let iterations = (2 * Self::BITS - 1).div_ceil(K);
         let mut i = 0;
-        while i < (2 * Self::BITS - 1).div_ceil(K) {
+        while i < iterations {
             i += 1;
 
             // Construct a_ and b_ as the summary of a and b, respectively.
