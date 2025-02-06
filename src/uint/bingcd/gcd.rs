@@ -34,6 +34,10 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     #[inline(always)]
     pub const fn bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
         // Todo: tweak this threshold
+        // Note: we're swapping the parameters here for greater readability: Pornin's Algorithm 1
+        // and Algorithm 2 both require the second argument (m) to be odd. Given that the gcd
+        // is the same, regardless of the order of the parameters, this swap does not affect the
+        // result.
         if LIMBS < 8 {
             self.classic_bingcd(rhs)
         } else {
@@ -50,28 +54,29 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// <https://eprint.iacr.org/2020/972.pdf>
     #[inline]
     pub const fn classic_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
-        let (mut a, mut b) = (*self.as_ref(), *rhs);
+        // (self, rhs) corresponds to (m, y) in the Algorithm 1 notation.
+        let (mut a, mut b) = (*rhs, *self.as_ref());
         let mut j = 0;
         while j < (2 * Self::BITS - 1) {
             j += 1;
 
-            let b_odd = b.is_odd();
+            let a_odd = a.is_odd();
 
-            // swap if b odd and a > b
-            let a_gt_b = Uint::gt(&a, &b);
-            let do_swap = b_odd.and(a_gt_b);
+            // swap if a odd and a < b
+            let a_lt_b = Uint::lt(&a, &b);
+            let do_swap = a_odd.and(a_lt_b);
             Uint::conditional_swap(&mut a, &mut b, do_swap);
 
-            // subtract a from b when b is odd
-            b = Uint::select(&b, &b.wrapping_sub(&a), b_odd);
+            // subtract b from a when a is odd
+            a = Uint::select(&a, &a.wrapping_sub(&b), a_odd);
 
-            // Div b by two.
+            // Div a by two.
             // safe to vartime; shr_vartime is variable in the value of shift only. Since this shift
             // is a public constant, the constant time property of this algorithm is not impacted.
-            b = b.shr_vartime(1);
+            a = a.shr_vartime(1);
         }
 
-        a.to_odd()
+        b.to_odd()
             .expect("gcd of an odd value with something else is always odd")
     }
 
@@ -111,7 +116,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         &self,
         rhs: &Uint<LIMBS>,
     ) -> Self {
-        let (mut a, mut b) = (*self.as_ref(), *rhs);
+        // (self, rhs) corresponds to (m, y) in the Algorithm 1 notation.
+        let (mut a, mut b) = (*rhs, *self.as_ref());
 
         let iterations = (2 * Self::BITS - 1).div_ceil(K);
         let mut i = 0;
@@ -126,10 +132,10 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             // Compute the K-1 iteration update matrix from a_ and b_
             // Safe to vartime; function executes in time variable in `iterations` only, which is
             // a public constant K-1 here.
-            let (matrix, log_upper_bound) = a_
+            let (matrix, log_upper_bound) = b_
                 .to_odd()
-                .expect("a is always odd")
-                .restricted_extended_gcd_vartime::<LIMBS_K>(&b_, K - 1);
+                .expect("b_ is always odd")
+                .restricted_extended_gcd_vartime::<LIMBS_K>(&a_, K - 1);
 
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = matrix.extended_apply_to((a, b));
@@ -144,7 +150,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
                 .expect("extension is zero");
         }
 
-        a.to_odd()
+        b.to_odd()
             .expect("gcd of an odd value with something else is always odd")
     }
 }

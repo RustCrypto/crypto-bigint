@@ -19,7 +19,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         iterations: u32,
     ) -> (IntMatrix<UPDATE_LIMBS>, u32) {
         debug_assert!(iterations < Uint::<UPDATE_LIMBS>::BITS);
-        let (mut a, mut b) = (*self.as_ref(), *rhs);
+        // (self, rhs) corresponds to (b_, a_) in the Algorithm 1 notation.
+        let (mut a, mut b) = (*rhs, *self.as_ref());
 
         // Compute the update matrix.
         let mut matrix = IntMatrix::UNIT;
@@ -28,24 +29,24 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         while j < iterations {
             j += 1;
 
-            let b_odd = b.is_odd();
-            let a_gt_b = Uint::gt(&a, &b);
+            let a_odd = a.is_odd();
+            let a_lt_b = Uint::lt(&a, &b);
 
-            // swap if b odd and a > b
-            let do_swap = b_odd.and(a_gt_b);
+            // swap if a odd and a < b
+            let do_swap = a_odd.and(a_lt_b);
             Uint::conditional_swap(&mut a, &mut b, do_swap);
             matrix.conditional_swap_rows(do_swap);
 
-            // subtract a from b when b is odd
-            b = Uint::select(&b, &b.wrapping_sub(&a), b_odd);
-            matrix.conditional_subtract_top_row_from_bottom(b_odd);
+            // subtract b from a when a is odd
+            a = Uint::select(&a, &a.wrapping_sub(&b), a_odd);
+            matrix.conditional_subtract_bottom_row_from_top(a_odd);
 
-            // Div b by two and double the top row of the matrix when a, b ≠ 0.
+            // Div a by 2 and double the bottom row of the matrix when a, b ≠ 0.
             let do_apply = a.is_nonzero().and(b.is_nonzero());
             // safe to vartime; shr_vartime is variable in the value of shift only. Since this shift
             // is a public constant, the constant time property of this algorithm is not impacted.
-            b = Uint::select(&b, &b.shr_vartime(1), do_apply);
-            matrix.conditional_double_top_row(do_apply);
+            a = Uint::select(&a, &a.shr_vartime(1), do_apply);
+            matrix.conditional_double_bottom_row(do_apply);
             log_upper_bound = do_apply.select_u32(log_upper_bound, log_upper_bound + 1);
         }
 
@@ -66,7 +67,7 @@ mod tests {
         assert_eq!(iters, 5);
         assert_eq!(
             matrix,
-            IntMatrix::new(I64::from(8), I64::from(-4), I64::from(-2), I64::from(5))
+            IntMatrix::new(I64::from(5), I64::from(-2), I64::from(-4), I64::from(8))
         );
     }
 
