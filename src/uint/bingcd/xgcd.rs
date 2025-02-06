@@ -40,6 +40,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
             // Div b by two and double the top row of the matrix when a, b ≠ 0.
             let do_apply = a.is_nonzero().and(b.is_nonzero());
+            // safe to vartime; shr_vartime is variable in the value of shift only. Since this shift
+            // is a public constant, the constant time property of this algorithm is not impacted.
             b = Uint::select(&b, &b.shr_vartime(1), do_apply);
             matrix.conditional_double_top_row(do_apply);
             log_upper_bound = do_apply.select_u32(log_upper_bound, log_upper_bound + 1);

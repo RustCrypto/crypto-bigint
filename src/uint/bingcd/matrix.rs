@@ -56,6 +56,8 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
     /// Double the right column of this matrix if `double` is truthy. Otherwise, do nothing.
     #[inline]
     pub(crate) const fn conditional_double_top_row(&mut self, double: ConstChoice) {
+        // safe to vartime; shr_vartime is variable in the value of shift only. Since this shift
+        // is a public constant, the constant time property of this algorithm is not impacted.
         self.m00 = Int::select(&self.m00, &self.m00.shl_vartime(1), double);
         self.m01 = Int::select(&self.m01, &self.m01.shl_vartime(1), double);
     }

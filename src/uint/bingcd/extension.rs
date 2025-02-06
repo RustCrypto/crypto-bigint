@@ -50,6 +50,8 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
 
         // Apply carry
         let limb_diff = LIMBS.wrapping_sub(EXTRA) as u32;
+        // safe to vartime; shr_vartime is variable in the value of shift only. Since this shift
+        // is a public constant, the constant time property of this algorithm is not impacted.
         let carry = carry.resize::<LIMBS>().shl_vartime(limb_diff * Limb::BITS);
         lo = lo.bitxor(&carry);
 

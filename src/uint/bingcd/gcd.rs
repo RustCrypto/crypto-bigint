@@ -65,7 +65,9 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             // subtract a from b when b is odd
             b = Uint::select(&b, &b.wrapping_sub(&a), b_odd);
 
-            // Div b by two
+            // Div b by two.
+            // safe to vartime; shr_vartime is variable in the value of shift only. Since this shift
+            // is a public constant, the constant time property of this algorithm is not impacted.
             b = b.shr_vartime(1);
         }
 
