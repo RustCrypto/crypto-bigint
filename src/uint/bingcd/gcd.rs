@@ -67,7 +67,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     #[inline]
     const fn bingcd_step(a: &mut Uint<LIMBS>, b: &mut Uint<LIMBS>) {
         let b_odd = b.is_odd();
-        let a_gt_b = Uint::gt(&a, &b);
+        let a_gt_b = Uint::gt(a, b);
         Uint::conditional_swap(a, b, b_odd.and(a_gt_b));
         *b = Uint::select(b, &b.wrapping_sub(a), b_odd).shr_vartime(1);
     }

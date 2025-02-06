@@ -8,7 +8,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     #[inline]
     const fn div_2k_mod_q(&self, k: u32, k_bound: u32, q: &Odd<Uint<LIMBS>>) -> Self {
         let (abs, sgn) = self.abs_sign();
-        let abs_div_2k_mod_q = abs.div_2k_mod_q(k, k_bound, &q);
+        let abs_div_2k_mod_q = abs.div_2k_mod_q(k, k_bound, q);
         Int::new_from_abs_sign(abs_div_2k_mod_q, sgn).expect("no overflow")
     }
 }
@@ -42,7 +42,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let floored_half = self.shr_vartime(1);
         Self::select(
             &floored_half,
-            &floored_half.wrapping_add(&half_mod_q),
+            &floored_half.wrapping_add(half_mod_q),
             add_one_half,
         )
     }
@@ -98,8 +98,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         // Extract the Bezout coefficients.
         let total_iterations = reduction_rounds * (K - 1);
         let IntMatrix { m00, m01, .. } = matrix;
-        let x = m00.div_2k_mod_q(total_bound_shift, total_iterations, &rhs);
-        let y = m01.div_2k_mod_q(total_bound_shift, total_iterations, &self);
+        let x = m00.div_2k_mod_q(total_bound_shift, total_iterations, rhs);
+        let y = m01.div_2k_mod_q(total_bound_shift, total_iterations, self);
 
         (
             a.to_odd()
@@ -171,7 +171,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         log_upper_bound: &mut u32,
     ) {
         let b_odd = b.is_odd();
-        let a_gt_b = Uint::gt(&a, &b);
+        let a_gt_b = Uint::gt(a, b);
 
         // swap if b odd and a > b
         let swap = b_odd.and(a_gt_b);
@@ -179,7 +179,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         matrix.conditional_swap_rows(swap);
 
         // subtract a from b when b is odd
-        *b = Uint::select(&b, &b.wrapping_sub(&a), b_odd);
+        *b = Uint::select(b, &b.wrapping_sub(a), b_odd);
         matrix.conditional_subtract_top_row_from_bottom(b_odd);
 
         // Div b by two and double the top row of the matrix when a, b ≠ 0.

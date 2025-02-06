@@ -97,7 +97,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     /// Perform addition, raising the `overflow` flag on overflow.
     pub const fn overflowing_add(&self, rhs: &Self) -> (Self, ConstChoice) {
         // Step 1. add operands
-        let res = self.wrapping_add(&rhs);
+        let res = self.wrapping_add(rhs);
 
         // Step 2. determine whether overflow happened.
         // Note:
