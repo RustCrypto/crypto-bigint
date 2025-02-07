@@ -88,8 +88,6 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             .shr_vartime(1);
     }
 
-    /// Computes `gcd(self, rhs)`, leveraging the Binary GCD algorithm.
-    /// Is efficient for larger `LIMBS`.
     /// Computes `gcd(self, rhs)`, leveraging the optimized Binary GCD algorithm.
     ///
     /// Note: this algorithm becomes more efficient than the classical algorithm for [Uint]s with
