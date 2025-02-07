@@ -67,14 +67,14 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
             // Construct a_ and b_ as the summary of a and b, respectively.
             let n = const_max(2 * K, const_max(a.bits(), b.bits()));
-            let a_ = a.compact::<LIMBS_2K>(n, K);
-            let b_ = b.compact::<LIMBS_2K>(n, K);
+            let a_ = a.compact::<K, LIMBS_2K>(n);
+            let b_ = b.compact::<K, LIMBS_2K>(n);
 
             // Compute the K-1 iteration update matrix from a_ and b_
             let (.., update_matrix, log_upper_bound) = a_
                 .to_odd()
                 .expect("a is always odd")
-                .partial_binxgcd::<LIMBS_K>(&b_, K - 1);
+                .partial_binxgcd_vartime::<LIMBS_K>(&b_, K - 1);
 
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = update_matrix.extended_apply_to((a, b));
@@ -109,43 +109,48 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         )
     }
 
-    /// Executes `iterations` reduction steps of the Binary Extended GCD algorithm to reduce
-    /// `(self, rhs)` towards their GCD. Note: once the gcd is found, the extra iterations are
-    /// performed. However, the algorithm has been constructed that additional iterations have no
-    /// effect on the output of the function. Returns the (partially reduced) `(self*, rhs*)`.
-    /// If `rhs* = 0`, `self*` contains the `gcd(self, rhs)`.
+    /// Executes the optimized Binary GCD inner loop.
     ///
-    /// Additionally, the matrix `M` is constructed s.t. `M * (self, rhs) = (self*, rhs*)`.
-    /// This matrix contains the Bézout coefficients in its top left and bottom right corners.
+    /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
+    /// <https://eprint.iacr.org/2020/972.pdf>.
     ///
-    /// Lastly, returns `log_upper_bound`. Each element in `M` lies in the interval
-    /// `(-2^log_upper_bound, 2^log_upper_bound]`.
+    /// The function outputs a matrix that can be used to reduce the `a` and `b` in the main loop.
     ///
-    /// Requires `iterations < Uint::<UPDATE_LIMBS>::BITS` to prevent the bezout coefficients from
-    /// overflowing.
+    /// This implementation deviates slightly from the paper, in that it "runs in place", i.e.,
+    /// executes iterations that do nothing, once `a` becomes zero. As a result, the main loop
+    /// can no longer assume that all `iterations` are executed. As such, the `executed_iterations`
+    /// are counted and additionally returned. Note that each element in `M` lies in the interval
+    /// `(-2^executed_iterations, 2^executed_iterations]`.
+    ///
+    /// Assumes `iterations < Uint::<UPDATE_LIMBS>::BITS`.
+    ///
+    /// The function executes in time variable in `iterations`.
+    ///
+    /// TODO: this only works for `self` and `rhs` that are <= Int::MAX.
     #[inline]
-    pub(super) const fn partial_binxgcd<const UPDATE_LIMBS: usize>(
+    pub(super) const fn partial_binxgcd_vartime<const UPDATE_LIMBS: usize>(
         &self,
         rhs: &Uint<LIMBS>,
         iterations: u32,
     ) -> (Self, Uint<LIMBS>, IntMatrix<UPDATE_LIMBS>, u32) {
         debug_assert!(iterations < Uint::<UPDATE_LIMBS>::BITS);
-        let (mut a, mut b) = (*self.as_ref(), *rhs);
+        // (self, rhs) corresponds to (b_, a_) in the Algorithm 1 notation.
+        let (mut a, mut b) = (*rhs, *self.as_ref());
 
-        // Compute the update matrix.
+        // Compute the update matrix. This matrix corresponds with (f0, g0, f1, g1) in the paper.
         let mut matrix = IntMatrix::UNIT;
-        let mut log_upper_bound = 0;
+        let mut executed_iterations = 0;
         let mut j = 0;
         while j < iterations {
-            Self::binxgcd_step(&mut a, &mut b, &mut matrix, &mut log_upper_bound);
+            Self::binxgcd_step(&mut a, &mut b, &mut matrix, &mut executed_iterations);
             j += 1;
         }
 
         (
-            a.to_odd().expect("a is always odd"),
-            b,
+            b.to_odd().expect("b is always odd"),
+            a,
             matrix,
-            log_upper_bound,
+            executed_iterations,
         )
     }
 
@@ -153,14 +158,15 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// This is a condensed, constant time execution of the following algorithm:
     /// ```text
-    /// if b mod 2 == 1
-    ///    if a > b
+    /// if a mod 2 == 1
+    ///    if a < b
     ///        (a, b) ← (b, a)
     ///        (f0, g0, f1, g1) ← (f1, g1, f0, g0)
-    ///    b ← b - a
-    ///    (f1, g1) ← (f1 - f0, g1 - g0)
-    /// b ← b/2
-    /// (f0, g0) ← (2f0, 2g0)
+    ///    a ← a - b
+    ///    (f0, g0) ← (f0 - f1, g0 - g1)
+    /// if a > 0
+    ///     a ← a/2
+    ///     (f1, g1) ← (2f1, 2g1)
     /// ```
     /// Ref: Pornin, Algorithm 2, L8-17, <https://eprint.iacr.org/2020/972.pdf>.
     #[inline]
@@ -168,25 +174,30 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         a: &mut Uint<LIMBS>,
         b: &mut Uint<LIMBS>,
         matrix: &mut IntMatrix<MATRIX_LIMBS>,
-        log_upper_bound: &mut u32,
+        executed_iterations: &mut u32,
     ) {
-        let b_odd = b.is_odd();
-        let a_gt_b = Uint::gt(a, b);
+        let a_odd = a.is_odd();
+        let a_lt_b = Uint::lt(a, b);
 
-        // swap if b odd and a > b
-        let swap = b_odd.and(a_gt_b);
+        // swap if a odd and a < b
+        let swap = a_odd.and(a_lt_b);
         Uint::conditional_swap(a, b, swap);
         matrix.conditional_swap_rows(swap);
 
-        // subtract a from b when b is odd
-        *b = Uint::select(b, &b.wrapping_sub(a), b_odd);
-        matrix.conditional_subtract_top_row_from_bottom(b_odd);
+        // subtract b from a when a is odd
+        *a = a.wrapping_sub(&Uint::select(&Uint::ZERO, b, a_odd));
+        matrix.conditional_subtract_bottom_row_from_top(a_odd);
 
-        // Div b by two and double the top row of the matrix when a, b ≠ 0.
-        let double = b.is_nonzero();
-        *b = b.shr_vartime(1);
-        matrix.conditional_double_top_row(double);
-        *log_upper_bound = double.select_u32(*log_upper_bound, *log_upper_bound + 1);
+        // Div a by 2.
+        let double = a.is_nonzero();
+        // safe to vartime; shr_vartime is variable in the value of shift only. Since this shift
+        // is a public constant, the constant time property of this algorithm is not impacted.
+        *a = a.shr_vartime(1);
+        // Double the bottom row of the matrix when a was ≠ 0
+        matrix.conditional_double_bottom_row(double);
+
+        // Something happened in this iteration only when a was non-zero before being halved.
+        *executed_iterations = double.select_u32(*executed_iterations, *executed_iterations + 1);
     }
 }
 
@@ -201,7 +212,7 @@ mod tests {
         fn test_partial_binxgcd() {
             let a = U64::from_be_hex("CA048AFA63CD6A1F").to_odd().unwrap();
             let b = U64::from_be_hex("AE693BF7BE8E5566");
-            let (.., matrix, iters) = a.partial_binxgcd(&b, 5);
+            let (.., matrix, iters) = a.partial_binxgcd_vartime(&b, 5);
             assert_eq!(iters, 5);
             assert_eq!(
                 matrix,
@@ -214,7 +225,7 @@ mod tests {
             // Stop before max_iters
             let a = U64::from_be_hex("0000000003CD6A1F").to_odd().unwrap();
             let b = U64::from_be_hex("000000000E8E5566");
-            let (gcd, .., iters) = a.partial_binxgcd::<{ U64::LIMBS }>(&b, 60);
+            let (gcd, .., iters) = a.partial_binxgcd_vartime::<{ U64::LIMBS }>(&b, 60);
             assert_eq!(iters, 35);
             assert_eq!(gcd.get(), a.gcd(&b));
         }
@@ -222,8 +233,8 @@ mod tests {
 
     mod test_binxgcd {
         use crate::{
-            ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384,
-            U4096, U512, U64, U768, U8192,
+            ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384, U4096,
+            U512, U64, U768, U8192,
         };
         use rand_core::OsRng;
 

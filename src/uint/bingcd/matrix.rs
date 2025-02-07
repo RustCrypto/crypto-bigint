@@ -74,16 +74,18 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
 
     /// Subtract the bottom row from the top if `subtract` is truthy. Otherwise, do nothing.
     #[inline]
-    pub(crate) const fn conditional_subtract_top_row_from_bottom(&mut self, subtract: ConstChoice) {
-        self.m10 = Int::select(&self.m10, &self.m10.wrapping_sub(&self.m00), subtract);
-        self.m11 = Int::select(&self.m11, &self.m11.wrapping_sub(&self.m01), subtract);
+    pub(crate) const fn conditional_subtract_bottom_row_from_top(&mut self, subtract: ConstChoice) {
+        self.m00 = Int::select(&self.m00, &self.m00.wrapping_sub(&self.m10), subtract);
+        self.m01 = Int::select(&self.m01, &self.m01.wrapping_sub(&self.m11), subtract);
     }
 
-    /// Double the right column of this matrix if `double` is truthy. Otherwise, do nothing.
+    /// Double the bottom row of this matrix if `double` is truthy. Otherwise, do nothing.
     #[inline]
-    pub(crate) const fn conditional_double_top_row(&mut self, double: ConstChoice) {
-        self.m00 = Int::select(&self.m00, &self.m00.shl_vartime(1), double);
-        self.m01 = Int::select(&self.m01, &self.m01.shl_vartime(1), double);
+    pub(crate) const fn conditional_double_bottom_row(&mut self, double: ConstChoice) {
+        // safe to vartime; shr_vartime is variable in the value of shift only. Since this shift
+        // is a public constant, the constant time property of this algorithm is not impacted.
+        self.m10 = Int::select(&self.m10, &self.m10.shl_vartime(1), double);
+        self.m11 = Int::select(&self.m11, &self.m11.shl_vartime(1), double);
     }
 
     /// Negate the elements in the top row if `negate` is truthy. Otherwise, do nothing.
@@ -133,16 +135,16 @@ mod tests {
     #[test]
     fn test_conditional_subtract() {
         let mut y = X.clone();
-        y.conditional_subtract_top_row_from_bottom(ConstChoice::FALSE);
+        y.conditional_subtract_bottom_row_from_top(ConstChoice::FALSE);
         assert_eq!(y, X);
-        y.conditional_subtract_top_row_from_bottom(ConstChoice::TRUE);
+        y.conditional_subtract_bottom_row_from_top(ConstChoice::TRUE);
         assert_eq!(
             y,
             IntMatrix::new(
-                Int::from(1i32),
-                Int::from(7i32),
-                Int::from(22i32),
-                Int::from(46i32)
+                Int::from(-22i32),
+                Int::from(-46i32),
+                Int::from(23i32),
+                Int::from(53i32)
             )
         );
     }
@@ -150,16 +152,16 @@ mod tests {
     #[test]
     fn test_conditional_double() {
         let mut y = X.clone();
-        y.conditional_double_top_row(ConstChoice::FALSE);
+        y.conditional_double_bottom_row(ConstChoice::FALSE);
         assert_eq!(y, X);
-        y.conditional_double_top_row(ConstChoice::TRUE);
+        y.conditional_double_bottom_row(ConstChoice::TRUE);
         assert_eq!(
             y,
             IntMatrix::new(
-                Int::from(2i32),
-                Int::from(14i32),
-                Int::from(23i32),
-                Int::from(53i32),
+                Int::from(1i32),
+                Int::from(7i32),
+                Int::from(46i32),
+                Int::from(106i32),
             )
         );
     }

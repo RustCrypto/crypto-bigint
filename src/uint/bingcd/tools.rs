@@ -14,8 +14,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Construct a [Uint] containing the bits in `self` in the range `[idx, idx + length)`.
     ///
     /// Assumes `length ≤ Uint::<SECTION_LIMBS>::BITS` and `idx + length ≤ Self::BITS`.
+    ///
+    /// Executes in time variable in `length` only.
     #[inline(always)]
-    pub(super) const fn section<const SECTION_LIMBS: usize>(
+    pub(super) const fn section_vartime_length<const SECTION_LIMBS: usize>(
         &self,
         idx: u32,
         length: u32,
@@ -23,7 +25,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         debug_assert!(length <= Uint::<SECTION_LIMBS>::BITS);
         debug_assert!(idx + length <= Self::BITS);
 
-        let mask = Uint::ONE.shl(length).wrapping_sub(&Uint::ONE);
+        let mask = Uint::ONE.shl_vartime(length).wrapping_sub(&Uint::ONE);
         self.shr(idx).resize::<SECTION_LIMBS>().bitand(&mask)
     }
 
@@ -31,7 +33,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Assumes `length ≤ Uint::<SECTION_LIMBS>::BITS` and `idx + length ≤ Self::BITS`.
     ///
-    /// Executes in time variable in `idx` only.
+    /// Executes in time variable in `idx` and `length`.
     #[inline(always)]
     pub(super) const fn section_vartime<const SECTION_LIMBS: usize>(
         &self,
@@ -47,22 +49,26 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             .bitand(&mask)
     }
 
-    /// Compact `self` to a form containing the concatenation of its bit ranges `[0, k-1)`
-    /// and `[n-k-1, n)`.
+    /// Compact `self` to a form containing the concatenation of its bit ranges `[0, K-1)`
+    /// and `[n-K-1, n)`.
     ///
-    /// Assumes `k ≤ Uint::<SUMMARY_LIMBS>::BITS`, `n ≤ Self::BITS` and `n ≥ 2k`.
+    /// Assumes `K ≤ Uint::<SUMMARY_LIMBS>::BITS`, `n ≤ Self::BITS` and `n ≥ 2K`.
     #[inline(always)]
-    pub(super) const fn compact<const SUMMARY_LIMBS: usize>(
+    pub(super) const fn compact<const K: u32, const SUMMARY_LIMBS: usize>(
         &self,
         n: u32,
-        k: u32,
     ) -> Uint<SUMMARY_LIMBS> {
-        debug_assert!(k <= Uint::<SUMMARY_LIMBS>::BITS);
+        debug_assert!(K <= Uint::<SUMMARY_LIMBS>::BITS);
         debug_assert!(n <= Self::BITS);
-        debug_assert!(n >= 2 * k);
+        debug_assert!(n >= 2 * K);
 
-        let hi = self.section(n - k - 1, k + 1);
-        let lo = self.section_vartime(0, k - 1);
-        hi.shl_vartime(k - 1).bitxor(&lo)
+        // safe to vartime; this function is vartime in length only, which is a public constant
+        let hi = self.section_vartime_length(n - K - 1, K + 1);
+        // safe to vartime; this function is vartime in idx and length only, which are both public
+        // constants
+        let lo = self.section_vartime(0, K - 1);
+        // safe to vartime; shl_vartime is variable in the value of shift only. Since this shift
+        // is a public constant, the constant time property of this algorithm is not impacted.
+        hi.shl_vartime(K - 1).bitxor(&lo)
     }
 }

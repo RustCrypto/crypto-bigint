@@ -345,7 +345,7 @@ fn gcd_bench<const LIMBS: usize, const UNSAT_LIMBS: usize>(
                 let g = Uint::<LIMBS>::random(&mut OsRng);
                 (f, g)
             },
-            |(f, g)| black_box(f.bingcd_small(&g)),
+            |(f, g)| black_box(f.classic_bingcd(&g)),
             BatchSize::SmallInput,
         )
     });
@@ -359,9 +359,7 @@ fn gcd_bench<const LIMBS: usize, const UNSAT_LIMBS: usize>(
                 let g = Uint::<LIMBS>::random(&mut OsRng);
                 (f, g)
             },
-            |(f, g)| {
-                black_box(f.bingcd_large::<{ U64::BITS - 2 }, { U64::LIMBS }, { U128::LIMBS }>(&g))
-            },
+            |(f, g)| black_box(f.optimized_bingcd(&g)),
             BatchSize::SmallInput,
         )
     });
