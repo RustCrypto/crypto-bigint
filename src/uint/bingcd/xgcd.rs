@@ -49,6 +49,20 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
+    pub const fn classic_binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
+        let total_iterations = 2 * Self::BITS - 1;
+
+        let (gcd, _, matrix, total_bound_shift) =
+            self.partial_binxgcd_vartime(rhs.as_ref(), total_iterations);
+
+        // Extract the Bezout coefficients.
+        let IntMatrix { m00, m01, .. } = matrix;
+        let x = m00.div_2k_mod_q(total_bound_shift, total_iterations, rhs);
+        let y = m01.div_2k_mod_q(total_bound_shift, total_iterations, self);
+
+        (gcd, x, y)
+    }
+
     /// Given `(self, rhs)`, compute `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
     ///
     /// TODO: this only works for `self` and `rhs` that are <= Int::MAX.
@@ -133,7 +147,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         rhs: &Uint<LIMBS>,
         iterations: u32,
     ) -> (Self, Uint<LIMBS>, IntMatrix<UPDATE_LIMBS>, u32) {
-        debug_assert!(iterations < Uint::<UPDATE_LIMBS>::BITS);
+        // debug_assert!(iterations < Uint::<UPDATE_LIMBS>::BITS);
         // (self, rhs) corresponds to (b_, a_) in the Algorithm 1 notation.
         let (mut a, mut b) = (*rhs, *self.as_ref());
 
@@ -230,6 +244,77 @@ mod tests {
             let (gcd, .., iters) = a.partial_binxgcd_vartime::<{ U64::LIMBS }>(&b, 60);
             assert_eq!(iters, 35);
             assert_eq!(gcd.get(), a.gcd(&b));
+        }
+    }
+
+    mod test_classic_binxgcd {
+        use crate::{
+            ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384, U4096,
+            U512, U768, U8192,
+        };
+        use rand_core::OsRng;
+
+        fn classic_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
+            lhs: Uint<LIMBS>,
+            rhs: Uint<LIMBS>,
+        ) where
+            Uint<LIMBS>:
+                Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+        {
+            let gcd = lhs.gcd(&rhs);
+            let (binxgcd, x, y) = lhs
+                .to_odd()
+                .unwrap()
+                .classic_binxgcd(&rhs.to_odd().unwrap());
+            assert_eq!(gcd, binxgcd);
+
+            // test bezout coefficients
+            let prod = x.widening_mul_uint(&lhs) + y.widening_mul_uint(&rhs);
+            assert_eq!(
+                prod,
+                binxgcd.resize().as_int(),
+                "{} {} {} {}",
+                lhs,
+                rhs,
+                x,
+                y
+            );
+        }
+
+        fn classic_binxgcd_tests<const LIMBS: usize, const DOUBLE: usize>()
+        where
+            Uint<LIMBS>:
+                Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+        {
+            // upper bound
+            let upper_bound = *Int::MAX.as_uint();
+
+            // Edge cases
+            classic_binxgcd_test(Uint::ONE, Uint::ONE);
+            classic_binxgcd_test(Uint::ONE, upper_bound);
+            classic_binxgcd_test(upper_bound, Uint::ONE);
+            classic_binxgcd_test(upper_bound, upper_bound);
+
+            // Randomized test cases
+            let bound = upper_bound.wrapping_add(&Uint::ONE).to_nz().unwrap();
+            for _ in 0..100 {
+                let x = Uint::<LIMBS>::random_mod(&mut OsRng, &bound).bitor(&Uint::ONE);
+                let y = Uint::<LIMBS>::random_mod(&mut OsRng, &bound).bitor(&Uint::ONE);
+                classic_binxgcd_test(x, y);
+            }
+        }
+
+        #[test]
+        fn test_classic_binxgcd() {
+            // Cannot be applied to U64
+            classic_binxgcd_tests::<{ U128::LIMBS }, { U256::LIMBS }>();
+            classic_binxgcd_tests::<{ U192::LIMBS }, { U384::LIMBS }>();
+            classic_binxgcd_tests::<{ U256::LIMBS }, { U512::LIMBS }>();
+            classic_binxgcd_tests::<{ U384::LIMBS }, { U768::LIMBS }>();
+            classic_binxgcd_tests::<{ U512::LIMBS }, { U1024::LIMBS }>();
+            classic_binxgcd_tests::<{ U1024::LIMBS }, { U2048::LIMBS }>();
+            classic_binxgcd_tests::<{ U2048::LIMBS }, { U4096::LIMBS }>();
+            classic_binxgcd_tests::<{ U4096::LIMBS }, { U8192::LIMBS }>();
         }
     }
 

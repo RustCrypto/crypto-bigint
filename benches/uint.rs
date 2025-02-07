@@ -391,6 +391,24 @@ fn xgcd_bench<const LIMBS: usize, const UNSAT_LIMBS: usize>(
 ) where
     Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
 {
+    g.bench_function(BenchmarkId::new("classic binxgcd", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                let modulus = Uint::MAX.shr_vartime(1).to_nz().unwrap();
+                let f = Uint::<LIMBS>::random_mod(&mut OsRng, &modulus)
+                    .bitor(&Uint::ONE)
+                    .to_odd()
+                    .unwrap();
+                let g = Uint::<LIMBS>::random_mod(&mut OsRng, &modulus)
+                    .bitor(&Uint::ONE)
+                    .to_odd()
+                    .unwrap();
+                (f, g)
+            },
+            |(f, g)| black_box(f.classic_binxgcd(&g)),
+            BatchSize::SmallInput,
+        )
+    });
     g.bench_function(BenchmarkId::new("binxgcd", LIMBS), |b| {
         b.iter_batched(
             || {
