@@ -139,6 +139,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
         // Compute the update matrix. This matrix corresponds with (f0, g0, f1, g1) in the paper.
         let mut matrix = IntMatrix::UNIT;
+        matrix.conditional_swap_rows(ConstChoice::TRUE);
         let mut executed_iterations = 0;
         let mut j = 0;
         while j < iterations {
@@ -146,6 +147,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             j += 1;
         }
 
+        matrix.conditional_swap_rows(ConstChoice::TRUE);
         (
             b.to_odd().expect("b is always odd"),
             a,

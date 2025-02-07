@@ -148,7 +148,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
                 .partial_binxgcd_vartime::<LIMBS_K>(&a_, K - 1);
 
             // Update `a` and `b` using the update matrix
-            let (updated_a, updated_b) = matrix.extended_apply_to((a, b));
+            let (updated_b, updated_a) = matrix.extended_apply_to((b, a));
 
             (a, _) = updated_a
                 .div_2k(log_upper_bound)
