@@ -68,7 +68,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             Uint::conditional_swap(&mut a, &mut b, do_swap);
 
             // subtract b from a when a is odd
-            a = Uint::select(&a, &a.wrapping_sub(&b), a_odd);
+            a = a.wrapping_sub(&Uint::select(&Uint::ZERO, &b, a_odd));
 
             // Div a by two.
             // safe to vartime; shr_vartime is variable in the value of shift only. Since this shift
