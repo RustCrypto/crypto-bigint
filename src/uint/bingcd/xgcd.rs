@@ -1,6 +1,6 @@
 use crate::uint::bingcd::matrix::IntMatrix;
-use crate::uint::bingcd::tools::const_max;
-use crate::{ConstChoice, Int, Odd, Uint};
+use crate::uint::bingcd::tools::{const_max, const_min};
+use crate::{ConstChoice, Int, NonZero, Odd, Uint, U128, U64};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute `self / 2^k  mod q`. Executes in time variable in `k_bound`. This value should be
@@ -14,7 +14,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
 }
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Compute `self / 2^k  mod q`. Executes in time variable in `k_bound`. This value should be
+    /// Compute `self / 2^k  mod q`.
+    ///
+    /// Executes in time variable in `k_bound`. This value should be
     /// chosen as an inclusive upperbound to the value of `k`.
     #[inline]
     const fn div_2k_mod_q(mut self, k: u32, k_bound: u32, q: &Odd<Self>) -> Self {
@@ -48,7 +50,62 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 }
 
+impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
+    /// Execute the classic Binary Extended GCD algorithm.
+    ///
+    /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
+    pub const fn binxgcd(&self, rhs: &Uint<LIMBS>) -> (Self, Int<LIMBS>, Int<LIMBS>) {
+        let lhs = self.as_ref();
+        // Leverage two GCD identity rules to make self and rhs odd.
+        // 1) gcd(2a, 2b) = 2 * gcd(a, b)
+        // 2) gcd(a, 2b) = gcd(a, b) if a is odd.
+        let i = lhs.is_nonzero().select_u32(0, lhs.trailing_zeros());
+        let j = rhs.is_nonzero().select_u32(0, rhs.trailing_zeros());
+        let k = const_min(i, j);
+
+        let lhs = lhs
+            .shr(i)
+            .to_odd()
+            .expect("lhs.shr(i) is odd by construction");
+        let rhs = rhs
+            .shr(j)
+            .to_odd()
+            .expect("rhs.shr(i) is odd by construction");
+
+        let (gcd, x, y) = lhs.binxgcd(&rhs);
+        (
+            gcd.as_ref()
+                .shl(k)
+                .to_nz()
+                .expect("gcd of non-zero element with another element is non-zero"),
+            x,
+            y,
+        )
+    }
+}
+
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
+    /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
+    /// leveraging the Binary Extended GCD algorithm.
+    ///
+    /// This function switches between the "classic" and "optimized" algorithm at a best-effort
+    /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
+    /// manually test whether the classic or optimized algorithm is faster for your machine.
+    pub const fn binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
+        // todo: optimize theshold
+        if LIMBS < 5 {
+            self.classic_binxgcd(&rhs)
+        } else {
+            self.optimized_binxgcd(&rhs)
+        }
+    }
+
+    /// Execute the classic Binary Extended GCD algorithm.
+    ///
+    /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
+    ///
+    /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
+    /// <https://eprint.iacr.org/2020/972.pdf>.
     pub const fn classic_binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
         let total_iterations = 2 * Self::BITS - 1;
 
@@ -63,10 +120,39 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         (gcd, x, y)
     }
 
-    /// Given `(self, rhs)`, compute `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
+    /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
+    /// leveraging the Binary Extended GCD algorithm.
     ///
-    /// TODO: this only works for `self` and `rhs` that are <= Int::MAX.
-    pub const fn binxgcd<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
+    /// Note: this algorithm becomes more efficient than the classical algorithm for [Uint]s with
+    /// relatively many `LIMBS`. A best-effort threshold is presented in [Self::binxgcd].
+    ///
+    /// Note: the full algorithm has an additional parameter; this function selects the best-effort
+    /// value for this parameter. You might be able to further tune your performance by calling the
+    /// [Self::optimized_bingcd_] function directly.
+    ///
+    /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
+    /// <https://eprint.iacr.org/2020/972.pdf>.
+    pub const fn optimized_binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
+        self.optimized_binxgcd_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(&rhs)
+    }
+
+    /// Given `(self, rhs)`, computes `(g, x, y)`, s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
+    /// leveraging the optimized Binary Extended GCD algorithm.
+    ///
+    /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
+    /// <https://eprint.iacr.org/2020/972.pdf>
+    ///
+    /// In summary, the optimized algorithm does not operate on `self` and `rhs` directly, but
+    /// instead of condensed summaries that fit in few registers. Based on these summaries, an
+    /// update matrix is constructed by which `self` and `rhs` are updated in larger steps.
+    ///
+    /// This function is generic over the following three values:
+    /// - `K`: the number of bits used when summarizing `self` and `rhs` for the inner loop. The
+    ///   `K+1` top bits and `K-1` least significant bits are selected. It is recommended to keep
+    ///   `K` close to a (multiple of) the number of bits that fit in a single register.
+    /// - `LIMBS_K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ K`,
+    /// - `LIMBS_2K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ 2K`.
+    pub const fn optimized_binxgcd_<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
         &self,
         rhs: &Self,
     ) -> (Self, Int<LIMBS>, Int<LIMBS>) {
@@ -321,7 +407,7 @@ mod tests {
     mod test_binxgcd {
         use crate::{
             ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384, U4096,
-            U512, U64, U768, U8192,
+            U512, U768, U8192,
         };
         use rand_core::OsRng;
 
@@ -334,7 +420,7 @@ mod tests {
             let (binxgcd, x, y) = lhs
                 .to_odd()
                 .unwrap()
-                .binxgcd::<64, { U64::LIMBS }, { U128::LIMBS }>(&rhs.to_odd().unwrap());
+                .optimized_binxgcd(&rhs.to_odd().unwrap());
             assert_eq!(gcd, binxgcd);
 
             // test bezout coefficients

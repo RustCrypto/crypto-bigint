@@ -423,7 +423,7 @@ fn xgcd_bench<const LIMBS: usize, const UNSAT_LIMBS: usize>(
                     .unwrap();
                 (f, g)
             },
-            |(f, g)| black_box(f.binxgcd::<63, { U64::LIMBS }, { U128::LIMBS }>(&g)),
+            |(f, g)| black_box(f.binxgcd(&g)),
             BatchSize::SmallInput,
         )
     });
