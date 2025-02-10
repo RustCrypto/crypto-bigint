@@ -1,12 +1,12 @@
 use crate::uint::bingcd::matrix::IntMatrix;
-use crate::uint::bingcd::tools::{const_max, const_min};
-use crate::{ConstChoice, Int, NonZero, Odd, Uint, U128, U64};
+use crate::uint::bingcd::tools::const_max;
+use crate::{ConstChoice, Int, Odd, Uint, U128, U64};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute `self / 2^k  mod q`. Executes in time variable in `k_bound`. This value should be
     /// chosen as an inclusive upperbound to the value of `k`.
     #[inline]
-    const fn div_2k_mod_q(&self, k: u32, k_bound: u32, q: &Odd<Uint<LIMBS>>) -> Self {
+    pub(crate) const fn div_2k_mod_q(&self, k: u32, k_bound: u32, q: &Odd<Uint<LIMBS>>) -> Self {
         let (abs, sgn) = self.abs_sign();
         let abs_div_2k_mod_q = abs.div_2k_mod_q(k, k_bound, q);
         Int::new_from_abs_sign(abs_div_2k_mod_q, sgn).expect("no overflow")
@@ -50,48 +50,21 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
-    /// Execute the classic Binary Extended GCD algorithm.
-    ///
-    /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub const fn binxgcd(&self, rhs: &Uint<LIMBS>) -> (Self, Int<LIMBS>, Int<LIMBS>) {
-        let lhs = self.as_ref();
-        // Leverage two GCD identity rules to make self and rhs odd.
-        // 1) gcd(2a, 2b) = 2 * gcd(a, b)
-        // 2) gcd(a, 2b) = gcd(a, b) if a is odd.
-        let i = lhs.is_nonzero().select_u32(0, lhs.trailing_zeros());
-        let j = rhs.is_nonzero().select_u32(0, rhs.trailing_zeros());
-        let k = const_min(i, j);
-
-        let lhs = lhs
-            .shr(i)
-            .to_odd()
-            .expect("lhs.shr(i) is odd by construction");
-        let rhs = rhs
-            .shr(j)
-            .to_odd()
-            .expect("rhs.shr(i) is odd by construction");
-
-        let (gcd, x, y) = lhs.binxgcd(&rhs);
-        (
-            gcd.as_ref()
-                .shl(k)
-                .to_nz()
-                .expect("gcd of non-zero element with another element is non-zero"),
-            x,
-            y,
-        )
-    }
-}
-
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
     /// leveraging the Binary Extended GCD algorithm.
     ///
+    /// WARNING! This algorithm is limited to values that are `<= Int::MAX`; for larger values,
+    /// the algorithm overflows.
+    ///
     /// This function switches between the "classic" and "optimized" algorithm at a best-effort
     /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
     /// manually test whether the classic or optimized algorithm is faster for your machine.
-    pub const fn binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
+    pub const fn limited_binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
+        // Verify that the top bit is not set on self or rhs.
+        debug_assert!(!self.as_ref().as_int().is_negative().to_bool_vartime());
+        debug_assert!(!rhs.as_ref().as_int().is_negative().to_bool_vartime());
+
         // todo: optimize theshold
         if LIMBS < 5 {
             self.classic_binxgcd(&rhs)
@@ -124,7 +97,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// leveraging the Binary Extended GCD algorithm.
     ///
     /// Note: this algorithm becomes more efficient than the classical algorithm for [Uint]s with
-    /// relatively many `LIMBS`. A best-effort threshold is presented in [Self::binxgcd].
+    /// relatively many `LIMBS`. A best-effort threshold is presented in [Self::limited_binxgcd].
     ///
     /// Note: the full algorithm has an additional parameter; this function selects the best-effort
     /// value for this parameter. You might be able to further tune your performance by calling the
@@ -378,7 +351,9 @@ mod tests {
             // Edge cases
             classic_binxgcd_test(Uint::ONE, Uint::ONE);
             classic_binxgcd_test(Uint::ONE, upper_bound);
+            classic_binxgcd_test(Uint::ONE, Int::MIN.as_uint().shr_vartime(1));
             classic_binxgcd_test(upper_bound, Uint::ONE);
+            classic_binxgcd_test(upper_bound, upper_bound);
             classic_binxgcd_test(upper_bound, upper_bound);
 
             // Randomized test cases

@@ -1,6 +1,6 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{Integer, Limb, NonZero, Uint};
+use crate::{Int, Integer, Limb, NonZero, Uint};
 use core::{cmp::Ordering, fmt, ops::Deref};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
@@ -157,6 +157,14 @@ impl<const LIMBS: usize> Random for Odd<Uint<LIMBS>> {
         let mut ret = Uint::random(rng);
         ret.limbs[0] |= Limb::ONE;
         Odd(ret)
+    }
+}
+
+#[cfg(feature = "rand_core")]
+impl<const LIMBS: usize> Random for Odd<Int<LIMBS>> {
+    /// Generate a random `Odd<Int<T>>`.
+    fn random(rng: &mut impl RngCore) -> Self {
+        Odd(Odd::<Uint<LIMBS>>::random(rng).as_int())
     }
 }
 

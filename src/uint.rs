@@ -24,6 +24,7 @@ mod macros;
 
 mod add;
 mod add_mod;
+pub(crate) mod bingcd;
 mod bit_and;
 mod bit_not;
 mod bit_or;
@@ -461,7 +462,7 @@ impl_uint_concat_split_mixed! {
     (U1024, [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15]),
 }
 
-mod bingcd;
+
 #[cfg(feature = "extra-sizes")]
 mod extra_sizes;
 

@@ -1,4 +1,4 @@
-use crate::{ConstChoice, ConstCtOption, Int, Uint, Word};
+use crate::{ConstChoice, ConstCtOption, Int, Odd, Uint, Word};
 use num_traits::ConstZero;
 
 impl<const LIMBS: usize> Int<LIMBS> {
@@ -45,6 +45,20 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// The magnitude of this [`Int`].
     pub const fn abs(&self) -> Uint<LIMBS> {
+        self.abs_sign().0
+    }
+}
+
+impl<const LIMBS: usize> Odd<Int<LIMBS>> {
+    /// The sign and magnitude of this [`Odd<Int>`].
+    pub const fn abs_sign(&self) -> (Odd<Uint<LIMBS>>, ConstChoice) {
+        let (abs, sgn) = Int::abs_sign(self.as_ref());
+        let odd_abs = abs.to_odd().expect("abs value of an odd number is odd");
+        (odd_abs, sgn)
+    }
+
+    /// The magnitude of this [`Odd<Int>`].
+    pub const fn abs(&self) -> Odd<Uint<LIMBS>> {
         self.abs_sign().0
     }
 }

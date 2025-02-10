@@ -7,7 +7,7 @@ use crate::{Int, Uint};
 mod extension;
 mod gcd;
 mod matrix;
-mod tools;
+pub(crate) mod tools;
 
 mod xgcd;
 
@@ -23,18 +23,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Given `(self, rhs)`, computes `(g, x, y)`, s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
     pub const fn binxgcd(&self, rhs: &Self) -> (Uint<LIMBS>, Int<LIMBS>, Int<LIMBS>) {
-        let self_is_zero = self.is_nonzero().not();
-        let self_nz = Uint::select(self, &Uint::ONE, self_is_zero)
-            .to_nz()
-            .expect("self is non zero by construction");
-        let (gcd, mut x, mut y) = self_nz.binxgcd(rhs);
-
-        // Correct for the fact that self might have been zero.
-        let gcd = Uint::select(gcd.as_ref(), rhs, self_is_zero);
-        x = Int::select(&x, &Int::ZERO, self_is_zero);
-        y = Int::select(&y, &Int::ONE, self_is_zero);
-
-        (gcd, x, y)
+        // TODO: make sure the cast to int works
+        self.as_int().binxgcd(&rhs.as_int())
     }
 }
 

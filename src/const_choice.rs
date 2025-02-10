@@ -475,6 +475,34 @@ impl<const LIMBS: usize> ConstCtOption<Int<LIMBS>> {
     }
 }
 
+impl<const LIMBS: usize> ConstCtOption<NonZero<Int<LIMBS>>> {
+    /// Returns the contained value, consuming the `self` value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value is none with a custom panic message provided by
+    /// `msg`.
+    #[inline]
+    pub const fn expect(self, msg: &str) -> NonZero<Int<LIMBS>> {
+        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        self.value
+    }
+}
+
+impl<const LIMBS: usize> ConstCtOption<Odd<Int<LIMBS>>> {
+    /// Returns the contained value, consuming the `self` value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value is none with a custom panic message provided by
+    /// `msg`.
+    #[inline]
+    pub const fn expect(self, msg: &str) -> Odd<Int<LIMBS>> {
+        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        self.value
+    }
+}
+
 impl ConstCtOption<NonZero<Limb>> {
     /// Returns the contained value, consuming the `self` value.
     ///
