@@ -604,10 +604,10 @@ fn bench_sqrt(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    bench_random,
-    bench_mul,
-    bench_division,
-    bench_gcd,
+    // bench_random,
+    // bench_mul,
+    // bench_division,
+    // bench_gcd,
     bench_xgcd,
     bench_shl,
     bench_shr,

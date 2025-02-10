@@ -28,6 +28,7 @@ mod pow;
 pub(crate) mod safegcd;
 mod sub;
 
+mod bingcd;
 #[cfg(feature = "alloc")]
 pub(crate) mod boxed_monty_form;
 
