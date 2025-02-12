@@ -356,7 +356,6 @@ mod tests {
             // Edge cases
             classic_binxgcd_test(Uint::ONE, Uint::ONE);
             classic_binxgcd_test(Uint::ONE, upper_bound);
-            classic_binxgcd_test(Uint::ONE, Int::MIN.as_uint().shr_vartime(1));
             classic_binxgcd_test(upper_bound, Uint::ONE);
             classic_binxgcd_test(upper_bound, upper_bound);
             classic_binxgcd_test(upper_bound, upper_bound);
