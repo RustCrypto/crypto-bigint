@@ -1,6 +1,6 @@
 use crate::uint::bingcd::matrix::IntMatrix;
 use crate::uint::bingcd::tools::const_max;
-use crate::{ConstChoice, Int, NonZero, Odd, Uint, U128, U64};
+use crate::{ConstChoice, Int, Odd, Uint, U128, U64};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute `self / 2^k  mod q`. Executes in time variable in `k_bound`. This value should be
@@ -60,15 +60,12 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// This function switches between the "classic" and "optimized" algorithm at a best-effort
     /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
     /// manually test whether the classic or optimized algorithm is faster for your machine.
-    pub const fn limited_binxgcd(
-        &self,
-        rhs: &NonZero<Uint<LIMBS>>,
-    ) -> (Self, Int<LIMBS>, Int<LIMBS>) {
+    pub const fn limited_binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
         // Verify that the top bit is not set on self or rhs.
         debug_assert!(!self.as_ref().as_int().is_negative().to_bool_vartime());
-        // debug_assert!(!rhs.as_ref().as_int().is_negative().to_bool_vartime());
+        debug_assert!(!rhs.as_ref().as_int().is_negative().to_bool_vartime());
 
-        // todo: optimize theshold
+        // todo: optimize threshold
         if LIMBS < 5 {
             self.classic_binxgcd(rhs)
         } else {
@@ -82,26 +79,15 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
     /// <https://eprint.iacr.org/2020/972.pdf>.
-    pub const fn classic_binxgcd(
-        &self,
-        rhs: &NonZero<Uint<LIMBS>>,
-    ) -> (Self, Int<LIMBS>, Int<LIMBS>) {
-        // Make rhs odd
-        let rhs_zeroes = rhs.as_ref().trailing_zeros();
-        let rhs_odd = rhs
-            .as_ref()
-            .shr(rhs_zeroes)
-            .to_odd()
-            .expect("is odd by construction");
-
+    pub const fn classic_binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
         let total_iterations = 2 * Self::BITS - 1;
         let (gcd, _, matrix, total_bound_shift) =
-            self.partial_binxgcd_vartime(rhs_odd.as_ref(), total_iterations);
+            self.partial_binxgcd_vartime(rhs.as_ref(), total_iterations);
 
         // Extract the Bezout coefficients.
         let IntMatrix { m00, m01, .. } = matrix;
-        let x = m00.div_2k_mod_q(total_bound_shift, total_iterations, &rhs_odd);
-        let y = m01.div_2k_mod_q(total_bound_shift + rhs_zeroes, total_iterations, self);
+        let x = m00.div_2k_mod_q(total_bound_shift, total_iterations, &rhs);
+        let y = m01.div_2k_mod_q(total_bound_shift, total_iterations, self);
 
         (gcd, x, y)
     }
@@ -118,10 +104,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
     /// <https://eprint.iacr.org/2020/972.pdf>.
-    pub const fn optimized_binxgcd(
-        &self,
-        rhs: &NonZero<Uint<LIMBS>>,
-    ) -> (Self, Int<LIMBS>, Int<LIMBS>) {
+    pub const fn optimized_binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
         self.optimized_binxgcd_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(&rhs)
     }
 
@@ -143,21 +126,11 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// - `LIMBS_2K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ 2K`.
     pub const fn optimized_binxgcd_<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
         &self,
-        rhs: &NonZero<Uint<LIMBS>>,
+        rhs: &Self,
     ) -> (Self, Int<LIMBS>, Int<LIMBS>) {
-        // Make sure rhs is odd
-        let rhs_zeroes = rhs.as_ref().trailing_zeros();
-        let rhs_odd = rhs
-            .as_ref()
-            .shr(rhs_zeroes)
-            .to_odd()
-            .expect("is odd by construction");
-
         let (mut a, mut b) = (*self.as_ref(), *rhs.as_ref());
 
         let mut matrix = IntMatrix::UNIT;
-        matrix.m11 = matrix.m11.shl(rhs_zeroes);
-
         let mut i = 0;
         let mut total_bound_shift = 0;
         let reduction_rounds = (2 * Self::BITS - 1).div_ceil(K);
@@ -197,8 +170,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         // Extract the Bezout coefficients.
         let total_iterations = reduction_rounds * (K - 1);
         let IntMatrix { m00, m01, .. } = matrix;
-        let x = m00.div_2k_mod_q(total_bound_shift, total_iterations, &rhs_odd);
-        let y = m01.div_2k_mod_q(total_bound_shift + rhs_zeroes, total_iterations, self);
+        let x = m00.div_2k_mod_q(total_bound_shift, total_iterations, &rhs);
+        let y = m01.div_2k_mod_q(total_bound_shift, total_iterations, self);
 
         (
             a.to_odd()
@@ -269,6 +242,12 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///     a ← a/2
     ///     (f1, g1) ← (2f1, 2g1)
     /// ```
+    /// where `matrix` represents
+    /// ```text
+    ///  (f0 g0)
+    ///  (f1 g1).
+    /// ```
+    ///
     /// Ref: Pornin, Algorithm 2, L8-17, <https://eprint.iacr.org/2020/972.pdf>.
     #[inline]
     const fn binxgcd_step<const MATRIX_LIMBS: usize>(
@@ -347,7 +326,10 @@ mod tests {
                 Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
             let gcd = lhs.gcd(&rhs);
-            let (binxgcd, x, y) = lhs.to_odd().unwrap().classic_binxgcd(&rhs.to_nz().unwrap());
+            let (binxgcd, x, y) = lhs
+                .to_odd()
+                .unwrap()
+                .classic_binxgcd(&rhs.to_odd().unwrap());
             assert_eq!(gcd, binxgcd);
 
             // test bezout coefficients
@@ -418,7 +400,7 @@ mod tests {
             let (binxgcd, x, y) = lhs
                 .to_odd()
                 .unwrap()
-                .optimized_binxgcd(&rhs.to_nz().unwrap());
+                .optimized_binxgcd(&rhs.to_odd().unwrap());
             assert_eq!(gcd, binxgcd);
 
             // test bezout coefficients

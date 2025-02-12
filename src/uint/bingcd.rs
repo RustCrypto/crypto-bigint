@@ -2,7 +2,7 @@
 //! which is described by Pornin as Algorithm 2 in "Optimized Binary GCD for Modular Inversion".
 //! Ref: <https://eprint.iacr.org/2020/972.pdf>
 
-use crate::{Int, Uint};
+use crate::{ConcatMixed, Int, Uint};
 
 mod extension;
 mod gcd;
@@ -22,7 +22,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Given `(self, rhs)`, computes `(g, x, y)`, s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub const fn binxgcd(&self, rhs: &Self) -> (Uint<LIMBS>, Int<LIMBS>, Int<LIMBS>) {
+    pub fn binxgcd<const DOUBLE: usize>(&self, rhs: &Self) -> (Uint<LIMBS>, Int<LIMBS>, Int<LIMBS>)
+    where
+        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput=Uint<DOUBLE>>
+    {
         // TODO: make sure the cast to int works
         self.as_int().binxgcd(&rhs.as_int())
     }
@@ -33,7 +36,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 mod tests {
     use rand_core::OsRng;
 
-    use crate::{Gcd, Random, Uint, U1024, U16384, U2048, U256, U4096, U512, U8192};
+    use crate::{Gcd, Random, Uint, U1024, U16384, U2048, U256, U4096, U512, U8192, Int};
 
     fn bingcd_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
     where
@@ -58,6 +61,7 @@ mod tests {
         bingcd_test(Uint::MAX, Uint::ZERO);
         bingcd_test(Uint::MAX, Uint::ONE);
         bingcd_test(Uint::MAX, Uint::MAX);
+        bingcd_test(Uint::MAX, Int::MIN.abs());
 
         // Randomized test cases
         for _ in 0..100 {
