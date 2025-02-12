@@ -221,7 +221,7 @@ mod test {
     }
 
     mod test_nonzero_int_binxgcd {
-        use crate::{ConcatMixed, Int, NonZero, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U64, U768, U8192, RandomMod};
+        use crate::{ConcatMixed, Int, NonZero, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U64, U768, U8192, RandomMod, Gcd};
         use rand_core::OsRng;
 
         fn nz_int_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
@@ -229,8 +229,9 @@ mod test {
             rhs: NonZero<Int<LIMBS>>,
         ) where
             Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+            Int<LIMBS>: Gcd<Output=Uint<LIMBS>>
         {
-            let gcd = lhs.bingcd(&rhs);
+            let gcd = lhs.gcd(&rhs);
             let (xgcd, x, y) = lhs.binxgcd(&rhs);
             assert_eq!(gcd.to_nz().unwrap(), xgcd);
             assert_eq!(
@@ -242,24 +243,25 @@ mod test {
         fn nz_int_binxgcd_tests<const LIMBS: usize, const DOUBLE: usize>()
         where
             Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+            Int<LIMBS>: Gcd<Output=Uint<LIMBS>>
         {
-            let NZ_MIN= Int::MIN.to_nz().expect("is nz");
-            let NZ_MINUS_ONE= Int::MINUS_ONE.to_nz().expect("is nz");
-            let NZ_ONE= Int::ONE.to_nz().expect("is nz");
-            let NZ_MAX= Int::MAX.to_nz().expect("is nz");
+            let nz_min = Int::MIN.to_nz().expect("is nz");
+            let nz_minus_one = Int::MINUS_ONE.to_nz().expect("is nz");
+            let nz_one = Int::ONE.to_nz().expect("is nz");
+            let nz_max = Int::MAX.to_nz().expect("is nz");
 
-            // nz_int_binxgcd_test(NZ_MIN, NZ_MIN);
-            // nz_int_binxgcd_test(NZ_MIN, NZ_MINUS_ONE);
-            // nz_int_binxgcd_test(NZ_MIN, NZ_ONE);
-            // nz_int_binxgcd_test(NZ_MIN, NZ_MAX);
-            // nz_int_binxgcd_test(NZ_ONE, NZ_MIN);
-            // nz_int_binxgcd_test(NZ_ONE, NZ_MINUS_ONE);
-            // nz_int_binxgcd_test(NZ_ONE, NZ_ONE);
-            // nz_int_binxgcd_test(NZ_ONE, NZ_MAX);
-            nz_int_binxgcd_test(NZ_MAX, NZ_MIN);
-            nz_int_binxgcd_test(NZ_MAX, NZ_MINUS_ONE);
-            nz_int_binxgcd_test(NZ_MAX, NZ_ONE);
-            nz_int_binxgcd_test(NZ_MAX, NZ_MAX);
+            nz_int_binxgcd_test(nz_min, nz_min);
+            nz_int_binxgcd_test(nz_min, nz_minus_one);
+            nz_int_binxgcd_test(nz_min, nz_one);
+            nz_int_binxgcd_test(nz_min, nz_max);
+            nz_int_binxgcd_test(nz_one, nz_min);
+            nz_int_binxgcd_test(nz_one, nz_minus_one);
+            nz_int_binxgcd_test(nz_one, nz_one);
+            nz_int_binxgcd_test(nz_one, nz_max);
+            nz_int_binxgcd_test(nz_max, nz_min);
+            nz_int_binxgcd_test(nz_max, nz_minus_one);
+            nz_int_binxgcd_test(nz_max, nz_one);
+            nz_int_binxgcd_test(nz_max, nz_max);
 
             let bound = Int::MIN.abs().to_nz().unwrap();
             for _ in 0..100 {
