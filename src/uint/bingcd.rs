@@ -36,7 +36,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 mod tests {
     use rand_core::OsRng;
 
-    use crate::{Gcd, Random, Uint, U1024, U16384, U2048, U256, U4096, U512, U8192, Int};
+    use crate::{Gcd, Random, Uint, U1024, U16384, U2048, U256, U4096, U512, U8192, Int, U128, U64};
 
     fn bingcd_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
     where
@@ -75,6 +75,8 @@ mod tests {
 
     #[test]
     fn test_bingcd() {
+        bingcd_tests::<{ U64::LIMBS }>();
+        bingcd_tests::<{ U128::LIMBS }>();
         bingcd_tests::<{ U256::LIMBS }>();
         bingcd_tests::<{ U512::LIMBS }>();
         bingcd_tests::<{ U1024::LIMBS }>();
