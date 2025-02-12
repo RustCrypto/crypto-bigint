@@ -37,7 +37,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{Gcd, I256, U256};
+    use crate::{Gcd, I256, I64, U256};
 
     #[test]
     fn gcd_always_positive() {
@@ -59,5 +59,11 @@ mod tests {
 
         assert_eq!(U256::from(61u32), f.gcd(&g));
         assert_eq!(U256::from(61u32), f.wrapping_neg().gcd(&g));
+    }
+
+    #[test]
+    fn gcd(){
+        assert_eq!(I64::MIN.gcd(&I64::ZERO), I64::MIN.abs());
+        assert_eq!(I64::ZERO.gcd(&I64::MIN), I64::MIN.abs());
     }
 }

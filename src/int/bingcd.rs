@@ -34,8 +34,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let gcd = Uint::select(gcd.as_ref(), &rhs.abs(), self_is_zero);
         let gcd = Uint::select(&gcd, &self.abs(), rhs_is_zero);
         x = Int::select(&x, &Int::ZERO, self_is_zero);
-        y = Int::select(&y, &Int::ONE, self_is_zero);
-        x = Int::select(&x, &Int::ONE, rhs_is_zero);
+        y = Int::select(&y, &Int::select(&Int::ONE, &Int::MINUS_ONE, rhs.is_negative()), self_is_zero);
+        x = Int::select(&x, &Int::select(&Int::ONE, &Int::MINUS_ONE, self.is_negative()), rhs_is_zero);
         y = Int::select(&y, &Int::ZERO, rhs_is_zero);
 
         (gcd, x, y)
@@ -148,10 +148,7 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
 mod test {
 
     mod test_int_binxgcd {
-        use crate::{
-            ConcatMixed, Int, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U64,
-            U768, U8192,
-        };
+        use crate::{ConcatMixed, Int, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U64, U768, U8192, Gcd};
         use rand_core::OsRng;
 
         fn int_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
@@ -159,12 +156,16 @@ mod test {
             rhs: Int<LIMBS>,
         ) where
             Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+            Int<LIMBS>: Gcd<Output=Uint<LIMBS>>
         {
-            let gcd = lhs.bingcd(&rhs);
+            let gcd = lhs.gcd(&rhs);
             let (xgcd, x, y) = lhs.binxgcd(&rhs);
             assert_eq!(gcd, xgcd);
+            let x_lhs = x.widening_mul(&lhs);
+            let y_rhs = y.widening_mul(&rhs);
+            let prod = x_lhs.wrapping_add(&y_rhs);
             assert_eq!(
-                x.widening_mul(&lhs).wrapping_add(&y.widening_mul(&rhs)),
+                prod,
                 xgcd.resize().as_int()
             );
         }
@@ -172,6 +173,7 @@ mod test {
         fn int_binxgcd_tests<const LIMBS: usize, const DOUBLE: usize>()
         where
             Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+            Int<LIMBS>: Gcd<Output=Uint<LIMBS>>
         {
             int_binxgcd_test(Int::MIN, Int::MIN);
             int_binxgcd_test(Int::MIN, Int::MINUS_ONE);
@@ -273,11 +275,11 @@ mod test {
 
         #[test]
         fn test_nz_int_binxgcd() {
-            // nz_int_binxgcd_tests::<{ U64::LIMBS }, { U128::LIMBS }>();
-            // nz_int_binxgcd_tests::<{ U128::LIMBS }, { U256::LIMBS }>();
-            // nz_int_binxgcd_tests::<{ U192::LIMBS }, { U384::LIMBS }>();
-            // nz_int_binxgcd_tests::<{ U256::LIMBS }, { U512::LIMBS }>();
-            // nz_int_binxgcd_tests::<{ U384::LIMBS }, { U768::LIMBS }>();
+            nz_int_binxgcd_tests::<{ U64::LIMBS }, { U128::LIMBS }>();
+            nz_int_binxgcd_tests::<{ U128::LIMBS }, { U256::LIMBS }>();
+            nz_int_binxgcd_tests::<{ U192::LIMBS }, { U384::LIMBS }>();
+            nz_int_binxgcd_tests::<{ U256::LIMBS }, { U512::LIMBS }>();
+            nz_int_binxgcd_tests::<{ U384::LIMBS }, { U768::LIMBS }>();
             nz_int_binxgcd_tests::<{ U512::LIMBS }, { U1024::LIMBS }>();
             nz_int_binxgcd_tests::<{ U1024::LIMBS }, { U2048::LIMBS }>();
             nz_int_binxgcd_tests::<{ U2048::LIMBS }, { U4096::LIMBS }>();

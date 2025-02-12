@@ -61,6 +61,7 @@ mod tests {
         bingcd_test(Uint::MAX, Uint::ZERO);
         bingcd_test(Uint::MAX, Uint::ONE);
         bingcd_test(Uint::MAX, Uint::MAX);
+        bingcd_test(Int::MIN.abs(), Uint::ZERO);
         bingcd_test(Int::MAX.abs(), Int::MIN.abs());
         bingcd_test(Uint::MAX, Int::MIN.abs());
 
