@@ -5,11 +5,11 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     /// Compute the greatest common divisor of `self` and `rhs`.
     pub const fn bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
         let val = self.as_ref();
-        // Leverage two GCD identity rules to make self and rhs odd.
+        // Leverage two GCD identity rules to make self odd.
         // 1) gcd(2a, 2b) = 2 * gcd(a, b)
         // 2) gcd(a, 2b) = gcd(a, b) if a is odd.
-        let i = val.is_nonzero().select_u32(0, val.trailing_zeros());
-        let j = rhs.is_nonzero().select_u32(0, rhs.trailing_zeros());
+        let i = val.trailing_zeros();
+        let j = rhs.trailing_zeros();
         let k = const_min(i, j);
 
         val.shr(i)
