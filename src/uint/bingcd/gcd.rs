@@ -1,5 +1,5 @@
 use crate::uint::bingcd::tools::{const_max, const_min};
-use crate::{NonZero, Odd, Uint, U128, U64, ConstChoice};
+use crate::{ConstChoice, NonZero, Odd, Uint, U128, U64};
 
 impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     /// Compute the greatest common divisor of `self` and `rhs`.
@@ -127,7 +127,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         // (self, rhs) corresponds to (m, y) in the Algorithm 1 notation.
         let (mut a, mut b) = (*rhs, *self.as_ref());
 
-        let iterations = (2 * Self::BITS - 1).div_ceil(K-1);
+        let iterations = (2 * Self::BITS - 1).div_ceil(K - 1);
         let mut i = 0;
         while i < iterations {
             i += 1;
@@ -137,7 +137,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let n = const_max(2 * K, const_max(a_bits, b.bits()));
             let a_ = a.compact::<K, LIMBS_2K>(n);
             let b_ = b.compact::<K, LIMBS_2K>(n);
-            let compact_contains_all_of_a = ConstChoice::from_u32_le(a_bits, K-1).or(ConstChoice::from_u32_eq(n, 2*K));
+            let compact_contains_all_of_a =
+                ConstChoice::from_u32_le(a_bits, K - 1).or(ConstChoice::from_u32_eq(n, 2 * K));
 
             // Compute the K-1 iteration update matrix from a_ and b_
             // Safe to vartime; function executes in time variable in `iterations` only, which is
@@ -219,7 +220,7 @@ mod tests {
     }
 
     mod test_bingcd_large {
-        use crate::{Gcd, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, Int};
+        use crate::{Gcd, Int, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512};
         use rand_core::OsRng;
 
         fn bingcd_large_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)

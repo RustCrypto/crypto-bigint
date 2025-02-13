@@ -24,7 +24,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Given `(self, rhs)`, computes `(g, x, y)`, s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
     pub fn binxgcd<const DOUBLE: usize>(&self, rhs: &Self) -> (Uint<LIMBS>, Int<LIMBS>, Int<LIMBS>)
     where
-        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput=Uint<DOUBLE>>
+        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
     {
         // TODO: make sure the cast to int works
         self.as_int().binxgcd(&rhs.as_int())
@@ -36,7 +36,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 mod tests {
     use rand_core::OsRng;
 
-    use crate::{Gcd, Random, Uint, U1024, U16384, U2048, U256, U4096, U512, U8192, Int, U128, U64};
+    use crate::{
+        Gcd, Int, Random, Uint, U1024, U128, U16384, U2048, U256, U4096, U512, U64, U8192,
+    };
 
     fn bingcd_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
     where

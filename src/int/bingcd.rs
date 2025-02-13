@@ -16,7 +16,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Given `(self, rhs)`, computes `(g, x, y)`, s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
     pub fn binxgcd<const DOUBLE: usize>(&self, rhs: &Self) -> (Uint<LIMBS>, Self, Self)
     where
-        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput=Uint<DOUBLE>>
+        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
     {
         // Make sure `self` and `rhs` are nonzero.
         let self_is_zero = self.is_nonzero().not();
@@ -34,8 +34,16 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let gcd = Uint::select(gcd.as_ref(), &rhs.abs(), self_is_zero);
         let gcd = Uint::select(&gcd, &self.abs(), rhs_is_zero);
         x = Int::select(&x, &Int::ZERO, self_is_zero);
-        y = Int::select(&y, &Int::select(&Int::ONE, &Int::MINUS_ONE, rhs.is_negative()), self_is_zero);
-        x = Int::select(&x, &Int::select(&Int::ONE, &Int::MINUS_ONE, self.is_negative()), rhs_is_zero);
+        y = Int::select(
+            &y,
+            &Int::select(&Int::ONE, &Int::MINUS_ONE, rhs.is_negative()),
+            self_is_zero,
+        );
+        x = Int::select(
+            &x,
+            &Int::select(&Int::ONE, &Int::MINUS_ONE, self.is_negative()),
+            rhs_is_zero,
+        );
         y = Int::select(&y, &Int::ZERO, rhs_is_zero);
 
         (gcd, x, y)
@@ -46,9 +54,12 @@ impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
     /// Execute the Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub fn binxgcd<const DOUBLE: usize>(&self, rhs: &Self) -> (NonZero<Uint<LIMBS>>, Int<LIMBS>, Int<LIMBS>)
+    pub fn binxgcd<const DOUBLE: usize>(
+        &self,
+        rhs: &Self,
+    ) -> (NonZero<Uint<LIMBS>>, Int<LIMBS>, Int<LIMBS>)
     where
-        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput=Uint<DOUBLE>>
+        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
     {
         let (mut lhs, mut rhs) = (*self.as_ref(), *rhs.as_ref());
         // Leverage two GCD identity rules to make self and rhs odd.
@@ -93,7 +104,7 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
         rhs: &NonZero<Int<LIMBS>>,
     ) -> (Odd<Uint<LIMBS>>, Int<LIMBS>, Int<LIMBS>)
     where
-        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput=Uint<DOUBLE>>
+        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
     {
         let (abs_lhs, sgn_lhs) = self.abs_sign();
         let (abs_rhs, sgn_rhs) = rhs.abs_sign();
@@ -148,7 +159,10 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
 mod test {
 
     mod test_int_binxgcd {
-        use crate::{ConcatMixed, Int, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U64, U768, U8192, Gcd};
+        use crate::{
+            ConcatMixed, Gcd, Int, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512,
+            U64, U768, U8192,
+        };
         use rand_core::OsRng;
 
         fn int_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
@@ -156,7 +170,7 @@ mod test {
             rhs: Int<LIMBS>,
         ) where
             Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
-            Int<LIMBS>: Gcd<Output=Uint<LIMBS>>
+            Int<LIMBS>: Gcd<Output = Uint<LIMBS>>,
         {
             let gcd = lhs.gcd(&rhs);
             let (xgcd, x, y) = lhs.binxgcd(&rhs);
@@ -164,16 +178,13 @@ mod test {
             let x_lhs = x.widening_mul(&lhs);
             let y_rhs = y.widening_mul(&rhs);
             let prod = x_lhs.wrapping_add(&y_rhs);
-            assert_eq!(
-                prod,
-                xgcd.resize().as_int()
-            );
+            assert_eq!(prod, xgcd.resize().as_int());
         }
 
         fn int_binxgcd_tests<const LIMBS: usize, const DOUBLE: usize>()
         where
             Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
-            Int<LIMBS>: Gcd<Output=Uint<LIMBS>>
+            Int<LIMBS>: Gcd<Output = Uint<LIMBS>>,
         {
             int_binxgcd_test(Int::MIN, Int::MIN);
             int_binxgcd_test(Int::MIN, Int::MINUS_ONE);
@@ -223,7 +234,10 @@ mod test {
     }
 
     mod test_nonzero_int_binxgcd {
-        use crate::{ConcatMixed, Int, NonZero, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U64, U768, U8192, RandomMod, Gcd};
+        use crate::{
+            ConcatMixed, Gcd, Int, NonZero, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384,
+            U4096, U512, U64, U768, U8192,
+        };
         use rand_core::OsRng;
 
         fn nz_int_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
@@ -231,7 +245,7 @@ mod test {
             rhs: NonZero<Int<LIMBS>>,
         ) where
             Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
-            Int<LIMBS>: Gcd<Output=Uint<LIMBS>>
+            Int<LIMBS>: Gcd<Output = Uint<LIMBS>>,
         {
             let gcd = lhs.gcd(&rhs);
             let (xgcd, x, y) = lhs.binxgcd(&rhs);
@@ -245,7 +259,7 @@ mod test {
         fn nz_int_binxgcd_tests<const LIMBS: usize, const DOUBLE: usize>()
         where
             Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
-            Int<LIMBS>: Gcd<Output=Uint<LIMBS>>
+            Int<LIMBS>: Gcd<Output = Uint<LIMBS>>,
         {
             let nz_min = Int::MIN.to_nz().expect("is nz");
             let nz_minus_one = Int::MINUS_ONE.to_nz().expect("is nz");
@@ -267,8 +281,14 @@ mod test {
 
             let bound = Int::MIN.abs().to_nz().unwrap();
             for _ in 0..100 {
-                let x = Uint::random_mod(&mut OsRng, &bound).as_int().to_nz().unwrap();
-                let y = Uint::random_mod(&mut OsRng, &bound).as_int().to_nz().unwrap();
+                let x = Uint::random_mod(&mut OsRng, &bound)
+                    .as_int()
+                    .to_nz()
+                    .unwrap();
+                let y = Uint::random_mod(&mut OsRng, &bound)
+                    .as_int()
+                    .to_nz()
+                    .unwrap();
                 nz_int_binxgcd_test(x, y);
             }
         }

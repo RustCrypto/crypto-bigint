@@ -81,8 +81,11 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// <https://eprint.iacr.org/2020/972.pdf>.
     pub const fn classic_binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
         let total_iterations = 2 * Self::BITS - 1;
-        let (gcd, _, matrix, total_bound_shift) =
-            self.partial_binxgcd_vartime::<LIMBS>(rhs.as_ref(), total_iterations, ConstChoice::TRUE);
+        let (gcd, _, matrix, total_bound_shift) = self.partial_binxgcd_vartime::<LIMBS>(
+            rhs.as_ref(),
+            total_iterations,
+            ConstChoice::TRUE,
+        );
 
         // Extract the Bezout coefficients.
         let IntMatrix { m00, m01, .. } = matrix;
@@ -142,7 +145,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let n = const_max(2 * K, const_max(a.bits(), b_bits));
             let a_ = a.compact::<K, LIMBS_2K>(n);
             let b_ = b.compact::<K, LIMBS_2K>(n);
-            let compact_contains_all_of_a = ConstChoice::from_u32_le(b_bits, K-1).or(ConstChoice::from_u32_eq(n, 2*K));
+            let compact_contains_all_of_a =
+                ConstChoice::from_u32_le(b_bits, K - 1).or(ConstChoice::from_u32_eq(n, 2 * K));
 
             // Compute the K-1 iteration update matrix from a_ and b_
             let (.., update_matrix, log_upper_bound) = a_
@@ -206,7 +210,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         &self,
         rhs: &Uint<LIMBS>,
         iterations: u32,
-        halt_at_zero: ConstChoice
+        halt_at_zero: ConstChoice,
     ) -> (Self, Uint<LIMBS>, IntMatrix<UPDATE_LIMBS>, u32) {
         // debug_assert!(iterations < Uint::<UPDATE_LIMBS>::BITS);
         // (self, rhs) corresponds to (b_, a_) in the Algorithm 1 notation.
@@ -258,7 +262,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         b: &mut Uint<LIMBS>,
         matrix: &mut IntMatrix<MATRIX_LIMBS>,
         executed_iterations: &mut u32,
-        halt_at_zero: ConstChoice
+        halt_at_zero: ConstChoice,
     ) {
         let a_odd = a.is_odd();
         let a_lt_b = Uint::lt(a, b);
@@ -296,7 +300,8 @@ mod tests {
         fn test_partial_binxgcd() {
             let a = U64::from_be_hex("CA048AFA63CD6A1F").to_odd().unwrap();
             let b = U64::from_be_hex("AE693BF7BE8E5566");
-            let (.., matrix, iters) = a.partial_binxgcd_vartime::<{U64::LIMBS}>(&b, 5, ConstChoice::TRUE);
+            let (.., matrix, iters) =
+                a.partial_binxgcd_vartime::<{ U64::LIMBS }>(&b, 5, ConstChoice::TRUE);
             assert_eq!(iters, 5);
             assert_eq!(
                 matrix,
@@ -308,7 +313,8 @@ mod tests {
         fn test_partial_binxgcd_constructs_correct_matrix() {
             let a = U64::from_be_hex("CA048AFA63CD6A1F").to_odd().unwrap();
             let b = U64::from_be_hex("AE693BF7BE8E5566");
-            let (new_a, new_b, matrix, iters) = a.partial_binxgcd_vartime::<{U64::LIMBS}>(&b, 5, ConstChoice::TRUE);
+            let (new_a, new_b, matrix, iters) =
+                a.partial_binxgcd_vartime::<{ U64::LIMBS }>(&b, 5, ConstChoice::TRUE);
             assert_eq!(iters, 5);
 
             let (mut computed_a, mut computed_b ) = matrix.extended_apply_to((a.get(), b));
@@ -324,7 +330,8 @@ mod tests {
             // Stop before max_iters
             let a = U64::from_be_hex("0000000003CD6A1F").to_odd().unwrap();
             let b = U64::from_be_hex("000000000E8E5566");
-            let (gcd, .., iters) = a.partial_binxgcd_vartime::<{ U64::LIMBS }>(&b, 60, ConstChoice::TRUE);
+            let (gcd, .., iters) =
+                a.partial_binxgcd_vartime::<{ U64::LIMBS }>(&b, 60, ConstChoice::TRUE);
             assert_eq!(iters, 35);
             assert_eq!(gcd.get(), a.gcd(&b));
         }
@@ -334,7 +341,8 @@ mod tests {
             // Stop before max_iters
             let a = U64::from_be_hex("0000000003CD6A1F").to_odd().unwrap();
             let b = U64::from_be_hex("000000000E8E5566");
-            let (gcd, .., iters) = a.partial_binxgcd_vartime::<{ U64::LIMBS }>(&b, 60, ConstChoice::FALSE);
+            let (gcd, .., iters) =
+                a.partial_binxgcd_vartime::<{ U64::LIMBS }>(&b, 60, ConstChoice::FALSE);
             assert_eq!(iters, 60);
             assert_eq!(gcd.get(), a.gcd(&b));
         }

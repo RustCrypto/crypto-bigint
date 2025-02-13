@@ -62,7 +62,7 @@ mod tests {
     }
 
     #[test]
-    fn gcd(){
+    fn gcd() {
         assert_eq!(I64::MIN.gcd(&I64::ZERO), I64::MIN.abs());
         assert_eq!(I64::ZERO.gcd(&I64::MIN), I64::MIN.abs());
     }
