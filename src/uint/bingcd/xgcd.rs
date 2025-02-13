@@ -301,6 +301,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
 #[cfg(test)]
 mod tests {
+    use crate::{ConcatMixed, Gcd, Int, Uint};
 
     mod test_partial_binxgcd {
         use crate::uint::bingcd::matrix::IntMatrix;
@@ -327,7 +328,7 @@ mod tests {
                 a.partial_binxgcd_vartime::<{ U64::LIMBS }>(&b, 5, ConstChoice::TRUE);
             assert_eq!(iters, 5);
 
-            let (computed_a, computed_b ) = matrix.extended_apply_to((a.get(), b));
+            let (computed_a, computed_b) = matrix.extended_apply_to((a.get(), b));
             let computed_a = computed_a
                 .div_2k(5)
                 .drop_extension()
@@ -374,11 +375,29 @@ mod tests {
         }
     }
 
+    /// Helper function to effectively test xgcd.
+    fn test_xgcd<const LIMBS: usize, const DOUBLE: usize>(
+        lhs: Uint<LIMBS>,
+        rhs: Uint<LIMBS>,
+        found_gcd: Uint<LIMBS>,
+        x: Int<LIMBS>,
+        y: Int<LIMBS>,
+    ) where
+        Uint<LIMBS>:
+            Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+    {
+        // Test the gcd
+        assert_eq!(lhs.gcd(&rhs), found_gcd);
+        // Test the Bezout coefficients
+        assert_eq!(
+            x.widening_mul_uint(&lhs) + y.widening_mul_uint(&rhs),
+            found_gcd.resize().as_int(),
+        );
+    }
+
     mod test_classic_binxgcd {
-        use crate::{
-            ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384, U4096,
-            U512, U768, U8192,
-        };
+        use crate::uint::bingcd::xgcd::tests::test_xgcd;
+        use crate::{ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U768, U8192, U64};
         use rand_core::OsRng;
 
         fn classic_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
@@ -388,24 +407,11 @@ mod tests {
             Uint<LIMBS>:
                 Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
-            let gcd = lhs.gcd(&rhs);
             let (binxgcd, x, y) = lhs
                 .to_odd()
                 .unwrap()
                 .classic_binxgcd(&rhs.to_odd().unwrap());
-            assert_eq!(gcd, binxgcd);
-
-            // test bezout coefficients
-            let prod = x.widening_mul_uint(&lhs) + y.widening_mul_uint(&rhs);
-            assert_eq!(
-                prod,
-                binxgcd.resize().as_int(),
-                "{} {} {} {}",
-                lhs,
-                rhs,
-                x,
-                y
-            );
+            test_xgcd(lhs, rhs, binxgcd.get(), x, y);
         }
 
         fn classic_binxgcd_tests<const LIMBS: usize, const DOUBLE: usize>()
@@ -413,18 +419,15 @@ mod tests {
             Uint<LIMBS>:
                 Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
-            // upper bound
-            let upper_bound = *Int::MAX.as_uint();
-
             // Edge cases
+            let upper_bound = *Int::MAX.as_uint();
             classic_binxgcd_test(Uint::ONE, Uint::ONE);
             classic_binxgcd_test(Uint::ONE, upper_bound);
             classic_binxgcd_test(upper_bound, Uint::ONE);
             classic_binxgcd_test(upper_bound, upper_bound);
-            classic_binxgcd_test(upper_bound, upper_bound);
 
             // Randomized test cases
-            let bound = upper_bound.wrapping_add(&Uint::ONE).to_nz().unwrap();
+            let bound = Int::MIN.as_uint().to_nz().unwrap();
             for _ in 0..100 {
                 let x = Uint::<LIMBS>::random_mod(&mut OsRng, &bound).bitor(&Uint::ONE);
                 let y = Uint::<LIMBS>::random_mod(&mut OsRng, &bound).bitor(&Uint::ONE);
@@ -434,7 +437,7 @@ mod tests {
 
         #[test]
         fn test_classic_binxgcd() {
-            // Cannot be applied to U64
+            classic_binxgcd_tests::<{ U64::LIMBS }, { U128::LIMBS }>();
             classic_binxgcd_tests::<{ U128::LIMBS }, { U256::LIMBS }>();
             classic_binxgcd_tests::<{ U192::LIMBS }, { U384::LIMBS }>();
             classic_binxgcd_tests::<{ U256::LIMBS }, { U512::LIMBS }>();
@@ -447,10 +450,8 @@ mod tests {
     }
 
     mod test_binxgcd {
-        use crate::{
-            ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384, U4096,
-            U512, U768, U8192,
-        };
+        use crate::uint::bingcd::xgcd::tests::test_xgcd;
+        use crate::{ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U768, U8192, U64};
         use rand_core::OsRng;
 
         fn binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
@@ -458,16 +459,11 @@ mod tests {
             Uint<LIMBS>:
                 Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
-            let gcd = lhs.gcd(&rhs);
             let (binxgcd, x, y) = lhs
                 .to_odd()
                 .unwrap()
                 .optimized_binxgcd(&rhs.to_odd().unwrap());
-            assert_eq!(gcd, binxgcd);
-
-            // test bezout coefficients
-            let prod = x.widening_mul_uint(&lhs) + y.widening_mul_uint(&rhs);
-            assert_eq!(prod, binxgcd.resize().as_int())
+            test_xgcd(lhs, rhs, binxgcd.get(), x, y);
         }
 
         fn binxgcd_tests<const LIMBS: usize, const DOUBLE: usize>()
@@ -475,17 +471,15 @@ mod tests {
             Uint<LIMBS>:
                 Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
-            // upper bound
-            let upper_bound = *Int::MAX.as_uint();
-
             // Edge cases
+            let upper_bound = *Int::MAX.as_uint();
             binxgcd_test(Uint::ONE, Uint::ONE);
             binxgcd_test(Uint::ONE, upper_bound);
             binxgcd_test(upper_bound, Uint::ONE);
             binxgcd_test(upper_bound, upper_bound);
 
             // Randomized test cases
-            let bound = upper_bound.wrapping_add(&Uint::ONE).to_nz().unwrap();
+            let bound = Int::MIN.as_uint().to_nz().unwrap();
             for _ in 0..100 {
                 let x = Uint::<LIMBS>::random_mod(&mut OsRng, &bound).bitor(&Uint::ONE);
                 let y = Uint::<LIMBS>::random_mod(&mut OsRng, &bound).bitor(&Uint::ONE);
