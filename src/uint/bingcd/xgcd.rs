@@ -1,6 +1,6 @@
 use crate::uint::bingcd::matrix::IntMatrix;
 use crate::uint::bingcd::tools::const_max;
-use crate::{ConstChoice, Int, Odd, Uint, U128, U64, NonZero};
+use crate::{ConstChoice, Int, NonZero, Odd, Uint, U128, U64};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute `self / 2^k  mod q`. Executes in time variable in `k_bound`. This value should be
@@ -56,7 +56,10 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
     /// msb is **not** set. May panic otherwise.
-    pub(crate) const fn binxgcd_nz(&self, rhs: &NonZero<Uint<LIMBS>>) -> (Self, Int<LIMBS>, Int<LIMBS>) {
+    pub(crate) const fn binxgcd_nz(
+        &self,
+        rhs: &NonZero<Uint<LIMBS>>,
+    ) -> (Self, Int<LIMBS>, Int<LIMBS>) {
         // Note that for the `binxgcd` subroutine, `rhs` needs to be odd.
         //
         // We use the fact that gcd(a, b) = gcd(a, |a-b|) to
@@ -64,7 +67,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         // 2) execute the xgcd algorithm on (self, rhs'), and
         // 3) recover the Bezout coefficients for (self, rhs) from the (self, rhs') output.
 
-        let (abs_lhs_sub_rhs, rhs_gt_lhs) = self.as_ref().wrapping_sub(rhs.as_ref()).as_int().abs_sign();
+        let (abs_lhs_sub_rhs, rhs_gt_lhs) =
+            self.as_ref().wrapping_sub(rhs.as_ref()).as_int().abs_sign();
         let rhs_is_even = rhs.as_ref().is_odd().not();
         let rhs_ = Uint::select(rhs.as_ref(), &abs_lhs_sub_rhs, rhs_is_even)
             .to_odd()
