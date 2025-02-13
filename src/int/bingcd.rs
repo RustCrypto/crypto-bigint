@@ -101,47 +101,7 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
         let (abs_lhs, sgn_lhs) = self.abs_sign();
         let (abs_rhs, sgn_rhs) = rhs.abs_sign();
 
-        // Make rhs odd
-        let rhs_is_odd = ConstChoice::from_u32_eq(abs_rhs.as_ref().trailing_zeros(), 0);
-        let rhs_gt_lhs = Uint::gt(&abs_rhs.as_ref(), abs_lhs.as_ref());
-        let abs_rhs = Uint::select(
-            &Uint::select(
-                &abs_lhs.as_ref().wrapping_sub(&abs_rhs.as_ref()),
-                &abs_rhs.as_ref().wrapping_sub(&abs_lhs.as_ref()),
-                rhs_gt_lhs,
-            ),
-            &abs_rhs.as_ref(),
-            rhs_is_odd,
-        );
-        let rhs_ = abs_rhs.to_odd().expect("rhs is odd by construction");
-
-        let (gcd, mut x, mut y) = abs_lhs.binxgcd(&rhs_);
-
-        let x_lhs = x.widening_mul_uint(abs_lhs.as_ref());
-        let y_rhs = y.widening_mul_uint(&abs_rhs);
-        debug_assert_eq!(x_lhs.wrapping_add(&y_rhs), gcd.resize().as_int());
-
-        // At this point, we have one of the following three situations:
-        // i.   gcd = lhs * x + (rhs - lhs) * y, if rhs is even and rhs > lhs
-        // ii.  gcd = lhs * x + (lhs - rhs) * y, if rhs is even and rhs < lhs
-        // iii. gcd = lhs * x + rhs * y, if rhs is odd
-
-        // Reverse-engineering the bezout coefficients for lhs and rhs, we get
-        // i.   gcd = lhs * (x - y) + rhs * y, if rhs is even and rhs > lhs
-        // ii.  gcd = lhs * (x + y) - y * rhs, if rhs is even and rhs < lhs
-        // iii. gcd = lhs * x + rhs * y, if rhs is odd
-
-        x = Int::select(&x, &x.wrapping_sub(&y), rhs_is_odd.not().and(rhs_gt_lhs));
-        x = Int::select(
-            &x,
-            &x.wrapping_add(&y),
-            rhs_is_odd.not().and(rhs_gt_lhs.not()),
-        );
-        y = y.wrapping_neg_if(rhs_is_odd.not().and(rhs_gt_lhs.not()));
-
-        let x_lhs = x.widening_mul_uint(abs_lhs.as_ref());
-        let y_rhs = y.widening_mul_uint(&rhs.abs());
-        debug_assert_eq!(x_lhs.wrapping_add(&y_rhs), gcd.resize().as_int());
+        let (gcd, x, y) = abs_lhs.binxgcd_nz(&abs_rhs);
 
         (gcd, x.wrapping_neg_if(sgn_lhs), y.wrapping_neg_if(sgn_rhs))
     }

@@ -1,6 +1,6 @@
 use crate::uint::bingcd::matrix::IntMatrix;
 use crate::uint::bingcd::tools::const_max;
-use crate::{ConstChoice, Int, Odd, Uint, U128, U64};
+use crate::{ConstChoice, Int, Odd, Uint, U128, U64, NonZero};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute `self / 2^k  mod q`. Executes in time variable in `k_bound`. This value should be
@@ -56,15 +56,50 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
     /// msb is **not** set. May panic otherwise.
+    pub(crate) const fn binxgcd_nz(&self, rhs: &NonZero<Uint<LIMBS>>) -> (Self, Int<LIMBS>, Int<LIMBS>) {
+        // Note that for the `binxgcd` subroutine, `rhs` needs to be odd.
+        //
+        // We use the fact that gcd(a, b) = gcd(a, |a-b|) to
+        // 1) convert the input (self, rhs) to (self, rhs') where rhs' is guaranteed odd,
+        // 2) execute the xgcd algorithm on (self, rhs'), and
+        // 3) recover the Bezout coefficients for (self, rhs) from the (self, rhs') output.
+
+        let (abs_lhs_sub_rhs, rhs_gt_lhs) = self.as_ref().wrapping_sub(rhs.as_ref()).as_int().abs_sign();
+        let rhs_is_even = rhs.as_ref().is_odd().not();
+        let rhs_ = Uint::select(rhs.as_ref(), &abs_lhs_sub_rhs, rhs_is_even)
+            .to_odd()
+            .expect("rhs is odd by construction");
+
+        let (gcd, mut x, mut y) = self.binxgcd(&rhs_);
+
+        // At this point, we have one of the following three situations:
+        // i.   gcd = lhs * x + (rhs - lhs) * y, if rhs is even and rhs > lhs
+        // ii.  gcd = lhs * x + (lhs - rhs) * y, if rhs is even and rhs < lhs
+        // iii. gcd = lhs * x + rhs * y, if rhs is odd
+
+        // We can rearrange these terms in one of three ways:
+        // i.   gcd = lhs * (x - y) + rhs * y, if rhs is even and rhs > lhs
+        // ii.  gcd = lhs * (x + y) - y * rhs, if rhs is even and rhs < lhs
+        // iii. gcd = lhs * x + rhs * y, if rhs is odd
+        // From this we can recover the Bezout coefficients from the original (self, rhs) input.
+
+        x = Int::select(&x, &x.wrapping_sub(&y), rhs_is_even.and(rhs_gt_lhs));
+        x = Int::select(&x, &x.wrapping_add(&y), rhs_is_even.and(rhs_gt_lhs.not()));
+        y = y.wrapping_neg_if(rhs_is_even.and(rhs_gt_lhs.not()));
+
+        (gcd, x, y)
+    }
+
+    /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
+    /// leveraging the Binary Extended GCD algorithm.
+    ///
+    /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
+    /// msb is **not** set. May panic otherwise.
     ///
     /// This function switches between the "classic" and "optimized" algorithm at a best-effort
     /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
     /// manually test whether the classic or optimized algorithm is faster for your machine.
     pub(crate) const fn binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
-        // Verify that the top bit is not set on self or rhs.
-        debug_assert!(!self.as_ref().as_int().is_negative().to_bool_vartime());
-        debug_assert!(!rhs.as_ref().as_int().is_negative().to_bool_vartime());
-
         // todo: optimize threshold
         if LIMBS < 5 {
             self.classic_binxgcd(rhs)
