@@ -142,7 +142,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             // Compute the K-1 iteration update matrix from a_ and b_
             // Safe to vartime; function executes in time variable in `iterations` only, which is
             // a public constant K-1 here.
-            let (.., matrix, log_upper_bound) = a_
+            let (.., matrix, doublings) = a_
                 .to_odd()
                 .expect("a_ is always odd")
                 .partial_binxgcd_vartime::<LIMBS_K>(&b_, K - 1, compact_contains_all_of_b);
@@ -150,8 +150,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = matrix.extended_apply_to((a, b));
 
-            (a, _) = updated_a.div_2k(log_upper_bound).wrapping_drop_extension();
-            (b, _) = updated_b.div_2k(log_upper_bound).wrapping_drop_extension();
+            (a, _) = updated_a.div_2k(doublings).wrapping_drop_extension();
+            (b, _) = updated_b.div_2k(doublings).wrapping_drop_extension();
         }
 
         a.to_odd()

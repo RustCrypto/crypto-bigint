@@ -181,11 +181,10 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ) -> (Self, Int<LIMBS>, Int<LIMBS>) {
         let (mut a, mut b) = (*self.as_ref(), *rhs.as_ref());
         let mut matrix = IntMatrix::UNIT;
+        let mut total_doublings = 0;
 
         let mut i = 0;
-        let mut total_bound_shift = 0;
-        let reduction_rounds = (2 * Self::BITS - 1).div_ceil(K);
-        while i < reduction_rounds {
+        while i < (2 * Self::BITS - 1).div_ceil(K) {
             i += 1;
 
             // Construct a_ and b_ as the summary of a and b, respectively.
@@ -193,33 +192,32 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let n = const_max(2 * K, const_max(a.bits(), b_bits));
             let a_ = a.compact::<K, LIMBS_2K>(n);
             let b_ = b.compact::<K, LIMBS_2K>(n);
-            let compact_contains_all_of_b =
-                ConstChoice::from_u32_le(b_bits, K - 1).or(ConstChoice::from_u32_eq(n, 2 * K));
+            let b_fits_in_compact = ConstChoice::from_u32_le(b_bits, K - 1).or(ConstChoice::from_u32_eq(n, 2 * K));
 
             // Compute the K-1 iteration update matrix from a_ and b_
-            let (.., update_matrix, log_upper_bound) = a_
+            let (.., update_matrix, doublings) = a_
                 .to_odd()
                 .expect("a is always odd")
-                .partial_binxgcd_vartime::<LIMBS_K>(&b_, K - 1, compact_contains_all_of_b);
+                .partial_binxgcd_vartime::<LIMBS_K>(&b_, K - 1, b_fits_in_compact);
 
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = update_matrix.extended_apply_to((a, b));
 
             let (a_sgn, b_sgn);
-            (a, a_sgn) = updated_a.div_2k(log_upper_bound).wrapping_drop_extension();
-            (b, b_sgn) = updated_b.div_2k(log_upper_bound).wrapping_drop_extension();
+            (a, a_sgn) = updated_a.div_2k(doublings).wrapping_drop_extension();
+            (b, b_sgn) = updated_b.div_2k(doublings).wrapping_drop_extension();
 
             matrix = update_matrix.checked_mul_right(&matrix);
             matrix.conditional_negate_top_row(a_sgn);
             matrix.conditional_negate_bottom_row(b_sgn);
-            total_bound_shift += log_upper_bound;
+            total_doublings += doublings;
         }
 
         // Extract the Bezout coefficients.
-        let total_iterations = reduction_rounds * (K - 1);
+        let total_iterations = 2 * Self::BITS - 1;
         let IntMatrix { m00, m01, .. } = matrix;
-        let x = m00.div_2k_mod_q(total_bound_shift, total_iterations, &rhs);
-        let y = m01.div_2k_mod_q(total_bound_shift, total_iterations, self);
+        let x = m00.div_2k_mod_q(total_doublings, total_iterations, &rhs);
+        let y = m01.div_2k_mod_q(total_doublings, total_iterations, self);
 
         let gcd = a
             .to_odd()
@@ -232,13 +230,15 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
     /// <https://eprint.iacr.org/2020/972.pdf>.
     ///
-    /// The function outputs a matrix that can be used to reduce the `a` and `b` in the main loop.
+    /// The function outputs the reduced values `(a, b)` for the input values `(self, rhs)` as well
+    /// as the matrix that yields the former two when multiplied with the latter two.
     ///
-    /// This implementation deviates slightly from the paper, in that it "runs in place", i.e.,
-    /// executes iterations that do nothing, once `a` becomes zero. As a result, the main loop
-    /// can no longer assume that all `iterations` are executed. As such, the `executed_iterations`
-    /// are counted and additionally returned. Note that each element in `M` lies in the interval
-    /// `(-2^executed_iterations, 2^executed_iterations]`.
+    /// Additionally, the number doublings that were executed is returned. By construction, each
+    /// element in `M` lies in the interval `(-2^doublings, 2^doublings]`.
+    ///
+    /// Note: this implementation deviates slightly from the paper, in that it can be instructed to
+    /// "run in place" (i.e., execute iterations that do nothing) once `a` becomes zero.
+    /// This is done by passing a truthy `halt_at_zero`.
     ///
     /// The function executes in time variable in `iterations`.
     #[inline]
@@ -259,14 +259,14 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         Uint::swap(&mut a, &mut b);
         matrix.swap_rows();
 
-        let mut executed_iterations = 0;
+        let mut doublings = 0;
         let mut j = 0;
         while j < iterations {
             Self::binxgcd_step::<UPDATE_LIMBS>(
                 &mut a,
                 &mut b,
                 &mut matrix,
-                &mut executed_iterations,
+                &mut doublings,
                 halt_at_zero,
             );
             j += 1;
@@ -277,7 +277,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         matrix.swap_rows();
 
         let a = a.to_odd().expect("a is always odd");
-        (a, b, matrix, executed_iterations)
+        (a, b, matrix, doublings)
     }
 
     /// Binary XGCD update step.
