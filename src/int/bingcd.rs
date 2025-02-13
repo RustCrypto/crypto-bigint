@@ -19,32 +19,28 @@ impl<const LIMBS: usize> Int<LIMBS> {
         Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
     {
         // Make sure `self` and `rhs` are nonzero.
-        let self_is_zero = self.is_nonzero().not();
-        let self_nz = Int::select(self, &Int::ONE, self_is_zero)
+        let self_is_nz = self.is_nonzero();
+        let self_nz = Int::select(&Int::ONE, self, self_is_nz)
             .to_nz()
             .expect("self is non zero by construction");
-        let rhs_is_zero = rhs.is_nonzero().not();
-        let rhs_nz = Int::select(rhs, &Int::ONE, rhs_is_zero)
+        let rhs_is_nz = rhs.is_nonzero();
+        let rhs_nz = Int::select(&Int::ONE, rhs, rhs_is_nz)
             .to_nz()
-            .expect("self is non zero by construction");
+            .expect("rhs is non zero by construction");
 
         let (gcd, mut x, mut y) = self_nz.binxgcd(&rhs_nz);
 
-        // Account for the case that self or rhs was zero
-        let gcd = Uint::select(gcd.as_ref(), &rhs.abs(), self_is_zero);
-        let gcd = Uint::select(&gcd, &self.abs(), rhs_is_zero);
-        x = Int::select(&x, &Int::ZERO, self_is_zero);
-        y = Int::select(
-            &y,
-            &Int::select(&Int::ONE, &Int::MINUS_ONE, rhs.is_negative()),
-            self_is_zero,
-        );
-        x = Int::select(
-            &x,
-            &Int::select(&Int::ONE, &Int::MINUS_ONE, self.is_negative()),
-            rhs_is_zero,
-        );
-        y = Int::select(&y, &Int::ZERO, rhs_is_zero);
+        // Correct the gcd in case self and/or rhs was zero
+        let gcd = Uint::select(&rhs.abs(), gcd.as_ref(), self_is_nz);
+        let gcd = Uint::select(&self.abs(), &gcd, rhs_is_nz);
+
+        // Correct the Bézout coefficients in case self and/or rhs was zero.
+        let signum_self = Int::new_from_abs_sign(Uint::ONE, self.is_negative()).expect("+/- 1");
+        let signum_rhs = Int::new_from_abs_sign(Uint::ONE, rhs.is_negative()).expect("+/- 1");
+        x = Int::select(&Int::ZERO, &x, self_is_nz);
+        y = Int::select(&signum_rhs, &y, self_is_nz);
+        x = Int::select(&signum_self, &x, rhs_is_nz);
+        y = Int::select(&Int::ZERO, &y, rhs_is_nz);
 
         (gcd, x, y)
     }
