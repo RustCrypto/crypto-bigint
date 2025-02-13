@@ -210,7 +210,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ) -> (Self, Uint<LIMBS>, IntMatrix<UPDATE_LIMBS>, u32) {
         // debug_assert!(iterations < Uint::<UPDATE_LIMBS>::BITS);
         // (self, rhs) corresponds to (b_, a_) in the Algorithm 1 notation.
-        let (mut a, mut b) = (*rhs, *self.as_ref());
+        let (mut a, mut b) = (*self.as_ref(), *rhs);
 
         // Compute the update matrix. This matrix corresponds with (f0, g0, f1, g1) in the paper.
         let mut matrix = IntMatrix::UNIT;
@@ -218,14 +218,14 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         let mut executed_iterations = 0;
         let mut j = 0;
         while j < iterations {
-            Self::binxgcd_step::<UPDATE_LIMBS>(&mut a, &mut b, &mut matrix, &mut executed_iterations, halt_at_zero);
+            Self::binxgcd_step::<UPDATE_LIMBS>(&mut b, &mut a, &mut matrix, &mut executed_iterations, halt_at_zero);
             j += 1;
         }
 
         matrix.conditional_swap_rows(ConstChoice::TRUE);
         (
-            b.to_odd().expect("b is always odd"),
-            a,
+            a.to_odd().expect("a is always odd"),
+            b,
             matrix,
             executed_iterations,
         )
@@ -302,6 +302,21 @@ mod tests {
                 matrix,
                 IntMatrix::new(I64::from(8), I64::from(-4), I64::from(-2), I64::from(5))
             );
+        }
+
+        #[test]
+        fn test_partial_binxgcd_constructs_correct_matrix() {
+            let a = U64::from_be_hex("CA048AFA63CD6A1F").to_odd().unwrap();
+            let b = U64::from_be_hex("AE693BF7BE8E5566");
+            let (new_a, new_b, matrix, iters) = a.partial_binxgcd_vartime::<{U64::LIMBS}>(&b, 5, ConstChoice::TRUE);
+            assert_eq!(iters, 5);
+
+            let (mut computed_a, mut computed_b ) = matrix.extended_apply_to((a.get(), b));
+            let computed_a = computed_a.div_2k(5).drop_extension().expect("no overflow").0;
+            let computed_b = computed_b.div_2k(5).drop_extension().expect("no overflow").0;
+
+            assert_eq!(new_a.get(), computed_a, "{} {} {} {}", new_a, new_b, computed_a, computed_b);
+            assert_eq!(new_b, computed_b);
         }
 
         #[test]
