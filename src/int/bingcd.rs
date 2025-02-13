@@ -70,6 +70,7 @@ impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
 
         // Add the factor 2^k to the gcd.
         let gcd = gcd
+            .as_ref()
             .shl(k)
             .to_nz()
             .expect("gcd of non-zero element with another element is non-zero");
