@@ -246,7 +246,7 @@ where
     /// As a result, it runs in variable time. If the generator `rng` is
     /// cryptographically secure (for example, it implements `CryptoRng`),
     /// then this is guaranteed not to leak anything about the output value.
-    fn random(mut rng: &mut impl RngCore) -> Self {
+    fn random(mut rng: &mut (impl RngCore + ?Sized)) -> Self {
         loop {
             if let Some(result) = Self::new(T::random(&mut rng)).into() {
                 break result;

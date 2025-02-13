@@ -8,12 +8,15 @@ use crate::{
 use rand_core::RngCore;
 
 impl RandomBits for BoxedUint {
-    fn try_random_bits(rng: &mut impl RngCore, bit_length: u32) -> Result<Self, RandomBitsError> {
+    fn try_random_bits(
+        rng: &mut (impl RngCore + ?Sized),
+        bit_length: u32,
+    ) -> Result<Self, RandomBitsError> {
         Self::try_random_bits_with_precision(rng, bit_length, bit_length)
     }
 
     fn try_random_bits_with_precision(
-        rng: &mut impl RngCore,
+        rng: &mut (impl RngCore + ?Sized),
         bit_length: u32,
         bits_precision: u32,
     ) -> Result<Self, RandomBitsError> {
@@ -31,7 +34,7 @@ impl RandomBits for BoxedUint {
 }
 
 impl RandomMod for BoxedUint {
-    fn random_mod(rng: &mut impl RngCore, modulus: &NonZero<Self>) -> Self {
+    fn random_mod(rng: &mut (impl RngCore + ?Sized), modulus: &NonZero<Self>) -> Self {
         let mut n = BoxedUint::zero_with_precision(modulus.bits_precision());
         random_mod_core(rng, &mut n, modulus, modulus.bits());
         n
