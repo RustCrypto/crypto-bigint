@@ -60,7 +60,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// This function switches between the "classic" and "optimized" algorithm at a best-effort
     /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
     /// manually test whether the classic or optimized algorithm is faster for your machine.
-    pub const fn limited_binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
+    pub(crate) const fn binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
         // Verify that the top bit is not set on self or rhs.
         debug_assert!(!self.as_ref().as_int().is_negative().to_bool_vartime());
         debug_assert!(!rhs.as_ref().as_int().is_negative().to_bool_vartime());
@@ -82,7 +82,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
     /// <https://eprint.iacr.org/2020/972.pdf>.
-    pub const fn classic_binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
+    pub(crate) const fn classic_binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
         let total_iterations = 2 * Self::BITS - 1;
         let (gcd, _, matrix, total_bound_shift) = self.partial_binxgcd_vartime::<LIMBS>(
             rhs.as_ref(),
@@ -105,7 +105,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// msb is **not** set. May panic otherwise.
     ///
     /// Note: this algorithm becomes more efficient than the classical algorithm for [Uint]s with
-    /// relatively many `LIMBS`. A best-effort threshold is presented in [Self::limited_binxgcd].
+    /// relatively many `LIMBS`. A best-effort threshold is presented in [Self::binxgcd].
     ///
     /// Note: the full algorithm has an additional parameter; this function selects the best-effort
     /// value for this parameter. You might be able to further tune your performance by calling the
@@ -113,7 +113,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
     /// <https://eprint.iacr.org/2020/972.pdf>.
-    pub const fn optimized_binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
+    pub(crate) const fn optimized_binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
         self.optimized_binxgcd_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(&rhs)
     }
 
@@ -136,7 +136,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///   `K` close to a (multiple of) the number of bits that fit in a single register.
     /// - `LIMBS_K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ K`,
     /// - `LIMBS_2K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ 2K`.
-    pub const fn optimized_binxgcd_<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
+    pub(super) const fn optimized_binxgcd_<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
         &self,
         rhs: &Self,
     ) -> (Self, Int<LIMBS>, Int<LIMBS>) {
@@ -458,7 +458,7 @@ mod tests {
 
     mod test_binxgcd {
         use crate::uint::bingcd::xgcd::tests::test_xgcd;
-        use crate::{ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U768, U8192, U64};
+        use crate::{ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U768, U8192};
         use rand_core::OsRng;
 
         fn binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)

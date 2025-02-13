@@ -85,15 +85,6 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
         self.m01 = Int::select(&self.m01, &self.m01.wrapping_sub(&self.m11), subtract);
     }
 
-    /// Double the bottom row of this matrix.
-    #[inline]
-    pub(crate) const fn double_bottom_row(&mut self) {
-        // safe to vartime; shr_vartime is variable in the value of shift only. Since this shift
-        // is a public constant, the constant time property of this algorithm is not impacted.
-        self.m10 = self.m10.shl_vartime(1);
-        self.m11 = self.m11.shl_vartime(1);
-    }
-
     /// Double the bottom row of this matrix if `double` is truthy. Otherwise, do nothing.
     #[inline]
     pub(crate) const fn conditional_double_bottom_row(&mut self, double: ConstChoice) {

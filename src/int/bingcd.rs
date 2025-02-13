@@ -123,7 +123,7 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
         );
         let rhs_ = abs_rhs.to_odd().expect("rhs is odd by construction");
 
-        let (gcd, mut x, mut y) = abs_lhs.limited_binxgcd(&rhs_);
+        let (gcd, mut x, mut y) = abs_lhs.binxgcd(&rhs_);
 
         let x_lhs = x.widening_mul_uint(abs_lhs.as_ref());
         let y_rhs = y.widening_mul_uint(&abs_rhs);

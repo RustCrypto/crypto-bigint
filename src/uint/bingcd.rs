@@ -2,7 +2,7 @@
 //! which is described by Pornin as Algorithm 2 in "Optimized Binary GCD for Modular Inversion".
 //! Ref: <https://eprint.iacr.org/2020/972.pdf>
 
-use crate::{ConcatMixed, Int, Uint};
+use crate::Uint;
 
 mod extension;
 mod gcd;
@@ -19,15 +19,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             .to_nz()
             .expect("self is non zero by construction");
         Uint::select(self_nz.bingcd(rhs).as_ref(), rhs, self_is_zero)
-    }
-
-    /// Given `(self, rhs)`, computes `(g, x, y)`, s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub fn binxgcd<const DOUBLE: usize>(&self, rhs: &Self) -> (Uint<LIMBS>, Int<LIMBS>, Int<LIMBS>)
-    where
-        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
-    {
-        // TODO: make sure the cast to int works
-        self.as_int().binxgcd(&rhs.as_int())
     }
 }
 
@@ -54,18 +45,23 @@ mod tests {
         Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
     {
         // Edge cases
+        let min = Int::MIN.abs();
         bingcd_test(Uint::ZERO, Uint::ZERO);
         bingcd_test(Uint::ZERO, Uint::ONE);
+        bingcd_test(Uint::ZERO, min);
         bingcd_test(Uint::ZERO, Uint::MAX);
         bingcd_test(Uint::ONE, Uint::ZERO);
         bingcd_test(Uint::ONE, Uint::ONE);
+        bingcd_test(Uint::ONE, min);
         bingcd_test(Uint::ONE, Uint::MAX);
+        bingcd_test(min, Uint::ZERO);
+        bingcd_test(min, Uint::ONE);
+        bingcd_test(min, Int::MIN.abs());
+        bingcd_test(min, Uint::MAX);
         bingcd_test(Uint::MAX, Uint::ZERO);
         bingcd_test(Uint::MAX, Uint::ONE);
+        bingcd_test(Uint::ONE, min);
         bingcd_test(Uint::MAX, Uint::MAX);
-        bingcd_test(Int::MIN.abs(), Uint::ZERO);
-        bingcd_test(Int::MAX.abs(), Int::MIN.abs());
-        bingcd_test(Uint::MAX, Int::MIN.abs());
 
         // Randomized test cases
         for _ in 0..100 {
