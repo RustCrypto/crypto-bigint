@@ -58,36 +58,32 @@ impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
         Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
     {
         let (mut lhs, mut rhs) = (*self.as_ref(), *rhs.as_ref());
-        // Leverage two GCD identity rules to make self and rhs odd.
-        // 1) gcd(2a, 2b) = 2 * gcd(a, b)
-        // 2) gcd(a, 2b) = gcd(a, b) if a is odd.
-        let i = lhs.is_nonzero().select_u32(0, lhs.0.trailing_zeros());
-        let j = rhs.is_nonzero().select_u32(0, rhs.0.trailing_zeros());
-        let k = const_min(i, j);
 
-        // Remove the common factor `2^k` from both lhs and rhs.
+        // Leverage the property that gcd(2^k * a, 2^k *b) = 2^k * gcd(a, b)
+        let i = lhs.0.trailing_zeros();
+        let j = rhs.0.trailing_zeros();
+        let k = const_min(i, j);
         lhs = lhs.shr(k);
         rhs = rhs.shr(k);
-        // At this point, either lhs or rhs is odd (or both).
-        // Switch them to make sure lhs is odd.
-        let do_swap = ConstChoice::from_u32_lt(j, i);
-        Int::conditional_swap(&mut lhs, &mut rhs, do_swap);
-        let lhs_ = lhs.to_odd().expect("lhs is odd by construction");
 
-        // Compute the xgcd for odd lhs_ and rhs_
-        let rhs_nz = rhs.to_nz().expect("rhs is non-zero by construction");
-        let (gcd, mut x, mut y) = lhs_.binxgcd(&rhs_nz);
+        // Note: at this point, either lhs or rhs is odd (or both).
+        // Swap to make sure lhs is odd.
+        let swap = ConstChoice::from_u32_lt(j, i);
+        Int::conditional_swap(&mut lhs, &mut rhs, swap);
+        let lhs = lhs.to_odd().expect("odd by construction");
 
-        // Account for the fact that we may have previously swapped lhs and rhs.
-        Int::conditional_swap(&mut x, &mut y, do_swap);
-        (
-            gcd.as_ref()
-                .shl(k)
-                .to_nz()
-                .expect("gcd of non-zero element with another element is non-zero"),
-            x,
-            y,
-        )
+        let rhs = rhs.to_nz().expect("non-zero by construction");
+        let (gcd, mut x, mut y) = lhs.binxgcd(&rhs);
+
+        Int::conditional_swap(&mut x, &mut y, swap);
+
+        // Add the factor 2^k to the gcd.
+        let gcd = gcd
+            .shl(k)
+            .to_nz()
+            .expect("gcd of non-zero element with another element is non-zero");
+
+        (gcd, x, y)
     }
 }
 
