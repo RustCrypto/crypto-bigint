@@ -72,6 +72,12 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
         Int::conditional_swap(&mut self.m01, &mut self.m11, swap);
     }
 
+    /// Swap the rows of this matrix.
+    #[inline]
+    pub(crate) const fn swap_rows(&mut self) {
+        self.conditional_swap_rows(ConstChoice::TRUE)
+    }
+
     /// Subtract the bottom row from the top if `subtract` is truthy. Otherwise, do nothing.
     #[inline]
     pub(crate) const fn conditional_subtract_bottom_row_from_top(&mut self, subtract: ConstChoice) {

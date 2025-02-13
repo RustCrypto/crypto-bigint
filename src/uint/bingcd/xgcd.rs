@@ -203,8 +203,6 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Assumes `iterations < Uint::<UPDATE_LIMBS>::BITS`.
     ///
     /// The function executes in time variable in `iterations`.
-    ///
-    /// TODO: this only works for `self` and `rhs` that are <= Int::MAX.
     #[inline]
     pub(super) const fn partial_binxgcd_vartime<const UPDATE_LIMBS: usize>(
         &self,
@@ -212,27 +210,36 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         iterations: u32,
         halt_at_zero: ConstChoice,
     ) -> (Self, Uint<LIMBS>, IntMatrix<UPDATE_LIMBS>, u32) {
-        // debug_assert!(iterations < Uint::<UPDATE_LIMBS>::BITS);
-        // (self, rhs) corresponds to (b_, a_) in the Algorithm 1 notation.
         let (mut a, mut b) = (*self.as_ref(), *rhs);
-
-        // Compute the update matrix. This matrix corresponds with (f0, g0, f1, g1) in the paper.
+        // This matrix corresponds with (f0, g0, f1, g1) in the paper.
         let mut matrix = IntMatrix::UNIT;
-        matrix.conditional_swap_rows(ConstChoice::TRUE);
+
+        // Compute the update matrix.
+        // Note: to be consistent with the paper, the `binxgcd_step` algorithm requires the second
+        // argument to be odd. Here, we have `a` odd, so we have to swap a and b before and after
+        // calling the subroutine. The columns of the matrix have to be swapped accordingly.
+        Uint::swap(&mut a, &mut b);
+        matrix.swap_rows();
+
         let mut executed_iterations = 0;
         let mut j = 0;
         while j < iterations {
-            Self::binxgcd_step::<UPDATE_LIMBS>(&mut b, &mut a, &mut matrix, &mut executed_iterations, halt_at_zero);
+            Self::binxgcd_step::<UPDATE_LIMBS>(
+                &mut a,
+                &mut b,
+                &mut matrix,
+                &mut executed_iterations,
+                halt_at_zero,
+            );
             j += 1;
         }
 
-        matrix.conditional_swap_rows(ConstChoice::TRUE);
-        (
-            a.to_odd().expect("a is always odd"),
-            b,
-            matrix,
-            executed_iterations,
-        )
+        // Undo swap
+        Uint::swap(&mut a, &mut b);
+        matrix.swap_rows();
+
+        let a = a.to_odd().expect("a is always odd");
+        (a, b, matrix, executed_iterations)
     }
 
     /// Binary XGCD update step.
@@ -254,6 +261,9 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///  (f0 g0)
     ///  (f1 g1).
     /// ```
+    ///
+    /// Note: this algorithm assumes `b` to be an odd integer. The algorithm will likely not yield
+    /// the correct result when this is not the case.
     ///
     /// Ref: Pornin, Algorithm 2, L8-17, <https://eprint.iacr.org/2020/972.pdf>.
     #[inline]
@@ -317,11 +327,27 @@ mod tests {
                 a.partial_binxgcd_vartime::<{ U64::LIMBS }>(&b, 5, ConstChoice::TRUE);
             assert_eq!(iters, 5);
 
-            let (mut computed_a, mut computed_b ) = matrix.extended_apply_to((a.get(), b));
-            let computed_a = computed_a.div_2k(5).drop_extension().expect("no overflow").0;
-            let computed_b = computed_b.div_2k(5).drop_extension().expect("no overflow").0;
+            let (computed_a, computed_b ) = matrix.extended_apply_to((a.get(), b));
+            let computed_a = computed_a
+                .div_2k(5)
+                .drop_extension()
+                .expect("no overflow")
+                .0;
+            let computed_b = computed_b
+                .div_2k(5)
+                .drop_extension()
+                .expect("no overflow")
+                .0;
 
-            assert_eq!(new_a.get(), computed_a, "{} {} {} {}", new_a, new_b, computed_a, computed_b);
+            assert_eq!(
+                new_a.get(),
+                computed_a,
+                "{} {} {} {}",
+                new_a,
+                new_b,
+                computed_a,
+                computed_b
+            );
             assert_eq!(new_b, computed_b);
         }
 

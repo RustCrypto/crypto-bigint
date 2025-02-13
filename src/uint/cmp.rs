@@ -31,6 +31,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         (*a, *b) = (Self::select(a, b, c), Self::select(b, a, c));
     }
 
+    /// Swap `a` and `b`.
+    #[inline]
+    pub(crate) const fn swap(a: &mut Self, b: &mut Self) {
+        Self::conditional_swap(a, b, ConstChoice::TRUE)
+    }
+
     /// Returns the truthy value if `self`!=0 or the falsy value otherwise.
     #[inline]
     pub(crate) const fn is_nonzero(&self) -> ConstChoice {
