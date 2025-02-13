@@ -54,8 +54,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
     /// leveraging the Binary Extended GCD algorithm.
     ///
-    /// WARNING! This algorithm is limited to values that are `<= Int::MAX`; for larger values,
-    /// the algorithm overflows.
+    /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
+    /// msb is **not** set. May panic otherwise.
     ///
     /// This function switches between the "classic" and "optimized" algorithm at a best-effort
     /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
@@ -76,6 +76,9 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Execute the classic Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
+    ///
+    /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
+    /// msb is **not** set. May panic otherwise.
     ///
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
     /// <https://eprint.iacr.org/2020/972.pdf>.
@@ -98,6 +101,9 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
     /// leveraging the Binary Extended GCD algorithm.
     ///
+    /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
+    /// msb is **not** set. May panic otherwise.
+    ///
     /// Note: this algorithm becomes more efficient than the classical algorithm for [Uint]s with
     /// relatively many `LIMBS`. A best-effort threshold is presented in [Self::limited_binxgcd].
     ///
@@ -113,6 +119,9 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
     /// Given `(self, rhs)`, computes `(g, x, y)`, s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
     /// leveraging the optimized Binary Extended GCD algorithm.
+    ///
+    /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
+    /// msb is **not** set. May panic otherwise.
     ///
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
     /// <https://eprint.iacr.org/2020/972.pdf>
@@ -199,8 +208,6 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// can no longer assume that all `iterations` are executed. As such, the `executed_iterations`
     /// are counted and additionally returned. Note that each element in `M` lies in the interval
     /// `(-2^executed_iterations, 2^executed_iterations]`.
-    ///
-    /// Assumes `iterations < Uint::<UPDATE_LIMBS>::BITS`.
     ///
     /// The function executes in time variable in `iterations`.
     #[inline]
