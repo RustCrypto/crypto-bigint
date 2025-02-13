@@ -6,7 +6,7 @@ use rand_core::RngCore;
 use subtle::ConstantTimeLess;
 
 impl<const LIMBS: usize> Random for Uint<LIMBS> {
-    fn random(mut rng: &mut impl RngCore) -> Self {
+    fn random(mut rng: &mut (impl RngCore + ?Sized)) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
 
         for limb in &mut limbs {
@@ -21,7 +21,7 @@ impl<const LIMBS: usize> Random for Uint<LIMBS> {
 ///
 /// NOTE: Assumes that the limbs in the given slice are zeroed!
 pub(crate) fn random_bits_core(
-    rng: &mut impl RngCore,
+    rng: &mut (impl RngCore + ?Sized),
     zeroed_limbs: &mut [Limb],
     bit_length: u32,
 ) -> Result<(), RandomBitsError> {
@@ -50,12 +50,15 @@ pub(crate) fn random_bits_core(
 }
 
 impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
-    fn try_random_bits(rng: &mut impl RngCore, bit_length: u32) -> Result<Self, RandomBitsError> {
+    fn try_random_bits(
+        rng: &mut (impl RngCore + ?Sized),
+        bit_length: u32,
+    ) -> Result<Self, RandomBitsError> {
         Self::try_random_bits_with_precision(rng, bit_length, Self::BITS)
     }
 
     fn try_random_bits_with_precision(
-        rng: &mut impl RngCore,
+        rng: &mut (impl RngCore + ?Sized),
         bit_length: u32,
         bits_precision: u32,
     ) -> Result<Self, RandomBitsError> {
@@ -78,7 +81,7 @@ impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
-    fn random_mod(rng: &mut impl RngCore, modulus: &NonZero<Self>) -> Self {
+    fn random_mod(rng: &mut (impl RngCore + ?Sized), modulus: &NonZero<Self>) -> Self {
         let mut n = Self::ZERO;
         random_mod_core(rng, &mut n, modulus, modulus.bits_vartime());
         n
@@ -88,7 +91,7 @@ impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
 /// Generic implementation of `random_mod` which can be shared with `BoxedUint`.
 // TODO(tarcieri): obtain `n_bits` via a trait like `Integer`
 pub(super) fn random_mod_core<T>(
-    rng: &mut impl RngCore,
+    rng: &mut (impl RngCore + ?Sized),
     n: &mut T,
     modulus: &NonZero<T>,
     n_bits: u32,

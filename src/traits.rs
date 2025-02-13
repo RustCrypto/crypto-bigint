@@ -299,7 +299,7 @@ pub trait Random: Sized {
     /// Generate a random value.
     ///
     /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
-    fn random(rng: &mut impl RngCore) -> Self;
+    fn random(rng: &mut (impl RngCore + ?Sized)) -> Self;
 }
 
 /// Possible errors of the methods in [`RandomBits`] trait.
@@ -362,7 +362,7 @@ pub trait RandomBits: Sized {
     /// Generate a random value in range `[0, 2^bit_length)`.
     ///
     /// A wrapper for [`RandomBits::try_random_bits`] that panics on error.
-    fn random_bits(rng: &mut impl RngCore, bit_length: u32) -> Self {
+    fn random_bits(rng: &mut (impl RngCore + ?Sized), bit_length: u32) -> Self {
         Self::try_random_bits(rng, bit_length).expect("try_random_bits() failed")
     }
 
@@ -371,7 +371,10 @@ pub trait RandomBits: Sized {
     /// This method is variable time wrt `bit_length`.
     ///
     /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
-    fn try_random_bits(rng: &mut impl RngCore, bit_length: u32) -> Result<Self, RandomBitsError>;
+    fn try_random_bits(
+        rng: &mut (impl RngCore + ?Sized),
+        bit_length: u32,
+    ) -> Result<Self, RandomBitsError>;
 
     /// Generate a random value in range `[0, 2^bit_length)`,
     /// returning an integer with the closest available size to `bits_precision`
@@ -379,7 +382,7 @@ pub trait RandomBits: Sized {
     ///
     /// A wrapper for [`RandomBits::try_random_bits_with_precision`] that panics on error.
     fn random_bits_with_precision(
-        rng: &mut impl RngCore,
+        rng: &mut (impl RngCore + ?Sized),
         bit_length: u32,
         bits_precision: u32,
     ) -> Self {
@@ -395,7 +398,7 @@ pub trait RandomBits: Sized {
     ///
     /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
     fn try_random_bits_with_precision(
-        rng: &mut impl RngCore,
+        rng: &mut (impl RngCore + ?Sized),
         bit_length: u32,
         bits_precision: u32,
     ) -> Result<Self, RandomBitsError>;
@@ -413,7 +416,7 @@ pub trait RandomMod: Sized + Zero {
     /// example, it implements `CryptoRng`), then this is guaranteed not to
     /// leak anything about the output value aside from it being less than
     /// `modulus`.
-    fn random_mod(rng: &mut impl RngCore, modulus: &NonZero<Self>) -> Self;
+    fn random_mod(rng: &mut (impl RngCore + ?Sized), modulus: &NonZero<Self>) -> Self;
 }
 
 /// Compute `self + rhs mod p`.
