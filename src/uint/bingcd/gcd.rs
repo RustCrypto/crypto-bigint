@@ -124,8 +124,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         &self,
         rhs: &Uint<LIMBS>,
     ) -> Self {
-        // (self, rhs) corresponds to (m, y) in the Algorithm 1 notation.
-        let (mut a, mut b) = (*rhs, *self.as_ref());
+        let (mut a, mut b) = (*self.as_ref(), *rhs);
 
         let iterations = (2 * Self::BITS - 1).div_ceil(K - 1);
         let mut i = 0;
@@ -133,23 +132,23 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             i += 1;
 
             // Construct a_ and b_ as the summary of a and b, respectively.
-            let a_bits = a.bits();
-            let n = const_max(2 * K, const_max(a_bits, b.bits()));
+            let b_bits = b.bits();
+            let n = const_max(2 * K, const_max(a.bits(), b_bits));
             let a_ = a.compact::<K, LIMBS_2K>(n);
             let b_ = b.compact::<K, LIMBS_2K>(n);
-            let compact_contains_all_of_a =
-                ConstChoice::from_u32_le(a_bits, K - 1).or(ConstChoice::from_u32_eq(n, 2 * K));
+            let compact_contains_all_of_b =
+                ConstChoice::from_u32_le(b_bits, K - 1).or(ConstChoice::from_u32_eq(n, 2 * K));
 
             // Compute the K-1 iteration update matrix from a_ and b_
             // Safe to vartime; function executes in time variable in `iterations` only, which is
             // a public constant K-1 here.
-            let (.., matrix, log_upper_bound) = b_
+            let (.., matrix, log_upper_bound) = a_
                 .to_odd()
-                .expect("b_ is always odd")
-                .partial_binxgcd_vartime::<LIMBS_K>(&a_, K - 1, compact_contains_all_of_a);
+                .expect("a_ is always odd")
+                .partial_binxgcd_vartime::<LIMBS_K>(&b_, K - 1, compact_contains_all_of_b);
 
             // Update `a` and `b` using the update matrix
-            let (updated_b, updated_a) = matrix.extended_apply_to((b, a));
+            let (updated_a, updated_b) = matrix.extended_apply_to((a,b));
 
             (a, _) = updated_a
                 .div_2k(log_upper_bound)
@@ -161,9 +160,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
                 .expect("extension is zero");
         }
 
-        debug_assert!(Uint::eq(&a, &Uint::ZERO).to_bool_vartime());
-
-        b.to_odd()
+        a.to_odd()
             .expect("gcd of an odd value with something else is always odd")
     }
 }
