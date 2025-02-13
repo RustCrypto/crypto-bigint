@@ -138,11 +138,11 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             i += 1;
 
             // Construct a_ and b_ as the summary of a and b, respectively.
-            let a_bits = a.bits();
-            let n = const_max(2 * K, const_max(a_bits, b.bits()));
+            let b_bits = b.bits();
+            let n = const_max(2 * K, const_max(a.bits(), b_bits));
             let a_ = a.compact::<K, LIMBS_2K>(n);
             let b_ = b.compact::<K, LIMBS_2K>(n);
-            let compact_contains_all_of_a = ConstChoice::from_u32_le(a_bits, n);
+            let compact_contains_all_of_a = ConstChoice::from_u32_le(b_bits, K-1).or(ConstChoice::from_u32_eq(n, 2*K));
 
             // Compute the K-1 iteration update matrix from a_ and b_
             let (.., update_matrix, log_upper_bound) = a_
