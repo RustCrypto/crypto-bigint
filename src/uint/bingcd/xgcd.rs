@@ -193,14 +193,14 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let n = const_max(2 * K, const_max(a.bits(), b_bits));
             let a_ = a.compact::<K, LIMBS_2K>(n);
             let b_ = b.compact::<K, LIMBS_2K>(n);
-            let compact_contains_all_of_a =
+            let compact_contains_all_of_b =
                 ConstChoice::from_u32_le(b_bits, K - 1).or(ConstChoice::from_u32_eq(n, 2 * K));
 
             // Compute the K-1 iteration update matrix from a_ and b_
             let (.., update_matrix, log_upper_bound) = a_
                 .to_odd()
                 .expect("a is always odd")
-                .partial_binxgcd_vartime::<LIMBS_K>(&b_, K - 1, compact_contains_all_of_a);
+                .partial_binxgcd_vartime::<LIMBS_K>(&b_, K - 1, compact_contains_all_of_b);
 
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = update_matrix.extended_apply_to((a, b));
