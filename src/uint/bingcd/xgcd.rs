@@ -42,11 +42,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Floor-divide self by 2. When self was odd, add back 1/2 mod q.
         let add_one_half = self.is_odd();
         let floored_half = self.shr_vartime(1);
-        Self::select(
-            &floored_half,
-            &floored_half.wrapping_add(half_mod_q),
-            add_one_half,
-        )
+        floored_half.wrapping_add(&Self::select(&Self::ZERO, &half_mod_q, add_one_half))
     }
 }
 
@@ -81,11 +77,11 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         // ii.  gcd = lhs * x + (lhs - rhs) * y, if rhs is even and rhs < lhs
         // iii. gcd = lhs * x + rhs * y, if rhs is odd
 
-        // We can rearrange these terms in one of three ways:
+        // We can rearrange these terms to get the Bezout coefficients to the original (self, rhs)
+        // input as follows:
         // i.   gcd = lhs * (x - y) + rhs * y, if rhs is even and rhs > lhs
         // ii.  gcd = lhs * (x + y) - y * rhs, if rhs is even and rhs < lhs
         // iii. gcd = lhs * x + rhs * y, if rhs is odd
-        // From this we can recover the Bezout coefficients from the original (self, rhs) input.
 
         x = Int::select(&x, &x.wrapping_sub(&y), rhs_is_even.and(rhs_gt_lhs));
         x = Int::select(&x, &x.wrapping_add(&y), rhs_is_even.and(rhs_gt_lhs.not()));
@@ -184,8 +180,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         rhs: &Self,
     ) -> (Self, Int<LIMBS>, Int<LIMBS>) {
         let (mut a, mut b) = (*self.as_ref(), *rhs.as_ref());
-
         let mut matrix = IntMatrix::UNIT;
+
         let mut i = 0;
         let mut total_bound_shift = 0;
         let reduction_rounds = (2 * Self::BITS - 1).div_ceil(K);
@@ -231,12 +227,10 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         let x = m00.div_2k_mod_q(total_bound_shift, total_iterations, &rhs);
         let y = m01.div_2k_mod_q(total_bound_shift, total_iterations, self);
 
-        (
-            a.to_odd()
-                .expect("gcd of an odd value with something else is always odd"),
-            x,
-            y,
-        )
+        let gcd = a
+            .to_odd()
+            .expect("gcd of an odd value with something else is always odd");
+        (gcd, x, y)
     }
 
     /// Executes the optimized Binary GCD inner loop.
