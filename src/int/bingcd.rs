@@ -3,7 +3,7 @@
 //! Ref: <https://eprint.iacr.org/2020/972.pdf>
 
 use crate::uint::bingcd::tools::const_min;
-use crate::{ConcatMixed, ConstChoice, Int, NonZero, Odd, Uint};
+use crate::{ConstChoice, Int, NonZero, Odd, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute the gcd of `self` and `rhs` leveraging the Binary GCD algorithm.
@@ -14,10 +14,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Executes the Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)`, s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub fn binxgcd<const DOUBLE: usize>(&self, rhs: &Self) -> (Uint<LIMBS>, Self, Self)
-    where
-        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
-    {
+    pub const fn binxgcd(&self, rhs: &Self) -> (Uint<LIMBS>, Self, Self) {
         // Make sure `self` and `rhs` are nonzero.
         let self_is_nz = self.is_nonzero();
         let self_nz = Int::select(&Int::ONE, self, self_is_nz)
@@ -50,13 +47,7 @@ impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
     /// Execute the Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub fn binxgcd<const DOUBLE: usize>(
-        &self,
-        rhs: &Self,
-    ) -> (NonZero<Uint<LIMBS>>, Int<LIMBS>, Int<LIMBS>)
-    where
-        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
-    {
+    pub const fn binxgcd(&self,rhs: &Self) -> (NonZero<Uint<LIMBS>>, Int<LIMBS>, Int<LIMBS>) {
         let (mut lhs, mut rhs) = (*self.as_ref(), *rhs.as_ref());
 
         // Leverage the property that gcd(2^k * a, 2^k *b) = 2^k * gcd(a, b)
@@ -91,13 +82,7 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
     /// Execute the Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub fn binxgcd<const DOUBLE: usize>(
-        &self,
-        rhs: &NonZero<Int<LIMBS>>,
-    ) -> (Odd<Uint<LIMBS>>, Int<LIMBS>, Int<LIMBS>)
-    where
-        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
-    {
+    pub const fn binxgcd(&self, rhs: &NonZero<Int<LIMBS>>) -> (Odd<Uint<LIMBS>>, Int<LIMBS>, Int<LIMBS>) {
         let (abs_lhs, sgn_lhs) = self.abs_sign();
         let (abs_rhs, sgn_rhs) = rhs.abs_sign();
 
