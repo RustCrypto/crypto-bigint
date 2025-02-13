@@ -1,5 +1,5 @@
 use crate::uint::bingcd::tools::{const_max, const_min};
-use crate::{NonZero, Odd, Uint, U128, U64};
+use crate::{NonZero, Odd, Uint, U128, U64, ConstChoice};
 
 impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     /// Compute the greatest common divisor of `self` and `rhs`.
@@ -127,15 +127,17 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         // (self, rhs) corresponds to (m, y) in the Algorithm 1 notation.
         let (mut a, mut b) = (*rhs, *self.as_ref());
 
-        let iterations = (2 * Self::BITS - 1).div_ceil(K);
+        let iterations = (2 * Self::BITS - 1).div_ceil(K-1);
         let mut i = 0;
         while i < iterations {
             i += 1;
 
             // Construct a_ and b_ as the summary of a and b, respectively.
-            let n = const_max(2 * K, const_max(a.bits(), b.bits()));
+            let a_bits = a.bits();
+            let n = const_max(2 * K, const_max(a_bits, b.bits()));
             let a_ = a.compact::<K, LIMBS_2K>(n);
             let b_ = b.compact::<K, LIMBS_2K>(n);
+            let compact_contains_all_of_a = ConstChoice::from_u32_le(a_bits, K-1).or(ConstChoice::from_u32_eq(n, 2*K));
 
             // Compute the K-1 iteration update matrix from a_ and b_
             // Safe to vartime; function executes in time variable in `iterations` only, which is
@@ -143,7 +145,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let (.., matrix, log_upper_bound) = b_
                 .to_odd()
                 .expect("b_ is always odd")
-                .partial_binxgcd_vartime::<LIMBS_K>(&a_, K - 1);
+                .partial_binxgcd_vartime::<LIMBS_K>(&a_, K - 1, compact_contains_all_of_a);
 
             // Update `a` and `b` using the update matrix
             let (updated_b, updated_a) = matrix.extended_apply_to((b, a));
@@ -157,6 +159,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
                 .drop_extension()
                 .expect("extension is zero");
         }
+
+        debug_assert!(Uint::eq(&a, &Uint::ZERO).to_bool_vartime());
 
         b.to_odd()
             .expect("gcd of an odd value with something else is always odd")
@@ -215,7 +219,7 @@ mod tests {
     }
 
     mod test_bingcd_large {
-        use crate::{Gcd, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512};
+        use crate::{Gcd, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, Int};
         use rand_core::OsRng;
 
         fn bingcd_large_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
@@ -238,6 +242,8 @@ mod tests {
             bingcd_large_test(Uint::MAX, Uint::ZERO);
             bingcd_large_test(Uint::MAX, Uint::ONE);
             bingcd_large_test(Uint::MAX, Uint::MAX);
+            bingcd_large_test(Int::MAX.abs(), Int::MIN.abs());
+            // TODO: fix this!
 
             // Randomized testing
             for _ in 0..1000 {

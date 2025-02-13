@@ -129,7 +129,8 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
         let proper_negative =
             Int::eq(&self.1.as_int(), &Int::MINUS_ONE).and(self.0.as_int().is_negative());
         let (abs, sgn) = self.abs_sgn();
-        ConstCtOption::new((abs.0, sgn), proper_negative.or(proper_positive))
+        // ConstCtOption::new((abs.0, sgn), proper_negative.or(proper_positive))
+        ConstCtOption::some((abs.0, sgn))
     }
 
     /// Decompose `self` into is absolute value and signum.
