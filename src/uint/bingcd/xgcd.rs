@@ -206,14 +206,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let (updated_a, updated_b) = update_matrix.extended_apply_to((a, b));
 
             let (a_sgn, b_sgn);
-            (a, a_sgn) = updated_a
-                .div_2k(log_upper_bound)
-                .drop_extension()
-                .expect("extension is zero");
-            (b, b_sgn) = updated_b
-                .div_2k(log_upper_bound)
-                .drop_extension()
-                .expect("extension is zero");
+            (a, a_sgn) = updated_a.div_2k(log_upper_bound).wrapping_drop_extension();
+            (b, b_sgn) = updated_b.div_2k(log_upper_bound).wrapping_drop_extension();
 
             matrix = update_matrix.checked_mul_right(&matrix);
             matrix.conditional_negate_top_row(a_sgn);
@@ -373,16 +367,8 @@ mod tests {
             assert_eq!(iters, 5);
 
             let (computed_a, computed_b) = matrix.extended_apply_to((a.get(), b));
-            let computed_a = computed_a
-                .div_2k(5)
-                .drop_extension()
-                .expect("no overflow")
-                .0;
-            let computed_b = computed_b
-                .div_2k(5)
-                .drop_extension()
-                .expect("no overflow")
-                .0;
+            let computed_a = computed_a.div_2k(5).wrapping_drop_extension().0;
+            let computed_b = computed_b.div_2k(5).wrapping_drop_extension().0;
 
             assert_eq!(
                 new_a.get(),

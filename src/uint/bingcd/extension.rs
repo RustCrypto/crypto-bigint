@@ -1,4 +1,4 @@
-use crate::{ConstChoice, ConstCtOption, Int, Limb, Uint};
+use crate::{ConstChoice, Int, Limb, Uint};
 
 pub(crate) struct ExtendedUint<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
     Uint<LIMBS>,
@@ -117,20 +117,10 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     }
 
     /// Returns self without the extension.
-    ///
-    /// Is `None` if the extension cannot be dropped, i.e., when there is a bit in the extension
-    /// that does not equal the MSB in the base.
     #[inline]
-    pub const fn drop_extension(&self) -> ConstCtOption<(Uint<LIMBS>, ConstChoice)> {
-        // should succeed when
-        // - extension is ZERO, or
-        // - extension is MAX, and the top bit in base is set.
-        let proper_positive = Int::eq(&self.1.as_int(), &Int::ZERO);
-        let proper_negative =
-            Int::eq(&self.1.as_int(), &Int::MINUS_ONE).and(self.0.as_int().is_negative());
+    pub const fn wrapping_drop_extension(&self) -> (Uint<LIMBS>, ConstChoice) {
         let (abs, sgn) = self.abs_sgn();
-        // ConstCtOption::new((abs.0, sgn), proper_negative.or(proper_positive))
-        ConstCtOption::some((abs.0, sgn))
+        (abs.0, sgn)
     }
 
     /// Decompose `self` into is absolute value and signum.

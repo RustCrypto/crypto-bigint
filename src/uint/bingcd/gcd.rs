@@ -150,14 +150,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = matrix.extended_apply_to((a, b));
 
-            (a, _) = updated_a
-                .div_2k(log_upper_bound)
-                .drop_extension()
-                .expect("extension is zero");
-            (b, _) = updated_b
-                .div_2k(log_upper_bound)
-                .drop_extension()
-                .expect("extension is zero");
+            (a, _) = updated_a.div_2k(log_upper_bound).wrapping_drop_extension();
+            (b, _) = updated_b.div_2k(log_upper_bound).wrapping_drop_extension();
         }
 
         a.to_odd()
