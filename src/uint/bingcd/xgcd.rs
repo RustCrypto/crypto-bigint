@@ -136,7 +136,11 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///   `K` close to a (multiple of) the number of bits that fit in a single register.
     /// - `LIMBS_K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ K`,
     /// - `LIMBS_2K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ 2K`.
-    pub(super) const fn optimized_binxgcd_<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
+    pub(super) const fn optimized_binxgcd_<
+        const K: u32,
+        const LIMBS_K: usize,
+        const LIMBS_2K: usize,
+    >(
         &self,
         rhs: &Self,
     ) -> (Self, Int<LIMBS>, Int<LIMBS>) {
@@ -404,7 +408,10 @@ mod tests {
 
     mod test_classic_binxgcd {
         use crate::uint::bingcd::xgcd::tests::test_xgcd;
-        use crate::{ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U768, U8192, U64};
+        use crate::{
+            ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384, U4096,
+            U512, U64, U768, U8192,
+        };
         use rand_core::OsRng;
 
         fn classic_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
@@ -458,7 +465,10 @@ mod tests {
 
     mod test_binxgcd {
         use crate::uint::bingcd::xgcd::tests::test_xgcd;
-        use crate::{ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U768, U8192};
+        use crate::{
+            ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384, U4096,
+            U512, U768, U8192,
+        };
         use rand_core::OsRng;
 
         fn binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
