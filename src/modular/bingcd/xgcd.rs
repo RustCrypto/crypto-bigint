@@ -1,11 +1,8 @@
-use crate::uint::bingcd::matrix::IntMatrix;
-use crate::uint::bingcd::tools::const_max;
+use crate::modular::bingcd::matrix::IntMatrix;
+use crate::modular::bingcd::tools::const_max;
 use crate::{ConstChoice, Int, NonZero, Odd, Uint, U128, U64};
 
-
-
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
-
     /// The minimal number of binary GCD iterations required to guarantee successful completion.
     const MIN_BINGCD_ITERATIONS: u32 = 2 * Uint::<LIMBS>::BITS - 1;
 
@@ -132,7 +129,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///   `K` close to a (multiple of) the number of bits that fit in a single register.
     /// - `LIMBS_K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ K`,
     /// - `LIMBS_2K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ 2K`.
-    pub(super) const fn optimized_binxgcd_<
+    pub(crate) const fn optimized_binxgcd_<
         const K: u32,
         const LIMBS_K: usize,
         const LIMBS_2K: usize,
@@ -153,7 +150,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let n = const_max(2 * K, const_max(a.bits(), b_bits));
             let a_ = a.compact::<K, LIMBS_2K>(n);
             let b_ = b.compact::<K, LIMBS_2K>(n);
-            let b_fits_in_compact = ConstChoice::from_u32_le(b_bits, K - 1).or(ConstChoice::from_u32_eq(n, 2 * K));
+            let b_fits_in_compact =
+                ConstChoice::from_u32_le(b_bits, K - 1).or(ConstChoice::from_u32_eq(n, 2 * K));
 
             // Compute the K-1 iteration update matrix from a_ and b_
             let (.., update_matrix, doublings) = a_
@@ -202,7 +200,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// The function executes in time variable in `iterations`.
     #[inline]
-    pub(super) const fn partial_binxgcd_vartime<const UPDATE_LIMBS: usize>(
+    pub(crate) const fn partial_binxgcd_vartime<const UPDATE_LIMBS: usize>(
         &self,
         rhs: &Uint<LIMBS>,
         iterations: u32,
@@ -302,7 +300,7 @@ mod tests {
     use crate::{ConcatMixed, Gcd, Int, Uint};
 
     mod test_partial_binxgcd {
-        use crate::uint::bingcd::matrix::IntMatrix;
+        use crate::modular::bingcd::matrix::IntMatrix;
         use crate::{ConstChoice, I64, U64};
 
         #[test]
@@ -386,7 +384,7 @@ mod tests {
     }
 
     mod test_classic_binxgcd {
-        use crate::uint::bingcd::xgcd::tests::test_xgcd;
+        use crate::modular::bingcd::xgcd::tests::test_xgcd;
         use crate::{
             ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384, U4096,
             U512, U64, U768, U8192,
@@ -443,7 +441,7 @@ mod tests {
     }
 
     mod test_binxgcd {
-        use crate::uint::bingcd::xgcd::tests::test_xgcd;
+        use crate::modular::bingcd::xgcd::tests::test_xgcd;
         use crate::{
             ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384, U4096,
             U512, U768, U8192,

@@ -2,7 +2,7 @@
 //! which is described by Pornin in "Optimized Binary GCD for Modular Inversion".
 //! Ref: <https://eprint.iacr.org/2020/972.pdf>
 
-use crate::uint::bingcd::tools::const_min;
+use crate::modular::bingcd::tools::const_min;
 use crate::{ConstChoice, Int, NonZero, Odd, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {

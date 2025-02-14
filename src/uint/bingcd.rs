@@ -2,14 +2,8 @@
 //! which is described by Pornin as Algorithm 2 in "Optimized Binary GCD for Modular Inversion".
 //! Ref: <https://eprint.iacr.org/2020/972.pdf>
 
-use crate::Uint;
-
-mod extension;
-mod gcd;
-mod matrix;
-pub(crate) mod tools;
-
-mod xgcd;
+use crate::modular::bingcd::tools::const_min;
+use crate::{NonZero, Odd, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute the greatest common divisor of `self` and `rhs`.
@@ -19,6 +13,45 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             .to_nz()
             .expect("self is non zero by construction");
         Uint::select(self_nz.bingcd(rhs).as_ref(), rhs, self_is_zero)
+    }
+}
+
+impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
+    /// Compute the greatest common divisor of `self` and `rhs`.
+    pub const fn bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
+        let val = self.as_ref();
+        // Leverage two GCD identity rules to make self odd.
+        // 1) gcd(2a, 2b) = 2 * gcd(a, b)
+        // 2) gcd(a, 2b) = gcd(a, b) if a is odd.
+        let i = val.trailing_zeros();
+        let j = rhs.trailing_zeros();
+        let k = const_min(i, j);
+
+        val.shr(i)
+            .to_odd()
+            .expect("val.shr(i) is odd by construction")
+            .bingcd(rhs)
+            .as_ref()
+            .shl(k)
+            .to_nz()
+            .expect("gcd of non-zero element with another element is non-zero")
+    }
+}
+
+impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
+    /// Compute the greatest common divisor of `self` and `rhs` using the Binary GCD algorithm.
+    ///
+    /// This function switches between the "classic" and "optimized" algorithm at a best-effort
+    /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
+    /// manually test whether the classic or optimized algorithm is faster for your machine.
+    #[inline(always)]
+    pub const fn bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
+        // Todo: tweak this threshold
+        if LIMBS < 8 {
+            self.classic_bingcd(rhs)
+        } else {
+            self.optimized_bingcd(rhs)
+        }
     }
 }
 

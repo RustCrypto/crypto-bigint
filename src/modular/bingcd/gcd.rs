@@ -1,50 +1,9 @@
-use crate::uint::bingcd::tools::{const_max, const_min};
-use crate::{ConstChoice, NonZero, Odd, Uint, U128, U64};
-
-impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
-    /// Compute the greatest common divisor of `self` and `rhs`.
-    pub const fn bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
-        let val = self.as_ref();
-        // Leverage two GCD identity rules to make self odd.
-        // 1) gcd(2a, 2b) = 2 * gcd(a, b)
-        // 2) gcd(a, 2b) = gcd(a, b) if a is odd.
-        let i = val.trailing_zeros();
-        let j = rhs.trailing_zeros();
-        let k = const_min(i, j);
-
-        val.shr(i)
-            .to_odd()
-            .expect("val.shr(i) is odd by construction")
-            .bingcd(rhs)
-            .as_ref()
-            .shl(k)
-            .to_nz()
-            .expect("gcd of non-zero element with another element is non-zero")
-    }
-}
+use crate::modular::bingcd::tools::const_max;
+use crate::{ConstChoice, Odd, Uint, U128, U64};
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Total size of the represented integer in bits.
     pub const BITS: u32 = Uint::<LIMBS>::BITS;
-
-    /// Compute the greatest common divisor of `self` and `rhs` using the Binary GCD algorithm.
-    ///
-    /// This function switches between the "classic" and "optimized" algorithm at a best-effort
-    /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
-    /// manually test whether the classic or optimized algorithm is faster for your machine.
-    #[inline(always)]
-    pub const fn bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
-        // Todo: tweak this threshold
-        // Note: we're swapping the parameters here for greater readability: Pornin's Algorithm 1
-        // and Algorithm 2 both require the second argument (m) to be odd. Given that the gcd
-        // is the same, regardless of the order of the parameters, this swap does not affect the
-        // result.
-        if LIMBS < 8 {
-            self.classic_bingcd(rhs)
-        } else {
-            self.optimized_bingcd(rhs)
-        }
-    }
 
     /// Computes `gcd(self, rhs)`, leveraging the (a constant time implementation of) the classic
     /// Binary GCD algorithm.
@@ -63,8 +22,11 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             j += 1;
         }
 
-        b.to_odd()
-            .expect("gcd of an odd value with something else is always odd")
+        let gcd = b
+            .to_odd()
+            .expect("gcd of an odd value with something else is always odd");
+
+        gcd
     }
 
     /// Binary GCD update step.
@@ -99,7 +61,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
     /// <https://eprint.iacr.org/2020/972.pdf>
-    #[inline(always)]
+    #[inline]
     pub const fn optimized_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
         self.optimized_bingcd_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
     }
@@ -119,7 +81,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///   `K` close to a (multiple of) the number of bits that fit in a single register.
     /// - `LIMBS_K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ K`,
     /// - `LIMBS_2K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ 2K`.
-    #[inline(always)]
+    #[inline]
     pub const fn optimized_bingcd_<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
         &self,
         rhs: &Uint<LIMBS>,
@@ -154,8 +116,11 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             (b, _) = updated_b.div_2k(doublings).wrapping_drop_extension();
         }
 
-        a.to_odd()
-            .expect("gcd of an odd value with something else is always odd")
+        let gcd = a
+            .to_odd()
+            .expect("gcd of an odd value with something else is always odd");
+
+        gcd
     }
 }
 

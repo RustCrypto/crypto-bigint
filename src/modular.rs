@@ -22,6 +22,7 @@ mod monty_form;
 mod reduction;
 
 mod add;
+pub(crate) mod bingcd;
 mod div_by_2;
 mod mul;
 mod pow;
