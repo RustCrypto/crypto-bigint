@@ -2,9 +2,6 @@ use crate::modular::bingcd::tools::const_max;
 use crate::{ConstChoice, Odd, Uint, U128, U64};
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
-    /// Total size of the represented integer in bits.
-    pub const BITS: u32 = Uint::<LIMBS>::BITS;
-
     /// Computes `gcd(self, rhs)`, leveraging the (a constant time implementation of) the classic
     /// Binary GCD algorithm.
     ///
@@ -22,8 +19,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             j += 1;
         }
 
-        b
-            .to_odd()
+        b.to_odd()
             .expect("gcd of an odd value with something else is always odd")
     }
 
@@ -37,6 +33,9 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///    a ← a - b
     /// a ← a/2
     /// ```
+    ///
+    /// Note: assumes `b` to be odd. Might yield an incorrect result if this is not the case.
+    ///
     /// Ref: Pornin, Algorithm 1, L3-9, <https://eprint.iacr.org/2020/972.pdf>.
     #[inline]
     const fn bingcd_step(a: &mut Uint<LIMBS>, b: &mut Uint<LIMBS>) {
@@ -106,13 +105,11 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = matrix.extended_apply_to((a, b));
-
             (a, _) = updated_a.div_2k_vartime(K - 1).wrapping_drop_extension();
             (b, _) = updated_b.div_2k_vartime(K - 1).wrapping_drop_extension();
         }
 
-        a
-            .to_odd()
+        a.to_odd()
             .expect("gcd of an odd value with something else is always odd")
     }
 }
@@ -193,7 +190,6 @@ mod tests {
             bingcd_large_test(Uint::MAX, Uint::ONE);
             bingcd_large_test(Uint::MAX, Uint::MAX);
             bingcd_large_test(Int::MAX.abs(), Int::MIN.abs());
-            // TODO: fix this!
 
             // Randomized testing
             for _ in 0..1000 {

@@ -58,6 +58,9 @@ impl<T> Odd<T> {
 }
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
+    /// Total size of the represented integer in bits.
+    pub const BITS: u32 = Uint::<LIMBS>::BITS;
+
     /// Create a new [`Odd<Uint<LIMBS>>`] from the provided big endian hex string.
     ///
     /// Panics if the hex is malformed or not zero-padded accordingly for the size, or if the value is even.
