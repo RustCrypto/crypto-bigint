@@ -177,6 +177,11 @@ impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
         // Note: a NonZero<Int> always has a non-zero magnitude, so it is safe to unwrap.
         (NonZero::<Uint<LIMBS>>::new_unwrap(abs), sign)
     }
+
+    /// Convert a [`NonZero<Int>`] to its [`NonZero<Uint>`] magnitude.
+    pub const fn abs(&self) -> NonZero<Uint<LIMBS>> {
+        self.abs_sign().0
+    }
 }
 
 #[cfg(feature = "hybrid-array")]

@@ -1,4 +1,4 @@
-use crate::{ConstChoice, ConstCtOption, Int, Odd, Uint, Word};
+use crate::{ConstChoice, ConstCtOption, Int, NonZero, Odd, Uint, Word};
 use num_traits::ConstZero;
 
 impl<const LIMBS: usize> Int<LIMBS> {

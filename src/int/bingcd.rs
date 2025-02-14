@@ -44,6 +44,11 @@ impl<const LIMBS: usize> Int<LIMBS> {
 }
 
 impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
+    /// Compute the gcd of `self` and `rhs` leveraging the Binary GCD algorithm.
+    pub const fn bingcd(&self, rhs: &Self) -> NonZero<Uint<LIMBS>> {
+        self.abs().bingcd(&rhs.as_ref().abs())
+    }
+
     /// Execute the Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
@@ -80,6 +85,11 @@ impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
 }
 
 impl<const LIMBS: usize> Odd<Int<LIMBS>> {
+    /// Compute the gcd of `self` and `rhs` leveraging the Binary GCD algorithm.
+    pub const fn bingcd(&self, rhs: &Self) -> Odd<Uint<LIMBS>> {
+        self.abs().bingcd(&rhs.as_ref().abs())
+    }
+
     /// Execute the Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
