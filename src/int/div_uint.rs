@@ -428,7 +428,8 @@ mod tests {
     #[cfg(feature = "rand_core")]
     use {
         crate::{Random, I1024, U1024, U512},
-        rand_core::OsRng,
+        rand_chacha::ChaChaRng,
+        rand_core::SeedableRng,
     };
 
     use crate::{I128, U128};
@@ -462,9 +463,10 @@ mod tests {
     #[cfg(feature = "rand_core")]
     #[test]
     fn test_div_ct_vs_vt() {
+        let mut rng = ChaChaRng::from_os_rng();
         for _ in 0..50 {
-            let num = I1024::random(&mut OsRng);
-            let denom = U1024::from(&U512::random(&mut OsRng)).to_nz().unwrap();
+            let num = I1024::random(&mut rng);
+            let denom = U1024::from(&U512::random(&mut rng)).to_nz().unwrap();
 
             assert_eq!(num.div_uint(&denom), num.div_uint_vartime(&denom))
         }
@@ -529,9 +531,10 @@ mod tests {
     #[cfg(feature = "rand_core")]
     #[test]
     fn test_div_floor_ct_vs_vt() {
+        let mut rng = ChaChaRng::from_os_rng();
         for _ in 0..50 {
-            let num = I1024::random(&mut OsRng);
-            let denom = U1024::from(&U512::random(&mut OsRng)).to_nz().unwrap();
+            let num = I1024::random(&mut rng);
+            let denom = U1024::from(&U512::random(&mut rng)).to_nz().unwrap();
 
             assert_eq!(
                 num.div_floor_uint(&denom),

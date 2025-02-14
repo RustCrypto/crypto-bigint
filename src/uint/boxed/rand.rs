@@ -5,21 +5,21 @@ use crate::{
     uint::rand::{random_bits_core, random_mod_core},
     NonZero, RandomBits, RandomBitsError, RandomMod,
 };
-use rand_core::RngCore;
+use rand_core::{RngCore, TryRngCore};
 
 impl RandomBits for BoxedUint {
-    fn try_random_bits(
-        rng: &mut (impl RngCore + ?Sized),
+    fn try_random_bits<R: TryRngCore + ?Sized>(
+        rng: &mut R,
         bit_length: u32,
-    ) -> Result<Self, RandomBitsError> {
+    ) -> Result<Self, RandomBitsError<R::Error>> {
         Self::try_random_bits_with_precision(rng, bit_length, bit_length)
     }
 
-    fn try_random_bits_with_precision(
-        rng: &mut (impl RngCore + ?Sized),
+    fn try_random_bits_with_precision<R: TryRngCore + ?Sized>(
+        rng: &mut R,
         bit_length: u32,
         bits_precision: u32,
-    ) -> Result<Self, RandomBitsError> {
+    ) -> Result<Self, RandomBitsError<R::Error>> {
         if bit_length > bits_precision {
             return Err(RandomBitsError::BitLengthTooLarge {
                 bit_length,
@@ -34,7 +34,7 @@ impl RandomBits for BoxedUint {
 }
 
 impl RandomMod for BoxedUint {
-    fn random_mod(rng: &mut (impl RngCore + ?Sized), modulus: &NonZero<Self>) -> Self {
+    fn random_mod<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
         let mut n = BoxedUint::zero_with_precision(modulus.bits_precision());
         random_mod_core(rng, &mut n, modulus, modulus.bits());
         n
