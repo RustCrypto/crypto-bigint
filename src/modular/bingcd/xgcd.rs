@@ -59,8 +59,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
     /// manually test whether the classic or optimized algorithm is faster for your machine.
     pub(crate) const fn binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
-        // todo: optimize threshold
-        if LIMBS < 5 {
+        if LIMBS < 4 {
             self.classic_binxgcd(rhs)
         } else {
             self.optimized_binxgcd(rhs)
