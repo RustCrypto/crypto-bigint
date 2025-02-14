@@ -2,7 +2,11 @@ use crate::modular::bingcd::tools::const_max;
 use crate::{ConstChoice, Odd, Uint, U128, U64};
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
-    /// Computes `gcd(self, rhs)`, leveraging the (a constant time implementation of) the classic
+    /// The minimal number of iterations required to ensure the Binary GCD algorithm terminates and
+    /// returns the proper value.
+    const MINIMAL_BINGCD_ITERATIONS: u32 = 2 * Self::BITS - 1;
+
+    /// Computes `gcd(self, rhs)`, leveraging (a constant time implementation of) the classic
     /// Binary GCD algorithm.
     ///
     /// Note: this algorithm is efficient for [Uint]s with relatively few `LIMBS`.
@@ -14,7 +18,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         // (self, rhs) corresponds to (m, y) in the Algorithm 1 notation.
         let (mut a, mut b) = (*rhs, *self.as_ref());
         let mut j = 0;
-        while j < (2 * Self::BITS - 1) {
+        while j < Self::MINIMAL_BINGCD_ITERATIONS {
             Self::bingcd_step(&mut a, &mut b);
             j += 1;
         }
@@ -85,9 +89,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ) -> Self {
         let (mut a, mut b) = (*self.as_ref(), *rhs);
 
-        let iterations = (2 * Self::BITS - 1).div_ceil(K - 1);
         let mut i = 0;
-        while i < iterations {
+        while i < Self::MINIMAL_BINGCD_ITERATIONS.div_ceil(K - 1) {
             i += 1;
 
             // Construct a_ and b_ as the summary of a and b, respectively.

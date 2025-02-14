@@ -4,7 +4,7 @@ use crate::{ConstChoice, Int, NonZero, Odd, Uint, U128, U64};
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// The minimal number of binary GCD iterations required to guarantee successful completion.
-    const MIN_BINGCD_ITERATIONS: u32 = 2 * Uint::<LIMBS>::BITS - 1;
+    const MIN_BINGCD_ITERATIONS: u32 = 2 * Self::BITS - 1;
 
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
     /// leveraging the Binary Extended GCD algorithm.
@@ -83,7 +83,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             ConstChoice::TRUE,
         );
 
-        // Extract the Bezout coefficients.
+        // Extract the Bezout coefficients s.t. self * x + rhs + y = gcd
         let IntMatrix { m00, m01, .. } = matrix;
         let x = m00.div_2k_mod_q(total_bound_shift, Self::MIN_BINGCD_ITERATIONS, rhs);
         let y = m01.div_2k_mod_q(total_bound_shift, Self::MIN_BINGCD_ITERATIONS, self);
@@ -141,6 +141,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         let mut matrix = IntMatrix::UNIT;
         let mut total_doublings = 0;
 
+        let (mut a_sgn, mut b_sgn);
         let mut i = 0;
         while i < Self::MIN_BINGCD_ITERATIONS.div_ceil(K) {
             i += 1;
@@ -161,8 +162,6 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = update_matrix.extended_apply_to((a, b));
-
-            let (a_sgn, b_sgn);
             (a, a_sgn) = updated_a.div_2k(doublings).wrapping_drop_extension();
             (b, b_sgn) = updated_b.div_2k(doublings).wrapping_drop_extension();
 
@@ -172,14 +171,15 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             total_doublings += doublings;
         }
 
-        // Extract the Bezout coefficients.
+        let gcd = a
+            .to_odd()
+            .expect("gcd of an odd value with something else is always odd");
+
+        // Extract the Bezout coefficients s.t. self * x + rhs * y = gcd.
         let IntMatrix { m00, m01, .. } = matrix;
         let x = m00.div_2k_mod_q(total_doublings, Self::MIN_BINGCD_ITERATIONS, rhs);
         let y = m01.div_2k_mod_q(total_doublings, Self::MIN_BINGCD_ITERATIONS, self);
 
-        let gcd = a
-            .to_odd()
-            .expect("gcd of an odd value with something else is always odd");
         (gcd, x, y)
     }
 
