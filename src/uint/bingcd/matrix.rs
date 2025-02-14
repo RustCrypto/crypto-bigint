@@ -36,11 +36,7 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
         let a1 = ExtendedInt::from_product(a, self.m10);
         let b0 = ExtendedInt::from_product(b, self.m01);
         let b1 = ExtendedInt::from_product(b, self.m11);
-        let (left, left_overflow) = a0.overflowing_add(&b0);
-        let (right, right_overflow) = a1.overflowing_add(&b1);
-        assert!(!left_overflow.to_bool_vartime());
-        assert!(!right_overflow.to_bool_vartime());
-        (left, right)
+        (a0.wrapping_add(&b0), a1.wrapping_add(&b1))
     }
 
     /// Wrapping apply this matrix to `rhs`. Return the result in `RHS_LIMBS`.
