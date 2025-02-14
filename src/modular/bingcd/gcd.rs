@@ -121,11 +121,13 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 #[cfg(test)]
 mod tests {
 
-    mod test_bingcd_small {
-        use crate::{Gcd, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U64};
+    mod test_classic_bingcd {
+        use crate::{
+            Gcd, Int, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U64,
+        };
         use rand_core::OsRng;
 
-        fn bingcd_small_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
+        fn classic_bingcd_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
         where
             Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
         {
@@ -134,45 +136,54 @@ mod tests {
             assert_eq!(gcd, bingcd);
         }
 
-        fn bingcd_small_tests<const LIMBS: usize>()
+        fn classic_bingcd_tests<const LIMBS: usize>()
         where
             Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
         {
             // Edge cases
-            bingcd_small_test(Uint::ONE, Uint::ZERO);
-            bingcd_small_test(Uint::ONE, Uint::ONE);
-            bingcd_small_test(Uint::ONE, Uint::MAX);
-            bingcd_small_test(Uint::MAX, Uint::ZERO);
-            bingcd_small_test(Uint::MAX, Uint::ONE);
-            bingcd_small_test(Uint::MAX, Uint::MAX);
+            classic_bingcd_test(Uint::ONE, Uint::ZERO);
+            classic_bingcd_test(Uint::ONE, Uint::ONE);
+            classic_bingcd_test(Uint::ONE, Int::MAX.abs());
+            classic_bingcd_test(Uint::ONE, Int::MIN.abs());
+            classic_bingcd_test(Uint::ONE, Uint::MAX);
+            classic_bingcd_test(Int::MAX.abs(), Uint::ZERO);
+            classic_bingcd_test(Int::MAX.abs(), Uint::ONE);
+            classic_bingcd_test(Int::MAX.abs(), Int::MAX.abs());
+            classic_bingcd_test(Int::MAX.abs(), Int::MIN.abs());
+            classic_bingcd_test(Int::MAX.abs(), Uint::MAX);
+            classic_bingcd_test(Uint::MAX, Uint::ZERO);
+            classic_bingcd_test(Uint::MAX, Uint::ONE);
+            classic_bingcd_test(Uint::MAX, Int::MAX.abs());
+            classic_bingcd_test(Uint::MAX, Int::MIN.abs());
+            classic_bingcd_test(Uint::MAX, Uint::MAX);
 
             // Randomized test cases
             for _ in 0..1000 {
                 let x = Uint::<LIMBS>::random(&mut OsRng).bitor(&Uint::ONE);
                 let y = Uint::<LIMBS>::random(&mut OsRng);
-                bingcd_small_test(x, y);
+                classic_bingcd_test(x, y);
             }
         }
 
         #[test]
-        fn test_bingcd_small() {
-            bingcd_small_tests::<{ U64::LIMBS }>();
-            bingcd_small_tests::<{ U128::LIMBS }>();
-            bingcd_small_tests::<{ U192::LIMBS }>();
-            bingcd_small_tests::<{ U256::LIMBS }>();
-            bingcd_small_tests::<{ U384::LIMBS }>();
-            bingcd_small_tests::<{ U512::LIMBS }>();
-            bingcd_small_tests::<{ U1024::LIMBS }>();
-            bingcd_small_tests::<{ U2048::LIMBS }>();
-            bingcd_small_tests::<{ U4096::LIMBS }>();
+        fn test_classic_bingcd() {
+            classic_bingcd_tests::<{ U64::LIMBS }>();
+            classic_bingcd_tests::<{ U128::LIMBS }>();
+            classic_bingcd_tests::<{ U192::LIMBS }>();
+            classic_bingcd_tests::<{ U256::LIMBS }>();
+            classic_bingcd_tests::<{ U384::LIMBS }>();
+            classic_bingcd_tests::<{ U512::LIMBS }>();
+            classic_bingcd_tests::<{ U1024::LIMBS }>();
+            classic_bingcd_tests::<{ U2048::LIMBS }>();
+            classic_bingcd_tests::<{ U4096::LIMBS }>();
         }
     }
 
-    mod test_bingcd_large {
+    mod test_optimized_bingcd {
         use crate::{Gcd, Int, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512};
         use rand_core::OsRng;
 
-        fn bingcd_large_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
+        fn optimized_bingcd_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
         where
             Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
         {
@@ -181,38 +192,46 @@ mod tests {
             assert_eq!(gcd, bingcd);
         }
 
-        fn bingcd_large_tests<const LIMBS: usize>()
+        fn optimized_bingcd_tests<const LIMBS: usize>()
         where
             Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
         {
             // Edge cases
-            bingcd_large_test(Uint::ONE, Uint::ZERO);
-            bingcd_large_test(Uint::ONE, Uint::ONE);
-            bingcd_large_test(Uint::ONE, Uint::MAX);
-            bingcd_large_test(Uint::MAX, Uint::ZERO);
-            bingcd_large_test(Uint::MAX, Uint::ONE);
-            bingcd_large_test(Uint::MAX, Uint::MAX);
-            bingcd_large_test(Int::MAX.abs(), Int::MIN.abs());
+            optimized_bingcd_test(Uint::ONE, Uint::ZERO);
+            optimized_bingcd_test(Uint::ONE, Uint::ONE);
+            optimized_bingcd_test(Uint::ONE, Int::MAX.abs());
+            optimized_bingcd_test(Uint::ONE, Int::MIN.abs());
+            optimized_bingcd_test(Uint::ONE, Uint::MAX);
+            optimized_bingcd_test(Int::MAX.abs(), Uint::ZERO);
+            optimized_bingcd_test(Int::MAX.abs(), Uint::ONE);
+            optimized_bingcd_test(Int::MAX.abs(), Int::MAX.abs());
+            optimized_bingcd_test(Int::MAX.abs(), Int::MIN.abs());
+            optimized_bingcd_test(Int::MAX.abs(), Uint::MAX);
+            optimized_bingcd_test(Uint::MAX, Uint::ZERO);
+            optimized_bingcd_test(Uint::MAX, Uint::ONE);
+            optimized_bingcd_test(Uint::MAX, Int::MAX.abs());
+            optimized_bingcd_test(Uint::MAX, Int::MIN.abs());
+            optimized_bingcd_test(Uint::MAX, Uint::MAX);
 
             // Randomized testing
             for _ in 0..1000 {
                 let x = Uint::<LIMBS>::random(&mut OsRng).bitor(&Uint::ONE);
                 let y = Uint::<LIMBS>::random(&mut OsRng);
-                bingcd_large_test(x, y);
+                optimized_bingcd_test(x, y);
             }
         }
 
         #[test]
-        fn test_bingcd_large() {
+        fn test_optimized_bingcd() {
             // Not applicable for U64
-            bingcd_large_tests::<{ U128::LIMBS }>();
-            bingcd_large_tests::<{ U192::LIMBS }>();
-            bingcd_large_tests::<{ U256::LIMBS }>();
-            bingcd_large_tests::<{ U384::LIMBS }>();
-            bingcd_large_tests::<{ U512::LIMBS }>();
-            bingcd_large_tests::<{ U1024::LIMBS }>();
-            bingcd_large_tests::<{ U2048::LIMBS }>();
-            bingcd_large_tests::<{ U4096::LIMBS }>();
+            optimized_bingcd_tests::<{ U128::LIMBS }>();
+            optimized_bingcd_tests::<{ U192::LIMBS }>();
+            optimized_bingcd_tests::<{ U256::LIMBS }>();
+            optimized_bingcd_tests::<{ U384::LIMBS }>();
+            optimized_bingcd_tests::<{ U512::LIMBS }>();
+            optimized_bingcd_tests::<{ U1024::LIMBS }>();
+            optimized_bingcd_tests::<{ U2048::LIMBS }>();
+            optimized_bingcd_tests::<{ U4096::LIMBS }>();
         }
     }
 }
