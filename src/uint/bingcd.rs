@@ -46,8 +46,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// manually test whether the classic or optimized algorithm is faster for your machine.
     #[inline(always)]
     pub const fn bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
-        // Todo: tweak this threshold
-        if LIMBS < 8 {
+        if LIMBS < 6 {
             self.classic_bingcd(rhs)
         } else {
             self.optimized_bingcd(rhs)
