@@ -2,50 +2,6 @@ use crate::uint::bingcd::matrix::IntMatrix;
 use crate::uint::bingcd::tools::const_max;
 use crate::{ConstChoice, Int, NonZero, Odd, Uint, U128, U64};
 
-impl<const LIMBS: usize> Int<LIMBS> {
-    /// Compute `self / 2^k  mod q`. Executes in time variable in `k_bound`. This value should be
-    /// chosen as an inclusive upperbound to the value of `k`.
-    #[inline]
-    pub(crate) const fn div_2k_mod_q(&self, k: u32, k_bound: u32, q: &Odd<Uint<LIMBS>>) -> Self {
-        let (abs, sgn) = self.abs_sign();
-        let abs_div_2k_mod_q = abs.div_2k_mod_q(k, k_bound, q);
-        Int::new_from_abs_sign(abs_div_2k_mod_q, sgn).expect("no overflow")
-    }
-}
-
-impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Compute `self / 2^k  mod q`.
-    ///
-    /// Executes in time variable in `k_bound`. This value should be
-    /// chosen as an inclusive upperbound to the value of `k`.
-    #[inline]
-    const fn div_2k_mod_q(mut self, k: u32, k_bound: u32, q: &Odd<Self>) -> Self {
-        //        1  / 2      mod q
-        // = (q + 1) / 2      mod q
-        // = (q - 1) / 2  + 1 mod q
-        // = floor(q / 2) + 1 mod q, since q is odd.
-        let one_half_mod_q = q.as_ref().shr_vartime(1).wrapping_add(&Uint::ONE);
-        let mut i = 0;
-        while i < k_bound {
-            // Apply only while i < k
-            let apply = ConstChoice::from_u32_lt(i, k);
-            self = Self::select(&self, &self.div_2_mod_q(&one_half_mod_q), apply);
-            i += 1;
-        }
-
-        self
-    }
-
-    /// Compute `self / 2 mod q`.
-    #[inline]
-    const fn div_2_mod_q(self, half_mod_q: &Self) -> Self {
-        // Floor-divide self by 2. When self was odd, add back 1/2 mod q.
-        let add_one_half = self.is_odd();
-        let floored_half = self.shr_vartime(1);
-        floored_half.wrapping_add(&Self::select(&Self::ZERO, &half_mod_q, add_one_half))
-    }
-}
-
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
     /// leveraging the Binary Extended GCD algorithm.
