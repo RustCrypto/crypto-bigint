@@ -1,7 +1,11 @@
-use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
+use criterion::measurement::WallTime;
+use criterion::{
+    black_box, criterion_group, criterion_main, BatchSize, BenchmarkGroup, BenchmarkId, Criterion,
+};
+use crypto_bigint::modular::SafeGcdInverter;
 use crypto_bigint::{
-    Limb, NonZero, Odd, Random, RandomBits, RandomMod, Reciprocal, Uint, U1024, U128, U2048, U256,
-    U4096, U512,
+    Int, Limb, NonZero, Odd, PrecomputeInverter, Random, RandomBits, RandomMod, Reciprocal, Uint,
+    U1024, U128, U16384, U192, U2048, U256, U320, U384, U4096, U448, U512, U64, U8192,
 };
 use rand_chacha::ChaCha8Rng;
 use rand_core::{OsRng, RngCore, SeedableRng};
@@ -302,32 +306,121 @@ fn bench_division(c: &mut Criterion) {
     group.finish();
 }
 
+fn gcd_bench<const LIMBS: usize, const UNSAT_LIMBS: usize>(
+    g: &mut BenchmarkGroup<WallTime>,
+    _x: Uint<LIMBS>,
+) where
+    Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
+{
+    g.bench_function(BenchmarkId::new("gcd", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                let f = Uint::<LIMBS>::random(&mut OsRng);
+                let g = Uint::<LIMBS>::random(&mut OsRng);
+                (f, g)
+            },
+            |(f, g)| black_box(Uint::gcd(&f, &g)),
+            BatchSize::SmallInput,
+        )
+    });
+    g.bench_function(BenchmarkId::new("bingcd", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                let f = Uint::<LIMBS>::random(&mut OsRng);
+                let g = Uint::<LIMBS>::random(&mut OsRng);
+                (f, g)
+            },
+            |(f, g)| black_box(Uint::bingcd(&f, &g)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    g.bench_function(BenchmarkId::new("bingcd_small", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                let f = Uint::<LIMBS>::random(&mut OsRng)
+                    .bitor(&Uint::ONE)
+                    .to_odd()
+                    .unwrap();
+                let g = Uint::<LIMBS>::random(&mut OsRng);
+                (f, g)
+            },
+            |(f, g)| black_box(f.classic_bingcd(&g)),
+            BatchSize::SmallInput,
+        )
+    });
+    g.bench_function(BenchmarkId::new("bingcd_large", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                let f = Uint::<LIMBS>::random(&mut OsRng)
+                    .bitor(&Uint::ONE)
+                    .to_odd()
+                    .unwrap();
+                let g = Uint::<LIMBS>::random(&mut OsRng);
+                (f, g)
+            },
+            |(f, g)| black_box(f.optimized_bingcd(&g)),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
 fn bench_gcd(c: &mut Criterion) {
     let mut group = c.benchmark_group("greatest common divisor");
 
-    group.bench_function("gcd, U256", |b| {
-        b.iter_batched(
-            || {
-                let f = U256::random(&mut OsRng);
-                let g = U256::random(&mut OsRng);
-                (f, g)
-            },
-            |(f, g)| black_box(f.gcd(&g)),
-            BatchSize::SmallInput,
-        )
-    });
+    gcd_bench(&mut group, U64::ZERO);
+    gcd_bench(&mut group, U128::ZERO);
+    gcd_bench(&mut group, U192::ZERO);
+    gcd_bench(&mut group, U256::ZERO);
+    gcd_bench(&mut group, U320::ZERO);
+    gcd_bench(&mut group, U384::ZERO);
+    gcd_bench(&mut group, U448::ZERO);
+    gcd_bench(&mut group, U512::ZERO);
+    gcd_bench(&mut group, U1024::ZERO);
+    gcd_bench(&mut group, U2048::ZERO);
+    gcd_bench(&mut group, U4096::ZERO);
+    gcd_bench(&mut group, U8192::ZERO);
+    gcd_bench(&mut group, U16384::ZERO);
 
-    group.bench_function("gcd_vartime, U256", |b| {
+    group.finish();
+}
+
+fn xgcd_bench<const LIMBS: usize, const UNSAT_LIMBS: usize>(
+    g: &mut BenchmarkGroup<WallTime>,
+    _x: Uint<LIMBS>,
+) where
+    Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
+{
+    g.bench_function(BenchmarkId::new("binxgcd", LIMBS), |b| {
         b.iter_batched(
             || {
-                let f = Odd::<U256>::random(&mut OsRng);
-                let g = U256::random(&mut OsRng);
+                let modulus = Int::MIN.as_uint().wrapping_add(&Uint::ONE).to_nz().unwrap();
+                let f = Uint::<LIMBS>::random_mod(&mut OsRng, &modulus).as_int();
+                let g = Uint::<LIMBS>::random_mod(&mut OsRng, &modulus).as_int();
                 (f, g)
             },
-            |(f, g)| black_box(f.gcd_vartime(&g)),
+            |(f, g)| black_box(f.binxgcd(&g)),
             BatchSize::SmallInput,
         )
     });
+}
+
+fn bench_xgcd(c: &mut Criterion) {
+    let mut group = c.benchmark_group("greatest common divisor");
+
+    xgcd_bench(&mut group, U64::ZERO);
+    xgcd_bench(&mut group, U128::ZERO);
+    xgcd_bench(&mut group, U192::ZERO);
+    xgcd_bench(&mut group, U256::ZERO);
+    xgcd_bench(&mut group, U320::ZERO);
+    xgcd_bench(&mut group, U384::ZERO);
+    xgcd_bench(&mut group, U448::ZERO);
+    xgcd_bench(&mut group, U512::ZERO);
+    xgcd_bench(&mut group, U1024::ZERO);
+    xgcd_bench(&mut group, U2048::ZERO);
+    xgcd_bench(&mut group, U4096::ZERO);
+    xgcd_bench(&mut group, U8192::ZERO);
+    xgcd_bench(&mut group, U16384::ZERO);
 
     group.finish();
 }
@@ -491,6 +584,7 @@ criterion_group!(
     bench_mul,
     bench_division,
     bench_gcd,
+    bench_xgcd,
     bench_shl,
     bench_shr,
     bench_inv_mod,
