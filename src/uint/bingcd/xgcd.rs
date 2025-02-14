@@ -2,7 +2,13 @@ use crate::uint::bingcd::matrix::IntMatrix;
 use crate::uint::bingcd::tools::const_max;
 use crate::{ConstChoice, Int, NonZero, Odd, Uint, U128, U64};
 
+
+
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
+
+    /// The minimal number of binary GCD iterations required to guarantee successful completion.
+    const MIN_BINGCD_ITERATIONS: u32 = 2 * Uint::<LIMBS>::BITS - 1;
+
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
     /// leveraging the Binary Extended GCD algorithm.
     ///
@@ -74,17 +80,16 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
     /// <https://eprint.iacr.org/2020/972.pdf>.
     pub(crate) const fn classic_binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
-        let total_iterations = 2 * Self::BITS - 1;
         let (gcd, _, matrix, total_bound_shift) = self.partial_binxgcd_vartime::<LIMBS>(
             rhs.as_ref(),
-            total_iterations,
+            Self::MIN_BINGCD_ITERATIONS,
             ConstChoice::TRUE,
         );
 
         // Extract the Bezout coefficients.
         let IntMatrix { m00, m01, .. } = matrix;
-        let x = m00.div_2k_mod_q(total_bound_shift, total_iterations, &rhs);
-        let y = m01.div_2k_mod_q(total_bound_shift, total_iterations, self);
+        let x = m00.div_2k_mod_q(total_bound_shift, Self::MIN_BINGCD_ITERATIONS, &rhs);
+        let y = m01.div_2k_mod_q(total_bound_shift, Self::MIN_BINGCD_ITERATIONS, self);
 
         (gcd, x, y)
     }
@@ -140,7 +145,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         let mut total_doublings = 0;
 
         let mut i = 0;
-        while i < (2 * Self::BITS - 1).div_ceil(K) {
+        while i < Self::MIN_BINGCD_ITERATIONS.div_ceil(K) {
             i += 1;
 
             // Construct a_ and b_ as the summary of a and b, respectively.
@@ -170,10 +175,9 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         }
 
         // Extract the Bezout coefficients.
-        let total_iterations = 2 * Self::BITS - 1;
         let IntMatrix { m00, m01, .. } = matrix;
-        let x = m00.div_2k_mod_q(total_doublings, total_iterations, &rhs);
-        let y = m01.div_2k_mod_q(total_doublings, total_iterations, self);
+        let x = m00.div_2k_mod_q(total_doublings, Self::MIN_BINGCD_ITERATIONS, &rhs);
+        let y = m01.div_2k_mod_q(total_doublings, Self::MIN_BINGCD_ITERATIONS, self);
 
         let gcd = a
             .to_odd()
