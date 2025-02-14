@@ -85,7 +85,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
         // Extract the Bezout coefficients.
         let IntMatrix { m00, m01, .. } = matrix;
-        let x = m00.div_2k_mod_q(total_bound_shift, Self::MIN_BINGCD_ITERATIONS, &rhs);
+        let x = m00.div_2k_mod_q(total_bound_shift, Self::MIN_BINGCD_ITERATIONS, rhs);
         let y = m01.div_2k_mod_q(total_bound_shift, Self::MIN_BINGCD_ITERATIONS, self);
 
         (gcd, x, y)
@@ -107,7 +107,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
     /// <https://eprint.iacr.org/2020/972.pdf>.
     pub(crate) const fn optimized_binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
-        self.optimized_binxgcd_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(&rhs)
+        self.optimized_binxgcd_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
     }
 
     /// Given `(self, rhs)`, computes `(g, x, y)`, s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
@@ -174,7 +174,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
         // Extract the Bezout coefficients.
         let IntMatrix { m00, m01, .. } = matrix;
-        let x = m00.div_2k_mod_q(total_doublings, Self::MIN_BINGCD_ITERATIONS, &rhs);
+        let x = m00.div_2k_mod_q(total_doublings, Self::MIN_BINGCD_ITERATIONS, rhs);
         let y = m01.div_2k_mod_q(total_doublings, Self::MIN_BINGCD_ITERATIONS, self);
 
         let gcd = a

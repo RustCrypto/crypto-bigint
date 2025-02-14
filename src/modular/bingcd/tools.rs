@@ -50,7 +50,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Floor-divide self by 2. When self was odd, add back 1/2 mod q.
         let add_one_half = self.is_odd();
         let floored_half = self.shr_vartime(1);
-        floored_half.wrapping_add(&Self::select(&Self::ZERO, &half_mod_q, add_one_half))
+        floored_half.wrapping_add(&Self::select(&Self::ZERO, half_mod_q, add_one_half))
     }
 
     /// Construct a [Uint] containing the bits in `self` in the range `[idx, idx + length)`.

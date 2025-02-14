@@ -22,11 +22,9 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             j += 1;
         }
 
-        let gcd = b
+        b
             .to_odd()
-            .expect("gcd of an odd value with something else is always odd");
-
-        gcd
+            .expect("gcd of an odd value with something else is always odd")
     }
 
     /// Binary GCD update step.
@@ -113,11 +111,9 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             (b, _) = updated_b.div_2k_vartime(K - 1).wrapping_drop_extension();
         }
 
-        let gcd = a
+        a
             .to_odd()
-            .expect("gcd of an odd value with something else is always odd");
-
-        gcd
+            .expect("gcd of an odd value with something else is always odd")
     }
 }
 
