@@ -59,6 +59,13 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let (lo, hi, is_negative) = self.split_mul(rhs);
         Self::new_from_abs_sign(lo, is_negative).and_choice(hi.is_nonzero().not())
     }
+
+    /// Multiply `self` with `rhs`, returning a [ConstCtOption] that `is_some` only if the result
+    /// fits in an `Int<LIMBS>`.
+    pub const fn wrapping_mul<const RHS_LIMBS: usize>(&self, rhs: &Int<RHS_LIMBS>) -> Int<LIMBS> {
+        let (lo, _, is_negative) = self.split_mul(rhs);
+        Self(lo.wrapping_neg_if(is_negative))
+    }
 }
 
 /// Squaring operations.

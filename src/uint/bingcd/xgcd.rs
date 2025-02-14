@@ -207,7 +207,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             (a, a_sgn) = updated_a.div_2k(doublings).wrapping_drop_extension();
             (b, b_sgn) = updated_b.div_2k(doublings).wrapping_drop_extension();
 
-            matrix = update_matrix.checked_mul_right(&matrix);
+            matrix = update_matrix.wrapping_mul_right(&matrix);
             matrix.conditional_negate_top_row(a_sgn);
             matrix.conditional_negate_bottom_row(b_sgn);
             total_doublings += doublings;

@@ -43,25 +43,24 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
         (left, right)
     }
 
-    /// Apply this matrix to `rhs`. Panics if a multiplication overflows.
-    /// TODO: consider implementing (a variation to) Strassen. Doing so will save a multiplication.
+    /// Wrapping apply this matrix to `rhs`. Return the result in `RHS_LIMBS`.
     #[inline]
-    pub(crate) const fn checked_mul_right<const RHS_LIMBS: usize>(
+    pub(crate) const fn wrapping_mul_right<const RHS_LIMBS: usize>(
         &self,
         rhs: &IntMatrix<RHS_LIMBS>,
     ) -> IntMatrix<RHS_LIMBS> {
-        let a0 = rhs.m00.const_checked_mul(&self.m00).expect("no overflow");
-        let a1 = rhs.m10.const_checked_mul(&self.m01).expect("no overflow");
-        let a = a0.checked_add(&a1).expect("no overflow");
-        let b0 = rhs.m01.const_checked_mul(&self.m00).expect("no overflow");
-        let b1 = rhs.m11.const_checked_mul(&self.m01).expect("no overflow");
-        let b = b0.checked_add(&b1).expect("no overflow");
-        let c0 = rhs.m00.const_checked_mul(&self.m10).expect("no overflow");
-        let c1 = rhs.m10.const_checked_mul(&self.m11).expect("no overflow");
-        let c = c0.checked_add(&c1).expect("no overflow");
-        let d0 = rhs.m01.const_checked_mul(&self.m10).expect("no overflow");
-        let d1 = rhs.m11.const_checked_mul(&self.m11).expect("no overflow");
-        let d = d0.checked_add(&d1).expect("no overflow");
+        let a0 = rhs.m00.wrapping_mul(&self.m00);
+        let a1 = rhs.m10.wrapping_mul(&self.m01);
+        let a = a0.wrapping_add(&a1);
+        let b0 = rhs.m01.wrapping_mul(&self.m00);
+        let b1 = rhs.m11.wrapping_mul(&self.m01);
+        let b = b0.wrapping_add(&b1);
+        let c0 = rhs.m00.wrapping_mul(&self.m10);
+        let c1 = rhs.m10.wrapping_mul(&self.m11);
+        let c = c0.wrapping_add(&c1);
+        let d0 = rhs.m01.wrapping_mul(&self.m10);
+        let d1 = rhs.m11.wrapping_mul(&self.m11);
+        let d = d0.wrapping_add(&d1);
         IntMatrix::new(a, b, c, d)
     }
 
@@ -173,8 +172,8 @@ mod tests {
     }
 
     #[test]
-    fn test_checked_mul() {
-        let res = X.checked_mul_right(&X);
+    fn test_wrapping_mul() {
+        let res = X.wrapping_mul_right(&X);
         assert_eq!(
             res,
             IntMatrix::new(
