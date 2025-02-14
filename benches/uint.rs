@@ -4,8 +4,8 @@ use criterion::{
 };
 use crypto_bigint::modular::SafeGcdInverter;
 use crypto_bigint::{
-    Limb, NonZero, Odd, PrecomputeInverter, Random, RandomBits, RandomMod, Reciprocal, Uint, U1024,
-    U128, U16384, U192, U2048, U256, U320, U384, U4096, U448, U512, U64, U8192,
+    Int, Limb, NonZero, Odd, PrecomputeInverter, Random, RandomBits, RandomMod, Reciprocal, Uint,
+    U1024, U128, U16384, U192, U2048, U256, U320, U384, U4096, U448, U512, U64, U8192,
 };
 use rand_chacha::ChaCha8Rng;
 use rand_core::{OsRng, RngCore, SeedableRng};
@@ -391,39 +391,15 @@ fn xgcd_bench<const LIMBS: usize, const UNSAT_LIMBS: usize>(
 ) where
     Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
 {
-    g.bench_function(BenchmarkId::new("classic binxgcd", LIMBS), |b| {
-        b.iter_batched(
-            || {
-                let modulus = Uint::MAX.shr_vartime(1).to_nz().unwrap();
-                let f = Uint::<LIMBS>::random_mod(&mut OsRng, &modulus)
-                    .bitor(&Uint::ONE)
-                    .to_odd()
-                    .unwrap();
-                let g = Uint::<LIMBS>::random_mod(&mut OsRng, &modulus)
-                    .bitor(&Uint::ONE)
-                    .to_odd()
-                    .unwrap();
-                (f, g)
-            },
-            |(f, g)| black_box(f.classic_binxgcd(&g)),
-            BatchSize::SmallInput,
-        )
-    });
     g.bench_function(BenchmarkId::new("binxgcd", LIMBS), |b| {
         b.iter_batched(
             || {
-                let modulus = Uint::MAX.shr_vartime(1).to_nz().unwrap();
-                let f = Uint::<LIMBS>::random_mod(&mut OsRng, &modulus)
-                    .bitor(&Uint::ONE)
-                    .to_odd()
-                    .unwrap();
-                let g = Uint::<LIMBS>::random_mod(&mut OsRng, &modulus)
-                    .bitor(&Uint::ONE)
-                    .to_odd()
-                    .unwrap();
+                let modulus = Int::MIN.as_uint().wrapping_add(&Uint::ONE).to_nz().unwrap();
+                let f = Uint::<LIMBS>::random_mod(&mut OsRng, &modulus).as_int();
+                let g = Uint::<LIMBS>::random_mod(&mut OsRng, &modulus).as_int();
                 (f, g)
             },
-            |(f, g)| black_box(f.limited_binxgcd(&g)),
+            |(f, g)| black_box(f.binxgcd(&g)),
             BatchSize::SmallInput,
         )
     });
@@ -604,10 +580,10 @@ fn bench_sqrt(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    // bench_random,
-    // bench_mul,
-    // bench_division,
-    // bench_gcd,
+    bench_random,
+    bench_mul,
+    bench_division,
+    bench_gcd,
     bench_xgcd,
     bench_shl,
     bench_shr,
