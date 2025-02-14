@@ -95,7 +95,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// leveraging the Binary Extended GCD algorithm.
     ///
     /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
-    /// msb is **not** set. May panic otherwise.
+    /// msb is **not** set. May panic otherwise. Furthermore, at `self` and `rhs` must contain at
+    /// least 128 bits.
     ///
     /// Note: this algorithm becomes more efficient than the classical algorithm for [Uint]s with
     /// relatively many `LIMBS`. A best-effort threshold is presented in [Self::binxgcd].
@@ -107,6 +108,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
     /// <https://eprint.iacr.org/2020/972.pdf>.
     pub(crate) const fn optimized_binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
+        assert!(Self::BITS > U128::BITS);
         self.optimized_binxgcd_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
     }
 
@@ -301,14 +303,15 @@ mod tests {
 
     mod test_partial_binxgcd {
         use crate::modular::bingcd::matrix::IntMatrix;
-        use crate::{ConstChoice, I64, U64};
+        use crate::{ConstChoice, Odd, I64, U64};
+
+        const A: Odd<U64> = U64::from_be_hex("CA048AFA63CD6A1F").to_odd().expect("odd");
+        const B: U64 = U64::from_be_hex("AE693BF7BE8E5566");
 
         #[test]
         fn test_partial_binxgcd() {
-            let a = U64::from_be_hex("CA048AFA63CD6A1F").to_odd().unwrap();
-            let b = U64::from_be_hex("AE693BF7BE8E5566");
             let (.., matrix, iters) =
-                a.partial_binxgcd_vartime::<{ U64::LIMBS }>(&b, 5, ConstChoice::TRUE);
+                A.partial_binxgcd_vartime::<{ U64::LIMBS }>(&B, 5, ConstChoice::TRUE);
             assert_eq!(iters, 5);
             assert_eq!(
                 matrix,
@@ -318,48 +321,34 @@ mod tests {
 
         #[test]
         fn test_partial_binxgcd_constructs_correct_matrix() {
-            let a = U64::from_be_hex("CA048AFA63CD6A1F").to_odd().unwrap();
-            let b = U64::from_be_hex("AE693BF7BE8E5566");
-            let (new_a, new_b, matrix, iters) =
-                a.partial_binxgcd_vartime::<{ U64::LIMBS }>(&b, 5, ConstChoice::TRUE);
-            assert_eq!(iters, 5);
+            let (new_a, new_b, matrix, _) =
+                A.partial_binxgcd_vartime::<{ U64::LIMBS }>(&B, 5, ConstChoice::TRUE);
 
-            let (computed_a, computed_b) = matrix.extended_apply_to((a.get(), b));
+            let (computed_a, computed_b) = matrix.extended_apply_to((A.get(), B));
             let computed_a = computed_a.div_2k(5).wrapping_drop_extension().0;
             let computed_b = computed_b.div_2k(5).wrapping_drop_extension().0;
 
-            assert_eq!(
-                new_a.get(),
-                computed_a,
-                "{} {} {} {}",
-                new_a,
-                new_b,
-                computed_a,
-                computed_b
-            );
+            assert_eq!(new_a.get(), computed_a);
             assert_eq!(new_b, computed_b);
         }
 
+        const SMALL_A: Odd<U64> = U64::from_be_hex("0000000003CD6A1F").to_odd().expect("odd");
+        const SMALL_B: U64 = U64::from_be_hex("000000000E8E5566");
+
         #[test]
         fn test_partial_binxgcd_halts() {
-            // Stop before max_iters
-            let a = U64::from_be_hex("0000000003CD6A1F").to_odd().unwrap();
-            let b = U64::from_be_hex("000000000E8E5566");
             let (gcd, .., iters) =
-                a.partial_binxgcd_vartime::<{ U64::LIMBS }>(&b, 60, ConstChoice::TRUE);
+                SMALL_A.partial_binxgcd_vartime::<{ U64::LIMBS }>(&SMALL_B, 60, ConstChoice::TRUE);
             assert_eq!(iters, 35);
-            assert_eq!(gcd.get(), a.gcd(&b));
+            assert_eq!(gcd.get(), SMALL_A.gcd(&SMALL_B));
         }
 
         #[test]
         fn test_partial_binxgcd_does_not_halt() {
-            // Stop before max_iters
-            let a = U64::from_be_hex("0000000003CD6A1F").to_odd().unwrap();
-            let b = U64::from_be_hex("000000000E8E5566");
             let (gcd, .., iters) =
-                a.partial_binxgcd_vartime::<{ U64::LIMBS }>(&b, 60, ConstChoice::FALSE);
+                SMALL_A.partial_binxgcd_vartime::<{ U64::LIMBS }>(&SMALL_B, 60, ConstChoice::FALSE);
             assert_eq!(iters, 60);
-            assert_eq!(gcd.get(), a.gcd(&b));
+            assert_eq!(gcd.get(), SMALL_A.gcd(&SMALL_B));
         }
     }
 
@@ -448,7 +437,7 @@ mod tests {
         };
         use rand_core::OsRng;
 
-        fn binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
+        fn optimized_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
         where
             Uint<LIMBS>:
                 Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
@@ -460,38 +449,37 @@ mod tests {
             test_xgcd(lhs, rhs, binxgcd.get(), x, y);
         }
 
-        fn binxgcd_tests<const LIMBS: usize, const DOUBLE: usize>()
+        fn optimized_binxgcd_tests<const LIMBS: usize, const DOUBLE: usize>()
         where
             Uint<LIMBS>:
                 Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
             // Edge cases
             let upper_bound = *Int::MAX.as_uint();
-            binxgcd_test(Uint::ONE, Uint::ONE);
-            binxgcd_test(Uint::ONE, upper_bound);
-            binxgcd_test(upper_bound, Uint::ONE);
-            binxgcd_test(upper_bound, upper_bound);
+            optimized_binxgcd_test(Uint::ONE, Uint::ONE);
+            optimized_binxgcd_test(Uint::ONE, upper_bound);
+            optimized_binxgcd_test(upper_bound, Uint::ONE);
+            optimized_binxgcd_test(upper_bound, upper_bound);
 
             // Randomized test cases
             let bound = Int::MIN.as_uint().to_nz().unwrap();
             for _ in 0..100 {
                 let x = Uint::<LIMBS>::random_mod(&mut OsRng, &bound).bitor(&Uint::ONE);
                 let y = Uint::<LIMBS>::random_mod(&mut OsRng, &bound).bitor(&Uint::ONE);
-                binxgcd_test(x, y);
+                optimized_binxgcd_test(x, y);
             }
         }
 
         #[test]
-        fn test_binxgcd() {
-            // Cannot be applied to U64
-            binxgcd_tests::<{ U128::LIMBS }, { U256::LIMBS }>();
-            binxgcd_tests::<{ U192::LIMBS }, { U384::LIMBS }>();
-            binxgcd_tests::<{ U256::LIMBS }, { U512::LIMBS }>();
-            binxgcd_tests::<{ U384::LIMBS }, { U768::LIMBS }>();
-            binxgcd_tests::<{ U512::LIMBS }, { U1024::LIMBS }>();
-            binxgcd_tests::<{ U1024::LIMBS }, { U2048::LIMBS }>();
-            binxgcd_tests::<{ U2048::LIMBS }, { U4096::LIMBS }>();
-            binxgcd_tests::<{ U4096::LIMBS }, { U8192::LIMBS }>();
+        fn test_optimized_binxgcd() {
+            optimized_binxgcd_tests::<{ U128::LIMBS }, { U256::LIMBS }>();
+            optimized_binxgcd_tests::<{ U192::LIMBS }, { U384::LIMBS }>();
+            optimized_binxgcd_tests::<{ U256::LIMBS }, { U512::LIMBS }>();
+            optimized_binxgcd_tests::<{ U384::LIMBS }, { U768::LIMBS }>();
+            optimized_binxgcd_tests::<{ U512::LIMBS }, { U1024::LIMBS }>();
+            optimized_binxgcd_tests::<{ U1024::LIMBS }, { U2048::LIMBS }>();
+            optimized_binxgcd_tests::<{ U2048::LIMBS }, { U4096::LIMBS }>();
+            optimized_binxgcd_tests::<{ U4096::LIMBS }, { U8192::LIMBS }>();
         }
     }
 }
