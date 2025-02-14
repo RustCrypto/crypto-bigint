@@ -94,26 +94,23 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             i += 1;
 
             // Construct a_ and b_ as the summary of a and b, respectively.
-            let b_bits = b.bits();
-            let n = const_max(2 * K, const_max(a.bits(), b_bits));
+            let n = const_max(2 * K, const_max(a.bits(), b.bits()));
             let a_ = a.compact::<K, LIMBS_2K>(n);
             let b_ = b.compact::<K, LIMBS_2K>(n);
-            let compact_contains_all_of_b =
-                ConstChoice::from_u32_le(b_bits, K - 1).or(ConstChoice::from_u32_eq(n, 2 * K));
 
             // Compute the K-1 iteration update matrix from a_ and b_
             // Safe to vartime; function executes in time variable in `iterations` only, which is
             // a public constant K-1 here.
-            let (.., matrix, doublings) = a_
+            let (.., matrix, _) = a_
                 .to_odd()
                 .expect("a_ is always odd")
-                .partial_binxgcd_vartime::<LIMBS_K>(&b_, K - 1, compact_contains_all_of_b);
+                .partial_binxgcd_vartime::<LIMBS_K>(&b_, K - 1, ConstChoice::FALSE);
 
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = matrix.extended_apply_to((a, b));
 
-            (a, _) = updated_a.div_2k(doublings).wrapping_drop_extension();
-            (b, _) = updated_b.div_2k(doublings).wrapping_drop_extension();
+            (a, _) = updated_a.div_2k_vartime(K - 1).wrapping_drop_extension();
+            (b, _) = updated_b.div_2k_vartime(K - 1).wrapping_drop_extension();
         }
 
         let gcd = a
