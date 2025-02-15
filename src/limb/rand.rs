@@ -2,7 +2,7 @@
 
 use super::Limb;
 use crate::{Encoding, NonZero, Random, RandomMod};
-use rand_core::RngCore;
+use rand_core::{RngCore, TryRngCore};
 use subtle::ConstantTimeLess;
 
 impl Random for Limb {
@@ -18,7 +18,10 @@ impl Random for Limb {
 }
 
 impl RandomMod for Limb {
-    fn random_mod<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
+    fn try_random_mod<R: TryRngCore + ?Sized>(
+        rng: &mut R,
+        modulus: &NonZero<Self>,
+    ) -> Result<Self, R::Error> {
         let mut bytes = <Self as Encoding>::Repr::default();
 
         let n_bits = modulus.bits() as usize;
@@ -26,12 +29,12 @@ impl RandomMod for Limb {
         let mask = 0xffu8 >> (8 * n_bytes - n_bits);
 
         loop {
-            rng.fill_bytes(&mut bytes[..n_bytes]);
+            rng.try_fill_bytes(&mut bytes[..n_bytes])?;
             bytes[n_bytes - 1] &= mask;
 
             let n = Limb::from_le_bytes(bytes);
             if n.ct_lt(modulus).into() {
-                return n;
+                return Ok(n);
             }
         }
     }

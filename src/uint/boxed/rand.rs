@@ -36,8 +36,17 @@ impl RandomBits for BoxedUint {
 impl RandomMod for BoxedUint {
     fn random_mod<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
         let mut n = BoxedUint::zero_with_precision(modulus.bits_precision());
-        random_mod_core(rng, &mut n, modulus, modulus.bits());
+        let Ok(()) = random_mod_core(rng, &mut n, modulus, modulus.bits());
         n
+    }
+
+    fn try_random_mod<R: TryRngCore + ?Sized>(
+        rng: &mut R,
+        modulus: &NonZero<Self>,
+    ) -> Result<Self, R::Error> {
+        let mut n = BoxedUint::zero_with_precision(modulus.bits_precision());
+        random_mod_core(rng, &mut n, modulus, modulus.bits())?;
+        Ok(n)
     }
 }
 
