@@ -8,4 +8,8 @@ edition = "2021"
 [dependencies]
 clap = "2.33"
 crypto-bigint = { path = ".." }
-dudect-bencher = "0.5"
+dudect-bencher = "0.6"
+
+[patch.crates-io]
+# https://github.com/rozbb/dudect-bencher/pull/5
+dudect-bencher = { git = "https://github.com/baloo/dudect-bencher.git", branch = "baloo/rand/0.9" }
