@@ -25,22 +25,62 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Returns `None` if `shift >= Self::BITS`.
     pub const fn overflowing_shl(&self, shift: u32) -> ConstCtOption<Self> {
-        // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
-        // (which lies in range `0 <= shift < BITS`).
-        let shift_bits = u32::BITS - (Self::BITS - 1).leading_zeros();
-        let overflow = ConstChoice::from_u32_lt(shift, Self::BITS).not();
-        let shift = shift % Self::BITS;
+        let (intra_limb_shift, limb_shift) = Self::decompose_shift(shift);
+        self.intra_limb_carrying_shl(intra_limb_shift)
+            .0
+            .full_limb_overflowing_shl(limb_shift)
+    }
+
+    /// Computes `self << shift`, for `shift < Limb::BITS`. Also returns a [Limb] containing the
+    /// `carry`.
+    ///
+    /// Panics if `shift >= Limb::BITS`.
+    #[inline(always)]
+    const fn intra_limb_carrying_shl(&self, shift: u32) -> (Self, Limb) {
+        debug_assert!(shift < Limb::BITS);
+
+        let (mut result, mut carry) = (*self, Limb::ZERO);
+
+        let limbs = result.as_limbs_mut();
+        let mut i = 0;
+        while i < limbs.len() {
+            let (shifted, new_carry) = limbs[i].carrying_shl(shift);
+            limbs[i] = shifted.bitxor(carry);
+            carry = new_carry;
+
+            i += 1;
+        }
+
+        (result, carry)
+    }
+
+    /// Compute `self << (Limb::BITS * limb_shift)`, for `limb_shift < Self::LIMBS`.
+    /// In other words, shift `self` left by `limb_shift` full limbs.
+    ///
+    /// Returns `None` if `limb_shift >= Self::LIMBS`.
+    #[inline]
+    pub const fn full_limb_overflowing_shl(&self, limb_shift: u32) -> ConstCtOption<Self> {
+        let shift_bits = u32::BITS - (LIMBS as u32 - 1).leading_zeros();
+        let overflow = ConstChoice::from_u32_lt(limb_shift, LIMBS as u32).not();
+        let limb_shift = limb_shift % LIMBS as u32;
+
         let mut result = *self;
         let mut i = 0;
         while i < shift_bits {
-            let bit = ConstChoice::from_u32_lsb((shift >> i) & 1);
-            result = Uint::select(
-                &result,
-                &result
-                    .overflowing_shl_vartime(1 << i)
-                    .expect("shift within range"),
-                bit,
-            );
+            let bit = ConstChoice::from_u32_lsb((limb_shift >> i) & 1);
+
+            let mut j = Self::LIMBS;
+            let limbs = result.as_limbs_mut();
+            let offset = 1 << i;
+            while j > offset {
+                j -= 1;
+                limbs[j] = Limb::select(limbs[j], limbs[j - offset], bit);
+            }
+            while j > 0 {
+                j -= 1;
+                limbs[j] = Limb::select(limbs[j], Limb::ZERO, bit);
+            }
+
             i += 1;
         }
 
@@ -63,31 +103,36 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             return ConstCtOption::none(Self::ZERO);
         }
 
-        let shift_num = (shift / Limb::BITS) as usize;
-        let rem = shift % Limb::BITS;
-
+        let (rem, shift_num) = Self::decompose_shift(shift);
+        let shift_num = shift_num as usize;
         let mut i = shift_num;
         while i < LIMBS {
             limbs[i] = self.limbs[i - shift_num];
             i += 1;
         }
 
-        if rem == 0 {
-            return ConstCtOption::some(Self { limbs });
+        let mut shifted = Self { limbs };
+        if rem != 0 {
+            shifted = shifted.intra_limb_carrying_shl(rem).0;
         }
+        ConstCtOption::some(shifted)
+    }
 
-        let mut carry = Limb::ZERO;
+    /// Split `shift` into `shift % Limb::BITS` (its intra-limb-shift component), and
+    /// `shift / Limb::BITS` (its limb-shift component).
+    ///
+    /// This function achieves this without using a division/remainder operation.
+    pub(crate) const fn decompose_shift(shift: u32) -> (u32, u32) {
+        // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
+        // (which lies in range `0 <= shift < BITS`).
+        //
+        // Split shift into (shift % Limb::BITS, shift / Limb::BITS)
+        // Since Limb::BITS is known to be a power of two, this can also be computed as follows:
+        let limb_bits_bits = u32::BITS - (Limb::BITS - 1).leading_zeros();
+        let intra_limb_shift = shift & (Limb::BITS - 1);
+        let limb_shift = shift >> limb_bits_bits;
 
-        let mut i = shift_num;
-        while i < LIMBS {
-            let shifted = limbs[i].shl(rem);
-            let new_carry = limbs[i].shr(Limb::BITS - rem);
-            limbs[i] = shifted.bitor(carry);
-            carry = new_carry;
-            i += 1;
-        }
-
-        ConstCtOption::some(Self { limbs })
+        (intra_limb_shift, limb_shift)
     }
 
     /// Computes a left shift on a wide input as `(lo, hi)`.
@@ -161,21 +206,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         (Uint::<LIMBS>::new(limbs), Limb(carry))
     }
 
-    /// Computes `self << 1` in constant-time, returning [`ConstChoice::TRUE`]
-    /// if the most significant bit was set, and [`ConstChoice::FALSE`] otherwise.
+    /// Computes `self << 1` in constant-time, furthermore returning a [Limb] containing the
+    /// `carry`.
     #[inline(always)]
-    pub(crate) const fn overflowing_shl1(&self) -> (Self, Limb) {
-        let mut ret = Self::ZERO;
-        let mut i = 0;
-        let mut carry = Limb::ZERO;
-        while i < LIMBS {
-            let (shifted, new_carry) = self.limbs[i].shl1();
-            ret.limbs[i] = shifted.bitor(carry);
-            carry = new_carry;
-            i += 1;
-        }
-
-        (ret, carry)
+    pub(crate) const fn carrying_shl1(&self) -> (Self, Limb) {
+        self.intra_limb_carrying_shl(1)
     }
 }
 
@@ -259,7 +294,7 @@ mod tests {
     #[test]
     fn shl1() {
         assert_eq!(N << 1, TWO_N);
-        assert_eq!(N.overflowing_shl1(), (TWO_N, Limb::ONE));
+        assert_eq!(N.carrying_shl1(), (TWO_N, Limb::ONE));
     }
 
     #[test]
