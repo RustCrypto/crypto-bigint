@@ -8,7 +8,7 @@ use super::Uint;
 
 impl<const LIMBS: usize> Random for Int<LIMBS> {
     /// Generate a cryptographically secure random [`Int`].
-    fn random<R: RngCore + ?Sized>(rng: &mut R) -> Self {
+    fn random<R: RngCore>(rng: &mut R) -> Self {
         Self(Uint::random(rng))
     }
 }
