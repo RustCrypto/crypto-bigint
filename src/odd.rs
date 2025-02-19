@@ -153,7 +153,7 @@ impl PartialOrd<Odd<BoxedUint>> for BoxedUint {
 #[cfg(feature = "rand_core")]
 impl<const LIMBS: usize> Random for Odd<Uint<LIMBS>> {
     /// Generate a random `Odd<Uint<T>>`.
-    fn random<R: RngCore + ?Sized>(rng: &mut R) -> Self {
+    fn random<R: RngCore>(rng: &mut R) -> Self {
         let mut ret = Uint::random(rng);
         ret.limbs[0] |= Limb::ONE;
         Odd(ret)

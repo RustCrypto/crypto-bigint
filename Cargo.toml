@@ -81,7 +81,3 @@ harness = false
 [[bench]]
 name = "int"
 harness = false
-
-[patch.crates-io]
-# https://github.com/rust-random/rand/pull/1593
-rand_core = { git = "https://github.com/fjarri/rand.git", branch = "sized" }

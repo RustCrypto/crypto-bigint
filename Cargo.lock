@@ -565,7 +565,8 @@ dependencies = [
 [[package]]
 name = "rand_core"
 version = "0.9.1"
-source = "git+https://github.com/fjarri/rand.git?branch=sized#9f6f7c84e4b573bd02f3b295fec430ca0224a488"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a88e0da7a2c97baa202165137c158d0a2e824ac465d13d81046727b34cb247d3"
 dependencies = [
  "getrandom 0.3.1",
  "zerocopy 0.8.14",
