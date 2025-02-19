@@ -6,14 +6,14 @@ use rand_core::{RngCore, TryRngCore};
 use subtle::ConstantTimeLess;
 
 impl<const LIMBS: usize> Random for Uint<LIMBS> {
-    fn random<R: RngCore + ?Sized>(mut rng: &mut R) -> Self {
+    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
         let mut limbs = [Limb::ZERO; LIMBS];
 
         for limb in &mut limbs {
-            *limb = Limb::random(&mut rng)
+            *limb = Limb::try_random(rng)?
         }
 
-        limbs.into()
+        Ok(limbs.into())
     }
 }
 

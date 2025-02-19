@@ -15,7 +15,7 @@ use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "rand_core")]
-use crate::{Random, RandomMod, rand_core::RngCore};
+use crate::{Random, RandomMod, rand_core::TryRngCore};
 
 #[cfg(feature = "serde")]
 use {
@@ -204,8 +204,11 @@ where
     MOD: ConstMontyParams<LIMBS>,
 {
     #[inline]
-    fn random<R: RngCore + ?Sized>(rng: &mut R) -> Self {
-        Self::new(&Uint::random_mod(rng, MOD::MODULUS.as_nz_ref()))
+    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+        Ok(Self::new(&Uint::try_random_mod(
+            rng,
+            MOD::MODULUS.as_nz_ref(),
+        )?))
     }
 }
 

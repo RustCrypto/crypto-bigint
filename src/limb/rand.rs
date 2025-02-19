@@ -2,18 +2,17 @@
 
 use super::Limb;
 use crate::{Encoding, NonZero, Random, RandomMod};
-use rand_core::{RngCore, TryRngCore};
+use rand_core::TryRngCore;
 use subtle::ConstantTimeLess;
 
 impl Random for Limb {
-    #[cfg(target_pointer_width = "32")]
-    fn random<R: RngCore + ?Sized>(rng: &mut R) -> Self {
-        Self(rng.next_u32())
-    }
+    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+        #[cfg(target_pointer_width = "32")]
+        let val = rng.try_next_u32()?;
+        #[cfg(target_pointer_width = "64")]
+        let val = rng.try_next_u64()?;
 
-    #[cfg(target_pointer_width = "64")]
-    fn random<R: RngCore + ?Sized>(rng: &mut R) -> Self {
-        Self(rng.next_u64())
+        Ok(Self(val))
     }
 }
 

@@ -299,7 +299,15 @@ pub trait Random: Sized {
     /// Generate a random value.
     ///
     /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
-    fn random<R: RngCore + ?Sized>(rng: &mut R) -> Self;
+    fn random<R: RngCore + ?Sized>(rng: &mut R) -> Self {
+        let Ok(out) = Self::try_random(rng);
+        out
+    }
+
+    /// Generate a random value.
+    ///
+    /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
+    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error>;
 }
 
 /// Possible errors of the methods in [`RandomBits`] trait.
