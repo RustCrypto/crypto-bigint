@@ -9,10 +9,10 @@ mod pow;
 mod sub;
 
 use super::{
+    Retrieve,
     const_monty_form::{ConstMontyForm, ConstMontyParams},
     div_by_2::div_by_2,
     reduction::montgomery_reduction,
-    Retrieve,
 };
 use crate::{Concat, Limb, Monty, NonZero, Odd, Split, Uint, Word};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};

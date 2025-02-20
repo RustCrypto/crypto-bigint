@@ -1,7 +1,7 @@
 //! Implementation of constant-time division via reciprocal precomputation, as described in
 //! "Improved Division by Invariant Integers" by Niels Möller and Torbjorn Granlund
 //! (DOI: 10.1109/TC.2010.143, <https://gmplib.org/~tege/division-paper.pdf>).
-use crate::{uint::div_limb::div2by1, BoxedUint, ConstChoice, Limb, Reciprocal};
+use crate::{BoxedUint, ConstChoice, Limb, Reciprocal, uint::div_limb::div2by1};
 
 /// Divides `u` by the divisor encoded in the `reciprocal`, and returns
 /// the quotient and the remainder.

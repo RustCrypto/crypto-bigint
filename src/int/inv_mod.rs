@@ -46,7 +46,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{InvMod, I1024, U1024};
+    use crate::{I1024, InvMod, U1024};
 
     #[test]
     fn test_invert_odd() {

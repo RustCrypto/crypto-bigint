@@ -1,10 +1,10 @@
 use criterion::{
-    black_box, criterion_group, criterion_main, measurement::Measurement, BatchSize,
-    BenchmarkGroup, Criterion,
+    BatchSize, BenchmarkGroup, Criterion, black_box, criterion_group, criterion_main,
+    measurement::Measurement,
 };
 use crypto_bigint::{
-    modular::{BoxedMontyForm, BoxedMontyParams},
     BoxedUint, Odd, RandomBits, RandomMod,
+    modular::{BoxedMontyForm, BoxedMontyParams},
 };
 use num_bigint::BigUint;
 use rand_chacha::ChaChaRng;

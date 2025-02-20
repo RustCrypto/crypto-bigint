@@ -1,11 +1,11 @@
 use std::ops::Div;
 
-use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
+use criterion::{BatchSize, Criterion, black_box, criterion_group, criterion_main};
 use num_traits::WrappingSub;
 use rand_chacha::ChaChaRng;
 use rand_core::SeedableRng;
 
-use crypto_bigint::{NonZero, Random, I1024, I128, I2048, I256, I4096, I512};
+use crypto_bigint::{I128, I256, I512, I1024, I2048, I4096, NonZero, Random};
 
 fn bench_mul(c: &mut Criterion) {
     let mut rng = ChaChaRng::from_os_rng();

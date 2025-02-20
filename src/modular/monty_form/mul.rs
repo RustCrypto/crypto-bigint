@@ -2,8 +2,8 @@
 
 use super::MontyForm;
 use crate::{
-    modular::mul::{mul_montgomery_form, square_montgomery_form},
     Square, SquareAssign,
+    modular::mul::{mul_montgomery_form, square_montgomery_form},
 };
 use core::ops::{Mul, MulAssign};
 

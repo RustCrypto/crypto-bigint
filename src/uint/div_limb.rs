@@ -4,8 +4,8 @@
 use subtle::{Choice, ConditionallySelectable};
 
 use crate::{
-    primitives::{addhilo, mulhilo},
     ConstChoice, Limb, NonZero, Uint, WideWord, Word,
+    primitives::{addhilo, mulhilo},
 };
 
 /// Calculates the reciprocal of the given 32-bit divisor with the highmost bit set.
@@ -336,7 +336,7 @@ pub(crate) const fn mul_rem(a: Limb, b: Limb, d: NonZero<Limb>) -> Limb {
 
 #[cfg(test)]
 mod tests {
-    use super::{div2by1, Reciprocal};
+    use super::{Reciprocal, div2by1};
     use crate::{Limb, NonZero, Word};
     #[test]
     fn div2by1_overflow() {

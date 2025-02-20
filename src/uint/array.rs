@@ -2,7 +2,7 @@
 // TODO(tarcieri): completely phase out `hybrid-array` when const generics are powerful enough
 
 use crate::{ArrayDecoding, ArrayEncoding, ByteArray};
-use hybrid_array::{typenum, Array};
+use hybrid_array::{Array, typenum};
 
 macro_rules! impl_uint_array_encoding {
     ($(($uint:ident, $bytes:path)),+) => {

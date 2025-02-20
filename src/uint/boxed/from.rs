@@ -1,6 +1,6 @@
 //! `From`-like conversions for [`BoxedUint`].
 
-use crate::{BoxedUint, Limb, Odd, Uint, Word, U128, U64};
+use crate::{BoxedUint, Limb, Odd, U64, U128, Uint, Word};
 use alloc::{boxed::Box, vec::Vec};
 use core::mem;
 

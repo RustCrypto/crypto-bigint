@@ -173,7 +173,7 @@ mod tests {
 
     use subtle::{ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
-    use crate::{Integer, Uint, Zero, U128};
+    use crate::{Integer, U128, Uint, Zero};
 
     #[test]
     fn is_zero() {

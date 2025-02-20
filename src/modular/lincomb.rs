@@ -1,4 +1,4 @@
-use crate::{modular::MontyForm, Limb, Odd, Uint};
+use crate::{Limb, Odd, Uint, modular::MontyForm};
 
 use super::{ConstMontyForm, ConstMontyParams};
 

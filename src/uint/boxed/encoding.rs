@@ -1,7 +1,7 @@
 //! Const-friendly decoding operations for [`BoxedUint`].
 
 use super::BoxedUint;
-use crate::{uint::encoding, DecodeError, Limb, Word};
+use crate::{DecodeError, Limb, Word, uint::encoding};
 use alloc::{boxed::Box, string::String, vec::Vec};
 use subtle::{Choice, CtOption};
 

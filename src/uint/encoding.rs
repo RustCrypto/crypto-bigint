@@ -15,7 +15,7 @@ use crate::{DecodeError, Limb, Word};
 #[cfg(feature = "alloc")]
 use super::boxed::div::div_rem_vartime_in_place;
 #[cfg(feature = "alloc")]
-use super::div_limb::{div2by1, Reciprocal};
+use super::div_limb::{Reciprocal, div2by1};
 #[cfg(feature = "alloc")]
 use crate::{NonZero, WideWord};
 
@@ -790,7 +790,7 @@ const fn radix_large_divisor(
 
 #[cfg(test)]
 mod tests {
-    use crate::{DecodeError, Limb, Zero, U128, U64};
+    use crate::{DecodeError, Limb, U64, U128, Zero};
     use hex_literal::hex;
 
     #[cfg(feature = "alloc")]

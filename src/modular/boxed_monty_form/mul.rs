@@ -7,8 +7,8 @@
 
 use super::{BoxedMontyForm, BoxedMontyParams};
 use crate::{
-    modular::reduction::montgomery_reduction_boxed_mut, uint::mul::mul_limbs, BoxedUint, Limb,
-    Square, SquareAssign, Word, Zero,
+    BoxedUint, Limb, Square, SquareAssign, Word, Zero,
+    modular::reduction::montgomery_reduction_boxed_mut, uint::mul::mul_limbs,
 };
 use core::{
     borrow::Borrow,

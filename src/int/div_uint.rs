@@ -427,7 +427,7 @@ impl<const LIMBS: usize> RemAssign<&NonZero<Uint<LIMBS>>> for Wrapping<Int<LIMBS
 mod tests {
     #[cfg(feature = "rand_core")]
     use {
-        crate::{Random, I1024, U1024, U512},
+        crate::{I1024, Random, U512, U1024},
         rand_chacha::ChaChaRng,
         rand_core::SeedableRng,
     };

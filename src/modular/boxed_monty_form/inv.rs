@@ -2,8 +2,8 @@
 
 use super::{BoxedMontyForm, BoxedMontyParams};
 use crate::{
-    modular::BoxedSafeGcdInverter, Invert, Inverter, PrecomputeInverter,
-    PrecomputeInverterWithAdjuster,
+    Invert, Inverter, PrecomputeInverter, PrecomputeInverterWithAdjuster,
+    modular::BoxedSafeGcdInverter,
 };
 use alloc::sync::Arc;
 use core::fmt;
@@ -102,8 +102,8 @@ impl fmt::Debug for BoxedMontyFormInverter {
 #[cfg(test)]
 mod tests {
     use crate::{
-        modular::{BoxedMontyForm, BoxedMontyParams},
         BoxedUint,
+        modular::{BoxedMontyForm, BoxedMontyParams},
     };
     use hex_literal::hex;
 

@@ -1,8 +1,8 @@
 //! [`BoxedUint`] modular inverse (i.e. reciprocal) operations.
 
 use crate::{
-    modular::BoxedSafeGcdInverter, BoxedUint, ConstantTimeSelect, Integer, InvMod, Inverter, Odd,
-    PrecomputeInverter, PrecomputeInverterWithAdjuster,
+    BoxedUint, ConstantTimeSelect, Integer, InvMod, Inverter, Odd, PrecomputeInverter,
+    PrecomputeInverterWithAdjuster, modular::BoxedSafeGcdInverter,
 };
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
