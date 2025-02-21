@@ -384,19 +384,16 @@ mod tests {
             rhs: Uint<LIMBS>,
         ) where
             Uint<LIMBS>:
-            Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+                Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
-            let (binxgcd, x, y) = lhs
-                .to_odd()
-                .unwrap()
-                .binxgcd_nz(&rhs.to_nz().unwrap());
+            let (binxgcd, x, y) = lhs.to_odd().unwrap().binxgcd_nz(&rhs.to_nz().unwrap());
             test_xgcd(lhs, rhs, binxgcd.get(), x, y);
         }
 
         fn binxgcd_nz_tests<const LIMBS: usize, const DOUBLE: usize>()
         where
             Uint<LIMBS>:
-            Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+                Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
             // Edge cases
             let odd_upper_bound = *Int::MAX.as_uint();
@@ -496,8 +493,10 @@ mod tests {
         };
         use rand_core::OsRng;
 
-        fn optimized_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
-        where
+        fn optimized_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
+            lhs: Uint<LIMBS>,
+            rhs: Uint<LIMBS>,
+        ) where
             Uint<LIMBS>:
                 Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
