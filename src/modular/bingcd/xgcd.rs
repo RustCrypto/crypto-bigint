@@ -371,6 +371,66 @@ mod tests {
         );
     }
 
+    mod test_binxgcd_nz {
+        use crate::modular::bingcd::xgcd::tests::test_xgcd;
+        use crate::{
+            ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384, U4096,
+            U512, U64, U768, U8192,
+        };
+        use rand_core::OsRng;
+
+        fn binxgcd_nz_test<const LIMBS: usize, const DOUBLE: usize>(
+            lhs: Uint<LIMBS>,
+            rhs: Uint<LIMBS>,
+        ) where
+            Uint<LIMBS>:
+            Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+        {
+            let (binxgcd, x, y) = lhs
+                .to_odd()
+                .unwrap()
+                .binxgcd_nz(&rhs.to_nz().unwrap());
+            test_xgcd(lhs, rhs, binxgcd.get(), x, y);
+        }
+
+        fn binxgcd_nz_tests<const LIMBS: usize, const DOUBLE: usize>()
+        where
+            Uint<LIMBS>:
+            Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+        {
+            // Edge cases
+            let odd_upper_bound = *Int::MAX.as_uint();
+            let even_upper_bound = Int::MIN.abs();
+            binxgcd_nz_test(Uint::ONE, Uint::ONE);
+            binxgcd_nz_test(Uint::ONE, odd_upper_bound);
+            binxgcd_nz_test(Uint::ONE, even_upper_bound);
+            binxgcd_nz_test(odd_upper_bound, Uint::ONE);
+            binxgcd_nz_test(odd_upper_bound, odd_upper_bound);
+            binxgcd_nz_test(odd_upper_bound, even_upper_bound);
+
+            // Randomized test cases
+            let bound = Int::MIN.as_uint().to_nz().unwrap();
+            for _ in 0..100 {
+                let x = Uint::<LIMBS>::random_mod(&mut OsRng, &bound).bitor(&Uint::ONE);
+                let y = Uint::<LIMBS>::random_mod(&mut OsRng, &bound).saturating_add(&Uint::ONE);
+                binxgcd_nz_test(x, y);
+            }
+        }
+
+        #[test]
+        fn test_binxgcd_nz() {
+            binxgcd_nz_tests::<{ U64::LIMBS }, { U128::LIMBS }>();
+            binxgcd_nz_tests::<{ U128::LIMBS }, { U256::LIMBS }>();
+            binxgcd_nz_tests::<{ U192::LIMBS }, { U384::LIMBS }>();
+            binxgcd_nz_tests::<{ U256::LIMBS }, { U512::LIMBS }>();
+            binxgcd_nz_tests::<{ U384::LIMBS }, { U768::LIMBS }>();
+            binxgcd_nz_tests::<{ U512::LIMBS }, { U1024::LIMBS }>();
+            binxgcd_nz_tests::<{ U1024::LIMBS }, { U2048::LIMBS }>();
+            binxgcd_nz_tests::<{ U2048::LIMBS }, { U4096::LIMBS }>();
+            binxgcd_nz_tests::<{ U4096::LIMBS }, { U8192::LIMBS }>();
+        }
+    }
+
     mod test_classic_binxgcd {
         use crate::modular::bingcd::xgcd::tests::test_xgcd;
         use crate::{
@@ -428,7 +488,7 @@ mod tests {
         }
     }
 
-    mod test_binxgcd {
+    mod test_optimized_binxgcd {
         use crate::modular::bingcd::xgcd::tests::test_xgcd;
         use crate::{
             ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384, U4096,
