@@ -37,13 +37,6 @@ multiplication operation (e.g. short circuit on multiply-by-zero /
 multiply-by-one, such as certain 32-bit PowerPC CPUs and some non-ARM
 microcontrollers).
 
-## Minimum Supported Rust Version
-
-This crate requires **Rust 1.85** at a minimum.
-
-We may change the MSRV in the future, but it will be accompanied by a minor
-version bump.
-
 ## License
 
 Licensed under either of:
