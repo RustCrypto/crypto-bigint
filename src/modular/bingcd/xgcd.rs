@@ -28,6 +28,16 @@ const fn extract_bezout_coefficients_vartime<const LIMBS: usize>(
     )
 }
 
+/// Extract the quotients `lhs/gcd` and `rhs/gcd` from `matrix`, where it is assumed that
+/// `matrix * (lhs, rhs) = (gcd * 2^k, 0)` for some `k >= 0`.
+const fn extract_quotients<const LIMBS: usize>(
+    matrix: &IntMatrix<LIMBS>,
+) -> (Uint<LIMBS>, Uint<LIMBS>) {
+    let lhs_on_gcd = matrix.m11.abs();
+    let rhs_on_gcd = matrix.m10.abs();
+    (lhs_on_gcd, rhs_on_gcd)
+}
+
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// The minimal number of binary GCD iterations required to guarantee successful completion.
     const MIN_BINGCD_ITERATIONS: u32 = 2 * Self::BITS - 1;
@@ -337,6 +347,39 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 #[cfg(test)]
 mod tests {
     use crate::{ConcatMixed, Gcd, Int, Uint};
+
+    mod test_extract_quotients {
+        use crate::modular::bingcd::matrix::IntMatrix;
+        use crate::modular::bingcd::xgcd::extract_quotients;
+        use crate::{Int, Uint, U64};
+        #[test]
+        fn test_extract_quotients_unit() {
+            let (lhs_on_gcd, rhs_on_gcd) = extract_quotients(&IntMatrix::<{ U64::LIMBS }>::UNIT);
+            assert_eq!(lhs_on_gcd, Uint::ONE);
+            assert_eq!(rhs_on_gcd, Uint::ZERO);
+        }
+
+        #[test]
+        fn test_extract_quotients_basic() {
+            let (lhs_on_gcd, rhs_on_gcd) = extract_quotients(&IntMatrix::<{ U64::LIMBS }>::new(
+                Int::ZERO,
+                Int::ZERO,
+                Int::from(5i32),
+                Int::from(-7i32),
+            ));
+            assert_eq!(lhs_on_gcd, Uint::from(7u32));
+            assert_eq!(rhs_on_gcd, Uint::from(5u32));
+
+            let (lhs_on_gcd, rhs_on_gcd) = extract_quotients(&IntMatrix::<{ U64::LIMBS }>::new(
+                Int::ZERO,
+                Int::ZERO,
+                Int::from(-7i32),
+                Int::from(5i32),
+            ));
+            assert_eq!(lhs_on_gcd, Uint::from(5u32));
+            assert_eq!(rhs_on_gcd, Uint::from(7u32));
+        }
+    }
 
     mod test_extract_bezout_coefficients {
         use crate::modular::bingcd::matrix::IntMatrix;
