@@ -176,7 +176,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
         let (mut a_sgn, mut b_sgn);
         let mut i = 0;
-        while i < Self::MIN_BINGCD_ITERATIONS.div_ceil(K) {
+        while i < Self::MIN_BINGCD_ITERATIONS.div_ceil(K - 1) {
             i += 1;
 
             // Construct a_ and b_ as the summary of a and b, respectively.
