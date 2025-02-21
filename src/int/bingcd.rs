@@ -5,6 +5,7 @@
 use crate::modular::bingcd::tools::const_min;
 use crate::{ConstChoice, Int, NonZero, Odd, Uint};
 
+#[derive(Debug)]
 pub struct BinXgcdOutput<const LIMBS: usize> {
     gcd: Uint<LIMBS>,
     x: Int<LIMBS>,
@@ -44,34 +45,41 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Executes the Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)`, s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub const fn binxgcd(&self, rhs: &Self) -> (Uint<LIMBS>, Self, Self) {
+    pub const fn binxgcd(&self, rhs: &Self) -> BinXgcdOutput<LIMBS> {
         // Make sure `self` and `rhs` are nonzero.
-        let self_is_nz = self.is_nonzero();
-        let self_nz = Int::select(&Int::ONE, self, self_is_nz)
+        let self_is_zero = self.is_nonzero().not();
+        let self_nz = Int::select(self, &Int::ONE, self_is_zero)
             .to_nz()
             .expect("self is non zero by construction");
-        let rhs_is_nz = rhs.is_nonzero();
-        let rhs_nz = Int::select(&Int::ONE, rhs, rhs_is_nz)
+        let rhs_is_zero = rhs.is_nonzero().not();
+        let rhs_nz = Int::select(rhs, &Int::ONE, rhs_is_zero)
             .to_nz()
             .expect("rhs is non zero by construction");
 
-        let output = self_nz.binxgcd(&rhs_nz);
-        let gcd = output.gcd;
-        let (mut x, mut y) = output.bezout_coefficients();
+        let mut output = self_nz.binxgcd(&rhs_nz);
 
         // Correct the gcd in case self and/or rhs was zero
-        let gcd = Uint::select(&rhs.abs(), &gcd, self_is_nz);
-        let gcd = Uint::select(&self.abs(), &gcd, rhs_is_nz);
+        let gcd = &mut output.gcd;
+        *gcd = Uint::select(gcd, &rhs.abs(), self_is_zero);
+        *gcd = Uint::select(gcd, &self.abs(), rhs_is_zero);
 
         // Correct the Bézout coefficients in case self and/or rhs was zero.
+        let (x, y) = output.bezout_coefficients_as_mut();
         let signum_self = Int::new_from_abs_sign(Uint::ONE, self.is_negative()).expect("+/- 1");
         let signum_rhs = Int::new_from_abs_sign(Uint::ONE, rhs.is_negative()).expect("+/- 1");
-        x = Int::select(&Int::ZERO, &x, self_is_nz);
-        y = Int::select(&signum_rhs, &y, self_is_nz);
-        x = Int::select(&signum_self, &x, rhs_is_nz);
-        y = Int::select(&Int::ZERO, &y, rhs_is_nz);
+        *x = Int::select(&x, &Int::ZERO, self_is_zero);
+        *y = Int::select(&y, &signum_rhs, self_is_zero);
+        *x = Int::select(&x, &signum_self, rhs_is_zero);
+        *y = Int::select(&y, &Int::ZERO, rhs_is_zero);
 
-        (gcd, x, y)
+        // Correct the quotients in case self and/or rhs was zero.
+        let (lhs_on_gcd, rhs_on_gcd) = output.quotients_as_mut();
+        *lhs_on_gcd = Int::select(&lhs_on_gcd, &signum_self, rhs_is_zero);
+        *lhs_on_gcd = Int::select(&lhs_on_gcd, &Int::ZERO, self_is_zero);
+        *rhs_on_gcd = Int::select(&rhs_on_gcd, &signum_rhs, self_is_zero);
+        *rhs_on_gcd = Int::select(&rhs_on_gcd, &Int::ZERO, rhs_is_zero);
+
+        output
     }
 }
 
@@ -151,13 +159,14 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
 
 #[cfg(test)]
 mod test {
-    use crate::{ConcatMixed, Int, Uint};
     use crate::int::bingcd::BinXgcdOutput;
+    use crate::{ConcatMixed, Int, Uint};
+    use num_traits::Zero;
 
-    fn int_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
+    fn binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
         lhs: Int<LIMBS>,
         rhs: Int<LIMBS>,
-        output: BinXgcdOutput<LIMBS>
+        output: BinXgcdOutput<LIMBS>,
     ) where
         Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
     {
@@ -166,8 +175,13 @@ mod test {
 
         // Test quotients
         let (lhs_on_gcd, rhs_on_gcd) = output.quotients();
-        assert_eq!(lhs_on_gcd, lhs.div_uint(&gcd.to_nz().unwrap()));
-        assert_eq!(rhs_on_gcd, rhs.div_uint(&gcd.to_nz().unwrap()));
+        if gcd.is_zero() {
+            assert_eq!(lhs_on_gcd, Int::ZERO);
+            assert_eq!(rhs_on_gcd, Int::ZERO);
+        } else {
+            assert_eq!(lhs_on_gcd, lhs.div_uint(&gcd.to_nz().unwrap()));
+            assert_eq!(rhs_on_gcd, rhs.div_uint(&gcd.to_nz().unwrap()));
+        }
 
         // Test the Bezout coefficients
         let (x, y) = output.bezout_coefficients();
@@ -178,6 +192,7 @@ mod test {
     }
 
     mod test_int_binxgcd {
+        use crate::int::bingcd::test::binxgcd_test;
         use crate::{
             ConcatMixed, Gcd, Int, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512,
             U64, U768, U8192,
@@ -191,13 +206,7 @@ mod test {
             Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
             Int<LIMBS>: Gcd<Output = Uint<LIMBS>>,
         {
-            let gcd = lhs.gcd(&rhs);
-            let (xgcd, x, y) = lhs.binxgcd(&rhs);
-            assert_eq!(gcd, xgcd);
-            let x_lhs = x.widening_mul(&lhs);
-            let y_rhs = y.widening_mul(&rhs);
-            let prod = x_lhs.wrapping_add(&y_rhs);
-            assert_eq!(prod, xgcd.resize().as_int());
+            binxgcd_test(lhs, rhs, lhs.binxgcd(&rhs))
         }
 
         fn int_binxgcd_tests<const LIMBS: usize, const DOUBLE: usize>()
@@ -253,12 +262,12 @@ mod test {
     }
 
     mod test_nonzero_int_binxgcd {
+        use crate::int::bingcd::test::binxgcd_test;
         use crate::{
-            ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384,
-            U4096, U512, U64, U768, U8192,
+            ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384, U4096,
+            U512, U64, U768, U8192,
         };
         use rand_core::OsRng;
-        use crate::int::bingcd::test::int_binxgcd_test;
 
         fn nz_int_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
             lhs: Int<LIMBS>,
@@ -268,7 +277,7 @@ mod test {
             Int<LIMBS>: Gcd<Output = Uint<LIMBS>>,
         {
             let output = lhs.to_nz().unwrap().binxgcd(&rhs.to_nz().unwrap());
-            int_binxgcd_test(lhs, rhs, output);
+            binxgcd_test(lhs, rhs, output);
         }
 
         fn nz_int_binxgcd_tests<const LIMBS: usize, const DOUBLE: usize>()
@@ -316,12 +325,12 @@ mod test {
     }
 
     mod test_odd_int_binxgcd {
+        use crate::int::bingcd::test::binxgcd_test;
         use crate::{
             ConcatMixed, Int, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U64,
             U768, U8192,
         };
         use rand_core::OsRng;
-        use crate::int::bingcd::test::int_binxgcd_test;
 
         fn odd_int_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
             lhs: Int<LIMBS>,
@@ -330,7 +339,7 @@ mod test {
             Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
             let output = lhs.to_odd().unwrap().binxgcd(&rhs.to_nz().unwrap());
-            int_binxgcd_test(lhs, rhs, output);
+            binxgcd_test(lhs, rhs, output);
         }
 
         fn odd_int_binxgcd_tests<const LIMBS: usize, const DOUBLE: usize>()
