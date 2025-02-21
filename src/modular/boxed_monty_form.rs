@@ -9,9 +9,8 @@ mod pow;
 mod sub;
 
 use super::{
-    div_by_2,
+    ConstMontyParams, Retrieve, div_by_2,
     reduction::{montgomery_reduction_boxed, montgomery_reduction_boxed_mut},
-    ConstMontyParams, Retrieve,
 };
 use crate::{BoxedUint, Limb, Monty, Odd, Word};
 use alloc::sync::Arc;

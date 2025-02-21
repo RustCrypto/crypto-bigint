@@ -17,8 +17,8 @@ use {crate::RandomBits, rand_core::TryRngCore};
 use crate::Zero;
 #[cfg(feature = "serde")]
 use serdect::serde::{
-    de::{Error, Unexpected},
     Deserialize, Deserializer, Serialize, Serializer,
+    de::{Error, Unexpected},
 };
 
 /// Wrapper type for odd integers.
@@ -269,7 +269,7 @@ mod tests {
 
     #[cfg(feature = "serde")]
     mod serde_tests {
-        use crate::{Odd, U128, U64};
+        use crate::{Odd, U64, U128};
         use bincode::ErrorKind;
 
         #[test]

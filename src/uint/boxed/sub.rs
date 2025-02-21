@@ -1,6 +1,6 @@
 //! [`BoxedUint`] subtraction operations.
 
-use crate::{BoxedUint, CheckedSub, Limb, Uint, Wrapping, WrappingSub, Zero, U128, U64};
+use crate::{BoxedUint, CheckedSub, Limb, U64, U128, Uint, Wrapping, WrappingSub, Zero};
 use core::ops::{Sub, SubAssign};
 use subtle::{Choice, ConditionallySelectable, CtOption};
 

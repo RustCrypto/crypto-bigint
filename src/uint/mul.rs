@@ -387,7 +387,7 @@ pub(crate) fn square_limbs(limbs: &[Limb], out: &mut [Limb]) {
 
 #[cfg(test)]
 mod tests {
-    use crate::{CheckedMul, ConstChoice, Zero, U128, U192, U256, U64};
+    use crate::{CheckedMul, ConstChoice, U64, U128, U192, U256, Zero};
 
     #[test]
     fn mul_wide_zero_and_one() {

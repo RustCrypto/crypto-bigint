@@ -1,8 +1,8 @@
 //! Limb addition
 
 use crate::{
-    primitives::{adc, overflowing_add},
     Checked, CheckedAdd, Limb, Wrapping, WrappingAdd, Zero,
+    primitives::{adc, overflowing_add},
 };
 use core::ops::{Add, AddAssign};
 use subtle::CtOption;

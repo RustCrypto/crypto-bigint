@@ -72,8 +72,8 @@ impl<const LIMBS: usize> AddAssign<MontyForm<LIMBS>> for MontyForm<LIMBS> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        modular::{MontyForm, MontyParams},
         Odd, U256,
+        modular::{MontyForm, MontyParams},
     };
 
     #[test]

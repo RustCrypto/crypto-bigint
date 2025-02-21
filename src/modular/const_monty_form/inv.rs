@@ -2,7 +2,7 @@
 
 use super::{ConstMontyForm, ConstMontyParams};
 use crate::{
-    modular::SafeGcdInverter, ConstCtOption, Invert, Inverter, Odd, PrecomputeInverter, Uint,
+    ConstCtOption, Invert, Inverter, Odd, PrecomputeInverter, Uint, modular::SafeGcdInverter,
 };
 use core::{fmt, marker::PhantomData};
 use subtle::CtOption;
@@ -11,9 +11,9 @@ impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS
     ConstMontyForm<MOD, SAT_LIMBS>
 where
     Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-        Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
-        Output = Uint<SAT_LIMBS>,
-    >,
+            Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
+            Output = Uint<SAT_LIMBS>,
+        >,
 {
     /// Computes `self^-1` representing the multiplicative inverse of `self`,
     /// i.e. `self * self^-1 = 1`.
@@ -63,9 +63,9 @@ impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS
     for ConstMontyForm<MOD, SAT_LIMBS>
 where
     Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-        Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
-        Output = Uint<SAT_LIMBS>,
-    >,
+            Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
+            Output = Uint<SAT_LIMBS>,
+        >,
 {
     type Output = CtOption<Self>;
 
@@ -91,9 +91,9 @@ impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS
     ConstMontyFormInverter<MOD, SAT_LIMBS>
 where
     Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-        Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
-        Output = Uint<SAT_LIMBS>,
-    >,
+            Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
+            Output = Uint<SAT_LIMBS>,
+        >,
 {
     /// Create a new [`ConstMontyFormInverter`] for the given [`ConstMontyParams`].
     #[allow(clippy::new_without_default)]
@@ -144,9 +144,9 @@ impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS
     for ConstMontyFormInverter<MOD, SAT_LIMBS>
 where
     Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-        Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
-        Output = Uint<SAT_LIMBS>,
-    >,
+            Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
+            Output = Uint<SAT_LIMBS>,
+        >,
 {
     type Output = ConstMontyForm<MOD, SAT_LIMBS>;
 
@@ -163,9 +163,9 @@ impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS
     for ConstMontyFormInverter<MOD, SAT_LIMBS>
 where
     Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-        Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
-        Output = Uint<SAT_LIMBS>,
-    >,
+            Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
+            Output = Uint<SAT_LIMBS>,
+        >,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ConstMontyFormInverter")
@@ -177,7 +177,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::ConstMontyParams;
-    use crate::{const_monty_form, impl_modulus, Inverter, U256};
+    use crate::{Inverter, U256, const_monty_form, impl_modulus};
 
     impl_modulus!(
         Modulus,

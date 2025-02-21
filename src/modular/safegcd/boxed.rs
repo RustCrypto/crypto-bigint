@@ -3,7 +3,7 @@
 //!
 //! See parent module for more information.
 
-use super::{inv_mod2_62, iterations, jump, Matrix};
+use super::{Matrix, inv_mod2_62, iterations, jump};
 use crate::{BoxedUint, Inverter, Limb, Odd, Word};
 use alloc::boxed::Box;
 use core::{

@@ -30,8 +30,8 @@ impl Neg for &BoxedMontyForm {
 #[cfg(test)]
 mod tests {
     use crate::{
-        modular::{BoxedMontyForm, BoxedMontyParams},
         BoxedUint,
+        modular::{BoxedMontyForm, BoxedMontyParams},
     };
     use hex_literal::hex;
 

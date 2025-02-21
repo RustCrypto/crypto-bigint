@@ -1,6 +1,6 @@
 //! [`BoxedUint`] addition operations.
 
-use crate::{BoxedUint, CheckedAdd, Limb, Uint, Wrapping, WrappingAdd, Zero, U128, U64};
+use crate::{BoxedUint, CheckedAdd, Limb, U64, U128, Uint, Wrapping, WrappingAdd, Zero};
 use core::ops::{Add, AddAssign};
 use subtle::{Choice, ConditionallySelectable, CtOption};
 

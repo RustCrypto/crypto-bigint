@@ -32,8 +32,8 @@ mod sub;
 pub(crate) mod boxed_monty_form;
 
 pub use self::{
-    const_monty_form::{inv::ConstMontyFormInverter, ConstMontyForm, ConstMontyParams},
-    monty_form::{inv::MontyFormInverter, MontyForm, MontyParams},
+    const_monty_form::{ConstMontyForm, ConstMontyParams, inv::ConstMontyFormInverter},
+    monty_form::{MontyForm, MontyParams, inv::MontyFormInverter},
     reduction::montgomery_reduction,
     safegcd::SafeGcdInverter,
 };
@@ -57,12 +57,11 @@ pub trait Retrieve {
 #[cfg(test)]
 mod tests {
     use crate::{
-        const_monty_form, impl_modulus,
+        NonZero, U64, U256, Uint, const_monty_form, impl_modulus,
         modular::{
             const_monty_form::{ConstMontyForm, ConstMontyParams},
             reduction::montgomery_reduction,
         },
-        NonZero, Uint, U256, U64,
     };
 
     impl_modulus!(

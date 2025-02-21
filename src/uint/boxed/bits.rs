@@ -1,11 +1,11 @@
 //! Bit manipulation functions.
 
 use crate::{
+    BitOps, BoxedUint, Limb, Word,
     uint::bits::{
         bit, bit_vartime, bits_vartime, leading_zeros, trailing_ones, trailing_ones_vartime,
         trailing_zeros, trailing_zeros_vartime,
     },
-    BitOps, BoxedUint, Limb, Word,
 };
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 

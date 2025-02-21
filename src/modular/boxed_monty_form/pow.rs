@@ -1,6 +1,6 @@
 //! Modular exponentiation support for [`BoxedMontyForm`].
 
-use super::{mul::MontyMultiplier, BoxedMontyForm};
+use super::{BoxedMontyForm, mul::MontyMultiplier};
 use crate::{BoxedUint, ConstantTimeSelect, Limb, PowBoundedExp, Word};
 use alloc::vec::Vec;
 use subtle::{ConstantTimeEq, ConstantTimeLess};

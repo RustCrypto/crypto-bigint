@@ -1,6 +1,6 @@
 //! `From`-like conversions for [`Int`].
 
-use crate::{Int, Limb, Uint, Word, I128, I64};
+use crate::{I64, I128, Int, Limb, Uint, Word};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Create a [`Int`] from an `i8` (const-friendly)
@@ -108,11 +108,11 @@ impl<const LIMBS: usize, const LIMBS2: usize> From<&Int<LIMBS>> for Int<LIMBS2> 
 
 #[cfg(test)]
 mod tests {
-    #[cfg(target_pointer_width = "64")]
-    use crate::I128 as IntEx;
     #[cfg(target_pointer_width = "32")]
     use crate::I64 as IntEx;
-    use crate::{Limb, I128};
+    #[cfg(target_pointer_width = "64")]
+    use crate::I128 as IntEx;
+    use crate::{I128, Limb};
 
     #[test]
     fn from_i8() {

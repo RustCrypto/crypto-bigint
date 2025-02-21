@@ -9,13 +9,13 @@ mod pow;
 mod sub;
 
 use self::inv::ConstMontyFormInverter;
-use super::{div_by_2::div_by_2, reduction::montgomery_reduction, Retrieve, SafeGcdInverter};
+use super::{Retrieve, SafeGcdInverter, div_by_2::div_by_2, reduction::montgomery_reduction};
 use crate::{ConstZero, Limb, Odd, PrecomputeInverter, Uint};
 use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "rand_core")]
-use crate::{rand_core::RngCore, Random, RandomMod};
+use crate::{Random, RandomMod, rand_core::RngCore};
 
 #[cfg(feature = "serde")]
 use {
@@ -59,10 +59,7 @@ pub trait ConstMontyParams<const LIMBS: usize>:
     /// Use [`ConstMontyFormInverter::new`] if you need `const fn` access.
     fn precompute_inverter<const UNSAT_LIMBS: usize>() -> ConstMontyFormInverter<Self, LIMBS>
     where
-        Odd<Uint<LIMBS>>: PrecomputeInverter<
-            Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>,
-            Output = Uint<LIMBS>,
-        >,
+        Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>, Output = Uint<LIMBS>>,
     {
         ConstMontyFormInverter::new()
     }

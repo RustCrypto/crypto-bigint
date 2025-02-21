@@ -1,9 +1,9 @@
 //! Support for decoding/encoding [`Uint`] as an ASN.1 DER `INTEGER`.
 
-use crate::{hybrid_array::Array, ArrayEncoding, Uint};
+use crate::{ArrayEncoding, Uint, hybrid_array::Array};
 use ::der::{
-    asn1::{AnyRef, UintRef},
     DecodeValue, EncodeValue, FixedTag, Length, Tag,
+    asn1::{AnyRef, UintRef},
 };
 
 impl<'a, const LIMBS: usize> TryFrom<AnyRef<'a>> for Uint<LIMBS>

@@ -4,8 +4,8 @@ mod common;
 
 use common::to_biguint;
 use crypto_bigint::{
-    modular::MontyForm, Bounded, Constants, Encoding, Integer, Invert, Inverter, Monty, NonZero,
-    Odd, PrecomputeInverter, U1024, U128, U2048, U256, U4096, U512,
+    Bounded, Constants, Encoding, Integer, Invert, Inverter, Monty, NonZero, Odd,
+    PrecomputeInverter, U128, U256, U512, U1024, U2048, U4096, modular::MontyForm,
 };
 use num_bigint::BigUint;
 use num_modular::ModularUnaryOps;

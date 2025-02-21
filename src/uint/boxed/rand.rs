@@ -2,8 +2,8 @@
 
 use super::BoxedUint;
 use crate::{
-    uint::rand::{random_bits_core, random_mod_core},
     NonZero, RandomBits, RandomBitsError, RandomMod,
+    uint::rand::{random_bits_core, random_mod_core},
 };
 use rand_core::{RngCore, TryRngCore};
 

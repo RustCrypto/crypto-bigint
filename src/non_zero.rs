@@ -3,7 +3,7 @@
 use crate::{Bounded, ConstChoice, Constants, Encoding, Int, Limb, Uint, Zero};
 use core::{
     fmt,
-    num::{NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8},
+    num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128},
     ops::Deref,
 };
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
@@ -16,8 +16,8 @@ use {crate::Random, rand_core::RngCore};
 
 #[cfg(feature = "serde")]
 use serdect::serde::{
-    de::{Error, Unexpected},
     Deserialize, Deserializer, Serialize, Serializer,
+    de::{Error, Unexpected},
 };
 
 /// Wrapper type for non-zero integers.

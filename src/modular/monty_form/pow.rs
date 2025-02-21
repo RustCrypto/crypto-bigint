@@ -2,8 +2,8 @@
 
 use super::MontyForm;
 use crate::{
-    modular::pow::{multi_exponentiate_montgomery_form_array, pow_montgomery_form},
     MultiExponentiateBoundedExp, PowBoundedExp, Uint,
+    modular::pow::{multi_exponentiate_montgomery_form_array, pow_montgomery_form},
 };
 
 #[cfg(feature = "alloc")]

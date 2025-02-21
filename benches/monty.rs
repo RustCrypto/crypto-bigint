@@ -1,10 +1,10 @@
 use criterion::{
-    black_box, criterion_group, criterion_main, measurement::Measurement, BatchSize,
-    BenchmarkGroup, Criterion,
+    BatchSize, BenchmarkGroup, Criterion, black_box, criterion_group, criterion_main,
+    measurement::Measurement,
 };
 use crypto_bigint::{
-    modular::{MontyForm, MontyParams},
     Invert, Inverter, Odd, PrecomputeInverter, Random, RandomMod, U256,
+    modular::{MontyForm, MontyParams},
 };
 use rand_chacha::ChaChaRng;
 use rand_core::SeedableRng;

@@ -19,7 +19,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{U128, U64};
+    use crate::{U64, U128};
 
     #[test]
     fn resize_larger() {

@@ -1,7 +1,7 @@
 //! Support for computing greatest common divisor of two `BoxedUint`s.
 
 use super::BoxedUint;
-use crate::{modular::safegcd, ConstantTimeSelect, Gcd, Integer, Odd};
+use crate::{ConstantTimeSelect, Gcd, Integer, Odd, modular::safegcd};
 use subtle::{ConditionallySelectable, ConstantTimeLess};
 
 impl Gcd for BoxedUint {
