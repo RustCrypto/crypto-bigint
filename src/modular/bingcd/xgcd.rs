@@ -120,8 +120,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         // ii.  gcd = lhs * (v + u) - u * rhs, if rhs is even and rhs < lhs
         // iii. gcd = lhs * v + rhs * u, if rhs is odd
 
-        *v = Int::select(&v, &v.wrapping_sub(&u), rhs_is_even.and(rhs_gt_lhs));
-        *v = Int::select(&v, &v.wrapping_add(&u), rhs_is_even.and(rhs_gt_lhs.not()));
+        *v = Int::select(v, &v.wrapping_sub(u), rhs_is_even.and(rhs_gt_lhs));
+        *v = Int::select(v, &v.wrapping_add(u), rhs_is_even.and(rhs_gt_lhs.not()));
         *u = u.wrapping_neg_if(rhs_is_even.and(rhs_gt_lhs.not()));
 
         let mut processed_output = output.process();
@@ -137,8 +137,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         // ii.  gcd = lhs * (x + y) - y * rhs, if rhs is even and rhs < lhs
         // iii. gcd = lhs * x + rhs * y, if rhs is odd
 
-        *x = Int::select(&x, &x.wrapping_sub(&y), rhs_is_even.and(rhs_gt_lhs));
-        *x = Int::select(&x, &x.wrapping_add(&y), rhs_is_even.and(rhs_gt_lhs.not()));
+        *x = Int::select(x, &x.wrapping_sub(y), rhs_is_even.and(rhs_gt_lhs));
+        *x = Int::select(x, &x.wrapping_add(y), rhs_is_even.and(rhs_gt_lhs.not()));
         *y = y.wrapping_neg_if(rhs_is_even.and(rhs_gt_lhs.not()));
 
         processed_output

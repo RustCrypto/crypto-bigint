@@ -92,17 +92,17 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let (x, y) = output.bezout_coefficients_as_mut();
         let signum_self = Int::new_from_abs_sign(Uint::ONE, self.is_negative()).expect("+/- 1");
         let signum_rhs = Int::new_from_abs_sign(Uint::ONE, rhs.is_negative()).expect("+/- 1");
-        *x = Int::select(&x, &Int::ZERO, self_is_zero);
-        *y = Int::select(&y, &signum_rhs, self_is_zero);
-        *x = Int::select(&x, &signum_self, rhs_is_zero);
-        *y = Int::select(&y, &Int::ZERO, rhs_is_zero);
+        *x = Int::select(x, &Int::ZERO, self_is_zero);
+        *y = Int::select(y, &signum_rhs, self_is_zero);
+        *x = Int::select(x, &signum_self, rhs_is_zero);
+        *y = Int::select(y, &Int::ZERO, rhs_is_zero);
 
         // Correct the quotients in case self and/or rhs was zero.
         let (lhs_on_gcd, rhs_on_gcd) = output.quotients_as_mut();
-        *lhs_on_gcd = Int::select(&lhs_on_gcd, &signum_self, rhs_is_zero);
-        *lhs_on_gcd = Int::select(&lhs_on_gcd, &Int::ZERO, self_is_zero);
-        *rhs_on_gcd = Int::select(&rhs_on_gcd, &signum_rhs, self_is_zero);
-        *rhs_on_gcd = Int::select(&rhs_on_gcd, &Int::ZERO, rhs_is_zero);
+        *lhs_on_gcd = Int::select(lhs_on_gcd, &signum_self, rhs_is_zero);
+        *lhs_on_gcd = Int::select(lhs_on_gcd, &Int::ZERO, self_is_zero);
+        *rhs_on_gcd = Int::select(rhs_on_gcd, &signum_rhs, self_is_zero);
+        *rhs_on_gcd = Int::select(rhs_on_gcd, &Int::ZERO, rhs_is_zero);
 
         output
     }
