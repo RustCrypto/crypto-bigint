@@ -68,6 +68,19 @@ pub struct OddBinxgcdOutput<const LIMBS: usize> {
 }
 
 impl<const LIMBS: usize> OddBinxgcdOutput<LIMBS> {
+    /// Obtain a pair of minimal Bézout coefficients.
+    pub(crate) const fn minimal_bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
+        // Attempt to reduce x and y mod rhs_on_gcd and lhs_on_gcd, respectively.
+        let mut minimal_x = self.x.rem_uint(&self.rhs_on_gcd.to_nz().expect("is nz"));
+        let mut minimal_y = self.y.rem_uint(&self.lhs_on_gcd.to_nz().expect("is nz"));
+
+        // This trick only works whenever lhs/rhs > 1. Only apply whenever this is the case.
+        minimal_x = Int::select(&self.x, &minimal_x, Uint::gt(&self.rhs_on_gcd, &Uint::ONE));
+        minimal_y = Int::select(&self.y, &minimal_y, Uint::gt(&self.lhs_on_gcd, &Uint::ONE));
+
+        (minimal_x, minimal_y)
+    }
+
     /// Obtain a copy of the Bézout coefficients.
     pub(crate) const fn bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
         (self.x, self.y)
@@ -631,6 +644,17 @@ mod tests {
 
         // Test the Bezout coefficients
         let (x, y) = output.bezout_coefficients();
+        assert_eq!(
+            x.widening_mul_uint(&lhs) + y.widening_mul_uint(&rhs),
+            output.gcd.resize().as_int(),
+        );
+
+        // Test the minimal Bezout coefficients for minimality
+        let (x, y) = output.minimal_bezout_coefficients();
+        assert!(x.abs() <= output.rhs_on_gcd, "{} {}", lhs, rhs);
+        assert!(y.abs() <= output.lhs_on_gcd, "{} {}", lhs, rhs);
+
+        // Test the minimal Bezout coefficients for correctness
         assert_eq!(
             x.widening_mul_uint(&lhs) + y.widening_mul_uint(&rhs),
             output.gcd.resize().as_int(),
