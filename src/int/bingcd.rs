@@ -100,7 +100,9 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
         let (abs_lhs, sgn_lhs) = self.abs_sign();
         let (abs_rhs, sgn_rhs) = rhs.abs_sign();
 
-        let (gcd, x, y) = abs_lhs.binxgcd_nz(&abs_rhs);
+        let output = abs_lhs.binxgcd_nz(&abs_rhs);
+        let gcd = output.gcd;
+        let (x, y) = output.bezout_coefficients();
 
         (gcd, x.wrapping_neg_if(sgn_lhs), y.wrapping_neg_if(sgn_rhs))
     }
