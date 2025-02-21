@@ -68,10 +68,12 @@ pub struct OddBinxgcdOutput<const LIMBS: usize> {
 }
 
 impl<const LIMBS: usize> OddBinxgcdOutput<LIMBS> {
+    /// Obtain a copy of the Bézout coefficients.
     pub(crate) const fn bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
         (self.x, self.y)
     }
 
+    /// Mutably borrow the Bézout coefficients.
     const fn bezout_coefficients_as_mut(&mut self) -> (&mut Int<LIMBS>, &mut Int<LIMBS>) {
         (&mut self.x, &mut self.y)
     }
