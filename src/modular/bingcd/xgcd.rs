@@ -2,30 +2,31 @@ use crate::modular::bingcd::matrix::IntMatrix;
 use crate::modular::bingcd::tools::const_max;
 use crate::{ConstChoice, Int, NonZero, Odd, Uint, U128, U64};
 
-/// Extract the Bézout coefficients from `matrix`, where it is assumed that
-/// `matrix * (lhs, rhs) = (gcd * 2^k, 0)`.
-///
-/// The function executes in time variable in `k_upper_bound`. By making sure that
-/// this `k_upper_bound >= k`, the function executes in time constant in `k`.
-const fn extract_bezout_coefficients_vartime<const LIMBS: usize>(
-    lhs: &Odd<Uint<LIMBS>>,
-    rhs: &Odd<Uint<LIMBS>>,
-    matrix: &IntMatrix<LIMBS>,
+/// Container for the output of the raw Binary XGCD output.
+pub(crate) struct RawBinxgcdOutput<const LIMBS: usize> {
+    lhs: Odd<Uint<LIMBS>>,
+    rhs: Odd<Uint<LIMBS>>,
+    gcd: Odd<Uint<LIMBS>>,
+    matrix: IntMatrix<LIMBS>,
     k: u32,
     k_upper_bound: u32,
-) -> (Int<LIMBS>, Int<LIMBS>) {
-    debug_assert!(k <= k_upper_bound);
+}
 
-    // The Bézout coefficients `x` and `y` can be extracted from `matrix.m00` and `matrix.m01`,
-    // respectively. In fact, `matrix.m00 = x * 2^k` and `matrix.m01 = y * 2^k`.
-    // Hence, we can compute
-    //      `x = matrix.m00 / 2^k mod rhs`, and
-    //      `y = matrix.m01 / 2^k mod lhs`.
-    let (x, y) = (matrix.m00, matrix.m01);
-    (
-        x.div_2k_mod_q(k, k_upper_bound, rhs),
-        y.div_2k_mod_q(k, k_upper_bound, lhs),
-    )
+impl<const LIMBS: usize> RawBinxgcdOutput<LIMBS> {
+    /// Extract the Bézout coefficients from `matrix`, where it is assumed that
+    /// `matrix * (lhs, rhs) = (gcd * 2^k, 0)`.
+    const fn bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
+        // The Bézout coefficients `x` and `y` can be extracted from `matrix.m00` and `matrix.m01`,
+        // respectively. In fact, `matrix.m00 = x * 2^k` and `matrix.m01 = y * 2^k`.
+        // Hence, we can compute
+        //      `x = matrix.m00 / 2^k mod rhs`, and
+        //      `y = matrix.m01 / 2^k mod lhs`.
+        let (x, y) = (self.matrix.m00, self.matrix.m01);
+        (
+            x.div_2k_mod_q(self.k, self.k_upper_bound, &self.rhs),
+            y.div_2k_mod_q(self.k, self.k_upper_bound, &self.lhs),
+        )
+    }
 }
 
 /// Extract the quotients `lhs/gcd` and `rhs/gcd` from `matrix`, where it is assumed that
@@ -65,7 +66,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             .to_odd()
             .expect("rhs is odd by construction");
 
-        let (gcd, mut x, mut y) = self.binxgcd(&rhs_);
+        let output = self.binxgcd(&rhs_);
+        let (mut x, mut y) = output.bezout_coefficients();
 
         // At this point, we have one of the following three situations:
         // i.   gcd = lhs * x + (rhs - lhs) * y, if rhs is even and rhs > lhs
@@ -82,7 +84,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         x = Int::select(&x, &x.wrapping_add(&y), rhs_is_even.and(rhs_gt_lhs.not()));
         y = y.wrapping_neg_if(rhs_is_even.and(rhs_gt_lhs.not()));
 
-        (gcd, x, y)
+        (output.gcd, x, y)
     }
 
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
@@ -94,7 +96,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// This function switches between the "classic" and "optimized" algorithm at a best-effort
     /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
     /// manually test whether the classic or optimized algorithm is faster for your machine.
-    pub(crate) const fn binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
+    pub(crate) const fn binxgcd(&self, rhs: &Self) -> RawBinxgcdOutput<LIMBS> {
         if LIMBS < 4 {
             self.classic_binxgcd(rhs)
         } else {
@@ -111,25 +113,21 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
     /// <https://eprint.iacr.org/2020/972.pdf>.
-    pub(crate) const fn classic_binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
+    pub(crate) const fn classic_binxgcd(&self, rhs: &Self) -> RawBinxgcdOutput<LIMBS> {
         let (gcd, _, matrix, total_doublings) = self.partial_binxgcd_vartime::<LIMBS>(
             rhs.as_ref(),
             Self::MIN_BINGCD_ITERATIONS,
             ConstChoice::TRUE,
         );
 
-        // Extract the Bezout coefficients s.t. self * x + rhs * y = gcd.
-        // Safe to vartime; the function is vartime in k_upper_bound for which we pass a public
-        // constant
-        let (x, y) = extract_bezout_coefficients_vartime(
-            self,
-            rhs,
-            &matrix,
-            total_doublings,
-            Self::MIN_BINGCD_ITERATIONS,
-        );
-
-        (gcd, x, y)
+        RawBinxgcdOutput {
+            lhs: *self,
+            rhs: *rhs,
+            gcd,
+            matrix,
+            k: total_doublings,
+            k_upper_bound: Self::MIN_BINGCD_ITERATIONS,
+        }
     }
 
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
@@ -148,7 +146,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
     /// <https://eprint.iacr.org/2020/972.pdf>.
-    pub(crate) const fn optimized_binxgcd(&self, rhs: &Self) -> (Self, Int<LIMBS>, Int<LIMBS>) {
+    pub(crate) const fn optimized_binxgcd(&self, rhs: &Self) -> RawBinxgcdOutput<LIMBS> {
         assert!(Self::BITS >= U128::BITS);
         self.optimized_binxgcd_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
     }
@@ -179,7 +177,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     >(
         &self,
         rhs: &Self,
-    ) -> (Self, Int<LIMBS>, Int<LIMBS>) {
+    ) -> RawBinxgcdOutput<LIMBS> {
         let (mut a, mut b) = (*self.as_ref(), *rhs.as_ref());
         let mut matrix = IntMatrix::UNIT;
         let mut total_doublings = 0;
@@ -218,18 +216,14 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             .to_odd()
             .expect("gcd of an odd value with something else is always odd");
 
-        // Extract the Bezout coefficients s.t. self * x + rhs * y = gcd.
-        // Safe to vartime; the function is vartime in k_upper_bound for which we pass a public
-        // constant
-        let (x, y) = extract_bezout_coefficients_vartime(
-            self,
-            rhs,
-            &matrix,
-            total_doublings,
-            Self::MIN_BINGCD_ITERATIONS,
-        );
-
-        (gcd, x, y)
+        RawBinxgcdOutput {
+            lhs: *self,
+            rhs: *rhs,
+            gcd,
+            matrix,
+            k: total_doublings,
+            k_upper_bound: Self::MIN_BINGCD_ITERATIONS,
+        }
     }
 
     /// Executes the optimized Binary GCD inner loop.
@@ -352,6 +346,7 @@ mod tests {
         use crate::modular::bingcd::matrix::IntMatrix;
         use crate::modular::bingcd::xgcd::extract_quotients;
         use crate::{Int, Uint, U64};
+
         #[test]
         fn test_extract_quotients_unit() {
             let (lhs_on_gcd, rhs_on_gcd) = extract_quotients(&IntMatrix::<{ U64::LIMBS }>::UNIT);
@@ -383,102 +378,114 @@ mod tests {
 
     mod test_extract_bezout_coefficients {
         use crate::modular::bingcd::matrix::IntMatrix;
-        use crate::modular::bingcd::xgcd::extract_bezout_coefficients_vartime;
+        use crate::modular::bingcd::xgcd::RawBinxgcdOutput;
         use crate::{Int, Uint, I64, U64};
 
         #[test]
         fn test_extract_bezout_coefficients_unit() {
-            let (x, y) = extract_bezout_coefficients_vartime(
-                &Uint::ONE.to_odd().unwrap(),
-                &Uint::ONE.to_odd().unwrap(),
-                &IntMatrix::<{ U64::LIMBS }>::UNIT,
-                0,
-                0,
-            );
+            let output = RawBinxgcdOutput {
+                lhs: Uint::ONE.to_odd().unwrap(),
+                rhs: Uint::ONE.to_odd().unwrap(),
+                gcd: Uint::ONE.to_odd().unwrap(),
+                matrix: IntMatrix::<{ U64::LIMBS }>::UNIT,
+                k: 0,
+                k_upper_bound: 0,
+            };
+            let (x, y) = output.bezout_coefficients();
             assert_eq!(x, Int::ONE);
             assert_eq!(y, Int::ZERO);
         }
 
         #[test]
         fn test_extract_bezout_coefficients_basic() {
-            let (x, y) = extract_bezout_coefficients_vartime(
-                &Uint::ONE.to_odd().unwrap(),
-                &Uint::ONE.to_odd().unwrap(),
-                &IntMatrix::new(
+            let output = RawBinxgcdOutput {
+                lhs: Uint::ONE.to_odd().unwrap(),
+                rhs: Uint::ONE.to_odd().unwrap(),
+                gcd: Uint::ONE.to_odd().unwrap(),
+                matrix: IntMatrix::new(
                     I64::from(2i32),
                     I64::from(3i32),
                     I64::from(4i32),
                     I64::from(5i32),
                 ),
-                0,
-                0,
-            );
+                k: 0,
+                k_upper_bound: 0,
+            };
+            let (x, y) = output.bezout_coefficients();
             assert_eq!(x, Int::from(2i32));
             assert_eq!(y, Int::from(3i32));
 
-            let (x, y) = extract_bezout_coefficients_vartime(
-                &Uint::ONE.to_odd().unwrap(),
-                &Uint::ONE.to_odd().unwrap(),
-                &IntMatrix::new(
+            let output = RawBinxgcdOutput {
+                lhs: Uint::ONE.to_odd().unwrap(),
+                rhs: Uint::ONE.to_odd().unwrap(),
+                gcd: Uint::ONE.to_odd().unwrap(),
+                matrix: IntMatrix::new(
                     I64::from(2i32),
                     I64::from(3i32),
                     I64::from(4i32),
                     I64::from(5i32),
                 ),
-                0,
-                1,
-            );
+                k: 0,
+                k_upper_bound: 1,
+            };
+            let (x, y) = output.bezout_coefficients();
             assert_eq!(x, Int::from(2i32));
             assert_eq!(y, Int::from(3i32));
         }
 
         #[test]
         fn test_extract_bezout_coefficients_removes_doublings_easy() {
-            let (x, y) = extract_bezout_coefficients_vartime(
-                &Uint::ONE.to_odd().unwrap(),
-                &Uint::ONE.to_odd().unwrap(),
-                &IntMatrix::new(
+            let output = RawBinxgcdOutput {
+                lhs: Uint::ONE.to_odd().unwrap(),
+                rhs: Uint::ONE.to_odd().unwrap(),
+                gcd: Uint::ONE.to_odd().unwrap(),
+                matrix: IntMatrix::new(
                     I64::from(2i32),
                     I64::from(6i32),
                     I64::from(4i32),
                     I64::from(5i32),
                 ),
-                1,
-                1,
-            );
+                k: 1,
+                k_upper_bound: 1,
+            };
+            let (x, y) = output.bezout_coefficients();
             assert_eq!(x, Int::ONE);
             assert_eq!(y, Int::from(3i32));
 
-            let (x, y) = extract_bezout_coefficients_vartime(
-                &Uint::ONE.to_odd().unwrap(),
-                &Uint::ONE.to_odd().unwrap(),
-                &IntMatrix::new(
+            let output = RawBinxgcdOutput {
+                lhs: Uint::ONE.to_odd().unwrap(),
+                rhs: Uint::ONE.to_odd().unwrap(),
+                gcd: Uint::ONE.to_odd().unwrap(),
+                matrix: IntMatrix::new(
                     I64::from(120i32),
                     I64::from(64i32),
                     I64::from(4i32),
                     I64::from(5i32),
                 ),
-                5,
-                6,
-            );
+                k: 5,
+                k_upper_bound: 6,
+            };
+            let (x, y) = output.bezout_coefficients();
             assert_eq!(x, Int::from(4i32));
             assert_eq!(y, Int::from(2i32));
         }
 
         #[test]
         fn test_extract_bezout_coefficients_removes_doublings_for_odd_numbers() {
-            let (x, y) = extract_bezout_coefficients_vartime(
-                &Uint::from(7u32).to_odd().unwrap(),
-                &Uint::from(5u32).to_odd().unwrap(),
-                &IntMatrix::new(
+            let output = RawBinxgcdOutput {
+                lhs: Uint::from(7u32).to_odd().unwrap(),
+                rhs: Uint::from(5u32).to_odd().unwrap(),
+                gcd: Uint::ONE.to_odd().unwrap(),
+                matrix: IntMatrix::new(
                     I64::from(2i32),
                     I64::from(6i32),
                     I64::from(4i32),
                     I64::from(5i32),
                 ),
-                3,
-                7,
-            );
+                k: 3,
+                k_upper_bound: 7,
+            };
+            let (x, y) = output.bezout_coefficients();
             assert_eq!(x, Int::from(4i32));
             assert_eq!(y, Int::from(6i32));
         }
@@ -627,11 +634,12 @@ mod tests {
             Uint<LIMBS>:
                 Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
-            let (binxgcd, x, y) = lhs
+            let output = lhs
                 .to_odd()
                 .unwrap()
                 .classic_binxgcd(&rhs.to_odd().unwrap());
-            test_xgcd(lhs, rhs, binxgcd.get(), x, y);
+            let (x, y) = output.bezout_coefficients();
+            test_xgcd(lhs, rhs, output.gcd.get(), x, y);
         }
 
         fn classic_binxgcd_tests<const LIMBS: usize, const DOUBLE: usize>()
@@ -684,11 +692,12 @@ mod tests {
             Uint<LIMBS>:
                 Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
-            let (binxgcd, x, y) = lhs
+            let output = lhs
                 .to_odd()
                 .unwrap()
                 .optimized_binxgcd(&rhs.to_odd().unwrap());
-            test_xgcd(lhs, rhs, binxgcd.get(), x, y);
+            let (x, y) = output.bezout_coefficients();
+            test_xgcd(lhs, rhs, output.gcd.get(), x, y);
         }
 
         fn optimized_binxgcd_tests<const LIMBS: usize, const DOUBLE: usize>()
