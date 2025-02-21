@@ -14,10 +14,10 @@ pub(crate) struct RawBinxgcdOutput<const LIMBS: usize> {
 
 impl<const LIMBS: usize> RawBinxgcdOutput<LIMBS> {
     /// Process raw output, constructing an OddBinXgcdOutput object.
-    const fn process(&self) -> OddBinxgcdOutput<LIMBS> {
+    const fn process(&self) -> OddBinxgcdUintOutput<LIMBS> {
         let (x, y) = self.derive_bezout_coefficients();
         let (lhs_on_gcd, rhs_on_gcd) = self.extract_quotients();
-        OddBinxgcdOutput {
+        OddBinxgcdUintOutput {
             lhs: self.lhs,
             rhs: self.rhs,
             gcd: self.gcd,
@@ -57,7 +57,7 @@ impl<const LIMBS: usize> RawBinxgcdOutput<LIMBS> {
 }
 
 /// Container for the processed output of the Binary XGCD algorithm.
-pub struct OddBinxgcdOutput<const LIMBS: usize> {
+pub struct OddBinxgcdUintOutput<const LIMBS: usize> {
     lhs: Odd<Uint<LIMBS>>,
     rhs: Odd<Uint<LIMBS>>,
     pub(crate) gcd: Odd<Uint<LIMBS>>,
@@ -67,7 +67,7 @@ pub struct OddBinxgcdOutput<const LIMBS: usize> {
     rhs_on_gcd: Uint<LIMBS>,
 }
 
-impl<const LIMBS: usize> OddBinxgcdOutput<LIMBS> {
+impl<const LIMBS: usize> OddBinxgcdUintOutput<LIMBS> {
     /// Obtain a pair of minimal Bézout coefficients.
     pub(crate) const fn minimal_bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
         // Attempt to reduce x and y mod rhs_on_gcd and lhs_on_gcd, respectively.
@@ -90,6 +90,11 @@ impl<const LIMBS: usize> OddBinxgcdOutput<LIMBS> {
     const fn bezout_coefficients_as_mut(&mut self) -> (&mut Int<LIMBS>, &mut Int<LIMBS>) {
         (&mut self.x, &mut self.y)
     }
+
+    /// Obtain a copy of the quotients `lhs/gcd` and `rhs/gcd`.
+    pub(crate) const fn quotients(&self) -> (Uint<LIMBS>, Uint<LIMBS>) {
+        (self.lhs_on_gcd, self.rhs_on_gcd)
+    }
 }
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
@@ -101,7 +106,10 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
     /// msb is **not** set. May panic otherwise.
-    pub(crate) const fn binxgcd_nz(&self, rhs: &NonZero<Uint<LIMBS>>) -> OddBinxgcdOutput<LIMBS> {
+    pub(crate) const fn binxgcd_nz(
+        &self,
+        rhs: &NonZero<Uint<LIMBS>>,
+    ) -> OddBinxgcdUintOutput<LIMBS> {
         // Note that for the `binxgcd` subroutine, `rhs` needs to be odd.
         //
         // We use the fact that gcd(a, b) = gcd(a, |a-b|) to
@@ -406,9 +414,9 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
 #[cfg(test)]
 mod tests {
-    use core::ops::Div;
-    use crate::modular::bingcd::xgcd::OddBinxgcdOutput;
+    use crate::modular::bingcd::xgcd::OddBinxgcdUintOutput;
     use crate::{ConcatMixed, Gcd, Uint};
+    use core::ops::Div;
 
     mod test_extract_quotients {
         use crate::modular::bingcd::matrix::IntMatrix;
@@ -630,7 +638,7 @@ mod tests {
     fn test_xgcd<const LIMBS: usize, const DOUBLE: usize>(
         lhs: Uint<LIMBS>,
         rhs: Uint<LIMBS>,
-        output: OddBinxgcdOutput<LIMBS>,
+        output: OddBinxgcdUintOutput<LIMBS>,
     ) where
         Uint<LIMBS>:
             Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,

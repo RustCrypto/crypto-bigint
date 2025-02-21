@@ -5,6 +5,26 @@
 use crate::modular::bingcd::tools::const_min;
 use crate::{ConstChoice, Int, NonZero, Odd, Uint};
 
+pub struct BinXgcdOutput<const LIMBS: usize> {
+    gcd: Odd<Uint<LIMBS>>,
+    x: Int<LIMBS>,
+    y: Int<LIMBS>,
+    lhs_on_gcd: Int<LIMBS>,
+    rhs_on_gcd: Int<LIMBS>,
+}
+
+impl<const LIMBS: usize> BinXgcdOutput<LIMBS> {
+    /// Return the quotients `lhs.gcd` and `rhs/gcd`.
+    pub const fn quotients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
+        (self.lhs_on_gcd, self.rhs_on_gcd)
+    }
+
+    /// Return the Bézout coefficients `x` and `y` s.t. `lhs * x + rhs * y = gcd`.
+    pub const fn bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
+        (self.x, self.y)
+    }
+}
+
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute the gcd of `self` and `rhs` leveraging the Binary GCD algorithm.
     pub const fn bingcd(&self, rhs: &Self) -> Uint<LIMBS> {
@@ -69,7 +89,9 @@ impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
         let lhs = lhs.to_odd().expect("odd by construction");
 
         let rhs = rhs.to_nz().expect("non-zero by construction");
-        let (gcd, mut x, mut y) = lhs.binxgcd(&rhs);
+        let output = lhs.binxgcd(&rhs);
+        let gcd = output.gcd;
+        let (mut x, mut y) = output.bezout_coefficients();
 
         Int::conditional_swap(&mut x, &mut y, swap);
 
@@ -93,18 +115,27 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
     /// Execute the Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub const fn binxgcd(
-        &self,
-        rhs: &NonZero<Int<LIMBS>>,
-    ) -> (Odd<Uint<LIMBS>>, Int<LIMBS>, Int<LIMBS>) {
+    pub const fn binxgcd(&self, rhs: &NonZero<Int<LIMBS>>) -> BinXgcdOutput<LIMBS> {
         let (abs_lhs, sgn_lhs) = self.abs_sign();
         let (abs_rhs, sgn_rhs) = rhs.abs_sign();
 
         let output = abs_lhs.binxgcd_nz(&abs_rhs);
-        let gcd = output.gcd;
-        let (x, y) = output.bezout_coefficients();
 
-        (gcd, x.wrapping_neg_if(sgn_lhs), y.wrapping_neg_if(sgn_rhs))
+        let (mut x, mut y) = output.bezout_coefficients();
+        x = x.wrapping_neg_if(sgn_lhs);
+        y = y.wrapping_neg_if(sgn_rhs);
+
+        let (abs_lhs_on_gcd, abs_rhs_on_gcd) = output.quotients();
+        let lhs_on_gcd = Int::new_from_abs_sign(abs_lhs_on_gcd, sgn_lhs).expect("no overflow");
+        let rhs_on_gcd = Int::new_from_abs_sign(abs_rhs_on_gcd, sgn_rhs).expect("no overflow");
+
+        BinXgcdOutput {
+            gcd: output.gcd,
+            x,
+            y,
+            lhs_on_gcd,
+            rhs_on_gcd,
+        }
     }
 }
 
@@ -262,23 +293,31 @@ mod test {
 
     mod test_odd_int_binxgcd {
         use crate::{
-            ConcatMixed, Int, Odd, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512,
-            U64, U768, U8192,
+            ConcatMixed, Int, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U64,
+            U768, U8192,
         };
         use rand_core::OsRng;
 
         fn odd_int_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
-            lhs: Odd<Int<LIMBS>>,
-            rhs: Odd<Int<LIMBS>>,
+            lhs: Int<LIMBS>,
+            rhs: Int<LIMBS>,
         ) where
             Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
             let gcd = lhs.bingcd(&rhs);
-            let (xgcd, x, y) = lhs.binxgcd(&rhs.as_ref().to_nz().unwrap());
-            assert_eq!(gcd.to_odd().unwrap(), xgcd);
+            let output = lhs.to_odd().unwrap().binxgcd(&rhs.to_nz().unwrap());
+            assert_eq!(gcd.to_odd().unwrap(), output.gcd);
+
+            // Test quotients
+            let (lhs_on_gcd, rhs_on_gcd) = output.quotients();
+            assert_eq!(lhs_on_gcd, lhs.div_uint(&gcd.to_nz().unwrap()));
+            assert_eq!(rhs_on_gcd, rhs.div_uint(&gcd.to_nz().unwrap()));
+
+            // Test the Bezout coefficients
+            let (x, y) = output.bezout_coefficients();
             assert_eq!(
                 x.widening_mul(&lhs).wrapping_add(&y.widening_mul(&rhs)),
-                xgcd.resize().as_int()
+                gcd.resize().as_int()
             );
         }
 
@@ -287,22 +326,22 @@ mod test {
             Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
             let neg_max = Int::MAX.wrapping_neg();
-            odd_int_binxgcd_test(neg_max.to_odd().unwrap(), neg_max.to_odd().unwrap());
-            odd_int_binxgcd_test(neg_max.to_odd().unwrap(), Int::MINUS_ONE.to_odd().unwrap());
-            odd_int_binxgcd_test(neg_max.to_odd().unwrap(), Int::ONE.to_odd().unwrap());
-            odd_int_binxgcd_test(neg_max.to_odd().unwrap(), Int::MAX.to_odd().unwrap());
-            odd_int_binxgcd_test(Int::ONE.to_odd().unwrap(), neg_max.to_odd().unwrap());
-            odd_int_binxgcd_test(Int::ONE.to_odd().unwrap(), Int::MINUS_ONE.to_odd().unwrap());
-            odd_int_binxgcd_test(Int::ONE.to_odd().unwrap(), Int::ONE.to_odd().unwrap());
-            odd_int_binxgcd_test(Int::ONE.to_odd().unwrap(), Int::MAX.to_odd().unwrap());
-            odd_int_binxgcd_test(Int::MAX.to_odd().unwrap(), neg_max.to_odd().unwrap());
-            odd_int_binxgcd_test(Int::MAX.to_odd().unwrap(), Int::MINUS_ONE.to_odd().unwrap());
-            odd_int_binxgcd_test(Int::MAX.to_odd().unwrap(), Int::ONE.to_odd().unwrap());
-            odd_int_binxgcd_test(Int::MAX.to_odd().unwrap(), Int::MAX.to_odd().unwrap());
+            odd_int_binxgcd_test(neg_max, neg_max);
+            odd_int_binxgcd_test(neg_max, Int::MINUS_ONE);
+            odd_int_binxgcd_test(neg_max, Int::ONE);
+            odd_int_binxgcd_test(neg_max, Int::MAX);
+            odd_int_binxgcd_test(Int::ONE, neg_max);
+            odd_int_binxgcd_test(Int::ONE, Int::MINUS_ONE);
+            odd_int_binxgcd_test(Int::ONE, Int::ONE);
+            odd_int_binxgcd_test(Int::ONE, Int::MAX);
+            odd_int_binxgcd_test(Int::MAX, neg_max);
+            odd_int_binxgcd_test(Int::MAX, Int::MINUS_ONE);
+            odd_int_binxgcd_test(Int::MAX, Int::ONE);
+            odd_int_binxgcd_test(Int::MAX, Int::MAX);
 
             for _ in 0..100 {
-                let x = Odd::<Int<LIMBS>>::random(&mut OsRng);
-                let y = Odd::<Int<LIMBS>>::random(&mut OsRng);
+                let x = Int::<LIMBS>::random(&mut OsRng).bitor(&Int::ONE);
+                let y = Int::<LIMBS>::random(&mut OsRng);
                 odd_int_binxgcd_test(x, y);
             }
         }
