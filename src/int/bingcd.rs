@@ -34,6 +34,31 @@ impl<const LIMBS: usize> BinXgcdOutput<LIMBS> {
     pub const fn bezout_coefficients_as_mut(&mut self) -> (&mut Int<LIMBS>, &mut Int<LIMBS>) {
         (&mut self.x, &mut self.y)
     }
+
+    /// Obtain a pair of minimal Bézout coefficients.
+    pub const fn minimal_bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
+        // Attempt to reduce x and y mod rhs_on_gcd and lhs_on_gcd, respectively.
+        let rhs_on_gcd_is_zero = self.rhs_on_gcd.is_nonzero().not();
+        let lhs_on_gcd_is_zero = self.lhs_on_gcd.is_nonzero().not();
+        let nz_rhs_on_gcd = Int::select(&self.rhs_on_gcd, &Int::ONE, rhs_on_gcd_is_zero);
+        let nz_lhs_on_gcd = Int::select(&self.lhs_on_gcd, &Int::ONE, lhs_on_gcd_is_zero);
+        let mut minimal_x = self.x.rem(&nz_rhs_on_gcd.to_nz().expect("is nz"));
+        let mut minimal_y = self.y.rem(&nz_lhs_on_gcd.to_nz().expect("is nz"));
+
+        // This trick only needs to be applied whenever lhs/rhs > 1.
+        minimal_x = Int::select(
+            &self.x,
+            &minimal_x,
+            Uint::gt(&self.rhs_on_gcd.abs(), &Uint::ONE),
+        );
+        minimal_y = Int::select(
+            &self.y,
+            &minimal_y,
+            Uint::gt(&self.lhs_on_gcd.abs(), &Uint::ONE),
+        );
+
+        (minimal_x, minimal_y)
+    }
 }
 
 impl<const LIMBS: usize> Int<LIMBS> {
@@ -185,6 +210,17 @@ mod test {
 
         // Test the Bezout coefficients
         let (x, y) = output.bezout_coefficients();
+        assert_eq!(
+            x.widening_mul(&lhs).wrapping_add(&y.widening_mul(&rhs)),
+            gcd.resize().as_int()
+        );
+
+        // Test the minimal Bezout coefficients on minimality
+        let (x, y) = output.minimal_bezout_coefficients();
+        assert!(x.abs() <= rhs_on_gcd.abs() || rhs_on_gcd.is_zero());
+        assert!(y.abs() <= lhs_on_gcd.abs() || lhs_on_gcd.is_zero());
+
+        // Test the minimal Bezout coefficients for correctness
         assert_eq!(
             x.widening_mul(&lhs).wrapping_add(&y.widening_mul(&rhs)),
             gcd.resize().as_int()
