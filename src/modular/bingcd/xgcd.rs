@@ -16,12 +16,15 @@ impl<const LIMBS: usize> RawBinxgcdOutput<LIMBS> {
     /// Process raw output, constructing an OddBinXgcdOutput object.
     const fn process(&self) -> OddBinxgcdOutput<LIMBS> {
         let (x, y) = self.derive_bezout_coefficients();
+        let (lhs_on_gcd, rhs_on_gcd) = self.extract_quotients();
         OddBinxgcdOutput {
             lhs: self.lhs,
             rhs: self.rhs,
             gcd: self.gcd,
             x,
             y,
+            lhs_on_gcd,
+            rhs_on_gcd,
         }
     }
 
@@ -44,16 +47,13 @@ impl<const LIMBS: usize> RawBinxgcdOutput<LIMBS> {
     const fn quotients_as_mut(&mut self) -> (&mut Int<LIMBS>, &mut Int<LIMBS>) {
         (&mut self.matrix.m11, &mut self.matrix.m10)
     }
-}
 
-/// Extract the quotients `lhs/gcd` and `rhs/gcd` from `matrix`, where it is assumed that
-/// `matrix * (lhs, rhs) = (gcd * 2^k, 0)` for some `k >= 0`.
-const fn extract_quotients<const LIMBS: usize>(
-    matrix: &IntMatrix<LIMBS>,
-) -> (Uint<LIMBS>, Uint<LIMBS>) {
-    let lhs_on_gcd = matrix.m11.abs();
-    let rhs_on_gcd = matrix.m10.abs();
-    (lhs_on_gcd, rhs_on_gcd)
+    /// Extract the quotients `lhs/gcd` and `rhs/gcd` from `matrix`.
+    const fn extract_quotients(&self) -> (Uint<LIMBS>, Uint<LIMBS>) {
+        let lhs_on_gcd = self.matrix.m11.abs();
+        let rhs_on_gcd = self.matrix.m10.abs();
+        (lhs_on_gcd, rhs_on_gcd)
+    }
 }
 
 /// Container for the processed output of the Binary XGCD algorithm.
@@ -63,6 +63,8 @@ pub struct OddBinxgcdOutput<const LIMBS: usize> {
     pub(crate) gcd: Odd<Uint<LIMBS>>,
     x: Int<LIMBS>,
     y: Int<LIMBS>,
+    lhs_on_gcd: Uint<LIMBS>,
+    rhs_on_gcd: Uint<LIMBS>,
 }
 
 impl<const LIMBS: usize> OddBinxgcdOutput<LIMBS> {
@@ -99,8 +101,25 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             .to_odd()
             .expect("rhs is odd by construction");
 
-        let mut output = self.binxgcd(&rhs_).process();
-        let (x, y) = output.bezout_coefficients_as_mut();
+        let mut output = self.binxgcd(&rhs_);
+        let (u, v) = output.quotients_as_mut();
+
+        // At this point, we have one of the following three situations:
+        // i.   0 = lhs * v + (rhs - lhs) * u, if rhs is even and rhs > lhs
+        // ii.  0 = lhs * v + (lhs - rhs) * u, if rhs is even and rhs < lhs
+        // iii. 0 = lhs * v + rhs * u, if rhs is odd
+
+        // We can rearrange these terms to get the quotients to (self, rhs) as follows:
+        // i.   gcd = lhs * (v - u) + rhs * u, if rhs is even and rhs > lhs
+        // ii.  gcd = lhs * (v + u) - u * rhs, if rhs is even and rhs < lhs
+        // iii. gcd = lhs * v + rhs * u, if rhs is odd
+
+        *v = Int::select(&v, &v.wrapping_sub(&u), rhs_is_even.and(rhs_gt_lhs));
+        *v = Int::select(&v, &v.wrapping_add(&u), rhs_is_even.and(rhs_gt_lhs.not()));
+        *u = u.wrapping_neg_if(rhs_is_even.and(rhs_gt_lhs.not()));
+
+        let mut processed_output = output.process();
+        let (x, y) = processed_output.bezout_coefficients_as_mut();
 
         // At this point, we have one of the following three situations:
         // i.   gcd = lhs * x + (rhs - lhs) * y, if rhs is even and rhs > lhs
@@ -116,7 +135,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         *x = Int::select(&x, &x.wrapping_add(&y), rhs_is_even.and(rhs_gt_lhs.not()));
         *y = y.wrapping_neg_if(rhs_is_even.and(rhs_gt_lhs.not()));
 
-        output
+        processed_output
     }
 
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
@@ -372,38 +391,55 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
 #[cfg(test)]
 mod tests {
+    use core::ops::Div;
     use crate::modular::bingcd::xgcd::OddBinxgcdOutput;
     use crate::{ConcatMixed, Gcd, Uint};
 
     mod test_extract_quotients {
         use crate::modular::bingcd::matrix::IntMatrix;
-        use crate::modular::bingcd::xgcd::extract_quotients;
+        use crate::modular::bingcd::xgcd::RawBinxgcdOutput;
         use crate::{Int, Uint, U64};
+
+        fn raw_binxgcdoutput_setup<const LIMBS: usize>(
+            matrix: IntMatrix<LIMBS>,
+        ) -> RawBinxgcdOutput<LIMBS> {
+            RawBinxgcdOutput {
+                lhs: Uint::<LIMBS>::ONE.to_odd().unwrap(),
+                rhs: Uint::<LIMBS>::ONE.to_odd().unwrap(),
+                gcd: Uint::<LIMBS>::ONE.to_odd().unwrap(),
+                matrix,
+                k: 0,
+                k_upper_bound: 0,
+            }
+        }
 
         #[test]
         fn test_extract_quotients_unit() {
-            let (lhs_on_gcd, rhs_on_gcd) = extract_quotients(&IntMatrix::<{ U64::LIMBS }>::UNIT);
+            let output = raw_binxgcdoutput_setup(IntMatrix::<{ U64::LIMBS }>::UNIT);
+            let (lhs_on_gcd, rhs_on_gcd) = output.extract_quotients();
             assert_eq!(lhs_on_gcd, Uint::ONE);
             assert_eq!(rhs_on_gcd, Uint::ZERO);
         }
 
         #[test]
         fn test_extract_quotients_basic() {
-            let (lhs_on_gcd, rhs_on_gcd) = extract_quotients(&IntMatrix::<{ U64::LIMBS }>::new(
+            let output = raw_binxgcdoutput_setup(IntMatrix::<{ U64::LIMBS }>::new(
                 Int::ZERO,
                 Int::ZERO,
                 Int::from(5i32),
                 Int::from(-7i32),
             ));
+            let (lhs_on_gcd, rhs_on_gcd) = output.extract_quotients();
             assert_eq!(lhs_on_gcd, Uint::from(7u32));
             assert_eq!(rhs_on_gcd, Uint::from(5u32));
 
-            let (lhs_on_gcd, rhs_on_gcd) = extract_quotients(&IntMatrix::<{ U64::LIMBS }>::new(
+            let output = raw_binxgcdoutput_setup(IntMatrix::<{ U64::LIMBS }>::new(
                 Int::ZERO,
                 Int::ZERO,
                 Int::from(-7i32),
                 Int::from(5i32),
             ));
+            let (lhs_on_gcd, rhs_on_gcd) = output.extract_quotients();
             assert_eq!(lhs_on_gcd, Uint::from(5u32));
             assert_eq!(rhs_on_gcd, Uint::from(7u32));
         }
@@ -586,6 +622,10 @@ mod tests {
     {
         // Test the gcd
         assert_eq!(lhs.gcd(&rhs), output.gcd);
+
+        // Test the quotients
+        assert_eq!(output.lhs_on_gcd, lhs.div(output.gcd.as_nz_ref()));
+        assert_eq!(output.rhs_on_gcd, rhs.div(output.gcd.as_nz_ref()));
 
         // Test the Bezout coefficients
         let (x, y) = output.bezout_coefficients();
