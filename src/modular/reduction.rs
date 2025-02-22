@@ -6,6 +6,7 @@ use crate::{Limb, Odd, Uint};
 use {crate::BoxedUint, subtle::Choice};
 
 /// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
+#[inline(always)]
 const fn montgomery_reduction_inner(
     upper: &mut [Limb],
     lower: &mut [Limb],

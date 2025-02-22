@@ -17,6 +17,7 @@ pub(crate) mod karatsuba;
 /// schools.
 ///
 /// The most efficient method for small numbers.
+#[inline(always)]
 const fn schoolbook_multiplication(lhs: &[Limb], rhs: &[Limb], lo: &mut [Limb], hi: &mut [Limb]) {
     if lhs.len() != lo.len() || rhs.len() != hi.len() {
         panic!("schoolbook multiplication length mismatch");
@@ -52,6 +53,7 @@ const fn schoolbook_multiplication(lhs: &[Limb], rhs: &[Limb], lo: &mut [Limb], 
 /// Schoolbook method of squaring.
 ///
 /// Like schoolbook multiplication, but only considering half of the multiplication grid.
+#[inline(always)]
 pub(crate) const fn schoolbook_squaring(limbs: &[Limb], lo: &mut [Limb], hi: &mut [Limb]) {
     // Translated from https://github.com/ucbrise/jedi-pairing/blob/c4bf151/include/core/bigint.hpp#L410
     //
