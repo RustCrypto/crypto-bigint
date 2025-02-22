@@ -299,7 +299,15 @@ pub trait Random: Sized {
     /// Generate a random value.
     ///
     /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
-    fn random<R: RngCore + ?Sized>(rng: &mut R) -> Self;
+    fn random<R: RngCore + ?Sized>(rng: &mut R) -> Self {
+        let Ok(out) = Self::try_random(rng);
+        out
+    }
+
+    /// Generate a random value.
+    ///
+    /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
+    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error>;
 }
 
 /// Possible errors of the methods in [`RandomBits`] trait.
@@ -419,7 +427,24 @@ pub trait RandomMod: Sized + Zero {
     /// example, it implements `CryptoRng`), then this is guaranteed not to
     /// leak anything about the output value aside from it being less than
     /// `modulus`.
-    fn random_mod<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self;
+    fn random_mod<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
+        let Ok(out) = Self::try_random_mod(rng, modulus);
+        out
+    }
+
+    /// Generate a random number which is less than a given `modulus`.
+    ///
+    /// This uses rejection sampling.
+    ///
+    /// As a result, it runs in variable time that depends in part on
+    /// `modulus`. If the generator `rng` is cryptographically secure (for
+    /// example, it implements `CryptoRng`), then this is guaranteed not to
+    /// leak anything about the output value aside from it being less than
+    /// `modulus`.
+    fn try_random_mod<R: TryRngCore + ?Sized>(
+        rng: &mut R,
+        modulus: &NonZero<Self>,
+    ) -> Result<Self, R::Error>;
 }
 
 /// Compute `self + rhs mod p`.

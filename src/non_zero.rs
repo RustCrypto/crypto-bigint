@@ -12,7 +12,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use crate::{ArrayEncoding, ByteArray};
 
 #[cfg(feature = "rand_core")]
-use {crate::Random, rand_core::RngCore};
+use {crate::Random, rand_core::TryRngCore};
 
 #[cfg(feature = "serde")]
 use serdect::serde::{
@@ -246,10 +246,10 @@ where
     /// As a result, it runs in variable time. If the generator `rng` is
     /// cryptographically secure (for example, it implements `CryptoRng`),
     /// then this is guaranteed not to leak anything about the output value.
-    fn random<R: RngCore + ?Sized>(mut rng: &mut R) -> Self {
+    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
         loop {
-            if let Some(result) = Self::new(T::random(&mut rng)).into() {
-                break result;
+            if let Some(result) = Self::new(T::try_random(rng)?).into() {
+                break Ok(result);
             }
         }
     }

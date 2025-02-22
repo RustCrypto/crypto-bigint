@@ -1,6 +1,6 @@
 //! Random number generator support
 
-use rand_core::{RngCore, TryRngCore};
+use rand_core::TryRngCore;
 
 use crate::{Int, Random, RandomBits, RandomBitsError};
 
@@ -8,8 +8,8 @@ use super::Uint;
 
 impl<const LIMBS: usize> Random for Int<LIMBS> {
     /// Generate a cryptographically secure random [`Int`].
-    fn random<R: RngCore + ?Sized>(rng: &mut R) -> Self {
-        Self(Uint::random(rng))
+    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+        Ok(Self(Uint::try_random(rng)?))
     }
 }
 

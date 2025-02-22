@@ -8,10 +8,10 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use crate::BoxedUint;
 
 #[cfg(feature = "rand_core")]
-use {crate::Random, rand_core::RngCore};
+use crate::{Random, rand_core::TryRngCore};
 
 #[cfg(all(feature = "alloc", feature = "rand_core"))]
-use {crate::RandomBits, rand_core::TryRngCore};
+use crate::RandomBits;
 
 #[cfg(feature = "serde")]
 use crate::Zero;
@@ -153,10 +153,10 @@ impl PartialOrd<Odd<BoxedUint>> for BoxedUint {
 #[cfg(feature = "rand_core")]
 impl<const LIMBS: usize> Random for Odd<Uint<LIMBS>> {
     /// Generate a random `Odd<Uint<T>>`.
-    fn random<R: RngCore + ?Sized>(rng: &mut R) -> Self {
-        let mut ret = Uint::random(rng);
+    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+        let mut ret = Uint::try_random(rng)?;
         ret.limbs[0] |= Limb::ONE;
-        Odd(ret)
+        Ok(Odd(ret))
     }
 }
 

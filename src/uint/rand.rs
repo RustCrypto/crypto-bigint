@@ -6,14 +6,14 @@ use rand_core::{RngCore, TryRngCore};
 use subtle::ConstantTimeLess;
 
 impl<const LIMBS: usize> Random for Uint<LIMBS> {
-    fn random<R: RngCore + ?Sized>(mut rng: &mut R) -> Self {
+    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
         let mut limbs = [Limb::ZERO; LIMBS];
 
         for limb in &mut limbs {
-            *limb = Limb::random(&mut rng)
+            *limb = Limb::try_random(rng)?
         }
 
-        limbs.into()
+        Ok(limbs.into())
     }
 }
 
@@ -83,35 +83,45 @@ impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
 impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
     fn random_mod<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
         let mut n = Self::ZERO;
-        random_mod_core(rng, &mut n, modulus, modulus.bits_vartime());
+        let Ok(()) = random_mod_core(rng, &mut n, modulus, modulus.bits_vartime());
         n
+    }
+
+    fn try_random_mod<R: TryRngCore + ?Sized>(
+        rng: &mut R,
+        modulus: &NonZero<Self>,
+    ) -> Result<Self, R::Error> {
+        let mut n = Self::ZERO;
+        random_mod_core(rng, &mut n, modulus, modulus.bits_vartime())?;
+        Ok(n)
     }
 }
 
 /// Generic implementation of `random_mod` which can be shared with `BoxedUint`.
 // TODO(tarcieri): obtain `n_bits` via a trait like `Integer`
-pub(super) fn random_mod_core<T, R: RngCore + ?Sized>(
+pub(super) fn random_mod_core<T, R: TryRngCore + ?Sized>(
     rng: &mut R,
     n: &mut T,
     modulus: &NonZero<T>,
     n_bits: u32,
-) where
+) -> Result<(), R::Error>
+where
     T: AsMut<[Limb]> + AsRef<[Limb]> + ConstantTimeLess + Zero,
 {
     #[cfg(target_pointer_width = "64")]
-    let mut next_word = || rng.next_u64();
+    let mut next_word = || rng.try_next_u64();
     #[cfg(target_pointer_width = "32")]
-    let mut next_word = || rng.next_u32();
+    let mut next_word = || rng.try_next_u32();
 
     let n_limbs = n_bits.div_ceil(Limb::BITS) as usize;
 
     let hi_word_modulus = modulus.as_ref().as_ref()[n_limbs - 1].0;
     let mask = !0 >> hi_word_modulus.leading_zeros();
-    let mut hi_word = next_word() & mask;
+    let mut hi_word = next_word()? & mask;
 
     loop {
         while hi_word > hi_word_modulus {
-            hi_word = next_word() & mask;
+            hi_word = next_word()? & mask;
         }
         // Set high limb
         n.as_mut()[n_limbs - 1] = Limb::from_le_bytes(hi_word.to_le_bytes());
@@ -120,15 +130,16 @@ pub(super) fn random_mod_core<T, R: RngCore + ?Sized>(
             // Need to deserialize from little-endian to make sure that two 32-bit limbs
             // deserialized sequentially are equal to one 64-bit limb produced from the same
             // byte stream.
-            n.as_mut()[i] = Limb::from_le_bytes(next_word().to_le_bytes());
+            n.as_mut()[i] = Limb::from_le_bytes(next_word()?.to_le_bytes());
         }
         // If the high limb is equal to the modulus' high limb, it's still possible
         // that the full uint is too big so we check and repeat if it is.
         if n.ct_lt(modulus).into() {
             break;
         }
-        hi_word = next_word() & mask;
+        hi_word = next_word()? & mask;
     }
+    Ok(())
 }
 
 #[cfg(test)]
