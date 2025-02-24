@@ -58,8 +58,8 @@ dual licensed as above, without any additional terms or conditions.
 [crate-link]: https://crates.io/crates/crypto-bigint
 [docs-image]: https://docs.rs/crypto-bigint/badge.svg
 [docs-link]: https://docs.rs/crypto-bigint/
-[build-image]: https://github.com/RustCrypto/crypto-bigint/actions/workflows/crypto-bigint.yml/badge.svg
-[build-link]: https://github.com/RustCrypto/crypto-bigint/actions/workflows/crypto-bigint.yml
+[build-image]: https://github.com/RustCrypto/crypto-bigint/actions/workflows/crypto-bigint.yml/badge.svg?branch=master
+[build-link]: https://github.com/RustCrypto/crypto-bigint/actions/workflows/crypto-bigint.yml?query=branch:master
 [license-image]: https://img.shields.io/badge/license-Apache2.0/MIT-blue.svg
 [rustc-image]: https://img.shields.io/badge/rustc-1.85+-blue.svg
 [chat-image]: https://img.shields.io/badge/zulip-join_chat-blue.svg
