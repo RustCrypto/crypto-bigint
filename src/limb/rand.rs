@@ -24,7 +24,7 @@ impl RandomMod for Limb {
         let mut bytes = <Self as Encoding>::Repr::default();
 
         let n_bits = modulus.bits() as usize;
-        let n_bytes = (n_bits + 7) / 8;
+        let n_bytes = n_bits.div_ceil(8);
         let mask = 0xffu8 >> (8 * n_bytes - n_bits);
 
         loop {

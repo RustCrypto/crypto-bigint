@@ -268,6 +268,7 @@ mod tests {
     }
 
     #[cfg(feature = "serde")]
+    #[allow(clippy::unwrap_used)]
     mod serde_tests {
         use crate::{Odd, U64, U128};
         use bincode::ErrorKind;

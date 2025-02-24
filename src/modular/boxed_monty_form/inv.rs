@@ -100,6 +100,7 @@ impl fmt::Debug for BoxedMontyFormInverter {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use crate::{
         BoxedUint,

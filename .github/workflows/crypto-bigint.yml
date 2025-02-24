@@ -142,7 +142,7 @@ jobs:
         with:
           toolchain: stable
           components: clippy
-      - run: cargo clippy --all --all-features -- -D warnings
+      - run: cargo clippy --all-targets --all-features -- -D warnings
 
   rustfmt:
     runs-on: ubuntu-latest
