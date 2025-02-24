@@ -203,7 +203,6 @@ impl ShrVartime for BoxedUint {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use super::BoxedUint;
 

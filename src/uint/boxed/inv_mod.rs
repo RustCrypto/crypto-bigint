@@ -105,7 +105,6 @@ impl PrecomputeInverterWithAdjuster<BoxedUint> for Odd<BoxedUint> {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use super::BoxedUint;
     use hex_literal::hex;

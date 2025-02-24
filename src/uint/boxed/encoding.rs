@@ -216,7 +216,6 @@ impl encoding::DecodeByLimb for VecDecodeByLimb {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use super::{BoxedUint, DecodeError};
     use crate::Limb;

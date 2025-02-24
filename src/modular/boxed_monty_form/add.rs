@@ -71,7 +71,6 @@ impl AddAssign<BoxedMontyForm> for BoxedMontyForm {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use crate::{
         BoxedUint,

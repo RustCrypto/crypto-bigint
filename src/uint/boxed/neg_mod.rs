@@ -37,7 +37,6 @@ impl NegMod for BoxedUint {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
     use crate::BoxedUint;
     use hex_literal::hex;
