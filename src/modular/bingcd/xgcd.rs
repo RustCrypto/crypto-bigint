@@ -13,7 +13,7 @@ pub(crate) struct RawBinxgcdOutput<const LIMBS: usize> {
 }
 
 impl<const LIMBS: usize> RawBinxgcdOutput<LIMBS> {
-    /// Process raw output, constructing an OddBinXgcdOutput object.
+    /// Process raw output, constructing an [OddBinxgcdUintOutput] object.
     const fn process(&self) -> OddBinxgcdUintOutput<LIMBS> {
         let (x, y) = self.derive_bezout_coefficients();
         let (lhs_on_gcd, rhs_on_gcd) = self.extract_quotients();
