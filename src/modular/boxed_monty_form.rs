@@ -8,10 +8,9 @@ mod neg;
 mod pow;
 mod sub;
 
-use super::{
-    ConstMontyParams, Retrieve, div_by_2,
-    reduction::{montgomery_reduction_boxed, montgomery_reduction_boxed_mut},
-};
+use super::{ConstMontyParams, Retrieve, div_by_2, reduction::montgomery_reduction_boxed};
+use mul::MontyMultiplier;
+
 use crate::{BoxedUint, Limb, Monty, Odd, Word};
 use alloc::sync::Arc;
 use subtle::Choice;
@@ -67,7 +66,10 @@ impl BoxedMontyParams {
 
         let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
 
-        let r3 = montgomery_reduction_boxed(&mut r2.square(), &modulus, mod_neg_inv);
+        let r3 = {
+            let mut mm = MontyMultiplier::new(&modulus, mod_neg_inv);
+            mm.square(&r2)
+        };
 
         Self {
             modulus,
@@ -107,7 +109,10 @@ impl BoxedMontyParams {
 
         let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
 
-        let r3 = montgomery_reduction_boxed(&mut r2.square(), &modulus, mod_neg_inv);
+        let r3 = {
+            let mut mm = MontyMultiplier::new(&modulus, mod_neg_inv);
+            mm.square(&r2)
+        };
 
         Self {
             modulus,
@@ -336,11 +341,8 @@ impl Zeroize for BoxedMontyForm {
 /// Convert the given integer into the Montgomery domain.
 #[inline]
 fn convert_to_montgomery(integer: &mut BoxedUint, params: &BoxedMontyParams) {
-    let mut product = integer.mul(&params.r2);
-    montgomery_reduction_boxed_mut(&mut product, &params.modulus, params.mod_neg_inv, integer);
-
-    #[cfg(feature = "zeroize")]
-    product.zeroize();
+    let mut mm = MontyMultiplier::from(params);
+    mm.mul_assign(integer, &params.r2);
 }
 
 #[cfg(test)]
