@@ -7,7 +7,8 @@
 
 use super::{BoxedMontyForm, BoxedMontyParams};
 use crate::{
-    BoxedUint, Limb, Square, SquareAssign, low_level::almost_montgomery_mul::almost_montgomery_mul,
+    BoxedUint, Limb, Square, SquareAssign,
+    low_level::almost_montgomery_mul::{almost_montgomery_mul, almost_montgomery_mul_by_one},
 };
 use core::{
     borrow::Borrow,
@@ -134,6 +135,26 @@ impl<'a> MontyMultiplier<'a> {
         a.sub_assign_mod_with_carry(Limb::ZERO, self.modulus, self.modulus);
 
         debug_assert!(&*a < self.modulus);
+    }
+
+    /// Perform a Montgomery multiplication, assigning a fully reduced result to `a`.
+    pub(super) fn mul_by_one(&mut self, a: &BoxedUint) -> BoxedUint {
+        debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
+
+        let mut ret = a.clone();
+
+        self.clear_product();
+        almost_montgomery_mul_by_one(
+            self.product.as_limbs_mut(),
+            a.as_limbs(),
+            self.modulus.as_limbs(),
+            self.mod_neg_inv,
+        );
+        ret.limbs
+            .copy_from_slice(&self.product.limbs[..a.limbs.len()]);
+        ret.sub_assign_mod_with_carry(Limb::ZERO, self.modulus, self.modulus);
+
+        ret
     }
 
     /// Perform a squaring using Montgomery multiplication, returning a fully reduced result.

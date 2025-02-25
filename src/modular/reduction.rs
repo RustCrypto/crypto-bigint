@@ -2,9 +2,6 @@
 
 use crate::{Limb, Odd, Uint};
 
-#[cfg(feature = "alloc")]
-use crate::BoxedUint;
-
 /// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
 #[inline(always)]
 const fn montgomery_reduction_inner(
@@ -66,42 +63,4 @@ pub const fn montgomery_reduction<const LIMBS: usize>(
     // Final reduction (at this point, the value is at most 2 * modulus,
     // so `meta_carry` is either 0 or 1)
     upper.sub_mod_with_carry(meta_carry, &modulus.0, &modulus.0)
-}
-
-/// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
-///
-/// This version writes the result into the provided [`BoxedUint`].
-#[cfg(feature = "alloc")]
-pub(crate) fn montgomery_reduction_boxed_mut(
-    x: &mut BoxedUint,
-    modulus: &BoxedUint,
-    mod_neg_inv: Limb,
-    out: &mut BoxedUint,
-) {
-    debug_assert_eq!(x.nlimbs(), modulus.nlimbs() * 2);
-    debug_assert_eq!(out.nlimbs(), modulus.nlimbs());
-
-    let (lower, upper) = x.limbs.split_at_mut(modulus.nlimbs());
-    let meta_carry = montgomery_reduction_inner(upper, lower, &modulus.limbs, mod_neg_inv);
-
-    // Division is simply taking the upper half of the limbs
-    // Final reduction (at this point, the value is at most 2 * modulus,
-    // so `meta_carry` is either 0 or 1)
-    out.limbs.copy_from_slice(upper);
-    out.sub_assign_mod_with_carry(meta_carry, modulus, modulus);
-}
-
-/// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
-///
-/// This version allocates and returns a [`BoxedUint`].
-#[cfg(feature = "alloc")]
-#[inline]
-pub(crate) fn montgomery_reduction_boxed(
-    x: &mut BoxedUint,
-    modulus: &BoxedUint,
-    mod_neg_inv: Limb,
-) -> BoxedUint {
-    let mut ret = BoxedUint::zero_with_precision(modulus.bits_precision());
-    montgomery_reduction_boxed_mut(x, modulus, mod_neg_inv, &mut ret);
-    ret
 }
