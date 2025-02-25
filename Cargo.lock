@@ -229,7 +229,7 @@ dependencies = [
  "num-traits",
  "proptest",
  "rand_chacha 0.9.0",
- "rand_core 0.9.1",
+ "rand_core 0.9.2",
  "rlp",
  "serdect",
  "subtle",
@@ -550,7 +550,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3022b5f1df60f26e1ffddd6c66e8aa15de382ae63b3a0c1bfc0e4d3e3f325cb"
 dependencies = [
  "ppv-lite86",
- "rand_core 0.9.1",
+ "rand_core 0.9.2",
 ]
 
 [[package]]
@@ -564,8 +564,9 @@ dependencies = [
 
 [[package]]
 name = "rand_core"
-version = "0.9.1"
-source = "git+https://github.com/rust-random/rand.git#775b05be1b8a4fdef17c6601cd223551fbf67edc"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a509b1a2ffbe92afab0e55c8fd99dea1c280e8171bd2d88682bb20bc41cbc2c"
 dependencies = [
  "getrandom 0.3.1",
  "zerocopy 0.8.14",
