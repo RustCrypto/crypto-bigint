@@ -7,9 +7,7 @@
 
 use super::{BoxedMontyForm, BoxedMontyParams};
 use crate::{
-    low_level::almost_montgomery_mul::almost_montgomery_mul,
-    BoxedUint, Limb, Square, SquareAssign,
-    modular::reduction::montgomery_reduction_boxed_mut, uint::mul::mul_limbs,
+    BoxedUint, Limb, Square, SquareAssign, low_level::almost_montgomery_mul::almost_montgomery_mul,
 };
 use core::{
     borrow::Borrow,
@@ -132,11 +130,8 @@ impl<'a> MontyMultiplier<'a> {
 
     /// Perform a Montgomery multiplication, assigning a fully reduced result to `a`.
     pub(super) fn mul_assign(&mut self, a: &mut BoxedUint, b: &BoxedUint) {
-        debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
-        debug_assert_eq!(b.bits_precision(), self.modulus.bits_precision());
-
-        mul_limbs(&a.limbs, &b.limbs, &mut self.product.limbs);
-        montgomery_reduction_boxed_mut(&mut self.product, self.modulus, self.mod_neg_inv, a);
+        self.mul_amm_assign(a, b);
+        a.sub_assign_mod_with_carry(Limb::ZERO, self.modulus, self.modulus);
 
         debug_assert!(&*a < self.modulus);
     }
@@ -150,11 +145,8 @@ impl<'a> MontyMultiplier<'a> {
 
     /// Perform a squaring using Montgomery multiplication, assigning a fully reduced result to `a`.
     pub(super) fn square_assign(&mut self, a: &mut BoxedUint) {
-        debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
-
-        // TODO(tarcieri): optimized implementation
-        mul_limbs(&a.limbs, &a.limbs, &mut self.product.limbs);
-        montgomery_reduction_boxed_mut(&mut self.product, self.modulus, self.mod_neg_inv, a);
+        self.square_amm_assign(a);
+        a.sub_assign_mod_with_carry(Limb::ZERO, self.modulus, self.modulus);
 
         debug_assert!(&*a < self.modulus);
     }
@@ -211,6 +203,7 @@ impl<'a> MontyMultiplier<'a> {
     pub(super) fn square_amm_assign(&mut self, a: &mut BoxedUint) {
         debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
 
+        // TODO(tarcieri): optimized implementation
         self.clear_product();
         almost_montgomery_mul(
             self.product.as_limbs_mut(),
