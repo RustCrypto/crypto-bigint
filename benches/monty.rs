@@ -180,6 +180,18 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         )
     });
 
+    group.bench_function("div_by_2, U256", |b| {
+        b.iter_batched(
+            || {
+                let x = U256::random_mod(&mut rng, params.modulus().as_nz_ref());
+                let x_m = MontyForm::new(&x, params);
+                x_m
+            },
+            |x| black_box(x.div_by_2()),
+            BatchSize::SmallInput,
+        )
+    });
+
     #[cfg(feature = "alloc")]
     for i in [1, 2, 3, 4, 10, 100] {
         group.bench_function(
