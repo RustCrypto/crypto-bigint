@@ -55,7 +55,7 @@ where
 
         // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
         let inv_mod = modulus
-            .inv_mod2k(Word::BITS)
+            .inv_mod2k_vartime(Word::BITS)
             .expect("modular inverse should exist");
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
@@ -90,7 +90,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
 
         // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
         let inv_mod = modulus
-            .inv_mod2k_vartime(Word::BITS)
+            .inv_mod2k_full_vartime(Word::BITS)
             .expect("modular inverse should exist");
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));

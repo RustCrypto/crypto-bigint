@@ -13,13 +13,77 @@ impl BoxedUint {
     }
 
     /// Computes 1/`self` mod `2^k`.
+    /// This method is variable w.r.t. `self` and `k`.
     ///
     /// If the inverse does not exist (`k > 0` and `self` is even),
     /// returns `Choice::FALSE` as the second element of the tuple,
     /// otherwise returns `Choice::TRUE`.
-    pub(crate) fn inv_mod2k(&self, k: u32) -> (Self, Choice) {
+    pub(crate) fn inv_mod2k_full_vartime(&self, k: u32) -> (Self, Choice) {
         let mut x = Self::zero_with_precision(self.bits_precision()); // keeps `x` during iterations
         let mut b = Self::one_with_precision(self.bits_precision()); // keeps `b_i` during iterations
+
+        // The inverse exists either if `k` is 0 or if `self` is odd.
+        if k != 0 && !bool::from(self.is_odd()) {
+            return (x, Choice::from(0));
+        }
+
+        for i in 0..k {
+            // X_i = b_i mod 2
+            let x_i = b.limbs[0].0 & 1;
+            // b_{i+1} = (b_i - a * X_i) / 2
+            if x_i != 0 {
+                b.wrapping_sub_assign(self);
+            }
+            b.shr1_assign();
+            // Store the X_i bit in the result (x = x | (1 << X_i))
+            x.set_bit_vartime(i, x_i != 0);
+        }
+
+        (x, Choice::from(1))
+    }
+
+    /// Computes 1/`self` mod `2^k`.
+    /// This method is constant-time w.r.t. `self` but not `k`.
+    ///
+    /// If the inverse does not exist (`k > 0` and `self` is even),
+    /// returns `Choice::FALSE` as the second element of the tuple,
+    /// otherwise returns `Choice::TRUE`.
+    pub fn inv_mod2k_vartime(&self, k: u32) -> (Self, Choice) {
+        let mut x = Self::zero_with_precision(self.bits_precision()); // keeps `x` during iterations
+        let mut b = Self::one_with_precision(self.bits_precision()); // keeps `b_i` during iterations
+        // Additional temporary storage we will need.
+        let mut b_opt = Self::zero_with_precision(self.bits_precision());
+
+        // The inverse exists either if `k` is 0 or if `self` is odd.
+        let is_some = k.ct_eq(&0) | self.is_odd();
+
+        for i in 0..k {
+            // X_i = b_i mod 2
+            let x_i = b.limbs[0].0 & 1;
+            let x_i_choice = Choice::from(x_i as u8);
+            // b_{i+1} = (b_i - a * X_i) / 2
+            b_opt.as_words_mut().copy_from_slice(b.as_words());
+            b_opt.wrapping_sub_assign(self);
+            b.ct_assign(&b_opt, x_i_choice);
+            b.shr1_assign();
+
+            // Store the X_i bit in the result (x = x | (1 << X_i))
+            x.set_bit(i, x_i_choice);
+        }
+
+        (x, is_some)
+    }
+
+    /// Computes 1/`self` mod `2^k`.
+    ///
+    /// If the inverse does not exist (`k > 0` and `self` is even),
+    /// returns `Choice::FALSE` as the second element of the tuple,
+    /// otherwise returns `Choice::TRUE`.
+    pub fn inv_mod2k(&self, k: u32) -> (Self, Choice) {
+        let mut x = Self::zero_with_precision(self.bits_precision()); // keeps `x` during iterations
+        let mut b = Self::one_with_precision(self.bits_precision()); // keeps `b_i` during iterations
+        // Additional temporary storage we will need.
+        let mut b_opt = Self::zero_with_precision(self.bits_precision());
 
         // The inverse exists either if `k` is 0 or if `self` is odd.
         let is_some = k.ct_eq(&0) | self.is_odd();
@@ -33,7 +97,10 @@ impl BoxedUint {
             let x_i = b.limbs[0].0 & 1;
             let x_i_choice = Choice::from(x_i as u8);
             // b_{i+1} = (b_i - a * X_i) / 2
-            b = Self::ct_select(&b, &b.wrapping_sub(self), x_i_choice).shr1();
+            b_opt.as_words_mut().copy_from_slice(b.as_words());
+            b_opt.wrapping_sub_assign(self);
+            b.ct_assign(&b_opt, x_i_choice);
+            b.shr1_assign();
 
             // Store the X_i bit in the result (x = x | (1 << X_i))
             // Don't change the result in dummy iterations.
