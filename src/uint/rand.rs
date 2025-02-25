@@ -160,8 +160,8 @@ where
 mod tests {
     use crate::uint::rand::random_bits_core;
     use crate::{Limb, NonZero, RandomBits, RandomMod, Uint, U1024, U256};
-    use rand_chacha::{ChaCha20Core, ChaCha20Rng};
     use rand_chacha::ChaCha8Rng;
+    use rand_chacha::{ChaCha20Core, ChaCha20Rng};
     use rand_core::{RngCore, SeedableRng};
 
     #[test]
