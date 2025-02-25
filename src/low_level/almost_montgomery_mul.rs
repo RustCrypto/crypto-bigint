@@ -15,54 +15,61 @@ use crate::{ConstChoice, Limb, Word};
 ///
 /// Note: this was adapted from an implementation in `num-bigint`'s `monty.rs`.
 // TODO(tarcieri): refactor into `reduction.rs`, share impl with `MontyForm`?
-pub(crate) fn almost_montgomery_mul(z: &mut [Limb], x: &[Limb], y: &[Limb], m: &[Limb], k: Limb) {
+pub(crate) const fn almost_montgomery_mul(
+    z: &mut [Limb],
+    x: &[Limb],
+    y: &[Limb],
+    m: &[Limb],
+    k: Limb,
+) {
     // This code assumes x, y, m are all the same length (required by addMulVVW and the for loop).
     // It also assumes that x, y are already reduced mod m, or else the result will not be properly
     // reduced.
     let n = m.len();
 
     // This preconditions check allows compiler to remove bound checks later in the code.
-    // `z.len() > n && z[n..].len() == n` is used intentionally instead of `z.len() == 2* n`
-    // since the latter prevents compiler from removing some bound checks.
-    let pre_cond = z.len() > n && z[n..].len() == n && x.len() == n && y.len() == n && m.len() == n;
+    let pre_cond = z.len() > n && x.len() == n && y.len() == n && m.len() == n;
     if !pre_cond {
         panic!("Failed preconditions in montgomery_mul");
     }
 
     let mut c = ConstChoice::FALSE;
 
-    for i in 0..n {
-        let c2 = add_mul_vvw(&mut z[i..n + i], x, y[i]);
-        let t = z[i].wrapping_mul(k);
-        let c3 = add_mul_vvw(&mut z[i..n + i], m, t);
+    let mut i = 0;
+    while i < n {
+        let (_, mut z_slice) = z.split_at_mut(i);
+        let c2 = add_mul_vvw(&mut z_slice, x, y[i]);
+        let t = z_slice[0].wrapping_mul(k);
+        let c3 = add_mul_vvw(&mut z_slice, m, t);
         let cx = c2.wrapping_add(Limb(c.to_u8() as Word));
         let cy = cx.wrapping_add(c3);
         z[n + i] = cy;
         c = ConstChoice::from_word_lt(cx.0, c2.0).or(ConstChoice::from_word_lt(cy.0, c3.0));
+        i += 1;
     }
 
     let (lower, upper) = z.split_at_mut(n);
     sub_vv(lower, upper, m);
 
     let is_zero = c.not();
-    for (a, b) in lower.iter_mut().zip(upper.iter()) {
-        *a = Limb::select(*a, *b, is_zero);
+    let mut i = 0;
+    while i < n {
+        lower[i] = Limb::select(lower[i], upper[i], is_zero);
+        i += 1;
     }
 }
 
 /// Same as `almost_montgomery_mul` with `y == 1`.
 ///
 /// Used for retrieving from Montgomery form.
-pub(crate) fn almost_montgomery_mul_by_one(z: &mut [Limb], x: &[Limb], m: &[Limb], k: Limb) {
+pub(crate) const fn almost_montgomery_mul_by_one(z: &mut [Limb], x: &[Limb], m: &[Limb], k: Limb) {
     // This code assumes x, m are all the same length (required by addMulVVW and the for loop).
     // It also assumes that x is already reduced mod m, or else the result will not be properly
     // reduced.
     let n = m.len();
 
     // This preconditions check allows compiler to remove bound checks later in the code.
-    // `z.len() > n && z[n..].len() == n` is used intentionally instead of `z.len() == 2* n`
-    // since the latter prevents compiler from removing some bound checks.
-    let pre_cond = z.len() > n && z[n..].len() == n && x.len() == n && m.len() == n;
+    let pre_cond = z.len() > n && x.len() == n && m.len() == n;
     if !pre_cond {
         panic!("Failed preconditions in montgomery_mul");
     }
@@ -70,53 +77,73 @@ pub(crate) fn almost_montgomery_mul_by_one(z: &mut [Limb], x: &[Limb], m: &[Limb
     let mut c = ConstChoice::FALSE;
 
     // The unrolled first iteration.
-    let c2 = add_mul_vvw(&mut z[0..n], x, Limb::ONE);
+    let c2 = add_mul_vvw(z, x, Limb::ONE);
     let t = z[0].wrapping_mul(k);
-    let c3 = add_mul_vvw(&mut z[0..n], m, t);
+    let c3 = add_mul_vvw(z, m, t);
     let cx = c2.wrapping_add(Limb(c.to_u8() as Word));
     let cy = cx.wrapping_add(c3);
     z[n] = cy;
     c = ConstChoice::from_word_lt(cx.0, c2.0).or(ConstChoice::from_word_lt(cy.0, c3.0));
 
-    for i in 1..n {
-        let c2 = add_mul_vvw(&mut z[i..n + i], x, Limb::ZERO);
-        let t = z[i].wrapping_mul(k);
-        let c3 = add_mul_vvw(&mut z[i..n + i], m, t);
+    let mut i = 1;
+    while i < n {
+        let (_, mut z_slice) = z.split_at_mut(i);
+        let c2 = add_mul_vvw(&mut z_slice, x, Limb::ZERO);
+        let t = z_slice[0].wrapping_mul(k);
+        let c3 = add_mul_vvw(&mut z_slice, m, t);
         let cx = c2.wrapping_add(Limb(c.to_u8() as Word));
         let cy = cx.wrapping_add(c3);
         z[n + i] = cy;
         c = ConstChoice::from_word_lt(cx.0, c2.0).or(ConstChoice::from_word_lt(cy.0, c3.0));
+        i += 1;
     }
 
     let (lower, upper) = z.split_at_mut(n);
     sub_vv(lower, upper, m);
 
     let is_zero = c.not();
-    for (a, b) in lower.iter_mut().zip(upper.iter()) {
-        *a = Limb::select(*a, *b, is_zero);
+    let mut i = 0;
+    while i < n {
+        lower[i] = Limb::select(lower[i], upper[i], is_zero);
+        i += 1;
     }
 }
 
 #[inline]
-fn add_mul_vvw(z: &mut [Limb], x: &[Limb], y: Limb) -> Limb {
+const fn add_mul_vvw(z: &mut [Limb], x: &[Limb], y: Limb) -> Limb {
+    let n = x.len();
+    if n > z.len() {
+        panic!("Failed preconditions in montgomery_mul");
+    }
+
     let mut c = Limb::ZERO;
 
-    for (zi, xi) in z.iter_mut().zip(x.iter()) {
-        let (z0, z1) = zi.mac(*xi, y, Limb::ZERO);
+    let mut i = 0;
+    while i < n {
+        let (z0, z1) = z[i].mac(x[i], y, Limb::ZERO);
         let (zi_, c_) = z0.overflowing_add(c);
-        *zi = zi_;
+        z[i] = zi_;
         c = c_.wrapping_add(z1);
+        i += 1;
     }
 
     c
 }
 
 #[inline(always)]
-fn sub_vv(z: &mut [Limb], x: &[Limb], y: &[Limb]) {
+const fn sub_vv(z: &mut [Limb], x: &[Limb], y: &[Limb]) {
+    let n = z.len();
+    if !(n == x.len() && n == y.len()) {
+        panic!("Failed preconditions in montgomery_mul");
+    }
+
     let mut borrow = Limb::ZERO;
-    for (i, (&xi, &yi)) in x.iter().zip(y.iter()).enumerate().take(z.len()) {
-        let (zi, new_borrow) = xi.sbb(yi, borrow);
+
+    let mut i = 0;
+    while i < n {
+        let (zi, new_borrow) = x[i].sbb(y[i], borrow);
         z[i] = zi;
         borrow = new_borrow;
+        i += 1;
     }
 }
