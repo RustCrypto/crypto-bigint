@@ -59,7 +59,24 @@ impl BoxedMontyParams {
             .rem(&modulus.as_nz_ref().widen(bits_precision * 2))
             .shorten(bits_precision);
 
-        Self::new_inner(modulus, one, r2)
+        // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
+        let (inv_mod_limb, inv_mod_limb_exists) = modulus.inv_mod2k_vartime(Word::BITS);
+        debug_assert!(bool::from(inv_mod_limb_exists));
+
+        let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));
+
+        let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
+
+        let r3 = montgomery_reduction_boxed(&mut r2.square(), &modulus, mod_neg_inv);
+
+        Self {
+            modulus,
+            one,
+            r2,
+            r3,
+            mod_neg_inv,
+            mod_leading_zeros,
+        }
     }
 
     /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`, which
@@ -82,17 +99,9 @@ impl BoxedMontyParams {
             .rem_vartime(&modulus.as_nz_ref().widen(bits_precision * 2))
             .shorten(bits_precision);
 
-        Self::new_inner(modulus, one, r2)
-    }
-
-    /// Common functionality of `new` and `new_vartime`.
-    fn new_inner(modulus: Odd<BoxedUint>, one: BoxedUint, r2: BoxedUint) -> Self {
-        debug_assert_eq!(one.bits_precision(), modulus.bits_precision());
-        debug_assert_eq!(r2.bits_precision(), modulus.bits_precision());
-
-        // If the inverse exists, it means the modulus is odd.
-        let (inv_mod_limb, modulus_is_odd) = modulus.inv_mod2k(Word::BITS);
-        debug_assert!(bool::from(modulus_is_odd));
+        // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
+        let (inv_mod_limb, inv_mod_limb_exists) = modulus.inv_mod2k_full_vartime(Word::BITS);
+        debug_assert!(bool::from(inv_mod_limb_exists));
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));
 
