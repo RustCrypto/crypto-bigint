@@ -148,7 +148,7 @@ pub(super) fn random_mod_core<T, R: RngCore + ?Sized>(
 #[cfg(test)]
 mod tests {
     use crate::uint::rand::random_bits_core;
-    use crate::{Limb, NonZero, RandomBits, RandomMod, Uint, U1024, U256};
+    use crate::{Limb, NonZero, RandomBits, RandomMod, U1024, U256, Uint};
     use rand_chacha::ChaCha8Rng;
     use rand_chacha::{ChaCha20Core, ChaCha20Rng};
     use rand_core::{RngCore, SeedableRng};
@@ -251,7 +251,9 @@ mod tests {
 
         assert_eq!(
             state,
-            [75, 121, 77, 111, 45, 9, 160, 230, 99, 38, 108, 225, 174, 126, 209, 8]
+            [
+                75, 121, 77, 111, 45, 9, 160, 230, 99, 38, 108, 225, 174, 126, 209, 8
+            ]
         );
     }
 }
