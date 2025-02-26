@@ -898,6 +898,12 @@ pub trait Monty:
     /// Performs division by 2, that is returns `x` such that `x + x = self`.
     fn div_by_2(&self) -> Self;
 
+    /// Performs division by 2 inplace, that is finds `x` such that `x + x = self`
+    /// and writes it into `self`.
+    fn div_by_2_assign(&mut self) {
+        *self = self.div_by_2()
+    }
+
     /// Calculate the sum of products of pairs `(a, b)` in `products`.
     ///
     /// This method is variable time only with the value of the modulus.
