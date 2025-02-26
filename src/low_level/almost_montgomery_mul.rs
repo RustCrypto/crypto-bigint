@@ -15,7 +15,7 @@ use crate::{ConstChoice, Limb, Word};
 ///
 /// Note: this was adapted from an implementation in `num-bigint`'s `monty.rs`.
 // TODO(tarcieri): refactor into `reduction.rs`, share impl with `MontyForm`?
-pub(crate) const fn almost_montgomery_mul(
+pub(crate) fn almost_montgomery_mul(
     z_lower: &mut [Limb],
     z_upper: &mut [Limb],
     x: &[Limb],
@@ -32,7 +32,14 @@ pub(crate) const fn almost_montgomery_mul(
     let pre_cond =
         z_upper.len() == n && z_lower.len() == n && x.len() == n && y.len() == n && m.len() == n;
     if !pre_cond {
-        panic!("Failed preconditions in montgomery_mul");
+        panic!(
+            "Failed preconditions in montgomery_mul: {} {} {} {} {}",
+            z_lower.len(),
+            z_upper.len(),
+            x.len(),
+            y.len(),
+            m.len()
+        );
     }
 
     let mut c = ConstChoice::FALSE;
@@ -62,7 +69,7 @@ pub(crate) const fn almost_montgomery_mul(
 /// Same as `almost_montgomery_mul` with `y == 1`.
 ///
 /// Used for retrieving from Montgomery form.
-pub(crate) const fn almost_montgomery_mul_by_one(
+pub(crate) fn almost_montgomery_mul_by_one(
     z_lower: &mut [Limb],
     z_upper: &mut [Limb],
     x: &[Limb],
@@ -77,7 +84,13 @@ pub(crate) const fn almost_montgomery_mul_by_one(
     // This preconditions check allows compiler to remove bound checks later in the code.
     let pre_cond = z_upper.len() == n && z_lower.len() == n && x.len() == n && m.len() == n;
     if !pre_cond {
-        panic!("Failed preconditions in montgomery_mul");
+        panic!(
+            "Failed preconditions in montgomery_mul {} {} {} {}",
+            z_lower.len(),
+            z_upper.len(),
+            x.len(),
+            m.len()
+        );
     }
 
     let mut c = ConstChoice::FALSE;
