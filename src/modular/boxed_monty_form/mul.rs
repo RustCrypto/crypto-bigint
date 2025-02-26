@@ -107,7 +107,8 @@ impl<'a> From<&'a BoxedMontyParams> for MontyMultiplier<'a> {
 
 /// Montgomery multiplier with a pre-allocated internal buffer to avoid additional allocations.
 pub(super) struct MontyMultiplier<'a> {
-    product: BoxedUint,
+    product1: BoxedUint,
+    product2: BoxedUint,
     modulus: &'a BoxedUint,
     mod_neg_inv: Limb,
 }
@@ -116,7 +117,8 @@ impl<'a> MontyMultiplier<'a> {
     /// Create a new Montgomery multiplier.
     pub(super) fn new(modulus: &'a BoxedUint, mod_neg_inv: Limb) -> Self {
         Self {
-            product: BoxedUint::zero_with_precision(modulus.bits_precision() * 2),
+            product1: BoxedUint::zero_with_precision(modulus.bits_precision()),
+            product2: BoxedUint::zero_with_precision(modulus.bits_precision()),
             modulus,
             mod_neg_inv,
         }
@@ -145,13 +147,13 @@ impl<'a> MontyMultiplier<'a> {
 
         self.clear_product();
         almost_montgomery_mul_by_one(
-            self.product.as_limbs_mut(),
+            self.product1.as_limbs_mut(),
+            self.product2.as_limbs_mut(),
             a.as_limbs(),
             self.modulus.as_limbs(),
             self.mod_neg_inv,
         );
-        ret.limbs
-            .copy_from_slice(&self.product.limbs[..a.limbs.len()]);
+        ret.limbs.copy_from_slice(&self.product1.limbs);
         ret.sub_assign_mod_with_carry(Limb::ZERO, self.modulus, self.modulus);
 
         ret
@@ -194,14 +196,14 @@ impl<'a> MontyMultiplier<'a> {
 
         self.clear_product();
         almost_montgomery_mul(
-            self.product.as_limbs_mut(),
+            self.product1.as_limbs_mut(),
+            self.product2.as_limbs_mut(),
             a.as_limbs(),
             b.as_limbs(),
             self.modulus.as_limbs(),
             self.mod_neg_inv,
         );
-        a.limbs
-            .copy_from_slice(&self.product.limbs[..a.limbs.len()]);
+        a.limbs.copy_from_slice(&self.product1.limbs);
     }
 
     /// Perform a squaring using "Almost Montgomery Multiplication".
@@ -227,19 +229,23 @@ impl<'a> MontyMultiplier<'a> {
         // TODO(tarcieri): optimized implementation
         self.clear_product();
         almost_montgomery_mul(
-            self.product.as_limbs_mut(),
+            self.product1.as_limbs_mut(),
+            self.product2.as_limbs_mut(),
             a.as_limbs(),
             a.as_limbs(),
             self.modulus.as_limbs(),
             self.mod_neg_inv,
         );
-        a.limbs
-            .copy_from_slice(&self.product.limbs[..a.limbs.len()]);
+        a.limbs.copy_from_slice(&self.product1.limbs);
     }
 
     /// Clear the internal product buffer.
     fn clear_product(&mut self) {
-        self.product
+        self.product1
+            .limbs
+            .iter_mut()
+            .for_each(|limb| *limb = Limb::ZERO);
+        self.product2
             .limbs
             .iter_mut()
             .for_each(|limb| *limb = Limb::ZERO);
@@ -249,7 +255,8 @@ impl<'a> MontyMultiplier<'a> {
 #[cfg(feature = "zeroize")]
 impl Drop for MontyMultiplier<'_> {
     fn drop(&mut self) {
-        self.product.zeroize();
+        self.product1.zeroize();
+        self.product2.zeroize();
     }
 }
 
