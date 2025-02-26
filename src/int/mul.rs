@@ -150,6 +150,7 @@ mod tests {
     use crate::{CheckedMul, ConstChoice, I128, I256, Int, U128, U256};
 
     #[test]
+    #[allow(clippy::init_numbered_fields)]
     fn test_checked_mul() {
         let min_plus_one = Int {
             0: I128::MIN.0.wrapping_add(&I128::ONE.0),

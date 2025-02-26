@@ -22,7 +22,7 @@ impl BoxedUint {
             return Ok(Self::zero());
         }
 
-        if bytes.len() > (bits_precision as usize + 7) / 8 {
+        if bytes.len() > (bits_precision as usize).div_ceil(8) {
             return Err(DecodeError::InputSize);
         }
 
@@ -55,7 +55,7 @@ impl BoxedUint {
             return Ok(Self::zero());
         }
 
-        if bytes.len() > (bits_precision as usize + 7) / 8 {
+        if bytes.len() > (bits_precision as usize).div_ceil(8) {
             return Err(DecodeError::InputSize);
         }
 

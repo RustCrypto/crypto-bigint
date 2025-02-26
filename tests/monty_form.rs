@@ -62,7 +62,7 @@ where
         .invm(&num_modular_modulus)
         .unwrap();
 
-    return Ok((r, rm, rm_inv.unwrap(), num_modular_inverse));
+    Ok((r, rm, rm_inv.unwrap(), num_modular_inverse))
 }
 
 // Given two bytes, presumed to be random, construct edge-case MontyParams with the first, last or
@@ -137,12 +137,12 @@ proptest! {
         inputs in random_invertible_u128(),
     ) {
         let (r,r_monty, r_monty_inv, r_num_modular_inv) = inputs?;
-        let monty_params = r_monty.params().clone();
+        let monty_params = r_monty.params();
         let one_monty = r_monty * r_monty_inv;
         // Inversion works in monty form
         assert_eq!(
             one_monty,
-            MontyForm::one(monty_params),
+            MontyForm::one(*monty_params),
             "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:0128b}",
             monty_params.modulus()
         );
@@ -157,7 +157,7 @@ proptest! {
             "a*a⁻¹ ≠ 1 (normal form, wide)"
         );
         // …and agrees with normal form inversion
-        let normal_form_inv = r.inv_mod(&monty_params.modulus()).unwrap();
+        let normal_form_inv = r.inv_mod(monty_params.modulus()).unwrap();
         assert_eq!(
             normal_form_inv,
             r_monty_inv.retrieve(),
@@ -176,12 +176,12 @@ proptest! {
         inputs in random_invertible_u256(),
     ) {
         let (r,r_monty, r_monty_inv, r_num_modular_inv) = inputs?;
-        let monty_params = r_monty.params().clone();
+        let monty_params = r_monty.params();
         let one_monty = r_monty * r_monty_inv;
         // Inversion works in monty form
         assert_eq!(
             one_monty,
-            MontyForm::one(monty_params),
+            MontyForm::one(*monty_params),
             "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:0256b}",
             monty_params.modulus()
         );
@@ -196,7 +196,7 @@ proptest! {
             "a*a⁻¹ ≠ 1 (normal form, wide)"
         );
         // …and agrees with normal form inversion
-        let normal_form_inv = r.inv_mod(&monty_params.modulus()).unwrap();
+        let normal_form_inv = r.inv_mod(monty_params.modulus()).unwrap();
         assert_eq!(
             normal_form_inv,
             r_monty_inv.retrieve(),
@@ -215,12 +215,12 @@ proptest! {
         inputs in random_invertible_u1024(),
     ) {
         let (r,r_monty, r_monty_inv, r_num_modular_inv) = inputs?;
-        let monty_params = r_monty.params().clone();
+        let monty_params = r_monty.params();
         let one_monty = r_monty * r_monty_inv;
         // Inversion works in monty form
         assert_eq!(
             one_monty,
-            MontyForm::one(monty_params),
+            MontyForm::one(*monty_params),
             "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:01024b}",
             monty_params.modulus()
         );
@@ -235,7 +235,7 @@ proptest! {
             "a*a⁻¹ ≠ 1 (normal form, wide)"
         );
         // …and agrees with normal form inversion
-        let normal_form_inv = r.inv_mod(&monty_params.modulus()).unwrap();
+        let normal_form_inv = r.inv_mod(monty_params.modulus()).unwrap();
         assert_eq!(
             normal_form_inv,
             r_monty_inv.retrieve(),
@@ -254,12 +254,12 @@ proptest! {
         inputs in random_invertible_u2048(),
     ) {
         let (r,r_monty, r_monty_inv, r_num_modular_inv) = inputs?;
-        let monty_params = r_monty.params().clone();
+        let monty_params = r_monty.params();
         let one_monty = r_monty * r_monty_inv;
         // Inversion works in monty form
         assert_eq!(
             one_monty,
-            MontyForm::one(monty_params),
+            MontyForm::one(*monty_params),
             "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:02048b}",
             monty_params.modulus()
         );
@@ -274,7 +274,7 @@ proptest! {
             "a*a⁻¹ ≠ 1 (normal form, wide)"
         );
         // …and agrees with normal form inversion
-        let normal_form_inv = r.inv_mod(&monty_params.modulus()).unwrap();
+        let normal_form_inv = r.inv_mod(monty_params.modulus()).unwrap();
         assert_eq!(
             normal_form_inv,
             r_monty_inv.retrieve(),

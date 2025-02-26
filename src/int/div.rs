@@ -472,6 +472,7 @@ mod tests {
     use crate::{ConstChoice, I128, Int};
 
     #[test]
+    #[allow(clippy::init_numbered_fields)]
     fn test_checked_div() {
         let min_plus_one = Int {
             0: I128::MIN.0.wrapping_add(&I128::ONE.0),
