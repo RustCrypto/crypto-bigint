@@ -10,6 +10,7 @@ use crypto_bigint::{
     modular::{BoxedMontyForm, BoxedMontyParams},
 };
 use num_bigint::BigUint;
+use num_integer::Integer as _;
 use num_modular::ModularUnaryOps;
 use proptest::prelude::*;
 use std::cmp::Ordering;
@@ -152,5 +153,26 @@ proptest! {
         let expected = a_bi.modpow(&b_bi, &n_bi);
 
         prop_assert_eq!(retrieve_biguint(&actual), expected);
+    }
+
+    #[test]
+    fn div_by_2(a in monty_form()) {
+        let actual = a.div_by_2();
+        let mut actual_inplace = a.clone();
+        actual_inplace.div_by_2_assign();
+
+        let p = a.params().modulus();
+        let a_bi = retrieve_biguint(&a);
+        let p_bi = to_biguint(&p);
+
+        let expected = if a_bi.is_odd() {
+            (a_bi + p_bi) >> 1
+        }
+        else {
+            a_bi >> 1
+        };
+
+        prop_assert_eq!(&retrieve_biguint(&actual), &expected);
+        prop_assert_eq!(&retrieve_biguint(&actual_inplace), &expected);
     }
 }
