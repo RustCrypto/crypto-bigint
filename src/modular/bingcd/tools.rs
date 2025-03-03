@@ -48,8 +48,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[inline]
     const fn div_2_mod_q(self, half_mod_q: &Self) -> Self {
         // Floor-divide self by 2. When self was odd, add back 1/2 mod q.
-        let add_one_half = self.is_odd();
-        let floored_half = self.shr_vartime(1);
+        let (floored_half, add_one_half) = self.shr1_with_carry();
         floored_half.wrapping_add(&Self::select(&Self::ZERO, half_mod_q, add_one_half))
     }
 
