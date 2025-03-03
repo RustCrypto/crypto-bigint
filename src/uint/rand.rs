@@ -165,10 +165,31 @@ where
 #[cfg(test)]
 mod tests {
     use crate::uint::rand::random_bits_core;
-    use crate::{Limb, NonZero, RandomBits, RandomMod, U1024, U256, Uint};
+    use crate::{Limb, NonZero, Random, RandomBits, RandomMod, U256, U1024, Uint};
     use rand_chacha::ChaCha8Rng;
     use rand_chacha::{ChaCha20Core, ChaCha20Rng};
     use rand_core::{RngCore, SeedableRng};
+
+    const RANDOM_OUTPUT: U1024 = Uint::from_be_hex(concat![
+        "6F4D794B1F0AE1AC45FB0A51281FED31D539D874B03371D5434EE69C7621B729",
+        "ED7AEE323E53C6126965E348A0290FCB0D082D737C97BA987A385155BEE7079F",
+        "8665EEB269B687C31CA11815F4B8436A374AD8B83FE024778D4857517C5941DA",
+        "C70D778BCCEF36A81AED8DA0B819D2BD28BD8653E56A5D40903DF1A0ADE0B876"
+    ]);
+
+    /// Construct an `rng` s.t. `rng.fill_bytes(&mut buffer[..x]); rng.fill_bytes(&mut buffer[x..])`
+    /// will construct the same `buffer`, regardless the choice of `x` in `0..buffer.len()`.
+    fn get_sequential_rng() -> ChaCha20Rng {
+        let zero_seed = [0u8; 32];
+        ChaCha20Rng::from(ChaCha20Core::from_seed(zero_seed))
+    }
+
+    /// Make sure the random value constructed is consistent across platforms
+    #[test]
+    fn random_platform_independence() {
+        let mut rng = get_sequential_rng();
+        assert_eq!(U1024::random(&mut rng), RANDOM_OUTPUT);
+    }
 
     #[test]
     fn random_mod() {
@@ -245,21 +266,15 @@ mod tests {
     /// Make sure the random_bits output is consistent across platforms
     #[test]
     fn random_bits_platform_independence() {
-        let zero_seed = [0u8; 32];
-        let mut rng = ChaCha20Rng::from(ChaCha20Core::from_seed(zero_seed));
+        let mut rng = get_sequential_rng();
 
+        let bit_length = 989;
         let mut val = U1024::ZERO;
-        let bytes = val.as_limbs_mut().as_mut_slice();
-        random_bits_core(&mut rng, bytes, 989).expect("safe");
+        random_bits_core(&mut rng, val.as_limbs_mut(), bit_length).expect("safe");
 
         assert_eq!(
             val,
-            Uint::from_be_hex(concat![
-                "000000001F0AE1AC45FB0A51281FED31D539D874B03371D5434EE69C7621B729",
-                "ED7AEE323E53C6126965E348A0290FCB0D082D737C97BA987A385155BEE7079F",
-                "8665EEB269B687C31CA11815F4B8436A374AD8B83FE024778D4857517C5941DA",
-                "C70D778BCCEF36A81AED8DA0B819D2BD28BD8653E56A5D40903DF1A0ADE0B876"
-            ])
+            RANDOM_OUTPUT.bitand(&U1024::ONE.shl(bit_length).wrapping_sub(&Uint::ONE))
         );
 
         // Test that the RNG is in the same state
