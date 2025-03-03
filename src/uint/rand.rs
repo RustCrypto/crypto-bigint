@@ -20,6 +20,12 @@ impl<const LIMBS: usize> Random for Uint<LIMBS> {
 /// Fill the given limbs slice with random bits.
 ///
 /// NOTE: Assumes that the limbs in the given slice are zeroed!
+///
+/// When combined with a platform-independent "sequential" `rng`, this function acts
+/// platform-independent and deterministic. We consider an RNG "sequential" when
+/// `rng.fill_bytes(&mut buffer[..x]); rng.fill_bytes(&mut buffer[x..])` will construct the same
+/// `buffer`, regardless the choice of `x` in `0..buffer.len()`.
+/// Note that the `TryRngCore` trait does _not_ require this behaviour from `rng`.
 pub(crate) fn random_bits_core<R: TryRngCore + ?Sized>(
     rng: &mut R,
     zeroed_limbs: &mut [Limb],
