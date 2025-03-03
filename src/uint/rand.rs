@@ -21,10 +21,10 @@ impl<const LIMBS: usize> Random for Uint<LIMBS> {
 ///
 /// NOTE: Assumes that the limbs in the given slice are zeroed!
 ///
-/// When combined with a platform-independent "sequential" `rng`, this function acts
-/// platform-independent and deterministic. We consider an RNG "sequential" when
-/// `rng.fill_bytes(&mut buffer[..x]); rng.fill_bytes(&mut buffer[x..])` will construct the same
-/// `buffer`, regardless the choice of `x` in `0..buffer.len()`.
+/// When combined with a platform-independent "4-byte sequential" `rng`, this function is
+/// platform-independent. We consider an RNG "`X`-byte sequential" whenever
+/// `rng.fill_bytes(&mut bytes[..i]); rng.fill_bytes(&mut bytes[i..])` constructs the same `bytes`,
+/// as long as `i` is a multiple of `X`.
 /// Note that the `TryRngCore` trait does _not_ require this behaviour from `rng`.
 pub(crate) fn random_bits_core<R: TryRngCore + ?Sized>(
     rng: &mut R,
@@ -177,9 +177,10 @@ mod tests {
         "C70D778BCCEF36A81AED8DA0B819D2BD28BD8653E56A5D40903DF1A0ADE0B876"
     ]);
 
-    /// Construct an `rng` s.t. `rng.fill_bytes(&mut buffer[..x]); rng.fill_bytes(&mut buffer[x..])`
-    /// will construct the same `buffer`, regardless the choice of `x` in `0..buffer.len()`.
-    fn get_sequential_rng() -> ChaCha20Rng {
+    /// Construct 4-sequential `rng`, i.e.,
+    /// `rng.fill_bytes(&mut buffer[..x]); rng.fill_bytes(&mut buffer[x..])` will construct the
+    /// same `buffer`, regardless the choice of `x` in `0..buffer.len()`.
+    fn get_four_sequential_rng() -> ChaCha20Rng {
         let zero_seed = [0u8; 32];
         ChaCha20Rng::from(ChaCha20Core::from_seed(zero_seed))
     }
@@ -187,7 +188,7 @@ mod tests {
     /// Make sure the random value constructed is consistent across platforms
     #[test]
     fn random_platform_independence() {
-        let mut rng = get_sequential_rng();
+        let mut rng = get_four_sequential_rng();
         assert_eq!(U1024::random(&mut rng), RANDOM_OUTPUT);
     }
 
@@ -266,7 +267,7 @@ mod tests {
     /// Make sure the random_bits output is consistent across platforms
     #[test]
     fn random_bits_platform_independence() {
-        let mut rng = get_sequential_rng();
+        let mut rng = get_four_sequential_rng();
 
         let bit_length = 989;
         let mut val = U1024::ZERO;
@@ -287,5 +288,22 @@ mod tests {
                 75, 121, 77, 111, 45, 9, 160, 230, 99, 38, 108, 225, 174, 126, 209, 8
             ]
         );
+    }
+
+    /// Test that random bytes are sampled consecutively.
+    #[test]
+    fn random_bits_4_bytes_sequential() {
+        // Test for multiples of 4 bytes, i.e., multiples of 32 bits.
+        let bit_lengths = [0, 32, 64, 128, 192, 992];
+
+        for bit_length in bit_lengths {
+            let mut rng = get_four_sequential_rng();
+            let mut first = U1024::ZERO;
+            let mut second = U1024::ZERO;
+            random_bits_core(&mut rng, first.as_limbs_mut(), bit_length).expect("safe");
+            random_bits_core(&mut rng, second.as_limbs_mut(), U1024::BITS - bit_length)
+                .expect("safe");
+            assert_eq!(second.shl(bit_length).bitor(&first), RANDOM_OUTPUT);
+        }
     }
 }
