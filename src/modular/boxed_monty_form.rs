@@ -256,6 +256,12 @@ impl BoxedMontyForm {
             params: self.params.clone(),
         }
     }
+
+    /// Performs division by 2 inplace, that is finds `x` such that `x + x = self`
+    /// and writes it into `self`.
+    pub fn div_by_2_assign(&mut self) {
+        div_by_2::div_by_2_boxed_assign(&mut self.montgomery_form, &self.params.modulus)
+    }
 }
 
 impl Retrieve for BoxedMontyForm {
@@ -299,6 +305,10 @@ impl Monty for BoxedMontyForm {
 
     fn div_by_2(&self) -> Self {
         BoxedMontyForm::div_by_2(self)
+    }
+
+    fn div_by_2_assign(&mut self) {
+        BoxedMontyForm::div_by_2_assign(self)
     }
 
     fn lincomb_vartime(products: &[(&Self, &Self)]) -> Self {
