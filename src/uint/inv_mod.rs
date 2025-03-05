@@ -6,6 +6,46 @@ use subtle::CtOption;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes 1/`self` mod `2^k`.
+    /// This method is variable w.r.t. `self` and `k`.
+    ///
+    /// If the inverse does not exist (`k > 0` and `self` is even),
+    /// returns `ConstChoice::FALSE` as the second element of the tuple,
+    /// otherwise returns `ConstChoice::TRUE`.
+    pub(crate) const fn inv_mod2k_full_vartime(&self, k: u32) -> Option<Self> {
+        // Using the Algorithm 3 from "A Secure Algorithm for Inversion Modulo 2k"
+        // by Sadiel de la Fe and Carles Ferrer.
+        // See <https://www.mdpi.com/2410-387X/2/3/23>.
+
+        // Note that we are not using Alrgorithm 4, since we have a different approach
+        // of enforcing constant-timeness w.r.t. `self`.
+
+        let mut x = Self::ZERO; // keeps `x` during iterations
+        let mut b = Self::ONE; // keeps `b_i` during iterations
+        let mut i = 0;
+
+        // The inverse exists either if `k` is 0 or if `self` is odd.
+        if k != 0 && !self.is_odd().to_bool_vartime() {
+            return None;
+        }
+
+        while i < k {
+            // X_i = b_i mod 2
+            let x_i = b.limbs[0].0 & 1;
+            // b_{i+1} = (b_i - a * X_i) / 2
+            if x_i != 0 {
+                b = b.wrapping_sub(self);
+            }
+            b = b.shr1();
+            // Store the X_i bit in the result (x = x | (1 << X_i))
+            x = x.set_bit_vartime(i, x_i != 0);
+
+            i += 1;
+        }
+
+        Some(x)
+    }
+
+    /// Computes 1/`self` mod `2^k`.
     /// This method is constant-time w.r.t. `self` but not `k`.
     ///
     /// If the inverse does not exist (`k > 0` and `self` is even),

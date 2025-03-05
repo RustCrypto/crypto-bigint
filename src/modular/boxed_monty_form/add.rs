@@ -58,9 +58,8 @@ impl Add<BoxedMontyForm> for BoxedMontyForm {
 impl AddAssign<&BoxedMontyForm> for BoxedMontyForm {
     fn add_assign(&mut self, rhs: &BoxedMontyForm) {
         debug_assert_eq!(self.params, rhs.params);
-        self.montgomery_form = self
-            .montgomery_form
-            .add_mod(&rhs.montgomery_form, &self.params.modulus)
+        self.montgomery_form
+            .add_mod_assign(&rhs.montgomery_form, &self.params.modulus);
     }
 }
 

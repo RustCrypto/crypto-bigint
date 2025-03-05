@@ -870,6 +870,9 @@ pub trait Monty:
     /// The original integer type.
     type Integer: Integer<Monty = Self>;
 
+    /// Prepared Montgomery multiplier for tight loops.
+    type Multiplier<'a>: Debug + Clone + MontyMultiplier<'a, Monty = Self>;
+
     /// The precomputed data needed for this representation.
     type Params: 'static + Clone + Debug + Eq + Sized + Send + Sync;
 
@@ -892,11 +895,21 @@ pub trait Monty:
     /// Access the value in Montgomery form.
     fn as_montgomery(&self) -> &Self::Integer;
 
+    /// Copy the Montgomery representation from `other` into `self`.
+    /// NOTE: the parameters remain unchanged.
+    fn copy_montgomery_from(&mut self, other: &Self);
+
     /// Performs doubling, returning `self + self`.
     fn double(&self) -> Self;
 
     /// Performs division by 2, that is returns `x` such that `x + x = self`.
     fn div_by_2(&self) -> Self;
+
+    /// Performs division by 2 inplace, that is finds `x` such that `x + x = self`
+    /// and writes it into `self`.
+    fn div_by_2_assign(&mut self) {
+        *self = self.div_by_2()
+    }
 
     /// Calculate the sum of products of pairs `(a, b)` in `products`.
     ///
@@ -906,4 +919,22 @@ pub trait Monty:
     /// This method will panic if `products` is empty. All terms must be associated with equivalent
     /// Montgomery parameters.
     fn lincomb_vartime(products: &[(&Self, &Self)]) -> Self;
+}
+
+/// Prepared Montgomery multiplier for tight loops.
+///
+/// Allows one to perform inplace multiplication without allocations
+/// (important for the `BoxedUint` case).
+///
+/// NOTE: You will be operating with Montgomery represntations directly,
+/// make sure they all correspond to the same set of parameters.
+pub trait MontyMultiplier<'a>: From<&'a <Self::Monty as Monty>::Params> {
+    /// The associated Montgomery-representation integer.
+    type Monty: Monty;
+
+    /// Performs a Montgomery multiplication, assigning a fully reduced result to `lhs`.
+    fn mul_assign(&mut self, lhs: &mut Self::Monty, rhs: &Self::Monty);
+
+    /// Performs a Montgomery squaring, assigning a fully reduced result to `lhs`.
+    fn square_assign(&mut self, lhs: &mut Self::Monty);
 }

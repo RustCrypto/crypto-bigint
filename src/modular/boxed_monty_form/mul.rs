@@ -6,15 +6,11 @@
 //! Originally (c) 2014 The Rust Project Developers, dual licensed Apache 2.0+MIT.
 
 use super::{BoxedMontyForm, BoxedMontyParams};
-use crate::{
-    BoxedUint, Limb, Square, SquareAssign, Word, Zero,
-    modular::reduction::montgomery_reduction_boxed_mut, uint::mul::mul_limbs,
-};
+use crate::{BoxedUint, ConstChoice, Limb, MontyMultiplier, Square, SquareAssign};
 use core::{
     borrow::Borrow,
     ops::{Mul, MulAssign},
 };
-use subtle::{ConditionallySelectable, ConstantTimeLess};
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -23,7 +19,7 @@ impl BoxedMontyForm {
     /// Multiplies by `rhs`.
     pub fn mul(&self, rhs: &Self) -> Self {
         debug_assert_eq!(&self.params, &rhs.params);
-        let montgomery_form = MontyMultiplier::from(self.params.borrow())
+        let montgomery_form = BoxedMontyMultiplier::from(self.params.borrow())
             .mul(&self.montgomery_form, &rhs.montgomery_form);
 
         Self {
@@ -35,7 +31,7 @@ impl BoxedMontyForm {
     /// Computes the (reduced) square.
     pub fn square(&self) -> Self {
         let montgomery_form =
-            MontyMultiplier::from(self.params.borrow()).square(&self.montgomery_form);
+            BoxedMontyMultiplier::from(self.params.borrow()).square(&self.montgomery_form);
 
         Self {
             montgomery_form,
@@ -83,7 +79,7 @@ impl MulAssign<BoxedMontyForm> for BoxedMontyForm {
 impl MulAssign<&BoxedMontyForm> for BoxedMontyForm {
     fn mul_assign(&mut self, rhs: &BoxedMontyForm) {
         debug_assert_eq!(&self.params, &rhs.params);
-        MontyMultiplier::from(self.params.borrow())
+        BoxedMontyMultiplier::from(self.params.borrow())
             .mul_assign(&mut self.montgomery_form, &rhs.montgomery_form);
     }
 }
@@ -96,28 +92,43 @@ impl Square for BoxedMontyForm {
 
 impl SquareAssign for BoxedMontyForm {
     fn square_assign(&mut self) {
-        MontyMultiplier::from(self.params.borrow()).square_assign(&mut self.montgomery_form);
-    }
-}
-
-impl<'a> From<&'a BoxedMontyParams> for MontyMultiplier<'a> {
-    fn from(params: &'a BoxedMontyParams) -> MontyMultiplier<'a> {
-        MontyMultiplier::new(&params.modulus, params.mod_neg_inv)
+        BoxedMontyMultiplier::from(self.params.borrow()).square_assign(&mut self.montgomery_form);
     }
 }
 
 /// Montgomery multiplier with a pre-allocated internal buffer to avoid additional allocations.
-pub(super) struct MontyMultiplier<'a> {
+#[derive(Debug, Clone)]
+pub struct BoxedMontyMultiplier<'a> {
     product: BoxedUint,
     modulus: &'a BoxedUint,
     mod_neg_inv: Limb,
 }
 
-impl<'a> MontyMultiplier<'a> {
+impl<'a> From<&'a BoxedMontyParams> for BoxedMontyMultiplier<'a> {
+    fn from(params: &'a BoxedMontyParams) -> BoxedMontyMultiplier<'a> {
+        BoxedMontyMultiplier::new(&params.modulus, params.mod_neg_inv)
+    }
+}
+
+impl<'a> MontyMultiplier<'a> for BoxedMontyMultiplier<'a> {
+    type Monty = BoxedMontyForm;
+
+    /// Performs a Montgomery multiplication, assigning a fully reduced result to `lhs`.
+    fn mul_assign(&mut self, lhs: &mut Self::Monty, rhs: &Self::Monty) {
+        self.mul_assign(&mut lhs.montgomery_form, &rhs.montgomery_form);
+    }
+
+    /// Performs a Montgomery squaring, assigning a fully reduced result to `lhs`.
+    fn square_assign(&mut self, lhs: &mut Self::Monty) {
+        self.square_assign(&mut lhs.montgomery_form);
+    }
+}
+
+impl<'a> BoxedMontyMultiplier<'a> {
     /// Create a new Montgomery multiplier.
     pub(super) fn new(modulus: &'a BoxedUint, mod_neg_inv: Limb) -> Self {
         Self {
-            product: BoxedUint::zero_with_precision(modulus.bits_precision() * 2),
+            product: BoxedUint::zero_with_precision(modulus.bits_precision()),
             modulus,
             mod_neg_inv,
         }
@@ -132,13 +143,29 @@ impl<'a> MontyMultiplier<'a> {
 
     /// Perform a Montgomery multiplication, assigning a fully reduced result to `a`.
     pub(super) fn mul_assign(&mut self, a: &mut BoxedUint, b: &BoxedUint) {
-        debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
-        debug_assert_eq!(b.bits_precision(), self.modulus.bits_precision());
-
-        mul_limbs(&a.limbs, &b.limbs, &mut self.product.limbs);
-        montgomery_reduction_boxed_mut(&mut self.product, self.modulus, self.mod_neg_inv, a);
-
+        self.mul_amm_assign(a, b);
+        a.sub_assign_mod_with_carry(Limb::ZERO, self.modulus, self.modulus);
         debug_assert!(&*a < self.modulus);
+    }
+
+    /// Perform a Montgomery multiplication, assigning a fully reduced result to `a`.
+    pub(super) fn mul_by_one(&mut self, a: &BoxedUint) -> BoxedUint {
+        debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
+
+        let mut ret = a.clone();
+
+        self.clear_product();
+        almost_montgomery_mul_by_one(
+            self.product.as_limbs_mut(),
+            a.as_limbs(),
+            self.modulus.as_limbs(),
+            self.mod_neg_inv,
+        );
+        ret.limbs.copy_from_slice(&self.product.limbs);
+
+        // Note: no reduction is required, see the doc comment of `almost_montgomery_mul()`.
+
+        ret
     }
 
     /// Perform a squaring using Montgomery multiplication, returning a fully reduced result.
@@ -150,12 +177,8 @@ impl<'a> MontyMultiplier<'a> {
 
     /// Perform a squaring using Montgomery multiplication, assigning a fully reduced result to `a`.
     pub(super) fn square_assign(&mut self, a: &mut BoxedUint) {
-        debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
-
-        // TODO(tarcieri): optimized implementation
-        mul_limbs(&a.limbs, &a.limbs, &mut self.product.limbs);
-        montgomery_reduction_boxed_mut(&mut self.product, self.modulus, self.mod_neg_inv, a);
-
+        self.square_amm_assign(a);
+        a.sub_assign_mod_with_carry(Limb::ZERO, self.modulus, self.modulus);
         debug_assert!(&*a < self.modulus);
     }
 
@@ -187,8 +210,7 @@ impl<'a> MontyMultiplier<'a> {
             self.modulus.as_limbs(),
             self.mod_neg_inv,
         );
-        a.limbs
-            .copy_from_slice(&self.product.limbs[..a.limbs.len()]);
+        a.limbs.copy_from_slice(&self.product.limbs);
     }
 
     /// Perform a squaring using "Almost Montgomery Multiplication".
@@ -211,6 +233,7 @@ impl<'a> MontyMultiplier<'a> {
     pub(super) fn square_amm_assign(&mut self, a: &mut BoxedUint) {
         debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
 
+        // TODO(tarcieri): optimized implementation
         self.clear_product();
         almost_montgomery_mul(
             self.product.as_limbs_mut(),
@@ -219,8 +242,7 @@ impl<'a> MontyMultiplier<'a> {
             self.modulus.as_limbs(),
             self.mod_neg_inv,
         );
-        a.limbs
-            .copy_from_slice(&self.product.limbs[..a.limbs.len()]);
+        a.limbs.copy_from_slice(&self.product.limbs);
     }
 
     /// Clear the internal product buffer.
@@ -233,80 +255,172 @@ impl<'a> MontyMultiplier<'a> {
 }
 
 #[cfg(feature = "zeroize")]
-impl Drop for MontyMultiplier<'_> {
+impl Drop for BoxedMontyMultiplier<'_> {
     fn drop(&mut self) {
         self.product.zeroize();
     }
 }
 
-/// Compute an "Almost Montgomery Multiplication (AMM)" as described in the paper
-/// "Efficient Software Implementations of Modular Exponentiation"
-/// <https://eprint.iacr.org/2011/239.pdf>
-///
-/// Computes z mod m = x * y * 2 ** (-n*_W) mod m assuming k = -1/m mod 2**_W.
-///
-/// x and y are required to satisfy 0 <= z < 2**(n*_W) and then the result z is guaranteed to
-/// satisfy 0 <= z < 2**(n*_W), but it may not be < m.
-///
-/// Output is written into the lower (i.e. first) half of `z`.
-///
-/// Note: this was adapted from an implementation in `num-bigint`'s `monty.rs`.
+/**
+Computes Montgomery multiplication of `x` and `y` into `z`, that is
+`z mod m = x * y * 2^(-n*W) mod m` assuming `k = -1/m mod 2^W`,
+where `W` is the bit size of the limb, and `n * W` is the full bit size of the integer.
+
+NOTE: `z` is assumed to be pre-zeroized.
+
+This function implements the Coarsely Integrated Operand Scanning (CIOS) variation
+of Montgomery multiplication, using the classification from
+"Analyzing and Comparing Montgomery Multiplication Algorithms" by Koc et al
+(<https://www.microsoft.com/en-us/research/wp-content/uploads/1996/01/j37acmon.pdf>).
+
+Additionally, unlike in Koc et al, we are reducing the final result only if it overflows
+`2^(n*W)`, not when it overflows `m`.
+This means that this function does not assume `x` and `y` are reduced `mod m`,
+and the result will be correct `mod m`, but potentially greater than `m`,
+and smaller than `2^(n * W) + m`.
+See "Efficient Software Implementations of Modular Exponentiation" by S. Gueron for details
+(<https://eprint.iacr.org/2011/239.pdf>).
+
+This function exhibits certain properties which were discovered via randomized tests,
+but (to my knowledge at this moment) have not been proven formally.
+Hereinafter I denote `f(x) = floor(x / m)`, that is `f` is the number of subtractions
+of the modulus required to fully reduce `x`.
+
+1. In general, if `f(x) = k` and `f(y) = n`, then `f(AMM(x, y)) <= min(k, n) + 1`.
+   That is the "reduction error" grows with every operation,
+   but is determined by the argument with the lower error.
+2. To retrieve the number from Montgomery form we MM it by 1. In this case `f(AMM(x, 1)) = 0`,
+   that is the result is always fully reduced regardless of `f(x)`.
+3. `f(AMM(x, x)) <= 1` regardless of `f(x)`. That is, squaring resets the error to at most 1.
+*/
 // TODO(tarcieri): refactor into `reduction.rs`, share impl with `MontyForm`?
-fn almost_montgomery_mul(z: &mut [Limb], x: &[Limb], y: &[Limb], m: &[Limb], k: Limb) {
-    // This code assumes x, y, m are all the same length (required by addMulVVW and the for loop).
-    // It also assumes that x, y are already reduced mod m, or else the result will not be properly
-    // reduced.
-    let n = m.len();
+pub(crate) const fn almost_montgomery_mul(
+    z: &mut [Limb],
+    x: &[Limb],
+    y: &[Limb],
+    m: &[Limb],
+    k: Limb,
+) {
+    let n = z.len();
 
     // This preconditions check allows compiler to remove bound checks later in the code.
-    // `z.len() > n && z[n..].len() == n` is used intentionally instead of `z.len() == 2* n`
-    // since the latter prevents compiler from removing some bound checks.
-    let pre_cond = z.len() > n && z[n..].len() == n && x.len() == n && y.len() == n && m.len() == n;
-    if !pre_cond {
-        panic!("Failed preconditions in montgomery_mul");
+    if !(x.len() == n && y.len() == n && m.len() == n) {
+        panic!("Failed preconditions in `almost_montgomery_mul`");
     }
 
-    let mut c = Limb::ZERO;
+    let mut ts = Limb::ZERO;
 
-    for i in 0..n {
-        let c2 = add_mul_vvw(&mut z[i..n + i], x, y[i]);
-        let t = z[i].wrapping_mul(k);
-        let c3 = add_mul_vvw(&mut z[i..n + i], m, t);
-        let cx = c.wrapping_add(c2);
-        let cy = cx.wrapping_add(c3);
-        z[n + i] = cy;
-        c = Limb((cx.ct_lt(&c2) | cy.ct_lt(&c3)).unwrap_u8() as Word);
+    let mut i = 0;
+    while i < n {
+        let mut c = add_mul_carry(z, x, y[i]);
+        (ts, c) = ts.overflowing_add(c);
+        let ts1 = c;
+
+        let t = z[0].wrapping_mul(k);
+
+        c = add_mul_carry_and_shift(z, m, t);
+        (z[n - 1], c) = ts.overflowing_add(c);
+        ts = ts1.wrapping_add(c);
+
+        i += 1;
     }
 
-    let (lower, upper) = z.split_at_mut(n);
-    sub_vv(lower, upper, m);
-
-    let is_zero = c.is_zero();
-    for (a, b) in lower.iter_mut().zip(upper.iter()) {
-        a.conditional_assign(b, is_zero);
-    }
+    // If the result overflows the integer size, subtract the modulus.
+    let overflow = ConstChoice::from_word_lsb(ts.0);
+    conditional_sub(z, m, overflow);
 }
 
+/// Same as `almost_montgomery_mul()` with `y == 1`.
+///
+/// Used for retrieving from Montgomery form.
+pub(crate) const fn almost_montgomery_mul_by_one(z: &mut [Limb], x: &[Limb], m: &[Limb], k: Limb) {
+    let n = z.len();
+
+    // This preconditions check allows compiler to remove bound checks later in the code.
+    if !(x.len() == n && m.len() == n) {
+        panic!("Failed preconditions in `almost_montgomery_mul_by_one`");
+    }
+
+    let mut ts = Limb::ZERO;
+
+    let mut i = 0;
+    while i < n {
+        let mut c = if i == 0 {
+            add_mul_carry(z, x, Limb::ONE)
+        } else {
+            Limb::ZERO
+        };
+        (ts, c) = ts.overflowing_add(c);
+        let ts1 = c;
+
+        let t = z[0].wrapping_mul(k);
+
+        c = add_mul_carry_and_shift(z, m, t);
+        (z[n - 1], c) = ts.overflowing_add(c);
+        ts = ts1.wrapping_add(c);
+
+        i += 1;
+    }
+
+    // If the result overflows the integer size, subtract the modulus.
+    let overflow = ConstChoice::from_word_lsb(ts.0);
+    conditional_sub(z, m, overflow);
+}
+
+/// Calcaultes `z += x * y` and returns the carry.
 #[inline]
-fn add_mul_vvw(z: &mut [Limb], x: &[Limb], y: Limb) -> Limb {
+const fn add_mul_carry(z: &mut [Limb], x: &[Limb], y: Limb) -> Limb {
+    let n = z.len();
+    if n != x.len() {
+        panic!("Failed preconditions in `add_mul_carry`");
+    }
+
     let mut c = Limb::ZERO;
-    for (zi, xi) in z.iter_mut().zip(x.iter()) {
-        let (z0, z1) = zi.mac(*xi, y, Limb::ZERO);
-        let (zi_, c_) = z0.overflowing_add(c);
-        *zi = zi_;
-        c = c_.wrapping_add(z1);
+    let mut i = 0;
+    while i < n {
+        (z[i], c) = z[i].mac(x[i], y, c);
+        i += 1;
+    }
+    c
+}
+
+/// Calcaultes `z = (z + x * y) / 2^W` and returns the carry (of the `z + x * y`).
+#[inline]
+const fn add_mul_carry_and_shift(z: &mut [Limb], x: &[Limb], y: Limb) -> Limb {
+    let n = z.len();
+    if n != x.len() {
+        panic!("Failed preconditions in `add_mul_carry_and_shift`");
+    }
+
+    let (_, mut c) = z[0].mac(x[0], y, Limb::ZERO);
+
+    let mut i = 1;
+    let mut i1 = 0;
+    // Help the compiler elide bound checking
+    while i < n && i1 < n {
+        (z[i1], c) = z[i].mac(x[i], y, c);
+        i += 1;
+        i1 += 1;
     }
 
     c
 }
 
+/// Calculates `z -= x` if `c` is truthy, otherwise `z` is unchanged.
 #[inline(always)]
-fn sub_vv(z: &mut [Limb], x: &[Limb], y: &[Limb]) {
+const fn conditional_sub(z: &mut [Limb], x: &[Limb], c: ConstChoice) {
+    let n = z.len();
+    if n != x.len() {
+        panic!("Failed preconditions in `conditional_sub`");
+    }
+
     let mut borrow = Limb::ZERO;
-    for (i, (&xi, &yi)) in x.iter().zip(y.iter()).enumerate().take(z.len()) {
-        let (zi, new_borrow) = xi.sbb(yi, borrow);
+    let mut i = 0;
+    while i < n {
+        let (zi, new_borrow) = z[i].sbb(Limb(c.if_true_word(x[i].0)), borrow);
         z[i] = zi;
         borrow = new_borrow;
+        i += 1;
     }
 }
 
