@@ -8,7 +8,7 @@ mod neg;
 mod pow;
 mod sub;
 
-use super::{ConstMontyParams, Retrieve, div_by_2, reduction::montgomery_reduction_boxed};
+use super::{ConstMontyParams, Retrieve, div_by_2};
 use mul::MontyMultiplier;
 
 use crate::{BoxedUint, Limb, Monty, Odd, Word};
@@ -187,19 +187,8 @@ impl BoxedMontyForm {
 
     /// Retrieves the integer currently encoded in this [`BoxedMontyForm`], guaranteed to be reduced.
     pub fn retrieve(&self) -> BoxedUint {
-        let mut montgomery_form = self.montgomery_form.widen(self.bits_precision() * 2);
-
-        let ret = montgomery_reduction_boxed(
-            &mut montgomery_form,
-            &self.params.modulus,
-            self.params.mod_neg_inv,
-        );
-
-        #[cfg(feature = "zeroize")]
-        montgomery_form.zeroize();
-
-        debug_assert!(ret < self.params.modulus);
-        ret
+        let mut mm = MontyMultiplier::from(self.params.as_ref());
+        mm.mul_by_one(&self.montgomery_form)
     }
 
     /// Instantiates a new `ConstMontyForm` that represents zero.
