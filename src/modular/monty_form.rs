@@ -15,6 +15,7 @@ use super::{
     reduction::montgomery_reduction,
 };
 use crate::{Concat, ConstChoice, Limb, Monty, NonZero, Odd, Split, Uint, Word};
+use mul::DynMontyMultiplier;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
@@ -271,6 +272,7 @@ impl<const LIMBS: usize> Retrieve for MontyForm<LIMBS> {
 impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
     type Integer = Uint<LIMBS>;
     type Params = MontyParams<LIMBS>;
+    type Multiplier<'a> = DynMontyMultiplier<'a, LIMBS>;
 
     fn new_params_vartime(modulus: Odd<Self::Integer>) -> Self::Params {
         MontyParams::new_vartime(modulus)
@@ -294,6 +296,11 @@ impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
 
     fn as_montgomery(&self) -> &Self::Integer {
         &self.montgomery_form
+    }
+
+    fn copy_montgomery_from(&mut self, other: &Self) {
+        debug_assert_eq!(self.params, other.params);
+        self.montgomery_form = other.montgomery_form;
     }
 
     fn double(&self) -> Self {

@@ -1,6 +1,6 @@
 //! Modular exponentiation support for [`BoxedMontyForm`].
 
-use super::{BoxedMontyForm, mul::MontyMultiplier};
+use super::{BoxedMontyForm, mul::BoxedMontyMultiplier};
 use crate::{BoxedUint, ConstantTimeSelect, Limb, PowBoundedExp, Word};
 use alloc::vec::Vec;
 use subtle::{ConstantTimeEq, ConstantTimeLess};
@@ -60,7 +60,7 @@ fn pow_montgomery_form(
     const WINDOW: u32 = 4;
     const WINDOW_MASK: Word = (1 << WINDOW) - 1;
 
-    let mut multiplier = MontyMultiplier::new(modulus, mod_neg_inv);
+    let mut multiplier = BoxedMontyMultiplier::new(modulus, mod_neg_inv);
 
     // powers[i] contains x^i
     let mut powers = Vec::with_capacity(1 << WINDOW);

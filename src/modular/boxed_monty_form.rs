@@ -9,7 +9,7 @@ mod pow;
 mod sub;
 
 use super::{ConstMontyParams, Retrieve, div_by_2};
-use mul::MontyMultiplier;
+use mul::BoxedMontyMultiplier;
 
 use crate::{BoxedUint, Limb, Monty, Odd, Word};
 use alloc::sync::Arc;
@@ -67,7 +67,7 @@ impl BoxedMontyParams {
         let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
 
         let r3 = {
-            let mut mm = MontyMultiplier::new(&modulus, mod_neg_inv);
+            let mut mm = BoxedMontyMultiplier::new(&modulus, mod_neg_inv);
             mm.square(&r2)
         };
 
@@ -110,7 +110,7 @@ impl BoxedMontyParams {
         let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
 
         let r3 = {
-            let mut mm = MontyMultiplier::new(&modulus, mod_neg_inv);
+            let mut mm = BoxedMontyMultiplier::new(&modulus, mod_neg_inv);
             mm.square(&r2)
         };
 
@@ -187,7 +187,7 @@ impl BoxedMontyForm {
 
     /// Retrieves the integer currently encoded in this [`BoxedMontyForm`], guaranteed to be reduced.
     pub fn retrieve(&self) -> BoxedUint {
-        let mut mm = MontyMultiplier::from(self.params.as_ref());
+        let mut mm = BoxedMontyMultiplier::from(self.params.as_ref());
         mm.mul_by_one(&self.montgomery_form)
     }
 
@@ -277,6 +277,7 @@ impl Retrieve for BoxedMontyForm {
 impl Monty for BoxedMontyForm {
     type Integer = BoxedUint;
     type Params = BoxedMontyParams;
+    type Multiplier<'a> = BoxedMontyMultiplier<'a>;
 
     fn new_params_vartime(modulus: Odd<Self::Integer>) -> Self::Params {
         BoxedMontyParams::new_vartime(modulus)
@@ -300,6 +301,17 @@ impl Monty for BoxedMontyForm {
 
     fn as_montgomery(&self) -> &Self::Integer {
         &self.montgomery_form
+    }
+
+    fn copy_montgomery_from(&mut self, other: &Self) {
+        debug_assert_eq!(
+            self.montgomery_form.bits_precision(),
+            other.montgomery_form.bits_precision()
+        );
+        debug_assert_eq!(self.params, other.params);
+        self.montgomery_form
+            .limbs
+            .copy_from_slice(&other.montgomery_form.limbs);
     }
 
     fn double(&self) -> Self {
@@ -330,7 +342,7 @@ impl Zeroize for BoxedMontyForm {
 /// Convert the given integer into the Montgomery domain.
 #[inline]
 fn convert_to_montgomery(integer: &mut BoxedUint, params: &BoxedMontyParams) {
-    let mut mm = MontyMultiplier::from(params);
+    let mut mm = BoxedMontyMultiplier::from(params);
     mm.mul_assign(integer, &params.r2);
 }
 

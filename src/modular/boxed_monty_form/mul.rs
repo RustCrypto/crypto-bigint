@@ -6,7 +6,7 @@
 //! Originally (c) 2014 The Rust Project Developers, dual licensed Apache 2.0+MIT.
 
 use super::{BoxedMontyForm, BoxedMontyParams};
-use crate::{BoxedUint, ConstChoice, Limb, Square, SquareAssign};
+use crate::{BoxedUint, ConstChoice, Limb, MontyMultiplier, Square, SquareAssign};
 use core::{
     borrow::Borrow,
     ops::{Mul, MulAssign},
@@ -19,7 +19,7 @@ impl BoxedMontyForm {
     /// Multiplies by `rhs`.
     pub fn mul(&self, rhs: &Self) -> Self {
         debug_assert_eq!(&self.params, &rhs.params);
-        let montgomery_form = MontyMultiplier::from(self.params.borrow())
+        let montgomery_form = BoxedMontyMultiplier::from(self.params.borrow())
             .mul(&self.montgomery_form, &rhs.montgomery_form);
 
         Self {
@@ -31,7 +31,7 @@ impl BoxedMontyForm {
     /// Computes the (reduced) square.
     pub fn square(&self) -> Self {
         let montgomery_form =
-            MontyMultiplier::from(self.params.borrow()).square(&self.montgomery_form);
+            BoxedMontyMultiplier::from(self.params.borrow()).square(&self.montgomery_form);
 
         Self {
             montgomery_form,
@@ -79,7 +79,7 @@ impl MulAssign<BoxedMontyForm> for BoxedMontyForm {
 impl MulAssign<&BoxedMontyForm> for BoxedMontyForm {
     fn mul_assign(&mut self, rhs: &BoxedMontyForm) {
         debug_assert_eq!(&self.params, &rhs.params);
-        MontyMultiplier::from(self.params.borrow())
+        BoxedMontyMultiplier::from(self.params.borrow())
             .mul_assign(&mut self.montgomery_form, &rhs.montgomery_form);
     }
 }
@@ -92,24 +92,39 @@ impl Square for BoxedMontyForm {
 
 impl SquareAssign for BoxedMontyForm {
     fn square_assign(&mut self) {
-        MontyMultiplier::from(self.params.borrow()).square_assign(&mut self.montgomery_form);
-    }
-}
-
-impl<'a> From<&'a BoxedMontyParams> for MontyMultiplier<'a> {
-    fn from(params: &'a BoxedMontyParams) -> MontyMultiplier<'a> {
-        MontyMultiplier::new(&params.modulus, params.mod_neg_inv)
+        BoxedMontyMultiplier::from(self.params.borrow()).square_assign(&mut self.montgomery_form);
     }
 }
 
 /// Montgomery multiplier with a pre-allocated internal buffer to avoid additional allocations.
-pub(super) struct MontyMultiplier<'a> {
+#[derive(Debug, Clone)]
+pub struct BoxedMontyMultiplier<'a> {
     product: BoxedUint,
     modulus: &'a BoxedUint,
     mod_neg_inv: Limb,
 }
 
-impl<'a> MontyMultiplier<'a> {
+impl<'a> From<&'a BoxedMontyParams> for BoxedMontyMultiplier<'a> {
+    fn from(params: &'a BoxedMontyParams) -> BoxedMontyMultiplier<'a> {
+        BoxedMontyMultiplier::new(&params.modulus, params.mod_neg_inv)
+    }
+}
+
+impl<'a> MontyMultiplier<'a> for BoxedMontyMultiplier<'a> {
+    type Monty = BoxedMontyForm;
+
+    /// Performs a Montgomery multiplication, assigning a fully reduced result to `lhs`.
+    fn mul_assign(&mut self, lhs: &mut Self::Monty, rhs: &Self::Monty) {
+        self.mul_assign(&mut lhs.montgomery_form, &rhs.montgomery_form);
+    }
+
+    /// Performs a Montgomery squaring, assigning a fully reduced result to `lhs`.
+    fn square_assign(&mut self, lhs: &mut Self::Monty) {
+        self.square_assign(&mut lhs.montgomery_form);
+    }
+}
+
+impl<'a> BoxedMontyMultiplier<'a> {
     /// Create a new Montgomery multiplier.
     pub(super) fn new(modulus: &'a BoxedUint, mod_neg_inv: Limb) -> Self {
         Self {
@@ -240,7 +255,7 @@ impl<'a> MontyMultiplier<'a> {
 }
 
 #[cfg(feature = "zeroize")]
-impl Drop for MontyMultiplier<'_> {
+impl Drop for BoxedMontyMultiplier<'_> {
     fn drop(&mut self) {
         self.product.zeroize();
     }
