@@ -6,7 +6,7 @@
 //! Originally (c) 2014 The Rust Project Developers, dual licensed Apache 2.0+MIT.
 
 use super::{BoxedMontyForm, BoxedMontyParams};
-use crate::{BoxedUint, ConstChoice, Limb, Square, SquareAssign, Word};
+use crate::{BoxedUint, ConstChoice, Limb, Square, SquareAssign};
 use core::{
     borrow::Borrow,
     ops::{Mul, MulAssign},
@@ -113,7 +113,7 @@ impl<'a> MontyMultiplier<'a> {
     /// Create a new Montgomery multiplier.
     pub(super) fn new(modulus: &'a BoxedUint, mod_neg_inv: Limb) -> Self {
         Self {
-            product: BoxedUint::zero_with_precision(modulus.bits_precision() * 2),
+            product: BoxedUint::zero_with_precision(modulus.bits_precision()),
             modulus,
             mod_neg_inv,
         }
@@ -130,7 +130,6 @@ impl<'a> MontyMultiplier<'a> {
     pub(super) fn mul_assign(&mut self, a: &mut BoxedUint, b: &BoxedUint) {
         self.mul_amm_assign(a, b);
         a.sub_assign_mod_with_carry(Limb::ZERO, self.modulus, self.modulus);
-
         debug_assert!(&*a < self.modulus);
     }
 
@@ -147,9 +146,9 @@ impl<'a> MontyMultiplier<'a> {
             self.modulus.as_limbs(),
             self.mod_neg_inv,
         );
-        ret.limbs
-            .copy_from_slice(&self.product.limbs[..a.limbs.len()]);
-        ret.sub_assign_mod_with_carry(Limb::ZERO, self.modulus, self.modulus);
+        ret.limbs.copy_from_slice(&self.product.limbs);
+
+        // Note: no reduction is required, see the doc comment of `almost_montgomery_mul()`.
 
         ret
     }
@@ -165,7 +164,6 @@ impl<'a> MontyMultiplier<'a> {
     pub(super) fn square_assign(&mut self, a: &mut BoxedUint) {
         self.square_amm_assign(a);
         a.sub_assign_mod_with_carry(Limb::ZERO, self.modulus, self.modulus);
-
         debug_assert!(&*a < self.modulus);
     }
 
@@ -197,8 +195,7 @@ impl<'a> MontyMultiplier<'a> {
             self.modulus.as_limbs(),
             self.mod_neg_inv,
         );
-        a.limbs
-            .copy_from_slice(&self.product.limbs[..a.limbs.len()]);
+        a.limbs.copy_from_slice(&self.product.limbs);
     }
 
     /// Perform a squaring using "Almost Montgomery Multiplication".
@@ -230,8 +227,7 @@ impl<'a> MontyMultiplier<'a> {
             self.modulus.as_limbs(),
             self.mod_neg_inv,
         );
-        a.limbs
-            .copy_from_slice(&self.product.limbs[..a.limbs.len()]);
+        a.limbs.copy_from_slice(&self.product.limbs);
     }
 
     /// Clear the internal product buffer.
@@ -250,140 +246,163 @@ impl Drop for MontyMultiplier<'_> {
     }
 }
 
-/// Compute an "Almost Montgomery Multiplication (AMM)" as described in the paper
-/// "Efficient Software Implementations of Modular Exponentiation"
-/// <https://eprint.iacr.org/2011/239.pdf>
-///
-/// Computes z mod m = x * y * 2 ** (-n*_W) mod m assuming k = -1/m mod 2**_W.
-///
-/// x and y are required to satisfy 0 <= z < 2**(n*_W) and then the result z is guaranteed to
-/// satisfy 0 <= z < 2**(n*_W), but it may not be < m.
-///
-/// Output is written into the lower (i.e. first) half of `z`.
-///
-/// Note: this was adapted from an implementation in `num-bigint`'s `monty.rs`.
+/**
+Computes Montgomery multiplication of `x` and `y` into `z`, that is
+`z mod m = x * y * 2^(-n*W) mod m` assuming `k = -1/m mod 2^W`,
+where `W` is the bit size of the limb, and `n * W` is the full bit size of the integer.
+
+NOTE: `z` is assumed to be pre-zeroized.
+
+This function implements the Coarsely Integrated Operand Scanning (CIOS) variation
+of Montgomery multiplication, using the classification from
+"Analyzing and Comparing Montgomery Multiplication Algorithms" by Koc et al
+(<https://www.microsoft.com/en-us/research/wp-content/uploads/1996/01/j37acmon.pdf>).
+
+Additionally, unlike in Koc et al, we are reducing the final result only if it overflows
+`2^(n*W)`, not when it overflows `m`.
+This means that this function does not assume `x` and `y` are reduced `mod m`,
+and the result will be correct `mod m`, but potentially greater than `m`,
+and smaller than `2^(n * W) + m`.
+See "Efficient Software Implementations of Modular Exponentiation" by S. Gueron for details
+(<https://eprint.iacr.org/2011/239.pdf>).
+
+This function exhibits certain properties which were discovered via randomized tests,
+but (to my knowledge at this moment) have not been proven formally.
+Hereinafter I denote `f(x) = floor(x / m)`, that is `f` is the number of subtractions
+of the modulus required to fully reduce `x`.
+
+1. In general, if `f(x) = k` and `f(y) = n`, then `f(AMM(x, y)) <= min(k, n) + 1`.
+   That is the "reduction error" grows with every operation,
+   but is determined by the argument with the lower error.
+2. To retrieve the number from Montgomery form we MM it by 1. In this case `f(AMM(x, 1)) = 0`,
+   that is the result is always fully reduced regardless of `f(x)`.
+3. `f(AMM(x, x)) <= 1` regardless of `f(x)`. That is, squaring resets the error to at most 1.
+*/
 // TODO(tarcieri): refactor into `reduction.rs`, share impl with `MontyForm`?
-const fn almost_montgomery_mul(z: &mut [Limb], x: &[Limb], y: &[Limb], m: &[Limb], k: Limb) {
-    // This code assumes x, y, m are all the same length (required by addMulVVW and the for loop).
-    // It also assumes that x, y are already reduced mod m, or else the result will not be properly
-    // reduced.
-    let n = m.len();
+pub(crate) const fn almost_montgomery_mul(
+    z: &mut [Limb],
+    x: &[Limb],
+    y: &[Limb],
+    m: &[Limb],
+    k: Limb,
+) {
+    let n = z.len();
 
     // This preconditions check allows compiler to remove bound checks later in the code.
-    let pre_cond = z.len() > n && x.len() == n && y.len() == n && m.len() == n;
-    if !pre_cond {
-        panic!("Failed preconditions in montgomery_mul");
+    if !(x.len() == n && y.len() == n && m.len() == n) {
+        panic!("Failed preconditions in `almost_montgomery_mul`");
     }
 
-    let mut c = ConstChoice::FALSE;
+    let mut ts = Limb::ZERO;
 
     let mut i = 0;
     while i < n {
-        let (_, z_slice) = z.split_at_mut(i);
-        let c2 = add_mul_vvw(z_slice, x, y[i]);
-        let t = z_slice[0].wrapping_mul(k);
-        let c3 = add_mul_vvw(z_slice, m, t);
-        let cx = c2.wrapping_add(Limb(c.to_u8() as Word));
-        let cy = cx.wrapping_add(c3);
-        z[n + i] = cy;
-        c = ConstChoice::from_word_lt(cx.0, c2.0).or(ConstChoice::from_word_lt(cy.0, c3.0));
+        let mut c = add_mul_carry(z, x, y[i]);
+        (ts, c) = ts.overflowing_add(c);
+        let ts1 = c;
+
+        let t = z[0].wrapping_mul(k);
+
+        c = add_mul_carry_and_shift(z, m, t);
+        (z[n - 1], c) = ts.overflowing_add(c);
+        ts = ts1.wrapping_add(c);
+
         i += 1;
     }
 
-    let (lower, upper) = z.split_at_mut(n);
-    sub_vv(lower, upper, m);
-
-    let is_zero = c.not();
-    let mut i = 0;
-    while i < n {
-        lower[i] = Limb::select(lower[i], upper[i], is_zero);
-        i += 1;
-    }
+    // If the result overflows the integer size, subtract the modulus.
+    let overflow = ConstChoice::from_word_lsb(ts.0);
+    conditional_sub(z, m, overflow);
 }
 
-/// Same as `almost_montgomery_mul` with `y == 1`.
+/// Same as `almost_montgomery_mul()` with `y == 1`.
 ///
 /// Used for retrieving from Montgomery form.
-const fn almost_montgomery_mul_by_one(z: &mut [Limb], x: &[Limb], m: &[Limb], k: Limb) {
-    // This code assumes x, m are all the same length (required by addMulVVW and the for loop).
-    // It also assumes that x is already reduced mod m, or else the result will not be properly
-    // reduced.
-    let n = m.len();
+pub(crate) const fn almost_montgomery_mul_by_one(z: &mut [Limb], x: &[Limb], m: &[Limb], k: Limb) {
+    let n = z.len();
 
     // This preconditions check allows compiler to remove bound checks later in the code.
-    let pre_cond = z.len() > n && x.len() == n && m.len() == n;
-    if !pre_cond {
-        panic!("Failed preconditions in montgomery_mul");
+    if !(x.len() == n && m.len() == n) {
+        panic!("Failed preconditions in `almost_montgomery_mul_by_one`");
     }
 
-    let mut c = ConstChoice::FALSE;
+    let mut ts = Limb::ZERO;
 
-    // The unrolled first iteration.
-    let c2 = add_mul_vvw(z, x, Limb::ONE);
-    let t = z[0].wrapping_mul(k);
-    let c3 = add_mul_vvw(z, m, t);
-    let cx = c2.wrapping_add(Limb(c.to_u8() as Word));
-    let cy = cx.wrapping_add(c3);
-    z[n] = cy;
-    c = ConstChoice::from_word_lt(cx.0, c2.0).or(ConstChoice::from_word_lt(cy.0, c3.0));
-
-    let mut i = 1;
-    while i < n {
-        let (_, z_slice) = z.split_at_mut(i);
-        let c2 = add_mul_vvw(z_slice, x, Limb::ZERO);
-        let t = z_slice[0].wrapping_mul(k);
-        let c3 = add_mul_vvw(z_slice, m, t);
-        let cx = c2.wrapping_add(Limb(c.to_u8() as Word));
-        let cy = cx.wrapping_add(c3);
-        z[n + i] = cy;
-        c = ConstChoice::from_word_lt(cx.0, c2.0).or(ConstChoice::from_word_lt(cy.0, c3.0));
-        i += 1;
-    }
-
-    let (lower, upper) = z.split_at_mut(n);
-    sub_vv(lower, upper, m);
-
-    let is_zero = c.not();
     let mut i = 0;
     while i < n {
-        lower[i] = Limb::select(lower[i], upper[i], is_zero);
+        let mut c = if i == 0 {
+            add_mul_carry(z, x, Limb::ONE)
+        } else {
+            Limb::ZERO
+        };
+        (ts, c) = ts.overflowing_add(c);
+        let ts1 = c;
+
+        let t = z[0].wrapping_mul(k);
+
+        c = add_mul_carry_and_shift(z, m, t);
+        (z[n - 1], c) = ts.overflowing_add(c);
+        ts = ts1.wrapping_add(c);
+
         i += 1;
     }
+
+    // If the result overflows the integer size, subtract the modulus.
+    let overflow = ConstChoice::from_word_lsb(ts.0);
+    conditional_sub(z, m, overflow);
 }
 
+/// Calcaultes `z += x * y` and returns the carry.
 #[inline]
-const fn add_mul_vvw(z: &mut [Limb], x: &[Limb], y: Limb) -> Limb {
-    let n = x.len();
-    if n > z.len() {
-        panic!("Failed preconditions in montgomery_mul");
+const fn add_mul_carry(z: &mut [Limb], x: &[Limb], y: Limb) -> Limb {
+    let n = z.len();
+    if n != x.len() {
+        panic!("Failed preconditions in `add_mul_carry`");
     }
 
     let mut c = Limb::ZERO;
-
     let mut i = 0;
     while i < n {
-        let (z0, z1) = z[i].mac(x[i], y, Limb::ZERO);
-        let (zi_, c_) = z0.overflowing_add(c);
-        z[i] = zi_;
-        c = c_.wrapping_add(z1);
+        (z[i], c) = z[i].mac(x[i], y, c);
         i += 1;
+    }
+    c
+}
+
+/// Calcaultes `z = (z + x * y) / 2^W` and returns the carry (of the `z + x * y`).
+#[inline]
+const fn add_mul_carry_and_shift(z: &mut [Limb], x: &[Limb], y: Limb) -> Limb {
+    let n = z.len();
+    if n != x.len() {
+        panic!("Failed preconditions in `add_mul_carry_and_shift`");
+    }
+
+    let (_, mut c) = z[0].mac(x[0], y, Limb::ZERO);
+
+    let mut i = 1;
+    let mut i1 = 0;
+    // Help the compiler elide bound checking
+    while i < n && i1 < n {
+        (z[i1], c) = z[i].mac(x[i], y, c);
+        i += 1;
+        i1 += 1;
     }
 
     c
 }
 
+/// Calculates `z -= x` if `c` is truthy, otherwise `z` is unchanged.
 #[inline(always)]
-const fn sub_vv(z: &mut [Limb], x: &[Limb], y: &[Limb]) {
+const fn conditional_sub(z: &mut [Limb], x: &[Limb], c: ConstChoice) {
     let n = z.len();
-    if !(n == x.len() && n == y.len()) {
-        panic!("Failed preconditions in montgomery_mul");
+    if n != x.len() {
+        panic!("Failed preconditions in `conditional_sub`");
     }
 
     let mut borrow = Limb::ZERO;
-
     let mut i = 0;
     while i < n {
-        let (zi, new_borrow) = x[i].sbb(y[i], borrow);
+        let (zi, new_borrow) = z[i].sbb(Limb(c.if_true_word(x[i].0)), borrow);
         z[i] = zi;
         borrow = new_borrow;
         i += 1;
