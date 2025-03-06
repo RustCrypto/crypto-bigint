@@ -20,6 +20,12 @@ impl<const LIMBS: usize> Random for Uint<LIMBS> {
 /// Fill the given limbs slice with random bits.
 ///
 /// NOTE: Assumes that the limbs in the given slice are zeroed!
+///
+/// When combined with a platform-independent "4-byte sequential" `rng`, this function is
+/// platform-independent. We consider an RNG "`X`-byte sequential" whenever
+/// `rng.fill_bytes(&mut bytes[..i]); rng.fill_bytes(&mut bytes[i..])` constructs the same `bytes`,
+/// as long as `i` is a multiple of `X`.
+/// Note that the `TryRngCore` trait does _not_ require this behaviour from `rng`.
 pub(crate) fn random_bits_core<R: TryRngCore + ?Sized>(
     rng: &mut R,
     zeroed_limbs: &mut [Limb],
@@ -39,12 +45,26 @@ pub(crate) fn random_bits_core<R: TryRngCore + ?Sized>(
     for i in 0..nonzero_limbs - 1 {
         rng.try_fill_bytes(&mut buffer)
             .map_err(RandomBitsError::RandCore)?;
-        zeroed_limbs[i] = Limb(Word::from_be_bytes(buffer));
+        zeroed_limbs[i] = Limb(Word::from_le_bytes(buffer));
     }
 
-    rng.try_fill_bytes(&mut buffer)
+    // This algorithm should sample the same number of random bytes, regardless of the pointer width
+    // of the target platform. To this end, special attention has to be paid to the case where
+    // bit_length - 1 < 32 mod 64. Bit strings of that size can be represented using `2X+1` 32-bit
+    // words or `X+1` 64-bit words. Note that 64*(X+1) - 32*(2X+1) = 32. Hence, if we sample full
+    // words only, a 64-bit platform will sample 32 bits more than a 32-bit platform. We prevent
+    // this by forcing both platforms to only sample 4 bytes for the last word in this case.
+    let slice = if partial_limb > 0 && partial_limb <= 32 {
+        // Note: we do not have to zeroize the second half of the buffer, as the mask will take
+        // care of this in the end.
+        &mut buffer[0..4]
+    } else {
+        buffer.as_mut_slice()
+    };
+
+    rng.try_fill_bytes(slice)
         .map_err(RandomBitsError::RandCore)?;
-    zeroed_limbs[nonzero_limbs - 1] = Limb(Word::from_be_bytes(buffer) & mask);
+    zeroed_limbs[nonzero_limbs - 1] = Limb(Word::from_le_bytes(buffer) & mask);
 
     Ok(())
 }
@@ -144,9 +164,33 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, NonZero, RandomBits, RandomMod, U256};
+    use crate::uint::rand::random_bits_core;
+    use crate::{Limb, NonZero, Random, RandomBits, RandomMod, U256, U1024, Uint};
     use rand_chacha::ChaCha8Rng;
-    use rand_core::SeedableRng;
+    use rand_chacha::{ChaCha20Core, ChaCha20Rng};
+    use rand_core::{RngCore, SeedableRng};
+
+    const RANDOM_OUTPUT: U1024 = Uint::from_be_hex(concat![
+        "6F4D794B1F0AE1AC45FB0A51281FED31D539D874B03371D5434EE69C7621B729",
+        "ED7AEE323E53C6126965E348A0290FCB0D082D737C97BA987A385155BEE7079F",
+        "8665EEB269B687C31CA11815F4B8436A374AD8B83FE024778D4857517C5941DA",
+        "C70D778BCCEF36A81AED8DA0B819D2BD28BD8653E56A5D40903DF1A0ADE0B876"
+    ]);
+
+    /// Construct 4-sequential `rng`, i.e.,
+    /// `rng.fill_bytes(&mut buffer[..x]); rng.fill_bytes(&mut buffer[x..])` will construct the
+    /// same `buffer`, regardless the choice of `x` in `0..buffer.len()`.
+    fn get_four_sequential_rng() -> ChaCha20Rng {
+        let zero_seed = [0u8; 32];
+        ChaCha20Rng::from(ChaCha20Core::from_seed(zero_seed))
+    }
+
+    /// Make sure the random value constructed is consistent across platforms
+    #[test]
+    fn random_platform_independence() {
+        let mut rng = get_four_sequential_rng();
+        assert_eq!(U1024::random(&mut rng), RANDOM_OUTPUT);
+    }
 
     #[test]
     fn random_mod() {
@@ -217,6 +261,49 @@ mod tests {
         for _ in 0..10 {
             let res = U256::random_bits(&mut rng, bit_length);
             assert_eq!(res, U256::ZERO);
+        }
+    }
+
+    /// Make sure the random_bits output is consistent across platforms
+    #[test]
+    fn random_bits_platform_independence() {
+        let mut rng = get_four_sequential_rng();
+
+        let bit_length = 989;
+        let mut val = U1024::ZERO;
+        random_bits_core(&mut rng, val.as_limbs_mut(), bit_length).expect("safe");
+
+        assert_eq!(
+            val,
+            RANDOM_OUTPUT.bitand(&U1024::ONE.shl(bit_length).wrapping_sub(&Uint::ONE))
+        );
+
+        // Test that the RNG is in the same state
+        let mut state = [0u8; 16];
+        rng.fill_bytes(&mut state);
+
+        assert_eq!(
+            state,
+            [
+                75, 121, 77, 111, 45, 9, 160, 230, 99, 38, 108, 225, 174, 126, 209, 8
+            ]
+        );
+    }
+
+    /// Test that random bytes are sampled consecutively.
+    #[test]
+    fn random_bits_4_bytes_sequential() {
+        // Test for multiples of 4 bytes, i.e., multiples of 32 bits.
+        let bit_lengths = [0, 32, 64, 128, 192, 992];
+
+        for bit_length in bit_lengths {
+            let mut rng = get_four_sequential_rng();
+            let mut first = U1024::ZERO;
+            let mut second = U1024::ZERO;
+            random_bits_core(&mut rng, first.as_limbs_mut(), bit_length).expect("safe");
+            random_bits_core(&mut rng, second.as_limbs_mut(), U1024::BITS - bit_length)
+                .expect("safe");
+            assert_eq!(second.shl(bit_length).bitor(&first), RANDOM_OUTPUT);
         }
     }
 }
