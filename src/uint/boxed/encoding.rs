@@ -5,6 +5,9 @@ use crate::{DecodeError, Limb, Word, uint::encoding};
 use alloc::{boxed::Box, string::String, vec::Vec};
 use subtle::{Choice, CtOption};
 
+#[cfg(feature = "serde")]
+mod serde;
+
 impl BoxedUint {
     /// Create a new [`BoxedUint`] from the provided big endian bytes.
     ///
