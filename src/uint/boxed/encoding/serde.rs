@@ -24,6 +24,10 @@ impl Serialize for BoxedUint {
 #[cfg(test)]
 mod tests {
     use super::BoxedUint;
+    #[cfg(target_pointer_width = "32")]
+    use crate::Limb;
+    #[cfg(target_pointer_width = "32")]
+    use hex_literal::hex;
 
     #[test]
     fn serde_roundabout() {
