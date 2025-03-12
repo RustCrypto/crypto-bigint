@@ -953,7 +953,7 @@ impl<const LIMBS: usize> RemLimb for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, NonZero, RemMixed, U64, U128, U256, U896, U1024, Uint, Word, Zero};
+    use crate::{Limb, NonZero, RemMixed, U64, U128, U256, U896, U1024, U2048, Uint, Word, Zero};
 
     #[cfg(feature = "rand")]
     use {
@@ -1161,6 +1161,25 @@ mod tests {
         assert_eq!(rem.as_words(), &rem_control.as_words()[0..U128::LIMBS]);
         assert!(
             rem_control.as_words()[U128::LIMBS..]
+                .iter()
+                .all(|w| *w == 0)
+        );
+    }
+
+    #[test]
+    fn rem_mixed_even() {
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+        let x = U2048::random(&mut rng);
+        let y = U1024::from_u64(1234567890987654321);
+        let rem: U1024 = x.rem_mixed(&y.to_nz().unwrap());
+
+        let y_wide = U1024::concat_mixed(&y, &U1024::ZERO);
+        let rem_control: U2048 = x.rem(&NonZero::new(y_wide).unwrap());
+
+        assert_eq!(rem.bits(), rem_control.bits());
+        assert_eq!(rem.as_words(), &rem_control.as_words()[0..U1024::LIMBS]);
+        assert!(
+            rem_control.as_words()[U1024::LIMBS..]
                 .iter()
                 .all(|w| *w == 0)
         );
