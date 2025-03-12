@@ -116,6 +116,9 @@ pub trait Integer:
     + for<'a> DivAssign<&'a NonZero<Self>>
     + DivRemLimb
     + Eq
+    + fmt::LowerHex
+    + fmt::UpperHex
+    + fmt::Binary
     + From<u8>
     + From<u16>
     + From<u32>
