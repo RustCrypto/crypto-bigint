@@ -1,6 +1,6 @@
 use super::Uint;
 use crate::{
-    modular::SafeGcdInverter, ConstChoice, ConstCtOption, InvMod, Odd, PrecomputeInverter,
+    ConstChoice, ConstCtOption, InvMod, Odd, PrecomputeInverter, modular::SafeGcdInverter,
 };
 use subtle::CtOption;
 
@@ -146,7 +146,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{U1024, U256, U64};
+    use crate::{U64, U256, U1024};
 
     #[test]
     fn inv_mod2k() {

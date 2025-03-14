@@ -1,11 +1,11 @@
 //! [`BoxedUint`] multiplication operations.
 
 use crate::{
+    BoxedUint, CheckedMul, Limb, WideningMul, Wrapping, WrappingMul, Zero,
     uint::mul::{
-        karatsuba::{karatsuba_mul_limbs, karatsuba_square_limbs, KARATSUBA_MIN_STARTING_LIMBS},
+        karatsuba::{KARATSUBA_MIN_STARTING_LIMBS, karatsuba_mul_limbs, karatsuba_square_limbs},
         mul_limbs, square_limbs,
     },
-    BoxedUint, CheckedMul, Limb, WideningMul, Wrapping, WrappingMul, Zero,
 };
 use core::ops::{Mul, MulAssign};
 use subtle::{Choice, CtOption};

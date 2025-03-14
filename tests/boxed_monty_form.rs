@@ -6,8 +6,8 @@ mod common;
 
 use common::to_biguint;
 use crypto_bigint::{
-    modular::{BoxedMontyForm, BoxedMontyParams},
     BoxedUint, Integer, Inverter, Limb, Odd, PrecomputeInverter,
+    modular::{BoxedMontyForm, BoxedMontyParams},
 };
 use num_bigint::BigUint;
 use num_modular::ModularUnaryOps;

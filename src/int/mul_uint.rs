@@ -191,11 +191,11 @@ mod tests {
         assert_eq!(result.unwrap(), I128::MIN.resize());
 
         // rhs > 1
-        let result = I256::ONE.checked_mul_uint_right(&I128::MAX.as_uint());
+        let result = I256::ONE.checked_mul_uint_right(I128::MAX.as_uint());
         assert!(bool::from(result.is_some()));
         assert_eq!(result.unwrap(), I128::MAX.resize());
 
-        let result = I128::ONE.checked_mul_uint_right(&I256::MAX.as_uint());
+        let result = I128::ONE.checked_mul_uint_right(I256::MAX.as_uint());
         assert!(bool::from(result.is_some()));
         assert_eq!(result.unwrap(), I256::MAX);
 

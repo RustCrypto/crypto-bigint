@@ -14,9 +14,9 @@ use zeroize::DefaultIsZeroes;
 pub use extra_sizes::*;
 
 use crate::{
-    modular::{MontyForm, SafeGcdInverter},
     Bounded, ConstCtOption, ConstZero, Constants, Encoding, FixedInteger, Int, Integer, Limb,
     NonZero, Odd, PrecomputeInverter, PrecomputeInverterWithAdjuster, Word,
+    modular::{MontyForm, SafeGcdInverter},
 };
 
 #[macro_use]

@@ -1,6 +1,6 @@
 //! [`BoxedUint`] subtraction operations.
 
-use crate::{BoxedUint, CheckedSub, Limb, Uint, Wrapping, WrappingSub, Zero, U128, U64};
+use crate::{BoxedUint, CheckedSub, Limb, U64, U128, Uint, Wrapping, WrappingSub, Zero};
 use core::ops::{Sub, SubAssign};
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
@@ -16,7 +16,7 @@ impl BoxedUint {
     /// Panics if `rhs` has a larger precision than `self`.
     #[inline(always)]
     pub fn sbb_assign(&mut self, rhs: impl AsRef<[Limb]>, mut borrow: Limb) -> Limb {
-        debug_assert!(self.bits_precision() <= (rhs.as_ref().len() as u32 * Limb::BITS));
+        debug_assert!(self.bits_precision() >= (rhs.as_ref().len() as u32 * Limb::BITS));
 
         for i in 0..self.nlimbs() {
             let (limb, b) = self.limbs[i].sbb(*rhs.as_ref().get(i).unwrap_or(&Limb::ZERO), borrow);
@@ -267,5 +267,11 @@ mod tests {
     fn checked_sub_overflow() {
         let result = BoxedUint::zero().checked_sub(&BoxedUint::one());
         assert!(!bool::from(result.is_some()));
+    }
+
+    #[test]
+    fn sub_assign() {
+        let mut h = BoxedUint::one().widen(1024);
+        h -= BoxedUint::one();
     }
 }

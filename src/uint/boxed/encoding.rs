@@ -1,7 +1,7 @@
 //! Const-friendly decoding operations for [`BoxedUint`].
 
 use super::BoxedUint;
-use crate::{uint::encoding, DecodeError, Limb, Word};
+use crate::{DecodeError, Limb, Word, uint::encoding};
 use alloc::{boxed::Box, string::String, vec::Vec};
 use subtle::{Choice, CtOption};
 
@@ -22,7 +22,7 @@ impl BoxedUint {
             return Ok(Self::zero());
         }
 
-        if bytes.len() > (bits_precision as usize + 7) / 8 {
+        if bytes.len() > (bits_precision as usize).div_ceil(8) {
             return Err(DecodeError::InputSize);
         }
 
@@ -55,7 +55,7 @@ impl BoxedUint {
             return Ok(Self::zero());
         }
 
-        if bytes.len() > (bits_precision as usize + 7) / 8 {
+        if bytes.len() > (bits_precision as usize).div_ceil(8) {
             return Err(DecodeError::InputSize);
         }
 

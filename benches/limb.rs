@@ -1,17 +1,19 @@
 use criterion::{
-    black_box, criterion_group, criterion_main, measurement::Measurement, BatchSize,
-    BenchmarkGroup, Criterion,
+    BatchSize, BenchmarkGroup, Criterion, black_box, criterion_group, criterion_main,
+    measurement::Measurement,
 };
 use crypto_bigint::{Limb, Random};
-use rand_core::OsRng;
+use rand_chacha::ChaChaRng;
+use rand_core::SeedableRng;
 use subtle::{ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
 fn bench_cmp<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
+    let mut rng = ChaChaRng::from_os_rng();
     group.bench_function("ct_lt", |b| {
         b.iter_batched(
             || {
-                let x = Limb::random(&mut OsRng);
-                let y = Limb::random(&mut OsRng);
+                let x = Limb::random(&mut rng);
+                let y = Limb::random(&mut rng);
                 (x, y)
             },
             |(x, y)| black_box(x.ct_lt(&y)),
@@ -22,8 +24,8 @@ fn bench_cmp<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("ct_eq", |b| {
         b.iter_batched(
             || {
-                let x = Limb::random(&mut OsRng);
-                let y = Limb::random(&mut OsRng);
+                let x = Limb::random(&mut rng);
+                let y = Limb::random(&mut rng);
                 (x, y)
             },
             |(x, y)| black_box(x.ct_eq(&y)),
@@ -34,8 +36,8 @@ fn bench_cmp<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("ct_gt", |b| {
         b.iter_batched(
             || {
-                let x = Limb::random(&mut OsRng);
-                let y = Limb::random(&mut OsRng);
+                let x = Limb::random(&mut rng);
+                let y = Limb::random(&mut rng);
                 (x, y)
             },
             |(x, y)| black_box(x.ct_gt(&y)),

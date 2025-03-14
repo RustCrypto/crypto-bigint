@@ -8,7 +8,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use crate::BoxedUint;
 
 #[cfg(feature = "rand_core")]
-use {crate::Random, rand_core::RngCore};
+use crate::{Random, rand_core::TryRngCore};
 
 #[cfg(all(feature = "alloc", feature = "rand_core"))]
 use crate::RandomBits;
@@ -17,8 +17,8 @@ use crate::RandomBits;
 use crate::Zero;
 #[cfg(feature = "serde")]
 use serdect::serde::{
-    de::{Error, Unexpected},
     Deserialize, Deserializer, Serialize, Serializer,
+    de::{Error, Unexpected},
 };
 
 /// Wrapper type for odd integers.
@@ -153,17 +153,17 @@ impl PartialOrd<Odd<BoxedUint>> for BoxedUint {
 #[cfg(feature = "rand_core")]
 impl<const LIMBS: usize> Random for Odd<Uint<LIMBS>> {
     /// Generate a random `Odd<Uint<T>>`.
-    fn random(rng: &mut impl RngCore) -> Self {
-        let mut ret = Uint::random(rng);
+    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+        let mut ret = Uint::try_random(rng)?;
         ret.limbs[0] |= Limb::ONE;
-        Odd(ret)
+        Ok(Odd(ret))
     }
 }
 
 #[cfg(all(feature = "alloc", feature = "rand_core"))]
 impl Odd<BoxedUint> {
     /// Generate a random `Odd<Uint<T>>`.
-    pub fn random(rng: &mut impl RngCore, bit_length: u32) -> Self {
+    pub fn random<R: TryRngCore + ?Sized>(rng: &mut R, bit_length: u32) -> Self {
         let mut ret = BoxedUint::random_bits(rng, bit_length);
         ret.limbs[0] |= Limb::ONE;
         Odd(ret)
@@ -269,7 +269,7 @@ mod tests {
 
     #[cfg(feature = "serde")]
     mod serde_tests {
-        use crate::{Odd, U128, U64};
+        use crate::{Odd, U64, U128};
         use bincode::ErrorKind;
 
         #[test]

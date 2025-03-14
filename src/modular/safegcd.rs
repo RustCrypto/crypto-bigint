@@ -265,11 +265,7 @@ const fn divsteps_vartime<const LIMBS: usize>(
 const fn jump(f: &[u64], g: &[u64], mut delta: i64) -> (i64, Matrix) {
     // This function is defined because the method "min" of the i64 type is not constant
     const fn min(a: i64, b: i64) -> i64 {
-        if a > b {
-            b
-        } else {
-            a
-        }
+        if a > b { b } else { a }
     }
 
     let (mut steps, mut f, mut g) = (62, f[0] as i64, g[0] as i128);

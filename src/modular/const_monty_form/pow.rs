@@ -2,8 +2,8 @@
 
 use super::{ConstMontyForm, ConstMontyParams};
 use crate::{
-    modular::pow::{multi_exponentiate_montgomery_form_array, pow_montgomery_form},
     MultiExponentiateBoundedExp, PowBoundedExp, Uint,
+    modular::pow::{multi_exponentiate_montgomery_form_array, pow_montgomery_form},
 };
 
 #[cfg(feature = "alloc")]
@@ -111,7 +111,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize, const RHS_LIMBS: usize>
 mod tests {
     use crate::traits::MultiExponentiate;
     use crate::{
-        const_monty_form, impl_modulus, modular::const_monty_form::ConstMontyParams, U256,
+        U256, const_monty_form, impl_modulus, modular::const_monty_form::ConstMontyParams,
     };
 
     impl_modulus!(

@@ -1,6 +1,6 @@
 //! `From`-like conversions for [`Uint`].
 
-use crate::{ConcatMixed, Limb, SplitMixed, Uint, WideWord, Word, U128, U64};
+use crate::{ConcatMixed, Limb, SplitMixed, U64, U128, Uint, WideWord, Word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a [`Uint`] from a `u8` (const-friendly)
@@ -231,7 +231,7 @@ impl<const LIMBS: usize, const LIMBS2: usize> From<&Uint<LIMBS>> for Uint<LIMBS2
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, Word, U128};
+    use crate::{Limb, U128, Word};
 
     #[cfg(target_pointer_width = "32")]
     use crate::U64 as UintEx;

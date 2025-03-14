@@ -2,7 +2,7 @@
 //!
 //! By default these are all constant-time and use the `subtle` crate.
 
-pub(super) use core::cmp::{max, Ordering};
+pub(super) use core::cmp::{Ordering, max};
 
 use super::BoxedUint;
 use crate::{ConstChoice, Limb};

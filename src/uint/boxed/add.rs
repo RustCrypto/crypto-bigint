@@ -1,6 +1,6 @@
 //! [`BoxedUint`] addition operations.
 
-use crate::{BoxedUint, CheckedAdd, Limb, Uint, Wrapping, WrappingAdd, Zero, U128, U64};
+use crate::{BoxedUint, CheckedAdd, Limb, U64, U128, Uint, Wrapping, WrappingAdd, Zero};
 use core::ops::{Add, AddAssign};
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
@@ -16,7 +16,7 @@ impl BoxedUint {
     /// Panics if `rhs` has a larger precision than `self`.
     #[inline]
     pub fn adc_assign(&mut self, rhs: impl AsRef<[Limb]>, mut carry: Limb) -> Limb {
-        debug_assert!(self.bits_precision() <= (rhs.as_ref().len() as u32 * Limb::BITS));
+        debug_assert!(self.bits_precision() >= (rhs.as_ref().len() as u32 * Limb::BITS));
 
         for i in 0..self.nlimbs() {
             let (limb, b) = self.limbs[i].adc(*rhs.as_ref().get(i).unwrap_or(&Limb::ZERO), carry);
@@ -263,5 +263,12 @@ mod tests {
     fn checked_add_overflow() {
         let result = BoxedUint::max(Limb::BITS).checked_add(&BoxedUint::one());
         assert!(!bool::from(result.is_some()));
+    }
+
+    #[test]
+    fn add_assign() {
+        let mut h = BoxedUint::one().widen(1024);
+
+        h += BoxedUint::one();
     }
 }

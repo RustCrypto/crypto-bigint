@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.6.1 (2025-02-14)
+### Added
+- `?Sized` to all RngCore bounds ([#760])
+
+### Changed
+-  Make `as_limbs_mut` const ([#757])
+
+[#757]: https://github.com/RustCrypto/crypto-bigint/pull/757
+[#760]: https://github.com/RustCrypto/crypto-bigint/pull/760
+
 ## 0.6.0 (2025-01-22)
 ### Added
 - `TryFrom<&[u8]>` bound on `Encoding::Repr` ([#261])
