@@ -350,7 +350,7 @@ impl ConstantTimeSelect for BoxedMontyForm {
 
 impl ConstantTimeSelect for BoxedMontyParams {
     fn ct_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        let modulus = BoxedUint::ct_select(&a.modulus().as_ref(), &b.modulus().as_ref(), choice);
+        let modulus = BoxedUint::ct_select(a.modulus().as_ref(), b.modulus().as_ref(), choice);
         Self {
             modulus: Odd::new(modulus).expect("both moduli are odd by construction"),
             one: BoxedUint::ct_select(&a.one, &b.one, choice),
