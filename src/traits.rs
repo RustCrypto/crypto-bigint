@@ -77,6 +77,27 @@ impl<T: ConditionallySelectable> ConstantTimeSelect for T {
     }
 }
 
+/// A type which can be conditionally negated in constant time.
+///
+/// Similar to `subtle`'s [`ConditionallyNegate`] trait, but without the `Copy` bound which allows
+/// it to to be impl'd for heap allocated types.
+pub trait ConstantTimeNegatable {
+    /// Negate `self` according to `choice`.
+    fn ct_negate(&mut self, choice: Choice);
+}
+
+impl<T> ConstantTimeNegatable for T
+where
+    T: ConstantTimeSelect,
+    for<'a> &'a T: Neg<Output = T>,
+{
+    #[inline]
+    fn ct_negate(&mut self, choice: Choice) {
+        let self_neg = -(&*self);
+        self.ct_assign(&self_neg, choice);
+    }
+}
+
 /// Integer trait: represents common functionality of integer types provided by this crate.
 pub trait Integer:
     'static
@@ -926,7 +947,7 @@ pub trait Monty:
 /// Allows one to perform inplace multiplication without allocations
 /// (important for the `BoxedUint` case).
 ///
-/// NOTE: You will be operating with Montgomery represntations directly,
+/// NOTE: You will be operating with Montgomery representations directly,
 /// make sure they all correspond to the same set of parameters.
 pub trait MontyMultiplier<'a>: From<&'a <Self::Monty as Monty>::Params> {
     /// The associated Montgomery-representation integer.
