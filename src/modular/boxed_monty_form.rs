@@ -11,7 +11,7 @@ mod sub;
 use super::{ConstMontyParams, Retrieve, div_by_2};
 use mul::BoxedMontyMultiplier;
 
-use crate::{BoxedUint, Limb, Monty, Odd, Word};
+use crate::{BoxedUint, ConstantTimeSelect, Limb, Monty, Odd, Word};
 use alloc::sync::Arc;
 use subtle::Choice;
 
@@ -339,6 +339,29 @@ impl Zeroize for BoxedMontyForm {
     }
 }
 
+impl ConstantTimeSelect for BoxedMontyForm {
+    fn ct_select(a: &Self, b: &Self, choice: Choice) -> Self {
+        Self {
+            montgomery_form: BoxedUint::ct_select(&a.montgomery_form, &b.montgomery_form, choice),
+            params: BoxedMontyParams::ct_select(&a.params, &b.params, choice).into(),
+        }
+    }
+}
+
+impl ConstantTimeSelect for BoxedMontyParams {
+    fn ct_select(a: &Self, b: &Self, choice: Choice) -> Self {
+        let modulus = BoxedUint::ct_select(&a.modulus().as_ref(), &b.modulus().as_ref(), choice);
+        Self {
+            modulus: Odd::new(modulus).expect("both moduli are odd by construction"),
+            one: BoxedUint::ct_select(&a.one, &b.one, choice),
+            r2: BoxedUint::ct_select(&a.r2, &b.r2, choice),
+            r3: BoxedUint::ct_select(&a.r3, &b.r3, choice),
+            mod_neg_inv: Limb::ct_select(&a.mod_neg_inv, &b.mod_neg_inv, choice),
+            mod_leading_zeros: u32::ct_select(&a.mod_leading_zeros, &b.mod_leading_zeros, choice),
+        }
+    }
+}
+
 /// Convert the given integer into the Montgomery domain.
 #[inline]
 fn convert_to_montgomery(integer: &mut BoxedUint, params: &BoxedMontyParams) {
@@ -348,6 +371,10 @@ fn convert_to_montgomery(integer: &mut BoxedUint, params: &BoxedMontyParams) {
 
 #[cfg(test)]
 mod tests {
+    use subtle::Choice;
+
+    use crate::ConstantTimeSelect;
+
     use super::{BoxedMontyForm, BoxedMontyParams, BoxedUint, Limb, Odd};
 
     #[test]
@@ -368,5 +395,22 @@ mod tests {
 
         assert_eq!(zero.div_by_2(), zero);
         assert_eq!(one.div_by_2().mul(&two), one);
+    }
+
+    #[test]
+    fn constant_time_select() {
+        let modulus = Odd::new(BoxedUint::from(9u8)).unwrap();
+        let params1 = BoxedMontyParams::new(modulus);
+        let modulus = Odd::new(BoxedUint::from(19u8)).unwrap();
+        let params2 = BoxedMontyParams::new(modulus);
+
+        assert_eq!(
+            params1,
+            BoxedMontyParams::ct_select(&params1, &params2, Choice::from(0))
+        );
+        assert_eq!(
+            params2,
+            BoxedMontyParams::ct_select(&params1, &params2, Choice::from(1))
+        );
     }
 }
