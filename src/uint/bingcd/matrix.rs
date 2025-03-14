@@ -77,7 +77,7 @@ mod tests {
 
     #[test]
     fn test_conditional_swap() {
-        let mut y = X.clone();
+        let mut y = X;
         y.conditional_swap_rows(ConstChoice::FALSE);
         assert_eq!(y, X);
         y.conditional_swap_rows(ConstChoice::TRUE);
@@ -94,7 +94,7 @@ mod tests {
 
     #[test]
     fn test_conditional_subtract() {
-        let mut y = X.clone();
+        let mut y = X;
         y.conditional_subtract_bottom_row_from_top(ConstChoice::FALSE);
         assert_eq!(y, X);
         y.conditional_subtract_bottom_row_from_top(ConstChoice::TRUE);
@@ -111,7 +111,7 @@ mod tests {
 
     #[test]
     fn test_conditional_double() {
-        let mut y = X.clone();
+        let mut y = X;
         y.conditional_double_bottom_row(ConstChoice::FALSE);
         assert_eq!(y, X);
         y.conditional_double_bottom_row(ConstChoice::TRUE);
