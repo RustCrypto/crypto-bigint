@@ -79,7 +79,7 @@ impl<T: ConditionallySelectable> ConstantTimeSelect for T {
 
 /// A type which can be conditionally negated in constant time.
 ///
-/// Similar to `subtle`'s [`ConditionallyNegate`] trait, but without the `Copy` bound which allows
+/// Similar to `subtle`'s `ConditionallyNegate` trait, but without the `Copy` bound which allows
 /// it to to be impl'd for heap allocated types.
 pub trait ConstantTimeNegatable {
     /// Negate `self` according to `choice`.
