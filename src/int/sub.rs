@@ -93,7 +93,7 @@ impl<const LIMBS: usize> WrappingSub for Int<LIMBS> {
 #[cfg(test)]
 #[allow(clippy::init_numbered_fields)]
 mod tests {
-    use crate::{CheckedSub, Int, I128, U128};
+    use crate::{CheckedSub, I128, Int, U128};
 
     #[test]
     fn checked_sub() {

@@ -1,9 +1,14 @@
-use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion, BenchmarkId, BenchmarkGroup};
 use criterion::measurement::WallTime;
-use crypto_bigint::{Limb, NonZero, Odd, Random, RandomBits, RandomMod, Reciprocal, Uint, U1024, U128, U2048, U256, U4096, U512, PrecomputeInverter};
+use criterion::{
+    BatchSize, BenchmarkGroup, BenchmarkId, Criterion, black_box, criterion_group, criterion_main,
+};
+use crypto_bigint::modular::SafeGcdInverter;
+use crypto_bigint::{
+    Limb, NonZero, Odd, PrecomputeInverter, Random, RandomBits, RandomMod, Reciprocal, U128, U256,
+    U512, U1024, U2048, U4096, Uint,
+};
 use rand_chacha::ChaCha8Rng;
 use rand_core::{RngCore, SeedableRng};
-use crypto_bigint::modular::SafeGcdInverter;
 
 fn make_rng() -> ChaCha8Rng {
     ChaCha8Rng::from_seed(*b"01234567890123456789012345678901")

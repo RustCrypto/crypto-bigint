@@ -1,5 +1,5 @@
 use crate::uint::bingcd::tools::{const_max, const_min};
-use crate::{NonZero, Odd, Uint, U128, U64};
+use crate::{NonZero, Odd, U64, U128, Uint};
 
 impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     /// Compute the greatest common divisor of `self` and `rhs`.
@@ -160,8 +160,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 mod tests {
 
     mod test_bingcd_small {
+        use crate::{Gcd, Random, U64, U128, U192, U256, U384, U512, U1024, U2048, U4096, Uint};
         use rand_chacha::ChaCha8Rng;
-        use crate::{Gcd, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U64};
         use rand_core::{RngCore, SeedableRng};
 
         fn classic_bingcd_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
@@ -209,8 +209,8 @@ mod tests {
     }
 
     mod test_bingcd_large {
+        use crate::{Gcd, Random, U128, U192, U256, U384, U512, U1024, U2048, U4096, Uint};
         use rand_chacha::ChaCha8Rng;
-        use crate::{Gcd, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512};
         use rand_core::{RngCore, SeedableRng};
 
         fn optimized_bingcd_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)

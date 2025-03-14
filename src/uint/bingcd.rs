@@ -28,7 +28,7 @@ mod tests {
     use rand_chacha::ChaCha8Rng;
     use rand_core::{RngCore, SeedableRng};
 
-    use crate::{Gcd, Random, Uint, U1024, U16384, U2048, U256, U4096, U512, U8192};
+    use crate::{Gcd, Random, U256, U512, U1024, U2048, U4096, U8192, U16384, Uint};
 
     fn bingcd_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
     where
