@@ -8,7 +8,7 @@ pub use num_traits::{
 
 pub(crate) use sealed::PrecomputeInverterWithAdjuster;
 
-use crate::{Limb, NonZero, Odd, Reciprocal};
+use crate::{Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
 use core::fmt::{self, Debug};
 use core::ops::{
     Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign,
@@ -864,6 +864,7 @@ pub trait Monty:
     + for<'a> MulAssign<&'a Self>
     + Neg<Output = Self>
     + PowBoundedExp<Self::Integer>
+    + Retrieve<Output = Self::Integer>
     + Square
     + SquareAssign
 {
