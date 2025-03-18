@@ -167,22 +167,20 @@ mod tests {
     use crate::uint::rand::random_bits_core;
     use crate::{Limb, NonZero, Random, RandomBits, RandomMod, U256, U1024, Uint};
     use rand_chacha::ChaCha8Rng;
-    use rand_chacha::{ChaCha20Core, ChaCha20Rng};
     use rand_core::{RngCore, SeedableRng};
 
     const RANDOM_OUTPUT: U1024 = Uint::from_be_hex(concat![
-        "6F4D794B1F0AE1AC45FB0A51281FED31D539D874B03371D5434EE69C7621B729",
-        "ED7AEE323E53C6126965E348A0290FCB0D082D737C97BA987A385155BEE7079F",
-        "8665EEB269B687C31CA11815F4B8436A374AD8B83FE024778D4857517C5941DA",
-        "C70D778BCCEF36A81AED8DA0B819D2BD28BD8653E56A5D40903DF1A0ADE0B876"
+        "A484C4C693EECC47C3B919AE0D16DF2259CD1A8A9B8EA8E0862878227D4B40A3",
+        "C54302F2EB1E2F69E17653A37F1BCC44277FA208E6B31E08CDC4A23A7E88E660",
+        "EF781C7DD2D368BAD438539D6A2E923C8CAE14CB947EB0BDE10D666732024679",
+        "0F6760A48F9B887CB2FB0D3281E2A6E67746A55FBAD8C037B585F767A79A3B6C"
     ]);
 
     /// Construct 4-sequential `rng`, i.e.,
     /// `rng.fill_bytes(&mut buffer[..x]); rng.fill_bytes(&mut buffer[x..])` will construct the
     /// same `buffer`, regardless the choice of `x` in `0..buffer.len()`.
-    fn get_four_sequential_rng() -> ChaCha20Rng {
-        let zero_seed = [0u8; 32];
-        ChaCha20Rng::from(ChaCha20Core::from_seed(zero_seed))
+    fn get_four_sequential_rng() -> ChaCha8Rng {
+        ChaCha8Rng::seed_from_u64(0)
     }
 
     /// Make sure the random value constructed is consistent across platforms
@@ -285,7 +283,7 @@ mod tests {
         assert_eq!(
             state,
             [
-                75, 121, 77, 111, 45, 9, 160, 230, 99, 38, 108, 225, 174, 126, 209, 8
+                198, 196, 132, 164, 240, 211, 223, 12, 36, 189, 139, 48, 94, 1, 123, 253
             ]
         );
     }
