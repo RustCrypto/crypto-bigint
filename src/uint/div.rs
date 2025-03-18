@@ -953,7 +953,7 @@ impl<const LIMBS: usize> RemLimb for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, NonZero, RemMixed, U64, U128, U256, U896, U1024, Uint, Word, Zero};
+    use crate::{Limb, NonZero, RemMixed, U64, U128, U256, U896, U1024, U2048, Uint, Word, Zero};
 
     #[cfg(feature = "rand")]
     use {
@@ -1161,6 +1161,26 @@ mod tests {
         assert_eq!(rem.as_words(), &rem_control.as_words()[0..U128::LIMBS]);
         assert!(
             rem_control.as_words()[U128::LIMBS..]
+                .iter()
+                .all(|w| *w == 0)
+        );
+    }
+
+    #[test]
+    fn rem_mixed_even() {
+        let x = U2048::from_be_hex(
+            "B1EB364536A78FAAFDB3467E062072E019B764561F0B800F16A276763845A42F44A45463D1424AE28688CDF4E2E4D04E2F64A601419F13CE0C86001BCB12544A0381AEA1EEF6C45665B7B5A9298BBAE17AF5168C347039E657FBAE920FC0902B221C45E641FE43DDF2764A7CC915F079E99017B2B621320BFDB44C31096437DD47BD11DA7391671D7415EFBF72A6FBE243901A0BF9E9E1A119762DE5D5DB8E2393C3FA5EF11049E37BB6BDB2070C4371B4E550B02C806908DFF1A71B0AB1601327143F42B5C5488E7609DFE07EFF8A17B5EA8D36E9E22058489FF253D51BCBE53825A7DC63080D4298B82B0336070665149406D8FC0E8E6B67094CEA8CA40DB1",
+        );
+        let y = U1024::from_u64(1234567890987654321);
+        let rem: U1024 = x.rem_mixed(&y.to_nz().unwrap());
+
+        let y_wide = U1024::concat_mixed(&y, &U1024::ZERO);
+        let rem_control: U2048 = x.rem(&NonZero::new(y_wide).unwrap());
+
+        assert_eq!(rem.bits(), rem_control.bits());
+        assert_eq!(rem.as_words(), &rem_control.as_words()[0..U1024::LIMBS]);
+        assert!(
+            rem_control.as_words()[U1024::LIMBS..]
                 .iter()
                 .all(|w| *w == 0)
         );
