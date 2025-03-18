@@ -930,7 +930,7 @@ pub trait Monty:
 /// Allows one to perform inplace multiplication without allocations
 /// (important for the `BoxedUint` case).
 ///
-/// NOTE: You will be operating with Montgomery represntations directly,
+/// NOTE: You will be operating with Montgomery representations directly,
 /// make sure they all correspond to the same set of parameters.
 pub trait MontyMultiplier<'a>: From<&'a <Self::Monty as Monty>::Params> {
     /// The associated Montgomery-representation integer.
