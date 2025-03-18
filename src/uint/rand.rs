@@ -176,9 +176,9 @@ mod tests {
         "0F6760A48F9B887CB2FB0D3281E2A6E67746A55FBAD8C037B585F767A79A3B6C"
     ]);
 
-    /// Construct 4-sequential `rng`, i.e.,
+    /// Construct a 4-sequential `rng`, i.e., an `rng` such that
     /// `rng.fill_bytes(&mut buffer[..x]); rng.fill_bytes(&mut buffer[x..])` will construct the
-    /// same `buffer`, regardless the choice of `x` in `0..buffer.len()`.
+    /// same `buffer`, for `x` any in `0..buffer.len()` that is `0 mod 4`.
     fn get_four_sequential_rng() -> ChaCha8Rng {
         ChaCha8Rng::seed_from_u64(0)
     }
