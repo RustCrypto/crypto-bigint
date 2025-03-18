@@ -160,6 +160,10 @@ impl fmt::Display for Limb {
 impl fmt::Binary for Limb {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if f.alternate() {
+            write!(f, "0b")?;
+        }
+
         write!(f, "{:0width$b}", &self.0, width = Self::BITS as usize)
     }
 }
@@ -167,6 +171,9 @@ impl fmt::Binary for Limb {
 impl fmt::LowerHex for Limb {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
         write!(f, "{:0width$x}", &self.0, width = Self::BYTES * 2)
     }
 }
@@ -174,6 +181,9 @@ impl fmt::LowerHex for Limb {
 impl fmt::UpperHex for Limb {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
         write!(f, "{:0width$X}", &self.0, width = Self::BYTES * 2)
     }
 }
