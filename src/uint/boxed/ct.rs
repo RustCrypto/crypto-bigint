@@ -2,7 +2,7 @@
 
 use super::BoxedUint;
 use crate::{ConstantTimeSelect, Limb};
-use subtle::{Choice, ConditionallySelectable};
+use subtle::{Choice, ConditionallyNegatable, ConditionallySelectable};
 
 /// NOTE: can't impl `subtle`'s [`ConditionallySelectable`] trait due to its `Copy` bound
 impl ConstantTimeSelect for BoxedUint {
@@ -37,11 +37,18 @@ impl ConstantTimeSelect for BoxedUint {
     }
 }
 
+impl ConditionallyNegatable for BoxedUint {
+    #[inline]
+    fn conditional_negate(&mut self, choice: Choice) {
+        let self_neg = self.wrapping_neg();
+        self.ct_assign(&self_neg, choice)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::BoxedUint;
-    use crate::ConstantTimeSelect;
-    use subtle::Choice;
+    use crate::{BoxedUint, ConstantTimeSelect};
+    use subtle::{Choice, ConditionallyNegatable};
 
     #[test]
     fn conditional_select() {
@@ -50,5 +57,18 @@ mod tests {
 
         assert_eq!(a, BoxedUint::ct_select(&a, &b, Choice::from(0)));
         assert_eq!(b, BoxedUint::ct_select(&a, &b, Choice::from(1)));
+    }
+
+    #[test]
+    fn conditional_negate() {
+        let mut a = BoxedUint::from(123u64);
+        let control = a.clone();
+
+        a.conditional_negate(Choice::from(0));
+        assert_eq!(a, control);
+
+        a.conditional_negate(Choice::from(1));
+        assert_ne!(a, control);
+        assert_eq!(a, control.wrapping_neg());
     }
 }

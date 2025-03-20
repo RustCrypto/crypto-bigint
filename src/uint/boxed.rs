@@ -375,8 +375,12 @@ impl fmt::Binary for BoxedUint {
             return fmt::Binary::fmt(&Limb::ZERO, f);
         }
 
+        if f.alternate() {
+            write!(f, "0b")?;
+        }
+
         for limb in self.limbs.iter().rev() {
-            fmt::Binary::fmt(limb, f)?;
+            write!(f, "{:0width$b}", &limb.0, width = Limb::BITS as usize)?;
         }
         Ok(())
     }
@@ -388,8 +392,11 @@ impl fmt::LowerHex for BoxedUint {
             return fmt::LowerHex::fmt(&Limb::ZERO, f);
         }
 
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
         for limb in self.limbs.iter().rev() {
-            fmt::LowerHex::fmt(limb, f)?;
+            write!(f, "{:0width$x}", &limb.0, width = Limb::BYTES * 2)?;
         }
         Ok(())
     }
@@ -401,8 +408,11 @@ impl fmt::UpperHex for BoxedUint {
             return fmt::LowerHex::fmt(&Limb::ZERO, f);
         }
 
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
         for limb in self.limbs.iter().rev() {
-            fmt::UpperHex::fmt(limb, f)?;
+            write!(f, "{:0width$X}", &limb.0, width = Limb::BYTES * 2)?;
         }
         Ok(())
     }
@@ -420,5 +430,32 @@ mod tests {
         let uint = BoxedUint::from(Vec::from(words));
         assert_eq!(uint.nlimbs(), 4);
         assert_eq!(uint.as_words(), words);
+    }
+
+    #[test]
+    fn fmt_lower_hex() {
+        let n = BoxedUint::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD", 128).unwrap();
+        assert_eq!(format!("{n:x}"), "aaaaaaaabbbbbbbbccccccccdddddddd");
+        assert_eq!(format!("{n:#x}"), "0xaaaaaaaabbbbbbbbccccccccdddddddd");
+    }
+
+    #[test]
+    fn fmt_upper_hex() {
+        let n = BoxedUint::from_be_hex("aaaaaaaabbbbbbbbccccccccdddddddd", 128).unwrap();
+        assert_eq!(format!("{n:X}"), "AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
+        assert_eq!(format!("{n:#X}"), "0xAAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
+    }
+
+    #[test]
+    fn fmt_binary() {
+        let n = BoxedUint::from_be_hex("aaaaaaaabbbbbbbbccccccccdddddddd", 128).unwrap();
+        assert_eq!(
+            format!("{n:b}"),
+            "10101010101010101010101010101010101110111011101110111011101110111100110011001100110011001100110011011101110111011101110111011101"
+        );
+        assert_eq!(
+            format!("{n:#b}"),
+            "0b10101010101010101010101010101010101110111011101110111011101110111100110011001100110011001100110011011101110111011101110111011101"
+        );
     }
 }

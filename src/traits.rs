@@ -8,7 +8,7 @@ pub use num_traits::{
 
 pub(crate) use sealed::PrecomputeInverterWithAdjuster;
 
-use crate::{Limb, NonZero, Odd, Reciprocal};
+use crate::{Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
 use core::fmt::{self, Debug};
 use core::ops::{
     Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign,
@@ -116,6 +116,9 @@ pub trait Integer:
     + for<'a> DivAssign<&'a NonZero<Self>>
     + DivRemLimb
     + Eq
+    + fmt::LowerHex
+    + fmt::UpperHex
+    + fmt::Binary
     + From<u8>
     + From<u16>
     + From<u32>
@@ -864,6 +867,7 @@ pub trait Monty:
     + for<'a> MulAssign<&'a Self>
     + Neg<Output = Self>
     + PowBoundedExp<Self::Integer>
+    + Retrieve<Output = Self::Integer>
     + Square
     + SquareAssign
 {
@@ -926,7 +930,7 @@ pub trait Monty:
 /// Allows one to perform inplace multiplication without allocations
 /// (important for the `BoxedUint` case).
 ///
-/// NOTE: You will be operating with Montgomery represntations directly,
+/// NOTE: You will be operating with Montgomery representations directly,
 /// make sure they all correspond to the same set of parameters.
 pub trait MontyMultiplier<'a>: From<&'a <Self::Monty as Monty>::Params> {
     /// The associated Montgomery-representation integer.

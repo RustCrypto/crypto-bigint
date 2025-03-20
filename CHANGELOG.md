@@ -9,10 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `?Sized` to all RngCore bounds ([#760])
 
 ### Changed
--  Make `as_limbs_mut` const ([#757])
+- Make `as_limbs_mut` const ([#757])
+- Make `Integer` be fmt::Binary, LowerHex and UpperHex ([#792])
 
 [#757]: https://github.com/RustCrypto/crypto-bigint/pull/757
 [#760]: https://github.com/RustCrypto/crypto-bigint/pull/760
+[#792]:https://github.com/RustCrypto/crypto-bigint/pull/792
 
 ## 0.6.0 (2025-01-22)
 ### Added
@@ -596,7 +598,7 @@ NOTE: this release was yanked due to [#82].
 
 ## 0.2.7 (2021-09-12)
 ### Added
-- `UInt::shl_vartime` 
+- `UInt::shl_vartime`
 
 ### Fixed
 - `add_mod` overflow handling
