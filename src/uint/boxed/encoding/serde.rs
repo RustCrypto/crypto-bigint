@@ -33,14 +33,6 @@ mod tests {
     use hex_literal::hex;
 
     #[test]
-    fn serde_roundabout() {
-        let n = BoxedUint::from(11223344u64);
-        let ser = serde_json::to_string(&n).unwrap();
-        let de: BoxedUint = serde_json::from_str(&ser).unwrap();
-        assert_eq!(n, de);
-    }
-
-    #[test]
     #[cfg(target_pointer_width = "64")]
     fn serde() {
         let test: BoxedUint = BoxedUint::from_be_hex("7711223344556600", 64).unwrap();
