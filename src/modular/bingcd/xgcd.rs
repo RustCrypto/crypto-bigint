@@ -1,0 +1,819 @@
+use crate::modular::bingcd::matrix::IntMatrix;
+use crate::modular::bingcd::tools::const_max;
+use crate::{ConstChoice, Int, NonZero, Odd, U64, U128, Uint};
+
+/// Container for the raw output of the Binary XGCD algorithm.
+pub(crate) struct RawBinxgcdOutput<const LIMBS: usize> {
+    lhs: Odd<Uint<LIMBS>>,
+    rhs: Odd<Uint<LIMBS>>,
+    gcd: Odd<Uint<LIMBS>>,
+    matrix: IntMatrix<LIMBS>,
+    k: u32,
+    k_upper_bound: u32,
+}
+
+impl<const LIMBS: usize> RawBinxgcdOutput<LIMBS> {
+    /// Process raw output, constructing an [OddBinxgcdUintOutput] object.
+    const fn process(&self) -> OddBinxgcdUintOutput<LIMBS> {
+        let (x, y) = self.derive_bezout_coefficients();
+        let (lhs_on_gcd, rhs_on_gcd) = self.extract_quotients();
+        OddBinxgcdUintOutput {
+            gcd: self.gcd,
+            x,
+            y,
+            lhs_on_gcd,
+            rhs_on_gcd,
+        }
+    }
+
+    /// Extract the Bézout coefficients from `matrix`, where it is assumed that
+    /// `matrix * (lhs, rhs) = (gcd * 2^k, 0)`.
+    const fn derive_bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
+        // The Bézout coefficients `x` and `y` can be extracted from `matrix.m00` and `matrix.m01`,
+        // respectively. In fact, `matrix.m00 = x * 2^k` and `matrix.m01 = y * 2^k`.
+        // Hence, we can compute
+        //      `x = matrix.m00 / 2^k mod rhs`, and
+        //      `y = matrix.m01 / 2^k mod lhs`.
+        let (x, y) = (self.matrix.m00, self.matrix.m01);
+        (
+            x.div_2k_mod_q(self.k, self.k_upper_bound, &self.rhs),
+            y.div_2k_mod_q(self.k, self.k_upper_bound, &self.lhs),
+        )
+    }
+
+    /// Mutably borrow the quotients `lhs/gcd` and `rhs/gcd`.
+    const fn quotients_as_mut(&mut self) -> (&mut Int<LIMBS>, &mut Int<LIMBS>) {
+        (&mut self.matrix.m11, &mut self.matrix.m10)
+    }
+
+    /// Extract the quotients `lhs/gcd` and `rhs/gcd` from `matrix`.
+    const fn extract_quotients(&self) -> (Uint<LIMBS>, Uint<LIMBS>) {
+        let lhs_on_gcd = self.matrix.m11.abs();
+        let rhs_on_gcd = self.matrix.m10.abs();
+        (lhs_on_gcd, rhs_on_gcd)
+    }
+}
+
+/// Container for the processed output of the Binary XGCD algorithm.
+pub(crate) struct OddBinxgcdUintOutput<const LIMBS: usize> {
+    pub(crate) gcd: Odd<Uint<LIMBS>>,
+    x: Int<LIMBS>,
+    y: Int<LIMBS>,
+    lhs_on_gcd: Uint<LIMBS>,
+    rhs_on_gcd: Uint<LIMBS>,
+}
+
+impl<const LIMBS: usize> OddBinxgcdUintOutput<LIMBS> {
+    /// Obtain a copy of the Bézout coefficients.
+    pub(crate) const fn bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
+        (self.x, self.y)
+    }
+
+    /// Mutably borrow the Bézout coefficients.
+    const fn bezout_coefficients_as_mut(&mut self) -> (&mut Int<LIMBS>, &mut Int<LIMBS>) {
+        (&mut self.x, &mut self.y)
+    }
+
+    /// Obtain a copy of the quotients `lhs/gcd` and `rhs/gcd`.
+    pub(crate) const fn quotients(&self) -> (Uint<LIMBS>, Uint<LIMBS>) {
+        (self.lhs_on_gcd, self.rhs_on_gcd)
+    }
+}
+
+impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
+    /// The minimal number of binary GCD iterations required to guarantee successful completion.
+    const MIN_BINGCD_ITERATIONS: u32 = 2 * Self::BITS - 1;
+
+    /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
+    /// leveraging the Binary Extended GCD algorithm.
+    ///
+    /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
+    /// msb is **not** set. May panic otherwise.
+    pub(crate) const fn binxgcd_nz(
+        &self,
+        rhs: &NonZero<Uint<LIMBS>>,
+    ) -> OddBinxgcdUintOutput<LIMBS> {
+        // Note that for the `binxgcd` subroutine, `rhs` needs to be odd.
+        //
+        // We use the fact that gcd(a, b) = gcd(a, |a-b|) to
+        // 1) convert the input (self, rhs) to (self, rhs') where rhs' is guaranteed odd,
+        // 2) execute the xgcd algorithm on (self, rhs'), and
+        // 3) recover the Bezout coefficients for (self, rhs) from the (self, rhs') output.
+
+        let (abs_lhs_sub_rhs, rhs_gt_lhs) =
+            self.as_ref().wrapping_sub(rhs.as_ref()).as_int().abs_sign();
+        let rhs_is_even = rhs.as_ref().is_odd().not();
+        let rhs_ = Uint::select(rhs.as_ref(), &abs_lhs_sub_rhs, rhs_is_even)
+            .to_odd()
+            .expect("rhs is odd by construction");
+
+        let mut output = self.binxgcd(&rhs_);
+        let (u, v) = output.quotients_as_mut();
+
+        // At this point, we have one of the following three situations:
+        // i.   0 = lhs * v + (rhs - lhs) * u, if rhs is even and rhs > lhs
+        // ii.  0 = lhs * v + (lhs - rhs) * u, if rhs is even and rhs < lhs
+        // iii. 0 = lhs * v + rhs * u, if rhs is odd
+
+        // We can rearrange these terms to get the quotients to (self, rhs) as follows:
+        // i.   gcd = lhs * (v - u) + rhs * u, if rhs is even and rhs > lhs
+        // ii.  gcd = lhs * (v + u) - u * rhs, if rhs is even and rhs < lhs
+        // iii. gcd = lhs * v + rhs * u, if rhs is odd
+
+        *v = Int::select(v, &v.wrapping_sub(u), rhs_is_even.and(rhs_gt_lhs));
+        *v = Int::select(v, &v.wrapping_add(u), rhs_is_even.and(rhs_gt_lhs.not()));
+        *u = u.wrapping_neg_if(rhs_is_even.and(rhs_gt_lhs.not()));
+
+        let mut processed_output = output.process();
+        let (x, y) = processed_output.bezout_coefficients_as_mut();
+
+        // At this point, we have one of the following three situations:
+        // i.   gcd = lhs * x + (rhs - lhs) * y, if rhs is even and rhs > lhs
+        // ii.  gcd = lhs * x + (lhs - rhs) * y, if rhs is even and rhs < lhs
+        // iii. gcd = lhs * x + rhs * y, if rhs is odd
+
+        // We can rearrange these terms to get the Bezout coefficients to (self, rhs) as follows:
+        // i.   gcd = lhs * (x - y) + rhs * y, if rhs is even and rhs > lhs
+        // ii.  gcd = lhs * (x + y) - y * rhs, if rhs is even and rhs < lhs
+        // iii. gcd = lhs * x + rhs * y, if rhs is odd
+
+        *x = Int::select(x, &x.wrapping_sub(y), rhs_is_even.and(rhs_gt_lhs));
+        *x = Int::select(x, &x.wrapping_add(y), rhs_is_even.and(rhs_gt_lhs.not()));
+        *y = y.wrapping_neg_if(rhs_is_even.and(rhs_gt_lhs.not()));
+
+        processed_output
+    }
+
+    /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
+    /// leveraging the Binary Extended GCD algorithm.
+    ///
+    /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
+    /// msb is **not** set. May panic otherwise.
+    ///
+    /// This function switches between the "classic" and "optimized" algorithm at a best-effort
+    /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
+    /// manually test whether the classic or optimized algorithm is faster for your machine.
+    pub(crate) const fn binxgcd(&self, rhs: &Self) -> RawBinxgcdOutput<LIMBS> {
+        if LIMBS < 4 {
+            self.classic_binxgcd(rhs)
+        } else {
+            self.optimized_binxgcd(rhs)
+        }
+    }
+
+    /// Execute the classic Binary Extended GCD algorithm.
+    ///
+    /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
+    ///
+    /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
+    /// msb is **not** set. May panic otherwise.
+    ///
+    /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
+    /// <https://eprint.iacr.org/2020/972.pdf>.
+    pub(crate) const fn classic_binxgcd(&self, rhs: &Self) -> RawBinxgcdOutput<LIMBS> {
+        let (gcd, _, matrix, total_doublings) = self.partial_binxgcd_vartime::<LIMBS>(
+            rhs.as_ref(),
+            Self::MIN_BINGCD_ITERATIONS,
+            ConstChoice::TRUE,
+        );
+
+        RawBinxgcdOutput {
+            lhs: *self,
+            rhs: *rhs,
+            gcd,
+            matrix,
+            k: total_doublings,
+            k_upper_bound: Self::MIN_BINGCD_ITERATIONS,
+        }
+    }
+
+    /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
+    /// leveraging the Binary Extended GCD algorithm.
+    ///
+    /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
+    /// msb is **not** set. May panic otherwise. Furthermore, at `self` and `rhs` must contain at
+    /// least 128 bits.
+    ///
+    /// Note: this algorithm becomes more efficient than the classical algorithm for [Uint]s with
+    /// relatively many `LIMBS`. A best-effort threshold is presented in [Self::binxgcd].
+    ///
+    /// Note: the full algorithm has an additional parameter; this function selects the best-effort
+    /// value for this parameter. You might be able to further tune your performance by calling the
+    /// [Self::optimized_bingcd_] function directly.
+    ///
+    /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
+    /// <https://eprint.iacr.org/2020/972.pdf>.
+    pub(crate) const fn optimized_binxgcd(&self, rhs: &Self) -> RawBinxgcdOutput<LIMBS> {
+        assert!(Self::BITS >= U128::BITS);
+        self.optimized_binxgcd_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
+    }
+
+    /// Given `(self, rhs)`, computes `(g, x, y)`, s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
+    /// leveraging the optimized Binary Extended GCD algorithm.
+    ///
+    /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
+    /// msb is **not** set. May panic otherwise.
+    ///
+    /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
+    /// <https://eprint.iacr.org/2020/972.pdf>
+    ///
+    /// In summary, the optimized algorithm does not operate on `self` and `rhs` directly, but
+    /// instead of condensed summaries that fit in few registers. Based on these summaries, an
+    /// update matrix is constructed by which `self` and `rhs` are updated in larger steps.
+    ///
+    /// This function is generic over the following three values:
+    /// - `K`: the number of bits used when summarizing `self` and `rhs` for the inner loop. The
+    ///   `K+1` top bits and `K-1` least significant bits are selected. It is recommended to keep
+    ///   `K` close to a (multiple of) the number of bits that fit in a single register.
+    /// - `LIMBS_K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ K`,
+    /// - `LIMBS_2K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ 2K`.
+    pub(crate) const fn optimized_binxgcd_<
+        const K: u32,
+        const LIMBS_K: usize,
+        const LIMBS_2K: usize,
+    >(
+        &self,
+        rhs: &Self,
+    ) -> RawBinxgcdOutput<LIMBS> {
+        let (mut a, mut b) = (*self.as_ref(), *rhs.as_ref());
+        let mut matrix = IntMatrix::UNIT;
+        let mut total_doublings = 0;
+
+        let (mut a_sgn, mut b_sgn);
+        let mut i = 0;
+        while i < Self::MIN_BINGCD_ITERATIONS.div_ceil(K - 1) {
+            i += 1;
+
+            // Construct a_ and b_ as the summary of a and b, respectively.
+            let b_bits = b.bits();
+            let n = const_max(2 * K, const_max(a.bits(), b_bits));
+            let a_ = a.compact::<K, LIMBS_2K>(n);
+            let b_ = b.compact::<K, LIMBS_2K>(n);
+            let b_fits_in_compact =
+                ConstChoice::from_u32_le(b_bits, K - 1).or(ConstChoice::from_u32_eq(n, 2 * K));
+
+            // Compute the K-1 iteration update matrix from a_ and b_
+            let (.., update_matrix, doublings) = a_
+                .to_odd()
+                .expect("a is always odd")
+                .partial_binxgcd_vartime::<LIMBS_K>(&b_, K - 1, b_fits_in_compact);
+
+            // Update `a` and `b` using the update matrix
+            let (updated_a, updated_b) = update_matrix.extended_apply_to((a, b));
+            (a, a_sgn) = updated_a.div_2k(doublings).wrapping_drop_extension();
+            (b, b_sgn) = updated_b.div_2k(doublings).wrapping_drop_extension();
+
+            matrix = update_matrix.wrapping_mul_right(&matrix);
+            matrix.conditional_negate_top_row(a_sgn);
+            matrix.conditional_negate_bottom_row(b_sgn);
+            total_doublings += doublings;
+        }
+
+        let gcd = a
+            .to_odd()
+            .expect("gcd of an odd value with something else is always odd");
+
+        RawBinxgcdOutput {
+            lhs: *self,
+            rhs: *rhs,
+            gcd,
+            matrix,
+            k: total_doublings,
+            k_upper_bound: Self::MIN_BINGCD_ITERATIONS,
+        }
+    }
+
+    /// Executes the optimized Binary GCD inner loop.
+    ///
+    /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
+    /// <https://eprint.iacr.org/2020/972.pdf>.
+    ///
+    /// The function outputs the reduced values `(a, b)` for the input values `(self, rhs)` as well
+    /// as the matrix that yields the former two when multiplied with the latter two.
+    ///
+    /// Additionally, the number doublings that were executed is returned. By construction, each
+    /// element in `M` lies in the interval `(-2^doublings, 2^doublings]`.
+    ///
+    /// Note: this implementation deviates slightly from the paper, in that it can be instructed to
+    /// "run in place" (i.e., execute iterations that do nothing) once `a` becomes zero.
+    /// This is done by passing a truthy `halt_at_zero`.
+    ///
+    /// The function executes in time variable in `iterations`.
+    #[inline]
+    pub(crate) const fn partial_binxgcd_vartime<const UPDATE_LIMBS: usize>(
+        &self,
+        rhs: &Uint<LIMBS>,
+        iterations: u32,
+        halt_at_zero: ConstChoice,
+    ) -> (Self, Uint<LIMBS>, IntMatrix<UPDATE_LIMBS>, u32) {
+        let (mut a, mut b) = (*self.as_ref(), *rhs);
+        // This matrix corresponds with (f0, g0, f1, g1) in the paper.
+        let mut matrix = IntMatrix::UNIT;
+
+        // Compute the update matrix.
+        // Note: to be consistent with the paper, the `binxgcd_step` algorithm requires the second
+        // argument to be odd. Here, we have `a` odd, so we have to swap a and b before and after
+        // calling the subroutine. The columns of the matrix have to be swapped accordingly.
+        Uint::swap(&mut a, &mut b);
+        matrix.swap_rows();
+
+        let mut doublings = 0;
+        let mut j = 0;
+        while j < iterations {
+            Self::binxgcd_step::<UPDATE_LIMBS>(
+                &mut a,
+                &mut b,
+                &mut matrix,
+                &mut doublings,
+                halt_at_zero,
+            );
+            j += 1;
+        }
+
+        // Undo swap
+        Uint::swap(&mut a, &mut b);
+        matrix.swap_rows();
+
+        let a = a.to_odd().expect("a is always odd");
+        (a, b, matrix, doublings)
+    }
+
+    /// Binary XGCD update step.
+    ///
+    /// This is a condensed, constant time execution of the following algorithm:
+    /// ```text
+    /// if a mod 2 == 1
+    ///    if a < b
+    ///        (a, b) ← (b, a)
+    ///        (f0, g0, f1, g1) ← (f1, g1, f0, g0)
+    ///    a ← a - b
+    ///    (f0, g0) ← (f0 - f1, g0 - g1)
+    /// if a > 0
+    ///     a ← a/2
+    ///     (f1, g1) ← (2f1, 2g1)
+    /// ```
+    /// where `matrix` represents
+    /// ```text
+    ///  (f0 g0)
+    ///  (f1 g1).
+    /// ```
+    ///
+    /// Note: this algorithm assumes `b` to be an odd integer. The algorithm will likely not yield
+    /// the correct result when this is not the case.
+    ///
+    /// Ref: Pornin, Algorithm 2, L8-17, <https://eprint.iacr.org/2020/972.pdf>.
+    #[inline]
+    const fn binxgcd_step<const MATRIX_LIMBS: usize>(
+        a: &mut Uint<LIMBS>,
+        b: &mut Uint<LIMBS>,
+        matrix: &mut IntMatrix<MATRIX_LIMBS>,
+        executed_iterations: &mut u32,
+        halt_at_zero: ConstChoice,
+    ) {
+        let a_odd = a.is_odd();
+        let a_lt_b = Uint::lt(a, b);
+
+        // swap if a odd and a < b
+        let swap = a_odd.and(a_lt_b);
+        Uint::conditional_swap(a, b, swap);
+        matrix.conditional_swap_rows(swap);
+
+        // subtract b from a when a is odd
+        *a = a.wrapping_sub(&Uint::select(&Uint::ZERO, b, a_odd));
+        matrix.conditional_subtract_bottom_row_from_top(a_odd);
+
+        // Div a by 2.
+        let double = a.is_nonzero().or(halt_at_zero.not());
+        // safe to vartime; shr_vartime is variable in the value of shift only. Since this shift
+        // is a public constant, the constant time property of this algorithm is not impacted.
+        *a = a.shr_vartime(1);
+
+        // Double the bottom row of the matrix when a was ≠ 0 and when not halting.
+        matrix.conditional_double_bottom_row(double);
+        // Something happened in this iteration only when a was non-zero before being halved.
+        *executed_iterations = double.select_u32(*executed_iterations, *executed_iterations + 1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::modular::bingcd::xgcd::OddBinxgcdUintOutput;
+    use crate::{ConcatMixed, Gcd, Uint};
+    use core::ops::Div;
+    use rand_chacha::ChaChaRng;
+    use rand_core::SeedableRng;
+
+    mod test_extract_quotients {
+        use crate::modular::bingcd::matrix::IntMatrix;
+        use crate::modular::bingcd::xgcd::RawBinxgcdOutput;
+        use crate::{Int, U64, Uint};
+
+        fn raw_binxgcdoutput_setup<const LIMBS: usize>(
+            matrix: IntMatrix<LIMBS>,
+        ) -> RawBinxgcdOutput<LIMBS> {
+            RawBinxgcdOutput {
+                lhs: Uint::<LIMBS>::ONE.to_odd().unwrap(),
+                rhs: Uint::<LIMBS>::ONE.to_odd().unwrap(),
+                gcd: Uint::<LIMBS>::ONE.to_odd().unwrap(),
+                matrix,
+                k: 0,
+                k_upper_bound: 0,
+            }
+        }
+
+        #[test]
+        fn test_extract_quotients_unit() {
+            let output = raw_binxgcdoutput_setup(IntMatrix::<{ U64::LIMBS }>::UNIT);
+            let (lhs_on_gcd, rhs_on_gcd) = output.extract_quotients();
+            assert_eq!(lhs_on_gcd, Uint::ONE);
+            assert_eq!(rhs_on_gcd, Uint::ZERO);
+        }
+
+        #[test]
+        fn test_extract_quotients_basic() {
+            let output = raw_binxgcdoutput_setup(IntMatrix::<{ U64::LIMBS }>::new(
+                Int::ZERO,
+                Int::ZERO,
+                Int::from(5i32),
+                Int::from(-7i32),
+            ));
+            let (lhs_on_gcd, rhs_on_gcd) = output.extract_quotients();
+            assert_eq!(lhs_on_gcd, Uint::from(7u32));
+            assert_eq!(rhs_on_gcd, Uint::from(5u32));
+
+            let output = raw_binxgcdoutput_setup(IntMatrix::<{ U64::LIMBS }>::new(
+                Int::ZERO,
+                Int::ZERO,
+                Int::from(-7i32),
+                Int::from(5i32),
+            ));
+            let (lhs_on_gcd, rhs_on_gcd) = output.extract_quotients();
+            assert_eq!(lhs_on_gcd, Uint::from(5u32));
+            assert_eq!(rhs_on_gcd, Uint::from(7u32));
+        }
+    }
+
+    mod test_derive_bezout_coefficients {
+        use crate::modular::bingcd::matrix::IntMatrix;
+        use crate::modular::bingcd::xgcd::RawBinxgcdOutput;
+        use crate::{I64, Int, U64, Uint};
+
+        #[test]
+        fn test_derive_bezout_coefficients_unit() {
+            let output = RawBinxgcdOutput {
+                lhs: Uint::ONE.to_odd().unwrap(),
+                rhs: Uint::ONE.to_odd().unwrap(),
+                gcd: Uint::ONE.to_odd().unwrap(),
+                matrix: IntMatrix::<{ U64::LIMBS }>::UNIT,
+                k: 0,
+                k_upper_bound: 0,
+            };
+            let (x, y) = output.derive_bezout_coefficients();
+            assert_eq!(x, Int::ONE);
+            assert_eq!(y, Int::ZERO);
+        }
+
+        #[test]
+        fn test_derive_bezout_coefficients_basic() {
+            let output = RawBinxgcdOutput {
+                lhs: Uint::ONE.to_odd().unwrap(),
+                rhs: Uint::ONE.to_odd().unwrap(),
+                gcd: Uint::ONE.to_odd().unwrap(),
+                matrix: IntMatrix::new(
+                    I64::from(2i32),
+                    I64::from(3i32),
+                    I64::from(4i32),
+                    I64::from(5i32),
+                ),
+                k: 0,
+                k_upper_bound: 0,
+            };
+            let (x, y) = output.derive_bezout_coefficients();
+            assert_eq!(x, Int::from(2i32));
+            assert_eq!(y, Int::from(3i32));
+
+            let output = RawBinxgcdOutput {
+                lhs: Uint::ONE.to_odd().unwrap(),
+                rhs: Uint::ONE.to_odd().unwrap(),
+                gcd: Uint::ONE.to_odd().unwrap(),
+                matrix: IntMatrix::new(
+                    I64::from(2i32),
+                    I64::from(3i32),
+                    I64::from(4i32),
+                    I64::from(5i32),
+                ),
+                k: 0,
+                k_upper_bound: 1,
+            };
+            let (x, y) = output.derive_bezout_coefficients();
+            assert_eq!(x, Int::from(2i32));
+            assert_eq!(y, Int::from(3i32));
+        }
+
+        #[test]
+        fn test_derive_bezout_coefficients_removes_doublings_easy() {
+            let output = RawBinxgcdOutput {
+                lhs: Uint::ONE.to_odd().unwrap(),
+                rhs: Uint::ONE.to_odd().unwrap(),
+                gcd: Uint::ONE.to_odd().unwrap(),
+                matrix: IntMatrix::new(
+                    I64::from(2i32),
+                    I64::from(6i32),
+                    I64::from(4i32),
+                    I64::from(5i32),
+                ),
+                k: 1,
+                k_upper_bound: 1,
+            };
+            let (x, y) = output.derive_bezout_coefficients();
+            assert_eq!(x, Int::ONE);
+            assert_eq!(y, Int::from(3i32));
+
+            let output = RawBinxgcdOutput {
+                lhs: Uint::ONE.to_odd().unwrap(),
+                rhs: Uint::ONE.to_odd().unwrap(),
+                gcd: Uint::ONE.to_odd().unwrap(),
+                matrix: IntMatrix::new(
+                    I64::from(120i32),
+                    I64::from(64i32),
+                    I64::from(4i32),
+                    I64::from(5i32),
+                ),
+                k: 5,
+                k_upper_bound: 6,
+            };
+            let (x, y) = output.derive_bezout_coefficients();
+            assert_eq!(x, Int::from(4i32));
+            assert_eq!(y, Int::from(2i32));
+        }
+
+        #[test]
+        fn test_derive_bezout_coefficients_removes_doublings_for_odd_numbers() {
+            let output = RawBinxgcdOutput {
+                lhs: Uint::from(7u32).to_odd().unwrap(),
+                rhs: Uint::from(5u32).to_odd().unwrap(),
+                gcd: Uint::ONE.to_odd().unwrap(),
+                matrix: IntMatrix::new(
+                    I64::from(2i32),
+                    I64::from(6i32),
+                    I64::from(4i32),
+                    I64::from(5i32),
+                ),
+                k: 3,
+                k_upper_bound: 7,
+            };
+            let (x, y) = output.derive_bezout_coefficients();
+            assert_eq!(x, Int::from(4i32));
+            assert_eq!(y, Int::from(6i32));
+        }
+    }
+
+    mod test_partial_binxgcd {
+        use crate::modular::bingcd::matrix::IntMatrix;
+        use crate::{ConstChoice, I64, Odd, U64};
+
+        const A: Odd<U64> = U64::from_be_hex("CA048AFA63CD6A1F").to_odd().expect("odd");
+        const B: U64 = U64::from_be_hex("AE693BF7BE8E5566");
+
+        #[test]
+        fn test_partial_binxgcd() {
+            let (.., matrix, iters) =
+                A.partial_binxgcd_vartime::<{ U64::LIMBS }>(&B, 5, ConstChoice::TRUE);
+            assert_eq!(iters, 5);
+            assert_eq!(
+                matrix,
+                IntMatrix::new(I64::from(8), I64::from(-4), I64::from(-2), I64::from(5))
+            );
+        }
+
+        #[test]
+        fn test_partial_binxgcd_constructs_correct_matrix() {
+            let (new_a, new_b, matrix, _) =
+                A.partial_binxgcd_vartime::<{ U64::LIMBS }>(&B, 5, ConstChoice::TRUE);
+
+            let (computed_a, computed_b) = matrix.extended_apply_to((A.get(), B));
+            let computed_a = computed_a.div_2k(5).wrapping_drop_extension().0;
+            let computed_b = computed_b.div_2k(5).wrapping_drop_extension().0;
+
+            assert_eq!(new_a.get(), computed_a);
+            assert_eq!(new_b, computed_b);
+        }
+
+        const SMALL_A: Odd<U64> = U64::from_be_hex("0000000003CD6A1F").to_odd().expect("odd");
+        const SMALL_B: U64 = U64::from_be_hex("000000000E8E5566");
+
+        #[test]
+        fn test_partial_binxgcd_halts() {
+            let (gcd, .., iters) =
+                SMALL_A.partial_binxgcd_vartime::<{ U64::LIMBS }>(&SMALL_B, 60, ConstChoice::TRUE);
+            assert_eq!(iters, 35);
+            assert_eq!(gcd.get(), SMALL_A.gcd(&SMALL_B));
+        }
+
+        #[test]
+        fn test_partial_binxgcd_does_not_halt() {
+            let (gcd, .., iters) =
+                SMALL_A.partial_binxgcd_vartime::<{ U64::LIMBS }>(&SMALL_B, 60, ConstChoice::FALSE);
+            assert_eq!(iters, 60);
+            assert_eq!(gcd.get(), SMALL_A.gcd(&SMALL_B));
+        }
+    }
+
+    /// Helper function to effectively test xgcd.
+    fn test_xgcd<const LIMBS: usize, const DOUBLE: usize>(
+        lhs: Uint<LIMBS>,
+        rhs: Uint<LIMBS>,
+        output: OddBinxgcdUintOutput<LIMBS>,
+    ) where
+        Uint<LIMBS>:
+            Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+    {
+        // Test the gcd
+        assert_eq!(lhs.gcd(&rhs), output.gcd);
+
+        // Test the quotients
+        assert_eq!(output.lhs_on_gcd, lhs.div(output.gcd.as_nz_ref()));
+        assert_eq!(output.rhs_on_gcd, rhs.div(output.gcd.as_nz_ref()));
+
+        // Test the Bezout coefficients
+        let (x, y) = output.bezout_coefficients();
+        assert_eq!(
+            x.widening_mul_uint(&lhs) + y.widening_mul_uint(&rhs),
+            output.gcd.resize().as_int(),
+        );
+    }
+
+    fn make_rng() -> ChaChaRng {
+        ChaChaRng::from_seed([0; 32])
+    }
+
+    mod test_binxgcd_nz {
+        use crate::modular::bingcd::xgcd::tests::{make_rng, test_xgcd};
+        use crate::{
+            ConcatMixed, Gcd, Int, RandomMod, U64, U128, U192, U256, U384, U512, U768, U1024,
+            U2048, U4096, U8192, Uint,
+        };
+
+        fn binxgcd_nz_test<const LIMBS: usize, const DOUBLE: usize>(
+            lhs: Uint<LIMBS>,
+            rhs: Uint<LIMBS>,
+        ) where
+            Uint<LIMBS>:
+                Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+        {
+            let output = lhs.to_odd().unwrap().binxgcd_nz(&rhs.to_nz().unwrap());
+            test_xgcd(lhs, rhs, output);
+        }
+
+        fn binxgcd_nz_tests<const LIMBS: usize, const DOUBLE: usize>()
+        where
+            Uint<LIMBS>:
+                Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+        {
+            // Edge cases
+            let odd_upper_bound = *Int::MAX.as_uint();
+            let even_upper_bound = Int::MIN.abs();
+            binxgcd_nz_test(Uint::ONE, Uint::ONE);
+            binxgcd_nz_test(Uint::ONE, odd_upper_bound);
+            binxgcd_nz_test(Uint::ONE, even_upper_bound);
+            binxgcd_nz_test(odd_upper_bound, Uint::ONE);
+            binxgcd_nz_test(odd_upper_bound, odd_upper_bound);
+            binxgcd_nz_test(odd_upper_bound, even_upper_bound);
+
+            // Randomized test cases
+            let mut rng = make_rng();
+            let bound = Int::MIN.as_uint().to_nz().unwrap();
+            for _ in 0..100 {
+                let x = Uint::<LIMBS>::random_mod(&mut rng, &bound).bitor(&Uint::ONE);
+                let y = Uint::<LIMBS>::random_mod(&mut rng, &bound).saturating_add(&Uint::ONE);
+                binxgcd_nz_test(x, y);
+            }
+        }
+
+        #[test]
+        fn test_binxgcd_nz() {
+            binxgcd_nz_tests::<{ U64::LIMBS }, { U128::LIMBS }>();
+            binxgcd_nz_tests::<{ U128::LIMBS }, { U256::LIMBS }>();
+            binxgcd_nz_tests::<{ U192::LIMBS }, { U384::LIMBS }>();
+            binxgcd_nz_tests::<{ U256::LIMBS }, { U512::LIMBS }>();
+            binxgcd_nz_tests::<{ U384::LIMBS }, { U768::LIMBS }>();
+            binxgcd_nz_tests::<{ U512::LIMBS }, { U1024::LIMBS }>();
+            binxgcd_nz_tests::<{ U1024::LIMBS }, { U2048::LIMBS }>();
+            binxgcd_nz_tests::<{ U2048::LIMBS }, { U4096::LIMBS }>();
+            binxgcd_nz_tests::<{ U4096::LIMBS }, { U8192::LIMBS }>();
+        }
+    }
+
+    mod test_classic_binxgcd {
+        use crate::modular::bingcd::xgcd::tests::{make_rng, test_xgcd};
+        use crate::{
+            ConcatMixed, Gcd, Int, RandomMod, U64, U128, U192, U256, U384, U512, U768, U1024,
+            U2048, U4096, U8192, Uint,
+        };
+
+        fn classic_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
+            lhs: Uint<LIMBS>,
+            rhs: Uint<LIMBS>,
+        ) where
+            Uint<LIMBS>:
+                Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+        {
+            let output = lhs
+                .to_odd()
+                .unwrap()
+                .classic_binxgcd(&rhs.to_odd().unwrap());
+            test_xgcd(lhs, rhs, output.process());
+        }
+
+        fn classic_binxgcd_tests<const LIMBS: usize, const DOUBLE: usize>()
+        where
+            Uint<LIMBS>:
+                Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+        {
+            // Edge cases
+            let upper_bound = *Int::MAX.as_uint();
+            classic_binxgcd_test(Uint::ONE, Uint::ONE);
+            classic_binxgcd_test(Uint::ONE, upper_bound);
+            classic_binxgcd_test(upper_bound, Uint::ONE);
+            classic_binxgcd_test(upper_bound, upper_bound);
+
+            // Randomized test cases
+            let mut rng = make_rng();
+            let bound = Int::MIN.as_uint().to_nz().unwrap();
+            for _ in 0..100 {
+                let x = Uint::<LIMBS>::random_mod(&mut rng, &bound).bitor(&Uint::ONE);
+                let y = Uint::<LIMBS>::random_mod(&mut rng, &bound).bitor(&Uint::ONE);
+                classic_binxgcd_test(x, y);
+            }
+        }
+
+        #[test]
+        fn test_classic_binxgcd() {
+            classic_binxgcd_tests::<{ U64::LIMBS }, { U128::LIMBS }>();
+            classic_binxgcd_tests::<{ U128::LIMBS }, { U256::LIMBS }>();
+            classic_binxgcd_tests::<{ U192::LIMBS }, { U384::LIMBS }>();
+            classic_binxgcd_tests::<{ U256::LIMBS }, { U512::LIMBS }>();
+            classic_binxgcd_tests::<{ U384::LIMBS }, { U768::LIMBS }>();
+            classic_binxgcd_tests::<{ U512::LIMBS }, { U1024::LIMBS }>();
+            classic_binxgcd_tests::<{ U1024::LIMBS }, { U2048::LIMBS }>();
+            classic_binxgcd_tests::<{ U2048::LIMBS }, { U4096::LIMBS }>();
+            classic_binxgcd_tests::<{ U4096::LIMBS }, { U8192::LIMBS }>();
+        }
+    }
+
+    mod test_optimized_binxgcd {
+        use crate::modular::bingcd::xgcd::tests::{make_rng, test_xgcd};
+        use crate::{
+            ConcatMixed, Gcd, Int, RandomMod, U128, U192, U256, U384, U512, U768, U1024, U2048,
+            U4096, U8192, Uint,
+        };
+
+        fn optimized_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
+            lhs: Uint<LIMBS>,
+            rhs: Uint<LIMBS>,
+        ) where
+            Uint<LIMBS>:
+                Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+        {
+            let output = lhs
+                .to_odd()
+                .unwrap()
+                .optimized_binxgcd(&rhs.to_odd().unwrap());
+            test_xgcd(lhs, rhs, output.process());
+        }
+
+        fn optimized_binxgcd_tests<const LIMBS: usize, const DOUBLE: usize>()
+        where
+            Uint<LIMBS>:
+                Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+        {
+            // Edge cases
+            let upper_bound = *Int::MAX.as_uint();
+            optimized_binxgcd_test(Uint::ONE, Uint::ONE);
+            optimized_binxgcd_test(Uint::ONE, upper_bound);
+            optimized_binxgcd_test(upper_bound, Uint::ONE);
+            optimized_binxgcd_test(upper_bound, upper_bound);
+
+            // Randomized test cases
+            let mut rng = make_rng();
+            let bound = Int::MIN.as_uint().to_nz().unwrap();
+            for _ in 0..100 {
+                let x = Uint::<LIMBS>::random_mod(&mut rng, &bound).bitor(&Uint::ONE);
+                let y = Uint::<LIMBS>::random_mod(&mut rng, &bound).bitor(&Uint::ONE);
+                optimized_binxgcd_test(x, y);
+            }
+        }
+
+        #[test]
+        fn test_optimized_binxgcd() {
+            optimized_binxgcd_tests::<{ U128::LIMBS }, { U256::LIMBS }>();
+            optimized_binxgcd_tests::<{ U192::LIMBS }, { U384::LIMBS }>();
+            optimized_binxgcd_tests::<{ U256::LIMBS }, { U512::LIMBS }>();
+            optimized_binxgcd_tests::<{ U384::LIMBS }, { U768::LIMBS }>();
+            optimized_binxgcd_tests::<{ U512::LIMBS }, { U1024::LIMBS }>();
+            optimized_binxgcd_tests::<{ U1024::LIMBS }, { U2048::LIMBS }>();
+            optimized_binxgcd_tests::<{ U2048::LIMBS }, { U4096::LIMBS }>();
+            optimized_binxgcd_tests::<{ U4096::LIMBS }, { U8192::LIMBS }>();
+        }
+    }
+}
