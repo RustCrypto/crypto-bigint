@@ -7,22 +7,30 @@ impl BoxedUint {
     ///
     /// Assumes `self + rhs` as unbounded integer is `< 2p`.
     pub fn add_mod(&self, rhs: &Self, p: &Self) -> Self {
+        let mut result = self.clone();
+        result.add_mod_assign(rhs, p);
+        result
+    }
+
+    /// Computes `self + rhs mod p` and writes the result in `self`.
+    ///
+    /// Assumes `self + rhs` as unbounded integer is `< 2p`.
+    pub fn add_mod_assign(&mut self, rhs: &Self, p: &Self) {
         debug_assert_eq!(self.bits_precision(), p.bits_precision());
         debug_assert_eq!(rhs.bits_precision(), p.bits_precision());
-        debug_assert!(self < p);
+        debug_assert!(&*self < p);
         debug_assert!(rhs < p);
 
-        let (mut w, carry) = self.adc(rhs, Limb::ZERO);
+        let carry = self.adc_assign(rhs, Limb::ZERO);
 
         // Attempt to subtract the modulus, to ensure the result is in the field.
-        let borrow = w.sbb_assign(p, Limb::ZERO);
+        let borrow = self.sbb_assign(p, Limb::ZERO);
         let (_, borrow) = carry.sbb(Limb::ZERO, borrow);
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the
         // modulus.
-        w.conditional_adc_assign(p, !borrow.is_zero());
-        w
+        self.conditional_adc_assign(p, !borrow.is_zero());
     }
 
     /// Computes `self + self mod p`.

@@ -57,10 +57,11 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 #[cfg(feature = "rand_core")]
 #[cfg(test)]
 mod tests {
-    use rand_core::OsRng;
+    use rand_chacha::ChaChaRng;
+    use rand_core::SeedableRng;
 
     use crate::{
-        Gcd, Int, Random, Uint, U1024, U128, U16384, U2048, U256, U4096, U512, U64, U8192,
+        Gcd, Int, Random, U64, U128, U256, U512, U1024, U2048, U4096, U8192, U16384, Uint,
     };
 
     fn bingcd_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
@@ -96,9 +97,10 @@ mod tests {
         bingcd_test(Uint::MAX, Uint::MAX);
 
         // Randomized test cases
+        let mut rng = ChaChaRng::from_seed([0; 32]);
         for _ in 0..100 {
-            let x = Uint::<LIMBS>::random(&mut OsRng);
-            let y = Uint::<LIMBS>::random(&mut OsRng);
+            let x = Uint::<LIMBS>::random(&mut rng);
+            let y = Uint::<LIMBS>::random(&mut rng);
             bingcd_test(x, y);
         }
     }

@@ -1,12 +1,12 @@
 //! [`BoxedUint`] division operations.
 
 use crate::{
+    BoxedUint, CheckedDiv, ConstChoice, ConstantTimeSelect, DivRemLimb, Limb, NonZero, Reciprocal,
+    RemLimb, RemMixed, Wrapping,
     uint::{
         boxed,
         div_limb::{div2by1, div3by2},
     },
-    BoxedUint, CheckedDiv, ConstChoice, ConstantTimeSelect, DivRemLimb, Limb, NonZero, Reciprocal,
-    RemLimb, RemMixed, Wrapping,
 };
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::CtOption;

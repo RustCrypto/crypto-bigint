@@ -1,6 +1,6 @@
 //! Modular exponentiation support for [`BoxedMontyForm`].
 
-use super::{mul::MontyMultiplier, BoxedMontyForm};
+use super::{BoxedMontyForm, mul::BoxedMontyMultiplier};
 use crate::{BoxedUint, ConstantTimeSelect, Limb, PowBoundedExp, Word};
 use alloc::vec::Vec;
 use subtle::{ConstantTimeEq, ConstantTimeLess};
@@ -60,7 +60,7 @@ fn pow_montgomery_form(
     const WINDOW: u32 = 4;
     const WINDOW_MASK: Word = (1 << WINDOW) - 1;
 
-    let mut multiplier = MontyMultiplier::new(modulus, mod_neg_inv);
+    let mut multiplier = BoxedMontyMultiplier::new(modulus, mod_neg_inv);
 
     // powers[i] contains x^i
     let mut powers = Vec::with_capacity(1 << WINDOW);
@@ -111,12 +111,21 @@ fn pow_montgomery_form(
         }
     }
 
-    // Ensure output is properly reduced: AMM only reduces to the bit length of `modulus`
-    // See RustCrypto/crypto-bigint#441
-    z.conditional_sbb_assign(modulus, !z.ct_lt(modulus));
+    // Ensure the output is properly reduced.
+    //
+    // Using the properties of `almost_mongtomery_mul()` (see its documentation):
+    // - We have an incoming `x` which is fully reduced (`floor(x / modulus) = 0`).
+    // - We build an array of `powers` which are produced by multiplying the previous power by `x`,
+    //   so for each power `floor(power / modulus) <= 1`.
+    // - Then we take turns squaring the accumulator `z` (bringing `floor(z / modulus)` to 1
+    //   regardless of the previous reduction level) and multiplying by a power of `x`
+    //   (bringing `floor(z / modulus)` to at most 2).
+    // - Then we either exit the loop, or square again, which brings `floor(z / modulus)` back to 1.
+    //
+    // Now that we exited the loop, we need to reduce `z` at most twice
+    // to bring it within `[0, modulus)`.
 
-    // Subtract again to ensure output is fully reduced
-    // See RustCrypto/crypto-bigint#455 and golang.org/issue/13907
+    z.conditional_sbb_assign(modulus, !z.ct_lt(modulus));
     z.conditional_sbb_assign(modulus, !z.ct_lt(modulus));
     debug_assert!(&z < modulus);
 

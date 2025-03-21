@@ -1,5 +1,5 @@
 use crate::modular::bingcd::tools::const_max;
-use crate::{ConstChoice, Odd, Uint, U128, U64};
+use crate::{ConstChoice, Odd, U64, U128, Uint};
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// The minimal number of iterations required to ensure the Binary GCD algorithm terminates and
@@ -120,12 +120,18 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 #[cfg(feature = "rand_core")]
 #[cfg(test)]
 mod tests {
+    use rand_chacha::ChaChaRng;
+    use rand_core::SeedableRng;
+
+    fn make_rng() -> ChaChaRng {
+        ChaChaRng::from_seed([0; 32])
+    }
 
     mod test_classic_bingcd {
+        use crate::modular::bingcd::gcd::tests::make_rng;
         use crate::{
-            Gcd, Int, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U64,
+            Gcd, Int, Random, U64, U128, U192, U256, U384, U512, U1024, U2048, U4096, Uint,
         };
-        use rand_core::OsRng;
 
         fn classic_bingcd_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
         where
@@ -158,9 +164,10 @@ mod tests {
             classic_bingcd_test(Uint::MAX, Uint::MAX);
 
             // Randomized test cases
+            let mut rng = make_rng();
             for _ in 0..1000 {
-                let x = Uint::<LIMBS>::random(&mut OsRng).bitor(&Uint::ONE);
-                let y = Uint::<LIMBS>::random(&mut OsRng);
+                let x = Uint::<LIMBS>::random(&mut rng).bitor(&Uint::ONE);
+                let y = Uint::<LIMBS>::random(&mut rng);
                 classic_bingcd_test(x, y);
             }
         }
@@ -180,8 +187,8 @@ mod tests {
     }
 
     mod test_optimized_bingcd {
-        use crate::{Gcd, Int, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512};
-        use rand_core::OsRng;
+        use crate::modular::bingcd::gcd::tests::make_rng;
+        use crate::{Gcd, Int, Random, U128, U192, U256, U384, U512, U1024, U2048, U4096, Uint};
 
         fn optimized_bingcd_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
         where
@@ -214,9 +221,10 @@ mod tests {
             optimized_bingcd_test(Uint::MAX, Uint::MAX);
 
             // Randomized testing
+            let mut rng = make_rng();
             for _ in 0..1000 {
-                let x = Uint::<LIMBS>::random(&mut OsRng).bitor(&Uint::ONE);
-                let y = Uint::<LIMBS>::random(&mut OsRng);
+                let x = Uint::<LIMBS>::random(&mut rng).bitor(&Uint::ONE);
+                let y = Uint::<LIMBS>::random(&mut rng);
                 optimized_bingcd_test(x, y);
             }
         }

@@ -1,4 +1,4 @@
-use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion};
+use criterion::{BatchSize, Criterion, black_box, criterion_group, criterion_main};
 use crypto_bigint::{BoxedUint, Limb, NonZero, RandomBits};
 use num_bigint::BigUint;
 use rand_core::OsRng;

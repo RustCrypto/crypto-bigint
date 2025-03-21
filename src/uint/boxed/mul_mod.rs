@@ -1,9 +1,9 @@
 //! [`BoxedUint`] modular multiplication operations.
 
 use crate::{
+    BoxedUint, Limb, MulMod, NonZero, Odd, WideWord, Word,
     div_limb::mul_rem,
     modular::{BoxedMontyForm, BoxedMontyParams},
-    BoxedUint, Limb, MulMod, NonZero, Odd, WideWord, Word,
 };
 
 impl BoxedUint {

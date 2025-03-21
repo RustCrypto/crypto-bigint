@@ -6,12 +6,13 @@ mod common;
 
 use common::to_biguint;
 use core::cmp::Ordering;
-use crypto_bigint::{BoxedUint, CheckedAdd, Gcd, Integer, Limb, NonZero};
+use crypto_bigint::{BitOps, BoxedUint, CheckedAdd, Gcd, Integer, Limb, NonZero};
 use num_bigint::BigUint;
 use num_integer::Integer as _;
 use num_modular::ModularUnaryOps;
 use num_traits::identities::One;
 use proptest::prelude::*;
+use subtle::Choice;
 
 fn to_uint(big_uint: BigUint) -> BoxedUint {
     let bytes = big_uint.to_bytes_be();
@@ -153,6 +154,28 @@ proptest! {
         let expected = to_uint(f_bi.gcd(&g_bi));
         let actual = f.gcd(&g);
         prop_assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn inv_mod2k(mut a in uint(), k in any::<u32>()) {
+        a.set_bit(0, Choice::from(1)); // make odd
+        let k = k % (a.bits() + 1);
+        let a_bi = to_biguint(&a);
+        let m_bi = BigUint::one() << k as usize;
+
+        let actual = a.inv_mod2k(k).0;
+        let (actual_vartime, exists) = a.inv_mod2k_vartime(k);
+        prop_assert!(bool::from(exists));
+        prop_assert_eq!(&actual, &actual_vartime);
+
+        if k == 0 {
+            prop_assert_eq!(&actual, &BoxedUint::zero_with_precision(a.bits_precision()));
+        }
+        else {
+            let inv_bi = to_biguint(&actual);
+            let res = (inv_bi * a_bi) % m_bi;
+            prop_assert_eq!(res, BigUint::one());
+        }
     }
 
     #[test]

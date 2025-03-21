@@ -3,7 +3,7 @@
 //!
 //! See parent module for more information.
 
-use super::{inv_mod2_62, iterations, jump, Matrix};
+use super::{Matrix, inv_mod2_62, iterations, jump};
 use crate::{BoxedUint, Inverter, Limb, Odd, Word};
 use alloc::boxed::Box;
 use core::{
@@ -310,6 +310,9 @@ impl BoxedUnsatInt {
     /// Convert to a `BoxedUint` of the given precision.
     #[allow(trivial_numeric_casts)]
     fn to_uint(&self, mut bits_precision: u32) -> BoxedUint {
+        // Shorten to the required value after conversion.
+        let shorten = bits_precision == 32;
+
         // The current Bernstein-Yang implementation is natively 64-bit on all targets
         if bits_precision == 32 {
             bits_precision = 64;
@@ -334,7 +337,12 @@ impl BoxedUnsatInt {
             ret.as_words_mut()
         );
 
-        ret
+        if shorten {
+            debug_assert!(ret.bits_vartime() <= 32);
+            ret.shorten(32)
+        } else {
+            ret
+        }
     }
 
     /// Conditionally add the given value to this one depending on the given [`Choice`].

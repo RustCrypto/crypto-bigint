@@ -8,7 +8,7 @@ pub use num_traits::{
 
 pub(crate) use sealed::PrecomputeInverterWithAdjuster;
 
-use crate::{Limb, NonZero, Odd, Reciprocal};
+use crate::{Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
 use core::fmt::{self, Debug};
 use core::ops::{
     Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign,
@@ -20,7 +20,7 @@ use subtle::{
 };
 
 #[cfg(feature = "rand_core")]
-use rand_core::RngCore;
+use rand_core::{RngCore, TryRngCore};
 
 /// Integers whose representation takes a bounded amount of space.
 pub trait Bounded {
@@ -116,6 +116,9 @@ pub trait Integer:
     + for<'a> DivAssign<&'a NonZero<Self>>
     + DivRemLimb
     + Eq
+    + fmt::LowerHex
+    + fmt::UpperHex
+    + fmt::Binary
     + From<u8>
     + From<u16>
     + From<u32>
@@ -299,15 +302,23 @@ pub trait Random: Sized {
     /// Generate a random value.
     ///
     /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
-    fn random(rng: &mut impl RngCore) -> Self;
+    fn random<R: RngCore + ?Sized>(rng: &mut R) -> Self {
+        let Ok(out) = Self::try_random(rng);
+        out
+    }
+
+    /// Generate a random value.
+    ///
+    /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
+    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error>;
 }
 
 /// Possible errors of the methods in [`RandomBits`] trait.
 #[cfg(feature = "rand_core")]
 #[derive(Debug)]
-pub enum RandomBitsError {
+pub enum RandomBitsError<T> {
     /// An error of the internal RNG library.
-    RandCore(rand_core::Error),
+    RandCore(T),
     /// The requested `bits_precision` does not match the size of the integer
     /// corresponding to the type (in the cases where this is set in compile time).
     BitsPrecisionMismatch {
@@ -326,7 +337,10 @@ pub enum RandomBitsError {
 }
 
 #[cfg(feature = "rand_core")]
-impl fmt::Display for RandomBitsError {
+impl<T> fmt::Display for RandomBitsError<T>
+where
+    T: fmt::Display,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::RandCore(err) => write!(f, "{}", err),
@@ -354,7 +368,7 @@ impl fmt::Display for RandomBitsError {
 }
 
 #[cfg(feature = "rand_core")]
-impl core::error::Error for RandomBitsError {}
+impl<T> core::error::Error for RandomBitsError<T> where T: Debug + fmt::Display {}
 
 /// Random bits generation support.
 #[cfg(feature = "rand_core")]
@@ -362,7 +376,7 @@ pub trait RandomBits: Sized {
     /// Generate a random value in range `[0, 2^bit_length)`.
     ///
     /// A wrapper for [`RandomBits::try_random_bits`] that panics on error.
-    fn random_bits(rng: &mut impl RngCore, bit_length: u32) -> Self {
+    fn random_bits<R: TryRngCore + ?Sized>(rng: &mut R, bit_length: u32) -> Self {
         Self::try_random_bits(rng, bit_length).expect("try_random_bits() failed")
     }
 
@@ -371,15 +385,18 @@ pub trait RandomBits: Sized {
     /// This method is variable time wrt `bit_length`.
     ///
     /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
-    fn try_random_bits(rng: &mut impl RngCore, bit_length: u32) -> Result<Self, RandomBitsError>;
+    fn try_random_bits<R: TryRngCore + ?Sized>(
+        rng: &mut R,
+        bit_length: u32,
+    ) -> Result<Self, RandomBitsError<R::Error>>;
 
     /// Generate a random value in range `[0, 2^bit_length)`,
     /// returning an integer with the closest available size to `bits_precision`
     /// (if the implementing type supports runtime sizing).
     ///
     /// A wrapper for [`RandomBits::try_random_bits_with_precision`] that panics on error.
-    fn random_bits_with_precision(
-        rng: &mut impl RngCore,
+    fn random_bits_with_precision<R: TryRngCore + ?Sized>(
+        rng: &mut R,
         bit_length: u32,
         bits_precision: u32,
     ) -> Self {
@@ -394,11 +411,11 @@ pub trait RandomBits: Sized {
     /// This method is variable time wrt `bit_length`.
     ///
     /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
-    fn try_random_bits_with_precision(
-        rng: &mut impl RngCore,
+    fn try_random_bits_with_precision<R: TryRngCore + ?Sized>(
+        rng: &mut R,
         bit_length: u32,
         bits_precision: u32,
-    ) -> Result<Self, RandomBitsError>;
+    ) -> Result<Self, RandomBitsError<R::Error>>;
 }
 
 /// Modular random number generation support.
@@ -413,7 +430,24 @@ pub trait RandomMod: Sized + Zero {
     /// example, it implements `CryptoRng`), then this is guaranteed not to
     /// leak anything about the output value aside from it being less than
     /// `modulus`.
-    fn random_mod(rng: &mut impl RngCore, modulus: &NonZero<Self>) -> Self;
+    fn random_mod<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
+        let Ok(out) = Self::try_random_mod(rng, modulus);
+        out
+    }
+
+    /// Generate a random number which is less than a given `modulus`.
+    ///
+    /// This uses rejection sampling.
+    ///
+    /// As a result, it runs in variable time that depends in part on
+    /// `modulus`. If the generator `rng` is cryptographically secure (for
+    /// example, it implements `CryptoRng`), then this is guaranteed not to
+    /// leak anything about the output value aside from it being less than
+    /// `modulus`.
+    fn try_random_mod<R: TryRngCore + ?Sized>(
+        rng: &mut R,
+        modulus: &NonZero<Self>,
+    ) -> Result<Self, R::Error>;
 }
 
 /// Compute `self + rhs mod p`.
@@ -833,11 +867,15 @@ pub trait Monty:
     + for<'a> MulAssign<&'a Self>
     + Neg<Output = Self>
     + PowBoundedExp<Self::Integer>
+    + Retrieve<Output = Self::Integer>
     + Square
     + SquareAssign
 {
     /// The original integer type.
     type Integer: Integer<Monty = Self>;
+
+    /// Prepared Montgomery multiplier for tight loops.
+    type Multiplier<'a>: Debug + Clone + MontyMultiplier<'a, Monty = Self>;
 
     /// The precomputed data needed for this representation.
     type Params: 'static + Clone + Debug + Eq + Sized + Send + Sync;
@@ -861,11 +899,21 @@ pub trait Monty:
     /// Access the value in Montgomery form.
     fn as_montgomery(&self) -> &Self::Integer;
 
+    /// Copy the Montgomery representation from `other` into `self`.
+    /// NOTE: the parameters remain unchanged.
+    fn copy_montgomery_from(&mut self, other: &Self);
+
     /// Performs doubling, returning `self + self`.
     fn double(&self) -> Self;
 
     /// Performs division by 2, that is returns `x` such that `x + x = self`.
     fn div_by_2(&self) -> Self;
+
+    /// Performs division by 2 inplace, that is finds `x` such that `x + x = self`
+    /// and writes it into `self`.
+    fn div_by_2_assign(&mut self) {
+        *self = self.div_by_2()
+    }
 
     /// Calculate the sum of products of pairs `(a, b)` in `products`.
     ///
@@ -875,4 +923,22 @@ pub trait Monty:
     /// This method will panic if `products` is empty. All terms must be associated with equivalent
     /// Montgomery parameters.
     fn lincomb_vartime(products: &[(&Self, &Self)]) -> Self;
+}
+
+/// Prepared Montgomery multiplier for tight loops.
+///
+/// Allows one to perform inplace multiplication without allocations
+/// (important for the `BoxedUint` case).
+///
+/// NOTE: You will be operating with Montgomery representations directly,
+/// make sure they all correspond to the same set of parameters.
+pub trait MontyMultiplier<'a>: From<&'a <Self::Monty as Monty>::Params> {
+    /// The associated Montgomery-representation integer.
+    type Monty: Monty;
+
+    /// Performs a Montgomery multiplication, assigning a fully reduced result to `lhs`.
+    fn mul_assign(&mut self, lhs: &mut Self::Monty, rhs: &Self::Monty);
+
+    /// Performs a Montgomery squaring, assigning a fully reduced result to `lhs`.
+    fn square_assign(&mut self, lhs: &mut Self::Monty);
 }

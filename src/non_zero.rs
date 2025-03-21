@@ -3,7 +3,7 @@
 use crate::{Bounded, ConstChoice, Constants, Encoding, Int, Limb, Uint, Zero};
 use core::{
     fmt,
-    num::{NonZeroU128, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8},
+    num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128},
     ops::Deref,
 };
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
@@ -12,12 +12,12 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use crate::{ArrayEncoding, ByteArray};
 
 #[cfg(feature = "rand_core")]
-use {crate::Random, rand_core::RngCore};
+use {crate::Random, rand_core::TryRngCore};
 
 #[cfg(feature = "serde")]
 use serdect::serde::{
-    de::{Error, Unexpected},
     Deserialize, Deserializer, Serialize, Serializer,
+    de::{Error, Unexpected},
 };
 
 /// Wrapper type for non-zero integers.
@@ -251,10 +251,10 @@ where
     /// As a result, it runs in variable time. If the generator `rng` is
     /// cryptographically secure (for example, it implements `CryptoRng`),
     /// then this is guaranteed not to leak anything about the output value.
-    fn random(mut rng: &mut impl RngCore) -> Self {
+    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
         loop {
-            if let Some(result) = Self::new(T::random(&mut rng)).into() {
-                break result;
+            if let Some(result) = Self::new(T::try_random(rng)?).into() {
+                break Ok(result);
             }
         }
     }

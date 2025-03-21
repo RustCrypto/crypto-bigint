@@ -2,8 +2,11 @@
 
 use super::MontyForm;
 use crate::{
-    modular::mul::{mul_montgomery_form, square_montgomery_form},
-    Square, SquareAssign,
+    MontyMultiplier, Square, SquareAssign,
+    modular::{
+        MontyParams,
+        mul::{mul_montgomery_form, square_montgomery_form},
+    },
 };
 use core::ops::{Mul, MulAssign};
 
@@ -86,5 +89,36 @@ impl<const LIMBS: usize> Square for MontyForm<LIMBS> {
 impl<const LIMBS: usize> SquareAssign for MontyForm<LIMBS> {
     fn square_assign(&mut self) {
         *self = self.square()
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct DynMontyMultiplier<'a, const LIMBS: usize>(&'a MontyParams<LIMBS>);
+
+impl<'a, const LIMBS: usize> From<&'a MontyParams<LIMBS>> for DynMontyMultiplier<'a, LIMBS> {
+    fn from(source: &'a MontyParams<LIMBS>) -> Self {
+        Self(source)
+    }
+}
+
+impl<'a, const LIMBS: usize> MontyMultiplier<'a> for DynMontyMultiplier<'a, LIMBS> {
+    type Monty = MontyForm<LIMBS>;
+
+    /// Performs a Montgomery multiplication, assigning a fully reduced result to `lhs`.
+    fn mul_assign(&mut self, lhs: &mut Self::Monty, rhs: &Self::Monty) {
+        let product = mul_montgomery_form(
+            &lhs.montgomery_form,
+            &rhs.montgomery_form,
+            &self.0.modulus,
+            self.0.mod_neg_inv,
+        );
+        lhs.montgomery_form = product;
+    }
+
+    /// Performs a Montgomery squaring, assigning a fully reduced result to `lhs`.
+    fn square_assign(&mut self, lhs: &mut Self::Monty) {
+        let product =
+            square_montgomery_form(&lhs.montgomery_form, &self.0.modulus, self.0.mod_neg_inv);
+        lhs.montgomery_form = product;
     }
 }

@@ -350,6 +350,36 @@ mod tests {
         assert_eq!(hex, n.to_string());
     }
 
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn fmt_lower_hex() {
+        let n = I128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
+        assert_eq!(format!("{n:x}"), "aaaaaaaabbbbbbbbccccccccdddddddd");
+        assert_eq!(format!("{n:#x}"), "0xaaaaaaaabbbbbbbbccccccccdddddddd");
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn fmt_upper_hex() {
+        let n = I128::from_be_hex("aaaaaaaabbbbbbbbccccccccdddddddd");
+        assert_eq!(format!("{n:X}"), "AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
+        assert_eq!(format!("{n:#X}"), "0xAAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn fmt_binary() {
+        let n = I128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
+        assert_eq!(
+            format!("{n:b}"),
+            "10101010101010101010101010101010101110111011101110111011101110111100110011001100110011001100110011011101110111011101110111011101"
+        );
+        assert_eq!(
+            format!("{n:#b}"),
+            "0b10101010101010101010101010101010101110111011101110111011101110111100110011001100110011001100110011011101110111011101110111011101"
+        );
+    }
+
     #[test]
     fn conditional_select() {
         let a = I128::from_be_hex("00002222444466668888AAAACCCCEEEE");

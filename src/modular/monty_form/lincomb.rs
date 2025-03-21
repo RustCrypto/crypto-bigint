@@ -33,8 +33,8 @@ mod tests {
     fn lincomb_expected() {
         use crate::U256;
         use crate::{
-            modular::{MontyForm, MontyParams},
             Odd, Random, RandomMod,
+            modular::{MontyForm, MontyParams},
         };
         use rand_core::SeedableRng;
 

@@ -61,7 +61,13 @@ pub(crate) const fn mac(a: Word, b: Word, c: Word, carry: Word) -> (Word, Word) 
     let a = a as WideWord;
     let b = b as WideWord;
     let c = c as WideWord;
-    let carry = carry as WideWord;
-    let ret = a + (b * c) + carry;
-    (ret as Word, (ret >> Word::BITS) as Word)
+    let ret = a + (b * c);
+    let (lo, hi) = (ret as Word, (ret >> Word::BITS) as Word);
+
+    let (lo, c) = lo.overflowing_add(carry);
+
+    // Even if all the arguments are `Word::MAX` we can't overflow `hi`.
+    let hi = hi.wrapping_add(c as Word);
+
+    (lo, hi)
 }

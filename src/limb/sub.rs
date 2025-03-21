@@ -1,6 +1,6 @@
 //! Limb subtraction
 
-use crate::{primitives::sbb, Checked, CheckedSub, Limb, Wrapping, WrappingSub, Zero};
+use crate::{Checked, CheckedSub, Limb, Wrapping, WrappingSub, Zero, primitives::sbb};
 use core::ops::{Sub, SubAssign};
 use subtle::CtOption;
 

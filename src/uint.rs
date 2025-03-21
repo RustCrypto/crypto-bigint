@@ -14,9 +14,9 @@ use zeroize::DefaultIsZeroes;
 pub use extra_sizes::*;
 
 use crate::{
-    modular::{MontyForm, SafeGcdInverter},
     Bounded, ConstCtOption, ConstZero, Constants, Encoding, FixedInteger, Int, Integer, Limb,
     NonZero, Odd, PrecomputeInverter, PrecomputeInverterWithAdjuster, Word,
+    modular::{MontyForm, SafeGcdInverter},
 };
 
 #[macro_use]
@@ -307,8 +307,12 @@ impl<const LIMBS: usize> fmt::Debug for Uint<LIMBS> {
 
 impl<const LIMBS: usize> fmt::Binary for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if f.alternate() {
+            write!(f, "0b")?;
+        }
+
         for limb in self.limbs.iter().rev() {
-            fmt::Binary::fmt(limb, f)?;
+            write!(f, "{:0width$b}", &limb.0, width = Limb::BITS as usize)?;
         }
         Ok(())
     }
@@ -322,8 +326,11 @@ impl<const LIMBS: usize> fmt::Display for Uint<LIMBS> {
 
 impl<const LIMBS: usize> fmt::LowerHex for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
         for limb in self.limbs.iter().rev() {
-            fmt::LowerHex::fmt(limb, f)?;
+            write!(f, "{:0width$x}", &limb.0, width = Limb::BYTES * 2)?;
         }
         Ok(())
     }
@@ -331,8 +338,11 @@ impl<const LIMBS: usize> fmt::LowerHex for Uint<LIMBS> {
 
 impl<const LIMBS: usize> fmt::UpperHex for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if f.alternate() {
+            write!(f, "0x")?;
+        }
         for limb in self.limbs.iter().rev() {
-            fmt::UpperHex::fmt(limb, f)?;
+            write!(f, "{:0width$X}", &limb.0, width = Limb::BYTES * 2)?;
         }
         Ok(())
     }
@@ -522,6 +532,69 @@ mod tests {
         let hex = "AAAAAAAABBBBBBBB0CCCCCCCDDDDDDDD";
         let n = U128::from_be_hex(hex);
         assert_eq!(hex, n.to_string());
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn fmt_lower_hex() {
+        let n = U128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
+        assert_eq!(format!("{n:x}"), "aaaaaaaabbbbbbbbccccccccdddddddd");
+        assert_eq!(format!("{n:#x}"), "0xaaaaaaaabbbbbbbbccccccccdddddddd");
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn fmt_lower_hex_from_trait() {
+        fn format_int<T: crate::Integer>(n: T) -> alloc::string::String {
+            format!("{n:x}")
+        }
+        let n = U128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
+        assert_eq!(format_int(n), "aaaaaaaabbbbbbbbccccccccdddddddd");
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn fmt_upper_hex() {
+        let n = U128::from_be_hex("aaaaaaaabbbbbbbbccccccccdddddddd");
+        assert_eq!(format!("{n:X}"), "AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
+        assert_eq!(format!("{n:#X}"), "0xAAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn fmt_upper_hex_from_trait() {
+        fn format_int<T: crate::Integer>(n: T) -> alloc::string::String {
+            format!("{n:X}")
+        }
+        let n = U128::from_be_hex("aaaaaaaabbbbbbbbccccccccdddddddd");
+        assert_eq!(format_int(n), "AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn fmt_binary() {
+        let n = U128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
+        assert_eq!(
+            format!("{n:b}"),
+            "10101010101010101010101010101010101110111011101110111011101110111100110011001100110011001100110011011101110111011101110111011101"
+        );
+        assert_eq!(
+            format!("{n:#b}"),
+            "0b10101010101010101010101010101010101110111011101110111011101110111100110011001100110011001100110011011101110111011101110111011101"
+        );
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn fmt_binary_from_trait() {
+        fn format_int<T: crate::Integer>(n: T) -> alloc::string::String {
+            format!("{n:b}")
+        }
+        let n = U128::from_be_hex("aaaaaaaabbbbbbbbccccccccdddddddd");
+        assert_eq!(
+            format_int(n),
+            "10101010101010101010101010101010101110111011101110111011101110111100110011001100110011001100110011011101110111011101110111011101"
+        );
     }
 
     #[test]

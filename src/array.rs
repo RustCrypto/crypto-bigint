@@ -2,7 +2,7 @@
 
 use crate::{Encoding, Integer};
 use core::ops::Add;
-use hybrid_array::{typenum::Unsigned, Array, ArraySize};
+use hybrid_array::{Array, ArraySize, typenum::Unsigned};
 
 /// Alias for a byte array whose size is defined by [`ArrayEncoding::ByteSize`].
 pub type ByteArray<T> = Array<u8, <T as ArrayEncoding>::ByteSize>;

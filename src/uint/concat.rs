@@ -44,7 +44,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConcatMixed, U128, U192, U64};
+    use crate::{ConcatMixed, U64, U128, U192};
 
     #[test]
     fn concat() {

@@ -187,6 +187,12 @@ mod test {
     use crate::int::bingcd::BinXgcdOutput;
     use crate::{ConcatMixed, Int, Uint};
     use num_traits::Zero;
+    use rand_chacha::ChaChaRng;
+    use rand_core::SeedableRng;
+
+    fn make_rng() -> ChaChaRng {
+        ChaChaRng::from_seed([0; 32])
+    }
 
     fn binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
         lhs: Int<LIMBS>,
@@ -228,12 +234,11 @@ mod test {
     }
 
     mod test_int_binxgcd {
-        use crate::int::bingcd::test::binxgcd_test;
+        use crate::int::bingcd::test::{binxgcd_test, make_rng};
         use crate::{
-            ConcatMixed, Gcd, Int, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512,
-            U64, U768, U8192,
+            ConcatMixed, Gcd, Int, Random, U64, U128, U192, U256, U384, U512, U768, U1024, U2048,
+            U4096, U8192, Uint,
         };
-        use rand_core::OsRng;
 
         fn int_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
             lhs: Int<LIMBS>,
@@ -276,9 +281,10 @@ mod test {
             int_binxgcd_test(Int::MAX, Int::ONE);
             int_binxgcd_test(Int::MAX, Int::MAX);
 
+            let mut rng = make_rng();
             for _ in 0..100 {
-                let x = Int::random(&mut OsRng);
-                let y = Int::random(&mut OsRng);
+                let x = Int::random(&mut rng);
+                let y = Int::random(&mut rng);
                 int_binxgcd_test(x, y);
             }
         }
@@ -298,12 +304,11 @@ mod test {
     }
 
     mod test_nonzero_int_binxgcd {
-        use crate::int::bingcd::test::binxgcd_test;
+        use crate::int::bingcd::test::{binxgcd_test, make_rng};
         use crate::{
-            ConcatMixed, Gcd, Int, RandomMod, Uint, U1024, U128, U192, U2048, U256, U384, U4096,
-            U512, U64, U768, U8192,
+            ConcatMixed, Gcd, Int, RandomMod, U64, U128, U192, U256, U384, U512, U768, U1024,
+            U2048, U4096, U8192, Uint,
         };
-        use rand_core::OsRng;
 
         fn nz_int_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
             lhs: Int<LIMBS>,
@@ -338,10 +343,11 @@ mod test {
             nz_int_binxgcd_test(Int::MAX, Int::ONE);
             nz_int_binxgcd_test(Int::MAX, Int::MAX);
 
+            let mut rng = make_rng();
             let bound = Int::MIN.abs().to_nz().unwrap();
             for _ in 0..100 {
-                let x = Uint::random_mod(&mut OsRng, &bound).as_int();
-                let y = Uint::random_mod(&mut OsRng, &bound).as_int();
+                let x = Uint::random_mod(&mut rng, &bound).as_int();
+                let y = Uint::random_mod(&mut rng, &bound).as_int();
                 nz_int_binxgcd_test(x, y);
             }
         }
@@ -361,12 +367,11 @@ mod test {
     }
 
     mod test_odd_int_binxgcd {
-        use crate::int::bingcd::test::binxgcd_test;
+        use crate::int::bingcd::test::{binxgcd_test, make_rng};
         use crate::{
-            ConcatMixed, Int, Random, Uint, U1024, U128, U192, U2048, U256, U384, U4096, U512, U64,
-            U768, U8192,
+            ConcatMixed, Int, Random, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096,
+            U8192, Uint,
         };
-        use rand_core::OsRng;
 
         fn odd_int_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
             lhs: Int<LIMBS>,
@@ -396,9 +401,10 @@ mod test {
             odd_int_binxgcd_test(Int::MAX, Int::ONE);
             odd_int_binxgcd_test(Int::MAX, Int::MAX);
 
+            let mut rng = make_rng();
             for _ in 0..100 {
-                let x = Int::<LIMBS>::random(&mut OsRng).bitor(&Int::ONE);
-                let y = Int::<LIMBS>::random(&mut OsRng);
+                let x = Int::<LIMBS>::random(&mut rng).bitor(&Int::ONE);
+                let y = Int::<LIMBS>::random(&mut rng);
                 odd_int_binxgcd_test(x, y);
             }
         }

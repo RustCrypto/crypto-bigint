@@ -208,7 +208,7 @@ impl<const LIMBS: usize> ShrVartime for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Uint, U128, U256};
+    use crate::{U128, U256, Uint};
 
     const N: U256 =
         U256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");

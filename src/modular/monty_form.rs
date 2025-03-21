@@ -9,12 +9,13 @@ mod pow;
 mod sub;
 
 use super::{
+    Retrieve,
     const_monty_form::{ConstMontyForm, ConstMontyParams},
     div_by_2::div_by_2,
     reduction::montgomery_reduction,
-    Retrieve,
 };
-use crate::{Concat, Limb, Monty, NonZero, Odd, Split, Uint, Word};
+use crate::{Concat, ConstChoice, Limb, Monty, NonZero, Odd, Split, Uint, Word};
+use mul::DynMontyMultiplier;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
@@ -41,7 +42,7 @@ where
     Uint<WIDE_LIMBS>: Split<Output = Uint<LIMBS>>,
 {
     /// Instantiates a new set of `MontyParams` representing the given odd `modulus`.
-    pub fn new(modulus: Odd<Uint<LIMBS>>) -> Self {
+    pub const fn new(modulus: Odd<Uint<LIMBS>>) -> Self {
         // `R mod modulus` where `R = 2^BITS`.
         // Represents 1 in Montgomery form.
         let one = Uint::MAX.rem(modulus.as_nz_ref()).wrapping_add(&Uint::ONE);
@@ -55,12 +56,15 @@ where
 
         // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
         let inv_mod = modulus
-            .inv_mod2k(Word::BITS)
+            .as_ref()
+            .inv_mod2k_vartime(Word::BITS)
             .expect("modular inverse should exist");
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
 
-        let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
+        let mod_leading_zeros = modulus.as_ref().leading_zeros();
+        let mod_leading_zeros = ConstChoice::from_u32_lt(mod_leading_zeros, Word::BITS - 1)
+            .select_u32(Word::BITS - 1, mod_leading_zeros);
 
         // `R^3 mod modulus`, used for inversion in Montgomery form.
         let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);
@@ -78,7 +82,7 @@ where
 
 impl<const LIMBS: usize> MontyParams<LIMBS> {
     /// Instantiates a new set of `MontyParams` representing the given odd `modulus`.
-    pub fn new_vartime(modulus: Odd<Uint<LIMBS>>) -> Self {
+    pub const fn new_vartime(modulus: Odd<Uint<LIMBS>>) -> Self {
         // `R mod modulus` where `R = 2^BITS`.
         // Represents 1 in Montgomery form.
         let one = Uint::MAX
@@ -90,12 +94,18 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
 
         // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
         let inv_mod = modulus
-            .inv_mod2k_vartime(Word::BITS)
+            .as_ref()
+            .inv_mod2k_full_vartime(Word::BITS)
             .expect("modular inverse should exist");
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
 
-        let mod_leading_zeros = modulus.as_ref().leading_zeros_vartime().min(Word::BITS - 1);
+        let mod_leading_zeros = modulus.as_ref().leading_zeros_vartime();
+        let mod_leading_zeros = if mod_leading_zeros < Word::BITS - 1 {
+            mod_leading_zeros
+        } else {
+            Word::BITS - 1
+        };
 
         // `R^3 mod modulus`, used for inversion in Montgomery form.
         let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);
@@ -262,6 +272,7 @@ impl<const LIMBS: usize> Retrieve for MontyForm<LIMBS> {
 impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
     type Integer = Uint<LIMBS>;
     type Params = MontyParams<LIMBS>;
+    type Multiplier<'a> = DynMontyMultiplier<'a, LIMBS>;
 
     fn new_params_vartime(modulus: Odd<Self::Integer>) -> Self::Params {
         MontyParams::new_vartime(modulus)
@@ -285,6 +296,11 @@ impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
 
     fn as_montgomery(&self) -> &Self::Integer {
         &self.montgomery_form
+    }
+
+    fn copy_montgomery_from(&mut self, other: &Self) {
+        debug_assert_eq!(self.params, other.params);
+        self.montgomery_form = other.montgomery_form;
     }
 
     fn double(&self) -> Self {

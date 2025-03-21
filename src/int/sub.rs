@@ -91,136 +91,133 @@ impl<const LIMBS: usize> WrappingSub for Int<LIMBS> {
 }
 
 #[cfg(test)]
+#[allow(clippy::init_numbered_fields)]
 mod tests {
+    use crate::{CheckedSub, I128, Int, U128};
 
-    #[cfg(test)]
-    mod tests {
-        use crate::{CheckedSub, Int, I128, U128};
+    #[test]
+    fn checked_sub() {
+        let min_plus_one = Int {
+            0: I128::MIN.0.wrapping_add(&I128::ONE.0),
+        };
+        let max_minus_one = Int {
+            0: I128::MAX.0.wrapping_sub(&I128::ONE.0),
+        };
+        let two = Int {
+            0: U128::from(2u32),
+        };
+        let min_plus_two = Int {
+            0: I128::MIN.0.wrapping_add(&two.0),
+        };
 
-        #[test]
-        fn checked_sub() {
-            let min_plus_one = Int {
-                0: I128::MIN.0.wrapping_add(&I128::ONE.0),
-            };
-            let max_minus_one = Int {
-                0: I128::MAX.0.wrapping_sub(&I128::ONE.0),
-            };
-            let two = Int {
-                0: U128::from(2u32),
-            };
-            let min_plus_two = Int {
-                0: I128::MIN.0.wrapping_add(&two.0),
-            };
+        // lhs = MIN
 
-            // lhs = MIN
+        let result = I128::MIN.checked_sub(&I128::MIN);
+        assert_eq!(result.unwrap(), I128::ZERO);
 
-            let result = I128::MIN.checked_sub(&I128::MIN);
-            assert_eq!(result.unwrap(), I128::ZERO);
+        let result = I128::MIN.checked_sub(&I128::MINUS_ONE);
+        assert_eq!(result.unwrap(), min_plus_one);
 
-            let result = I128::MIN.checked_sub(&I128::MINUS_ONE);
-            assert_eq!(result.unwrap(), min_plus_one);
+        let result = I128::MIN.checked_sub(&I128::ZERO);
+        assert_eq!(result.unwrap(), I128::MIN);
 
-            let result = I128::MIN.checked_sub(&I128::ZERO);
-            assert_eq!(result.unwrap(), I128::MIN);
+        let result = I128::MIN.checked_sub(&I128::ONE);
+        assert!(bool::from(result.is_none()));
 
-            let result = I128::MIN.checked_sub(&I128::ONE);
-            assert!(bool::from(result.is_none()));
+        let result = I128::MIN.checked_sub(&I128::MAX);
+        assert!(bool::from(result.is_none()));
 
-            let result = I128::MIN.checked_sub(&I128::MAX);
-            assert!(bool::from(result.is_none()));
+        // lhs = -1
 
-            // lhs = -1
+        let result = I128::MINUS_ONE.checked_sub(&I128::MIN);
+        assert_eq!(result.unwrap(), I128::MAX);
 
-            let result = I128::MINUS_ONE.checked_sub(&I128::MIN);
-            assert_eq!(result.unwrap(), I128::MAX);
+        let result = I128::MINUS_ONE.checked_sub(&I128::MINUS_ONE);
+        assert_eq!(result.unwrap(), I128::ZERO);
 
-            let result = I128::MINUS_ONE.checked_sub(&I128::MINUS_ONE);
-            assert_eq!(result.unwrap(), I128::ZERO);
+        let result = I128::MINUS_ONE.checked_sub(&I128::ZERO);
+        assert_eq!(result.unwrap(), I128::MINUS_ONE);
 
-            let result = I128::MINUS_ONE.checked_sub(&I128::ZERO);
-            assert_eq!(result.unwrap(), I128::MINUS_ONE);
+        let result = I128::MINUS_ONE.checked_sub(&I128::ONE);
+        assert_eq!(result.unwrap(), two.wrapping_neg());
 
-            let result = I128::MINUS_ONE.checked_sub(&I128::ONE);
-            assert_eq!(result.unwrap(), two.wrapping_neg());
+        let result = I128::MINUS_ONE.checked_sub(&I128::MAX);
+        assert_eq!(result.unwrap(), I128::MIN);
 
-            let result = I128::MINUS_ONE.checked_sub(&I128::MAX);
-            assert_eq!(result.unwrap(), I128::MIN);
+        // lhs = 0
 
-            // lhs = 0
+        let result = I128::ZERO.checked_sub(&I128::MIN);
+        assert!(bool::from(result.is_none()));
 
-            let result = I128::ZERO.checked_sub(&I128::MIN);
-            assert!(bool::from(result.is_none()));
+        let result = I128::ZERO.checked_sub(&I128::MINUS_ONE);
+        assert_eq!(result.unwrap(), I128::ONE);
 
-            let result = I128::ZERO.checked_sub(&I128::MINUS_ONE);
-            assert_eq!(result.unwrap(), I128::ONE);
+        let result = I128::ZERO.checked_sub(&I128::ZERO);
+        assert_eq!(result.unwrap(), I128::ZERO);
 
-            let result = I128::ZERO.checked_sub(&I128::ZERO);
-            assert_eq!(result.unwrap(), I128::ZERO);
+        let result = I128::ZERO.checked_sub(&I128::ONE);
+        assert_eq!(result.unwrap(), I128::MINUS_ONE);
 
-            let result = I128::ZERO.checked_sub(&I128::ONE);
-            assert_eq!(result.unwrap(), I128::MINUS_ONE);
+        let result = I128::ZERO.checked_sub(&I128::MAX);
+        assert_eq!(result.unwrap(), min_plus_one);
 
-            let result = I128::ZERO.checked_sub(&I128::MAX);
-            assert_eq!(result.unwrap(), min_plus_one);
+        // lhs = 1
 
-            // lhs = 1
+        let result = I128::ONE.checked_sub(&I128::MIN);
+        assert!(bool::from(result.is_none()));
 
-            let result = I128::ONE.checked_sub(&I128::MIN);
-            assert!(bool::from(result.is_none()));
+        let result = I128::ONE.checked_sub(&I128::MINUS_ONE);
+        assert_eq!(result.unwrap(), two);
 
-            let result = I128::ONE.checked_sub(&I128::MINUS_ONE);
-            assert_eq!(result.unwrap(), two);
+        let result = I128::ONE.checked_sub(&I128::ZERO);
+        assert_eq!(result.unwrap(), I128::ONE);
 
-            let result = I128::ONE.checked_sub(&I128::ZERO);
-            assert_eq!(result.unwrap(), I128::ONE);
+        let result = I128::ONE.checked_sub(&I128::ONE);
+        assert_eq!(result.unwrap(), I128::ZERO);
 
-            let result = I128::ONE.checked_sub(&I128::ONE);
-            assert_eq!(result.unwrap(), I128::ZERO);
+        let result = I128::ONE.checked_sub(&I128::MAX);
+        assert_eq!(result.unwrap(), min_plus_two);
 
-            let result = I128::ONE.checked_sub(&I128::MAX);
-            assert_eq!(result.unwrap(), min_plus_two);
+        // lhs = MAX
 
-            // lhs = MAX
+        let result = I128::MAX.checked_sub(&I128::MIN);
+        assert!(bool::from(result.is_none()));
 
-            let result = I128::MAX.checked_sub(&I128::MIN);
-            assert!(bool::from(result.is_none()));
+        let result = I128::MAX.checked_sub(&I128::MINUS_ONE);
+        assert!(bool::from(result.is_none()));
 
-            let result = I128::MAX.checked_sub(&I128::MINUS_ONE);
-            assert!(bool::from(result.is_none()));
+        let result = I128::MAX.checked_sub(&I128::ZERO);
+        assert_eq!(result.unwrap(), I128::MAX);
 
-            let result = I128::MAX.checked_sub(&I128::ZERO);
-            assert_eq!(result.unwrap(), I128::MAX);
+        let result = I128::MAX.checked_sub(&I128::ONE);
+        assert_eq!(result.unwrap(), max_minus_one);
 
-            let result = I128::MAX.checked_sub(&I128::ONE);
-            assert_eq!(result.unwrap(), max_minus_one);
+        let result = I128::MAX.checked_sub(&I128::MAX);
+        assert_eq!(result.unwrap(), I128::ZERO);
+    }
 
-            let result = I128::MAX.checked_sub(&I128::MAX);
-            assert_eq!(result.unwrap(), I128::ZERO);
-        }
+    #[test]
+    fn wrapping_sub() {
+        let min_plus_one = Int {
+            0: I128::MIN.0.wrapping_add(&I128::ONE.0),
+        };
+        let two = Int {
+            0: U128::from(2u32),
+        };
+        let max_minus_one = Int {
+            0: I128::MAX.0.wrapping_sub(&I128::ONE.0),
+        };
 
-        #[test]
-        fn wrapping_sub() {
-            let min_plus_one = Int {
-                0: I128::MIN.0.wrapping_add(&I128::ONE.0),
-            };
-            let two = Int {
-                0: U128::from(2u32),
-            };
-            let max_minus_one = Int {
-                0: I128::MAX.0.wrapping_sub(&I128::ONE.0),
-            };
+        // + sub -
+        let result = I128::ONE.wrapping_sub(&I128::MIN);
+        assert_eq!(result, min_plus_one);
 
-            // + sub -
-            let result = I128::ONE.wrapping_sub(&I128::MIN);
-            assert_eq!(result, min_plus_one);
+        // 0 sub -
+        let result = I128::ZERO.wrapping_sub(&I128::MIN);
+        assert_eq!(result, I128::MIN);
 
-            // 0 sub -
-            let result = I128::ZERO.wrapping_sub(&I128::MIN);
-            assert_eq!(result, I128::MIN);
-
-            // - sub +
-            let result = I128::MIN.wrapping_sub(&two);
-            assert_eq!(result, max_minus_one);
-        }
+        // - sub +
+        let result = I128::MIN.wrapping_sub(&two);
+        assert_eq!(result, max_minus_one);
     }
 }

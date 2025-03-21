@@ -1,9 +1,9 @@
 //! [`Uint`] modular multiplication operations.
 
 use crate::{
+    Concat, Limb, MulMod, NonZero, Split, Uint, WideWord, Word,
     div_limb::mul_rem,
     modular::{MontyForm, MontyParams},
-    Concat, Limb, MulMod, NonZero, Split, Uint, WideWord, Word,
 };
 
 impl<const LIMBS: usize> Uint<LIMBS> {

@@ -1,8 +1,8 @@
 //! Limb multiplication
 
 use crate::{
-    primitives::{mac, mul_wide},
     Checked, CheckedMul, Limb, Wrapping, Zero,
+    primitives::{mac, mul_wide},
 };
 use core::ops::{Mul, MulAssign};
 use num_traits::WrappingMul;

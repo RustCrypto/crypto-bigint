@@ -8,7 +8,7 @@ use core::{
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "rand_core")]
-use {crate::Random, rand_core::RngCore};
+use {crate::Random, rand_core::TryRngCore};
 
 #[cfg(feature = "serde")]
 use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -259,8 +259,8 @@ impl<T: fmt::UpperHex> fmt::UpperHex for Wrapping<T> {
 
 #[cfg(feature = "rand_core")]
 impl<T: Random> Random for Wrapping<T> {
-    fn random(rng: &mut impl RngCore) -> Self {
-        Wrapping(Random::random(rng))
+    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+        Ok(Wrapping(Random::try_random(rng)?))
     }
 }
 
@@ -287,7 +287,7 @@ impl<T: Serialize> Serialize for Wrapping<T> {
 #[cfg(all(test, feature = "serde"))]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use crate::{Wrapping, U64};
+    use crate::{U64, Wrapping};
 
     #[test]
     fn serde() {

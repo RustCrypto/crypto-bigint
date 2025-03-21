@@ -1,6 +1,7 @@
 //! Subtractions between boxed integers in Montgomery form.
 
 use super::BoxedMontyForm;
+use crate::Limb;
 use core::ops::{Sub, SubAssign};
 
 impl BoxedMontyForm {
@@ -51,9 +52,11 @@ impl Sub<BoxedMontyForm> for BoxedMontyForm {
 impl SubAssign<&BoxedMontyForm> for BoxedMontyForm {
     fn sub_assign(&mut self, rhs: &BoxedMontyForm) {
         debug_assert_eq!(self.params, rhs.params);
-        self.montgomery_form = self
-            .montgomery_form
-            .sub_mod(&rhs.montgomery_form, &self.params.modulus)
+        self.montgomery_form.sub_assign_mod_with_carry(
+            Limb::ZERO,
+            &rhs.montgomery_form,
+            &self.params.modulus,
+        );
     }
 }
 
@@ -66,8 +69,8 @@ impl SubAssign<BoxedMontyForm> for BoxedMontyForm {
 #[cfg(test)]
 mod tests {
     use crate::{
-        modular::{BoxedMontyForm, BoxedMontyParams},
         BoxedUint,
+        modular::{BoxedMontyForm, BoxedMontyParams},
     };
     use hex_literal::hex;
 

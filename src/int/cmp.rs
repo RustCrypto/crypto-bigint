@@ -130,6 +130,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::bool_assert_comparison)]
     fn test_gt() {
         // x > y
         assert!(I128::MAX > I128::ONE);
@@ -147,6 +148,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::bool_assert_comparison)]
     fn test_lt() {
         // x < y
         assert!(I128::ONE < I128::MAX);

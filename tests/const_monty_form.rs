@@ -3,7 +3,7 @@
 mod common;
 
 use common::to_biguint;
-use crypto_bigint::{impl_modulus, modular::ConstMontyParams, Invert, Inverter, U256};
+use crypto_bigint::{Invert, Inverter, U256, impl_modulus, modular::ConstMontyParams};
 use num_bigint::BigUint;
 use num_modular::ModularUnaryOps;
 use proptest::prelude::*;

@@ -1,20 +1,22 @@
 use criterion::{
-    black_box, criterion_group, criterion_main, measurement::Measurement, BatchSize,
-    BenchmarkGroup, Criterion,
+    BatchSize, BenchmarkGroup, Criterion, black_box, criterion_group, criterion_main,
+    measurement::Measurement,
 };
 use crypto_bigint::{
-    modular::{MontyForm, MontyParams},
     Invert, Inverter, Odd, PrecomputeInverter, Random, RandomMod, U256,
+    modular::{MontyForm, MontyParams},
 };
-use rand_core::OsRng;
+use rand_chacha::ChaChaRng;
+use rand_core::SeedableRng;
 
 #[cfg(feature = "alloc")]
 use crypto_bigint::MultiExponentiate;
 
 fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
+    let mut rng = ChaChaRng::from_os_rng();
     group.bench_function("MontyParams::new", |b| {
         b.iter_batched(
-            || Odd::<U256>::random(&mut OsRng),
+            || Odd::<U256>::random(&mut rng),
             |modulus| black_box(MontyParams::new(modulus)),
             BatchSize::SmallInput,
         )
@@ -22,27 +24,27 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
 
     group.bench_function("MontyParams::new_vartime", |b| {
         b.iter_batched(
-            || Odd::<U256>::random(&mut OsRng),
+            || Odd::<U256>::random(&mut rng),
             |modulus| black_box(MontyParams::new_vartime(modulus)),
             BatchSize::SmallInput,
         )
     });
 
-    let params = MontyParams::new_vartime(Odd::<U256>::random(&mut OsRng));
+    let params = MontyParams::new_vartime(Odd::<U256>::random(&mut rng));
     group.bench_function("MontyForm::new", |b| {
         b.iter_batched(
-            || U256::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+            || U256::random_mod(&mut rng, params.modulus().as_nz_ref()),
             |x| black_box(MontyForm::new(&x, params)),
             BatchSize::SmallInput,
         )
     });
 
-    let params = MontyParams::new_vartime(Odd::<U256>::random(&mut OsRng));
+    let params = MontyParams::new_vartime(Odd::<U256>::random(&mut rng));
     group.bench_function("MontyForm retrieve", |b| {
         b.iter_batched(
             || {
                 MontyForm::new(
-                    &U256::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                    &U256::random_mod(&mut rng, params.modulus().as_nz_ref()),
                     params,
                 )
             },
@@ -53,17 +55,18 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
 }
 
 fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
-    let params = MontyParams::new_vartime(Odd::<U256>::random(&mut OsRng));
+    let mut rng = ChaChaRng::from_os_rng();
+    let params = MontyParams::new_vartime(Odd::<U256>::random(&mut rng));
 
     group.bench_function("add, U256", |b| {
         b.iter_batched(
             || {
                 let a = MontyForm::new(
-                    &U256::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                    &U256::random_mod(&mut rng, params.modulus().as_nz_ref()),
                     params,
                 );
                 let b = MontyForm::new(
-                    &U256::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                    &U256::random_mod(&mut rng, params.modulus().as_nz_ref()),
                     params,
                 );
                 (a, b)
@@ -77,7 +80,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         b.iter_batched(
             || {
                 MontyForm::new(
-                    &U256::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                    &U256::random_mod(&mut rng, params.modulus().as_nz_ref()),
                     params,
                 )
             },
@@ -90,11 +93,11 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         b.iter_batched(
             || {
                 let a = MontyForm::new(
-                    &U256::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                    &U256::random_mod(&mut rng, params.modulus().as_nz_ref()),
                     params,
                 );
                 let b = MontyForm::new(
-                    &U256::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                    &U256::random_mod(&mut rng, params.modulus().as_nz_ref()),
                     params,
                 );
                 (a, b)
@@ -108,7 +111,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         b.iter_batched(
             || {
                 MontyForm::new(
-                    &U256::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                    &U256::random_mod(&mut rng, params.modulus().as_nz_ref()),
                     params,
                 )
             },
@@ -121,7 +124,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         b.iter_batched(
             || {
                 MontyForm::new(
-                    &U256::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                    &U256::random_mod(&mut rng, params.modulus().as_nz_ref()),
                     params,
                 )
             },
@@ -134,7 +137,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         b.iter_batched(
             || {
                 let x = MontyForm::new(
-                    &U256::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                    &U256::random_mod(&mut rng, params.modulus().as_nz_ref()),
                     params,
                 );
                 let inverter = x.params().precompute_inverter();
@@ -149,11 +152,11 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         b.iter_batched(
             || {
                 let x = MontyForm::new(
-                    &U256::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                    &U256::random_mod(&mut rng, params.modulus().as_nz_ref()),
                     params,
                 );
                 let y = MontyForm::new(
-                    &U256::random_mod(&mut OsRng, params.modulus().as_nz_ref()),
+                    &U256::random_mod(&mut rng, params.modulus().as_nz_ref()),
                     params,
                 );
                 (x, y)
@@ -166,13 +169,24 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("modpow, U256^U256", |b| {
         b.iter_batched(
             || {
-                let x = U256::random_mod(&mut OsRng, params.modulus().as_nz_ref());
+                let x = U256::random_mod(&mut rng, params.modulus().as_nz_ref());
                 let x_m = MontyForm::new(&x, params);
-                let p = U256::random_mod(&mut OsRng, params.modulus().as_nz_ref())
+                let p = U256::random_mod(&mut rng, params.modulus().as_nz_ref())
                     | (U256::ONE << (U256::BITS - 1));
                 (x_m, p)
             },
             |(x, p)| black_box(x.pow(&p)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("div_by_2, U256", |b| {
+        b.iter_batched(
+            || {
+                let x = U256::random_mod(&mut rng, params.modulus().as_nz_ref());
+                MontyForm::new(&x, params)
+            },
+            |x| black_box(x.div_by_2()),
             BatchSize::SmallInput,
         )
     });
@@ -186,9 +200,9 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                     || {
                         let bases_and_exponents: Vec<(MontyForm<{ U256::LIMBS }>, U256)> = (1..=i)
                             .map(|_| {
-                                let x = U256::random_mod(&mut OsRng, params.modulus().as_nz_ref());
+                                let x = U256::random_mod(&mut rng, params.modulus().as_nz_ref());
                                 let x_m = MontyForm::new(&x, params);
-                                let p = U256::random_mod(&mut OsRng, params.modulus().as_nz_ref())
+                                let p = U256::random_mod(&mut rng, params.modulus().as_nz_ref())
                                     | (U256::ONE << (U256::BITS - 1));
                                 (x_m, p)
                             })

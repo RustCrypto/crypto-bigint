@@ -37,7 +37,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{Gcd, I256, I64, U256};
+    use crate::{Gcd, I64, I256, U256};
 
     #[test]
     fn gcd_always_positive() {
