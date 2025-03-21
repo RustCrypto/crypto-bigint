@@ -34,7 +34,7 @@ impl<const LIMBS: usize> RawBinxgcdOutput<LIMBS> {
         // Hence, we can compute
         //      `x = matrix.m00 / 2^k mod rhs`, and
         //      `y = matrix.m01 / 2^k mod lhs`.
-        let (x, y) = (self.matrix.m00, self.matrix.m01);
+        let (x, y, ..) = self.matrix.as_elements();
         (
             x.div_2k_mod_q(self.k, self.k_upper_bound, &self.rhs),
             y.div_2k_mod_q(self.k, self.k_upper_bound, &self.lhs),
@@ -43,13 +43,15 @@ impl<const LIMBS: usize> RawBinxgcdOutput<LIMBS> {
 
     /// Mutably borrow the quotients `lhs/gcd` and `rhs/gcd`.
     const fn quotients_as_mut(&mut self) -> (&mut Int<LIMBS>, &mut Int<LIMBS>) {
-        (&mut self.matrix.m11, &mut self.matrix.m10)
+        let (.., m10, m11) = self.matrix.as_mut_elements();
+        (m11, m10)
     }
 
     /// Extract the quotients `lhs/gcd` and `rhs/gcd` from `matrix`.
     const fn extract_quotients(&self) -> (Uint<LIMBS>, Uint<LIMBS>) {
-        let lhs_on_gcd = self.matrix.m11.abs();
-        let rhs_on_gcd = self.matrix.m10.abs();
+        let (.., m10, m11) = self.matrix.as_elements();
+        let lhs_on_gcd = m11.abs();
+        let rhs_on_gcd = m10.abs();
         (lhs_on_gcd, rhs_on_gcd)
     }
 }

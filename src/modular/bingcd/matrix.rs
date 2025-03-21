@@ -5,10 +5,10 @@ type Vector<T> = (T, T);
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct IntMatrix<const LIMBS: usize> {
-    pub(crate) m00: Int<LIMBS>,
-    pub(crate) m01: Int<LIMBS>,
-    pub(crate) m10: Int<LIMBS>,
-    pub(crate) m11: Int<LIMBS>,
+    m00: Int<LIMBS>,
+    m01: Int<LIMBS>,
+    m10: Int<LIMBS>,
+    m11: Int<LIMBS>,
 }
 
 impl<const LIMBS: usize> IntMatrix<LIMBS> {
@@ -22,6 +22,21 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
         m11: Int<LIMBS>,
     ) -> Self {
         Self { m00, m01, m10, m11 }
+    }
+
+    pub(crate) const fn as_elements(&self) -> (&Int<LIMBS>, &Int<LIMBS>, &Int<LIMBS>, &Int<LIMBS>) {
+        (&self.m00, &self.m01, &self.m10, &self.m11)
+    }
+
+    pub(crate) const fn as_mut_elements(
+        &mut self,
+    ) -> (
+        &mut Int<LIMBS>,
+        &mut Int<LIMBS>,
+        &mut Int<LIMBS>,
+        &mut Int<LIMBS>,
+    ) {
+        (&mut self.m00, &mut self.m01, &mut self.m10, &mut self.m11)
     }
 
     /// Apply this matrix to a vector of [Uint]s, returning the result as a vector of
@@ -107,13 +122,13 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
 #[cfg(test)]
 mod tests {
     use crate::modular::bingcd::matrix::IntMatrix;
-    use crate::{ConstChoice, I256, Int, U256};
+    use crate::{ConstChoice, I256, Int};
 
-    const X: IntMatrix<{ U256::LIMBS }> = IntMatrix::new(
-        Int::from_i64(1i64),
-        Int::from_i64(7i64),
-        Int::from_i64(23i64),
-        Int::from_i64(53i64),
+    const X: IntMatrix<4> = IntMatrix::new(
+        I256::from_i64(1i64),
+        I256::from_i64(7i64),
+        I256::from_i64(23i64),
+        I256::from_i64(53i64),
     );
 
     #[test]
