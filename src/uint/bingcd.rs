@@ -39,7 +39,6 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
 }
 
 impl<const LIMBS: usize> OddUint<LIMBS> {
-
     /// Compute the greatest common divisor of `self` and `rhs` using the Binary GCD algorithm.
     ///
     /// This function switches between the "classic" and "optimized" algorithm at a best-effort
