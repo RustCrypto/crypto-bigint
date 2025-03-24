@@ -43,13 +43,13 @@ impl<const LIMBS: usize> RawBinxgcdOutput<LIMBS> {
 
     /// Mutably borrow the quotients `lhs/gcd` and `rhs/gcd`.
     const fn quotients_as_mut(&mut self) -> (&mut Int<LIMBS>, &mut Int<LIMBS>) {
-        let (.., m10, m11) = self.matrix.as_mut_elements();
+        let (.., m10, m11, _, _) = self.matrix.as_elements_mut();
         (m11, m10)
     }
 
     /// Extract the quotients `lhs/gcd` and `rhs/gcd` from `matrix`.
     const fn extract_quotients(&self) -> (Uint<LIMBS>, Uint<LIMBS>) {
-        let (.., m10, m11) = self.matrix.as_elements();
+        let (.., m10, m11, _, _) = self.matrix.as_elements();
         let lhs_on_gcd = m11.abs();
         let rhs_on_gcd = m10.abs();
         (lhs_on_gcd, rhs_on_gcd)
@@ -261,9 +261,9 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
                 .partial_binxgcd_vartime::<LIMBS_K>(&b_, K - 1, b_fits_in_compact);
 
             // Update `a` and `b` using the update matrix
-            let (updated_a, updated_b) = update_matrix.extended_apply_to((a, b));
-            (a, a_sgn) = updated_a.div_2k(doublings).wrapping_drop_extension();
-            (b, b_sgn) = updated_b.div_2k(doublings).wrapping_drop_extension();
+            let (updated_a, updated_b) = update_matrix.wrapping_apply_to((a, b));
+            (a, a_sgn) = updated_a.wrapping_drop_extension();
+            (b, b_sgn) = updated_b.wrapping_drop_extension();
 
             matrix = update_matrix.wrapping_mul_right(&matrix);
             matrix.conditional_negate_top_row(a_sgn);
@@ -438,6 +438,8 @@ mod tests {
                 Int::ZERO,
                 Int::from(5i32),
                 Int::from(-7i32),
+                0,
+                0,
             ));
             let (lhs_on_gcd, rhs_on_gcd) = output.extract_quotients();
             assert_eq!(lhs_on_gcd, Uint::from(7u32));
@@ -448,6 +450,8 @@ mod tests {
                 Int::ZERO,
                 Int::from(-7i32),
                 Int::from(5i32),
+                0,
+                0,
             ));
             let (lhs_on_gcd, rhs_on_gcd) = output.extract_quotients();
             assert_eq!(lhs_on_gcd, Uint::from(5u32));
@@ -486,6 +490,8 @@ mod tests {
                     I64::from(3i32),
                     I64::from(4i32),
                     I64::from(5i32),
+                    0,
+                    0,
                 ),
                 k: 0,
                 k_upper_bound: 0,
@@ -503,6 +509,8 @@ mod tests {
                     I64::from(3i32),
                     I64::from(4i32),
                     I64::from(5i32),
+                    0,
+                    1,
                 ),
                 k: 0,
                 k_upper_bound: 1,
@@ -523,6 +531,8 @@ mod tests {
                     I64::from(6i32),
                     I64::from(4i32),
                     I64::from(5i32),
+                    1,
+                    1,
                 ),
                 k: 1,
                 k_upper_bound: 1,
@@ -540,6 +550,8 @@ mod tests {
                     I64::from(64i32),
                     I64::from(4i32),
                     I64::from(5i32),
+                    5,
+                    6,
                 ),
                 k: 5,
                 k_upper_bound: 6,
@@ -560,6 +572,8 @@ mod tests {
                     I64::from(6i32),
                     I64::from(4i32),
                     I64::from(5i32),
+                    3,
+                    7,
                 ),
                 k: 3,
                 k_upper_bound: 7,
@@ -584,7 +598,14 @@ mod tests {
             assert_eq!(iters, 5);
             assert_eq!(
                 matrix,
-                BinXgcdMatrix::new(I64::from(8), I64::from(-4), I64::from(-2), I64::from(5))
+                BinXgcdMatrix::new(
+                    I64::from(8),
+                    I64::from(-4),
+                    I64::from(-2),
+                    I64::from(5),
+                    5,
+                    5
+                )
             );
         }
 
@@ -599,9 +620,9 @@ mod tests {
             assert_eq!(new_a, target_a);
             assert_eq!(new_b, target_b);
 
-            let (computed_a, computed_b) = matrix.extended_apply_to((A.get(), B));
-            let computed_a = computed_a.div_2k(5).wrapping_drop_extension().0;
-            let computed_b = computed_b.div_2k(5).wrapping_drop_extension().0;
+            let (computed_a, computed_b) = matrix.wrapping_apply_to((A.get(), B));
+            let computed_a = computed_a.wrapping_drop_extension().0;
+            let computed_b = computed_b.wrapping_drop_extension().0;
 
             assert_eq!(computed_a, target_a);
             assert_eq!(computed_b, target_b);
