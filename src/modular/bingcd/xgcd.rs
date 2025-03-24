@@ -590,15 +590,21 @@ mod tests {
 
         #[test]
         fn test_partial_binxgcd_constructs_correct_matrix() {
+            let target_a = U64::from_be_hex("1CB3FB3FA1218FDB").to_odd().unwrap();
+            let target_b = U64::from_be_hex("0EA028AF0F8966B6");
+
             let (new_a, new_b, matrix, _) =
                 A.partial_binxgcd_vartime::<{ U64::LIMBS }>(&B, 5, ConstChoice::TRUE);
+
+            assert_eq!(new_a, target_a);
+            assert_eq!(new_b, target_b);
 
             let (computed_a, computed_b) = matrix.extended_apply_to((A.get(), B));
             let computed_a = computed_a.div_2k(5).wrapping_drop_extension().0;
             let computed_b = computed_b.div_2k(5).wrapping_drop_extension().0;
 
-            assert_eq!(new_a.get(), computed_a);
-            assert_eq!(new_b, computed_b);
+            assert_eq!(computed_a, target_a);
+            assert_eq!(computed_b, target_b);
         }
 
         const SMALL_A: Odd<U64> = U64::from_be_hex("0000000003CD6A1F").to_odd().expect("odd");

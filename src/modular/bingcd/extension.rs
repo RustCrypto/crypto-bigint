@@ -81,6 +81,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
     }
 }
 
+#[derive(Debug)]
 pub(crate) struct ExtendedInt<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
     Uint<LIMBS>,
     Uint<EXTENSION_LIMBS>,
