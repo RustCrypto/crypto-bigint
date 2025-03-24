@@ -4,14 +4,14 @@ use crate::{ConstChoice, Int, Uint};
 type Vector<T> = (T, T);
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct IntMatrix<const LIMBS: usize> {
+pub(crate) struct BinXgcdMatrix<const LIMBS: usize> {
     m00: Int<LIMBS>,
     m01: Int<LIMBS>,
     m10: Int<LIMBS>,
     m11: Int<LIMBS>,
 }
 
-impl<const LIMBS: usize> IntMatrix<LIMBS> {
+impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
     /// The unit matrix.
     pub(crate) const UNIT: Self = Self::new(Int::ONE, Int::ZERO, Int::ZERO, Int::ONE);
 
@@ -58,8 +58,8 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
     #[inline]
     pub(crate) const fn wrapping_mul_right<const RHS_LIMBS: usize>(
         &self,
-        rhs: &IntMatrix<RHS_LIMBS>,
-    ) -> IntMatrix<RHS_LIMBS> {
+        rhs: &BinXgcdMatrix<RHS_LIMBS>,
+    ) -> BinXgcdMatrix<RHS_LIMBS> {
         let a0 = rhs.m00.wrapping_mul(&self.m00);
         let a1 = rhs.m10.wrapping_mul(&self.m01);
         let a = a0.wrapping_add(&a1);
@@ -72,7 +72,7 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
         let d0 = rhs.m01.wrapping_mul(&self.m10);
         let d1 = rhs.m11.wrapping_mul(&self.m11);
         let d = d0.wrapping_add(&d1);
-        IntMatrix::new(a, b, c, d)
+        BinXgcdMatrix::new(a, b, c, d)
     }
 
     /// Swap the rows of this matrix if `swap` is truthy. Otherwise, do nothing.
@@ -121,10 +121,10 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::modular::bingcd::matrix::IntMatrix;
+    use crate::modular::bingcd::matrix::BinXgcdMatrix;
     use crate::{ConstChoice, I256, Int};
 
-    const X: IntMatrix<4> = IntMatrix::new(
+    const X: BinXgcdMatrix<4> = BinXgcdMatrix::new(
         I256::from_i64(1i64),
         I256::from_i64(7i64),
         I256::from_i64(23i64),
@@ -139,7 +139,7 @@ mod tests {
         y.conditional_swap_rows(ConstChoice::TRUE);
         assert_eq!(
             y,
-            IntMatrix::new(
+            BinXgcdMatrix::new(
                 Int::from(23i32),
                 Int::from(53i32),
                 Int::from(1i32),
@@ -156,7 +156,7 @@ mod tests {
         y.conditional_subtract_bottom_row_from_top(ConstChoice::TRUE);
         assert_eq!(
             y,
-            IntMatrix::new(
+            BinXgcdMatrix::new(
                 Int::from(-22i32),
                 Int::from(-46i32),
                 Int::from(23i32),
@@ -173,7 +173,7 @@ mod tests {
         y.conditional_double_bottom_row(ConstChoice::TRUE);
         assert_eq!(
             y,
-            IntMatrix::new(
+            BinXgcdMatrix::new(
                 Int::from(1i32),
                 Int::from(7i32),
                 Int::from(46i32),
@@ -187,7 +187,7 @@ mod tests {
         let res = X.wrapping_mul_right(&X);
         assert_eq!(
             res,
-            IntMatrix::new(
+            BinXgcdMatrix::new(
                 I256::from_i64(162i64),
                 I256::from_i64(378i64),
                 I256::from_i64(1242i64),
