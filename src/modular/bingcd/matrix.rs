@@ -7,31 +7,43 @@ type Vector<T> = (T, T);
 ///
 /// The internal state represents the matrix
 /// ```text
-/// [ m00 m01 ]
-/// [ m10 m11 ] / 2^k
+///      true                       false
+/// [  m00 -m01 ]               [ -m00  m01 ]
+/// [ -m10  m11 ] / 2^k   or    [  m10 -m11 ] / 2^k
 /// ```
+/// depending on whether `pattern` is respectively truthy or not.
 ///
 /// Since some of the operations conditionally increase `k`, this struct furthermore keeps track of
 /// `k_upper_bound`; an upper bound on the value of `k`.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub(crate) struct BinXgcdMatrix<const LIMBS: usize> {
-    m00: Int<LIMBS>,
-    m01: Int<LIMBS>,
-    m10: Int<LIMBS>,
-    m11: Int<LIMBS>,
+    m00: Uint<LIMBS>,
+    m01: Uint<LIMBS>,
+    m10: Uint<LIMBS>,
+    m11: Uint<LIMBS>,
+    pattern: ConstChoice,
     k: u32,
     k_upper_bound: u32,
 }
 
 impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
     /// The unit matrix.
-    pub(crate) const UNIT: Self = Self::new(Int::ONE, Int::ZERO, Int::ZERO, Int::ONE, 0, 0);
+    pub(crate) const UNIT: Self = Self::new(
+        Uint::ONE,
+        Uint::ZERO,
+        Uint::ZERO,
+        Uint::ONE,
+        ConstChoice::TRUE,
+        0,
+        0,
+    );
 
     pub(crate) const fn new(
-        m00: Int<LIMBS>,
-        m01: Int<LIMBS>,
-        m10: Int<LIMBS>,
-        m11: Int<LIMBS>,
+        m00: Uint<LIMBS>,
+        m01: Uint<LIMBS>,
+        m10: Uint<LIMBS>,
+        m11: Uint<LIMBS>,
+        pattern: ConstChoice,
         k: u32,
         k_upper_bound: u32,
     ) -> Self {
@@ -40,6 +52,7 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
             m01,
             m10,
             m11,
+            pattern,
             k,
             k_upper_bound,
         }
@@ -47,12 +60,34 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
 
     pub(crate) const fn as_elements(
         &self,
-    ) -> (&Int<LIMBS>, &Int<LIMBS>, &Int<LIMBS>, &Int<LIMBS>, u32, u32) {
+    ) -> (
+        &Uint<LIMBS>,
+        &Uint<LIMBS>,
+        &Uint<LIMBS>,
+        &Uint<LIMBS>,
+        ConstChoice,
+        u32,
+        u32,
+    ) {
         (
             &self.m00,
             &self.m01,
             &self.m10,
             &self.m11,
+            self.pattern,
+            self.k,
+            self.k_upper_bound,
+        )
+    }
+
+    pub(crate) const fn to_elements_signed(
+        &self,
+    ) -> (Int<LIMBS>, Int<LIMBS>, Int<LIMBS>, Int<LIMBS>, u32, u32) {
+        (
+            self.m00.wrapping_neg_if(self.pattern.not()).as_int(),
+            self.m01.wrapping_neg_if(self.pattern).as_int(),
+            self.m10.wrapping_neg_if(self.pattern).as_int(),
+            self.m11.wrapping_neg_if(self.pattern.not()).as_int(),
             self.k,
             self.k_upper_bound,
         )
@@ -61,10 +96,11 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
     pub(crate) const fn as_elements_mut(
         &mut self,
     ) -> (
-        &mut Int<LIMBS>,
-        &mut Int<LIMBS>,
-        &mut Int<LIMBS>,
-        &mut Int<LIMBS>,
+        &mut Uint<LIMBS>,
+        &mut Uint<LIMBS>,
+        &mut Uint<LIMBS>,
+        &mut Uint<LIMBS>,
+        &mut ConstChoice,
         &mut u32,
         &mut u32,
     ) {
@@ -73,6 +109,7 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
             &mut self.m01,
             &mut self.m10,
             &mut self.m11,
+            &mut self.pattern,
             &mut self.k,
             &mut self.k_upper_bound,
         )
@@ -91,8 +128,12 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
         let b0 = ExtendedInt::from_product(b, self.m01);
         let b1 = ExtendedInt::from_product(b, self.m11);
         (
-            a0.wrapping_add(&b0).div_2k(self.k),
-            a1.wrapping_add(&b1).div_2k(self.k),
+            a0.wrapping_sub(&b0)
+                .div_2k(self.k)
+                .wrapping_neg_if(self.pattern.not()),
+            a1.wrapping_sub(&b1)
+                .div_2k(self.k)
+                .wrapping_neg_if(self.pattern.not()),
         )
     }
 
@@ -114,11 +155,13 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
         let d0 = rhs.m01.wrapping_mul(&self.m10);
         let d1 = rhs.m11.wrapping_mul(&self.m11);
         let d = d0.wrapping_add(&d1);
+
         BinXgcdMatrix::new(
             a,
             b,
             c,
             d,
+            self.pattern.eq(rhs.pattern),
             self.k + rhs.k,
             self.k_upper_bound + rhs.k_upper_bound,
         )
@@ -127,28 +170,24 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
     /// Swap the rows of this matrix if `swap` is truthy. Otherwise, do nothing.
     #[inline]
     pub(crate) const fn conditional_swap_rows(&mut self, swap: ConstChoice) {
-        Int::conditional_swap(&mut self.m00, &mut self.m10, swap);
-        Int::conditional_swap(&mut self.m01, &mut self.m11, swap);
+        Uint::conditional_swap(&mut self.m00, &mut self.m10, swap);
+        Uint::conditional_swap(&mut self.m01, &mut self.m11, swap);
+        self.pattern = self.pattern.xor(swap);
     }
 
     /// Swap the rows of this matrix.
     #[inline]
     pub(crate) const fn swap_rows(&mut self) {
-        self.conditional_swap_rows(ConstChoice::TRUE)
-    }
-
-    /// Add the right column to the left if `add` is truthy. Otherwise, do nothing.
-    #[inline]
-    pub(crate) const fn conditional_add_right_column_to_left(&mut self, add: ConstChoice) {
-        self.m00 = Int::select(&self.m00, &self.m00.wrapping_add(&self.m01), add);
-        self.m10 = Int::select(&self.m10, &self.m10.wrapping_add(&self.m11), add);
+        self.conditional_swap_rows(ConstChoice::TRUE);
     }
 
     /// Subtract the bottom row from the top if `subtract` is truthy. Otherwise, do nothing.
     #[inline]
     pub(crate) const fn conditional_subtract_bottom_row_from_top(&mut self, subtract: ConstChoice) {
-        self.m00 = Int::select(&self.m00, &self.m00.wrapping_sub(&self.m10), subtract);
-        self.m01 = Int::select(&self.m01, &self.m01.wrapping_sub(&self.m11), subtract);
+        // Note: because the signs of the internal representation are stored in `pattern`,
+        // subtracting one row from another involves _adding_ these rows instead.
+        self.m00 = Uint::select(&self.m00, &self.m00.wrapping_add(&self.m10), subtract);
+        self.m01 = Uint::select(&self.m01, &self.m01.wrapping_add(&self.m11), subtract);
     }
 
     /// Subtract the right column from the left if `subtract` is truthy. Otherwise, do nothing.
@@ -157,8 +196,19 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
         &mut self,
         subtract: ConstChoice,
     ) {
-        self.m00 = Int::select(&self.m00, &self.m00.wrapping_sub(&self.m01), subtract);
-        self.m10 = Int::select(&self.m10, &self.m10.wrapping_sub(&self.m11), subtract);
+        // Note: because the signs of the internal representation are stored in `pattern`,
+        // subtracting one column from another involves _adding_ these columns instead.
+        self.m00 = Uint::select(&self.m00, &self.m00.wrapping_add(&self.m01), subtract);
+        self.m10 = Uint::select(&self.m10, &self.m10.wrapping_add(&self.m11), subtract);
+    }
+
+    /// If `add` is truthy, add the right column to the left. Otherwise, do nothing.
+    #[inline]
+    pub(crate) const fn conditional_add_right_column_to_left(&mut self, add: ConstChoice) {
+        // Note: because the signs of the internal representation are stored in `pattern`,
+        // subtracting one column from another involves _adding_ these columns instead.
+        self.m00 = Uint::select(&self.m00, &self.m01.wrapping_sub(&self.m00), add);
+        self.m10 = Uint::select(&self.m10, &self.m11.wrapping_sub(&self.m10), add);
     }
 
     /// Double the bottom row of this matrix if `double` is truthy. Otherwise, do nothing.
@@ -166,44 +216,30 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
     pub(crate) const fn conditional_double_bottom_row(&mut self, double: ConstChoice) {
         // safe to vartime; shr_vartime is variable in the value of shift only. Since this shift
         // is a public constant, the constant time property of this algorithm is not impacted.
-        self.m10 = Int::select(&self.m10, &self.m10.shl_vartime(1), double);
-        self.m11 = Int::select(&self.m11, &self.m11.shl_vartime(1), double);
+        self.m10 = Uint::select(&self.m10, &self.m10.shl_vartime(1), double);
+        self.m11 = Uint::select(&self.m11, &self.m11.shl_vartime(1), double);
         self.k = double.select_u32(self.k, self.k + 1);
         self.k_upper_bound += 1;
     }
 
-    /// Negate the elements in the top row if `negate` is truthy. Otherwise, do nothing.
+    /// Negate the elements in this matrix if `negate` is truthy. Otherwise, do nothing.
     #[inline]
-    pub(crate) const fn conditional_negate_top_row(&mut self, negate: ConstChoice) {
-        self.m00 = self.m00.wrapping_neg_if(negate);
-        self.m01 = self.m01.wrapping_neg_if(negate);
-    }
-
-    /// Negate the elements in the bottom row if `negate` is truthy. Otherwise, do nothing.
-    #[inline]
-    pub(crate) const fn conditional_negate_bottom_row(&mut self, negate: ConstChoice) {
-        self.m10 = self.m10.wrapping_neg_if(negate);
-        self.m11 = self.m11.wrapping_neg_if(negate);
-    }
-
-    /// Negate the elements in the right column if `negate` is truthy. Otherwise, do nothing.
-    #[inline]
-    pub(crate) const fn conditional_negate_right_column(&mut self, negate: ConstChoice) {
-        self.m01 = self.m01.wrapping_neg_if(negate);
-        self.m11 = self.m11.wrapping_neg_if(negate);
+    pub(crate) const fn conditional_negate(&mut self, negate: ConstChoice) {
+        self.pattern = self.pattern.xor(negate);
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::modular::bingcd::matrix::BinXgcdMatrix;
-    use crate::{ConstChoice, I64, I256, Int, U64, Uint};
+    use crate::{ConstChoice, U64, U256, Uint};
 
     const X: BinXgcdMatrix<4> = BinXgcdMatrix::new(
-        I256::from_i64(1i64),
-        I256::from_i64(7i64),
-        I256::from_i64(23i64),
-        I256::from_i64(53i64),
+        U256::from_u64(1u64),
+        U256::from_u64(7u64),
+        U256::from_u64(23u64),
+        U256::from_u64(53u64),
+        ConstChoice::TRUE,
         1,
         2,
     );
@@ -213,10 +249,11 @@ mod tests {
         let a = U64::from_be_hex("CA048AFA63CD6A1F");
         let b = U64::from_be_hex("AE693BF7BE8E5566");
         let matrix = BinXgcdMatrix {
-            m00: I64::from_be_hex("0000000000000120"),
-            m01: I64::from_be_hex("FFFFFFFFFFFFFF30"),
-            m10: I64::from_be_hex("FFFFFFFFFFFFFECA"),
-            m11: I64::from_be_hex("00000000000002A7"),
+            m00: U64::from_be_hex("0000000000000120"),
+            m01: U64::from_be_hex("00000000000000D0"),
+            m10: U64::from_be_hex("0000000000000136"),
+            m11: U64::from_be_hex("00000000000002A7"),
+            pattern: ConstChoice::TRUE,
             k: 17,
             k_upper_bound: 17,
         };
@@ -233,18 +270,17 @@ mod tests {
     }
 
     #[test]
-    fn test_conditional_add_right_column_to_left() {
+    fn test_swap() {
         let mut y = X.clone();
-        y.conditional_add_right_column_to_left(ConstChoice::FALSE);
-        assert_eq!(y, X);
-        y.conditional_add_right_column_to_left(ConstChoice::TRUE);
+        y.swap_rows();
         assert_eq!(
             y,
             BinXgcdMatrix::new(
-                Int::from_i64(8i64),
-                Int::from_i64(7i64),
-                Int::from_i64(76i64),
-                Int::from_i64(53i64),
+                Uint::from(23u32),
+                Uint::from(53u32),
+                Uint::from(1u32),
+                Uint::from(7u32),
+                ConstChoice::FALSE,
                 1,
                 2
             )
@@ -260,10 +296,31 @@ mod tests {
         assert_eq!(
             y,
             BinXgcdMatrix::new(
-                Int::from(23i32),
-                Int::from(53i32),
-                Int::from(1i32),
-                Int::from(7i32),
+                Uint::from(23u32),
+                Uint::from(53u32),
+                Uint::from(1u32),
+                Uint::from(7u32),
+                ConstChoice::FALSE,
+                1,
+                2
+            )
+        );
+    }
+
+    #[test]
+    fn test_conditional_add_right_column_to_left() {
+        let mut y = X.clone();
+        y.conditional_add_right_column_to_left(ConstChoice::FALSE);
+        assert_eq!(y, X);
+        y.conditional_add_right_column_to_left(ConstChoice::TRUE);
+        assert_eq!(
+            y,
+            BinXgcdMatrix::new(
+                Uint::from(6u32),
+                Uint::from(7u32),
+                Uint::from(30u32),
+                Uint::from(53u32),
+                ConstChoice::TRUE,
                 1,
                 2
             )
@@ -279,10 +336,11 @@ mod tests {
         assert_eq!(
             y,
             BinXgcdMatrix::new(
-                Int::from(-22i32),
-                Int::from(-46i32),
-                Int::from(23i32),
-                Int::from(53i32),
+                Uint::from(24u32),
+                Uint::from(60u32),
+                Uint::from(23u32),
+                Uint::from(53u32),
+                ConstChoice::TRUE,
                 1,
                 2
             )
@@ -298,67 +356,11 @@ mod tests {
         assert_eq!(
             y,
             BinXgcdMatrix::new(
-                Int::from(-6i32),
-                Int::from(7i32),
-                Int::from(-30i32),
-                Int::from(53i32),
-                1,
-                2
-            )
-        );
-    }
-
-    #[test]
-    fn test_conditional_negate_top_row() {
-        let mut y = X.clone();
-        y.conditional_negate_top_row(ConstChoice::FALSE);
-        assert_eq!(y, X);
-        y.conditional_negate_top_row(ConstChoice::TRUE);
-        assert_eq!(
-            y,
-            BinXgcdMatrix::new(
-                Int::from(-1i32),
-                Int::from(-7i32),
-                Int::from(23i32),
-                Int::from(53i32),
-                1,
-                2
-            )
-        );
-    }
-
-    #[test]
-    fn test_conditional_negate_bottom_row() {
-        let mut y = X.clone();
-        y.conditional_negate_bottom_row(ConstChoice::FALSE);
-        assert_eq!(y, X);
-        y.conditional_negate_bottom_row(ConstChoice::TRUE);
-        assert_eq!(
-            y,
-            BinXgcdMatrix::new(
-                Int::from(1i32),
-                Int::from(7i32),
-                Int::from(-23i32),
-                Int::from(-53i32),
-                1,
-                2
-            )
-        );
-    }
-
-    #[test]
-    fn test_conditional_negate_right_column() {
-        let mut y = X.clone();
-        y.conditional_negate_right_column(ConstChoice::FALSE);
-        assert_eq!(y, X);
-        y.conditional_negate_right_column(ConstChoice::TRUE);
-        assert_eq!(
-            y,
-            BinXgcdMatrix::new(
-                Int::from(1i32),
-                Int::from(-7i32),
-                Int::from(23i32),
-                Int::from(-53i32),
+                Uint::from(8u32),
+                Uint::from(7u32),
+                Uint::from(76u32),
+                Uint::from(53u32),
+                ConstChoice::TRUE,
                 1,
                 2
             )
@@ -372,10 +374,11 @@ mod tests {
         assert_eq!(
             y,
             BinXgcdMatrix::new(
-                Int::from(1i32),
-                Int::from(7i32),
-                Int::from(23i32),
-                Int::from(53i32),
+                Uint::from(1u32),
+                Uint::from(7u32),
+                Uint::from(23u32),
+                Uint::from(53u32),
+                ConstChoice::TRUE,
                 1,
                 3
             )
@@ -384,10 +387,11 @@ mod tests {
         assert_eq!(
             y,
             BinXgcdMatrix::new(
-                Int::from(1i32),
-                Int::from(7i32),
-                Int::from(46i32),
-                Int::from(106i32),
+                Uint::from(1u32),
+                Uint::from(7u32),
+                Uint::from(46u32),
+                Uint::from(106u32),
+                ConstChoice::TRUE,
                 2,
                 4
             )
@@ -400,10 +404,11 @@ mod tests {
         assert_eq!(
             res,
             BinXgcdMatrix::new(
-                I256::from_i64(162i64),
-                I256::from_i64(378i64),
-                I256::from_i64(1242i64),
-                I256::from_i64(2970i64),
+                U256::from(162u64),
+                U256::from(378u64),
+                U256::from(1242u64),
+                U256::from(2970u64),
+                ConstChoice::TRUE,
                 2,
                 4
             )

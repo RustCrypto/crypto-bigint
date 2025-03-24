@@ -1,4 +1,4 @@
-use crate::{ConstChoice, Int, Limb, Uint};
+use crate::{ConstChoice, Limb, Uint};
 
 pub(crate) struct ExtendedUint<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
     Uint<LIMBS>,
@@ -6,6 +6,15 @@ pub(crate) struct ExtendedUint<const LIMBS: usize, const EXTENSION_LIMBS: usize>
 );
 
 impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
+    /// Construct an [ExtendedUint] from the product of a [Uint<LIMBS>] and an [Uint<EXTRA>].
+    ///
+    /// Assumes the top bit of the product is not set.
+    #[inline]
+    pub const fn from_product(lhs: Uint<LIMBS>, rhs: Uint<EXTRA>) -> Self {
+        let (lo, hi) = lhs.split_mul(&rhs);
+        ExtendedUint(lo, hi)
+    }
+
     /// Interpret `self` as an [ExtendedInt]
     #[inline]
     pub const fn as_extended_int(&self) -> ExtendedInt<LIMBS, EXTRA> {
@@ -70,9 +79,8 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     ///
     /// Assumes the top bit of the product is not set.
     #[inline]
-    pub const fn from_product(lhs: Uint<LIMBS>, rhs: Int<EXTRA>) -> Self {
-        let (lo, hi, sgn) = rhs.split_mul_uint_right(&lhs);
-        ExtendedUint(lo, hi).wrapping_neg_if(sgn).as_extended_int()
+    pub const fn from_product(lhs: Uint<LIMBS>, rhs: Uint<EXTRA>) -> Self {
+        ExtendedUint::from_product(lhs, rhs).as_extended_int()
     }
 
     /// Interpret this as an [ExtendedUint].
@@ -89,11 +97,11 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
             .as_extended_int()
     }
 
-    /// Compute `self + rhs`, wrapping any overflow.
+    /// Compute `self - rhs`, wrapping any underflow.
     #[inline]
-    pub const fn wrapping_add(&self, rhs: &Self) -> Self {
-        let (lo, carry) = self.0.adc(&rhs.0, Limb::ZERO);
-        let (hi, _) = self.1.adc(&rhs.1, carry);
+    pub const fn wrapping_sub(&self, rhs: &Self) -> Self {
+        let (lo, borrow) = self.0.sbb(&rhs.0, Limb::ZERO);
+        let (hi, _) = self.1.sbb(&rhs.1, borrow);
         Self(lo, hi)
     }
 
@@ -119,5 +127,51 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     pub const fn div_2k(&self, k: u32) -> Self {
         let (abs, sgn) = self.abs_sgn();
         abs.shr(k).wrapping_neg_if(sgn).as_extended_int()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::modular::bingcd::extension::ExtendedUint;
+    use crate::{U64, Uint};
+
+    const A: ExtendedUint<{ U64::LIMBS }, { U64::LIMBS }> = ExtendedUint::from_product(
+        U64::from_u64(68146184546341u64),
+        U64::from_u64(873817114763u64),
+    );
+    const B: ExtendedUint<{ U64::LIMBS }, { U64::LIMBS }> = ExtendedUint::from_product(
+        U64::from_u64(7772181434148543u64),
+        U64::from_u64(6665138352u64),
+    );
+
+    impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
+        /// Decompose `self` into the bottom and top limbs.
+        #[inline]
+        const fn as_elements(&self) -> (Uint<LIMBS>, Uint<EXTRA>) {
+            (self.0, self.1)
+        }
+    }
+
+    #[test]
+    fn test_from_product() {
+        assert_eq!(
+            A.as_elements(),
+            (U64::from(13454091406951429143u64), U64::from(3228065u64))
+        );
+        assert_eq!(
+            B.as_elements(),
+            (U64::from(1338820589698724688u64), U64::from(2808228u64))
+        );
+    }
+
+    #[test]
+    fn test_wrapping_sub() {
+        assert_eq!(
+            A.as_extended_int()
+                .wrapping_sub(&B.as_extended_int())
+                .as_extended_uint()
+                .as_elements(),
+            (U64::from(12115270817252704455u64), U64::from(419837u64))
+        )
     }
 }

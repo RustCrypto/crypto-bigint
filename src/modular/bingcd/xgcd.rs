@@ -54,16 +54,14 @@ impl<const LIMBS: usize> OddUintBinxgcdOutput<LIMBS> {
 
     /// Obtain the bezout coefficients `(x, y)` such that `lhs * x + rhs * y = gcd`.
     const fn bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
-        let (m00, m10, ..) = self.matrix.as_elements();
-        (*m00, *m10)
+        let (m00, m10, ..) = self.matrix.to_elements_signed();
+        (m00, m10)
     }
 
     /// Obtain the quotients `lhs/gcd` and `rhs/gcd` from `matrix`.
     const fn quotients(&self) -> (Uint<LIMBS>, Uint<LIMBS>) {
-        let (.., m10, m11, _, _) = self.matrix.as_elements();
-        let lhs_on_gcd = m11.abs();
-        let rhs_on_gcd = m10.abs();
-        (lhs_on_gcd, rhs_on_gcd)
+        let (.., rhs_div_gcd, lhs_div_gcd, _, _, _) = self.matrix.as_elements();
+        (*lhs_div_gcd, *rhs_div_gcd)
     }
 }
 
@@ -112,9 +110,11 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
         // Modify the output to negate the transformation applied to the input.
         let matrix = &mut output.matrix;
-        matrix.conditional_subtract_right_column_from_left(rhs_is_even.and(rhs_gt_lhs));
-        matrix.conditional_add_right_column_to_left(rhs_is_even.and(rhs_gt_lhs.not()));
-        matrix.conditional_negate_right_column(rhs_is_even.and(rhs_gt_lhs.not()));
+        let case_one = rhs_is_even.and(rhs_gt_lhs);
+        matrix.conditional_subtract_right_column_from_left(case_one);
+        let case_two = rhs_is_even.and(rhs_gt_lhs.not());
+        matrix.conditional_add_right_column_to_left(case_two);
+        matrix.conditional_negate(case_two);
 
         output.process()
     }
@@ -230,9 +230,9 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             (a, a_sgn) = updated_a.wrapping_drop_extension();
             (b, b_sgn) = updated_b.wrapping_drop_extension();
 
+            // TODO: this is sketchy!
             matrix = update_matrix.wrapping_mul_right(&matrix);
-            matrix.conditional_negate_top_row(a_sgn);
-            matrix.conditional_negate_bottom_row(b_sgn);
+            matrix.conditional_negate(a_sgn);
         }
 
         let gcd = a
@@ -355,7 +355,7 @@ mod tests {
     mod test_extract_quotients {
         use crate::modular::bingcd::matrix::BinXgcdMatrix;
         use crate::modular::bingcd::xgcd::OddUintBinxgcdOutput;
-        use crate::{Int, U64, Uint};
+        use crate::{ConstChoice, U64, Uint};
 
         fn raw_binxgcdoutput_setup<const LIMBS: usize>(
             matrix: BinXgcdMatrix<LIMBS>,
@@ -377,10 +377,11 @@ mod tests {
         #[test]
         fn test_extract_quotients_basic() {
             let output = raw_binxgcdoutput_setup(BinXgcdMatrix::<{ U64::LIMBS }>::new(
-                Int::ZERO,
-                Int::ZERO,
-                Int::from(5i32),
-                Int::from(-7i32),
+                Uint::ZERO,
+                Uint::ZERO,
+                Uint::from(5u32),
+                Uint::from(7u32),
+                ConstChoice::FALSE,
                 0,
                 0,
             ));
@@ -389,10 +390,11 @@ mod tests {
             assert_eq!(rhs_on_gcd, Uint::from(5u32));
 
             let output = raw_binxgcdoutput_setup(BinXgcdMatrix::<{ U64::LIMBS }>::new(
-                Int::ZERO,
-                Int::ZERO,
-                Int::from(-7i32),
-                Int::from(5i32),
+                Uint::ZERO,
+                Uint::ZERO,
+                Uint::from(7u32),
+                Uint::from(5u32),
+                ConstChoice::TRUE,
                 0,
                 0,
             ));
@@ -405,7 +407,7 @@ mod tests {
     mod test_derive_bezout_coefficients {
         use crate::modular::bingcd::matrix::BinXgcdMatrix;
         use crate::modular::bingcd::xgcd::OddUintBinxgcdOutput;
-        use crate::{I64, Int, U64, Uint};
+        use crate::{ConstChoice, Int, U64, Uint};
 
         #[test]
         fn test_derive_bezout_coefficients_unit() {
@@ -424,10 +426,11 @@ mod tests {
             let mut output = OddUintBinxgcdOutput {
                 gcd: Uint::ONE.to_odd().unwrap(),
                 matrix: BinXgcdMatrix::new(
-                    I64::from(2i32),
-                    I64::from(3i32),
-                    I64::from(4i32),
-                    I64::from(5i32),
+                    U64::from(2u32),
+                    U64::from(3u32),
+                    U64::from(4u32),
+                    U64::from(5u32),
+                    ConstChoice::TRUE,
                     0,
                     0,
                 ),
@@ -435,22 +438,23 @@ mod tests {
             output.remove_matrix_factors();
             let (x, y) = output.bezout_coefficients();
             assert_eq!(x, Int::from(2i32));
-            assert_eq!(y, Int::from(3i32));
+            assert_eq!(y, Int::from(-3i32));
 
             let mut output = OddUintBinxgcdOutput {
                 gcd: Uint::ONE.to_odd().unwrap(),
                 matrix: BinXgcdMatrix::new(
-                    I64::from(2i32),
-                    I64::from(3i32),
-                    I64::from(3i32),
-                    I64::from(5i32),
+                    U64::from(2u32),
+                    U64::from(3u32),
+                    U64::from(3u32),
+                    U64::from(5u32),
+                    ConstChoice::FALSE,
                     0,
                     1,
                 ),
             };
             output.remove_matrix_factors();
             let (x, y) = output.bezout_coefficients();
-            assert_eq!(x, Int::from(2i32));
+            assert_eq!(x, Int::from(-2i32));
             assert_eq!(y, Int::from(3i32));
         }
 
@@ -459,10 +463,11 @@ mod tests {
             let mut output = OddUintBinxgcdOutput {
                 gcd: Uint::ONE.to_odd().unwrap(),
                 matrix: BinXgcdMatrix::new(
-                    I64::from(2i32),
-                    I64::from(6i32),
-                    I64::from(3i32),
-                    I64::from(5i32),
+                    U64::from(2u32),
+                    U64::from(6u32),
+                    U64::from(3u32),
+                    U64::from(5u32),
+                    ConstChoice::TRUE,
                     1,
                     1,
                 ),
@@ -470,22 +475,23 @@ mod tests {
             output.remove_matrix_factors();
             let (x, y) = output.bezout_coefficients();
             assert_eq!(x, Int::ONE);
-            assert_eq!(y, Int::from(3i32));
+            assert_eq!(y, Int::from(-3i32));
 
             let mut output = OddUintBinxgcdOutput {
                 gcd: Uint::ONE.to_odd().unwrap(),
                 matrix: BinXgcdMatrix::new(
-                    I64::from(120i32),
-                    I64::from(64i32),
-                    I64::from(7i32),
-                    I64::from(5i32),
+                    U64::from(120u32),
+                    U64::from(64u32),
+                    U64::from(7u32),
+                    U64::from(5u32),
+                    ConstChoice::FALSE,
                     5,
                     6,
                 ),
             };
             output.remove_matrix_factors();
             let (x, y) = output.bezout_coefficients();
-            assert_eq!(x, Int::from(9i32));
+            assert_eq!(x, Int::from(-9i32));
             assert_eq!(y, Int::from(2i32));
         }
 
@@ -494,24 +500,25 @@ mod tests {
             let mut output = OddUintBinxgcdOutput {
                 gcd: Uint::ONE.to_odd().unwrap(),
                 matrix: BinXgcdMatrix::new(
-                    I64::from(2i32),
-                    I64::from(6i32),
-                    I64::from(7i32),
-                    I64::from(5i32),
+                    U64::from(2u32),
+                    U64::from(6u32),
+                    U64::from(7u32),
+                    U64::from(5u32),
+                    ConstChoice::FALSE,
                     3,
                     7,
                 ),
             };
             output.remove_matrix_factors();
             let (x, y) = output.bezout_coefficients();
-            assert_eq!(x, Int::from(2i32));
+            assert_eq!(x, Int::from(-2i32));
             assert_eq!(y, Int::from(2i32));
         }
     }
 
     mod test_partial_binxgcd {
         use crate::modular::bingcd::matrix::BinXgcdMatrix;
-        use crate::{ConstChoice, I64, Odd, U64};
+        use crate::{ConstChoice, Odd, U64};
 
         const A: Odd<U64> = U64::from_be_hex("CA048AFA63CD6A1F").to_odd().expect("odd");
         const B: U64 = U64::from_be_hex("AE693BF7BE8E5566");
@@ -525,10 +532,11 @@ mod tests {
             assert_eq!(
                 matrix,
                 BinXgcdMatrix::new(
-                    I64::from(8),
-                    I64::from(-4),
-                    I64::from(-2),
-                    I64::from(5),
+                    U64::from(8u64),
+                    U64::from(4u64),
+                    U64::from(2u64),
+                    U64::from(5u64),
+                    ConstChoice::TRUE,
                     5,
                     5
                 )
