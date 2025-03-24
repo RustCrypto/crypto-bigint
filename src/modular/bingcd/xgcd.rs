@@ -8,8 +8,6 @@ pub(crate) struct RawBinxgcdOutput<const LIMBS: usize> {
     rhs: Odd<Uint<LIMBS>>,
     gcd: Odd<Uint<LIMBS>>,
     matrix: BinXgcdMatrix<LIMBS>,
-    k: u32,
-    k_upper_bound: u32,
 }
 
 impl<const LIMBS: usize> RawBinxgcdOutput<LIMBS> {
@@ -34,10 +32,10 @@ impl<const LIMBS: usize> RawBinxgcdOutput<LIMBS> {
         // Hence, we can compute
         //      `x = matrix.m00 / 2^k mod rhs`, and
         //      `y = matrix.m01 / 2^k mod lhs`.
-        let (x, y, ..) = self.matrix.as_elements();
+        let (x, y, .., k, k_upper_bound) = self.matrix.as_elements();
         (
-            x.div_2k_mod_q(self.k, self.k_upper_bound, &self.rhs),
-            y.div_2k_mod_q(self.k, self.k_upper_bound, &self.lhs),
+            x.div_2k_mod_q(k, k_upper_bound, &self.rhs),
+            y.div_2k_mod_q(k, k_upper_bound, &self.lhs),
         )
     }
 
@@ -173,7 +171,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
     /// <https://eprint.iacr.org/2020/972.pdf>.
     pub(crate) const fn classic_binxgcd(&self, rhs: &Self) -> RawBinxgcdOutput<LIMBS> {
-        let (gcd, _, matrix, total_doublings) = self.partial_binxgcd_vartime::<LIMBS>(
+        let (gcd, _, matrix) = self.partial_binxgcd_vartime::<LIMBS>(
             rhs.as_ref(),
             Self::MIN_BINGCD_ITERATIONS,
             ConstChoice::TRUE,
@@ -184,8 +182,6 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             rhs: *rhs,
             gcd,
             matrix,
-            k: total_doublings,
-            k_upper_bound: Self::MIN_BINGCD_ITERATIONS,
         }
     }
 
@@ -239,7 +235,6 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ) -> RawBinxgcdOutput<LIMBS> {
         let (mut a, mut b) = (*self.as_ref(), *rhs.as_ref());
         let mut matrix = BinXgcdMatrix::UNIT;
-        let mut total_doublings = 0;
 
         let (mut a_sgn, mut b_sgn);
         let mut i = 0;
@@ -255,7 +250,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
                 ConstChoice::from_u32_le(b_bits, K - 1).or(ConstChoice::from_u32_eq(n, 2 * K));
 
             // Compute the K-1 iteration update matrix from a_ and b_
-            let (.., update_matrix, doublings) = a_
+            let (.., update_matrix) = a_
                 .to_odd()
                 .expect("a is always odd")
                 .partial_binxgcd_vartime::<LIMBS_K>(&b_, K - 1, b_fits_in_compact);
@@ -268,7 +263,6 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             matrix = update_matrix.wrapping_mul_right(&matrix);
             matrix.conditional_negate_top_row(a_sgn);
             matrix.conditional_negate_bottom_row(b_sgn);
-            total_doublings += doublings;
         }
 
         let gcd = a
@@ -280,8 +274,6 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             rhs: *rhs,
             gcd,
             matrix,
-            k: total_doublings,
-            k_upper_bound: Self::MIN_BINGCD_ITERATIONS,
         }
     }
 
@@ -307,7 +299,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         rhs: &Uint<LIMBS>,
         iterations: u32,
         halt_at_zero: ConstChoice,
-    ) -> (Self, Uint<LIMBS>, BinXgcdMatrix<UPDATE_LIMBS>, u32) {
+    ) -> (Self, Uint<LIMBS>, BinXgcdMatrix<UPDATE_LIMBS>) {
         let (mut a, mut b) = (*self.as_ref(), *rhs);
         // This matrix corresponds with (f0, g0, f1, g1) in the paper.
         let mut matrix = BinXgcdMatrix::UNIT;
@@ -319,16 +311,9 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         Uint::swap(&mut a, &mut b);
         matrix.swap_rows();
 
-        let mut doublings = 0;
         let mut j = 0;
         while j < iterations {
-            Self::binxgcd_step::<UPDATE_LIMBS>(
-                &mut a,
-                &mut b,
-                &mut matrix,
-                &mut doublings,
-                halt_at_zero,
-            );
+            Self::binxgcd_step::<UPDATE_LIMBS>(&mut a, &mut b, &mut matrix, halt_at_zero);
             j += 1;
         }
 
@@ -337,7 +322,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         matrix.swap_rows();
 
         let a = a.to_odd().expect("a is always odd");
-        (a, b, matrix, doublings)
+        (a, b, matrix)
     }
 
     /// Binary XGCD update step.
@@ -369,7 +354,6 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         a: &mut Uint<LIMBS>,
         b: &mut Uint<LIMBS>,
         matrix: &mut BinXgcdMatrix<MATRIX_LIMBS>,
-        executed_iterations: &mut u32,
         halt_at_zero: ConstChoice,
     ) {
         let a_odd = a.is_odd();
@@ -392,8 +376,6 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
         // Double the bottom row of the matrix when a was ≠ 0 and when not halting.
         matrix.conditional_double_bottom_row(double);
-        // Something happened in this iteration only when a was non-zero before being halved.
-        *executed_iterations = double.select_u32(*executed_iterations, *executed_iterations + 1);
     }
 }
 
@@ -418,8 +400,6 @@ mod tests {
                 rhs: Uint::<LIMBS>::ONE.to_odd().unwrap(),
                 gcd: Uint::<LIMBS>::ONE.to_odd().unwrap(),
                 matrix,
-                k: 0,
-                k_upper_bound: 0,
             }
         }
 
@@ -471,8 +451,6 @@ mod tests {
                 rhs: Uint::ONE.to_odd().unwrap(),
                 gcd: Uint::ONE.to_odd().unwrap(),
                 matrix: BinXgcdMatrix::<{ U64::LIMBS }>::UNIT,
-                k: 0,
-                k_upper_bound: 0,
             };
             let (x, y) = output.derive_bezout_coefficients();
             assert_eq!(x, Int::ONE);
@@ -493,8 +471,6 @@ mod tests {
                     0,
                     0,
                 ),
-                k: 0,
-                k_upper_bound: 0,
             };
             let (x, y) = output.derive_bezout_coefficients();
             assert_eq!(x, Int::from(2i32));
@@ -512,8 +488,6 @@ mod tests {
                     0,
                     1,
                 ),
-                k: 0,
-                k_upper_bound: 1,
             };
             let (x, y) = output.derive_bezout_coefficients();
             assert_eq!(x, Int::from(2i32));
@@ -534,8 +508,6 @@ mod tests {
                     1,
                     1,
                 ),
-                k: 1,
-                k_upper_bound: 1,
             };
             let (x, y) = output.derive_bezout_coefficients();
             assert_eq!(x, Int::ONE);
@@ -553,8 +525,6 @@ mod tests {
                     5,
                     6,
                 ),
-                k: 5,
-                k_upper_bound: 6,
             };
             let (x, y) = output.derive_bezout_coefficients();
             assert_eq!(x, Int::from(4i32));
@@ -575,8 +545,6 @@ mod tests {
                     3,
                     7,
                 ),
-                k: 3,
-                k_upper_bound: 7,
             };
             let (x, y) = output.derive_bezout_coefficients();
             assert_eq!(x, Int::from(4i32));
@@ -593,9 +561,10 @@ mod tests {
 
         #[test]
         fn test_partial_binxgcd() {
-            let (.., matrix, iters) =
+            let (.., matrix) =
                 A.partial_binxgcd_vartime::<{ U64::LIMBS }>(&B, 5, ConstChoice::TRUE);
-            assert_eq!(iters, 5);
+            let (.., k, _) = matrix.as_elements();
+            assert_eq!(k, 5);
             assert_eq!(
                 matrix,
                 BinXgcdMatrix::new(
@@ -614,7 +583,7 @@ mod tests {
             let target_a = U64::from_be_hex("1CB3FB3FA1218FDB").to_odd().unwrap();
             let target_b = U64::from_be_hex("0EA028AF0F8966B6");
 
-            let (new_a, new_b, matrix, _) =
+            let (new_a, new_b, matrix) =
                 A.partial_binxgcd_vartime::<{ U64::LIMBS }>(&B, 5, ConstChoice::TRUE);
 
             assert_eq!(new_a, target_a);
@@ -633,17 +602,21 @@ mod tests {
 
         #[test]
         fn test_partial_binxgcd_halts() {
-            let (gcd, .., iters) =
+            let (gcd, _, matrix) =
                 SMALL_A.partial_binxgcd_vartime::<{ U64::LIMBS }>(&SMALL_B, 60, ConstChoice::TRUE);
-            assert_eq!(iters, 35);
+            let (.., k, k_upper_bound) = matrix.as_elements();
+            assert_eq!(k, 35);
+            assert_eq!(k_upper_bound, 60);
             assert_eq!(gcd.get(), SMALL_A.gcd(&SMALL_B));
         }
 
         #[test]
         fn test_partial_binxgcd_does_not_halt() {
-            let (gcd, .., iters) =
+            let (gcd, .., matrix) =
                 SMALL_A.partial_binxgcd_vartime::<{ U64::LIMBS }>(&SMALL_B, 60, ConstChoice::FALSE);
-            assert_eq!(iters, 60);
+            let (.., k, k_upper_bound) = matrix.as_elements();
+            assert_eq!(k, 60);
+            assert_eq!(k_upper_bound, 60);
             assert_eq!(gcd.get(), SMALL_A.gcd(&SMALL_B));
         }
     }
