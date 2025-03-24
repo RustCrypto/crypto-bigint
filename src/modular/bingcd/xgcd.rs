@@ -3,19 +3,19 @@ use crate::modular::bingcd::tools::const_max;
 use crate::{ConstChoice, Int, NonZero, Odd, U64, U128, Uint};
 
 /// Container for the raw output of the Binary XGCD algorithm.
-pub(crate) struct RawBinxgcdOutput<const LIMBS: usize> {
+pub(crate) struct OddUintBinxgcdOutput<const LIMBS: usize> {
     lhs: Odd<Uint<LIMBS>>,
     rhs: Odd<Uint<LIMBS>>,
     gcd: Odd<Uint<LIMBS>>,
     matrix: BinXgcdMatrix<LIMBS>,
 }
 
-impl<const LIMBS: usize> RawBinxgcdOutput<LIMBS> {
-    /// Process raw output, constructing an [OddBinxgcdUintOutput] object.
-    const fn process(&self) -> OddBinxgcdUintOutput<LIMBS> {
+impl<const LIMBS: usize> OddUintBinxgcdOutput<LIMBS> {
+    /// Process raw output, constructing an [UintBinxgcdOutput] object.
+    const fn process(&self) -> UintBinxgcdOutput<LIMBS> {
         let (x, y) = self.derive_bezout_coefficients();
         let (lhs_on_gcd, rhs_on_gcd) = self.extract_quotients();
-        OddBinxgcdUintOutput {
+        UintBinxgcdOutput {
             gcd: self.gcd,
             x,
             y,
@@ -55,7 +55,7 @@ impl<const LIMBS: usize> RawBinxgcdOutput<LIMBS> {
 }
 
 /// Container for the processed output of the Binary XGCD algorithm.
-pub(crate) struct OddBinxgcdUintOutput<const LIMBS: usize> {
+pub(crate) struct UintBinxgcdOutput<const LIMBS: usize> {
     pub(crate) gcd: Odd<Uint<LIMBS>>,
     x: Int<LIMBS>,
     y: Int<LIMBS>,
@@ -63,7 +63,7 @@ pub(crate) struct OddBinxgcdUintOutput<const LIMBS: usize> {
     rhs_on_gcd: Uint<LIMBS>,
 }
 
-impl<const LIMBS: usize> OddBinxgcdUintOutput<LIMBS> {
+impl<const LIMBS: usize> UintBinxgcdOutput<LIMBS> {
     /// Obtain a copy of the Bézout coefficients.
     pub(crate) const fn bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
         (self.x, self.y)
@@ -89,10 +89,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
     /// msb is **not** set. May panic otherwise.
-    pub(crate) const fn binxgcd_nz(
-        &self,
-        rhs: &NonZero<Uint<LIMBS>>,
-    ) -> OddBinxgcdUintOutput<LIMBS> {
+    pub(crate) const fn binxgcd_nz(&self, rhs: &NonZero<Uint<LIMBS>>) -> UintBinxgcdOutput<LIMBS> {
         // Note that for the `binxgcd` subroutine, `rhs` needs to be odd.
         //
         // We use the fact that gcd(a, b) = gcd(a, |a-b|) to
@@ -153,7 +150,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// This function switches between the "classic" and "optimized" algorithm at a best-effort
     /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
     /// manually test whether the classic or optimized algorithm is faster for your machine.
-    pub(crate) const fn binxgcd(&self, rhs: &Self) -> RawBinxgcdOutput<LIMBS> {
+    pub(crate) const fn binxgcd(&self, rhs: &Self) -> OddUintBinxgcdOutput<LIMBS> {
         if LIMBS < 4 {
             self.classic_binxgcd(rhs)
         } else {
@@ -170,14 +167,14 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
     /// <https://eprint.iacr.org/2020/972.pdf>.
-    pub(crate) const fn classic_binxgcd(&self, rhs: &Self) -> RawBinxgcdOutput<LIMBS> {
+    pub(crate) const fn classic_binxgcd(&self, rhs: &Self) -> OddUintBinxgcdOutput<LIMBS> {
         let (gcd, _, matrix) = self.partial_binxgcd_vartime::<LIMBS>(
             rhs.as_ref(),
             Self::MIN_BINGCD_ITERATIONS,
             ConstChoice::TRUE,
         );
 
-        RawBinxgcdOutput {
+        OddUintBinxgcdOutput {
             lhs: *self,
             rhs: *rhs,
             gcd,
@@ -201,7 +198,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
     /// <https://eprint.iacr.org/2020/972.pdf>.
-    pub(crate) const fn optimized_binxgcd(&self, rhs: &Self) -> RawBinxgcdOutput<LIMBS> {
+    pub(crate) const fn optimized_binxgcd(&self, rhs: &Self) -> OddUintBinxgcdOutput<LIMBS> {
         assert!(Self::BITS >= U128::BITS);
         self.optimized_binxgcd_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
     }
@@ -232,7 +229,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     >(
         &self,
         rhs: &Self,
-    ) -> RawBinxgcdOutput<LIMBS> {
+    ) -> OddUintBinxgcdOutput<LIMBS> {
         let (mut a, mut b) = (*self.as_ref(), *rhs.as_ref());
         let mut matrix = BinXgcdMatrix::UNIT;
 
@@ -269,7 +266,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             .to_odd()
             .expect("gcd of an odd value with something else is always odd");
 
-        RawBinxgcdOutput {
+        OddUintBinxgcdOutput {
             lhs: *self,
             rhs: *rhs,
             gcd,
@@ -381,7 +378,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::modular::bingcd::xgcd::OddBinxgcdUintOutput;
+    use crate::modular::bingcd::xgcd::UintBinxgcdOutput;
     use crate::{ConcatMixed, Gcd, Uint};
     use core::ops::Div;
     use rand_chacha::ChaChaRng;
@@ -389,13 +386,13 @@ mod tests {
 
     mod test_extract_quotients {
         use crate::modular::bingcd::matrix::BinXgcdMatrix;
-        use crate::modular::bingcd::xgcd::RawBinxgcdOutput;
+        use crate::modular::bingcd::xgcd::OddUintBinxgcdOutput;
         use crate::{Int, U64, Uint};
 
         fn raw_binxgcdoutput_setup<const LIMBS: usize>(
             matrix: BinXgcdMatrix<LIMBS>,
-        ) -> RawBinxgcdOutput<LIMBS> {
-            RawBinxgcdOutput {
+        ) -> OddUintBinxgcdOutput<LIMBS> {
+            OddUintBinxgcdOutput {
                 lhs: Uint::<LIMBS>::ONE.to_odd().unwrap(),
                 rhs: Uint::<LIMBS>::ONE.to_odd().unwrap(),
                 gcd: Uint::<LIMBS>::ONE.to_odd().unwrap(),
@@ -441,12 +438,12 @@ mod tests {
 
     mod test_derive_bezout_coefficients {
         use crate::modular::bingcd::matrix::BinXgcdMatrix;
-        use crate::modular::bingcd::xgcd::RawBinxgcdOutput;
+        use crate::modular::bingcd::xgcd::OddUintBinxgcdOutput;
         use crate::{I64, Int, U64, Uint};
 
         #[test]
         fn test_derive_bezout_coefficients_unit() {
-            let output = RawBinxgcdOutput {
+            let output = OddUintBinxgcdOutput {
                 lhs: Uint::ONE.to_odd().unwrap(),
                 rhs: Uint::ONE.to_odd().unwrap(),
                 gcd: Uint::ONE.to_odd().unwrap(),
@@ -459,7 +456,7 @@ mod tests {
 
         #[test]
         fn test_derive_bezout_coefficients_basic() {
-            let output = RawBinxgcdOutput {
+            let output = OddUintBinxgcdOutput {
                 lhs: Uint::ONE.to_odd().unwrap(),
                 rhs: Uint::ONE.to_odd().unwrap(),
                 gcd: Uint::ONE.to_odd().unwrap(),
@@ -476,7 +473,7 @@ mod tests {
             assert_eq!(x, Int::from(2i32));
             assert_eq!(y, Int::from(3i32));
 
-            let output = RawBinxgcdOutput {
+            let output = OddUintBinxgcdOutput {
                 lhs: Uint::ONE.to_odd().unwrap(),
                 rhs: Uint::ONE.to_odd().unwrap(),
                 gcd: Uint::ONE.to_odd().unwrap(),
@@ -496,7 +493,7 @@ mod tests {
 
         #[test]
         fn test_derive_bezout_coefficients_removes_doublings_easy() {
-            let output = RawBinxgcdOutput {
+            let output = OddUintBinxgcdOutput {
                 lhs: Uint::ONE.to_odd().unwrap(),
                 rhs: Uint::ONE.to_odd().unwrap(),
                 gcd: Uint::ONE.to_odd().unwrap(),
@@ -513,7 +510,7 @@ mod tests {
             assert_eq!(x, Int::ONE);
             assert_eq!(y, Int::from(3i32));
 
-            let output = RawBinxgcdOutput {
+            let output = OddUintBinxgcdOutput {
                 lhs: Uint::ONE.to_odd().unwrap(),
                 rhs: Uint::ONE.to_odd().unwrap(),
                 gcd: Uint::ONE.to_odd().unwrap(),
@@ -533,7 +530,7 @@ mod tests {
 
         #[test]
         fn test_derive_bezout_coefficients_removes_doublings_for_odd_numbers() {
-            let output = RawBinxgcdOutput {
+            let output = OddUintBinxgcdOutput {
                 lhs: Uint::from(7u32).to_odd().unwrap(),
                 rhs: Uint::from(5u32).to_odd().unwrap(),
                 gcd: Uint::ONE.to_odd().unwrap(),
@@ -625,7 +622,7 @@ mod tests {
     fn test_xgcd<const LIMBS: usize, const DOUBLE: usize>(
         lhs: Uint<LIMBS>,
         rhs: Uint<LIMBS>,
-        output: OddBinxgcdUintOutput<LIMBS>,
+        output: UintBinxgcdOutput<LIMBS>,
     ) where
         Uint<LIMBS>:
             Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
