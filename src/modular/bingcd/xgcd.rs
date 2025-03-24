@@ -278,7 +278,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
         let mut j = 0;
         while j < iterations {
-            Self::binxgcd_step::<UPDATE_LIMBS>(&mut a, &mut b, &mut matrix, halt_at_zero);
+            Self::binxgcd_step(&mut a, &mut b, &mut matrix, halt_at_zero);
             j += 1;
         }
 
