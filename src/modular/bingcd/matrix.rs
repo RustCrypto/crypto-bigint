@@ -137,11 +137,28 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
         self.conditional_swap_rows(ConstChoice::TRUE)
     }
 
+    /// Add the right column to the left if `add` is truthy. Otherwise, do nothing.
+    #[inline]
+    pub(crate) const fn conditional_add_right_column_to_left(&mut self, add: ConstChoice) {
+        self.m00 = Int::select(&self.m00, &self.m00.wrapping_add(&self.m01), add);
+        self.m10 = Int::select(&self.m10, &self.m10.wrapping_add(&self.m11), add);
+    }
+
     /// Subtract the bottom row from the top if `subtract` is truthy. Otherwise, do nothing.
     #[inline]
     pub(crate) const fn conditional_subtract_bottom_row_from_top(&mut self, subtract: ConstChoice) {
         self.m00 = Int::select(&self.m00, &self.m00.wrapping_sub(&self.m10), subtract);
         self.m01 = Int::select(&self.m01, &self.m01.wrapping_sub(&self.m11), subtract);
+    }
+
+    /// Subtract the right column from the left if `subtract` is truthy. Otherwise, do nothing.
+    #[inline]
+    pub(crate) const fn conditional_subtract_right_column_from_left(
+        &mut self,
+        subtract: ConstChoice,
+    ) {
+        self.m00 = Int::select(&self.m00, &self.m00.wrapping_sub(&self.m01), subtract);
+        self.m10 = Int::select(&self.m10, &self.m10.wrapping_sub(&self.m11), subtract);
     }
 
     /// Double the bottom row of this matrix if `double` is truthy. Otherwise, do nothing.
@@ -166,6 +183,13 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
     #[inline]
     pub(crate) const fn conditional_negate_bottom_row(&mut self, negate: ConstChoice) {
         self.m10 = self.m10.wrapping_neg_if(negate);
+        self.m11 = self.m11.wrapping_neg_if(negate);
+    }
+
+    /// Negate the elements in the right column if `negate` is truthy. Otherwise, do nothing.
+    #[inline]
+    pub(crate) const fn conditional_negate_right_column(&mut self, negate: ConstChoice) {
+        self.m01 = self.m01.wrapping_neg_if(negate);
         self.m11 = self.m11.wrapping_neg_if(negate);
     }
 }
@@ -209,6 +233,25 @@ mod tests {
     }
 
     #[test]
+    fn test_conditional_add_right_column_to_left() {
+        let mut y = X.clone();
+        y.conditional_add_right_column_to_left(ConstChoice::FALSE);
+        assert_eq!(y, X);
+        y.conditional_add_right_column_to_left(ConstChoice::TRUE);
+        assert_eq!(
+            y,
+            BinXgcdMatrix::new(
+                Int::from_i64(8i64),
+                Int::from_i64(7i64),
+                Int::from_i64(76i64),
+                Int::from_i64(53i64),
+                1,
+                2
+            )
+        );
+    }
+
+    #[test]
     fn test_conditional_swap() {
         let mut y = X.clone();
         y.conditional_swap_rows(ConstChoice::FALSE);
@@ -228,7 +271,7 @@ mod tests {
     }
 
     #[test]
-    fn test_conditional_subtract() {
+    fn test_conditional_subtract_bottom_row_from_top() {
         let mut y = X.clone();
         y.conditional_subtract_bottom_row_from_top(ConstChoice::FALSE);
         assert_eq!(y, X);
@@ -240,6 +283,82 @@ mod tests {
                 Int::from(-46i32),
                 Int::from(23i32),
                 Int::from(53i32),
+                1,
+                2
+            )
+        );
+    }
+
+    #[test]
+    fn test_conditional_subtract_right_column_from_left() {
+        let mut y = X.clone();
+        y.conditional_subtract_right_column_from_left(ConstChoice::FALSE);
+        assert_eq!(y, X);
+        y.conditional_subtract_right_column_from_left(ConstChoice::TRUE);
+        assert_eq!(
+            y,
+            BinXgcdMatrix::new(
+                Int::from(-6i32),
+                Int::from(7i32),
+                Int::from(-30i32),
+                Int::from(53i32),
+                1,
+                2
+            )
+        );
+    }
+
+    #[test]
+    fn test_conditional_negate_top_row() {
+        let mut y = X.clone();
+        y.conditional_negate_top_row(ConstChoice::FALSE);
+        assert_eq!(y, X);
+        y.conditional_negate_top_row(ConstChoice::TRUE);
+        assert_eq!(
+            y,
+            BinXgcdMatrix::new(
+                Int::from(-1i32),
+                Int::from(-7i32),
+                Int::from(23i32),
+                Int::from(53i32),
+                1,
+                2
+            )
+        );
+    }
+
+    #[test]
+    fn test_conditional_negate_bottom_row() {
+        let mut y = X.clone();
+        y.conditional_negate_bottom_row(ConstChoice::FALSE);
+        assert_eq!(y, X);
+        y.conditional_negate_bottom_row(ConstChoice::TRUE);
+        assert_eq!(
+            y,
+            BinXgcdMatrix::new(
+                Int::from(1i32),
+                Int::from(7i32),
+                Int::from(-23i32),
+                Int::from(-53i32),
+                1,
+                2
+            )
+        );
+    }
+
+    #[test]
+    fn test_conditional_negate_right_column() {
+        let mut y = X.clone();
+        y.conditional_negate_right_column(ConstChoice::FALSE);
+        assert_eq!(y, X);
+        y.conditional_negate_right_column(ConstChoice::TRUE);
+        assert_eq!(
+            y,
+            BinXgcdMatrix::new(
+                Int::from(1i32),
+                Int::from(-7i32),
+                Int::from(23i32),
+                Int::from(-53i32),
                 1,
                 2
             )

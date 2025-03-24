@@ -52,18 +52,6 @@ impl<const LIMBS: usize> OddUintBinxgcdOutput<LIMBS> {
         }
     }
 
-    /// Mutably borrow the bezout coefficients `(x, y)` such that `lhs * x + rhs * y = gcd`.
-    const fn bezout_coefficients_as_mut(&mut self) -> (&mut Int<LIMBS>, &mut Int<LIMBS>) {
-        let (m00, m10, ..) = self.matrix.as_elements_mut();
-        (m00, m10)
-    }
-
-    /// Mutably borrow the quotients `lhs/gcd` and `rhs/gcd`.
-    const fn quotients_as_mut(&mut self) -> (&mut Int<LIMBS>, &mut Int<LIMBS>) {
-        let (.., m10, m11, _, _) = self.matrix.as_elements_mut();
-        (m11, m10)
-    }
-
     /// Obtain the bezout coefficients `(x, y)` such that `lhs * x + rhs * y = gcd`.
     const fn bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
         let (m00, m10, ..) = self.matrix.as_elements();
@@ -110,13 +98,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
     /// msb is **not** set. May panic otherwise.
     pub(crate) const fn binxgcd_nz(&self, rhs: &NonZero<Uint<LIMBS>>) -> UintBinxgcdOutput<LIMBS> {
-        // Note that for the `binxgcd` subroutine, `rhs` needs to be odd.
-        //
-        // We use the fact that gcd(a, b) = gcd(a, |a-b|) to
-        // 1) convert the input (self, rhs) to (self, rhs') where rhs' is guaranteed odd,
-        // 2) execute the xgcd algorithm on (self, rhs'), and
-        // 3) recover the Bezout coefficients for (self, rhs) from the (self, rhs') output.
-
+        // The `binxgcd` subroutine requires `rhs` needs to be odd. We leverage the equality
+        // gcd(lhs, rhs) = gcd(lhs, |lhs-rhs|) to deal with the case that `rhs` is even.
         let (abs_lhs_sub_rhs, rhs_gt_lhs) =
             self.as_ref().wrapping_sub(rhs.as_ref()).as_int().abs_sign();
         let rhs_is_even = rhs.as_ref().is_odd().not();
@@ -127,37 +110,11 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         let mut output = self.binxgcd(&rhs_);
         output.remove_matrix_factors();
 
-        let (u, v) = output.quotients_as_mut();
-
-        // At this point, we have one of the following three situations:
-        // i.   0 = lhs * v + (rhs - lhs) * u, if rhs is even and rhs > lhs
-        // ii.  0 = lhs * v + (lhs - rhs) * u, if rhs is even and rhs < lhs
-        // iii. 0 = lhs * v + rhs * u, if rhs is odd
-
-        // We can rearrange these terms to get the quotients to (self, rhs) as follows:
-        // i.   gcd = lhs * (v - u) + rhs * u, if rhs is even and rhs > lhs
-        // ii.  gcd = lhs * (v + u) - u * rhs, if rhs is even and rhs < lhs
-        // iii. gcd = lhs * v + rhs * u, if rhs is odd
-
-        *v = Int::select(v, &v.wrapping_sub(u), rhs_is_even.and(rhs_gt_lhs));
-        *v = Int::select(v, &v.wrapping_add(u), rhs_is_even.and(rhs_gt_lhs.not()));
-        *u = u.wrapping_neg_if(rhs_is_even.and(rhs_gt_lhs.not()));
-
-        let (x, y) = output.bezout_coefficients_as_mut();
-
-        // At this point, we have one of the following three situations:
-        // i.   gcd = lhs * x + (rhs - lhs) * y, if rhs is even and rhs > lhs
-        // ii.  gcd = lhs * x + (lhs - rhs) * y, if rhs is even and rhs < lhs
-        // iii. gcd = lhs * x + rhs * y, if rhs is odd
-
-        // We can rearrange these terms to get the Bezout coefficients to (self, rhs) as follows:
-        // i.   gcd = lhs * (x - y) + rhs * y, if rhs is even and rhs > lhs
-        // ii.  gcd = lhs * (x + y) - y * rhs, if rhs is even and rhs < lhs
-        // iii. gcd = lhs * x + rhs * y, if rhs is odd
-
-        *x = Int::select(x, &x.wrapping_sub(y), rhs_is_even.and(rhs_gt_lhs));
-        *x = Int::select(x, &x.wrapping_add(y), rhs_is_even.and(rhs_gt_lhs.not()));
-        *y = y.wrapping_neg_if(rhs_is_even.and(rhs_gt_lhs.not()));
+        // Modify the output to negate the transformation applied to the input.
+        let matrix = &mut output.matrix;
+        matrix.conditional_subtract_right_column_from_left(rhs_is_even.and(rhs_gt_lhs));
+        matrix.conditional_add_right_column_to_left(rhs_is_even.and(rhs_gt_lhs.not()));
+        matrix.conditional_negate_right_column(rhs_is_even.and(rhs_gt_lhs.not()));
 
         output.process()
     }
