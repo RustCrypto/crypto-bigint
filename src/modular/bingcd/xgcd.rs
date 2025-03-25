@@ -74,11 +74,14 @@ impl<const LIMBS: usize> RawOddUintBinxgcdOutput<LIMBS> {
     }
 }
 
+/// Output of the Binary XGCD algorithm applied to two [Uint]s.
 pub type UintBinxgcdOutput<const LIMBS: usize> = BaseUintBinxgcdOutput<Uint<LIMBS>, LIMBS>;
 
+/// Output of the Binary XGCD algorithm applied to two [NonZero<Uint<LIMBS>>]s.
 pub type NonZeroUintBinxgcdOutput<const LIMBS: usize> =
     BaseUintBinxgcdOutput<NonZero<Uint<LIMBS>>, LIMBS>;
 
+/// Output of the Binary XGCD algorithm applied to two [Odd<Uint<LIMBS>>]s.
 pub type OddUintBinxgcdOutput<const LIMBS: usize> = BaseUintBinxgcdOutput<Odd<Uint<LIMBS>>, LIMBS>;
 
 /// Container for the processed output of the Binary XGCD algorithm.

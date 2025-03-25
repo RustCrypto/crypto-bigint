@@ -34,6 +34,8 @@ mod sign;
 mod sub;
 pub(crate) mod types;
 
+pub use bingcd::{IntBinxgcdOutput, NonZeroIntBinxgcdOutput, OddIntBinxgcdOutput};
+
 #[cfg(feature = "rand_core")]
 mod rand;
 
