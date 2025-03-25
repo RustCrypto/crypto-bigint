@@ -54,8 +54,8 @@ impl<const LIMBS: usize> OddUintBinxgcdOutput<LIMBS> {
 
     /// Obtain the bezout coefficients `(x, y)` such that `lhs * x + rhs * y = gcd`.
     const fn bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
-        let (m00, m10, ..) = self.matrix.to_elements_signed();
-        (m00, m10)
+        let (m00, m01, ..) = self.matrix.to_elements_signed();
+        (m00, m01)
     }
 
     /// Obtain the quotients `lhs/gcd` and `rhs/gcd` from `matrix`.
