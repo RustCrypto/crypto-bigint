@@ -221,7 +221,7 @@ mod tests {
     use crate::modular::bingcd::matrix::BinXgcdMatrix;
     use crate::{ConstChoice, U64, U256, Uint};
 
-    const X: BinXgcdMatrix<4> = BinXgcdMatrix::new(
+    const X: BinXgcdMatrix<{ U256::LIMBS }> = BinXgcdMatrix::new(
         U256::from_u64(1u64),
         U256::from_u64(7u64),
         U256::from_u64(23u64),
