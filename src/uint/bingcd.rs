@@ -54,7 +54,6 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     }
 }
 
-#[cfg(feature = "rand_core")]
 #[cfg(test)]
 mod tests {
     use rand_chacha::ChaChaRng;
@@ -71,6 +70,19 @@ mod tests {
         let gcd = lhs.gcd(&rhs);
         let bingcd = lhs.bingcd(&rhs);
         assert_eq!(gcd, bingcd);
+    }
+
+    #[cfg(feature = "rand_core")]
+    fn bingcd_randomized_tests<const LIMBS: usize>(iterations: u32)
+    where
+        Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
+    {
+        let mut rng = ChaChaRng::from_seed([0; 32]);
+        for _ in 0..iterations {
+            let x = Uint::<LIMBS>::random(&mut rng);
+            let y = Uint::<LIMBS>::random(&mut rng);
+            bingcd_test(x, y);
+        }
     }
 
     fn bingcd_tests<const LIMBS: usize>()
@@ -96,13 +108,8 @@ mod tests {
         bingcd_test(Uint::ONE, min);
         bingcd_test(Uint::MAX, Uint::MAX);
 
-        // Randomized test cases
-        let mut rng = ChaChaRng::from_seed([0; 32]);
-        for _ in 0..100 {
-            let x = Uint::<LIMBS>::random(&mut rng);
-            let y = Uint::<LIMBS>::random(&mut rng);
-            bingcd_test(x, y);
-        }
+        #[cfg(feature = "rand_core")]
+        bingcd_randomized_tests(100);
     }
 
     #[test]
