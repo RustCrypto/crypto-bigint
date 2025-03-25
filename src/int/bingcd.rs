@@ -18,11 +18,11 @@ pub struct BaseIntBinxgcdOutput<T: Copy, const LIMBS: usize> {
 /// Output of the Binary XGCD algorithm applied to two [Int]s.
 pub type IntBinxgcdOutput<const LIMBS: usize> = BaseIntBinxgcdOutput<Uint<LIMBS>, LIMBS>;
 
-/// Output of the Binary XGCD algorithm applied to two [NonZero<Int<LIMBS>>]s.
+/// Output of the Binary XGCD algorithm applied to two [`NonZero<Int<LIMBS>>`]s.
 pub type NonZeroIntBinxgcdOutput<const LIMBS: usize> =
     BaseIntBinxgcdOutput<NonZero<Uint<LIMBS>>, LIMBS>;
 
-/// Output of the Binary XGCD algorithm applied to two [Odd<Int<LIMBS>>]s.
+/// Output of the Binary XGCD algorithm applied to two [`Odd<Int<LIMBS>>`]s.
 pub type OddIntBinxgcdOutput<const LIMBS: usize> = BaseIntBinxgcdOutput<Odd<Uint<LIMBS>>, LIMBS>;
 
 impl<T: Copy, const LIMBS: usize> BaseIntBinxgcdOutput<T, LIMBS> {
