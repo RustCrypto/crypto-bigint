@@ -30,8 +30,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             .to_nz()
             .expect("rhs is non zero by construction");
 
-        let (gcd, mut x, mut y, mut lhs_on_gcd, mut rhs_on_gcd) =
-            self_nz.binxgcd(&rhs_nz).to_components();
+        let NonZeroUintBinxgcdOutput {
+            gcd,
+            mut x,
+            mut y,
+            mut lhs_on_gcd,
+            mut rhs_on_gcd,
+        } = self_nz.binxgcd(&rhs_nz);
 
         // Correct the gcd in case self and/or rhs was zero
         let mut gcd = *gcd.as_ref();
@@ -101,8 +106,13 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
         let lhs = lhs.to_odd().expect("odd by construction");
 
         let rhs = rhs.to_nz().expect("non-zero by construction");
-        let (gcd, mut x, mut y, mut lhs_on_gcd, mut rhs_on_gcd) =
-            lhs.binxgcd_nz(&rhs).to_components();
+        let OddUintBinxgcdOutput {
+            gcd,
+            mut x,
+            mut y,
+            mut lhs_on_gcd,
+            mut rhs_on_gcd,
+        } = lhs.binxgcd_nz(&rhs);
 
         let gcd = gcd
             .as_ref()

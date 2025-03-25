@@ -2,19 +2,27 @@
 //! which is described by Pornin in "Optimized Binary GCD for Modular Inversion".
 //! Ref: <https://eprint.iacr.org/2020/972.pdf>
 
+use crate::modular::bingcd::OddUintBinxgcdOutput;
 use crate::modular::bingcd::tools::const_min;
 use crate::{ConstChoice, Int, NonZero, Odd, Uint};
 
 #[derive(Debug)]
-pub struct BinXgcdOutput<const LIMBS: usize> {
-    gcd: Uint<LIMBS>,
-    x: Int<LIMBS>,
-    y: Int<LIMBS>,
-    lhs_on_gcd: Int<LIMBS>,
-    rhs_on_gcd: Int<LIMBS>,
+pub struct BaseIntBinxgcdOutput<T: Copy, const LIMBS: usize> {
+    pub gcd: T,
+    pub x: Int<LIMBS>,
+    pub y: Int<LIMBS>,
+    pub lhs_on_gcd: Int<LIMBS>,
+    pub rhs_on_gcd: Int<LIMBS>,
 }
 
-impl<const LIMBS: usize> BinXgcdOutput<LIMBS> {
+pub type IntBinxgcdOutput<const LIMBS: usize> = BaseIntBinxgcdOutput<Uint<LIMBS>, LIMBS>;
+
+pub type NonZeroIntBinxgcdOutput<const LIMBS: usize> =
+    BaseIntBinxgcdOutput<NonZero<Uint<LIMBS>>, LIMBS>;
+
+pub type OddIntBinxgcdOutput<const LIMBS: usize> = BaseIntBinxgcdOutput<Odd<Uint<LIMBS>>, LIMBS>;
+
+impl<T: Copy, const LIMBS: usize> BaseIntBinxgcdOutput<T, LIMBS> {
     /// Return the quotients `lhs.gcd` and `rhs/gcd`.
     pub const fn quotients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
         (self.lhs_on_gcd, self.rhs_on_gcd)
@@ -45,7 +53,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Executes the Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)`, s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub const fn binxgcd(&self, rhs: &Self) -> BinXgcdOutput<LIMBS> {
+    pub const fn binxgcd(&self, rhs: &Self) -> IntBinxgcdOutput<LIMBS> {
         // Make sure `self` and `rhs` are nonzero.
         let self_is_zero = self.is_nonzero().not();
         let self_nz = Int::select(self, &Int::ONE, self_is_zero)
@@ -56,30 +64,40 @@ impl<const LIMBS: usize> Int<LIMBS> {
             .to_nz()
             .expect("rhs is non zero by construction");
 
-        let mut output = self_nz.binxgcd(&rhs_nz);
+        let NonZeroIntBinxgcdOutput {
+            gcd,
+            mut x,
+            mut y,
+            mut lhs_on_gcd,
+            mut rhs_on_gcd,
+        } = self_nz.binxgcd(&rhs_nz);
 
         // Correct the gcd in case self and/or rhs was zero
-        let gcd = &mut output.gcd;
-        *gcd = Uint::select(gcd, &rhs.abs(), self_is_zero);
-        *gcd = Uint::select(gcd, &self.abs(), rhs_is_zero);
+        let mut gcd = *gcd.as_ref();
+        gcd = Uint::select(&gcd, &rhs.abs(), self_is_zero);
+        gcd = Uint::select(&gcd, &self.abs(), rhs_is_zero);
 
         // Correct the Bézout coefficients in case self and/or rhs was zero.
-        let (x, y) = output.bezout_coefficients_as_mut();
         let signum_self = Int::new_from_abs_sign(Uint::ONE, self.is_negative()).expect("+/- 1");
         let signum_rhs = Int::new_from_abs_sign(Uint::ONE, rhs.is_negative()).expect("+/- 1");
-        *x = Int::select(x, &Int::ZERO, self_is_zero);
-        *y = Int::select(y, &signum_rhs, self_is_zero);
-        *x = Int::select(x, &signum_self, rhs_is_zero);
-        *y = Int::select(y, &Int::ZERO, rhs_is_zero);
+        x = Int::select(&x, &Int::ZERO, self_is_zero);
+        y = Int::select(&y, &signum_rhs, self_is_zero);
+        x = Int::select(&x, &signum_self, rhs_is_zero);
+        y = Int::select(&y, &Int::ZERO, rhs_is_zero);
 
         // Correct the quotients in case self and/or rhs was zero.
-        let (lhs_on_gcd, rhs_on_gcd) = output.quotients_as_mut();
-        *lhs_on_gcd = Int::select(lhs_on_gcd, &signum_self, rhs_is_zero);
-        *lhs_on_gcd = Int::select(lhs_on_gcd, &Int::ZERO, self_is_zero);
-        *rhs_on_gcd = Int::select(rhs_on_gcd, &signum_rhs, self_is_zero);
-        *rhs_on_gcd = Int::select(rhs_on_gcd, &Int::ZERO, rhs_is_zero);
+        lhs_on_gcd = Int::select(&lhs_on_gcd, &signum_self, rhs_is_zero);
+        lhs_on_gcd = Int::select(&lhs_on_gcd, &Int::ZERO, self_is_zero);
+        rhs_on_gcd = Int::select(&rhs_on_gcd, &signum_rhs, self_is_zero);
+        rhs_on_gcd = Int::select(&rhs_on_gcd, &Int::ZERO, rhs_is_zero);
 
-        output
+        IntBinxgcdOutput {
+            gcd,
+            x,
+            y,
+            lhs_on_gcd,
+            rhs_on_gcd,
+        }
     }
 }
 
@@ -92,7 +110,7 @@ impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
     /// Execute the Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub const fn binxgcd(&self, rhs: &Self) -> BinXgcdOutput<LIMBS> {
+    pub const fn binxgcd(&self, rhs: &Self) -> NonZeroIntBinxgcdOutput<LIMBS> {
         let (mut lhs, mut rhs) = (*self.as_ref(), *rhs.as_ref());
 
         // Leverage the property that gcd(2^k * a, 2^k *b) = 2^k * gcd(a, b)
@@ -109,18 +127,32 @@ impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
         let lhs = lhs.to_odd().expect("odd by construction");
 
         let rhs = rhs.to_nz().expect("non-zero by construction");
-        let mut output = lhs.binxgcd(&rhs);
+        let OddIntBinxgcdOutput {
+            gcd,
+            mut x,
+            mut y,
+            mut lhs_on_gcd,
+            mut rhs_on_gcd,
+        } = lhs.binxgcd(&rhs);
 
         // Account for the parameter swap
-        let (x, y) = output.bezout_coefficients_as_mut();
-        Int::conditional_swap(x, y, swap);
-        let (lhs_on_gcd, rhs_on_gcd) = output.quotients_as_mut();
-        Int::conditional_swap(lhs_on_gcd, rhs_on_gcd, swap);
+        Int::conditional_swap(&mut x, &mut y, swap);
+        Int::conditional_swap(&mut lhs_on_gcd, &mut rhs_on_gcd, swap);
 
         // Reintroduce the factor 2^k to the gcd.
-        output.gcd = output.gcd.shl(k);
+        let gcd = gcd
+            .as_ref()
+            .shl(k)
+            .to_nz()
+            .expect("is non-zero by construction");
 
-        output
+        NonZeroIntBinxgcdOutput {
+            gcd,
+            x,
+            y,
+            lhs_on_gcd,
+            rhs_on_gcd,
+        }
     }
 }
 
@@ -133,22 +165,25 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
     /// Execute the Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub const fn binxgcd(&self, rhs: &NonZero<Int<LIMBS>>) -> BinXgcdOutput<LIMBS> {
+    pub const fn binxgcd(&self, rhs: &NonZero<Int<LIMBS>>) -> OddIntBinxgcdOutput<LIMBS> {
         let (abs_lhs, sgn_lhs) = self.abs_sign();
         let (abs_rhs, sgn_rhs) = rhs.abs_sign();
 
-        let output = abs_lhs.binxgcd_nz(&abs_rhs);
+        let OddUintBinxgcdOutput {
+            gcd,
+            mut x,
+            mut y,
+            lhs_on_gcd: abs_lhs_on_gcd,
+            rhs_on_gcd: abs_rhs_on_gcd,
+        } = abs_lhs.binxgcd_nz(&abs_rhs);
 
-        let (mut x, mut y) = output.bezout_coefficients();
         x = x.wrapping_neg_if(sgn_lhs);
         y = y.wrapping_neg_if(sgn_rhs);
-
-        let (abs_lhs_on_gcd, abs_rhs_on_gcd) = output.quotients();
         let lhs_on_gcd = Int::new_from_abs_sign(abs_lhs_on_gcd, sgn_lhs).expect("no overflow");
         let rhs_on_gcd = Int::new_from_abs_sign(abs_rhs_on_gcd, sgn_rhs).expect("no overflow");
 
-        BinXgcdOutput {
-            gcd: *output.gcd.as_ref(),
+        OddIntBinxgcdOutput {
+            gcd,
             x,
             y,
             lhs_on_gcd,
@@ -159,7 +194,7 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
 
 #[cfg(test)]
 mod test {
-    use crate::int::bingcd::BinXgcdOutput;
+    use crate::int::bingcd::{IntBinxgcdOutput, NonZeroIntBinxgcdOutput, OddIntBinxgcdOutput};
     use crate::{ConcatMixed, Int, Uint};
     use num_traits::Zero;
 
@@ -167,6 +202,44 @@ mod test {
     use rand_chacha::ChaChaRng;
     #[cfg(feature = "rand_core")]
     use rand_core::SeedableRng;
+
+    impl<const LIMBS: usize> From<NonZeroIntBinxgcdOutput<LIMBS>> for IntBinxgcdOutput<LIMBS> {
+        fn from(value: NonZeroIntBinxgcdOutput<LIMBS>) -> Self {
+            let NonZeroIntBinxgcdOutput {
+                gcd,
+                x,
+                y,
+                lhs_on_gcd,
+                rhs_on_gcd,
+            } = value;
+            IntBinxgcdOutput {
+                gcd: *gcd.as_ref(),
+                x,
+                y,
+                lhs_on_gcd,
+                rhs_on_gcd,
+            }
+        }
+    }
+
+    impl<const LIMBS: usize> From<OddIntBinxgcdOutput<LIMBS>> for IntBinxgcdOutput<LIMBS> {
+        fn from(value: OddIntBinxgcdOutput<LIMBS>) -> Self {
+            let OddIntBinxgcdOutput {
+                gcd,
+                x,
+                y,
+                lhs_on_gcd,
+                rhs_on_gcd,
+            } = value;
+            IntBinxgcdOutput {
+                gcd: *gcd.as_ref(),
+                x,
+                y,
+                lhs_on_gcd,
+                rhs_on_gcd,
+            }
+        }
+    }
 
     #[cfg(feature = "rand_core")]
     pub(crate) fn make_rng() -> ChaChaRng {
@@ -176,7 +249,7 @@ mod test {
     fn binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
         lhs: Int<LIMBS>,
         rhs: Int<LIMBS>,
-        output: BinXgcdOutput<LIMBS>,
+        output: IntBinxgcdOutput<LIMBS>,
     ) where
         Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
     {
@@ -312,7 +385,7 @@ mod test {
             Int<LIMBS>: Gcd<Output = Uint<LIMBS>>,
         {
             let output = lhs.to_nz().unwrap().binxgcd(&rhs.to_nz().unwrap());
-            binxgcd_test(lhs, rhs, output);
+            binxgcd_test(lhs, rhs, output.into());
         }
 
         #[cfg(feature = "rand_core")]
@@ -386,7 +459,7 @@ mod test {
             Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
             let output = lhs.to_odd().unwrap().binxgcd(&rhs.to_nz().unwrap());
-            binxgcd_test(lhs, rhs, output);
+            binxgcd_test(lhs, rhs, output.into());
         }
 
         #[cfg(feature = "rand_core")]
