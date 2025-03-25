@@ -3,8 +3,8 @@ use criterion::{
     BatchSize, BenchmarkGroup, BenchmarkId, Criterion, black_box, criterion_group, criterion_main,
 };
 use crypto_bigint::{
-    Gcd, Int, Limb, NonZero, Odd, Random, RandomBits, RandomMod, Reciprocal, U128, U256, U512,
-    U1024, U2048, U4096, Uint,
+    Gcd, Limb, NonZero, Odd, Random, RandomBits, RandomMod, Reciprocal, U128, U256, U512, U1024,
+    U2048, U4096, Uint,
 };
 use rand_chacha::ChaCha8Rng;
 use rand_core::{RngCore, SeedableRng};
@@ -334,51 +334,28 @@ where
 {
     g.bench_function(BenchmarkId::new("gcd", LIMBS), |b| {
         b.iter_batched(
-            || {
-                let f = Uint::<LIMBS>::random(rng);
-                let g = Uint::<LIMBS>::random(rng);
-                (f, g)
-            },
+            || (Uint::<LIMBS>::random(rng), Uint::<LIMBS>::random(rng)),
             |(f, g)| black_box(f.gcd(&g)),
             BatchSize::SmallInput,
         )
     });
     g.bench_function(BenchmarkId::new("bingcd", LIMBS), |b| {
         b.iter_batched(
-            || {
-                let f = Uint::<LIMBS>::random(rng);
-                let g = Uint::<LIMBS>::random(rng);
-                (f, g)
-            },
+            || (Uint::<LIMBS>::random(rng), Uint::<LIMBS>::random(rng)),
             |(f, g)| black_box(Uint::bingcd(&f, &g)),
             BatchSize::SmallInput,
         )
     });
-
-    g.bench_function(BenchmarkId::new("bingcd_small", LIMBS), |b| {
+    g.bench_function(BenchmarkId::new("bingcd (classic)", LIMBS), |b| {
         b.iter_batched(
-            || {
-                let f = Uint::<LIMBS>::random(rng)
-                    .bitor(&Uint::ONE)
-                    .to_odd()
-                    .unwrap();
-                let g = Uint::<LIMBS>::random(rng);
-                (f, g)
-            },
+            || (Odd::<Uint<LIMBS>>::random(rng), Uint::<LIMBS>::random(rng)),
             |(f, g)| black_box(f.classic_bingcd(&g)),
             BatchSize::SmallInput,
         )
     });
-    g.bench_function(BenchmarkId::new("bingcd_large", LIMBS), |b| {
+    g.bench_function(BenchmarkId::new("bingcd (optimized)", LIMBS), |b| {
         b.iter_batched(
-            || {
-                let f = Uint::<LIMBS>::random(rng)
-                    .bitor(&Uint::ONE)
-                    .to_odd()
-                    .unwrap();
-                let g = Uint::<LIMBS>::random(rng);
-                (f, g)
-            },
+            || (Odd::<Uint<LIMBS>>::random(rng), Uint::<LIMBS>::random(rng)),
             |(f, g)| black_box(f.optimized_bingcd(&g)),
             BatchSize::SmallInput,
         )
@@ -406,18 +383,10 @@ fn bench_gcd(c: &mut Criterion) {
     group.finish();
 }
 
-fn xgcd_bench<const LIMBS: usize>(g: &mut BenchmarkGroup<WallTime>, rng: &mut impl RngCore)
-where
-    Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
-{
+fn xgcd_bench<const LIMBS: usize>(g: &mut BenchmarkGroup<WallTime>, rng: &mut impl RngCore) {
     g.bench_function(BenchmarkId::new("binxgcd", LIMBS), |b| {
         b.iter_batched(
-            || {
-                let modulus = Int::MIN.as_uint().wrapping_add(&Uint::ONE).to_nz().unwrap();
-                let f = Uint::<LIMBS>::random_mod(rng, &modulus).as_int();
-                let g = Uint::<LIMBS>::random_mod(rng, &modulus).as_int();
-                (f, g)
-            },
+            || (Uint::<LIMBS>::random(rng), Uint::<LIMBS>::random(rng)),
             |(f, g)| black_box(f.binxgcd(&g)),
             BatchSize::SmallInput,
         )
