@@ -1,6 +1,6 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{Int, Integer, Limb, NonZero, Uint};
+use crate::{Integer, Limb, NonZero, Uint};
 use core::{cmp::Ordering, fmt, ops::Deref};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
@@ -8,7 +8,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use crate::BoxedUint;
 
 #[cfg(feature = "rand_core")]
-use crate::{Random, rand_core::TryRngCore};
+use crate::{Int, Random, rand_core::TryRngCore};
 
 #[cfg(all(feature = "alloc", feature = "rand_core"))]
 use crate::RandomBits;
