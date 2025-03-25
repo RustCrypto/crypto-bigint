@@ -193,6 +193,10 @@ mod test {
         let (x, y) = output.bezout_coefficients();
         assert!(x.abs() <= rhs_on_gcd.abs() || rhs_on_gcd.is_zero());
         assert!(y.abs() <= lhs_on_gcd.abs() || lhs_on_gcd.is_zero());
+        if lhs.abs() != rhs.abs() {
+            assert!(x.abs() <= rhs_on_gcd.abs().shr(1) || rhs_on_gcd.is_zero());
+            assert!(y.abs() <= lhs_on_gcd.abs().shr(1) || lhs_on_gcd.is_zero());
+        }
 
         // Test the Bezout coefficients for correctness
         assert_eq!(

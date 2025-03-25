@@ -54,7 +54,16 @@ impl<const LIMBS: usize> OddUintBinxgcdOutput<LIMBS> {
 
     /// Obtain the bezout coefficients `(x, y)` such that `lhs * x + rhs * y = gcd`.
     const fn bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
-        let (m00, m01, ..) = self.matrix.to_elements_signed();
+        let (m00, m01, m10, m11, pattern, ..) = self.matrix.as_elements();
+        let m10_sub_m00 = m10.wrapping_sub(m00);
+        let m11_sub_m01 = m11.wrapping_sub(m01);
+        let apply = Uint::lte(&m10_sub_m00, m00).and(Uint::lte(&m11_sub_m01, m01));
+        let m00 = Uint::select(m00, &m10_sub_m00, apply)
+            .wrapping_neg_if(apply.xor(pattern.not()))
+            .as_int();
+        let m01 = Uint::select(m01, &m11_sub_m01, apply)
+            .wrapping_neg_if(apply.xor(pattern))
+            .as_int();
         (m00, m01)
     }
 
@@ -92,15 +101,18 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
     /// leveraging the Binary Extended GCD algorithm.
-    ///
-    /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
-    /// msb is **not** set. May panic otherwise.
     pub(crate) const fn binxgcd_nz(&self, rhs: &NonZero<Uint<LIMBS>>) -> UintBinxgcdOutput<LIMBS> {
+        let (lhs_, rhs_) = (self.as_ref(), rhs.as_ref());
+
         // The `binxgcd` subroutine requires `rhs` needs to be odd. We leverage the equality
         // gcd(lhs, rhs) = gcd(lhs, |lhs-rhs|) to deal with the case that `rhs` is even.
-        let (abs_lhs_sub_rhs, rhs_gt_lhs) =
-            self.as_ref().wrapping_sub(rhs.as_ref()).as_int().abs_sign();
-        let rhs_is_even = rhs.as_ref().is_odd().not();
+        let rhs_gt_lhs = Uint::gt(rhs_, lhs_);
+        let rhs_is_even = rhs_.is_odd().not();
+        let abs_lhs_sub_rhs = Uint::select(
+            &lhs_.wrapping_sub(rhs_),
+            &rhs_.wrapping_sub(lhs_),
+            rhs_gt_lhs,
+        );
         let rhs_ = Uint::select(rhs.as_ref(), &abs_lhs_sub_rhs, rhs_is_even)
             .to_odd()
             .expect("rhs is odd by construction");
@@ -122,9 +134,6 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
     /// leveraging the Binary Extended GCD algorithm.
     ///
-    /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
-    /// msb is **not** set. May panic otherwise.
-    ///
     /// This function switches between the "classic" and "optimized" algorithm at a best-effort
     /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
     /// manually test whether the classic or optimized algorithm is faster for your machine.
@@ -139,9 +148,6 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Execute the classic Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    ///
-    /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
-    /// msb is **not** set. May panic otherwise.
     ///
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
     /// <https://eprint.iacr.org/2020/972.pdf>.
@@ -158,9 +164,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
     /// leveraging the Binary Extended GCD algorithm.
     ///
-    /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
-    /// msb is **not** set. May panic otherwise. Furthermore, at `self` and `rhs` must contain at
-    /// least 128 bits.
+    /// **Warning**: `self` and `rhs` must be contained in an [U128] or larger.
     ///
     /// Note: this algorithm becomes more efficient than the classical algorithm for [Uint]s with
     /// relatively many `LIMBS`. A best-effort threshold is presented in [Self::binxgcd].
@@ -178,9 +182,6 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
     /// Given `(self, rhs)`, computes `(g, x, y)`, s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
     /// leveraging the optimized Binary Extended GCD algorithm.
-    ///
-    /// **Warning**: this algorithm is only guaranteed to work for `self` and `rhs` for which the
-    /// msb is **not** set. May panic otherwise.
     ///
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
     /// <https://eprint.iacr.org/2020/972.pdf>
@@ -206,7 +207,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         let (mut a, mut b) = (*self.as_ref(), *rhs.as_ref());
         let mut matrix = BinXgcdMatrix::UNIT;
 
-        let (mut a_sgn, mut b_sgn);
+        let mut a_sgn;
         let mut i = 0;
         while i < Self::MIN_BINGCD_ITERATIONS.div_ceil(K - 1) {
             i += 1;
@@ -228,11 +229,10 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = update_matrix.wrapping_apply_to((a, b));
             (a, a_sgn) = updated_a.wrapping_drop_extension();
-            (b, b_sgn) = updated_b.wrapping_drop_extension();
+            (b, _) = updated_b.wrapping_drop_extension();
 
-            // TODO: this is sketchy!
             matrix = update_matrix.wrapping_mul_right(&matrix);
-            matrix.conditional_negate(a_sgn);
+            matrix.conditional_negate(a_sgn); // TODO: find a cleaner solution for this
         }
 
         let gcd = a
@@ -349,6 +349,7 @@ mod tests {
     use crate::modular::bingcd::xgcd::UintBinxgcdOutput;
     use crate::{ConcatMixed, Gcd, Uint};
     use core::ops::Div;
+    use num_traits::Zero;
     use rand_chacha::ChaChaRng;
     use rand_core::SeedableRng;
 
@@ -437,8 +438,8 @@ mod tests {
             };
             output.remove_matrix_factors();
             let (x, y) = output.bezout_coefficients();
-            assert_eq!(x, Int::from(2i32));
-            assert_eq!(y, Int::from(-3i32));
+            assert_eq!(x, Int::from(-2i32));
+            assert_eq!(y, Int::from(2i32));
 
             let mut output = OddUintBinxgcdOutput {
                 gcd: Uint::ONE.to_odd().unwrap(),
@@ -454,8 +455,8 @@ mod tests {
             };
             output.remove_matrix_factors();
             let (x, y) = output.bezout_coefficients();
-            assert_eq!(x, Int::from(-2i32));
-            assert_eq!(y, Int::from(3i32));
+            assert_eq!(x, Int::from(1i32));
+            assert_eq!(y, Int::from(-2i32));
         }
 
         #[test]
@@ -596,7 +597,7 @@ mod tests {
             Gcd<Output = Uint<LIMBS>> + ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
     {
         // Test the gcd
-        assert_eq!(lhs.gcd(&rhs), output.gcd);
+        assert_eq!(lhs.gcd(&rhs), output.gcd, "{} {}", lhs, rhs);
 
         // Test the quotients
         assert_eq!(output.lhs_on_gcd, lhs.div(output.gcd.as_nz_ref()));
@@ -612,6 +613,10 @@ mod tests {
         // Test the Bezout coefficients for minimality
         assert!(x.abs() <= rhs.div(output.gcd.as_nz_ref()));
         assert!(y.abs() <= lhs.div(output.gcd.as_nz_ref()));
+        if lhs != rhs {
+            assert!(x.abs() <= output.rhs_on_gcd.shr(1) || output.rhs_on_gcd.is_zero());
+            assert!(y.abs() <= output.lhs_on_gcd.shr(1) || output.lhs_on_gcd.is_zero());
+        }
     }
 
     fn make_rng() -> ChaChaRng {
@@ -621,8 +626,8 @@ mod tests {
     mod test_binxgcd_nz {
         use crate::modular::bingcd::xgcd::tests::{make_rng, test_xgcd};
         use crate::{
-            ConcatMixed, Gcd, Int, RandomMod, U64, U128, U192, U256, U384, U512, U768, U1024,
-            U2048, U4096, U8192, Uint,
+            ConcatMixed, Gcd, Int, Random, U64, U128, U192, U256, U384, U512, U768, U1024, U2048,
+            U4096, U8192, Uint,
         };
 
         fn binxgcd_nz_test<const LIMBS: usize, const DOUBLE: usize>(
@@ -653,10 +658,9 @@ mod tests {
 
             // Randomized test cases
             let mut rng = make_rng();
-            let bound = Int::MIN.as_uint().to_nz().unwrap();
             for _ in 0..100 {
-                let x = Uint::<LIMBS>::random_mod(&mut rng, &bound).bitor(&Uint::ONE);
-                let y = Uint::<LIMBS>::random_mod(&mut rng, &bound).saturating_add(&Uint::ONE);
+                let x = Uint::<LIMBS>::random(&mut rng).bitor(&Uint::ONE);
+                let y = Uint::<LIMBS>::random(&mut rng).saturating_add(&Uint::ONE);
                 binxgcd_nz_test(x, y);
             }
         }

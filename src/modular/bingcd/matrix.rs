@@ -1,5 +1,5 @@
 use crate::modular::bingcd::extension::ExtendedInt;
-use crate::{ConstChoice, Int, Uint};
+use crate::{ConstChoice, Uint};
 
 type Vector<T> = (T, T);
 
@@ -75,19 +75,6 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
             &self.m10,
             &self.m11,
             self.pattern,
-            self.k,
-            self.k_upper_bound,
-        )
-    }
-
-    pub(crate) const fn to_elements_signed(
-        &self,
-    ) -> (Int<LIMBS>, Int<LIMBS>, Int<LIMBS>, Int<LIMBS>, u32, u32) {
-        (
-            self.m00.wrapping_neg_if(self.pattern.not()).as_int(),
-            self.m01.wrapping_neg_if(self.pattern).as_int(),
-            self.m10.wrapping_neg_if(self.pattern).as_int(),
-            self.m11.wrapping_neg_if(self.pattern.not()).as_int(),
             self.k,
             self.k_upper_bound,
         )
