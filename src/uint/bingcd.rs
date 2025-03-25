@@ -148,12 +148,14 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 #[cfg(test)]
 mod tests {
     mod bincgd_test {
+        #[cfg(feature = "rand_core")]
+        use crate::Random;
+        #[cfg(feature = "rand_core")]
         use rand_chacha::ChaChaRng;
+        #[cfg(feature = "rand_core")]
         use rand_core::SeedableRng;
 
-        use crate::{
-            Gcd, Int, Random, U64, U128, U256, U512, U1024, U2048, U4096, U8192, U16384, Uint,
-        };
+        use crate::{Gcd, Int, U64, U128, U256, U512, U1024, U2048, U4096, U8192, U16384, Uint};
 
         fn bingcd_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
         where
@@ -220,12 +222,16 @@ mod tests {
 
     mod binxgcd_test {
         use core::ops::Div;
+
+        #[cfg(feature = "rand_core")]
+        use crate::Random;
+        #[cfg(feature = "rand_core")]
         use rand_chacha::ChaChaRng;
+        #[cfg(feature = "rand_core")]
         use rand_core::SeedableRng;
 
         use crate::{
-            Concat, Gcd, Int, Random, U64, U128, U256, U512, U1024, U2048, U4096, U8192, U16384,
-            Uint,
+            Concat, Gcd, Int, U64, U128, U256, U512, U1024, U2048, U4096, U8192, U16384, Uint,
         };
 
         fn binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
