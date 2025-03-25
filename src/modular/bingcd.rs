@@ -7,3 +7,5 @@ mod gcd;
 mod matrix;
 pub(crate) mod tools;
 mod xgcd;
+
+pub use xgcd::{NonZeroUintBinxgcdOutput, OddUintBinxgcdOutput, UintBinxgcdOutput};
