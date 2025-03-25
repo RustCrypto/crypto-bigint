@@ -258,7 +258,7 @@ mod tests {
 
     #[test]
     fn test_swap() {
-        let mut y = X.clone();
+        let mut y = X;
         y.swap_rows();
         assert_eq!(
             y,
@@ -276,7 +276,7 @@ mod tests {
 
     #[test]
     fn test_conditional_swap() {
-        let mut y = X.clone();
+        let mut y = X;
         y.conditional_swap_rows(ConstChoice::FALSE);
         assert_eq!(y, X);
         y.conditional_swap_rows(ConstChoice::TRUE);
@@ -296,7 +296,7 @@ mod tests {
 
     #[test]
     fn test_conditional_add_right_column_to_left() {
-        let mut y = X.clone();
+        let mut y = X;
         y.conditional_add_right_column_to_left(ConstChoice::FALSE);
         assert_eq!(y, X);
         y.conditional_add_right_column_to_left(ConstChoice::TRUE);
@@ -316,7 +316,7 @@ mod tests {
 
     #[test]
     fn test_conditional_subtract_bottom_row_from_top() {
-        let mut y = X.clone();
+        let mut y = X;
         y.conditional_subtract_bottom_row_from_top(ConstChoice::FALSE);
         assert_eq!(y, X);
         y.conditional_subtract_bottom_row_from_top(ConstChoice::TRUE);
@@ -336,7 +336,7 @@ mod tests {
 
     #[test]
     fn test_conditional_subtract_right_column_from_left() {
-        let mut y = X.clone();
+        let mut y = X;
         y.conditional_subtract_right_column_from_left(ConstChoice::FALSE);
         assert_eq!(y, X);
         y.conditional_subtract_right_column_from_left(ConstChoice::TRUE);
@@ -356,7 +356,7 @@ mod tests {
 
     #[test]
     fn test_conditional_double() {
-        let mut y = X.clone();
+        let mut y = X;
         y.conditional_double_bottom_row(ConstChoice::FALSE);
         assert_eq!(
             y,
