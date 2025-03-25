@@ -602,12 +602,16 @@ mod tests {
         assert_eq!(output.lhs_on_gcd, lhs.div(output.gcd.as_nz_ref()));
         assert_eq!(output.rhs_on_gcd, rhs.div(output.gcd.as_nz_ref()));
 
-        // Test the Bezout coefficients
+        // Test the Bezout coefficients for correctness
         let (x, y) = output.bezout_coefficients();
         assert_eq!(
             x.widening_mul_uint(&lhs) + y.widening_mul_uint(&rhs),
             output.gcd.resize().as_int(),
         );
+
+        // Test the Bezout coefficients for minimality
+        assert!(x.abs() <= rhs.div(output.gcd.as_nz_ref()));
+        assert!(y.abs() <= lhs.div(output.gcd.as_nz_ref()));
     }
 
     fn make_rng() -> ChaChaRng {
