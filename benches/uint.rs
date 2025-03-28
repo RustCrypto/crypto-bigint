@@ -4,7 +4,7 @@ use crypto_bigint::{
     U4096, Uint,
 };
 use rand_chacha::ChaCha8Rng;
-use rand_core::{RngCore, SeedableRng};
+use rand_core::{OsRng, RngCore, SeedableRng};
 
 fn make_rng() -> ChaCha8Rng {
     ChaCha8Rng::from_seed(*b"01234567890123456789012345678901")
@@ -425,6 +425,61 @@ fn bench_shr(c: &mut Criterion) {
         b.iter_batched(
             || U2048::ONE,
             |x| x.overflowing_shr(1024 + 10),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("shr, U2048, asm", |b| {
+        b.iter_batched(
+            || U2048::ONE,
+            |x| unsafe { x.shr_asm(1024 + 10) },
+            BatchSize::SmallInput,
+        )
+    });
+    group.bench_function("shr, U2048, zero", |b| {
+        b.iter_batched(
+            || U2048::ONE,
+            |x| x.overflowing_shr(0),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("shr, U2048, zero, asm", |b| {
+        b.iter_batched(
+            || U2048::ONE,
+            |x| unsafe { x.shr_asm(0) },
+            BatchSize::SmallInput,
+        )
+    });
+    let mut rng = make_rng();
+    group.bench_function("shr, U2048, mid", |b| {
+        b.iter_batched(
+            || U2048::random_mod(&mut rng, &NonZero::new(U2048::ONE << 1024).unwrap()),
+            |x| x.overflowing_shr(0),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("shr, U2048, mid, asm", |b| {
+        b.iter_batched(
+            || U2048::random_mod(&mut rng, &NonZero::new(U2048::ONE << 1024).unwrap()),
+            |x| unsafe { x.shr_asm(0) },
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("shr, U2048, large", |b| {
+        b.iter_batched(
+            || U2048::random_mod(&mut rng, &NonZero::new(U2048::ONE << 2047).unwrap()),
+            |x| x.overflowing_shr(0),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("shr, U2048, large, asm", |b| {
+        b.iter_batched(
+            || U2048::random_mod(&mut rng, &NonZero::new(U2048::ONE << 2047).unwrap()),
+            |x| unsafe { x.shr_asm(0) },
             BatchSize::SmallInput,
         )
     });

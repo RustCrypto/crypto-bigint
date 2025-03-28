@@ -5,6 +5,63 @@ use core::ops::{Shr, ShrAssign};
 use subtle::CtOption;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
+    /// Constant time right shift, implemented in ARM assembly.
+    #[allow(unsafe_code)]
+    #[cfg(target_arch = "aarch64")]
+    pub unsafe fn shr_asm(self: &Uint<LIMBS>, shift: u32) -> Uint<LIMBS> {
+        assert!(shift < Uint::<LIMBS>::BITS, "Shift out of bounds");
+        let mut res = Uint::ZERO;
+        let limbs = self.as_limbs();
+        let out_limbs = res.as_limbs_mut();
+        unsafe {
+            core::arch::asm!(
+            "mov x6, #0",           // Init carry
+
+            // Loop over the limbs
+            "1:",
+            "ldr x7, [x0], #8",     // x7 ← Memory[x0] (load 64-bit limb)
+                                    // x0 ← x0 + 8 (increment input pointer)
+            "mov x8, x7",           // x8 ← x7 (preserve original limb value in x8)
+            "lsr x7, x7, x3",       // Rights shift x7 by x3 steps and store in x7
+            "orr x7, x7, x6",       // Combine with carry from previous limb, x7 ← x7 | x6
+            "str x7, [x1], #8",     // Store shifted limb in the out_limbs (pointed to by x1)
+                                    // increment x1 by 8 bytes so it points to the next limb.
+            "neg x9, x3",           // x9 ← -x3 (negate x3 to get the shift amount, which works
+                                    // because on ARM, negative shifts are mod 64, so neg
+                                    // works out to be `64 - x3`)
+            "lsl x6, x8, x9",       // Left shift the original limb (x8) by 64 - x3 (x9) steps
+                                    // and store it in the carry register.
+            "subs x2, x2, #1",      // x2 ← x2 - 1 (decrement limb counter)
+                                    // Sets condition flags (Z=1 when x2 reaches 0)
+            "b.ne 1b",              // Branch to label 1 if Z=0 (Not Equal)
+
+
+            // =============================================
+            // Register Operand Bindings
+            // =============================================
+            // Input pointer to source limbs (read-only)
+            in("x0") limbs.as_ptr(),
+
+            // Output pointer for result limbs
+            inout("x1") out_limbs.as_mut_ptr() => _,
+
+            // Limb counter (decremented in loop)
+            inout("x2") LIMBS => _,
+
+            // Shift amount (constant during operation)
+            in("x3") shift,
+            // Carry register
+            out("x6") _,
+
+            // =============================================
+            // Register Preservation
+            // =============================================
+            // Declares all caller-saved registers as clobbered
+            clobber_abi("C")
+            );
+        }
+        res
+    }
     /// Computes `self >> shift`.
     ///
     /// Panics if `shift >= Self::BITS`.
