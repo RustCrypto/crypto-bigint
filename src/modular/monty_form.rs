@@ -45,7 +45,9 @@ where
     pub const fn new(modulus: Odd<Uint<LIMBS>>) -> Self {
         // `R mod modulus` where `R = 2^BITS`.
         // Represents 1 in Montgomery form.
-        let one = Uint::MAX.rem(modulus.as_nz_ref()).wrapping_add(&Uint::ONE);
+        let one = Uint::<LIMBS>::MAX
+            .rem(modulus.as_nz_ref())
+            .wrapping_add(&Uint::ONE);
 
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
         let r2 = one
