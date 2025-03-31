@@ -219,12 +219,36 @@ fn bench_division(c: &mut Criterion) {
     let mut rng = make_rng();
     let mut group = c.benchmark_group("wrapping ops");
 
-    group.bench_function("div/rem, U256/U128, full size", |b| {
+    group.bench_function("div/rem, U256/U128", |b| {
+        b.iter_batched(
+            || {
+                let x = U256::random(&mut rng);
+                let y = U128::random(&mut rng);
+                (x, NonZero::new(y).unwrap())
+            },
+            |(x, y)| black_box(x.div_rem(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("div/rem, U256/U128 (in U256)", |b| {
         b.iter_batched(
             || {
                 let x = U256::random(&mut rng);
                 let y_half = U128::random(&mut rng);
                 let y: U256 = (y_half, U128::ZERO).into();
+                (x, NonZero::new(y).unwrap())
+            },
+            |(x, y)| black_box(x.div_rem(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("div/rem, U256/U128 (in U512)", |b| {
+        b.iter_batched(
+            || {
+                let x = U256::random(&mut rng);
+                let y: U512 = U128::random(&mut rng).resize();
                 (x, NonZero::new(y).unwrap())
             },
             |(x, y)| black_box(x.div_rem(&y)),
@@ -244,12 +268,35 @@ fn bench_division(c: &mut Criterion) {
         )
     });
 
-    group.bench_function("rem, U256/U128, full size", |b| {
+    group.bench_function("rem, U256/U128", |b| {
         b.iter_batched(
             || {
                 let x = U256::random(&mut rng);
-                let y_half = U128::random(&mut rng);
-                let y: U256 = (y_half, U128::ZERO).into();
+                let y = U128::random(&mut rng);
+                (x, NonZero::new(y).unwrap())
+            },
+            |(x, y)| black_box(x.rem(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("rem, U256/U128 (in U256)", |b| {
+        b.iter_batched(
+            || {
+                let x = U256::random(&mut rng);
+                let y: U256 = U128::random(&mut rng).resize();
+                (x, NonZero::new(y).unwrap())
+            },
+            |(x, y)| black_box(x.rem(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("rem, U256/U128 (in U512)", |b| {
+        b.iter_batched(
+            || {
+                let x = U256::random(&mut rng);
+                let y: U512 = U128::random(&mut rng).resize();
                 (x, NonZero::new(y).unwrap())
             },
             |(x, y)| black_box(x.rem(&y)),
