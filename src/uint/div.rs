@@ -310,7 +310,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes `self` % `rhs`, returns the remainder.
-    pub const fn rem(&self, rhs: &NonZero<Self>) -> Self {
+    pub const fn rem<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &NonZero<Uint<RHS_LIMBS>>,
+    ) -> Uint<RHS_LIMBS> {
         self.div_rem(rhs).1
     }
 
@@ -497,7 +500,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// let zero = U448::from(0_u64);
     /// assert!(bool::from(a.checked_div(&zero).is_none()), "Should be None for division by zero");
     /// ```
-    pub fn checked_div(&self, rhs: &Self) -> CtOption<Self> {
+    pub fn checked_div<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
         NonZero::new(*rhs).map(|rhs| {
             let (q, _r) = self.div_rem(&rhs);
             q
@@ -540,7 +543,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// assert!(bool::from(a.checked_rem(&zero).is_none()), "Should be None for reduction by zero");
     /// ```
-    pub fn checked_rem(&self, rhs: &Self) -> CtOption<Self> {
+    pub fn checked_rem<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> CtOption<Uint<RHS_LIMBS>> {
         NonZero::new(*rhs).map(|rhs| self.rem(&rhs))
     }
 }
@@ -731,40 +737,40 @@ impl<const LIMBS: usize> RemAssign<&NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
 // Division by an Uint
 //
 
-impl<const LIMBS: usize> CheckedDiv for Uint<LIMBS> {
-    fn checked_div(&self, rhs: &Uint<LIMBS>) -> CtOption<Self> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedDiv<Uint<RHS_LIMBS>> for Uint<LIMBS> {
+    fn checked_div(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
         self.checked_div(rhs)
     }
 }
 
-impl<const LIMBS: usize> Div<&NonZero<Uint<LIMBS>>> for &Uint<LIMBS> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Uint<RHS_LIMBS>>> for &Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
-    fn div(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
+    fn div(self, rhs: &NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
         *self / *rhs
     }
 }
 
-impl<const LIMBS: usize> Div<&NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Uint<RHS_LIMBS>>> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
-    fn div(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
+    fn div(self, rhs: &NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
         self / *rhs
     }
 }
 
-impl<const LIMBS: usize> Div<NonZero<Uint<LIMBS>>> for &Uint<LIMBS> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Uint<RHS_LIMBS>>> for &Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
-    fn div(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
+    fn div(self, rhs: NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
         *self / rhs
     }
 }
 
-impl<const LIMBS: usize> Div<NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Uint<RHS_LIMBS>>> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
-    fn div(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
+    fn div(self, rhs: NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
         let (q, _) = self.div_rem(&rhs);
         q
     }
@@ -782,64 +788,76 @@ impl<const LIMBS: usize> DivAssign<NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Div<NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Uint<RHS_LIMBS>>>
+    for Wrapping<Uint<LIMBS>>
+{
     type Output = Wrapping<Uint<LIMBS>>;
 
-    fn div(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
+    fn div(self, rhs: NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
         Wrapping(self.0 / rhs)
     }
 }
 
-impl<const LIMBS: usize> Div<NonZero<Uint<LIMBS>>> for &Wrapping<Uint<LIMBS>> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Uint<RHS_LIMBS>>>
+    for &Wrapping<Uint<LIMBS>>
+{
     type Output = Wrapping<Uint<LIMBS>>;
 
-    fn div(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
+    fn div(self, rhs: NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
         *self / rhs
     }
 }
 
-impl<const LIMBS: usize> Div<&NonZero<Uint<LIMBS>>> for &Wrapping<Uint<LIMBS>> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Uint<RHS_LIMBS>>>
+    for &Wrapping<Uint<LIMBS>>
+{
     type Output = Wrapping<Uint<LIMBS>>;
 
-    fn div(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
+    fn div(self, rhs: &NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
         *self / *rhs
     }
 }
 
-impl<const LIMBS: usize> Div<&NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Uint<RHS_LIMBS>>>
+    for Wrapping<Uint<LIMBS>>
+{
     type Output = Wrapping<Uint<LIMBS>>;
 
-    fn div(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
+    fn div(self, rhs: &NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
         self / *rhs
     }
 }
 
-impl<const LIMBS: usize> Div<Uint<LIMBS>> for &Uint<LIMBS> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<Uint<RHS_LIMBS>> for &Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     #[inline]
-    fn div(self, rhs: Uint<LIMBS>) -> Self::Output {
+    fn div(self, rhs: Uint<RHS_LIMBS>) -> Self::Output {
         self / NonZero::new(rhs).expect("attempt to divide with a divisor of zero")
     }
 }
 
-impl<const LIMBS: usize> Div<Uint<LIMBS>> for Uint<LIMBS> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<Uint<RHS_LIMBS>> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     #[inline]
-    fn div(self, rhs: Uint<LIMBS>) -> Self::Output {
+    fn div(self, rhs: Uint<RHS_LIMBS>) -> Self::Output {
         &self / rhs
     }
 }
 
-impl<const LIMBS: usize> DivAssign<&NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    fn div_assign(&mut self, rhs: &NonZero<Uint<LIMBS>>) {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> DivAssign<&NonZero<Uint<RHS_LIMBS>>>
+    for Wrapping<Uint<LIMBS>>
+{
+    fn div_assign(&mut self, rhs: &NonZero<Uint<RHS_LIMBS>>) {
         *self = Wrapping(self.0 / rhs);
     }
 }
 
-impl<const LIMBS: usize> DivAssign<NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    fn div_assign(&mut self, rhs: NonZero<Uint<LIMBS>>) {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> DivAssign<NonZero<Uint<RHS_LIMBS>>>
+    for Wrapping<Uint<LIMBS>>
+{
+    fn div_assign(&mut self, rhs: NonZero<Uint<RHS_LIMBS>>) {
         *self /= &rhs;
     }
 }
@@ -850,52 +868,52 @@ impl<const LIMBS: usize> DivVartime for Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Rem<&NonZero<Uint<LIMBS>>> for &Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<&NonZero<Uint<RHS_LIMBS>>> for &Uint<LIMBS> {
+    type Output = Uint<RHS_LIMBS>;
 
-    fn rem(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
+    fn rem(self, rhs: &NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
         *self % *rhs
     }
 }
 
-impl<const LIMBS: usize> Rem<&NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<&NonZero<Uint<RHS_LIMBS>>> for Uint<LIMBS> {
+    type Output = Uint<RHS_LIMBS>;
 
-    fn rem(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
+    fn rem(self, rhs: &NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
         self % *rhs
     }
 }
 
-impl<const LIMBS: usize> Rem<NonZero<Uint<LIMBS>>> for &Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<NonZero<Uint<RHS_LIMBS>>> for &Uint<LIMBS> {
+    type Output = Uint<RHS_LIMBS>;
 
-    fn rem(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
+    fn rem(self, rhs: NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
         *self % rhs
     }
 }
 
-impl<const LIMBS: usize> Rem<NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<NonZero<Uint<RHS_LIMBS>>> for Uint<LIMBS> {
+    type Output = Uint<RHS_LIMBS>;
 
-    fn rem(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
+    fn rem(self, rhs: NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
         Self::rem(&self, &rhs)
     }
 }
 
-impl<const LIMBS: usize> Rem<Uint<LIMBS>> for &Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<Uint<RHS_LIMBS>> for &Uint<LIMBS> {
+    type Output = Uint<RHS_LIMBS>;
 
     #[inline]
-    fn rem(self, rhs: Uint<LIMBS>) -> Self::Output {
+    fn rem(self, rhs: Uint<RHS_LIMBS>) -> Self::Output {
         self % NonZero::new(rhs).expect("attempt to calculate the remainder with a divisor of zero")
     }
 }
 
-impl<const LIMBS: usize> Rem<Uint<LIMBS>> for Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<Uint<RHS_LIMBS>> for Uint<LIMBS> {
+    type Output = Uint<RHS_LIMBS>;
 
     #[inline]
-    fn rem(self, rhs: Uint<LIMBS>) -> Self::Output {
+    fn rem(self, rhs: Uint<RHS_LIMBS>) -> Self::Output {
         &self % rhs
     }
 }
@@ -912,34 +930,42 @@ impl<const LIMBS: usize> RemAssign<NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Rem<NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<NonZero<Uint<RHS_LIMBS>>>
+    for Wrapping<Uint<LIMBS>>
+{
+    type Output = Wrapping<Uint<RHS_LIMBS>>;
 
-    fn rem(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
+    fn rem(self, rhs: NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
         Wrapping(self.0 % rhs)
     }
 }
 
-impl<const LIMBS: usize> Rem<NonZero<Uint<LIMBS>>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<NonZero<Uint<RHS_LIMBS>>>
+    for &Wrapping<Uint<LIMBS>>
+{
+    type Output = Wrapping<Uint<RHS_LIMBS>>;
 
-    fn rem(self, rhs: NonZero<Uint<LIMBS>>) -> Self::Output {
+    fn rem(self, rhs: NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
         *self % rhs
     }
 }
 
-impl<const LIMBS: usize> Rem<&NonZero<Uint<LIMBS>>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<&NonZero<Uint<RHS_LIMBS>>>
+    for &Wrapping<Uint<LIMBS>>
+{
+    type Output = Wrapping<Uint<RHS_LIMBS>>;
 
-    fn rem(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
+    fn rem(self, rhs: &NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
         *self % *rhs
     }
 }
 
-impl<const LIMBS: usize> Rem<&NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<&NonZero<Uint<RHS_LIMBS>>>
+    for Wrapping<Uint<LIMBS>>
+{
+    type Output = Wrapping<Uint<RHS_LIMBS>>;
 
-    fn rem(self, rhs: &NonZero<Uint<LIMBS>>) -> Self::Output {
+    fn rem(self, rhs: &NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
         self % *rhs
     }
 }
