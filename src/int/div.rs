@@ -13,10 +13,10 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// Computes the quotient and remainder of `self / rhs`.
     /// Furthermore, returns the signs of `self` and `rhs`.
-    const fn div_rem_base(
+    const fn div_rem_base<const RHS_LIMBS: usize>(
         &self,
-        rhs: &NonZero<Self>,
-    ) -> (Uint<{ LIMBS }>, Uint<{ LIMBS }>, ConstChoice, ConstChoice) {
+        rhs: &NonZero<Int<RHS_LIMBS>>,
+    ) -> (Uint<LIMBS>, Uint<RHS_LIMBS>, ConstChoice, ConstChoice) {
         // Step 1: split operands into signs and magnitudes.
         let (lhs_mag, lhs_sgn) = self.abs_sign();
         let (rhs_mag, rhs_sgn) = rhs.abs_sign();
@@ -52,7 +52,10 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// assert_eq!(quotient.unwrap(), I128::from(2));
     /// assert_eq!(remainder, I128::from(-2));
     /// ```
-    pub const fn checked_div_rem(&self, rhs: &NonZero<Self>) -> (ConstCtOption<Self>, Self) {
+    pub const fn checked_div_rem<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &NonZero<Int<RHS_LIMBS>>,
+    ) -> (ConstCtOption<Self>, Int<RHS_LIMBS>) {
         let (quotient, remainder, lhs_sgn, rhs_sgn) = self.div_rem_base(rhs);
         let opposing_signs = lhs_sgn.ne(rhs_sgn);
         (
@@ -66,12 +69,15 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// - `self != MIN` or `rhs != MINUS_ONE`.
     ///
     /// Note: this operation rounds towards zero, truncating any fractional part of the exact result.
-    pub fn checked_div(&self, rhs: &Self) -> CtOption<Self> {
+    pub fn checked_div<const RHS_LIMBS: usize>(&self, rhs: &Int<RHS_LIMBS>) -> CtOption<Self> {
         NonZero::new(*rhs).and_then(|rhs| self.checked_div_rem(&rhs).0.into())
     }
 
     /// Computes `self` % `rhs`, returns the remainder.
-    pub const fn rem(&self, rhs: &NonZero<Self>) -> Self {
+    pub const fn rem<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &NonZero<Int<RHS_LIMBS>>,
+    ) -> Int<RHS_LIMBS> {
         self.checked_div_rem(rhs).1
     }
 }
@@ -223,7 +229,10 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///     I128::from(2)
     /// )
     /// ```
-    pub fn checked_div_floor(&self, rhs: &Self) -> CtOption<Self> {
+    pub fn checked_div_floor<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Int<RHS_LIMBS>,
+    ) -> CtOption<Self> {
         NonZero::new(*rhs).and_then(|rhs| self.checked_div_rem_floor(&rhs).0.into())
     }
 
@@ -257,7 +266,10 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// assert_eq!(quotient.unwrap(), I128::from(2));
     /// assert_eq!(remainder, I128::from(2));
     /// ```
-    pub const fn checked_div_rem_floor(&self, rhs: &NonZero<Self>) -> (ConstCtOption<Self>, Self) {
+    pub const fn checked_div_rem_floor<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &NonZero<Int<RHS_LIMBS>>,
+    ) -> (ConstCtOption<Self>, Int<RHS_LIMBS>) {
         let (lhs_mag, lhs_sgn) = self.abs_sign();
         let (rhs_mag, rhs_sgn) = rhs.abs_sign();
         let (quotient, remainder) = lhs_mag.div_rem(&rhs_mag);
@@ -283,40 +295,40 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> CheckedDiv for Int<LIMBS> {
-    fn checked_div(&self, rhs: &Int<LIMBS>) -> CtOption<Self> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedDiv<Int<RHS_LIMBS>> for Int<LIMBS> {
+    fn checked_div(&self, rhs: &Int<RHS_LIMBS>) -> CtOption<Self> {
         self.checked_div(rhs)
     }
 }
 
-impl<const LIMBS: usize> Div<&NonZero<Int<LIMBS>>> for &Int<LIMBS> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Int<RHS_LIMBS>>> for &Int<LIMBS> {
     type Output = CtOption<Int<LIMBS>>;
 
-    fn div(self, rhs: &NonZero<Int<LIMBS>>) -> Self::Output {
+    fn div(self, rhs: &NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         *self / *rhs
     }
 }
 
-impl<const LIMBS: usize> Div<&NonZero<Int<LIMBS>>> for Int<LIMBS> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Int<RHS_LIMBS>>> for Int<LIMBS> {
     type Output = CtOption<Int<LIMBS>>;
 
-    fn div(self, rhs: &NonZero<Int<LIMBS>>) -> Self::Output {
+    fn div(self, rhs: &NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         self / *rhs
     }
 }
 
-impl<const LIMBS: usize> Div<NonZero<Int<LIMBS>>> for &Int<LIMBS> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Int<RHS_LIMBS>>> for &Int<LIMBS> {
     type Output = CtOption<Int<LIMBS>>;
 
-    fn div(self, rhs: NonZero<Int<LIMBS>>) -> Self::Output {
+    fn div(self, rhs: NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         *self / rhs
     }
 }
 
-impl<const LIMBS: usize> Div<NonZero<Int<LIMBS>>> for Int<LIMBS> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Int<RHS_LIMBS>>> for Int<LIMBS> {
     type Output = CtOption<Int<LIMBS>>;
 
-    fn div(self, rhs: NonZero<Int<LIMBS>>) -> Self::Output {
+    fn div(self, rhs: NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         self.checked_div(&rhs)
     }
 }
@@ -342,34 +354,42 @@ impl<const LIMBS: usize> DivVartime for Int<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Div<NonZero<Int<LIMBS>>> for Wrapping<Int<LIMBS>> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Int<RHS_LIMBS>>>
+    for Wrapping<Int<LIMBS>>
+{
     type Output = Wrapping<Int<LIMBS>>;
 
-    fn div(self, rhs: NonZero<Int<LIMBS>>) -> Self::Output {
+    fn div(self, rhs: NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         Wrapping((self.0 / rhs).expect("cannot represent positive equivalent of Int::MIN as int"))
     }
 }
 
-impl<const LIMBS: usize> Div<NonZero<Int<LIMBS>>> for &Wrapping<Int<LIMBS>> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Int<RHS_LIMBS>>>
+    for &Wrapping<Int<LIMBS>>
+{
     type Output = Wrapping<Int<LIMBS>>;
 
-    fn div(self, rhs: NonZero<Int<LIMBS>>) -> Self::Output {
+    fn div(self, rhs: NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         *self / rhs
     }
 }
 
-impl<const LIMBS: usize> Div<&NonZero<Int<LIMBS>>> for &Wrapping<Int<LIMBS>> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Int<RHS_LIMBS>>>
+    for &Wrapping<Int<LIMBS>>
+{
     type Output = Wrapping<Int<LIMBS>>;
 
-    fn div(self, rhs: &NonZero<Int<LIMBS>>) -> Self::Output {
+    fn div(self, rhs: &NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         *self / *rhs
     }
 }
 
-impl<const LIMBS: usize> Div<&NonZero<Int<LIMBS>>> for Wrapping<Int<LIMBS>> {
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Int<RHS_LIMBS>>>
+    for Wrapping<Int<LIMBS>>
+{
     type Output = Wrapping<Int<LIMBS>>;
 
-    fn div(self, rhs: &NonZero<Int<LIMBS>>) -> Self::Output {
+    fn div(self, rhs: &NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         self / *rhs
     }
 }
@@ -388,34 +408,34 @@ impl<const LIMBS: usize> DivAssign<NonZero<Int<LIMBS>>> for Wrapping<Int<LIMBS>>
     }
 }
 
-impl<const LIMBS: usize> Rem<&NonZero<Int<LIMBS>>> for &Int<LIMBS> {
-    type Output = Int<LIMBS>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<&NonZero<Int<RHS_LIMBS>>> for &Int<LIMBS> {
+    type Output = Int<RHS_LIMBS>;
 
-    fn rem(self, rhs: &NonZero<Int<LIMBS>>) -> Self::Output {
+    fn rem(self, rhs: &NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         *self % *rhs
     }
 }
 
-impl<const LIMBS: usize> Rem<&NonZero<Int<LIMBS>>> for Int<LIMBS> {
-    type Output = Int<LIMBS>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<&NonZero<Int<RHS_LIMBS>>> for Int<LIMBS> {
+    type Output = Int<RHS_LIMBS>;
 
-    fn rem(self, rhs: &NonZero<Int<LIMBS>>) -> Self::Output {
+    fn rem(self, rhs: &NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         self % *rhs
     }
 }
 
-impl<const LIMBS: usize> Rem<NonZero<Int<LIMBS>>> for &Int<LIMBS> {
-    type Output = Int<LIMBS>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<NonZero<Int<RHS_LIMBS>>> for &Int<LIMBS> {
+    type Output = Int<RHS_LIMBS>;
 
-    fn rem(self, rhs: NonZero<Int<LIMBS>>) -> Self::Output {
+    fn rem(self, rhs: NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         *self % rhs
     }
 }
 
-impl<const LIMBS: usize> Rem<NonZero<Int<LIMBS>>> for Int<LIMBS> {
-    type Output = Int<LIMBS>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<NonZero<Int<RHS_LIMBS>>> for Int<LIMBS> {
+    type Output = Int<RHS_LIMBS>;
 
-    fn rem(self, rhs: NonZero<Int<LIMBS>>) -> Self::Output {
+    fn rem(self, rhs: NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         Self::rem(&self, &rhs)
     }
 }
@@ -432,34 +452,42 @@ impl<const LIMBS: usize> RemAssign<NonZero<Int<LIMBS>>> for Int<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Rem<NonZero<Int<LIMBS>>> for Wrapping<Int<LIMBS>> {
-    type Output = Wrapping<Int<LIMBS>>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<NonZero<Int<RHS_LIMBS>>>
+    for Wrapping<Int<LIMBS>>
+{
+    type Output = Wrapping<Int<RHS_LIMBS>>;
 
-    fn rem(self, rhs: NonZero<Int<LIMBS>>) -> Self::Output {
+    fn rem(self, rhs: NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         Wrapping(self.0 % rhs)
     }
 }
 
-impl<const LIMBS: usize> Rem<NonZero<Int<LIMBS>>> for &Wrapping<Int<LIMBS>> {
-    type Output = Wrapping<Int<LIMBS>>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<NonZero<Int<RHS_LIMBS>>>
+    for &Wrapping<Int<LIMBS>>
+{
+    type Output = Wrapping<Int<RHS_LIMBS>>;
 
-    fn rem(self, rhs: NonZero<Int<LIMBS>>) -> Self::Output {
+    fn rem(self, rhs: NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         *self % rhs
     }
 }
 
-impl<const LIMBS: usize> Rem<&NonZero<Int<LIMBS>>> for &Wrapping<Int<LIMBS>> {
-    type Output = Wrapping<Int<LIMBS>>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<&NonZero<Int<RHS_LIMBS>>>
+    for &Wrapping<Int<LIMBS>>
+{
+    type Output = Wrapping<Int<RHS_LIMBS>>;
 
-    fn rem(self, rhs: &NonZero<Int<LIMBS>>) -> Self::Output {
+    fn rem(self, rhs: &NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         *self % *rhs
     }
 }
 
-impl<const LIMBS: usize> Rem<&NonZero<Int<LIMBS>>> for Wrapping<Int<LIMBS>> {
-    type Output = Wrapping<Int<LIMBS>>;
+impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<&NonZero<Int<RHS_LIMBS>>>
+    for Wrapping<Int<LIMBS>>
+{
+    type Output = Wrapping<Int<RHS_LIMBS>>;
 
-    fn rem(self, rhs: &NonZero<Int<LIMBS>>) -> Self::Output {
+    fn rem(self, rhs: &NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         self % *rhs
     }
 }
