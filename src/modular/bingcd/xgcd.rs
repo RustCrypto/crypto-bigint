@@ -387,7 +387,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(miri)))]
 mod tests {
     use crate::modular::bingcd::xgcd::OddUintBinxgcdOutput;
     use crate::{ConcatMixed, Gcd, Uint};

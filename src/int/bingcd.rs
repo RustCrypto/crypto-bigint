@@ -244,7 +244,7 @@ mod test {
         }
     }
 
-    #[cfg(feature = "rand_core")]
+    #[cfg(all(feature = "rand_core", not(miri)))]
     pub(crate) fn make_rng() -> ChaChaRng {
         ChaChaRng::from_seed([0; 32])
     }

@@ -155,7 +155,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(miri)))]
 mod tests {
     mod bincgd_test {
         #[cfg(feature = "rand_core")]
