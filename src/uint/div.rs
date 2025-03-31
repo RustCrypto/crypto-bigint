@@ -44,7 +44,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
     ) -> (Self, Uint<RHS_LIMBS>) {
-        assert!(RHS_LIMBS <= LIMBS);
         // Based on Section 4.3.1, of The Art of Computer Programming, Volume 2, by Donald E. Knuth.
         // Further explanation at https://janmr.com/blog/2014/04/basic-multiple-precision-long-division/
 
@@ -130,9 +129,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Copy out the remainder
         y[0] = Limb::select(x[0], Limb(rem2), limb_div);
         i = 1;
-        while i < RHS_LIMBS {
+
+        let min = if LIMBS < RHS_LIMBS { LIMBS } else { RHS_LIMBS };
+        while i < min {
             y[i] = Limb::select(Limb::ZERO, x[i], ConstChoice::from_u32_lt(i as u32, dwords));
             y[i] = Limb::select(y[i], x_hi, ConstChoice::from_u32_eq(i as u32, dwords - 1));
+            i += 1;
+        }
+        while i < RHS_LIMBS {
+            y[i] = Limb::ZERO;
             i += 1;
         }
 
@@ -966,7 +971,7 @@ impl<const LIMBS: usize> RemLimb for Uint<LIMBS> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        DivVartime, Limb, NonZero, RemMixed, U64, U128, U256, U896, U1024, Uint, Word, Zero,
+        DivVartime, Limb, NonZero, RemMixed, U64, U128, U256, U512, U896, U1024, Uint, Word, Zero,
     };
 
     #[cfg(feature = "rand")]
@@ -1064,9 +1069,13 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
-    fn div_rem_denominator_too_large() {
-        U128::MAX.div_rem(&NonZero::<U256>::ONE);
+    fn div_rem_larger_denominator() {
+        let denom = U128::from_be_hex("AAAA0000FFFF11117777333344449999");
+        let (full_q, full_r) = U256::MAX.div_rem(&denom.to_nz().unwrap());
+        let (q, r) = U256::MAX.div_rem(&denom.resize::<{ U512::LIMBS }>().to_nz().unwrap());
+
+        assert_eq!(full_q, q);
+        assert_eq!(full_r.resize(), r);
     }
 
     #[test]
@@ -1077,7 +1086,7 @@ mod tests {
 
         let (q, r) = U1024::MAX.div_rem(&denom.to_nz().unwrap());
         assert_eq!(full_q, q);
-        assert_eq!(full_r.resize::<{ U128::LIMBS }>(), r);
+        assert_eq!(full_r.resize(), r);
     }
 
     #[test]
