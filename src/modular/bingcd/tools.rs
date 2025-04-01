@@ -1,4 +1,4 @@
-use crate::{ConstChoice, Odd, Uint};
+use crate::{ConstChoice, Limb, Odd, Uint};
 
 /// `const` equivalent of `u32::max(a, b)`.
 pub(crate) const fn const_max(a: u32, b: u32) -> u32 {
@@ -31,6 +31,17 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         self
+    }
+
+    /// Computes `self + (b * c) + carry`, returning the result along with the new carry.
+    #[inline]
+    const fn mac_limb(mut self, b: &Self, c: Limb, mut carry: Limb) -> (Self, Limb) {
+        let mut i = 0;
+        while i < LIMBS {
+            (self.limbs[i], carry) = self.limbs[i].mac(b.limbs[i], c, carry);
+            i += 1;
+        }
+        (self, carry)
     }
 
     /// Compute `self / 2 mod q`.
@@ -100,5 +111,41 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // safe to vartime; shl_vartime is variable in the value of shift only. Since this shift
         // is a public constant, the constant time property of this algorithm is not impacted.
         hi.shl_vartime(K - 1).bitxor(&lo)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{Limb, U128, Uint};
+
+    #[test]
+    fn test_mac_limb() {
+        // Do nothing
+        let x = U128::from_be_hex("ABCDEF98765432100123456789FEDCBA");
+        let q = U128::MAX;
+        let f = Limb::ZERO;
+        let (res, carry) = x.mac_limb(&q, f, Limb::ZERO);
+        assert_eq!(res, x);
+        assert_eq!(carry, Limb::ZERO);
+
+        // f = 1
+        let x = U128::from_be_hex("ABCDEF98765432100123456789FEDCBA");
+        let q = U128::MAX;
+        let f = Limb::ONE;
+        let (res, carry) = x.mac_limb(&q, f, Limb::ZERO);
+        assert_eq!(res, x.wrapping_add(&q));
+        assert_eq!(carry, Limb::ONE);
+
+        // f = max
+        let x = U128::from_be_hex("ABCDEF98765432100123456789FEDCBA");
+        let q = U128::MAX;
+        let f = Limb::MAX;
+        let (res, mac_carry) = x.mac_limb(&q, f, Limb::ZERO);
+        let (qf_lo, qf_hi) = q.split_mul(&Uint::new([f; 1]));
+        let (lo, carry) = qf_lo.adc(&x, Limb::ZERO);
+        let (hi, carry) = qf_hi.adc(&Uint::ZERO, carry);
+        assert_eq!(res, lo);
+        assert_eq!(mac_carry, hi.limbs[0]);
+        assert_eq!(carry, Limb::ZERO)
     }
 }
