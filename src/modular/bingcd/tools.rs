@@ -42,26 +42,43 @@ impl Limb {
 }
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Compute `self / 2^k  mod q`.
+    /// Compute `self / 2^k mod q`.
     ///
-    /// Executes in time variable in `k_bound`. This value should be
-    /// chosen as an inclusive upperbound to the value of `k`.
+    /// Executes in time variable in `k_bound`. This value should be chosen as an inclusive
+    /// upperbound to the value of `k`.
     #[inline]
-    pub(crate) const fn div_2k_mod_q(mut self, k: u32, k_bound: u32, q: &Odd<Self>) -> Self {
+    pub(crate) const fn div_2k_mod_q(self, k: u32, k_bound: u32, q: &Odd<Self>) -> Self {
         //        1  / 2      mod q
         // = (q + 1) / 2      mod q
         // = (q - 1) / 2  + 1 mod q
         // = floor(q / 2) + 1 mod q, since q is odd.
-        let one_half_mod_q = q.as_ref().shr_vartime(1).wrapping_add(&Uint::ONE);
-        let mut i = 0;
-        while i < k_bound {
-            // Apply only while i < k
-            let apply = ConstChoice::from_u32_lt(i, k);
-            self = Self::select(&self, &self.div_2_mod_q(&one_half_mod_q), apply);
-            i += 1;
+        let one_half_mod_q = q.as_ref().shr1().wrapping_add(&Uint::ONE);
+
+        // invariant: x = self / 2^e mod q.
+        let (mut x, mut e) = (self, 0);
+
+        let max_round_iters = Limb::BITS - 1;
+        let rounds = k_bound.div_ceil(max_round_iters);
+
+        let mut r = 0;
+        while r < rounds {
+            let f_bound = const_min(k_bound - r * max_round_iters, max_round_iters);
+            let f = const_min(k - e, f_bound);
+            let (_, s) = x.limbs[0].bounded_div2k_mod_q(f, f_bound, one_half_mod_q.limbs[0]);
+
+            // Compute (x * qs) / 2^f
+            // Note that 2^f divides x + qs by construction
+            let (x_qs_lo, mut x_qs_hi) = x.mac_limb(q.as_ref(), s, Limb::ZERO);
+            x_qs_hi = x_qs_hi.shl((Limb::BITS - f) % Limb::BITS);
+            let (mut x_qs_div_2f, _) = x_qs_lo.shr_limb(f);
+            x_qs_div_2f.limbs[LIMBS - 1] = x_qs_div_2f.limbs[LIMBS - 1].bitxor(x_qs_hi);
+
+            (x, e) = (x_qs_div_2f, e + f);
+
+            r += 1;
         }
 
-        self
+        x
     }
 
     /// Computes `self + (b * c) + carry`, returning the result along with the new carry.
@@ -73,14 +90,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             i += 1;
         }
         (self, carry)
-    }
-
-    /// Compute `self / 2 mod q`.
-    #[inline]
-    const fn div_2_mod_q(self, half_mod_q: &Self) -> Self {
-        // Floor-divide self by 2. When self was odd, add back 1/2 mod q.
-        let (floored_half, add_one_half) = self.shr1_with_carry();
-        floored_half.wrapping_add(&Self::select(&Self::ZERO, half_mod_q, add_one_half))
     }
 
     /// Construct a [Uint] containing the bits in `self` in the range `[idx, idx + length)`.
@@ -213,5 +222,52 @@ mod tests {
         assert_eq!(res, lo);
         assert_eq!(mac_carry, hi.limbs[0]);
         assert_eq!(carry, Limb::ZERO)
+    }
+
+    #[test]
+    fn test_new_div2k_mod_q() {
+        // Do nothing
+        let q = U128::from(3u64).to_odd().unwrap();
+        let res = U128::ONE.shl_vartime(64).div_2k_mod_q(0, 0, &q);
+        assert_eq!(res, U128::ONE.shl_vartime(64));
+
+        // Simply shift out 5 factors
+        let q = U128::from(3u64).to_odd().unwrap();
+        let res = U128::ONE.shl_vartime(64).div_2k_mod_q(5, 5, &q);
+        assert_eq!(res, U128::ONE.shl_vartime(59));
+
+        // Add in one factor of q
+        let q = U128::from(3u64).to_odd().unwrap();
+        let res = U128::ONE.div_2k_mod_q(1, 1, &q);
+        assert_eq!(res, U128::from(2u64));
+
+        // Add in many factors of q
+        let q = U128::from(3u64).to_odd().unwrap();
+        let res = U128::from(8u64).div_2k_mod_q(17, 17, &q);
+        assert_eq!(res, U128::ONE);
+
+        // Larger q
+        let q = U128::from(2864434311u64).to_odd().unwrap();
+        let res = U128::from(8u64).div_2k_mod_q(17, 17, &q);
+        assert_eq!(res, U128::from(303681787u64));
+
+        // Shift greater than Limb::BITS
+        let q = U128::from_be_hex("0000AAAABBBB33330000AAAABBBB3333")
+            .to_odd()
+            .unwrap();
+        let res = U128::MAX.div_2k_mod_q(71, 71, &q);
+        assert_eq!(res, U128::from_be_hex("00002D6F169DBBF300002D6F169DBBF3"));
+
+        // Have k_bound restrict the number of shifts to 0
+        let res = U128::MAX.div_2k_mod_q(71, 0, &q);
+        assert_eq!(res, U128::MAX);
+
+        // Have k_bound < k
+        let res = U128::MAX.div_2k_mod_q(71, 30, &q);
+        assert_eq!(res, U128::from_be_hex("000071EEB6013E76000071EEB6013E76"));
+
+        // Have k_bound >> k
+        let res = U128::MAX.div_2k_mod_q(30, 127, &q);
+        assert_eq!(res, U128::from_be_hex("000071EEB6013E76000071EEB6013E76"));
     }
 }
