@@ -10,6 +10,37 @@ pub(crate) const fn const_min(a: u32, b: u32) -> u32 {
     ConstChoice::from_u32_lt(a, b).select_u32(b, a)
 }
 
+impl Limb {
+    /// Compute `self / 2^k mod q`. Returns the result, as well as a factor `f` such that `2^k`
+    /// divides `self + q * f`.
+    ///
+    /// Executes in time variable in `k_bound`. This value should be chosen as an inclusive
+    /// upperbound to the value of `k`.
+    const fn bounded_div2k_mod_q(
+        mut self,
+        k: u32,
+        k_bound: u32,
+        one_half_mod_q: Self,
+    ) -> (Self, Self) {
+        let mut factor = Limb::ZERO;
+        let mut i = 0;
+        while i < k_bound {
+            let execute = ConstChoice::from_u32_lt(i, k);
+
+            let (shifted, carry) = self.shr1();
+            self = Self::select(self, shifted, execute);
+
+            let overflow = ConstChoice::from_word_msb(carry.0);
+            let add_back_q = overflow.and(execute);
+            self = self.wrapping_add(Self::select(Self::ZERO, one_half_mod_q, add_back_q));
+            factor = factor.bitxor(Self::select(Self::ZERO, Self::ONE.shl(i), add_back_q));
+            i += 1;
+        }
+
+        (self, factor)
+    }
+}
+
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute `self / 2^k  mod q`.
     ///
@@ -117,6 +148,41 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 #[cfg(test)]
 mod tests {
     use crate::{Limb, U128, Uint};
+
+    #[test]
+    fn test_bounded_div2k_mod_q() {
+        let x = Limb::MAX.wrapping_sub(Limb::from(15u32));
+        let q = Limb::from(55u32);
+        let half_mod_q = q.shr1().0.wrapping_add(Limb::ONE);
+
+        // Do nothing
+        let k = 0;
+        let k_bound = 3;
+        let (res, factor) = x.bounded_div2k_mod_q(k, k_bound, half_mod_q);
+        assert_eq!(res, x);
+        assert_eq!(factor, Limb::ZERO);
+
+        // Divide by 2^4 without requiring the addition of q
+        let k = 4;
+        let k_bound = 4;
+        let (res, factor) = x.bounded_div2k_mod_q(k, k_bound, half_mod_q);
+        assert_eq!(res, x.shr(4));
+        assert_eq!(factor, Limb::ZERO);
+
+        // Divide by 2^5, requiring a single addition of q * 2^4
+        let k = 5;
+        let k_bound = 5;
+        let (res, factor) = x.bounded_div2k_mod_q(k, k_bound, half_mod_q);
+        assert_eq!(res, x.shr(5).wrapping_add(half_mod_q));
+        assert_eq!(factor, Limb::ONE.shl(4));
+
+        // Execute at most k_bound iterations
+        let k = 5;
+        let k_bound = 4;
+        let (res, factor) = x.bounded_div2k_mod_q(k, k_bound, half_mod_q);
+        assert_eq!(res, x.shr(4));
+        assert_eq!(factor, Limb::ZERO);
+    }
 
     #[test]
     fn test_mac_limb() {
