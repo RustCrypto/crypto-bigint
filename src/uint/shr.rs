@@ -157,6 +157,49 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         (ret, ConstChoice::from_word_lsb(carry.0 >> Limb::HI_BIT))
     }
+
+    /// Computes `self >> shift` where `0 <= shift < Limb::BITS`,
+    /// returning the result and the carry.
+    #[inline(always)]
+    pub(crate) const fn shr_limb(&self, shift: u32) -> (Self, Limb) {
+        assert!(shift < Limb::BITS);
+        let nz = ConstChoice::from_u32_nonzero(shift);
+        let shift = nz.select_u32(1, shift);
+        let (res, carry) = self.shr_limb_nonzero(shift);
+        (
+            Uint::select(self, &res, nz),
+            Limb::select(Limb::ZERO, carry, nz),
+        )
+    }
+
+    /// Computes `self >> shift` where `0 < shift < Limb::BITS`, returning the result and the carry.
+    ///
+    /// Note: this operation should not be used in situations where `shift == 0`; the compiler can
+    /// sometimes sniff this case out and optimize it away, possibly leading to variable time
+    /// behaviour.
+    #[inline(always)]
+    pub(crate) const fn shr_limb_nonzero(&self, shift: u32) -> (Self, Limb) {
+        assert!(0 < shift);
+        assert!(shift < Limb::BITS);
+
+        let mut limbs = [Limb::ZERO; LIMBS];
+
+        let rshift = shift;
+        let lshift = Limb::BITS - shift;
+
+        let mut carry = Limb::ZERO;
+        let mut i = LIMBS;
+        while i > 0 {
+            i -= 1;
+
+            let limb = self.limbs[i].shr(rshift);
+            let new_carry = self.limbs[i].shl(lshift);
+            limbs[i] = limb.bitor(carry);
+            carry = new_carry;
+        }
+
+        (Uint::<LIMBS>::new(limbs), carry)
+    }
 }
 
 macro_rules! impl_shr {
@@ -208,7 +251,7 @@ impl<const LIMBS: usize> ShrVartime for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{U128, U256, Uint};
+    use crate::{Limb, U128, U256, Uint};
 
     const N: U256 =
         U256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
@@ -257,5 +300,42 @@ mod tests {
                 .is_none()
                 .is_true_vartime()
         );
+    }
+
+    #[test]
+    #[should_panic]
+    fn shr_limb_shift_too_large() {
+        let _ = U128::ONE.shr_limb(Limb::BITS);
+    }
+
+    #[test]
+    #[should_panic]
+    fn shr_limb_nz_panics_at_zero_shift() {
+        let _ = U128::ONE.shr_limb_nonzero(0);
+    }
+
+    #[test]
+    fn shr_limb() {
+        let val = U128::from_be_hex("876543210FEDCBA90123456FEDCBA987");
+
+        // Shift by zero
+        let (res, carry) = val.shr_limb(0);
+        assert_eq!(res, val);
+        assert_eq!(carry, Limb::ZERO);
+
+        // Shift by one
+        let (res, carry) = val.shr_limb(1);
+        assert_eq!(res, val.shr_vartime(1));
+        assert_eq!(carry, val.limbs[0].shl(Limb::BITS - 1));
+
+        // Shift by any
+        let (res, carry) = val.shr_limb(13);
+        assert_eq!(res, val.shr_vartime(13));
+        assert_eq!(carry, val.limbs[0].shl(Limb::BITS - 13));
+
+        // Shift by max
+        let (res, carry) = val.shr_limb(Limb::BITS - 1);
+        assert_eq!(res, val.shr_vartime(Limb::BITS - 1));
+        assert_eq!(carry, val.limbs[0].shl(1));
     }
 }
