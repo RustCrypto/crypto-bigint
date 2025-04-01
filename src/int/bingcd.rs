@@ -195,7 +195,7 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(miri)))]
 mod test {
     use crate::int::bingcd::{IntBinxgcdOutput, NonZeroIntBinxgcdOutput, OddIntBinxgcdOutput};
     use crate::{ConcatMixed, Int, Uint};
@@ -244,7 +244,7 @@ mod test {
         }
     }
 
-    #[cfg(all(feature = "rand_core", not(miri)))]
+    #[cfg(feature = "rand_core")]
     pub(crate) fn make_rng() -> ChaChaRng {
         ChaChaRng::from_seed([0; 32])
     }

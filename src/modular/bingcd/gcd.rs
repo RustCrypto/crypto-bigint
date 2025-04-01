@@ -117,8 +117,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     }
 }
 
-#[cfg(feature = "rand_core")]
-#[cfg(test)]
+#[cfg(all(test, feature = "rand_core"))]
 mod tests {
     use rand_chacha::ChaChaRng;
     use rand_core::SeedableRng;
