@@ -37,12 +37,12 @@ impl<const LIMBS: usize> RawOddUintBinxgcdOutput<LIMBS> {
         let (lhs_div_gcd, rhs_div_gcd) = self.quotients();
         let (x, y, .., k, k_upper_bound) = self.matrix.as_elements_mut();
         if *k_upper_bound > 0 {
-            *x = x.div_2k_mod_q(
+            *x = x.bounded_div_2k_mod_q(
                 *k,
                 *k_upper_bound,
                 &rhs_div_gcd.to_odd().expect("odd by construction"),
             );
-            *y = y.div_2k_mod_q(
+            *y = y.bounded_div_2k_mod_q(
                 *k,
                 *k_upper_bound,
                 &lhs_div_gcd.to_odd().expect("odd by construction"),

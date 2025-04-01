@@ -47,7 +47,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Executes in time variable in `k_bound`. This value should be chosen as an inclusive
     /// upperbound to the value of `k`.
     #[inline]
-    pub(crate) const fn div_2k_mod_q(self, k: u32, k_bound: u32, q: &Odd<Self>) -> Self {
+    pub(crate) const fn bounded_div_2k_mod_q(self, k: u32, k_bound: u32, q: &Odd<Self>) -> Self {
         //        1  / 2      mod q
         // = (q + 1) / 2      mod q
         // = (q - 1) / 2  + 1 mod q
@@ -228,46 +228,46 @@ mod tests {
     fn test_new_div2k_mod_q() {
         // Do nothing
         let q = U128::from(3u64).to_odd().unwrap();
-        let res = U128::ONE.shl_vartime(64).div_2k_mod_q(0, 0, &q);
+        let res = U128::ONE.shl_vartime(64).bounded_div_2k_mod_q(0, 0, &q);
         assert_eq!(res, U128::ONE.shl_vartime(64));
 
         // Simply shift out 5 factors
         let q = U128::from(3u64).to_odd().unwrap();
-        let res = U128::ONE.shl_vartime(64).div_2k_mod_q(5, 5, &q);
+        let res = U128::ONE.shl_vartime(64).bounded_div_2k_mod_q(5, 5, &q);
         assert_eq!(res, U128::ONE.shl_vartime(59));
 
         // Add in one factor of q
         let q = U128::from(3u64).to_odd().unwrap();
-        let res = U128::ONE.div_2k_mod_q(1, 1, &q);
+        let res = U128::ONE.bounded_div_2k_mod_q(1, 1, &q);
         assert_eq!(res, U128::from(2u64));
 
         // Add in many factors of q
         let q = U128::from(3u64).to_odd().unwrap();
-        let res = U128::from(8u64).div_2k_mod_q(17, 17, &q);
+        let res = U128::from(8u64).bounded_div_2k_mod_q(17, 17, &q);
         assert_eq!(res, U128::ONE);
 
         // Larger q
         let q = U128::from(2864434311u64).to_odd().unwrap();
-        let res = U128::from(8u64).div_2k_mod_q(17, 17, &q);
+        let res = U128::from(8u64).bounded_div_2k_mod_q(17, 17, &q);
         assert_eq!(res, U128::from(303681787u64));
 
         // Shift greater than Limb::BITS
         let q = U128::from_be_hex("0000AAAABBBB33330000AAAABBBB3333")
             .to_odd()
             .unwrap();
-        let res = U128::MAX.div_2k_mod_q(71, 71, &q);
+        let res = U128::MAX.bounded_div_2k_mod_q(71, 71, &q);
         assert_eq!(res, U128::from_be_hex("00002D6F169DBBF300002D6F169DBBF3"));
 
         // Have k_bound restrict the number of shifts to 0
-        let res = U128::MAX.div_2k_mod_q(71, 0, &q);
+        let res = U128::MAX.bounded_div_2k_mod_q(71, 0, &q);
         assert_eq!(res, U128::MAX);
 
         // Have k_bound < k
-        let res = U128::MAX.div_2k_mod_q(71, 30, &q);
+        let res = U128::MAX.bounded_div_2k_mod_q(71, 30, &q);
         assert_eq!(res, U128::from_be_hex("000071EEB6013E76000071EEB6013E76"));
 
         // Have k_bound >> k
-        let res = U128::MAX.div_2k_mod_q(30, 127, &q);
+        let res = U128::MAX.bounded_div_2k_mod_q(30, 127, &q);
         assert_eq!(res, U128::from_be_hex("000071EEB6013E76000071EEB6013E76"));
     }
 }
