@@ -274,10 +274,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             (a, a_sgn) = updated_a.wrapping_drop_extension();
             (b, b_sgn) = updated_b.wrapping_drop_extension();
 
-            assert!(
-                a_sgn.and(b_sgn).not().to_bool_vartime(),
-                "a or b is negative, but never both"
-            );
+            assert!(a_sgn.not().to_bool_vartime(), "a is never negative");
+            assert!(b_sgn.not().to_bool_vartime(), "b is never negative");
 
             matrix = update_matrix.wrapping_mul_right(&matrix);
             matrix.conditional_negate(a_sgn); // TODO: find a cleaner solution for this

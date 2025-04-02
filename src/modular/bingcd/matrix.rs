@@ -110,15 +110,15 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
         vec: Vector<Uint<VEC_LIMBS>>,
     ) -> Vector<ExtendedInt<VEC_LIMBS, LIMBS>> {
         let (a, b) = vec;
-        let a0 = ExtendedInt::from_product(a, self.m00);
-        let a1 = ExtendedInt::from_product(a, self.m10);
-        let b0 = ExtendedInt::from_product(b, self.m01);
-        let b1 = ExtendedInt::from_product(b, self.m11);
+        let m00a = ExtendedInt::from_product(a, self.m00);
+        let m10a = ExtendedInt::from_product(a, self.m10);
+        let m01b = ExtendedInt::from_product(b, self.m01);
+        let m11b = ExtendedInt::from_product(b, self.m11);
         (
-            a0.wrapping_sub(&b0)
+            m00a.wrapping_sub(&m01b)
                 .div_2k(self.k)
                 .wrapping_neg_if(self.pattern.not()),
-            a1.wrapping_sub(&b1)
+            m11b.wrapping_sub(&m10a)
                 .div_2k(self.k)
                 .wrapping_neg_if(self.pattern.not()),
         )
