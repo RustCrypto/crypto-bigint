@@ -250,7 +250,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         let (mut a, mut b) = (*self.as_ref(), *rhs.as_ref());
         let mut matrix = BinXgcdMatrix::UNIT;
 
-        let mut a_sgn;
+        let (mut a_sgn, mut b_sgn);
         let mut i = 0;
         while i < Self::MIN_BINGCD_ITERATIONS.div_ceil(K - 1) {
             i += 1;
@@ -272,7 +272,12 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = update_matrix.wrapping_apply_to((a, b));
             (a, a_sgn) = updated_a.wrapping_drop_extension();
-            (b, _) = updated_b.wrapping_drop_extension();
+            (b, b_sgn) = updated_b.wrapping_drop_extension();
+
+            assert!(
+                a_sgn.and(b_sgn).not().to_bool_vartime(),
+                "a or b is negative, but never both"
+            );
 
             matrix = update_matrix.wrapping_mul_right(&matrix);
             matrix.conditional_negate(a_sgn); // TODO: find a cleaner solution for this
