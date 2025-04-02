@@ -1,8 +1,8 @@
 //! [`BoxedUint`] division operations.
 
 use crate::{
-    BoxedUint, CheckedDiv, ConstChoice, ConstantTimeSelect, DivRemLimb, Limb, NonZero, Reciprocal,
-    RemLimb, RemMixed, Wrapping,
+    BoxedUint, CheckedDiv, ConstChoice, ConstantTimeSelect, DivRemLimb, DivVartime, Limb, NonZero,
+    Reciprocal, RemLimb, RemMixed, Wrapping,
     uint::{
         boxed,
         div_limb::{div2by1, div3by2},
@@ -287,6 +287,12 @@ impl DivAssign<NonZero<BoxedUint>> for BoxedUint {
     }
 }
 
+impl DivVartime for BoxedUint {
+    fn div_vartime(&self, rhs: &NonZero<BoxedUint>) -> Self {
+        self.div_rem_vartime(rhs).0
+    }
+}
+
 impl Div<NonZero<BoxedUint>> for Wrapping<BoxedUint> {
     type Output = Wrapping<BoxedUint>;
 
@@ -518,6 +524,8 @@ pub(crate) fn div_rem_vartime_in_place(x: &mut [Limb], y: &mut [Limb]) {
 
 #[cfg(test)]
 mod tests {
+    use crate::{DivVartime, Zero};
+
     use super::{BoxedUint, Limb, NonZero};
 
     #[test]
@@ -540,5 +548,25 @@ mod tests {
         let pl = NonZero::new(Limb(997)).unwrap();
         let p = NonZero::new(BoxedUint::from(997u128)).unwrap();
         assert_eq!(n.rem(&p).limbs[0], n.rem_limb(pl));
+    }
+
+    #[test]
+    fn div_vartime_through_trait() {
+        struct A<T> {
+            x: T,
+            y: T,
+        }
+        impl<T: DivVartime + Clone + Zero> A<T> {
+            fn divide_x_by_y(&self) -> T {
+                let rhs = &NonZero::new(self.y.clone()).unwrap();
+                self.x.div_vartime(rhs)
+            }
+        }
+
+        let a = A {
+            x: BoxedUint::from(1234567890u64),
+            y: BoxedUint::from(456u64),
+        };
+        assert_eq!(a.divide_x_by_y(), BoxedUint::from(2707385u64));
     }
 }
