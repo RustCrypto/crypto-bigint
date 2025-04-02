@@ -107,7 +107,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
                 .partial_binxgcd_vartime::<LIMBS_K>(&b_, K - 1, ConstChoice::FALSE);
 
             // Update `a` and `b` using the update matrix
-            let (updated_a, updated_b) = matrix.wrapping_apply_to((a, b));
+            let (updated_a, updated_b) = matrix.extended_apply_to((a, b));
             (a, _) = updated_a.wrapping_drop_extension();
             (b, _) = updated_b.wrapping_drop_extension();
         }

@@ -270,7 +270,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
                 .partial_binxgcd_vartime::<LIMBS_K>(&b_, K - 1, b_fits_in_compact);
 
             // Update `a` and `b` using the update matrix
-            let (updated_a, updated_b) = update_matrix.wrapping_apply_to((a, b));
+            let (updated_a, updated_b) = update_matrix.extended_apply_to((a, b));
             (a, a_sgn) = updated_a.wrapping_drop_extension();
             (b, b_sgn) = updated_b.wrapping_drop_extension();
 
@@ -604,7 +604,7 @@ mod tests {
             assert_eq!(new_a, target_a);
             assert_eq!(new_b, target_b);
 
-            let (computed_a, computed_b) = matrix.wrapping_apply_to((A.get(), B));
+            let (computed_a, computed_b) = matrix.extended_apply_to((A.get(), B));
             let computed_a = computed_a.wrapping_drop_extension().0;
             let computed_b = computed_b.wrapping_drop_extension().0;
 

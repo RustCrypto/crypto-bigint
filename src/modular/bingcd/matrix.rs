@@ -105,7 +105,7 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
     /// Apply this matrix to a vector of [Uint]s, returning the result as a vector of
     /// [ExtendedInt]s.
     #[inline]
-    pub(crate) const fn wrapping_apply_to<const VEC_LIMBS: usize>(
+    pub(crate) const fn extended_apply_to<const VEC_LIMBS: usize>(
         &self,
         vec: Vector<Uint<VEC_LIMBS>>,
     ) -> Vector<ExtendedInt<VEC_LIMBS, LIMBS>> {
@@ -245,7 +245,7 @@ mod tests {
             k_upper_bound: 17,
         };
 
-        let (a_, b_) = matrix.wrapping_apply_to((a, b));
+        let (a_, b_) = matrix.extended_apply_to((a, b));
         assert_eq!(
             a_.wrapping_drop_extension().0,
             Uint::from_be_hex("002AC7CDD032B9B9")
