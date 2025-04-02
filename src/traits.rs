@@ -666,6 +666,12 @@ pub trait RemMixed<Reductor>: Sized {
     fn rem_mixed(&self, reductor: &NonZero<Reductor>) -> Reductor;
 }
 
+/// Division in variable time.
+pub trait DivVartime: Sized {
+    /// Computes `self / rhs` in variable time.
+    fn div_vartime(&self, rhs: &NonZero<Self>) -> Self;
+}
+
 /// Support for optimized division by a single limb.
 pub trait RemLimb: Sized {
     /// Computes `self % rhs` using a pre-made reciprocal.
