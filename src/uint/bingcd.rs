@@ -315,5 +315,26 @@ mod tests {
             binxgcd_tests::<{ U4096::LIMBS }, { U8192::LIMBS }>();
             binxgcd_tests::<{ U8192::LIMBS }, { U16384::LIMBS }>();
         }
+
+        #[test]
+        fn test_binxgcd_regression_tests() {
+            // Sent in by @kayabaNerve (https://github.com/RustCrypto/crypto-bigint/pull/761#issuecomment-2771564732)
+            let a = U256::from_be_hex(
+                "000000000000000000000000000000000000001B5DFB3BA1D549DFAF611B8D4C",
+            );
+            let b = U256::from_be_hex(
+                "000000000000345EAEDFA8CA03C1F0F5B578A787FE2D23B82A807F178B37FD8E",
+            );
+            binxgcd_test(a, b);
+
+            // Sent in by @kayabaNerve (https://github.com/RustCrypto/crypto-bigint/pull/761#issuecomment-2771581512)
+            let a = U256::from_be_hex(
+                "000000000000000000000000000000000000001A0DEEF6F3AC2566149D925044",
+            );
+            let b = U256::from_be_hex(
+                "000000000000072B69C9DD0AA15F135675EA9C5180CF8FF0A59298CFC92E87FA",
+            );
+            binxgcd_test(a, b);
+        }
     }
 }
