@@ -696,7 +696,8 @@ pub trait BitOps {
     /// Precision of this integer in bytes.
     fn bytes_precision(&self) -> usize;
 
-    /// Calculate the number of bits needed to represent this number.
+    /// Get the value of the bit at position `index`, as a truthy or falsy `Choice`.
+    /// Returns the falsy value for indices out of range.
     fn bit(&self, index: u32) -> Choice;
 
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
