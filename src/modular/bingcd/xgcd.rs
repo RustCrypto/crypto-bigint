@@ -263,6 +263,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         let (mut a_sgn, mut b_sgn);
         let mut i = 0;
         while i < Self::MIN_BINGCD_ITERATIONS.div_ceil(K - 1) {
+            // Loop invariant: each iteration, `a.bits() + b.bits()` shrinks by at least K-1.
             i += 1;
 
             // Construct compact_a and compact_b as the summary of a and b, respectively.
@@ -273,11 +274,31 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let b_eq_compact_b =
                 ConstChoice::from_u32_le(b_bits, K - 1).or(ConstChoice::from_u32_eq(n, 2 * K));
 
+            // Verify that `compact_a` and `compact_b` preserve the ordering of `a` and `b`.
+            let a_cmp_b = Uint::cmp(&a, &b);
+            let compact_a_cmp_compact_b = Uint::cmp(&compact_a, &compact_b);
+            let compact_maintains_ordering =
+                ConstChoice::from_i8_eq(a_cmp_b, compact_a_cmp_compact_b);
+
             // Compute the K-1 iteration update matrix from a_ and b_
-            let (.., update_matrix) = compact_a
+            let (.., mut update_matrix) = compact_a
                 .to_odd()
                 .expect("a is always odd")
                 .partial_binxgcd_vartime::<LIMBS_K>(&compact_b, K - 1, b_eq_compact_b);
+
+            // Deal with the case that compacting loses the ordering of `(a, b)`.
+            //
+            // This can only occur whenever (at least) the top `K-1` bits of `compact_a` and
+            // `compact_b` are the same. As a result, subtracting one from the other causes the
+            // `a.bits() + b.bits()` to shrink by at least `K-1` (see loop invariant).
+            // It thus suffices to replace `update_matrix` with one that just subtracts one from the
+            // other.
+            let a_lt_b = ConstChoice::from_i8_eq(a_cmp_b, -1);
+            update_matrix = BinXgcdMatrix::select(
+                &BinXgcdMatrix::get_subtraction_matrix(a_lt_b, K - 1),
+                &update_matrix,
+                compact_maintains_ordering,
+            );
 
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = update_matrix.extended_apply_to((a, b));
@@ -288,7 +309,15 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             assert!(b_sgn.not().to_bool_vartime(), "b is never negative");
 
             matrix = update_matrix.wrapping_mul_right(&matrix);
-            matrix.conditional_negate(a_sgn); // TODO: find a cleaner solution for this
+
+            // Cont. of dealing with the case that compacting loses the ordering of `(a, b)`.
+            //
+            // When `a > b`, and thus `b` is subtracted from `a`, it could be that `a` is now even.
+            // Since `a` should always be odd, we swap the two operands. Note that `b` must be odd,
+            // since subtracting it from the odd `a` yielded an even number.
+            let a_is_even = a.is_odd().not();
+            Uint::conditional_swap(&mut a, &mut b, a_is_even);
+            matrix.conditional_swap_rows(a_is_even)
         }
 
         let gcd = a
