@@ -135,6 +135,16 @@ impl<T: Copy, const LIMBS: usize> BaseUintBinxgcdOutput<T, LIMBS> {
     }
 }
 
+/// Number of bits used by [Odd::<Uint<LIMBS>>::optimized_binxgcd] to represent a "compact" [Uint].
+const SUMMARY_BITS: u32 = U64::BITS;
+
+/// Number of limbs used to represent [Self::SUMMARY_BITS].
+const SUMMARY_LIMBS: usize = U64::LIMBS;
+
+/// Twice the number of limbs used to represent [Self::SUMMARY_BITS], i.e., two times
+/// [Self::SUMMARY_LIMBS].
+const DOUBLE_SUMMARY_LIMBS: usize = U128::LIMBS;
+
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// The minimal number of binary GCD iterations required to guarantee successful completion.
     const MIN_BINGCD_ITERATIONS: u32 = 2 * Self::BITS - 1;
@@ -220,7 +230,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// <https://eprint.iacr.org/2020/972.pdf>.
     pub(crate) const fn optimized_binxgcd(&self, rhs: &Self) -> RawOddUintBinxgcdOutput<LIMBS> {
         assert!(Self::BITS >= U128::BITS);
-        self.optimized_binxgcd_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
+        self.optimized_binxgcd_::<SUMMARY_BITS, SUMMARY_LIMBS, DOUBLE_SUMMARY_LIMBS>(rhs)
     }
 
     /// Given `(self, rhs)`, computes `(g, x, y)`, s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
