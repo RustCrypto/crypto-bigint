@@ -31,7 +31,7 @@ zeroize = { version = "1", optional = true, default-features = false }
 [dev-dependencies]
 bincode = "1"
 criterion = { version = "0.5", features = ["html_reports"] }
-hex-literal = "1.0"
+hex-literal = "1"
 num-bigint = "0.4"
 num-integer = "0.1"
 num-modular = { version = "0.6", features = ["num-bigint", "num-integer", "num-traits"] }
