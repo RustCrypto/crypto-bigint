@@ -65,6 +65,13 @@ impl ConstChoice {
     }
 
     #[inline]
+    pub(crate) const fn from_u8_lsb(value: u8) -> Self {
+        debug_assert!(value == 0 || value == 1);
+        #[allow(trivial_numeric_casts)]
+        Self((value as Word).wrapping_neg())
+    }
+
+    #[inline]
     pub(crate) const fn from_u32_lsb(value: u32) -> Self {
         debug_assert!(value == 0 || value == 1);
         #[allow(trivial_numeric_casts)]
@@ -76,6 +83,12 @@ impl ConstChoice {
         debug_assert!(value == 0 || value == 1);
         #[allow(trivial_numeric_casts)]
         Self((value as Word).wrapping_neg())
+    }
+
+    /// Returns the truthy value if `value != 0`, and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn from_u8_nonzero(value: u8) -> Self {
+        Self::from_u8_lsb((value | value.wrapping_neg()) >> (u8::BITS - 1))
     }
 
     /// Returns the truthy value if `value != 0`, and the falsy value otherwise.
@@ -172,6 +185,14 @@ impl ConstChoice {
     #[inline]
     pub(crate) const fn from_u64_gt(x: u64, y: u64) -> Self {
         Self::from_u64_lt(y, x)
+    }
+
+    /// Returns the truthy value if `x = y`, and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn from_i8_eq(x: i8, y: i8) -> Self {
+        let x = x as u8;
+        let y = y as u8;
+        Self::from_u8_nonzero(x ^ y).not()
     }
 
     #[inline]
@@ -540,6 +561,19 @@ mod tests {
     use super::ConstChoice;
 
     #[test]
+    fn from_u8_nonzero() {
+        assert_eq!(ConstChoice::from_u8_nonzero(0), ConstChoice::FALSE);
+        assert_eq!(ConstChoice::from_u8_nonzero(1), ConstChoice::TRUE);
+        assert_eq!(ConstChoice::from_u8_nonzero(123), ConstChoice::TRUE);
+    }
+
+    #[test]
+    fn from_u8_lsb() {
+        assert_eq!(ConstChoice::from_u8_lsb(0), ConstChoice::FALSE);
+        assert_eq!(ConstChoice::from_u8_lsb(1), ConstChoice::TRUE);
+    }
+
+    #[test]
     fn from_u64_lsb() {
         assert_eq!(ConstChoice::from_u64_lsb(0), ConstChoice::FALSE);
         assert_eq!(ConstChoice::from_u64_lsb(1), ConstChoice::TRUE);
@@ -564,6 +598,19 @@ mod tests {
         assert_eq!(ConstChoice::from_wide_word_le(4, 5), ConstChoice::TRUE);
         assert_eq!(ConstChoice::from_wide_word_le(5, 5), ConstChoice::TRUE);
         assert_eq!(ConstChoice::from_wide_word_le(6, 5), ConstChoice::FALSE);
+    }
+
+    #[test]
+    fn from_i8_eq() {
+        assert_eq!(ConstChoice::from_i8_eq(-1, -1), ConstChoice::TRUE);
+        assert_eq!(ConstChoice::from_i8_eq(-1, 0), ConstChoice::FALSE);
+        assert_eq!(ConstChoice::from_i8_eq(-1, 1), ConstChoice::FALSE);
+        assert_eq!(ConstChoice::from_i8_eq(0, -1), ConstChoice::FALSE);
+        assert_eq!(ConstChoice::from_i8_eq(0, 0), ConstChoice::TRUE);
+        assert_eq!(ConstChoice::from_i8_eq(0, 1), ConstChoice::FALSE);
+        assert_eq!(ConstChoice::from_i8_eq(1, -1), ConstChoice::FALSE);
+        assert_eq!(ConstChoice::from_i8_eq(1, 0), ConstChoice::FALSE);
+        assert_eq!(ConstChoice::from_i8_eq(1, 1), ConstChoice::TRUE);
     }
 
     #[test]
