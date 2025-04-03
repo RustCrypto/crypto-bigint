@@ -8,8 +8,116 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Constant time right shift, implemented in ARM assembly.
     #[allow(unsafe_code)]
     #[cfg(target_arch = "aarch64")]
-    pub unsafe fn shr_asm(self: &Uint<LIMBS>, shift: u32) -> Uint<LIMBS> {
-        assert!(shift < Uint::<LIMBS>::BITS, "Shift out of bounds");
+    pub unsafe fn shr_asm(&self, shift: u32) -> Uint<LIMBS> {
+        // Ensure shift is less than total bits.
+        assert!(
+            shift < Uint::<LIMBS>::BITS,
+            "`shift` must be less than the bit size of the integer"
+        );
+        let mut res = Uint::ZERO;
+        let limbs = self.as_limbs();
+        let out_limbs = res.as_limbs_mut();
+
+        // Split shift into whole‑limb and in‑limb parts.
+        let limb_shift = (shift >> 6) as u64; // number of 64-bit limbs to shift
+        let bit_shift = shift & 0x3F; // remaining bit shift (0..63)
+        let total_limbs = LIMBS as u64;
+        // A constant zero limb we can safely load when the index is out-of-range.
+        let zero: u64 = 0;
+
+        // We now loop over each output limb index i in 0..total_limbs.
+        // For each output index i, compute:
+        //    a = (if i+limb_shift < total_limbs then src[i+limb_shift] else 0)
+        //    b = (if i+limb_shift+1 < total_limbs then src[i+limb_shift+1] else 0)
+        //    result[i] = (if bit_shift != 0:
+        //                      (a >> bit_shift) | (b << (64-bit_shift))
+        //                  else:
+        //                      a)
+        unsafe {
+            core::arch::asm!(
+                // x0: pointer to input limbs (limbs.as_ptr())
+                // x1: pointer to output limbs (out_limbs.as_mut_ptr())
+                // x2: loop index i (0..total_limbs)
+                // x3: bit_shift (0..63)
+                // x4: limb_shift
+                // x5: total_limbs
+                // x12: pointer to a zero limb (&zero)
+                "mov x2, #0",                // i = 0
+                "1:",
+                "cmp x2, x5",                // if i >= total_limbs, exit loop
+                "b.ge 2f",
+
+                // Compute a_index = i + limb_shift, store in x7.
+                "add x7, x2, x4",            // x7 = i + limb_shift
+                "lsl x8, x7, #3",            // x8 = (a_index * 8)
+                "add x8, x0, x8",            // tentative pointer for a: src + (a_index * 8)
+                "cmp x7, x5",                // if (i + limb_shift) < total_limbs?
+                "csel x8, x8, x12, lt",       // if x7 < x5 then x8 remains; else use zero pointer
+
+                // Compute b_index = i + limb_shift + 1.
+                "add x7, x2, x4",            // x7 = i + limb_shift again
+                "add x7, x7, #1",            // x7 = i + limb_shift + 1
+                "lsl x9, x7, #3",            // x9 = (b_index * 8)
+                "add x9, x0, x9",            // tentative pointer for b: src + (b_index * 8)
+                "cmp x7, x5",                // if (i + limb_shift + 1) < total_limbs?
+                "csel x9, x9, x12, lt",       // if true, keep; else use zero pointer
+
+                // Load the limbs for a and b.
+                "ldr x10, [x8]",             // x10 = a
+                "ldr x11, [x9]",             // x11 = b
+
+                // For bit shifting:
+                // Compute part_a = a >> bit_shift.
+                "lsr x10, x10, x3",          // x10 = a >> bit_shift
+
+                // Compute part_b = b << (64 - bit_shift).
+                "mov x6, #64",               // x6 = 64
+                "sub x6, x6, x3",            // x6 = 64 - bit_shift
+                "lsl x11, x11, x6",          // x11 = b << (64 - bit_shift)
+                // If bit_shift is zero, force part_b to 0.
+                "cmp x3, #0",
+                "csel x11, xzr, x11, eq",     // if bit_shift == 0, x11 = 0
+
+                // Combine the two parts.
+                "orr x10, x10, x11",         // result = part_a OR part_b
+
+                // Compute the output pointer for index i.
+                "lsl x7, x2, #3",            // offset = i * 8
+                "add x7, x1, x7",            // destination pointer = out + offset
+                "str x10, [x7]",             // store result limb
+
+                // Increment loop index.
+                "add x2, x2, #1",
+                "b 1b",
+                "2:",
+                in("x0") limbs.as_ptr(),         // input pointer
+                in("x1") out_limbs.as_mut_ptr(),   // output pointer
+                in("x3") bit_shift,                // bit shift value
+                in("x4") limb_shift,               // limb shift value
+                in("x5") total_limbs,              // total number of limbs
+                in("x12") &zero,                   // pointer to a zero limb
+                lateout("x2") _,                  // loop counter
+                lateout("x6") _,                  // scratch for (64 - bit_shift)
+                lateout("x7") _,                  // scratch for indices and offsets
+                lateout("x8") _,                  // pointer for a
+                lateout("x9") _,                  // pointer for b
+                lateout("x10") _,                 // holds shifted a / result
+                lateout("x11") _,                 // holds shifted b
+                options(nostack)
+            )
+        };
+        res
+    }
+
+    #[allow(unsafe_code)]
+    #[cfg(target_arch = "aarch64")]
+    // TODO(dp):This works for shift < 64 –– worth keeping?
+    /// Constant time right shift, implemented in ARM assembly, only works for small shifts (<64).
+    pub unsafe fn shr_asm_small_shift(self: &Uint<LIMBS>, shift: u32) -> Uint<LIMBS> {
+        assert!(
+            shift < Uint::<LIMBS>::BITS,
+            "`shift` within the bit size of the integer"
+        );
         let mut res = Uint::ZERO;
         let limbs = self.as_limbs();
         let out_limbs = res.as_limbs_mut();
@@ -17,51 +125,36 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             core::arch::asm!(
             "mov x6, #0",           // Init carry
 
-            // Loop over the limbs
+            // Reverse loop over the limbs (starting from high to low)
+            "add x0, x0, x2, LSL #3",   // Move input pointer to end
+            "add x1, x1, x2, LSL #3",   // Move output pointer to end
+
             "1:",
-            "ldr x7, [x0], #8",     // x7 ← Memory[x0] (load 64-bit limb)
-                                    // x0 ← x0 + 8 (increment input pointer)
-            "mov x8, x7",           // x8 ← x7 (preserve original limb value in x8)
-            "lsr x7, x7, x3",       // Rights shift x7 by x3 steps and store in x7
-            "orr x7, x7, x6",       // Combine with carry from previous limb, x7 ← x7 | x6
-            "str x7, [x1], #8",     // Store shifted limb in the out_limbs (pointed to by x1)
-                                    // increment x1 by 8 bytes so it points to the next limb.
-            "neg x9, x3",           // x9 ← -x3 (negate x3 to get the shift amount, which works
-                                    // because on ARM, negative shifts are mod 64, so neg
-                                    // works out to be `64 - x3`)
-            "lsl x6, x8, x9",       // Left shift the original limb (x8) by 64 - x3 (x9) steps
-                                    // and store it in the carry register.
-            "subs x2, x2, #1",      // x2 ← x2 - 1 (decrement limb counter)
-                                    // Sets condition flags (Z=1 when x2 reaches 0)
-            "b.ne 1b",              // Branch to label 1 if Z=0 (Not Equal)
+            "ldr x7, [x0, #-8]!",   // x7 ← Memory[x0 - 8], pre-decrement x0
+            "mov x8, x7",           // x8 ← x7 (preserve original limb value)
+            "lsr x7, x7, x3",       // Right shift x7 by x3 steps
+            "orr x7, x7, x6",       // Combine with carry
+            "str x7, [x1, #-8]!",   // Store shifted limb and pre-decrement x1
+            "neg x9, x3",           // x9 ← -x3 (for shift amount adjustment)
+            "lsl x6, x8, x9",       // Left shift original limb to extract carry
+            "subs x2, x2, #1",      // Decrement counter
+            "b.ne 1b",              // Loop if not zero
 
-
-            // =============================================
             // Register Operand Bindings
-            // =============================================
-            // Input pointer to source limbs (read-only)
-            in("x0") limbs.as_ptr(),
+            inout("x0") limbs.as_ptr() => _, // Input pointer to source limbs
+            inout("x1") out_limbs.as_mut_ptr() => _, // Output pointer for result limbs
+            inout("x2") LIMBS => _, // Limb counter (positive decrementing)
+            in("x3") shift,         // Shift amount
+            out("x6") _,            // Carry register
 
-            // Output pointer for result limbs
-            inout("x1") out_limbs.as_mut_ptr() => _,
-
-            // Limb counter (decremented in loop)
-            inout("x2") LIMBS => _,
-
-            // Shift amount (constant during operation)
-            in("x3") shift,
-            // Carry register
-            out("x6") _,
-
-            // =============================================
             // Register Preservation
-            // =============================================
-            // Declares all caller-saved registers as clobbered
-            clobber_abi("C")
+            clobber_abi("C"),
+            options(nostack),
             );
         }
         res
     }
+
     /// Computes `self >> shift`.
     ///
     /// Panics if `shift >= Self::BITS`.
@@ -224,7 +317,8 @@ macro_rules! impl_shr {
 
                 #[inline]
                 fn shr(self, shift: $shift) -> Uint<LIMBS> {
-                    <&Self>::shr(&self, shift)
+                    #[allow(unsafe_code)]
+                    unsafe{ self.shr_asm(u32::try_from(shift).expect("invalid shift"))}
                 }
             }
 
@@ -233,13 +327,15 @@ macro_rules! impl_shr {
 
                 #[inline]
                 fn shr(self, shift: $shift) -> Uint<LIMBS> {
-                    Uint::<LIMBS>::shr(self, u32::try_from(shift).expect("invalid shift"))
+                    #[allow(unsafe_code)]
+                    unsafe{self.shr_asm(u32::try_from(shift).expect("invalid shift"))}
                 }
             }
 
             impl<const LIMBS: usize> ShrAssign<$shift> for Uint<LIMBS> {
                 fn shr_assign(&mut self, shift: $shift) {
-                    *self = self.shr(shift)
+                    #[allow(unsafe_code)]
+                    unsafe{*self = self.shr_asm(u32::try_from(shift).expect("invalid shift"))}
                 }
             }
         )+
@@ -265,7 +361,7 @@ impl<const LIMBS: usize> ShrVartime for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{U128, U256, Uint};
+    use crate::{U64, U128, U256, Uint};
 
     const N: U256 =
         U256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
@@ -273,10 +369,74 @@ mod tests {
     const N_2: U256 =
         U256::from_be_hex("7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0");
 
+    const SIXTY_FIVE: U256 =
+        U256::from_be_hex("00000000000000007FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501D");
+
+    const EIGHTY_EIGHT: U256 =
+        U256::from_be_hex("0000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF");
+
+    const SIXTY_FOUR: U256 =
+        U256::from_be_hex("0000000000000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03B");
+
+    #[test]
+    fn shr_simple() {
+        let mut t = U256::from(2u8);
+        assert_eq!(t >> 1, U256::from(1u8));
+        t = U256::from(0x300u16);
+        assert_eq!(t >> 8, U256::from(3u8));
+    }
+
     #[test]
     fn shr1() {
-        assert_eq!(N.shr1(), N_2);
-        assert_eq!(N >> 1, N_2);
+        assert_eq!(N.shr1(), N_2, "1-bit right shift, specialized");
+        assert_eq!(N >> 1, N_2, "1-bit right shift, general");
+    }
+
+    #[test]
+    fn shr_one() {
+        let x = U64::from_be_hex("0000000000000002");
+        let expected = U64::from_be_hex("0000000000000001");
+        assert_eq!(
+            x >> 1,
+            expected,
+            "\nx: {x:0b}, \nexpected \n{expected:0b}, got \n{:0b}",
+            x >> 1,
+        );
+    }
+    #[test]
+    fn shr_2() {
+        let x = U128::from_be_hex("ffffffffffffffffffffffffffffffff");
+        let expected = x.overflowing_shr(1).unwrap();
+        assert_eq!(
+            x >> 1,
+            expected,
+            "\nx: {x:0b}, \nexpected \n{expected:0b}, got \n{:0b}",
+            x >> 1,
+        );
+    }
+
+    #[test]
+    fn shr65() {
+        assert_eq!(N.overflowing_shr_vartime(65).unwrap(), SIXTY_FIVE);
+        assert_eq!(N >> 65, SIXTY_FIVE);
+    }
+
+    #[allow(unsafe_code)]
+    #[test]
+    fn shr_asm() {
+        let x =
+            U256::from_be_hex("FFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD03641410000000000000000");
+        let shift = 64;
+        let y = unsafe { x.shr_asm(shift) };
+        let expected =
+            U256::from_be_hex("0000000000000000FFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
+        assert_eq!(y, expected);
+    }
+
+    #[test]
+    fn shr88() {
+        assert_eq!(N.overflowing_shr_vartime(88).unwrap(), EIGHTY_EIGHT);
+        assert_eq!(N >> 88, EIGHTY_EIGHT);
     }
 
     #[test]
@@ -286,9 +446,15 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "`shift` within the bit size of the integer")]
+    #[should_panic(expected = "`shift` must be less than the bit size of the integer")]
     fn shr256() {
         let _ = N >> 256;
+    }
+
+    #[test]
+    fn shr64() {
+        assert_eq!(N.overflowing_shr_vartime(64).unwrap(), SIXTY_FOUR);
+        assert_eq!(N >> 64, SIXTY_FOUR);
     }
 
     #[test]
