@@ -102,6 +102,20 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
         )
     }
 
+    /// Return `b` if `c` is truthy, otherwise return `a`.
+    #[inline]
+    pub(crate) const fn select(a: &Self, b: &Self, c: ConstChoice) -> Self {
+        Self {
+            m00: Uint::select(&a.m00, &b.m00, c),
+            m01: Uint::select(&a.m01, &b.m01, c),
+            m10: Uint::select(&a.m10, &b.m10, c),
+            m11: Uint::select(&a.m11, &b.m11, c),
+            k: c.select_u32(a.k, b.k),
+            k_upper_bound: c.select_u32(a.k_upper_bound, b.k_upper_bound),
+            pattern: b.pattern.and(c).or(a.pattern.and(c.not())),
+        }
+    }
+
     /// Apply this matrix to a vector of [Uint]s, returning the result as a vector of
     /// [ExtendedInt]s.
     #[inline]
@@ -400,5 +414,29 @@ mod tests {
                 4
             )
         )
+    }
+
+    #[test]
+    fn test_select() {
+        let x = BinXgcdMatrix::new(
+            U64::from_u64(0),
+            U64::from_u64(1),
+            U64::from_u64(2),
+            U64::from_u64(3),
+            ConstChoice::FALSE,
+            4,
+            5,
+        );
+        let y = BinXgcdMatrix::new(
+            U64::from_u64(6),
+            U64::from_u64(7),
+            U64::from_u64(8),
+            U64::from_u64(9),
+            ConstChoice::TRUE,
+            11,
+            12,
+        );
+        assert_eq!(BinXgcdMatrix::select(&x, &y, ConstChoice::FALSE), x);
+        assert_eq!(BinXgcdMatrix::select(&x, &y, ConstChoice::TRUE), y);
     }
 }
