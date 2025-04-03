@@ -825,16 +825,17 @@ mod tests {
     }
 
     mod test_optimized_binxgcd {
-        use crate::modular::bingcd::xgcd::tests::test_xgcd;
-        use crate::{
-            ConcatMixed, Gcd, Int, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096, U8192,
-            Uint,
-        };
-
         #[cfg(feature = "rand_core")]
         use super::make_rng;
         #[cfg(feature = "rand_core")]
         use crate::Random;
+
+        use crate::modular::bingcd::xgcd::tests::test_xgcd;
+        use crate::modular::bingcd::xgcd::{DOUBLE_SUMMARY_LIMBS, SUMMARY_BITS, SUMMARY_LIMBS};
+        use crate::{
+            ConcatMixed, Gcd, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096,
+            U8192, Uint,
+        };
 
         fn optimized_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
             lhs: Uint<LIMBS>,
@@ -879,6 +880,44 @@ mod tests {
 
             #[cfg(feature = "rand_core")]
             optimized_binxgcd_randomized_tests(100);
+        }
+
+        #[test]
+        fn test_optimized_binxgcd_edge_cases() {
+            // If one of these tests fails, you have probably tweaked the SUMMARY_BITS,
+            // SUMMARY_LIMBS or DOUBLE_SUMMARY_LIMBS settings. Please make sure to update these
+            // tests accordingly.
+            assert_eq!(SUMMARY_BITS, 64);
+            assert_eq!(SUMMARY_LIMBS, U64::LIMBS);
+            assert_eq!(DOUBLE_SUMMARY_LIMBS, U128::LIMBS);
+
+            // Case #1: a > b but a.compact() < b.compact()
+            let a = U256::from_be_hex(
+                "1234567890ABCDEF80000000000000000000000000000000BEDCBA0987654321",
+            );
+            let b = U256::from_be_hex(
+                "1234567890ABCDEF800000000000000000000000000000007EDCBA0987654321",
+            );
+            assert!(a > b);
+            assert!(a.compact::<64, 2>(256) < b.compact::<64, 2>(256));
+            optimized_binxgcd_test(a, b);
+
+            // Case #2: a < b but a.compact() > b.compact()
+            optimized_binxgcd_test(b, a);
+
+            // Case #3: a > b but a.compact() = b.compact()
+            let a = U256::from_be_hex(
+                "1234567890ABCDEF80000000000000000000000000000000FEDCBA0987654321",
+            );
+            let b = U256::from_be_hex(
+                "1234567890ABCDEF800000000000000000000000000000007EDCBA0987654321",
+            );
+            assert!(a > b);
+            assert_eq!(a.compact::<64, 2>(256), b.compact::<64, 2>(256));
+            optimized_binxgcd_test(a, b);
+
+            // Case #4: a < b but a.compact() = b.compact()
+            optimized_binxgcd_test(b, a);
         }
 
         #[test]
