@@ -4,7 +4,9 @@ use super::div_limb::{
     Reciprocal, div_rem_limb_with_reciprocal, div2by1, div3by2, rem_limb_with_reciprocal,
     rem_limb_with_reciprocal_wide,
 };
-use crate::{CheckedDiv, ConstChoice, DivRemLimb, Limb, NonZero, RemLimb, Uint, Wrapping};
+use crate::{
+    CheckedDiv, ConstChoice, DivRemLimb, DivVartime, Limb, NonZero, RemLimb, Uint, Wrapping,
+};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 
 use subtle::CtOption;
@@ -833,6 +835,12 @@ impl<const LIMBS: usize> DivAssign<NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS
     }
 }
 
+impl<const LIMBS: usize> DivVartime for Uint<LIMBS> {
+    fn div_vartime(&self, rhs: &NonZero<Uint<LIMBS>>) -> Self {
+        self.div_rem_vartime(rhs).0
+    }
+}
+
 impl<const LIMBS: usize> Rem<&NonZero<Uint<LIMBS>>> for &Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
@@ -953,7 +961,9 @@ impl<const LIMBS: usize> RemLimb for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, NonZero, RemMixed, U64, U128, U256, U896, U1024, Uint, Word, Zero};
+    use crate::{
+        DivVartime, Limb, NonZero, RemMixed, U64, U128, U256, U896, U1024, Uint, Word, Zero,
+    };
 
     #[cfg(feature = "rand")]
     use {
@@ -1188,5 +1198,28 @@ mod tests {
             u: U128::from(456u64),
         };
         assert_eq!(a.reduce_t_by_u(), U128::from(330u64));
+    }
+
+    #[test]
+    fn div_vartime_through_traits() {
+        struct A<T> {
+            x: T,
+            y: T,
+        }
+        impl<T> A<T>
+        where
+            T: DivVartime + Clone + Zero,
+        {
+            fn divide_x_by_y(&self) -> T {
+                let rhs = &NonZero::new(self.y.clone()).unwrap();
+                self.x.div_vartime(rhs)
+            }
+        }
+
+        let a = A {
+            x: U1024::from(1234567890u64),
+            y: U1024::from(456u64),
+        };
+        assert_eq!(a.divide_x_by_y(), U1024::from(2707385u64));
     }
 }

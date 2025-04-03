@@ -4,7 +4,7 @@ use core::ops::{Div, DivAssign, Rem, RemAssign};
 
 use subtle::CtOption;
 
-use crate::{CheckedDiv, ConstChoice, ConstCtOption, Int, NonZero, Uint, Wrapping};
+use crate::{CheckedDiv, ConstChoice, ConstCtOption, DivVartime, Int, NonZero, Uint, Wrapping};
 
 /// Checked division operations.
 impl<const LIMBS: usize> Int<LIMBS> {
@@ -333,6 +333,15 @@ impl<const LIMBS: usize> DivAssign<NonZero<Int<LIMBS>>> for Int<LIMBS> {
     }
 }
 
+impl<const LIMBS: usize> DivVartime for Int<LIMBS> {
+    fn div_vartime(&self, rhs: &NonZero<Int<LIMBS>>) -> Self {
+        let (q, _r, lhs_sign, rhs_sign) = self.div_rem_base_vartime(rhs);
+        let opposing_signs = lhs_sign.xor(rhs_sign);
+        let q = Int::new_from_abs_sign(q, opposing_signs);
+        q.expect("int divided by int fits in uint by construction")
+    }
+}
+
 impl<const LIMBS: usize> Div<NonZero<Int<LIMBS>>> for Wrapping<Int<LIMBS>> {
     type Output = Wrapping<Int<LIMBS>>;
 
@@ -469,7 +478,7 @@ impl<const LIMBS: usize> RemAssign<&NonZero<Int<LIMBS>>> for Wrapping<Int<LIMBS>
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, I128, Int};
+    use crate::{ConstChoice, DivVartime, I128, Int, NonZero, Zero};
 
     #[test]
     #[allow(clippy::init_numbered_fields)]
@@ -590,5 +599,18 @@ mod tests {
             I128::MIN.checked_div_rem_floor(&I128::MINUS_ONE.to_nz().unwrap());
         assert_eq!(quotient.is_some(), ConstChoice::FALSE);
         assert_eq!(remainder, I128::ZERO);
+    }
+
+    #[test]
+    fn div_vartime_through_trait() {
+        fn myfn<T: DivVartime + Zero>(x: T, y: T) -> T {
+            x.div_vartime(&NonZero::new(y).unwrap())
+        }
+        assert_eq!(myfn(I128::from(8), I128::from(3)), I128::from(2));
+        assert_eq!(myfn(I128::from(-8), I128::from(3)), I128::from(-2));
+        assert_eq!(myfn(I128::from(8), I128::from(-3)), I128::from(-2));
+        assert_eq!(myfn(I128::from(-8), I128::from(-3)), I128::from(2));
+        assert_eq!(myfn(I128::MAX, I128::from(1)), I128::MAX);
+        assert_eq!(myfn(I128::MAX, I128::MAX), I128::from(1));
     }
 }
