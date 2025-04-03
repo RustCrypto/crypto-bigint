@@ -38,6 +38,33 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
         0,
     );
 
+    /// Construct the matrix representing the subtraction of one vector element from the other.
+    /// Subtracts the top element from the bottom if `top_from_bottom` is truthy, and the one
+    /// subtracting the bottom element from the top otherwise.
+    ///
+    /// In other words, returns one of the following matrices, given `top_from_bottom`
+    /// ```text
+    ///   true         false
+    /// [  1 0 ]     [ 1 -1 ]
+    /// [ -1 1 ] or  [ 0  1 ]
+    /// ```
+    pub(crate) const fn get_subtraction_matrix(
+        top_from_bottom: ConstChoice,
+        k_upper_bound: u32,
+    ) -> Self {
+        let (mut m01, mut m10) = (Uint::ONE, Uint::ZERO);
+        Uint::conditional_swap(&mut m01, &mut m10, top_from_bottom);
+        Self::new(
+            Uint::ONE,
+            m01,
+            m10,
+            Uint::ONE,
+            ConstChoice::TRUE,
+            0,
+            k_upper_bound,
+        )
+    }
+
     pub(crate) const fn new(
         m00: Uint<LIMBS>,
         m01: Uint<LIMBS>,
@@ -438,5 +465,36 @@ mod tests {
         );
         assert_eq!(BinXgcdMatrix::select(&x, &y, ConstChoice::FALSE), x);
         assert_eq!(BinXgcdMatrix::select(&x, &y, ConstChoice::TRUE), y);
+    }
+
+    #[test]
+    fn test_get_subtraction_matrix() {
+        let x = BinXgcdMatrix::get_subtraction_matrix(ConstChoice::TRUE, 35);
+        assert_eq!(
+            x,
+            BinXgcdMatrix::new(
+                U64::ONE,
+                U64::ZERO,
+                U64::ONE,
+                U64::ONE,
+                ConstChoice::TRUE,
+                0,
+                35
+            )
+        );
+
+        let x = BinXgcdMatrix::get_subtraction_matrix(ConstChoice::FALSE, 63);
+        assert_eq!(
+            x,
+            BinXgcdMatrix::new(
+                U64::ONE,
+                U64::ONE,
+                U64::ZERO,
+                U64::ONE,
+                ConstChoice::TRUE,
+                0,
+                63
+            )
+        );
     }
 }
