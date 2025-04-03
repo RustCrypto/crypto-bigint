@@ -928,7 +928,10 @@ mod tests {
                 "1234567890ABCDEF800000000000000000000000000000007EDCBA0987654321",
             );
             assert!(a > b);
-            assert!(a.compact::<64, 2>(256) < b.compact::<64, 2>(256));
+            assert!(
+                a.compact::<SUMMARY_BITS, DOUBLE_SUMMARY_LIMBS>(U256::BITS)
+                    < b.compact::<SUMMARY_BITS, DOUBLE_SUMMARY_LIMBS>(U256::BITS)
+            );
             optimized_binxgcd_test(a, b);
 
             // Case #2: a < b but a.compact() > b.compact()
@@ -942,7 +945,10 @@ mod tests {
                 "1234567890ABCDEF800000000000000000000000000000007EDCBA0987654321",
             );
             assert!(a > b);
-            assert_eq!(a.compact::<64, 2>(256), b.compact::<64, 2>(256));
+            assert_eq!(
+                a.compact::<SUMMARY_BITS, DOUBLE_SUMMARY_LIMBS>(U256::BITS),
+                b.compact::<SUMMARY_BITS, DOUBLE_SUMMARY_LIMBS>(U256::BITS)
+            );
             optimized_binxgcd_test(a, b);
 
             // Case #4: a < b but a.compact() = b.compact()
