@@ -265,19 +265,19 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         while i < Self::MIN_BINGCD_ITERATIONS.div_ceil(K - 1) {
             i += 1;
 
-            // Construct a_ and b_ as the summary of a and b, respectively.
+            // Construct compact_a and compact_b as the summary of a and b, respectively.
             let b_bits = b.bits();
             let n = const_max(2 * K, const_max(a.bits(), b_bits));
-            let a_ = a.compact::<K, LIMBS_2K>(n);
-            let b_ = b.compact::<K, LIMBS_2K>(n);
-            let b_fits_in_compact =
+            let compact_a = a.compact::<K, LIMBS_2K>(n);
+            let compact_b = b.compact::<K, LIMBS_2K>(n);
+            let b_eq_compact_b =
                 ConstChoice::from_u32_le(b_bits, K - 1).or(ConstChoice::from_u32_eq(n, 2 * K));
 
             // Compute the K-1 iteration update matrix from a_ and b_
-            let (.., update_matrix) = a_
+            let (.., update_matrix) = compact_a
                 .to_odd()
                 .expect("a is always odd")
-                .partial_binxgcd_vartime::<LIMBS_K>(&b_, K - 1, b_fits_in_compact);
+                .partial_binxgcd_vartime::<LIMBS_K>(&compact_b, K - 1, b_eq_compact_b);
 
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = update_matrix.extended_apply_to((a, b));
