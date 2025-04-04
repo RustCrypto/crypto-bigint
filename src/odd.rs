@@ -8,7 +8,7 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 use crate::BoxedUint;
 
 #[cfg(feature = "rand_core")]
-use crate::{Random, rand_core::TryRngCore};
+use crate::{Int, Random, rand_core::TryRngCore};
 
 #[cfg(all(feature = "alloc", feature = "rand_core"))]
 use crate::RandomBits;
@@ -58,6 +58,9 @@ impl<T> Odd<T> {
 }
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
+    /// Total size of the represented integer in bits.
+    pub const BITS: u32 = Uint::<LIMBS>::BITS;
+
     /// Create a new [`Odd<Uint<LIMBS>>`] from the provided big endian hex string.
     ///
     /// Panics if the hex is malformed or not zero-padded accordingly for the size, or if the value is even.
@@ -157,6 +160,14 @@ impl<const LIMBS: usize> Random for Odd<Uint<LIMBS>> {
         let mut ret = Uint::try_random(rng)?;
         ret.limbs[0] |= Limb::ONE;
         Ok(Odd(ret))
+    }
+}
+
+#[cfg(feature = "rand_core")]
+impl<const LIMBS: usize> Random for Odd<Int<LIMBS>> {
+    /// Generate a random `Odd<Int<T>>`.
+    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+        Odd::<Uint<LIMBS>>::try_random(rng).map(|r| Odd(r.as_int()))
     }
 }
 

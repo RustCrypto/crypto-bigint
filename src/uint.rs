@@ -24,6 +24,7 @@ mod macros;
 
 mod add;
 mod add_mod;
+mod bingcd;
 mod bit_and;
 mod bit_not;
 mod bit_or;
