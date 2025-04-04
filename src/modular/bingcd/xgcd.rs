@@ -263,7 +263,10 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         let (mut a_sgn, mut b_sgn);
         let mut i = 0;
         while i < Self::MIN_BINGCD_ITERATIONS.div_ceil(K - 1) {
-            // Loop invariant: each iteration, `a.bits() + b.bits()` shrinks by at least K-1.
+            // Loop invariants:
+            //  i) each iteration of this loop, `a.bits() + b.bits()` shrinks by at least K-1,
+            //     until `b = 0`.
+            // ii) `a` is odd.
             i += 1;
 
             // Construct compact_a and compact_b as the summary of a and b, respectively.
@@ -286,13 +289,13 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
                 .expect("a is always odd")
                 .partial_binxgcd_vartime::<LIMBS_K>(&compact_b, K - 1, b_eq_compact_b);
 
-            // Deal with the case that compacting loses the ordering of `(a, b)`.
-            //
-            // This can only occur whenever (at least) the top `K-1` bits of `compact_a` and
-            // `compact_b` are the same. As a result, subtracting one from the other causes the
-            // `a.bits() + b.bits()` to shrink by at least `K-1` (see loop invariant).
-            // It thus suffices to replace `update_matrix` with one that just subtracts one from the
-            // other.
+            // Deal with the case that compacting loses the ordering of `(a, b)`. When this is the
+            // case, multiplying `update_matrix` with `(a, b)` will map one of the two to a negative
+            // value, which will break the algorithm. To resolve this, we observe that this case
+            // can only occur whenever (at least) the top `K+1` bits of `a` and `b` are the same.
+            // As a result, subtracting one from the other causes `a.bits() + b.bits()` to shrink by
+            // at least `K+1 > K-1` (as required by the loop invariant). It thus suffices to replace
+            // `update_matrix` with a matrix that represents subtracting one from the other.
             let a_lt_b = ConstChoice::from_i8_eq(a_cmp_b, -1);
             update_matrix = BinXgcdMatrix::select(
                 &BinXgcdMatrix::get_subtraction_matrix(a_lt_b, K - 1),
@@ -311,10 +314,9 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             matrix = update_matrix.wrapping_mul_right(&matrix);
 
             // Cont. of dealing with the case that compacting loses the ordering of `(a, b)`.
-            //
-            // When `a > b`, and thus `b` is subtracted from `a`, it could be that `a` is now even.
-            // Since `a` should always be odd, we swap the two operands. Note that `b` must be odd,
-            // since subtracting it from the odd `a` yielded an even number.
+            // When `a > b` -- and thus `b` is subtracted from `a` -- it could be that `a` is now
+            // even. Since `a` should always be odd, we swap the two operands. Note that `b` must be
+            // odd, since subtracting it from the odd `a` yielded an even number.
             let a_is_even = a.is_odd().not();
             Uint::conditional_swap(&mut a, &mut b, a_is_even);
             matrix.conditional_swap_rows(a_is_even)
