@@ -121,6 +121,27 @@ fn bench_random(c: &mut Criterion) {
     });
 }
 
+fn bench_random_bits(c: &mut Criterion) {
+    let mut group = c.benchmark_group("random_bits");
+
+    let mut rng = make_rng();
+    group.bench_function("random_bits, U256, full", |b| {
+        b.iter(|| black_box(U256::random_bits(&mut rng, U256::BITS)));
+    });
+
+    group.bench_function("random_bits, U256, bounded", |b| {
+        b.iter(|| black_box(U256::random_bits(&mut rng, 219)));
+    });
+
+    group.bench_function("random_bits, U2048, full", |b| {
+        b.iter(|| black_box(U2048::random_bits(&mut rng, U2048::BITS)));
+    });
+
+    group.bench_function("random_bits, U2048, bounded", |b| {
+        b.iter(|| black_box(U2048::random_bits(&mut rng, 1947)));
+    });
+}
+
 fn bench_mul(c: &mut Criterion) {
     let mut group = c.benchmark_group("wrapping ops");
 
@@ -493,6 +514,7 @@ fn bench_sqrt(c: &mut Criterion) {
 criterion_group!(
     benches,
     bench_random,
+    bench_random_bits,
     bench_mul,
     bench_division,
     bench_gcd,

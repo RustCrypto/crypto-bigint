@@ -8,7 +8,7 @@ pub use num_traits::{
 
 pub(crate) use sealed::PrecomputeInverterWithAdjuster;
 
-use crate::{Limb, NonZero, Odd, Reciprocal};
+use crate::{Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
 use core::fmt::{self, Debug};
 use core::ops::{
     Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign,
@@ -116,6 +116,9 @@ pub trait Integer:
     + for<'a> DivAssign<&'a NonZero<Self>>
     + DivRemLimb
     + Eq
+    + fmt::LowerHex
+    + fmt::UpperHex
+    + fmt::Binary
     + From<u8>
     + From<u16>
     + From<u32>
@@ -663,6 +666,12 @@ pub trait RemMixed<Reductor>: Sized {
     fn rem_mixed(&self, reductor: &NonZero<Reductor>) -> Reductor;
 }
 
+/// Division in variable time.
+pub trait DivVartime: Sized {
+    /// Computes `self / rhs` in variable time.
+    fn div_vartime(&self, rhs: &NonZero<Self>) -> Self;
+}
+
 /// Support for optimized division by a single limb.
 pub trait RemLimb: Sized {
     /// Computes `self % rhs` using a pre-made reciprocal.
@@ -687,7 +696,8 @@ pub trait BitOps {
     /// Precision of this integer in bytes.
     fn bytes_precision(&self) -> usize;
 
-    /// Calculate the number of bits needed to represent this number.
+    /// Get the value of the bit at position `index`, as a truthy or falsy `Choice`.
+    /// Returns the falsy value for indices out of range.
     fn bit(&self, index: u32) -> Choice;
 
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
@@ -864,6 +874,7 @@ pub trait Monty:
     + for<'a> MulAssign<&'a Self>
     + Neg<Output = Self>
     + PowBoundedExp<Self::Integer>
+    + Retrieve<Output = Self::Integer>
     + Square
     + SquareAssign
 {
@@ -926,7 +937,7 @@ pub trait Monty:
 /// Allows one to perform inplace multiplication without allocations
 /// (important for the `BoxedUint` case).
 ///
-/// NOTE: You will be operating with Montgomery represntations directly,
+/// NOTE: You will be operating with Montgomery representations directly,
 /// make sure they all correspond to the same set of parameters.
 pub trait MontyMultiplier<'a>: From<&'a <Self::Monty as Monty>::Params> {
     /// The associated Montgomery-representation integer.
