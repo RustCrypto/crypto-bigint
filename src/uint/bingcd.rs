@@ -335,6 +335,17 @@ mod tests {
                 "000000000000072B69C9DD0AA15F135675EA9C5180CF8FF0A59298CFC92E87FA",
             );
             binxgcd_test(a, b);
+
+            // Sent in by @kayabaNerve (https://github.com/RustCrypto/crypto-bigint/pull/761#issuecomment-2782912608)
+            let a = U512::from_be_hex(concat![
+                "7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364142",
+                "4EB38E6AC0E34DE2F34BFAF22DE683E1F4B92847B6871C780488D797042229E1"
+            ]);
+            let b = U512::from_be_hex(concat![
+                "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD755DB9CD5E9140777FA4BD19A06C8283",
+                "9D671CD581C69BC5E697F5E45BCD07C52EC373A8BDC598B4493F50A1380E1281"
+            ]);
+            binxgcd_test(a, b);
         }
     }
 }
