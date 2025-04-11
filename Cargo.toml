@@ -39,7 +39,6 @@ proptest = "1.5"
 rand_core = { version = "0.9", features = ["std", "os_rng"] }
 rand_chacha = "0.9"
 
-
 [features]
 default = ["rand"]
 alloc = ["serdect?/alloc"]
