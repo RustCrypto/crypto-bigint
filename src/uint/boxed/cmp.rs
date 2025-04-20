@@ -5,7 +5,7 @@
 pub(super) use core::cmp::{Ordering, max};
 
 use super::BoxedUint;
-use crate::{ConstChoice, Limb};
+use crate::{ConstChoice, Limb, Uint};
 use subtle::{
     Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
 };
@@ -73,6 +73,12 @@ impl PartialEq for BoxedUint {
     }
 }
 
+impl<const LIMBS: usize> PartialEq<Uint<LIMBS>> for BoxedUint {
+    fn eq(&self, other: &Uint<LIMBS>) -> bool {
+        self.eq(&Self::from(other))
+    }
+}
+
 impl Ord for BoxedUint {
     fn cmp(&self, other: &Self) -> Ordering {
         let mut ret = Ordering::Equal;
@@ -91,6 +97,12 @@ impl Ord for BoxedUint {
 impl PartialOrd for BoxedUint {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl<const LIMBS: usize> PartialOrd<Uint<LIMBS>> for BoxedUint {
+    fn partial_cmp(&self, other: &Uint<LIMBS>) -> Option<Ordering> {
+        self.partial_cmp(&Self::from(other))
     }
 }
 
