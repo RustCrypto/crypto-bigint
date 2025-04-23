@@ -306,6 +306,18 @@ impl AsMut<[Limb]> for BoxedUint {
     }
 }
 
+impl AsRef<UintRef> for BoxedUint {
+    fn as_ref(&self) -> &UintRef {
+        self.as_uint_ref()
+    }
+}
+
+impl AsMut<UintRef> for BoxedUint {
+    fn as_mut(&mut self) -> &mut UintRef {
+        self.as_mut_uint_ref()
+    }
+}
+
 impl Default for BoxedUint {
     fn default() -> Self {
         Self::zero()
