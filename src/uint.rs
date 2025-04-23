@@ -151,12 +151,18 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Borrow the inner limbs as a mutable array of [`Word`]s.
-    pub fn as_words_mut(&mut self) -> &mut [Word; LIMBS] {
+    pub const fn as_mut_words(&mut self) -> &mut [Word; LIMBS] {
         // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
         #[allow(unsafe_code)]
         unsafe {
             &mut *self.limbs.as_mut_ptr().cast()
         }
+    }
+
+    /// Borrow the inner limbs as a mutable slice of [`Word`]s.
+    #[deprecated(since = "0.7.0", note = "please use `as_mut_words` instead")]
+    pub const fn as_words_mut(&mut self) -> &mut [Word] {
+        self.as_mut_words()
     }
 
     /// Borrow the limbs of this [`Uint`].
@@ -165,8 +171,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Borrow the limbs of this [`Uint`] mutably.
-    pub const fn as_limbs_mut(&mut self) -> &mut [Limb; LIMBS] {
+    pub const fn as_mut_limbs(&mut self) -> &mut [Limb; LIMBS] {
         &mut self.limbs
+    }
+
+    /// Borrow the limbs of this [`Uint`] mutably.
+    #[deprecated(since = "0.7.0", note = "please use `as_mut_limbs` instead")]
+    pub const fn as_limbs_mut(&mut self) -> &mut [Limb] {
+        self.as_mut_limbs()
     }
 
     /// Convert this [`Uint`] into its inner limbs.
@@ -202,7 +214,7 @@ impl<const LIMBS: usize> AsRef<[Word; LIMBS]> for Uint<LIMBS> {
 
 impl<const LIMBS: usize> AsMut<[Word; LIMBS]> for Uint<LIMBS> {
     fn as_mut(&mut self) -> &mut [Word; LIMBS] {
-        self.as_words_mut()
+        self.as_mut_words()
     }
 }
 
@@ -214,7 +226,7 @@ impl<const LIMBS: usize> AsRef<[Limb]> for Uint<LIMBS> {
 
 impl<const LIMBS: usize> AsMut<[Limb]> for Uint<LIMBS> {
     fn as_mut(&mut self) -> &mut [Limb] {
-        self.as_limbs_mut()
+        self.as_mut_limbs()
     }
 }
 
@@ -497,7 +509,7 @@ mod tests {
     #[test]
     fn as_words_mut() {
         let mut n = U128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
-        assert_eq!(n.as_words_mut(), &[0xCCCCCCCCDDDDDDDD, 0xAAAAAAAABBBBBBBB]);
+        assert_eq!(n.as_mut_words(), &[0xCCCCCCCCDDDDDDDD, 0xAAAAAAAABBBBBBBB]);
     }
 
     #[cfg(feature = "alloc")]

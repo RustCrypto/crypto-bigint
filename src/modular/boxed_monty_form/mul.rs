@@ -156,7 +156,7 @@ impl<'a> BoxedMontyMultiplier<'a> {
 
         self.clear_product();
         almost_montgomery_mul_by_one(
-            self.product.as_limbs_mut(),
+            self.product.as_mut_limbs(),
             a.as_limbs(),
             self.modulus.as_limbs(),
             self.mod_neg_inv,
@@ -204,7 +204,7 @@ impl<'a> BoxedMontyMultiplier<'a> {
 
         self.clear_product();
         almost_montgomery_mul(
-            self.product.as_limbs_mut(),
+            self.product.as_mut_limbs(),
             a.as_limbs(),
             b.as_limbs(),
             self.modulus.as_limbs(),
@@ -236,7 +236,7 @@ impl<'a> BoxedMontyMultiplier<'a> {
         // TODO(tarcieri): optimized implementation
         self.clear_product();
         almost_montgomery_mul(
-            self.product.as_limbs_mut(),
+            self.product.as_mut_limbs(),
             a.as_limbs(),
             a.as_limbs(),
             self.modulus.as_limbs(),

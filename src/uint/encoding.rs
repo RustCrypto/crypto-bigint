@@ -202,7 +202,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[cfg(feature = "alloc")]
     pub fn to_string_radix_vartime(&self, radix: u32) -> String {
         let mut buf = *self;
-        radix_encode_limbs_mut_to_string(radix, buf.as_limbs_mut())
+        radix_encode_limbs_mut_to_string(radix, buf.as_mut_limbs())
     }
 }
 

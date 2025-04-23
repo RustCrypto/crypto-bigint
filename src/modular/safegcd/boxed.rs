@@ -334,7 +334,7 @@ impl BoxedUnsatInt {
             &self.0,
             Word,
             Word::BITS as usize,
-            ret.as_words_mut()
+            ret.as_mut_words()
         );
 
         if shorten {

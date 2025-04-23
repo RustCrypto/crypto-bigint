@@ -62,7 +62,7 @@ impl BoxedUint {
             let x_i = b.limbs[0].0 & 1;
             let x_i_choice = Choice::from(x_i as u8);
             // b_{i+1} = (b_i - a * X_i) / 2
-            b_opt.as_words_mut().copy_from_slice(b.as_words());
+            b_opt.as_mut_words().copy_from_slice(b.as_words());
             b_opt.wrapping_sub_assign(self);
             b.ct_assign(&b_opt, x_i_choice);
             b.shr1_assign();
@@ -97,7 +97,7 @@ impl BoxedUint {
             let x_i = b.limbs[0].0 & 1;
             let x_i_choice = Choice::from(x_i as u8);
             // b_{i+1} = (b_i - a * X_i) / 2
-            b_opt.as_words_mut().copy_from_slice(b.as_words());
+            b_opt.as_mut_words().copy_from_slice(b.as_words());
             b_opt.wrapping_sub_assign(self);
             b.ct_assign(&b_opt, x_i_choice);
             b.shr1_assign();

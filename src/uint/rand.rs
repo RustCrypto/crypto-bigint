@@ -269,7 +269,7 @@ mod tests {
 
         let bit_length = 989;
         let mut val = U1024::ZERO;
-        random_bits_core(&mut rng, val.as_limbs_mut(), bit_length).expect("safe");
+        random_bits_core(&mut rng, val.as_mut_limbs(), bit_length).expect("safe");
 
         assert_eq!(
             val,
@@ -298,8 +298,8 @@ mod tests {
             let mut rng = get_four_sequential_rng();
             let mut first = U1024::ZERO;
             let mut second = U1024::ZERO;
-            random_bits_core(&mut rng, first.as_limbs_mut(), bit_length).expect("safe");
-            random_bits_core(&mut rng, second.as_limbs_mut(), U1024::BITS - bit_length)
+            random_bits_core(&mut rng, first.as_mut_limbs(), bit_length).expect("safe");
+            random_bits_core(&mut rng, second.as_mut_limbs(), U1024::BITS - bit_length)
                 .expect("safe");
             assert_eq!(second.shl(bit_length).bitor(&first), RANDOM_OUTPUT);
         }
