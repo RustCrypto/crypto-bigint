@@ -109,8 +109,14 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Borrow the inner limbs as a mutable array of [`Word`]s.
-    pub fn as_words_mut(&mut self) -> &mut [Word; LIMBS] {
-        self.0.as_words_mut()
+    pub fn as_mut_words(&mut self) -> &mut [Word; LIMBS] {
+        self.0.as_mut_words()
+    }
+
+    /// Borrow the inner limbs as a mutable slice of [`Word`]s.
+    #[deprecated(since = "0.7.0", note = "please use `as_mut_words` instead")]
+    pub fn as_words_mut(&mut self) -> &mut [Word] {
+        self.as_mut_words()
     }
 
     /// Borrow the limbs of this [`Int`].
@@ -119,8 +125,14 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Borrow the limbs of this [`Int`] mutably.
-    pub const fn as_limbs_mut(&mut self) -> &mut [Limb; LIMBS] {
-        self.0.as_limbs_mut()
+    pub const fn as_mut_limbs(&mut self) -> &mut [Limb; LIMBS] {
+        self.0.as_mut_limbs()
+    }
+
+    /// Borrow the limbs of this [`Int`] mutably.
+    #[deprecated(since = "0.7.0", note = "please use `as_mut_limbs` instead")]
+    pub const fn as_limbs_mut(&mut self) -> &mut [Limb] {
+        self.as_mut_limbs()
     }
 
     /// Convert this [`Int`] into its inner limbs.
@@ -171,7 +183,7 @@ impl<const LIMBS: usize> AsRef<[Word; LIMBS]> for Int<LIMBS> {
 
 impl<const LIMBS: usize> AsMut<[Word; LIMBS]> for Int<LIMBS> {
     fn as_mut(&mut self) -> &mut [Word; LIMBS] {
-        self.as_words_mut()
+        self.as_mut_words()
     }
 }
 
@@ -183,7 +195,7 @@ impl<const LIMBS: usize> AsRef<[Limb]> for Int<LIMBS> {
 
 impl<const LIMBS: usize> AsMut<[Limb]> for Int<LIMBS> {
     fn as_mut(&mut self) -> &mut [Limb] {
-        self.as_limbs_mut()
+        self.as_mut_limbs()
     }
 }
 
@@ -313,7 +325,7 @@ mod tests {
     #[test]
     fn as_words_mut() {
         let mut n = I128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
-        assert_eq!(n.as_words_mut(), &[0xCCCCCCCCDDDDDDDD, 0xAAAAAAAABBBBBBBB]);
+        assert_eq!(n.as_mut_words(), &[0xCCCCCCCCDDDDDDDD, 0xAAAAAAAABBBBBBBB]);
     }
 
     #[cfg(feature = "alloc")]

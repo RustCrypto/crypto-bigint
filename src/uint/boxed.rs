@@ -142,12 +142,18 @@ impl BoxedUint {
     }
 
     /// Borrow the inner limbs as a mutable slice of [`Word`]s.
-    pub fn as_words_mut(&mut self) -> &mut [Word] {
+    pub fn as_mut_words(&mut self) -> &mut [Word] {
         // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
         #[allow(trivial_casts, unsafe_code)]
         unsafe {
             &mut *((&mut *self.limbs as *mut [Limb]) as *mut [Word])
         }
+    }
+
+    /// Borrow the inner limbs as a mutable slice of [`Word`]s.
+    #[deprecated(since = "0.7.0", note = "please use `as_mut_words` instead")]
+    pub fn as_words_mut(&mut self) -> &mut [Word] {
+        self.as_mut_words()
     }
 
     /// Borrow the limbs of this [`BoxedUint`].
@@ -156,8 +162,14 @@ impl BoxedUint {
     }
 
     /// Borrow the limbs of this [`BoxedUint`] mutably.
-    pub fn as_limbs_mut(&mut self) -> &mut [Limb] {
+    pub fn as_mut_limbs(&mut self) -> &mut [Limb] {
         self.limbs.as_mut()
+    }
+
+    /// Borrow the limbs of this [`BoxedUint`] mutably.
+    #[deprecated(since = "0.7.0", note = "please use `as_mut_limbs` instead")]
+    pub fn as_limbs_mut(&mut self) -> &mut [Limb] {
+        self.as_mut_limbs()
     }
 
     /// Convert this [`BoxedUint`] into its inner limbs.
@@ -276,7 +288,7 @@ impl AsRef<[Word]> for BoxedUint {
 
 impl AsMut<[Word]> for BoxedUint {
     fn as_mut(&mut self) -> &mut [Word] {
-        self.as_words_mut()
+        self.as_mut_words()
     }
 }
 
@@ -288,7 +300,7 @@ impl AsRef<[Limb]> for BoxedUint {
 
 impl AsMut<[Limb]> for BoxedUint {
     fn as_mut(&mut self) -> &mut [Limb] {
-        self.as_limbs_mut()
+        self.as_mut_limbs()
     }
 }
 
