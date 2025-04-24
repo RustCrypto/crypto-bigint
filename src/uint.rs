@@ -13,6 +13,8 @@ use zeroize::DefaultIsZeroes;
 #[cfg(feature = "extra-sizes")]
 pub use extra_sizes::*;
 
+pub use ref_type::UintRef;
+
 use crate::{
     Bounded, ConstCtOption, ConstZero, Constants, Encoding, FixedInteger, Int, Integer, Limb,
     NonZero, Odd, PrecomputeInverter, PrecomputeInverterWithAdjuster, Word,
@@ -186,6 +188,16 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         self.limbs
     }
 
+    /// Borrow the limbs of this [`Uint`] as a [`UintRef`].
+    pub const fn as_uint_ref(&self) -> &UintRef {
+        UintRef::new(&self.limbs)
+    }
+
+    /// Mutably borrow the limbs of this [`Uint`] as a [`UintRef`].
+    pub const fn as_mut_uint_ref(&mut self) -> &mut UintRef {
+        UintRef::new_mut(&mut self.limbs)
+    }
+
     /// Convert to a [`NonZero<Uint<LIMBS>>`].
     ///
     /// Returns some if the original value is non-zero, and false otherwise.
@@ -227,6 +239,18 @@ impl<const LIMBS: usize> AsRef<[Limb]> for Uint<LIMBS> {
 impl<const LIMBS: usize> AsMut<[Limb]> for Uint<LIMBS> {
     fn as_mut(&mut self) -> &mut [Limb] {
         self.as_mut_limbs()
+    }
+}
+
+impl<const LIMBS: usize> AsRef<UintRef> for Uint<LIMBS> {
+    fn as_ref(&self) -> &UintRef {
+        self.as_uint_ref()
+    }
+}
+
+impl<const LIMBS: usize> AsMut<UintRef> for Uint<LIMBS> {
+    fn as_mut(&mut self) -> &mut UintRef {
+        self.as_mut_uint_ref()
     }
 }
 
@@ -313,20 +337,13 @@ impl<const LIMBS: usize> num_traits::One for Uint<LIMBS> {
 
 impl<const LIMBS: usize> fmt::Debug for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Uint(0x{self:X})")
+        write!(f, "Uint(0x{:X})", self.as_uint_ref())
     }
 }
 
 impl<const LIMBS: usize> fmt::Binary for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if f.alternate() {
-            write!(f, "0b")?;
-        }
-
-        for limb in self.limbs.iter().rev() {
-            write!(f, "{:0width$b}", &limb.0, width = Limb::BITS as usize)?;
-        }
-        Ok(())
+        fmt::Binary::fmt(self.as_uint_ref(), f)
     }
 }
 
@@ -338,25 +355,13 @@ impl<const LIMBS: usize> fmt::Display for Uint<LIMBS> {
 
 impl<const LIMBS: usize> fmt::LowerHex for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if f.alternate() {
-            write!(f, "0x")?;
-        }
-        for limb in self.limbs.iter().rev() {
-            write!(f, "{:0width$x}", &limb.0, width = Limb::BYTES * 2)?;
-        }
-        Ok(())
+        fmt::LowerHex::fmt(self.as_uint_ref(), f)
     }
 }
 
 impl<const LIMBS: usize> fmt::UpperHex for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if f.alternate() {
-            write!(f, "0x")?;
-        }
-        for limb in self.limbs.iter().rev() {
-            write!(f, "{:0width$X}", &limb.0, width = Limb::BYTES * 2)?;
-        }
-        Ok(())
+        fmt::UpperHex::fmt(self.as_uint_ref(), f)
     }
 }
 
@@ -485,6 +490,7 @@ impl_uint_concat_split_mixed! {
 
 #[cfg(feature = "extra-sizes")]
 mod extra_sizes;
+mod ref_type;
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
