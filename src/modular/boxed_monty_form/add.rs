@@ -11,7 +11,7 @@ impl BoxedMontyForm {
         Self {
             montgomery_form: self
                 .montgomery_form
-                .add_mod(&rhs.montgomery_form, &self.params.modulus),
+                .add_mod(&rhs.montgomery_form, self.params.modulus()),
             params: self.params.clone(),
         }
     }
@@ -19,7 +19,7 @@ impl BoxedMontyForm {
     /// Double `self`.
     pub fn double(&self) -> Self {
         Self {
-            montgomery_form: self.montgomery_form.double_mod(&self.params.modulus),
+            montgomery_form: self.montgomery_form.double_mod(self.params.modulus()),
             params: self.params.clone(),
         }
     }
@@ -59,7 +59,7 @@ impl AddAssign<&BoxedMontyForm> for BoxedMontyForm {
     fn add_assign(&mut self, rhs: &BoxedMontyForm) {
         debug_assert_eq!(self.params, rhs.params);
         self.montgomery_form
-            .add_mod_assign(&rhs.montgomery_form, &self.params.modulus);
+            .add_mod_assign(&rhs.montgomery_form, self.params.modulus());
     }
 }
 
