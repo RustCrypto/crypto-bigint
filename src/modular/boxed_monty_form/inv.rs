@@ -5,7 +5,6 @@ use crate::{
     Invert, Inverter, PrecomputeInverter, PrecomputeInverterWithAdjuster,
     modular::BoxedSafeGcdInverter,
 };
-use alloc::sync::Arc;
 use core::fmt;
 use subtle::CtOption;
 
@@ -45,7 +44,7 @@ impl PrecomputeInverter for BoxedMontyParams {
     fn precompute_inverter(&self) -> BoxedMontyFormInverter {
         BoxedMontyFormInverter {
             inverter: self.modulus.precompute_inverter_with_adjuster(&self.r2),
-            params: self.clone().into(),
+            params: self.clone(),
         }
     }
 }
@@ -56,7 +55,7 @@ pub struct BoxedMontyFormInverter {
     inverter: BoxedSafeGcdInverter,
 
     /// Residue parameters.
-    params: Arc<BoxedMontyParams>,
+    params: BoxedMontyParams,
 }
 
 impl Inverter for BoxedMontyFormInverter {

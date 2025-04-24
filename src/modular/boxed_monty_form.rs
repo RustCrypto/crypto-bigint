@@ -13,6 +13,7 @@ use mul::BoxedMontyMultiplier;
 
 use crate::{BoxedUint, Limb, Monty, Odd, Word};
 use alloc::sync::Arc;
+use core::ops::Deref;
 use subtle::Choice;
 
 #[cfg(feature = "zeroize")]
@@ -21,7 +22,17 @@ use zeroize::Zeroize;
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus whose size and value
 /// are both chosen at runtime.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct BoxedMontyParams {
+pub struct BoxedMontyParams(Arc<BoxedMontyParamsInner>);
+
+impl Deref for BoxedMontyParams {
+    type Target = BoxedMontyParamsInner;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BoxedMontyParamsInner {
     /// The constant modulus
     modulus: Odd<BoxedUint>,
     /// Parameter used in Montgomery reduction
@@ -71,14 +82,17 @@ impl BoxedMontyParams {
             mm.square(&r2)
         };
 
-        Self {
-            modulus,
-            one,
-            r2,
-            r3,
-            mod_neg_inv,
-            mod_leading_zeros,
-        }
+        Self(
+            BoxedMontyParamsInner {
+                modulus,
+                one,
+                r2,
+                r3,
+                mod_neg_inv,
+                mod_leading_zeros,
+            }
+            .into(),
+        )
     }
 
     /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`, which
@@ -114,36 +128,42 @@ impl BoxedMontyParams {
             mm.square(&r2)
         };
 
-        Self {
-            modulus,
-            one,
-            r2,
-            r3,
-            mod_neg_inv,
-            mod_leading_zeros,
-        }
+        Self(
+            BoxedMontyParamsInner {
+                modulus,
+                one,
+                r2,
+                r3,
+                mod_neg_inv,
+                mod_leading_zeros,
+            }
+            .into(),
+        )
     }
 
     /// Modulus value.
     pub fn modulus(&self) -> &Odd<BoxedUint> {
-        &self.modulus
+        &self.0.modulus
     }
 
     /// Bits of precision in the modulus.
     pub fn bits_precision(&self) -> u32 {
-        self.modulus.bits_precision()
+        self.0.modulus.bits_precision()
     }
 
     /// Create from a set of [`ConstMontyParams`].
     pub fn from_const_params<const LIMBS: usize, P: ConstMontyParams<LIMBS>>() -> Self {
-        Self {
-            modulus: P::MODULUS.into(),
-            one: P::ONE.into(),
-            r2: P::R2.into(),
-            r3: P::R3.into(),
-            mod_neg_inv: P::MOD_NEG_INV,
-            mod_leading_zeros: P::MOD_LEADING_ZEROS,
-        }
+        Self(
+            BoxedMontyParamsInner {
+                modulus: P::MODULUS.into(),
+                one: P::ONE.into(),
+                r2: P::R2.into(),
+                r3: P::R3.into(),
+                mod_neg_inv: P::MOD_NEG_INV,
+                mod_leading_zeros: P::MOD_LEADING_ZEROS,
+            }
+            .into(),
+        )
     }
 }
 
@@ -154,7 +174,7 @@ pub struct BoxedMontyForm {
     montgomery_form: BoxedUint,
 
     /// Montgomery form parameters.
-    params: Arc<BoxedMontyParams>,
+    params: BoxedMontyParams,
 }
 
 impl BoxedMontyForm {
@@ -164,16 +184,6 @@ impl BoxedMontyForm {
         convert_to_montgomery(&mut integer, &params);
 
         #[allow(clippy::useless_conversion)]
-        Self {
-            montgomery_form: integer,
-            params: params.into(),
-        }
-    }
-
-    /// Instantiates a new [`BoxedMontyForm`] that represents an integer modulo the provided params.
-    pub fn new_with_arc(mut integer: BoxedUint, params: Arc<BoxedMontyParams>) -> Self {
-        debug_assert_eq!(integer.bits_precision(), params.bits_precision());
-        convert_to_montgomery(&mut integer, &params);
         Self {
             montgomery_form: integer,
             params,
@@ -187,7 +197,7 @@ impl BoxedMontyForm {
 
     /// Retrieves the integer currently encoded in this [`BoxedMontyForm`], guaranteed to be reduced.
     pub fn retrieve(&self) -> BoxedUint {
-        let mut mm = BoxedMontyMultiplier::from(self.params.as_ref());
+        let mut mm = BoxedMontyMultiplier::from(&self.params);
         mm.mul_by_one(&self.montgomery_form)
     }
 
@@ -195,7 +205,7 @@ impl BoxedMontyForm {
     pub fn zero(params: BoxedMontyParams) -> Self {
         Self {
             montgomery_form: BoxedUint::zero_with_precision(params.bits_precision()),
-            params: params.into(),
+            params,
         }
     }
 
@@ -203,7 +213,7 @@ impl BoxedMontyForm {
     pub fn one(params: BoxedMontyParams) -> Self {
         Self {
             montgomery_form: params.one.clone(),
-            params: params.into(),
+            params,
         }
     }
 
@@ -242,7 +252,7 @@ impl BoxedMontyForm {
         debug_assert_eq!(integer.bits_precision(), params.bits_precision());
         Self {
             montgomery_form: integer,
-            params: params.into(),
+            params,
         }
     }
 
