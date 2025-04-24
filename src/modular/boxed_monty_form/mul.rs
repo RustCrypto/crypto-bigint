@@ -106,7 +106,7 @@ pub struct BoxedMontyMultiplier<'a> {
 
 impl<'a> From<&'a BoxedMontyParams> for BoxedMontyMultiplier<'a> {
     fn from(params: &'a BoxedMontyParams) -> BoxedMontyMultiplier<'a> {
-        BoxedMontyMultiplier::new(&params.modulus, params.mod_neg_inv)
+        BoxedMontyMultiplier::new(params.modulus(), params.mod_neg_inv())
     }
 }
 

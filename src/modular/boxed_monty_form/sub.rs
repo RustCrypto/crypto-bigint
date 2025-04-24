@@ -12,7 +12,7 @@ impl BoxedMontyForm {
         Self {
             montgomery_form: self
                 .montgomery_form
-                .sub_mod(&rhs.montgomery_form, &self.params.modulus),
+                .sub_mod(&rhs.montgomery_form, self.params.modulus()),
             params: self.params.clone(),
         }
     }
@@ -55,7 +55,7 @@ impl SubAssign<&BoxedMontyForm> for BoxedMontyForm {
         self.montgomery_form.sub_assign_mod_with_carry(
             Limb::ZERO,
             &rhs.montgomery_form,
-            &self.params.modulus,
+            self.params.modulus(),
         );
     }
 }
