@@ -5,8 +5,7 @@
 mod common;
 
 use common::to_biguint;
-use core::cmp::Ordering;
-use crypto_bigint::{BitOps, BoxedUint, CheckedAdd, Gcd, Integer, Limb, NonZero};
+use crypto_bigint::{BitOps, BoxedUint, CheckedAdd, Gcd, Integer, Limb, NonZero, Resize};
 use num_bigint::BigUint;
 use num_integer::Integer as _;
 use num_modular::ModularUnaryOps;
@@ -25,16 +24,7 @@ fn to_uint(big_uint: BigUint) -> BoxedUint {
 fn reduce(x: &BoxedUint, n: &BoxedUint) -> BoxedUint {
     let bits_precision = n.bits_precision();
     let modulus = NonZero::new(n.clone()).expect("odd n");
-
-    let x = match x.bits_precision().cmp(&bits_precision) {
-        Ordering::Less => x.widen(bits_precision),
-        Ordering::Equal => x.clone(),
-        Ordering::Greater => x.shorten(bits_precision),
-    };
-
-    let x_reduced = x.rem_vartime(&modulus);
-    debug_assert_eq!(x_reduced.bits_precision(), bits_precision);
-    x_reduced
+    x.rem_vartime(&modulus).resize(bits_precision)
 }
 
 prop_compose! {
@@ -48,17 +38,9 @@ prop_compose! {
 }
 prop_compose! {
     /// Generate a pair of random `BoxedUint`s with the same precision.
-    fn uint_pair()(mut a in uint(), mut b in uint()) -> (BoxedUint, BoxedUint) {
-        match a.bits_precision().cmp(&b.bits_precision()) {
-            Ordering::Greater => {
-                b = b.widen(a.bits_precision());
-            }
-            Ordering::Less => {
-                a = a.widen(b.bits_precision());
-            },
-            _ => ()
-        };
-        (a, b)
+    fn uint_pair()(a in uint(), b in uint()) -> (BoxedUint, BoxedUint) {
+        let bits_precision = core::cmp::max(a.bits_precision(), b.bits_precision());
+        (a.resize(bits_precision), b.resize(bits_precision))
     }
 }
 prop_compose! {

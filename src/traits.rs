@@ -851,6 +851,34 @@ pub trait ShrVartime: Sized {
     fn wrapping_shr_vartime(&self, shift: u32) -> Self;
 }
 
+/// Methods for resizing the allocated storage.
+pub trait Resize: Sized {
+    /// The result of the resizing.
+    type Output;
+
+    /// Resizes to the minimum storage that fits `at_least_bits_precision`
+    /// without checking if the bit size of `self` is larger than `at_least_bits_precision`.
+    ///
+    /// Variable-time w.r.t. `at_least_bits_precision`.
+    fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output;
+
+    /// Resizes to the minimum storage that fits `at_least_bits_precision`
+    /// returning `None` if the bit size of `self` is larger than `at_least_bits_precision`.
+    ///
+    /// Variable-time w.r.t. `at_least_bits_precision`.
+    fn try_resize(self, at_least_bits_precision: u32) -> Option<Self::Output>;
+
+    /// Resizes to the minimum storage that fits `at_least_bits_precision`
+    /// panicking if the bit size of `self` is larger than `at_least_bits_precision`.
+    ///
+    /// Variable-time w.r.t. `at_least_bits_precision`.
+    fn resize(self, at_least_bits_precision: u32) -> Self::Output {
+        self.try_resize(at_least_bits_precision).unwrap_or_else(|| {
+            panic!("The bit size of `self` is larger than `at_least_bits_precision`")
+        })
+    }
+}
+
 /// A representation of an integer optimized for the performance of modular operations.
 pub trait Monty:
     'static

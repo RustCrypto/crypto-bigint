@@ -236,6 +236,7 @@ impl SubAssign<u128> for BoxedUint {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::{BoxedUint, CheckedSub, Limb};
+    use crate::Resize;
 
     #[test]
     fn sbb_no_borrow() {
@@ -276,7 +277,7 @@ mod tests {
 
     #[test]
     fn sub_assign() {
-        let mut h = BoxedUint::one().widen(1024);
+        let mut h = BoxedUint::one().resize(1024);
         h -= BoxedUint::one();
     }
 }

@@ -5,7 +5,7 @@ use core::{cmp::Ordering, fmt, ops::Deref};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "alloc")]
-use crate::BoxedUint;
+use crate::{BoxedUint, Resize};
 
 #[cfg(feature = "rand_core")]
 use crate::{Random, rand_core::TryRngCore};
@@ -147,6 +147,32 @@ impl PartialEq<Odd<BoxedUint>> for BoxedUint {
 impl PartialOrd<Odd<BoxedUint>> for BoxedUint {
     fn partial_cmp(&self, other: &Odd<BoxedUint>) -> Option<Ordering> {
         Some(self.cmp(&other.0))
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl Resize for Odd<BoxedUint> {
+    type Output = Self;
+
+    fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output {
+        Odd(self.0.resize_unchecked(at_least_bits_precision))
+    }
+
+    fn try_resize(self, at_least_bits_precision: u32) -> Option<Self::Output> {
+        self.0.try_resize(at_least_bits_precision).map(Odd)
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl Resize for &Odd<BoxedUint> {
+    type Output = Odd<BoxedUint>;
+
+    fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output {
+        Odd((&self.0).resize_unchecked(at_least_bits_precision))
+    }
+
+    fn try_resize(self, at_least_bits_precision: u32) -> Option<Self::Output> {
+        (&self.0).try_resize(at_least_bits_precision).map(Odd)
     }
 }
 
