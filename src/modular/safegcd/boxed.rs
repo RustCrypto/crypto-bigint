@@ -4,7 +4,7 @@
 //! See parent module for more information.
 
 use super::{Matrix, inv_mod2_62, iterations, jump};
-use crate::{BoxedUint, Inverter, Limb, Odd, Word};
+use crate::{BoxedUint, Inverter, Limb, Odd, Resize, Word};
 use alloc::boxed::Box;
 use core::{
     cmp::max,
@@ -34,7 +34,7 @@ impl BoxedSafeGcdInverter {
     pub fn new(modulus: &Odd<BoxedUint>, adjuster: &BoxedUint) -> Self {
         Self {
             modulus: BoxedUnsatInt::from(&modulus.0),
-            adjuster: BoxedUnsatInt::from(&adjuster.widen(modulus.bits_precision())),
+            adjuster: BoxedUnsatInt::from(&adjuster.resize(modulus.bits_precision())),
             inverse: inv_mod2_62(modulus.0.as_words()),
         }
     }
@@ -339,7 +339,7 @@ impl BoxedUnsatInt {
 
         if shorten {
             debug_assert!(ret.bits_vartime() <= 32);
-            ret.shorten(32)
+            ret.resize(32)
         } else {
             ret
         }

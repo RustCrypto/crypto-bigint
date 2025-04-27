@@ -28,7 +28,7 @@ mod sub_mod;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Integer, Limb, NonZero, Odd, UintRef, Word, Zero, modular::BoxedMontyForm};
+use crate::{Integer, Limb, NonZero, Odd, Resize, UintRef, Word, Zero, modular::BoxedMontyForm};
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
@@ -199,6 +199,7 @@ impl BoxedUint {
     ///
     /// Panics if `at_least_bits_precision` is smaller than the current precision.
     #[must_use]
+    #[deprecated(since = "0.7.0", note = "please use `resize` instead")]
     pub fn widen(&self, at_least_bits_precision: u32) -> BoxedUint {
         assert!(at_least_bits_precision >= self.bits_precision());
 
@@ -211,6 +212,7 @@ impl BoxedUint {
     ///
     /// Panics if `at_least_bits_precision` is larger than the current precision.
     #[must_use]
+    #[deprecated(since = "0.7.0", note = "please use `resize` instead")]
     pub fn shorten(&self, at_least_bits_precision: u32) -> BoxedUint {
         assert!(at_least_bits_precision <= self.bits_precision());
         let mut ret = BoxedUint::zero_with_precision(at_least_bits_precision);
@@ -271,14 +273,76 @@ impl BoxedUint {
             limbs[i] = Limb::conditional_select(&limbs[i], &Limb::ZERO, choice);
         }
     }
+
+    /// Returns `true` if the integer's bit size is smaller or equal to `bits`.
+    pub(crate) fn is_within_bits(&self, bits: u32) -> bool {
+        bits >= self.bits_precision() || bits >= self.bits()
+    }
 }
 
-impl NonZero<BoxedUint> {
-    /// Widen this type's precision to the given number of bits.
-    ///
-    /// See [`BoxedUint::widen`] for more information, including panic conditions.
-    pub fn widen(&self, bits_precision: u32) -> Self {
-        NonZero(self.0.widen(bits_precision))
+impl Resize for BoxedUint {
+    type Output = BoxedUint;
+
+    fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output {
+        let new_len = Self::limbs_for_precision(at_least_bits_precision);
+        if new_len == self.limbs.len() {
+            self
+        } else {
+            let mut limbs = self.limbs.into_vec();
+            limbs.resize(new_len, Limb::ZERO);
+            Self::from(limbs)
+        }
+    }
+
+    fn try_resize(self, at_least_bits_precision: u32) -> Option<BoxedUint> {
+        if self.is_within_bits(at_least_bits_precision) {
+            Some(self.resize_unchecked(at_least_bits_precision))
+        } else {
+            None
+        }
+    }
+}
+
+impl Resize for &BoxedUint {
+    type Output = BoxedUint;
+
+    fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output {
+        let mut ret = BoxedUint::zero_with_precision(at_least_bits_precision);
+        let num_limbs_to_copy = core::cmp::min(ret.limbs.len(), self.limbs.len());
+        ret.limbs[..num_limbs_to_copy].copy_from_slice(&self.limbs[..num_limbs_to_copy]);
+        ret
+    }
+
+    fn try_resize(self, at_least_bits_precision: u32) -> Option<BoxedUint> {
+        if self.is_within_bits(at_least_bits_precision) {
+            Some(self.resize_unchecked(at_least_bits_precision))
+        } else {
+            None
+        }
+    }
+}
+
+impl Resize for NonZero<BoxedUint> {
+    type Output = Self;
+
+    fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output {
+        NonZero(self.0.resize_unchecked(at_least_bits_precision))
+    }
+
+    fn try_resize(self, at_least_bits_precision: u32) -> Option<Self::Output> {
+        self.0.try_resize(at_least_bits_precision).map(NonZero)
+    }
+}
+
+impl Resize for &NonZero<BoxedUint> {
+    type Output = NonZero<BoxedUint>;
+
+    fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output {
+        NonZero((&self.0).resize_unchecked(at_least_bits_precision))
+    }
+
+    fn try_resize(self, at_least_bits_precision: u32) -> Option<Self::Output> {
+        (&self.0).try_resize(at_least_bits_precision).map(NonZero)
     }
 }
 

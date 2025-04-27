@@ -46,7 +46,7 @@ impl Gcd<BoxedUint> for Odd<BoxedUint> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{BoxedUint, Gcd};
+    use crate::{BoxedUint, Gcd, Resize};
 
     #[test]
     fn gcd_relatively_prime() {
@@ -95,7 +95,7 @@ mod tests {
     #[test]
     fn gcd_different_sizes() {
         // Test that gcd works for boxed Uints with different numbers of limbs
-        let f = BoxedUint::from(4391633u32).widen(128).to_odd().unwrap();
+        let f = BoxedUint::from(4391633u32).resize(128).to_odd().unwrap();
         let g = BoxedUint::from(2022161u32);
         let gcd = f.gcd(&g);
         assert_eq!(gcd, BoxedUint::from(1763u32));
@@ -104,7 +104,7 @@ mod tests {
     #[test]
     fn gcd_vartime_different_sizes() {
         // Test that gcd works for boxed Uints with different numbers of limbs
-        let f = BoxedUint::from(4391633u32).widen(128).to_odd().unwrap();
+        let f = BoxedUint::from(4391633u32).resize(128).to_odd().unwrap();
         let g = BoxedUint::from(2022161u32);
         let gcd = f.gcd_vartime(&g);
         assert_eq!(gcd, BoxedUint::from(1763u32));

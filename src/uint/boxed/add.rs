@@ -231,6 +231,7 @@ impl AddAssign<u128> for BoxedUint {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::{BoxedUint, CheckedAdd, Limb};
+    use crate::Resize;
 
     #[test]
     fn adc_no_carry() {
@@ -267,7 +268,7 @@ mod tests {
 
     #[test]
     fn add_assign() {
-        let mut h = BoxedUint::one().widen(1024);
+        let mut h = BoxedUint::one().resize(1024);
 
         h += BoxedUint::one();
     }

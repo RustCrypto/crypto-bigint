@@ -6,31 +6,22 @@ mod common;
 
 use common::to_biguint;
 use crypto_bigint::{
-    BoxedUint, Integer, Inverter, Limb, Odd, PrecomputeInverter,
+    BoxedUint, Integer, Inverter, Limb, Odd, PrecomputeInverter, Resize,
     modular::{BoxedMontyForm, BoxedMontyParams},
 };
 use num_bigint::BigUint;
 use num_integer::Integer as _;
 use num_modular::ModularUnaryOps;
 use proptest::prelude::*;
-use std::cmp::Ordering;
 
 fn retrieve_biguint(monty_form: &BoxedMontyForm) -> BigUint {
     to_biguint(&monty_form.retrieve())
 }
 
 fn reduce(n: &BoxedUint, p: BoxedMontyParams) -> BoxedMontyForm {
-    let bits_precision = p.modulus().bits_precision();
-
-    let n = match n.bits_precision().cmp(&bits_precision) {
-        Ordering::Less => n.widen(bits_precision),
-        Ordering::Equal => n.clone(),
-        Ordering::Greater => n.shorten(bits_precision),
-    };
-
     let n_reduced = n
         .rem_vartime(p.modulus().as_nz_ref())
-        .widen(p.bits_precision());
+        .resize(p.bits_precision());
 
     BoxedMontyForm::new(n_reduced, p)
 }

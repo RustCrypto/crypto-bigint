@@ -11,7 +11,7 @@ mod sub;
 use super::{ConstMontyParams, Retrieve, div_by_2};
 use mul::BoxedMontyMultiplier;
 
-use crate::{BoxedUint, Limb, Monty, Odd, Word};
+use crate::{BoxedUint, Limb, Monty, Odd, Resize, Word};
 use alloc::sync::Arc;
 use subtle::Choice;
 
@@ -58,8 +58,8 @@ impl BoxedMontyParams {
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
         let r2 = one
             .square()
-            .rem(&modulus.as_nz_ref().widen(bits_precision * 2))
-            .shorten(bits_precision);
+            .rem(&modulus.as_nz_ref().resize_unchecked(bits_precision * 2))
+            .resize_unchecked(bits_precision);
 
         // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
         let (inv_mod_limb, inv_mod_limb_exists) = modulus.inv_mod2k_vartime(Word::BITS);
@@ -102,10 +102,7 @@ impl BoxedMontyParams {
             .wrapping_add(&BoxedUint::one());
 
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
-        let r2 = one
-            .square()
-            .rem_vartime(&modulus.as_nz_ref().widen(bits_precision * 2))
-            .shorten(bits_precision);
+        let r2 = one.square().rem_vartime(modulus.as_nz_ref());
 
         // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
         let (inv_mod_limb, inv_mod_limb_exists) = modulus.inv_mod2k_full_vartime(Word::BITS);
