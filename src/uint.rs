@@ -13,7 +13,7 @@ use zeroize::DefaultIsZeroes;
 #[cfg(feature = "extra-sizes")]
 pub use extra_sizes::*;
 
-pub use ref_type::UintRef;
+pub(crate) use ref_type::UintRef;
 
 use crate::{
     Bounded, ConstCtOption, ConstZero, Constants, Encoding, FixedInteger, Int, Integer, Limb,
@@ -189,12 +189,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Borrow the limbs of this [`Uint`] as a [`UintRef`].
-    pub const fn as_uint_ref(&self) -> &UintRef {
+    pub(crate) const fn as_uint_ref(&self) -> &UintRef {
         UintRef::new(&self.limbs)
     }
 
     /// Mutably borrow the limbs of this [`Uint`] as a [`UintRef`].
-    pub const fn as_mut_uint_ref(&mut self) -> &mut UintRef {
+    pub(crate) const fn as_mut_uint_ref(&mut self) -> &mut UintRef {
         UintRef::new_mut(&mut self.limbs)
     }
 
