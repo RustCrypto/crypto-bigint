@@ -175,12 +175,12 @@ impl BoxedUint {
     }
 
     /// Borrow the limbs of this [`BoxedUint`] as a [`UintRef`].
-    pub fn as_uint_ref(&self) -> &UintRef {
+    pub(crate) fn as_uint_ref(&self) -> &UintRef {
         UintRef::new(&self.limbs)
     }
 
     /// Mutably borrow the limbs of this [`BoxedUint`] as a [`UintRef`].
-    pub fn as_mut_uint_ref(&mut self) -> &mut UintRef {
+    pub(crate) fn as_mut_uint_ref(&mut self) -> &mut UintRef {
         UintRef::new_mut(&mut self.limbs)
     }
 
