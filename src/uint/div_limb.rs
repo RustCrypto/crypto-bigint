@@ -5,7 +5,7 @@ use subtle::{Choice, ConditionallySelectable};
 
 use crate::{
     ConstChoice, Limb, NonZero, Uint, WideWord, Word,
-    primitives::{addhilo, mulhilo},
+    primitives::{addhilo, widening_mul},
 };
 
 /// Calculates the reciprocal of the given 32-bit divisor with the highmost bit set.
@@ -18,14 +18,14 @@ pub const fn reciprocal(d: Word) -> Word {
     let d21 = (d >> 11) + 1;
     let d31 = (d >> 1) + d0;
     let v0 = short_div((1 << 24) - (1 << 14) + (1 << 9), 24, d10, 10);
-    let (hi, _lo) = mulhilo(v0 * v0, d21);
+    let (_lo, hi) = widening_mul(v0 * v0, d21);
     let v1 = (v0 << 4) - hi - 1;
 
     // Checks that the expression for `e` can be simplified in the way we did below.
-    debug_assert!(mulhilo(v1, d31).0 == (1 << 16) - 1);
+    debug_assert!(widening_mul(v1, d31).1 == (1 << 16) - 1);
     let e = Word::MAX - v1.wrapping_mul(d31) + 1 + (v1 >> 1) * d0;
 
-    let (hi, _lo) = mulhilo(v1, e);
+    let (_lo, hi) = widening_mul(v1, e);
     // Note: the paper does not mention a wrapping add here,
     // but the 64-bit version has it at this stage, and the function panics without it
     // when calculating a reciprocal for `Word::MAX`.
@@ -35,7 +35,7 @@ pub const fn reciprocal(d: Word) -> Word {
     // If `v2 == 2^32-1` this should give `d`, but we can't achieve this in our wrapping arithmetic.
     // Hence the `ct_select()`.
     let x = v2.wrapping_add(1);
-    let (hi, _lo) = mulhilo(x, d);
+    let (_lo, hi) = widening_mul(x, d);
     let hi = ConstChoice::from_u32_nonzero(x).select_word(d, hi);
 
     v2.wrapping_sub(hi).wrapping_sub(d)
@@ -55,17 +55,17 @@ pub const fn reciprocal(d: Word) -> Word {
     let v2 = (v1 << 13) + ((v1 * ((1 << 60) - v1 * d40)) >> 47);
 
     // Checks that the expression for `e` can be simplified in the way we did below.
-    debug_assert!(mulhilo(v2, d63).0 == (1 << 32) - 1);
+    debug_assert!(widening_mul(v2, d63).1 == (1 << 32) - 1);
     let e = Word::MAX - v2.wrapping_mul(d63) + 1 + (v2 >> 1) * d0;
 
-    let (hi, _lo) = mulhilo(v2, e);
+    let (_lo, hi) = widening_mul(v2, e);
     let v3 = (v2 << 31).wrapping_add(hi >> 1);
 
     // The paper has `(v3 + 1) * d / 2^64` (there's another 2^64, but it's accounted for later).
     // If `v3 == 2^64-1` this should give `d`, but we can't achieve this in our wrapping arithmetic.
     // Hence the `ct_select()`.
     let x = v3.wrapping_add(1);
-    let (hi, _lo) = mulhilo(x, d);
+    let (_lo, hi) = widening_mul(x, d);
     let hi = ConstChoice::from_word_nonzero(x).select_word(d, hi);
 
     v3.wrapping_sub(hi).wrapping_sub(d)
@@ -125,7 +125,7 @@ pub(crate) const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Wor
     debug_assert!(d >= (1 << (Word::BITS - 1)));
     debug_assert!(u1 < d);
 
-    let (q1, q0) = mulhilo(reciprocal.reciprocal, u1);
+    let (q0, q1) = widening_mul(reciprocal.reciprocal, u1);
     let (q1, q0) = addhilo(q1, q0, u1, u0);
     let q1 = q1.wrapping_add(1);
     let r = u0.wrapping_sub(q1.wrapping_mul(d));
@@ -330,7 +330,7 @@ pub(crate) const fn rem_limb_with_reciprocal_wide<const L: usize>(
 #[inline(always)]
 pub(crate) const fn mul_rem(a: Limb, b: Limb, d: NonZero<Limb>) -> Limb {
     let rec = Reciprocal::new(d);
-    let (hi, lo) = mulhilo(a.0, b.0);
+    let (lo, hi) = widening_mul(a.0, b.0);
     rem_limb_with_reciprocal(&Uint::from_words([lo, hi]), &rec)
 }
 

@@ -1,13 +1,5 @@
 use crate::{WideWord, Word};
 
-/// Multiplies `x` and `y`, returning the most significant
-/// and the least significant words as `(hi, lo)`.
-#[inline(always)]
-pub(crate) const fn mulhilo(x: Word, y: Word) -> (Word, Word) {
-    let res = (x as WideWord) * (y as WideWord);
-    ((res >> Word::BITS) as Word, res as Word)
-}
-
 /// Adds wide numbers represented by pairs of (most significant word, least significant word)
 /// and returns the result in the same format `(hi, lo)`.
 #[inline(always)]
