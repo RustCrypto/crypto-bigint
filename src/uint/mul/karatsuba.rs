@@ -84,16 +84,16 @@ macro_rules! impl_uint_karatsuba_multiplication {
 
                 // Add z0 + (z0 + z2)•b + z2•b^2
                 let mut carry = Limb::select(Limb::ZERO, Limb::ONE, z1_neg);
-                (res.0, carry) = res.0.adc(&z0.0, carry);
-                (res.1, carry) = res.1.adc(&z0.1, carry);
+                (res.0, carry) = res.0.carrying_add(&z0.0, carry);
+                (res.1, carry) = res.1.carrying_add(&z0.1, carry);
                 let mut carry2;
-                (res.1, carry2) = res.1.adc(&z0.0, Limb::ZERO);
-                (res.2, carry) = res.2.adc(&z0.1, carry.wrapping_add(carry2));
-                (res.1, carry2) = res.1.adc(&z2.0, Limb::ZERO);
-                (res.2, carry2) = res.2.adc(&z2.1, carry2);
+                (res.1, carry2) = res.1.carrying_add(&z0.0, Limb::ZERO);
+                (res.2, carry) = res.2.carrying_add(&z0.1, carry.wrapping_add(carry2));
+                (res.1, carry2) = res.1.carrying_add(&z2.0, Limb::ZERO);
+                (res.2, carry2) = res.2.carrying_add(&z2.1, carry2);
                 carry = carry.wrapping_add(carry2);
-                (res.2, carry2) = res.2.adc(&z2.0, Limb::ZERO);
-                (res.3, _) = res.3.adc(&z2.1, carry.wrapping_add(carry2));
+                (res.2, carry2) = res.2.carrying_add(&z2.0, Limb::ZERO);
+                (res.3, _) = res.3.carrying_add(&z2.1, carry.wrapping_add(carry2));
 
                 (res.0.concat(&res.1), res.2.concat(&res.3))
             }
@@ -124,12 +124,12 @@ macro_rules! impl_uint_karatsuba_squaring {
                 // Calculate z0 + (z0 + z2)•b + z2•b^2
                 let mut res = (z0.0, z0.1, Uint::<$half_size>::ZERO, Uint::<$half_size>::ZERO);
                 let mut carry;
-                (res.1, carry) = res.1.adc(&z0.0, Limb::ZERO);
-                (res.2, carry) = z0.1.adc(&z2.0, carry);
+                (res.1, carry) = res.1.carrying_add(&z0.0, Limb::ZERO);
+                (res.2, carry) = z0.1.carrying_add(&z2.0, carry);
                 let mut carry2;
-                (res.1, carry2) = res.1.adc(&z2.0, Limb::ZERO);
-                (res.2, carry2) = res.2.adc(&z2.1, carry2);
-                (res.3, _) = z2.1.adc(&Uint::ZERO, carry.wrapping_add(carry2));
+                (res.1, carry2) = res.1.carrying_add(&z2.0, Limb::ZERO);
+                (res.2, carry2) = res.2.carrying_add(&z2.1, carry2);
+                (res.3, _) = z2.1.carrying_add(&Uint::ZERO, carry.wrapping_add(carry2));
 
                 // Calculate z1 = (x0 - x1)^2
                 let mut l0 = Uint::<$half_size>::ZERO;
@@ -189,7 +189,7 @@ pub(crate) fn karatsuba_mul_limbs(
     };
     if size <= KARATSUBA_MAX_REDUCE_LIMBS {
         out.fill(Limb::ZERO);
-        adc_mul_limbs(lhs, rhs, out);
+        carrying_add_mul_limbs(lhs, rhs, out);
         return;
     }
     if lhs.len() + rhs.len() != out.len() || scratch.len() < 2 * size {
@@ -240,17 +240,17 @@ pub(crate) fn karatsuba_mul_limbs(
     let mut carry2 = Limb::ZERO;
     i = 0;
     while i < size {
-        (out[i], carry) = out[i].adc(scratch[i], carry); // add z0
+        (out[i], carry) = out[i].carrying_add(scratch[i], carry); // add z0
         i += 1;
     }
     i = 0;
     while i < half {
-        (out[i + half], carry2) = out[i + half].adc(scratch[i], carry2); // add z0.0
+        (out[i + half], carry2) = out[i + half].carrying_add(scratch[i], carry2); // add z0.0
         i += 1;
     }
     carry = carry.wrapping_add(carry2);
     while i < size {
-        (out[i + half], carry) = out[i + half].adc(scratch[i], carry); // add z0.1
+        (out[i + half], carry) = out[i + half].carrying_add(scratch[i], carry); // add z0.1
         i += 1;
     }
 
@@ -260,32 +260,32 @@ pub(crate) fn karatsuba_mul_limbs(
     carry2 = Limb::ZERO;
     i = 0;
     while i < size {
-        (out[i + half], carry2) = out[i + half].adc(scratch[i], carry2); // add z2
+        (out[i + half], carry2) = out[i + half].carrying_add(scratch[i], carry2); // add z2
         i += 1;
     }
     carry = carry.wrapping_add(carry2);
     carry2 = Limb::ZERO;
     i = 0;
     while i < half {
-        (out[i + size], carry2) = out[i + size].adc(scratch[i], carry2); // add z2.0
+        (out[i + size], carry2) = out[i + size].carrying_add(scratch[i], carry2); // add z2.0
         i += 1;
     }
     carry = carry.wrapping_add(carry2);
     while i < size {
-        (out[i + size], carry) = out[i + size].adc(scratch[i], carry); // add z2.1
+        (out[i + size], carry) = out[i + size].carrying_add(scratch[i], carry); // add z2.1
         i += 1;
     }
 
     // Handle trailing limbs
     if !xt.is_empty() {
-        adc_mul_limbs(xt, rhs, &mut out[size..]);
+        carrying_add_mul_limbs(xt, rhs, &mut out[size..]);
     }
     if !yt.is_empty() {
         let end_pos = 2 * size + yt.len();
-        carry = adc_mul_limbs(yt, x, &mut out[size..end_pos]);
+        carry = carrying_add_mul_limbs(yt, x, &mut out[size..end_pos]);
         i = end_pos;
         while i < out.len() {
-            (out[i], carry) = out[i].adc(Limb::ZERO, carry);
+            (out[i], carry) = out[i].carrying_add(Limb::ZERO, carry);
             i += 1;
         }
     }
@@ -335,17 +335,17 @@ pub(crate) fn karatsuba_square_limbs(limbs: &[Limb], out: &mut [Limb], scratch: 
     let mut carry2 = Limb::ZERO;
     i = 0;
     while i < size {
-        (out[i], carry) = out[i].adc(scratch[i], carry); // add z0
+        (out[i], carry) = out[i].carrying_add(scratch[i], carry); // add z0
         i += 1;
     }
     i = 0;
     while i < half {
-        (out[i + half], carry2) = out[i + half].adc(scratch[i], carry2); // add z0.0
+        (out[i + half], carry2) = out[i + half].carrying_add(scratch[i], carry2); // add z0.0
         i += 1;
     }
     carry = carry.wrapping_add(carry2);
     while i < size {
-        (out[i + half], carry) = out[i + half].adc(scratch[i], carry); // add z0.1
+        (out[i + half], carry) = out[i + half].carrying_add(scratch[i], carry); // add z0.1
         i += 1;
     }
 
@@ -355,19 +355,19 @@ pub(crate) fn karatsuba_square_limbs(limbs: &[Limb], out: &mut [Limb], scratch: 
     carry2 = Limb::ZERO;
     i = 0;
     while i < size {
-        (out[i + half], carry2) = out[i + half].adc(scratch[i], carry2); // add z2
+        (out[i + half], carry2) = out[i + half].carrying_add(scratch[i], carry2); // add z2
         i += 1;
     }
     carry = carry.wrapping_add(carry2);
     carry2 = Limb::ZERO;
     i = 0;
     while i < half {
-        (out[i + size], carry2) = out[i + size].adc(scratch[i], carry2); // add z2.0
+        (out[i + size], carry2) = out[i + size].carrying_add(scratch[i], carry2); // add z2.0
         i += 1;
     }
     carry = carry.wrapping_add(carry2);
     while i < size {
-        (out[i + size], carry) = out[i + size].adc(scratch[i], carry); // add z2.1
+        (out[i + size], carry) = out[i + size].carrying_add(scratch[i], carry); // add z2.1
         i += 1;
     }
 }
@@ -389,9 +389,9 @@ fn conditional_wrapping_neg_assign(limbs: &mut [Limb], choice: ConstChoice) {
 
 /// Add the schoolbook product of two limb slices to a limb slice, returning the carry.
 #[cfg(feature = "alloc")]
-fn adc_mul_limbs(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) -> Limb {
+fn carrying_add_mul_limbs(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) -> Limb {
     if lhs.len() + rhs.len() != out.len() {
-        panic!("adc_mul_limbs length mismatch");
+        panic!("carrying_add_mul_limbs length mismatch");
     }
 
     let mut carry = Limb::ZERO;
@@ -408,7 +408,7 @@ fn adc_mul_limbs(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) -> Limb {
         }
 
         carry = carry.wrapping_add(carry2);
-        (out[i + j], carry) = out[i + j].adc(Limb::ZERO, carry);
+        (out[i + j], carry) = out[i + j].carrying_add(Limb::ZERO, carry);
         i += 1;
     }
 

@@ -7,7 +7,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Assumes `self + rhs` as unbounded integer is `< 2p`.
     pub const fn add_mod(&self, rhs: &Self, p: &Self) -> Self {
-        let (w, carry) = self.adc(rhs, Limb::ZERO);
+        let (w, carry) = self.carrying_add(rhs, Limb::ZERO);
 
         // Attempt to subtract the modulus, to ensure the result is in the field.
         let (w, borrow) = w.sbb(p, Limb::ZERO);
@@ -24,8 +24,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Assumes `self + rhs` as unbounded integer is `< 2p`.
     pub const fn add_mod_special(&self, rhs: &Self, c: Limb) -> Self {
-        // `Uint::adc` also works with a carry greater than 1.
-        let (out, carry) = self.adc(rhs, c);
+        // `Uint::carrying_add` also works with a carry greater than 1.
+        let (out, carry) = self.carrying_add(rhs, c);
 
         // If overflow occurred, then above addition of `c` already accounts
         // for the overflow. Otherwise, we need to subtract `c` again, which

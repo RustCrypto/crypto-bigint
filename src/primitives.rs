@@ -19,7 +19,7 @@ pub(crate) const fn addhilo(x_hi: Word, x_lo: Word, y_hi: Word, y_lo: Word) -> (
 
 /// Computes `lhs + rhs + carry`, returning the result along with the new carry (0, 1, or 2).
 #[inline(always)]
-pub const fn adc(lhs: Word, rhs: Word, carry: Word) -> (Word, Word) {
+pub const fn carrying_add(lhs: Word, rhs: Word, carry: Word) -> (Word, Word) {
     // We could use `Word::overflowing_add()` here analogous to `overflowing_add()`,
     // but this version seems to produce a slightly better assembly.
     let a = lhs as WideWord;

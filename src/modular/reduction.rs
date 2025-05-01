@@ -36,7 +36,7 @@ const fn montgomery_reduction_inner(
             j += 1;
         }
 
-        (new_sum, meta_carry) = upper[i].adc(carry, meta_carry);
+        (new_sum, meta_carry) = upper[i].carrying_add(carry, meta_carry);
         upper[i] = new_sum;
 
         i += 1;

@@ -193,7 +193,7 @@ impl BoxedUint {
             carry = Limb::ZERO;
             i = 0;
             while i <= xi {
-                (x[i], carry) = x[i].adc(
+                (x[i], carry) = x[i].carrying_add(
                     Limb::select(Limb::ZERO, y[size - xi + i - 1], ct_borrow),
                     carry,
                 );
@@ -498,8 +498,8 @@ pub(crate) fn div_rem_vartime_in_place(x: &mut [Limb], y: &mut [Limb]) {
             let ct_borrow = ConstChoice::from_word_mask(borrow.0);
             let mut carry = Limb::ZERO;
             for i in 0..yc {
-                (x[xi + i + 1 - yc], carry) =
-                    x[xi + i + 1 - yc].adc(Limb::select(Limb::ZERO, y[i], ct_borrow), carry);
+                (x[xi + i + 1 - yc], carry) = x[xi + i + 1 - yc]
+                    .carrying_add(Limb::select(Limb::ZERO, y[i], ct_borrow), carry);
             }
             ct_borrow.select_word(quo, quo.wrapping_sub(1))
         };

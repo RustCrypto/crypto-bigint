@@ -16,7 +16,7 @@ impl BoxedUint {
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-        out.conditional_adc_assign(p, !borrow.is_zero());
+        out.conditional_carrying_add_assign(p, !borrow.is_zero());
         out
     }
 
@@ -33,7 +33,7 @@ impl BoxedUint {
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-        self.conditional_adc_assign(p, !mask.is_zero());
+        self.conditional_carrying_add_assign(p, !mask.is_zero());
     }
 
     /// Computes `self - rhs mod p` for the special modulus

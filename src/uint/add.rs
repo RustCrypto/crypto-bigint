@@ -5,14 +5,20 @@ use core::ops::{Add, AddAssign};
 use subtle::CtOption;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Computes `a + b + carry`, returning the result along with the new carry.
+    /// Computes `self + rhs + carry`, returning the result along with the new carry.
+    #[deprecated(since = "0.7.0", note = "please use `carrying_add` instead")]
+    pub const fn adc(&self, rhs: &Self, carry: Limb) -> (Self, Limb) {
+        self.carrying_add(rhs, carry)
+    }
+
+    /// Computes `self + rhs + carry`, returning the result along with the new carry.
     #[inline(always)]
-    pub const fn adc(&self, rhs: &Self, mut carry: Limb) -> (Self, Limb) {
+    pub const fn carrying_add(&self, rhs: &Self, mut carry: Limb) -> (Self, Limb) {
         let mut limbs = [Limb::ZERO; LIMBS];
         let mut i = 0;
 
         while i < LIMBS {
-            let (w, c) = self.limbs[i].adc(rhs.limbs[i], carry);
+            let (w, c) = self.limbs[i].carrying_add(rhs.limbs[i], carry);
             limbs[i] = w;
             carry = c;
             i += 1;
@@ -23,13 +29,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Perform saturating addition, returning `MAX` on overflow.
     pub const fn saturating_add(&self, rhs: &Self) -> Self {
-        let (res, overflow) = self.adc(rhs, Limb::ZERO);
+        let (res, overflow) = self.carrying_add(rhs, Limb::ZERO);
         Self::select(&res, &Self::MAX, ConstChoice::from_word_lsb(overflow.0))
     }
 
     /// Perform wrapping addition, discarding overflow.
     pub const fn wrapping_add(&self, rhs: &Self) -> Self {
-        self.adc(rhs, Limb::ZERO).0
+        self.carrying_add(rhs, Limb::ZERO).0
     }
 }
 
@@ -88,7 +94,7 @@ impl<const LIMBS: usize> AddAssign<&Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS
 
 impl<const LIMBS: usize> CheckedAdd for Uint<LIMBS> {
     fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
-        let (result, carry) = self.adc(rhs, Limb::ZERO);
+        let (result, carry) = self.carrying_add(rhs, Limb::ZERO);
         CtOption::new(result, carry.is_zero())
     }
 }
@@ -104,15 +110,15 @@ mod tests {
     use crate::{CheckedAdd, Limb, U128};
 
     #[test]
-    fn adc_no_carry() {
-        let (res, carry) = U128::ZERO.adc(&U128::ONE, Limb::ZERO);
+    fn carrying_add_no_carry() {
+        let (res, carry) = U128::ZERO.carrying_add(&U128::ONE, Limb::ZERO);
         assert_eq!(res, U128::ONE);
         assert_eq!(carry, Limb::ZERO);
     }
 
     #[test]
-    fn adc_with_carry() {
-        let (res, carry) = U128::MAX.adc(&U128::ONE, Limb::ZERO);
+    fn carrying_add_with_carry() {
+        let (res, carry) = U128::MAX.carrying_add(&U128::ONE, Limb::ZERO);
         assert_eq!(res, U128::ZERO);
         assert_eq!(carry, Limb::ONE);
     }

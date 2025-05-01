@@ -21,7 +21,7 @@ impl BoxedUint {
         debug_assert!(&*self < p);
         debug_assert!(rhs < p);
 
-        let carry = self.adc_assign(rhs, Limb::ZERO);
+        let carry = self.carrying_add_assign(rhs, Limb::ZERO);
 
         // Attempt to subtract the modulus, to ensure the result is in the field.
         let borrow = self.sbb_assign(p, Limb::ZERO);
@@ -30,7 +30,7 @@ impl BoxedUint {
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the
         // modulus.
-        self.conditional_adc_assign(p, !borrow.is_zero());
+        self.conditional_carrying_add_assign(p, !borrow.is_zero());
     }
 
     /// Computes `self + self mod p`.
@@ -46,7 +46,7 @@ impl BoxedUint {
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the
         // modulus.
-        w.conditional_adc_assign(p, !borrow.is_zero());
+        w.conditional_carrying_add_assign(p, !borrow.is_zero());
         w
     }
 }

@@ -60,7 +60,7 @@ impl BoxedUint {
 
         let (lo, carry) = {
             let rhs = (carry.0 + 1) as WideWord * c.0 as WideWord;
-            lo.adc(&Self::from(rhs), Limb::ZERO)
+            lo.carrying_add(&Self::from(rhs), Limb::ZERO)
         };
 
         let (lo, _) = {
