@@ -3,7 +3,7 @@ use criterion::{
     measurement::Measurement,
 };
 use crypto_bigint::{
-    Invert, Inverter, Odd, PrecomputeInverter, Random, RandomMod, U256,
+    Inverter, Odd, PrecomputeInverter, Random, RandomMod, U256,
     modular::{MontyForm, MontyParams},
 };
 use rand_chacha::ChaChaRng;

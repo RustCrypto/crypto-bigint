@@ -72,7 +72,7 @@ proptest! {
     }
 
     #[test]
-    fn inv(x in uint(), n in modulus()) {
+    fn invert(x in uint(), n in modulus()) {
         let x = reduce(&x, n.clone());
         let actual = Option::<BoxedMontyForm>::from(x.invert()).map(|a| a.retrieve());
 
@@ -88,7 +88,7 @@ proptest! {
     }
 
     #[test]
-    fn precomputed_inv(x in uint(), n in modulus()) {
+    fn precomputed_invert(x in uint(), n in modulus()) {
         let x = reduce(&x, n.clone());
         let inverter = x.params().precompute_inverter();
         let actual = Option::<BoxedMontyForm>::from(inverter.invert(&x));

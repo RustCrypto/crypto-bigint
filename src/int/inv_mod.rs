@@ -3,7 +3,7 @@
 use subtle::CtOption;
 
 use crate::modular::SafeGcdInverter;
-use crate::{ConstantTimeSelect, Int, InvMod, NonZero, Odd, PrecomputeInverter, Uint};
+use crate::{ConstantTimeSelect, Int, InvertMod, NonZero, Odd, PrecomputeInverter, Uint};
 
 impl<const LIMBS: usize, const UNSAT_LIMBS: usize> Int<LIMBS>
 where
@@ -24,15 +24,15 @@ where
     }
 }
 
-impl<const LIMBS: usize> InvMod<NonZero<Uint<LIMBS>>> for Int<LIMBS>
+impl<const LIMBS: usize> InvertMod<NonZero<Uint<LIMBS>>> for Int<LIMBS>
 where
-    Uint<LIMBS>: InvMod<Output = Uint<LIMBS>>,
+    Uint<LIMBS>: InvertMod<Output = Uint<LIMBS>>,
 {
     type Output = Uint<LIMBS>;
 
-    fn inv_mod(&self, modulus: &NonZero<Uint<LIMBS>>) -> CtOption<Self::Output> {
+    fn invert_mod(&self, modulus: &NonZero<Uint<LIMBS>>) -> CtOption<Self::Output> {
         let (abs, sgn) = self.abs_sign();
-        let abs_inv = abs.inv_mod(modulus);
+        let abs_inv = abs.invert_mod(modulus);
 
         // Note: when `self` is negative and modulus is non-zero, then
         // self^{-1} % modulus = modulus - |self|^{-1} % modulus
@@ -46,7 +46,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{I1024, InvMod, U1024};
+    use crate::{I1024, InvertMod, U1024};
 
     #[test]
     fn test_invert_odd() {
@@ -75,7 +75,7 @@ mod tests {
         assert_eq!(res, expected);
 
         // Even though it is less efficient, it still works
-        let res = a.inv_mod(&m.to_nz().unwrap()).unwrap();
+        let res = a.invert_mod(&m.to_nz().unwrap()).unwrap();
         assert_eq!(res, expected);
     }
 
@@ -102,7 +102,7 @@ mod tests {
             "F9F1107F0F4064B074637B983CB6672DAD75067A02F0E455DBB6E2CE7D7ED8B3",
         ]);
 
-        let res = a.inv_mod(&m).unwrap();
+        let res = a.invert_mod(&m).unwrap();
         assert_eq!(res, expected);
     }
 }

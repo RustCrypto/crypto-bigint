@@ -20,11 +20,21 @@ where
     ///
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
+    #[deprecated(since = "0.7.0", note = "please use `invert` instead")]
     pub const fn inv(&self) -> ConstCtOption<Self> {
+        self.invert()
+    }
+
+    /// Computes `self^-1` representing the multiplicative inverse of `self`,
+    /// i.e. `self * self^-1 = 1`.
+    ///
+    /// If the number was invertible, the second element of the tuple is the truthy value,
+    /// otherwise it is the falsy value (in which case the first element's value is unspecified).
+    pub const fn invert(&self) -> ConstCtOption<Self> {
         let inverter =
             <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(&MOD::MODULUS, &MOD::R2);
 
-        let maybe_inverse = inverter.inv(&self.montgomery_form);
+        let maybe_inverse = inverter.invert(&self.montgomery_form);
         let (inverse, inverse_is_some) = maybe_inverse.components_ref();
 
         let ret = Self {
@@ -43,11 +53,24 @@ where
     ///
     /// This version is variable-time with respect to the value of `self`, but constant-time with
     /// respect to `MOD`.
+    #[deprecated(since = "0.7.0", note = "please use `invert_vartime` instead")]
     pub const fn inv_vartime(&self) -> ConstCtOption<Self> {
+        self.invert_vartime()
+    }
+
+    /// Computes `self^-1` representing the multiplicative inverse of `self`,
+    /// i.e. `self * self^-1 = 1`.
+    ///
+    /// If the number was invertible, the second element of the tuple is the truthy value,
+    /// otherwise it is the falsy value (in which case the first element's value is unspecified).
+    ///
+    /// This version is variable-time with respect to the value of `self`, but constant-time with
+    /// respect to `MOD`.
+    pub const fn invert_vartime(&self) -> ConstCtOption<Self> {
         let inverter =
             <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(&MOD::MODULUS, &MOD::R2);
 
-        let maybe_inverse = inverter.inv_vartime(&self.montgomery_form);
+        let maybe_inverse = inverter.invert_vartime(&self.montgomery_form);
         let (inverse, inverse_is_some) = maybe_inverse.components_ref();
 
         let ret = Self {
@@ -70,11 +93,11 @@ where
     type Output = CtOption<Self>;
 
     fn invert(&self) -> Self::Output {
-        self.inv().into()
+        self.invert().into()
     }
 
     fn invert_vartime(&self) -> Self::Output {
-        self.inv_vartime().into()
+        self.invert_vartime().into()
     }
 }
 
@@ -108,11 +131,21 @@ where
 
     /// Returns either the adjusted modular multiplicative inverse for the argument or None
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
+    #[deprecated(since = "0.7.0", note = "please use `invert` instead")]
     pub const fn inv(
         &self,
         value: &ConstMontyForm<MOD, SAT_LIMBS>,
     ) -> ConstCtOption<ConstMontyForm<MOD, SAT_LIMBS>> {
-        let montgomery_form = self.inverter.inv(&value.montgomery_form);
+        self.invert(value)
+    }
+
+    /// Returns either the adjusted modular multiplicative inverse for the argument or None
+    /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
+    pub const fn invert(
+        &self,
+        value: &ConstMontyForm<MOD, SAT_LIMBS>,
+    ) -> ConstCtOption<ConstMontyForm<MOD, SAT_LIMBS>> {
+        let montgomery_form = self.inverter.invert(&value.montgomery_form);
         let (montgomery_form_ref, is_some) = montgomery_form.components_ref();
         let ret = ConstMontyForm {
             montgomery_form: *montgomery_form_ref,
@@ -126,11 +159,24 @@ where
     ///
     /// This version is variable-time with respect to the value of `self`, but constant-time with
     /// respect to `MOD`.
+    #[deprecated(since = "0.7.0", note = "please use `invert_vartime` instead")]
     pub const fn inv_vartime(
         &self,
         value: &ConstMontyForm<MOD, SAT_LIMBS>,
     ) -> ConstCtOption<ConstMontyForm<MOD, SAT_LIMBS>> {
-        let montgomery_form = self.inverter.inv_vartime(&value.montgomery_form);
+        self.invert_vartime(value)
+    }
+
+    /// Returns either the adjusted modular multiplicative inverse for the argument or None
+    /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
+    ///
+    /// This version is variable-time with respect to the value of `self`, but constant-time with
+    /// respect to `MOD`.
+    pub const fn invert_vartime(
+        &self,
+        value: &ConstMontyForm<MOD, SAT_LIMBS>,
+    ) -> ConstCtOption<ConstMontyForm<MOD, SAT_LIMBS>> {
+        let montgomery_form = self.inverter.invert_vartime(&value.montgomery_form);
         let (montgomery_form_ref, is_some) = montgomery_form.components_ref();
         let ret = ConstMontyForm {
             montgomery_form: *montgomery_form_ref,
@@ -151,11 +197,11 @@ where
     type Output = ConstMontyForm<MOD, SAT_LIMBS>;
 
     fn invert(&self, value: &ConstMontyForm<MOD, SAT_LIMBS>) -> CtOption<Self::Output> {
-        self.inv(value).into()
+        self.invert(value).into()
     }
 
     fn invert_vartime(&self, value: &ConstMontyForm<MOD, SAT_LIMBS>) -> CtOption<Self::Output> {
-        self.inv_vartime(value).into()
+        self.invert_vartime(value).into()
     }
 }
 
@@ -177,7 +223,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::ConstMontyParams;
-    use crate::{Inverter, U256, const_monty_form, impl_modulus};
+    use crate::{U256, const_monty_form, impl_modulus};
 
     impl_modulus!(
         Modulus,
@@ -191,7 +237,7 @@ mod tests {
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
         let x_mod = const_monty_form!(x, Modulus);
 
-        let inv = x_mod.inv().unwrap();
+        let inv = x_mod.invert().unwrap();
         let res = x_mod * inv;
 
         assert_eq!(res.retrieve(), U256::ONE);

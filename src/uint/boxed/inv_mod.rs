@@ -1,7 +1,7 @@
 //! [`BoxedUint`] modular inverse (i.e. reciprocal) operations.
 
 use crate::{
-    BoxedUint, ConstantTimeSelect, Integer, InvMod, Inverter, Odd, PrecomputeInverter,
+    BoxedUint, ConstantTimeSelect, Integer, InvertMod, Inverter, Odd, PrecomputeInverter,
     PrecomputeInverterWithAdjuster, modular::BoxedSafeGcdInverter,
 };
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
@@ -116,7 +116,17 @@ impl BoxedUint {
     /// `self` and `modulus` must have the same number of limbs, or the function will panic
     ///
     /// TODO: maybe some better documentation is needed
+    #[deprecated(since = "0.7.0", note = "please use `invert_mod` instead")]
     pub fn inv_mod(&self, modulus: &Self) -> CtOption<Self> {
+        self.invert_mod(modulus)
+    }
+
+    /// Computes the multiplicaitve inverse of `self` mod `modulus`
+    ///
+    /// `self` and `modulus` must have the same number of limbs, or the function will panic
+    ///
+    /// TODO: maybe some better documentation is needed
+    pub fn invert_mod(&self, modulus: &Self) -> CtOption<Self> {
         debug_assert_eq!(self.bits_precision(), modulus.bits_precision());
         let k = modulus.trailing_zeros();
         let (s, _overflowed) = modulus.overflowing_shr(k);
@@ -146,11 +156,11 @@ impl BoxedUint {
     }
 }
 
-impl InvMod for BoxedUint {
+impl InvertMod for BoxedUint {
     type Output = Self;
 
-    fn inv_mod(&self, modulus: &Self) -> CtOption<Self> {
-        self.inv_mod(modulus)
+    fn invert_mod(&self, modulus: &Self) -> CtOption<Self> {
+        self.invert_mod(modulus)
     }
 }
 
@@ -243,7 +253,7 @@ mod tests {
         .unwrap();
         assert_eq!(a.inv_odd_mod(&m).unwrap(), expected);
 
-        assert_eq!(a.inv_mod(&m).unwrap(), expected);
+        assert_eq!(a.invert_mod(&m).unwrap(), expected);
     }
 
     #[test]
@@ -302,7 +312,7 @@ mod tests {
         )
         .unwrap();
 
-        let res = a.inv_mod(&m).unwrap();
+        let res = a.invert_mod(&m).unwrap();
         assert_eq!(res, expected);
     }
 

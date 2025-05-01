@@ -432,7 +432,7 @@ fn bench_shr(c: &mut Criterion) {
     group.finish();
 }
 
-fn bench_inv_mod(c: &mut Criterion) {
+fn bench_invert_mod(c: &mut Criterion) {
     let mut rng = make_rng();
     let mut group = c.benchmark_group("modular ops");
 
@@ -453,7 +453,7 @@ fn bench_inv_mod(c: &mut Criterion) {
         )
     });
 
-    group.bench_function("inv_mod, U256, odd modulus", |b| {
+    group.bench_function("invert_mod, U256, odd modulus", |b| {
         b.iter_batched(
             || {
                 let m = Odd::<U256>::random(&mut rng);
@@ -465,24 +465,24 @@ fn bench_inv_mod(c: &mut Criterion) {
                     }
                 }
             },
-            |(x, m)| black_box(x.inv_mod(&m)),
+            |(x, m)| black_box(x.invert_mod(&m)),
             BatchSize::SmallInput,
         )
     });
 
-    group.bench_function("inv_mod, U256", |b| {
+    group.bench_function("invert_mod, U256", |b| {
         b.iter_batched(
             || {
                 let m = U256::random(&mut rng);
                 loop {
                     let x = U256::random(&mut rng);
-                    let inv_x = x.inv_mod(&m);
+                    let inv_x = x.invert_mod(&m);
                     if inv_x.is_some().into() {
                         break (x, m);
                     }
                 }
             },
-            |(x, m)| black_box(x.inv_mod(&m)),
+            |(x, m)| black_box(x.invert_mod(&m)),
             BatchSize::SmallInput,
         )
     });
@@ -520,7 +520,7 @@ criterion_group!(
     bench_gcd,
     bench_shl,
     bench_shr,
-    bench_inv_mod,
+    bench_invert_mod,
     bench_sqrt
 );
 

@@ -1,6 +1,6 @@
 use super::Uint;
 use crate::{
-    ConstChoice, ConstCtOption, InvMod, Odd, PrecomputeInverter, modular::SafeGcdInverter,
+    ConstChoice, ConstCtOption, InvertMod, Odd, PrecomputeInverter, modular::SafeGcdInverter,
 };
 use subtle::CtOption;
 
@@ -129,13 +129,21 @@ where
 {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     pub const fn inv_odd_mod(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
-        SafeGcdInverter::<LIMBS, UNSAT_LIMBS>::new(modulus, &Uint::ONE).inv(self)
+        SafeGcdInverter::<LIMBS, UNSAT_LIMBS>::new(modulus, &Uint::ONE).invert(self)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`.
     ///
     /// Returns some if an inverse exists, otherwise none.
+    #[deprecated(since = "0.7.0", note = "please use `invert_mod` instead")]
     pub const fn inv_mod(&self, modulus: &Self) -> ConstCtOption<Self> {
+        self.invert_mod(modulus)
+    }
+
+    /// Computes the multiplicative inverse of `self` mod `modulus`.
+    ///
+    /// Returns some if an inverse exists, otherwise none.
+    pub const fn invert_mod(&self, modulus: &Self) -> ConstCtOption<Self> {
         // Decompose `modulus = s * 2^k` where `s` is odd
         let k = modulus.trailing_zeros();
         let s = modulus.overflowing_shr(k).unwrap_or(Self::ZERO);
@@ -173,14 +181,14 @@ where
     }
 }
 
-impl<const LIMBS: usize, const UNSAT_LIMBS: usize> InvMod for Uint<LIMBS>
+impl<const LIMBS: usize, const UNSAT_LIMBS: usize> InvertMod for Uint<LIMBS>
 where
     Odd<Self>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
 {
     type Output = Self;
 
-    fn inv_mod(&self, modulus: &Self) -> CtOption<Self> {
-        self.inv_mod(modulus).into()
+    fn invert_mod(&self, modulus: &Self) -> CtOption<Self> {
+        self.invert_mod(modulus).into()
     }
 }
 
@@ -263,7 +271,7 @@ mod tests {
         assert_eq!(res, expected);
 
         // Even though it is less efficient, it still works
-        let res = a.inv_mod(&m).unwrap();
+        let res = a.invert_mod(&m).unwrap();
         assert_eq!(res, expected);
     }
 
@@ -304,7 +312,7 @@ mod tests {
             "5B9BFAE5D43C6BC6E7A9856C71C7318C76530E9E5AE35882D5ABB02F1696874D",
         ]);
 
-        let res = a.inv_mod(&m).unwrap();
+        let res = a.invert_mod(&m).unwrap();
         assert_eq!(res, expected);
     }
 

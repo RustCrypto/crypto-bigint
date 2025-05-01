@@ -161,7 +161,7 @@ proptest! {
     }
 
     #[test]
-    fn mod_inv((a, mut b) in uint_pair()) {
+    fn mod_invert((a, mut b) in uint_pair()) {
         if b.is_even().into() {
             b = BoxedUint::one_with_precision(a.bits_precision());
         }
