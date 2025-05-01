@@ -13,7 +13,21 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// negated when converted from [`Uint`] to [`Int`].
     ///
     /// Note: even if `negate` is truthy, the magnitude might be zero!
+    #[deprecated(since = "0.7.0", note = "please use `widening_mul` instead")]
     pub const fn split_mul<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Int<RHS_LIMBS>,
+    ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, ConstChoice) {
+        self.widening_mul(rhs)
+    }
+
+    /// Compute "wide" multiplication as a 3-tuple `(lo, hi, negate)`.
+    /// The `(lo, hi)` components contain the _magnitude of the product_, with sizes
+    /// corresponding to the sizes of the operands; `negate` indicates whether the result should be
+    /// negated when converted from [`Uint`] to [`Int`].
+    ///
+    /// Note: even if `negate` is truthy, the magnitude might be zero!
+    pub const fn widening_mul<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
     ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, ConstChoice) {
@@ -22,7 +36,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let (rhs_abs, rhs_sgn) = rhs.abs_sign();
 
         // Step 2: multiply the magnitudes
-        let (lo, hi) = lhs_abs.split_mul(&rhs_abs);
+        let (lo, hi) = lhs_abs.widening_mul(&rhs_abs);
 
         // Step 3. Determine if the result should be negated.
         // This should be done if and only if lhs and rhs have opposing signs.
@@ -31,18 +45,6 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let negate = lhs_sgn.xor(rhs_sgn);
 
         (lo, hi, negate)
-    }
-
-    /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
-    #[deprecated(since = "0.7.0", note = "please use `concatenating_mul` instead")]
-    pub const fn widening_mul<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
-        &self,
-        rhs: &Int<RHS_LIMBS>,
-    ) -> Int<WIDE_LIMBS>
-    where
-        Uint<LIMBS>: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
-    {
-        self.concatenating_mul(rhs)
     }
 
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
@@ -92,7 +94,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Int<RHS_LIMBS>> for Int<LIMBS> {
     #[inline]
     fn checked_mul(&self, rhs: &Int<RHS_LIMBS>) -> CtOption<Self> {
-        let (lo, hi, is_negative) = self.split_mul(rhs);
+        let (lo, hi, is_negative) = self.widening_mul(rhs);
         let val = Self::new_from_abs_sign(lo, is_negative);
         CtOption::from(val).and_then(|int| CtOption::new(int, hi.is_zero()))
     }

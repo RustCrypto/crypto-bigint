@@ -48,7 +48,7 @@ pub const fn borrowing_sub(lhs: Word, rhs: Word, borrow: Word) -> (Word, Word) {
 
 /// Computes `lhs * rhs`, returning the low and the high words of the result.
 #[inline(always)]
-pub const fn mul_wide(lhs: Word, rhs: Word) -> (Word, Word) {
+pub const fn widening_mul(lhs: Word, rhs: Word) -> (Word, Word) {
     let a = lhs as WideWord;
     let b = rhs as WideWord;
     let ret = a * b;

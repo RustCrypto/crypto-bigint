@@ -2,7 +2,7 @@
 
 use crate::{
     Checked, CheckedMul, Limb, Wrapping, Zero,
-    primitives::{mac, mul_wide},
+    primitives::{mac, widening_mul},
 };
 use core::ops::{Mul, MulAssign};
 use num_traits::WrappingMul;
@@ -29,8 +29,8 @@ impl Limb {
     }
 
     /// Compute "wide" multiplication, with a product twice the size of the input.
-    pub(crate) const fn mul_wide(&self, rhs: Self) -> (Self, Self) {
-        let (lo, hi) = mul_wide(self.0, rhs.0);
+    pub(crate) const fn widening_mul(&self, rhs: Self) -> (Self, Self) {
+        let (lo, hi) = widening_mul(self.0, rhs.0);
         (Limb(lo), Limb(hi))
     }
 }
@@ -38,7 +38,7 @@ impl Limb {
 impl CheckedMul for Limb {
     #[inline]
     fn checked_mul(&self, rhs: &Self) -> CtOption<Self> {
-        let (lo, hi) = self.mul_wide(*rhs);
+        let (lo, hi) = self.widening_mul(*rhs);
         CtOption::new(lo, hi.is_zero())
     }
 }

@@ -31,7 +31,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes `self * rhs mod p` for odd `p` in variable time with respect to `p`.
     pub fn mul_mod_vartime(&self, rhs: &Uint<LIMBS>, p: &NonZero<Uint<LIMBS>>) -> Uint<LIMBS> {
-        let lo_hi = self.split_mul(rhs);
+        let lo_hi = self.widening_mul(rhs);
         Self::rem_wide_vartime(lo_hi, p)
     }
 
@@ -53,7 +53,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             return Self::from_word(reduced.0);
         }
 
-        let (lo, hi) = self.split_mul(rhs);
+        let (lo, hi) = self.widening_mul(rhs);
 
         // Now use Algorithm 14.47 for the reduction
         let (lo, carry) = mac_by_limb(&lo, &hi, c, Limb::ZERO);
@@ -142,7 +142,7 @@ mod tests {
                         assert!(c < **p, "not reduced: {} >= {} ", c, p);
 
                         let expected = {
-                            let (lo, hi) = a.split_mul(&b);
+                            let (lo, hi) = a.widening_mul(&b);
                             let mut prod = Uint::<{ 2 * $size }>::ZERO;
                             prod.limbs[..$size].clone_from_slice(&lo.limbs);
                             prod.limbs[$size..].clone_from_slice(&hi.limbs);

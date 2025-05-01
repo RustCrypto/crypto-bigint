@@ -131,18 +131,6 @@ pub(crate) const fn schoolbook_squaring(limbs: &[Limb], lo: &mut [Limb], hi: &mu
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
-    #[deprecated(since = "0.7.0", note = "please use `concatenating_mul` instead")]
-    pub const fn widening_mul<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
-        &self,
-        rhs: &Uint<RHS_LIMBS>,
-    ) -> Uint<WIDE_LIMBS>
-    where
-        Self: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
-    {
-        self.concatenating_mul(rhs)
-    }
-
-    /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
     pub const fn concatenating_mul<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
@@ -150,13 +138,23 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     where
         Self: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
     {
-        let (lo, hi) = self.split_mul(rhs);
+        let (lo, hi) = self.widening_mul(rhs);
         Uint::concat_mixed(&lo, &hi)
     }
 
     /// Compute "wide" multiplication as a 2-tuple containing the `(lo, hi)` components of the product, whose sizes
     /// correspond to the sizes of the operands.
+    #[deprecated(since = "0.7.0", note = "please use `widening_mul` instead")]
     pub const fn split_mul<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> (Self, Uint<RHS_LIMBS>) {
+        self.widening_mul(rhs)
+    }
+
+    /// Compute "wide" multiplication as a 2-tuple containing the `(lo, hi)` components of the product, whose sizes
+    /// correspond to the sizes of the operands.
+    pub const fn widening_mul<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> (Self, Uint<RHS_LIMBS>) {
@@ -185,12 +183,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Perform wrapping multiplication, discarding overflow.
     pub const fn wrapping_mul<const H: usize>(&self, rhs: &Uint<H>) -> Self {
-        self.split_mul(rhs).0
+        self.widening_mul(rhs).0
     }
 
     /// Perform saturating multiplication, returning `MAX` on overflow.
     pub const fn saturating_mul<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> Self {
-        let (res, overflow) = self.split_mul(rhs);
+        let (res, overflow) = self.widening_mul(rhs);
         Self::select(&res, &Self::MAX, overflow.is_nonzero())
     }
 }
@@ -253,7 +251,7 @@ where
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Uint<RHS_LIMBS>> for Uint<LIMBS> {
     #[inline]
     fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
-        let (lo, hi) = self.split_mul(rhs);
+        let (lo, hi) = self.widening_mul(rhs);
         CtOption::new(lo, hi.is_zero())
     }
 }
@@ -404,20 +402,20 @@ mod tests {
     use crate::{CheckedMul, ConstChoice, U64, U128, U192, U256, Zero};
 
     #[test]
-    fn mul_wide_zero_and_one() {
-        assert_eq!(U64::ZERO.split_mul(&U64::ZERO), (U64::ZERO, U64::ZERO));
-        assert_eq!(U64::ZERO.split_mul(&U64::ONE), (U64::ZERO, U64::ZERO));
-        assert_eq!(U64::ONE.split_mul(&U64::ZERO), (U64::ZERO, U64::ZERO));
-        assert_eq!(U64::ONE.split_mul(&U64::ONE), (U64::ONE, U64::ZERO));
+    fn widening_mul_zero_and_one() {
+        assert_eq!(U64::ZERO.widening_mul(&U64::ZERO), (U64::ZERO, U64::ZERO));
+        assert_eq!(U64::ZERO.widening_mul(&U64::ONE), (U64::ZERO, U64::ZERO));
+        assert_eq!(U64::ONE.widening_mul(&U64::ZERO), (U64::ZERO, U64::ZERO));
+        assert_eq!(U64::ONE.widening_mul(&U64::ONE), (U64::ONE, U64::ZERO));
     }
 
     #[test]
-    fn mul_wide_lo_only() {
+    fn widening_mul_lo_only() {
         let primes: &[u32] = &[3, 5, 17, 257, 65537];
 
         for &a_int in primes {
             for &b_int in primes {
-                let (lo, hi) = U64::from_u32(a_int).split_mul(&U64::from_u32(b_int));
+                let (lo, hi) = U64::from_u32(a_int).widening_mul(&U64::from_u32(b_int));
                 let expected = U64::from_u64(a_int as u64 * b_int as u64);
                 assert_eq!(lo, expected);
                 assert!(bool::from(hi.is_zero()));
@@ -527,7 +525,7 @@ mod tests {
 
         for _ in 0..50 {
             let a = U4096::random(&mut rng);
-            assert_eq!(a.split_mul(&a), a.square_wide(), "a = {a}");
+            assert_eq!(a.widening_mul(&a), a.square_wide(), "a = {a}");
         }
     }
 }

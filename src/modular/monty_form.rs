@@ -191,7 +191,7 @@ pub struct MontyForm<const LIMBS: usize> {
 impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Instantiates a new `MontyForm` that represents this `integer` mod `MOD`.
     pub const fn new(integer: &Uint<LIMBS>, params: MontyParams<LIMBS>) -> Self {
-        let product = integer.split_mul(&params.r2);
+        let product = integer.widening_mul(&params.r2);
         let montgomery_form = montgomery_reduction(&product, &params.modulus, params.mod_neg_inv);
 
         Self {

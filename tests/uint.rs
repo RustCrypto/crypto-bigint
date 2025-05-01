@@ -310,7 +310,7 @@ proptest! {
 
         if !c_bi.is_zero() {
             let expected = to_uint(ab_bi.div_rem(&c_bi).1);
-            let (lo, hi) = a.split_mul(&b);
+            let (lo, hi) = a.widening_mul(&b);
             let c_nz = NonZero::new(c).unwrap();
             let actual = Uint::rem_wide_vartime((lo, hi), &c_nz);
             prop_assert_eq!(expected, actual);

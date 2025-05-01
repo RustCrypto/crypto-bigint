@@ -97,7 +97,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     /// Internal helper function to convert to Montgomery form;
     /// this lets us cleanly wrap the constructors.
     const fn from_integer(integer: &Uint<LIMBS>) -> Self {
-        let product = integer.split_mul(&MOD::R2);
+        let product = integer.widening_mul(&MOD::R2);
         let montgomery_form =
             montgomery_reduction::<LIMBS>(&product, &MOD::MODULUS, MOD::MOD_NEG_INV);
 

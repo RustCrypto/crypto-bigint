@@ -11,7 +11,21 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// negated when converted from [`Uint`] to [`Int`].
     ///
     /// Note: even if `negate` is truthy, the magnitude might be zero!
+    #[deprecated(since = "0.7.0", note = "please use `widening_mul_uint` instead")]
     pub const fn split_mul_uint<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, ConstChoice) {
+        self.widening_mul_uint(rhs)
+    }
+
+    /// Compute "wide" multiplication between an [`Int`] and [`Uint`] as 3-tuple `(lo, hi, negate)`.
+    /// The `(lo, hi)` components contain the _magnitude of the product_, with sizes
+    /// corresponding to the sizes of the operands; `negate` indicates whether the result should be
+    /// negated when converted from [`Uint`] to [`Int`].
+    ///
+    /// Note: even if `negate` is truthy, the magnitude might be zero!
+    pub const fn widening_mul_uint<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, ConstChoice) {
@@ -19,7 +33,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let (lhs_abs, lhs_sgn) = self.abs_sign();
 
         // Step 2. Multiply the magnitudes
-        let (lo, hi) = lhs_abs.split_mul(rhs);
+        let (lo, hi) = lhs_abs.widening_mul(rhs);
 
         // Step 3. negate if and only if self has a negative sign.
         (lo, hi, lhs_sgn)
@@ -31,25 +45,27 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// the result should be negated when converted from [`Uint`] to [`Int`].
     ///
     /// Note: even if `negate` is truthy, the magnitude might be zero!
+    #[deprecated(since = "0.7.0", note = "please use `widening_mul_uint_right` instead")]
     pub const fn split_mul_uint_right<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> (Uint<{ RHS_LIMBS }>, Uint<{ LIMBS }>, ConstChoice) {
-        let (lhs_abs, lhs_sgn) = self.abs_sign();
-        let (lo, hi) = rhs.split_mul(&lhs_abs);
-        (lo, hi, lhs_sgn)
+        self.widening_mul_uint_right(rhs)
     }
 
-    /// Multiply `self` by [`Uint`] `rhs`, returning a concatenated "wide" result.
-    #[deprecated(since = "0.7.0", note = "please use `concatenating_mul_uint` instead")]
-    pub const fn widening_mul_uint<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
+    /// Compute "wide" multiplication between an [`Int`] and [`Uint`] as 3-tuple `(lo, hi, negate)`.
+    /// The `(lo, hi)` components contain the _magnitude of the product_, with sizes
+    /// corresponding to the sizes of the operands, in reversed order; `negate` indicates whether
+    /// the result should be negated when converted from [`Uint`] to [`Int`].
+    ///
+    /// Note: even if `negate` is truthy, the magnitude might be zero!
+    pub const fn widening_mul_uint_right<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
-    ) -> Int<WIDE_LIMBS>
-    where
-        Uint<LIMBS>: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
-    {
-        self.concatenating_mul_uint(rhs)
+    ) -> (Uint<{ RHS_LIMBS }>, Uint<{ LIMBS }>, ConstChoice) {
+        let (lhs_abs, lhs_sgn) = self.abs_sign();
+        let (lo, hi) = rhs.widening_mul(&lhs_abs);
+        (lo, hi, lhs_sgn)
     }
 
     /// Multiply `self` by [`Uint`] `rhs`, returning a concatenated "wide" result.
@@ -73,7 +89,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> CtOption<Int<RHS_LIMBS>> {
-        let (lo, hi, is_negative) = self.split_mul_uint_right(rhs);
+        let (lo, hi, is_negative) = self.widening_mul_uint_right(rhs);
         let val = Int::<RHS_LIMBS>::new_from_abs_sign(lo, is_negative);
         CtOption::from(val).and_then(|int| CtOption::new(int, hi.is_zero()))
     }
@@ -82,7 +98,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Uint<RHS_LIMBS>> for Int<LIMBS> {
     #[inline]
     fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
-        let (lo, hi, is_negative) = self.split_mul_uint(rhs);
+        let (lo, hi, is_negative) = self.widening_mul_uint(rhs);
         let val = Self::new_from_abs_sign(lo, is_negative);
         CtOption::from(val).and_then(|int| CtOption::new(int, hi.is_zero()))
     }

@@ -11,50 +11,50 @@ fn bench_mul(c: &mut Criterion) {
     let mut rng = ChaChaRng::from_os_rng();
     let mut group = c.benchmark_group("wrapping ops");
 
-    group.bench_function("split_mul, I128xI128", |b| {
+    group.bench_function("widening_mul, I128xI128", |b| {
         b.iter_batched(
             || (I256::random(&mut rng), I256::random(&mut rng)),
-            |(x, y)| black_box(x.split_mul(&y)),
+            |(x, y)| black_box(x.widening_mul(&y)),
             BatchSize::SmallInput,
         )
     });
 
-    group.bench_function("split_mul, I256xI256", |b| {
+    group.bench_function("widening_mul, I256xI256", |b| {
         b.iter_batched(
             || (I256::random(&mut rng), I256::random(&mut rng)),
-            |(x, y)| black_box(x.split_mul(&y)),
+            |(x, y)| black_box(x.widening_mul(&y)),
             BatchSize::SmallInput,
         )
     });
 
-    group.bench_function("split_mul, I512xI512", |b| {
+    group.bench_function("widening_mul, I512xI512", |b| {
         b.iter_batched(
             || (I512::random(&mut rng), I512::random(&mut rng)),
-            |(x, y)| black_box(x.split_mul(&y)),
+            |(x, y)| black_box(x.widening_mul(&y)),
             BatchSize::SmallInput,
         )
     });
 
-    group.bench_function("split_mul, I1024xI1024", |b| {
+    group.bench_function("widening_mul, I1024xI1024", |b| {
         b.iter_batched(
             || (I1024::random(&mut rng), I1024::random(&mut rng)),
-            |(x, y)| black_box(x.split_mul(&y)),
+            |(x, y)| black_box(x.widening_mul(&y)),
             BatchSize::SmallInput,
         )
     });
 
-    group.bench_function("split_mul, I2048xI2048", |b| {
+    group.bench_function("widening_mul, I2048xI2048", |b| {
         b.iter_batched(
             || (I2048::random(&mut rng), I2048::random(&mut rng)),
-            |(x, y)| black_box(x.split_mul(&y)),
+            |(x, y)| black_box(x.widening_mul(&y)),
             BatchSize::SmallInput,
         )
     });
 
-    group.bench_function("split_mul, I4096xI4096", |b| {
+    group.bench_function("widening_mul, I4096xI4096", |b| {
         b.iter_batched(
             || (I4096::random(&mut rng), I4096::random(&mut rng)),
-            |(x, y)| black_box(x.split_mul(&y)),
+            |(x, y)| black_box(x.widening_mul(&y)),
             BatchSize::SmallInput,
         )
     });

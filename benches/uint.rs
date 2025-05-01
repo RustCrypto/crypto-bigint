@@ -146,18 +146,18 @@ fn bench_mul(c: &mut Criterion) {
     let mut group = c.benchmark_group("wrapping ops");
 
     let mut rng = make_rng();
-    group.bench_function("split_mul, U256xU256", |b| {
+    group.bench_function("widening_mul, U256xU256", |b| {
         b.iter_batched(
             || (U256::random(&mut rng), U256::random(&mut rng)),
-            |(x, y)| black_box(x.split_mul(&y)),
+            |(x, y)| black_box(x.widening_mul(&y)),
             BatchSize::SmallInput,
         )
     });
 
-    group.bench_function("split_mul, U4096xU4096", |b| {
+    group.bench_function("widening_mul, U4096xU4096", |b| {
         b.iter_batched(
             || (U4096::random(&mut rng), U4096::random(&mut rng)),
-            |(x, y)| black_box(x.split_mul(&y)),
+            |(x, y)| black_box(x.widening_mul(&y)),
             BatchSize::SmallInput,
         )
     });
