@@ -11,7 +11,7 @@ pub(crate) const fn addhilo(x_lo: Word, x_hi: Word, y_lo: Word, y_hi: Word) -> (
 
 /// Computes `lhs + rhs + carry`, returning the result along with the new carry (0, 1, or 2).
 #[inline(always)]
-pub const fn carrying_add(lhs: Word, rhs: Word, carry: Word) -> (Word, Word) {
+pub(crate) const fn carrying_add(lhs: Word, rhs: Word, carry: Word) -> (Word, Word) {
     // We could use `Word::overflowing_add()` here analogous to `overflowing_add()`,
     // but this version seems to produce a slightly better assembly.
     let a = lhs as WideWord;
@@ -23,14 +23,14 @@ pub const fn carrying_add(lhs: Word, rhs: Word, carry: Word) -> (Word, Word) {
 
 /// Computes `lhs + rhs`, returning the result along with the carry (0 or 1).
 #[inline(always)]
-pub const fn overflowing_add(lhs: Word, rhs: Word) -> (Word, Word) {
+pub(crate) const fn overflowing_add(lhs: Word, rhs: Word) -> (Word, Word) {
     let (res, carry) = lhs.overflowing_add(rhs);
     (res, carry as Word)
 }
 
 /// Computes `lhs - (rhs + borrow)`, returning the result along with the new borrow.
 #[inline(always)]
-pub const fn borrowing_sub(lhs: Word, rhs: Word, borrow: Word) -> (Word, Word) {
+pub(crate) const fn borrowing_sub(lhs: Word, rhs: Word, borrow: Word) -> (Word, Word) {
     let a = lhs as WideWord;
     let b = rhs as WideWord;
     let borrow = (borrow >> (Word::BITS - 1)) as WideWord;
@@ -40,7 +40,7 @@ pub const fn borrowing_sub(lhs: Word, rhs: Word, borrow: Word) -> (Word, Word) {
 
 /// Computes `lhs * rhs`, returning the low and the high words of the result.
 #[inline(always)]
-pub const fn widening_mul(lhs: Word, rhs: Word) -> (Word, Word) {
+pub(crate) const fn widening_mul(lhs: Word, rhs: Word) -> (Word, Word) {
     let a = lhs as WideWord;
     let b = rhs as WideWord;
     let ret = a * b;
