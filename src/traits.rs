@@ -807,7 +807,7 @@ where
 }
 
 /// Constant-time inversion.
-pub trait Invert: Sized {
+pub trait Invert {
     /// Output of the inversion.
     type Output;
 
@@ -815,7 +815,9 @@ pub trait Invert: Sized {
     fn invert(&self) -> Self::Output;
 
     /// Computes the inverse in variable-time.
-    fn invert_vartime(&self) -> Self::Output;
+    fn invert_vartime(&self) -> Self::Output {
+        self.invert()
+    }
 }
 
 /// Widening multiply: returns a value with a number of limbs equal to the sum of the inputs.
