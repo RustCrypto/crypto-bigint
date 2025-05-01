@@ -11,7 +11,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// If the inverse does not exist (`k > 0` and `self` is even),
     /// returns `ConstChoice::FALSE` as the second element of the tuple,
     /// otherwise returns `ConstChoice::TRUE`.
-    pub(crate) const fn inv_mod2k_full_vartime(&self, k: u32) -> Option<Self> {
+    pub(crate) const fn invert_mod2k_full_vartime(&self, k: u32) -> Option<Self> {
         // Using the Algorithm 3 from "A Secure Algorithm for Inversion Modulo 2k"
         // by Sadiel de la Fe and Carles Ferrer.
         // See <https://www.mdpi.com/2410-387X/2/3/23>.
@@ -51,7 +51,18 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// If the inverse does not exist (`k > 0` and `self` is even),
     /// returns `ConstChoice::FALSE` as the second element of the tuple,
     /// otherwise returns `ConstChoice::TRUE`.
+    #[deprecated(since = "0.7.0", note = "please use `invert_mod2k_vartime` instead")]
     pub const fn inv_mod2k_vartime(&self, k: u32) -> ConstCtOption<Self> {
+        self.invert_mod2k_vartime(k)
+    }
+
+    /// Computes 1/`self` mod `2^k`.
+    /// This method is constant-time w.r.t. `self` but not `k`.
+    ///
+    /// If the inverse does not exist (`k > 0` and `self` is even),
+    /// returns `ConstChoice::FALSE` as the second element of the tuple,
+    /// otherwise returns `ConstChoice::TRUE`.
+    pub const fn invert_mod2k_vartime(&self, k: u32) -> ConstCtOption<Self> {
         // Using the Algorithm 3 from "A Secure Algorithm for Inversion Modulo 2k"
         // by Sadiel de la Fe and Carles Ferrer.
         // See <https://www.mdpi.com/2410-387X/2/3/23>.
@@ -89,8 +100,18 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// If the inverse does not exist (`k > 0` and `self` is even),
     /// returns `ConstChoice::FALSE` as the second element of the tuple,
     /// otherwise returns `ConstChoice::TRUE`.
+    #[deprecated(since = "0.7.0", note = "please use `invert_mod2k` instead")]
     pub const fn inv_mod2k(&self, k: u32) -> ConstCtOption<Self> {
-        // This is the same algorithm as in `inv_mod2k_vartime()`,
+        self.invert_mod2k(k)
+    }
+
+    /// Computes 1/`self` mod `2^k`.
+    ///
+    /// If the inverse does not exist (`k > 0` and `self` is even),
+    /// returns `ConstChoice::FALSE` as the second element of the tuple,
+    /// otherwise returns `ConstChoice::TRUE`.
+    pub const fn invert_mod2k(&self, k: u32) -> ConstCtOption<Self> {
+        // This is the same algorithm as in `invert_mod2k_vartime()`,
         // but made constant-time w.r.t `k` as well.
 
         let mut x = Self::ZERO; // keeps `x` during iterations
@@ -159,7 +180,7 @@ where
         let s_is_odd = s.is_odd();
         let maybe_a = self.invert_odd_mod(&Odd(s)).and_choice(s_is_odd);
 
-        let maybe_b = self.inv_mod2k(k);
+        let maybe_b = self.invert_mod2k(k);
         let is_some = maybe_a.is_some().and(maybe_b.is_some());
 
         // Unwrap to avoid mapping through ConstCtOptions.
@@ -173,7 +194,7 @@ where
         // (essentially one step of the Garner's algorithm for recovery from RNS).
 
         // `s` is odd, so this always exists
-        let m_odd_inv = s.inv_mod2k(k).expect("inverse mod 2^k exists");
+        let m_odd_inv = s.invert_mod2k(k).expect("inverse mod 2^k exists");
 
         // This part is mod 2^k
         let shifted = Uint::ONE.overflowing_shl(k).unwrap_or(Self::ZERO);
@@ -203,25 +224,25 @@ mod tests {
     use crate::{U64, U256, U1024};
 
     #[test]
-    fn inv_mod2k() {
+    fn invert_mod2k() {
         let v =
             U256::from_be_hex("fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f");
         let e =
             U256::from_be_hex("3642e6faeaac7c6663b93d3d6a0d489e434ddc0123db5fa627c7f6e22ddacacf");
-        let a = v.inv_mod2k(256).unwrap();
+        let a = v.invert_mod2k(256).unwrap();
         assert_eq!(e, a);
 
-        let a = v.inv_mod2k_vartime(256).unwrap();
+        let a = v.invert_mod2k_vartime(256).unwrap();
         assert_eq!(e, a);
 
         let v =
             U256::from_be_hex("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141");
         let e =
             U256::from_be_hex("261776f29b6b106c7680cf3ed83054a1af5ae537cb4613dbb4f20099aa774ec1");
-        let a = v.inv_mod2k(256).unwrap();
+        let a = v.invert_mod2k(256).unwrap();
         assert_eq!(e, a);
 
-        let a = v.inv_mod2k_vartime(256).unwrap();
+        let a = v.invert_mod2k_vartime(256).unwrap();
         assert_eq!(e, a);
 
         // Check that even if the number is >= 2^k, the inverse is still correct.
@@ -230,23 +251,23 @@ mod tests {
             U256::from_be_hex("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141");
         let e =
             U256::from_be_hex("0000000000000000000000000000000000000000034613dbb4f20099aa774ec1");
-        let a = v.inv_mod2k(90).unwrap();
+        let a = v.invert_mod2k(90).unwrap();
         assert_eq!(e, a);
 
-        let a = v.inv_mod2k_vartime(90).unwrap();
+        let a = v.invert_mod2k_vartime(90).unwrap();
         assert_eq!(e, a);
 
         // An inverse of an even number does not exist.
 
-        let a = U256::from(10u64).inv_mod2k(4);
+        let a = U256::from(10u64).invert_mod2k(4);
         assert!(a.is_none().is_true_vartime());
 
-        let a = U256::from(10u64).inv_mod2k_vartime(4);
+        let a = U256::from(10u64).invert_mod2k_vartime(4);
         assert!(a.is_none().is_true_vartime());
 
         // A degenerate case. An inverse mod 2^0 == 1 always exists even for even numbers.
 
-        let a = U256::from(10u64).inv_mod2k_vartime(0).unwrap();
+        let a = U256::from(10u64).invert_mod2k_vartime(0).unwrap();
         assert_eq!(a, U256::ZERO);
     }
 

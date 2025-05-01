@@ -46,7 +46,7 @@ macro_rules! impl_modulus {
                 $crate::Word::MIN.wrapping_sub(
                     Self::MODULUS
                         .as_ref()
-                        .inv_mod2k_vartime($crate::Word::BITS)
+                        .invert_mod2k_vartime($crate::Word::BITS)
                         .expect("modulus ensured odd")
                         .as_limbs()[0]
                         .0,

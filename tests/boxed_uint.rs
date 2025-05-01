@@ -139,14 +139,14 @@ proptest! {
     }
 
     #[test]
-    fn inv_mod2k(mut a in uint(), k in any::<u32>()) {
+    fn invert_mod2k(mut a in uint(), k in any::<u32>()) {
         a.set_bit(0, Choice::from(1)); // make odd
         let k = k % (a.bits() + 1);
         let a_bi = to_biguint(&a);
         let m_bi = BigUint::one() << k as usize;
 
-        let actual = a.inv_mod2k(k).0;
-        let (actual_vartime, exists) = a.inv_mod2k_vartime(k);
+        let actual = a.invert_mod2k(k).0;
+        let (actual_vartime, exists) = a.invert_mod2k_vartime(k);
         prop_assert!(bool::from(exists));
         prop_assert_eq!(&actual, &actual_vartime);
 

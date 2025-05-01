@@ -24,7 +24,7 @@ impl BoxedUint {
     /// If the inverse does not exist (`k > 0` and `self` is even),
     /// returns `Choice::FALSE` as the second element of the tuple,
     /// otherwise returns `Choice::TRUE`.
-    pub(crate) fn inv_mod2k_full_vartime(&self, k: u32) -> (Self, Choice) {
+    pub(crate) fn invert_mod2k_full_vartime(&self, k: u32) -> (Self, Choice) {
         let mut x = Self::zero_with_precision(self.bits_precision()); // keeps `x` during iterations
         let mut b = Self::one_with_precision(self.bits_precision()); // keeps `b_i` during iterations
 
@@ -54,7 +54,18 @@ impl BoxedUint {
     /// If the inverse does not exist (`k > 0` and `self` is even),
     /// returns `Choice::FALSE` as the second element of the tuple,
     /// otherwise returns `Choice::TRUE`.
+    #[deprecated(since = "0.7.0", note = "please use `invert_mod2k_vartime` instead")]
     pub fn inv_mod2k_vartime(&self, k: u32) -> (Self, Choice) {
+        self.invert_mod2k_vartime(k)
+    }
+
+    /// Computes 1/`self` mod `2^k`.
+    /// This method is constant-time w.r.t. `self` but not `k`.
+    ///
+    /// If the inverse does not exist (`k > 0` and `self` is even),
+    /// returns `Choice::FALSE` as the second element of the tuple,
+    /// otherwise returns `Choice::TRUE`.
+    pub fn invert_mod2k_vartime(&self, k: u32) -> (Self, Choice) {
         let mut x = Self::zero_with_precision(self.bits_precision()); // keeps `x` during iterations
         let mut b = Self::one_with_precision(self.bits_precision()); // keeps `b_i` during iterations
         // Additional temporary storage we will need.
@@ -85,7 +96,17 @@ impl BoxedUint {
     /// If the inverse does not exist (`k > 0` and `self` is even),
     /// returns `Choice::FALSE` as the second element of the tuple,
     /// otherwise returns `Choice::TRUE`.
+    #[deprecated(since = "0.7.0", note = "please use `invert_mod2k` instead")]
     pub fn inv_mod2k(&self, k: u32) -> (Self, Choice) {
+        self.invert_mod2k(k)
+    }
+
+    /// Computes 1/`self` mod `2^k`.
+    ///
+    /// If the inverse does not exist (`k > 0` and `self` is even),
+    /// returns `Choice::FALSE` as the second element of the tuple,
+    /// otherwise returns `Choice::TRUE`.
+    pub fn invert_mod2k(&self, k: u32) -> (Self, Choice) {
         let mut x = Self::zero_with_precision(self.bits_precision()); // keeps `x` during iterations
         let mut b = Self::one_with_precision(self.bits_precision()); // keeps `b_i` during iterations
         // Additional temporary storage we will need.
@@ -145,16 +166,16 @@ impl BoxedUint {
         let inv_mod_s =
             Option::from(inv_mod_s).unwrap_or(Self::zero_with_precision(self.bits_precision()));
 
-        let (inv_mod_2k, invertible_mod_2k) = self.inv_mod2k(k);
+        let (inverse_mod2k, invertible_mod_2k) = self.invert_mod2k(k);
         let is_some = invertible_mod_s & invertible_mod_2k;
 
-        let (s_inv_mod_2k, _) = s.inv_mod2k(k);
+        let (s_inverse_mod2k, _) = s.invert_mod2k(k);
         let (shifted, _overflowed) =
             BoxedUint::one_with_precision(self.bits_precision()).overflowing_shl(k);
         let mask = shifted.wrapping_sub(&BoxedUint::one_with_precision(self.bits_precision()));
-        let t = inv_mod_2k
+        let t = inverse_mod2k
             .wrapping_sub(&inv_mod_s)
-            .wrapping_mul(&s_inv_mod_2k)
+            .wrapping_mul(&s_inverse_mod2k)
             .bitand(&mask);
         let result = inv_mod_s.wrapping_add(&s.wrapping_mul(&t));
 
@@ -193,7 +214,7 @@ mod tests {
     use hex_literal::hex;
 
     #[test]
-    fn inv_mod2k() {
+    fn invert_mod2k() {
         let v = BoxedUint::from_be_slice(
             &hex!("fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f"),
             256,
@@ -204,7 +225,7 @@ mod tests {
             256,
         )
         .unwrap();
-        let (a, is_some) = v.inv_mod2k(256);
+        let (a, is_some) = v.invert_mod2k(256);
         assert_eq!(e, a);
         assert!(bool::from(is_some));
 
@@ -218,7 +239,7 @@ mod tests {
             256,
         )
         .unwrap();
-        let (a, is_some) = v.inv_mod2k(256);
+        let (a, is_some) = v.invert_mod2k(256);
         assert_eq!(e, a);
         assert!(bool::from(is_some));
     }
