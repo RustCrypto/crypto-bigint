@@ -126,7 +126,7 @@ pub(crate) const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Wor
     debug_assert!(u1 < d);
 
     let (q0, q1) = widening_mul(reciprocal.reciprocal, u1);
-    let (q1, q0) = addhilo(q1, q0, u1, u0);
+    let (q0, q1) = addhilo(q0, q1, u0, u1);
     let q1 = q1.wrapping_add(1);
     let r = u0.wrapping_sub(q1.wrapping_mul(d));
 
