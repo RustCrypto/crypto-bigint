@@ -2,9 +2,7 @@ use criterion::{
     BatchSize, BenchmarkGroup, Criterion, black_box, criterion_group, criterion_main,
     measurement::Measurement,
 };
-use crypto_bigint::{
-    Invert, Inverter, Random, RandomMod, U256, impl_modulus, modular::ConstMontyParams,
-};
+use crypto_bigint::{Random, RandomMod, U256, impl_modulus, modular::ConstMontyParams};
 use rand_chacha::ChaChaRng;
 use rand_core::SeedableRng;
 

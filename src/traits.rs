@@ -492,12 +492,34 @@ pub trait MulMod<Rhs = Self> {
 }
 
 /// Compute `1 / self mod p`.
+#[deprecated(since = "0.7.0", note = "please use `InvertMod` instead")]
 pub trait InvMod<Rhs = Self>: Sized {
     /// Output type.
     type Output;
 
     /// Compute `1 / self mod p`.
     fn inv_mod(&self, p: &Rhs) -> CtOption<Self::Output>;
+}
+
+#[allow(deprecated)]
+impl<T, Rhs> InvMod<Rhs> for T
+where
+    T: InvertMod<Rhs>,
+{
+    type Output = <T as InvertMod<Rhs>>::Output;
+
+    fn inv_mod(&self, p: &Rhs) -> CtOption<Self::Output> {
+        self.invert_mod(p)
+    }
+}
+
+/// Compute `1 / self mod p`.
+pub trait InvertMod<Rhs = Self>: Sized {
+    /// Output type.
+    type Output;
+
+    /// Compute `1 / self mod p`.
+    fn invert_mod(&self, p: &Rhs) -> CtOption<Self::Output>;
 }
 
 /// Checked addition.

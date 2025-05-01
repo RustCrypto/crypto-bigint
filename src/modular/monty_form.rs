@@ -1,7 +1,7 @@
 //! Implements `MontyForm`s, supporting modular arithmetic with a modulus set at runtime.
 
 mod add;
-pub(super) mod inv;
+pub(super) mod invert;
 mod lincomb;
 mod mul;
 mod neg;
@@ -57,7 +57,7 @@ where
         // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
         let inv_mod = modulus
             .as_ref()
-            .inv_mod2k_vartime(Word::BITS)
+            .invert_mod2k_vartime(Word::BITS)
             .expect("modular inverse should exist");
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
@@ -95,7 +95,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
         // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
         let inv_mod = modulus
             .as_ref()
-            .inv_mod2k_full_vartime(Word::BITS)
+            .invert_mod2k_full_vartime(Word::BITS)
             .expect("modular inverse should exist");
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));

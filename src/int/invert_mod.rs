@@ -3,16 +3,22 @@
 use subtle::CtOption;
 
 use crate::modular::SafeGcdInverter;
-use crate::{ConstantTimeSelect, Int, InvMod, NonZero, Odd, PrecomputeInverter, Uint};
+use crate::{ConstantTimeSelect, Int, InvertMod, NonZero, Odd, PrecomputeInverter, Uint};
 
 impl<const LIMBS: usize, const UNSAT_LIMBS: usize> Int<LIMBS>
 where
     Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
 {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
+    #[deprecated(since = "0.7.0", note = "please use `invert_odd_mod` instead")]
     pub fn inv_odd_mod(&self, modulus: &Odd<Uint<LIMBS>>) -> CtOption<Uint<LIMBS>> {
+        self.invert_odd_mod(modulus)
+    }
+
+    /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
+    pub fn invert_odd_mod(&self, modulus: &Odd<Uint<LIMBS>>) -> CtOption<Uint<LIMBS>> {
         let (abs, sgn) = self.abs_sign();
-        let abs_inv = abs.inv_odd_mod(modulus).into();
+        let abs_inv = abs.invert_odd_mod(modulus).into();
 
         // Note: when `self` is negative and modulus is non-zero, then
         // self^{-1} % modulus = modulus - |self|^{-1} % modulus
@@ -24,15 +30,15 @@ where
     }
 }
 
-impl<const LIMBS: usize> InvMod<NonZero<Uint<LIMBS>>> for Int<LIMBS>
+impl<const LIMBS: usize> InvertMod<NonZero<Uint<LIMBS>>> for Int<LIMBS>
 where
-    Uint<LIMBS>: InvMod<Output = Uint<LIMBS>>,
+    Uint<LIMBS>: InvertMod<Output = Uint<LIMBS>>,
 {
     type Output = Uint<LIMBS>;
 
-    fn inv_mod(&self, modulus: &NonZero<Uint<LIMBS>>) -> CtOption<Self::Output> {
+    fn invert_mod(&self, modulus: &NonZero<Uint<LIMBS>>) -> CtOption<Self::Output> {
         let (abs, sgn) = self.abs_sign();
-        let abs_inv = abs.inv_mod(modulus);
+        let abs_inv = abs.invert_mod(modulus);
 
         // Note: when `self` is negative and modulus is non-zero, then
         // self^{-1} % modulus = modulus - |self|^{-1} % modulus
@@ -46,7 +52,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{I1024, InvMod, U1024};
+    use crate::{I1024, InvertMod, U1024};
 
     #[test]
     fn test_invert_odd() {
@@ -71,11 +77,11 @@ mod tests {
             "173B01FCA9E1905F9C74589FB3C36D55A4CBCB7FA86CC803BE979091D3F0C431"
         ]);
 
-        let res = a.inv_odd_mod(&m).unwrap();
+        let res = a.invert_odd_mod(&m).unwrap();
         assert_eq!(res, expected);
 
         // Even though it is less efficient, it still works
-        let res = a.inv_mod(&m.to_nz().unwrap()).unwrap();
+        let res = a.invert_mod(&m.to_nz().unwrap()).unwrap();
         assert_eq!(res, expected);
     }
 
@@ -102,7 +108,7 @@ mod tests {
             "F9F1107F0F4064B074637B983CB6672DAD75067A02F0E455DBB6E2CE7D7ED8B3",
         ]);
 
-        let res = a.inv_mod(&m).unwrap();
+        let res = a.invert_mod(&m).unwrap();
         assert_eq!(res, expected);
     }
 }

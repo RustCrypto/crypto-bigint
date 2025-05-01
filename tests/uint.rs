@@ -367,14 +367,14 @@ proptest! {
     }
 
     #[test]
-    fn inv_mod2k(a in uint(), k in any::<u32>()) {
+    fn invert_mod2k(a in uint(), k in any::<u32>()) {
         let a = a | U256::ONE; // make odd
         let k = k % (U256::BITS + 1);
         let a_bi = to_biguint(&a);
         let m_bi = BigUint::one() << k as usize;
 
-        let actual = a.inv_mod2k(k).unwrap();
-        let actual_vartime = a.inv_mod2k_vartime(k).unwrap();
+        let actual = a.invert_mod2k(k).unwrap();
+        let actual_vartime = a.invert_mod2k_vartime(k).unwrap();
         prop_assert_eq!(actual, actual_vartime);
 
         if k == 0 {
@@ -388,12 +388,12 @@ proptest! {
     }
 
     #[test]
-    fn inv_mod(a in uint(), b in uint()) {
+    fn invert_mod(a in uint(), b in uint()) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
 
         let expected_is_some = a_bi.gcd(&b_bi) == BigUint::one();
-        let actual = a.inv_mod(&b);
+        let actual = a.invert_mod(&b);
         let actual_is_some = bool::from(actual.is_some());
 
         prop_assert_eq!(expected_is_some, actual_is_some);

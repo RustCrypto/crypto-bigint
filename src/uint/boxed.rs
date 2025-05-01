@@ -14,7 +14,7 @@ mod div_limb;
 pub(crate) mod encoding;
 mod from;
 mod gcd;
-mod inv_mod;
+mod invert_mod;
 mod mul;
 mod mul_mod;
 mod neg;

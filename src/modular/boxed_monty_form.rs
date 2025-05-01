@@ -1,7 +1,7 @@
 //! Implements heap-allocated `BoxedMontyForm`s, supporting modular arithmetic with a modulus set at runtime.
 
 mod add;
-mod inv;
+mod invert;
 mod lincomb;
 mod mul;
 mod neg;
@@ -62,7 +62,7 @@ impl BoxedMontyParams {
             .resize_unchecked(bits_precision);
 
         // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
-        let (inv_mod_limb, inv_mod_limb_exists) = modulus.inv_mod2k_vartime(Word::BITS);
+        let (inv_mod_limb, inv_mod_limb_exists) = modulus.invert_mod2k_vartime(Word::BITS);
         debug_assert!(bool::from(inv_mod_limb_exists));
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));
@@ -105,7 +105,7 @@ impl BoxedMontyParams {
         let r2 = one.square().rem_vartime(modulus.as_nz_ref());
 
         // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
-        let (inv_mod_limb, inv_mod_limb_exists) = modulus.inv_mod2k_full_vartime(Word::BITS);
+        let (inv_mod_limb, inv_mod_limb_exists) = modulus.invert_mod2k_full_vartime(Word::BITS);
         debug_assert!(bool::from(inv_mod_limb_exists));
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));

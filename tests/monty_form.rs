@@ -157,7 +157,7 @@ proptest! {
             "a*a⁻¹ ≠ 1 (normal form, wide)"
         );
         // …and agrees with normal form inversion
-        let normal_form_inv = r.inv_mod(monty_params.modulus()).unwrap();
+        let normal_form_inv = r.invert_mod(monty_params.modulus()).unwrap();
         assert_eq!(
             normal_form_inv,
             r_monty_inv.retrieve(),
@@ -196,7 +196,7 @@ proptest! {
             "a*a⁻¹ ≠ 1 (normal form, wide)"
         );
         // …and agrees with normal form inversion
-        let normal_form_inv = r.inv_mod(monty_params.modulus()).unwrap();
+        let normal_form_inv = r.invert_mod(monty_params.modulus()).unwrap();
         assert_eq!(
             normal_form_inv,
             r_monty_inv.retrieve(),
@@ -235,7 +235,7 @@ proptest! {
             "a*a⁻¹ ≠ 1 (normal form, wide)"
         );
         // …and agrees with normal form inversion
-        let normal_form_inv = r.inv_mod(monty_params.modulus()).unwrap();
+        let normal_form_inv = r.invert_mod(monty_params.modulus()).unwrap();
         assert_eq!(
             normal_form_inv,
             r_monty_inv.retrieve(),
@@ -274,7 +274,7 @@ proptest! {
             "a*a⁻¹ ≠ 1 (normal form, wide)"
         );
         // …and agrees with normal form inversion
-        let normal_form_inv = r.inv_mod(monty_params.modulus()).unwrap();
+        let normal_form_inv = r.invert_mod(monty_params.modulus()).unwrap();
         assert_eq!(
             normal_form_inv,
             r_monty_inv.retrieve(),
@@ -295,7 +295,7 @@ proptest! {
     }
 
     #[test]
-    fn inv(x in uint(), n in modulus()) {
+    fn invert(x in uint(), n in modulus()) {
         let x = reduce(&x, n);
         let actual = Option::<MontyForm256>::from(x.invert());
 
@@ -315,7 +315,7 @@ proptest! {
     }
 
     #[test]
-    fn precomputed_inv(x in uint(), n in modulus()) {
+    fn precomputed_invert(x in uint(), n in modulus()) {
         let x = reduce(&x, n);
         let inverter = x.params().precompute_inverter();
         let actual = Option::<MontyForm256>::from(inverter.invert(&x));

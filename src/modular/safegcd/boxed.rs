@@ -3,7 +3,7 @@
 //!
 //! See parent module for more information.
 
-use super::{Matrix, inv_mod2_62, iterations, jump};
+use super::{Matrix, invert_mod2_62, iterations, jump};
 use crate::{BoxedUint, Inverter, Limb, Odd, Resize, Word};
 use alloc::boxed::Box;
 use core::{
@@ -35,7 +35,7 @@ impl BoxedSafeGcdInverter {
         Self {
             modulus: BoxedUnsatInt::from(&modulus.0),
             adjuster: BoxedUnsatInt::from(&adjuster.resize(modulus.bits_precision())),
-            inverse: inv_mod2_62(modulus.0.as_words()),
+            inverse: invert_mod2_62(modulus.0.as_words()),
         }
     }
 
@@ -101,7 +101,7 @@ pub(crate) fn gcd(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
     let nlimbs = unsat_nlimbs_for_sat_nlimbs(max(f.nlimbs(), g.nlimbs()));
     let bits_precision = f.bits_precision();
 
-    let inverse = inv_mod2_62(f.as_words());
+    let inverse = invert_mod2_62(f.as_words());
     let f = BoxedUnsatInt::from_uint_widened(f, nlimbs);
     let mut g = BoxedUnsatInt::from_uint_widened(g, nlimbs);
     let mut d = BoxedUnsatInt::zero(nlimbs);
@@ -119,7 +119,7 @@ pub(crate) fn gcd_vartime(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
     let nlimbs = unsat_nlimbs_for_sat_nlimbs(max(f.nlimbs(), g.nlimbs()));
     let bits_precision = f.bits_precision();
 
-    let inverse = inv_mod2_62(f.as_words());
+    let inverse = invert_mod2_62(f.as_words());
     let f = BoxedUnsatInt::from_uint_widened(f, nlimbs);
     let mut g = BoxedUnsatInt::from_uint_widened(g, nlimbs);
     let mut d = BoxedUnsatInt::zero(nlimbs);

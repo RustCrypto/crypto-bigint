@@ -38,7 +38,7 @@ pub(crate) mod div_limb;
 pub(crate) mod encoding;
 mod from;
 mod gcd;
-mod inv_mod;
+mod invert_mod;
 pub(crate) mod mul;
 mod mul_mod;
 mod neg;

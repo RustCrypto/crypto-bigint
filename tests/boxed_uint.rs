@@ -139,14 +139,14 @@ proptest! {
     }
 
     #[test]
-    fn inv_mod2k(mut a in uint(), k in any::<u32>()) {
+    fn invert_mod2k(mut a in uint(), k in any::<u32>()) {
         a.set_bit(0, Choice::from(1)); // make odd
         let k = k % (a.bits() + 1);
         let a_bi = to_biguint(&a);
         let m_bi = BigUint::one() << k as usize;
 
-        let actual = a.inv_mod2k(k).0;
-        let (actual_vartime, exists) = a.inv_mod2k_vartime(k);
+        let actual = a.invert_mod2k(k).0;
+        let (actual_vartime, exists) = a.invert_mod2k_vartime(k);
         prop_assert!(bool::from(exists));
         prop_assert_eq!(&actual, &actual_vartime);
 
@@ -161,7 +161,7 @@ proptest! {
     }
 
     #[test]
-    fn mod_inv((a, mut b) in uint_pair()) {
+    fn mod_invert((a, mut b) in uint_pair()) {
         if b.is_even().into() {
             b = BoxedUint::one_with_precision(a.bits_precision());
         }
@@ -171,7 +171,7 @@ proptest! {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
         let expected = a_bi.invm(&b_bi);
-        let actual = Option::<BoxedUint>::from(a.inv_odd_mod(&b));
+        let actual = Option::<BoxedUint>::from(a.invert_odd_mod(&b));
 
         match (expected, actual) {
             (Some(exp), Some(act)) => prop_assert_eq!(exp, to_biguint(&act)),
