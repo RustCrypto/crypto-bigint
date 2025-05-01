@@ -426,7 +426,7 @@ fn radix_decode_str_digits<D: DecodeByLimb>(
         // Multiply the existing limbs by `radix` ^ `limb_digits`,
         // and add the new least-significant limb
         for limb in out.limbs_mut().iter_mut() {
-            (*limb, carry) = Limb::ZERO.mac(*limb, limb_max, carry);
+            (*limb, carry) = limb.carrying_mul_add(limb_max, carry, Limb::ZERO);
         }
         // Append the new carried limb, if any
         if carry.0 != 0 && !out.push_limb(carry) {
@@ -760,7 +760,7 @@ const fn radix_large_divisor(
         let mut carry = Limb::ZERO;
         let mut j = 0;
         while j < top {
-            (out[j], carry) = Limb::ZERO.mac(out[j], div_limb.0, carry);
+            (out[j], carry) = out[j].carrying_mul_add(div_limb.0, carry, Limb::ZERO);
             j += 1;
         }
         if carry.0 != 0 {
@@ -775,7 +775,7 @@ const fn radix_large_divisor(
         let mut carry = Limb::ZERO;
         let mut j = 0;
         while j < RADIX_ENCODING_LIMBS_LARGE {
-            (out_test[j], carry) = Limb::ZERO.mac(out[j], Limb(radix as Word), carry);
+            (out_test[j], carry) = out[j].carrying_mul_add(Limb(radix as Word), carry, Limb::ZERO);
             j += 1;
         }
         if carry.0 == 0 {

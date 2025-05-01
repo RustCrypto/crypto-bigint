@@ -310,7 +310,7 @@ mod tests {
     fn shl_wide_max_0_1() {
         assert_eq!(
             Uint::overflowing_shl_vartime_wide((U128::MAX, U128::ZERO), 1).unwrap(),
-            (U128::MAX.sbb(&U128::ONE, Limb::ZERO).0, U128::ONE)
+            (U128::MAX.borrowing_sub(&U128::ONE, Limb::ZERO).0, U128::ONE)
         );
     }
 

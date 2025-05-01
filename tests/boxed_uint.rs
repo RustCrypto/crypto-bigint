@@ -195,7 +195,7 @@ proptest! {
     }
 
     #[test]
-    fn mul_wide(a in uint(), b in uint()) {
+    fn widening_mul(a in uint(), b in uint()) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
 

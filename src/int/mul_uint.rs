@@ -11,7 +11,21 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// negated when converted from [`Uint`] to [`Int`].
     ///
     /// Note: even if `negate` is truthy, the magnitude might be zero!
+    #[deprecated(since = "0.7.0", note = "please use `widening_mul_uint` instead")]
     pub const fn split_mul_uint<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, ConstChoice) {
+        self.widening_mul_uint(rhs)
+    }
+
+    /// Compute "wide" multiplication between an [`Int`] and [`Uint`] as 3-tuple `(lo, hi, negate)`.
+    /// The `(lo, hi)` components contain the _magnitude of the product_, with sizes
+    /// corresponding to the sizes of the operands; `negate` indicates whether the result should be
+    /// negated when converted from [`Uint`] to [`Int`].
+    ///
+    /// Note: even if `negate` is truthy, the magnitude might be zero!
+    pub const fn widening_mul_uint<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, ConstChoice) {
@@ -19,7 +33,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let (lhs_abs, lhs_sgn) = self.abs_sign();
 
         // Step 2. Multiply the magnitudes
-        let (lo, hi) = lhs_abs.split_mul(rhs);
+        let (lo, hi) = lhs_abs.widening_mul(rhs);
 
         // Step 3. negate if and only if self has a negative sign.
         (lo, hi, lhs_sgn)
@@ -31,17 +45,31 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// the result should be negated when converted from [`Uint`] to [`Int`].
     ///
     /// Note: even if `negate` is truthy, the magnitude might be zero!
+    #[deprecated(since = "0.7.0", note = "please use `widening_mul_uint_right` instead")]
     pub const fn split_mul_uint_right<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> (Uint<{ RHS_LIMBS }>, Uint<{ LIMBS }>, ConstChoice) {
+        self.widening_mul_uint_right(rhs)
+    }
+
+    /// Compute "wide" multiplication between an [`Int`] and [`Uint`] as 3-tuple `(lo, hi, negate)`.
+    /// The `(lo, hi)` components contain the _magnitude of the product_, with sizes
+    /// corresponding to the sizes of the operands, in reversed order; `negate` indicates whether
+    /// the result should be negated when converted from [`Uint`] to [`Int`].
+    ///
+    /// Note: even if `negate` is truthy, the magnitude might be zero!
+    pub const fn widening_mul_uint_right<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> (Uint<{ RHS_LIMBS }>, Uint<{ LIMBS }>, ConstChoice) {
         let (lhs_abs, lhs_sgn) = self.abs_sign();
-        let (lo, hi) = rhs.split_mul(&lhs_abs);
+        let (lo, hi) = rhs.widening_mul(&lhs_abs);
         (lo, hi, lhs_sgn)
     }
 
     /// Multiply `self` by [`Uint`] `rhs`, returning a concatenated "wide" result.
-    pub const fn widening_mul_uint<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
+    pub const fn concatenating_mul_uint<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> Int<WIDE_LIMBS>
@@ -49,7 +77,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         Uint<LIMBS>: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
     {
         let (lhs_abs, lhs_sign) = self.abs_sign();
-        let product_abs = lhs_abs.widening_mul(rhs);
+        let product_abs = lhs_abs.concatenating_mul(rhs);
 
         // always fits
         product_abs.wrapping_neg_if(lhs_sign).as_int()
@@ -61,7 +89,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> CtOption<Int<RHS_LIMBS>> {
-        let (lo, hi, is_negative) = self.split_mul_uint_right(rhs);
+        let (lo, hi, is_negative) = self.widening_mul_uint_right(rhs);
         let val = Int::<RHS_LIMBS>::new_from_abs_sign(lo, is_negative);
         CtOption::from(val).and_then(|int| CtOption::new(int, hi.is_zero()))
     }
@@ -70,7 +98,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Uint<RHS_LIMBS>> for Int<LIMBS> {
     #[inline]
     fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
-        let (lo, hi, is_negative) = self.split_mul_uint(rhs);
+        let (lo, hi, is_negative) = self.widening_mul_uint(rhs);
         let val = Self::new_from_abs_sign(lo, is_negative);
         CtOption::from(val).and_then(|int| CtOption::new(int, hi.is_zero()))
     }
@@ -208,45 +236,48 @@ mod tests {
     }
 
     #[test]
-    fn test_widening_mul_uint() {
-        assert_eq!(I128::MIN.widening_mul_uint(&U128::ZERO), I256::ZERO);
+    fn test_concatenating_mul_uint() {
+        assert_eq!(I128::MIN.concatenating_mul_uint(&U128::ZERO), I256::ZERO);
         assert_eq!(
-            I128::MIN.widening_mul_uint(&U128::ONE),
+            I128::MIN.concatenating_mul_uint(&U128::ONE),
             I256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF80000000000000000000000000000000")
         );
         assert_eq!(
-            I128::MIN.widening_mul_uint(&U128::MAX),
+            I128::MIN.concatenating_mul_uint(&U128::MAX),
             I256::from_be_hex("8000000000000000000000000000000080000000000000000000000000000000")
         );
 
-        assert_eq!(I128::MINUS_ONE.widening_mul_uint(&U128::ZERO), I256::ZERO);
         assert_eq!(
-            I128::MINUS_ONE.widening_mul_uint(&U128::ONE),
+            I128::MINUS_ONE.concatenating_mul_uint(&U128::ZERO),
+            I256::ZERO
+        );
+        assert_eq!(
+            I128::MINUS_ONE.concatenating_mul_uint(&U128::ONE),
             I256::MINUS_ONE
         );
         assert_eq!(
-            I128::MINUS_ONE.widening_mul_uint(&U128::MAX),
+            I128::MINUS_ONE.concatenating_mul_uint(&U128::MAX),
             I256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000000000000000000000000001")
         );
 
-        assert_eq!(I128::ZERO.widening_mul_uint(&U128::ZERO), I256::ZERO);
-        assert_eq!(I128::ZERO.widening_mul_uint(&U128::ONE), I256::ZERO);
-        assert_eq!(I128::ZERO.widening_mul_uint(&U128::MAX), I256::ZERO);
+        assert_eq!(I128::ZERO.concatenating_mul_uint(&U128::ZERO), I256::ZERO);
+        assert_eq!(I128::ZERO.concatenating_mul_uint(&U128::ONE), I256::ZERO);
+        assert_eq!(I128::ZERO.concatenating_mul_uint(&U128::MAX), I256::ZERO);
 
-        assert_eq!(I128::ONE.widening_mul_uint(&U128::ZERO), I256::ZERO);
-        assert_eq!(I128::ONE.widening_mul_uint(&U128::ONE), I256::ONE);
+        assert_eq!(I128::ONE.concatenating_mul_uint(&U128::ZERO), I256::ZERO);
+        assert_eq!(I128::ONE.concatenating_mul_uint(&U128::ONE), I256::ONE);
         assert_eq!(
-            I128::ONE.widening_mul_uint(&U128::MAX),
+            I128::ONE.concatenating_mul_uint(&U128::MAX),
             I256::from_be_hex("00000000000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
         );
 
-        assert_eq!(I128::MAX.widening_mul_uint(&U128::ZERO), I256::ZERO);
+        assert_eq!(I128::MAX.concatenating_mul_uint(&U128::ZERO), I256::ZERO);
         assert_eq!(
-            I128::MAX.widening_mul_uint(&U128::ONE),
+            I128::MAX.concatenating_mul_uint(&U128::ONE),
             I256::from_be_hex("000000000000000000000000000000007FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
         );
         assert_eq!(
-            I128::MAX.widening_mul_uint(&U128::MAX),
+            I128::MAX.concatenating_mul_uint(&U128::MAX),
             I256::from_be_hex("7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE80000000000000000000000000000001")
         );
     }

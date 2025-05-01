@@ -2,7 +2,7 @@
 
 use crate::{
     Checked, CheckedMul, Limb, Wrapping, Zero,
-    primitives::{mac, mul_wide},
+    primitives::{carrying_mul_add, widening_mul},
 };
 use core::ops::{Mul, MulAssign};
 use num_traits::WrappingMul;
@@ -10,9 +10,15 @@ use subtle::CtOption;
 
 impl Limb {
     /// Computes `self + (b * c) + carry`, returning the result along with the new carry.
-    #[inline(always)]
+    #[deprecated(since = "0.7.0", note = "please use `carrying_mul_add` instead")]
     pub const fn mac(self, b: Limb, c: Limb, carry: Limb) -> (Limb, Limb) {
-        let (res, carry) = mac(self.0, b.0, c.0, carry.0);
+        b.carrying_mul_add(c, self, carry)
+    }
+
+    /// Computes `(self * rhs) + addend + carry`, returning the result along with the new carry.
+    #[inline(always)]
+    pub const fn carrying_mul_add(self, rhs: Limb, addend: Limb, carry: Limb) -> (Limb, Limb) {
+        let (res, carry) = carrying_mul_add(self.0, rhs.0, addend.0, carry.0);
         (Limb(res), Limb(carry))
     }
 
@@ -29,8 +35,8 @@ impl Limb {
     }
 
     /// Compute "wide" multiplication, with a product twice the size of the input.
-    pub(crate) const fn mul_wide(&self, rhs: Self) -> (Self, Self) {
-        let (lo, hi) = mul_wide(self.0, rhs.0);
+    pub(crate) const fn widening_mul(&self, rhs: Self) -> (Self, Self) {
+        let (lo, hi) = widening_mul(self.0, rhs.0);
         (Limb(lo), Limb(hi))
     }
 }
@@ -38,7 +44,7 @@ impl Limb {
 impl CheckedMul for Limb {
     #[inline]
     fn checked_mul(&self, rhs: &Self) -> CtOption<Self> {
-        let (lo, hi) = self.mul_wide(*rhs);
+        let (lo, hi) = self.widening_mul(*rhs);
         CtOption::new(lo, hi.is_zero())
     }
 }

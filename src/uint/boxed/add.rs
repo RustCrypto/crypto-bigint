@@ -5,21 +5,36 @@ use core::ops::{Add, AddAssign};
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
 impl BoxedUint {
-    /// Computes `a + b + carry`, returning the result along with the new carry.
-    #[inline(always)]
+    /// Computes `self + rhs + carry`, returning the result along with the new carry.
+    #[deprecated(since = "0.7.0", note = "please use `carrying_add` instead")]
     pub fn adc(&self, rhs: &Self, carry: Limb) -> (Self, Limb) {
-        Self::fold_limbs(self, rhs, carry, |a, b, c| a.adc(b, c))
+        self.carrying_add(rhs, carry)
+    }
+
+    /// Computes `self + rhs + carry`, returning the result along with the new carry.
+    #[inline(always)]
+    pub fn carrying_add(&self, rhs: &Self, carry: Limb) -> (Self, Limb) {
+        Self::fold_limbs(self, rhs, carry, |a, b, c| a.carrying_add(b, c))
+    }
+
+    /// Computes `a + b + carry` in-place, returning the new carry.
+    ///
+    /// Panics if `rhs` has a larger precision than `self`.
+    #[deprecated(since = "0.7.0", note = "please use `carrying_add_assign` instead")]
+    pub fn adc_assign(&mut self, rhs: impl AsRef<[Limb]>, carry: Limb) -> Limb {
+        self.carrying_add_assign(rhs, carry)
     }
 
     /// Computes `a + b + carry` in-place, returning the new carry.
     ///
     /// Panics if `rhs` has a larger precision than `self`.
     #[inline]
-    pub fn adc_assign(&mut self, rhs: impl AsRef<[Limb]>, mut carry: Limb) -> Limb {
+    pub fn carrying_add_assign(&mut self, rhs: impl AsRef<[Limb]>, mut carry: Limb) -> Limb {
         debug_assert!(self.bits_precision() >= (rhs.as_ref().len() as u32 * Limb::BITS));
 
         for i in 0..self.nlimbs() {
-            let (limb, b) = self.limbs[i].adc(*rhs.as_ref().get(i).unwrap_or(&Limb::ZERO), carry);
+            let (limb, b) =
+                self.limbs[i].carrying_add(*rhs.as_ref().get(i).unwrap_or(&Limb::ZERO), carry);
             self.limbs[i] = limb;
             carry = b;
         }
@@ -29,19 +44,19 @@ impl BoxedUint {
 
     /// Perform wrapping addition, discarding overflow.
     pub fn wrapping_add(&self, rhs: &Self) -> Self {
-        self.adc(rhs, Limb::ZERO).0
+        self.carrying_add(rhs, Limb::ZERO).0
     }
 
     /// Perform in-place wrapping addition, returning the truthy value as the second element of the
     /// tuple if an overflow has occurred.
-    pub(crate) fn conditional_adc_assign(&mut self, rhs: &Self, choice: Choice) -> Choice {
+    pub(crate) fn conditional_carrying_add_assign(&mut self, rhs: &Self, choice: Choice) -> Choice {
         debug_assert!(self.bits_precision() <= rhs.bits_precision());
         let mask = Limb::conditional_select(&Limb::ZERO, &Limb::MAX, choice);
         let mut carry = Limb::ZERO;
 
         for i in 0..self.nlimbs() {
             let masked_rhs = *rhs.limbs.get(i).unwrap_or(&Limb::ZERO) & mask;
-            let (limb, c) = self.limbs[i].adc(masked_rhs, carry);
+            let (limb, c) = self.limbs[i].carrying_add(masked_rhs, carry);
             self.limbs[i] = limb;
             carry = c;
         }
@@ -91,7 +106,7 @@ impl AddAssign<BoxedUint> for BoxedUint {
 
 impl AddAssign<&BoxedUint> for BoxedUint {
     fn add_assign(&mut self, rhs: &BoxedUint) {
-        let carry = self.adc_assign(rhs, Limb::ZERO);
+        let carry = self.carrying_add_assign(rhs, Limb::ZERO);
         assert_eq!(
             carry.is_zero().unwrap_u8(),
             1,
@@ -141,26 +156,26 @@ impl<const LIMBS: usize> AddAssign<Uint<LIMBS>> for BoxedUint {
 
 impl<const LIMBS: usize> AddAssign<&Uint<LIMBS>> for BoxedUint {
     fn add_assign(&mut self, rhs: &Uint<LIMBS>) {
-        let carry = self.adc_assign(rhs.as_limbs(), Limb::ZERO);
+        let carry = self.carrying_add_assign(rhs.as_limbs(), Limb::ZERO);
         assert_eq!(carry.0, 0, "attempted to add with overflow");
     }
 }
 
 impl AddAssign<Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     fn add_assign(&mut self, other: Wrapping<BoxedUint>) {
-        self.0.adc_assign(&other.0, Limb::ZERO);
+        self.0.carrying_add_assign(&other.0, Limb::ZERO);
     }
 }
 
 impl AddAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     fn add_assign(&mut self, other: &Wrapping<BoxedUint>) {
-        self.0.adc_assign(&other.0, Limb::ZERO);
+        self.0.carrying_add_assign(&other.0, Limb::ZERO);
     }
 }
 
 impl CheckedAdd for BoxedUint {
     fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
-        let (result, carry) = self.adc(rhs, Limb::ZERO);
+        let (result, carry) = self.carrying_add(rhs, Limb::ZERO);
         CtOption::new(result, carry.is_zero())
     }
 }
@@ -234,15 +249,15 @@ mod tests {
     use crate::Resize;
 
     #[test]
-    fn adc_no_carry() {
-        let (res, carry) = BoxedUint::zero().adc(&BoxedUint::one(), Limb::ZERO);
+    fn carrying_add_no_carry() {
+        let (res, carry) = BoxedUint::zero().carrying_add(&BoxedUint::one(), Limb::ZERO);
         assert_eq!(res, BoxedUint::one());
         assert_eq!(carry, Limb::ZERO);
     }
 
     #[test]
-    fn adc_with_carry() {
-        let (res, carry) = BoxedUint::max(Limb::BITS).adc(&BoxedUint::one(), Limb::ZERO);
+    fn carrying_add_with_carry() {
+        let (res, carry) = BoxedUint::max(Limb::BITS).carrying_add(&BoxedUint::one(), Limb::ZERO);
         assert_eq!(res, BoxedUint::zero());
         assert_eq!(carry, Limb::ONE);
     }

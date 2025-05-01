@@ -1,7 +1,7 @@
 //! [`BoxedUint`] multiplication operations.
 
 use crate::{
-    BoxedUint, CheckedMul, Limb, Resize, WideningMul, Wrapping, WrappingMul, Zero,
+    BoxedUint, CheckedMul, ConcatenatingMul, Limb, Resize, Wrapping, WrappingMul, Zero,
     uint::mul::{
         karatsuba::{KARATSUBA_MIN_STARTING_LIMBS, karatsuba_mul_limbs, karatsuba_square_limbs},
         mul_limbs, square_limbs,
@@ -126,20 +126,20 @@ impl MulAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     }
 }
 
-impl WideningMul for BoxedUint {
+impl ConcatenatingMul for BoxedUint {
     type Output = Self;
 
     #[inline]
-    fn widening_mul(&self, rhs: BoxedUint) -> Self {
+    fn concatenating_mul(&self, rhs: BoxedUint) -> Self {
         self.mul(&rhs)
     }
 }
 
-impl WideningMul<&BoxedUint> for BoxedUint {
+impl ConcatenatingMul<&BoxedUint> for BoxedUint {
     type Output = Self;
 
     #[inline]
-    fn widening_mul(&self, rhs: &BoxedUint) -> Self {
+    fn concatenating_mul(&self, rhs: &BoxedUint) -> Self {
         self.mul(rhs)
     }
 }

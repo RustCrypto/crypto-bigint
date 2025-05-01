@@ -2,7 +2,7 @@
 
 use crate::{
     Checked, CheckedAdd, Limb, Wrapping, WrappingAdd, Zero,
-    primitives::{adc, overflowing_add},
+    primitives::{carrying_add, overflowing_add},
 };
 use core::ops::{Add, AddAssign};
 use subtle::CtOption;
@@ -16,9 +16,15 @@ impl Limb {
     }
 
     /// Computes `self + rhs + carry`, returning the result along with the new carry.
-    #[inline(always)]
+    #[deprecated(since = "0.7.0", note = "please use `carrying_add` instead")]
     pub const fn adc(self, rhs: Limb, carry: Limb) -> (Limb, Limb) {
-        let (res, carry) = adc(self.0, rhs.0, carry.0);
+        self.carrying_add(rhs, carry)
+    }
+
+    /// Computes `self + rhs + carry`, returning the result along with the new carry.
+    #[inline(always)]
+    pub const fn carrying_add(self, rhs: Limb, carry: Limb) -> (Limb, Limb) {
+        let (res, carry) = carrying_add(self.0, rhs.0, carry.0);
         (Limb(res), Limb(carry))
     }
 
@@ -93,14 +99,14 @@ mod tests {
     use crate::{CheckedAdd, Limb};
 
     #[test]
-    fn adc_no_carry() {
+    fn carrying_add_no_carry() {
         let (res, carry) = Limb::ZERO.overflowing_add(Limb::ONE);
         assert_eq!(res, Limb::ONE);
         assert_eq!(carry, Limb::ZERO);
     }
 
     #[test]
-    fn adc_with_carry() {
+    fn carrying_add_with_carry() {
         let (res, carry) = Limb::MAX.overflowing_add(Limb::ONE);
         assert_eq!(res, Limb::ZERO);
         assert_eq!(carry, Limb::ONE);

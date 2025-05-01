@@ -843,12 +843,34 @@ pub trait Invert {
 }
 
 /// Widening multiply: returns a value with a number of limbs equal to the sum of the inputs.
+#[deprecated(since = "0.7.0", note = "please use `ConcatenatingMul` instead")]
 pub trait WideningMul<Rhs = Self>: Sized {
     /// Output of the widening multiplication.
     type Output: Integer;
 
     /// Perform widening multiplication.
     fn widening_mul(&self, rhs: Rhs) -> Self::Output;
+}
+
+#[allow(deprecated)]
+impl<T, Rhs> WideningMul<Rhs> for T
+where
+    T: ConcatenatingMul<Rhs>,
+{
+    type Output = <T as ConcatenatingMul<Rhs>>::Output;
+
+    fn widening_mul(&self, rhs: Rhs) -> Self::Output {
+        self.concatenating_mul(rhs)
+    }
+}
+
+/// Widening multiply: returns a value with a number of limbs equal to the sum of the inputs.
+pub trait ConcatenatingMul<Rhs = Self>: Sized {
+    /// Output of the widening multiplication.
+    type Output: Integer;
+
+    /// Perform widening multiplication.
+    fn concatenating_mul(&self, rhs: Rhs) -> Self::Output;
 }
 
 /// Left shifts, variable time in `shift`.

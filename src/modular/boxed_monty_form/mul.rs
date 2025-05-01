@@ -378,7 +378,7 @@ const fn add_mul_carry(z: &mut [Limb], x: &[Limb], y: Limb) -> Limb {
     let mut c = Limb::ZERO;
     let mut i = 0;
     while i < n {
-        (z[i], c) = z[i].mac(x[i], y, c);
+        (z[i], c) = x[i].carrying_mul_add(y, z[i], c);
         i += 1;
     }
     c
@@ -392,13 +392,13 @@ const fn add_mul_carry_and_shift(z: &mut [Limb], x: &[Limb], y: Limb) -> Limb {
         panic!("Failed preconditions in `add_mul_carry_and_shift`");
     }
 
-    let (_, mut c) = z[0].mac(x[0], y, Limb::ZERO);
+    let (_, mut c) = x[0].carrying_mul_add(y, z[0], Limb::ZERO);
 
     let mut i = 1;
     let mut i1 = 0;
     // Help the compiler elide bound checking
     while i < n && i1 < n {
-        (z[i1], c) = z[i].mac(x[i], y, c);
+        (z[i1], c) = x[i].carrying_mul_add(y, z[i], c);
         i += 1;
         i1 += 1;
     }
@@ -417,7 +417,7 @@ const fn conditional_sub(z: &mut [Limb], x: &[Limb], c: ConstChoice) {
     let mut borrow = Limb::ZERO;
     let mut i = 0;
     while i < n {
-        let (zi, new_borrow) = z[i].sbb(Limb(c.if_true_word(x[i].0)), borrow);
+        let (zi, new_borrow) = z[i].borrowing_sub(Limb(c.if_true_word(x[i].0)), borrow);
         z[i] = zi;
         borrow = new_borrow;
         i += 1;

@@ -5,21 +5,36 @@ use core::ops::{Sub, SubAssign};
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
 impl BoxedUint {
-    /// Computes `a - (b + borrow)`, returning the result along with the new borrow.
-    #[inline(always)]
+    /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
+    #[deprecated(since = "0.7.0", note = "please use `borrowing_sub` instead")]
     pub fn sbb(&self, rhs: &Self, borrow: Limb) -> (Self, Limb) {
-        Self::fold_limbs(self, rhs, borrow, |a, b, c| a.sbb(b, c))
+        self.borrowing_sub(rhs, borrow)
+    }
+
+    /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
+    #[inline(always)]
+    pub fn borrowing_sub(&self, rhs: &Self, borrow: Limb) -> (Self, Limb) {
+        Self::fold_limbs(self, rhs, borrow, |a, b, c| a.borrowing_sub(b, c))
+    }
+
+    /// Computes `a - (b + borrow)` in-place, returning the new borrow.
+    ///
+    /// Panics if `rhs` has a larger precision than `self`.
+    #[deprecated(since = "0.7.0", note = "please use `borrowing_sub_assign` instead")]
+    pub fn sbb_assign(&mut self, rhs: impl AsRef<[Limb]>, borrow: Limb) -> Limb {
+        self.borrowing_sub_assign(rhs, borrow)
     }
 
     /// Computes `a - (b + borrow)` in-place, returning the new borrow.
     ///
     /// Panics if `rhs` has a larger precision than `self`.
     #[inline(always)]
-    pub fn sbb_assign(&mut self, rhs: impl AsRef<[Limb]>, mut borrow: Limb) -> Limb {
+    pub fn borrowing_sub_assign(&mut self, rhs: impl AsRef<[Limb]>, mut borrow: Limb) -> Limb {
         debug_assert!(self.bits_precision() >= (rhs.as_ref().len() as u32 * Limb::BITS));
 
         for i in 0..self.nlimbs() {
-            let (limb, b) = self.limbs[i].sbb(*rhs.as_ref().get(i).unwrap_or(&Limb::ZERO), borrow);
+            let (limb, b) =
+                self.limbs[i].borrowing_sub(*rhs.as_ref().get(i).unwrap_or(&Limb::ZERO), borrow);
             self.limbs[i] = limb;
             borrow = b;
         }
@@ -29,24 +44,28 @@ impl BoxedUint {
 
     /// Perform wrapping subtraction inplace, discarding overflow.
     pub(crate) fn wrapping_sub_assign(&mut self, rhs: &Self) {
-        self.sbb_assign(rhs, Limb::ZERO);
+        self.borrowing_sub_assign(rhs, Limb::ZERO);
     }
 
     /// Perform wrapping subtraction, discarding overflow.
     pub fn wrapping_sub(&self, rhs: &Self) -> Self {
-        self.sbb(rhs, Limb::ZERO).0
+        self.borrowing_sub(rhs, Limb::ZERO).0
     }
 
     /// Perform in-place wrapping subtraction, returning the truthy value as the second element of
     /// the tuple if an underflow has occurred.
-    pub(crate) fn conditional_sbb_assign(&mut self, rhs: &Self, choice: Choice) -> Choice {
+    pub(crate) fn conditional_borrowing_sub_assign(
+        &mut self,
+        rhs: &Self,
+        choice: Choice,
+    ) -> Choice {
         debug_assert!(self.bits_precision() <= rhs.bits_precision());
         let mask = Limb::conditional_select(&Limb::ZERO, &Limb::MAX, choice);
         let mut borrow = Limb::ZERO;
 
         for i in 0..self.nlimbs() {
             let masked_rhs = *rhs.limbs.get(i).unwrap_or(&Limb::ZERO) & mask;
-            let (limb, b) = self.limbs[i].sbb(masked_rhs, borrow);
+            let (limb, b) = self.limbs[i].borrowing_sub(masked_rhs, borrow);
             self.limbs[i] = limb;
             borrow = b;
         }
@@ -57,7 +76,7 @@ impl BoxedUint {
 
 impl CheckedSub for BoxedUint {
     fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
-        let (result, carry) = self.sbb(rhs, Limb::ZERO);
+        let (result, carry) = self.borrowing_sub(rhs, Limb::ZERO);
         CtOption::new(result, carry.is_zero())
     }
 }
@@ -103,7 +122,7 @@ impl SubAssign<BoxedUint> for BoxedUint {
 
 impl SubAssign<&BoxedUint> for BoxedUint {
     fn sub_assign(&mut self, rhs: &BoxedUint) {
-        let carry = self.sbb_assign(rhs, Limb::ZERO);
+        let carry = self.borrowing_sub_assign(rhs, Limb::ZERO);
         assert_eq!(
             carry.is_zero().unwrap_u8(),
             1,
@@ -153,20 +172,20 @@ impl<const LIMBS: usize> SubAssign<Uint<LIMBS>> for BoxedUint {
 
 impl<const LIMBS: usize> SubAssign<&Uint<LIMBS>> for BoxedUint {
     fn sub_assign(&mut self, rhs: &Uint<LIMBS>) {
-        let carry = self.sbb_assign(rhs.as_limbs(), Limb::ZERO);
+        let carry = self.borrowing_sub_assign(rhs.as_limbs(), Limb::ZERO);
         assert_eq!(carry.0, 0, "attempted to sub with overflow");
     }
 }
 
 impl SubAssign<Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     fn sub_assign(&mut self, other: Wrapping<BoxedUint>) {
-        self.0.sbb_assign(&other.0, Limb::ZERO);
+        self.0.borrowing_sub_assign(&other.0, Limb::ZERO);
     }
 }
 
 impl SubAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     fn sub_assign(&mut self, other: &Wrapping<BoxedUint>) {
-        self.0.sbb_assign(&other.0, Limb::ZERO);
+        self.0.borrowing_sub_assign(&other.0, Limb::ZERO);
     }
 }
 
@@ -239,19 +258,19 @@ mod tests {
     use crate::Resize;
 
     #[test]
-    fn sbb_no_borrow() {
-        let (res, carry) = BoxedUint::one().sbb(&BoxedUint::one(), Limb::ZERO);
+    fn borrowing_sub_no_borrow() {
+        let (res, carry) = BoxedUint::one().borrowing_sub(&BoxedUint::one(), Limb::ZERO);
         assert_eq!(res, BoxedUint::zero());
         assert_eq!(carry, Limb::ZERO);
 
-        let (res, carry) = BoxedUint::one().sbb(&BoxedUint::zero(), Limb::ZERO);
+        let (res, carry) = BoxedUint::one().borrowing_sub(&BoxedUint::zero(), Limb::ZERO);
         assert_eq!(res, BoxedUint::one());
         assert_eq!(carry, Limb::ZERO);
     }
 
     #[test]
-    fn sbb_with_borrow() {
-        let (res, borrow) = BoxedUint::zero().sbb(&BoxedUint::one(), Limb::ZERO);
+    fn borrowing_sub_with_borrow() {
+        let (res, borrow) = BoxedUint::zero().borrowing_sub(&BoxedUint::one(), Limb::ZERO);
         assert_eq!(res, BoxedUint::max(Limb::BITS));
         assert_eq!(borrow, Limb::MAX);
     }

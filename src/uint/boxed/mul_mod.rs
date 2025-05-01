@@ -60,12 +60,12 @@ impl BoxedUint {
 
         let (lo, carry) = {
             let rhs = (carry.0 + 1) as WideWord * c.0 as WideWord;
-            lo.adc(&Self::from(rhs), Limb::ZERO)
+            lo.carrying_add(&Self::from(rhs), Limb::ZERO)
         };
 
         let (lo, _) = {
             let rhs = carry.0.wrapping_sub(1) & c.0;
-            lo.sbb(&Self::from(rhs), Limb::ZERO)
+            lo.borrowing_sub(&Self::from(rhs), Limb::ZERO)
         };
 
         lo
@@ -86,7 +86,7 @@ fn mac_by_limb(a: &BoxedUint, b: &BoxedUint, c: Limb, carry: Limb) -> (BoxedUint
     let mut carry = carry;
 
     for i in 0..a.nlimbs() {
-        let (n, c) = a.limbs[i].mac(b.limbs[i], c, carry);
+        let (n, c) = b.limbs[i].carrying_mul_add(c, a.limbs[i], carry);
         a.limbs[i] = n;
         carry = c;
     }
@@ -137,7 +137,7 @@ mod tests {
                         assert!(c < **p, "not reduced: {} >= {} ", c, p);
 
                         let expected = {
-                            let (lo, hi) = a.split_mul(&b);
+                            let (lo, hi) = a.widening_mul(&b);
                             let mut prod = Uint::<{ 2 * $size }>::ZERO;
                             prod.limbs[..$size].clone_from_slice(&lo.limbs);
                             prod.limbs[$size..].clone_from_slice(&hi.limbs);

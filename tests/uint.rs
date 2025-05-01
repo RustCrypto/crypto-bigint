@@ -265,12 +265,12 @@ proptest! {
     }
 
     #[test]
-    fn widening_mul_large(a in uint_large(), b in uint_large()) {
+    fn concatenating_mul_large(a in uint_large(), b in uint_large()) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
 
         let expected = to_uint_xlarge(a_bi * b_bi);
-        let actual = a.widening_mul(&b);
+        let actual = a.concatenating_mul(&b);
 
         assert_eq!(expected, actual);
     }
@@ -310,7 +310,7 @@ proptest! {
 
         if !c_bi.is_zero() {
             let expected = to_uint(ab_bi.div_rem(&c_bi).1);
-            let (lo, hi) = a.split_mul(&b);
+            let (lo, hi) = a.widening_mul(&b);
             let c_nz = NonZero::new(c).unwrap();
             let actual = Uint::rem_wide_vartime((lo, hi), &c_nz);
             prop_assert_eq!(expected, actual);

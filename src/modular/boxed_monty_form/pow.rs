@@ -125,8 +125,8 @@ fn pow_montgomery_form(
     // Now that we exited the loop, we need to reduce `z` at most twice
     // to bring it within `[0, modulus)`.
 
-    z.conditional_sbb_assign(modulus, !z.ct_lt(modulus));
-    z.conditional_sbb_assign(modulus, !z.ct_lt(modulus));
+    z.conditional_borrowing_sub_assign(modulus, !z.ct_lt(modulus));
+    z.conditional_borrowing_sub_assign(modulus, !z.ct_lt(modulus));
     debug_assert!(&z < modulus);
 
     z

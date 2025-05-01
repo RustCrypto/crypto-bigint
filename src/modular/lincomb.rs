@@ -39,14 +39,14 @@ macro_rules! impl_longa_monty_lincomb {
 
                 let mut k = 0;
                 while k < $nlimbs {
-                    ($u[k], carry) = $u[k].mac(
-                        ai.as_montgomery().limbs[j],
+                    ($u[k], carry) = ai.as_montgomery().limbs[j].carrying_mul_add(
                         bi.as_montgomery().limbs[k],
+                        $u[k],
                         carry,
                     );
                     k += 1;
                 }
-                (hi, carry) = hi.adc(carry, Limb::ZERO);
+                (hi, carry) = hi.carrying_add(carry, Limb::ZERO);
                 hi_carry = hi_carry.wrapping_add(carry);
 
                 i += 1;
@@ -54,14 +54,14 @@ macro_rules! impl_longa_monty_lincomb {
 
             let q = $u[0].wrapping_mul($mod_neg_inv);
 
-            (_, carry) = $u[0].mac(q, $modulus[0], Limb::ZERO);
+            (_, carry) = q.carrying_mul_add($modulus[0], $u[0], Limb::ZERO);
 
             i = 1;
             while i < $nlimbs {
-                ($u[i - 1], carry) = $u[i].mac(q, $modulus[i], carry);
+                ($u[i - 1], carry) = q.carrying_mul_add($modulus[i], $u[i], carry);
                 i += 1;
             }
-            ($u[$nlimbs - 1], carry) = hi.adc(carry, Limb::ZERO);
+            ($u[$nlimbs - 1], carry) = hi.carrying_add(carry, Limb::ZERO);
             hi_carry = hi_carry.wrapping_add(carry);
 
             j += 1;
@@ -162,7 +162,7 @@ pub fn lincomb_boxed_monty_form(
             let carry =
                 impl_longa_monty_lincomb!(window, buf.limbs, modulus.0.limbs, mod_neg_inv, nlimbs);
             buf.sub_assign_mod_with_carry(carry, &modulus.0, &modulus.0);
-            let carry = ret.adc_assign(&buf, Limb::ZERO);
+            let carry = ret.carrying_add_assign(&buf, Limb::ZERO);
             ret.sub_assign_mod_with_carry(carry, &modulus.0, &modulus.0);
             remain -= count;
         }
