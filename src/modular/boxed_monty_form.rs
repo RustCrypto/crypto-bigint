@@ -1,7 +1,7 @@
 //! Implements heap-allocated `BoxedMontyForm`s, supporting modular arithmetic with a modulus set at runtime.
 
 mod add;
-mod inv;
+mod invert;
 mod lincomb;
 mod mul;
 mod neg;

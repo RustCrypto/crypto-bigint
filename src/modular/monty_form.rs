@@ -1,7 +1,7 @@
 //! Implements `MontyForm`s, supporting modular arithmetic with a modulus set at runtime.
 
 mod add;
-pub(super) mod inv;
+pub(super) mod invert;
 mod lincomb;
 mod mul;
 mod neg;

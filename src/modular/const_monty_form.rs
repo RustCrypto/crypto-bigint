@@ -1,14 +1,14 @@
 //! Implements `ConstMontyForm`s, supporting modular arithmetic with a constant modulus.
 
 mod add;
-pub(super) mod inv;
+pub(super) mod invert;
 mod lincomb;
 mod mul;
 mod neg;
 mod pow;
 mod sub;
 
-use self::inv::ConstMontyFormInverter;
+use self::invert::ConstMontyFormInverter;
 use super::{Retrieve, SafeGcdInverter, div_by_2::div_by_2, reduction::montgomery_reduction};
 use crate::{ConstZero, Limb, Odd, PrecomputeInverter, Uint};
 use core::{fmt::Debug, marker::PhantomData};
