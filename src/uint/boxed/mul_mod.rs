@@ -86,7 +86,7 @@ fn mac_by_limb(a: &BoxedUint, b: &BoxedUint, c: Limb, carry: Limb) -> (BoxedUint
     let mut carry = carry;
 
     for i in 0..a.nlimbs() {
-        let (n, c) = a.limbs[i].carrying_mul_add(b.limbs[i], c, carry);
+        let (n, c) = b.limbs[i].carrying_mul_add(c, a.limbs[i], carry);
         a.limbs[i] = n;
         carry = c;
     }

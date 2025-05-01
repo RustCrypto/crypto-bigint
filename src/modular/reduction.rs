@@ -21,17 +21,17 @@ const fn montgomery_reduction_inner(
     while i < nlimbs {
         let u = lower[i].wrapping_mul(mod_neg_inv);
 
-        let (_, mut carry) = lower[i].carrying_mul_add(u, modulus[0], Limb::ZERO);
+        let (_, mut carry) = u.carrying_mul_add(modulus[0], lower[i], Limb::ZERO);
         let mut new_limb;
 
         let mut j = 1;
         while j < (nlimbs - i) {
-            (new_limb, carry) = lower[i + j].carrying_mul_add(u, modulus[j], carry);
+            (new_limb, carry) = u.carrying_mul_add(modulus[j], lower[i + j], carry);
             lower[i + j] = new_limb;
             j += 1;
         }
         while j < nlimbs {
-            (new_limb, carry) = upper[i + j - nlimbs].carrying_mul_add(u, modulus[j], carry);
+            (new_limb, carry) = u.carrying_mul_add(modulus[j], upper[i + j - nlimbs], carry);
             upper[i + j - nlimbs] = new_limb;
             j += 1;
         }

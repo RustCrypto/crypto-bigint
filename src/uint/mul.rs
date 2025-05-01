@@ -33,9 +33,9 @@ const fn schoolbook_multiplication(lhs: &[Limb], rhs: &[Limb], lo: &mut [Limb], 
             let k = i + j;
 
             if k >= lhs.len() {
-                (hi[k - lhs.len()], carry) = hi[k - lhs.len()].carrying_mul_add(xi, rhs[j], carry);
+                (hi[k - lhs.len()], carry) = xi.carrying_mul_add(rhs[j], hi[k - lhs.len()], carry);
             } else {
-                (lo[k], carry) = lo[k].carrying_mul_add(xi, rhs[j], carry);
+                (lo[k], carry) = xi.carrying_mul_add(rhs[j], lo[k], carry);
             }
 
             j += 1;
@@ -75,9 +75,9 @@ pub(crate) const fn schoolbook_squaring(limbs: &[Limb], lo: &mut [Limb], hi: &mu
 
             if k >= limbs.len() {
                 (hi[k - limbs.len()], carry) =
-                    hi[k - limbs.len()].carrying_mul_add(xi, limbs[j], carry);
+                    xi.carrying_mul_add(limbs[j], hi[k - limbs.len()], carry);
             } else {
-                (lo[k], carry) = lo[k].carrying_mul_add(xi, limbs[j], carry);
+                (lo[k], carry) = xi.carrying_mul_add(limbs[j], lo[k], carry);
             }
 
             j += 1;
@@ -114,10 +114,10 @@ pub(crate) const fn schoolbook_squaring(limbs: &[Limb], lo: &mut [Limb], hi: &mu
     while i < limbs.len() {
         let xi = limbs[i];
         if (i * 2) < limbs.len() {
-            (lo[i * 2], carry) = lo[i * 2].carrying_mul_add(xi, xi, carry);
+            (lo[i * 2], carry) = xi.carrying_mul_add(xi, lo[i * 2], carry);
         } else {
             (hi[i * 2 - limbs.len()], carry) =
-                hi[i * 2 - limbs.len()].carrying_mul_add(xi, xi, carry);
+                xi.carrying_mul_add(xi, hi[i * 2 - limbs.len()], carry);
         }
 
         if (i * 2 + 1) < limbs.len() {

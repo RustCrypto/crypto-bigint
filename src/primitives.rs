@@ -55,13 +55,18 @@ pub const fn widening_mul(lhs: Word, rhs: Word) -> (Word, Word) {
     (ret as Word, (ret >> Word::BITS) as Word)
 }
 
-/// Computes `a + (b * c) + carry`, returning the result along with the new carry.
+/// Computes `(lhs * rhs) + addend + carry`, returning the result along with the new carry.
 #[inline(always)]
-pub(crate) const fn carrying_mul_add(a: Word, b: Word, c: Word, carry: Word) -> (Word, Word) {
-    let a = a as WideWord;
-    let b = b as WideWord;
-    let c = c as WideWord;
-    let ret = a + (b * c);
+pub(crate) const fn carrying_mul_add(
+    lhs: Word,
+    rhs: Word,
+    addend: Word,
+    carry: Word,
+) -> (Word, Word) {
+    let lhs = lhs as WideWord;
+    let rhs = rhs as WideWord;
+    let addend = addend as WideWord;
+    let ret = (lhs * rhs) + addend;
     let (lo, hi) = (ret as Word, (ret >> Word::BITS) as Word);
 
     let (lo, c) = lo.overflowing_add(carry);

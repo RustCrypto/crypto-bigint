@@ -12,13 +12,13 @@ impl Limb {
     /// Computes `self + (b * c) + carry`, returning the result along with the new carry.
     #[deprecated(since = "0.7.0", note = "please use `carrying_mul_add` instead")]
     pub const fn mac(self, b: Limb, c: Limb, carry: Limb) -> (Limb, Limb) {
-        self.carrying_mul_add(b, c, carry)
+        b.carrying_mul_add(c, self, carry)
     }
 
-    /// Computes `self + (b * c) + carry`, returning the result along with the new carry.
+    /// Computes `(self * rhs) + addend + carry`, returning the result along with the new carry.
     #[inline(always)]
-    pub const fn carrying_mul_add(self, b: Limb, c: Limb, carry: Limb) -> (Limb, Limb) {
-        let (res, carry) = carrying_mul_add(self.0, b.0, c.0, carry.0);
+    pub const fn carrying_mul_add(self, rhs: Limb, addend: Limb, carry: Limb) -> (Limb, Limb) {
+        let (res, carry) = carrying_mul_add(self.0, rhs.0, addend.0, carry.0);
         (Limb(res), Limb(carry))
     }
 

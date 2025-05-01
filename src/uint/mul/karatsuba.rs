@@ -403,7 +403,7 @@ fn carrying_add_mul_limbs(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) -> Limb 
 
         while j < rhs.len() {
             let k = i + j;
-            (out[k], carry2) = out[k].carrying_mul_add(xi, rhs[j], carry2);
+            (out[k], carry2) = xi.carrying_mul_add(rhs[j], out[k], carry2);
             j += 1;
         }
 

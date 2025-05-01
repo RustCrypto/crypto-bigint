@@ -92,7 +92,7 @@ const fn mac_by_limb<const LIMBS: usize>(
     let mut carry = carry;
 
     while i < LIMBS {
-        (a.limbs[i], carry) = a.limbs[i].carrying_mul_add(b.limbs[i], c, carry);
+        (a.limbs[i], carry) = b.limbs[i].carrying_mul_add(c, a.limbs[i], carry);
         i += 1;
     }
 
