@@ -1,14 +1,20 @@
 //! Limb subtraction
 
-use crate::{Checked, CheckedSub, Limb, Wrapping, WrappingSub, Zero, primitives::sbb};
+use crate::{Checked, CheckedSub, Limb, Wrapping, WrappingSub, Zero, primitives::borrowing_sub};
 use core::ops::{Sub, SubAssign};
 use subtle::CtOption;
 
 impl Limb {
     /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
-    #[inline(always)]
+    #[deprecated(since = "0.7.0", note = "please use `borrowing_sub` instead")]
     pub const fn sbb(self, rhs: Limb, borrow: Limb) -> (Limb, Limb) {
-        let (res, borrow) = sbb(self.0, rhs.0, borrow.0);
+        self.borrowing_sub(rhs, borrow)
+    }
+
+    /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
+    #[inline(always)]
+    pub const fn borrowing_sub(self, rhs: Limb, borrow: Limb) -> (Limb, Limb) {
+        let (res, borrow) = borrowing_sub(self.0, rhs.0, borrow.0);
         (Limb(res), Limb(borrow))
     }
 
@@ -29,7 +35,7 @@ impl Limb {
 impl CheckedSub for Limb {
     #[inline]
     fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
-        let (result, underflow) = self.sbb(*rhs, Limb::ZERO);
+        let (result, underflow) = self.borrowing_sub(*rhs, Limb::ZERO);
         CtOption::new(result, underflow.is_zero())
     }
 }
@@ -93,15 +99,15 @@ mod tests {
     use crate::{CheckedSub, Limb};
 
     #[test]
-    fn sbb_no_borrow() {
-        let (res, borrow) = Limb::ONE.sbb(Limb::ONE, Limb::ZERO);
+    fn borrowing_sub_no_borrow() {
+        let (res, borrow) = Limb::ONE.borrowing_sub(Limb::ONE, Limb::ZERO);
         assert_eq!(res, Limb::ZERO);
         assert_eq!(borrow, Limb::ZERO);
     }
 
     #[test]
-    fn sbb_with_borrow() {
-        let (res, borrow) = Limb::ZERO.sbb(Limb::ONE, Limb::ZERO);
+    fn borrowing_sub_with_borrow() {
+        let (res, borrow) = Limb::ZERO.borrowing_sub(Limb::ONE, Limb::ZERO);
 
         assert_eq!(res, Limb::MAX);
         assert_eq!(borrow, Limb::MAX);

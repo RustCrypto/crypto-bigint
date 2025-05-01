@@ -61,9 +61,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[inline]
     pub(crate) const fn lt(lhs: &Self, rhs: &Self) -> ConstChoice {
         // We could use the same approach as in Limb::ct_lt(),
-        // but since we have to use Uint::wrapping_sub(), which calls `sbb()`,
-        // there are no savings compared to just calling `sbb()` directly.
-        let (_res, borrow) = lhs.sbb(rhs, Limb::ZERO);
+        // but since we have to use Uint::wrapping_sub(), which calls `borrowing_sub()`,
+        // there are no savings compared to just calling `borrowing_sub()` directly.
+        let (_res, borrow) = lhs.borrowing_sub(rhs, Limb::ZERO);
         ConstChoice::from_word_mask(borrow.0)
     }
 
@@ -76,7 +76,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Returns the truthy value if `self > rhs` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn gt(lhs: &Self, rhs: &Self) -> ConstChoice {
-        let (_res, borrow) = rhs.sbb(lhs, Limb::ZERO);
+        let (_res, borrow) = rhs.borrowing_sub(lhs, Limb::ZERO);
         ConstChoice::from_word_mask(borrow.0)
     }
 
@@ -92,7 +92,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut diff = Limb::ZERO;
 
         while i < LIMBS {
-            let (w, b) = rhs.limbs[i].sbb(lhs.limbs[i], borrow);
+            let (w, b) = rhs.limbs[i].borrowing_sub(lhs.limbs[i], borrow);
             diff = diff.bitor(w);
             borrow = b;
             i += 1;
@@ -105,7 +105,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn cmp_vartime(&self, rhs: &Self) -> Ordering {
         let mut i = LIMBS - 1;
         loop {
-            let (val, borrow) = self.limbs[i].sbb(rhs.limbs[i], Limb::ZERO);
+            let (val, borrow) = self.limbs[i].borrowing_sub(rhs.limbs[i], Limb::ZERO);
             if val.0 != 0 {
                 return if borrow.0 != 0 {
                     Ordering::Less

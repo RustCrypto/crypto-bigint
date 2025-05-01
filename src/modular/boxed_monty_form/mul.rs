@@ -417,7 +417,7 @@ const fn conditional_sub(z: &mut [Limb], x: &[Limb], c: ConstChoice) {
     let mut borrow = Limb::ZERO;
     let mut i = 0;
     while i < n {
-        let (zi, new_borrow) = z[i].sbb(Limb(c.if_true_word(x[i].0)), borrow);
+        let (zi, new_borrow) = z[i].borrowing_sub(Limb(c.if_true_word(x[i].0)), borrow);
         z[i] = zi;
         borrow = new_borrow;
         i += 1;

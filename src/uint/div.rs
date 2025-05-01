@@ -84,10 +84,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             i = 0;
             while i <= xi {
                 (tmp, carry) = Limb::ZERO.mac(y[LIMBS - xi + i - 1], Limb(quo), carry);
-                (x[i], borrow) = x[i].sbb(tmp, borrow);
+                (x[i], borrow) = x[i].borrowing_sub(tmp, borrow);
                 i += 1;
             }
-            (_, borrow) = x_hi.sbb(carry, borrow);
+            (_, borrow) = x_hi.borrowing_sub(carry, borrow);
 
             // If the subtraction borrowed, then decrement q and add back the divisor
             // The probability of this being needed is very low, about 2/(Limb::MAX+1)
@@ -244,10 +244,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 i = 0;
                 while i < yc {
                     (tmp, carry) = Limb::ZERO.mac(y[i], Limb(quo), carry);
-                    (x[xi + i + 1 - yc], borrow) = x[xi + i + 1 - yc].sbb(tmp, borrow);
+                    (x[xi + i + 1 - yc], borrow) = x[xi + i + 1 - yc].borrowing_sub(tmp, borrow);
                     i += 1;
                 }
-                (_, borrow) = x_hi.sbb(carry, borrow);
+                (_, borrow) = x_hi.borrowing_sub(carry, borrow);
                 borrow
             };
 
@@ -371,10 +371,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 i = 0;
                 while i < yc {
                     (tmp, carry) = Limb::ZERO.mac(y[i], Limb(quo), carry);
-                    (x[xi + i + 1 - yc], borrow) = x[xi + i + 1 - yc].sbb(tmp, borrow);
+                    (x[xi + i + 1 - yc], borrow) = x[xi + i + 1 - yc].borrowing_sub(tmp, borrow);
                     i += 1;
                 }
-                (_, borrow) = x_hi.sbb(carry, borrow);
+                (_, borrow) = x_hi.borrowing_sub(carry, borrow);
                 borrow
             };
 

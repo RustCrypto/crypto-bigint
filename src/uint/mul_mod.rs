@@ -65,7 +65,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         let (lo, _) = {
             let rhs = carry.0.wrapping_sub(1) & c.0;
-            lo.sbb(&Self::from_word(rhs), Limb::ZERO)
+            lo.borrowing_sub(&Self::from_word(rhs), Limb::ZERO)
         };
 
         lo

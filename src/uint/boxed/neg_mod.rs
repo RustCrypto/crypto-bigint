@@ -9,7 +9,7 @@ impl BoxedUint {
     pub fn neg_mod(&self, p: &Self) -> Self {
         debug_assert_eq!(self.bits_precision(), p.bits_precision());
         let is_zero = self.is_zero();
-        let mut ret = p.sbb(self, Limb::ZERO).0;
+        let mut ret = p.borrowing_sub(self, Limb::ZERO).0;
 
         for i in 0..self.nlimbs() {
             // Set ret to 0 if the original value was 0, in which

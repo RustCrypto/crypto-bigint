@@ -65,7 +65,7 @@ impl BoxedUint {
 
         let (lo, _) = {
             let rhs = carry.0.wrapping_sub(1) & c.0;
-            lo.sbb(&Self::from(rhs), Limb::ZERO)
+            lo.borrowing_sub(&Self::from(rhs), Limb::ZERO)
         };
 
         lo

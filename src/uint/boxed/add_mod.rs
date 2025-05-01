@@ -24,8 +24,8 @@ impl BoxedUint {
         let carry = self.carrying_add_assign(rhs, Limb::ZERO);
 
         // Attempt to subtract the modulus, to ensure the result is in the field.
-        let borrow = self.sbb_assign(p, Limb::ZERO);
-        let (_, borrow) = carry.sbb(Limb::ZERO, borrow);
+        let borrow = self.borrowing_sub_assign(p, Limb::ZERO);
+        let (_, borrow) = carry.borrowing_sub(Limb::ZERO, borrow);
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the
@@ -40,8 +40,8 @@ impl BoxedUint {
         let (mut w, carry) = self.overflowing_shl1();
 
         // Attempt to subtract the modulus, to ensure the result is in the field.
-        let borrow = w.sbb_assign(p, Limb::ZERO);
-        let (_, borrow) = carry.sbb(Limb::ZERO, borrow);
+        let borrow = w.borrowing_sub_assign(p, Limb::ZERO);
+        let (_, borrow) = carry.borrowing_sub(Limb::ZERO, borrow);
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the

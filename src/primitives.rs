@@ -36,9 +36,9 @@ pub const fn overflowing_add(lhs: Word, rhs: Word) -> (Word, Word) {
     (res, carry as Word)
 }
 
-/// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
+/// Computes `lhs - (rhs + borrow)`, returning the result along with the new borrow.
 #[inline(always)]
-pub const fn sbb(lhs: Word, rhs: Word, borrow: Word) -> (Word, Word) {
+pub const fn borrowing_sub(lhs: Word, rhs: Word, borrow: Word) -> (Word, Word) {
     let a = lhs as WideWord;
     let b = rhs as WideWord;
     let borrow = (borrow >> (Word::BITS - 1)) as WideWord;

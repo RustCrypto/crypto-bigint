@@ -52,8 +52,8 @@ macro_rules! impl_uint_karatsuba_multiplication {
                 let mut l1b = Limb::ZERO;
                 let mut i = 0;
                 while i < $half_size {
-                    (l0.limbs[i], l0b) = x0[i].sbb(x1[i], l0b);
-                    (l1.limbs[i], l1b) = y1[i].sbb(y0[i], l1b);
+                    (l0.limbs[i], l0b) = x0[i].borrowing_sub(x1[i], l0b);
+                    (l1.limbs[i], l1b) = y1[i].borrowing_sub(y0[i], l1b);
                     i += 1;
                 }
                 l0 = Uint::select(
@@ -136,7 +136,7 @@ macro_rules! impl_uint_karatsuba_squaring {
                 let mut l0b = Limb::ZERO;
                 let mut i = 0;
                 while i < $half_size {
-                    (l0.limbs[i], l0b) = x0[i].sbb(x1[i], l0b);
+                    (l0.limbs[i], l0b) = x0[i].borrowing_sub(x1[i], l0b);
                     i += 1;
                 }
                 l0 = Uint::select(
@@ -149,9 +149,9 @@ macro_rules! impl_uint_karatsuba_squaring {
 
                 // Subtract z1•b
                 carry = Limb::ZERO;
-                (res.1, carry) = res.1.sbb(&z1.0, carry);
-                (res.2, carry) = res.2.sbb(&z1.1, carry);
-                (res.3, _) = res.3.sbb(&Uint::ZERO, carry);
+                (res.1, carry) = res.1.borrowing_sub(&z1.0, carry);
+                (res.2, carry) = res.2.borrowing_sub(&z1.1, carry);
+                (res.3, _) = res.3.borrowing_sub(&Uint::ZERO, carry);
 
                 (res.0.concat(&res.1), res.2.concat(&res.3))
             }
@@ -211,8 +211,8 @@ pub(crate) fn karatsuba_mul_limbs(
     let mut borrow0 = Limb::ZERO;
     let mut borrow1 = Limb::ZERO;
     while i < half {
-        (scratch[i], borrow0) = x0[i].sbb(x1[i], borrow0);
-        (scratch[i + half], borrow1) = y1[i].sbb(y0[i], borrow1);
+        (scratch[i], borrow0) = x0[i].borrowing_sub(x1[i], borrow0);
+        (scratch[i + half], borrow1) = y1[i].borrowing_sub(y0[i], borrow1);
         i += 1;
     }
     // Conditionally negate terms depending whether they borrowed
@@ -314,7 +314,7 @@ pub(crate) fn karatsuba_square_limbs(limbs: &[Limb], out: &mut [Limb], scratch: 
     let mut i = 0;
     let mut borrow = Limb::ZERO;
     while i < half {
-        (scratch[i], borrow) = x0[i].sbb(x1[i], borrow);
+        (scratch[i], borrow) = x0[i].borrowing_sub(x1[i], borrow);
         i += 1;
     }
     // Conditionally negate depending whether subtraction borrowed
