@@ -150,7 +150,7 @@ proptest! {
         assert_eq!(one_monty.retrieve(), U128::ONE, "a*a⁻¹ ≠ 1 (normal form)");
         // …and when converted back to normal form and used in a widening operation
         let wide_modulus = NonZero::new(Into::<U256>::into(&monty_params.modulus().get())).unwrap();
-        let one = r_monty_inv.retrieve().widening_mul(&r);
+        let one = r_monty_inv.retrieve().concatenating_mul(&r);
         assert_eq!(
             one % wide_modulus,
             U256::ONE,
@@ -189,7 +189,7 @@ proptest! {
         assert_eq!(one_monty.retrieve(), U256::ONE, "a*a⁻¹ ≠ 1 (normal form)");
         // …and when converted back to normal form and used in a widening operation
         let wide_modulus = NonZero::new(Into::<U512>::into(&monty_params.modulus().get())).unwrap();
-        let one = r_monty_inv.retrieve().widening_mul(&r);
+        let one = r_monty_inv.retrieve().concatenating_mul(&r);
         assert_eq!(
             one % wide_modulus,
             U512::ONE,
@@ -228,7 +228,7 @@ proptest! {
         assert_eq!(one_monty.retrieve(), U1024::ONE, "a*a⁻¹ ≠ 1 (normal form)");
         // …and when converted back to normal form and used in a widening operation
         let wide_modulus = NonZero::new(Into::<U2048>::into(&monty_params.modulus().get())).unwrap();
-        let one = r_monty_inv.retrieve().widening_mul(&r);
+        let one = r_monty_inv.retrieve().concatenating_mul(&r);
         assert_eq!(
             one % wide_modulus,
             U2048::ONE,
@@ -267,7 +267,7 @@ proptest! {
         assert_eq!(one_monty.retrieve(), U2048::ONE, "a*a⁻¹ ≠ 1 (normal form)");
         // …and when converted back to normal form and used in a widening operation
         let wide_modulus = NonZero::new(Into::<U4096>::into(&monty_params.modulus().get())).unwrap();
-        let one = r_monty_inv.retrieve().widening_mul(&r);
+        let one = r_monty_inv.retrieve().concatenating_mul(&r);
         assert_eq!(
             one % wide_modulus,
             U4096::ONE,

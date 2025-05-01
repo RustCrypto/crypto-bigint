@@ -41,6 +41,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Multiply `self` by [`Uint`] `rhs`, returning a concatenated "wide" result.
+    #[deprecated(since = "0.7.0", note = "please use `concatenating_mul_uint` instead")]
     pub const fn widening_mul_uint<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
@@ -48,8 +49,19 @@ impl<const LIMBS: usize> Int<LIMBS> {
     where
         Uint<LIMBS>: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
     {
+        self.concatenating_mul_uint(rhs)
+    }
+
+    /// Multiply `self` by [`Uint`] `rhs`, returning a concatenated "wide" result.
+    pub const fn concatenating_mul_uint<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
+        &self,
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> Int<WIDE_LIMBS>
+    where
+        Uint<LIMBS>: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+    {
         let (lhs_abs, lhs_sign) = self.abs_sign();
-        let product_abs = lhs_abs.widening_mul(rhs);
+        let product_abs = lhs_abs.concatenating_mul(rhs);
 
         // always fits
         product_abs.wrapping_neg_if(lhs_sign).as_int()
@@ -208,45 +220,48 @@ mod tests {
     }
 
     #[test]
-    fn test_widening_mul_uint() {
-        assert_eq!(I128::MIN.widening_mul_uint(&U128::ZERO), I256::ZERO);
+    fn test_concatenating_mul_uint() {
+        assert_eq!(I128::MIN.concatenating_mul_uint(&U128::ZERO), I256::ZERO);
         assert_eq!(
-            I128::MIN.widening_mul_uint(&U128::ONE),
+            I128::MIN.concatenating_mul_uint(&U128::ONE),
             I256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF80000000000000000000000000000000")
         );
         assert_eq!(
-            I128::MIN.widening_mul_uint(&U128::MAX),
+            I128::MIN.concatenating_mul_uint(&U128::MAX),
             I256::from_be_hex("8000000000000000000000000000000080000000000000000000000000000000")
         );
 
-        assert_eq!(I128::MINUS_ONE.widening_mul_uint(&U128::ZERO), I256::ZERO);
         assert_eq!(
-            I128::MINUS_ONE.widening_mul_uint(&U128::ONE),
+            I128::MINUS_ONE.concatenating_mul_uint(&U128::ZERO),
+            I256::ZERO
+        );
+        assert_eq!(
+            I128::MINUS_ONE.concatenating_mul_uint(&U128::ONE),
             I256::MINUS_ONE
         );
         assert_eq!(
-            I128::MINUS_ONE.widening_mul_uint(&U128::MAX),
+            I128::MINUS_ONE.concatenating_mul_uint(&U128::MAX),
             I256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000000000000000000000000001")
         );
 
-        assert_eq!(I128::ZERO.widening_mul_uint(&U128::ZERO), I256::ZERO);
-        assert_eq!(I128::ZERO.widening_mul_uint(&U128::ONE), I256::ZERO);
-        assert_eq!(I128::ZERO.widening_mul_uint(&U128::MAX), I256::ZERO);
+        assert_eq!(I128::ZERO.concatenating_mul_uint(&U128::ZERO), I256::ZERO);
+        assert_eq!(I128::ZERO.concatenating_mul_uint(&U128::ONE), I256::ZERO);
+        assert_eq!(I128::ZERO.concatenating_mul_uint(&U128::MAX), I256::ZERO);
 
-        assert_eq!(I128::ONE.widening_mul_uint(&U128::ZERO), I256::ZERO);
-        assert_eq!(I128::ONE.widening_mul_uint(&U128::ONE), I256::ONE);
+        assert_eq!(I128::ONE.concatenating_mul_uint(&U128::ZERO), I256::ZERO);
+        assert_eq!(I128::ONE.concatenating_mul_uint(&U128::ONE), I256::ONE);
         assert_eq!(
-            I128::ONE.widening_mul_uint(&U128::MAX),
+            I128::ONE.concatenating_mul_uint(&U128::MAX),
             I256::from_be_hex("00000000000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
         );
 
-        assert_eq!(I128::MAX.widening_mul_uint(&U128::ZERO), I256::ZERO);
+        assert_eq!(I128::MAX.concatenating_mul_uint(&U128::ZERO), I256::ZERO);
         assert_eq!(
-            I128::MAX.widening_mul_uint(&U128::ONE),
+            I128::MAX.concatenating_mul_uint(&U128::ONE),
             I256::from_be_hex("000000000000000000000000000000007FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
         );
         assert_eq!(
-            I128::MAX.widening_mul_uint(&U128::MAX),
+            I128::MAX.concatenating_mul_uint(&U128::MAX),
             I256::from_be_hex("7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE80000000000000000000000000000001")
         );
     }

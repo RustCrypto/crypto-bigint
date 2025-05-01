@@ -265,12 +265,12 @@ proptest! {
     }
 
     #[test]
-    fn widening_mul_large(a in uint_large(), b in uint_large()) {
+    fn concatenating_mul_large(a in uint_large(), b in uint_large()) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
 
         let expected = to_uint_xlarge(a_bi * b_bi);
-        let actual = a.widening_mul(&b);
+        let actual = a.concatenating_mul(&b);
 
         assert_eq!(expected, actual);
     }

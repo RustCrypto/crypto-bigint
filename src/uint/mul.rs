@@ -5,8 +5,8 @@ use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
 
 use crate::{
-    Checked, CheckedMul, Concat, ConcatMixed, ConstCtOption, Limb, Uint, WideningMul, Wrapping,
-    WrappingMul, Zero,
+    Checked, CheckedMul, Concat, ConcatMixed, ConcatenatingMul, ConstCtOption, Limb, Uint,
+    Wrapping, WrappingMul, Zero,
 };
 
 use self::karatsuba::UintKaratsubaMul;
@@ -131,7 +131,19 @@ pub(crate) const fn schoolbook_squaring(limbs: &[Limb], lo: &mut [Limb], hi: &mu
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
+    #[deprecated(since = "0.7.0", note = "please use `concatenating_mul` instead")]
     pub const fn widening_mul<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
+        &self,
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> Uint<WIDE_LIMBS>
+    where
+        Self: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+    {
+        self.concatenating_mul(rhs)
+    }
+
+    /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
+    pub const fn concatenating_mul<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> Uint<WIDE_LIMBS>
@@ -316,28 +328,28 @@ impl<const LIMBS: usize> MulAssign<&Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize, const WIDE_LIMBS: usize>
-    WideningMul<Uint<RHS_LIMBS>> for Uint<LIMBS>
+    ConcatenatingMul<Uint<RHS_LIMBS>> for Uint<LIMBS>
 where
     Self: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
 {
     type Output = <Self as ConcatMixed<Uint<RHS_LIMBS>>>::MixedOutput;
 
     #[inline]
-    fn widening_mul(&self, rhs: Uint<RHS_LIMBS>) -> Self::Output {
-        self.widening_mul(&rhs)
+    fn concatenating_mul(&self, rhs: Uint<RHS_LIMBS>) -> Self::Output {
+        self.concatenating_mul(&rhs)
     }
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize, const WIDE_LIMBS: usize>
-    WideningMul<&Uint<RHS_LIMBS>> for Uint<LIMBS>
+    ConcatenatingMul<&Uint<RHS_LIMBS>> for Uint<LIMBS>
 where
     Self: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
 {
     type Output = <Self as ConcatMixed<Uint<RHS_LIMBS>>>::MixedOutput;
 
     #[inline]
-    fn widening_mul(&self, rhs: &Uint<RHS_LIMBS>) -> Self::Output {
-        self.widening_mul(rhs)
+    fn concatenating_mul(&self, rhs: &Uint<RHS_LIMBS>) -> Self::Output {
+        self.concatenating_mul(rhs)
     }
 }
 
@@ -415,14 +427,14 @@ mod tests {
 
     #[test]
     fn mul_concat_even() {
-        assert_eq!(U64::ZERO.widening_mul(&U64::MAX), U128::ZERO);
-        assert_eq!(U64::MAX.widening_mul(&U64::ZERO), U128::ZERO);
+        assert_eq!(U64::ZERO.concatenating_mul(&U64::MAX), U128::ZERO);
+        assert_eq!(U64::MAX.concatenating_mul(&U64::ZERO), U128::ZERO);
         assert_eq!(
-            U64::MAX.widening_mul(&U64::MAX),
+            U64::MAX.concatenating_mul(&U64::MAX),
             U128::from_u128(0xfffffffffffffffe_0000000000000001)
         );
         assert_eq!(
-            U64::ONE.widening_mul(&U64::MAX),
+            U64::ONE.concatenating_mul(&U64::MAX),
             U128::from_u128(0x0000000000000000_ffffffffffffffff)
         );
     }
@@ -431,8 +443,8 @@ mod tests {
     fn mul_concat_mixed() {
         let a = U64::from_u64(0x0011223344556677);
         let b = U128::from_u128(0x8899aabbccddeeff_8899aabbccddeeff);
-        assert_eq!(a.widening_mul(&b), U192::from(&a).saturating_mul(&b));
-        assert_eq!(b.widening_mul(&a), U192::from(&b).saturating_mul(&a));
+        assert_eq!(a.concatenating_mul(&b), U192::from(&a).saturating_mul(&b));
+        assert_eq!(b.concatenating_mul(&a), U192::from(&b).saturating_mul(&a));
     }
 
     #[test]
