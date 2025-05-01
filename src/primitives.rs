@@ -57,7 +57,7 @@ pub const fn widening_mul(lhs: Word, rhs: Word) -> (Word, Word) {
 
 /// Computes `a + (b * c) + carry`, returning the result along with the new carry.
 #[inline(always)]
-pub(crate) const fn mac(a: Word, b: Word, c: Word, carry: Word) -> (Word, Word) {
+pub(crate) const fn carrying_mul_add(a: Word, b: Word, c: Word, carry: Word) -> (Word, Word) {
     let a = a as WideWord;
     let b = b as WideWord;
     let c = c as WideWord;

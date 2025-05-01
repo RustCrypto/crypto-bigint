@@ -378,7 +378,7 @@ const fn add_mul_carry(z: &mut [Limb], x: &[Limb], y: Limb) -> Limb {
     let mut c = Limb::ZERO;
     let mut i = 0;
     while i < n {
-        (z[i], c) = z[i].mac(x[i], y, c);
+        (z[i], c) = z[i].carrying_mul_add(x[i], y, c);
         i += 1;
     }
     c
@@ -392,13 +392,13 @@ const fn add_mul_carry_and_shift(z: &mut [Limb], x: &[Limb], y: Limb) -> Limb {
         panic!("Failed preconditions in `add_mul_carry_and_shift`");
     }
 
-    let (_, mut c) = z[0].mac(x[0], y, Limb::ZERO);
+    let (_, mut c) = z[0].carrying_mul_add(x[0], y, Limb::ZERO);
 
     let mut i = 1;
     let mut i1 = 0;
     // Help the compiler elide bound checking
     while i < n && i1 < n {
-        (z[i1], c) = z[i].mac(x[i], y, c);
+        (z[i1], c) = z[i].carrying_mul_add(x[i], y, c);
         i += 1;
         i1 += 1;
     }

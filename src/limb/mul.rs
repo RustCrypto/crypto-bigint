@@ -2,7 +2,7 @@
 
 use crate::{
     Checked, CheckedMul, Limb, Wrapping, Zero,
-    primitives::{mac, widening_mul},
+    primitives::{carrying_mul_add, widening_mul},
 };
 use core::ops::{Mul, MulAssign};
 use num_traits::WrappingMul;
@@ -10,9 +10,15 @@ use subtle::CtOption;
 
 impl Limb {
     /// Computes `self + (b * c) + carry`, returning the result along with the new carry.
-    #[inline(always)]
+    #[deprecated(since = "0.7.0", note = "please use `carrying_mul_add` instead")]
     pub const fn mac(self, b: Limb, c: Limb, carry: Limb) -> (Limb, Limb) {
-        let (res, carry) = mac(self.0, b.0, c.0, carry.0);
+        self.carrying_mul_add(b, c, carry)
+    }
+
+    /// Computes `self + (b * c) + carry`, returning the result along with the new carry.
+    #[inline(always)]
+    pub const fn carrying_mul_add(self, b: Limb, c: Limb, carry: Limb) -> (Limb, Limb) {
+        let (res, carry) = carrying_mul_add(self.0, b.0, c.0, carry.0);
         (Limb(res), Limb(carry))
     }
 

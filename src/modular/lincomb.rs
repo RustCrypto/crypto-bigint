@@ -39,7 +39,7 @@ macro_rules! impl_longa_monty_lincomb {
 
                 let mut k = 0;
                 while k < $nlimbs {
-                    ($u[k], carry) = $u[k].mac(
+                    ($u[k], carry) = $u[k].carrying_mul_add(
                         ai.as_montgomery().limbs[j],
                         bi.as_montgomery().limbs[k],
                         carry,
@@ -54,11 +54,11 @@ macro_rules! impl_longa_monty_lincomb {
 
             let q = $u[0].wrapping_mul($mod_neg_inv);
 
-            (_, carry) = $u[0].mac(q, $modulus[0], Limb::ZERO);
+            (_, carry) = $u[0].carrying_mul_add(q, $modulus[0], Limb::ZERO);
 
             i = 1;
             while i < $nlimbs {
-                ($u[i - 1], carry) = $u[i].mac(q, $modulus[i], carry);
+                ($u[i - 1], carry) = $u[i].carrying_mul_add(q, $modulus[i], carry);
                 i += 1;
             }
             ($u[$nlimbs - 1], carry) = hi.carrying_add(carry, Limb::ZERO);

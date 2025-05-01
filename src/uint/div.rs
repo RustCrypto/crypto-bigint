@@ -83,7 +83,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let mut tmp;
             i = 0;
             while i <= xi {
-                (tmp, carry) = Limb::ZERO.mac(y[LIMBS - xi + i - 1], Limb(quo), carry);
+                (tmp, carry) = Limb::ZERO.carrying_mul_add(y[LIMBS - xi + i - 1], Limb(quo), carry);
                 (x[i], borrow) = x[i].borrowing_sub(tmp, borrow);
                 i += 1;
             }
@@ -243,7 +243,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 let mut tmp;
                 i = 0;
                 while i < yc {
-                    (tmp, carry) = Limb::ZERO.mac(y[i], Limb(quo), carry);
+                    (tmp, carry) = Limb::ZERO.carrying_mul_add(y[i], Limb(quo), carry);
                     (x[xi + i + 1 - yc], borrow) = x[xi + i + 1 - yc].borrowing_sub(tmp, borrow);
                     i += 1;
                 }
@@ -370,7 +370,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 let mut tmp;
                 i = 0;
                 while i < yc {
-                    (tmp, carry) = Limb::ZERO.mac(y[i], Limb(quo), carry);
+                    (tmp, carry) = Limb::ZERO.carrying_mul_add(y[i], Limb(quo), carry);
                     (x[xi + i + 1 - yc], borrow) = x[xi + i + 1 - yc].borrowing_sub(tmp, borrow);
                     i += 1;
                 }
