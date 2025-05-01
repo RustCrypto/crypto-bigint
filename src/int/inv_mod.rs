@@ -10,9 +10,15 @@ where
     Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
 {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
+    #[deprecated(since = "0.7.0", note = "please use `invert_odd_mod` instead")]
     pub fn inv_odd_mod(&self, modulus: &Odd<Uint<LIMBS>>) -> CtOption<Uint<LIMBS>> {
+        self.invert_odd_mod(modulus)
+    }
+
+    /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
+    pub fn invert_odd_mod(&self, modulus: &Odd<Uint<LIMBS>>) -> CtOption<Uint<LIMBS>> {
         let (abs, sgn) = self.abs_sign();
-        let abs_inv = abs.inv_odd_mod(modulus).into();
+        let abs_inv = abs.invert_odd_mod(modulus).into();
 
         // Note: when `self` is negative and modulus is non-zero, then
         // self^{-1} % modulus = modulus - |self|^{-1} % modulus
@@ -71,7 +77,7 @@ mod tests {
             "173B01FCA9E1905F9C74589FB3C36D55A4CBCB7FA86CC803BE979091D3F0C431"
         ]);
 
-        let res = a.inv_odd_mod(&m).unwrap();
+        let res = a.invert_odd_mod(&m).unwrap();
         assert_eq!(res, expected);
 
         // Even though it is less efficient, it still works

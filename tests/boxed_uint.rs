@@ -171,7 +171,7 @@ proptest! {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
         let expected = a_bi.invm(&b_bi);
-        let actual = Option::<BoxedUint>::from(a.inv_odd_mod(&b));
+        let actual = Option::<BoxedUint>::from(a.invert_odd_mod(&b));
 
         match (expected, actual) {
             (Some(exp), Some(act)) => prop_assert_eq!(exp, to_biguint(&act)),

@@ -436,19 +436,19 @@ fn bench_invert_mod(c: &mut Criterion) {
     let mut rng = make_rng();
     let mut group = c.benchmark_group("modular ops");
 
-    group.bench_function("inv_odd_mod, U256", |b| {
+    group.bench_function("invert_odd_mod, U256", |b| {
         b.iter_batched(
             || {
                 let m = Odd::<U256>::random(&mut rng);
                 loop {
                     let x = U256::random(&mut rng);
-                    let inv_x = x.inv_odd_mod(&m);
+                    let inv_x = x.invert_odd_mod(&m);
                     if inv_x.is_some().into() {
                         break (x, m);
                     }
                 }
             },
-            |(x, m)| black_box(x.inv_odd_mod(&m)),
+            |(x, m)| black_box(x.invert_odd_mod(&m)),
             BatchSize::SmallInput,
         )
     });
@@ -459,7 +459,7 @@ fn bench_invert_mod(c: &mut Criterion) {
                 let m = Odd::<U256>::random(&mut rng);
                 loop {
                     let x = U256::random(&mut rng);
-                    let inv_x = x.inv_odd_mod(&m);
+                    let inv_x = x.invert_odd_mod(&m);
                     if inv_x.is_some().into() {
                         break (x, m);
                     }

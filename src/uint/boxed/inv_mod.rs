@@ -8,7 +8,13 @@ use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
 impl BoxedUint {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
+    #[deprecated(since = "0.7.0", note = "please use `invert_odd_mod` instead")]
     pub fn inv_odd_mod(&self, modulus: &Odd<Self>) -> CtOption<Self> {
+        self.invert_odd_mod(modulus)
+    }
+
+    /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
+    pub fn invert_odd_mod(&self, modulus: &Odd<Self>) -> CtOption<Self> {
         modulus.precompute_inverter().invert(self)
     }
 
@@ -132,7 +138,7 @@ impl BoxedUint {
         let (s, _overflowed) = modulus.overflowing_shr(k);
 
         let s_is_odd = s.is_odd();
-        let inv_mod_s = self.inv_odd_mod(&Odd(s.clone()));
+        let inv_mod_s = self.invert_odd_mod(&Odd(s.clone()));
         let invertible_mod_s = inv_mod_s.is_some() & s_is_odd;
         // NOTE: this is some strange acrobatics to get around BoxedUint not supporting
         // ConditionallySelectable
@@ -251,7 +257,7 @@ mod tests {
             1024,
         )
         .unwrap();
-        assert_eq!(a.inv_odd_mod(&m).unwrap(), expected);
+        assert_eq!(a.invert_odd_mod(&m).unwrap(), expected);
 
         assert_eq!(a.invert_mod(&m).unwrap(), expected);
     }
@@ -274,7 +280,7 @@ mod tests {
         let m = p1.wrapping_mul(&p2).to_odd().unwrap();
 
         // `m` is a multiple of `p1`, so no inverse exists
-        let res = p1.inv_odd_mod(&m);
+        let res = p1.invert_odd_mod(&m);
         let is_none: bool = res.is_none().into();
         assert!(is_none);
     }
@@ -321,7 +327,7 @@ mod tests {
         let a = BoxedUint::from(3u64);
         let m = BoxedUint::from(13u64).to_odd().unwrap();
 
-        let res = a.inv_odd_mod(&m).unwrap();
+        let res = a.invert_odd_mod(&m).unwrap();
         assert_eq!(BoxedUint::from(9u64), res);
     }
 
@@ -330,7 +336,7 @@ mod tests {
         let a = BoxedUint::from(14u64);
         let m = BoxedUint::from(49u64).to_odd().unwrap();
 
-        let res = a.inv_odd_mod(&m);
+        let res = a.invert_odd_mod(&m);
         let is_none: bool = res.is_none().into();
         assert!(is_none);
     }

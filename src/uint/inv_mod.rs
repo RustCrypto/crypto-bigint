@@ -128,7 +128,13 @@ where
     Odd<Self>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
 {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
+    #[deprecated(since = "0.7.0", note = "please use `invert_odd_mod` instead")]
     pub const fn inv_odd_mod(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
+        self.invert_odd_mod(modulus)
+    }
+
+    /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
+    pub const fn invert_odd_mod(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
         SafeGcdInverter::<LIMBS, UNSAT_LIMBS>::new(modulus, &Uint::ONE).invert(self)
     }
 
@@ -151,7 +157,7 @@ where
         // Decompose `self` into RNS with moduli `2^k` and `s` and calculate the inverses.
         // Using the fact that `(z^{-1} mod (m1 * m2)) mod m1 == z^{-1} mod m1`
         let s_is_odd = s.is_odd();
-        let maybe_a = self.inv_odd_mod(&Odd(s)).and_choice(s_is_odd);
+        let maybe_a = self.invert_odd_mod(&Odd(s)).and_choice(s_is_odd);
 
         let maybe_b = self.inv_mod2k(k);
         let is_some = maybe_a.is_some().and(maybe_b.is_some());
@@ -267,7 +273,7 @@ mod tests {
             "3E520968399B4017BF98A864FABA2B647EFC4998B56774D4F2CB026BC024A336"
         ]);
 
-        let res = a.inv_odd_mod(&m).unwrap();
+        let res = a.invert_odd_mod(&m).unwrap();
         assert_eq!(res, expected);
 
         // Even though it is less efficient, it still works
@@ -287,7 +293,7 @@ mod tests {
         let m = p1.wrapping_mul(&p2).to_odd().unwrap();
 
         // `m` is a multiple of `p1`, so no inverse exists
-        let res = p1.inv_odd_mod(&m);
+        let res = p1.invert_odd_mod(&m);
         assert!(res.is_none().is_true_vartime());
     }
 
@@ -321,7 +327,7 @@ mod tests {
         let a = U64::from(3u64);
         let m = U64::from(13u64).to_odd().unwrap();
 
-        let res = a.inv_odd_mod(&m).unwrap();
+        let res = a.invert_odd_mod(&m).unwrap();
         assert_eq!(U64::from(9u64), res);
     }
 
@@ -330,7 +336,7 @@ mod tests {
         let a = U64::from(14u64);
         let m = U64::from(49u64).to_odd().unwrap();
 
-        let res = a.inv_odd_mod(&m);
+        let res = a.invert_odd_mod(&m);
         assert!(res.is_none().is_true_vartime());
     }
 }
