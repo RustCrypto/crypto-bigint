@@ -13,7 +13,7 @@
 #[macro_export]
 macro_rules! impl_modulus {
     ($name:ident, $uint_type:ty, $value:expr) => {
-        impl_modulus!(
+        $crate::impl_modulus!(
             $name,
             $uint_type,
             $value,
