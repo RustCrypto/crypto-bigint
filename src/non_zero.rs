@@ -1,6 +1,6 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{Bounded, ConstChoice, Constants, Encoding, Int, Limb, Uint, Zero};
+use crate::{Bounded, ConstChoice, Constants, Encoding, Int, Limb, Odd, Uint, Zero};
 use core::{
     fmt,
     num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128},
@@ -307,6 +307,12 @@ impl<const LIMBS: usize> From<NonZeroU64> for NonZero<Uint<LIMBS>> {
 impl<const LIMBS: usize> From<NonZeroU128> for NonZero<Uint<LIMBS>> {
     fn from(integer: NonZeroU128) -> Self {
         Self::from_u128(integer)
+    }
+}
+
+impl<T> From<Odd<T>> for NonZero<T> {
+    fn from(odd: Odd<T>) -> NonZero<T> {
+        NonZero(odd.get())
     }
 }
 
