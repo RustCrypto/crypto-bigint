@@ -10,7 +10,10 @@ use subtle::CtOption;
 
 impl Limb {
     /// Computes `self + (b * c) + carry`, returning the result along with the new carry.
-    #[deprecated(since = "0.7.0", note = "please use `carrying_mul_add` instead")]
+    #[deprecated(
+        since = "0.7.0",
+        note = "please use `carrying_mul_add` instead (ordering of arguments changes)"
+    )]
     pub const fn mac(self, b: Limb, c: Limb, carry: Limb) -> (Limb, Limb) {
         b.carrying_mul_add(c, self, carry)
     }
