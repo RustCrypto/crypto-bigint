@@ -90,6 +90,14 @@ impl BoxedUint {
         out.into()
     }
 
+    /// Serialize this [`BoxedUint`] as big-endian without leading zeroes.
+    #[inline]
+    pub fn to_be_bytes_trimmed_vartime(&self) -> Box<[u8]> {
+        let zeroes = self.leading_zeros() as usize / 8;
+
+        (&self.to_be_bytes()[zeroes..]).into()
+    }
+
     /// Serialize this [`BoxedUint`] as little-endian.
     #[inline]
     pub fn to_le_bytes(&self) -> Box<[u8]> {
@@ -423,6 +431,34 @@ mod tests {
         let bytes = hex!("00112233445566778899aabbccddeeff");
         let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
         assert_eq!(bytes.as_slice(), &*n.to_be_bytes());
+    }
+
+    #[test]
+    fn to_be_bytes_trimmed_vartime() {
+        let bytes = hex!("ff112233445566778899aabbccddeeff");
+        let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
+        assert_eq!(&bytes, &*n.to_be_bytes_trimmed_vartime());
+
+        let bytes = hex!("00112233445566778899aabbccddeeff");
+        let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
+        assert_eq!(&bytes.as_slice()[1..], &*n.to_be_bytes_trimmed_vartime());
+
+        let bytes: &[u8] = b"";
+        let n = BoxedUint::from_be_slice(bytes, 128).unwrap();
+        assert_eq!(
+            hex!("00000000000000000000000000000000"),
+            n.to_be_bytes().as_ref()
+        );
+        assert_eq!(bytes, n.to_be_bytes_trimmed_vartime().as_ref());
+
+        let bytes = hex!("00012233445566778899aabbccddeeff");
+        let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
+        assert_eq!(&bytes.as_slice()[1..], &*n.to_be_bytes_trimmed_vartime());
+
+        let bytes = hex!("00000000000000000000000000000001");
+        let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
+        assert_eq!(bytes, n.to_be_bytes().as_ref());
+        assert_eq!(&bytes.as_slice()[15..], &*n.to_be_bytes_trimmed_vartime());
     }
 
     #[test]
