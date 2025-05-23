@@ -1,0 +1,31 @@
+name: cargo-checkct
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/cargo-checkct.yml
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - README.md
+
+env:
+  BINSEC_VERSION: 0.10.0
+
+jobs:
+  checkct:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - run: sudo apt install opam z3
+      - run: opam init
+      - run: opam install -y dune dune-site menhir grain_dypgen ocamlgraph zarith toml
+      - run: opam install -y z3 bitwuzla #bitwuzla-cxx
+      - run: opam install -y unisim_archisec
+      - run: wget https://github.com/binsec/binsec/releases/download/${BINSEC_VERSION}/binsec-${BINSEC_VERSION}.tbz
+      - run: tar -jxvf binsec-${BINSEC_VERSION}.tbz
+      - run: cd binsec-${BINSEC_VERSION} && eval $(opam env) && make && make install
