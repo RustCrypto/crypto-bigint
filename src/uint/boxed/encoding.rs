@@ -428,8 +428,8 @@ mod tests {
     #[test]
     fn to_le_bytes() {
         let bytes = hex!("ffeeddccbbaa99887766554433221100");
-        let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
-        assert_eq!(bytes.as_slice(), &*n.to_be_bytes());
+        let n = BoxedUint::from_le_slice(&bytes, 128).unwrap();
+        assert_eq!(bytes.as_slice(), &*n.to_le_bytes());
     }
 
     #[test]
