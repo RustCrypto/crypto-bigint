@@ -115,6 +115,16 @@ impl BoxedUint {
         out.into()
     }
 
+    /// Serialize this [`BoxedUint`] as little-endian without trailing zeroes.
+    #[inline]
+    pub fn to_le_bytes_trimmed_vartime(&self) -> Box<[u8]> {
+        let zeroes = self.leading_zeros() as usize / 8;
+
+        let bytes = self.to_le_bytes();
+
+        (&bytes[..bytes.len() - zeroes]).into()
+    }
+
     /// Create a new [`BoxedUint`] from the provided big endian hex string.
     pub fn from_be_hex(hex: &str, bits_precision: u32) -> CtOption<Self> {
         let nlimbs = (bits_precision / Limb::BITS) as usize;
@@ -466,6 +476,29 @@ mod tests {
         let bytes = hex!("ffeeddccbbaa99887766554433221100");
         let n = BoxedUint::from_le_slice(&bytes, 128).unwrap();
         assert_eq!(bytes.as_slice(), &*n.to_le_bytes());
+    }
+
+    #[test]
+    fn to_le_bytes_trimmed_vartime() {
+        let bytes = hex!("ffeeddccbbaa998877665544332211ff");
+        let n = BoxedUint::from_le_slice(&bytes, 128).unwrap();
+        assert_eq!(bytes.as_slice(), &*n.to_le_bytes_trimmed_vartime());
+
+        let bytes = hex!("ffeeddccbbaa99887766554433221100");
+        let n = BoxedUint::from_le_slice(&bytes, 128).unwrap();
+        assert_eq!(&bytes.as_slice()[..15], &*n.to_le_bytes_trimmed_vartime());
+
+        let bytes = hex!("ff000000000000000000000000000000");
+        let n = BoxedUint::from_le_slice(&bytes, 128).unwrap();
+        assert_eq!(&bytes.as_slice()[..1], &*n.to_le_bytes_trimmed_vartime());
+
+        let bytes = hex!("01000000000000000000000000000000");
+        let n = BoxedUint::from_le_slice(&bytes, 128).unwrap();
+        assert_eq!(&bytes.as_slice()[..1], &*n.to_le_bytes_trimmed_vartime());
+
+        let bytes = hex!("00000000000000000000000000000000");
+        let n = BoxedUint::from_le_slice(&bytes, 128).unwrap();
+        assert_eq!(b"", &*n.to_le_bytes_trimmed_vartime());
     }
 
     #[test]
