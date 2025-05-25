@@ -113,7 +113,7 @@ fn pow_montgomery_form(
 
     // Ensure the output is properly reduced.
     //
-    // Using the properties of `almost_mongtomery_mul()` (see its documentation):
+    // Using the properties of `almost_montgomery_mul()` (see its documentation):
     // - We have an incoming `x` which is fully reduced (`floor(x / modulus) = 0`).
     // - We build an array of `powers` which are produced by multiplying the previous power by `x`,
     //   so for each power `floor(power / modulus) <= 1`.
