@@ -52,14 +52,28 @@ jobs:
             rust: 1.85.0 # MSRV
             deps: sudo apt update && sudo apt install gcc-multilib
           - target: i686-unknown-linux-gnu
+            rust: 1.85.0 # MSRV
+            args: --release
+            deps: sudo apt update && sudo apt install gcc-multilib
+          - target: i686-unknown-linux-gnu
             rust: stable
+            deps: sudo apt update && sudo apt install gcc-multilib
+          - target: i686-unknown-linux-gnu
+            rust: stable
+            args: --release
             deps: sudo apt update && sudo apt install gcc-multilib
 
           # 64-bit Linux
           - target: x86_64-unknown-linux-gnu
             rust: 1.85.0 # MSRV
           - target: x86_64-unknown-linux-gnu
+            rust: 1.85.0 # MSRV
+            args: --release
+          - target: x86_64-unknown-linux-gnu
             rust: stable
+          - target: x86_64-unknown-linux-gnu
+            rust: stable
+            args: --release
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
@@ -67,9 +81,9 @@ jobs:
           toolchain: ${{ matrix.rust }}
           targets: ${{ matrix.target }}
       - run: ${{ matrix.deps }}
-      - run: cargo test --target ${{ matrix.target }} --release --no-default-features
-      - run: cargo test --target ${{ matrix.target }} --release
-      - run: cargo test --target ${{ matrix.target }} --release --all-features
+      - run: cargo test --target ${{ matrix.target }} --no-default-features ${{ matrix.args }}
+      - run: cargo test --target ${{ matrix.target }}  ${{ matrix.args }}
+      - run: cargo test --target ${{ matrix.target }} --all-features ${{ matrix.args }}
 
   # Cross-compiled tests
   cross:
