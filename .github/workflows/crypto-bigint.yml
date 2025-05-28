@@ -42,6 +42,16 @@ jobs:
       - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features zeroize
       - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features alloc,der,hybrid-array,rand_core,rlp,serde,zeroize
 
+  build-benchmarks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - run: cargo build --benches
+      - run: cargo build --all-features --benches
+          
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -85,8 +95,17 @@ jobs:
       - run: cargo test --target ${{ matrix.target }}  ${{ matrix.args }}
       - run: cargo test --target ${{ matrix.target }} --all-features ${{ matrix.args }}
 
-  # Cross-compiled tests
-  cross:
+  # Test using `cargo careful`
+  test-careful:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - run: cargo install cargo-careful
+      - run: cargo careful test --all-features
+
+  # Test on foreign architectures using `cross test`
+  test-cross:
     strategy:
       matrix:
         include:
@@ -111,21 +130,8 @@ jobs:
       - run: cross test --target ${{ matrix.target }} --release
       - run: cross test --target ${{ matrix.target }} --release --all-features
 
-  minimal-versions:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: RustCrypto/actions/cargo-cache@master
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: nightly
-      - run: cargo update -Z minimal-versions
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: stable
-      - run: cargo +stable build --release --all-features
-
-  miri:
+  # Test using `cargo miri`
+  test-miri:
     runs-on: ubuntu-latest
     env:
       MIRIFLAGS: "-Zmiri-symbolic-alignment-check -Zmiri-strict-provenance"
@@ -140,13 +146,19 @@ jobs:
       - run: rustup component add miri && cargo miri setup
       - run: cargo miri test --target ${{ matrix.target }} --no-default-features --lib
 
-  careful:
+  minimal-versions:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@nightly
-      - run: cargo install cargo-careful
-      - run: cargo careful test --all-features
+      - uses: RustCrypto/actions/cargo-cache@master
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly
+      - run: cargo update -Z minimal-versions
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - run: cargo +stable build --release --all-features
 
   clippy:
     runs-on: ubuntu-latest
@@ -158,6 +170,15 @@ jobs:
           components: clippy
       - run: cargo clippy --all-targets --all-features -- -D warnings
 
+  doc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - run: cargo doc --all-features
+
   rustfmt:
     runs-on: ubuntu-latest
     steps:
@@ -167,22 +188,3 @@ jobs:
           toolchain: stable
           components: rustfmt
       - run: cargo fmt --all -- --check
-
-  build-benchmarks:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: stable
-      - run: cargo build --benches
-      - run: cargo build --all-features --benches
-
-  doc:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: stable
-      - run: cargo doc --all-features
