@@ -203,7 +203,7 @@ mod tests {
     }
 
     #[test]
-    fn test_self_inverse_precomuted() {
+    fn test_self_inverse_precomputed() {
         let params = params();
         let x =
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
