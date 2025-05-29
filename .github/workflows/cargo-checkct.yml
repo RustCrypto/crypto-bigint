@@ -16,7 +16,8 @@ env:
   RUSTDOCFLAGS: "-Dwarnings"
 
 jobs:
-  build:
+  checkct:
+    name: Run cargo-checkct
     runs-on: ubuntu-latest
     
     steps:
