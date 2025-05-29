@@ -6,5 +6,5 @@ edition = "2021"
 
 [dependencies]
 rand_core = "0.6.4"
-checkct_macros = { path = "../../../../cargo-checkct/checkct_macros" }
+checkct_macros = { path = "../../cargo-checkct/checkct_macros" }
 crypto-bigint = { path = "../.." }
