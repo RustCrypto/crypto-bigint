@@ -16,8 +16,13 @@ env:
   RUSTDOCFLAGS: "-Dwarnings"
 
 jobs:
-  build:
+  checkct:
+    name: Run cargo-checkct
     runs-on: ubuntu-latest
-    uses: Ledger-Donjon/action-cargo-checkct@v1
-    with:
-      directory: .
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: Ledger-Donjon/action-cargo-checkct@v1
+        with:
+          directory: .
