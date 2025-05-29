@@ -18,6 +18,6 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    uses: Ledger-Donjon/action-cargo-checkct
+    uses: Ledger-Donjon/action-cargo-checkct@v1
     with:
       directory: .
