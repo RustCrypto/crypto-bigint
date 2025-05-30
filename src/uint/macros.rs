@@ -135,6 +135,13 @@ macro_rules! impl_uint_concat_split_even {
             }
         }
 
+        impl $crate::traits::RemMixed<Uint<{ <$name>::LIMBS / 2 }>> for $name
+        {
+            fn rem_mixed(&self, reductor: &NonZero<Uint<{ <$name>::LIMBS / 2 }>>) -> Uint<{ <$name>::LIMBS / 2 }> {
+                self.div_rem_vartime(reductor).1
+            }
+        }
+
         impl $crate::traits::Split for $name
         {
             type Output = Uint<{ <$name>::LIMBS / 2 }>;
