@@ -283,7 +283,6 @@ proptest! {
         }
     }
 
-
     #[test]
     fn shr_vartime(a in uint(), shift in any::<u16>()) {
         let a_bi = to_biguint(&a);
@@ -302,7 +301,6 @@ proptest! {
         }
     }
 
-
     #[test]
     fn radix_encode_vartime(a in uint(), radix in 2u32..=36) {
         let a_bi = to_biguint(&a);
@@ -315,5 +313,19 @@ proptest! {
         let dec_bi = to_biguint(&decoded);
         prop_assert_eq!(dec_bi, a_bi);
 
+    }
+
+    #[test]
+    fn from_be_slice_vartime(a in uint()) {
+        let a_bytes = a.to_be_bytes_trimmed_vartime();
+        let b = BoxedUint::from_be_slice_vartime(&a_bytes);
+        prop_assert_eq!(a, b);
+    }
+
+    #[test]
+    fn from_le_slice_vartime(a in uint()) {
+        let a_bytes = a.to_le_bytes_trimmed_vartime();
+        let b = BoxedUint::from_le_slice_vartime(&a_bytes);
+        prop_assert_eq!(a, b);
     }
 }
