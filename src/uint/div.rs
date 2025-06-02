@@ -130,6 +130,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         y[0] = Limb::select(x[0], Limb(rem2), limb_div);
         i = 1;
 
+        // Note: this does not invalidate the constant time contract; branching on constants
         let min = if LIMBS < RHS_LIMBS { LIMBS } else { RHS_LIMBS };
         while i < min {
             y[i] = Limb::select(Limb::ZERO, x[i], ConstChoice::from_u32_lt(i as u32, dwords));
