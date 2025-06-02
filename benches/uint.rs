@@ -222,11 +222,9 @@ fn bench_division(c: &mut Criterion) {
     group.bench_function("div/rem, U256/U128", |b| {
         b.iter_batched(
             || {
-                let x = U256::random(&mut rng);
-                let y = U128::random(&mut rng);
-                (x, NonZero::new(y).unwrap())
+                (U256::random(&mut rng), NonZero::<U128>::random(&mut rng))
             },
-            |(x, y)| black_box(x.div_rem(&y)),
+            |(x, y)| x.div_rem(&y),
             BatchSize::SmallInput,
         )
     });
@@ -239,7 +237,7 @@ fn bench_division(c: &mut Criterion) {
                 let y: U256 = (y_half, U128::ZERO).into();
                 (x, NonZero::new(y).unwrap())
             },
-            |(x, y)| black_box(x.div_rem(&y)),
+            |(x, y)| x.div_rem(&y),
             BatchSize::SmallInput,
         )
     });
@@ -251,7 +249,7 @@ fn bench_division(c: &mut Criterion) {
                 let y: U512 = U128::random(&mut rng).resize();
                 (x, NonZero::new(y).unwrap())
             },
-            |(x, y)| black_box(x.div_rem(&y)),
+            |(x, y)| x.div_rem(&y),
             BatchSize::SmallInput,
         )
     });
@@ -263,7 +261,7 @@ fn bench_division(c: &mut Criterion) {
                 let y: U256 = (U128::MAX, U128::ZERO).into();
                 (x, NonZero::new(y).unwrap())
             },
-            |(x, y)| black_box(x.div_rem_vartime(&y)),
+            |(x, y)| x.div_rem_vartime(&y),
             BatchSize::SmallInput,
         )
     });
@@ -271,11 +269,9 @@ fn bench_division(c: &mut Criterion) {
     group.bench_function("rem, U256/U128", |b| {
         b.iter_batched(
             || {
-                let x = U256::random(&mut rng);
-                let y = U128::random(&mut rng);
-                (x, NonZero::new(y).unwrap())
+                (U256::random(&mut rng), NonZero::<U128>::random(&mut rng))
             },
-            |(x, y)| black_box(x.rem(&y)),
+            |(x, y)| x.rem(&y),
             BatchSize::SmallInput,
         )
     });
@@ -287,7 +283,7 @@ fn bench_division(c: &mut Criterion) {
                 let y: U256 = U128::random(&mut rng).resize();
                 (x, NonZero::new(y).unwrap())
             },
-            |(x, y)| black_box(x.rem(&y)),
+            |(x, y)| x.rem(&y),
             BatchSize::SmallInput,
         )
     });
@@ -299,7 +295,7 @@ fn bench_division(c: &mut Criterion) {
                 let y: U512 = U128::random(&mut rng).resize();
                 (x, NonZero::new(y).unwrap())
             },
-            |(x, y)| black_box(x.rem(&y)),
+            |(x, y)| x.rem(&y),
             BatchSize::SmallInput,
         )
     });
@@ -311,7 +307,7 @@ fn bench_division(c: &mut Criterion) {
                 let y: U256 = (U128::MAX, U128::ZERO).into();
                 (x, NonZero::new(y).unwrap())
             },
-            |(x, y)| black_box(x.rem_vartime(&y)),
+            |(x, y)| x.rem_vartime(&y),
             BatchSize::SmallInput,
         )
     });
@@ -323,7 +319,7 @@ fn bench_division(c: &mut Criterion) {
                 let y: U256 = (U128::MAX, U128::ZERO).into();
                 (x_lo, x_hi, NonZero::new(y).unwrap())
             },
-            |(x_lo, x_hi, y)| black_box(Uint::rem_wide_vartime((x_lo, x_hi), &y)),
+            |(x_lo, x_hi, y)| Uint::rem_wide_vartime((x_lo, x_hi), &y),
             BatchSize::SmallInput,
         )
     });
@@ -336,7 +332,7 @@ fn bench_division(c: &mut Criterion) {
                 let y = U256::from_word(y_small.0);
                 (x, NonZero::new(y).unwrap())
             },
-            |(x, y)| black_box(x.div_rem(&y)),
+            |(x, y)| x.div_rem(&y),
             BatchSize::SmallInput,
         )
     });
@@ -344,11 +340,9 @@ fn bench_division(c: &mut Criterion) {
     group.bench_function("div/rem, U256/Limb, single limb", |b| {
         b.iter_batched(
             || {
-                let x = U256::random(&mut rng);
-                let y = Limb::random(&mut rng);
-                (x, NonZero::new(y).unwrap())
+                (U256::random(&mut rng), NonZero::<Limb>::random(&mut rng))
             },
-            |(x, y)| black_box(x.div_rem_limb(y)),
+            |(x, y)| x.div_rem_limb(y),
             BatchSize::SmallInput,
         )
     });
@@ -356,15 +350,9 @@ fn bench_division(c: &mut Criterion) {
     group.bench_function("div/rem, U256/Limb, single limb with reciprocal", |b| {
         b.iter_batched(
             || {
-                let x = U256::random(&mut rng);
-                let mut y = Limb::random(&mut rng);
-                if y == Limb::ZERO {
-                    y = Limb::ONE;
-                }
-                let r = Reciprocal::new(NonZero::new(y).unwrap());
-                (x, r)
+                (U256::random(&mut rng), Reciprocal::new(NonZero::<Limb>::random(&mut rng)))
             },
-            |(x, r)| black_box(x.div_rem_limb_with_reciprocal(&r)),
+            |(x, r)| x.div_rem_limb_with_reciprocal(&r),
             BatchSize::SmallInput,
         )
     });
