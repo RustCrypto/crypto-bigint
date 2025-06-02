@@ -221,9 +221,7 @@ fn bench_division(c: &mut Criterion) {
 
     group.bench_function("div/rem, U256/U128", |b| {
         b.iter_batched(
-            || {
-                (U256::random(&mut rng), NonZero::<U128>::random(&mut rng))
-            },
+            || (U256::random(&mut rng), NonZero::<U128>::random(&mut rng)),
             |(x, y)| x.div_rem(&y),
             BatchSize::SmallInput,
         )
@@ -268,9 +266,7 @@ fn bench_division(c: &mut Criterion) {
 
     group.bench_function("rem, U256/U128", |b| {
         b.iter_batched(
-            || {
-                (U256::random(&mut rng), NonZero::<U128>::random(&mut rng))
-            },
+            || (U256::random(&mut rng), NonZero::<U128>::random(&mut rng)),
             |(x, y)| x.rem(&y),
             BatchSize::SmallInput,
         )
@@ -339,9 +335,7 @@ fn bench_division(c: &mut Criterion) {
 
     group.bench_function("div/rem, U256/Limb, single limb", |b| {
         b.iter_batched(
-            || {
-                (U256::random(&mut rng), NonZero::<Limb>::random(&mut rng))
-            },
+            || (U256::random(&mut rng), NonZero::<Limb>::random(&mut rng)),
             |(x, y)| x.div_rem_limb(y),
             BatchSize::SmallInput,
         )
@@ -350,7 +344,10 @@ fn bench_division(c: &mut Criterion) {
     group.bench_function("div/rem, U256/Limb, single limb with reciprocal", |b| {
         b.iter_batched(
             || {
-                (U256::random(&mut rng), Reciprocal::new(NonZero::<Limb>::random(&mut rng)))
+                (
+                    U256::random(&mut rng),
+                    Reciprocal::new(NonZero::<Limb>::random(&mut rng)),
+                )
             },
             |(x, r)| x.div_rem_limb_with_reciprocal(&r),
             BatchSize::SmallInput,

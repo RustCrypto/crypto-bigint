@@ -86,7 +86,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let mut tmp;
             i = (xi + 1).saturating_sub(RHS_LIMBS);
             while i <= xi {
-                (tmp, carry) = y[RHS_LIMBS + i - xi - 1].carrying_mul_add(Limb(quo), carry, Limb::ZERO);
+                (tmp, carry) =
+                    y[RHS_LIMBS + i - xi - 1].carrying_mul_add(Limb(quo), carry, Limb::ZERO);
                 (x[i], borrow) = x[i].borrowing_sub(tmp, borrow);
                 i += 1;
             }
