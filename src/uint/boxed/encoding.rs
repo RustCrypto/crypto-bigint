@@ -39,6 +39,20 @@ impl BoxedUint {
         Ok(ret)
     }
 
+    /// Create a new [`BoxedUint`] from the provided big endian bytes, automatically selecting its
+    /// precision based on the size of the input.
+    ///
+    /// This method is variable-time with respect to all subsequent operations since it chooses the
+    /// limb count based on the input size, and is therefore only suitable for public inputs.
+    ///
+    /// When working with secret values, use [`BoxedUint::from_be_slice`].
+    pub fn from_be_slice_vartime(bytes: &[u8]) -> Self {
+        let bits_precision = (bytes.len() as u32).saturating_mul(8);
+
+        // TODO(tarcieri): avoid panic
+        Self::from_be_slice(bytes, bits_precision).expect("precision should be large enough")
+    }
+
     /// Create a new [`BoxedUint`] from the provided little endian bytes.
     ///
     /// The `bits_precision` argument represents the precision of the resulting integer, which is
@@ -70,6 +84,20 @@ impl BoxedUint {
         }
 
         Ok(ret)
+    }
+
+    /// Create a new [`BoxedUint`] from the provided little endian bytes, automatically selecting
+    /// its precision based on the size of the input.
+    ///
+    /// This method is variable-time with respect to all subsequent operations since it chooses the
+    /// limb count based on the input size, and is therefore only suitable for public inputs.
+    ///
+    /// When working with secret values, use [`BoxedUint::from_le_slice`].
+    pub fn from_le_slice_vartime(bytes: &[u8]) -> Self {
+        let bits_precision = (bytes.len() as u32).saturating_mul(8);
+
+        // TODO(tarcieri): avoid panic
+        Self::from_le_slice(bytes, bits_precision).expect("precision should be large enough")
     }
 
     /// Serialize this [`BoxedUint`] as big-endian.
@@ -344,6 +372,15 @@ mod tests {
     }
 
     #[test]
+    fn from_be_slice_vartime() {
+        let bytes = hex!(
+            "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111F"
+        );
+        let uint = BoxedUint::from_be_slice_vartime(&bytes);
+        assert_eq!(&*uint.to_be_bytes_trimmed_vartime(), bytes.as_slice());
+    }
+
+    #[test]
     #[cfg(target_pointer_width = "32")]
     fn from_le_slice_eq() {
         let bytes = hex!("7766554433221100");
@@ -434,6 +471,15 @@ mod tests {
             BoxedUint::from_le_slice(&bytes, 121),
             Err(DecodeError::Precision)
         );
+    }
+
+    #[test]
+    fn from_le_slice_vartime() {
+        let bytes = hex!(
+            "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111F"
+        );
+        let uint = BoxedUint::from_le_slice_vartime(&bytes);
+        assert_eq!(&*uint.to_le_bytes_trimmed_vartime(), bytes.as_slice());
     }
 
     #[test]
