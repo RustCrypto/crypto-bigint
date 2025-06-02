@@ -47,7 +47,7 @@ impl BoxedUint {
     ///
     /// When working with secret values, use [`BoxedUint::from_be_slice`].
     pub fn from_be_slice_vartime(bytes: &[u8]) -> Self {
-        let bits_precision = bytes.len().saturating_mul(8) as u32;
+        let bits_precision = (bytes.len() as u32).saturating_mul(8);
 
         // TODO(tarcieri): avoid panic
         Self::from_be_slice(bytes, bits_precision).expect("precision should be large enough")
@@ -94,7 +94,7 @@ impl BoxedUint {
     ///
     /// When working with secret values, use [`BoxedUint::from_le_slice`].
     pub fn from_le_slice_vartime(bytes: &[u8]) -> Self {
-        let bits_precision = bytes.len().saturating_mul(8) as u32;
+        let bits_precision = (bytes.len() as u32).saturating_mul(8);
 
         // TODO(tarcieri): avoid panic
         Self::from_le_slice(bytes, bits_precision).expect("precision should be large enough")
