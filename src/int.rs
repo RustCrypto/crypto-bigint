@@ -154,9 +154,22 @@ impl<const LIMBS: usize> Int<LIMBS> {
         ConstCtOption::new(Odd(self), self.0.is_odd())
     }
 
-    /// Interpret the data in this type as a [`Uint`] instead.
+    /// Interpret the data in this object as a [Uint] instead.
+    ///
+    /// Note: this is a casting operation. See
+    /// - [Self::to_uint] for the checked equivalent, and
+    /// - [Self::abs] to obtain the absolute value of `self`.
     pub const fn as_uint(&self) -> &Uint<LIMBS> {
         &self.0
+    }
+
+    /// Get a [Uint] equivalent of this value; returns `None` if `self` is negative.
+    ///
+    /// Note: this is a checked conversion operation. See
+    /// - [Self::as_uint] for the unchecked equivalent, and
+    /// - [Self::abs] to obtain the absolute value of `self`.
+    pub const fn to_uint(self) -> ConstCtOption<Uint<LIMBS>> {
+        ConstCtOption::new(self.0, self.is_negative().not())
     }
 
     /// Whether this [`Int`] is equal to `Self::MIN`.
@@ -428,5 +441,14 @@ mod tests {
         assert_eq!(*I128::ZERO.as_uint(), U128::ZERO);
         assert_eq!(*I128::ONE.as_uint(), U128::ONE);
         assert_eq!(*I128::MAX.as_uint(), U128::MAX >> 1);
+    }
+
+    #[test]
+    fn to_uint() {
+        assert!(bool::from(I128::MIN.to_uint().is_none()));
+        assert!(bool::from(I128::MINUS_ONE.to_uint().is_none()));
+        assert_eq!(I128::ZERO.to_uint().unwrap(), U128::ZERO);
+        assert_eq!(I128::ONE.to_uint().unwrap(), U128::ONE);
+        assert_eq!(I128::MAX.to_uint().unwrap(), U128::MAX >> 1);
     }
 }
