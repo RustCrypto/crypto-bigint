@@ -18,7 +18,6 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use num_traits::WrappingSub;
 
     use crate::{I128, I256};
 
