@@ -84,13 +84,12 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Checked multiplication of self with an `Uint<RHS_LIMBS>`, where the result is to be stored
     /// in an `Int<RHS_LIMBS>`.
+    #[deprecated(since = "0.7.0", note = "please use `Uint::checked_mul(_int)` instead")]
     pub fn checked_mul_uint_right<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> CtOption<Int<RHS_LIMBS>> {
-        let (lo, hi, is_negative) = rhs.widening_mul_int(&self);
-        let val = Int::<RHS_LIMBS>::new_from_abs_sign(lo, is_negative);
-        CtOption::from(val).and_then(|int| CtOption::new(int, hi.is_zero()))
+        rhs.checked_mul_int(self).into()
     }
 }
 

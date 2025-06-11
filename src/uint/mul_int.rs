@@ -1,4 +1,4 @@
-use crate::{ConcatMixed, ConstChoice, Int, Uint};
+use crate::{ConcatMixed, ConstChoice, ConstCtOption, Int, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute "wide" multiplication between an [`Uint`] and [`Int`] as 3-tuple `(lo, hi, negate)`.
@@ -29,6 +29,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         // always fits
         product_abs.wrapping_neg_if(rhs_sign).as_int()
+    }
+
+    /// Checked multiplication of `self` with [`Int`] `rhs`.
+    pub fn checked_mul_int<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Int<RHS_LIMBS>,
+    ) -> ConstCtOption<Int<LIMBS>> {
+        let (lo, hi, is_negative) = self.widening_mul_int(&rhs);
+        Int::new_from_abs_sign(lo, is_negative).and_choice(hi.is_nonzero().not())
     }
 }
 
@@ -62,5 +71,16 @@ mod tests {
             U128::MAX.concatenating_mul_int(&I128::MIN),
             I256::from_be_hex("8000000000000000000000000000000080000000000000000000000000000000")
         );
+    }
+
+    #[test]
+    fn checked_mul_int() {
+        assert_eq!(
+            U64::from_be_hex("00000000FFFFFFFF")
+                .checked_mul_int(&I64::from_be_hex("FFFFFFFF80000000"))
+                .unwrap(),
+            I64::from_be_hex("8000000080000000")
+        );
+        assert!(bool::from(U64::MAX.checked_mul_int(&I128::ONE).is_none()));
     }
 }
