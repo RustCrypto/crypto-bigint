@@ -1,4 +1,4 @@
-use crate::{ConstChoice, Int, Uint};
+use crate::{ConcatMixed, ConstChoice, Int, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute "wide" multiplication between an [`Uint`] and [`Int`] as 3-tuple `(lo, hi, negate)`.
@@ -15,11 +15,26 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let (lo, hi) = self.widening_mul(&rhs_abs);
         (lo, hi, rhs_sgn)
     }
+
+    /// Multiply `self` by [`Int`] `rhs`, returning a concatenated "wide" result.
+    pub const fn concatenating_mul_int<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
+        &self,
+        rhs: &Int<RHS_LIMBS>,
+    ) -> Int<WIDE_LIMBS>
+    where
+        Uint<LIMBS>: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+    {
+        let (rhs_abs, rhs_sign) = rhs.abs_sign();
+        let product_abs = self.concatenating_mul(&rhs_abs);
+
+        // always fits
+        product_abs.wrapping_neg_if(rhs_sign).as_int()
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, I64, U64, U128};
+    use crate::{ConstChoice, I64, I128, I256, U64, U128};
 
     #[test]
     fn widening_mul_int() {
@@ -31,5 +46,21 @@ mod tests {
                 ConstChoice::TRUE
             )
         )
+    }
+
+    #[test]
+    fn concatenating_mul_int() {
+        assert_eq!(
+            U128::MAX.concatenating_mul_int(&I128::from_i64(-55)),
+            I256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC900000000000000000000000000000037")
+        );
+        assert_eq!(
+            U128::MAX.concatenating_mul_int(&I128::MAX),
+            I256::from_be_hex("7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE80000000000000000000000000000001")
+        );
+        assert_eq!(
+            U128::MAX.concatenating_mul_int(&I128::MIN),
+            I256::from_be_hex("8000000000000000000000000000000080000000000000000000000000000000")
+        );
     }
 }
