@@ -104,7 +104,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Uint<RHS_LIMBS>> for Int<LIMBS> {
     #[inline]
     fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
-        self.checked_mul_uint(&rhs).into()
+        self.checked_mul_uint(rhs).into()
     }
 }
 
@@ -204,6 +204,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_checked_mul_uint_right() {
         // rhs = 0
         let result = I256::MIN.checked_mul_uint_right(&U128::ZERO);

@@ -36,7 +36,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         &self,
         rhs: &Int<RHS_LIMBS>,
     ) -> ConstCtOption<Int<LIMBS>> {
-        let (lo, hi, is_negative) = self.widening_mul_int(&rhs);
+        let (lo, hi, is_negative) = self.widening_mul_int(rhs);
         Int::new_from_abs_sign(lo, is_negative).and_choice(hi.is_nonzero().not())
     }
 }
