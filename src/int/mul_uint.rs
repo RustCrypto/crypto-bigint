@@ -1,8 +1,7 @@
 use core::ops::Mul;
-
 use subtle::CtOption;
 
-use crate::{CheckedMul, ConcatMixed, ConstChoice, Int, Uint, Zero};
+use crate::{CheckedMul, ConcatMixed, ConstChoice, ConstCtOption, Int, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute "wide" multiplication between an [`Int`] and [`Uint`] as 3-tuple `(lo, hi, negate)`.
@@ -91,14 +90,21 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ) -> CtOption<Int<RHS_LIMBS>> {
         rhs.checked_mul_int(self).into()
     }
+
+    /// Checked multiplication with a [`Uint`].
+    pub fn checked_mul_uint<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> ConstCtOption<Int<LIMBS>> {
+        let (lo, hi, is_negative) = self.widening_mul_uint(rhs);
+        Self::new_from_abs_sign(lo, is_negative).and_choice(hi.is_nonzero().not())
+    }
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Uint<RHS_LIMBS>> for Int<LIMBS> {
     #[inline]
     fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
-        let (lo, hi, is_negative) = self.widening_mul_uint(rhs);
-        let val = Self::new_from_abs_sign(lo, is_negative);
-        CtOption::from(val).and_then(|int| CtOption::new(int, hi.is_zero()))
+        self.checked_mul_uint(&rhs).into()
     }
 }
 
@@ -137,63 +143,63 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Uint<RHS_LIMBS>> for &Int<
 
 #[cfg(test)]
 mod tests {
-    use crate::{CheckedMul, I128, I256, U128, U256};
+    use crate::{I128, I256, U128, U256};
 
     #[test]
     fn test_checked_mul_uint() {
         // lhs = min
 
-        let result = I128::MIN.checked_mul(&U128::ZERO);
+        let result = I128::MIN.checked_mul_uint(&U128::ZERO);
         assert_eq!(result.unwrap(), I128::ZERO);
 
-        let result = I128::MIN.checked_mul(&U128::ONE);
+        let result = I128::MIN.checked_mul_uint(&U128::ONE);
         assert_eq!(result.unwrap(), I128::MIN);
 
-        let result = I128::MIN.checked_mul(&U128::MAX);
+        let result = I128::MIN.checked_mul_uint(&U128::MAX);
         assert!(bool::from(result.is_none()));
 
         // lhs = -1
 
-        let result = I128::MINUS_ONE.checked_mul(&U128::ZERO);
+        let result = I128::MINUS_ONE.checked_mul_uint(&U128::ZERO);
         assert_eq!(result.unwrap(), I128::ZERO);
 
-        let result = I128::MINUS_ONE.checked_mul(&U128::ONE);
+        let result = I128::MINUS_ONE.checked_mul_uint(&U128::ONE);
         assert_eq!(result.unwrap(), I128::MINUS_ONE);
 
-        let result = I128::MINUS_ONE.checked_mul(&U128::MAX);
+        let result = I128::MINUS_ONE.checked_mul_uint(&U128::MAX);
         assert!(bool::from(result.is_none()));
 
         // lhs = 0
 
-        let result = I128::ZERO.checked_mul(&U128::ZERO);
+        let result = I128::ZERO.checked_mul_uint(&U128::ZERO);
         assert_eq!(result.unwrap(), I128::ZERO);
 
-        let result = I128::ZERO.checked_mul(&U128::ONE);
+        let result = I128::ZERO.checked_mul_uint(&U128::ONE);
         assert_eq!(result.unwrap(), I128::ZERO);
 
-        let result = I128::ZERO.checked_mul(&U128::MAX);
+        let result = I128::ZERO.checked_mul_uint(&U128::MAX);
         assert_eq!(result.unwrap(), I128::ZERO);
 
         // lhs = 1
 
-        let result = I128::ONE.checked_mul(&U128::ZERO);
+        let result = I128::ONE.checked_mul_uint(&U128::ZERO);
         assert_eq!(result.unwrap(), I128::ZERO);
 
-        let result = I128::ONE.checked_mul(&U128::ONE);
+        let result = I128::ONE.checked_mul_uint(&U128::ONE);
         assert_eq!(result.unwrap(), I128::ONE);
 
-        let result = I128::ONE.checked_mul(&U128::MAX);
+        let result = I128::ONE.checked_mul_uint(&U128::MAX);
         assert!(bool::from(result.is_none()));
 
         // lhs = max
 
-        let result = I128::MAX.checked_mul(&U128::ZERO);
+        let result = I128::MAX.checked_mul_uint(&U128::ZERO);
         assert_eq!(result.unwrap(), I128::ZERO);
 
-        let result = I128::MAX.checked_mul(&U128::ONE);
+        let result = I128::MAX.checked_mul_uint(&U128::ONE);
         assert_eq!(result.unwrap(), I128::MAX);
 
-        let result = I128::MAX.checked_mul(&U128::MAX);
+        let result = I128::MAX.checked_mul_uint(&U128::MAX);
         assert!(bool::from(result.is_none()));
     }
 
