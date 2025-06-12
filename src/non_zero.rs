@@ -171,11 +171,16 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
 }
 
 impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
-    /// Convert a [`NonZero<Int>`] to its sign and [`NonZero<Uint>`] magnitude.
+    /// The sign and magnitude of this [`NonZero<Int<{LIMBS}>>`].
     pub const fn abs_sign(&self) -> (NonZero<Uint<LIMBS>>, ConstChoice) {
         let (abs, sign) = self.0.abs_sign();
-        // Note: a NonZero<Int> always has a non-zero magnitude, so it is safe to unwrap.
-        (NonZero::<Uint<LIMBS>>::new_unwrap(abs), sign)
+        // Absolute value of a non-zero value is non-zero
+        (NonZero(abs), sign)
+    }
+
+    /// The magnitude of this [`NonZero<Int<{LIMBS}>>`].
+    pub const fn abs(&self) -> NonZero<Uint<LIMBS>> {
+        self.abs_sign().0
     }
 }
 
