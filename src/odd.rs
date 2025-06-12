@@ -1,6 +1,6 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{Integer, Limb, NonZero, Uint};
+use crate::{ConstChoice, Int, Integer, Limb, NonZero, Uint};
 use core::{cmp::Ordering, fmt, ops::Deref};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
@@ -74,6 +74,20 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         let uint = Uint::<LIMBS>::from_be_hex(hex);
         assert!(uint.is_odd().is_true_vartime(), "number must be odd");
         Odd(uint)
+    }
+}
+
+impl<const LIMBS: usize> Odd<Int<LIMBS>> {
+    /// The sign and magnitude of this [`Odd<Int<{LIMBS}>>`].
+    pub const fn abs_sign(&self) -> (Odd<Uint<LIMBS>>, ConstChoice) {
+        // Absolute value of an odd value is odd
+        let (abs, sgn) = Int::abs_sign(self.as_ref());
+        (Odd(abs), sgn)
+    }
+
+    /// The magnitude of this [`Odd<Int<{LIMBS}>>`].
+    pub const fn abs(&self) -> Odd<Uint<LIMBS>> {
+        self.abs_sign().0
     }
 }
 
