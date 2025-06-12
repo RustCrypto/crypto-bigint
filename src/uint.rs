@@ -212,16 +212,16 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         ConstCtOption::new(Odd(self), self.is_odd())
     }
 
-    /// Interpret this object as an [Int] instead.
+    /// Interpret this object as an [`Int`] instead.
     ///
-    /// Note: this is a casting operation. See [Self::to_int] for the checked equivalent.
+    /// Note: this is a casting operation. See [`Self::to_int`] for the checked equivalent.
     pub const fn as_int(&self) -> Int<LIMBS> {
         Int::from_bits(*self)
     }
 
-    /// Convert this type into an [Int]; returns `None` if this value is greater than `Int::MAX`.
+    /// Convert this type into an [`Int`]; returns `None` if this value is greater than `Int::MAX`.
     ///
-    /// Note: this is the conversion operation. See [Self::as_int] for the unchecked equivalent.
+    /// Note: this is the conversion operation. See [`Self::as_int`] for the unchecked equivalent.
     pub const fn to_int(self) -> ConstCtOption<Int<LIMBS>> {
         Int::new_from_abs_sign(self, ConstChoice::FALSE)
     }
