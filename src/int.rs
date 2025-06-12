@@ -154,20 +154,20 @@ impl<const LIMBS: usize> Int<LIMBS> {
         ConstCtOption::new(Odd(self), self.0.is_odd())
     }
 
-    /// Interpret the data in this object as a [Uint] instead.
+    /// Interpret the data in this object as a [`Uint`] instead.
     ///
     /// Note: this is a casting operation. See
-    /// - [Self::to_uint] for the checked equivalent, and
-    /// - [Self::abs] to obtain the absolute value of `self`.
+    /// - [`Self::to_uint`] for the checked equivalent, and
+    /// - [`Self::abs`] to obtain the absolute value of `self`.
     pub const fn as_uint(&self) -> &Uint<LIMBS> {
         &self.0
     }
 
-    /// Get a [Uint] equivalent of this value; returns `None` if `self` is negative.
+    /// Get a [`Uint`] equivalent of this value; returns `None` if `self` is negative.
     ///
     /// Note: this is a checked conversion operation. See
-    /// - [Self::as_uint] for the unchecked equivalent, and
-    /// - [Self::abs] to obtain the absolute value of `self`.
+    /// - [`Self::as_uint`] for the unchecked equivalent, and
+    /// - [`Self::abs`] to obtain the absolute value of `self`.
     pub const fn to_uint(self) -> ConstCtOption<Uint<LIMBS>> {
         ConstCtOption::new(self.0, self.is_negative().not())
     }
