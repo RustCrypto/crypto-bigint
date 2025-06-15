@@ -76,7 +76,7 @@ where
 {
     let mut bytes = T::MAX.to_be_bytes();
     let len = bytes.as_ref().len();
-    let edge = match rng.gen_range(0..3) {
+    let edge = match rng.random_range(0..3) {
         // Hi
         0 => (len - 2)..len,
         // Mid
