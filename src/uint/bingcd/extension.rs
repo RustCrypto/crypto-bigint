@@ -70,7 +70,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     /// Assumes the top bit of the product is not set.
     #[inline]
     pub const fn from_product(lhs: Uint<LIMBS>, rhs: Int<EXTRA>) -> Self {
-        let (lo, hi, sgn) = rhs.split_mul_uint_right(&lhs);
+        let (lo, hi, sgn) = lhs.widening_mul_int(&rhs);
         ExtendedUint(lo, hi).wrapping_neg_if(sgn).as_extended_int()
     }
 
@@ -91,8 +91,8 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     /// Compute `self + rhs`, wrapping any overflow.
     #[inline]
     pub const fn wrapping_add(&self, rhs: &Self) -> Self {
-        let (lo, carry) = self.0.adc(&rhs.0, Limb::ZERO);
-        let (hi, _) = self.1.adc(&rhs.1, carry);
+        let (lo, carry) = self.0.carrying_add(&rhs.0, Limb::ZERO);
+        let (hi, _) = self.1.carrying_add(&rhs.1, carry);
         Self(lo, hi)
     }
 
