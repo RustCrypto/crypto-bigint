@@ -490,6 +490,7 @@ impl_uint_concat_split_mixed! {
 
 #[cfg(feature = "extra-sizes")]
 mod extra_sizes;
+mod mul_int;
 mod ref_type;
 
 #[cfg(test)]
