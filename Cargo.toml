@@ -29,7 +29,7 @@ serdect = { version = "0.3", optional = true, default-features = false }
 zeroize = { version = "1", optional = true, default-features = false }
 
 [dev-dependencies]
-bincode = "1"
+bincode = "2"
 criterion = { version = "0.5", features = ["html_reports"] }
 hex-literal = "1"
 num-bigint = "0.4"
