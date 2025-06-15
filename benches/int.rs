@@ -1,7 +1,6 @@
 use std::ops::Div;
 
 use criterion::{BatchSize, Criterion, black_box, criterion_group, criterion_main};
-use num_traits::WrappingSub;
 use rand_chacha::ChaChaRng;
 use rand_core::SeedableRng;
 

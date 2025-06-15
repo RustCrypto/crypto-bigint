@@ -1,7 +1,11 @@
-use criterion::{BatchSize, Criterion, black_box, criterion_group, criterion_main};
+use criterion::measurement::WallTime;
+use criterion::{
+    BatchSize, BenchmarkGroup, BenchmarkId, Criterion, black_box, criterion_group, criterion_main,
+};
+use crypto_bigint::modular::SafeGcdInverter;
 use crypto_bigint::{
-    Limb, NonZero, Odd, Random, RandomBits, RandomMod, Reciprocal, U128, U256, U512, U1024, U2048,
-    U4096, Uint,
+    Limb, NonZero, Odd, PrecomputeInverter, Random, RandomBits, RandomMod, Reciprocal, U128, U256,
+    U512, U1024, U2048, U4096, Uint,
 };
 use rand_chacha::ChaCha8Rng;
 use rand_core::{RngCore, SeedableRng};
@@ -357,33 +361,83 @@ fn bench_division(c: &mut Criterion) {
     group.finish();
 }
 
-fn bench_gcd(c: &mut Criterion) {
+fn gcd_bench<const LIMBS: usize, const UNSAT_LIMBS: usize>(
+    g: &mut BenchmarkGroup<WallTime>,
+    _x: Uint<LIMBS>,
+) where
+    Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
+{
     let mut rng = make_rng();
+
+    g.bench_function(BenchmarkId::new("gcd", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                let f = Uint::<LIMBS>::random(&mut rng);
+                let g = Uint::<LIMBS>::random(&mut rng);
+                (f, g)
+            },
+            |(f, g)| black_box(Uint::gcd(&f, &g)),
+            BatchSize::SmallInput,
+        )
+    });
+    g.bench_function(BenchmarkId::new("bingcd", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                let f = Uint::<LIMBS>::random(&mut rng);
+                let g = Uint::<LIMBS>::random(&mut rng);
+                (f, g)
+            },
+            |(f, g)| black_box(Uint::bingcd(&f, &g)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    g.bench_function(BenchmarkId::new("bingcd_small", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                let f = Uint::<LIMBS>::random(&mut rng)
+                    .bitor(&Uint::ONE)
+                    .to_odd()
+                    .unwrap();
+                let g = Uint::<LIMBS>::random(&mut rng);
+                (f, g)
+            },
+            |(f, g)| black_box(f.classic_bingcd(&g)),
+            BatchSize::SmallInput,
+        )
+    });
+    g.bench_function(BenchmarkId::new("bingcd_large", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                let f = Uint::<LIMBS>::random(&mut rng)
+                    .bitor(&Uint::ONE)
+                    .to_odd()
+                    .unwrap();
+                let g = Uint::<LIMBS>::random(&mut rng);
+                (f, g)
+            },
+            |(f, g)| black_box(f.optimized_bingcd(&g)),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
+fn bench_gcd(c: &mut Criterion) {
     let mut group = c.benchmark_group("greatest common divisor");
 
-    group.bench_function("gcd, U256", |b| {
-        b.iter_batched(
-            || {
-                let f = U256::random(&mut rng);
-                let g = U256::random(&mut rng);
-                (f, g)
-            },
-            |(f, g)| black_box(f.gcd(&g)),
-            BatchSize::SmallInput,
-        )
-    });
-
-    group.bench_function("gcd_vartime, U256", |b| {
-        b.iter_batched(
-            || {
-                let f = Odd::<U256>::random(&mut rng);
-                let g = U256::random(&mut rng);
-                (f, g)
-            },
-            |(f, g)| black_box(f.gcd_vartime(&g)),
-            BatchSize::SmallInput,
-        )
-    });
+    gcd_bench(&mut group, Uint::<1>::ZERO);
+    gcd_bench(&mut group, Uint::<2>::ZERO);
+    gcd_bench(&mut group, Uint::<3>::ZERO);
+    gcd_bench(&mut group, Uint::<4>::ZERO);
+    gcd_bench(&mut group, Uint::<5>::ZERO);
+    gcd_bench(&mut group, Uint::<6>::ZERO);
+    gcd_bench(&mut group, Uint::<7>::ZERO);
+    gcd_bench(&mut group, Uint::<8>::ZERO);
+    gcd_bench(&mut group, Uint::<16>::ZERO);
+    gcd_bench(&mut group, Uint::<32>::ZERO);
+    gcd_bench(&mut group, Uint::<64>::ZERO);
+    gcd_bench(&mut group, Uint::<128>::ZERO);
+    gcd_bench(&mut group, Uint::<256>::ZERO);
 
     group.finish();
 }
