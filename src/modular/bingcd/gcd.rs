@@ -2,8 +2,6 @@ use crate::const_choice::u32_const_max;
 use crate::{Odd, U64, U128, Uint};
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
-    const BITS: u32 = Uint::<LIMBS>::BITS;
-
     /// Computes `gcd(self, rhs)`, leveraging (a constant time implementation of) the classic
     /// Binary GCD algorithm.
     ///
