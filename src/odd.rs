@@ -21,6 +21,13 @@ use serdect::serde::{
     de::{Error, Unexpected},
 };
 
+/// Non-zero unsigned integer.
+pub type OddUint<const LIMBS: usize> = Odd<Uint<LIMBS>>;
+
+/// Non-zero boxed unsigned integer.
+#[cfg(feature = "alloc")]
+pub type OddBoxedUint = Odd<BoxedUint>;
+
 /// Wrapper type for odd integers.
 ///
 /// These are frequently used in cryptography, e.g. as a modulus.
