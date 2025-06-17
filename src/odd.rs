@@ -24,6 +24,9 @@ use serdect::serde::{
 /// Non-zero unsigned integer.
 pub type OddUint<const LIMBS: usize> = Odd<Uint<LIMBS>>;
 
+/// Non-zero signed integer.
+pub type OddInt<const LIMBS: usize> = Odd<Int<LIMBS>>;
+
 /// Non-zero boxed unsigned integer.
 #[cfg(feature = "alloc")]
 pub type OddBoxedUint = Odd<BoxedUint>;
