@@ -1,4 +1,4 @@
-use crate::uint::bingcd::extension::ExtendedInt;
+use crate::modular::bingcd::extension::ExtendedInt;
 use crate::{ConstChoice, Int, Uint};
 
 type Vector<T> = (T, T);
@@ -65,7 +65,7 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::uint::bingcd::matrix::IntMatrix;
+    use crate::modular::bingcd::matrix::IntMatrix;
     use crate::{ConstChoice, Int, U256};
 
     const X: IntMatrix<{ U256::LIMBS }> = IntMatrix::new(

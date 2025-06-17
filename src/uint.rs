@@ -16,9 +16,9 @@ pub use extra_sizes::*;
 pub(crate) use ref_type::UintRef;
 
 use crate::{
-    Bounded, ConstChoice, ConstCtOption, ConstZero, Constants, Encoding, FixedInteger, Int,
-    Integer, Limb, NonZero, Odd, PrecomputeInverter, PrecomputeInverterWithAdjuster, Word,
-    modular::{MontyForm, SafeGcdInverter},
+    Bounded, Constants, ConstChoice, ConstCtOption, ConstZero, Encoding, FixedInteger, Int, Integer, Limb,
+    modular::{MontyForm, SafeGcdInverter}, NonZero, Odd, PrecomputeInverter, PrecomputeInverterWithAdjuster,
+    Word,
 };
 
 #[macro_use]
@@ -500,7 +500,6 @@ impl_uint_concat_split_mixed! {
     (U1024, [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15]),
 }
 
-mod bingcd;
 #[cfg(feature = "extra-sizes")]
 mod extra_sizes;
 mod mul_int;

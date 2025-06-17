@@ -1,4 +1,4 @@
-use crate::uint::bingcd::matrix::IntMatrix;
+use crate::modular::bingcd::matrix::IntMatrix;
 use crate::{Odd, Uint};
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
@@ -19,7 +19,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// The function executes in time variable in `iterations`.
     #[inline]
-    pub(super) const fn partial_binxgcd_vartime<const UPDATE_LIMBS: usize>(
+    pub(crate) const fn partial_binxgcd_vartime<const UPDATE_LIMBS: usize>(
         &self,
         rhs: &Uint<LIMBS>,
         iterations: u32,
@@ -65,7 +65,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::uint::bingcd::matrix::IntMatrix;
+    use crate::modular::bingcd::matrix::IntMatrix;
     use crate::{I64, U64};
 
     #[test]

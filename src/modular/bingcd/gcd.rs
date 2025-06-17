@@ -1,4 +1,4 @@
-use crate::uint::bingcd::tools::{const_max, const_min};
+use crate::modular::bingcd::tools::{const_max, const_min};
 use crate::{NonZero, Odd, U64, U128, Uint};
 
 impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
