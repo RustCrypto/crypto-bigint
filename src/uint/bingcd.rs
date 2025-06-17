@@ -1,14 +1,13 @@
 //! This module implements Binary GCD for [`Uint`]
 
-use crate::Uint;
+use crate::{NonZero, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute the greatest common divisor of `self` and `rhs`.
     pub const fn bingcd(&self, rhs: &Self) -> Self {
         let self_is_zero = self.is_nonzero().not();
-        let self_nz = Uint::select(self, &Uint::ONE, self_is_zero)
-            .to_nz()
-            .expect("self is non zero by construction");
+        // Note: is non-zero by construction
+        let self_nz = NonZero(Uint::select(self, &Uint::ONE, self_is_zero));
         Uint::select(self_nz.bingcd(rhs).as_ref(), rhs, self_is_zero)
     }
 }
