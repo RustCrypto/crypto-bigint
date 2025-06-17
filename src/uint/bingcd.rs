@@ -1,7 +1,7 @@
 //! This module implements Binary GCD for [`Uint`]
 
 use crate::const_choice::u32_const_min;
-use crate::{NonZero, NonZeroUint, Odd, Uint};
+use crate::{NonZero, NonZeroUint, Odd, OddUint, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute the greatest common divisor of `self` and `rhs`.
@@ -35,6 +35,24 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
         let odd_lhs = Odd(lhs.shr(i));
         let gcd_div_2k = odd_lhs.bingcd(rhs);
         NonZero(gcd_div_2k.as_ref().shl(k))
+    }
+}
+
+impl<const LIMBS: usize> OddUint<LIMBS> {
+
+    /// Compute the greatest common divisor of `self` and `rhs` using the Binary GCD algorithm.
+    ///
+    /// This function switches between the "classic" and "optimized" algorithm at a best-effort
+    /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
+    /// manually test whether the classic or optimized algorithm is faster for your machine.
+    #[inline(always)]
+    pub const fn bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
+        // Todo: tweak this threshold
+        if LIMBS < 8 {
+            self.classic_bingcd(rhs)
+        } else {
+            self.optimized_bingcd(rhs)
+        }
     }
 }
 

@@ -4,26 +4,7 @@ use crate::{Odd, U64, U128, Uint};
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     const BITS: u32 = Uint::<LIMBS>::BITS;
 
-    /// Compute the greatest common divisor of `self` and `rhs` using the Binary GCD algorithm.
-    ///
-    /// This function switches between the "classic" and "optimized" algorithm at a best-effort
-    /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
-    /// manually test whether the classic or optimized algorithm is faster for your machine.
-    #[inline(always)]
-    pub const fn bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
-        // Todo: tweak this threshold
-        // Note: we're swapping the parameters here for greater readability: Pornin's Algorithm 1
-        // and Algorithm 2 both require the second argument (m) to be odd. Given that the gcd
-        // is the same, regardless of the order of the parameters, this swap does not affect the
-        // result.
-        if LIMBS < 8 {
-            self.classic_bingcd(rhs)
-        } else {
-            self.optimized_bingcd(rhs)
-        }
-    }
-
-    /// Computes `gcd(self, rhs)`, leveraging the (a constant time implementation of) the classic
+    /// Computes `gcd(self, rhs)`, leveraging (a constant time implementation of) the classic
     /// Binary GCD algorithm.
     ///
     /// Note: this algorithm is efficient for [Uint]s with relatively few `LIMBS`.
