@@ -1,27 +1,5 @@
-use crate::const_choice::{u32_const_max, u32_const_min};
-use crate::{NonZero, Odd, U64, U128, Uint};
-
-impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
-    /// Compute the greatest common divisor of `self` and `rhs`.
-    pub const fn bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
-        let val = self.as_ref();
-        // Leverage two GCD identity rules to make self and rhs odd.
-        // 1) gcd(2a, 2b) = 2 * gcd(a, b)
-        // 2) gcd(a, 2b) = gcd(a, b) if a is odd.
-        let i = val.is_nonzero().select_u32(0, val.trailing_zeros());
-        let j = rhs.is_nonzero().select_u32(0, rhs.trailing_zeros());
-        let k = u32_const_min(i, j);
-
-        val.shr(i)
-            .to_odd()
-            .expect("val.shr(i) is odd by construction")
-            .bingcd(rhs)
-            .as_ref()
-            .shl(k)
-            .to_nz()
-            .expect("gcd of non-zero element with another element is non-zero")
-    }
-}
+use crate::const_choice::u32_const_max;
+use crate::{Odd, U64, U128, Uint};
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     const BITS: u32 = Uint::<LIMBS>::BITS;

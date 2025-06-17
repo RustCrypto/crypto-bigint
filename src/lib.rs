@@ -183,9 +183,7 @@ pub use {
 pub use crate::uint::boxed::BoxedUint;
 pub use crate::{
     checked::Checked,
-    const_choice::{
-        ConstChoice, ConstCtOption,
-    },
+    const_choice::{ConstChoice, ConstCtOption},
     int::types::*,
     int::*,
     limb::{Limb, WideWord, Word},
