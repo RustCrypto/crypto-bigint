@@ -214,7 +214,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Interpret this object as an [`Int`] instead.
     ///
-    /// Note: this is a casting operation. See [`Self::to_int`] for the checked equivalent.
+    /// Note: this is a casting operation. See [`Self::try_into_int`] for the checked equivalent.
     pub const fn as_int(&self) -> Int<LIMBS> {
         Int::from_bits(*self)
     }
@@ -222,7 +222,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Convert this type into an [`Int`]; returns `None` if this value is greater than `Int::MAX`.
     ///
     /// Note: this is the conversion operation. See [`Self::as_int`] for the unchecked equivalent.
-    pub const fn to_int(self) -> ConstCtOption<Int<LIMBS>> {
+    pub const fn try_into_int(self) -> ConstCtOption<Int<LIMBS>> {
         Int::new_from_abs_sign(self, ConstChoice::FALSE)
     }
 }
@@ -684,9 +684,9 @@ mod tests {
 
     #[test]
     fn to_int() {
-        assert_eq!(U128::ZERO.to_int().unwrap(), Int::ZERO);
-        assert_eq!(U128::ONE.to_int().unwrap(), Int::ONE);
-        assert_eq!(I128::MAX.as_uint().to_int().unwrap(), Int::MAX);
-        assert!(bool::from(U128::MAX.to_int().is_none()));
+        assert_eq!(U128::ZERO.try_into_int().unwrap(), Int::ZERO);
+        assert_eq!(U128::ONE.try_into_int().unwrap(), Int::ONE);
+        assert_eq!(I128::MAX.as_uint().try_into_int().unwrap(), Int::MAX);
+        assert!(bool::from(U128::MAX.try_into_int().is_none()));
     }
 }
