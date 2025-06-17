@@ -1,4 +1,4 @@
-use crate::modular::bingcd::tools::{const_max, const_min};
+use crate::const_choice::{u32_const_max, u32_const_min};
 use crate::{NonZero, Odd, U64, U128, Uint};
 
 impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
@@ -10,7 +10,7 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
         // 2) gcd(a, 2b) = gcd(a, b) if a is odd.
         let i = val.is_nonzero().select_u32(0, val.trailing_zeros());
         let j = rhs.is_nonzero().select_u32(0, rhs.trailing_zeros());
-        let k = const_min(i, j);
+        let k = u32_const_min(i, j);
 
         val.shr(i)
             .to_odd()
@@ -125,7 +125,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             i += 1;
 
             // Construct a_ and b_ as the summary of a and b, respectively.
-            let n = const_max(2 * K, const_max(a.bits(), b.bits()));
+            let n = u32_const_max(2 * K, u32_const_max(a.bits(), b.bits()));
             let a_ = a.compact::<K, LIMBS_2K>(n);
             let b_ = b.compact::<K, LIMBS_2K>(n);
 

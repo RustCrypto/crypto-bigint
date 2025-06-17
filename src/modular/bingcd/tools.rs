@@ -1,14 +1,4 @@
-use crate::{ConstChoice, Uint};
-
-/// `const` equivalent of `u32::max(a, b)`.
-pub(crate) const fn const_max(a: u32, b: u32) -> u32 {
-    ConstChoice::from_u32_lt(a, b).select_u32(a, b)
-}
-
-/// `const` equivalent of `u32::min(a, b)`.
-pub(crate) const fn const_min(a: u32, b: u32) -> u32 {
-    ConstChoice::from_u32_lt(a, b).select_u32(b, a)
-}
+use crate::Uint;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Construct a [Uint] containing the bits in `self` in the range `[idx, idx + length)`.

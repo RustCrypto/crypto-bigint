@@ -22,6 +22,7 @@ mod monty_form;
 mod reduction;
 
 mod add;
+mod bingcd;
 mod div_by_2;
 mod mul;
 mod pow;
@@ -30,11 +31,10 @@ mod sub;
 
 #[cfg(feature = "alloc")]
 pub(crate) mod boxed_monty_form;
-mod bingcd;
 
 pub use self::{
     const_monty_form::{ConstMontyForm, ConstMontyParams, invert::ConstMontyFormInverter},
-    monty_form::{invert::MontyFormInverter, MontyForm, MontyParams},
+    monty_form::{MontyForm, MontyParams, invert::MontyFormInverter},
     reduction::montgomery_reduction,
     safegcd::SafeGcdInverter,
 };
