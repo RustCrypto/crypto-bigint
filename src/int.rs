@@ -42,6 +42,7 @@ mod rand;
 /// Created as a [`Uint`] newtype.
 #[allow(clippy::derived_hash_with_manual_eq)]
 #[derive(Copy, Clone, Hash)]
+#[repr(transparent)]
 pub struct Int<const LIMBS: usize>(Uint<LIMBS>);
 
 impl<const LIMBS: usize> Int<LIMBS> {

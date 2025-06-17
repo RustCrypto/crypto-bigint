@@ -215,8 +215,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Interpret this object as an [`Int`] instead.
     ///
     /// Note: this is a casting operation. See [`Self::try_into_int`] for the checked equivalent.
-    pub const fn as_int(&self) -> Int<LIMBS> {
-        Int::from_bits(*self)
+    pub const fn as_int(&self) -> &Int<LIMBS> {
+        #[allow(trivial_casts, unsafe_code)]
+        unsafe {
+            &*(self as *const Uint<LIMBS> as *const Int<LIMBS>)
+        }
     }
 
     /// Convert this type into an [`Int`]; returns `None` if this value is greater than `Int::MAX`.
@@ -677,9 +680,9 @@ mod tests {
 
     #[test]
     fn as_int() {
-        assert_eq!(U128::ZERO.as_int(), Int::ZERO);
-        assert_eq!(U128::ONE.as_int(), Int::ONE);
-        assert_eq!(U128::MAX.as_int(), Int::MINUS_ONE);
+        assert_eq!(*U128::ZERO.as_int(), Int::ZERO);
+        assert_eq!(*U128::ONE.as_int(), Int::ONE);
+        assert_eq!(*U128::MAX.as_int(), Int::MINUS_ONE);
     }
 
     #[test]

@@ -78,7 +78,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let product_abs = lhs_abs.concatenating_mul(rhs);
 
         // always fits
-        product_abs.wrapping_neg_if(lhs_sign).as_int()
+        *product_abs.wrapping_neg_if(lhs_sign).as_int()
     }
 
     /// Checked multiplication of self with an `Uint<RHS_LIMBS>`, where the result is to be stored

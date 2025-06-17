@@ -105,9 +105,9 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
         // should succeed when
         // - extension is ZERO, or
         // - extension is MAX, and the top bit in base is set.
-        let proper_positive = Int::eq(&self.1.as_int(), &Int::ZERO);
+        let proper_positive = Int::eq(self.1.as_int(), &Int::ZERO);
         let proper_negative =
-            Int::eq(&self.1.as_int(), &Int::MINUS_ONE).and(self.0.as_int().is_negative());
+            Int::eq(self.1.as_int(), &Int::MINUS_ONE).and(self.0.as_int().is_negative());
         ConstCtOption::new(self.abs().0, proper_negative.or(proper_positive))
     }
 
