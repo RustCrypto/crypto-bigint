@@ -26,6 +26,9 @@ use serdect::serde::{
 /// Non-zero unsigned integer.
 pub type NonZeroUint<const LIMBS: usize> = NonZero<Uint<LIMBS>>;
 
+/// Non-zero signed integer
+pub type NonZeroInt<const LIMBS: usize> = NonZero<Int<LIMBS>>;
+
 /// Non-zero boxed unsigned integer.
 #[cfg(feature = "alloc")]
 pub type NonZeroBoxedUint = NonZero<BoxedUint>;
