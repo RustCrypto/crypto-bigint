@@ -32,6 +32,12 @@ impl Limb {
         Self(c.select_word(a.0, b.0))
     }
 
+    /// Swap the values of `a` and `b` if `c` is truthy, otherwise do nothing.
+    #[inline]
+    pub(crate) const fn conditional_swap(a: &mut Self, b: &mut Self, c: ConstChoice) {
+        (*a, *b) = (Self(c.select_word(a.0, b.0)), Self(c.select_word(b.0, a.0)))
+    }
+
     /// Returns the truthy value if `self != 0` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn is_nonzero(&self) -> ConstChoice {
@@ -93,7 +99,7 @@ impl PartialEq for Limb {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, Zero};
+    use crate::{ConstChoice, Limb, Zero};
     use core::cmp::Ordering;
     use subtle::{ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
@@ -165,5 +171,19 @@ mod tests {
         assert_eq!(Limb::ZERO.cmp(&Limb::ONE), Ordering::Less);
         assert_eq!(Limb::ONE.cmp(&Limb::ONE), Ordering::Equal);
         assert_eq!(Limb::MAX.cmp(&Limb::ONE), Ordering::Greater);
+    }
+
+    #[test]
+    fn conditional_swap() {
+        let mut a = Limb::MAX;
+        let mut b = Limb::ZERO;
+
+        Limb::conditional_swap(&mut a, &mut b, ConstChoice::FALSE);
+        assert_eq!(a, Limb::MAX);
+        assert_eq!(b, Limb::ZERO);
+
+        Limb::conditional_swap(&mut a, &mut b, ConstChoice::TRUE);
+        assert_eq!(a, Limb::ZERO);
+        assert_eq!(b, Limb::MAX);
     }
 }
