@@ -28,8 +28,8 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
         // However, to save ourselves having to divide out 2^j, we also note that
         // 4) 2^k · gcd(a, b) = 2^k · gcd(a, 2^j · b)
 
-        let i = lhs.is_nonzero().select_u32(0, lhs.trailing_zeros());
-        let j = rhs.is_nonzero().select_u32(0, rhs.trailing_zeros());
+        let i = lhs.trailing_zeros();
+        let j = rhs.trailing_zeros();
         let k = u32_const_min(i, j);
 
         let odd_lhs = Odd(lhs.shr(i));
