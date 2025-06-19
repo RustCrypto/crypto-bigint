@@ -42,6 +42,7 @@ mod rand;
 /// Created as a [`Uint`] newtype.
 #[allow(clippy::derived_hash_with_manual_eq)]
 #[derive(Copy, Clone, Hash)]
+#[repr(transparent)]
 pub struct Int<const LIMBS: usize>(Uint<LIMBS>);
 
 impl<const LIMBS: usize> Int<LIMBS> {
@@ -154,9 +155,22 @@ impl<const LIMBS: usize> Int<LIMBS> {
         ConstCtOption::new(Odd(self), self.0.is_odd())
     }
 
-    /// Interpret the data in this type as a [`Uint`] instead.
+    /// Interpret the data in this object as a [`Uint`] instead.
+    ///
+    /// Note: this is a casting operation. See
+    /// - [`Self::try_into_uint`] for the checked equivalent, and
+    /// - [`Self::abs`] to obtain the absolute value of `self`.
     pub const fn as_uint(&self) -> &Uint<LIMBS> {
         &self.0
+    }
+
+    /// Get a [`Uint`] equivalent of this value; returns `None` if `self` is negative.
+    ///
+    /// Note: this is a checked conversion operation. See
+    /// - [`Self::as_uint`] for the unchecked equivalent, and
+    /// - [`Self::abs`] to obtain the absolute value of `self`.
+    pub const fn try_into_uint(self) -> ConstCtOption<Uint<LIMBS>> {
+        ConstCtOption::new(self.0, self.is_negative().not())
     }
 
     /// Whether this [`Int`] is equal to `Self::MIN`.
@@ -428,5 +442,14 @@ mod tests {
         assert_eq!(*I128::ZERO.as_uint(), U128::ZERO);
         assert_eq!(*I128::ONE.as_uint(), U128::ONE);
         assert_eq!(*I128::MAX.as_uint(), U128::MAX >> 1);
+    }
+
+    #[test]
+    fn to_uint() {
+        assert!(bool::from(I128::MIN.try_into_uint().is_none()));
+        assert!(bool::from(I128::MINUS_ONE.try_into_uint().is_none()));
+        assert_eq!(I128::ZERO.try_into_uint().unwrap(), U128::ZERO);
+        assert_eq!(I128::ONE.try_into_uint().unwrap(), U128::ONE);
+        assert_eq!(I128::MAX.try_into_uint().unwrap(), U128::MAX >> 1);
     }
 }

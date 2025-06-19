@@ -395,7 +395,7 @@ impl<const LIMBS: usize> ConstCtOption<Uint<LIMBS>> {
     /// Returns the contained value, interpreting the underlying [`Uint`] value as an [`Int`].
     #[inline]
     pub const fn as_int(&self) -> ConstCtOption<Int<LIMBS>> {
-        ConstCtOption::new(self.value.as_int(), self.is_some)
+        ConstCtOption::new(*self.value.as_int(), self.is_some)
     }
 }
 
