@@ -95,6 +95,21 @@ mod tests {
     use crate::{ConstChoice, I64, Int, U64, U256, Uint};
 
     impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
+        pub(crate) const fn new_i64(
+            matrix: (i64, i64, i64, i64),
+            k: u32,
+            k_upper_bound: u32,
+        ) -> Self {
+            Self {
+                m00: Int::from_i64(matrix.0),
+                m01: Int::from_i64(matrix.1),
+                m10: Int::from_i64(matrix.2),
+                m11: Int::from_i64(matrix.3),
+                k,
+                k_upper_bound,
+            }
+        }
+
         pub(crate) const fn as_elements(
             &self,
         ) -> (&Int<LIMBS>, &Int<LIMBS>, &Int<LIMBS>, &Int<LIMBS>, u32, u32) {
@@ -109,27 +124,13 @@ mod tests {
         }
     }
 
-    const X: BinXgcdMatrix<{ U256::LIMBS }> = BinXgcdMatrix::new(
-        Int::from_i64(1i64),
-        Int::from_i64(7i64),
-        Int::from_i64(23i64),
-        Int::from_i64(53i64),
-        6,
-        8,
-    );
+    const X: BinXgcdMatrix<{ U256::LIMBS }> = BinXgcdMatrix::new_i64((1, 7, 23, 53), 6, 8);
 
     #[test]
     fn test_wrapping_apply_to() {
         let a = U64::from_be_hex("CA048AFA63CD6A1F");
         let b = U64::from_be_hex("AE693BF7BE8E5566");
-        let matrix = BinXgcdMatrix {
-            m00: I64::from_be_hex("0000000000000120"),
-            m01: I64::from_be_hex("FFFFFFFFFFFFFF30"),
-            m10: I64::from_be_hex("FFFFFFFFFFFFFECA"),
-            m11: I64::from_be_hex("00000000000002A7"),
-            k: 17,
-            k_upper_bound: 17,
-        };
+        let matrix = BinXgcdMatrix::<{ I64::LIMBS }>::new_i64((288, -208, -310, 679), 17, 17);
 
         let (a_, b_) = matrix.extended_apply_to((a, b));
         assert_eq!(
@@ -146,17 +147,8 @@ mod tests {
     fn test_swap() {
         let mut y = X;
         y.swap_rows();
-        assert_eq!(
-            y,
-            BinXgcdMatrix::new(
-                Int::from(23i32),
-                Int::from(53i32),
-                Int::from(1i32),
-                Int::from(7i32),
-                6,
-                8
-            )
-        );
+        let target = BinXgcdMatrix::new_i64((23, 53, 1, 7), 6, 8);
+        assert_eq!(y, target);
     }
 
     #[test]
@@ -165,17 +157,8 @@ mod tests {
         y.conditional_swap_rows(ConstChoice::FALSE);
         assert_eq!(y, X);
         y.conditional_swap_rows(ConstChoice::TRUE);
-        assert_eq!(
-            y,
-            BinXgcdMatrix::new(
-                Int::from(23i32),
-                Int::from(53i32),
-                Int::from(1i32),
-                Int::from(7i32),
-                6,
-                8
-            )
-        );
+        let target = BinXgcdMatrix::new_i64((23, 53, 1, 7), 6, 8);
+        assert_eq!(y, target);
     }
 
     #[test]
@@ -184,45 +167,18 @@ mod tests {
         y.conditional_subtract_bottom_row_from_top(ConstChoice::FALSE);
         assert_eq!(y, X);
         y.conditional_subtract_bottom_row_from_top(ConstChoice::TRUE);
-        assert_eq!(
-            y,
-            BinXgcdMatrix::new(
-                Int::from(-22i32),
-                Int::from(-46i32),
-                Int::from(23i32),
-                Int::from(53i32),
-                6,
-                8
-            )
-        );
+        let target = BinXgcdMatrix::new_i64((-22, -46, 23, 53), 6, 8);
+        assert_eq!(y, target);
     }
 
     #[test]
     fn test_conditional_double() {
         let mut y = X;
         y.conditional_double_bottom_row(ConstChoice::FALSE);
-        assert_eq!(
-            y,
-            BinXgcdMatrix::new(
-                Int::from_i64(1i64),
-                Int::from_i64(7i64),
-                Int::from_i64(23i64),
-                Int::from_i64(53i64),
-                6,
-                9
-            )
-        );
+        let target = BinXgcdMatrix::new_i64((1, 7, 23, 53), 6, 9);
+        assert_eq!(y, target);
         y.conditional_double_bottom_row(ConstChoice::TRUE);
-        assert_eq!(
-            y,
-            BinXgcdMatrix::new(
-                Int::from(1i32),
-                Int::from(7i32),
-                Int::from(46i32),
-                Int::from(106i32),
-                7,
-                10
-            )
-        );
+        let target = BinXgcdMatrix::new_i64((1, 7, 46, 106), 7, 10);
+        assert_eq!(y, target);
     }
 }

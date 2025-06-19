@@ -104,7 +104,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 #[cfg(test)]
 mod tests {
     use crate::modular::bingcd::matrix::BinXgcdMatrix;
-    use crate::{ConstChoice, I64, Odd, U64};
+    use crate::{ConstChoice, Odd, U64};
 
     const A: Odd<U64> = U64::from_be_hex("CA048AFA63CD6A1F").to_odd().expect("odd");
     const B: U64 = U64::from_be_hex("AE693BF7BE8E5566");
@@ -114,17 +114,8 @@ mod tests {
         let (.., matrix) = A.partial_binxgcd_vartime::<{ U64::LIMBS }>(&B, 5, ConstChoice::TRUE);
         let (.., k, _) = matrix.as_elements();
         assert_eq!(k, 5);
-        assert_eq!(
-            matrix,
-            BinXgcdMatrix::new(
-                I64::from(8i64),
-                I64::from(-4i64),
-                I64::from(-2i64),
-                I64::from(5i64),
-                5,
-                5
-            )
-        );
+        let target = BinXgcdMatrix::new_i64((8, -4, -2, 5), 5, 5);
+        assert_eq!(matrix, target);
     }
 
     #[test]
