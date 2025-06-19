@@ -31,7 +31,7 @@ mod tests {
     use rand_chacha::ChaCha8Rng;
     use rand_core::{RngCore, SeedableRng};
 
-    use crate::{Gcd, Random, U256, U512, U1024, U2048, U4096, U8192, U16384, Uint, Int, I256, I512, I1024, I2048, I4096};
+    use crate::{Gcd, I64, I128, I256, I512, I1024, I2048, I4096, Int, Random, Uint};
 
     fn int_bingcd_test<const LIMBS: usize>(lhs: Int<LIMBS>, rhs: Int<LIMBS>)
     where
@@ -84,6 +84,8 @@ mod tests {
     #[test]
     fn test_int_bingcd() {
         let mut rng = ChaCha8Rng::from_seed(*b"01234567890123456789012345678901");
+        int_bingcd_tests::<{ I64::LIMBS }>(&mut rng);
+        int_bingcd_tests::<{ I128::LIMBS }>(&mut rng);
         int_bingcd_tests::<{ I256::LIMBS }>(&mut rng);
         int_bingcd_tests::<{ I512::LIMBS }>(&mut rng);
         int_bingcd_tests::<{ I1024::LIMBS }>(&mut rng);
@@ -91,4 +93,3 @@ mod tests {
         int_bingcd_tests::<{ I4096::LIMBS }>(&mut rng);
     }
 }
-
