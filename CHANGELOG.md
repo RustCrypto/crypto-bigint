@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.7.0-pre.5 (2025-06-16)
+_The below list is very much incomplete._
+
+### Changed
+- Replace `Limb::mac` with `::carrying_add_mul` ([#817]).
+  - Note: `::carrying_add_mul` requires a different parameter order than `::mac`.
+
+[#817]: https://github.com/RustCrypto/crypto-bigint/pull/817
+
 ## 0.6.1 (2025-02-14)
 ### Added
 - `?Sized` to all RngCore bounds ([#760])
@@ -14,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [#757]: https://github.com/RustCrypto/crypto-bigint/pull/757
 [#760]: https://github.com/RustCrypto/crypto-bigint/pull/760
-[#792]:https://github.com/RustCrypto/crypto-bigint/pull/792
+[#792]: https://github.com/RustCrypto/crypto-bigint/pull/792
 
 ## 0.6.0 (2025-01-22)
 ### Added
