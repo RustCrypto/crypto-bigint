@@ -4,8 +4,8 @@ use criterion::{
 };
 use crypto_bigint::modular::SafeGcdInverter;
 use crypto_bigint::{
-    Limb, NonZero, Odd, PrecomputeInverter, Random, RandomBits, RandomMod, Reciprocal, U128, U256,
-    U512, U1024, U2048, U4096, Uint,
+    Limb, NonZero, Odd, OddUint, PrecomputeInverter, Random, RandomBits, RandomMod, Reciprocal,
+    U128, U256, U512, U1024, U2048, U4096, Uint,
 };
 use rand_chacha::ChaCha8Rng;
 use rand_core::{RngCore, SeedableRng};
@@ -373,49 +373,49 @@ fn gcd_bench<const LIMBS: usize, const UNSAT_LIMBS: usize>(
     g.bench_function(BenchmarkId::new("gcd", LIMBS), |b| {
         b.iter_batched(
             || {
-                let f = Uint::<LIMBS>::random(&mut rng);
-                let g = Uint::<LIMBS>::random(&mut rng);
-                (f, g)
+                (
+                    Uint::<LIMBS>::random(&mut rng),
+                    Uint::<LIMBS>::random(&mut rng),
+                )
             },
             |(f, g)| black_box(Uint::gcd(&f, &g)),
             BatchSize::SmallInput,
         )
     });
+
     g.bench_function(BenchmarkId::new("bingcd", LIMBS), |b| {
         b.iter_batched(
             || {
-                let f = Uint::<LIMBS>::random(&mut rng);
-                let g = Uint::<LIMBS>::random(&mut rng);
-                (f, g)
+                (
+                    Uint::<LIMBS>::random(&mut rng),
+                    Uint::<LIMBS>::random(&mut rng),
+                )
             },
             |(f, g)| black_box(Uint::bingcd(&f, &g)),
             BatchSize::SmallInput,
         )
     });
 
-    g.bench_function(BenchmarkId::new("bingcd_small", LIMBS), |b| {
+    g.bench_function(BenchmarkId::new("bingcd (classic)", LIMBS), |b| {
         b.iter_batched(
             || {
-                let f = Uint::<LIMBS>::random(&mut rng)
-                    .bitor(&Uint::ONE)
-                    .to_odd()
-                    .unwrap();
-                let g = Uint::<LIMBS>::random(&mut rng);
-                (f, g)
+                (
+                    OddUint::<LIMBS>::random(&mut rng),
+                    Uint::<LIMBS>::random(&mut rng),
+                )
             },
             |(f, g)| black_box(f.classic_bingcd(&g)),
             BatchSize::SmallInput,
         )
     });
-    g.bench_function(BenchmarkId::new("bingcd_large", LIMBS), |b| {
+
+    g.bench_function(BenchmarkId::new("bingcd (optimized)", LIMBS), |b| {
         b.iter_batched(
             || {
-                let f = Uint::<LIMBS>::random(&mut rng)
-                    .bitor(&Uint::ONE)
-                    .to_odd()
-                    .unwrap();
-                let g = Uint::<LIMBS>::random(&mut rng);
-                (f, g)
+                (
+                    OddUint::<LIMBS>::random(&mut rng),
+                    Uint::<LIMBS>::random(&mut rng),
+                )
             },
             |(f, g)| black_box(f.optimized_bingcd(&g)),
             BatchSize::SmallInput,
