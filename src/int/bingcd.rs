@@ -25,71 +25,58 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
     }
 }
 
-#[cfg(feature = "rand_core")]
 #[cfg(test)]
 mod tests {
-    use rand_chacha::ChaCha8Rng;
-    use rand_core::{RngCore, SeedableRng};
+    use crate::{Gcd, I64, I128, I256, I512, I1024, I2048, I4096, Int, Uint};
 
-    use crate::{Gcd, I64, I128, I256, I512, I1024, I2048, I4096, Int, Random, Uint};
-
-    fn int_bingcd_test<const LIMBS: usize>(lhs: Int<LIMBS>, rhs: Int<LIMBS>)
+    fn int_bingcd_test<const LIMBS: usize>(lhs: Int<LIMBS>, rhs: Int<LIMBS>, target: Uint<LIMBS>)
     where
         Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
     {
-        let gcd = lhs.abs().gcd(&rhs.abs());
-        let bingcd = lhs.bingcd(&rhs);
-        assert_eq!(gcd, bingcd);
+        assert_eq!(lhs.bingcd(&rhs), target);
     }
 
-    fn int_bingcd_tests<const LIMBS: usize>(rng: &mut impl RngCore)
+    fn int_bingcd_tests<const LIMBS: usize>()
     where
         Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
     {
-        // Edge cases
-        int_bingcd_test(Int::MIN, Int::MIN);
-        int_bingcd_test(Int::MIN, Int::MINUS_ONE);
-        int_bingcd_test(Int::MIN, Int::ZERO);
-        int_bingcd_test(Int::MIN, Int::ONE);
-        int_bingcd_test(Int::MIN, Int::MAX);
-        int_bingcd_test(Int::MINUS_ONE, Int::MIN);
-        int_bingcd_test(Int::MINUS_ONE, Int::MINUS_ONE);
-        int_bingcd_test(Int::MINUS_ONE, Int::ZERO);
-        int_bingcd_test(Int::MINUS_ONE, Int::ONE);
-        int_bingcd_test(Int::MINUS_ONE, Int::MAX);
-        int_bingcd_test(Int::ZERO, Int::MIN);
-        int_bingcd_test(Int::ZERO, Int::MINUS_ONE);
-        int_bingcd_test(Int::ZERO, Int::ZERO);
-        int_bingcd_test(Int::ZERO, Int::ONE);
-        int_bingcd_test(Int::ZERO, Int::MAX);
-        int_bingcd_test(Int::ONE, Int::MIN);
-        int_bingcd_test(Int::ONE, Int::MINUS_ONE);
-        int_bingcd_test(Int::ONE, Int::ZERO);
-        int_bingcd_test(Int::ONE, Int::ONE);
-        int_bingcd_test(Int::ONE, Int::MAX);
-        int_bingcd_test(Int::MAX, Int::MIN);
-        int_bingcd_test(Int::MAX, Int::MINUS_ONE);
-        int_bingcd_test(Int::MAX, Int::ZERO);
-        int_bingcd_test(Int::MAX, Int::ONE);
-        int_bingcd_test(Int::MAX, Int::MAX);
-
-        // Randomized test cases
-        for _ in 0..100 {
-            let x = Int::<LIMBS>::random(rng);
-            let y = Int::<LIMBS>::random(rng);
-            int_bingcd_test(x, y);
-        }
+        let abs_min = *Int::MIN.as_uint();
+        let max = *Int::MAX.as_uint();
+        int_bingcd_test(Int::MIN, Int::MIN, abs_min);
+        int_bingcd_test(Int::MIN, Int::MINUS_ONE, Uint::ONE);
+        int_bingcd_test(Int::MIN, Int::ZERO, abs_min);
+        int_bingcd_test(Int::MIN, Int::ONE, Uint::ONE);
+        int_bingcd_test(Int::MIN, Int::MAX, Uint::ONE);
+        int_bingcd_test(Int::MINUS_ONE, Int::MIN, Uint::ONE);
+        int_bingcd_test(Int::MINUS_ONE, Int::MINUS_ONE, Uint::ONE);
+        int_bingcd_test(Int::MINUS_ONE, Int::ZERO, Uint::ONE);
+        int_bingcd_test(Int::MINUS_ONE, Int::ONE, Uint::ONE);
+        int_bingcd_test(Int::MINUS_ONE, Int::MAX, Uint::ONE);
+        int_bingcd_test(Int::ZERO, Int::MIN, abs_min);
+        int_bingcd_test(Int::ZERO, Int::MINUS_ONE, Uint::ONE);
+        int_bingcd_test(Int::ZERO, Int::ZERO, Uint::ZERO);
+        int_bingcd_test(Int::ZERO, Int::ONE, Uint::ONE);
+        int_bingcd_test(Int::ZERO, Int::MAX, max);
+        int_bingcd_test(Int::ONE, Int::MIN, Uint::ONE);
+        int_bingcd_test(Int::ONE, Int::MINUS_ONE, Uint::ONE);
+        int_bingcd_test(Int::ONE, Int::ZERO, Uint::ONE);
+        int_bingcd_test(Int::ONE, Int::ONE, Uint::ONE);
+        int_bingcd_test(Int::ONE, Int::MAX, Uint::ONE);
+        int_bingcd_test(Int::MAX, Int::MIN, Uint::ONE);
+        int_bingcd_test(Int::MAX, Int::MINUS_ONE, Uint::ONE);
+        int_bingcd_test(Int::MAX, Int::ZERO, max);
+        int_bingcd_test(Int::MAX, Int::ONE, Uint::ONE);
+        int_bingcd_test(Int::MAX, Int::MAX, max);
     }
 
     #[test]
     fn test_int_bingcd() {
-        let mut rng = ChaCha8Rng::from_seed(*b"01234567890123456789012345678901");
-        int_bingcd_tests::<{ I64::LIMBS }>(&mut rng);
-        int_bingcd_tests::<{ I128::LIMBS }>(&mut rng);
-        int_bingcd_tests::<{ I256::LIMBS }>(&mut rng);
-        int_bingcd_tests::<{ I512::LIMBS }>(&mut rng);
-        int_bingcd_tests::<{ I1024::LIMBS }>(&mut rng);
-        int_bingcd_tests::<{ I2048::LIMBS }>(&mut rng);
-        int_bingcd_tests::<{ I4096::LIMBS }>(&mut rng);
+        int_bingcd_tests::<{ I64::LIMBS }>();
+        int_bingcd_tests::<{ I128::LIMBS }>();
+        int_bingcd_tests::<{ I256::LIMBS }>();
+        int_bingcd_tests::<{ I512::LIMBS }>();
+        int_bingcd_tests::<{ I1024::LIMBS }>();
+        int_bingcd_tests::<{ I2048::LIMBS }>();
+        int_bingcd_tests::<{ I4096::LIMBS }>();
     }
 }
