@@ -1,10 +1,10 @@
 use criterion::{
-    BatchSize, BenchmarkGroup, Criterion, black_box, criterion_group, criterion_main,
-    measurement::Measurement,
+    BatchSize, BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::Measurement,
 };
 use crypto_bigint::{Limb, Random};
 use rand_chacha::ChaChaRng;
 use rand_core::SeedableRng;
+use std::hint::black_box;
 use subtle::{ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
 fn bench_cmp<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {

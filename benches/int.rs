@@ -1,8 +1,8 @@
-use std::ops::Div;
-
-use criterion::{BatchSize, Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use rand_chacha::ChaChaRng;
 use rand_core::SeedableRng;
+use std::hint::black_box;
+use std::ops::Div;
 
 use crypto_bigint::{I128, I256, I512, I1024, I2048, I4096, NonZero, Random};
 

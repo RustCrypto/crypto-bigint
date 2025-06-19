@@ -1,6 +1,6 @@
 use criterion::measurement::WallTime;
 use criterion::{
-    BatchSize, BenchmarkGroup, BenchmarkId, Criterion, black_box, criterion_group, criterion_main,
+    BatchSize, BenchmarkGroup, BenchmarkId, Criterion, criterion_group, criterion_main,
 };
 use crypto_bigint::modular::SafeGcdInverter;
 use crypto_bigint::{
@@ -9,6 +9,7 @@ use crypto_bigint::{
 };
 use rand_chacha::ChaCha8Rng;
 use rand_core::{RngCore, SeedableRng};
+use std::hint::black_box;
 
 fn make_rng() -> ChaCha8Rng {
     ChaCha8Rng::from_seed(*b"01234567890123456789012345678901")
