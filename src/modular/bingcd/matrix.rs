@@ -69,8 +69,12 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
     /// Subtract the bottom row from the top if `subtract` is truthy. Otherwise, do nothing.
     #[inline]
     pub(crate) const fn conditional_subtract_bottom_row_from_top(&mut self, subtract: ConstChoice) {
-        self.m00 = Int::select(&self.m00, &self.m00.wrapping_sub(&self.m10), subtract);
-        self.m01 = Int::select(&self.m01, &self.m01.wrapping_sub(&self.m11), subtract);
+        self.m00 = self
+            .m00
+            .wrapping_sub(&Int::select(&Int::ZERO, &self.m10, subtract));
+        self.m01 = self
+            .m01
+            .wrapping_sub(&Int::select(&Int::ZERO, &self.m11, subtract));
     }
 
     /// Double the bottom row of this matrix if `double` is truthy. Otherwise, do nothing.
