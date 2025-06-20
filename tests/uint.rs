@@ -352,6 +352,16 @@ proptest! {
     }
 
     #[test]
+    fn bingcd(f in uint(), g in uint()) {
+        let f_bi = to_biguint(&f);
+        let g_bi = to_biguint(&g);
+
+        let expected = to_uint(f_bi.gcd(&g_bi));
+        let actual = f.bingcd(&g);
+        prop_assert_eq!(expected, actual);
+    }
+
+    #[test]
     fn gcd_vartime(mut f in uint(), g in uint()) {
         if bool::from(f.is_even()) {
             f += U256::ONE;
