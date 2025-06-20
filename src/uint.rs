@@ -16,9 +16,9 @@ pub use extra_sizes::*;
 pub(crate) use ref_type::UintRef;
 
 use crate::{
-    Bounded, Constants, ConstChoice, ConstCtOption, ConstZero, Encoding, FixedInteger, Int, Integer, Limb,
-    modular::{MontyForm, SafeGcdInverter}, NonZero, Odd, PrecomputeInverter, PrecomputeInverterWithAdjuster,
-    Word,
+    Bounded, ConstChoice, ConstCtOption, ConstZero, Constants, Encoding, FixedInteger, Int,
+    Integer, Limb, NonZero, Odd, PrecomputeInverter, PrecomputeInverterWithAdjuster, Word,
+    modular::{MontyForm, SafeGcdInverter},
 };
 
 #[macro_use]
