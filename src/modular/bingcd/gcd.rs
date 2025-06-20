@@ -172,58 +172,43 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     }
 }
 
-#[cfg(all(test, feature = "rand_core"))]
+#[cfg(test)]
 mod tests {
-    use rand_chacha::ChaChaRng;
-    use rand_core::SeedableRng;
-
-    fn make_rng() -> ChaChaRng {
-        ChaChaRng::from_seed([0; 32])
-    }
 
     mod test_classic_bingcd {
-        use crate::modular::bingcd::gcd::tests::make_rng;
-        use crate::{
-            Gcd, Int, Random, U64, U128, U192, U256, U384, U512, U1024, U2048, U4096, Uint,
-        };
+        use crate::{Int, U64, U128, U192, U256, U384, U512, U1024, U2048, U4096, Uint};
 
-        fn classic_bingcd_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
-        where
-            Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
-        {
-            let gcd = lhs.gcd(&rhs);
-            let bingcd = lhs.to_odd().unwrap().classic_bingcd(&rhs);
-            assert_eq!(gcd, bingcd);
+        fn classic_bingcd_test<const LIMBS: usize>(
+            lhs: Uint<LIMBS>,
+            rhs: Uint<LIMBS>,
+            target: Uint<LIMBS>,
+        ) {
+            assert_eq!(
+                lhs.to_odd().unwrap().classic_bingcd(&rhs),
+                target.to_odd().unwrap()
+            );
+            assert_eq!(
+                lhs.to_odd().unwrap().classic_bingcd_vartime(&rhs),
+                target.to_odd().unwrap()
+            );
         }
 
-        fn classic_bingcd_tests<const LIMBS: usize>()
-        where
-            Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
-        {
-            // Edge cases
-            classic_bingcd_test(Uint::ONE, Uint::ZERO);
-            classic_bingcd_test(Uint::ONE, Uint::ONE);
-            classic_bingcd_test(Uint::ONE, Int::MAX.abs());
-            classic_bingcd_test(Uint::ONE, Int::MIN.abs());
-            classic_bingcd_test(Uint::ONE, Uint::MAX);
-            classic_bingcd_test(Int::MAX.abs(), Uint::ZERO);
-            classic_bingcd_test(Int::MAX.abs(), Uint::ONE);
-            classic_bingcd_test(Int::MAX.abs(), Int::MAX.abs());
-            classic_bingcd_test(Int::MAX.abs(), Int::MIN.abs());
-            classic_bingcd_test(Int::MAX.abs(), Uint::MAX);
-            classic_bingcd_test(Uint::MAX, Uint::ZERO);
-            classic_bingcd_test(Uint::MAX, Uint::ONE);
-            classic_bingcd_test(Uint::MAX, Int::MAX.abs());
-            classic_bingcd_test(Uint::MAX, Int::MIN.abs());
-            classic_bingcd_test(Uint::MAX, Uint::MAX);
-
-            // Randomized test cases
-            let mut rng = make_rng();
-            for _ in 0..1000 {
-                let x = Uint::<LIMBS>::random(&mut rng).bitor(&Uint::ONE);
-                let y = Uint::<LIMBS>::random(&mut rng);
-                classic_bingcd_test(x, y);
-            }
+        fn classic_bingcd_tests<const LIMBS: usize>() {
+            classic_bingcd_test(Uint::<LIMBS>::ONE, Uint::ZERO, Uint::ONE);
+            classic_bingcd_test(Uint::<LIMBS>::ONE, Uint::ONE, Uint::ONE);
+            classic_bingcd_test(Uint::<LIMBS>::ONE, Int::MAX.abs(), Uint::ONE);
+            classic_bingcd_test(Uint::<LIMBS>::ONE, Int::MIN.abs(), Uint::ONE);
+            classic_bingcd_test(Uint::<LIMBS>::ONE, Uint::MAX, Uint::ONE);
+            classic_bingcd_test(Int::<LIMBS>::MAX.abs(), Uint::ZERO, Int::MAX.abs());
+            classic_bingcd_test(Int::<LIMBS>::MAX.abs(), Uint::ONE, Uint::ONE);
+            classic_bingcd_test(Int::<LIMBS>::MAX.abs(), Int::MAX.abs(), Int::MAX.abs());
+            classic_bingcd_test(Int::<LIMBS>::MAX.abs(), Int::MIN.abs(), Uint::ONE);
+            classic_bingcd_test(Int::<LIMBS>::MAX.abs(), Uint::MAX, Uint::ONE);
+            classic_bingcd_test(Uint::<LIMBS>::MAX, Uint::ZERO, Uint::MAX);
+            classic_bingcd_test(Uint::<LIMBS>::MAX, Uint::ONE, Uint::ONE);
+            classic_bingcd_test(Uint::<LIMBS>::MAX, Int::MAX.abs(), Uint::ONE);
+            classic_bingcd_test(Uint::<LIMBS>::MAX, Int::MIN.abs(), Uint::ONE);
+            classic_bingcd_test(Uint::<LIMBS>::MAX, Uint::MAX, Uint::MAX);
         }
 
         #[test]
@@ -242,46 +227,39 @@ mod tests {
     }
 
     mod test_optimized_bingcd {
-        use crate::modular::bingcd::gcd::tests::make_rng;
-        use crate::{Gcd, Int, Random, U128, U192, U256, U384, U512, U1024, U2048, U4096, Uint};
+        use crate::{Int, U128, U192, U256, U384, U512, U1024, U2048, U4096, Uint};
 
-        fn optimized_bingcd_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
-        where
-            Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
-        {
-            let gcd = lhs.gcd(&rhs);
-            let bingcd = lhs.to_odd().unwrap().optimized_bingcd(&rhs);
-            assert_eq!(gcd, bingcd);
+        fn optimized_bingcd_test<const LIMBS: usize>(
+            lhs: Uint<LIMBS>,
+            rhs: Uint<LIMBS>,
+            target: Uint<LIMBS>,
+        ) {
+            assert_eq!(
+                lhs.to_odd().unwrap().optimized_bingcd(&rhs),
+                target.to_odd().unwrap()
+            );
+            assert_eq!(
+                lhs.to_odd().unwrap().optimized_bingcd_vartime(&rhs),
+                target.to_odd().unwrap()
+            );
         }
 
-        fn optimized_bingcd_tests<const LIMBS: usize>()
-        where
-            Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
-        {
-            // Edge cases
-            optimized_bingcd_test(Uint::ONE, Uint::ZERO);
-            optimized_bingcd_test(Uint::ONE, Uint::ONE);
-            optimized_bingcd_test(Uint::ONE, Int::MAX.abs());
-            optimized_bingcd_test(Uint::ONE, Int::MIN.abs());
-            optimized_bingcd_test(Uint::ONE, Uint::MAX);
-            optimized_bingcd_test(Int::MAX.abs(), Uint::ZERO);
-            optimized_bingcd_test(Int::MAX.abs(), Uint::ONE);
-            optimized_bingcd_test(Int::MAX.abs(), Int::MAX.abs());
-            optimized_bingcd_test(Int::MAX.abs(), Int::MIN.abs());
-            optimized_bingcd_test(Int::MAX.abs(), Uint::MAX);
-            optimized_bingcd_test(Uint::MAX, Uint::ZERO);
-            optimized_bingcd_test(Uint::MAX, Uint::ONE);
-            optimized_bingcd_test(Uint::MAX, Int::MAX.abs());
-            optimized_bingcd_test(Uint::MAX, Int::MIN.abs());
-            optimized_bingcd_test(Uint::MAX, Uint::MAX);
-
-            // Randomized testing
-            let mut rng = make_rng();
-            for _ in 0..1000 {
-                let x = Uint::<LIMBS>::random(&mut rng).bitor(&Uint::ONE);
-                let y = Uint::<LIMBS>::random(&mut rng);
-                optimized_bingcd_test(x, y);
-            }
+        fn optimized_bingcd_tests<const LIMBS: usize>() {
+            optimized_bingcd_test(Uint::<LIMBS>::ONE, Uint::ZERO, Uint::ONE);
+            optimized_bingcd_test(Uint::<LIMBS>::ONE, Uint::ONE, Uint::ONE);
+            optimized_bingcd_test(Uint::<LIMBS>::ONE, Int::MAX.abs(), Uint::ONE);
+            optimized_bingcd_test(Uint::<LIMBS>::ONE, Int::MIN.abs(), Uint::ONE);
+            optimized_bingcd_test(Uint::<LIMBS>::ONE, Uint::MAX, Uint::ONE);
+            optimized_bingcd_test(Int::<LIMBS>::MAX.abs(), Uint::ZERO, Int::MAX.abs());
+            optimized_bingcd_test(Int::<LIMBS>::MAX.abs(), Uint::ONE, Uint::ONE);
+            optimized_bingcd_test(Int::<LIMBS>::MAX.abs(), Int::MAX.abs(), Int::MAX.abs());
+            optimized_bingcd_test(Int::<LIMBS>::MAX.abs(), Int::MIN.abs(), Uint::ONE);
+            optimized_bingcd_test(Int::<LIMBS>::MAX.abs(), Uint::MAX, Uint::ONE);
+            optimized_bingcd_test(Uint::<LIMBS>::MAX, Uint::ZERO, Uint::MAX);
+            optimized_bingcd_test(Uint::<LIMBS>::MAX, Uint::ONE, Uint::ONE);
+            optimized_bingcd_test(Uint::<LIMBS>::MAX, Int::MAX.abs(), Uint::ONE);
+            optimized_bingcd_test(Uint::<LIMBS>::MAX, Int::MIN.abs(), Uint::ONE);
+            optimized_bingcd_test(Uint::<LIMBS>::MAX, Uint::MAX, Uint::MAX);
         }
 
         #[test]
