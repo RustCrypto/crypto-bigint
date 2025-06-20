@@ -26,6 +26,15 @@ fn to_uint(big_uint: BigUint) -> U256 {
     U256::from_le_slice(&input)
 }
 
+fn to_uint_large(big_uint: BigUint) -> U4096 {
+    let mut input = [0u8; U4096::BYTES];
+    let encoded = big_uint.to_bytes_le();
+    let l = encoded.len().min(U4096::BYTES);
+    input[..l].copy_from_slice(&encoded[..l]);
+
+    U4096::from_le_slice(&input)
+}
+
 fn to_uint_xlarge(big_uint: BigUint) -> U8192 {
     let mut input = [0u8; U8192::BYTES];
     let encoded = big_uint.to_bytes_le();
@@ -351,6 +360,28 @@ proptest! {
         prop_assert_eq!(expected, actual);
     }
 
+    /// Hits `classic_bingcd`
+    #[test]
+    fn bingcd(f in uint(), g in uint()) {
+        let f_bi = to_biguint(&f);
+        let g_bi = to_biguint(&g);
+
+        let expected = to_uint(f_bi.gcd(&g_bi));
+        let actual = f.bingcd(&g);
+        prop_assert_eq!(expected, actual);
+    }
+
+    /// Hits `optimized_bingcd`
+    #[test]
+    fn bingcd_large(f in uint_large(), g in uint_large()) {
+        let f_bi = to_biguint(&f);
+        let g_bi = to_biguint(&g);
+
+        let expected = to_uint_large(f_bi.gcd(&g_bi));
+        let actual = f.bingcd(&g);
+        prop_assert_eq!(expected, actual);
+    }
+
     #[test]
     fn gcd_vartime(mut f in uint(), g in uint()) {
         if bool::from(f.is_even()) {
@@ -363,6 +394,16 @@ proptest! {
 
         let f = Odd::new(f).unwrap();
         let actual = f.gcd_vartime(&g);
+        prop_assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn bingcd_vartime(f in uint(), g in uint()) {
+        let f_bi = to_biguint(&f);
+        let g_bi = to_biguint(&g);
+
+        let expected = to_uint(f_bi.gcd(&g_bi));
+        let actual = f.bingcd_vartime(&g);
         prop_assert_eq!(expected, actual);
     }
 
