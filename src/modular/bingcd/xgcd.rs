@@ -10,7 +10,7 @@ pub(crate) struct RawOddUintBinxgcdOutput<const LIMBS: usize> {
 
 impl<const LIMBS: usize> RawOddUintBinxgcdOutput<LIMBS> {
     /// Process raw output, constructing an [UintBinxgcdOutput] object.
-    pub(crate) const fn process(&mut self) -> OddUintBinxgcdOutput<LIMBS> {
+    pub(crate) fn process(&mut self) -> OddUintBinxgcdOutput<LIMBS> {
         self.remove_matrix_factors();
         let (x, y) = self.bezout_coefficients();
         let (lhs_on_gcd, rhs_on_gcd) = self.quotients();
@@ -33,7 +33,7 @@ impl<const LIMBS: usize> RawOddUintBinxgcdOutput<LIMBS> {
     /// This is allowed since it is assumed that `self.matrix * (lhs, rhs) = (gcd, 0)`; dividing
     /// the bottom row of the matrix by a constant has no impact since its inner-product with the
     /// input vector is zero.
-    const fn remove_matrix_factors(&mut self) {
+    fn remove_matrix_factors(&mut self) {
         let (lhs_div_gcd, rhs_div_gcd) = self.quotients();
         let (x, y, .., k, k_upper_bound) = self.matrix.as_elements_mut();
         if *k_upper_bound > 0 {
@@ -53,7 +53,7 @@ impl<const LIMBS: usize> RawOddUintBinxgcdOutput<LIMBS> {
     }
 
     /// Obtain the bezout coefficients `(x, y)` such that `lhs * x + rhs * y = gcd`.
-    const fn bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
+    fn bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
         let (m00, m01, m10, m11, pattern, ..) = self.matrix.as_elements();
         let m10_sub_m00 = m10.wrapping_sub(m00);
         let m11_sub_m01 = m11.wrapping_sub(m01);
@@ -68,7 +68,7 @@ impl<const LIMBS: usize> RawOddUintBinxgcdOutput<LIMBS> {
     }
 
     /// Obtain the quotients `lhs/gcd` and `rhs/gcd` from `matrix`.
-    const fn quotients(&self) -> (Uint<LIMBS>, Uint<LIMBS>) {
+    fn quotients(&self) -> (Uint<LIMBS>, Uint<LIMBS>) {
         let (.., rhs_div_gcd, lhs_div_gcd, _, _, _) = self.matrix.as_elements();
         (*lhs_div_gcd, *rhs_div_gcd)
     }
@@ -96,12 +96,12 @@ pub struct BaseUintBinxgcdOutput<T: Copy, const LIMBS: usize> {
 
 impl<T: Copy, const LIMBS: usize> BaseUintBinxgcdOutput<T, LIMBS> {
     /// Borrow the elements in this struct.
-    pub const fn to_components(&self) -> (T, Int<LIMBS>, Int<LIMBS>, Uint<LIMBS>, Uint<LIMBS>) {
+    pub fn to_components(&self) -> (T, Int<LIMBS>, Int<LIMBS>, Uint<LIMBS>, Uint<LIMBS>) {
         (self.gcd, self.x, self.y, self.lhs_on_gcd, self.rhs_on_gcd)
     }
 
     /// Mutably borrow the elements in this struct.
-    pub const fn as_components_mut(
+    pub fn as_components_mut(
         &mut self,
     ) -> (
         &mut T,
@@ -120,17 +120,17 @@ impl<T: Copy, const LIMBS: usize> BaseUintBinxgcdOutput<T, LIMBS> {
     }
 
     /// The greatest common divisor stored in this object.
-    pub const fn gcd(&self) -> T {
+    pub fn gcd(&self) -> T {
         self.gcd
     }
 
     /// Obtain a copy of the Bézout coefficients.
-    pub const fn bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
+    pub fn bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
         (self.x, self.y)
     }
 
     /// Obtain a copy of the quotients `lhs/gcd` and `rhs/gcd`.
-    pub const fn quotients(&self) -> (Uint<LIMBS>, Uint<LIMBS>) {
+    pub fn quotients(&self) -> (Uint<LIMBS>, Uint<LIMBS>) {
         (self.lhs_on_gcd, self.rhs_on_gcd)
     }
 }
@@ -151,10 +151,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
     /// leveraging the Binary Extended GCD algorithm.
-    pub(crate) const fn binxgcd_nz(
-        &self,
-        rhs: &NonZero<Uint<LIMBS>>,
-    ) -> OddUintBinxgcdOutput<LIMBS> {
+    pub(crate) fn binxgcd_nz(&self, rhs: &NonZero<Uint<LIMBS>>) -> OddUintBinxgcdOutput<LIMBS> {
         let (lhs_, rhs_) = (self.as_ref(), rhs.as_ref());
 
         // The `binxgcd` subroutine requires `rhs` needs to be odd. We leverage the equality
@@ -190,7 +187,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// This function switches between the "classic" and "optimized" algorithm at a best-effort
     /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
     /// manually test whether the classic or optimized algorithm is faster for your machine.
-    pub(crate) const fn binxgcd_(&self, rhs: &Self) -> RawOddUintBinxgcdOutput<LIMBS> {
+    pub(crate) fn binxgcd_(&self, rhs: &Self) -> RawOddUintBinxgcdOutput<LIMBS> {
         if LIMBS < 4 {
             self.classic_binxgcd(rhs)
         } else {
@@ -204,7 +201,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
     /// <https://eprint.iacr.org/2020/972.pdf>.
-    pub(crate) const fn classic_binxgcd(&self, rhs: &Self) -> RawOddUintBinxgcdOutput<LIMBS> {
+    pub(crate) fn classic_binxgcd(&self, rhs: &Self) -> RawOddUintBinxgcdOutput<LIMBS> {
         let (gcd, _, matrix) = self.partial_binxgcd_vartime::<LIMBS>(
             rhs.as_ref(),
             Self::MIN_BINGCD_ITERATIONS,
@@ -228,7 +225,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
     /// <https://eprint.iacr.org/2020/972.pdf>.
-    pub(crate) const fn optimized_binxgcd(&self, rhs: &Self) -> RawOddUintBinxgcdOutput<LIMBS> {
+    pub(crate) fn optimized_binxgcd(&self, rhs: &Self) -> RawOddUintBinxgcdOutput<LIMBS> {
         assert!(Self::BITS >= U128::BITS);
         self.optimized_binxgcd_::<SUMMARY_BITS, SUMMARY_LIMBS, DOUBLE_SUMMARY_LIMBS>(rhs)
     }
@@ -249,11 +246,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///   `K` close to a (multiple of) the number of bits that fit in a single register.
     /// - `LIMBS_K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ K`,
     /// - `LIMBS_2K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ 2K`.
-    pub(crate) const fn optimized_binxgcd_<
-        const K: u32,
-        const LIMBS_K: usize,
-        const LIMBS_2K: usize,
-    >(
+    pub(crate) fn optimized_binxgcd_<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
         &self,
         rhs: &Self,
     ) -> RawOddUintBinxgcdOutput<LIMBS> {
@@ -346,7 +339,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// The function executes in time variable in `iterations`.
     #[inline]
-    pub(crate) const fn partial_binxgcd_vartime<const UPDATE_LIMBS: usize>(
+    pub(crate) fn partial_binxgcd_vartime<const UPDATE_LIMBS: usize>(
         &self,
         rhs: &Uint<LIMBS>,
         iterations: u32,
@@ -402,7 +395,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// Ref: Pornin, Algorithm 2, L8-17, <https://eprint.iacr.org/2020/972.pdf>.
     #[inline]
-    const fn binxgcd_step<const MATRIX_LIMBS: usize>(
+    fn binxgcd_step<const MATRIX_LIMBS: usize>(
         a: &mut Uint<LIMBS>,
         b: &mut Uint<LIMBS>,
         matrix: &mut BinXgcdMatrix<MATRIX_LIMBS>,

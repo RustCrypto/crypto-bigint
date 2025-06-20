@@ -48,10 +48,7 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
     /// [  1 0 ]     [ 1 -1 ]
     /// [ -1 1 ] or  [ 0  1 ]
     /// ```
-    pub(crate) const fn get_subtraction_matrix(
-        top_from_bottom: ConstChoice,
-        k_upper_bound: u32,
-    ) -> Self {
+    pub(crate) fn get_subtraction_matrix(top_from_bottom: ConstChoice, k_upper_bound: u32) -> Self {
         let (mut m01, mut m10) = (Uint::ONE, Uint::ZERO);
         Uint::conditional_swap(&mut m01, &mut m10, top_from_bottom);
         Self::new(
@@ -85,7 +82,7 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
         }
     }
 
-    pub(crate) const fn as_elements(
+    pub(crate) fn as_elements(
         &self,
     ) -> (
         &Uint<LIMBS>,
@@ -107,7 +104,7 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
         )
     }
 
-    pub(crate) const fn as_elements_mut(
+    pub(crate) fn as_elements_mut(
         &mut self,
     ) -> (
         &mut Uint<LIMBS>,
@@ -131,7 +128,7 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
 
     /// Return `b` if `c` is truthy, otherwise return `a`.
     #[inline]
-    pub(crate) const fn select(a: &Self, b: &Self, c: ConstChoice) -> Self {
+    pub(crate) fn select(a: &Self, b: &Self, c: ConstChoice) -> Self {
         Self {
             m00: Uint::select(&a.m00, &b.m00, c),
             m01: Uint::select(&a.m01, &b.m01, c),
@@ -146,7 +143,7 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
     /// Apply this matrix to a vector of [Uint]s, returning the result as a vector of
     /// [ExtendedInt]s.
     #[inline]
-    pub(crate) const fn extended_apply_to<const VEC_LIMBS: usize>(
+    pub(crate) fn extended_apply_to<const VEC_LIMBS: usize>(
         &self,
         vec: Vector<Uint<VEC_LIMBS>>,
     ) -> Vector<ExtendedInt<VEC_LIMBS, LIMBS>> {
@@ -167,7 +164,7 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
 
     /// Wrapping apply this matrix to `rhs`. Return the result in `RHS_LIMBS`.
     #[inline]
-    pub(crate) const fn wrapping_mul_right<const RHS_LIMBS: usize>(
+    pub(crate) fn wrapping_mul_right<const RHS_LIMBS: usize>(
         &self,
         rhs: &BinXgcdMatrix<RHS_LIMBS>,
     ) -> BinXgcdMatrix<RHS_LIMBS> {
@@ -197,7 +194,7 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
 
     /// Swap the rows of this matrix if `swap` is truthy. Otherwise, do nothing.
     #[inline]
-    pub(crate) const fn conditional_swap_rows(&mut self, swap: ConstChoice) {
+    pub(crate) fn conditional_swap_rows(&mut self, swap: ConstChoice) {
         Uint::conditional_swap(&mut self.m00, &mut self.m10, swap);
         Uint::conditional_swap(&mut self.m01, &mut self.m11, swap);
         self.pattern = self.pattern.xor(swap);
@@ -205,13 +202,13 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
 
     /// Swap the rows of this matrix.
     #[inline]
-    pub(crate) const fn swap_rows(&mut self) {
+    pub(crate) fn swap_rows(&mut self) {
         self.conditional_swap_rows(ConstChoice::TRUE);
     }
 
     /// Subtract the bottom row from the top if `subtract` is truthy. Otherwise, do nothing.
     #[inline]
-    pub(crate) const fn conditional_subtract_bottom_row_from_top(&mut self, subtract: ConstChoice) {
+    pub(crate) fn conditional_subtract_bottom_row_from_top(&mut self, subtract: ConstChoice) {
         // Note: because the signs of the internal representation are stored in `pattern`,
         // subtracting one row from another involves _adding_ these rows instead.
         self.m00 = Uint::select(&self.m00, &self.m00.wrapping_add(&self.m10), subtract);
@@ -220,10 +217,7 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
 
     /// Subtract the right column from the left if `subtract` is truthy. Otherwise, do nothing.
     #[inline]
-    pub(crate) const fn conditional_subtract_right_column_from_left(
-        &mut self,
-        subtract: ConstChoice,
-    ) {
+    pub(crate) fn conditional_subtract_right_column_from_left(&mut self, subtract: ConstChoice) {
         // Note: because the signs of the internal representation are stored in `pattern`,
         // subtracting one column from another involves _adding_ these columns instead.
         self.m00 = Uint::select(&self.m00, &self.m00.wrapping_add(&self.m01), subtract);
@@ -232,7 +226,7 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
 
     /// If `add` is truthy, add the right column to the left. Otherwise, do nothing.
     #[inline]
-    pub(crate) const fn conditional_add_right_column_to_left(&mut self, add: ConstChoice) {
+    pub(crate) fn conditional_add_right_column_to_left(&mut self, add: ConstChoice) {
         // Note: because the signs of the internal representation are stored in `pattern`,
         // subtracting one column from another involves _adding_ these columns instead.
         self.m00 = Uint::select(&self.m00, &self.m01.wrapping_sub(&self.m00), add);
@@ -241,7 +235,7 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
 
     /// Double the bottom row of this matrix if `double` is truthy. Otherwise, do nothing.
     #[inline]
-    pub(crate) const fn conditional_double_bottom_row(&mut self, double: ConstChoice) {
+    pub(crate) fn conditional_double_bottom_row(&mut self, double: ConstChoice) {
         // safe to vartime; shr_vartime is variable in the value of shift only. Since this shift
         // is a public constant, the constant time property of this algorithm is not impacted.
         self.m10 = Uint::select(&self.m10, &self.m10.shl_vartime(1), double);
@@ -252,7 +246,7 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
 
     /// Negate the elements in this matrix if `negate` is truthy. Otherwise, do nothing.
     #[inline]
-    pub(crate) const fn conditional_negate(&mut self, negate: ConstChoice) {
+    pub(crate) fn conditional_negate(&mut self, negate: ConstChoice) {
         self.pattern = self.pattern.xor(negate);
     }
 }

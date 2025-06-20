@@ -1,12 +1,12 @@
 use crate::{ConstChoice, Limb, Odd, Uint};
 
 /// `const` equivalent of `u32::max(a, b)`.
-pub(crate) const fn const_max(a: u32, b: u32) -> u32 {
+pub(crate) fn const_max(a: u32, b: u32) -> u32 {
     ConstChoice::from_u32_lt(a, b).select_u32(a, b)
 }
 
 /// `const` equivalent of `u32::min(a, b)`.
-pub(crate) const fn const_min(a: u32, b: u32) -> u32 {
+pub(crate) fn const_min(a: u32, b: u32) -> u32 {
     ConstChoice::from_u32_lt(a, b).select_u32(b, a)
 }
 
@@ -16,12 +16,7 @@ impl Limb {
     ///
     /// Executes in time variable in `k_bound`. This value should be chosen as an inclusive
     /// upperbound to the value of `k`.
-    const fn bounded_div2k_mod_q(
-        mut self,
-        k: u32,
-        k_bound: u32,
-        one_half_mod_q: Self,
-    ) -> (Self, Self) {
+    fn bounded_div2k_mod_q(mut self, k: u32, k_bound: u32, one_half_mod_q: Self) -> (Self, Self) {
         let mut factor = Limb::ZERO;
         let mut i = 0;
         while i < k_bound {
@@ -47,7 +42,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Executes in time variable in `k_bound`. This value should be chosen as an inclusive
     /// upperbound to the value of `k`.
     #[inline]
-    pub(crate) const fn bounded_div_2k_mod_q(self, k: u32, k_bound: u32, q: &Odd<Self>) -> Self {
+    pub(crate) fn bounded_div_2k_mod_q(self, k: u32, k_bound: u32, q: &Odd<Self>) -> Self {
         //        1  / 2      mod q
         // = (q + 1) / 2      mod q
         // = (q - 1) / 2  + 1 mod q
@@ -83,7 +78,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes `self + (b * c) + carry`, returning the result along with the new carry.
     #[inline]
-    const fn mac_limb(mut self, b: &Self, c: Limb, mut carry: Limb) -> (Self, Limb) {
+    fn mac_limb(mut self, b: &Self, c: Limb, mut carry: Limb) -> (Self, Limb) {
         let mut i = 0;
         while i < LIMBS {
             (self.limbs[i], carry) = self.limbs[i].mac(b.limbs[i], c, carry);
@@ -98,7 +93,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Executes in time variable in `length` only.
     #[inline(always)]
-    pub(crate) const fn section_vartime_length<const SECTION_LIMBS: usize>(
+    pub(crate) fn section_vartime_length<const SECTION_LIMBS: usize>(
         &self,
         idx: u32,
         length: u32,
@@ -116,7 +111,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Executes in time variable in `idx` and `length`.
     #[inline(always)]
-    pub(crate) const fn section_vartime<const SECTION_LIMBS: usize>(
+    pub(crate) fn section_vartime<const SECTION_LIMBS: usize>(
         &self,
         idx: u32,
         length: u32,
@@ -135,7 +130,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Assumes `K ≤ Uint::<SUMMARY_LIMBS>::BITS`, `n ≤ Self::BITS` and `n ≥ 2K`.
     #[inline(always)]
-    pub(crate) const fn compact<const K: u32, const SUMMARY_LIMBS: usize>(
+    pub(crate) fn compact<const K: u32, const SUMMARY_LIMBS: usize>(
         &self,
         n: u32,
     ) -> Uint<SUMMARY_LIMBS> {

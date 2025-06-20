@@ -17,7 +17,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
 
     /// Interpret `self` as an [ExtendedInt]
     #[inline]
-    pub const fn as_extended_int(&self) -> ExtendedInt<LIMBS, EXTRA> {
+    pub fn as_extended_int(&self) -> ExtendedInt<LIMBS, EXTRA> {
         ExtendedInt(self.0, self.1)
     }
 
@@ -25,7 +25,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
     ///
     /// Note: maps `0` to itself.
     #[inline]
-    pub const fn wrapping_neg(&self) -> Self {
+    pub fn wrapping_neg(&self) -> Self {
         let (lhs, carry) = self.0.carrying_neg();
         let mut rhs = self.1.not();
         rhs = Uint::select(&rhs, &rhs.wrapping_add(&Uint::ONE), carry);
@@ -34,7 +34,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
 
     /// Negate `self` if `negate` is truthy. Otherwise returns `self`.
     #[inline]
-    pub const fn wrapping_neg_if(&self, negate: ConstChoice) -> Self {
+    pub fn wrapping_neg_if(&self, negate: ConstChoice) -> Self {
         let neg = self.wrapping_neg();
         Self(
             Uint::select(&self.0, &neg.0, negate),
@@ -46,7 +46,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
     ///
     /// Assumes `shift <= Uint::<EXTRA>::BITS`.
     #[inline]
-    pub const fn shr(&self, shift: u32) -> Self {
+    pub fn shr(&self, shift: u32) -> Self {
         debug_assert!(shift <= Uint::<EXTRA>::BITS);
 
         let shift_is_zero = ConstChoice::from_u32_eq(shift, 0);
@@ -79,19 +79,19 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     ///
     /// Assumes the top bit of the product is not set.
     #[inline]
-    pub const fn from_product(lhs: Uint<LIMBS>, rhs: Uint<EXTRA>) -> Self {
+    pub fn from_product(lhs: Uint<LIMBS>, rhs: Uint<EXTRA>) -> Self {
         ExtendedUint::from_product(lhs, rhs).as_extended_int()
     }
 
     /// Interpret this as an [ExtendedUint].
     #[inline]
-    pub const fn as_extended_uint(&self) -> ExtendedUint<LIMBS, EXTRA> {
+    pub fn as_extended_uint(&self) -> ExtendedUint<LIMBS, EXTRA> {
         ExtendedUint(self.0, self.1)
     }
 
     /// Return the negation of `self` if `negate` is truthy. Otherwise, return `self`.
     #[inline]
-    pub const fn wrapping_neg_if(&self, negate: ConstChoice) -> Self {
+    pub fn wrapping_neg_if(&self, negate: ConstChoice) -> Self {
         self.as_extended_uint()
             .wrapping_neg_if(negate)
             .as_extended_int()
@@ -99,7 +99,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
 
     /// Compute `self - rhs`, wrapping any underflow.
     #[inline]
-    pub const fn wrapping_sub(&self, rhs: &Self) -> Self {
+    pub fn wrapping_sub(&self, rhs: &Self) -> Self {
         let (lo, borrow) = self.0.sbb(&rhs.0, Limb::ZERO);
         let (hi, _) = self.1.sbb(&rhs.1, borrow);
         Self(lo, hi)
@@ -107,14 +107,14 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
 
     /// Returns self without the extension.
     #[inline]
-    pub const fn wrapping_drop_extension(&self) -> (Uint<LIMBS>, ConstChoice) {
+    pub fn wrapping_drop_extension(&self) -> (Uint<LIMBS>, ConstChoice) {
         let (abs, sgn) = self.abs_sgn();
         (abs.0, sgn)
     }
 
     /// Decompose `self` into is absolute value and signum.
     #[inline]
-    pub const fn abs_sgn(&self) -> (ExtendedUint<LIMBS, EXTRA>, ConstChoice) {
+    pub fn abs_sgn(&self) -> (ExtendedUint<LIMBS, EXTRA>, ConstChoice) {
         let is_negative = self.1.as_int().is_negative();
         (
             self.wrapping_neg_if(is_negative).as_extended_uint(),
@@ -124,7 +124,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
 
     /// Divide self by `2^k`, rounding towards zero.
     #[inline]
-    pub const fn div_2k(&self, k: u32) -> Self {
+    pub fn div_2k(&self, k: u32) -> Self {
         let (abs, sgn) = self.abs_sgn();
         abs.shr(k).wrapping_neg_if(sgn).as_extended_int()
     }
@@ -147,7 +147,7 @@ mod tests {
     impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
         /// Decompose `self` into the bottom and top limbs.
         #[inline]
-        const fn as_elements(&self) -> (Uint<LIMBS>, Uint<EXTRA>) {
+        fn as_elements(&self) -> (Uint<LIMBS>, Uint<EXTRA>) {
             (self.0, self.1)
         }
     }

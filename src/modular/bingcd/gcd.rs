@@ -14,7 +14,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
     /// <https://eprint.iacr.org/2020/972.pdf>
     #[inline]
-    pub const fn classic_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
+    pub fn classic_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
         // (self, rhs) corresponds to (m, y) in the Algorithm 1 notation.
         let (mut a, mut b) = (*rhs, *self.as_ref());
         let mut j = 0;
@@ -42,7 +42,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// Ref: Pornin, Algorithm 1, L3-9, <https://eprint.iacr.org/2020/972.pdf>.
     #[inline]
-    const fn bingcd_step(a: &mut Uint<LIMBS>, b: &mut Uint<LIMBS>) {
+    fn bingcd_step(a: &mut Uint<LIMBS>, b: &mut Uint<LIMBS>) {
         let a_odd = a.is_odd();
         let a_lt_b = Uint::lt(a, b);
         Uint::conditional_swap(a, b, a_odd.and(a_lt_b));
@@ -63,7 +63,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
     /// <https://eprint.iacr.org/2020/972.pdf>
     #[inline]
-    pub const fn optimized_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
+    pub fn optimized_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
         self.optimized_bingcd_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
     }
 
@@ -83,7 +83,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// - `LIMBS_K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ K`,
     /// - `LIMBS_2K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ 2K`.
     #[inline]
-    pub const fn optimized_bingcd_<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
+    pub fn optimized_bingcd_<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
         &self,
         rhs: &Uint<LIMBS>,
     ) -> Self {

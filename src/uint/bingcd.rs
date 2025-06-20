@@ -8,7 +8,7 @@ use crate::{ConstChoice, Int, NonZero, Odd, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute the greatest common divisor of `self` and `rhs`.
-    pub const fn bingcd(&self, rhs: &Self) -> Self {
+    pub fn bingcd(&self, rhs: &Self) -> Self {
         let self_is_zero = self.is_nonzero().not();
         let self_nz = Uint::select(self, &Uint::ONE, self_is_zero)
             .to_nz()
@@ -19,7 +19,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Executes the Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)`, s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub const fn binxgcd(&self, rhs: &Self) -> UintBinxgcdOutput<LIMBS> {
+    pub fn binxgcd(&self, rhs: &Self) -> UintBinxgcdOutput<LIMBS> {
         // Make sure `self` and `rhs` are nonzero.
         let self_is_zero = self.is_nonzero().not();
         let self_nz = Uint::select(self, &Uint::ONE, self_is_zero)
@@ -67,7 +67,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
 impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     /// Compute the greatest common divisor of `self` and `rhs`.
-    pub const fn bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
+    pub fn bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
         let val = self.as_ref();
         // Leverage two GCD identity rules to make self odd.
         // 1) gcd(2a, 2b) = 2 * gcd(a, b)
@@ -89,7 +89,7 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     /// Execute the Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub const fn binxgcd(&self, rhs: &Self) -> NonZeroUintBinxgcdOutput<LIMBS> {
+    pub fn binxgcd(&self, rhs: &Self) -> NonZeroUintBinxgcdOutput<LIMBS> {
         let (mut lhs, mut rhs) = (*self.as_ref(), *rhs.as_ref());
 
         // Leverage the property that gcd(2^k * a, 2^k *b) = 2^k * gcd(a, b)
@@ -139,7 +139,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
     /// manually test whether the classic or optimized algorithm is faster for your machine.
     #[inline(always)]
-    pub const fn bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
+    pub fn bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
         if LIMBS < 6 {
             self.classic_bingcd(rhs)
         } else {
@@ -150,7 +150,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Execute the Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub const fn binxgcd(&self, rhs: &Self) -> OddUintBinxgcdOutput<LIMBS> {
+    pub fn binxgcd(&self, rhs: &Self) -> OddUintBinxgcdOutput<LIMBS> {
         self.binxgcd_(rhs).process()
     }
 }
