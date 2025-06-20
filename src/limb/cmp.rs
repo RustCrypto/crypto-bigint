@@ -34,7 +34,7 @@ impl Limb {
 
     /// Swap the values of `a` and `b` if `c` is truthy, otherwise do nothing.
     #[inline]
-    pub(crate) const fn conditional_swap(a: &mut Self, b: &mut Self, c: ConstChoice) {
+    pub(crate) const fn ct_conditional_swap(a: &mut Self, b: &mut Self, c: ConstChoice) {
         (*a, *b) = (Self(c.select_word(a.0, b.0)), Self(c.select_word(b.0, a.0)))
     }
 
@@ -174,15 +174,15 @@ mod tests {
     }
 
     #[test]
-    fn conditional_swap() {
+    fn ct_conditional_swap() {
         let mut a = Limb::MAX;
         let mut b = Limb::ZERO;
 
-        Limb::conditional_swap(&mut a, &mut b, ConstChoice::FALSE);
+        Limb::ct_conditional_swap(&mut a, &mut b, ConstChoice::FALSE);
         assert_eq!(a, Limb::MAX);
         assert_eq!(b, Limb::ZERO);
 
-        Limb::conditional_swap(&mut a, &mut b, ConstChoice::TRUE);
+        Limb::ct_conditional_swap(&mut a, &mut b, ConstChoice::TRUE);
         assert_eq!(a, Limb::ZERO);
         assert_eq!(b, Limb::MAX);
     }
