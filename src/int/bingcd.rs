@@ -2,12 +2,19 @@
 //! which is described by Pornin in "Optimized Binary GCD for Modular Inversion".
 //! Ref: <https://eprint.iacr.org/2020/972.pdf>
 
-use crate::{Int, NonZero, Odd, Uint};
+use crate::{Int, NonZero, NonZeroUint, Odd, OddUint, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute the gcd of `self` and `rhs` leveraging the Binary GCD algorithm.
     pub const fn bingcd(&self, rhs: &Self) -> Uint<LIMBS> {
         self.abs().bingcd(&rhs.abs())
+    }
+
+    /// Compute the gcd of `self` and `rhs` leveraging the Binary GCD algorithm.
+    ///
+    /// Executes in variable time w.r.t. all input parameters.
+    pub const fn bingcd_vartime(&self, rhs: &Self) -> Uint<LIMBS> {
+        self.abs().bingcd_vartime(&rhs.abs())
     }
 }
 
@@ -16,12 +23,26 @@ impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
     pub const fn bingcd(&self, rhs: &Self) -> NonZero<Uint<LIMBS>> {
         self.abs().bingcd(&rhs.as_ref().abs())
     }
+
+    /// Compute the gcd of `self` and `rhs` leveraging the Binary GCD algorithm.
+    ///
+    /// Executes in variable time w.r.t. all input parameters.
+    pub const fn bingcd_vartime(&self, rhs: &Self) -> NonZeroUint<LIMBS> {
+        self.abs().bingcd_vartime(rhs.abs().as_ref())
+    }
 }
 
 impl<const LIMBS: usize> Odd<Int<LIMBS>> {
     /// Compute the gcd of `self` and `rhs` leveraging the Binary GCD algorithm.
     pub const fn bingcd(&self, rhs: &Self) -> Odd<Uint<LIMBS>> {
         self.abs().bingcd(&rhs.as_ref().abs())
+    }
+
+    /// Compute the gcd of `self` and `rhs` leveraging the Binary GCD algorithm.
+    ///
+    /// Executes in variable time w.r.t. all input parameters.
+    pub const fn bingcd_vartime(&self, rhs: &Self) -> OddUint<LIMBS> {
+        self.abs().bingcd_vartime(rhs.abs().as_ref())
     }
 }
 

@@ -61,4 +61,24 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // is a public constant, the constant time property of this algorithm is not impacted.
         hi.shl_vartime(K - 1).bitxor(&lo)
     }
+
+    /// Vartime equivalent of [`Self::compact`].
+    #[inline(always)]
+    pub(crate) const fn compact_vartime<const K: u32, const SUMMARY_LIMBS: usize>(
+        &self,
+        n: u32,
+    ) -> Uint<SUMMARY_LIMBS> {
+        debug_assert!(K <= Uint::<SUMMARY_LIMBS>::BITS);
+        debug_assert!(n <= Self::BITS);
+        debug_assert!(n >= 2 * K);
+
+        // safe to vartime; this function is vartime in length only, which is a public constant
+        let hi = self.section_vartime(n - K - 1, K + 1);
+        // safe to vartime; this function is vartime in idx and length only, which are both public
+        // constants
+        let lo = self.section_vartime(0, K - 1);
+        // safe to vartime; shl_vartime is variable in the value of shift only. Since this shift
+        // is a public constant, the constant time property of this algorithm is not impacted.
+        hi.shl_vartime(K - 1).bitxor(&lo)
+    }
 }

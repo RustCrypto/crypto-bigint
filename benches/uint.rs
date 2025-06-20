@@ -421,6 +421,45 @@ fn gcd_bench<const LIMBS: usize, const UNSAT_LIMBS: usize>(
             BatchSize::SmallInput,
         )
     });
+
+    g.bench_function(BenchmarkId::new("bingcd (vt)", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                (
+                    OddUint::<LIMBS>::random(&mut rng),
+                    Uint::<LIMBS>::random(&mut rng),
+                )
+            },
+            |(f, g)| black_box(f.bingcd_vartime(&g)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    g.bench_function(BenchmarkId::new("bingcd (classic, vt)", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                (
+                    OddUint::<LIMBS>::random(&mut rng),
+                    Uint::<LIMBS>::random(&mut rng),
+                )
+            },
+            |(f, g)| black_box(f.classic_bingcd_vartime(&g)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    g.bench_function(BenchmarkId::new("bingcd (optimized, vt)", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                (
+                    OddUint::<LIMBS>::random(&mut rng),
+                    Uint::<LIMBS>::random(&mut rng),
+                )
+            },
+            |(f, g)| black_box(f.optimized_bingcd_vartime(&g)),
+            BatchSize::SmallInput,
+        )
+    });
 }
 
 fn bench_gcd(c: &mut Criterion) {

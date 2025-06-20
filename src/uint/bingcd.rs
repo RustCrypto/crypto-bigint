@@ -11,6 +11,16 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let self_nz = NonZero(Uint::select(self, &Uint::ONE, self_is_zero));
         Uint::select(self_nz.bingcd(rhs).as_ref(), rhs, self_is_zero)
     }
+
+    /// Compute the greatest common divisor of `self` and `rhs`.
+    ///
+    /// Executes in variable time w.r.t. all input parameters.
+    pub const fn bingcd_vartime(&self, rhs: &Self) -> Self {
+        let self_is_zero = self.is_nonzero().not();
+        // Note: is non-zero by construction
+        let self_nz = NonZero(Uint::select(self, &Uint::ONE, self_is_zero));
+        Uint::select(self_nz.bingcd(rhs).as_ref(), rhs, self_is_zero)
+    }
 }
 
 impl<const LIMBS: usize> NonZeroUint<LIMBS> {
@@ -36,6 +46,21 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
         let gcd_div_2k = odd_lhs.bingcd(rhs);
         NonZero(gcd_div_2k.as_ref().shl(k))
     }
+
+    /// Compute the greatest common divisor of `self` and `rhs`.
+    ///
+    /// Executes in variable time w.r.t. all input parameters.
+    pub const fn bingcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
+        let lhs = self.as_ref();
+
+        let i = lhs.trailing_zeros_vartime();
+        let j = rhs.trailing_zeros_vartime();
+        let k = u32_const_min(i, j);
+
+        let odd_lhs = Odd(lhs.shr_vartime(i));
+        let gcd_div_2k = odd_lhs.bingcd(rhs);
+        NonZero(gcd_div_2k.as_ref().shl_vartime(k))
+    }
 }
 
 impl<const LIMBS: usize> OddUint<LIMBS> {
@@ -51,6 +76,22 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
             self.classic_bingcd(rhs)
         } else {
             self.optimized_bingcd(rhs)
+        }
+    }
+    /// Compute the greatest common divisor of `self` and `rhs`.
+    ///
+    /// Executes in variable time w.r.t. all input parameters.
+    ///
+    /// This function switches between the "classic" and "optimized" algorithm at a best-effort
+    /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
+    /// manually test whether the classic or optimized algorithm is faster for your machine.
+    #[inline(always)]
+    pub const fn bingcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
+        // Todo: tweak this threshold
+        if LIMBS < 8 {
+            self.classic_bingcd_vartime(rhs)
+        } else {
+            self.optimized_bingcd_vartime(rhs)
         }
     }
 }

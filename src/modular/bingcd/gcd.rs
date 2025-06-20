@@ -26,6 +26,19 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             .expect("gcd of an odd value with something else is always odd")
     }
 
+    /// Variable time equivalent of [`Self::classic_bingcd`].
+    #[inline]
+    pub const fn classic_bingcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
+        // (self, rhs) corresponds to (m, y) in the Algorithm 1 notation.
+        let (mut a, mut b) = (*rhs, *self.as_ref());
+        while a.is_nonzero().to_bool_vartime() {
+            Self::bingcd_step(&mut a, &mut b);
+        }
+
+        b.to_odd()
+            .expect("gcd of an odd value with something else is always odd")
+    }
+
     /// Binary GCD update step.
     ///
     /// This is a condensed, constant time execution of the following algorithm:
@@ -97,6 +110,48 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let n = u32_const_max(2 * K, u32_const_max(a.bits(), b.bits()));
             let a_ = a.compact::<K, LIMBS_2K>(n);
             let b_ = b.compact::<K, LIMBS_2K>(n);
+
+            // Compute the K-1 iteration update matrix from a_ and b_
+            // Safe to vartime; function executes in time variable in `iterations` only, which is
+            // a public constant K-1 here.
+            let (.., matrix) = a_
+                .to_odd()
+                .expect("a_ is always odd")
+                .partial_binxgcd_vartime::<LIMBS_K>(&b_, K - 1, ConstChoice::FALSE);
+
+            // Update `a` and `b` using the update matrix
+            let (updated_a, updated_b) = matrix.extended_apply_to::<LIMBS, K>((a, b));
+            (a, _) = updated_a.wrapping_drop_extension();
+            (b, _) = updated_b.wrapping_drop_extension();
+        }
+
+        a.to_odd()
+            .expect("gcd of an odd value with something else is always odd")
+    }
+
+    /// Variable time equivalent of [`Self::optimized_bingcd`].
+    #[inline]
+    pub const fn optimized_bingcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
+        self.optimized_bingcd_vartime_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
+    }
+
+    /// Variable time equivalent of [`Self::optimized_bingcd_`].
+    #[inline]
+    pub const fn optimized_bingcd_vartime_<
+        const K: u32,
+        const LIMBS_K: usize,
+        const LIMBS_2K: usize,
+    >(
+        &self,
+        rhs: &Uint<LIMBS>,
+    ) -> Self {
+        let (mut a, mut b) = (*self.as_ref(), *rhs);
+
+        while b.is_nonzero().to_bool_vartime() {
+            // Construct a_ and b_ as the summary of a and b, respectively.
+            let n = u32_const_max(2 * K, u32_const_max(a.bits_vartime(), b.bits_vartime()));
+            let a_ = a.compact_vartime::<K, LIMBS_2K>(n);
+            let b_ = b.compact_vartime::<K, LIMBS_2K>(n);
 
             // Compute the K-1 iteration update matrix from a_ and b_
             // Safe to vartime; function executes in time variable in `iterations` only, which is
