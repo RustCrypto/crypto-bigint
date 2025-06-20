@@ -1,4 +1,4 @@
-use crate::{ConstChoice, Int, Limb, Uint};
+use crate::{ConstChoice, ConstCtOption, Int, Limb, Uint};
 
 pub(crate) struct ExtendedUint<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
     Uint<LIMBS>,
@@ -121,3 +121,53 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
         abs.shr(k).wrapping_neg_if(sgn).as_extended_int()
     }
 }
+
+impl<const LIMBS: usize> Uint<LIMBS> {
+    /// Computes `self >> shift`.
+    ///
+    /// Returns `None` if `shift >= UPPER_BOUND`; panics if `UPPER_BOUND > Self::BITS`.
+    pub const fn bounded_overflowing_shr<const UPPER_BOUND: u32>(
+        &self,
+        shift: u32,
+    ) -> ConstCtOption<Self> {
+        assert!(UPPER_BOUND <= Self::BITS);
+
+        // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
+        // (which lies in range `0 <= shift < BITS`).
+        let shift_bits = u32::BITS - (UPPER_BOUND - 1).leading_zeros();
+        let overflow = ConstChoice::from_u32_lt(shift, UPPER_BOUND).not();
+
+        let shift = shift % UPPER_BOUND;
+        let mut result = *self;
+        let mut i = 0;
+        while i < shift_bits {
+            let bit = ConstChoice::from_u32_lsb((shift >> i) & 1);
+            result = Uint::select(
+                &result,
+                &result
+                    .overflowing_shr_vartime(1 << i)
+                    .expect("shift within range"),
+                bit,
+            );
+            i += 1;
+        }
+
+        ConstCtOption::new(Uint::select(&result, &Self::ZERO, overflow), overflow.not())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::U64;
+
+    #[test]
+    fn bounded_overflowing_shr() {
+        let res = U64::MAX.bounded_overflowing_shr::<32>(20);
+        assert!(bool::from(res.is_some()));
+        assert_eq!(res.unwrap(), U64::MAX.overflowing_shr(20).unwrap());
+
+        let res = U64::MAX.bounded_overflowing_shr::<32>(32);
+        assert!(bool::from(res.is_none()));
+    }
+}
+
