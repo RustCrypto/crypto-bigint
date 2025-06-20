@@ -28,7 +28,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Swap `a` and `b` if `c` is truthy, otherwise, do nothing.
     #[inline]
     pub(crate) const fn conditional_swap(a: &mut Self, b: &mut Self, c: ConstChoice) {
-        (*a, *b) = (Self::select(a, b, c), Self::select(b, a, c));
+        let mut i = 0;
+        let a = a.as_mut_limbs();
+        let b = b.as_mut_limbs();
+        while i < LIMBS {
+            Limb::ct_conditional_swap(&mut a[i], &mut b[i], c);
+            i += 1;
+        }
     }
 
     /// Swap `a` and `b`
@@ -185,7 +191,7 @@ mod tests {
 
     use subtle::{ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
-    use crate::{Integer, U128, Uint, Zero};
+    use crate::{ConstChoice, Integer, U128, Uint, Zero};
 
     #[test]
     fn is_zero() {
@@ -311,5 +317,19 @@ mod tests {
         assert_eq!(b.cmp_vartime(&a), Ordering::Greater);
         assert_eq!(c.cmp_vartime(&a), Ordering::Greater);
         assert_eq!(c.cmp_vartime(&b), Ordering::Greater);
+    }
+
+    #[test]
+    fn conditional_swap() {
+        let mut a = U128::ZERO;
+        let mut b = U128::MAX;
+
+        Uint::conditional_swap(&mut a, &mut b, ConstChoice::FALSE);
+        assert_eq!(a, Uint::ZERO);
+        assert_eq!(b, Uint::MAX);
+
+        Uint::conditional_swap(&mut a, &mut b, ConstChoice::TRUE);
+        assert_eq!(a, Uint::MAX);
+        assert_eq!(b, Uint::ZERO);
     }
 }
