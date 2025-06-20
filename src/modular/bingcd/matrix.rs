@@ -80,8 +80,6 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
     /// Double the bottom row of this matrix if `double` is truthy. Otherwise, do nothing.
     #[inline]
     pub(crate) const fn conditional_double_bottom_row(&mut self, double: ConstChoice) {
-        // safe to vartime; shr_vartime is variable in the value of shift only. Since this shift
-        // is a public constant, the constant time property of this algorithm is not impacted.
         self.m10 = self
             .m10
             .wrapping_add(&Int::select(&Int::ZERO, &self.m10, double));

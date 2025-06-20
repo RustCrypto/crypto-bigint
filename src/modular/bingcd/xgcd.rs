@@ -92,9 +92,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
         // Div a by 2.
         let double = a.is_nonzero().or(halt_at_zero.not());
-        // safe to vartime; shr_vartime is variable in the value of shift only. Since this shift
-        // is a public constant, the constant time property of this algorithm is not impacted.
-        *a = a.shr_vartime(1);
+        *a = a.shr1();
 
         // Double the bottom row of the matrix when a was ≠ 0 and when not halting.
         matrix.conditional_double_bottom_row(double);
