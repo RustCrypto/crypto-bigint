@@ -57,6 +57,24 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
         )
     }
 
+    /// Apply this matrix to a vector of [Uint]s, returning the result as a vector of
+    /// [ExtendedInt]s.
+    #[inline]
+    pub(crate) const fn extended_apply_to_vartime<const VEC_LIMBS: usize>(
+        &self,
+        vec: Vector<Uint<VEC_LIMBS>>,
+    ) -> Vector<ExtendedInt<VEC_LIMBS, LIMBS>> {
+        let (a, b) = vec;
+        let m00a = ExtendedInt::from_product(a, self.m00);
+        let m10a = ExtendedInt::from_product(a, self.m10);
+        let m01b = ExtendedInt::from_product(b, self.m01);
+        let m11b = ExtendedInt::from_product(b, self.m11);
+        (
+            m00a.wrapping_add(&m01b).div_2k_vartime(self.k),
+            m11b.wrapping_add(&m10a).div_2k_vartime(self.k),
+        )
+    }
+
     /// Swap the rows of this matrix if `swap` is truthy. Otherwise, do nothing.
     #[inline]
     pub(crate) const fn conditional_swap_rows(&mut self, swap: ConstChoice) {

@@ -63,6 +63,31 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
 
         Self(lo, hi)
     }
+
+    /// Shift `self` right by `shift` bits.
+    ///
+    /// Panics if `shift ≥ Uint::<EXTRA>::BITS`.
+    #[inline]
+    pub const fn shr_vartime(&self, shift: u32) -> Self {
+        debug_assert!(shift <= Uint::<EXTRA>::BITS);
+
+        let shift_is_zero = ConstChoice::from_u32_eq(shift, 0);
+        let left_shift = shift_is_zero.select_u32(Uint::<EXTRA>::BITS - shift, 0);
+
+        let hi = self.1.shr_vartime(shift);
+        // TODO: replace with carrying_shl
+        let carry = Uint::select(&self.1, &Uint::ZERO, shift_is_zero).shl_vartime(left_shift);
+        let mut lo = self.0.shr_vartime(shift);
+
+        // Apply carry
+        let limb_diff = LIMBS.wrapping_sub(EXTRA) as u32;
+        // safe to vartime; shr_vartime is variable in the value of shift only. Since this shift
+        // is a public constant, the constant time property of this algorithm is not impacted.
+        let carry = carry.resize::<LIMBS>().shl_vartime(limb_diff * Limb::BITS);
+        lo = lo.bitxor(&carry);
+
+        Self(lo, hi)
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -129,6 +154,13 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
         abs.bounded_shr::<UPPER_BOUND>(k)
             .wrapping_neg_if(sgn)
             .as_extended_int()
+    }
+
+    /// Divide self by `2^k`, rounding towards zero.
+    #[inline]
+    pub const fn div_2k_vartime(&self, k: u32) -> Self {
+        let (abs, sgn) = self.abs_sgn();
+        abs.shr_vartime(k).wrapping_neg_if(sgn).as_extended_int()
     }
 }
 
