@@ -8,8 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 _The below list is very much incomplete._
 
 ### Changed
-- Replace `Limb::mac` with `::carrying_add_mul` ([#817]).
-  - Note: `::carrying_add_mul` requires a different parameter order than `::mac`.
+- Replace `Limb::mac` with `::carrying_mul_add` ([#817]).
+  - Note: `::carrying_mul_add` requires a different parameter order than `::mac`.
 
 [#817]: https://github.com/RustCrypto/crypto-bigint/pull/817
 
