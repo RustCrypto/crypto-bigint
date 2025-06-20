@@ -55,6 +55,7 @@ mod tests {
         Uint<LIMBS>: Gcd<Output = Uint<LIMBS>>,
     {
         assert_eq!(lhs.bingcd(&rhs), target);
+        assert_eq!(lhs.bingcd_vartime(&rhs), target);
     }
 
     fn int_bingcd_tests<const LIMBS: usize>()

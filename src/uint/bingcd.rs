@@ -101,7 +101,8 @@ mod tests {
     use crate::{U64, U128, U256, U512, U1024, U2048, U4096, Uint};
 
     fn bingcd_test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>, target: Uint<LIMBS>) {
-        assert_eq!(lhs.bingcd(&rhs), target)
+        assert_eq!(lhs.bingcd(&rhs), target);
+        assert_eq!(lhs.bingcd_vartime(&rhs), target)
     }
 
     fn bingcd_tests<const LIMBS: usize>() {
