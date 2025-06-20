@@ -35,18 +35,24 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
 
     /// Shift `self` right by `shift` bits.
     ///
-    /// Assumes `shift <= Uint::<EXTRA>::BITS`.
+    /// Panics if `shift ≥ UPPER_BOUND`.
     #[inline]
-    pub const fn shr(&self, shift: u32) -> Self {
-        debug_assert!(shift <= Uint::<EXTRA>::BITS);
+    pub const fn bounded_shr<const UPPER_BOUND: u32>(&self, shift: u32) -> Self {
+        debug_assert!(shift <= UPPER_BOUND);
 
         let shift_is_zero = ConstChoice::from_u32_eq(shift, 0);
         let left_shift = shift_is_zero.select_u32(Uint::<EXTRA>::BITS - shift, 0);
 
-        let hi = self.1.shr(shift);
+        let hi = self
+            .1
+            .bounded_overflowing_shr::<UPPER_BOUND>(shift)
+            .expect("shift ≤ UPPER_BOUND");
         // TODO: replace with carrying_shl
         let carry = Uint::select(&self.1, &Uint::ZERO, shift_is_zero).shl(left_shift);
-        let mut lo = self.0.shr(shift);
+        let mut lo = self
+            .0
+            .bounded_overflowing_shr::<UPPER_BOUND>(shift)
+            .expect("shift ≤ UPPER_BOUND");
 
         // Apply carry
         let limb_diff = LIMBS.wrapping_sub(EXTRA) as u32;
@@ -115,10 +121,14 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     }
 
     /// Divide self by `2^k`, rounding towards zero.
+    ///
+    /// Panics if `k ≥ UPPER_BOUND`.
     #[inline]
-    pub const fn div_2k(&self, k: u32) -> Self {
+    pub const fn bounded_div_2k<const UPPER_BOUND: u32>(&self, k: u32) -> Self {
         let (abs, sgn) = self.abs_sgn();
-        abs.shr(k).wrapping_neg_if(sgn).as_extended_int()
+        abs.bounded_shr::<UPPER_BOUND>(k)
+            .wrapping_neg_if(sgn)
+            .as_extended_int()
     }
 }
 
@@ -170,4 +180,3 @@ mod tests {
         assert!(bool::from(res.is_none()));
     }
 }
-

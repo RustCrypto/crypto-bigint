@@ -37,8 +37,10 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
 
     /// Apply this matrix to a vector of [Uint]s, returning the result as a vector of
     /// [ExtendedInt]s.
+    ///
+    /// May panic if `self.k ≥ UPPER_BOUND`.
     #[inline]
-    pub(crate) const fn extended_apply_to<const VEC_LIMBS: usize>(
+    pub(crate) const fn extended_apply_to<const VEC_LIMBS: usize, const UPPER_BOUND: u32>(
         &self,
         vec: Vector<Uint<VEC_LIMBS>>,
     ) -> Vector<ExtendedInt<VEC_LIMBS, LIMBS>> {
@@ -48,8 +50,10 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
         let m01b = ExtendedInt::from_product(b, self.m01);
         let m11b = ExtendedInt::from_product(b, self.m11);
         (
-            m00a.wrapping_add(&m01b).div_2k(self.k),
-            m11b.wrapping_add(&m10a).div_2k(self.k),
+            m00a.wrapping_add(&m01b)
+                .bounded_div_2k::<UPPER_BOUND>(self.k),
+            m11b.wrapping_add(&m10a)
+                .bounded_div_2k::<UPPER_BOUND>(self.k),
         )
     }
 
@@ -134,7 +138,7 @@ mod tests {
         let b = U64::from_be_hex("AE693BF7BE8E5566");
         let matrix = BinXgcdMatrix::<{ I64::LIMBS }>::new_i64((288, -208, -310, 679), 17, 17);
 
-        let (a_, b_) = matrix.extended_apply_to((a, b));
+        let (a_, b_) = matrix.extended_apply_to::<{ U64::LIMBS }, 18>((a, b));
         assert_eq!(
             a_.wrapping_drop_extension().0,
             Uint::from_be_hex("002AC7CDD032B9B9")
