@@ -163,6 +163,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
     }
 
+    /// Counts leading zero bytes in big-endian encoding.
+    #[cfg(feature = "hybrid-array")]
+    #[inline]
+    pub(crate) fn leading_zero_be_bytes(&self) -> u32 {
+        self.leading_zeros() / 8
+    }
+
     /// Serialize this [`Uint`] as little-endian, writing it into the provided
     /// byte slice.
     #[cfg(feature = "hybrid-array")]
@@ -1039,5 +1046,25 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    #[cfg(target_pointer_width = "32")]
+    fn encode_be_hex() {
+        let n = UintEx::from_be_hex("0011223344556677");
+
+        let bytes = n.to_be_bytes();
+        assert_eq!(bytes, hex!("0011223344556677"));
+        assert_eq!(n.count_der_be_bytes(), 7);
+    }
+
+    #[test]
+    #[cfg(target_pointer_width = "64")]
+    fn encode_be_hex() {
+        let n = UintEx::from_be_hex("00112233445566778899aabbccddeeff");
+
+        let bytes = n.to_be_bytes();
+        assert_eq!(bytes, hex!("00112233445566778899aabbccddeeff"));
+        assert_eq!(n.count_der_be_bytes(), 15);
     }
 }
