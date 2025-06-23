@@ -82,3 +82,28 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         hi.shl_vartime(K - 1).bitxor(&lo)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{U128, U256};
+
+    #[test]
+    fn test_compact() {
+        let val =
+            U256::from_be_hex("CFCF1535CEBE19BBF289933AB8645189397450A32BFEC57579FB7EB14E27D101");
+        let target = U128::from_be_hex("BBF289933AB86451F9FB7EB14E27D101");
+
+        let compact = val.compact::<64, { U128::LIMBS }>(200);
+        assert_eq!(compact, target);
+    }
+
+    #[test]
+    fn test_compact_vartime() {
+        let val =
+            U256::from_be_hex("1971BC6285D8CBA9640AA3B3B9C01EF4186D1EBE9A17393A9E43586E0EBAED5B");
+        let target = U128::from_be_hex("A9640AA3B3B9C01E9E43586E0EBAED5B");
+
+        let compact = val.compact_vartime::<64, { U128::LIMBS }>(200);
+        assert_eq!(compact, target);
+    }
+}
