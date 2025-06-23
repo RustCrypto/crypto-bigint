@@ -96,7 +96,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         } else {
             max_len
                 .saturating_sub(leading_zero_bytes)
-                .saturating_add(needs_leading_zero as u32)
+                .wrapping_add(needs_leading_zero as u32)
         }
     }
 }
