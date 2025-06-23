@@ -1055,6 +1055,8 @@ mod tests {
 
         let bytes = n.to_be_bytes();
         assert_eq!(bytes, hex!("0011223344556677"));
+
+        #[cfg(feature = "der")]
         assert_eq!(n.count_der_be_bytes(), 7);
     }
 
@@ -1065,6 +1067,8 @@ mod tests {
 
         let bytes = n.to_be_bytes();
         assert_eq!(bytes, hex!("00112233445566778899aabbccddeeff"));
+
+        #[cfg(feature = "der")]
         assert_eq!(n.count_der_be_bytes(), 15);
     }
 }

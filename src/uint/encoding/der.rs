@@ -94,7 +94,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             // we're encoding 0x00, so one byte remains
             1
         } else {
-            (max_len - leading_zero_bytes) + needs_leading_zero as u32
+            max_len
+                .saturating_sub(leading_zero_bytes)
+                .saturating_add(needs_leading_zero as u32)
         }
     }
 }
