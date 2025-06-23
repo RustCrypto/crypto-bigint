@@ -3,6 +3,104 @@ use crate::{ConstChoice, Uint};
 
 type Vector<T> = (T, T);
 
+/// [`Int`] with an extra limb.
+type ExtraLimbInt<const LIMBS: usize> = ExtendedInt<LIMBS, 1>;
+
+/// Matrix used by the Binary XGCD algorithm to represent the state.
+///
+/// ### Representation
+/// The internal state represents the matrix
+/// ```text
+/// [ m00  m01 ]
+/// [ m10  m11 ] / 2^k
+/// ```
+/// with `k_upper_bound ≥ k`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(super) struct StateMatrix<const LIMBS: usize> {
+    m00: ExtraLimbInt<LIMBS>,
+    m01: ExtraLimbInt<LIMBS>,
+    m10: ExtraLimbInt<LIMBS>,
+    m11: ExtraLimbInt<LIMBS>,
+    k: u32,
+    k_upper_bound: u32,
+}
+
+impl<const LIMBS: usize> StateMatrix<LIMBS> {
+    /// The unit matrix
+    pub(super) const UNIT: Self = Self::new(
+        ExtraLimbInt::ONE,
+        ExtraLimbInt::ZERO,
+        ExtraLimbInt::ZERO,
+        ExtraLimbInt::ONE,
+        0,
+        0,
+    );
+
+    /// Construct a new [`StateMatrix`].
+    pub(super) const fn new(
+        m00: ExtraLimbInt<LIMBS>,
+        m01: ExtraLimbInt<LIMBS>,
+        m10: ExtraLimbInt<LIMBS>,
+        m11: ExtraLimbInt<LIMBS>,
+        k: u32,
+        k_upper_bound: u32,
+    ) -> Self {
+        Self {
+            m00,
+            m01,
+            m10,
+            m11,
+            k,
+            k_upper_bound,
+        }
+    }
+
+    /// Negate the top row of this matrix if `negate`; otherwise do nothing.
+    pub(super) const fn conditional_negate_top_row(&mut self, negate: ConstChoice) {
+        self.m00 = self.m00.wrapping_neg_if(negate);
+        self.m01 = self.m01.wrapping_neg_if(negate);
+    }
+
+    /// Negate the bottom row of this matrix if `negate`; otherwise do nothing.
+    pub(super) const fn conditional_negate_bottom_row(&mut self, negate: ConstChoice) {
+        self.m10 = self.m10.wrapping_neg_if(negate);
+        self.m11 = self.m11.wrapping_neg_if(negate);
+    }
+
+    pub(super) const fn to_update_matrix(&self) -> UpdateMatrix<LIMBS> {
+        let (abs_m00, m00_is_negative) = self.m00.abs_sign();
+        let (abs_m01, m01_is_negative) = self.m01.abs_sign();
+        let (abs_m10, m10_is_negative) = self.m10.abs_sign();
+        let (abs_m11, m11_is_negative) = self.m11.abs_sign();
+
+        // Construct the pattern.
+        let m00_is_zero = abs_m00.is_zero();
+        let m01_is_zero = abs_m01.is_zero();
+        let pattern_vote_1 = m00_is_zero.not().and(m00_is_negative.not());
+        let pattern_vote_2 = m01_is_zero.not().and(m01_is_negative);
+
+        let m00_and_m01_are_zero = m00_is_zero.and(m01_is_zero);
+        let m10_is_zero = abs_m10.is_zero();
+        let m11_is_zero = abs_m11.is_zero();
+        let pattern_vote_3 = m00_and_m01_are_zero.and(m10_is_zero.not().and(m10_is_negative));
+        let pattern_vote_4 = m00_and_m01_are_zero.and(m11_is_zero.not().and(m11_is_negative.not()));
+        let pattern = pattern_vote_1
+            .or(pattern_vote_2)
+            .or(pattern_vote_3)
+            .or(pattern_vote_4);
+
+        UpdateMatrix::new(
+            abs_m00.checked_drop_extension().expect("m00 fits"),
+            abs_m01.checked_drop_extension().expect("m01 fits"),
+            abs_m10.checked_drop_extension().expect("m10 fits"),
+            abs_m11.checked_drop_extension().expect("m11 fits"),
+            pattern,
+            self.k,
+            self.k_upper_bound,
+        )
+    }
+}
+
 /// Matrix used to compute the Extended GCD using the Binary Extended GCD algorithm.
 ///
 /// The internal state represents the matrix
@@ -16,7 +114,7 @@ type Vector<T> = (T, T);
 /// Since some of the operations conditionally increase `k`, this struct furthermore keeps track of
 /// `k_upper_bound`; an upper bound on the value of `k`.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(super) struct UpdateMatrix<const LIMBS: usize> {
+pub(crate) struct UpdateMatrix<const LIMBS: usize> {
     m00: Uint<LIMBS>,
     m01: Uint<LIMBS>,
     m10: Uint<LIMBS>,
@@ -164,29 +262,31 @@ impl<const LIMBS: usize> UpdateMatrix<LIMBS> {
 
     /// Wrapping apply this matrix to `rhs`. Return the result in `RHS_LIMBS`.
     #[inline]
-    pub(crate) fn wrapping_mul_right<const RHS_LIMBS: usize>(
+    pub(super) fn mul_right<const RHS_LIMBS: usize>(
         &self,
-        rhs: &UpdateMatrix<RHS_LIMBS>,
-    ) -> UpdateMatrix<RHS_LIMBS> {
-        let a0 = rhs.m00.wrapping_mul(&self.m00);
-        let a1 = rhs.m10.wrapping_mul(&self.m01);
+        rhs: &StateMatrix<RHS_LIMBS>,
+    ) -> StateMatrix<RHS_LIMBS> {
+        let a0 = rhs.m00.wrapping_mul((&self.m00, &self.pattern.not()));
+        let a1 = rhs.m10.wrapping_mul((&self.m01, &self.pattern));
         let a = a0.wrapping_add(&a1);
-        let b0 = rhs.m01.wrapping_mul(&self.m00);
-        let b1 = rhs.m11.wrapping_mul(&self.m01);
+
+        let b0 = rhs.m01.wrapping_mul((&self.m00, &self.pattern.not()));
+        let b1 = rhs.m11.wrapping_mul((&self.m01, &self.pattern));
         let b = b0.wrapping_add(&b1);
-        let c0 = rhs.m00.wrapping_mul(&self.m10);
-        let c1 = rhs.m10.wrapping_mul(&self.m11);
+
+        let c0 = rhs.m00.wrapping_mul((&self.m10, &self.pattern));
+        let c1 = rhs.m10.wrapping_mul((&self.m11, &self.pattern.not()));
         let c = c0.wrapping_add(&c1);
-        let d0 = rhs.m01.wrapping_mul(&self.m10);
-        let d1 = rhs.m11.wrapping_mul(&self.m11);
+
+        let d0 = rhs.m01.wrapping_mul((&self.m10, &self.pattern));
+        let d1 = rhs.m11.wrapping_mul((&self.m11, &self.pattern.not()));
         let d = d0.wrapping_add(&d1);
 
-        UpdateMatrix::new(
+        StateMatrix::new(
             a,
             b,
             c,
             d,
-            self.pattern.eq(rhs.pattern),
             self.k + rhs.k,
             self.k_upper_bound + rhs.k_upper_bound,
         )
@@ -253,7 +353,7 @@ impl<const LIMBS: usize> UpdateMatrix<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::modular::bingcd::matrix::UpdateMatrix;
+    use crate::modular::bingcd::matrix::{ExtraLimbInt, StateMatrix, UpdateMatrix};
     use crate::{ConstChoice, U64, U256, Uint};
 
     const X: UpdateMatrix<{ U256::LIMBS }> = UpdateMatrix::new(
@@ -262,6 +362,15 @@ mod tests {
         U256::from_u64(23u64),
         U256::from_u64(53u64),
         ConstChoice::TRUE,
+        1,
+        2,
+    );
+
+    const Y: StateMatrix<{ U256::LIMBS }> = StateMatrix::new(
+        ExtraLimbInt::from_i64(1i64),
+        ExtraLimbInt::from_i64(-7i64),
+        ExtraLimbInt::from_i64(-23i64),
+        ExtraLimbInt::from_i64(53i64),
         1,
         2,
     );
@@ -421,16 +530,15 @@ mod tests {
     }
 
     #[test]
-    fn test_wrapping_mul() {
-        let res = X.wrapping_mul_right(&X);
+    fn test_mul_right() {
+        let res = X.mul_right(&Y);
         assert_eq!(
             res,
-            UpdateMatrix::new(
-                U256::from(162u64),
-                U256::from(378u64),
-                U256::from(1242u64),
-                U256::from(2970u64),
-                ConstChoice::TRUE,
+            StateMatrix::new(
+                ExtraLimbInt::<{ U256::LIMBS }>::from_i64(162i64),
+                ExtraLimbInt::<{ U256::LIMBS }>::from_i64(-378i64),
+                ExtraLimbInt::<{ U256::LIMBS }>::from_i64(-1242i64),
+                ExtraLimbInt::<{ U256::LIMBS }>::from_i64(2970i64),
                 2,
                 4
             )

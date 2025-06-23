@@ -1,4 +1,4 @@
-use crate::modular::bingcd::matrix::UpdateMatrix;
+use crate::modular::bingcd::matrix::{StateMatrix, UpdateMatrix};
 use crate::modular::bingcd::tools::const_max;
 use crate::{ConstChoice, Int, NonZero, Odd, U64, U128, Uint};
 
@@ -251,9 +251,9 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         rhs: &Self,
     ) -> RawOddUintBinxgcdOutput<LIMBS> {
         let (mut a, mut b) = (*self.as_ref(), *rhs.as_ref());
-        let mut matrix = UpdateMatrix::UNIT;
+        let mut state = StateMatrix::UNIT;
 
-        let (mut a_sgn, mut b_sgn);
+        let (mut a_is_negative, mut b_is_negative);
         let mut i = 0;
         while i < Self::MIN_BINGCD_ITERATIONS.div_ceil(K - 1) {
             // Loop invariants:
@@ -263,6 +263,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             i += 1;
 
             // Construct compact_a and compact_b as the summary of a and b, respectively.
+            // TODO: deal with the case that a fits entirely in compact
             let b_bits = b.bits();
             let n = const_max(2 * K, const_max(a.bits(), b_bits));
             let compact_a = a.compact::<K, LIMBS_2K>(n);
@@ -270,55 +271,28 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let b_eq_compact_b =
                 ConstChoice::from_u32_le(b_bits, K - 1).or(ConstChoice::from_u32_eq(n, 2 * K));
 
-            // Verify that `compact_a` and `compact_b` preserve the ordering of `a` and `b`.
-            let a_cmp_b = Uint::cmp(&a, &b);
-            let compact_a_cmp_compact_b = Uint::cmp(&compact_a, &compact_b);
-            let compact_maintains_ordering =
-                ConstChoice::from_i8_eq(a_cmp_b, compact_a_cmp_compact_b);
-
             // Compute the K-1 iteration update matrix from a_ and b_
-            let (.., mut update_matrix) = compact_a
+            let (.., update_matrix) = compact_a
                 .to_odd()
                 .expect("a is always odd")
                 .partial_binxgcd_vartime::<LIMBS_K>(&compact_b, K - 1, b_eq_compact_b);
 
-            // Deal with the case that compacting loses the ordering of `(a, b)`. When this is the
-            // case, multiplying `update_matrix` with `(a, b)` will map one of the two to a negative
-            // value, which will break the algorithm. To resolve this, we observe that this case
-            // can only occur whenever (at least) the top `K+1` bits of `a` and `b` are the same.
-            // As a result, subtracting one from the other causes `a.bits() + b.bits()` to shrink by
-            // at least `K+1 > K-1` (as required by the loop invariant). It thus suffices to replace
-            // `update_matrix` with a matrix that represents subtracting one from the other.
-            let a_lt_b = ConstChoice::from_i8_eq(a_cmp_b, -1);
-            update_matrix = UpdateMatrix::select(
-                &UpdateMatrix::get_subtraction_matrix(a_lt_b, K - 1),
-                &update_matrix,
-                compact_maintains_ordering,
-            );
-
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = update_matrix.extended_apply_to((a, b));
-            (a, a_sgn) = updated_a.wrapping_drop_extension();
-            (b, b_sgn) = updated_b.wrapping_drop_extension();
+            (a, a_is_negative) = updated_a.wrapping_drop_extension();
+            (b, b_is_negative) = updated_b.wrapping_drop_extension();
 
-            assert!(a_sgn.not().to_bool_vartime(), "a is never negative");
-            assert!(b_sgn.not().to_bool_vartime(), "b is never negative");
+            state = update_matrix.mul_right(&state);
 
-            matrix = update_matrix.wrapping_mul_right(&matrix);
-
-            // Cont. of dealing with the case that compacting loses the ordering of `(a, b)`.
-            // When `a > b` -- and thus `b` is subtracted from `a` -- it could be that `a` is now
-            // even. Since `a` should always be odd, we swap the two operands. Note that `b` must be
-            // odd, since subtracting it from the odd `a` yielded an even number.
-            let a_is_even = a.is_odd().not();
-            Uint::conditional_swap(&mut a, &mut b, a_is_even);
-            matrix.conditional_swap_rows(a_is_even)
+            state.conditional_negate_top_row(a_is_negative);
+            state.conditional_negate_bottom_row(b_is_negative);
         }
 
         let gcd = a
             .to_odd()
             .expect("gcd of an odd value with something else is always odd");
 
+        let matrix = state.to_update_matrix();
         RawOddUintBinxgcdOutput { gcd, matrix }
     }
 
