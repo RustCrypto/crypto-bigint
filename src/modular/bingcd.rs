@@ -3,6 +3,7 @@
 //! Ref: <https://eprint.iacr.org/2020/972.pdf>
 
 mod compact;
+mod div_mod_2k;
 mod extension;
 mod gcd;
 mod matrix;
