@@ -1,11 +1,11 @@
-use crate::modular::bingcd::matrix::BinXgcdMatrix;
+use crate::modular::bingcd::matrix::UpdateMatrix;
 use crate::modular::bingcd::tools::const_max;
 use crate::{ConstChoice, Int, NonZero, Odd, U64, U128, Uint};
 
 /// Container for the raw output of the Binary XGCD algorithm.
 pub(crate) struct RawOddUintBinxgcdOutput<const LIMBS: usize> {
     gcd: Odd<Uint<LIMBS>>,
-    matrix: BinXgcdMatrix<LIMBS>,
+    matrix: UpdateMatrix<LIMBS>,
 }
 
 impl<const LIMBS: usize> RawOddUintBinxgcdOutput<LIMBS> {
@@ -251,7 +251,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         rhs: &Self,
     ) -> RawOddUintBinxgcdOutput<LIMBS> {
         let (mut a, mut b) = (*self.as_ref(), *rhs.as_ref());
-        let mut matrix = BinXgcdMatrix::UNIT;
+        let mut matrix = UpdateMatrix::UNIT;
 
         let (mut a_sgn, mut b_sgn);
         let mut i = 0;
@@ -290,8 +290,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             // at least `K+1 > K-1` (as required by the loop invariant). It thus suffices to replace
             // `update_matrix` with a matrix that represents subtracting one from the other.
             let a_lt_b = ConstChoice::from_i8_eq(a_cmp_b, -1);
-            update_matrix = BinXgcdMatrix::select(
-                &BinXgcdMatrix::get_subtraction_matrix(a_lt_b, K - 1),
+            update_matrix = UpdateMatrix::select(
+                &UpdateMatrix::get_subtraction_matrix(a_lt_b, K - 1),
                 &update_matrix,
                 compact_maintains_ordering,
             );
@@ -344,10 +344,10 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         rhs: &Uint<LIMBS>,
         iterations: u32,
         halt_at_zero: ConstChoice,
-    ) -> (Self, Uint<LIMBS>, BinXgcdMatrix<UPDATE_LIMBS>) {
+    ) -> (Self, Uint<LIMBS>, UpdateMatrix<UPDATE_LIMBS>) {
         let (mut a, mut b) = (*self.as_ref(), *rhs);
         // This matrix corresponds with (f0, g0, f1, g1) in the paper.
-        let mut matrix = BinXgcdMatrix::UNIT;
+        let mut matrix = UpdateMatrix::UNIT;
 
         // Compute the update matrix.
         // Note: to be consistent with the paper, the `binxgcd_step` algorithm requires the second
@@ -398,7 +398,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     fn binxgcd_step<const MATRIX_LIMBS: usize>(
         a: &mut Uint<LIMBS>,
         b: &mut Uint<LIMBS>,
-        matrix: &mut BinXgcdMatrix<MATRIX_LIMBS>,
+        matrix: &mut UpdateMatrix<MATRIX_LIMBS>,
         halt_at_zero: ConstChoice,
     ) {
         let a_odd = a.is_odd();
@@ -437,12 +437,12 @@ mod tests {
     use rand_core::SeedableRng;
 
     mod test_extract_quotients {
-        use crate::modular::bingcd::matrix::BinXgcdMatrix;
+        use crate::modular::bingcd::matrix::UpdateMatrix;
         use crate::modular::bingcd::xgcd::RawOddUintBinxgcdOutput;
         use crate::{ConstChoice, U64, Uint};
 
         fn raw_binxgcdoutput_setup<const LIMBS: usize>(
-            matrix: BinXgcdMatrix<LIMBS>,
+            matrix: UpdateMatrix<LIMBS>,
         ) -> RawOddUintBinxgcdOutput<LIMBS> {
             RawOddUintBinxgcdOutput {
                 gcd: Uint::<LIMBS>::ONE.to_odd().unwrap(),
@@ -452,7 +452,7 @@ mod tests {
 
         #[test]
         fn test_extract_quotients_unit() {
-            let output = raw_binxgcdoutput_setup(BinXgcdMatrix::<{ U64::LIMBS }>::UNIT);
+            let output = raw_binxgcdoutput_setup(UpdateMatrix::<{ U64::LIMBS }>::UNIT);
             let (lhs_on_gcd, rhs_on_gcd) = output.quotients();
             assert_eq!(lhs_on_gcd, Uint::ONE);
             assert_eq!(rhs_on_gcd, Uint::ZERO);
@@ -460,7 +460,7 @@ mod tests {
 
         #[test]
         fn test_extract_quotients_basic() {
-            let output = raw_binxgcdoutput_setup(BinXgcdMatrix::<{ U64::LIMBS }>::new(
+            let output = raw_binxgcdoutput_setup(UpdateMatrix::<{ U64::LIMBS }>::new(
                 Uint::ZERO,
                 Uint::ZERO,
                 Uint::from(5u32),
@@ -473,7 +473,7 @@ mod tests {
             assert_eq!(lhs_on_gcd, Uint::from(7u32));
             assert_eq!(rhs_on_gcd, Uint::from(5u32));
 
-            let output = raw_binxgcdoutput_setup(BinXgcdMatrix::<{ U64::LIMBS }>::new(
+            let output = raw_binxgcdoutput_setup(UpdateMatrix::<{ U64::LIMBS }>::new(
                 Uint::ZERO,
                 Uint::ZERO,
                 Uint::from(7u32),
@@ -489,7 +489,7 @@ mod tests {
     }
 
     mod test_derive_bezout_coefficients {
-        use crate::modular::bingcd::matrix::BinXgcdMatrix;
+        use crate::modular::bingcd::matrix::UpdateMatrix;
         use crate::modular::bingcd::xgcd::RawOddUintBinxgcdOutput;
         use crate::{ConstChoice, Int, U64, Uint};
 
@@ -497,7 +497,7 @@ mod tests {
         fn test_derive_bezout_coefficients_unit() {
             let mut output = RawOddUintBinxgcdOutput {
                 gcd: Uint::ONE.to_odd().unwrap(),
-                matrix: BinXgcdMatrix::<{ U64::LIMBS }>::UNIT,
+                matrix: UpdateMatrix::<{ U64::LIMBS }>::UNIT,
             };
             output.remove_matrix_factors();
             let (x, y) = output.bezout_coefficients();
@@ -509,7 +509,7 @@ mod tests {
         fn test_derive_bezout_coefficients_basic() {
             let mut output = RawOddUintBinxgcdOutput {
                 gcd: Uint::ONE.to_odd().unwrap(),
-                matrix: BinXgcdMatrix::new(
+                matrix: UpdateMatrix::new(
                     U64::from(2u32),
                     U64::from(3u32),
                     U64::from(4u32),
@@ -526,7 +526,7 @@ mod tests {
 
             let mut output = RawOddUintBinxgcdOutput {
                 gcd: Uint::ONE.to_odd().unwrap(),
-                matrix: BinXgcdMatrix::new(
+                matrix: UpdateMatrix::new(
                     U64::from(2u32),
                     U64::from(3u32),
                     U64::from(3u32),
@@ -546,7 +546,7 @@ mod tests {
         fn test_derive_bezout_coefficients_removes_doublings_easy() {
             let mut output = RawOddUintBinxgcdOutput {
                 gcd: Uint::ONE.to_odd().unwrap(),
-                matrix: BinXgcdMatrix::new(
+                matrix: UpdateMatrix::new(
                     U64::from(2u32),
                     U64::from(6u32),
                     U64::from(3u32),
@@ -563,7 +563,7 @@ mod tests {
 
             let mut output = RawOddUintBinxgcdOutput {
                 gcd: Uint::ONE.to_odd().unwrap(),
-                matrix: BinXgcdMatrix::new(
+                matrix: UpdateMatrix::new(
                     U64::from(120u32),
                     U64::from(64u32),
                     U64::from(7u32),
@@ -583,7 +583,7 @@ mod tests {
         fn test_derive_bezout_coefficients_removes_doublings_for_odd_numbers() {
             let mut output = RawOddUintBinxgcdOutput {
                 gcd: Uint::ONE.to_odd().unwrap(),
-                matrix: BinXgcdMatrix::new(
+                matrix: UpdateMatrix::new(
                     U64::from(2u32),
                     U64::from(6u32),
                     U64::from(7u32),
@@ -601,7 +601,7 @@ mod tests {
     }
 
     mod test_partial_binxgcd {
-        use crate::modular::bingcd::matrix::BinXgcdMatrix;
+        use crate::modular::bingcd::matrix::UpdateMatrix;
         use crate::{ConstChoice, Odd, U64};
 
         const A: Odd<U64> = U64::from_be_hex("CA048AFA63CD6A1F").to_odd().expect("odd");
@@ -615,7 +615,7 @@ mod tests {
             assert_eq!(k, 5);
             assert_eq!(
                 matrix,
-                BinXgcdMatrix::new(
+                UpdateMatrix::new(
                     U64::from(8u64),
                     U64::from(4u64),
                     U64::from(2u64),

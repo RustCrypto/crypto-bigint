@@ -16,7 +16,7 @@ type Vector<T> = (T, T);
 /// Since some of the operations conditionally increase `k`, this struct furthermore keeps track of
 /// `k_upper_bound`; an upper bound on the value of `k`.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(crate) struct BinXgcdMatrix<const LIMBS: usize> {
+pub(super) struct UpdateMatrix<const LIMBS: usize> {
     m00: Uint<LIMBS>,
     m01: Uint<LIMBS>,
     m10: Uint<LIMBS>,
@@ -26,7 +26,7 @@ pub(crate) struct BinXgcdMatrix<const LIMBS: usize> {
     k_upper_bound: u32,
 }
 
-impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
+impl<const LIMBS: usize> UpdateMatrix<LIMBS> {
     /// The unit matrix.
     pub(crate) const UNIT: Self = Self::new(
         Uint::ONE,
@@ -166,8 +166,8 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
     #[inline]
     pub(crate) fn wrapping_mul_right<const RHS_LIMBS: usize>(
         &self,
-        rhs: &BinXgcdMatrix<RHS_LIMBS>,
-    ) -> BinXgcdMatrix<RHS_LIMBS> {
+        rhs: &UpdateMatrix<RHS_LIMBS>,
+    ) -> UpdateMatrix<RHS_LIMBS> {
         let a0 = rhs.m00.wrapping_mul(&self.m00);
         let a1 = rhs.m10.wrapping_mul(&self.m01);
         let a = a0.wrapping_add(&a1);
@@ -181,7 +181,7 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
         let d1 = rhs.m11.wrapping_mul(&self.m11);
         let d = d0.wrapping_add(&d1);
 
-        BinXgcdMatrix::new(
+        UpdateMatrix::new(
             a,
             b,
             c,
@@ -253,10 +253,10 @@ impl<const LIMBS: usize> BinXgcdMatrix<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::modular::bingcd::matrix::BinXgcdMatrix;
+    use crate::modular::bingcd::matrix::UpdateMatrix;
     use crate::{ConstChoice, U64, U256, Uint};
 
-    const X: BinXgcdMatrix<{ U256::LIMBS }> = BinXgcdMatrix::new(
+    const X: UpdateMatrix<{ U256::LIMBS }> = UpdateMatrix::new(
         U256::from_u64(1u64),
         U256::from_u64(7u64),
         U256::from_u64(23u64),
@@ -270,7 +270,7 @@ mod tests {
     fn test_wrapping_apply_to() {
         let a = U64::from_be_hex("CA048AFA63CD6A1F");
         let b = U64::from_be_hex("AE693BF7BE8E5566");
-        let matrix = BinXgcdMatrix {
+        let matrix = UpdateMatrix {
             m00: U64::from_be_hex("0000000000000120"),
             m01: U64::from_be_hex("00000000000000D0"),
             m10: U64::from_be_hex("0000000000000136"),
@@ -297,7 +297,7 @@ mod tests {
         y.swap_rows();
         assert_eq!(
             y,
-            BinXgcdMatrix::new(
+            UpdateMatrix::new(
                 Uint::from(23u32),
                 Uint::from(53u32),
                 Uint::from(1u32),
@@ -317,7 +317,7 @@ mod tests {
         y.conditional_swap_rows(ConstChoice::TRUE);
         assert_eq!(
             y,
-            BinXgcdMatrix::new(
+            UpdateMatrix::new(
                 Uint::from(23u32),
                 Uint::from(53u32),
                 Uint::from(1u32),
@@ -337,7 +337,7 @@ mod tests {
         y.conditional_add_right_column_to_left(ConstChoice::TRUE);
         assert_eq!(
             y,
-            BinXgcdMatrix::new(
+            UpdateMatrix::new(
                 Uint::from(6u32),
                 Uint::from(7u32),
                 Uint::from(30u32),
@@ -357,7 +357,7 @@ mod tests {
         y.conditional_subtract_bottom_row_from_top(ConstChoice::TRUE);
         assert_eq!(
             y,
-            BinXgcdMatrix::new(
+            UpdateMatrix::new(
                 Uint::from(24u32),
                 Uint::from(60u32),
                 Uint::from(23u32),
@@ -377,7 +377,7 @@ mod tests {
         y.conditional_subtract_right_column_from_left(ConstChoice::TRUE);
         assert_eq!(
             y,
-            BinXgcdMatrix::new(
+            UpdateMatrix::new(
                 Uint::from(8u32),
                 Uint::from(7u32),
                 Uint::from(76u32),
@@ -395,7 +395,7 @@ mod tests {
         y.conditional_double_bottom_row(ConstChoice::FALSE);
         assert_eq!(
             y,
-            BinXgcdMatrix::new(
+            UpdateMatrix::new(
                 Uint::from(1u32),
                 Uint::from(7u32),
                 Uint::from(23u32),
@@ -408,7 +408,7 @@ mod tests {
         y.conditional_double_bottom_row(ConstChoice::TRUE);
         assert_eq!(
             y,
-            BinXgcdMatrix::new(
+            UpdateMatrix::new(
                 Uint::from(1u32),
                 Uint::from(7u32),
                 Uint::from(46u32),
@@ -425,7 +425,7 @@ mod tests {
         let res = X.wrapping_mul_right(&X);
         assert_eq!(
             res,
-            BinXgcdMatrix::new(
+            UpdateMatrix::new(
                 U256::from(162u64),
                 U256::from(378u64),
                 U256::from(1242u64),
@@ -439,7 +439,7 @@ mod tests {
 
     #[test]
     fn test_select() {
-        let x = BinXgcdMatrix::new(
+        let x = UpdateMatrix::new(
             U64::from_u64(0),
             U64::from_u64(1),
             U64::from_u64(2),
@@ -448,7 +448,7 @@ mod tests {
             4,
             5,
         );
-        let y = BinXgcdMatrix::new(
+        let y = UpdateMatrix::new(
             U64::from_u64(6),
             U64::from_u64(7),
             U64::from_u64(8),
@@ -457,16 +457,16 @@ mod tests {
             11,
             12,
         );
-        assert_eq!(BinXgcdMatrix::select(&x, &y, ConstChoice::FALSE), x);
-        assert_eq!(BinXgcdMatrix::select(&x, &y, ConstChoice::TRUE), y);
+        assert_eq!(UpdateMatrix::select(&x, &y, ConstChoice::FALSE), x);
+        assert_eq!(UpdateMatrix::select(&x, &y, ConstChoice::TRUE), y);
     }
 
     #[test]
     fn test_get_subtraction_matrix() {
-        let x = BinXgcdMatrix::get_subtraction_matrix(ConstChoice::TRUE, 35);
+        let x = UpdateMatrix::get_subtraction_matrix(ConstChoice::TRUE, 35);
         assert_eq!(
             x,
-            BinXgcdMatrix::new(
+            UpdateMatrix::new(
                 U64::ONE,
                 U64::ZERO,
                 U64::ONE,
@@ -477,10 +477,10 @@ mod tests {
             )
         );
 
-        let x = BinXgcdMatrix::get_subtraction_matrix(ConstChoice::FALSE, 63);
+        let x = UpdateMatrix::get_subtraction_matrix(ConstChoice::FALSE, 63);
         assert_eq!(
             x,
-            BinXgcdMatrix::new(
+            UpdateMatrix::new(
                 U64::ONE,
                 U64::ONE,
                 U64::ZERO,
