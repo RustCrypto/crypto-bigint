@@ -163,13 +163,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
     }
 
-    /// Counts leading zero bytes in big-endian encoding.
-    #[cfg(feature = "hybrid-array")]
-    #[inline]
-    pub(crate) fn leading_zero_be_bytes(&self) -> u32 {
-        self.leading_zeros() / 8
-    }
-
     /// Serialize this [`Uint`] as little-endian, writing it into the provided
     /// byte slice.
     #[cfg(feature = "hybrid-array")]
@@ -1057,7 +1050,7 @@ mod tests {
         assert_eq!(bytes, hex!("0011223344556677"));
 
         #[cfg(feature = "der")]
-        assert_eq!(n.count_der_be_bytes(), 7);
+        assert_eq!(super::der::count_der_be_bytes(&n.limbs), 7);
     }
 
     #[test]
@@ -1069,6 +1062,6 @@ mod tests {
         assert_eq!(bytes, hex!("00112233445566778899aabbccddeeff"));
 
         #[cfg(feature = "der")]
-        assert_eq!(n.count_der_be_bytes(), 15);
+        assert_eq!(super::der::count_der_be_bytes(&n.limbs), 15);
     }
 }
