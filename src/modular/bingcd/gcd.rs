@@ -212,7 +212,6 @@ mod tests {
         }
 
         #[test]
-        #[ignore] // TODO(tarcieri): improve performance
         fn test_classic_bingcd() {
             classic_bingcd_tests::<{ U64::LIMBS }>();
             classic_bingcd_tests::<{ U128::LIMBS }>();
@@ -263,7 +262,6 @@ mod tests {
         }
 
         #[test]
-        #[ignore] // TODO(tarcieri): improve performance
         fn test_optimized_bingcd() {
             // Not applicable for U64
             optimized_bingcd_tests::<{ U128::LIMBS }>();
