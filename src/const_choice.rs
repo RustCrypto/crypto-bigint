@@ -259,12 +259,12 @@ impl ConstChoice {
 }
 
 /// `const` equivalent of `u32::max(a, b)`.
-pub const fn u32_const_max(a: u32, b: u32) -> u32 {
+pub const fn u32_max(a: u32, b: u32) -> u32 {
     ConstChoice::from_u32_lt(a, b).select_u32(a, b)
 }
 
 /// `const` equivalent of `u32::min(a, b)`.
-pub const fn u32_const_min(a: u32, b: u32) -> u32 {
+pub const fn u32_min(a: u32, b: u32) -> u32 {
     ConstChoice::from_u32_lt(a, b).select_u32(b, a)
 }
 
@@ -505,7 +505,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
 mod tests {
     use crate::{WideWord, Word};
 
-    use super::{ConstChoice, u32_const_max, u32_const_min};
+    use super::{ConstChoice, u32_max, u32_min};
 
     #[test]
     fn from_u64_lsb() {
@@ -568,17 +568,17 @@ mod tests {
 
     #[test]
     fn test_u32_const_min() {
-        assert_eq!(u32_const_min(0, 5), 0);
-        assert_eq!(u32_const_min(7, 0), 0);
-        assert_eq!(u32_const_min(7, 5), 5);
-        assert_eq!(u32_const_min(7, 7), 7);
+        assert_eq!(u32_min(0, 5), 0);
+        assert_eq!(u32_min(7, 0), 0);
+        assert_eq!(u32_min(7, 5), 5);
+        assert_eq!(u32_min(7, 7), 7);
     }
 
     #[test]
     fn test_u32_const_max() {
-        assert_eq!(u32_const_max(0, 5), 5);
-        assert_eq!(u32_const_max(7, 0), 7);
-        assert_eq!(u32_const_max(7, 5), 7);
-        assert_eq!(u32_const_max(7, 7), 7);
+        assert_eq!(u32_max(0, 5), 5);
+        assert_eq!(u32_max(7, 0), 7);
+        assert_eq!(u32_max(7, 5), 7);
+        assert_eq!(u32_max(7, 7), 7);
     }
 }

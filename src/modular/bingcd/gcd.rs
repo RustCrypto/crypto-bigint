@@ -1,4 +1,4 @@
-use crate::const_choice::u32_const_max;
+use crate::const_choice::u32_max;
 use crate::{ConstChoice, Odd, U64, U128, Uint};
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
@@ -107,7 +107,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             i += 1;
 
             // Construct a_ and b_ as the summary of a and b, respectively.
-            let n = u32_const_max(2 * K, u32_const_max(a.bits(), b.bits()));
+            let n = u32_max(2 * K, u32_max(a.bits(), b.bits()));
             let a_ = a.compact::<K, LIMBS_2K>(n);
             let b_ = b.compact::<K, LIMBS_2K>(n);
 
@@ -149,7 +149,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
         while b.is_nonzero().to_bool_vartime() {
             // Construct a_ and b_ as the summary of a and b, respectively.
-            let n = u32_const_max(2 * K, u32_const_max(a.bits_vartime(), b.bits_vartime()));
+            let n = u32_max(2 * K, u32_max(a.bits_vartime(), b.bits_vartime()));
             let a_ = a.compact_vartime::<K, LIMBS_2K>(n);
             let b_ = b.compact_vartime::<K, LIMBS_2K>(n);
 

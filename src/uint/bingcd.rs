@@ -1,6 +1,6 @@
 //! This module implements Binary GCD for [`Uint`]
 
-use crate::const_choice::u32_const_min;
+use crate::const_choice::u32_min;
 use crate::{NonZero, NonZeroUint, Odd, OddUint, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -40,7 +40,7 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
 
         let i = lhs.trailing_zeros();
         let j = rhs.trailing_zeros();
-        let k = u32_const_min(i, j);
+        let k = u32_min(i, j);
 
         let odd_lhs = Odd(lhs.shr(i));
         let gcd_div_2k = odd_lhs.bingcd(rhs);
@@ -55,7 +55,7 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
 
         let i = lhs.trailing_zeros_vartime();
         let j = rhs.trailing_zeros_vartime();
-        let k = u32_const_min(i, j);
+        let k = u32_min(i, j);
 
         let odd_lhs = Odd(lhs.shr_vartime(i));
         let gcd_div_2k = odd_lhs.bingcd(rhs);
