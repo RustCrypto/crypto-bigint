@@ -248,11 +248,11 @@ impl<const LIMBS: usize> Gcd<Uint<LIMBS>> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn gcd(&self, rhs: &Uint<LIMBS>) -> Self::Output {
-        self.bingcd(&rhs)
+        self.bingcd(rhs)
     }
 
     fn gcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self::Output {
-        self.bingcd_vartime(&rhs)
+        self.bingcd_vartime(rhs)
     }
 }
 
@@ -272,11 +272,11 @@ impl<const LIMBS: usize> Gcd<Uint<LIMBS>> for NonZeroUint<LIMBS> {
     type Output = NonZeroUint<LIMBS>;
 
     fn gcd(&self, rhs: &Uint<LIMBS>) -> Self::Output {
-        self.bingcd(&rhs)
+        self.bingcd(rhs)
     }
 
     fn gcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self::Output {
-        self.bingcd_vartime(&rhs)
+        self.bingcd_vartime(rhs)
     }
 }
 
@@ -296,11 +296,11 @@ impl<const LIMBS: usize> Gcd<Uint<LIMBS>> for OddUint<LIMBS> {
     type Output = OddUint<LIMBS>;
 
     fn gcd(&self, rhs: &Uint<LIMBS>) -> Self::Output {
-        self.bingcd(&rhs)
+        self.bingcd(rhs)
     }
 
     fn gcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self::Output {
-        self.bingcd_vartime(&rhs)
+        self.bingcd_vartime(rhs)
     }
 }
 
@@ -320,12 +320,12 @@ impl<const LIMBS: usize> Xgcd for Uint<LIMBS> {
     type Output = UintXgcdOutput<LIMBS>;
 
     fn xgcd(&self, rhs: &Uint<LIMBS>) -> Self::Output {
-        self.binxgcd(&rhs)
+        self.binxgcd(rhs)
     }
 
     fn xgcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self::Output {
         // TODO(#853): implement vartime
-        self.binxgcd(&rhs)
+        self.binxgcd(rhs)
     }
 }
 
@@ -333,12 +333,12 @@ impl<const LIMBS: usize> Xgcd for NonZeroUint<LIMBS> {
     type Output = NonZeroUintXgcdOutput<LIMBS>;
 
     fn xgcd(&self, rhs: &NonZeroUint<LIMBS>) -> Self::Output {
-        self.binxgcd(&rhs)
+        self.binxgcd(rhs)
     }
 
     fn xgcd_vartime(&self, rhs: &NonZeroUint<LIMBS>) -> Self::Output {
         // TODO(#853): implement vartime
-        self.binxgcd(&rhs)
+        self.binxgcd(rhs)
     }
 }
 
@@ -346,12 +346,12 @@ impl<const LIMBS: usize> Xgcd for OddUint<LIMBS> {
     type Output = OddUintXgcdOutput<LIMBS>;
 
     fn xgcd(&self, rhs: &OddUint<LIMBS>) -> Self::Output {
-        self.binxgcd(&rhs)
+        self.binxgcd(rhs)
     }
 
     fn xgcd_vartime(&self, rhs: &OddUint<LIMBS>) -> Self::Output {
         // TODO(#853): implement vartime
-        self.binxgcd(&rhs)
+        self.binxgcd(rhs)
     }
 }
 
