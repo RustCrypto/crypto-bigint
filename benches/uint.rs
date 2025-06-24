@@ -3,7 +3,10 @@ use criterion::{
     BatchSize, BenchmarkGroup, BenchmarkId, Criterion, criterion_group, criterion_main,
 };
 use crypto_bigint::modular::SafeGcdInverter;
-use crypto_bigint::{Limb, NonZero, Odd, OddUint, PrecomputeInverter, Random, RandomBits, RandomMod, Reciprocal, U128, U256, U512, U1024, U2048, U4096, Uint, Gcd};
+use crypto_bigint::{
+    Gcd, Limb, NonZero, Odd, OddUint, PrecomputeInverter, Random, RandomBits, RandomMod,
+    Reciprocal, U128, U256, U512, U1024, U2048, U4096, Uint,
+};
 use rand_chacha::ChaCha8Rng;
 use rand_core::{RngCore, SeedableRng};
 use std::hint::black_box;
