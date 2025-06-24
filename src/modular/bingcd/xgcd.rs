@@ -130,7 +130,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
         let (abs_diff, rhs_gt_lhs) = lhs_.abs_diff(rhs_);
         let odd_rhs = Odd(Uint::select(rhs_, &abs_diff, rhs_is_even));
 
-        let mut output = self.classic_binxgcd(&odd_rhs).divide();
+        let mut output = self.binxgcd_(&odd_rhs).divide();
         let matrix = &mut output.matrix;
 
         // Modify the output to negate the transformation applied to the input.
@@ -142,6 +142,20 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
         matrix.conditional_negate(case_two);
 
         output
+    }
+
+    /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
+    /// leveraging the Binary Extended GCD algorithm.
+    ///
+    /// This function switches between the "classic" and "optimized" algorithm at a best-effort
+    /// threshold. When using [Uint]s with `LIMBS` close to the threshold, it may be useful to
+    /// manually test whether the classic or optimized algorithm is faster for your machine.
+    pub(crate) const fn binxgcd_(&self, rhs: &Self) -> DividedPatternXgcdOutput<LIMBS> {
+        if LIMBS < 4 {
+            self.classic_binxgcd(rhs)
+        } else {
+            self.optimized_binxgcd(rhs)
+        }
     }
 
     /// Execute the classic Binary Extended GCD algorithm.

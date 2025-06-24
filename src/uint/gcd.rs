@@ -188,7 +188,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
     pub const fn binxgcd(&self, rhs: &Self) -> OddUintXgcdOutput<LIMBS> {
-        OddUintXgcdOutput::from_pattern_output(self.classic_binxgcd(rhs).divide())
+        OddUintXgcdOutput::from_pattern_output(self.binxgcd_(rhs).divide())
     }
 }
 
