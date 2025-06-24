@@ -1,6 +1,6 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{Bounded, ConstChoice, Constants, Encoding, Int, Limb, Odd, Uint, Zero};
+use crate::{Bounded, ConstChoice, ConstCtOption, Constants, Encoding, Int, Limb, Odd, Uint, Zero};
 use core::{
     fmt,
     num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128},
@@ -183,7 +183,17 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     }
 }
 
-impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
+impl<const LIMBS: usize> NonZeroInt<LIMBS> {
+    /// Creates a new non-zero integer in a const context.
+    /// Panics if the value is zero.
+    ///
+    /// In future versions of Rust it should be possible to replace this with
+    /// `NonZero::new(…).unwrap()`
+    // TODO: Remove when `Self::new` and `CtOption::unwrap` support `const fn`
+    pub const fn new_unwrap(n: Int<LIMBS>) -> Self {
+        ConstCtOption::new(Self(n), n.is_nonzero()).expect("Invalid value: zero")
+    }
+
     /// The sign and magnitude of this [`NonZero<Int<{LIMBS}>>`].
     pub const fn abs_sign(&self) -> (NonZero<Uint<LIMBS>>, ConstChoice) {
         let (abs, sign) = self.0.abs_sign();
