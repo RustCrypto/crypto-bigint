@@ -42,39 +42,6 @@ where
     }
 }
 
-impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Gcd for Uint<SAT_LIMBS>
-where
-    Odd<Self>: PrecomputeInverter<Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>>,
-{
-    type Output = Uint<SAT_LIMBS>;
-
-    fn gcd(&self, rhs: &Self) -> Self {
-        self.gcd(rhs)
-    }
-
-    fn gcd_vartime(&self, rhs: &Self) -> Self::Output {
-        match Odd::<Self>::new(*self).into_option() {
-            Some(odd) => odd.gcd_vartime(rhs),
-            None => self.gcd(rhs), // TODO(tarcieri): vartime support for even `self`?
-        }
-    }
-}
-
-impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Gcd<Uint<SAT_LIMBS>> for Odd<Uint<SAT_LIMBS>>
-where
-    Odd<Self>: PrecomputeInverter<Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>>,
-{
-    type Output = Uint<SAT_LIMBS>;
-
-    fn gcd(&self, rhs: &Uint<SAT_LIMBS>) -> Uint<SAT_LIMBS> {
-        <Odd<Self> as PrecomputeInverter>::Inverter::gcd(self, rhs)
-    }
-
-    fn gcd_vartime(&self, rhs: &Uint<SAT_LIMBS>) -> Self::Output {
-        <Odd<Self> as PrecomputeInverter>::Inverter::gcd_vartime(self, rhs)
-    }
-}
-
 /// Gcd of a [Uint] and an [Int].
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Gcd<Int<SAT_LIMBS>> for Uint<SAT_LIMBS>
 where
