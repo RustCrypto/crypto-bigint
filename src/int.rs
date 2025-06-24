@@ -12,7 +12,6 @@ use crate::Encoding;
 use crate::{Bounded, ConstChoice, ConstCtOption, Constants, Limb, NonZero, Odd, Uint, Word};
 
 mod add;
-mod bingcd;
 mod bit_and;
 mod bit_not;
 mod bit_or;
@@ -22,6 +21,7 @@ mod div;
 mod div_uint;
 mod encoding;
 mod from;
+mod gcd;
 mod invert_mod;
 mod mul;
 mod mul_uint;
