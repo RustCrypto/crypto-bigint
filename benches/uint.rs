@@ -3,10 +3,7 @@ use criterion::{
     BatchSize, BenchmarkGroup, BenchmarkId, Criterion, criterion_group, criterion_main,
 };
 use crypto_bigint::modular::SafeGcdInverter;
-use crypto_bigint::{
-    Limb, NonZero, Odd, OddUint, PrecomputeInverter, Random, RandomBits, RandomMod, Reciprocal,
-    U128, U256, U512, U1024, U2048, U4096, Uint,
-};
+use crypto_bigint::{Limb, NonZero, Odd, OddUint, PrecomputeInverter, Random, RandomBits, RandomMod, Reciprocal, U128, U256, U512, U1024, U2048, U4096, Uint, Gcd};
 use rand_chacha::ChaCha8Rng;
 use rand_core::{RngCore, SeedableRng};
 use std::hint::black_box;
@@ -379,19 +376,6 @@ fn gcd_bench<const LIMBS: usize, const UNSAT_LIMBS: usize>(
                 )
             },
             |(f, g)| black_box(Uint::gcd(&f, &g)),
-            BatchSize::SmallInput,
-        )
-    });
-
-    g.bench_function(BenchmarkId::new("bingcd", LIMBS), |b| {
-        b.iter_batched(
-            || {
-                (
-                    Uint::<LIMBS>::random(&mut rng),
-                    Uint::<LIMBS>::random(&mut rng),
-                )
-            },
-            |(f, g)| black_box(Uint::bingcd(&f, &g)),
             BatchSize::SmallInput,
         )
     });
