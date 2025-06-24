@@ -4,7 +4,7 @@
 
 use crate::const_choice::u32_min;
 use crate::uint::gcd::OddUintXgcdOutput;
-use crate::{ConstChoice, Gcd, Int, NonZero, NonZeroInt, NonZeroUint, Odd, OddInt, OddUint, Uint};
+use crate::{ConstChoice, Gcd, Int, NonZero, NonZeroInt, NonZeroUint, Odd, OddInt, OddUint, Uint, Xgcd};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute the gcd of `self` and `rhs` leveraging the Binary GCD algorithm.
@@ -279,6 +279,45 @@ impl<const LIMBS: usize> Gcd<OddUint<LIMBS>> for OddInt<LIMBS> {
 
     fn gcd_vartime(&self, rhs: &OddUint<LIMBS>) -> Self::Output {
         self.abs().bingcd_vartime(rhs)
+    }
+}
+
+impl<const LIMBS: usize> Xgcd for Int<LIMBS> {
+    type Output = IntXgcdOutput<LIMBS>;
+
+    fn xgcd(&self, rhs: &Int<LIMBS>) -> Self::Output {
+        self.binxgcd(rhs)
+    }
+
+    fn xgcd_vartime(&self, rhs: &Int<LIMBS>) -> Self::Output {
+        // TODO(#853): implement vartime
+        self.binxgcd(rhs)
+    }
+}
+
+impl<const LIMBS: usize> Xgcd for NonZeroInt<LIMBS> {
+    type Output = NonZeroIntXgcdOutput<LIMBS>;
+
+    fn xgcd(&self, rhs: &NonZeroInt<LIMBS>) -> Self::Output {
+        self.binxgcd(rhs)
+    }
+
+    fn xgcd_vartime(&self, rhs: &NonZeroInt<LIMBS>) -> Self::Output {
+        // TODO(#853): implement vartime
+        self.binxgcd(rhs)
+    }
+}
+
+impl<const LIMBS: usize> Xgcd for OddInt<LIMBS> {
+    type Output = OddIntXgcdOutput<LIMBS>;
+
+    fn xgcd(&self, rhs: &OddInt<LIMBS>) -> Self::Output {
+        self.binxgcd(rhs.as_nz_ref())
+    }
+
+    fn xgcd_vartime(&self, rhs: &OddInt<LIMBS>) -> Self::Output {
+        // TODO(#853): implement vartime
+        self.binxgcd(rhs.as_nz_ref())
     }
 }
 
