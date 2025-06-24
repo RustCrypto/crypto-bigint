@@ -117,7 +117,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
         // We leverage the equality gcd(lhs, rhs) = gcd(lhs, |lhs-rhs|) to deal with the case that
         // `rhs` is even.
         let rhs_is_even = rhs_.is_odd().not();
-        let (abs_diff, rhs_gt_lhs) = lhs_.abs_diff(&rhs_);
+        let (abs_diff, rhs_gt_lhs) = lhs_.abs_diff(rhs_);
         let odd_rhs = Odd(Uint::select(rhs_, &abs_diff, rhs_is_even));
 
         let mut output = self.classic_binxgcd(&odd_rhs).divide();
