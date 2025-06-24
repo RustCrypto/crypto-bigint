@@ -7,4 +7,4 @@ mod div_mod_2k;
 mod extension;
 mod gcd;
 mod matrix;
-mod xgcd;
+pub(crate) mod xgcd;
