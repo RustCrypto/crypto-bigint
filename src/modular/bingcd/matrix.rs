@@ -134,6 +134,7 @@ mod tests {
             }
         }
 
+        #[cfg(not(miri))]
         pub(crate) const fn as_elements(
             &self,
         ) -> (&Int<LIMBS>, &Int<LIMBS>, &Int<LIMBS>, &Int<LIMBS>, u32, u32) {
