@@ -19,11 +19,8 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
 
     /// Wrapping multiply `self` with `rhs`
     pub const fn wrapping_mul<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> Self {
-        let (lo, hi) = self.0.widening_mul(&rhs);
-        let hi = self
-            .1
-            .wrapping_mul(&rhs)
-            .wrapping_add(&hi.resize::<EXTRA>());
+        let (lo, hi) = self.0.widening_mul(rhs);
+        let hi = self.1.wrapping_mul(rhs).wrapping_add(&hi.resize::<EXTRA>());
         Self(lo, hi)
     }
 

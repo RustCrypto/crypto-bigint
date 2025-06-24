@@ -49,7 +49,7 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
         self.m11 = self.m11.wrapping_neg_if(negate);
     }
 
-    pub(super) const fn to_pattern_matrix(&self) -> PatternMatrix<LIMBS> {
+    pub(super) const fn to_pattern_matrix(self) -> PatternMatrix<LIMBS> {
         let (abs_m00, m00_is_negative) = self.m00.abs_sign();
         let (abs_m01, m01_is_negative) = self.m01.abs_sign();
         let (abs_m10, m10_is_negative) = self.m10.abs_sign();
@@ -308,7 +308,7 @@ impl<const LIMBS: usize> DividedIntMatrix<LIMBS> {
         self.inner.conditional_negate_bottom_row(negate);
     }
 
-    pub(super) const fn to_divided_pattern_matrix(&self) -> DividedPatternMatrix<LIMBS> {
+    pub(super) const fn to_divided_pattern_matrix(self) -> DividedPatternMatrix<LIMBS> {
         DividedPatternMatrix {
             inner: self.inner.to_pattern_matrix(),
             k: self.k,
