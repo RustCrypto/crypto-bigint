@@ -218,6 +218,18 @@ pub trait Gcd<Rhs = Self>: Sized {
     fn gcd_vartime(&self, rhs: &Rhs) -> Self::Output;
 }
 
+/// Compute the extended greatest common divisor of two integers.
+pub trait Xgcd<Rhs = Self>: Sized {
+    /// Output type.
+    type Output;
+
+    /// Compute the extended greatest common divisor of `self` and `rhs`.
+    fn xgcd(&self, rhs: &Rhs) -> Self::Output;
+
+    /// Compute the extended greatest common divisor of `self` and `rhs` in variable time.
+    fn xgcd_vartime(&self, rhs: &Rhs) -> Self::Output;
+}
+
 /// Trait impl'd by precomputed modular inverters obtained via the [`PrecomputeInverter`] trait.
 pub trait Inverter {
     /// Output of an inversion.
