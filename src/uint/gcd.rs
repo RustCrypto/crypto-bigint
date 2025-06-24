@@ -2,7 +2,7 @@
 
 use crate::const_choice::u32_min;
 use crate::modular::bingcd::xgcd::PatternXgcdOutput;
-use crate::{ConstChoice, Gcd, Int, NonZero, NonZeroUint, Odd, OddUint, Uint};
+use crate::{ConstChoice, Gcd, Int, NonZero, NonZeroUint, Odd, OddUint, Uint, Xgcd};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute the greatest common divisor of `self` and `rhs`.
@@ -313,6 +313,45 @@ impl<const LIMBS: usize> Gcd<Int<LIMBS>> for OddUint<LIMBS> {
 
     fn gcd_vartime(&self, rhs: &Int<LIMBS>) -> Self::Output {
         self.bingcd_vartime(&rhs.abs())
+    }
+}
+
+impl<const LIMBS: usize> Xgcd for Uint<LIMBS> {
+    type Output = UintXgcdOutput<LIMBS>;
+
+    fn xgcd(&self, rhs: &Uint<LIMBS>) -> Self::Output {
+        self.binxgcd(&rhs)
+    }
+
+    fn xgcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self::Output {
+        // TODO(#853): implement vartime
+        self.binxgcd(&rhs)
+    }
+}
+
+impl<const LIMBS: usize> Xgcd for NonZeroUint<LIMBS> {
+    type Output = NonZeroUintXgcdOutput<LIMBS>;
+
+    fn xgcd(&self, rhs: &NonZeroUint<LIMBS>) -> Self::Output {
+        self.binxgcd(&rhs)
+    }
+
+    fn xgcd_vartime(&self, rhs: &NonZeroUint<LIMBS>) -> Self::Output {
+        // TODO(#853): implement vartime
+        self.binxgcd(&rhs)
+    }
+}
+
+impl<const LIMBS: usize> Xgcd for OddUint<LIMBS> {
+    type Output = OddUintXgcdOutput<LIMBS>;
+
+    fn xgcd(&self, rhs: &OddUint<LIMBS>) -> Self::Output {
+        self.binxgcd(&rhs)
+    }
+
+    fn xgcd_vartime(&self, rhs: &OddUint<LIMBS>) -> Self::Output {
+        // TODO(#853): implement vartime
+        self.binxgcd(&rhs)
     }
 }
 
