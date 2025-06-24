@@ -470,10 +470,30 @@ fn bench_shl(c: &mut Criterion) {
         )
     });
 
-    group.bench_function("shl, U2048", |b| {
+    group.bench_function("shl (overflowing_shl), U2048", |b| {
         b.iter_batched(
             || U2048::ONE,
             |x| x.overflowing_shl(1024 + 10),
+            BatchSize::SmallInput,
+        )
+    });
+    group.bench_function("shl (<<, asm), U2048", |b| {
+        b.iter_batched(|| U2048::ONE, |x| x << (1024 + 10), BatchSize::SmallInput)
+    });
+
+    let mut rng = make_rng();
+    group.bench_function("shl (overflowing_shl), U2048, big number", |b| {
+        b.iter_batched(
+            || U2048::random(&mut rng),
+            |x| x.overflowing_shl(1024 + 10),
+            BatchSize::SmallInput,
+        )
+    });
+    let mut rng = make_rng();
+    group.bench_function("shl (<<, asm), U2048, big number", |b| {
+        b.iter_batched(
+            || U2048::random(&mut rng),
+            |x| x << (1024 + 10),
             BatchSize::SmallInput,
         )
     });
@@ -508,10 +528,48 @@ fn bench_shr(c: &mut Criterion) {
         )
     });
 
-    group.bench_function("shr, U2048", |b| {
+    group.bench_function("shr (overflowing_shr), U2048", |b| {
         b.iter_batched(
             || U2048::ONE,
             |x| x.overflowing_shr(1024 + 10),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("shr (>>, asm), U2048", |b| {
+        b.iter_batched(|| U2048::ONE, |x| x >> (1024 + 10), BatchSize::SmallInput)
+    });
+
+    let mut rng = make_rng();
+    group.bench_function("shr (overflowing_shr), U2048, big number", |b| {
+        b.iter_batched(
+            || U2048::random(&mut rng),
+            |x| x.overflowing_shr(1024 + 10),
+            BatchSize::SmallInput,
+        )
+    });
+
+    let mut rng = make_rng();
+    group.bench_function("shr (>>, asm), U2048, big number", |b| {
+        b.iter_batched(
+            || U2048::random(&mut rng),
+            |x| x >> (1024 + 10),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("shr, U2048, zero", |b| {
+        b.iter_batched(
+            || U2048::ONE,
+            |x| x.overflowing_shr(0),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("shr, U2048, zero, asm", |b| {
+        b.iter_batched(
+            || U2048::ONE,
+            |x| unsafe { x.shr_asm(0) },
             BatchSize::SmallInput,
         )
     });
