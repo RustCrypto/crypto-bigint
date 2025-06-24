@@ -533,9 +533,8 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
 
 #[cfg(test)]
 mod tests {
-    use crate::{WideWord, Word};
-
     use super::{ConstChoice, u32_max, u32_min};
+    use crate::{WideWord, Word};
 
     #[test]
     fn from_u64_lsb() {
