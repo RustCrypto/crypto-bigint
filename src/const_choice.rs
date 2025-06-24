@@ -1,6 +1,8 @@
 use subtle::{Choice, CtOption};
 
-use crate::{Int, Limb, NonZero, Odd, Uint, WideWord, Word, modular::SafeGcdInverter};
+use crate::{
+    Int, Limb, NonZero, NonZeroInt, Odd, OddInt, Uint, WideWord, Word, modular::SafeGcdInverter,
+};
 
 /// A boolean value returned by constant-time `const fn`s.
 // TODO: should be replaced by `subtle::Choice` or `CtOption`
@@ -471,6 +473,34 @@ impl<const LIMBS: usize> ConstCtOption<Int<LIMBS>> {
     }
 }
 
+impl<const LIMBS: usize> ConstCtOption<NonZeroInt<LIMBS>> {
+    /// Returns the contained value, consuming the `self` value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value is none with a custom panic message provided by
+    /// `msg`.
+    #[inline]
+    pub const fn expect(self, msg: &str) -> NonZeroInt<LIMBS> {
+        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        self.value
+    }
+}
+
+impl<const LIMBS: usize> ConstCtOption<OddInt<LIMBS>> {
+    /// Returns the contained value, consuming the `self` value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value is none with a custom panic message provided by
+    /// `msg`.
+    #[inline]
+    pub const fn expect(self, msg: &str) -> OddInt<LIMBS> {
+        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        self.value
+    }
+}
+
 impl ConstCtOption<NonZero<Limb>> {
     /// Returns the contained value, consuming the `self` value.
     ///
@@ -503,9 +533,8 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
 
 #[cfg(test)]
 mod tests {
-    use crate::{WideWord, Word};
-
     use super::{ConstChoice, u32_max, u32_min};
+    use crate::{WideWord, Word};
 
     #[test]
     fn from_u64_lsb() {
