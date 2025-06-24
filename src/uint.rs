@@ -26,7 +26,6 @@ mod macros;
 
 mod add;
 mod add_mod;
-pub(crate) mod gcd;
 mod bit_and;
 mod bit_not;
 mod bit_or;
@@ -38,6 +37,7 @@ mod div;
 pub(crate) mod div_limb;
 pub(crate) mod encoding;
 mod from;
+pub(crate) mod gcd;
 mod invert_mod;
 pub(crate) mod mul;
 mod mul_mod;
