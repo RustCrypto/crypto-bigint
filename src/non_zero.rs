@@ -26,7 +26,7 @@ use serdect::serde::{
 /// Non-zero unsigned integer.
 pub type NonZeroUint<const LIMBS: usize> = NonZero<Uint<LIMBS>>;
 
-/// Non-zero signed integer
+/// Non-zero signed integer.
 pub type NonZeroInt<const LIMBS: usize> = NonZero<Int<LIMBS>>;
 
 /// Non-zero boxed unsigned integer.
@@ -194,14 +194,14 @@ impl<const LIMBS: usize> NonZeroInt<LIMBS> {
         ConstCtOption::new(Self(n), n.is_nonzero()).expect("Invalid value: zero")
     }
 
-    /// The sign and magnitude of this [`NonZero<Int<{LIMBS}>>`].
+    /// The sign and magnitude of this [`NonZeroInt`].
     pub const fn abs_sign(&self) -> (NonZero<Uint<LIMBS>>, ConstChoice) {
         let (abs, sign) = self.0.abs_sign();
         // Absolute value of a non-zero value is non-zero
         (NonZero(abs), sign)
     }
 
-    /// The magnitude of this [`NonZero<Int<{LIMBS}>>`].
+    /// The magnitude of this [`NonZeroInt`].
     pub const fn abs(&self) -> NonZero<Uint<LIMBS>> {
         self.abs_sign().0
     }
