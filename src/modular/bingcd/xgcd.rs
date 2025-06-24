@@ -1,5 +1,5 @@
 //! The Binary Extended GCD algorithm.
-use crate::modular::bingcd::matrix::BinXgcdMatrix;
+use crate::modular::bingcd::matrix::{DividedPatternMatrix, PatternMatrix};
 use crate::{ConstChoice, Int, NonZeroUint, Odd, OddUint, Uint};
 
 /// Container for the processed output of the Binary XGCD algorithm.
@@ -35,17 +35,70 @@ impl<const LIMBS: usize> OddUintXgcdOutput<LIMBS> {
 }
 
 /// Container for the raw output of the Binary XGCD algorithm.
-pub(crate) struct RawOddUintXgcdOutput<const LIMBS: usize> {
+struct RawXgcdOutput<const LIMBS: usize, MATRIX> {
     gcd: OddUint<LIMBS>,
-    matrix: BinXgcdMatrix<LIMBS>,
+    matrix: MATRIX,
 }
 
-impl<const LIMBS: usize> RawOddUintXgcdOutput<LIMBS> {
-    /// Process raw output, constructing an [`OddUintXgcdOutput`] object.
+pub(super) type DividedPatternXgcdOutput<const LIMBS: usize> =
+    RawXgcdOutput<LIMBS, DividedPatternMatrix<LIMBS>>;
+
+impl<const LIMBS: usize> DividedPatternXgcdOutput<LIMBS> {
+    /// Divide `self.matrix.inner` by `2^self.matrix.k`, allowing us to simplify `inner` from a
+    /// [`DividedPatternMatrix`] to a [`PatternMatrix`].
+    ///
+    /// The performed divisions are modulo `lhs/gcd` and `rhs/gcd` to maintain the correctness of
+    /// the XGCD state.
+    ///
+    /// This operation is 'fast' since it only applies the division to the top row of the matrix.
+    /// This is allowed since it is assumed that `self.matrix * (lhs, rhs) = (gcd, 0)`; dividing
+    /// the bottom row of the matrix by a constant has no impact since its inner-product with the
+    /// input vector is zero.
+    ///
+    /// Executes in variable time w.r.t. `k_upper_bound`.
+    const fn divide(self) -> PatternXgcdOutput<LIMBS> {
+        let DividedPatternMatrix {
+            inner: mut matrix,
+            k,
+            k_upper_bound,
+            ..
+        } = self.matrix;
+
+        let PatternMatrix {
+            m00: x,
+            m01: y,
+            m10: rhs_div_gcd,
+            m11: lhs_div_gcd,
+            ..
+        } = &mut matrix;
+
+        if k_upper_bound > 0 {
+            *x = x.bounded_div2k_mod_q(
+                k,
+                k_upper_bound,
+                &rhs_div_gcd.to_odd().expect("odd by construction"),
+            );
+            *y = y.bounded_div2k_mod_q(
+                k,
+                k_upper_bound,
+                &lhs_div_gcd.to_odd().expect("odd by construction"),
+            );
+        }
+
+        PatternXgcdOutput {
+            gcd: self.gcd,
+            matrix,
+        }
+    }
+}
+
+pub(super) type PatternXgcdOutput<const LIMBS: usize> = RawXgcdOutput<LIMBS, PatternMatrix<LIMBS>>;
+
+impl<const LIMBS: usize> PatternXgcdOutput<LIMBS> {
     pub(crate) const fn process(&mut self) -> OddUintXgcdOutput<LIMBS> {
-        self.remove_matrix_factors();
         let (x, y) = self.bezout_coefficients();
         let (lhs_on_gcd, rhs_on_gcd) = self.quotients();
+
         OddUintXgcdOutput {
             gcd: self.gcd,
             x,
@@ -55,44 +108,9 @@ impl<const LIMBS: usize> RawOddUintXgcdOutput<LIMBS> {
         }
     }
 
-    /// Divide `self.matrix` by `2^self.matrix.k`, i.e., remove the excess doublings from
-    /// `self.matrix`.
-    ///
-    /// The performed divisions are modulo `lhs` and `rhs` to maintain the correctness of the XGCD
-    /// state.
-    ///
-    /// This operation is 'fast' since it only applies the division to the top row of the matrix.
-    /// This is allowed since it is assumed that `self.matrix * (lhs, rhs) = (gcd, 0)`; dividing
-    /// the bottom row of the matrix by a constant has no impact since its inner-product with the
-    /// input vector is zero.
-    const fn remove_matrix_factors(&mut self) {
-        let (lhs_div_gcd, rhs_div_gcd) = self.quotients();
-        let BinXgcdMatrix {
-            m00: x,
-            m01: y,
-            k,
-            k_upper_bound,
-            ..
-        } = &mut self.matrix;
-        if *k_upper_bound > 0 {
-            *x = x.bounded_div2k_mod_q(
-                *k,
-                *k_upper_bound,
-                &rhs_div_gcd.to_odd().expect("odd by construction"),
-            );
-            *y = y.bounded_div2k_mod_q(
-                *k,
-                *k_upper_bound,
-                &lhs_div_gcd.to_odd().expect("odd by construction"),
-            );
-            *k = 0;
-            *k_upper_bound = 0;
-        }
-    }
-
     /// Obtain the bezout coefficients `(x, y)` such that `lhs * x + rhs * y = gcd`.
     const fn bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
-        let BinXgcdMatrix {
+        let PatternMatrix {
             m00,
             m01,
             m10,
@@ -100,9 +118,12 @@ impl<const LIMBS: usize> RawOddUintXgcdOutput<LIMBS> {
             pattern,
             ..
         } = self.matrix;
+
+        // TODO: can we simplify this?
         let m10_sub_m00 = m10.wrapping_sub(&m00);
         let m11_sub_m01 = m11.wrapping_sub(&m01);
         let apply = Uint::lte(&m10_sub_m00, &m00).and(Uint::lte(&m11_sub_m01, &m01));
+
         let m00 = *Uint::select(&m00, &m10_sub_m00, apply)
             .wrapping_neg_if(apply.xor(pattern.not()))
             .as_int();
@@ -114,7 +135,7 @@ impl<const LIMBS: usize> RawOddUintXgcdOutput<LIMBS> {
 
     /// Obtain the quotients `lhs/gcd` and `rhs/gcd` from `matrix`.
     const fn quotients(&self) -> (Uint<LIMBS>, Uint<LIMBS>) {
-        let BinXgcdMatrix {
+        let PatternMatrix {
             m10: rhs_div_gcd,
             m11: lhs_div_gcd,
             ..
@@ -139,8 +160,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
         let (abs_diff, rhs_gt_lhs) = lhs_.abs_diff(&rhs_);
         let odd_rhs = Odd(Uint::select(rhs_, &abs_diff, rhs_is_even));
 
-        let mut output = self.classic_binxgcd(&odd_rhs);
-        output.remove_matrix_factors();
+        let mut output = self.classic_binxgcd(&odd_rhs).divide();
         let matrix = &mut output.matrix;
 
         // Modify the output to negate the transformation applied to the input.
@@ -151,7 +171,6 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
         matrix.conditional_add_right_column_to_left(case_two);
         matrix.conditional_negate(case_two);
 
-        // TODO: now we're removing the matrix factors twice!
         output.process()
     }
 
@@ -161,13 +180,13 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
     ///
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
     /// <https://eprint.iacr.org/2020/972.pdf>.
-    pub(crate) const fn classic_binxgcd(&self, rhs: &Self) -> RawOddUintXgcdOutput<LIMBS> {
+    pub(crate) const fn classic_binxgcd(&self, rhs: &Self) -> DividedPatternXgcdOutput<LIMBS> {
         let (gcd, _, matrix) = self.partial_binxgcd_vartime::<LIMBS>(
             rhs.as_ref(),
             Self::MIN_BINXGCD_ITERATIONS,
             ConstChoice::TRUE,
         );
-        RawOddUintXgcdOutput { gcd, matrix }
+        DividedPatternXgcdOutput { gcd, matrix }
     }
 
     /// Executes the optimized Binary GCD inner loop.
@@ -189,10 +208,10 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
         rhs: &Uint<LIMBS>,
         iterations: u32,
         halt_at_zero: ConstChoice,
-    ) -> (Self, Uint<LIMBS>, BinXgcdMatrix<UPDATE_LIMBS>) {
+    ) -> (Self, Uint<LIMBS>, DividedPatternMatrix<UPDATE_LIMBS>) {
         let (mut a, mut b) = (*self.as_ref(), *rhs);
         // This matrix corresponds with (f0, g0, f1, g1) in the paper.
-        let mut matrix = BinXgcdMatrix::UNIT;
+        let mut matrix = DividedPatternMatrix::UNIT;
 
         // Compute the update matrix.
         // Note: to be consistent with the paper, the `binxgcd_step` algorithm requires the second
@@ -243,7 +262,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
     const fn binxgcd_step<const MATRIX_LIMBS: usize>(
         a: &mut Uint<LIMBS>,
         b: &mut Uint<LIMBS>,
-        matrix: &mut BinXgcdMatrix<MATRIX_LIMBS>,
+        matrix: &mut DividedPatternMatrix<MATRIX_LIMBS>,
         halt_at_zero: ConstChoice,
     ) {
         let a_odd = a.is_odd();
@@ -289,14 +308,14 @@ mod tests {
     use num_traits::Zero;
 
     mod test_extract_quotients {
-        use crate::modular::bingcd::matrix::BinXgcdMatrix;
-        use crate::modular::bingcd::xgcd::RawOddUintXgcdOutput;
+        use crate::modular::bingcd::matrix::DividedPatternMatrix;
+        use crate::modular::bingcd::xgcd::{DividedPatternXgcdOutput, RawXgcdOutput};
         use crate::{ConstChoice, U64, Uint};
 
         fn raw_binxgcdoutput_setup<const LIMBS: usize>(
-            matrix: BinXgcdMatrix<LIMBS>,
-        ) -> RawOddUintXgcdOutput<LIMBS> {
-            RawOddUintXgcdOutput {
+            matrix: DividedPatternMatrix<LIMBS>,
+        ) -> DividedPatternXgcdOutput<LIMBS> {
+            RawXgcdOutput {
                 gcd: Uint::<LIMBS>::ONE.to_odd().unwrap(),
                 matrix,
             }
@@ -304,7 +323,8 @@ mod tests {
 
         #[test]
         fn test_extract_quotients_unit() {
-            let output = raw_binxgcdoutput_setup(BinXgcdMatrix::<{ U64::LIMBS }>::UNIT);
+            let output =
+                raw_binxgcdoutput_setup(DividedPatternMatrix::<{ U64::LIMBS }>::UNIT).divide();
             let (lhs_on_gcd, rhs_on_gcd) = output.quotients();
             assert_eq!(lhs_on_gcd, Uint::ONE);
             assert_eq!(rhs_on_gcd, Uint::ZERO);
@@ -312,22 +332,24 @@ mod tests {
 
         #[test]
         fn test_extract_quotients_basic() {
-            let output = raw_binxgcdoutput_setup(BinXgcdMatrix::<{ U64::LIMBS }>::new_u64(
+            let output = raw_binxgcdoutput_setup(DividedPatternMatrix::<{ U64::LIMBS }>::new_u64(
                 (0, 0, 5, 7),
                 ConstChoice::FALSE,
                 0,
                 0,
-            ));
+            ))
+            .divide();
             let (lhs_on_gcd, rhs_on_gcd) = output.quotients();
             assert_eq!(lhs_on_gcd, Uint::from(7u32));
             assert_eq!(rhs_on_gcd, Uint::from(5u32));
 
-            let output = raw_binxgcdoutput_setup(BinXgcdMatrix::<{ U64::LIMBS }>::new_u64(
+            let output = raw_binxgcdoutput_setup(DividedPatternMatrix::<{ U64::LIMBS }>::new_u64(
                 (0, 0, 7u64, 5u64),
                 ConstChoice::TRUE,
                 0,
                 0,
-            ));
+            ))
+            .divide();
             let (lhs_on_gcd, rhs_on_gcd) = output.quotients();
             assert_eq!(lhs_on_gcd, Uint::from(5u32));
             assert_eq!(rhs_on_gcd, Uint::from(7u32));
@@ -335,17 +357,17 @@ mod tests {
     }
 
     mod test_derive_bezout_coefficients {
-        use crate::modular::bingcd::matrix::BinXgcdMatrix;
-        use crate::modular::bingcd::xgcd::RawOddUintXgcdOutput;
+        use crate::modular::bingcd::matrix::DividedPatternMatrix;
+        use crate::modular::bingcd::xgcd::RawXgcdOutput;
         use crate::{ConstChoice, Int, U64, Uint};
 
         #[test]
         fn test_derive_bezout_coefficients_unit() {
-            let mut output = RawOddUintXgcdOutput {
+            let output = RawXgcdOutput {
                 gcd: Uint::ONE.to_odd().unwrap(),
-                matrix: BinXgcdMatrix::<{ U64::LIMBS }>::UNIT,
-            };
-            output.remove_matrix_factors();
+                matrix: DividedPatternMatrix::<{ U64::LIMBS }>::UNIT,
+            }
+            .divide();
             let (x, y) = output.bezout_coefficients();
             assert_eq!(x, Int::ONE);
             assert_eq!(y, Int::ZERO);
@@ -353,20 +375,30 @@ mod tests {
 
         #[test]
         fn test_derive_bezout_coefficients_basic() {
-            let mut output = RawOddUintXgcdOutput {
+            let output = RawXgcdOutput {
                 gcd: U64::ONE.to_odd().unwrap(),
-                matrix: BinXgcdMatrix::new_u64((2u64, 3u64, 4u64, 5u64), ConstChoice::TRUE, 0, 0),
-            };
-            output.remove_matrix_factors();
+                matrix: DividedPatternMatrix::new_u64(
+                    (2u64, 3u64, 5u64, 5u64),
+                    ConstChoice::TRUE,
+                    0,
+                    0,
+                ),
+            }
+            .divide();
             let (x, y) = output.bezout_coefficients();
-            assert_eq!(x, Int::from(-2i32));
-            assert_eq!(y, Int::from(2i32));
+            assert_eq!(x, Int::from(2i32));
+            assert_eq!(y, Int::from(-3i32));
 
-            let mut output = RawOddUintXgcdOutput {
+            let output = RawXgcdOutput {
                 gcd: U64::ONE.to_odd().unwrap(),
-                matrix: BinXgcdMatrix::new_u64((2u64, 3u64, 3u64, 5u64), ConstChoice::FALSE, 0, 1),
-            };
-            output.remove_matrix_factors();
+                matrix: DividedPatternMatrix::new_u64(
+                    (2u64, 3u64, 3u64, 5u64),
+                    ConstChoice::FALSE,
+                    0,
+                    1,
+                ),
+            }
+            .divide();
             let (x, y) = output.bezout_coefficients();
             assert_eq!(x, Int::from(1i32));
             assert_eq!(y, Int::from(-2i32));
@@ -374,25 +406,30 @@ mod tests {
 
         #[test]
         fn test_derive_bezout_coefficients_removes_doublings_easy() {
-            let mut output = RawOddUintXgcdOutput {
+            let output = RawXgcdOutput {
                 gcd: U64::ONE.to_odd().unwrap(),
-                matrix: BinXgcdMatrix::new_u64((2u64, 6u64, 3u64, 5u64), ConstChoice::TRUE, 1, 1),
-            };
-            output.remove_matrix_factors();
+                matrix: DividedPatternMatrix::new_u64(
+                    (2u64, 6u64, 3u64, 5u64),
+                    ConstChoice::TRUE,
+                    1,
+                    1,
+                ),
+            }
+            .divide();
             let (x, y) = output.bezout_coefficients();
             assert_eq!(x, Int::ONE);
             assert_eq!(y, Int::from(-3i32));
 
-            let mut output = RawOddUintXgcdOutput {
+            let output = RawXgcdOutput {
                 gcd: U64::ONE.to_odd().unwrap(),
-                matrix: BinXgcdMatrix::new_u64(
+                matrix: DividedPatternMatrix::new_u64(
                     (120u64, 64u64, 7u64, 5u64),
                     ConstChoice::FALSE,
                     5,
                     6,
                 ),
-            };
-            output.remove_matrix_factors();
+            }
+            .divide();
             let (x, y) = output.bezout_coefficients();
             assert_eq!(x, Int::from(-9i32));
             assert_eq!(y, Int::from(2i32));
@@ -400,11 +437,16 @@ mod tests {
 
         #[test]
         fn test_derive_bezout_coefficients_removes_doublings_for_odd_numbers() {
-            let mut output = RawOddUintXgcdOutput {
+            let output = RawXgcdOutput {
                 gcd: U64::ONE.to_odd().unwrap(),
-                matrix: BinXgcdMatrix::new_u64((2u64, 6u64, 7u64, 5u64), ConstChoice::FALSE, 3, 7),
-            };
-            output.remove_matrix_factors();
+                matrix: DividedPatternMatrix::new_u64(
+                    (2u64, 6u64, 7u64, 5u64),
+                    ConstChoice::FALSE,
+                    3,
+                    7,
+                ),
+            }
+            .divide();
             let (x, y) = output.bezout_coefficients();
             assert_eq!(x, Int::from(-2i32));
             assert_eq!(y, Int::from(2i32));
@@ -412,7 +454,7 @@ mod tests {
     }
 
     mod test_partial_binxgcd {
-        use crate::modular::bingcd::matrix::BinXgcdMatrix;
+        use crate::modular::bingcd::matrix::DividedPatternMatrix;
         use crate::{ConstChoice, Odd, U64};
 
         const A: Odd<U64> = U64::from_be_hex("CA048AFA63CD6A1F").to_odd().expect("odd");
@@ -425,7 +467,7 @@ mod tests {
             assert_eq!(matrix.k, 5);
             assert_eq!(
                 matrix,
-                BinXgcdMatrix::new_u64((8u64, 4u64, 2u64, 5u64), ConstChoice::TRUE, 5, 5)
+                DividedPatternMatrix::new_u64((8u64, 4u64, 2u64, 5u64), ConstChoice::TRUE, 5, 5)
             );
         }
 
@@ -505,8 +547,8 @@ mod tests {
     mod test_binxgcd_nz {
         use crate::modular::bingcd::xgcd::tests::test_xgcd;
         use crate::{
-            ConcatMixed, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096,
-            U8192, Uint,
+            ConcatMixed, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096, U8192,
+            Uint,
         };
 
         fn binxgcd_nz_test<const LIMBS: usize, const DOUBLE: usize>(
@@ -519,8 +561,9 @@ mod tests {
             test_xgcd(lhs, rhs, output);
         }
 
-        fn binxgcd_nz_tests<const LIMBS: usize, const DOUBLE: usize>() where
-        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+        fn binxgcd_nz_tests<const LIMBS: usize, const DOUBLE: usize>()
+        where
+            Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
             let max_int = *Int::MAX.as_uint();
             let int_abs_min = Int::MIN.abs();
@@ -556,8 +599,8 @@ mod tests {
     mod test_classic_binxgcd {
         use crate::modular::bingcd::xgcd::tests::test_xgcd;
         use crate::{
-            ConcatMixed, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096,
-            U8192, Uint,
+            ConcatMixed, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096, U8192,
+            Uint,
         };
 
         fn classic_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
@@ -566,11 +609,13 @@ mod tests {
         ) where
             Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
         {
-            let mut output = lhs
+            let output = lhs
                 .to_odd()
                 .unwrap()
-                .classic_binxgcd(&rhs.to_odd().unwrap());
-            test_xgcd(lhs, rhs, output.process());
+                .classic_binxgcd(&rhs.to_odd().unwrap())
+                .divide()
+                .process();
+            test_xgcd(lhs, rhs, output);
         }
 
         fn classic_binxgcd_tests<const LIMBS: usize, const DOUBLE: usize>()
