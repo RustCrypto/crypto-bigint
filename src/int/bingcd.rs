@@ -4,7 +4,7 @@
 
 use crate::const_choice::u32_min;
 use crate::uint::gcd::OddUintXgcdOutput;
-use crate::{ConstChoice, Int, NonZero, NonZeroUint, Odd, OddUint, Uint};
+use crate::{ConstChoice, Gcd, Int, NonZero, NonZeroInt, NonZeroUint, Odd, OddInt, OddUint, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute the gcd of `self` and `rhs` leveraging the Binary GCD algorithm.
@@ -207,6 +207,42 @@ impl<const LIMBS: usize, T: Copy> XgcdOutput<LIMBS, T> {
     /// Return the Bézout coefficients `x` and `y` s.t. `lhs * x + rhs * y = gcd`.
     pub fn bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
         (self.x, self.y)
+    }
+}
+
+impl<const LIMBS: usize> Gcd for Int<LIMBS> {
+    type Output = Uint<LIMBS>;
+
+    fn gcd(&self, rhs: &Self) -> Self::Output {
+        self.bingcd(&rhs)
+    }
+
+    fn gcd_vartime(&self, rhs: &Self) -> Self::Output {
+        self.bingcd_vartime(&rhs)
+    }
+}
+
+impl<const LIMBS: usize> Gcd for NonZeroInt<LIMBS> {
+    type Output = NonZeroUint<LIMBS>;
+
+    fn gcd(&self, rhs: &Self) -> Self::Output {
+        self.bingcd(&rhs)
+    }
+
+    fn gcd_vartime(&self, rhs: &Self) -> Self::Output {
+        self.bingcd_vartime(&rhs)
+    }
+}
+
+impl<const LIMBS: usize> Gcd for OddInt<LIMBS> {
+    type Output = OddUint<LIMBS>;
+
+    fn gcd(&self, rhs: &Self) -> Self::Output {
+        self.bingcd(&rhs)
+    }
+
+    fn gcd_vartime(&self, rhs: &Self) -> Self::Output {
+        self.bingcd_vartime(&rhs)
     }
 }
 
@@ -499,6 +535,22 @@ mod tests {
             run_tests::<{ U1024::LIMBS }, { U2048::LIMBS }>();
             run_tests::<{ U2048::LIMBS }, { U4096::LIMBS }>();
             run_tests::<{ U4096::LIMBS }, { U8192::LIMBS }>();
+        }
+    }
+
+    mod traits {
+        use crate::{Gcd, I256, U256};
+
+        #[test]
+        fn gcd_always_positive() {
+            // Two numbers with a shared factor of 61
+            let f = I256::from(59i32 * 61);
+            let g = I256::from(61i32 * 71);
+
+            assert_eq!(U256::from(61u32), f.gcd(&g));
+            assert_eq!(U256::from(61u32), f.wrapping_neg().gcd(&g));
+            assert_eq!(U256::from(61u32), f.gcd(&g.wrapping_neg()));
+            assert_eq!(U256::from(61u32), f.wrapping_neg().gcd(&g.wrapping_neg()));
         }
     }
 }

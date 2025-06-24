@@ -3,22 +3,6 @@
 use crate::modular::SafeGcdInverter;
 use crate::{Gcd, Int, Odd, PrecomputeInverter, Uint};
 
-/// Gcd of two [Int]s
-impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Gcd for Int<SAT_LIMBS>
-where
-    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>>,
-{
-    type Output = Uint<SAT_LIMBS>;
-
-    fn gcd(&self, rhs: &Self) -> Self::Output {
-        self.abs().gcd(&rhs.abs())
-    }
-
-    fn gcd_vartime(&self, rhs: &Self) -> Self::Output {
-        self.abs().gcd_vartime(&rhs.abs())
-    }
-}
-
 /// Gcd of an [Int] and a [Uint].
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Gcd<Uint<SAT_LIMBS>> for Int<SAT_LIMBS>
 where
