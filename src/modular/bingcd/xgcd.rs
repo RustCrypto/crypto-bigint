@@ -1,6 +1,7 @@
 //! The Binary Extended GCD algorithm.
-use crate::modular::bingcd::matrix::{DividedPatternMatrix, PatternMatrix};
-use crate::{ConstChoice, Int, NonZeroUint, Odd, OddUint, Uint};
+use crate::const_choice::u32_max;
+use crate::modular::bingcd::matrix::{DividedIntMatrix, DividedPatternMatrix, PatternMatrix, Unit};
+use crate::{ConstChoice, Int, NonZeroUint, Odd, OddUint, U64, U128, Uint};
 
 /// Container for the raw output of the Binary XGCD algorithm.
 pub(crate) struct RawXgcdOutput<const LIMBS: usize, MATRIX> {
@@ -104,6 +105,15 @@ impl<const LIMBS: usize> PatternXgcdOutput<LIMBS> {
     }
 }
 
+/// Number of bits used by [`OddUint::optimized_binxgcd`] to represent a "compact" [`Uint`].
+const SUMMARY_BITS: u32 = U64::BITS;
+
+/// Number of limbs used to represent [`SUMMARY_BITS`].
+const SUMMARY_LIMBS: usize = U64::LIMBS;
+
+/// Twice the number of limbs used to represent [`SUMMARY_BITS`], i.e., two times [`SUMMARY_LIMBS`].
+const DOUBLE_SUMMARY_LIMBS: usize = U128::LIMBS;
+
 impl<const LIMBS: usize> OddUint<LIMBS> {
     /// The minimal number of binary GCD iterations required to guarantee successful completion.
     const MIN_BINXGCD_ITERATIONS: u32 = 2 * Self::BITS - 1;
@@ -146,6 +156,95 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
             Self::MIN_BINXGCD_ITERATIONS,
             ConstChoice::TRUE,
         );
+        DividedPatternXgcdOutput { gcd, matrix }
+    }
+
+    /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
+    /// leveraging the Binary Extended GCD algorithm.
+    ///
+    /// **Warning**: `self` and `rhs` must be contained in an [U128] or larger.
+    ///
+    /// Note: this algorithm becomes more efficient than the classical algorithm for [Uint]s with
+    /// relatively many `LIMBS`. A best-effort threshold is presented in [Self::binxgcd_].
+    ///
+    /// Note: the full algorithm has an additional parameter; this function selects the best-effort
+    /// value for this parameter. You might be able to further tune your performance by calling the
+    /// [Self::optimized_bingcd_] function directly.
+    ///
+    /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
+    /// <https://eprint.iacr.org/2020/972.pdf>.
+    pub(crate) const fn optimized_binxgcd(&self, rhs: &Self) -> DividedPatternXgcdOutput<LIMBS> {
+        assert!(Self::BITS >= U128::BITS);
+        self.optimized_binxgcd_::<SUMMARY_BITS, SUMMARY_LIMBS, DOUBLE_SUMMARY_LIMBS>(rhs)
+    }
+
+    /// Given `(self, rhs)`, computes `(g, x, y)`, s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
+    /// leveraging the optimized Binary Extended GCD algorithm.
+    ///
+    /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
+    /// <https://eprint.iacr.org/2020/972.pdf>
+    ///
+    /// In summary, the optimized algorithm does not operate on `self` and `rhs` directly, but
+    /// instead of condensed summaries that fit in few registers. Based on these summaries, an
+    /// update matrix is constructed by which `self` and `rhs` are updated in larger steps.
+    ///
+    /// This function is generic over the following three values:
+    /// - `K`: the number of bits used when summarizing `self` and `rhs` for the inner loop. The
+    ///   `K+1` top bits and `K-1` least significant bits are selected. It is recommended to keep
+    ///   `K` close to a (multiple of) the number of bits that fit in a single register.
+    /// - `LIMBS_K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ K`,
+    /// - `LIMBS_2K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ 2K`.
+    pub(crate) const fn optimized_binxgcd_<
+        const K: u32,
+        const LIMBS_K: usize,
+        const LIMBS_2K: usize,
+    >(
+        &self,
+        rhs: &Self,
+    ) -> DividedPatternXgcdOutput<LIMBS> {
+        let (mut a, mut b) = (*self.as_ref(), *rhs.as_ref());
+        let mut state = DividedIntMatrix::UNIT;
+
+        let (mut a_is_negative, mut b_is_negative);
+        let mut i = 0;
+        while i < Self::MIN_BINXGCD_ITERATIONS.div_ceil(K - 1) {
+            // Loop invariants:
+            //  i) each iteration of this loop, `a.bits() + b.bits()` shrinks by at least K-1,
+            //     until `b = 0`.
+            // ii) `a` is odd.
+            i += 1;
+
+            // Construct compact_a and compact_b as the summary of a and b, respectively.
+            // TODO: deal with the case that a fits entirely in compact
+            let b_bits = b.bits();
+            let n = u32_max(2 * K, u32_max(a.bits(), b_bits));
+            let compact_a = a.compact::<K, LIMBS_2K>(n);
+            let compact_b = b.compact::<K, LIMBS_2K>(n);
+            let b_eq_compact_b =
+                ConstChoice::from_u32_le(b_bits, K - 1).or(ConstChoice::from_u32_eq(n, 2 * K));
+
+            // Compute the K-1 iteration update matrix from a_ and b_
+            let (.., update_matrix) = compact_a
+                .to_odd()
+                .expect("a is always odd")
+                .partial_binxgcd_vartime::<LIMBS_K>(&compact_b, K - 1, b_eq_compact_b);
+
+            // Update `a` and `b` using the update matrix
+            let (updated_a, updated_b) = update_matrix.extended_apply_to::<LIMBS, K>((a, b));
+            (a, a_is_negative) = updated_a.wrapping_drop_extension();
+            (b, b_is_negative) = updated_b.wrapping_drop_extension();
+
+            state = update_matrix.mul_int_matrix(&state);
+
+            state.conditional_negate_top_row(a_is_negative);
+            state.conditional_negate_bottom_row(b_is_negative);
+        }
+
+        let gcd = a
+            .to_odd()
+            .expect("gcd of an odd value with something else is always odd");
+
+        let matrix = state.to_divided_pattern_matrix();
         DividedPatternXgcdOutput { gcd, matrix }
     }
 
@@ -268,7 +367,7 @@ mod tests {
     use num_traits::Zero;
 
     mod test_extract_quotients {
-        use crate::modular::bingcd::matrix::DividedPatternMatrix;
+        use crate::modular::bingcd::matrix::{DividedPatternMatrix, Unit};
         use crate::modular::bingcd::xgcd::{DividedPatternXgcdOutput, RawXgcdOutput};
         use crate::{ConstChoice, U64, Uint};
 
@@ -317,7 +416,7 @@ mod tests {
     }
 
     mod test_derive_bezout_coefficients {
-        use crate::modular::bingcd::matrix::DividedPatternMatrix;
+        use crate::modular::bingcd::matrix::{DividedPatternMatrix, Unit};
         use crate::modular::bingcd::xgcd::RawXgcdOutput;
         use crate::{ConstChoice, Int, U64, Uint};
 
@@ -606,6 +705,99 @@ mod tests {
             classic_binxgcd_tests::<{ U1024::LIMBS }, { U2048::LIMBS }>();
             classic_binxgcd_tests::<{ U2048::LIMBS }, { U4096::LIMBS }>();
             classic_binxgcd_tests::<{ U4096::LIMBS }, { U8192::LIMBS }>();
+        }
+    }
+
+    mod test_optimized_binxgcd {
+        use crate::modular::bingcd::xgcd::tests::test_xgcd;
+        use crate::modular::bingcd::xgcd::{DOUBLE_SUMMARY_LIMBS, SUMMARY_BITS, SUMMARY_LIMBS};
+        use crate::{
+            ConcatMixed, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096, U8192,
+            Uint,
+        };
+
+        fn test<const LIMBS: usize, const DOUBLE: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
+        where
+            Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+        {
+            let output = lhs
+                .to_odd()
+                .unwrap()
+                .optimized_binxgcd(&rhs.to_odd().unwrap())
+                .divide();
+            test_xgcd(lhs, rhs, output);
+        }
+
+        fn run_tests<const LIMBS: usize, const DOUBLE: usize>()
+        where
+            Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+        {
+            let upper_bound = *Int::MAX.as_uint();
+            test(Uint::ONE, Uint::ONE);
+            test(Uint::ONE, upper_bound);
+            test(Uint::ONE, Uint::MAX);
+            test(upper_bound, Uint::ONE);
+            test(upper_bound, upper_bound);
+            test(upper_bound, Uint::MAX);
+            test(Uint::MAX, Uint::ONE);
+            test(Uint::MAX, upper_bound);
+            test(Uint::MAX, Uint::MAX);
+        }
+
+        #[test]
+        fn test_optimized_binxgcd_edge_cases() {
+            // If one of these tests fails, you have probably tweaked the SUMMARY_BITS,
+            // SUMMARY_LIMBS or DOUBLE_SUMMARY_LIMBS settings. Please make sure to update these
+            // tests accordingly.
+            assert_eq!(SUMMARY_BITS, 64);
+            assert_eq!(SUMMARY_LIMBS, U64::LIMBS);
+            assert_eq!(DOUBLE_SUMMARY_LIMBS, U128::LIMBS);
+
+            // Case #1: a > b but a.compact() < b.compact()
+            let a = U256::from_be_hex(
+                "1234567890ABCDEF80000000000000000000000000000000BEDCBA0987654321",
+            );
+            let b = U256::from_be_hex(
+                "1234567890ABCDEF800000000000000000000000000000007EDCBA0987654321",
+            );
+            assert!(a > b);
+            assert!(
+                a.compact::<SUMMARY_BITS, DOUBLE_SUMMARY_LIMBS>(U256::BITS)
+                    < b.compact::<SUMMARY_BITS, DOUBLE_SUMMARY_LIMBS>(U256::BITS)
+            );
+            test(a, b);
+
+            // Case #2: a < b but a.compact() > b.compact()
+            test(b, a);
+
+            // Case #3: a > b but a.compact() = b.compact()
+            let a = U256::from_be_hex(
+                "1234567890ABCDEF80000000000000000000000000000000FEDCBA0987654321",
+            );
+            let b = U256::from_be_hex(
+                "1234567890ABCDEF800000000000000000000000000000007EDCBA0987654321",
+            );
+            assert!(a > b);
+            assert_eq!(
+                a.compact::<SUMMARY_BITS, DOUBLE_SUMMARY_LIMBS>(U256::BITS),
+                b.compact::<SUMMARY_BITS, DOUBLE_SUMMARY_LIMBS>(U256::BITS)
+            );
+            test(a, b);
+
+            // Case #4: a < b but a.compact() = b.compact()
+            test(b, a);
+        }
+
+        #[test]
+        fn optimized_binxgcd() {
+            run_tests::<{ U128::LIMBS }, { U256::LIMBS }>();
+            run_tests::<{ U192::LIMBS }, { U384::LIMBS }>();
+            run_tests::<{ U256::LIMBS }, { U512::LIMBS }>();
+            run_tests::<{ U384::LIMBS }, { U768::LIMBS }>();
+            run_tests::<{ U512::LIMBS }, { U1024::LIMBS }>();
+            run_tests::<{ U1024::LIMBS }, { U2048::LIMBS }>();
+            run_tests::<{ U2048::LIMBS }, { U4096::LIMBS }>();
+            run_tests::<{ U4096::LIMBS }, { U8192::LIMBS }>();
         }
     }
 }

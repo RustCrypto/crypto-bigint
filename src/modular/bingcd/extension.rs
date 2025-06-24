@@ -1,9 +1,11 @@
-use crate::{ConstChoice, ConstCtOption, Limb, Uint};
+use crate::{ConstChoice, ConstCtOption, Int, Limb, Uint};
 
 pub(crate) struct ExtendedUint<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
     Uint<LIMBS>,
     Uint<EXTENSION_LIMBS>,
 );
+
+impl<const LIMBS: usize, const EXTENSION_LIMBS: usize> ExtendedUint<LIMBS, EXTENSION_LIMBS> {}
 
 impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
     /// Construct an [ExtendedUint] from the product of a [Uint<LIMBS>] and an [Uint<EXTRA>].
@@ -15,10 +17,32 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
         ExtendedUint(lo, hi)
     }
 
+    /// Wrapping multiply `self` with `rhs`
+    pub const fn wrapping_mul<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> Self {
+        let (lo, hi) = self.0.widening_mul(&rhs);
+        let hi = self
+            .1
+            .wrapping_mul(&rhs)
+            .wrapping_add(&hi.resize::<EXTRA>());
+        Self(lo, hi)
+    }
+
     /// Interpret `self` as an [ExtendedInt]
     #[inline]
     pub const fn as_extended_int(&self) -> ExtendedInt<LIMBS, EXTRA> {
         ExtendedInt(self.0, self.1)
+    }
+
+    /// Whether this form is `Self::ZERO`.
+    #[inline]
+    pub const fn is_zero(&self) -> ConstChoice {
+        self.0.is_nonzero().not().and(self.1.is_nonzero().not())
+    }
+
+    /// Drop the extension.
+    #[inline]
+    pub const fn checked_drop_extension(&self) -> ConstCtOption<Uint<LIMBS>> {
+        ConstCtOption::new(self.0, self.1.is_nonzero().not())
     }
 
     /// Construction the binary negation of `self`, i.e., map `self` to `!self + 1`.
@@ -99,19 +123,38 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub(crate) struct ExtendedInt<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
     Uint<LIMBS>,
     Uint<EXTENSION_LIMBS>,
 );
 
 impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
+    pub(super) const ZERO: Self = Self(Uint::ZERO, Uint::ZERO);
+    pub(super) const ONE: Self = Self(Uint::ONE, Uint::ZERO);
+
     /// Construct an [ExtendedInt] from the product of a [Uint<LIMBS>] and an [Int<EXTRA>].
     ///
     /// Assumes the top bit of the product is not set.
     #[inline]
     pub const fn from_product(lhs: Uint<LIMBS>, rhs: Uint<EXTRA>) -> Self {
         ExtendedUint::from_product(lhs, rhs).as_extended_int()
+    }
+
+    /// Wrapping multiply `self` with `rhs`, which is passed as a
+    pub(crate) const fn wrapping_mul<const RHS_LIMBS: usize>(
+        &self,
+        rhs: (&Uint<RHS_LIMBS>, &ConstChoice),
+    ) -> Self {
+        let (abs_self, self_is_negative) = self.abs_sign();
+        let (abs_rhs, rhs_is_negative) = rhs;
+        let mut abs_val = abs_self.wrapping_mul(abs_rhs);
+
+        // Make sure the top bit of `abs_val` is not set
+        abs_val.1 = abs_val.1.bitand(Int::<EXTRA>::SIGN_MASK.not().as_uint());
+
+        let val_is_negative = self_is_negative.xor(*rhs_is_negative);
+        abs_val.wrapping_neg_if(val_is_negative).as_extended_int()
     }
 
     /// Interpret this as an [ExtendedUint].
@@ -128,6 +171,13 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
             .as_extended_int()
     }
 
+    #[inline]
+    pub(crate) const fn wrapping_add(&self, rhs: &Self) -> Self {
+        let (lo, carry) = self.0.carrying_add(&rhs.0, Limb::ZERO);
+        let (hi, _) = self.1.carrying_add(&rhs.1, carry);
+        Self(lo, hi)
+    }
+
     /// Compute `self - rhs`, wrapping any underflow.
     #[inline]
     pub const fn wrapping_sub(&self, rhs: &Self) -> Self {
@@ -139,13 +189,13 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     /// Returns self without the extension.
     #[inline]
     pub const fn wrapping_drop_extension(&self) -> (Uint<LIMBS>, ConstChoice) {
-        let (abs, sgn) = self.abs_sgn();
+        let (abs, sgn) = self.abs_sign();
         (abs.0, sgn)
     }
 
     /// Decompose `self` into is absolute value and signum.
     #[inline]
-    pub const fn abs_sgn(&self) -> (ExtendedUint<LIMBS, EXTRA>, ConstChoice) {
+    pub const fn abs_sign(&self) -> (ExtendedUint<LIMBS, EXTRA>, ConstChoice) {
         let is_negative = self.1.as_int().is_negative();
         (
             self.wrapping_neg_if(is_negative).as_extended_uint(),
@@ -158,7 +208,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     /// Panics if `k ≥ UPPER_BOUND`.
     #[inline]
     pub const fn bounded_div_2k<const UPPER_BOUND: u32>(&self, k: u32) -> Self {
-        let (abs, sgn) = self.abs_sgn();
+        let (abs, sgn) = self.abs_sign();
         abs.bounded_shr::<UPPER_BOUND>(k)
             .wrapping_neg_if(sgn)
             .as_extended_int()
@@ -167,7 +217,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     /// Divide self by `2^k`, rounding towards zero.
     #[inline]
     pub const fn div_2k_vartime(&self, k: u32) -> Self {
-        let (abs, sgn) = self.abs_sgn();
+        let (abs, sgn) = self.abs_sign();
         abs.shr_vartime(k).wrapping_neg_if(sgn).as_extended_int()
     }
 }
@@ -218,6 +268,7 @@ mod tests {
             (self.0, self.1)
         }
     }
+
     mod test_extended_uint {
         use crate::U64;
         use crate::modular::bingcd::extension::ExtendedUint;
@@ -266,8 +317,23 @@ mod tests {
     }
 
     mod test_extended_int {
+        use crate::modular::bingcd::extension::ExtendedInt;
+        use crate::{ConstChoice, U64, U128, Uint};
 
         #[test]
-        fn test_wrapping_sub() {}
+        fn test_wrapping_mul() {
+            let a = ExtendedInt(
+                U128::from_be_hex("39F1B23EBAB019658E5A4C15C3FBC4D5"),
+                U64::from_be_hex("5BF731833CE465C7"),
+            );
+            let b = (&U64::MAX, &ConstChoice::TRUE);
+            let res = a.wrapping_mul(b);
+
+            let target = ExtendedInt(
+                Uint::from_be_hex("AB976628F6B454908E5A4C15C3FBC4D5"),
+                Uint::from_be_hex("A2057F4482344C61"),
+            );
+            assert_eq!(res, target);
+        }
     }
 }
