@@ -194,3 +194,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: crate-ci/typos@v1.33.1
+    env:
+      extend-ignore-re: "([0-9A-Fa-f]{16,})"
