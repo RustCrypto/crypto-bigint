@@ -29,13 +29,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub fn binxgcd(&self, rhs: &Self) -> UintXgcdOutput<LIMBS> {
         // Make sure `self` and `rhs` are nonzero.
         let self_is_zero = self.is_nonzero().not();
-        let self_nz = Uint::select(self, &Uint::ONE, self_is_zero)
-            .to_nz()
-            .expect("self is non zero by construction");
+        let self_nz = NonZero(Uint::select(self, &Uint::ONE, self_is_zero));
         let rhs_is_zero = rhs.is_nonzero().not();
-        let rhs_nz = Uint::select(rhs, &Uint::ONE, rhs_is_zero)
-            .to_nz()
-            .expect("rhs is non zero by construction");
+        let rhs_nz = NonZero(Uint::select(rhs, &Uint::ONE, rhs_is_zero));
 
         let NonZeroUintXgcdOutput {
             gcd,
@@ -117,20 +113,19 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
     pub fn binxgcd(&self, rhs: &Self) -> NonZeroUintXgcdOutput<LIMBS> {
         let (mut lhs, mut rhs) = (*self.as_ref(), *rhs.as_ref());
 
-        // Leverage the property that gcd(2^k * a, 2^k *b) = 2^k * gcd(a, b)
+        // Observe that gcd(2^i · a, 2^j · b) = 2^k * gcd(2^(i-k)·a, 2^(j-k)·b), with k = min(i,j).
         let i = lhs.trailing_zeros();
         let j = rhs.trailing_zeros();
         let k = u32_min(i, j);
         lhs = lhs.shr(k);
         rhs = rhs.shr(k);
 
-        // Note: at this point, either lhs or rhs is odd (or both).
-        // Swap to make sure lhs is odd.
+        // At this point, either lhs or rhs is odd (or both); swap to make sure lhs is odd.
         let swap = ConstChoice::from_u32_lt(j, i);
         Uint::conditional_swap(&mut lhs, &mut rhs, swap);
         let lhs = lhs.to_odd().expect("odd by construction");
-
         let rhs = rhs.to_nz().expect("non-zero by construction");
+
         let OddUintXgcdOutput {
             gcd,
             mut x,
@@ -139,6 +134,7 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
             mut rhs_on_gcd,
         } = OddUintXgcdOutput::from_pattern_output(lhs.binxgcd_nz(&rhs));
 
+        // Apply the removed factor 2^k back to the gcd
         let gcd = gcd
             .as_ref()
             .shl(k)
@@ -341,7 +337,7 @@ mod tests {
         }
 
         #[test]
-        fn test_binxgcd_regression_tests() {
+        fn regression_tests() {
             // Sent in by @kayabaNerve (https://github.com/RustCrypto/crypto-bigint/pull/761#issuecomment-2771564732)
             let a = U256::from_be_hex(
                 "000000000000000000000000000000000000001B5DFB3BA1D549DFAF611B8D4C",
