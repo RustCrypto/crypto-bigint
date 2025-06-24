@@ -2,7 +2,7 @@
 
 use crate::const_choice::u32_min;
 use crate::modular::bingcd::xgcd::PatternXgcdOutput;
-use crate::{ConstChoice, Int, NonZero, NonZeroUint, Odd, OddUint, Uint};
+use crate::{ConstChoice, Gcd, Int, NonZero, NonZeroUint, Odd, OddUint, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute the greatest common divisor of `self` and `rhs`.
@@ -244,6 +244,42 @@ impl<const LIMBS: usize> OddUintXgcdOutput<LIMBS> {
     }
 }
 
+impl<const LIMBS: usize> Gcd<Uint<LIMBS>> for Uint<LIMBS> {
+    type Output = Uint<LIMBS>;
+
+    fn gcd(&self, rhs: &Uint<LIMBS>) -> Self::Output {
+        self.bingcd(&rhs)
+    }
+
+    fn gcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self::Output {
+        self.bingcd_vartime(&rhs)
+    }
+}
+
+impl<const LIMBS: usize> Gcd<Uint<LIMBS>> for NonZeroUint<LIMBS> {
+    type Output = NonZeroUint<LIMBS>;
+
+    fn gcd(&self, rhs: &Uint<LIMBS>) -> Self::Output {
+        self.bingcd(&rhs)
+    }
+
+    fn gcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self::Output {
+        self.bingcd_vartime(&rhs)
+    }
+}
+
+impl<const LIMBS: usize> Gcd<Uint<LIMBS>> for OddUint<LIMBS> {
+    type Output = OddUint<LIMBS>;
+
+    fn gcd(&self, rhs: &Uint<LIMBS>) -> Self::Output {
+        self.bingcd(&rhs)
+    }
+
+    fn gcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self::Output {
+        self.bingcd_vartime(&rhs)
+    }
+}
+
 #[cfg(all(test, not(miri)))]
 mod tests {
     mod bingcd {
@@ -366,6 +402,62 @@ mod tests {
                 "9D671CD581C69BC5E697F5E45BCD07C52EC373A8BDC598B4493F50A1380E1281"
             ]);
             test(a, b);
+        }
+    }
+
+    mod traits {
+        use crate::{Gcd, I256, U256};
+
+        #[test]
+        fn gcd_relatively_prime() {
+            // Two semiprimes with no common factors
+            let f = U256::from(59u32 * 67);
+            let g = U256::from(61u32 * 71);
+            let gcd = f.gcd(&g);
+            assert_eq!(gcd, U256::ONE);
+        }
+
+        #[test]
+        fn gcd_nonprime() {
+            let f = U256::from(4391633u32);
+            let g = U256::from(2022161u32);
+            let gcd = f.gcd(&g);
+            assert_eq!(gcd, U256::from(1763u32));
+        }
+
+        #[test]
+        fn gcd_zero() {
+            assert_eq!(U256::ZERO.gcd(&U256::ZERO), U256::ZERO);
+            assert_eq!(U256::ZERO.gcd(&U256::ONE), U256::ONE);
+            assert_eq!(U256::ONE.gcd(&U256::ZERO), U256::ONE);
+        }
+
+        #[test]
+        fn gcd_one() {
+            let f = U256::ONE;
+            assert_eq!(U256::ONE, f.gcd(&U256::ONE));
+            assert_eq!(U256::ONE, f.gcd(&U256::from(2u8)));
+        }
+
+        #[test]
+        fn gcd_two() {
+            let f = U256::from_u8(2);
+            assert_eq!(f, f.gcd(&f));
+
+            let g = U256::from_u8(4);
+            assert_eq!(f, f.gcd(&g));
+            assert_eq!(f, g.gcd(&f));
+        }
+
+        #[test]
+        fn gcd_uint_int() {
+            // Two numbers with a shared factor of 61
+            let f = U256::from(61u32 * 71);
+            let g = I256::from(59i32 * 61);
+
+            let sixty_one = U256::from(61u32);
+            assert_eq!(sixty_one, <U256 as Gcd<I256>>::gcd(&f, &g));
+            assert_eq!(sixty_one, <U256 as Gcd<I256>>::gcd(&f, &g.wrapping_neg()));
         }
     }
 }
