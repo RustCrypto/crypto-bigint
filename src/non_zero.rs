@@ -1,6 +1,6 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{Bounded, ConstChoice, Constants, Encoding, Int, Limb, Odd, Uint, Zero};
+use crate::{Bounded, ConstChoice, ConstCtOption, Constants, Encoding, Int, Limb, Odd, Uint, Zero};
 use core::{
     fmt,
     num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128},
@@ -26,7 +26,7 @@ use serdect::serde::{
 /// Non-zero unsigned integer.
 pub type NonZeroUint<const LIMBS: usize> = NonZero<Uint<LIMBS>>;
 
-/// Non-zero signed integer
+/// Non-zero signed integer.
 pub type NonZeroInt<const LIMBS: usize> = NonZero<Int<LIMBS>>;
 
 /// Non-zero boxed unsigned integer.
@@ -137,7 +137,7 @@ impl NonZero<Limb> {
     }
 }
 
-impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
+impl<const LIMBS: usize> NonZeroUint<LIMBS> {
     /// Creates a new non-zero integer in a const context.
     /// Panics if the value is zero.
     ///
@@ -152,46 +152,56 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
         }
     }
 
-    /// Create a [`NonZero<Uint>`] from a [`NonZeroU8`] (const-friendly)
+    /// Create a [`NonZeroUint`] from a [`NonZeroU8`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU8>` when stable
     pub const fn from_u8(n: NonZeroU8) -> Self {
         Self(Uint::from_u8(n.get()))
     }
 
-    /// Create a [`NonZero<Uint>`] from a [`NonZeroU16`] (const-friendly)
+    /// Create a [`NonZeroUint`] from a [`NonZeroU16`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU16>` when stable
     pub const fn from_u16(n: NonZeroU16) -> Self {
         Self(Uint::from_u16(n.get()))
     }
 
-    /// Create a [`NonZero<Uint>`] from a [`NonZeroU32`] (const-friendly)
+    /// Create a [`NonZeroUint`] from a [`NonZeroU32`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU32>` when stable
     pub const fn from_u32(n: NonZeroU32) -> Self {
         Self(Uint::from_u32(n.get()))
     }
 
-    /// Create a [`NonZero<Uint>`] from a [`NonZeroU64`] (const-friendly)
+    /// Create a [`NonZeroUint`] from a [`NonZeroU64`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU64>` when stable
     pub const fn from_u64(n: NonZeroU64) -> Self {
         Self(Uint::from_u64(n.get()))
     }
 
-    /// Create a [`NonZero<Uint>`] from a [`NonZeroU128`] (const-friendly)
+    /// Create a [`NonZeroUint`] from a [`NonZeroU128`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU128>` when stable
     pub const fn from_u128(n: NonZeroU128) -> Self {
         Self(Uint::from_u128(n.get()))
     }
 }
 
-impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
-    /// The sign and magnitude of this [`NonZero<Int<{LIMBS}>>`].
+impl<const LIMBS: usize> NonZeroInt<LIMBS> {
+    /// Creates a new non-zero integer in a const context.
+    /// Panics if the value is zero.
+    ///
+    /// In future versions of Rust it should be possible to replace this with
+    /// `NonZero::new(…).unwrap()`
+    // TODO: Remove when `Self::new` and `CtOption::unwrap` support `const fn`
+    pub const fn new_unwrap(n: Int<LIMBS>) -> Self {
+        ConstCtOption::new(Self(n), n.is_nonzero()).expect("Invalid value: zero")
+    }
+
+    /// The sign and magnitude of this [`NonZeroInt`].
     pub const fn abs_sign(&self) -> (NonZero<Uint<LIMBS>>, ConstChoice) {
         let (abs, sign) = self.0.abs_sign();
         // Absolute value of a non-zero value is non-zero
         (NonZero(abs), sign)
     }
 
-    /// The magnitude of this [`NonZero<Int<{LIMBS}>>`].
+    /// The magnitude of this [`NonZeroInt`].
     pub const fn abs(&self) -> NonZero<Uint<LIMBS>> {
         self.abs_sign().0
     }
