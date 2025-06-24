@@ -38,7 +38,6 @@ mod div;
 pub(crate) mod div_limb;
 pub(crate) mod encoding;
 mod from;
-mod gcd;
 mod invert_mod;
 pub(crate) mod mul;
 mod mul_mod;
