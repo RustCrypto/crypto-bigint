@@ -3,7 +3,7 @@
 //! Ref: <https://eprint.iacr.org/2020/972.pdf>
 
 use crate::const_choice::u32_min;
-use crate::uint::bingcd::OddUintXgcdOutput;
+use crate::uint::gcd::OddUintXgcdOutput;
 use crate::{ConstChoice, Int, NonZero, NonZeroUint, Odd, OddUint, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {

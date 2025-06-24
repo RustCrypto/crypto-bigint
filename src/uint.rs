@@ -26,7 +26,7 @@ mod macros;
 
 mod add;
 mod add_mod;
-pub(crate) mod bingcd;
+pub(crate) mod gcd;
 mod bit_and;
 mod bit_not;
 mod bit_or;
