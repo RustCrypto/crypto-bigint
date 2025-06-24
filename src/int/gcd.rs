@@ -284,7 +284,7 @@ impl<const LIMBS: usize> Gcd<OddUint<LIMBS>> for OddInt<LIMBS> {
 
 #[cfg(all(test, not(miri)))]
 mod tests {
-    use crate::int::bingcd::{IntXgcdOutput, NonZeroIntXgcdOutput, OddIntXgcdOutput};
+    use crate::int::gcd::{IntXgcdOutput, NonZeroIntXgcdOutput, OddIntXgcdOutput};
     use crate::{ConcatMixed, Int, Uint};
     use num_traits::Zero;
 
@@ -415,7 +415,7 @@ mod tests {
     }
 
     mod test_int_binxgcd {
-        use crate::int::bingcd::tests::binxgcd_test;
+        use crate::int::gcd::tests::binxgcd_test;
         use crate::{
             ConcatMixed, Gcd, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096,
             U8192, Uint,
@@ -476,7 +476,7 @@ mod tests {
     }
 
     mod test_nonzero_int_binxgcd {
-        use crate::int::bingcd::tests::binxgcd_test;
+        use crate::int::gcd::tests::binxgcd_test;
         use crate::{
             ConcatMixed, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096, U8192,
             Uint,
@@ -527,7 +527,7 @@ mod tests {
     }
 
     mod test_odd_int_binxgcd {
-        use crate::int::bingcd::tests::binxgcd_test;
+        use crate::int::gcd::tests::binxgcd_test;
         use crate::{
             ConcatMixed, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096, U8192,
             Uint,
