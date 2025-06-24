@@ -4,7 +4,9 @@
 
 use crate::const_choice::u32_min;
 use crate::uint::gcd::OddUintXgcdOutput;
-use crate::{ConstChoice, Gcd, Int, NonZero, NonZeroInt, NonZeroUint, Odd, OddInt, OddUint, Uint, Xgcd};
+use crate::{
+    ConstChoice, Gcd, Int, NonZero, NonZeroInt, NonZeroUint, Odd, OddInt, OddUint, Uint, Xgcd,
+};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute the gcd of `self` and `rhs` leveraging the Binary GCD algorithm.
