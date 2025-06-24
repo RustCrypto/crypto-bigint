@@ -19,7 +19,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let self_is_zero = self.is_nonzero().not();
         // Note: is non-zero by construction
         let self_nz = NonZero(Uint::select(self, &Uint::ONE, self_is_zero));
-        Uint::select(self_nz.bingcd(rhs).as_ref(), rhs, self_is_zero)
+        Uint::select(self_nz.bingcd_vartime(rhs).as_ref(), rhs, self_is_zero)
     }
 }
 
@@ -58,7 +58,7 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
         let k = u32_min(i, j);
 
         let odd_lhs = Odd(lhs.shr_vartime(i));
-        let gcd_div_2k = odd_lhs.bingcd(rhs);
+        let gcd_div_2k = odd_lhs.bingcd_vartime(rhs);
         NonZero(gcd_div_2k.as_ref().shl_vartime(k))
     }
 }
