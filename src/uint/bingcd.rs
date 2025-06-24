@@ -94,8 +94,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
     }
 }
 
-#[cfg(feature = "rand_core")]
-#[cfg(test)]
+#[cfg(all(test, not(miri)))]
 mod tests {
 
     use crate::{U64, U128, U256, U512, U1024, U2048, U4096, Uint};

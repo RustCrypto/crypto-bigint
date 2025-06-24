@@ -46,7 +46,7 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(miri)))]
 mod tests {
     use crate::{Gcd, I64, I128, I256, I512, I1024, I2048, I4096, Int, Uint};
 

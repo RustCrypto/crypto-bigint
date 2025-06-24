@@ -172,7 +172,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(miri)))]
 mod tests {
 
     mod test_classic_bingcd {

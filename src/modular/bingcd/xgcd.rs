@@ -99,7 +99,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(miri)))]
 mod tests {
     use crate::modular::bingcd::matrix::BinXgcdMatrix;
     use crate::{ConstChoice, Odd, U64};
