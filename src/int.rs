@@ -22,7 +22,6 @@ mod div;
 mod div_uint;
 mod encoding;
 mod from;
-mod gcd;
 mod invert_mod;
 mod mul;
 mod mul_uint;

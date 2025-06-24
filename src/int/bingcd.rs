@@ -246,6 +246,42 @@ impl<const LIMBS: usize> Gcd for OddInt<LIMBS> {
     }
 }
 
+impl<const LIMBS: usize> Gcd<Uint<LIMBS>> for Int<LIMBS> {
+    type Output = Uint<LIMBS>;
+
+    fn gcd(&self, rhs: &Uint<LIMBS>) -> Self::Output {
+        self.abs().bingcd(rhs)
+    }
+
+    fn gcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self::Output {
+        self.abs().bingcd_vartime(rhs)
+    }
+}
+
+impl<const LIMBS: usize> Gcd<NonZeroUint<LIMBS>> for NonZeroInt<LIMBS> {
+    type Output = NonZeroUint<LIMBS>;
+
+    fn gcd(&self, rhs: &NonZeroUint<LIMBS>) -> Self::Output {
+        self.abs().bingcd(rhs)
+    }
+
+    fn gcd_vartime(&self, rhs: &NonZeroUint<LIMBS>) -> Self::Output {
+        self.abs().bingcd_vartime(rhs)
+    }
+}
+
+impl<const LIMBS: usize> Gcd<OddUint<LIMBS>> for OddInt<LIMBS> {
+    type Output = OddUint<LIMBS>;
+
+    fn gcd(&self, rhs: &OddUint<LIMBS>) -> Self::Output {
+        self.abs().bingcd(rhs)
+    }
+
+    fn gcd_vartime(&self, rhs: &OddUint<LIMBS>) -> Self::Output {
+        self.abs().bingcd_vartime(rhs)
+    }
+}
+
 #[cfg(all(test, not(miri)))]
 mod tests {
     use crate::int::bingcd::{IntXgcdOutput, NonZeroIntXgcdOutput, OddIntXgcdOutput};
@@ -551,6 +587,16 @@ mod tests {
             assert_eq!(U256::from(61u32), f.wrapping_neg().gcd(&g));
             assert_eq!(U256::from(61u32), f.gcd(&g.wrapping_neg()));
             assert_eq!(U256::from(61u32), f.wrapping_neg().gcd(&g.wrapping_neg()));
+        }
+
+        #[test]
+        fn gcd_int_uint() {
+            // Two numbers with a shared factor of 61
+            let f = I256::from(59i32 * 61);
+            let g = U256::from(61u32 * 71);
+
+            assert_eq!(U256::from(61u32), f.gcd(&g));
+            assert_eq!(U256::from(61u32), f.wrapping_neg().gcd(&g));
         }
     }
 }
