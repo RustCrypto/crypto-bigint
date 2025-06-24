@@ -216,11 +216,11 @@ impl<const LIMBS: usize> Gcd for Int<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn gcd(&self, rhs: &Self) -> Self::Output {
-        self.bingcd(&rhs)
+        self.bingcd(rhs)
     }
 
     fn gcd_vartime(&self, rhs: &Self) -> Self::Output {
-        self.bingcd_vartime(&rhs)
+        self.bingcd_vartime(rhs)
     }
 }
 
@@ -228,11 +228,11 @@ impl<const LIMBS: usize> Gcd for NonZeroInt<LIMBS> {
     type Output = NonZeroUint<LIMBS>;
 
     fn gcd(&self, rhs: &Self) -> Self::Output {
-        self.bingcd(&rhs)
+        self.bingcd(rhs)
     }
 
     fn gcd_vartime(&self, rhs: &Self) -> Self::Output {
-        self.bingcd_vartime(&rhs)
+        self.bingcd_vartime(rhs)
     }
 }
 
@@ -240,11 +240,11 @@ impl<const LIMBS: usize> Gcd for OddInt<LIMBS> {
     type Output = OddUint<LIMBS>;
 
     fn gcd(&self, rhs: &Self) -> Self::Output {
-        self.bingcd(&rhs)
+        self.bingcd(rhs)
     }
 
     fn gcd_vartime(&self, rhs: &Self) -> Self::Output {
-        self.bingcd_vartime(&rhs)
+        self.bingcd_vartime(rhs)
     }
 }
 
