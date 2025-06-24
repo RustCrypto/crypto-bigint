@@ -13,7 +13,7 @@ type Vector<T> = (T, T);
 /// ```
 /// depending on whether `pattern` is respectively truthy or not.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(super) struct PatternMatrix<const LIMBS: usize> {
+pub(crate) struct PatternMatrix<const LIMBS: usize> {
     pub m00: Uint<LIMBS>,
     pub m01: Uint<LIMBS>,
     pub m10: Uint<LIMBS>,
@@ -113,8 +113,8 @@ impl<const LIMBS: usize> PatternMatrix<LIMBS> {
 /// Since some of the operations conditionally increase `k`, this struct furthermore keeps track of
 /// `k_upper_bound`; an upper bound on the value of `k`.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(super) struct DividedPatternMatrix<const LIMBS: usize> {
-    pub inner: PatternMatrix<LIMBS>,
+pub(crate) struct DividedPatternMatrix<const LIMBS: usize> {
+    pub(super) inner: PatternMatrix<LIMBS>,
     pub k: u32,
     pub k_upper_bound: u32,
 }
@@ -171,31 +171,12 @@ impl<const LIMBS: usize> DividedPatternMatrix<LIMBS> {
             .conditional_subtract_bottom_row_from_top(subtract);
     }
 
-    /// Subtract the right column from the left if `subtract` is truthy. Otherwise, do nothing.
-    #[inline]
-    pub const fn conditional_subtract_right_column_from_left(&mut self, subtract: ConstChoice) {
-        self.inner
-            .conditional_subtract_right_column_from_left(subtract);
-    }
-
-    /// If `add` is truthy, add the right column to the left. Otherwise, do nothing.
-    #[inline]
-    pub const fn conditional_add_right_column_to_left(&mut self, add: ConstChoice) {
-        self.inner.conditional_add_right_column_to_left(add);
-    }
-
     /// Double the bottom row of this matrix if `double` is truthy. Otherwise, do nothing.
     #[inline]
     pub const fn conditional_double_bottom_row(&mut self, double: ConstChoice) {
         self.inner.conditional_double_bottom_row(double);
         self.k = double.select_u32(self.k, self.k + 1);
         self.k_upper_bound += 1;
-    }
-
-    /// Negate the elements in this matrix if `negate` is truthy. Otherwise, do nothing.
-    #[inline]
-    pub const fn conditional_negate(&mut self, negate: ConstChoice) {
-        self.inner.conditional_negate(negate);
     }
 }
 
@@ -275,18 +256,6 @@ mod tests {
     }
 
     #[test]
-    fn test_conditional_add_right_column_to_left() {
-        let mut y = X;
-        y.conditional_add_right_column_to_left(ConstChoice::FALSE);
-        assert_eq!(y, X);
-        y.conditional_add_right_column_to_left(ConstChoice::TRUE);
-
-        let target =
-            DividedPatternMatrix::new_u64((6u64, 7u64, 30u64, 53u64), ConstChoice::TRUE, 6, 8);
-        assert_eq!(y, target);
-    }
-
-    #[test]
     fn test_conditional_subtract_bottom_row_from_top() {
         let mut y = X;
         y.conditional_subtract_bottom_row_from_top(ConstChoice::FALSE);
@@ -294,17 +263,6 @@ mod tests {
         y.conditional_subtract_bottom_row_from_top(ConstChoice::TRUE);
         let target =
             DividedPatternMatrix::new_u64((24u64, 60u64, 23u64, 53u64), ConstChoice::TRUE, 6, 8);
-        assert_eq!(y, target);
-    }
-
-    #[test]
-    fn test_conditional_subtract_right_column_from_left() {
-        let mut y = X;
-        y.conditional_subtract_right_column_from_left(ConstChoice::FALSE);
-        assert_eq!(y, X);
-        y.conditional_subtract_right_column_from_left(ConstChoice::TRUE);
-        let target =
-            DividedPatternMatrix::new_u64((8u64, 7u64, 76u64, 53u64), ConstChoice::TRUE, 6, 8);
         assert_eq!(y, target);
     }
 
@@ -318,6 +276,27 @@ mod tests {
         y.conditional_double_bottom_row(ConstChoice::TRUE);
         let target =
             DividedPatternMatrix::new_u64((1u64, 7u64, 46u64, 106u64), ConstChoice::TRUE, 7, 10);
+        assert_eq!(y, target);
+    }
+
+    #[test]
+    fn test_conditional_add_right_column_to_left() {
+        let mut y = X.inner;
+        y.conditional_add_right_column_to_left(ConstChoice::FALSE);
+        assert_eq!(y, X.inner);
+        y.conditional_add_right_column_to_left(ConstChoice::TRUE);
+
+        let target = PatternMatrix::new_u64((6u64, 7u64, 30u64, 53u64), ConstChoice::TRUE);
+        assert_eq!(y, target);
+    }
+
+    #[test]
+    fn test_conditional_subtract_right_column_from_left() {
+        let mut y = X.inner;
+        y.conditional_subtract_right_column_from_left(ConstChoice::FALSE);
+        assert_eq!(y, X.inner);
+        y.conditional_subtract_right_column_from_left(ConstChoice::TRUE);
+        let target = PatternMatrix::new_u64((8u64, 7u64, 76u64, 53u64), ConstChoice::TRUE);
         assert_eq!(y, target);
     }
 }

@@ -2,45 +2,13 @@
 use crate::modular::bingcd::matrix::{DividedPatternMatrix, PatternMatrix};
 use crate::{ConstChoice, Int, NonZeroUint, Odd, OddUint, Uint};
 
-/// Container for the processed output of the Binary XGCD algorithm.
-#[derive(Debug)]
-pub struct OddUintXgcdOutput<const LIMBS: usize> {
-    /// Greatest common divisor
-    pub gcd: OddUint<LIMBS>,
-    /// x;
-    pub x: Int<LIMBS>,
-    /// y;
-    pub y: Int<LIMBS>,
-    /// lhs / gcd
-    pub lhs_on_gcd: Uint<LIMBS>,
-    /// rhs / gcd
-    pub rhs_on_gcd: Uint<LIMBS>,
-}
-
-impl<const LIMBS: usize> OddUintXgcdOutput<LIMBS> {
-    /// The greatest common divisor stored in this object.
-    pub const fn gcd(&self) -> OddUint<LIMBS> {
-        self.gcd
-    }
-
-    /// Obtain a copy of the Bézout coefficients.
-    pub const fn bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
-        (self.x, self.y)
-    }
-
-    /// Obtain a copy of the quotients `lhs/gcd` and `rhs/gcd`.
-    pub const fn quotients(&self) -> (Uint<LIMBS>, Uint<LIMBS>) {
-        (self.lhs_on_gcd, self.rhs_on_gcd)
-    }
-}
-
 /// Container for the raw output of the Binary XGCD algorithm.
-struct RawXgcdOutput<const LIMBS: usize, MATRIX> {
+pub(crate) struct RawXgcdOutput<const LIMBS: usize, MATRIX> {
     gcd: OddUint<LIMBS>,
     matrix: MATRIX,
 }
 
-pub(super) type DividedPatternXgcdOutput<const LIMBS: usize> =
+pub(crate) type DividedPatternXgcdOutput<const LIMBS: usize> =
     RawXgcdOutput<LIMBS, DividedPatternMatrix<LIMBS>>;
 
 impl<const LIMBS: usize> DividedPatternXgcdOutput<LIMBS> {
@@ -56,7 +24,7 @@ impl<const LIMBS: usize> DividedPatternXgcdOutput<LIMBS> {
     /// input vector is zero.
     ///
     /// Executes in variable time w.r.t. `k_upper_bound`.
-    const fn divide(self) -> PatternXgcdOutput<LIMBS> {
+    pub(crate) const fn divide(self) -> PatternXgcdOutput<LIMBS> {
         let DividedPatternMatrix {
             inner: mut matrix,
             k,
@@ -92,24 +60,16 @@ impl<const LIMBS: usize> DividedPatternXgcdOutput<LIMBS> {
     }
 }
 
-pub(super) type PatternXgcdOutput<const LIMBS: usize> = RawXgcdOutput<LIMBS, PatternMatrix<LIMBS>>;
+pub(crate) type PatternXgcdOutput<const LIMBS: usize> = RawXgcdOutput<LIMBS, PatternMatrix<LIMBS>>;
 
 impl<const LIMBS: usize> PatternXgcdOutput<LIMBS> {
-    pub(crate) const fn process(&mut self) -> OddUintXgcdOutput<LIMBS> {
-        let (x, y) = self.bezout_coefficients();
-        let (lhs_on_gcd, rhs_on_gcd) = self.quotients();
-
-        OddUintXgcdOutput {
-            gcd: self.gcd,
-            x,
-            y,
-            lhs_on_gcd,
-            rhs_on_gcd,
-        }
+    /// Obtain the `gcd`.
+    pub(crate) const fn gcd(&self) -> OddUint<LIMBS> {
+        self.gcd
     }
 
     /// Obtain the bezout coefficients `(x, y)` such that `lhs * x + rhs * y = gcd`.
-    const fn bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
+    pub(crate) const fn bezout_coefficients(&self) -> (Int<LIMBS>, Int<LIMBS>) {
         let PatternMatrix {
             m00,
             m01,
@@ -134,7 +94,7 @@ impl<const LIMBS: usize> PatternXgcdOutput<LIMBS> {
     }
 
     /// Obtain the quotients `lhs/gcd` and `rhs/gcd` from `matrix`.
-    const fn quotients(&self) -> (Uint<LIMBS>, Uint<LIMBS>) {
+    pub(crate) const fn quotients(&self) -> (Uint<LIMBS>, Uint<LIMBS>) {
         let PatternMatrix {
             m10: rhs_div_gcd,
             m11: lhs_div_gcd,
@@ -150,7 +110,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
 
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`,
     /// leveraging the Binary Extended GCD algorithm.
-    pub(crate) const fn binxgcd_nz(&self, rhs: &NonZeroUint<LIMBS>) -> OddUintXgcdOutput<LIMBS> {
+    pub(crate) const fn binxgcd_nz(&self, rhs: &NonZeroUint<LIMBS>) -> PatternXgcdOutput<LIMBS> {
         let (lhs_, rhs_) = (self.as_ref(), rhs.as_ref());
 
         // The `binxgcd` subroutine requires `rhs` needs to be odd.
@@ -171,7 +131,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
         matrix.conditional_add_right_column_to_left(case_two);
         matrix.conditional_negate(case_two);
 
-        output.process()
+        output
     }
 
     /// Execute the classic Binary Extended GCD algorithm.
@@ -302,7 +262,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
 #[cfg(all(test, not(miri)))]
 mod tests {
-    use crate::modular::bingcd::xgcd::OddUintXgcdOutput;
+    use crate::modular::bingcd::xgcd::PatternXgcdOutput;
     use crate::{ConcatMixed, Uint};
     use core::ops::Div;
     use num_traits::Zero;
@@ -517,7 +477,7 @@ mod tests {
     fn test_xgcd<const LIMBS: usize, const DOUBLE: usize>(
         lhs: Uint<LIMBS>,
         rhs: Uint<LIMBS>,
-        output: OddUintXgcdOutput<LIMBS>,
+        output: PatternXgcdOutput<LIMBS>,
     ) where
         Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
     {
@@ -525,8 +485,9 @@ mod tests {
         assert_eq!(lhs.bingcd(&rhs), output.gcd, "{} {}", lhs, rhs);
 
         // Test the quotients
-        assert_eq!(output.lhs_on_gcd, lhs.div(output.gcd.as_nz_ref()));
-        assert_eq!(output.rhs_on_gcd, rhs.div(output.gcd.as_nz_ref()));
+        let (lhs_on_gcd, rhs_on_gcd) = output.quotients();
+        assert_eq!(lhs_on_gcd, lhs.div(output.gcd.as_nz_ref()));
+        assert_eq!(rhs_on_gcd, rhs.div(output.gcd.as_nz_ref()));
 
         // Test the Bezout coefficients for correctness
         let (x, y) = output.bezout_coefficients();
@@ -539,8 +500,8 @@ mod tests {
         assert!(x.abs() <= rhs.div(output.gcd.as_nz_ref()));
         assert!(y.abs() <= lhs.div(output.gcd.as_nz_ref()));
         if lhs != rhs {
-            assert!(x.abs() <= output.rhs_on_gcd.shr(1) || output.rhs_on_gcd.is_zero());
-            assert!(y.abs() <= output.lhs_on_gcd.shr(1) || output.lhs_on_gcd.is_zero());
+            assert!(x.abs() <= rhs_on_gcd.shr(1) || rhs_on_gcd.is_zero());
+            assert!(y.abs() <= lhs_on_gcd.shr(1) || lhs_on_gcd.is_zero());
         }
     }
 
@@ -613,8 +574,7 @@ mod tests {
                 .to_odd()
                 .unwrap()
                 .classic_binxgcd(&rhs.to_odd().unwrap())
-                .divide()
-                .process();
+                .divide();
             test_xgcd(lhs, rhs, output);
         }
 
