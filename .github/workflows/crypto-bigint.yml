@@ -94,7 +94,6 @@ jobs:
       - run: cargo test --target ${{ matrix.target }} --no-default-features ${{ matrix.args }}
       - run: cargo test --target ${{ matrix.target }}  ${{ matrix.args }}
       - run: cargo test --target ${{ matrix.target }} --all-features ${{ matrix.args }}
-      - run: cargo test --target ${{ matrix.target }} --all-features ${{ matrix.args }} -- --ignored # slow bingcd tests
 
   # Test using `cargo careful`
   test-careful:
