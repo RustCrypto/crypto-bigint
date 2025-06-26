@@ -51,6 +51,9 @@ serde = ["dep:serdect"]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
+[package.metadata.typos.default]
+extend-ignore-re = ["([0-9A-Fa-f]{16,})"]
+
 [[bench]]
 name = "boxed_monty"
 harness = false
@@ -80,6 +83,3 @@ harness = false
 [[bench]]
 name = "int"
 harness = false
-
-[profile.dev]
-opt-level = 2

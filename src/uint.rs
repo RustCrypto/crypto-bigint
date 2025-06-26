@@ -37,7 +37,7 @@ mod div;
 pub(crate) mod div_limb;
 pub(crate) mod encoding;
 mod from;
-mod gcd;
+pub(crate) mod gcd;
 mod invert_mod;
 pub(crate) mod mul;
 mod mul_mod;
@@ -500,7 +500,6 @@ impl_uint_concat_split_mixed! {
     (U1024, [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15]),
 }
 
-mod bingcd;
 #[cfg(feature = "extra-sizes")]
 mod extra_sizes;
 mod mul_int;
