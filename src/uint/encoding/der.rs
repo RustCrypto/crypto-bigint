@@ -1,6 +1,6 @@
 //! Support for decoding/encoding [`Uint`] as an ASN.1 DER `INTEGER`.
 
-use crate::{ArrayEncoding, Uint, hybrid_array::Array};
+use crate::{ArrayEncoding, Encoding, Limb, Uint, hybrid_array::Array, uint::bits::leading_zeros};
 use ::der::{
     DecodeValue, EncodeValue, FixedTag, Length, Tag,
     asn1::{AnyRef, UintRef},
@@ -47,9 +47,7 @@ where
     Uint<LIMBS>: ArrayEncoding,
 {
     fn value_len(&self) -> der::Result<Length> {
-        // TODO(tarcieri): more efficient length calculation
-        let array = self.to_be_byte_array();
-        UintRef::new(&array)?.value_len()
+        Ok(count_der_be_bytes(&self.limbs).into())
     }
 
     fn encode_value(&self, encoder: &mut impl der::Writer) -> der::Result<()> {
@@ -63,4 +61,163 @@ where
     Uint<LIMBS>: ArrayEncoding,
 {
     const TAG: Tag = Tag::Integer;
+}
+
+/// Counts bytes in DER ASN.1 `INTEGER` big-endian encoding, without leading zero bytes.
+#[inline]
+pub(crate) fn count_der_be_bytes(limbs: &[Limb]) -> u32 {
+    // Number of 0x00 bytes (also index of first non-zero byte)
+    let leading_zero_bytes = leading_zeros(limbs) / 8;
+
+    // Limbs indexed in reverse
+    let limb_index = limbs
+        .len()
+        .saturating_sub(1)
+        .saturating_sub(leading_zero_bytes as usize / Limb::BYTES);
+
+    // Limb bytes encoded as big-endian
+    let first_nonzero_byte = limbs
+        .get(limb_index)
+        .cloned()
+        .map(|limb| limb.to_be_bytes()[leading_zero_bytes as usize % Limb::BYTES])
+        .unwrap_or(0x00);
+
+    // Does the given integer need a leading zero?
+    let needs_leading_zero = first_nonzero_byte >= 0x80;
+
+    // Number of bytes in all limbs
+    let max_len = (Limb::BYTES * limbs.len()) as u32;
+
+    // If all bytes are zeros:
+    if leading_zero_bytes == max_len {
+        // we're encoding 0x00, so one byte remains
+        1
+    } else {
+        max_len
+            .saturating_sub(leading_zero_bytes)
+            .wrapping_add(needs_leading_zero as u32)
+    }
+}
+
+#[cfg(feature = "alloc")]
+pub mod allocating {
+    use der::{DecodeValue, EncodeValue, FixedTag, Length, Tag, asn1::UintRef};
+
+    use crate::{BoxedUint, encoding::der::count_der_be_bytes};
+
+    impl EncodeValue for BoxedUint {
+        fn value_len(&self) -> der::Result<Length> {
+            Ok(count_der_be_bytes(&self.limbs).into())
+        }
+
+        fn encode_value(&self, encoder: &mut impl der::Writer) -> der::Result<()> {
+            let array = self.to_be_bytes();
+            UintRef::new(&array)?.encode_value(encoder)
+        }
+    }
+
+    impl<'a> DecodeValue<'a> for BoxedUint {
+        type Error = der::Error;
+
+        fn decode_value<R: der::Reader<'a>>(
+            reader: &mut R,
+            header: der::Header,
+        ) -> der::Result<Self> {
+            let value = UintRef::decode_value(reader, header)?;
+            let bits_precision = value.as_bytes().len() as u32 * 8;
+
+            let value = BoxedUint::from_be_slice(value.as_bytes(), bits_precision)
+                .map_err(|_| UintRef::TAG.value_error())?;
+            Ok(value)
+        }
+    }
+
+    impl FixedTag for BoxedUint {
+        const TAG: Tag = Tag::Integer;
+    }
+}
+
+#[cfg(test)]
+pub mod test {
+    use crate::{ArrayEncoding, BoxedUint, U128, Uint};
+    use der::{DecodeValue, EncodeValue, Header, Tag};
+
+    fn assert_valid_uint_value_len<const LIMBS: usize>(n: &Uint<LIMBS>) -> der::Result<()>
+    where
+        Uint<LIMBS>: ArrayEncoding,
+    {
+        let mut buf = [0u8; 128];
+        let encoded_value = {
+            let mut writer = der::SliceWriter::new(&mut buf);
+            n.encode_value(&mut writer)?;
+            writer.finish()?
+        };
+
+        let computed_len: u32 = n.value_len()?.into();
+        let encoded_len: u32 = encoded_value.len() as u32;
+        assert_eq!(
+            computed_len, encoded_len,
+            "computed_len: {computed_len}, encoded_len: {encoded_len}, n:{n:?}"
+        );
+
+        let decoded = {
+            let mut reader = der::SliceReader::new(encoded_value)?;
+            let header = Header::new(Tag::Integer, encoded_value.len())?;
+            Uint::<LIMBS>::decode_value(&mut reader, header)?
+        };
+
+        assert_eq!(n, &decoded);
+        Ok(())
+    }
+
+    #[cfg(feature = "alloc")]
+    fn assert_valid_boxeduint_value_len(n: &BoxedUint) -> der::Result<()> {
+        let mut buf = [0u8; 128];
+        let encoded_value = {
+            let mut writer = der::SliceWriter::new(&mut buf);
+            n.encode_value(&mut writer)?;
+            writer.finish()?
+        };
+
+        let computed_len: u32 = n.value_len()?.into();
+        let encoded_len: u32 = encoded_value.len() as u32;
+        assert_eq!(
+            computed_len, encoded_len,
+            "computed_len: {computed_len}, encoded_len: {encoded_len}, n:{n:?}"
+        );
+        let decoded = {
+            let mut reader = der::SliceReader::new(encoded_value)?;
+            let header = Header::new(Tag::Integer, encoded_value.len())?;
+            BoxedUint::decode_value(&mut reader, header)?
+        };
+
+        assert_eq!(n, &decoded);
+
+        Ok(())
+    }
+
+    fn assert_valid_value_len_hex(hex_uint: &str) {
+        let n = U128::from_str_radix_vartime(hex_uint, 16).expect("error decoding");
+        assert_valid_uint_value_len(&n).expect("error from der: Uint");
+
+        #[cfg(feature = "alloc")]
+        assert_valid_boxeduint_value_len(&BoxedUint::from(n)).expect("error from der: BoxedUint");
+    }
+    #[test]
+    fn encode_uint() {
+        assert_valid_value_len_hex("00");
+        assert_valid_value_len_hex("10");
+        assert_valid_value_len_hex("3210");
+
+        assert_valid_value_len_hex("00000000000000007fdcba9876543210");
+        assert_valid_value_len_hex("0000000000000000fedcba9876543210");
+        assert_valid_value_len_hex("0000000000000010fedcba9876543210");
+        assert_valid_value_len_hex("0000000000000080fedcba9876543210");
+
+        assert_valid_value_len_hex("0000008076543210fedcba9876543210");
+        assert_valid_value_len_hex("00dcba9876543210fedcba9876543210");
+        assert_valid_value_len_hex("0fdcba9876543210fedcba9876543210");
+        assert_valid_value_len_hex("7fdcba9876543210fedcba9876543210");
+        assert_valid_value_len_hex("fedcba9876543210fedcba9876543210");
+    }
 }

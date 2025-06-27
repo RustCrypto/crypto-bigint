@@ -1040,4 +1040,28 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    #[cfg(target_pointer_width = "32")]
+    fn encode_be_hex() {
+        let n = UintEx::from_be_hex("0011223344556677");
+
+        let bytes = n.to_be_bytes();
+        assert_eq!(bytes, hex!("0011223344556677"));
+
+        #[cfg(feature = "der")]
+        assert_eq!(super::der::count_der_be_bytes(&n.limbs), 7);
+    }
+
+    #[test]
+    #[cfg(target_pointer_width = "64")]
+    fn encode_be_hex() {
+        let n = UintEx::from_be_hex("00112233445566778899aabbccddeeff");
+
+        let bytes = n.to_be_bytes();
+        assert_eq!(bytes, hex!("00112233445566778899aabbccddeeff"));
+
+        #[cfg(feature = "der")]
+        assert_eq!(super::der::count_der_be_bytes(&n.limbs), 15);
+    }
 }
