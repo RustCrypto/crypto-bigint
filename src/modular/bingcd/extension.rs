@@ -120,7 +120,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
             .as_extended_int()
     }
 
-    /// Compute `self - rhs`, wrapping any underflow.
+    /// Compute `self + rhs`, wrapping any overflow.
     #[inline]
     pub const fn wrapping_add(&self, rhs: &Self) -> Self {
         let (lo, carry) = self.0.carrying_add(&rhs.0, Limb::ZERO);
