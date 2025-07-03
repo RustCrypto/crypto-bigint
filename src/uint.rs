@@ -537,10 +537,7 @@ mod tests {
     fn debug() {
         let n = U128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
 
-        assert_eq!(
-            format!("{:?}", n),
-            "Uint(0xAAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD)"
-        );
+        assert_eq!(format!("{n:?}"), "Uint(0xAAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD)");
     }
 
     #[cfg(feature = "alloc")]
