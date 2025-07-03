@@ -1,14 +1,4 @@
-use crate::{ConstChoice, Uint};
-
-/// `const` equivalent of `u32::max(a, b)`.
-pub(crate) const fn const_max(a: u32, b: u32) -> u32 {
-    ConstChoice::from_u32_lt(a, b).select_u32(a, b)
-}
-
-/// `const` equivalent of `u32::min(a, b)`.
-pub(crate) const fn const_min(a: u32, b: u32) -> u32 {
-    ConstChoice::from_u32_lt(a, b).select_u32(b, a)
-}
+use crate::Uint;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Construct a [Uint] containing the bits in `self` in the range `[idx, idx + length)`.
@@ -17,7 +7,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Executes in time variable in `length` only.
     #[inline(always)]
-    pub(super) const fn section_vartime_length<const SECTION_LIMBS: usize>(
+    pub(crate) const fn section_vartime_length<const SECTION_LIMBS: usize>(
         &self,
         idx: u32,
         length: u32,
@@ -35,7 +25,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Executes in time variable in `idx` and `length`.
     #[inline(always)]
-    pub(super) const fn section_vartime<const SECTION_LIMBS: usize>(
+    pub(crate) const fn section_vartime<const SECTION_LIMBS: usize>(
         &self,
         idx: u32,
         length: u32,
@@ -54,7 +44,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Assumes `K ≤ Uint::<SUMMARY_LIMBS>::BITS`, `n ≤ Self::BITS` and `n ≥ 2K`.
     #[inline(always)]
-    pub(super) const fn compact<const K: u32, const SUMMARY_LIMBS: usize>(
+    pub(crate) const fn compact<const K: u32, const SUMMARY_LIMBS: usize>(
         &self,
         n: u32,
     ) -> Uint<SUMMARY_LIMBS> {
@@ -70,5 +60,50 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // safe to vartime; shl_vartime is variable in the value of shift only. Since this shift
         // is a public constant, the constant time property of this algorithm is not impacted.
         hi.shl_vartime(K - 1).bitxor(&lo)
+    }
+
+    /// Vartime equivalent of [`Self::compact`].
+    #[inline(always)]
+    pub(crate) const fn compact_vartime<const K: u32, const SUMMARY_LIMBS: usize>(
+        &self,
+        n: u32,
+    ) -> Uint<SUMMARY_LIMBS> {
+        debug_assert!(K <= Uint::<SUMMARY_LIMBS>::BITS);
+        debug_assert!(n <= Self::BITS);
+        debug_assert!(n >= 2 * K);
+
+        // safe to vartime; this function is vartime in length only, which is a public constant
+        let hi = self.section_vartime(n - K - 1, K + 1);
+        // safe to vartime; this function is vartime in idx and length only, which are both public
+        // constants
+        let lo = self.section_vartime(0, K - 1);
+        // safe to vartime; shl_vartime is variable in the value of shift only. Since this shift
+        // is a public constant, the constant time property of this algorithm is not impacted.
+        hi.shl_vartime(K - 1).bitxor(&lo)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{U128, U256};
+
+    #[test]
+    fn test_compact() {
+        let val =
+            U256::from_be_hex("CFCF1535CEBE19BBF289933AB8645189397450A32BFEC57579FB7EB14E27D101");
+        let target = U128::from_be_hex("BBF289933AB86451F9FB7EB14E27D101");
+
+        let compact = val.compact::<64, { U128::LIMBS }>(200);
+        assert_eq!(compact, target);
+    }
+
+    #[test]
+    fn test_compact_vartime() {
+        let val =
+            U256::from_be_hex("1971BC6285D8CBA9640AA3B3B9C01EF4186D1EBE9A17393A9E43586E0EBAED5B");
+        let target = U128::from_be_hex("A9640AA3B3B9C01E9E43586E0EBAED5B");
+
+        let compact = val.compact_vartime::<64, { U128::LIMBS }>(200);
+        assert_eq!(compact, target);
     }
 }

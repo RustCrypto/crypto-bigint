@@ -35,18 +35,49 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
 
     /// Shift `self` right by `shift` bits.
     ///
-    /// Assumes `shift <= Uint::<EXTRA>::BITS`.
+    /// Panics if `shift ≥ UPPER_BOUND`.
     #[inline]
-    pub const fn shr(&self, shift: u32) -> Self {
+    pub const fn bounded_shr<const UPPER_BOUND: u32>(&self, shift: u32) -> Self {
+        debug_assert!(shift <= UPPER_BOUND);
+
+        let shift_is_zero = ConstChoice::from_u32_eq(shift, 0);
+        let left_shift = shift_is_zero.select_u32(Uint::<EXTRA>::BITS - shift, 0);
+
+        let hi = self
+            .1
+            .bounded_overflowing_shr::<UPPER_BOUND>(shift)
+            .expect("shift ≤ UPPER_BOUND");
+        // TODO: replace with carrying_shl
+        let carry = Uint::select(&self.1, &Uint::ZERO, shift_is_zero).shl(left_shift);
+        let mut lo = self
+            .0
+            .bounded_overflowing_shr::<UPPER_BOUND>(shift)
+            .expect("shift ≤ UPPER_BOUND");
+
+        // Apply carry
+        let limb_diff = LIMBS.wrapping_sub(EXTRA) as u32;
+        // safe to vartime; shr_vartime is variable in the value of shift only. Since this shift
+        // is a public constant, the constant time property of this algorithm is not impacted.
+        let carry = carry.resize::<LIMBS>().shl_vartime(limb_diff * Limb::BITS);
+        lo = lo.bitxor(&carry);
+
+        Self(lo, hi)
+    }
+
+    /// Shift `self` right by `shift` bits.
+    ///
+    /// Panics if `shift ≥ Uint::<EXTRA>::BITS`.
+    #[inline]
+    pub const fn shr_vartime(&self, shift: u32) -> Self {
         debug_assert!(shift <= Uint::<EXTRA>::BITS);
 
         let shift_is_zero = ConstChoice::from_u32_eq(shift, 0);
         let left_shift = shift_is_zero.select_u32(Uint::<EXTRA>::BITS - shift, 0);
 
-        let hi = self.1.shr(shift);
+        let hi = self.1.shr_vartime(shift);
         // TODO: replace with carrying_shl
-        let carry = Uint::select(&self.1, &Uint::ZERO, shift_is_zero).shl(left_shift);
-        let mut lo = self.0.shr(shift);
+        let carry = Uint::select(&self.1, &Uint::ZERO, shift_is_zero).shl_vartime(left_shift);
+        let mut lo = self.0.shr_vartime(shift);
 
         // Apply carry
         let limb_diff = LIMBS.wrapping_sub(EXTRA) as u32;
@@ -59,6 +90,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub(crate) struct ExtendedInt<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
     Uint<LIMBS>,
     Uint<EXTENSION_LIMBS>,
@@ -97,18 +129,10 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     }
 
     /// Returns self without the extension.
-    ///
-    /// Is `None` if the extension cannot be dropped, i.e., when there is a bit in the extension
-    /// that does not equal the MSB in the base.
     #[inline]
-    pub const fn abs_drop_extension(&self) -> ConstCtOption<Uint<LIMBS>> {
-        // should succeed when
-        // - extension is ZERO, or
-        // - extension is MAX, and the top bit in base is set.
-        let proper_positive = Int::eq(self.1.as_int(), &Int::ZERO);
-        let proper_negative =
-            Int::eq(self.1.as_int(), &Int::MINUS_ONE).and(self.0.as_int().is_negative());
-        ConstCtOption::new(self.abs().0, proper_negative.or(proper_positive))
+    pub const fn wrapping_drop_extension(&self) -> (Uint<LIMBS>, ConstChoice) {
+        let (abs, sgn) = self.abs_sgn();
+        (abs.0, sgn)
     }
 
     /// Decompose `self` into is absolute value and signum.
@@ -121,16 +145,70 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
         )
     }
 
-    /// Decompose `self` into is absolute value and signum.
+    /// Divide self by `2^k`, rounding towards zero.
+    ///
+    /// Panics if `k ≥ UPPER_BOUND`.
     #[inline]
-    pub const fn abs(&self) -> ExtendedUint<LIMBS, EXTRA> {
-        self.abs_sgn().0
+    pub const fn bounded_div_2k<const UPPER_BOUND: u32>(&self, k: u32) -> Self {
+        let (abs, sgn) = self.abs_sgn();
+        abs.bounded_shr::<UPPER_BOUND>(k)
+            .wrapping_neg_if(sgn)
+            .as_extended_int()
     }
 
     /// Divide self by `2^k`, rounding towards zero.
     #[inline]
-    pub const fn div_2k(&self, k: u32) -> Self {
+    pub const fn div_2k_vartime(&self, k: u32) -> Self {
         let (abs, sgn) = self.abs_sgn();
-        abs.shr(k).wrapping_neg_if(sgn).as_extended_int()
+        abs.shr_vartime(k).wrapping_neg_if(sgn).as_extended_int()
+    }
+}
+
+impl<const LIMBS: usize> Uint<LIMBS> {
+    /// Computes `self >> shift`.
+    ///
+    /// Returns `None` if `shift >= UPPER_BOUND`; panics if `UPPER_BOUND > Self::BITS`.
+    pub const fn bounded_overflowing_shr<const UPPER_BOUND: u32>(
+        &self,
+        shift: u32,
+    ) -> ConstCtOption<Self> {
+        assert!(UPPER_BOUND <= Self::BITS);
+
+        // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
+        // (which lies in range `0 <= shift < BITS`).
+        let shift_bits = u32::BITS - (UPPER_BOUND - 1).leading_zeros();
+        let overflow = ConstChoice::from_u32_lt(shift, UPPER_BOUND).not();
+
+        let shift = shift % UPPER_BOUND;
+        let mut result = *self;
+        let mut i = 0;
+        while i < shift_bits {
+            let bit = ConstChoice::from_u32_lsb((shift >> i) & 1);
+            result = Uint::select(
+                &result,
+                &result
+                    .overflowing_shr_vartime(1 << i)
+                    .expect("shift within range"),
+                bit,
+            );
+            i += 1;
+        }
+
+        ConstCtOption::new(Uint::select(&result, &Self::ZERO, overflow), overflow.not())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::U64;
+
+    #[test]
+    fn bounded_overflowing_shr() {
+        let res = U64::MAX.bounded_overflowing_shr::<32>(20);
+        assert!(bool::from(res.is_some()));
+        assert_eq!(res.unwrap(), U64::MAX.overflowing_shr(20).unwrap());
+
+        let res = U64::MAX.bounded_overflowing_shr::<32>(32);
+        assert!(bool::from(res.is_none()));
     }
 }

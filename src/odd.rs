@@ -1,6 +1,6 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{ConstChoice, Int, Integer, Limb, NonZero, Uint};
+use crate::{Bounded, ConstChoice, Int, Integer, Limb, NonZero, Uint};
 use core::{cmp::Ordering, fmt, ops::Deref};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
@@ -65,6 +65,17 @@ impl<T> Odd<T> {
     pub fn get(self) -> T {
         self.0
     }
+}
+
+impl<T> Odd<T>
+where
+    T: Bounded,
+{
+    /// Total size of the represented integer in bits.
+    pub const BITS: u32 = T::BITS;
+
+    /// Total size of the represented integer in bytes.
+    pub const BYTES: usize = T::BYTES;
 }
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
