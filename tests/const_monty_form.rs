@@ -3,12 +3,12 @@
 mod common;
 
 use common::to_biguint;
-use crypto_bigint::{U256, impl_modulus, modular::ConstMontyParams};
+use crypto_bigint::{U256, const_monty_params, modular::ConstMontyParams};
 use num_bigint::BigUint;
 use num_modular::ModularUnaryOps;
 use proptest::prelude::*;
 
-impl_modulus!(
+const_monty_params!(
     Modulus,
     U256,
     "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"

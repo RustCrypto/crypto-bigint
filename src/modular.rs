@@ -57,14 +57,14 @@ pub trait Retrieve {
 #[cfg(test)]
 mod tests {
     use crate::{
-        NonZero, U64, U256, Uint, const_monty_form, impl_modulus,
+        NonZero, U64, U256, Uint, const_monty_form, const_monty_params,
         modular::{
             const_monty_form::{ConstMontyForm, ConstMontyParams},
             reduction::montgomery_reduction,
         },
     };
 
-    impl_modulus!(
+    const_monty_params!(
         Modulus1,
         U256,
         "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001"
@@ -86,7 +86,7 @@ mod tests {
         );
     }
 
-    impl_modulus!(
+    const_monty_params!(
         Modulus2,
         U256,
         "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"

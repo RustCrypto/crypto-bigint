@@ -28,12 +28,11 @@ use {
 #[macro_use]
 mod macros;
 
-/// The parameters to efficiently go to and from the Montgomery form for a given odd modulus.
+/// Trait representing a modulus and its associated constants for converting in and out of
+/// Montgomery form.
 ///
-/// An easy way to generate these parameters is using the [`impl_modulus!`][`crate::impl_modulus`]
-/// macro. These parameters are constant, so they cannot be set at runtime.
-///
-/// Unfortunately, `LIMBS` must be generic for now until const generics are stabilized.
+/// To define a type which impls this trait, use the
+/// [`const_monty_params!`][`crate::const_monty_params`] macro.
 pub trait ConstMontyParams<const LIMBS: usize>:
     Copy + Debug + Default + Eq + Send + Sync + 'static
 {

@@ -83,10 +83,10 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> AddAssign<Self>
 #[cfg(test)]
 mod tests {
     use crate::{
-        U256, const_monty_form, impl_modulus, modular::const_monty_form::ConstMontyParams,
+        U256, const_monty_form, const_monty_params, modular::const_monty_form::ConstMontyParams,
     };
 
-    impl_modulus!(
+    const_monty_params!(
         Modulus,
         U256,
         "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"

@@ -25,9 +25,9 @@ mod tests {
     #[test]
     fn lincomb_expected() {
         use super::{ConstMontyForm, ConstMontyParams};
-        use crate::{RandomMod, U256, impl_modulus};
+        use crate::{RandomMod, U256, const_monty_params};
         use rand_core::SeedableRng;
-        impl_modulus!(
+        const_monty_params!(
             P,
             U256,
             "7fffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"
