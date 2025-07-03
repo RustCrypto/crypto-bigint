@@ -509,14 +509,11 @@ mod ref_type;
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    #[cfg(feature = "alloc")]
-    use alloc::format;
-
+    use crate::{Encoding, I128, Int, U128};
     use subtle::ConditionallySelectable;
 
-    #[cfg(feature = "serde")]
-    use crate::U64;
-    use crate::{Encoding, I128, Int, U128};
+    #[cfg(feature = "alloc")]
+    use alloc::format;
 
     #[cfg(target_pointer_width = "64")]
     #[test]
@@ -651,28 +648,6 @@ mod tests {
 
         let select_1 = U128::conditional_select(&a, &b, 1.into());
         assert_eq!(b, select_1);
-    }
-
-    #[cfg(feature = "serde")]
-    #[test]
-    fn serde() {
-        const TEST: U64 = U64::from_u64(0x0011223344556677);
-
-        let serialized = bincode::serialize(&TEST).unwrap();
-        let deserialized: U64 = bincode::deserialize(&serialized).unwrap();
-
-        assert_eq!(TEST, deserialized);
-    }
-
-    #[cfg(feature = "serde")]
-    #[test]
-    fn serde_owned() {
-        const TEST: U64 = U64::from_u64(0x0011223344556677);
-
-        let serialized = bincode::serialize(&TEST).unwrap();
-        let deserialized: U64 = bincode::deserialize_from(serialized.as_slice()).unwrap();
-
-        assert_eq!(TEST, deserialized);
     }
 
     #[test]

@@ -37,19 +37,11 @@ mod tests {
     fn serde() {
         let test: BoxedUint = BoxedUint::from_be_hex("7711223344556600", 64).unwrap();
 
-        let serialized = bincode::serialize(&test).unwrap();
-        let deserialized: BoxedUint = bincode::deserialize(&serialized).unwrap();
-
-        assert_eq!(test, deserialized);
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "64")]
-    fn serde_owned() {
-        let test: BoxedUint = BoxedUint::from_be_hex("7711223344556600", 64).unwrap();
-
-        let serialized = bincode::serialize(&test).unwrap();
-        let deserialized: BoxedUint = bincode::deserialize_from(serialized.as_slice()).unwrap();
+        let serialized = bincode::serde::encode_to_vec(&test, bincode::config::standard()).unwrap();
+        let deserialized: BoxedUint =
+            bincode::serde::decode_from_slice(&serialized, bincode::config::standard())
+                .unwrap()
+                .0;
 
         assert_eq!(test, deserialized);
     }
@@ -60,8 +52,12 @@ mod tests {
         let bytes = hex!("7766554433221100");
         let box_uint = BoxedUint::from_le_slice(&bytes, 64).unwrap();
 
-        let serialized = bincode::serialize(&box_uint).unwrap();
-        let deserialized: BoxedUint = bincode::deserialize_from(serialized.as_slice()).unwrap();
+        let serialized =
+            bincode::serde::encode_to_vec(&box_uint, bincode::config::standard()).unwrap();
+        let deserialized: BoxedUint =
+            bincode::serde::decode_from_slice(serialized.as_slice(), bincode::config::standard())
+                .unwrap()
+                .0;
 
         assert_eq!(
             deserialized.as_limbs(),

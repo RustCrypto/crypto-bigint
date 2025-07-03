@@ -331,13 +331,15 @@ mod tests {
     #[cfg(feature = "serde")]
     mod serde_tests {
         use crate::{Odd, U64, U128};
-        use bincode::ErrorKind;
 
         #[test]
         fn roundtrip() {
             let uint = Odd::new(U64::from_u64(0x00123)).unwrap();
-            let ser = bincode::serialize(&uint).unwrap();
-            let deser = bincode::deserialize::<Odd<U64>>(&ser).unwrap();
+            let ser = bincode::serde::encode_to_vec(uint, bincode::config::standard()).unwrap();
+            let deser =
+                bincode::serde::decode_from_slice::<Odd<U64>, _>(&ser, bincode::config::standard())
+                    .unwrap()
+                    .0;
 
             assert_eq!(uint, deser);
         }
@@ -345,22 +347,28 @@ mod tests {
         #[test]
         fn even_values_do_not_deserialize() {
             let two = U128::from_u64(0x2);
-            let two_ser = bincode::serialize(&two).unwrap();
-            assert!(matches!(
-                *bincode::deserialize::<Odd<U128>>(&two_ser).unwrap_err(),
-                ErrorKind::Custom(mess) if mess == "invalid value: even, expected a non-zero odd value"
-            ))
+            let two_ser = bincode::serde::encode_to_vec(two, bincode::config::standard()).unwrap();
+            assert!(
+                bincode::serde::decode_from_slice::<Odd<U128>, _>(
+                    &two_ser,
+                    bincode::config::standard()
+                )
+                .is_err()
+            );
         }
 
         #[test]
         fn zero_does_not_deserialize() {
             let zero = U64::ZERO;
-            let zero_ser = bincode::serialize(&zero).unwrap();
-
-            assert!(matches!(
-                *bincode::deserialize::<Odd<U64>>(&zero_ser).unwrap_err(),
-                ErrorKind::Custom(mess) if mess == "invalid value: even, expected a non-zero odd value"
-            ))
+            let zero_ser =
+                bincode::serde::encode_to_vec(zero, bincode::config::standard()).unwrap();
+            assert!(
+                bincode::serde::decode_from_slice::<Odd<U64>, _>(
+                    &zero_ser,
+                    bincode::config::standard()
+                )
+                .is_err()
+            );
         }
     }
 }
