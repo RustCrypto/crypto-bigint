@@ -80,3 +80,6 @@ harness = false
 [[bench]]
 name = "int"
 harness = false
+
+[profile.dev]
+opt-level = 2
