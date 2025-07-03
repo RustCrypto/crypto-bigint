@@ -882,7 +882,7 @@ mod tests {
     fn hex_upper() {
         let hex = "AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD";
         let n = U128::from_be_hex(hex);
-        assert_eq!(hex, format!("{:X}", n));
+        assert_eq!(hex, format!("{n:X}"));
     }
 
     #[cfg(feature = "alloc")]
@@ -890,7 +890,7 @@ mod tests {
     fn hex_lower() {
         let hex = "aaaaaaaabbbbbbbbccccccccdddddddd";
         let n = U128::from_be_hex(hex);
-        assert_eq!(hex, format!("{:x}", n));
+        assert_eq!(hex, format!("{n:x}"));
     }
 
     #[cfg(feature = "alloc")]
@@ -901,7 +901,7 @@ mod tests {
         let expect = "\
             1010101010101010101010101010101010111011101110111011101110111011\
             1100110011001100110011001100110011011101110111011101110111011101";
-        assert_eq!(expect, format!("{:b}", n));
+        assert_eq!(expect, format!("{n:b}"));
     }
 
     #[test]

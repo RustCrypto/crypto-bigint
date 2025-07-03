@@ -343,7 +343,7 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::RandCore(err) => write!(f, "{}", err),
+            Self::RandCore(err) => write!(f, "{err}"),
             Self::BitsPrecisionMismatch {
                 bits_precision,
                 integer_bits,
@@ -360,8 +360,7 @@ where
                 bits_precision,
             } => write!(
                 f,
-                "The requested `bit_length` ({}) is larger than `bits_precision` ({}).",
-                bit_length, bits_precision
+                "The requested `bit_length` ({bit_length}) is larger than `bits_precision` ({bits_precision}).",
             ),
         }
     }
