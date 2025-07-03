@@ -335,7 +335,7 @@ mod tests {
     fn serde() {
         let test = Checked::new(U64::from_u64(0x0011223344556677));
 
-        let serialized = bincode::serde::encode_to_vec(&test, bincode::config::standard()).unwrap();
+        let serialized = bincode::serde::encode_to_vec(test, bincode::config::standard()).unwrap();
         let deserialized: Checked<U64> =
             bincode::serde::decode_from_slice(&serialized, bincode::config::standard())
                 .unwrap()
@@ -348,7 +348,7 @@ mod tests {
             test.ct_eq(&Checked(CtOption::new(U64::ZERO, Choice::from(0))))
         ));
 
-        let serialized = bincode::serde::encode_to_vec(&test, bincode::config::standard()).unwrap();
+        let serialized = bincode::serde::encode_to_vec(test, bincode::config::standard()).unwrap();
         let deserialized: Checked<U64> =
             bincode::serde::decode_from_slice(&serialized, bincode::config::standard())
                 .unwrap()
