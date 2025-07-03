@@ -1,3 +1,4 @@
+/// Constructing a compact representation of a [`Uint`]
 use crate::Uint;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -7,7 +8,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Executes in time variable in `length` only.
     #[inline(always)]
-    pub(crate) const fn section_vartime_length<const SECTION_LIMBS: usize>(
+    pub(super) const fn section_vartime_length<const SECTION_LIMBS: usize>(
         &self,
         idx: u32,
         length: u32,
@@ -25,7 +26,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Executes in time variable in `idx` and `length`.
     #[inline(always)]
-    pub(crate) const fn section_vartime<const SECTION_LIMBS: usize>(
+    pub(super) const fn section_vartime<const SECTION_LIMBS: usize>(
         &self,
         idx: u32,
         length: u32,
@@ -44,7 +45,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Assumes `K ≤ Uint::<SUMMARY_LIMBS>::BITS`, `n ≤ Self::BITS` and `n ≥ 2K`.
     #[inline(always)]
-    pub(crate) const fn compact<const K: u32, const SUMMARY_LIMBS: usize>(
+    pub(super) const fn compact<const K: u32, const SUMMARY_LIMBS: usize>(
         &self,
         n: u32,
     ) -> Uint<SUMMARY_LIMBS> {
