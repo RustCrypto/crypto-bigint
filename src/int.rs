@@ -347,10 +347,7 @@ mod tests {
     fn debug() {
         let n = I128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
 
-        assert_eq!(
-            format!("{:?}", n),
-            "Int(0xAAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD)"
-        );
+        assert_eq!(format!("{n:?}"), "Int(0xAAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD)");
     }
 
     #[cfg(feature = "alloc")]
