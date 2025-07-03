@@ -441,8 +441,6 @@ mod tests {
 #[cfg(all(test, feature = "serde"))]
 #[allow(clippy::unwrap_used)]
 mod tests_serde {
-    use bincode::ErrorKind;
-
     use crate::{NonZero, U64};
 
     #[test]
@@ -450,32 +448,22 @@ mod tests_serde {
         let test =
             Option::<NonZero<U64>>::from(NonZero::new(U64::from_u64(0x0011223344556677))).unwrap();
 
-        let serialized = bincode::serialize(&test).unwrap();
-        let deserialized: NonZero<U64> = bincode::deserialize(&serialized).unwrap();
+        let serialized = bincode::serde::encode_to_vec(&test, bincode::config::standard()).unwrap();
+        let deserialized: NonZero<U64> =
+            bincode::serde::decode_from_slice(&serialized, bincode::config::standard())
+                .unwrap()
+                .0;
 
         assert_eq!(test, deserialized);
 
-        let serialized = bincode::serialize(&U64::ZERO).unwrap();
-        assert!(matches!(
-            *bincode::deserialize::<NonZero<U64>>(&serialized).unwrap_err(),
-            ErrorKind::Custom(message) if message == "invalid value: zero, expected a non-zero value"
-        ));
-    }
-
-    #[test]
-    fn serde_owned() {
-        let test =
-            Option::<NonZero<U64>>::from(NonZero::new(U64::from_u64(0x0011223344556677))).unwrap();
-
-        let serialized = bincode::serialize(&test).unwrap();
-        let deserialized: NonZero<U64> = bincode::deserialize_from(serialized.as_slice()).unwrap();
-
-        assert_eq!(test, deserialized);
-
-        let serialized = bincode::serialize(&U64::ZERO).unwrap();
-        assert!(matches!(
-            *bincode::deserialize_from::<_, NonZero<U64>>(serialized.as_slice()).unwrap_err(),
-            ErrorKind::Custom(message) if message == "invalid value: zero, expected a non-zero value"
-        ));
+        let serialized =
+            bincode::serde::encode_to_vec(&U64::ZERO, bincode::config::standard()).unwrap();
+        assert!(
+            bincode::serde::decode_from_slice::<NonZero<U64>, _>(
+                &serialized,
+                bincode::config::standard()
+            )
+            .is_err()
+        );
     }
 }
