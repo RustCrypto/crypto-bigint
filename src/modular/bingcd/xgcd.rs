@@ -482,7 +482,7 @@ mod tests {
         Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
     {
         // Test the gcd
-        assert_eq!(lhs.bingcd(&rhs), output.gcd, "{} {}", lhs, rhs);
+        assert_eq!(lhs.bingcd(&rhs), output.gcd, "{lhs} {rhs}");
 
         // Test the quotients
         let (lhs_on_gcd, rhs_on_gcd) = output.quotients();
