@@ -112,7 +112,7 @@ macro_rules! const_monty_form {
 #[macro_export]
 macro_rules! impl_modulus {
     ($name:ident, $uint_type:ty, $value:expr) => {
-        $crate:const_monty_params!(
+        $crate::const_monty_params!(
             $name,
             $uint_type,
             $value,
@@ -132,7 +132,15 @@ mod tests {
     #[test]
     fn new_params_with_valid_modulus() {
         const_monty_params!(Mod, U64, "0000000000000003");
+        assert_eq!(Mod::MOD_LEADING_ZEROS, core::cmp::min(Limb::BITS - 1, 62));
+    }
 
+    /// Make sure the deprecated macro still works
+    // TODO(tarcieri): remove this in the next breaking release
+    #[test]
+    #[allow(deprecated)]
+    fn impl_modulus_with_valid_modulus() {
+        impl_modulus!(Mod, U64, "0000000000000003");
         assert_eq!(Mod::MOD_LEADING_ZEROS, core::cmp::min(Limb::BITS - 1, 62));
     }
 }
