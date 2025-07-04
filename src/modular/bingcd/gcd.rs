@@ -92,8 +92,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// - `K`: the number of bits used when summarizing `self` and `rhs` for the inner loop. The
     ///   `K+1` top bits and `K-1` least significant bits are selected. It is recommended to keep
     ///   `K` close to a (multiple of) the number of bits that fit in a single register.
-    /// - `LIMBS_K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ K`,
-    /// - `LIMBS_2K`: should be chosen as the minimum number s.t. `Uint::<LIMBS>::BITS ≥ 2K`.
+    /// - `LIMBS_K`: should be chosen as the minimum number s.t. [`Uint::<LIMBS>::BITS`] `≥ K`,
+    /// - `LIMBS_2K`: should be chosen as the minimum number s.t. [`Uint::<LIMBS>::BITS`] `≥ 2K`.
     #[inline]
     pub const fn optimized_bingcd_<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
         &self,

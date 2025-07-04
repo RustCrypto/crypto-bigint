@@ -6,7 +6,7 @@ pub(crate) struct ExtendedUint<const LIMBS: usize, const EXTENSION_LIMBS: usize>
 );
 
 impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
-    /// Construct an [ExtendedUint] from the product of a [Uint<LIMBS>] and an [Uint<EXTRA>].
+    /// Construct an [`ExtendedUint`] from the product of a [`Uint<LIMBS>`] and an [`Uint<EXTRA>`].
     ///
     /// Assumes the top bit of the product is not set.
     #[inline]
@@ -15,7 +15,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
         ExtendedUint(lo, hi)
     }
 
-    /// Interpret `self` as an [ExtendedInt]
+    /// Interpret `self` as an [`ExtendedInt`]
     #[inline]
     pub const fn as_extended_int(&self) -> ExtendedInt<LIMBS, EXTRA> {
         ExtendedInt(self.0, self.1)
@@ -106,7 +106,7 @@ pub(crate) struct ExtendedInt<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
 );
 
 impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
-    /// Construct an [ExtendedInt] from the product of a [Uint<LIMBS>] and an [Int<EXTRA>].
+    /// Construct an [`ExtendedInt`] from the product of a [`Uint<LIMBS>`] and a [`Uint<EXTRA>`].
     ///
     /// Assumes the top bit of the product is not set.
     #[inline]
@@ -114,7 +114,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
         ExtendedUint::from_product(lhs, rhs).as_extended_int()
     }
 
-    /// Interpret this as an [ExtendedUint].
+    /// Interpret this as an [`ExtendedUint`].
     #[inline]
     pub const fn as_extended_uint(&self) -> ExtendedUint<LIMBS, EXTRA> {
         ExtendedUint(self.0, self.1)

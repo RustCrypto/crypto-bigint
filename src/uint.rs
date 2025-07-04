@@ -222,7 +222,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
     }
 
-    /// Convert this type into an [`Int`]; returns `None` if this value is greater than `Int::MAX`.
+    /// Convert this type into an [`Int`]; returns `None` if this value is greater than [`Int::MAX`].
     ///
     /// Note: this is the conversion operation. See [`Self::as_int`] for the unchecked equivalent.
     pub const fn try_into_int(self) -> ConstCtOption<Int<LIMBS>> {

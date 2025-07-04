@@ -177,7 +177,7 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
     }
 }
 
-/// Output of the Binary XGCD algorithm applied to two [Int]s.
+/// Output of the Binary XGCD algorithm applied to two [`Int`]s.
 pub type IntXgcdOutput<const LIMBS: usize> = XgcdOutput<LIMBS, Uint<LIMBS>>;
 
 /// Output of the Binary XGCD algorithm applied to two [`NonZero<Int<LIMBS>>`]s.
