@@ -62,7 +62,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 /// Vartime checked division operations.
 impl<const LIMBS: usize> Int<LIMBS> {
     #[inline]
-    /// Variable time equivalent of [Self::div_rem_base_uint`].
+    /// Variable time equivalent of [`Self::div_rem_base_uint`].
     ///
     /// This is variable only with respect to `rhs`.
     ///
@@ -77,7 +77,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         (quotient, remainder, lhs_sgn)
     }
 
-    /// Variable time equivalent of [Self::div_rem_uint`].
+    /// Variable time equivalent of [`Self::div_rem_uint`].
     ///
     /// This is variable only with respect to `rhs`.
     ///
@@ -94,7 +94,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         )
     }
 
-    /// Variable time equivalent of [Self::div_uint`].
+    /// Variable time equivalent of [`Self::div_uint`].
     ///
     /// This is variable only with respect to `rhs`.
     ///
@@ -107,7 +107,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         self.div_rem_uint_vartime(rhs).0
     }
 
-    /// Variable time equivalent of [Self::rem_uint`].
+    /// Variable time equivalent of [`Self::rem_uint`].
     ///
     /// This is variable only with respect to `rhs`.
     ///
@@ -205,7 +205,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
 /// Vartime checked div-floor operations
 impl<const LIMBS: usize> Int<LIMBS> {
-    /// Variable time equivalent of [Self::div_rem_floor_uint`].
+    /// Variable time equivalent of [`Self::div_rem_floor_uint`].
     ///
     /// This is variable only with respect to `rhs`.
     ///
@@ -230,7 +230,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         (quotient, remainder)
     }
 
-    /// Variable time equivalent of [Self::div_floor_uint`].
+    /// Variable time equivalent of [`Self::div_floor_uint`].
     ///
     /// This is variable only with respect to `rhs`.
     ///
@@ -244,7 +244,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         q
     }
 
-    /// Variable time equivalent of [Self::normalized_rem`].
+    /// Variable time equivalent of [`Self::normalized_rem`].
     ///
     /// This is variable only with respect to `rhs`.
     ///

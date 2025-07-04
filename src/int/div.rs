@@ -30,8 +30,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Compute the quotient and remainder of `self / rhs`.
     ///
-    /// Returns `none` for the quotient when `Int::MIN / Int::MINUS_ONE`; that quotient cannot
-    /// be captured in an `Int`.
+    /// Returns `none` for the quotient when [`Int::MIN`] / [`Int::MINUS_ONE`]; that quotient cannot
+    /// be captured in an [`Int`].
     ///
     /// Example:
     /// ```
@@ -85,7 +85,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 /// Vartime checked division operations.
 impl<const LIMBS: usize> Int<LIMBS> {
     #[inline]
-    /// Variable time equivalent of [Self::div_rem_base]
+    /// Variable time equivalent of [`Self::div_rem_base`]
     ///
     /// This is variable only with respect to `rhs`.
     ///
@@ -106,7 +106,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         (quotient, remainder, lhs_sgn, rhs_sgn)
     }
 
-    /// Variable time equivalent of [Self::checked_div_rem]
+    /// Variable time equivalent of [`Self::checked_div_rem`]
     ///
     /// This is variable only with respect to `rhs`.
     ///
@@ -124,7 +124,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         )
     }
 
-    /// Variable time equivalent of [Self::checked_div]
+    /// Variable time equivalent of [`Self::checked_div`]
     ///
     /// This is variable only with respect to `rhs`.
     ///
@@ -137,7 +137,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         NonZero::new(*rhs).and_then(|rhs| self.checked_div_rem_vartime(&rhs).0.into())
     }
 
-    /// Variable time equivalent of [Self::rem]
+    /// Variable time equivalent of [`Self::rem`]
     ///
     /// This is variable only with respect to `rhs`.
     ///
@@ -153,7 +153,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
 /// Vartime checked div-floor operations.
 impl<const LIMBS: usize> Int<LIMBS> {
-    /// Variable time equivalent of [Self::checked_div_rem_floor]
+    /// Variable time equivalent of [`Self::checked_div_rem_floor`]
     ///
     /// This is variable only with respect to `rhs`.
     ///
@@ -187,7 +187,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         (quotient, remainder)
     }
 
-    /// Variable time equivalent of [Self::checked_div_floor]
+    /// Variable time equivalent of [`Self::checked_div_floor`]
     ///
     /// This is variable only with respect to `rhs`.
     ///

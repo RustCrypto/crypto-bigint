@@ -11,7 +11,7 @@ use crate::Word;
 
 /// Unsigned integer reference type.
 ///
-/// This type contains a limb slice which can be borrowed from either a `Uint` or `BoxedUint` and
+/// This type contains a limb slice which can be borrowed from either a [`Uint`] or [`BoxedUint`] and
 /// thus provides an abstraction for writing shared implementations.
 #[repr(transparent)]
 pub(crate) struct UintRef(pub [Limb]);

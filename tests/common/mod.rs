@@ -6,7 +6,7 @@
 use crypto_bigint::{Encoding, Limb};
 use num_bigint::BigUint;
 
-/// `Uint` to `num_bigint::BigUint`
+/// [`Uint`] to [`num_bigint::BigUint`]
 pub fn to_biguint<T>(uint: &T) -> BigUint
 where
     T: AsRef<[Limb]>,
