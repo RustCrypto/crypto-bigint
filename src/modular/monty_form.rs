@@ -1,7 +1,7 @@
 //! Implements `MontyForm`s, supporting modular arithmetic with a modulus set at runtime.
 
 mod add;
-pub(super) mod inv;
+pub(super) mod invert;
 mod lincomb;
 mod mul;
 mod neg;
@@ -45,7 +45,9 @@ where
     pub const fn new(modulus: Odd<Uint<LIMBS>>) -> Self {
         // `R mod modulus` where `R = 2^BITS`.
         // Represents 1 in Montgomery form.
-        let one = Uint::MAX.rem(modulus.as_nz_ref()).wrapping_add(&Uint::ONE);
+        let one = Uint::<LIMBS>::MAX
+            .rem(modulus.as_nz_ref())
+            .wrapping_add(&Uint::ONE);
 
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
         let r2 = one
@@ -57,7 +59,7 @@ where
         // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
         let inv_mod = modulus
             .as_ref()
-            .inv_mod2k_vartime(Word::BITS)
+            .invert_mod2k_vartime(Word::BITS)
             .expect("modular inverse should exist");
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
@@ -95,7 +97,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
         // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
         let inv_mod = modulus
             .as_ref()
-            .inv_mod2k_full_vartime(Word::BITS)
+            .invert_mod2k_full_vartime(Word::BITS)
             .expect("modular inverse should exist");
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
@@ -191,7 +193,7 @@ pub struct MontyForm<const LIMBS: usize> {
 impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Instantiates a new `MontyForm` that represents this `integer` mod `MOD`.
     pub const fn new(integer: &Uint<LIMBS>, params: MontyParams<LIMBS>) -> Self {
-        let product = integer.split_mul(&params.r2);
+        let product = integer.widening_mul(&params.r2);
         let montgomery_form = montgomery_reduction(&product, &params.modulus, params.mod_neg_inv);
 
         Self {

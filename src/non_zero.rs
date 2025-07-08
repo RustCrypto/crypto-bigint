@@ -1,12 +1,15 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{Bounded, ConstChoice, Constants, Encoding, Int, Limb, Uint, Zero};
+use crate::{Bounded, ConstChoice, ConstCtOption, Constants, Encoding, Int, Limb, Odd, Uint, Zero};
 use core::{
     fmt,
     num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128},
     ops::Deref,
 };
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+
+#[cfg(feature = "alloc")]
+use crate::BoxedUint;
 
 #[cfg(feature = "hybrid-array")]
 use crate::{ArrayEncoding, ByteArray};
@@ -19,6 +22,16 @@ use serdect::serde::{
     Deserialize, Deserializer, Serialize, Serializer,
     de::{Error, Unexpected},
 };
+
+/// Non-zero unsigned integer.
+pub type NonZeroUint<const LIMBS: usize> = NonZero<Uint<LIMBS>>;
+
+/// Non-zero signed integer.
+pub type NonZeroInt<const LIMBS: usize> = NonZero<Int<LIMBS>>;
+
+/// Non-zero boxed unsigned integer.
+#[cfg(feature = "alloc")]
+pub type NonZeroBoxedUint = NonZero<BoxedUint>;
 
 /// Wrapper type for non-zero integers.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
@@ -124,7 +137,7 @@ impl NonZero<Limb> {
     }
 }
 
-impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
+impl<const LIMBS: usize> NonZeroUint<LIMBS> {
     /// Creates a new non-zero integer in a const context.
     /// Panics if the value is zero.
     ///
@@ -139,43 +152,58 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
         }
     }
 
-    /// Create a [`NonZero<Uint>`] from a [`NonZeroU8`] (const-friendly)
+    /// Create a [`NonZeroUint`] from a [`NonZeroU8`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU8>` when stable
     pub const fn from_u8(n: NonZeroU8) -> Self {
         Self(Uint::from_u8(n.get()))
     }
 
-    /// Create a [`NonZero<Uint>`] from a [`NonZeroU16`] (const-friendly)
+    /// Create a [`NonZeroUint`] from a [`NonZeroU16`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU16>` when stable
     pub const fn from_u16(n: NonZeroU16) -> Self {
         Self(Uint::from_u16(n.get()))
     }
 
-    /// Create a [`NonZero<Uint>`] from a [`NonZeroU32`] (const-friendly)
+    /// Create a [`NonZeroUint`] from a [`NonZeroU32`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU32>` when stable
     pub const fn from_u32(n: NonZeroU32) -> Self {
         Self(Uint::from_u32(n.get()))
     }
 
-    /// Create a [`NonZero<Uint>`] from a [`NonZeroU64`] (const-friendly)
+    /// Create a [`NonZeroUint`] from a [`NonZeroU64`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU64>` when stable
     pub const fn from_u64(n: NonZeroU64) -> Self {
         Self(Uint::from_u64(n.get()))
     }
 
-    /// Create a [`NonZero<Uint>`] from a [`NonZeroU128`] (const-friendly)
+    /// Create a [`NonZeroUint`] from a [`NonZeroU128`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU128>` when stable
     pub const fn from_u128(n: NonZeroU128) -> Self {
         Self(Uint::from_u128(n.get()))
     }
 }
 
-impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
-    /// Convert a [`NonZero<Int>`] to its sign and [`NonZero<Uint>`] magnitude.
+impl<const LIMBS: usize> NonZeroInt<LIMBS> {
+    /// Creates a new non-zero integer in a const context.
+    /// Panics if the value is zero.
+    ///
+    /// In future versions of Rust it should be possible to replace this with
+    /// `NonZero::new(…).unwrap()`
+    // TODO: Remove when `Self::new` and `CtOption::unwrap` support `const fn`
+    pub const fn new_unwrap(n: Int<LIMBS>) -> Self {
+        ConstCtOption::new(Self(n), n.is_nonzero()).expect("Invalid value: zero")
+    }
+
+    /// The sign and magnitude of this [`NonZeroInt`].
     pub const fn abs_sign(&self) -> (NonZero<Uint<LIMBS>>, ConstChoice) {
         let (abs, sign) = self.0.abs_sign();
-        // Note: a NonZero<Int> always has a non-zero magnitude, so it is safe to unwrap.
-        (NonZero::<Uint<LIMBS>>::new_unwrap(abs), sign)
+        // Absolute value of a non-zero value is non-zero
+        (NonZero(abs), sign)
+    }
+
+    /// The magnitude of this [`NonZeroInt`].
+    pub const fn abs(&self) -> NonZero<Uint<LIMBS>> {
+        self.abs_sign().0
     }
 }
 
@@ -310,6 +338,12 @@ impl<const LIMBS: usize> From<NonZeroU128> for NonZero<Uint<LIMBS>> {
     }
 }
 
+impl<T> From<Odd<T>> for NonZero<T> {
+    fn from(odd: Odd<T>) -> NonZero<T> {
+        NonZero(odd.get())
+    }
+}
+
 impl<T> fmt::Display for NonZero<T>
 where
     T: fmt::Display,
@@ -407,8 +441,6 @@ mod tests {
 #[cfg(all(test, feature = "serde"))]
 #[allow(clippy::unwrap_used)]
 mod tests_serde {
-    use bincode::ErrorKind;
-
     use crate::{NonZero, U64};
 
     #[test]
@@ -416,32 +448,22 @@ mod tests_serde {
         let test =
             Option::<NonZero<U64>>::from(NonZero::new(U64::from_u64(0x0011223344556677))).unwrap();
 
-        let serialized = bincode::serialize(&test).unwrap();
-        let deserialized: NonZero<U64> = bincode::deserialize(&serialized).unwrap();
+        let serialized = bincode::serde::encode_to_vec(test, bincode::config::standard()).unwrap();
+        let deserialized: NonZero<U64> =
+            bincode::serde::decode_from_slice(&serialized, bincode::config::standard())
+                .unwrap()
+                .0;
 
         assert_eq!(test, deserialized);
 
-        let serialized = bincode::serialize(&U64::ZERO).unwrap();
-        assert!(matches!(
-            *bincode::deserialize::<NonZero<U64>>(&serialized).unwrap_err(),
-            ErrorKind::Custom(message) if message == "invalid value: zero, expected a non-zero value"
-        ));
-    }
-
-    #[test]
-    fn serde_owned() {
-        let test =
-            Option::<NonZero<U64>>::from(NonZero::new(U64::from_u64(0x0011223344556677))).unwrap();
-
-        let serialized = bincode::serialize(&test).unwrap();
-        let deserialized: NonZero<U64> = bincode::deserialize_from(serialized.as_slice()).unwrap();
-
-        assert_eq!(test, deserialized);
-
-        let serialized = bincode::serialize(&U64::ZERO).unwrap();
-        assert!(matches!(
-            *bincode::deserialize_from::<_, NonZero<U64>>(serialized.as_slice()).unwrap_err(),
-            ErrorKind::Custom(message) if message == "invalid value: zero, expected a non-zero value"
-        ));
+        let serialized =
+            bincode::serde::encode_to_vec(U64::ZERO, bincode::config::standard()).unwrap();
+        assert!(
+            bincode::serde::decode_from_slice::<NonZero<U64>, _>(
+                &serialized,
+                bincode::config::standard()
+            )
+            .is_err()
+        );
     }
 }

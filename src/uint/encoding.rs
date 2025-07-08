@@ -202,7 +202,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[cfg(feature = "alloc")]
     pub fn to_string_radix_vartime(&self, radix: u32) -> String {
         let mut buf = *self;
-        radix_encode_limbs_mut_to_string(radix, buf.as_limbs_mut())
+        radix_encode_limbs_mut_to_string(radix, buf.as_mut_limbs())
     }
 }
 
@@ -426,7 +426,7 @@ fn radix_decode_str_digits<D: DecodeByLimb>(
         // Multiply the existing limbs by `radix` ^ `limb_digits`,
         // and add the new least-significant limb
         for limb in out.limbs_mut().iter_mut() {
-            (*limb, carry) = Limb::ZERO.mac(*limb, limb_max, carry);
+            (*limb, carry) = limb.carrying_mul_add(limb_max, carry, Limb::ZERO);
         }
         // Append the new carried limb, if any
         if carry.0 != 0 && !out.push_limb(carry) {
@@ -760,7 +760,7 @@ const fn radix_large_divisor(
         let mut carry = Limb::ZERO;
         let mut j = 0;
         while j < top {
-            (out[j], carry) = Limb::ZERO.mac(out[j], div_limb.0, carry);
+            (out[j], carry) = out[j].carrying_mul_add(div_limb.0, carry, Limb::ZERO);
             j += 1;
         }
         if carry.0 != 0 {
@@ -775,7 +775,7 @@ const fn radix_large_divisor(
         let mut carry = Limb::ZERO;
         let mut j = 0;
         while j < RADIX_ENCODING_LIMBS_LARGE {
-            (out_test[j], carry) = Limb::ZERO.mac(out[j], Limb(radix as Word), carry);
+            (out_test[j], carry) = out[j].carrying_mul_add(Limb(radix as Word), carry, Limb::ZERO);
             j += 1;
         }
         if carry.0 == 0 {
@@ -794,16 +794,13 @@ mod tests {
     use hex_literal::hex;
 
     #[cfg(feature = "alloc")]
-    use alloc::format;
+    use {super::radix_encode_limbs_to_string, alloc::format};
 
     #[cfg(target_pointer_width = "32")]
     use crate::U64 as UintEx;
 
     #[cfg(target_pointer_width = "64")]
     use crate::U128 as UintEx;
-
-    #[cfg(feature = "alloc")]
-    use super::radix_encode_limbs_to_string;
 
     #[test]
     #[cfg(target_pointer_width = "32")]
@@ -882,7 +879,7 @@ mod tests {
     fn hex_upper() {
         let hex = "AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD";
         let n = U128::from_be_hex(hex);
-        assert_eq!(hex, format!("{:X}", n));
+        assert_eq!(hex, format!("{n:X}"));
     }
 
     #[cfg(feature = "alloc")]
@@ -890,7 +887,7 @@ mod tests {
     fn hex_lower() {
         let hex = "aaaaaaaabbbbbbbbccccccccdddddddd";
         let n = U128::from_be_hex(hex);
-        assert_eq!(hex, format!("{:x}", n));
+        assert_eq!(hex, format!("{n:x}"));
     }
 
     #[cfg(feature = "alloc")]
@@ -901,7 +898,7 @@ mod tests {
         let expect = "\
             1010101010101010101010101010101010111011101110111011101110111011\
             1100110011001100110011001100110011011101110111011101110111011101";
-        assert_eq!(expect, format!("{:b}", n));
+        assert_eq!(expect, format!("{n:b}"));
     }
 
     #[test]
@@ -1039,5 +1036,43 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    #[cfg(target_pointer_width = "32")]
+    fn encode_be_hex() {
+        let n = UintEx::from_be_hex("0011223344556677");
+
+        let bytes = n.to_be_bytes();
+        assert_eq!(bytes, hex!("0011223344556677"));
+
+        #[cfg(feature = "der")]
+        assert_eq!(super::der::count_der_be_bytes(&n.limbs), 7);
+    }
+
+    #[test]
+    #[cfg(target_pointer_width = "64")]
+    fn encode_be_hex() {
+        let n = UintEx::from_be_hex("00112233445566778899aabbccddeeff");
+
+        let bytes = n.to_be_bytes();
+        assert_eq!(bytes, hex!("00112233445566778899aabbccddeeff"));
+
+        #[cfg(feature = "der")]
+        assert_eq!(super::der::count_der_be_bytes(&n.limbs), 15);
+    }
+
+    #[cfg(feature = "serde")]
+    #[test]
+    fn serde() {
+        const TEST: U64 = U64::from_u64(0x0011223344556677);
+
+        let serialized = bincode::serde::encode_to_vec(TEST, bincode::config::standard()).unwrap();
+        let deserialized: U64 =
+            bincode::serde::decode_from_slice(&serialized, bincode::config::standard())
+                .unwrap()
+                .0;
+
+        assert_eq!(TEST, deserialized);
     }
 }

@@ -22,6 +22,7 @@ mod monty_form;
 mod reduction;
 
 mod add;
+pub(crate) mod bingcd;
 mod div_by_2;
 mod mul;
 mod pow;
@@ -32,8 +33,8 @@ mod sub;
 pub(crate) mod boxed_monty_form;
 
 pub use self::{
-    const_monty_form::{ConstMontyForm, ConstMontyParams, inv::ConstMontyFormInverter},
-    monty_form::{MontyForm, MontyParams, inv::MontyFormInverter},
+    const_monty_form::{ConstMontyForm, ConstMontyParams, invert::ConstMontyFormInverter},
+    monty_form::{MontyForm, MontyParams, invert::MontyFormInverter},
     reduction::montgomery_reduction,
     safegcd::SafeGcdInverter,
 };
@@ -57,14 +58,14 @@ pub trait Retrieve {
 #[cfg(test)]
 mod tests {
     use crate::{
-        NonZero, U64, U256, Uint, const_monty_form, impl_modulus,
+        NonZero, U64, U256, Uint, const_monty_form, const_monty_params,
         modular::{
             const_monty_form::{ConstMontyForm, ConstMontyParams},
             reduction::montgomery_reduction,
         },
     };
 
-    impl_modulus!(
+    const_monty_params!(
         Modulus1,
         U256,
         "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001"
@@ -86,7 +87,7 @@ mod tests {
         );
     }
 
-    impl_modulus!(
+    const_monty_params!(
         Modulus2,
         U256,
         "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"
@@ -137,7 +138,7 @@ mod tests {
         // Reducing xR should return x
         let x =
             U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
-        let product = x.split_mul(&Modulus2::ONE);
+        let product = x.widening_mul(&Modulus2::ONE);
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(
                 &product,
@@ -153,10 +154,10 @@ mod tests {
         // Reducing xR^2 should return xR
         let x =
             U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
-        let product = x.split_mul(&Modulus2::R2);
+        let product = x.widening_mul(&Modulus2::R2);
 
         // Computing xR mod modulus without Montgomery reduction
-        let (lo, hi) = x.split_mul(&Modulus2::ONE);
+        let (lo, hi) = x.widening_mul(&Modulus2::ONE);
         let c = lo.concat(&hi);
         let red = c.rem_vartime(&NonZero::new(Modulus2::MODULUS.0.concat(&U256::ZERO)).unwrap());
         let (lo, hi) = red.split();

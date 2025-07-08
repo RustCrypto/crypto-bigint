@@ -343,7 +343,7 @@ where
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::RandCore(err) => write!(f, "{}", err),
+            Self::RandCore(err) => write!(f, "{err}"),
             Self::BitsPrecisionMismatch {
                 bits_precision,
                 integer_bits,
@@ -360,8 +360,7 @@ where
                 bits_precision,
             } => write!(
                 f,
-                "The requested `bit_length` ({}) is larger than `bits_precision` ({}).",
-                bit_length, bits_precision
+                "The requested `bit_length` ({bit_length}) is larger than `bits_precision` ({bits_precision}).",
             ),
         }
     }
@@ -492,12 +491,34 @@ pub trait MulMod<Rhs = Self> {
 }
 
 /// Compute `1 / self mod p`.
+#[deprecated(since = "0.7.0", note = "please use `InvertMod` instead")]
 pub trait InvMod<Rhs = Self>: Sized {
     /// Output type.
     type Output;
 
     /// Compute `1 / self mod p`.
     fn inv_mod(&self, p: &Rhs) -> CtOption<Self::Output>;
+}
+
+#[allow(deprecated)]
+impl<T, Rhs> InvMod<Rhs> for T
+where
+    T: InvertMod<Rhs>,
+{
+    type Output = <T as InvertMod<Rhs>>::Output;
+
+    fn inv_mod(&self, p: &Rhs) -> CtOption<Self::Output> {
+        self.invert_mod(p)
+    }
+}
+
+/// Compute `1 / self mod p`.
+pub trait InvertMod<Rhs = Self>: Sized {
+    /// Output type.
+    type Output;
+
+    /// Compute `1 / self mod p`.
+    fn invert_mod(&self, p: &Rhs) -> CtOption<Self::Output>;
 }
 
 /// Checked addition.
@@ -807,7 +828,7 @@ where
 }
 
 /// Constant-time inversion.
-pub trait Invert: Sized {
+pub trait Invert {
     /// Output of the inversion.
     type Output;
 
@@ -815,16 +836,40 @@ pub trait Invert: Sized {
     fn invert(&self) -> Self::Output;
 
     /// Computes the inverse in variable-time.
-    fn invert_vartime(&self) -> Self::Output;
+    fn invert_vartime(&self) -> Self::Output {
+        self.invert()
+    }
 }
 
 /// Widening multiply: returns a value with a number of limbs equal to the sum of the inputs.
+#[deprecated(since = "0.7.0", note = "please use `ConcatenatingMul` instead")]
 pub trait WideningMul<Rhs = Self>: Sized {
     /// Output of the widening multiplication.
     type Output: Integer;
 
     /// Perform widening multiplication.
     fn widening_mul(&self, rhs: Rhs) -> Self::Output;
+}
+
+#[allow(deprecated)]
+impl<T, Rhs> WideningMul<Rhs> for T
+where
+    T: ConcatenatingMul<Rhs>,
+{
+    type Output = <T as ConcatenatingMul<Rhs>>::Output;
+
+    fn widening_mul(&self, rhs: Rhs) -> Self::Output {
+        self.concatenating_mul(rhs)
+    }
+}
+
+/// Widening multiply: returns a value with a number of limbs equal to the sum of the inputs.
+pub trait ConcatenatingMul<Rhs = Self>: Sized {
+    /// Output of the widening multiplication.
+    type Output: Integer;
+
+    /// Perform widening multiplication.
+    fn concatenating_mul(&self, rhs: Rhs) -> Self::Output;
 }
 
 /// Left shifts, variable time in `shift`.
@@ -849,6 +894,34 @@ pub trait ShrVartime: Sized {
     /// Computes `self >> shift` in a panic-free manner, masking off bits of `shift`
     /// which would cause the shift to exceed the type's width.
     fn wrapping_shr_vartime(&self, shift: u32) -> Self;
+}
+
+/// Methods for resizing the allocated storage.
+pub trait Resize: Sized {
+    /// The result of the resizing.
+    type Output;
+
+    /// Resizes to the minimum storage that fits `at_least_bits_precision`
+    /// without checking if the bit size of `self` is larger than `at_least_bits_precision`.
+    ///
+    /// Variable-time w.r.t. `at_least_bits_precision`.
+    fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output;
+
+    /// Resizes to the minimum storage that fits `at_least_bits_precision`
+    /// returning `None` if the bit size of `self` is larger than `at_least_bits_precision`.
+    ///
+    /// Variable-time w.r.t. `at_least_bits_precision`.
+    fn try_resize(self, at_least_bits_precision: u32) -> Option<Self::Output>;
+
+    /// Resizes to the minimum storage that fits `at_least_bits_precision`
+    /// panicking if the bit size of `self` is larger than `at_least_bits_precision`.
+    ///
+    /// Variable-time w.r.t. `at_least_bits_precision`.
+    fn resize(self, at_least_bits_precision: u32) -> Self::Output {
+        self.try_resize(at_least_bits_precision).unwrap_or_else(|| {
+            panic!("The bit size of `self` is larger than `at_least_bits_precision`")
+        })
+    }
 }
 
 /// A representation of an integer optimized for the performance of modular operations.

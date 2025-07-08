@@ -1,17 +1,15 @@
 use criterion::{
-    BatchSize, BenchmarkGroup, Criterion, black_box, criterion_group, criterion_main,
-    measurement::Measurement,
+    BatchSize, BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::Measurement,
 };
-use crypto_bigint::{
-    Invert, Inverter, Random, RandomMod, U256, impl_modulus, modular::ConstMontyParams,
-};
+use crypto_bigint::{Random, RandomMod, U256, const_monty_params, modular::ConstMontyParams};
 use rand_chacha::ChaChaRng;
 use rand_core::SeedableRng;
+use std::hint::black_box;
 
 #[cfg(feature = "alloc")]
 use crypto_bigint::MultiExponentiate;
 
-impl_modulus!(
+const_monty_params!(
     Modulus,
     U256,
     "7fffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"

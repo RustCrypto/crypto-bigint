@@ -17,9 +17,9 @@ impl BoxedMontyForm {
         Self {
             montgomery_form: lincomb_boxed_monty_form(
                 products,
-                &params.modulus,
-                params.mod_neg_inv,
-                params.mod_leading_zeros,
+                params.modulus(),
+                params.mod_neg_inv(),
+                params.mod_leading_zeros(),
             ),
             params: products[0].0.params.clone(),
         }

@@ -111,10 +111,10 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize, const RHS_LIMBS: usize>
 mod tests {
     use crate::traits::MultiExponentiate;
     use crate::{
-        U256, const_monty_form, impl_modulus, modular::const_monty_form::ConstMontyParams,
+        U256, const_monty_form, const_monty_params, modular::const_monty_form::ConstMontyParams,
     };
 
-    impl_modulus!(
+    const_monty_params!(
         Modulus,
         U256,
         "9CC24C5DF431A864188AB905AC751B727C9447A8E99E6366E1AD78A21E8D882B"

@@ -3,14 +3,14 @@
 mod common;
 
 use common::to_biguint;
-use crypto_bigint::{Inverter, Odd, PrecomputeInverter, U256};
+use crypto_bigint::{Odd, PrecomputeInverter, U256};
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::One;
 use proptest::prelude::*;
 
 #[cfg(feature = "alloc")]
-use crypto_bigint::BoxedUint;
+use crypto_bigint::{BoxedUint, Inverter, Resize};
 
 /// Example prime number (NIST P-256 curve order)
 const P: Odd<U256> =
@@ -37,7 +37,7 @@ prop_compose! {
 
 proptest! {
     #[test]
-    fn inv_mod(x in uint()) {
+    fn invert_mod(x in uint()) {
         let x_bi = to_biguint(&x);
         let p_bi = to_biguint(&P);
 
@@ -60,9 +60,9 @@ proptest! {
 
     #[cfg(feature = "alloc")]
     #[test]
-    fn boxed_inv_mod(x in boxed_uint()) {
+    fn boxed_invert_mod(x in boxed_uint()) {
         let p = Odd::<BoxedUint>::from(&P);
-        let x = x.rem_vartime(p.as_nz_ref()).widen(p.bits_precision());
+        let x = x.rem_vartime(p.as_nz_ref()).resize(p.bits_precision());
 
         let x_bi = to_biguint(&x);
         let p_bi = to_biguint(&P);

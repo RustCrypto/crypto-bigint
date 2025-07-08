@@ -5,7 +5,7 @@
 pub(super) use core::cmp::{Ordering, max};
 
 use super::BoxedUint;
-use crate::{ConstChoice, Limb};
+use crate::{ConstChoice, Limb, Uint};
 use subtle::{
     Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
 };
@@ -18,7 +18,7 @@ impl BoxedUint {
         loop {
             // TODO: investigate if directly comparing limbs is faster than performing a
             // subtraction between limbs
-            let (val, borrow) = self.limbs[i].sbb(rhs.limbs[i], Limb::ZERO);
+            let (val, borrow) = self.limbs[i].borrowing_sub(rhs.limbs[i], Limb::ZERO);
             if val.0 != 0 {
                 return if borrow.0 != 0 {
                     Ordering::Less
@@ -53,7 +53,7 @@ impl ConstantTimeEq for BoxedUint {
 impl ConstantTimeGreater for BoxedUint {
     #[inline]
     fn ct_gt(&self, other: &Self) -> Choice {
-        let (_, borrow) = other.sbb(self, Limb::ZERO);
+        let (_, borrow) = other.borrowing_sub(self, Limb::ZERO);
         ConstChoice::from_word_mask(borrow.0).into()
     }
 }
@@ -61,7 +61,7 @@ impl ConstantTimeGreater for BoxedUint {
 impl ConstantTimeLess for BoxedUint {
     #[inline]
     fn ct_lt(&self, other: &Self) -> Choice {
-        let (_, borrow) = self.sbb(other, Limb::ZERO);
+        let (_, borrow) = self.borrowing_sub(other, Limb::ZERO);
         ConstChoice::from_word_mask(borrow.0).into()
     }
 }
@@ -70,6 +70,12 @@ impl Eq for BoxedUint {}
 impl PartialEq for BoxedUint {
     fn eq(&self, other: &Self) -> bool {
         self.ct_eq(other).into()
+    }
+}
+
+impl<const LIMBS: usize> PartialEq<Uint<LIMBS>> for BoxedUint {
+    fn eq(&self, other: &Uint<LIMBS>) -> bool {
+        self.eq(&Self::from(other))
     }
 }
 
@@ -91,6 +97,12 @@ impl Ord for BoxedUint {
 impl PartialOrd for BoxedUint {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl<const LIMBS: usize> PartialOrd<Uint<LIMBS>> for BoxedUint {
+    fn partial_cmp(&self, other: &Uint<LIMBS>) -> Option<Ordering> {
+        self.partial_cmp(&Self::from(other))
     }
 }
 

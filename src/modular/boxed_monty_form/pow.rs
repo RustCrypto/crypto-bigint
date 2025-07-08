@@ -22,14 +22,14 @@ impl BoxedMontyForm {
                 &self.montgomery_form,
                 exponent,
                 exponent_bits,
-                &self.params.modulus,
-                &self.params.one,
-                self.params.mod_neg_inv,
+                self.params.modulus(),
+                self.params.one(),
+                self.params.mod_neg_inv(),
             ),
             params: self.params.clone(),
         };
 
-        debug_assert!(ret.retrieve() < self.params.modulus);
+        debug_assert!(&ret.retrieve() < self.params.modulus());
         ret
     }
 }
@@ -113,7 +113,7 @@ fn pow_montgomery_form(
 
     // Ensure the output is properly reduced.
     //
-    // Using the properties of `almost_mongtomery_mul()` (see its documentation):
+    // Using the properties of `almost_montgomery_mul()` (see its documentation):
     // - We have an incoming `x` which is fully reduced (`floor(x / modulus) = 0`).
     // - We build an array of `powers` which are produced by multiplying the previous power by `x`,
     //   so for each power `floor(power / modulus) <= 1`.
@@ -125,8 +125,8 @@ fn pow_montgomery_form(
     // Now that we exited the loop, we need to reduce `z` at most twice
     // to bring it within `[0, modulus)`.
 
-    z.conditional_sbb_assign(modulus, !z.ct_lt(modulus));
-    z.conditional_sbb_assign(modulus, !z.ct_lt(modulus));
+    z.conditional_borrowing_sub_assign(modulus, !z.ct_lt(modulus));
+    z.conditional_borrowing_sub_assign(modulus, !z.ct_lt(modulus));
     debug_assert!(&z < modulus);
 
     z

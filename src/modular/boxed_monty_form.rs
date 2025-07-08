@@ -1,7 +1,7 @@
 //! Implements heap-allocated `BoxedMontyForm`s, supporting modular arithmetic with a modulus set at runtime.
 
 mod add;
-mod inv;
+mod invert;
 mod lincomb;
 mod mul;
 mod neg;
@@ -11,7 +11,7 @@ mod sub;
 use super::{ConstMontyParams, Retrieve, div_by_2};
 use mul::BoxedMontyMultiplier;
 
-use crate::{BoxedUint, Limb, Monty, Odd, Word};
+use crate::{BoxedUint, Limb, Monty, Odd, Resize, Word};
 use alloc::sync::Arc;
 use subtle::Choice;
 
@@ -21,7 +21,10 @@ use zeroize::Zeroize;
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus whose size and value
 /// are both chosen at runtime.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct BoxedMontyParams {
+pub struct BoxedMontyParams(Arc<BoxedMontyParamsInner>);
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct BoxedMontyParamsInner {
     /// The constant modulus
     modulus: Odd<BoxedUint>,
     /// Parameter used in Montgomery reduction
@@ -55,11 +58,11 @@ impl BoxedMontyParams {
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
         let r2 = one
             .square()
-            .rem(&modulus.as_nz_ref().widen(bits_precision * 2))
-            .shorten(bits_precision);
+            .rem(&modulus.as_nz_ref().resize_unchecked(bits_precision * 2))
+            .resize_unchecked(bits_precision);
 
         // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
-        let (inv_mod_limb, inv_mod_limb_exists) = modulus.inv_mod2k_vartime(Word::BITS);
+        let (inv_mod_limb, inv_mod_limb_exists) = modulus.invert_mod2k_vartime(Word::BITS);
         debug_assert!(bool::from(inv_mod_limb_exists));
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));
@@ -71,14 +74,17 @@ impl BoxedMontyParams {
             mm.square(&r2)
         };
 
-        Self {
-            modulus,
-            one,
-            r2,
-            r3,
-            mod_neg_inv,
-            mod_leading_zeros,
-        }
+        Self(
+            BoxedMontyParamsInner {
+                modulus,
+                one,
+                r2,
+                r3,
+                mod_neg_inv,
+                mod_leading_zeros,
+            }
+            .into(),
+        )
     }
 
     /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`, which
@@ -96,13 +102,10 @@ impl BoxedMontyParams {
             .wrapping_add(&BoxedUint::one());
 
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
-        let r2 = one
-            .square()
-            .rem_vartime(&modulus.as_nz_ref().widen(bits_precision * 2))
-            .shorten(bits_precision);
+        let r2 = one.square().rem_vartime(modulus.as_nz_ref());
 
         // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
-        let (inv_mod_limb, inv_mod_limb_exists) = modulus.inv_mod2k_full_vartime(Word::BITS);
+        let (inv_mod_limb, inv_mod_limb_exists) = modulus.invert_mod2k_full_vartime(Word::BITS);
         debug_assert!(bool::from(inv_mod_limb_exists));
 
         let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));
@@ -114,36 +117,58 @@ impl BoxedMontyParams {
             mm.square(&r2)
         };
 
-        Self {
-            modulus,
-            one,
-            r2,
-            r3,
-            mod_neg_inv,
-            mod_leading_zeros,
-        }
+        Self(
+            BoxedMontyParamsInner {
+                modulus,
+                one,
+                r2,
+                r3,
+                mod_neg_inv,
+                mod_leading_zeros,
+            }
+            .into(),
+        )
     }
 
     /// Modulus value.
     pub fn modulus(&self) -> &Odd<BoxedUint> {
-        &self.modulus
+        &self.0.modulus
     }
 
     /// Bits of precision in the modulus.
     pub fn bits_precision(&self) -> u32 {
-        self.modulus.bits_precision()
+        self.0.modulus.bits_precision()
+    }
+
+    pub(crate) fn r2(&self) -> &BoxedUint {
+        &self.0.r2
+    }
+
+    pub(crate) fn one(&self) -> &BoxedUint {
+        &self.0.one
+    }
+
+    pub(crate) fn mod_neg_inv(&self) -> Limb {
+        self.0.mod_neg_inv
+    }
+
+    pub(crate) fn mod_leading_zeros(&self) -> u32 {
+        self.0.mod_leading_zeros
     }
 
     /// Create from a set of [`ConstMontyParams`].
     pub fn from_const_params<const LIMBS: usize, P: ConstMontyParams<LIMBS>>() -> Self {
-        Self {
-            modulus: P::MODULUS.into(),
-            one: P::ONE.into(),
-            r2: P::R2.into(),
-            r3: P::R3.into(),
-            mod_neg_inv: P::MOD_NEG_INV,
-            mod_leading_zeros: P::MOD_LEADING_ZEROS,
-        }
+        Self(
+            BoxedMontyParamsInner {
+                modulus: P::MODULUS.into(),
+                one: P::ONE.into(),
+                r2: P::R2.into(),
+                r3: P::R3.into(),
+                mod_neg_inv: P::MOD_NEG_INV,
+                mod_leading_zeros: P::MOD_LEADING_ZEROS,
+            }
+            .into(),
+        )
     }
 }
 
@@ -154,7 +179,7 @@ pub struct BoxedMontyForm {
     montgomery_form: BoxedUint,
 
     /// Montgomery form parameters.
-    params: Arc<BoxedMontyParams>,
+    params: BoxedMontyParams,
 }
 
 impl BoxedMontyForm {
@@ -164,16 +189,6 @@ impl BoxedMontyForm {
         convert_to_montgomery(&mut integer, &params);
 
         #[allow(clippy::useless_conversion)]
-        Self {
-            montgomery_form: integer,
-            params: params.into(),
-        }
-    }
-
-    /// Instantiates a new [`BoxedMontyForm`] that represents an integer modulo the provided params.
-    pub fn new_with_arc(mut integer: BoxedUint, params: Arc<BoxedMontyParams>) -> Self {
-        debug_assert_eq!(integer.bits_precision(), params.bits_precision());
-        convert_to_montgomery(&mut integer, &params);
         Self {
             montgomery_form: integer,
             params,
@@ -187,7 +202,7 @@ impl BoxedMontyForm {
 
     /// Retrieves the integer currently encoded in this [`BoxedMontyForm`], guaranteed to be reduced.
     pub fn retrieve(&self) -> BoxedUint {
-        let mut mm = BoxedMontyMultiplier::from(self.params.as_ref());
+        let mut mm = BoxedMontyMultiplier::from(&self.params);
         mm.mul_by_one(&self.montgomery_form)
     }
 
@@ -195,15 +210,15 @@ impl BoxedMontyForm {
     pub fn zero(params: BoxedMontyParams) -> Self {
         Self {
             montgomery_form: BoxedUint::zero_with_precision(params.bits_precision()),
-            params: params.into(),
+            params,
         }
     }
 
     /// Instantiates a new `ConstMontyForm` that represents 1.
     pub fn one(params: BoxedMontyParams) -> Self {
         Self {
-            montgomery_form: params.one.clone(),
-            params: params.into(),
+            montgomery_form: params.one().clone(),
+            params,
         }
     }
 
@@ -233,7 +248,7 @@ impl BoxedMontyForm {
 
     /// Access the [`BoxedMontyForm`] value in Montgomery form.
     pub fn as_montgomery(&self) -> &BoxedUint {
-        debug_assert!(self.montgomery_form < self.params.modulus);
+        debug_assert!(&self.montgomery_form < self.params.modulus());
         &self.montgomery_form
     }
 
@@ -242,20 +257,20 @@ impl BoxedMontyForm {
         debug_assert_eq!(integer.bits_precision(), params.bits_precision());
         Self {
             montgomery_form: integer,
-            params: params.into(),
+            params,
         }
     }
 
     /// Extract the value from the [`BoxedMontyForm`] in Montgomery form.
     pub fn to_montgomery(&self) -> BoxedUint {
-        debug_assert!(self.montgomery_form < self.params.modulus);
+        debug_assert!(&self.montgomery_form < self.params.modulus());
         self.montgomery_form.clone()
     }
 
     /// Performs division by 2, that is returns `x` such that `x + x = self`.
     pub fn div_by_2(&self) -> Self {
         Self {
-            montgomery_form: div_by_2::div_by_2_boxed(&self.montgomery_form, &self.params.modulus),
+            montgomery_form: div_by_2::div_by_2_boxed(&self.montgomery_form, self.params.modulus()),
             params: self.params.clone(),
         }
     }
@@ -263,7 +278,7 @@ impl BoxedMontyForm {
     /// Performs division by 2 inplace, that is finds `x` such that `x + x = self`
     /// and writes it into `self`.
     pub fn div_by_2_assign(&mut self) {
-        div_by_2::div_by_2_boxed_assign(&mut self.montgomery_form, &self.params.modulus)
+        div_by_2::div_by_2_boxed_assign(&mut self.montgomery_form, self.params.modulus())
     }
 }
 
@@ -343,7 +358,7 @@ impl Zeroize for BoxedMontyForm {
 #[inline]
 fn convert_to_montgomery(integer: &mut BoxedUint, params: &BoxedMontyParams) {
     let mut mm = BoxedMontyMultiplier::from(params);
-    mm.mul_assign(integer, &params.r2);
+    mm.mul_assign(integer, params.r2());
 }
 
 #[cfg(test)]
@@ -355,7 +370,7 @@ mod tests {
         let modulus = Odd::new(BoxedUint::from(3u8)).unwrap();
         let params = BoxedMontyParams::new(modulus);
 
-        assert_eq!(params.mod_leading_zeros, Limb::BITS - 2);
+        assert_eq!(params.mod_leading_zeros(), Limb::BITS - 2);
     }
 
     #[test]

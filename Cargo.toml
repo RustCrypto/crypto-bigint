@@ -1,6 +1,6 @@
 [package]
 name = "crypto-bigint"
-version = "0.7.0-pre.0"
+version = "0.7.0-pre.6"
 description = """
 Pure Rust implementation of a big integer library which has been designed from
 the ground-up for use in cryptographic applications. Provides constant-time,
@@ -20,7 +20,7 @@ rust-version = "1.85"
 subtle = { version = "2.6", default-features = false }
 
 # optional dependencies
-der = { version = "0.8.0-rc.1", optional = true, default-features = false }
+der = { version = "0.8.0-rc.6", optional = true, default-features = false }
 hybrid-array = { version = "0.3", optional = true }
 num-traits = { version = "0.2.19", default-features = false }
 rand_core = { version = "0.9.2", optional = true, default-features = false }
@@ -29,16 +29,15 @@ serdect = { version = "0.3", optional = true, default-features = false }
 zeroize = { version = "1", optional = true, default-features = false }
 
 [dev-dependencies]
-bincode = "1"
-criterion = { version = "0.5", features = ["html_reports"] }
+bincode = { version = "2", features = ["serde"] }
+criterion = { version = "0.6", features = ["html_reports"] }
 hex-literal = "1"
 num-bigint = "0.4"
 num-integer = "0.1"
 num-modular = { version = "0.6", features = ["num-bigint", "num-integer", "num-traits"] }
-proptest = "1.5"
+proptest = "1.7"
 rand_core = { version = "0.9", features = ["std", "os_rng"] }
 rand_chacha = "0.9"
-
 
 [features]
 default = ["rand"]
@@ -51,6 +50,9 @@ serde = ["dep:serdect"]
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
+
+[package.metadata.typos.default]
+extend-ignore-re = ["([0-9A-Fa-f]{16,})"]
 
 [[bench]]
 name = "boxed_monty"
@@ -81,3 +83,6 @@ harness = false
 [[bench]]
 name = "int"
 harness = false
+
+[profile.dev]
+opt-level = 2

@@ -3,12 +3,12 @@
 mod common;
 
 use common::to_biguint;
-use crypto_bigint::{Invert, Inverter, U256, impl_modulus, modular::ConstMontyParams};
+use crypto_bigint::{U256, const_monty_params, modular::ConstMontyParams};
 use num_bigint::BigUint;
 use num_modular::ModularUnaryOps;
 use proptest::prelude::*;
 
-impl_modulus!(
+const_monty_params!(
     Modulus,
     U256,
     "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"
@@ -32,7 +32,7 @@ prop_compose! {
 
 proptest! {
     #[test]
-    fn inv(x in uint()) {
+    fn invert(x in uint()) {
         let x = reduce(&x);
         let actual = Option::<ConstMontyForm>::from(x.invert());
 
@@ -52,7 +52,7 @@ proptest! {
     }
 
     #[test]
-    fn precomputed_inv(x in uint()) {
+    fn precomputed_invert(x in uint()) {
         let x = reduce(&x);
         let inverter = Modulus::precompute_inverter();
         let actual = Option::<ConstMontyForm>::from(inverter.invert(&x));

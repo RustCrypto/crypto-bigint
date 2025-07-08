@@ -1,6 +1,8 @@
 use subtle::{Choice, CtOption};
 
-use crate::{Int, Limb, NonZero, Odd, Uint, WideWord, Word, modular::SafeGcdInverter};
+use crate::{
+    Int, Limb, NonZero, NonZeroInt, Odd, OddInt, Uint, WideWord, Word, modular::SafeGcdInverter,
+};
 
 /// A boolean value returned by constant-time `const fn`s.
 // TODO: should be replaced by `subtle::Choice` or `CtOption`
@@ -258,6 +260,16 @@ impl ConstChoice {
     }
 }
 
+/// `const` equivalent of `u32::max(a, b)`.
+pub const fn u32_max(a: u32, b: u32) -> u32 {
+    ConstChoice::from_u32_lt(a, b).select_u32(a, b)
+}
+
+/// `const` equivalent of `u32::min(a, b)`.
+pub const fn u32_min(a: u32, b: u32) -> u32 {
+    ConstChoice::from_u32_lt(a, b).select_u32(b, a)
+}
+
 impl From<ConstChoice> for Choice {
     #[inline]
     fn from(choice: ConstChoice) -> Self {
@@ -395,7 +407,7 @@ impl<const LIMBS: usize> ConstCtOption<Uint<LIMBS>> {
     /// Returns the contained value, interpreting the underlying [`Uint`] value as an [`Int`].
     #[inline]
     pub const fn as_int(&self) -> ConstCtOption<Int<LIMBS>> {
-        ConstCtOption::new(self.value.as_int(), self.is_some)
+        ConstCtOption::new(*self.value.as_int(), self.is_some)
     }
 }
 
@@ -461,6 +473,34 @@ impl<const LIMBS: usize> ConstCtOption<Int<LIMBS>> {
     }
 }
 
+impl<const LIMBS: usize> ConstCtOption<NonZeroInt<LIMBS>> {
+    /// Returns the contained value, consuming the `self` value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value is none with a custom panic message provided by
+    /// `msg`.
+    #[inline]
+    pub const fn expect(self, msg: &str) -> NonZeroInt<LIMBS> {
+        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        self.value
+    }
+}
+
+impl<const LIMBS: usize> ConstCtOption<OddInt<LIMBS>> {
+    /// Returns the contained value, consuming the `self` value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value is none with a custom panic message provided by
+    /// `msg`.
+    #[inline]
+    pub const fn expect(self, msg: &str) -> OddInt<LIMBS> {
+        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        self.value
+    }
+}
+
 impl ConstCtOption<NonZero<Limb>> {
     /// Returns the contained value, consuming the `self` value.
     ///
@@ -493,9 +533,8 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
 
 #[cfg(test)]
 mod tests {
+    use super::{ConstChoice, u32_max, u32_min};
     use crate::{WideWord, Word};
-
-    use super::ConstChoice;
 
     #[test]
     fn from_u64_lsb() {
@@ -554,5 +593,21 @@ mod tests {
         let b: WideWord = (3 << Word::BITS) + 4;
         assert_eq!(ConstChoice::TRUE.select_wide_word(a, b), b);
         assert_eq!(ConstChoice::FALSE.select_wide_word(a, b), a);
+    }
+
+    #[test]
+    fn test_u32_const_min() {
+        assert_eq!(u32_min(0, 5), 0);
+        assert_eq!(u32_min(7, 0), 0);
+        assert_eq!(u32_min(7, 5), 5);
+        assert_eq!(u32_min(7, 7), 7);
+    }
+
+    #[test]
+    fn test_u32_const_max() {
+        assert_eq!(u32_max(0, 5), 5);
+        assert_eq!(u32_max(7, 0), 7);
+        assert_eq!(u32_max(7, 5), 7);
+        assert_eq!(u32_max(7, 7), 7);
     }
 }

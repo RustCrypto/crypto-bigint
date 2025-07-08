@@ -37,7 +37,7 @@ impl BoxedUint {
                 j += 1;
             }
             let (q, _) = self.div_rem(&nz_x);
-            x.conditional_adc_assign(&q, x_nonzero);
+            x.conditional_carrying_add_assign(&q, x_nonzero);
             x.shr1_assign();
             i += 1;
         }

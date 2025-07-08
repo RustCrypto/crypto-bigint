@@ -14,7 +14,7 @@ mod div_limb;
 pub(crate) mod encoding;
 mod from;
 mod gcd;
-mod inv_mod;
+mod invert_mod;
 mod mul;
 mod mul_mod;
 mod neg;
@@ -28,7 +28,7 @@ mod sub_mod;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Integer, Limb, NonZero, Odd, Word, Zero, modular::BoxedMontyForm};
+use crate::{Integer, Limb, NonZero, Odd, Resize, UintRef, Word, Zero, modular::BoxedMontyForm};
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
@@ -134,20 +134,18 @@ impl BoxedUint {
 
     /// Borrow the inner limbs as a slice of [`Word`]s.
     pub fn as_words(&self) -> &[Word] {
-        // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
-        #[allow(trivial_casts, unsafe_code)]
-        unsafe {
-            &*((&*self.limbs as *const [Limb]) as *const [Word])
-        }
+        self.as_uint_ref().as_words()
     }
 
     /// Borrow the inner limbs as a mutable slice of [`Word`]s.
+    pub fn as_mut_words(&mut self) -> &mut [Word] {
+        self.as_mut_uint_ref().as_mut_words()
+    }
+
+    /// Borrow the inner limbs as a mutable slice of [`Word`]s.
+    #[deprecated(since = "0.7.0", note = "please use `as_mut_words` instead")]
     pub fn as_words_mut(&mut self) -> &mut [Word] {
-        // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
-        #[allow(trivial_casts, unsafe_code)]
-        unsafe {
-            &mut *((&mut *self.limbs as *mut [Limb]) as *mut [Word])
-        }
+        self.as_mut_words()
     }
 
     /// Borrow the limbs of this [`BoxedUint`].
@@ -156,8 +154,14 @@ impl BoxedUint {
     }
 
     /// Borrow the limbs of this [`BoxedUint`] mutably.
-    pub fn as_limbs_mut(&mut self) -> &mut [Limb] {
+    pub fn as_mut_limbs(&mut self) -> &mut [Limb] {
         self.limbs.as_mut()
+    }
+
+    /// Borrow the limbs of this [`BoxedUint`] mutably.
+    #[deprecated(since = "0.7.0", note = "please use `as_mut_limbs` instead")]
+    pub fn as_limbs_mut(&mut self) -> &mut [Limb] {
+        self.as_mut_limbs()
     }
 
     /// Convert this [`BoxedUint`] into its inner limbs.
@@ -168,6 +172,16 @@ impl BoxedUint {
     /// Convert this [`BoxedUint`] into its inner limbs.
     pub fn into_limbs(self) -> Box<[Limb]> {
         self.limbs
+    }
+
+    /// Borrow the limbs of this [`BoxedUint`] as a [`UintRef`].
+    pub(crate) fn as_uint_ref(&self) -> &UintRef {
+        UintRef::new(&self.limbs)
+    }
+
+    /// Mutably borrow the limbs of this [`BoxedUint`] as a [`UintRef`].
+    pub(crate) fn as_mut_uint_ref(&mut self) -> &mut UintRef {
+        UintRef::new_mut(&mut self.limbs)
     }
 
     /// Get the number of limbs in this [`BoxedUint`].
@@ -185,6 +199,7 @@ impl BoxedUint {
     ///
     /// Panics if `at_least_bits_precision` is smaller than the current precision.
     #[must_use]
+    #[deprecated(since = "0.7.0", note = "please use `resize` instead")]
     pub fn widen(&self, at_least_bits_precision: u32) -> BoxedUint {
         assert!(at_least_bits_precision >= self.bits_precision());
 
@@ -197,6 +212,7 @@ impl BoxedUint {
     ///
     /// Panics if `at_least_bits_precision` is larger than the current precision.
     #[must_use]
+    #[deprecated(since = "0.7.0", note = "please use `resize` instead")]
     pub fn shorten(&self, at_least_bits_precision: u32) -> BoxedUint {
         assert!(at_least_bits_precision <= self.bits_precision());
         let mut ret = BoxedUint::zero_with_precision(at_least_bits_precision);
@@ -257,14 +273,76 @@ impl BoxedUint {
             limbs[i] = Limb::conditional_select(&limbs[i], &Limb::ZERO, choice);
         }
     }
+
+    /// Returns `true` if the integer's bit size is smaller or equal to `bits`.
+    pub(crate) fn is_within_bits(&self, bits: u32) -> bool {
+        bits >= self.bits_precision() || bits >= self.bits()
+    }
 }
 
-impl NonZero<BoxedUint> {
-    /// Widen this type's precision to the given number of bits.
-    ///
-    /// See [`BoxedUint::widen`] for more information, including panic conditions.
-    pub fn widen(&self, bits_precision: u32) -> Self {
-        NonZero(self.0.widen(bits_precision))
+impl Resize for BoxedUint {
+    type Output = BoxedUint;
+
+    fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output {
+        let new_len = Self::limbs_for_precision(at_least_bits_precision);
+        if new_len == self.limbs.len() {
+            self
+        } else {
+            let mut limbs = self.limbs.into_vec();
+            limbs.resize(new_len, Limb::ZERO);
+            Self::from(limbs)
+        }
+    }
+
+    fn try_resize(self, at_least_bits_precision: u32) -> Option<BoxedUint> {
+        if self.is_within_bits(at_least_bits_precision) {
+            Some(self.resize_unchecked(at_least_bits_precision))
+        } else {
+            None
+        }
+    }
+}
+
+impl Resize for &BoxedUint {
+    type Output = BoxedUint;
+
+    fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output {
+        let mut ret = BoxedUint::zero_with_precision(at_least_bits_precision);
+        let num_limbs_to_copy = core::cmp::min(ret.limbs.len(), self.limbs.len());
+        ret.limbs[..num_limbs_to_copy].copy_from_slice(&self.limbs[..num_limbs_to_copy]);
+        ret
+    }
+
+    fn try_resize(self, at_least_bits_precision: u32) -> Option<BoxedUint> {
+        if self.is_within_bits(at_least_bits_precision) {
+            Some(self.resize_unchecked(at_least_bits_precision))
+        } else {
+            None
+        }
+    }
+}
+
+impl Resize for NonZero<BoxedUint> {
+    type Output = Self;
+
+    fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output {
+        NonZero(self.0.resize_unchecked(at_least_bits_precision))
+    }
+
+    fn try_resize(self, at_least_bits_precision: u32) -> Option<Self::Output> {
+        self.0.try_resize(at_least_bits_precision).map(NonZero)
+    }
+}
+
+impl Resize for &NonZero<BoxedUint> {
+    type Output = NonZero<BoxedUint>;
+
+    fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output {
+        NonZero((&self.0).resize_unchecked(at_least_bits_precision))
+    }
+
+    fn try_resize(self, at_least_bits_precision: u32) -> Option<Self::Output> {
+        (&self.0).try_resize(at_least_bits_precision).map(NonZero)
     }
 }
 
@@ -276,7 +354,7 @@ impl AsRef<[Word]> for BoxedUint {
 
 impl AsMut<[Word]> for BoxedUint {
     fn as_mut(&mut self) -> &mut [Word] {
-        self.as_words_mut()
+        self.as_mut_words()
     }
 }
 
@@ -288,7 +366,19 @@ impl AsRef<[Limb]> for BoxedUint {
 
 impl AsMut<[Limb]> for BoxedUint {
     fn as_mut(&mut self) -> &mut [Limb] {
-        self.as_limbs_mut()
+        self.as_mut_limbs()
+    }
+}
+
+impl AsRef<UintRef> for BoxedUint {
+    fn as_ref(&self) -> &UintRef {
+        self.as_uint_ref()
+    }
+}
+
+impl AsMut<UintRef> for BoxedUint {
+    fn as_mut(&mut self) -> &mut UintRef {
+        self.as_mut_uint_ref()
     }
 }
 
@@ -359,7 +449,7 @@ impl Zeroize for BoxedUint {
 
 impl fmt::Debug for BoxedUint {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "BoxedUint(0x{self:X})")
+        write!(f, "BoxedUint(0x{:X})", self.as_uint_ref())
     }
 }
 
@@ -371,50 +461,19 @@ impl fmt::Display for BoxedUint {
 
 impl fmt::Binary for BoxedUint {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.limbs.is_empty() {
-            return fmt::Binary::fmt(&Limb::ZERO, f);
-        }
-
-        if f.alternate() {
-            write!(f, "0b")?;
-        }
-
-        for limb in self.limbs.iter().rev() {
-            write!(f, "{:0width$b}", &limb.0, width = Limb::BITS as usize)?;
-        }
-        Ok(())
+        fmt::Binary::fmt(self.as_uint_ref(), f)
     }
 }
 
 impl fmt::LowerHex for BoxedUint {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.limbs.is_empty() {
-            return fmt::LowerHex::fmt(&Limb::ZERO, f);
-        }
-
-        if f.alternate() {
-            write!(f, "0x")?;
-        }
-        for limb in self.limbs.iter().rev() {
-            write!(f, "{:0width$x}", &limb.0, width = Limb::BYTES * 2)?;
-        }
-        Ok(())
+        fmt::LowerHex::fmt(self.as_uint_ref(), f)
     }
 }
 
 impl fmt::UpperHex for BoxedUint {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.limbs.is_empty() {
-            return fmt::LowerHex::fmt(&Limb::ZERO, f);
-        }
-
-        if f.alternate() {
-            write!(f, "0x")?;
-        }
-        for limb in self.limbs.iter().rev() {
-            write!(f, "{:0width$X}", &limb.0, width = Limb::BYTES * 2)?;
-        }
-        Ok(())
+        fmt::UpperHex::fmt(self.as_uint_ref(), f)
     }
 }
 

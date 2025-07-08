@@ -187,11 +187,10 @@ pub use crate::{
     int::types::*,
     int::*,
     limb::{Limb, WideWord, Word},
-    non_zero::NonZero,
-    odd::Odd,
+    non_zero::*,
+    odd::*,
     traits::*,
-    uint::div_limb::Reciprocal,
-    uint::*,
+    uint::{div_limb::Reciprocal, *},
     wrapping::Wrapping,
 };
 

@@ -68,13 +68,20 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> SafeGcdInverter<SAT_LIMBS
         Self {
             modulus: UnsatInt::from_uint(&modulus.0),
             adjuster: UnsatInt::from_uint(adjuster),
-            inverse: inv_mod2_62(modulus.0.as_words()),
+            inverse: invert_mod2_62(modulus.0.as_words()),
         }
     }
 
     /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
+    #[deprecated(since = "0.7.0", note = "please use `invert` instead")]
     pub const fn inv(&self, value: &Uint<SAT_LIMBS>) -> ConstCtOption<Uint<SAT_LIMBS>> {
+        self.invert(value)
+    }
+
+    /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
+    /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
+    pub const fn invert(&self, value: &Uint<SAT_LIMBS>) -> ConstCtOption<Uint<SAT_LIMBS>> {
         let (d, f) = divsteps(
             self.adjuster,
             self.modulus,
@@ -95,7 +102,16 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> SafeGcdInverter<SAT_LIMBS
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
     ///
     /// This version is variable-time with respect to `value`.
+    #[deprecated(since = "0.7.0", note = "please use `invert_vartime` instead")]
     pub const fn inv_vartime(&self, value: &Uint<SAT_LIMBS>) -> ConstCtOption<Uint<SAT_LIMBS>> {
+        self.invert_vartime(value)
+    }
+
+    /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
+    /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
+    ///
+    /// This version is variable-time with respect to `value`.
+    pub const fn invert_vartime(&self, value: &Uint<SAT_LIMBS>) -> ConstCtOption<Uint<SAT_LIMBS>> {
         let (d, f) = divsteps_vartime(
             self.adjuster,
             self.modulus,
@@ -118,7 +134,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> SafeGcdInverter<SAT_LIMBS
     /// `UNSAT_LIMBS` which are computed when defining `PrecomputeInverter::Inverter` for various
     /// `Uint` limb sizes.
     pub(crate) const fn gcd(f: &Uint<SAT_LIMBS>, g: &Uint<SAT_LIMBS>) -> Uint<SAT_LIMBS> {
-        let inverse = inv_mod2_62(f.as_words());
+        let inverse = invert_mod2_62(f.as_words());
         let e = UnsatInt::<UNSAT_LIMBS>::ONE;
         let f = UnsatInt::from_uint(f);
         let g = UnsatInt::from_uint(g);
@@ -131,7 +147,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> SafeGcdInverter<SAT_LIMBS
     ///
     /// This version is variable-time with respect to `g`.
     pub(crate) const fn gcd_vartime(f: &Uint<SAT_LIMBS>, g: &Uint<SAT_LIMBS>) -> Uint<SAT_LIMBS> {
-        let inverse = inv_mod2_62(f.as_words());
+        let inverse = invert_mod2_62(f.as_words());
         let e = UnsatInt::<UNSAT_LIMBS>::ONE;
         let f = UnsatInt::from_uint(f);
         let g = UnsatInt::from_uint(g);
@@ -161,11 +177,11 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Inverter
     type Output = Uint<SAT_LIMBS>;
 
     fn invert(&self, value: &Uint<SAT_LIMBS>) -> CtOption<Self::Output> {
-        self.inv(value).into()
+        self.invert(value).into()
     }
 
     fn invert_vartime(&self, value: &Uint<SAT_LIMBS>) -> CtOption<Self::Output> {
-        self.inv_vartime(value).into()
+        self.invert_vartime(value).into()
     }
 }
 
@@ -178,7 +194,7 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Inverter
 ///
 /// Variable time with respect to the number of words in `value`, however that number will be
 /// fixed for a given integer size.
-const fn inv_mod2_62(value: &[Word]) -> i64 {
+const fn invert_mod2_62(value: &[Word]) -> i64 {
     let value = {
         #[cfg(target_pointer_width = "32")]
         {
@@ -578,7 +594,7 @@ impl<const LIMBS: usize> UnsatInt<LIMBS> {
 #[cfg(test)]
 mod tests {
     use super::iterations;
-    use crate::{Inverter, PrecomputeInverter, U256};
+    use crate::{PrecomputeInverter, U256};
 
     type UnsatInt = super::UnsatInt<4>;
 

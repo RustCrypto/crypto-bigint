@@ -76,7 +76,7 @@ where
 {
     let mut bytes = T::MAX.to_be_bytes();
     let len = bytes.as_ref().len();
-    let edge = match rng.gen_range(0..3) {
+    let edge = match rng.random_range(0..3) {
         // Hi
         0 => (len - 2)..len,
         // Mid
@@ -150,14 +150,14 @@ proptest! {
         assert_eq!(one_monty.retrieve(), U128::ONE, "a*a⁻¹ ≠ 1 (normal form)");
         // …and when converted back to normal form and used in a widening operation
         let wide_modulus = NonZero::new(Into::<U256>::into(&monty_params.modulus().get())).unwrap();
-        let one = r_monty_inv.retrieve().widening_mul(&r);
+        let one = r_monty_inv.retrieve().concatenating_mul(&r);
         assert_eq!(
             one % wide_modulus,
             U256::ONE,
             "a*a⁻¹ ≠ 1 (normal form, wide)"
         );
         // …and agrees with normal form inversion
-        let normal_form_inv = r.inv_mod(monty_params.modulus()).unwrap();
+        let normal_form_inv = r.invert_mod(monty_params.modulus()).unwrap();
         assert_eq!(
             normal_form_inv,
             r_monty_inv.retrieve(),
@@ -189,14 +189,14 @@ proptest! {
         assert_eq!(one_monty.retrieve(), U256::ONE, "a*a⁻¹ ≠ 1 (normal form)");
         // …and when converted back to normal form and used in a widening operation
         let wide_modulus = NonZero::new(Into::<U512>::into(&monty_params.modulus().get())).unwrap();
-        let one = r_monty_inv.retrieve().widening_mul(&r);
+        let one = r_monty_inv.retrieve().concatenating_mul(&r);
         assert_eq!(
             one % wide_modulus,
             U512::ONE,
             "a*a⁻¹ ≠ 1 (normal form, wide)"
         );
         // …and agrees with normal form inversion
-        let normal_form_inv = r.inv_mod(monty_params.modulus()).unwrap();
+        let normal_form_inv = r.invert_mod(monty_params.modulus()).unwrap();
         assert_eq!(
             normal_form_inv,
             r_monty_inv.retrieve(),
@@ -228,14 +228,14 @@ proptest! {
         assert_eq!(one_monty.retrieve(), U1024::ONE, "a*a⁻¹ ≠ 1 (normal form)");
         // …and when converted back to normal form and used in a widening operation
         let wide_modulus = NonZero::new(Into::<U2048>::into(&monty_params.modulus().get())).unwrap();
-        let one = r_monty_inv.retrieve().widening_mul(&r);
+        let one = r_monty_inv.retrieve().concatenating_mul(&r);
         assert_eq!(
             one % wide_modulus,
             U2048::ONE,
             "a*a⁻¹ ≠ 1 (normal form, wide)"
         );
         // …and agrees with normal form inversion
-        let normal_form_inv = r.inv_mod(monty_params.modulus()).unwrap();
+        let normal_form_inv = r.invert_mod(monty_params.modulus()).unwrap();
         assert_eq!(
             normal_form_inv,
             r_monty_inv.retrieve(),
@@ -267,14 +267,14 @@ proptest! {
         assert_eq!(one_monty.retrieve(), U2048::ONE, "a*a⁻¹ ≠ 1 (normal form)");
         // …and when converted back to normal form and used in a widening operation
         let wide_modulus = NonZero::new(Into::<U4096>::into(&monty_params.modulus().get())).unwrap();
-        let one = r_monty_inv.retrieve().widening_mul(&r);
+        let one = r_monty_inv.retrieve().concatenating_mul(&r);
         assert_eq!(
             one % wide_modulus,
             U4096::ONE,
             "a*a⁻¹ ≠ 1 (normal form, wide)"
         );
         // …and agrees with normal form inversion
-        let normal_form_inv = r.inv_mod(monty_params.modulus()).unwrap();
+        let normal_form_inv = r.invert_mod(monty_params.modulus()).unwrap();
         assert_eq!(
             normal_form_inv,
             r_monty_inv.retrieve(),
@@ -295,7 +295,7 @@ proptest! {
     }
 
     #[test]
-    fn inv(x in uint(), n in modulus()) {
+    fn invert(x in uint(), n in modulus()) {
         let x = reduce(&x, n);
         let actual = Option::<MontyForm256>::from(x.invert());
 
@@ -315,7 +315,7 @@ proptest! {
     }
 
     #[test]
-    fn precomputed_inv(x in uint(), n in modulus()) {
+    fn precomputed_invert(x in uint(), n in modulus()) {
         let x = reduce(&x, n);
         let inverter = x.params().precompute_inverter();
         let actual = Option::<MontyForm256>::from(inverter.invert(&x));

@@ -13,9 +13,11 @@ use zeroize::DefaultIsZeroes;
 #[cfg(feature = "extra-sizes")]
 pub use extra_sizes::*;
 
+pub(crate) use ref_type::UintRef;
+
 use crate::{
-    Bounded, ConstCtOption, ConstZero, Constants, Encoding, FixedInteger, Int, Integer, Limb,
-    NonZero, Odd, PrecomputeInverter, PrecomputeInverterWithAdjuster, Word,
+    Bounded, ConstChoice, ConstCtOption, ConstZero, Constants, Encoding, FixedInteger, Int,
+    Integer, Limb, NonZero, Odd, PrecomputeInverter, PrecomputeInverterWithAdjuster, Word,
     modular::{MontyForm, SafeGcdInverter},
 };
 
@@ -24,6 +26,7 @@ mod macros;
 
 mod add;
 mod add_mod;
+pub(crate) mod bingcd;
 mod bit_and;
 mod bit_not;
 mod bit_or;
@@ -36,7 +39,7 @@ pub(crate) mod div_limb;
 pub(crate) mod encoding;
 mod from;
 mod gcd;
-mod inv_mod;
+mod invert_mod;
 pub(crate) mod mul;
 mod mul_mod;
 mod neg;
@@ -151,12 +154,18 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Borrow the inner limbs as a mutable array of [`Word`]s.
-    pub fn as_words_mut(&mut self) -> &mut [Word; LIMBS] {
+    pub const fn as_mut_words(&mut self) -> &mut [Word; LIMBS] {
         // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
         #[allow(unsafe_code)]
         unsafe {
             &mut *self.limbs.as_mut_ptr().cast()
         }
+    }
+
+    /// Borrow the inner limbs as a mutable slice of [`Word`]s.
+    #[deprecated(since = "0.7.0", note = "please use `as_mut_words` instead")]
+    pub const fn as_words_mut(&mut self) -> &mut [Word] {
+        self.as_mut_words()
     }
 
     /// Borrow the limbs of this [`Uint`].
@@ -165,13 +174,29 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Borrow the limbs of this [`Uint`] mutably.
-    pub const fn as_limbs_mut(&mut self) -> &mut [Limb; LIMBS] {
+    pub const fn as_mut_limbs(&mut self) -> &mut [Limb; LIMBS] {
         &mut self.limbs
+    }
+
+    /// Borrow the limbs of this [`Uint`] mutably.
+    #[deprecated(since = "0.7.0", note = "please use `as_mut_limbs` instead")]
+    pub const fn as_limbs_mut(&mut self) -> &mut [Limb] {
+        self.as_mut_limbs()
     }
 
     /// Convert this [`Uint`] into its inner limbs.
     pub const fn to_limbs(self) -> [Limb; LIMBS] {
         self.limbs
+    }
+
+    /// Borrow the limbs of this [`Uint`] as a [`UintRef`].
+    pub(crate) const fn as_uint_ref(&self) -> &UintRef {
+        UintRef::new(&self.limbs)
+    }
+
+    /// Mutably borrow the limbs of this [`Uint`] as a [`UintRef`].
+    pub(crate) const fn as_mut_uint_ref(&mut self) -> &mut UintRef {
+        UintRef::new_mut(&mut self.limbs)
     }
 
     /// Convert to a [`NonZero<Uint<LIMBS>>`].
@@ -188,9 +213,21 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         ConstCtOption::new(Odd(self), self.is_odd())
     }
 
-    /// Interpret the data in this type as an [`Int`] instead.
-    pub const fn as_int(&self) -> Int<LIMBS> {
-        Int::from_bits(*self)
+    /// Interpret this object as an [`Int`] instead.
+    ///
+    /// Note: this is a casting operation. See [`Self::try_into_int`] for the checked equivalent.
+    pub const fn as_int(&self) -> &Int<LIMBS> {
+        #[allow(trivial_casts, unsafe_code)]
+        unsafe {
+            &*(self as *const Uint<LIMBS> as *const Int<LIMBS>)
+        }
+    }
+
+    /// Convert this type into an [`Int`]; returns `None` if this value is greater than `Int::MAX`.
+    ///
+    /// Note: this is the conversion operation. See [`Self::as_int`] for the unchecked equivalent.
+    pub const fn try_into_int(self) -> ConstCtOption<Int<LIMBS>> {
+        Int::new_from_abs_sign(self, ConstChoice::FALSE)
     }
 }
 
@@ -202,7 +239,7 @@ impl<const LIMBS: usize> AsRef<[Word; LIMBS]> for Uint<LIMBS> {
 
 impl<const LIMBS: usize> AsMut<[Word; LIMBS]> for Uint<LIMBS> {
     fn as_mut(&mut self) -> &mut [Word; LIMBS] {
-        self.as_words_mut()
+        self.as_mut_words()
     }
 }
 
@@ -214,7 +251,19 @@ impl<const LIMBS: usize> AsRef<[Limb]> for Uint<LIMBS> {
 
 impl<const LIMBS: usize> AsMut<[Limb]> for Uint<LIMBS> {
     fn as_mut(&mut self) -> &mut [Limb] {
-        self.as_limbs_mut()
+        self.as_mut_limbs()
+    }
+}
+
+impl<const LIMBS: usize> AsRef<UintRef> for Uint<LIMBS> {
+    fn as_ref(&self) -> &UintRef {
+        self.as_uint_ref()
+    }
+}
+
+impl<const LIMBS: usize> AsMut<UintRef> for Uint<LIMBS> {
+    fn as_mut(&mut self) -> &mut UintRef {
+        self.as_mut_uint_ref()
     }
 }
 
@@ -301,20 +350,13 @@ impl<const LIMBS: usize> num_traits::One for Uint<LIMBS> {
 
 impl<const LIMBS: usize> fmt::Debug for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Uint(0x{self:X})")
+        write!(f, "Uint(0x{:X})", self.as_uint_ref())
     }
 }
 
 impl<const LIMBS: usize> fmt::Binary for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if f.alternate() {
-            write!(f, "0b")?;
-        }
-
-        for limb in self.limbs.iter().rev() {
-            write!(f, "{:0width$b}", &limb.0, width = Limb::BITS as usize)?;
-        }
-        Ok(())
+        fmt::Binary::fmt(self.as_uint_ref(), f)
     }
 }
 
@@ -326,25 +368,13 @@ impl<const LIMBS: usize> fmt::Display for Uint<LIMBS> {
 
 impl<const LIMBS: usize> fmt::LowerHex for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if f.alternate() {
-            write!(f, "0x")?;
-        }
-        for limb in self.limbs.iter().rev() {
-            write!(f, "{:0width$x}", &limb.0, width = Limb::BYTES * 2)?;
-        }
-        Ok(())
+        fmt::LowerHex::fmt(self.as_uint_ref(), f)
     }
 }
 
 impl<const LIMBS: usize> fmt::UpperHex for Uint<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if f.alternate() {
-            write!(f, "0x")?;
-        }
-        for limb in self.limbs.iter().rev() {
-            write!(f, "{:0width$X}", &limb.0, width = Limb::BYTES * 2)?;
-        }
-        Ok(())
+        fmt::UpperHex::fmt(self.as_uint_ref(), f)
     }
 }
 
@@ -473,18 +503,17 @@ impl_uint_concat_split_mixed! {
 
 #[cfg(feature = "extra-sizes")]
 mod extra_sizes;
+mod mul_int;
+mod ref_type;
 
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    #[cfg(feature = "alloc")]
-    use alloc::format;
-
+    use crate::{Encoding, I128, Int, U128};
     use subtle::ConditionallySelectable;
 
-    #[cfg(feature = "serde")]
-    use crate::U64;
-    use crate::{Encoding, U128};
+    #[cfg(feature = "alloc")]
+    use alloc::format;
 
     #[cfg(target_pointer_width = "64")]
     #[test]
@@ -497,7 +526,7 @@ mod tests {
     #[test]
     fn as_words_mut() {
         let mut n = U128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
-        assert_eq!(n.as_words_mut(), &[0xCCCCCCCCDDDDDDDD, 0xAAAAAAAABBBBBBBB]);
+        assert_eq!(n.as_mut_words(), &[0xCCCCCCCCDDDDDDDD, 0xAAAAAAAABBBBBBBB]);
     }
 
     #[cfg(feature = "alloc")]
@@ -505,10 +534,7 @@ mod tests {
     fn debug() {
         let n = U128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
 
-        assert_eq!(
-            format!("{:?}", n),
-            "Uint(0xAAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD)"
-        );
+        assert_eq!(format!("{n:?}"), "Uint(0xAAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD)");
     }
 
     #[cfg(feature = "alloc")]
@@ -624,25 +650,18 @@ mod tests {
         assert_eq!(b, select_1);
     }
 
-    #[cfg(feature = "serde")]
     #[test]
-    fn serde() {
-        const TEST: U64 = U64::from_u64(0x0011223344556677);
-
-        let serialized = bincode::serialize(&TEST).unwrap();
-        let deserialized: U64 = bincode::deserialize(&serialized).unwrap();
-
-        assert_eq!(TEST, deserialized);
+    fn as_int() {
+        assert_eq!(*U128::ZERO.as_int(), Int::ZERO);
+        assert_eq!(*U128::ONE.as_int(), Int::ONE);
+        assert_eq!(*U128::MAX.as_int(), Int::MINUS_ONE);
     }
 
-    #[cfg(feature = "serde")]
     #[test]
-    fn serde_owned() {
-        const TEST: U64 = U64::from_u64(0x0011223344556677);
-
-        let serialized = bincode::serialize(&TEST).unwrap();
-        let deserialized: U64 = bincode::deserialize_from(serialized.as_slice()).unwrap();
-
-        assert_eq!(TEST, deserialized);
+    fn to_int() {
+        assert_eq!(U128::ZERO.try_into_int().unwrap(), Int::ZERO);
+        assert_eq!(U128::ONE.try_into_int().unwrap(), Int::ONE);
+        assert_eq!(I128::MAX.as_uint().try_into_int().unwrap(), Int::MAX);
+        assert!(bool::from(U128::MAX.try_into_int().is_none()));
     }
 }

@@ -12,13 +12,12 @@ impl<const LIMBS: usize> Int<LIMBS> {
             limbs[i] = self.0.limbs[i];
             i += 1;
         }
-        Uint { limbs }.as_int()
+        *Uint { limbs }.as_int()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use num_traits::WrappingSub;
 
     use crate::{I128, I256};
 
@@ -44,7 +43,7 @@ mod tests {
         assert_eq!(I128::ONE.resize::<{ I256::LIMBS }>(), I256::ONE);
         assert_eq!(
             I128::MAX.resize::<{ I256::LIMBS }>(),
-            I128::MAX.0.resize().as_int()
+            *I128::MAX.0.resize().as_int()
         );
     }
 }

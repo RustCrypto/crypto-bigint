@@ -5,8 +5,7 @@
 mod common;
 
 use common::to_biguint;
-use core::cmp::Ordering;
-use crypto_bigint::{BitOps, BoxedUint, CheckedAdd, Gcd, Integer, Limb, NonZero};
+use crypto_bigint::{BitOps, BoxedUint, CheckedAdd, Gcd, Integer, Limb, NonZero, Resize};
 use num_bigint::BigUint;
 use num_integer::Integer as _;
 use num_modular::ModularUnaryOps;
@@ -25,16 +24,7 @@ fn to_uint(big_uint: BigUint) -> BoxedUint {
 fn reduce(x: &BoxedUint, n: &BoxedUint) -> BoxedUint {
     let bits_precision = n.bits_precision();
     let modulus = NonZero::new(n.clone()).expect("odd n");
-
-    let x = match x.bits_precision().cmp(&bits_precision) {
-        Ordering::Less => x.widen(bits_precision),
-        Ordering::Equal => x.clone(),
-        Ordering::Greater => x.shorten(bits_precision),
-    };
-
-    let x_reduced = x.rem_vartime(&modulus);
-    debug_assert_eq!(x_reduced.bits_precision(), bits_precision);
-    x_reduced
+    x.rem_vartime(&modulus).resize(bits_precision)
 }
 
 prop_compose! {
@@ -48,17 +38,9 @@ prop_compose! {
 }
 prop_compose! {
     /// Generate a pair of random `BoxedUint`s with the same precision.
-    fn uint_pair()(mut a in uint(), mut b in uint()) -> (BoxedUint, BoxedUint) {
-        match a.bits_precision().cmp(&b.bits_precision()) {
-            Ordering::Greater => {
-                b = b.widen(a.bits_precision());
-            }
-            Ordering::Less => {
-                a = a.widen(b.bits_precision());
-            },
-            _ => ()
-        };
-        (a, b)
+    fn uint_pair()(a in uint(), b in uint()) -> (BoxedUint, BoxedUint) {
+        let bits_precision = core::cmp::max(a.bits_precision(), b.bits_precision());
+        (a.resize(bits_precision), b.resize(bits_precision))
     }
 }
 prop_compose! {
@@ -157,14 +139,14 @@ proptest! {
     }
 
     #[test]
-    fn inv_mod2k(mut a in uint(), k in any::<u32>()) {
+    fn invert_mod2k(mut a in uint(), k in any::<u32>()) {
         a.set_bit(0, Choice::from(1)); // make odd
         let k = k % (a.bits() + 1);
         let a_bi = to_biguint(&a);
         let m_bi = BigUint::one() << k as usize;
 
-        let actual = a.inv_mod2k(k).0;
-        let (actual_vartime, exists) = a.inv_mod2k_vartime(k);
+        let actual = a.invert_mod2k(k).0;
+        let (actual_vartime, exists) = a.invert_mod2k_vartime(k);
         prop_assert!(bool::from(exists));
         prop_assert_eq!(&actual, &actual_vartime);
 
@@ -179,7 +161,7 @@ proptest! {
     }
 
     #[test]
-    fn mod_inv((a, mut b) in uint_pair()) {
+    fn mod_invert((a, mut b) in uint_pair()) {
         if b.is_even().into() {
             b = BoxedUint::one_with_precision(a.bits_precision());
         }
@@ -189,7 +171,7 @@ proptest! {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
         let expected = a_bi.invm(&b_bi);
-        let actual = Option::<BoxedUint>::from(a.inv_odd_mod(&b));
+        let actual = Option::<BoxedUint>::from(a.invert_odd_mod(&b));
 
         match (expected, actual) {
             (Some(exp), Some(act)) => prop_assert_eq!(exp, to_biguint(&act)),
@@ -213,7 +195,7 @@ proptest! {
     }
 
     #[test]
-    fn mul_wide(a in uint(), b in uint()) {
+    fn widening_mul(a in uint(), b in uint()) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
 
@@ -301,7 +283,6 @@ proptest! {
         }
     }
 
-
     #[test]
     fn shr_vartime(a in uint(), shift in any::<u16>()) {
         let a_bi = to_biguint(&a);
@@ -320,7 +301,6 @@ proptest! {
         }
     }
 
-
     #[test]
     fn radix_encode_vartime(a in uint(), radix in 2u32..=36) {
         let a_bi = to_biguint(&a);
@@ -333,5 +313,19 @@ proptest! {
         let dec_bi = to_biguint(&decoded);
         prop_assert_eq!(dec_bi, a_bi);
 
+    }
+
+    #[test]
+    fn from_be_slice_vartime(a in uint()) {
+        let a_bytes = a.to_be_bytes_trimmed_vartime();
+        let b = BoxedUint::from_be_slice_vartime(&a_bytes);
+        prop_assert_eq!(a, b);
+    }
+
+    #[test]
+    fn from_le_slice_vartime(a in uint()) {
+        let a_bytes = a.to_le_bytes_trimmed_vartime();
+        let b = BoxedUint::from_le_slice_vartime(&a_bytes);
+        prop_assert_eq!(a, b);
     }
 }

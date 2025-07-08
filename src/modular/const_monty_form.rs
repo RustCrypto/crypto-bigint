@@ -1,14 +1,14 @@
 //! Implements `ConstMontyForm`s, supporting modular arithmetic with a constant modulus.
 
 mod add;
-pub(super) mod inv;
+pub(super) mod invert;
 mod lincomb;
 mod mul;
 mod neg;
 mod pow;
 mod sub;
 
-use self::inv::ConstMontyFormInverter;
+use self::invert::ConstMontyFormInverter;
 use super::{Retrieve, SafeGcdInverter, div_by_2::div_by_2, reduction::montgomery_reduction};
 use crate::{ConstZero, Limb, Odd, PrecomputeInverter, Uint};
 use core::{fmt::Debug, marker::PhantomData};
@@ -28,12 +28,11 @@ use {
 #[macro_use]
 mod macros;
 
-/// The parameters to efficiently go to and from the Montgomery form for a given odd modulus.
+/// Trait representing a modulus and its associated constants for converting in and out of
+/// Montgomery form.
 ///
-/// An easy way to generate these parameters is using the [`impl_modulus!`][`crate::impl_modulus`]
-/// macro. These parameters are constant, so they cannot be set at runtime.
-///
-/// Unfortunately, `LIMBS` must be generic for now until const generics are stabilized.
+/// To define a type which impls this trait, use the
+/// [`const_monty_params!`][`crate::const_monty_params`] macro.
 pub trait ConstMontyParams<const LIMBS: usize>:
     Copy + Debug + Default + Eq + Send + Sync + 'static
 {
@@ -97,7 +96,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     /// Internal helper function to convert to Montgomery form;
     /// this lets us cleanly wrap the constructors.
     const fn from_integer(integer: &Uint<LIMBS>) -> Self {
-        let product = integer.split_mul(&MOD::R2);
+        let product = integer.widening_mul(&MOD::R2);
         let montgomery_form =
             montgomery_reduction::<LIMBS>(&product, &MOD::MODULUS, MOD::MOD_NEG_INV);
 

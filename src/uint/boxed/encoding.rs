@@ -5,6 +5,9 @@ use crate::{DecodeError, Limb, Word, uint::encoding};
 use alloc::{boxed::Box, string::String, vec::Vec};
 use subtle::{Choice, CtOption};
 
+#[cfg(feature = "serde")]
+mod serde;
+
 impl BoxedUint {
     /// Create a new [`BoxedUint`] from the provided big endian bytes.
     ///
@@ -37,6 +40,20 @@ impl BoxedUint {
         }
 
         Ok(ret)
+    }
+
+    /// Create a new [`BoxedUint`] from the provided big endian bytes, automatically selecting its
+    /// precision based on the size of the input.
+    ///
+    /// This method is variable-time with respect to all subsequent operations since it chooses the
+    /// limb count based on the input size, and is therefore only suitable for public inputs.
+    ///
+    /// When working with secret values, use [`BoxedUint::from_be_slice`].
+    pub fn from_be_slice_vartime(bytes: &[u8]) -> Self {
+        let bits_precision = (bytes.len() as u32).saturating_mul(8);
+
+        // TODO(tarcieri): avoid panic
+        Self::from_be_slice(bytes, bits_precision).expect("precision should be large enough")
     }
 
     /// Create a new [`BoxedUint`] from the provided little endian bytes.
@@ -72,6 +89,20 @@ impl BoxedUint {
         Ok(ret)
     }
 
+    /// Create a new [`BoxedUint`] from the provided little endian bytes, automatically selecting
+    /// its precision based on the size of the input.
+    ///
+    /// This method is variable-time with respect to all subsequent operations since it chooses the
+    /// limb count based on the input size, and is therefore only suitable for public inputs.
+    ///
+    /// When working with secret values, use [`BoxedUint::from_le_slice`].
+    pub fn from_le_slice_vartime(bytes: &[u8]) -> Self {
+        let bits_precision = (bytes.len() as u32).saturating_mul(8);
+
+        // TODO(tarcieri): avoid panic
+        Self::from_le_slice(bytes, bits_precision).expect("precision should be large enough")
+    }
+
     /// Serialize this [`BoxedUint`] as big-endian.
     #[inline]
     pub fn to_be_bytes(&self) -> Box<[u8]> {
@@ -90,6 +121,14 @@ impl BoxedUint {
         out.into()
     }
 
+    /// Serialize this [`BoxedUint`] as big-endian without leading zeroes.
+    #[inline]
+    pub fn to_be_bytes_trimmed_vartime(&self) -> Box<[u8]> {
+        let zeroes = self.leading_zeros() as usize / 8;
+
+        (&self.to_be_bytes()[zeroes..]).into()
+    }
+
     /// Serialize this [`BoxedUint`] as little-endian.
     #[inline]
     pub fn to_le_bytes(&self) -> Box<[u8]> {
@@ -105,6 +144,16 @@ impl BoxedUint {
         }
 
         out.into()
+    }
+
+    /// Serialize this [`BoxedUint`] as little-endian without trailing zeroes.
+    #[inline]
+    pub fn to_le_bytes_trimmed_vartime(&self) -> Box<[u8]> {
+        let zeroes = self.leading_zeros() as usize / 8;
+
+        let bytes = self.to_le_bytes();
+
+        (&bytes[..bytes.len() - zeroes]).into()
     }
 
     /// Create a new [`BoxedUint`] from the provided big endian hex string.
@@ -326,6 +375,15 @@ mod tests {
     }
 
     #[test]
+    fn from_be_slice_vartime() {
+        let bytes = hex!(
+            "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111F"
+        );
+        let uint = BoxedUint::from_be_slice_vartime(&bytes);
+        assert_eq!(&*uint.to_be_bytes_trimmed_vartime(), bytes.as_slice());
+    }
+
+    #[test]
     #[cfg(target_pointer_width = "32")]
     fn from_le_slice_eq() {
         let bytes = hex!("7766554433221100");
@@ -419,6 +477,15 @@ mod tests {
     }
 
     #[test]
+    fn from_le_slice_vartime() {
+        let bytes = hex!(
+            "111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111F"
+        );
+        let uint = BoxedUint::from_le_slice_vartime(&bytes);
+        assert_eq!(&*uint.to_le_bytes_trimmed_vartime(), bytes.as_slice());
+    }
+
+    #[test]
     fn to_be_bytes() {
         let bytes = hex!("00112233445566778899aabbccddeeff");
         let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
@@ -426,10 +493,61 @@ mod tests {
     }
 
     #[test]
+    fn to_be_bytes_trimmed_vartime() {
+        let bytes = hex!("ff112233445566778899aabbccddeeff");
+        let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
+        assert_eq!(&bytes, &*n.to_be_bytes_trimmed_vartime());
+
+        let bytes = hex!("00112233445566778899aabbccddeeff");
+        let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
+        assert_eq!(&bytes.as_slice()[1..], &*n.to_be_bytes_trimmed_vartime());
+
+        let bytes: &[u8] = b"";
+        let n = BoxedUint::from_be_slice(bytes, 128).unwrap();
+        assert_eq!(
+            hex!("00000000000000000000000000000000"),
+            n.to_be_bytes().as_ref()
+        );
+        assert_eq!(bytes, n.to_be_bytes_trimmed_vartime().as_ref());
+
+        let bytes = hex!("00012233445566778899aabbccddeeff");
+        let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
+        assert_eq!(&bytes.as_slice()[1..], &*n.to_be_bytes_trimmed_vartime());
+
+        let bytes = hex!("00000000000000000000000000000001");
+        let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
+        assert_eq!(bytes, n.to_be_bytes().as_ref());
+        assert_eq!(&bytes.as_slice()[15..], &*n.to_be_bytes_trimmed_vartime());
+    }
+
+    #[test]
     fn to_le_bytes() {
         let bytes = hex!("ffeeddccbbaa99887766554433221100");
-        let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
-        assert_eq!(bytes.as_slice(), &*n.to_be_bytes());
+        let n = BoxedUint::from_le_slice(&bytes, 128).unwrap();
+        assert_eq!(bytes.as_slice(), &*n.to_le_bytes());
+    }
+
+    #[test]
+    fn to_le_bytes_trimmed_vartime() {
+        let bytes = hex!("ffeeddccbbaa998877665544332211ff");
+        let n = BoxedUint::from_le_slice(&bytes, 128).unwrap();
+        assert_eq!(bytes.as_slice(), &*n.to_le_bytes_trimmed_vartime());
+
+        let bytes = hex!("ffeeddccbbaa99887766554433221100");
+        let n = BoxedUint::from_le_slice(&bytes, 128).unwrap();
+        assert_eq!(&bytes.as_slice()[..15], &*n.to_le_bytes_trimmed_vartime());
+
+        let bytes = hex!("ff000000000000000000000000000000");
+        let n = BoxedUint::from_le_slice(&bytes, 128).unwrap();
+        assert_eq!(&bytes.as_slice()[..1], &*n.to_le_bytes_trimmed_vartime());
+
+        let bytes = hex!("01000000000000000000000000000000");
+        let n = BoxedUint::from_le_slice(&bytes, 128).unwrap();
+        assert_eq!(&bytes.as_slice()[..1], &*n.to_le_bytes_trimmed_vartime());
+
+        let bytes = hex!("00000000000000000000000000000000");
+        let n = BoxedUint::from_le_slice(&bytes, 128).unwrap();
+        assert_eq!(b"", &*n.to_le_bytes_trimmed_vartime());
     }
 
     #[test]

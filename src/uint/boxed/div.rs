@@ -181,11 +181,11 @@ impl BoxedUint {
             let mut tmp;
             i = 0;
             while i <= xi {
-                (tmp, carry) = Limb::ZERO.mac(y[size - xi + i - 1], Limb(quo), carry);
-                (x[i], borrow) = x[i].sbb(tmp, borrow);
+                (tmp, carry) = y[size - xi + i - 1].carrying_mul_add(Limb(quo), carry, Limb::ZERO);
+                (x[i], borrow) = x[i].borrowing_sub(tmp, borrow);
                 i += 1;
             }
-            (_, borrow) = x_hi.sbb(carry, borrow);
+            (_, borrow) = x_hi.borrowing_sub(carry, borrow);
 
             // If the subtraction borrowed, then decrement q and add back the divisor
             // The probability of this being needed is very low, about 2/(Limb::MAX+1)
@@ -193,7 +193,7 @@ impl BoxedUint {
             carry = Limb::ZERO;
             i = 0;
             while i <= xi {
-                (x[i], carry) = x[i].adc(
+                (x[i], carry) = x[i].carrying_add(
                     Limb::select(Limb::ZERO, y[size - xi + i - 1], ct_borrow),
                     carry,
                 );
@@ -485,10 +485,10 @@ pub(crate) fn div_rem_vartime_in_place(x: &mut [Limb], y: &mut [Limb]) {
             let mut borrow = Limb::ZERO;
             let mut tmp;
             for i in 0..yc {
-                (tmp, carry) = Limb::ZERO.mac(y[i], Limb(quo), carry);
-                (x[xi + i + 1 - yc], borrow) = x[xi + i + 1 - yc].sbb(tmp, borrow);
+                (tmp, carry) = y[i].carrying_mul_add(Limb(quo), carry, Limb::ZERO);
+                (x[xi + i + 1 - yc], borrow) = x[xi + i + 1 - yc].borrowing_sub(tmp, borrow);
             }
-            (_, borrow) = x_hi.sbb(carry, borrow);
+            (_, borrow) = x_hi.borrowing_sub(carry, borrow);
             borrow
         };
 
@@ -498,8 +498,8 @@ pub(crate) fn div_rem_vartime_in_place(x: &mut [Limb], y: &mut [Limb]) {
             let ct_borrow = ConstChoice::from_word_mask(borrow.0);
             let mut carry = Limb::ZERO;
             for i in 0..yc {
-                (x[xi + i + 1 - yc], carry) =
-                    x[xi + i + 1 - yc].adc(Limb::select(Limb::ZERO, y[i], ct_borrow), carry);
+                (x[xi + i + 1 - yc], carry) = x[xi + i + 1 - yc]
+                    .carrying_add(Limb::select(Limb::ZERO, y[i], ct_borrow), carry);
             }
             ct_borrow.select_word(quo, quo.wrapping_sub(1))
         };

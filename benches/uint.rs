@@ -1,10 +1,15 @@
-use criterion::{BatchSize, Criterion, black_box, criterion_group, criterion_main};
+use criterion::measurement::WallTime;
+use criterion::{
+    BatchSize, BenchmarkGroup, BenchmarkId, Criterion, criterion_group, criterion_main,
+};
+use crypto_bigint::modular::SafeGcdInverter;
 use crypto_bigint::{
-    Limb, NonZero, Odd, Random, RandomBits, RandomMod, Reciprocal, U128, U256, U512, U1024, U2048,
-    U4096, Uint,
+    Limb, NonZero, Odd, OddUint, PrecomputeInverter, Random, RandomBits, RandomMod, Reciprocal,
+    U128, U256, U512, U1024, U2048, U4096, Uint,
 };
 use rand_chacha::ChaCha8Rng;
 use rand_core::{RngCore, SeedableRng};
+use std::hint::black_box;
 
 fn make_rng() -> ChaCha8Rng {
     ChaCha8Rng::from_seed(*b"01234567890123456789012345678901")
@@ -146,18 +151,18 @@ fn bench_mul(c: &mut Criterion) {
     let mut group = c.benchmark_group("wrapping ops");
 
     let mut rng = make_rng();
-    group.bench_function("split_mul, U256xU256", |b| {
+    group.bench_function("widening_mul, U256xU256", |b| {
         b.iter_batched(
             || (U256::random(&mut rng), U256::random(&mut rng)),
-            |(x, y)| black_box(x.split_mul(&y)),
+            |(x, y)| black_box(x.widening_mul(&y)),
             BatchSize::SmallInput,
         )
     });
 
-    group.bench_function("split_mul, U4096xU4096", |b| {
+    group.bench_function("widening_mul, U4096xU4096", |b| {
         b.iter_batched(
             || (U4096::random(&mut rng), U4096::random(&mut rng)),
-            |(x, y)| black_box(x.split_mul(&y)),
+            |(x, y)| black_box(x.widening_mul(&y)),
             BatchSize::SmallInput,
         )
     });
@@ -219,7 +224,15 @@ fn bench_division(c: &mut Criterion) {
     let mut rng = make_rng();
     let mut group = c.benchmark_group("wrapping ops");
 
-    group.bench_function("div/rem, U256/U128, full size", |b| {
+    group.bench_function("div/rem, U256/U128", |b| {
+        b.iter_batched(
+            || (U256::random(&mut rng), NonZero::<U128>::random(&mut rng)),
+            |(x, y)| x.div_rem(&y),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("div/rem, U256/U128 (in U256)", |b| {
         b.iter_batched(
             || {
                 let x = U256::random(&mut rng);
@@ -227,7 +240,19 @@ fn bench_division(c: &mut Criterion) {
                 let y: U256 = (y_half, U128::ZERO).into();
                 (x, NonZero::new(y).unwrap())
             },
-            |(x, y)| black_box(x.div_rem(&y)),
+            |(x, y)| x.div_rem(&y),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("div/rem, U256/U128 (in U512)", |b| {
+        b.iter_batched(
+            || {
+                let x = U256::random(&mut rng);
+                let y: U512 = U128::random(&mut rng).resize();
+                (x, NonZero::new(y).unwrap())
+            },
+            |(x, y)| x.div_rem(&y),
             BatchSize::SmallInput,
         )
     });
@@ -239,20 +264,39 @@ fn bench_division(c: &mut Criterion) {
                 let y: U256 = (U128::MAX, U128::ZERO).into();
                 (x, NonZero::new(y).unwrap())
             },
-            |(x, y)| black_box(x.div_rem_vartime(&y)),
+            |(x, y)| x.div_rem_vartime(&y),
             BatchSize::SmallInput,
         )
     });
 
-    group.bench_function("rem, U256/U128, full size", |b| {
+    group.bench_function("rem, U256/U128", |b| {
+        b.iter_batched(
+            || (U256::random(&mut rng), NonZero::<U128>::random(&mut rng)),
+            |(x, y)| x.rem(&y),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("rem, U256/U128 (in U256)", |b| {
         b.iter_batched(
             || {
                 let x = U256::random(&mut rng);
-                let y_half = U128::random(&mut rng);
-                let y: U256 = (y_half, U128::ZERO).into();
+                let y: U256 = U128::random(&mut rng).resize();
                 (x, NonZero::new(y).unwrap())
             },
-            |(x, y)| black_box(x.rem(&y)),
+            |(x, y)| x.rem(&y),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("rem, U256/U128 (in U512)", |b| {
+        b.iter_batched(
+            || {
+                let x = U256::random(&mut rng);
+                let y: U512 = U128::random(&mut rng).resize();
+                (x, NonZero::new(y).unwrap())
+            },
+            |(x, y)| x.rem(&y),
             BatchSize::SmallInput,
         )
     });
@@ -264,7 +308,7 @@ fn bench_division(c: &mut Criterion) {
                 let y: U256 = (U128::MAX, U128::ZERO).into();
                 (x, NonZero::new(y).unwrap())
             },
-            |(x, y)| black_box(x.rem_vartime(&y)),
+            |(x, y)| x.rem_vartime(&y),
             BatchSize::SmallInput,
         )
     });
@@ -276,7 +320,7 @@ fn bench_division(c: &mut Criterion) {
                 let y: U256 = (U128::MAX, U128::ZERO).into();
                 (x_lo, x_hi, NonZero::new(y).unwrap())
             },
-            |(x_lo, x_hi, y)| black_box(Uint::rem_wide_vartime((x_lo, x_hi), &y)),
+            |(x_lo, x_hi, y)| Uint::rem_wide_vartime((x_lo, x_hi), &y),
             BatchSize::SmallInput,
         )
     });
@@ -289,19 +333,15 @@ fn bench_division(c: &mut Criterion) {
                 let y = U256::from_word(y_small.0);
                 (x, NonZero::new(y).unwrap())
             },
-            |(x, y)| black_box(x.div_rem(&y)),
+            |(x, y)| x.div_rem(&y),
             BatchSize::SmallInput,
         )
     });
 
     group.bench_function("div/rem, U256/Limb, single limb", |b| {
         b.iter_batched(
-            || {
-                let x = U256::random(&mut rng);
-                let y = Limb::random(&mut rng);
-                (x, NonZero::new(y).unwrap())
-            },
-            |(x, y)| black_box(x.div_rem_limb(y)),
+            || (U256::random(&mut rng), NonZero::<Limb>::random(&mut rng)),
+            |(x, y)| x.div_rem_limb(y),
             BatchSize::SmallInput,
         )
     });
@@ -309,15 +349,12 @@ fn bench_division(c: &mut Criterion) {
     group.bench_function("div/rem, U256/Limb, single limb with reciprocal", |b| {
         b.iter_batched(
             || {
-                let x = U256::random(&mut rng);
-                let mut y = Limb::random(&mut rng);
-                if y == Limb::ZERO {
-                    y = Limb::ONE;
-                }
-                let r = Reciprocal::new(NonZero::new(y).unwrap());
-                (x, r)
+                (
+                    U256::random(&mut rng),
+                    Reciprocal::new(NonZero::<Limb>::random(&mut rng)),
+                )
             },
-            |(x, r)| black_box(x.div_rem_limb_with_reciprocal(&r)),
+            |(x, r)| x.div_rem_limb_with_reciprocal(&r),
             BatchSize::SmallInput,
         )
     });
@@ -325,33 +362,122 @@ fn bench_division(c: &mut Criterion) {
     group.finish();
 }
 
-fn bench_gcd(c: &mut Criterion) {
+fn gcd_bench<const LIMBS: usize, const UNSAT_LIMBS: usize>(
+    g: &mut BenchmarkGroup<WallTime>,
+    _x: Uint<LIMBS>,
+) where
+    Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
+{
     let mut rng = make_rng();
+
+    g.bench_function(BenchmarkId::new("gcd", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                (
+                    Uint::<LIMBS>::random(&mut rng),
+                    Uint::<LIMBS>::random(&mut rng),
+                )
+            },
+            |(f, g)| black_box(Uint::gcd(&f, &g)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    g.bench_function(BenchmarkId::new("bingcd", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                (
+                    Uint::<LIMBS>::random(&mut rng),
+                    Uint::<LIMBS>::random(&mut rng),
+                )
+            },
+            |(f, g)| black_box(Uint::bingcd(&f, &g)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    g.bench_function(BenchmarkId::new("bingcd (classic)", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                (
+                    OddUint::<LIMBS>::random(&mut rng),
+                    Uint::<LIMBS>::random(&mut rng),
+                )
+            },
+            |(f, g)| black_box(f.classic_bingcd(&g)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    g.bench_function(BenchmarkId::new("bingcd (optimized)", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                (
+                    OddUint::<LIMBS>::random(&mut rng),
+                    Uint::<LIMBS>::random(&mut rng),
+                )
+            },
+            |(f, g)| black_box(f.optimized_bingcd(&g)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    g.bench_function(BenchmarkId::new("bingcd (vt)", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                (
+                    OddUint::<LIMBS>::random(&mut rng),
+                    Uint::<LIMBS>::random(&mut rng),
+                )
+            },
+            |(f, g)| black_box(f.bingcd_vartime(&g)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    g.bench_function(BenchmarkId::new("bingcd (classic, vt)", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                (
+                    OddUint::<LIMBS>::random(&mut rng),
+                    Uint::<LIMBS>::random(&mut rng),
+                )
+            },
+            |(f, g)| black_box(f.classic_bingcd_vartime(&g)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    g.bench_function(BenchmarkId::new("bingcd (optimized, vt)", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                (
+                    OddUint::<LIMBS>::random(&mut rng),
+                    Uint::<LIMBS>::random(&mut rng),
+                )
+            },
+            |(f, g)| black_box(f.optimized_bingcd_vartime(&g)),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
+fn bench_gcd(c: &mut Criterion) {
     let mut group = c.benchmark_group("greatest common divisor");
 
-    group.bench_function("gcd, U256", |b| {
-        b.iter_batched(
-            || {
-                let f = U256::random(&mut rng);
-                let g = U256::random(&mut rng);
-                (f, g)
-            },
-            |(f, g)| black_box(f.gcd(&g)),
-            BatchSize::SmallInput,
-        )
-    });
-
-    group.bench_function("gcd_vartime, U256", |b| {
-        b.iter_batched(
-            || {
-                let f = Odd::<U256>::random(&mut rng);
-                let g = U256::random(&mut rng);
-                (f, g)
-            },
-            |(f, g)| black_box(f.gcd_vartime(&g)),
-            BatchSize::SmallInput,
-        )
-    });
+    gcd_bench(&mut group, Uint::<1>::ZERO);
+    gcd_bench(&mut group, Uint::<2>::ZERO);
+    gcd_bench(&mut group, Uint::<3>::ZERO);
+    gcd_bench(&mut group, Uint::<4>::ZERO);
+    gcd_bench(&mut group, Uint::<5>::ZERO);
+    gcd_bench(&mut group, Uint::<6>::ZERO);
+    gcd_bench(&mut group, Uint::<7>::ZERO);
+    gcd_bench(&mut group, Uint::<8>::ZERO);
+    gcd_bench(&mut group, Uint::<16>::ZERO);
+    gcd_bench(&mut group, Uint::<32>::ZERO);
+    gcd_bench(&mut group, Uint::<64>::ZERO);
+    gcd_bench(&mut group, Uint::<128>::ZERO);
+    gcd_bench(&mut group, Uint::<256>::ZERO);
 
     group.finish();
 }
@@ -432,57 +558,57 @@ fn bench_shr(c: &mut Criterion) {
     group.finish();
 }
 
-fn bench_inv_mod(c: &mut Criterion) {
+fn bench_invert_mod(c: &mut Criterion) {
     let mut rng = make_rng();
     let mut group = c.benchmark_group("modular ops");
 
-    group.bench_function("inv_odd_mod, U256", |b| {
+    group.bench_function("invert_odd_mod, U256", |b| {
         b.iter_batched(
             || {
                 let m = Odd::<U256>::random(&mut rng);
                 loop {
                     let x = U256::random(&mut rng);
-                    let inv_x = x.inv_odd_mod(&m);
+                    let inv_x = x.invert_odd_mod(&m);
                     if inv_x.is_some().into() {
                         break (x, m);
                     }
                 }
             },
-            |(x, m)| black_box(x.inv_odd_mod(&m)),
+            |(x, m)| black_box(x.invert_odd_mod(&m)),
             BatchSize::SmallInput,
         )
     });
 
-    group.bench_function("inv_mod, U256, odd modulus", |b| {
+    group.bench_function("invert_mod, U256, odd modulus", |b| {
         b.iter_batched(
             || {
                 let m = Odd::<U256>::random(&mut rng);
                 loop {
                     let x = U256::random(&mut rng);
-                    let inv_x = x.inv_odd_mod(&m);
+                    let inv_x = x.invert_odd_mod(&m);
                     if inv_x.is_some().into() {
                         break (x, m);
                     }
                 }
             },
-            |(x, m)| black_box(x.inv_mod(&m)),
+            |(x, m)| black_box(x.invert_mod(&m)),
             BatchSize::SmallInput,
         )
     });
 
-    group.bench_function("inv_mod, U256", |b| {
+    group.bench_function("invert_mod, U256", |b| {
         b.iter_batched(
             || {
                 let m = U256::random(&mut rng);
                 loop {
                     let x = U256::random(&mut rng);
-                    let inv_x = x.inv_mod(&m);
+                    let inv_x = x.invert_mod(&m);
                     if inv_x.is_some().into() {
                         break (x, m);
                     }
                 }
             },
-            |(x, m)| black_box(x.inv_mod(&m)),
+            |(x, m)| black_box(x.invert_mod(&m)),
             BatchSize::SmallInput,
         )
     });
@@ -520,7 +646,7 @@ criterion_group!(
     bench_gcd,
     bench_shl,
     bench_shr,
-    bench_inv_mod,
+    bench_invert_mod,
     bench_sqrt
 );
 

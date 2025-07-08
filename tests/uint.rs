@@ -26,6 +26,15 @@ fn to_uint(big_uint: BigUint) -> U256 {
     U256::from_le_slice(&input)
 }
 
+fn to_uint_large(big_uint: BigUint) -> U4096 {
+    let mut input = [0u8; U4096::BYTES];
+    let encoded = big_uint.to_bytes_le();
+    let l = encoded.len().min(U4096::BYTES);
+    input[..l].copy_from_slice(&encoded[..l]);
+
+    U4096::from_le_slice(&input)
+}
+
 fn to_uint_xlarge(big_uint: BigUint) -> U8192 {
     let mut input = [0u8; U8192::BYTES];
     let encoded = big_uint.to_bytes_le();
@@ -265,12 +274,12 @@ proptest! {
     }
 
     #[test]
-    fn widening_mul_large(a in uint_large(), b in uint_large()) {
+    fn concatenating_mul_large(a in uint_large(), b in uint_large()) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
 
         let expected = to_uint_xlarge(a_bi * b_bi);
-        let actual = a.widening_mul(&b);
+        let actual = a.concatenating_mul(&b);
 
         assert_eq!(expected, actual);
     }
@@ -310,7 +319,7 @@ proptest! {
 
         if !c_bi.is_zero() {
             let expected = to_uint(ab_bi.div_rem(&c_bi).1);
-            let (lo, hi) = a.split_mul(&b);
+            let (lo, hi) = a.widening_mul(&b);
             let c_nz = NonZero::new(c).unwrap();
             let actual = Uint::rem_wide_vartime((lo, hi), &c_nz);
             prop_assert_eq!(expected, actual);
@@ -351,6 +360,28 @@ proptest! {
         prop_assert_eq!(expected, actual);
     }
 
+    /// Hits `classic_bingcd`
+    #[test]
+    fn bingcd(f in uint(), g in uint()) {
+        let f_bi = to_biguint(&f);
+        let g_bi = to_biguint(&g);
+
+        let expected = to_uint(f_bi.gcd(&g_bi));
+        let actual = f.bingcd(&g);
+        prop_assert_eq!(expected, actual);
+    }
+
+    /// Hits `optimized_bingcd`
+    #[test]
+    fn bingcd_large(f in uint_large(), g in uint_large()) {
+        let f_bi = to_biguint(&f);
+        let g_bi = to_biguint(&g);
+
+        let expected = to_uint_large(f_bi.gcd(&g_bi));
+        let actual = f.bingcd(&g);
+        prop_assert_eq!(expected, actual);
+    }
+
     #[test]
     fn gcd_vartime(mut f in uint(), g in uint()) {
         if bool::from(f.is_even()) {
@@ -367,14 +398,24 @@ proptest! {
     }
 
     #[test]
-    fn inv_mod2k(a in uint(), k in any::<u32>()) {
+    fn bingcd_vartime(f in uint(), g in uint()) {
+        let f_bi = to_biguint(&f);
+        let g_bi = to_biguint(&g);
+
+        let expected = to_uint(f_bi.gcd(&g_bi));
+        let actual = f.bingcd_vartime(&g);
+        prop_assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn invert_mod2k(a in uint(), k in any::<u32>()) {
         let a = a | U256::ONE; // make odd
         let k = k % (U256::BITS + 1);
         let a_bi = to_biguint(&a);
         let m_bi = BigUint::one() << k as usize;
 
-        let actual = a.inv_mod2k(k).unwrap();
-        let actual_vartime = a.inv_mod2k_vartime(k).unwrap();
+        let actual = a.invert_mod2k(k).unwrap();
+        let actual_vartime = a.invert_mod2k_vartime(k).unwrap();
         prop_assert_eq!(actual, actual_vartime);
 
         if k == 0 {
@@ -388,12 +429,12 @@ proptest! {
     }
 
     #[test]
-    fn inv_mod(a in uint(), b in uint()) {
+    fn invert_mod(a in uint(), b in uint()) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
 
         let expected_is_some = a_bi.gcd(&b_bi) == BigUint::one();
-        let actual = a.inv_mod(&b);
+        let actual = a.invert_mod(&b);
         let actual_is_some = bool::from(actual.is_some());
 
         prop_assert_eq!(expected_is_some, actual_is_some);

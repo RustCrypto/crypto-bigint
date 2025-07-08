@@ -1,11 +1,11 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{Integer, Limb, NonZero, Uint};
+use crate::{Bounded, ConstChoice, Int, Integer, Limb, NonZero, Uint};
 use core::{cmp::Ordering, fmt, ops::Deref};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "alloc")]
-use crate::BoxedUint;
+use crate::{BoxedUint, Resize};
 
 #[cfg(feature = "rand_core")]
 use crate::{Random, rand_core::TryRngCore};
@@ -20,6 +20,16 @@ use serdect::serde::{
     Deserialize, Deserializer, Serialize, Serializer,
     de::{Error, Unexpected},
 };
+
+/// Non-zero unsigned integer.
+pub type OddUint<const LIMBS: usize> = Odd<Uint<LIMBS>>;
+
+/// Non-zero signed integer.
+pub type OddInt<const LIMBS: usize> = Odd<Int<LIMBS>>;
+
+/// Non-zero boxed unsigned integer.
+#[cfg(feature = "alloc")]
+pub type OddBoxedUint = Odd<BoxedUint>;
 
 /// Wrapper type for odd integers.
 ///
@@ -57,6 +67,17 @@ impl<T> Odd<T> {
     }
 }
 
+impl<T> Odd<T>
+where
+    T: Bounded,
+{
+    /// Total size of the represented integer in bits.
+    pub const BITS: u32 = T::BITS;
+
+    /// Total size of the represented integer in bytes.
+    pub const BYTES: usize = T::BYTES;
+}
+
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Create a new [`Odd<Uint<LIMBS>>`] from the provided big endian hex string.
     ///
@@ -74,6 +95,20 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         let uint = Uint::<LIMBS>::from_be_hex(hex);
         assert!(uint.is_odd().is_true_vartime(), "number must be odd");
         Odd(uint)
+    }
+}
+
+impl<const LIMBS: usize> Odd<Int<LIMBS>> {
+    /// The sign and magnitude of this [`Odd<Int<{LIMBS}>>`].
+    pub const fn abs_sign(&self) -> (Odd<Uint<LIMBS>>, ConstChoice) {
+        // Absolute value of an odd value is odd
+        let (abs, sgn) = Int::abs_sign(self.as_ref());
+        (Odd(abs), sgn)
+    }
+
+    /// The magnitude of this [`Odd<Int<{LIMBS}>>`].
+    pub const fn abs(&self) -> Odd<Uint<LIMBS>> {
+        self.abs_sign().0
     }
 }
 
@@ -147,6 +182,32 @@ impl PartialEq<Odd<BoxedUint>> for BoxedUint {
 impl PartialOrd<Odd<BoxedUint>> for BoxedUint {
     fn partial_cmp(&self, other: &Odd<BoxedUint>) -> Option<Ordering> {
         Some(self.cmp(&other.0))
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl Resize for Odd<BoxedUint> {
+    type Output = Self;
+
+    fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output {
+        Odd(self.0.resize_unchecked(at_least_bits_precision))
+    }
+
+    fn try_resize(self, at_least_bits_precision: u32) -> Option<Self::Output> {
+        self.0.try_resize(at_least_bits_precision).map(Odd)
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl Resize for &Odd<BoxedUint> {
+    type Output = Odd<BoxedUint>;
+
+    fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output {
+        Odd((&self.0).resize_unchecked(at_least_bits_precision))
+    }
+
+    fn try_resize(self, at_least_bits_precision: u32) -> Option<Self::Output> {
+        (&self.0).try_resize(at_least_bits_precision).map(Odd)
     }
 }
 
@@ -270,13 +331,15 @@ mod tests {
     #[cfg(feature = "serde")]
     mod serde_tests {
         use crate::{Odd, U64, U128};
-        use bincode::ErrorKind;
 
         #[test]
         fn roundtrip() {
             let uint = Odd::new(U64::from_u64(0x00123)).unwrap();
-            let ser = bincode::serialize(&uint).unwrap();
-            let deser = bincode::deserialize::<Odd<U64>>(&ser).unwrap();
+            let ser = bincode::serde::encode_to_vec(uint, bincode::config::standard()).unwrap();
+            let deser =
+                bincode::serde::decode_from_slice::<Odd<U64>, _>(&ser, bincode::config::standard())
+                    .unwrap()
+                    .0;
 
             assert_eq!(uint, deser);
         }
@@ -284,22 +347,28 @@ mod tests {
         #[test]
         fn even_values_do_not_deserialize() {
             let two = U128::from_u64(0x2);
-            let two_ser = bincode::serialize(&two).unwrap();
-            assert!(matches!(
-                *bincode::deserialize::<Odd<U128>>(&two_ser).unwrap_err(),
-                ErrorKind::Custom(mess) if mess == "invalid value: even, expected a non-zero odd value"
-            ))
+            let two_ser = bincode::serde::encode_to_vec(two, bincode::config::standard()).unwrap();
+            assert!(
+                bincode::serde::decode_from_slice::<Odd<U128>, _>(
+                    &two_ser,
+                    bincode::config::standard()
+                )
+                .is_err()
+            );
         }
 
         #[test]
         fn zero_does_not_deserialize() {
             let zero = U64::ZERO;
-            let zero_ser = bincode::serialize(&zero).unwrap();
-
-            assert!(matches!(
-                *bincode::deserialize::<Odd<U64>>(&zero_ser).unwrap_err(),
-                ErrorKind::Custom(mess) if mess == "invalid value: even, expected a non-zero odd value"
-            ))
+            let zero_ser =
+                bincode::serde::encode_to_vec(zero, bincode::config::standard()).unwrap();
+            assert!(
+                bincode::serde::decode_from_slice::<Odd<U64>, _>(
+                    &zero_ser,
+                    bincode::config::standard()
+                )
+                .is_err()
+            );
         }
     }
 }

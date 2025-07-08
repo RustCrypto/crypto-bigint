@@ -1,19 +1,30 @@
-//! Macro support.
+//! [`ConstMontyForm`]/[`ConstMontyParams`] support macros.
 
-/// Implements a modulus with the given name, type, and value, in that specific order. Please
-/// `use crypto_bigint::traits::Encoding` to make this work.
+#[cfg(doc)]
+use crate::modular::{ConstMontyForm, ConstMontyParams};
+
+/// Create a type representing a modulus which impls the [`ConstMontyParams`] trait with the given
+/// name, type, value (in big endian hex), and optional documentation string.
 ///
-/// For example,
-/// `impl_modulus!(MyModulus, U256, "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001");`
-/// implements a 256-bit modulus named `MyModulus`.
+/// # Usage
+///
+/// ```
+/// use crypto_bigint::{U256, const_monty_params};
+///
+/// const_monty_params!(
+///     MyModulus,
+///     U256,
+///     "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001",
+///     "Docs for my modulus"
+/// );
+/// ```
 ///
 /// The modulus _must_ be odd, or this will panic.
-// TODO: Use `adt_const_params` once stabilized to make a `ConstMontyForm` generic around a modulus rather
-// than having to implement a ZST + trait
+// TODO: use `adt_const_params` when stable to make a `ConstMontyForm` generic around a modulus
 #[macro_export]
-macro_rules! impl_modulus {
+macro_rules! const_monty_params {
     ($name:ident, $uint_type:ty, $value:expr) => {
-        impl_modulus!(
+        $crate::const_monty_params!(
             $name,
             $uint_type,
             $value,
@@ -46,7 +57,7 @@ macro_rules! impl_modulus {
                 $crate::Word::MIN.wrapping_sub(
                     Self::MODULUS
                         .as_ref()
-                        .inv_mod2k_vartime($crate::Word::BITS)
+                        .invert_mod2k_vartime($crate::Word::BITS)
                         .expect("modulus ensured odd")
                         .as_limbs()[0]
                         .0,
@@ -72,16 +83,44 @@ macro_rules! impl_modulus {
     };
 }
 
-/// Creates a `ConstMontyForm` with the given value for a specific modulus.
+/// Creates a [`ConstMontyForm`] with the given value for a specific modulus, i.e. a type which
+/// impls [`ConstMontyParams`].
 ///
-/// For example, `const_monty_form!(U256::from(105u64), MyModulus);`
-/// creates a `ConstMontyForm` for 105 mod `MyModulus`.
+/// # Usage
 ///
-/// The modulus _must_ be odd, or this will panic.
+/// ```
+/// use crypto_bigint::{U256, modular::ConstMontyParams, const_monty_form};
+/// #
+/// # crypto_bigint::const_monty_params!(
+/// #    MyModulus,
+/// #    U256,
+/// #    "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001",
+/// #    "Docs for my modulus"
+/// # );
+///
+/// const_monty_form!(U256::from(105u64), MyModulus);
+/// ```
 #[macro_export]
 macro_rules! const_monty_form {
-    ($variable:ident, $modulus:ident) => {
-        $crate::modular::ConstMontyForm::<$modulus, { $modulus::LIMBS }>::new(&$variable)
+    ($value:expr, $modulus:ident) => {
+        $crate::modular::ConstMontyForm::<$modulus, { $modulus::LIMBS }>::new(&$value)
+    };
+}
+
+/// Deprecated legacy macro which has been replaced by [`const_monty_form!`].
+#[deprecated(since = "0.7.0", note = "use `const_monty_params!` instead")]
+#[macro_export]
+macro_rules! impl_modulus {
+    ($name:ident, $uint_type:ty, $value:expr) => {
+        $crate::const_monty_params!(
+            $name,
+            $uint_type,
+            $value,
+            "Modulus which impls `ConstMontyParams`"
+        );
+    };
+    ($name:ident, $uint_type:ty, $value:expr, $doc:expr) => {
+        $crate::const_monty_params!($name, $uint_type, $value, $doc);
     };
 }
 
@@ -92,8 +131,16 @@ mod tests {
 
     #[test]
     fn new_params_with_valid_modulus() {
-        impl_modulus!(Mod, U64, "0000000000000003");
+        const_monty_params!(Mod, U64, "0000000000000003");
+        assert_eq!(Mod::MOD_LEADING_ZEROS, core::cmp::min(Limb::BITS - 1, 62));
+    }
 
+    /// Make sure the deprecated macro still works
+    // TODO(tarcieri): remove this in the next breaking release
+    #[test]
+    #[allow(deprecated)]
+    fn impl_modulus_with_valid_modulus() {
+        impl_modulus!(Mod, U64, "0000000000000003");
         assert_eq!(Mod::MOD_LEADING_ZEROS, core::cmp::min(Limb::BITS - 1, 62));
     }
 }

@@ -17,7 +17,7 @@ pub(crate) const fn div_by_2<const LIMBS: usize>(
     // whose Montgomery representation is `b`.
 
     let is_odd = a.is_odd();
-    let (if_odd, carry) = a.adc(&modulus.0, Limb::ZERO);
+    let (if_odd, carry) = a.carrying_add(&modulus.0, Limb::ZERO);
     let carry = Limb::select(Limb::ZERO, carry, is_odd);
     Uint::<LIMBS>::select(a, &if_odd, is_odd)
         .shr1()
@@ -36,7 +36,7 @@ pub(crate) fn div_by_2_boxed_assign(a: &mut BoxedUint, modulus: &Odd<BoxedUint>)
     debug_assert_eq!(a.bits_precision(), modulus.bits_precision());
 
     let is_odd = a.is_odd();
-    let carry = a.conditional_adc_assign(modulus, is_odd);
+    let carry = a.conditional_carrying_add_assign(modulus, is_odd);
     a.shr1_assign();
     a.set_bit(a.bits_precision() - 1, carry);
 }

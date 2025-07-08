@@ -6,14 +6,20 @@ use core::ops::{Sub, SubAssign};
 use subtle::CtOption;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Computes `a - (b + borrow)`, returning the result along with the new borrow.
+    /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
+    #[deprecated(since = "0.7.0", note = "please use `borrowing_sub` instead")]
+    pub const fn sbb(&self, rhs: &Self, borrow: Limb) -> (Self, Limb) {
+        self.borrowing_sub(rhs, borrow)
+    }
+
+    /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
     #[inline(always)]
-    pub const fn sbb(&self, rhs: &Self, mut borrow: Limb) -> (Self, Limb) {
+    pub const fn borrowing_sub(&self, rhs: &Self, mut borrow: Limb) -> (Self, Limb) {
         let mut limbs = [Limb::ZERO; LIMBS];
         let mut i = 0;
 
         while i < LIMBS {
-            let (w, b) = self.limbs[i].sbb(rhs.limbs[i], borrow);
+            let (w, b) = self.limbs[i].borrowing_sub(rhs.limbs[i], borrow);
             limbs[i] = w;
             borrow = b;
             i += 1;
@@ -24,20 +30,20 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Perform saturating subtraction, returning `ZERO` on underflow.
     pub const fn saturating_sub(&self, rhs: &Self) -> Self {
-        let (res, underflow) = self.sbb(rhs, Limb::ZERO);
+        let (res, underflow) = self.borrowing_sub(rhs, Limb::ZERO);
         Self::select(&res, &Self::ZERO, ConstChoice::from_word_mask(underflow.0))
     }
 
     /// Perform wrapping subtraction, discarding underflow and wrapping around
     /// the boundary of the type.
     pub const fn wrapping_sub(&self, rhs: &Self) -> Self {
-        self.sbb(rhs, Limb::ZERO).0
+        self.borrowing_sub(rhs, Limb::ZERO).0
     }
 }
 
 impl<const LIMBS: usize> CheckedSub for Uint<LIMBS> {
     fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
-        let (result, underflow) = self.sbb(rhs, Limb::ZERO);
+        let (result, underflow) = self.borrowing_sub(rhs, Limb::ZERO);
         CtOption::new(result, underflow.is_zero())
     }
 }
@@ -106,15 +112,15 @@ mod tests {
     use crate::{CheckedSub, Limb, U128};
 
     #[test]
-    fn sbb_no_borrow() {
-        let (res, borrow) = U128::ONE.sbb(&U128::ONE, Limb::ZERO);
+    fn borrowing_sub_no_borrow() {
+        let (res, borrow) = U128::ONE.borrowing_sub(&U128::ONE, Limb::ZERO);
         assert_eq!(res, U128::ZERO);
         assert_eq!(borrow, Limb::ZERO);
     }
 
     #[test]
-    fn sbb_with_borrow() {
-        let (res, borrow) = U128::ZERO.sbb(&U128::ONE, Limb::ZERO);
+    fn borrowing_sub_with_borrow() {
+        let (res, borrow) = U128::ZERO.borrowing_sub(&U128::ONE, Limb::ZERO);
 
         assert_eq!(res, U128::MAX);
         assert_eq!(borrow, Limb::MAX);

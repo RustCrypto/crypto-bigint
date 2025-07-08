@@ -13,7 +13,21 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// negated when converted from [`Uint`] to [`Int`].
     ///
     /// Note: even if `negate` is truthy, the magnitude might be zero!
+    #[deprecated(since = "0.7.0", note = "please use `widening_mul` instead")]
     pub const fn split_mul<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Int<RHS_LIMBS>,
+    ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, ConstChoice) {
+        self.widening_mul(rhs)
+    }
+
+    /// Compute "wide" multiplication as a 3-tuple `(lo, hi, negate)`.
+    /// The `(lo, hi)` components contain the _magnitude of the product_, with sizes
+    /// corresponding to the sizes of the operands; `negate` indicates whether the result should be
+    /// negated when converted from [`Uint`] to [`Int`].
+    ///
+    /// Note: even if `negate` is truthy, the magnitude might be zero!
+    pub const fn widening_mul<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
     ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, ConstChoice) {
@@ -22,7 +36,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let (rhs_abs, rhs_sgn) = rhs.abs_sign();
 
         // Step 2: multiply the magnitudes
-        let (lo, hi) = lhs_abs.split_mul(&rhs_abs);
+        let (lo, hi) = lhs_abs.widening_mul(&rhs_abs);
 
         // Step 3. Determine if the result should be negated.
         // This should be done if and only if lhs and rhs have opposing signs.
@@ -34,7 +48,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
-    pub const fn widening_mul<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
+    pub const fn concatenating_mul<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
     ) -> Int<WIDE_LIMBS>
@@ -43,7 +57,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     {
         let (lhs_abs, lhs_sign) = self.abs_sign();
         let (rhs_abs, rhs_sign) = rhs.abs_sign();
-        let product_abs = lhs_abs.widening_mul(&rhs_abs);
+        let product_abs = lhs_abs.concatenating_mul(&rhs_abs);
         let product_sign = lhs_sign.xor(rhs_sign);
 
         // always fits
@@ -80,7 +94,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Int<RHS_LIMBS>> for Int<LIMBS> {
     #[inline]
     fn checked_mul(&self, rhs: &Int<RHS_LIMBS>) -> CtOption<Self> {
-        let (lo, hi, is_negative) = self.split_mul(rhs);
+        let (lo, hi, is_negative) = self.widening_mul(rhs);
         let val = Self::new_from_abs_sign(lo, is_negative);
         CtOption::from(val).and_then(|int| CtOption::new(int, hi.is_zero()))
     }
@@ -133,15 +147,15 @@ impl<const LIMBS: usize> MulAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
 
 // TODO(lleoha): unfortunately we cannot satisfy this (yet!).
 // impl<const LIMBS: usize, const RHS_LIMBS: usize, const WIDE_LIMBS: usize>
-// WideningMul<Int<RHS_LIMBS>> for Int<LIMBS>
+// ConcatenatingMul<Int<RHS_LIMBS>> for Int<LIMBS>
 // where
 //     Uint<LIMBS>: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
 // {
 //     type Output = Int<WIDE_LIMBS>;
 //
 //     #[inline]
-//     fn widening_mul(&self, rhs: Int<RHS_LIMBS>) -> Self::Output {
-//         self.widening_mul(&rhs)
+//     fn concatenating_mul(&self, rhs: Int<RHS_LIMBS>) -> Self::Output {
+//         self.concatenating_mul(&rhs)
 //     }
 // }
 
@@ -243,70 +257,79 @@ mod tests {
     }
 
     #[test]
-    fn test_widening_mul() {
+    fn test_concatenating_mul() {
         assert_eq!(
-            I128::MIN.widening_mul(&I128::MIN),
+            I128::MIN.concatenating_mul(&I128::MIN),
             I256::from_be_hex("4000000000000000000000000000000000000000000000000000000000000000")
         );
         assert_eq!(
-            I128::MIN.widening_mul(&I128::MINUS_ONE),
+            I128::MIN.concatenating_mul(&I128::MINUS_ONE),
             I256::from_be_hex("0000000000000000000000000000000080000000000000000000000000000000")
         );
-        assert_eq!(I128::MIN.widening_mul(&I128::ZERO), I256::ZERO);
+        assert_eq!(I128::MIN.concatenating_mul(&I128::ZERO), I256::ZERO);
         assert_eq!(
-            I128::MIN.widening_mul(&I128::ONE),
+            I128::MIN.concatenating_mul(&I128::ONE),
             I256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF80000000000000000000000000000000")
         );
         assert_eq!(
-            I128::MIN.widening_mul(&I128::MAX),
+            I128::MIN.concatenating_mul(&I128::MAX),
             I256::from_be_hex("C000000000000000000000000000000080000000000000000000000000000000")
         );
 
         assert_eq!(
-            I128::MINUS_ONE.widening_mul(&I128::MIN),
+            I128::MINUS_ONE.concatenating_mul(&I128::MIN),
             I256::from_be_hex("0000000000000000000000000000000080000000000000000000000000000000")
         );
-        assert_eq!(I128::MINUS_ONE.widening_mul(&I128::MINUS_ONE), I256::ONE);
-        assert_eq!(I128::MINUS_ONE.widening_mul(&I128::ZERO), I256::ZERO);
-        assert_eq!(I128::MINUS_ONE.widening_mul(&I128::ONE), I256::MINUS_ONE);
         assert_eq!(
-            I128::MINUS_ONE.widening_mul(&I128::MAX),
+            I128::MINUS_ONE.concatenating_mul(&I128::MINUS_ONE),
+            I256::ONE
+        );
+        assert_eq!(I128::MINUS_ONE.concatenating_mul(&I128::ZERO), I256::ZERO);
+        assert_eq!(
+            I128::MINUS_ONE.concatenating_mul(&I128::ONE),
+            I256::MINUS_ONE
+        );
+        assert_eq!(
+            I128::MINUS_ONE.concatenating_mul(&I128::MAX),
             I256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF80000000000000000000000000000001")
         );
 
-        assert_eq!(I128::ZERO.widening_mul(&I128::MIN), I256::ZERO);
-        assert_eq!(I128::ZERO.widening_mul(&I128::MINUS_ONE), I256::ZERO);
-        assert_eq!(I128::ZERO.widening_mul(&I128::ZERO), I256::ZERO);
-        assert_eq!(I128::ZERO.widening_mul(&I128::ONE), I256::ZERO);
-        assert_eq!(I128::ZERO.widening_mul(&I128::MAX), I256::ZERO);
+        assert_eq!(I128::ZERO.concatenating_mul(&I128::MIN), I256::ZERO);
+        assert_eq!(I128::ZERO.concatenating_mul(&I128::MINUS_ONE), I256::ZERO);
+        assert_eq!(I128::ZERO.concatenating_mul(&I128::ZERO), I256::ZERO);
+        assert_eq!(I128::ZERO.concatenating_mul(&I128::ONE), I256::ZERO);
+        assert_eq!(I128::ZERO.concatenating_mul(&I128::MAX), I256::ZERO);
 
         assert_eq!(
-            I128::ONE.widening_mul(&I128::MIN),
+            I128::ONE.concatenating_mul(&I128::MIN),
             I256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF80000000000000000000000000000000")
         );
-        assert_eq!(I128::ONE.widening_mul(&I128::MINUS_ONE), I256::MINUS_ONE);
-        assert_eq!(I128::ONE.widening_mul(&I128::ZERO), I256::ZERO);
-        assert_eq!(I128::ONE.widening_mul(&I128::ONE), I256::ONE);
         assert_eq!(
-            I128::ONE.widening_mul(&I128::MAX),
+            I128::ONE.concatenating_mul(&I128::MINUS_ONE),
+            I256::MINUS_ONE
+        );
+        assert_eq!(I128::ONE.concatenating_mul(&I128::ZERO), I256::ZERO);
+        assert_eq!(I128::ONE.concatenating_mul(&I128::ONE), I256::ONE);
+        assert_eq!(
+            I128::ONE.concatenating_mul(&I128::MAX),
             I256::from_be_hex("000000000000000000000000000000007FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
         );
 
         assert_eq!(
-            I128::MAX.widening_mul(&I128::MIN),
+            I128::MAX.concatenating_mul(&I128::MIN),
             I256::from_be_hex("C000000000000000000000000000000080000000000000000000000000000000")
         );
         assert_eq!(
-            I128::MAX.widening_mul(&I128::MINUS_ONE),
+            I128::MAX.concatenating_mul(&I128::MINUS_ONE),
             I256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF80000000000000000000000000000001")
         );
-        assert_eq!(I128::MAX.widening_mul(&I128::ZERO), I256::ZERO);
+        assert_eq!(I128::MAX.concatenating_mul(&I128::ZERO), I256::ZERO);
         assert_eq!(
-            I128::MAX.widening_mul(&I128::ONE),
+            I128::MAX.concatenating_mul(&I128::ONE),
             I256::from_be_hex("000000000000000000000000000000007FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
         );
         assert_eq!(
-            I128::MAX.widening_mul(&I128::MAX),
+            I128::MAX.concatenating_mul(&I128::MAX),
             I256::from_be_hex("3FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000000000000000000000000001")
         );
     }

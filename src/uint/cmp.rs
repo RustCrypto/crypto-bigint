@@ -25,6 +25,24 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Uint { limbs }
     }
 
+    /// Swap `a` and `b` if `c` is truthy, otherwise, do nothing.
+    #[inline]
+    pub(crate) const fn conditional_swap(a: &mut Self, b: &mut Self, c: ConstChoice) {
+        let mut i = 0;
+        let a = a.as_mut_limbs();
+        let b = b.as_mut_limbs();
+        while i < LIMBS {
+            Limb::ct_conditional_swap(&mut a[i], &mut b[i], c);
+            i += 1;
+        }
+    }
+
+    /// Swap `a` and `b`
+    #[inline]
+    pub(crate) const fn swap(a: &mut Self, b: &mut Self) {
+        Self::conditional_swap(a, b, ConstChoice::TRUE)
+    }
+
     /// Returns the truthy value if `self`!=0 or the falsy value otherwise.
     #[inline]
     pub(crate) const fn is_nonzero(&self) -> ConstChoice {
@@ -61,9 +79,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[inline]
     pub(crate) const fn lt(lhs: &Self, rhs: &Self) -> ConstChoice {
         // We could use the same approach as in Limb::ct_lt(),
-        // but since we have to use Uint::wrapping_sub(), which calls `sbb()`,
-        // there are no savings compared to just calling `sbb()` directly.
-        let (_res, borrow) = lhs.sbb(rhs, Limb::ZERO);
+        // but since we have to use Uint::wrapping_sub(), which calls `borrowing_sub()`,
+        // there are no savings compared to just calling `borrowing_sub()` directly.
+        let (_res, borrow) = lhs.borrowing_sub(rhs, Limb::ZERO);
         ConstChoice::from_word_mask(borrow.0)
     }
 
@@ -76,7 +94,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Returns the truthy value if `self > rhs` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn gt(lhs: &Self, rhs: &Self) -> ConstChoice {
-        let (_res, borrow) = rhs.sbb(lhs, Limb::ZERO);
+        let (_res, borrow) = rhs.borrowing_sub(lhs, Limb::ZERO);
         ConstChoice::from_word_mask(borrow.0)
     }
 
@@ -92,7 +110,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut diff = Limb::ZERO;
 
         while i < LIMBS {
-            let (w, b) = rhs.limbs[i].sbb(lhs.limbs[i], borrow);
+            let (w, b) = rhs.limbs[i].borrowing_sub(lhs.limbs[i], borrow);
             diff = diff.bitor(w);
             borrow = b;
             i += 1;
@@ -105,7 +123,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn cmp_vartime(&self, rhs: &Self) -> Ordering {
         let mut i = LIMBS - 1;
         loop {
-            let (val, borrow) = self.limbs[i].sbb(rhs.limbs[i], Limb::ZERO);
+            let (val, borrow) = self.limbs[i].borrowing_sub(rhs.limbs[i], Limb::ZERO);
             if val.0 != 0 {
                 return if borrow.0 != 0 {
                     Ordering::Less
@@ -173,7 +191,7 @@ mod tests {
 
     use subtle::{ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
-    use crate::{Integer, U128, Uint, Zero};
+    use crate::{ConstChoice, Integer, U128, Uint, Zero};
 
     #[test]
     fn is_zero() {
@@ -299,5 +317,19 @@ mod tests {
         assert_eq!(b.cmp_vartime(&a), Ordering::Greater);
         assert_eq!(c.cmp_vartime(&a), Ordering::Greater);
         assert_eq!(c.cmp_vartime(&b), Ordering::Greater);
+    }
+
+    #[test]
+    fn conditional_swap() {
+        let mut a = U128::ZERO;
+        let mut b = U128::MAX;
+
+        Uint::conditional_swap(&mut a, &mut b, ConstChoice::FALSE);
+        assert_eq!(a, Uint::ZERO);
+        assert_eq!(b, Uint::MAX);
+
+        Uint::conditional_swap(&mut a, &mut b, ConstChoice::TRUE);
+        assert_eq!(a, Uint::MAX);
+        assert_eq!(b, Uint::ZERO);
     }
 }
