@@ -159,6 +159,12 @@
 //! [`Mul`]: core::ops::Mul
 //! [`Rem`]: core::ops::Rem
 //! [`Sub`]: core::ops::Sub
+//!
+//! ## `crypto-primes` crate
+//!
+//! This crate contains no prime number related functionality (e.g. random prime generation). Such
+//! functionality can be found in the companion [`crypto-primes`](https://docs.rs/crypto-primes)
+//! crate.
 
 #[cfg(feature = "alloc")]
 #[allow(unused_imports)]
