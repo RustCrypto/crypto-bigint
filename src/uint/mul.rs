@@ -25,9 +25,13 @@ const fn schoolbook_multiplication(lhs: &[Limb], rhs: &[Limb], lo: &mut [Limb], 
 
     let mut i = 0;
     while i < lhs.len() {
+        let xi = lhs[i];
+        if xi.0 == 0 {
+            i += 1;
+            continue;
+        }
         let mut j = 0;
         let mut carry = Limb::ZERO;
-        let xi = lhs[i];
 
         while j < rhs.len() {
             let k = i + j;
@@ -38,6 +42,10 @@ const fn schoolbook_multiplication(lhs: &[Limb], rhs: &[Limb], lo: &mut [Limb], 
                 (lo[k], carry) = xi.carrying_mul_add(rhs[j], lo[k], carry);
             }
 
+            if carry.0 == 0 && all_zero(rhs, j + 1) {
+                j = rhs.len();
+                continue;
+            }
             j += 1;
         }
 
@@ -48,6 +56,18 @@ const fn schoolbook_multiplication(lhs: &[Limb], rhs: &[Limb], lo: &mut [Limb], 
         }
         i += 1;
     }
+}
+
+#[inline(always)]
+const fn all_zero(limbs: &[Limb], start: usize) -> bool {
+    let mut i = start;
+    while i < limbs.len() {
+        if limbs[i].0 != 0 {
+            return false;
+        }
+        i += 1;
+    }
+    true
 }
 
 /// Schoolbook method of squaring.
