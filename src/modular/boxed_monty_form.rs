@@ -11,7 +11,7 @@ mod sub;
 use super::{Retrieve, div_by_2};
 use mul::BoxedMontyMultiplier;
 
-use crate::{BoxedUint, Limb, Monty, Odd, Resize, Word};
+use crate::{BoxedUint, Limb, Monty, Odd, Resize, Word, modular::MontyParams};
 use alloc::sync::Arc;
 use subtle::Choice;
 
@@ -154,6 +154,28 @@ impl BoxedMontyParams {
 
     pub(crate) fn mod_leading_zeros(&self) -> u32 {
         self.0.mod_leading_zeros
+    }
+}
+
+impl<const LIMBS: usize> From<&MontyParams<LIMBS>> for BoxedMontyParams {
+    fn from(params: &MontyParams<LIMBS>) -> Self {
+        Self(
+            BoxedMontyParamsInner {
+                modulus: params.modulus.into(),
+                one: params.one.into(),
+                r2: params.r2.into(),
+                r3: params.r3.into(),
+                mod_neg_inv: params.mod_neg_inv,
+                mod_leading_zeros: params.mod_leading_zeros,
+            }
+            .into(),
+        )
+    }
+}
+
+impl<const LIMBS: usize> From<MontyParams<LIMBS>> for BoxedMontyParams {
+    fn from(params: MontyParams<LIMBS>) -> Self {
+        BoxedMontyParams::from(&params)
     }
 }
 
