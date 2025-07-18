@@ -12,7 +12,11 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     /// For a modulus with leading zeros, this method is more efficient than a naive sum of products.
     pub const fn lincomb_vartime(products: &[(Self, Self)]) -> Self {
         Self {
-            montgomery_form: lincomb_const_monty_form(products, &MOD::MODULUS, MOD::MOD_NEG_INV),
+            montgomery_form: lincomb_const_monty_form(
+                products,
+                &MOD::PARAMS.modulus,
+                MOD::PARAMS.mod_neg_inv,
+            ),
             phantom: PhantomData,
         }
     }
@@ -32,7 +36,7 @@ mod tests {
             U256,
             "7fffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"
         );
-        let modulus = P::MODULUS.as_nz_ref();
+        let modulus = P::PARAMS.modulus.as_nz_ref();
 
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
         for n in 0..1000 {

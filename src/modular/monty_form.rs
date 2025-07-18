@@ -22,18 +22,18 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct MontyParams<const LIMBS: usize> {
     /// The constant modulus
-    modulus: Odd<Uint<LIMBS>>,
+    pub(super) modulus: Odd<Uint<LIMBS>>,
     /// 1 in Montgomery form (a.k.a. `R`)
-    one: Uint<LIMBS>,
+    pub(super) one: Uint<LIMBS>,
     /// `R^2 mod modulus`, used to move into Montgomery form
-    r2: Uint<LIMBS>,
+    pub(super) r2: Uint<LIMBS>,
     /// `R^3 mod modulus`, used to compute the multiplicative inverse
-    r3: Uint<LIMBS>,
+    pub(super) r3: Uint<LIMBS>,
     /// The lowest limbs of -(MODULUS^-1) mod R
     /// We only need the LSB because during reduction this value is multiplied modulo 2**Limb::BITS.
-    mod_neg_inv: Limb,
+    pub(super) mod_neg_inv: Limb,
     /// Leading zeros in the modulus, used to choose optimized algorithms
-    mod_leading_zeros: u32,
+    pub(super) mod_leading_zeros: u32,
 }
 
 impl<const LIMBS: usize, const WIDE_LIMBS: usize> MontyParams<LIMBS>
@@ -125,21 +125,6 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
     /// Returns the modulus which was used to initialize these parameters.
     pub const fn modulus(&self) -> &Odd<Uint<LIMBS>> {
         &self.modulus
-    }
-
-    /// Create `MontyParams` corresponding to a `ConstMontyParams`.
-    pub const fn from_const_params<P>() -> Self
-    where
-        P: ConstMontyParams<LIMBS>,
-    {
-        Self {
-            modulus: Odd(P::MODULUS.0),
-            one: P::ONE,
-            r2: P::R2,
-            r3: P::R3,
-            mod_neg_inv: P::MOD_NEG_INV,
-            mod_leading_zeros: P::MOD_LEADING_ZEROS,
-        }
     }
 }
 
@@ -324,7 +309,7 @@ impl<const LIMBS: usize, P: ConstMontyParams<LIMBS>> From<&ConstMontyForm<P, LIM
     fn from(const_monty_form: &ConstMontyForm<P, LIMBS>) -> Self {
         Self {
             montgomery_form: const_monty_form.to_montgomery(),
-            params: MontyParams::from_const_params::<P>(),
+            params: P::PARAMS,
         }
     }
 }

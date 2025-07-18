@@ -37,7 +37,7 @@ proptest! {
         let actual = Option::<ConstMontyForm>::from(x.invert());
 
         let x_bi = retrieve_biguint(&x);
-        let n_bi = to_biguint(&Modulus::MODULUS);
+        let n_bi = to_biguint(&Modulus::PARAMS.modulus());
         let expected = x_bi.invm(&n_bi);
 
         match (expected, actual) {
@@ -58,7 +58,7 @@ proptest! {
         let actual = Option::<ConstMontyForm>::from(inverter.invert(&x));
 
         let x_bi = retrieve_biguint(&x);
-        let n_bi = to_biguint(&Modulus::MODULUS);
+        let n_bi = to_biguint(&Modulus::PARAMS.modulus());
         let expected = x_bi.invm(&n_bi);
 
         match (expected, actual) {

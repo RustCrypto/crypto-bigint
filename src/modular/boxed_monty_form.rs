@@ -8,10 +8,10 @@ mod neg;
 mod pow;
 mod sub;
 
-use super::{ConstMontyParams, Retrieve, div_by_2};
+use super::{Retrieve, div_by_2};
 use mul::BoxedMontyMultiplier;
 
-use crate::{BoxedUint, Limb, Monty, Odd, Resize, Word};
+use crate::{BoxedUint, Limb, Monty, Odd, Resize, Word, modular::MontyParams};
 use alloc::sync::Arc;
 use subtle::Choice;
 
@@ -155,20 +155,27 @@ impl BoxedMontyParams {
     pub(crate) fn mod_leading_zeros(&self) -> u32 {
         self.0.mod_leading_zeros
     }
+}
 
-    /// Create from a set of [`ConstMontyParams`].
-    pub fn from_const_params<const LIMBS: usize, P: ConstMontyParams<LIMBS>>() -> Self {
+impl<const LIMBS: usize> From<&MontyParams<LIMBS>> for BoxedMontyParams {
+    fn from(params: &MontyParams<LIMBS>) -> Self {
         Self(
             BoxedMontyParamsInner {
-                modulus: P::MODULUS.into(),
-                one: P::ONE.into(),
-                r2: P::R2.into(),
-                r3: P::R3.into(),
-                mod_neg_inv: P::MOD_NEG_INV,
-                mod_leading_zeros: P::MOD_LEADING_ZEROS,
+                modulus: params.modulus.into(),
+                one: params.one.into(),
+                r2: params.r2.into(),
+                r3: params.r3.into(),
+                mod_neg_inv: params.mod_neg_inv,
+                mod_leading_zeros: params.mod_leading_zeros,
             }
             .into(),
         )
+    }
+}
+
+impl<const LIMBS: usize> From<MontyParams<LIMBS>> for BoxedMontyParams {
+    fn from(params: MontyParams<LIMBS>) -> Self {
+        BoxedMontyParams::from(&params)
     }
 }
 

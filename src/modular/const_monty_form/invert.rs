@@ -31,8 +31,10 @@ where
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
     pub const fn invert(&self) -> ConstCtOption<Self> {
-        let inverter =
-            <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(&MOD::MODULUS, &MOD::R2);
+        let inverter = <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(
+            &MOD::PARAMS.modulus,
+            &MOD::PARAMS.r2,
+        );
 
         let maybe_inverse = inverter.invert(&self.montgomery_form);
         let (inverse, inverse_is_some) = maybe_inverse.components_ref();
@@ -67,8 +69,10 @@ where
     /// This version is variable-time with respect to the value of `self`, but constant-time with
     /// respect to `MOD`.
     pub const fn invert_vartime(&self) -> ConstCtOption<Self> {
-        let inverter =
-            <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(&MOD::MODULUS, &MOD::R2);
+        let inverter = <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(
+            &MOD::PARAMS.modulus,
+            &MOD::PARAMS.r2,
+        );
 
         let maybe_inverse = inverter.invert_vartime(&self.montgomery_form);
         let (inverse, inverse_is_some) = maybe_inverse.components_ref();
@@ -121,7 +125,7 @@ where
     /// Create a new [`ConstMontyFormInverter`] for the given [`ConstMontyParams`].
     #[allow(clippy::new_without_default)]
     pub const fn new() -> Self {
-        let inverter = SafeGcdInverter::new(&MOD::MODULUS, &MOD::R2);
+        let inverter = SafeGcdInverter::new(&MOD::PARAMS.modulus, &MOD::PARAMS.r2);
 
         Self {
             inverter,
