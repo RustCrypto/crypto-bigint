@@ -12,9 +12,10 @@ use super::{
     Retrieve,
     const_monty_form::{ConstMontyForm, ConstMontyParams},
     div_by_2::div_by_2,
+    params,
     reduction::montgomery_reduction,
 };
-use crate::{Concat, ConstChoice, Limb, Monty, NonZero, Odd, Split, Uint, Word};
+use crate::{Concat, Limb, Monty, Odd, Split, Uint, Word};
 use mul::DynMontyMultiplier;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
@@ -45,28 +46,16 @@ where
     pub const fn new(modulus: Odd<Uint<LIMBS>>) -> Self {
         // `R mod modulus` where `R = 2^BITS`.
         // Represents 1 in Montgomery form.
-        let one = Uint::<LIMBS>::MAX
-            .rem(modulus.as_nz_ref())
-            .wrapping_add(&Uint::ONE);
+        let one = params::montgomery_one(&modulus);
 
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
-        let r2 = one
-            .square()
-            .rem(&NonZero(modulus.0.concat(&Uint::ZERO)))
-            .split()
-            .0;
+        let r2 = params::montgomery_r2(&one, &modulus);
 
-        // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
-        let inv_mod = modulus
-            .as_ref()
-            .invert_mod2k_vartime(Word::BITS)
-            .expect("modular inverse should exist");
+        // The modular inverse should always exist, because it was ensured odd above, which also
+        // ensures it's non-zero
+        let mod_neg_inv = params::mod_neg_inv(&modulus);
 
-        let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
-
-        let mod_leading_zeros = modulus.as_ref().leading_zeros();
-        let mod_leading_zeros = ConstChoice::from_u32_lt(mod_leading_zeros, Word::BITS - 1)
-            .select_u32(Word::BITS - 1, mod_leading_zeros);
+        let mod_leading_zeros = params::mod_leading_zeros(&modulus);
 
         // `R^3 mod modulus`, used for inversion in Montgomery form.
         let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);

@@ -45,34 +45,17 @@ macro_rules! const_monty_params {
 
             // `R mod MODULUS` where `R = 2^BITS`.
             // Represents 1 in Montgomery form.
-            const ONE: $uint_type = $crate::Uint::MAX
-                .rem_vartime(Self::MODULUS.as_nz_ref())
-                .wrapping_add(&$crate::Uint::ONE);
+            const ONE: $uint_type = $crate::modular::params::montgomery_one(&Self::MODULUS);
 
             // `R^2 mod MODULUS`, used to convert integers to Montgomery form.
             const R2: $uint_type =
-                $crate::Uint::rem_wide_vartime(Self::ONE.square_wide(), Self::MODULUS.as_nz_ref());
+                $crate::modular::params::montgomery_r2(&Self::ONE, &Self::MODULUS);
 
-            const MOD_NEG_INV: $crate::Limb = $crate::Limb(
-                $crate::Word::MIN.wrapping_sub(
-                    Self::MODULUS
-                        .as_ref()
-                        .invert_mod2k_vartime($crate::Word::BITS)
-                        .expect("modulus ensured odd")
-                        .as_limbs()[0]
-                        .0,
-                ),
-            );
+            const MOD_NEG_INV: $crate::Limb = $crate::modular::params::mod_neg_inv(&Self::MODULUS);
 
             // Leading zeros in the modulus, used to choose optimized algorithms.
-            const MOD_LEADING_ZEROS: u32 = {
-                let z = Self::MODULUS.as_ref().leading_zeros();
-                if z >= $crate::Word::BITS {
-                    $crate::Word::BITS - 1
-                } else {
-                    z
-                }
-            };
+            const MOD_LEADING_ZEROS: u32 =
+                $crate::modular::params::mod_leading_zeros(&Self::MODULUS);
 
             const R3: $uint_type = $crate::modular::montgomery_reduction(
                 &Self::R2.square_wide(),

@@ -16,6 +16,8 @@
 //! The [`MontyForm`] and [`MontyParams`] types implement support for modular arithmetic where
 //! the modulus can vary at runtime.
 
+pub mod params;
+
 mod const_monty_form;
 mod lincomb;
 mod monty_form;
