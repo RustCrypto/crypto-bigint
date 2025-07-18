@@ -76,7 +76,7 @@ pub const fn lincomb_const_monty_form<MOD: ConstMontyParams<LIMBS>, const LIMBS:
     modulus: &Odd<Uint<LIMBS>>,
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {
-    let max_accum = 1 << (MOD::MOD_LEADING_ZEROS as usize);
+    let max_accum = 1 << (MOD::PARAMS.mod_leading_zeros as usize);
     let mut ret = Uint::ZERO;
     let mut remain = products.len();
     if remain <= max_accum {

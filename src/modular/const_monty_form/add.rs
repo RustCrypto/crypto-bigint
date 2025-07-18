@@ -11,7 +11,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
             montgomery_form: add_montgomery_form(
                 &self.montgomery_form,
                 &rhs.montgomery_form,
-                &MOD::MODULUS,
+                &MOD::PARAMS.modulus,
             ),
             phantom: core::marker::PhantomData,
         }
@@ -20,7 +20,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     /// Double `self`.
     pub const fn double(&self) -> Self {
         Self {
-            montgomery_form: double_montgomery_form(&self.montgomery_form, &MOD::MODULUS),
+            montgomery_form: double_montgomery_form(&self.montgomery_form, &MOD::PARAMS.modulus),
             phantom: core::marker::PhantomData,
         }
     }

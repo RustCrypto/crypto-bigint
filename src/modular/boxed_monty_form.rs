@@ -8,7 +8,7 @@ mod neg;
 mod pow;
 mod sub;
 
-use super::{ConstMontyParams, Retrieve, div_by_2};
+use super::{Retrieve, div_by_2};
 use mul::BoxedMontyMultiplier;
 
 use crate::{BoxedUint, Limb, Monty, Odd, Resize, Word};
@@ -154,21 +154,6 @@ impl BoxedMontyParams {
 
     pub(crate) fn mod_leading_zeros(&self) -> u32 {
         self.0.mod_leading_zeros
-    }
-
-    /// Create from a set of [`ConstMontyParams`].
-    pub fn from_const_params<const LIMBS: usize, P: ConstMontyParams<LIMBS>>() -> Self {
-        Self(
-            BoxedMontyParamsInner {
-                modulus: P::MODULUS.into(),
-                one: P::ONE.into(),
-                r2: P::R2.into(),
-                r3: P::R3.into(),
-                mod_neg_inv: P::MOD_NEG_INV,
-                mod_leading_zeros: P::MOD_LEADING_ZEROS,
-            }
-            .into(),
-        )
     }
 }
 

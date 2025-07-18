@@ -41,44 +41,10 @@ macro_rules! const_monty_params {
             $uint_type: $crate::ConcatMixed<MixedOutput = $crate::Uint<DLIMBS>>,
         {
             const LIMBS: usize = <$uint_type>::LIMBS;
-            const MODULUS: $crate::Odd<$uint_type> = $crate::Odd::<$uint_type>::from_be_hex($value);
-
-            // `R mod MODULUS` where `R = 2^BITS`.
-            // Represents 1 in Montgomery form.
-            const ONE: $uint_type = $crate::Uint::MAX
-                .rem_vartime(Self::MODULUS.as_nz_ref())
-                .wrapping_add(&$crate::Uint::ONE);
-
-            // `R^2 mod MODULUS`, used to convert integers to Montgomery form.
-            const R2: $uint_type =
-                $crate::Uint::rem_wide_vartime(Self::ONE.square_wide(), Self::MODULUS.as_nz_ref());
-
-            const MOD_NEG_INV: $crate::Limb = $crate::Limb(
-                $crate::Word::MIN.wrapping_sub(
-                    Self::MODULUS
-                        .as_ref()
-                        .invert_mod2k_vartime($crate::Word::BITS)
-                        .expect("modulus ensured odd")
-                        .as_limbs()[0]
-                        .0,
-                ),
-            );
-
-            // Leading zeros in the modulus, used to choose optimized algorithms.
-            const MOD_LEADING_ZEROS: u32 = {
-                let z = Self::MODULUS.as_ref().leading_zeros();
-                if z >= $crate::Word::BITS {
-                    $crate::Word::BITS - 1
-                } else {
-                    z
-                }
-            };
-
-            const R3: $uint_type = $crate::modular::montgomery_reduction(
-                &Self::R2.square_wide(),
-                &Self::MODULUS,
-                Self::MOD_NEG_INV,
-            );
+            const PARAMS: $crate::modular::MontyParams<{ <$uint_type>::LIMBS }> =
+                $crate::modular::MontyParams::new_vartime($crate::Odd::<$uint_type>::from_be_hex(
+                    $value,
+                ));
         }
     };
 }
@@ -132,7 +98,10 @@ mod tests {
     #[test]
     fn new_params_with_valid_modulus() {
         const_monty_params!(Mod, U64, "0000000000000003");
-        assert_eq!(Mod::MOD_LEADING_ZEROS, core::cmp::min(Limb::BITS - 1, 62));
+        assert_eq!(
+            Mod::PARAMS.mod_leading_zeros,
+            core::cmp::min(Limb::BITS - 1, 62)
+        );
     }
 
     /// Make sure the deprecated macro still works
@@ -141,6 +110,9 @@ mod tests {
     #[allow(deprecated)]
     fn impl_modulus_with_valid_modulus() {
         impl_modulus!(Mod, U64, "0000000000000003");
-        assert_eq!(Mod::MOD_LEADING_ZEROS, core::cmp::min(Limb::BITS - 1, 62));
+        assert_eq!(
+            Mod::PARAMS.mod_leading_zeros,
+            core::cmp::min(Limb::BITS - 1, 62)
+        );
     }
 }

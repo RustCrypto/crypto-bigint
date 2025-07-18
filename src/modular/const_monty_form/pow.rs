@@ -33,9 +33,9 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
                 &self.montgomery_form,
                 exponent,
                 exponent_bits,
-                &MOD::MODULUS,
-                &MOD::ONE,
-                MOD::MOD_NEG_INV,
+                &MOD::PARAMS.modulus,
+                &MOD::PARAMS.one,
+                MOD::PARAMS.mod_neg_inv,
             ),
             phantom: core::marker::PhantomData,
         }
@@ -72,9 +72,9 @@ impl<const N: usize, MOD: ConstMontyParams<LIMBS>, const LIMBS: usize, const RHS
             montgomery_form: multi_exponentiate_montgomery_form_array(
                 &bases_and_exponents_montgomery_form,
                 exponent_bits,
-                &MOD::MODULUS,
-                &MOD::ONE,
-                MOD::MOD_NEG_INV,
+                &MOD::PARAMS.modulus,
+                &MOD::PARAMS.one,
+                MOD::PARAMS.mod_neg_inv,
             ),
             phantom: core::marker::PhantomData,
         }
@@ -98,9 +98,9 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize, const RHS_LIMBS: usize>
             montgomery_form: multi_exponentiate_montgomery_form_slice(
                 &bases_and_exponents,
                 exponent_bits,
-                &MOD::MODULUS,
-                &MOD::ONE,
-                MOD::MOD_NEG_INV,
+                &MOD::PARAMS.modulus,
+                &MOD::PARAMS.one,
+                MOD::PARAMS.mod_neg_inv,
             ),
             phantom: core::marker::PhantomData,
         }
