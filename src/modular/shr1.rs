@@ -2,7 +2,7 @@
 use crate::{BoxedUint, Integer};
 use crate::{Limb, Odd, Uint};
 
-pub(crate) const fn div_by_2<const LIMBS: usize>(
+pub(crate) const fn shr1<const LIMBS: usize>(
     a: &Uint<LIMBS>,
     modulus: &Odd<Uint<LIMBS>>,
 ) -> Uint<LIMBS> {
@@ -25,14 +25,14 @@ pub(crate) const fn div_by_2<const LIMBS: usize>(
 }
 
 #[cfg(feature = "alloc")]
-pub(crate) fn div_by_2_boxed(a: &BoxedUint, modulus: &Odd<BoxedUint>) -> BoxedUint {
+pub(crate) fn shr1_boxed(a: &BoxedUint, modulus: &Odd<BoxedUint>) -> BoxedUint {
     let mut result = a.clone();
-    div_by_2_boxed_assign(&mut result, modulus);
+    shr1_boxed_assign(&mut result, modulus);
     result
 }
 
 #[cfg(feature = "alloc")]
-pub(crate) fn div_by_2_boxed_assign(a: &mut BoxedUint, modulus: &Odd<BoxedUint>) {
+pub(crate) fn shr1_boxed_assign(a: &mut BoxedUint, modulus: &Odd<BoxedUint>) {
     debug_assert_eq!(a.bits_precision(), modulus.bits_precision());
 
     let is_odd = a.is_odd();
