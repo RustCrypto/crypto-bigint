@@ -58,13 +58,30 @@ pub(crate) const fn carrying_mul_add(
     let lhs = lhs as WideWord;
     let rhs = rhs as WideWord;
     let addend = addend as WideWord;
-    let ret = (lhs * rhs) + addend;
-    let (lo, hi) = (ret as Word, (ret >> Word::BITS) as Word);
+    let carry = carry as WideWord;
 
-    let (lo, c) = lo.overflowing_add(carry);
+    // Cannot overflow:
+    // lhs      * rhs      + addend   + carry
+    // (2^64-1) * (2^64-1) + (2^64-1) + (2^64-1) =
+    // 2^128 - 2^65 + 1 + 2^64 - 1 + 2^64 - 1 =
+    // 2^128 - 2^65 + 2*2^64 - 1 =
+    // 2^128 - 1 = u128::MAX
+    let ret = ((lhs * rhs) + addend) + carry;
+    (ret as Word, (ret >> Word::BITS) as Word)
+}
 
-    // Even if all the arguments are `Word::MAX` we can't overflow `hi`.
-    let hi = hi.wrapping_add(c as Word);
+#[cfg(test)]
+mod tests {
+    use crate::Word;
 
-    (lo, hi)
+    #[test]
+    fn carrying_mul_add_cannot_overflow() {
+        let lhs = Word::MAX;
+        let rhs = Word::MAX;
+        let addend = Word::MAX;
+        let carry_in = Word::MAX;
+        let (result, carry_out) = super::carrying_mul_add(lhs, rhs, addend, carry_in);
+        assert_eq!(result, Word::MAX);
+        assert_eq!(carry_out, Word::MAX);
+    }
 }
