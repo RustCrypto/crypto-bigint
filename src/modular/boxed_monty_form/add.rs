@@ -1,4 +1,4 @@
-//! Additions between boxed Montgoemery form integers.
+//! Additions between boxed Montgomery form integers.
 
 use super::BoxedMontyForm;
 use core::ops::{Add, AddAssign};
