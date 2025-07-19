@@ -128,34 +128,6 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> SafeGcdInverter<SAT_LIMBS
         ConstCtOption::new(ret.to_uint(), is_some)
     }
 
-    /// Returns the greatest common divisor (GCD) of the two given numbers.
-    ///
-    /// This is defined on this type to piggyback on the definitions for `SAT_LIMBS` and
-    /// `UNSAT_LIMBS` which are computed when defining `PrecomputeInverter::Inverter` for various
-    /// `Uint` limb sizes.
-    pub(crate) const fn gcd(f: &Uint<SAT_LIMBS>, g: &Uint<SAT_LIMBS>) -> Uint<SAT_LIMBS> {
-        let inverse = invert_mod2_62(f.as_words());
-        let e = UnsatInt::<UNSAT_LIMBS>::ONE;
-        let f = UnsatInt::from_uint(f);
-        let g = UnsatInt::from_uint(g);
-        let (_, mut f) = divsteps(e, f, g, inverse);
-        f = UnsatInt::select(&f, &f.neg(), f.is_negative());
-        f.to_uint()
-    }
-
-    /// Returns the greatest common divisor (GCD) of the two given numbers.
-    ///
-    /// This version is variable-time with respect to `g`.
-    pub(crate) const fn gcd_vartime(f: &Uint<SAT_LIMBS>, g: &Uint<SAT_LIMBS>) -> Uint<SAT_LIMBS> {
-        let inverse = invert_mod2_62(f.as_words());
-        let e = UnsatInt::<UNSAT_LIMBS>::ONE;
-        let f = UnsatInt::from_uint(f);
-        let g = UnsatInt::from_uint(g);
-        let (_, mut f) = divsteps_vartime(e, f, g, inverse);
-        f = UnsatInt::select(&f, &f.neg(), f.is_negative());
-        f.to_uint()
-    }
-
     /// Returns either "value (mod M)" or "-value (mod M)", where M is the modulus the inverter
     /// was created for, depending on "negate", which determines the presence of "-" in the used
     /// formula. The input integer lies in the interval (-2 * M, M).

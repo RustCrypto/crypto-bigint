@@ -1,7 +1,7 @@
 use super::Uint;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Construct a `Uint<T>` from the unsigned integer value,
+    /// Construct a [`Uint<T>`] from the unsigned integer value,
     /// truncating the upper bits if the value is too large to be
     /// represented.
     #[inline(always)]

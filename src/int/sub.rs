@@ -8,7 +8,7 @@ use subtle::CtOption;
 use crate::{Checked, CheckedSub, ConstChoice, ConstCtOption, Int, Wrapping};
 
 impl<const LIMBS: usize> Int<LIMBS> {
-    /// Perform subtraction, returning the result along with a [ConstChoice] which `is_true`
+    /// Perform subtraction, returning the result along with a [`ConstChoice`] which `is_true`
     /// only if the operation underflowed.
     pub const fn underflowing_sub(&self, rhs: &Self) -> (Self, ConstChoice) {
         // Step 1. subtract operands

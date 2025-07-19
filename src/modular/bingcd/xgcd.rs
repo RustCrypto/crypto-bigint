@@ -415,7 +415,7 @@ mod tests {
 
     mod test_partial_binxgcd {
         use crate::modular::bingcd::matrix::DividedPatternMatrix;
-        use crate::{ConstChoice, Odd, U64};
+        use crate::{ConstChoice, Gcd, Odd, U64};
 
         const A: Odd<U64> = U64::from_be_hex("CA048AFA63CD6A1F").to_odd().expect("odd");
         const B: U64 = U64::from_be_hex("AE693BF7BE8E5566");
