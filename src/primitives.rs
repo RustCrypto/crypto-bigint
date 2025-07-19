@@ -58,13 +58,39 @@ pub(crate) const fn carrying_mul_add(
     let lhs = lhs as WideWord;
     let rhs = rhs as WideWord;
     let addend = addend as WideWord;
+    // Cannot overflow:
+    // (2^64-1) * (2^64-1) + (2^64-1) = 2^128 - 2^65 + 1 + 2^64 -1 = 2^128 - 2^64
     let ret = (lhs * rhs) + addend;
     let (lo, hi) = (ret as Word, (ret >> Word::BITS) as Word);
 
     let (lo, c) = lo.overflowing_add(carry);
 
     // Even if all the arguments are `Word::MAX` we can't overflow `hi`.
-    let hi = hi.wrapping_add(c as Word);
+    let new_carry = hi.wrapping_add(c as Word);
 
-    (lo, hi)
+    (lo, new_carry)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Word;
+
+    #[test]
+    fn carrying_mul_add_cannot_overflow() {
+        let lhs = Word::MAX;
+        let rhs = Word::MAX;
+        let addend = Word::MAX;
+        let carry = Word::MAX;
+        let (result, new_carry) = super::carrying_mul_add(lhs, rhs, addend, carry);
+        assert_eq!(
+            result,
+            Word::MAX,
+            "Result expected to be MAX, instead found {result}"
+        );
+        assert_eq!(
+            new_carry,
+            Word::MAX,
+            "New carry expected to be MAX, instead found {new_carry}"
+        );
+    }
 }
