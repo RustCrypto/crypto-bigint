@@ -84,9 +84,8 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
         phantom: PhantomData,
     };
 
-    /// Internal helper function to convert to Montgomery form;
-    /// this lets us cleanly wrap the constructors.
-    const fn from_integer(integer: &Uint<LIMBS>) -> Self {
+    /// Instantiates a new [`ConstMontyForm`] that represents this `integer` mod `MOD`.
+    pub const fn new(integer: &Uint<LIMBS>) -> Self {
         let product = integer.widening_mul(&MOD::PARAMS.r2);
         let montgomery_form =
             montgomery_reduction::<LIMBS>(&product, &MOD::PARAMS.modulus, MOD::PARAMS.mod_neg_inv);
@@ -95,11 +94,6 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
             montgomery_form,
             phantom: PhantomData,
         }
-    }
-
-    /// Instantiates a new [`ConstMontyForm`] that represents this `integer` mod `MOD`.
-    pub const fn new(integer: &Uint<LIMBS>) -> Self {
-        Self::from_integer(integer)
     }
 
     /// Retrieves the integer currently encoded in this [`ConstMontyForm`], guaranteed to be reduced.
