@@ -1,7 +1,8 @@
 use subtle::{Choice, CtOption};
 
 use crate::{
-    Int, Limb, NonZero, NonZeroInt, Odd, OddInt, Uint, WideWord, Word, modular::SafeGcdInverter,
+    Int, Limb, NonZero, NonZeroInt, Odd, OddInt, Uint, WideWord, Word,
+    modular::{ConstMontyForm, ConstMontyParams, SafeGcdInverter},
 };
 
 /// A boolean value returned by constant-time `const fn`s.
@@ -526,6 +527,25 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// `msg`.
     #[inline]
     pub const fn expect(self, msg: &str) -> SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS> {
+        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        self.value
+    }
+}
+
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstCtOption<ConstMontyForm<MOD, LIMBS>> {
+    /// This returns the underlying value if it is `Some` or the provided value otherwise.
+    #[inline]
+    pub const fn unwrap_or(self, def: ConstMontyForm<MOD, LIMBS>) -> ConstMontyForm<MOD, LIMBS> {
+        ConstMontyForm::<MOD, LIMBS>::select(&def, &self.value, self.is_some)
+    }
+
+    /// Returns the contained value, consuming the `self` value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value is none with a custom panic message provided by `msg`.
+    #[inline]
+    pub const fn expect(self, msg: &str) -> ConstMontyForm<MOD, LIMBS> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
     }
