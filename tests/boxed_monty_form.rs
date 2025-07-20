@@ -147,10 +147,10 @@ proptest! {
     }
 
     #[test]
-    fn div_by_2(a in monty_form()) {
-        let actual = a.div_by_2();
+    fn shr1(a in monty_form()) {
+        let actual = a.shr1();
         let mut actual_inplace = a.clone();
-        actual_inplace.div_by_2_assign();
+        actual_inplace.shr1_assign();
 
         let p = a.params().modulus();
         let a_bi = retrieve_biguint(&a);

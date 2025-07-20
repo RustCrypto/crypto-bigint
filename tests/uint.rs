@@ -566,7 +566,7 @@ proptest! {
     }
 
     #[test]
-    fn monty_form_div_by_2(a in uint_mod_p(P)) {
+    fn monty_form_shr1(a in uint_mod_p(P)) {
         let a_bi = to_biguint(&a);
         let p_bi = to_biguint(&P);
         let two = BigUint::from(2u32);
@@ -581,7 +581,7 @@ proptest! {
 
         let params = MontyParams::new_vartime(P);
         let a_m = MontyForm::new(&a, params);
-        let actual = a_m.div_by_2().retrieve();
+        let actual = a_m.shr1().retrieve();
 
         prop_assert_eq!(expected, actual);
     }
