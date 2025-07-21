@@ -9,7 +9,9 @@ mod pow;
 mod sub;
 
 use self::invert::ConstMontyFormInverter;
-use super::{MontyParams, Retrieve, SafeGcdInverter, reduction::montgomery_reduction, shr1::shr1};
+use super::{
+    MontyParams, Retrieve, SafeGcdInverter, div_by_2::div_by_2, reduction::montgomery_reduction,
+};
 use crate::{ConstChoice, ConstZero, Odd, PrecomputeInverter, Uint};
 use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
@@ -126,18 +128,12 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
         self.montgomery_form
     }
 
-    /// Performs a 1-bit right shift (division by 2), that is returns `x` such that `x + x = self`.
-    pub const fn shr1(&self) -> Self {
+    /// Performs division by 2, that is returns `x` such that `x + x = self`.
+    pub const fn div_by_2(&self) -> Self {
         Self {
-            montgomery_form: shr1(&self.montgomery_form, &MOD::PARAMS.modulus),
+            montgomery_form: div_by_2(&self.montgomery_form, &MOD::PARAMS.modulus),
             phantom: PhantomData,
         }
-    }
-
-    /// Deprecated equivalent to `shr1`.
-    #[deprecated(since = "0.7.0", note = "please use `ConstMontyForm::shr1` instead")]
-    pub const fn div_by_2(&self) -> Self {
-        self.shr1()
     }
 
     /// Return `b` if `c` is truthy, otherwise return `a`.

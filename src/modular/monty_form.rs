@@ -11,8 +11,8 @@ mod sub;
 use super::{
     Retrieve,
     const_monty_form::{ConstMontyForm, ConstMontyParams},
+    div_by_2::div_by_2,
     reduction::montgomery_reduction,
-    shr1::shr1,
 };
 use crate::{Concat, ConstChoice, Limb, Monty, NonZero, Odd, Split, Uint, Word};
 use mul::DynMontyMultiplier;
@@ -241,17 +241,11 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     }
 
     /// Performs division by 2, that is returns `x` such that `x + x = self`.
-    pub const fn shr1(&self) -> Self {
+    pub const fn div_by_2(&self) -> Self {
         Self {
-            montgomery_form: shr1(&self.montgomery_form, &self.params.modulus),
+            montgomery_form: div_by_2(&self.montgomery_form, &self.params.modulus),
             params: self.params,
         }
-    }
-
-    /// Deprecated equivalent to `shr1`.
-    #[deprecated(since = "0.7.0", note = "please use `ConstMontyForm::shr1` instead")]
-    pub const fn div_by_2(&self) -> Self {
-        self.shr1()
     }
 }
 
@@ -300,8 +294,8 @@ impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
         MontyForm::double(self)
     }
 
-    fn shr1(&self) -> Self {
-        MontyForm::shr1(self)
+    fn div_by_2(&self) -> Self {
+        MontyForm::div_by_2(self)
     }
 
     fn lincomb_vartime(products: &[(&Self, &Self)]) -> Self {
