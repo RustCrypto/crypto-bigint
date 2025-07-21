@@ -2,30 +2,34 @@
 
 use subtle::CtOption;
 
-use crate::modular::SafeGcdInverter;
-use crate::{ConstantTimeSelect, Int, InvertMod, NonZero, Odd, PrecomputeInverter, Uint};
+use crate::{ConstCtOption, Int, InvertMod, NonZero, Odd, Uint};
 
-impl<const LIMBS: usize, const UNSAT_LIMBS: usize> Int<LIMBS>
-where
-    Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
-{
+impl<const LIMBS: usize> Int<LIMBS> {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
-    #[deprecated(since = "0.7.0", note = "please use `invert_odd_mod` instead")]
-    pub fn inv_odd_mod(&self, modulus: &Odd<Uint<LIMBS>>) -> CtOption<Uint<LIMBS>> {
-        self.invert_odd_mod(modulus)
-    }
-
-    /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
-    pub fn invert_odd_mod(&self, modulus: &Odd<Uint<LIMBS>>) -> CtOption<Uint<LIMBS>> {
+    pub fn invert_odd_mod(&self, modulus: &Odd<Uint<LIMBS>>) -> ConstCtOption<Uint<LIMBS>> {
         let (abs, sgn) = self.abs_sign();
-        let abs_inv = abs.invert_odd_mod(modulus).into();
-
+        let maybe_inv = abs.invert_odd_mod(modulus);
+        let (abs_inv, inv_is_some) = maybe_inv.components_ref();
         // Note: when `self` is negative and modulus is non-zero, then
         // self^{-1} % modulus = modulus - |self|^{-1} % modulus
-        CtOption::ct_select(
-            &abs_inv,
-            &abs_inv.map(|abs_inv| modulus.wrapping_sub(&abs_inv)),
-            sgn.into(),
+        ConstCtOption::new(
+            Uint::select(abs_inv, &modulus.wrapping_sub(abs_inv), sgn),
+            inv_is_some,
+        )
+    }
+
+    /// Computes the multiplicative inverse of `self` mod `modulus`.
+    ///
+    /// Returns some if an inverse exists, otherwise none.
+    pub const fn invert_mod(&self, modulus: &Uint<LIMBS>) -> ConstCtOption<Uint<LIMBS>> {
+        let (abs, sgn) = self.abs_sign();
+        let maybe_inv = abs.invert_mod(modulus);
+        let (abs_inv, inv_is_some) = maybe_inv.components_ref();
+        // Note: when `self` is negative and modulus is non-zero, then
+        // self^{-1} % modulus = modulus - |self|^{-1} % modulus
+        ConstCtOption::new(
+            Uint::select(abs_inv, &modulus.wrapping_sub(abs_inv), sgn),
+            inv_is_some,
         )
     }
 }
@@ -37,22 +41,13 @@ where
     type Output = Uint<LIMBS>;
 
     fn invert_mod(&self, modulus: &NonZero<Uint<LIMBS>>) -> CtOption<Self::Output> {
-        let (abs, sgn) = self.abs_sign();
-        let abs_inv = abs.invert_mod(modulus);
-
-        // Note: when `self` is negative and modulus is non-zero, then
-        // self^{-1} % modulus = modulus - |self|^{-1} % modulus
-        CtOption::ct_select(
-            &abs_inv,
-            &abs_inv.map(|abs_inv| modulus.wrapping_sub(&abs_inv)),
-            sgn.into(),
-        )
+        Self::invert_mod(self, modulus.as_ref()).into()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{I1024, InvertMod, U1024};
+    use crate::{I1024, U1024};
 
     #[test]
     fn test_invert_odd() {

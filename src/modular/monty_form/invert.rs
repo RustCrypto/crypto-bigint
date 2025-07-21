@@ -8,13 +8,7 @@ use crate::{
 use core::fmt;
 use subtle::CtOption;
 
-impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> MontyForm<SAT_LIMBS>
-where
-    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-            Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
-            Output = Uint<SAT_LIMBS>,
-        >,
-{
+impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Computes `self^-1` representing the multiplicative inverse of `self`.
     /// i.e. `self * self^-1 = 1`.
     ///
@@ -78,13 +72,7 @@ where
     }
 }
 
-impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Invert for MontyForm<SAT_LIMBS>
-where
-    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-            Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
-            Output = Uint<SAT_LIMBS>,
-        >,
-{
+impl<const LIMBS: usize> Invert for MontyForm<LIMBS> {
     type Output = CtOption<Self>;
 
     fn invert(&self) -> Self::Output {
@@ -96,25 +84,15 @@ where
     }
 }
 
-impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> MontyParams<SAT_LIMBS>
-where
-    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-            Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
-            Output = Uint<SAT_LIMBS>,
-        >,
-{
+impl<const LIMBS: usize> MontyParams<LIMBS> {
     /// Create a modular inverter for the modulus of these params.
     // TODO(tarcieri): make `pub`?
-    const fn inverter(&self) -> SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS> {
+    const fn inverter(&self) -> SafeGcdInverter<LIMBS> {
         SafeGcdInverter::new(&self.modulus, &self.r2)
     }
 }
 
-impl<const LIMBS: usize> PrecomputeInverter for MontyParams<LIMBS>
-where
-    Odd<Uint<LIMBS>>:
-        PrecomputeInverter<Output = Uint<LIMBS>> + PrecomputeInverterWithAdjuster<Uint<LIMBS>>,
-{
+impl<const LIMBS: usize> PrecomputeInverter for MontyParams<LIMBS> {
     type Inverter = MontyFormInverter<LIMBS>;
     type Output = MontyForm<LIMBS>;
 
@@ -127,49 +105,38 @@ where
 }
 
 /// Bernstein-Yang inverter which inverts [`MontyForm`] types.
-pub struct MontyFormInverter<const LIMBS: usize>
-where
-    Odd<Uint<LIMBS>>: PrecomputeInverter<Output = Uint<LIMBS>>,
-{
+pub struct MontyFormInverter<const LIMBS: usize> {
     inverter: <Odd<Uint<LIMBS>> as PrecomputeInverter>::Inverter,
     params: MontyParams<LIMBS>,
 }
 
-impl<const LIMBS: usize> Inverter for MontyFormInverter<LIMBS>
-where
-    Odd<Uint<LIMBS>>: PrecomputeInverter<Output = Uint<LIMBS>>,
-{
+impl<const LIMBS: usize> Inverter for MontyFormInverter<LIMBS> {
     type Output = MontyForm<LIMBS>;
 
     fn invert(&self, value: &MontyForm<LIMBS>) -> CtOption<Self::Output> {
         debug_assert_eq!(self.params, value.params);
 
-        self.inverter
-            .invert(&value.montgomery_form)
-            .map(|montgomery_form| MontyForm {
-                montgomery_form,
-                params: value.params,
-            })
+        Inverter::invert(&self.inverter, &value.montgomery_form).map(|montgomery_form| MontyForm {
+            montgomery_form,
+            params: value.params,
+        })
     }
 
     fn invert_vartime(&self, value: &MontyForm<LIMBS>) -> CtOption<Self::Output> {
         debug_assert_eq!(self.params, value.params);
 
-        self.inverter
-            .invert_vartime(&value.montgomery_form)
-            .map(|montgomery_form| MontyForm {
+        Inverter::invert_vartime(&self.inverter, &value.montgomery_form).map(|montgomery_form| {
+            MontyForm {
                 montgomery_form,
                 params: value.params,
-            })
+            }
+        })
     }
 }
 
-impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> fmt::Debug for MontyFormInverter<SAT_LIMBS>
+impl<const LIMBS: usize> fmt::Debug for MontyFormInverter<LIMBS>
 where
-    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-            Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
-            Output = Uint<SAT_LIMBS>,
-        >,
+    Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS>, Output = Uint<LIMBS>>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("MontyFormInverter")

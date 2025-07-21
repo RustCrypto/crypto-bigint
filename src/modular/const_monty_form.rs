@@ -9,10 +9,8 @@ mod pow;
 mod sub;
 
 use self::invert::ConstMontyFormInverter;
-use super::{
-    MontyParams, Retrieve, SafeGcdInverter, div_by_2::div_by_2, reduction::montgomery_reduction,
-};
-use crate::{ConstChoice, ConstZero, Odd, PrecomputeInverter, Uint};
+use super::{MontyParams, Retrieve, div_by_2::div_by_2, reduction::montgomery_reduction};
+use crate::{ConstChoice, ConstZero, Uint};
 use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
@@ -47,10 +45,7 @@ pub trait ConstMontyParams<const LIMBS: usize>:
     /// Precompute a Bernstein-Yang inverter for this modulus.
     ///
     /// Use [`ConstMontyFormInverter::new`] if you need `const fn` access.
-    fn precompute_inverter<const UNSAT_LIMBS: usize>() -> ConstMontyFormInverter<Self, LIMBS>
-    where
-        Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>, Output = Uint<LIMBS>>,
-    {
+    fn precompute_inverter() -> ConstMontyFormInverter<Self, LIMBS> {
         ConstMontyFormInverter::new()
     }
 }

@@ -2,10 +2,9 @@ use criterion::measurement::WallTime;
 use criterion::{
     BatchSize, BenchmarkGroup, BenchmarkId, Criterion, criterion_group, criterion_main,
 };
-use crypto_bigint::modular::SafeGcdInverter;
 use crypto_bigint::{
-    Gcd, Limb, NonZero, Odd, OddUint, PrecomputeInverter, Random, RandomBits, RandomMod,
-    Reciprocal, U128, U256, U512, U1024, U2048, U4096, Uint,
+    Gcd, Limb, NonZero, Odd, OddUint, Random, RandomBits, RandomMod, Reciprocal, U128, U256, U512,
+    U1024, U2048, U4096, Uint,
 };
 use rand_chacha::ChaCha8Rng;
 use rand_core::{RngCore, SeedableRng};
@@ -362,12 +361,7 @@ fn bench_division(c: &mut Criterion) {
     group.finish();
 }
 
-fn gcd_bench<const LIMBS: usize, const UNSAT_LIMBS: usize>(
-    g: &mut BenchmarkGroup<WallTime>,
-    _x: Uint<LIMBS>,
-) where
-    Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
-{
+fn gcd_bench<const LIMBS: usize>(g: &mut BenchmarkGroup<WallTime>, _x: Uint<LIMBS>) {
     let mut rng = make_rng();
 
     g.bench_function(BenchmarkId::new("gcd", LIMBS), |b| {
@@ -562,6 +556,23 @@ fn bench_invert_mod(c: &mut Criterion) {
                 }
             },
             |(x, m)| black_box(x.invert_odd_mod(&m)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("invert_odd_mod_vartime, U256", |b| {
+        b.iter_batched(
+            || {
+                let m = Odd::<U256>::random(&mut rng);
+                loop {
+                    let x = U256::random(&mut rng);
+                    let inv_x = x.invert_odd_mod_vartime(&m);
+                    if inv_x.is_some().into() {
+                        break (x, m);
+                    }
+                }
+            },
+            |(x, m)| black_box(x.invert_odd_mod_vartime(&m)),
             BatchSize::SmallInput,
         )
     });
