@@ -10,7 +10,7 @@ mod sub;
 
 use self::invert::ConstMontyFormInverter;
 use super::{MontyParams, Retrieve, SafeGcdInverter, reduction::montgomery_reduction, shr1::shr1};
-use crate::{ConstZero, Odd, PrecomputeInverter, Uint};
+use crate::{ConstChoice, ConstZero, Odd, PrecomputeInverter, Uint};
 use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
@@ -138,6 +138,15 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     #[deprecated(since = "0.7.0", note = "please use `ConstMontyForm::shr1` instead")]
     pub const fn div_by_2(&self) -> Self {
         self.shr1()
+    }
+
+    /// Return `b` if `c` is truthy, otherwise return `a`.
+    #[inline]
+    pub(crate) const fn select(a: &Self, b: &Self, choice: ConstChoice) -> Self {
+        ConstMontyForm {
+            montgomery_form: Uint::select(&a.montgomery_form, &b.montgomery_form, choice),
+            phantom: PhantomData,
+        }
     }
 }
 
