@@ -8,7 +8,7 @@ mod neg;
 mod pow;
 mod sub;
 
-use super::{Retrieve, shr1};
+use super::{Retrieve, div_by_2};
 use mul::BoxedMontyMultiplier;
 
 use crate::{BoxedUint, Limb, Monty, Odd, Resize, Word, modular::MontyParams};
@@ -275,29 +275,17 @@ impl BoxedMontyForm {
     }
 
     /// Performs division by 2, that is returns `x` such that `x + x = self`.
-    pub fn shr1(&self) -> Self {
+    pub fn div_by_2(&self) -> Self {
         Self {
-            montgomery_form: shr1::shr1_boxed(&self.montgomery_form, self.params.modulus()),
+            montgomery_form: div_by_2::div_by_2_boxed(&self.montgomery_form, self.params.modulus()),
             params: self.params.clone(),
         }
     }
 
     /// Performs division by 2 inplace, that is finds `x` such that `x + x = self`
     /// and writes it into `self`.
-    pub fn shr1_assign(&mut self) {
-        shr1::shr1_boxed_assign(&mut self.montgomery_form, self.params.modulus())
-    }
-
-    /// Deprecated equivalent to `shr1`.
-    #[deprecated(since = "0.7.0", note = "please use `Monty::shr1` instead")]
-    pub fn div_by_2(&self) -> Self {
-        self.shr1()
-    }
-
-    /// Deprecated equivalent to `shr1_assign`.
-    #[deprecated(since = "0.7.0", note = "please use `Monty::shr1_assign` instead")]
     pub fn div_by_2_assign(&mut self) {
-        self.shr1_assign()
+        div_by_2::div_by_2_boxed_assign(&mut self.montgomery_form, self.params.modulus())
     }
 }
 
@@ -352,12 +340,12 @@ impl Monty for BoxedMontyForm {
         BoxedMontyForm::double(self)
     }
 
-    fn shr1(&self) -> Self {
-        BoxedMontyForm::shr1(self)
+    fn div_by_2(&self) -> Self {
+        BoxedMontyForm::div_by_2(self)
     }
 
-    fn shr1_assign(&mut self) {
-        BoxedMontyForm::shr1_assign(self)
+    fn div_by_2_assign(&mut self) {
+        BoxedMontyForm::div_by_2_assign(self)
     }
 
     fn lincomb_vartime(products: &[(&Self, &Self)]) -> Self {
@@ -393,14 +381,14 @@ mod tests {
     }
 
     #[test]
-    fn shr1() {
+    fn div_by_2() {
         let modulus = Odd::new(BoxedUint::from(9u8)).unwrap();
         let params = BoxedMontyParams::new(modulus);
         let zero = BoxedMontyForm::zero(params.clone());
         let one = BoxedMontyForm::one(params.clone());
         let two = one.add(&one);
 
-        assert_eq!(zero.shr1(), zero);
-        assert_eq!(one.shr1().mul(&two), one);
+        assert_eq!(zero.div_by_2(), zero);
+        assert_eq!(one.div_by_2().mul(&two), one);
     }
 }

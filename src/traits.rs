@@ -999,24 +999,12 @@ pub trait Monty:
     fn double(&self) -> Self;
 
     /// Performs division by 2, that is returns `x` such that `x + x = self`.
-    fn shr1(&self) -> Self;
+    fn div_by_2(&self) -> Self;
 
     /// Performs division by 2 inplace, that is finds `x` such that `x + x = self`
     /// and writes it into `self`.
-    fn shr1_assign(&mut self) {
-        *self = self.shr1()
-    }
-
-    /// Deprecated equivalent to `shr1`.
-    #[deprecated(since = "0.7.0", note = "please use `Monty::shr1` instead")]
-    fn div_by_2(&self) -> Self {
-        self.shr1()
-    }
-
-    /// Deprecated equivalent to `shr1_assign`.
-    #[deprecated(since = "0.7.0", note = "please use `Monty::shr1` instead")]
     fn div_by_2_assign(&mut self) {
-        self.shr1_assign()
+        *self = self.div_by_2()
     }
 
     /// Calculate the sum of products of pairs `(a, b)` in `products`.

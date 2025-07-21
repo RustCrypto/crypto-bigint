@@ -23,10 +23,10 @@ mod reduction;
 
 mod add;
 pub(crate) mod bingcd;
+mod div_by_2;
 mod mul;
 mod pow;
 pub(crate) mod safegcd;
-mod shr1;
 mod sub;
 
 #[cfg(feature = "alloc")]
