@@ -24,7 +24,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Executes the Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)`, s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub fn binxgcd(&self, rhs: &Self) -> IntXgcdOutput<LIMBS> {
+    pub const fn binxgcd(&self, rhs: &Self) -> IntXgcdOutput<LIMBS> {
         // Make sure `self` and `rhs` are nonzero.
         let self_is_zero = self.is_nonzero().not();
         let self_nz = Int::select(self, &Int::ONE, self_is_zero)
@@ -100,7 +100,7 @@ impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
     /// Execute the Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub fn binxgcd(&self, rhs: &Self) -> NonZeroIntXgcdOutput<LIMBS> {
+    pub const fn binxgcd(&self, rhs: &Self) -> NonZeroIntXgcdOutput<LIMBS> {
         let (mut lhs, mut rhs) = (*self.as_ref(), *rhs.as_ref());
 
         // Leverage the property that gcd(2^k * a, 2^k *b) = 2^k * gcd(a, b)
@@ -174,7 +174,7 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
     /// Execute the Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub fn binxgcd(&self, rhs: &NonZero<Int<LIMBS>>) -> OddIntXgcdOutput<LIMBS> {
+    pub const fn binxgcd(&self, rhs: &NonZero<Int<LIMBS>>) -> OddIntXgcdOutput<LIMBS> {
         let (abs_lhs, sgn_lhs) = self.abs_sign();
         let (abs_rhs, sgn_rhs) = rhs.abs_sign();
 
