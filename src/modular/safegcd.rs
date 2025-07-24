@@ -389,7 +389,7 @@ const fn iterations(bits: u32) -> u32 {
 const fn extract_u64(words: &[Word]) -> u64 {
     #[cfg(target_pointer_width = "32")]
     {
-        debug_assert!(value.len() >= 1);
+        debug_assert!(words.len() >= 1);
         let mut ret = words[0] as u64;
 
         if words.len() >= 2 {
