@@ -2,6 +2,7 @@
 
 use crate::const_choice::u32_min;
 use crate::modular::bingcd::xgcd::PatternXgcdOutput;
+use crate::modular::safegcd;
 use crate::{ConstChoice, Gcd, Int, NonZero, NonZeroUint, Odd, OddUint, Uint, Xgcd};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -26,7 +27,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Executes the Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)`, s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub fn binxgcd(&self, rhs: &Self) -> UintXgcdOutput<LIMBS> {
+    pub const fn binxgcd(&self, rhs: &Self) -> UintXgcdOutput<LIMBS> {
         // Make sure `self` and `rhs` are nonzero.
         let self_is_zero = self.is_nonzero().not();
         let self_nz = NonZero(Uint::select(self, &Uint::ONE, self_is_zero));
@@ -65,6 +66,20 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             lhs_on_gcd,
             rhs_on_gcd,
         }
+    }
+
+    /// Compute the greatest common divisor of `self` and `rhs`.
+    #[inline]
+    pub const fn safegcd(&self, rhs: &Self) -> Self {
+        safegcd::gcd::<LIMBS, false>(self, rhs)
+    }
+
+    /// Compute the greatest common divisor of `self` and `rhs`.
+    ///
+    /// Executes in variable time w.r.t. all input parameters.
+    #[inline]
+    pub const fn safegcd_vartime(&self, rhs: &Self) -> Self {
+        safegcd::gcd::<LIMBS, true>(self, rhs)
     }
 }
 
@@ -110,7 +125,7 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
     /// Execute the Binary Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
-    pub fn binxgcd(&self, rhs: &Self) -> NonZeroUintXgcdOutput<LIMBS> {
+    pub const fn binxgcd(&self, rhs: &Self) -> NonZeroUintXgcdOutput<LIMBS> {
         let (mut lhs, mut rhs) = (*self.as_ref(), *rhs.as_ref());
 
         // Observe that gcd(2^i · a, 2^j · b) = 2^k * gcd(2^(i-k)·a, 2^(j-k)·b), with k = min(i,j).
@@ -126,30 +141,22 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
         let lhs = lhs.to_odd().expect("odd by construction");
         let rhs = rhs.to_nz().expect("non-zero by construction");
 
-        let OddUintXgcdOutput {
-            gcd,
-            mut x,
-            mut y,
-            mut lhs_on_gcd,
-            mut rhs_on_gcd,
-        } = OddUintXgcdOutput::from_pattern_output(lhs.binxgcd_nz(&rhs));
+        let odd_output = OddUintXgcdOutput::from_pattern_output(lhs.binxgcd_nz(&rhs));
+        odd_output.to_nz_output(k, swap)
+    }
 
-        // Apply the removed factor 2^k back to the gcd
-        let gcd = gcd
-            .as_ref()
-            .shl(k)
-            .to_nz()
-            .expect("is non-zero by construction");
-        Int::conditional_swap(&mut x, &mut y, swap);
-        Uint::conditional_swap(&mut lhs_on_gcd, &mut rhs_on_gcd, swap);
+    /// Compute the greatest common divisor of `self` and `rhs`.
+    #[inline]
+    pub const fn safegcd(&self, rhs: &Uint<LIMBS>) -> Self {
+        safegcd::gcd_nz::<LIMBS, false>(self, rhs)
+    }
 
-        NonZeroUintXgcdOutput {
-            gcd,
-            x,
-            y,
-            lhs_on_gcd,
-            rhs_on_gcd,
-        }
+    /// Compute the greatest common divisor of `self` and `rhs`.
+    ///
+    /// Executes in variable time w.r.t. all input parameters.
+    #[inline]
+    pub const fn safegcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
+        safegcd::gcd_nz::<LIMBS, true>(self, rhs)
     }
 }
 
@@ -189,6 +196,20 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
     pub const fn binxgcd(&self, rhs: &Self) -> OddUintXgcdOutput<LIMBS> {
         OddUintXgcdOutput::from_pattern_output(self.classic_binxgcd(rhs).divide())
+    }
+
+    /// Compute the greatest common divisor of `self` and `rhs` using the Binary GCD algorithm.
+    #[inline]
+    pub const fn safegcd(&self, rhs: &Uint<LIMBS>) -> Self {
+        safegcd::gcd_odd::<LIMBS, false>(self, rhs)
+    }
+
+    /// Compute the greatest common divisor of `self` and `rhs`.
+    ///
+    /// Executes in variable time w.r.t. all input parameters.
+    #[inline]
+    pub const fn safegcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
+        safegcd::gcd_odd::<LIMBS, true>(self, rhs)
     }
 }
 
@@ -242,17 +263,48 @@ impl<const LIMBS: usize> OddUintXgcdOutput<LIMBS> {
             rhs_on_gcd,
         }
     }
+
+    pub(crate) const fn to_nz_output(
+        self,
+        k: u32,
+        swap: ConstChoice,
+    ) -> NonZeroUintXgcdOutput<LIMBS> {
+        let Self {
+            ref gcd,
+            mut x,
+            mut y,
+            mut lhs_on_gcd,
+            mut rhs_on_gcd,
+        } = self;
+
+        // Apply the removed factor 2^k back to the gcd
+        let gcd = gcd
+            .as_ref()
+            .shl(k)
+            .to_nz()
+            .expect("is non-zero by construction");
+        Int::conditional_swap(&mut x, &mut y, swap);
+        Uint::conditional_swap(&mut lhs_on_gcd, &mut rhs_on_gcd, swap);
+
+        NonZeroUintXgcdOutput {
+            gcd,
+            x,
+            y,
+            lhs_on_gcd,
+            rhs_on_gcd,
+        }
+    }
 }
 
 impl<const LIMBS: usize> Gcd<Uint<LIMBS>> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn gcd(&self, rhs: &Uint<LIMBS>) -> Self::Output {
-        self.bingcd(rhs)
+        self.safegcd(rhs)
     }
 
     fn gcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self::Output {
-        self.bingcd_vartime(rhs)
+        self.safegcd_vartime(rhs)
     }
 }
 
@@ -260,11 +312,11 @@ impl<const LIMBS: usize> Gcd<Int<LIMBS>> for Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn gcd(&self, rhs: &Int<LIMBS>) -> Self::Output {
-        self.bingcd(&rhs.abs())
+        self.safegcd(&rhs.abs())
     }
 
     fn gcd_vartime(&self, rhs: &Int<LIMBS>) -> Self::Output {
-        self.bingcd_vartime(&rhs.abs())
+        self.safegcd_vartime(&rhs.abs())
     }
 }
 
@@ -272,11 +324,11 @@ impl<const LIMBS: usize> Gcd<Uint<LIMBS>> for NonZeroUint<LIMBS> {
     type Output = NonZeroUint<LIMBS>;
 
     fn gcd(&self, rhs: &Uint<LIMBS>) -> Self::Output {
-        self.bingcd(rhs)
+        self.safegcd(rhs)
     }
 
     fn gcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self::Output {
-        self.bingcd_vartime(rhs)
+        self.safegcd_vartime(rhs)
     }
 }
 
@@ -284,11 +336,11 @@ impl<const LIMBS: usize> Gcd<Int<LIMBS>> for NonZeroUint<LIMBS> {
     type Output = NonZeroUint<LIMBS>;
 
     fn gcd(&self, rhs: &Int<LIMBS>) -> Self::Output {
-        self.bingcd(&rhs.abs())
+        self.safegcd(&rhs.abs())
     }
 
     fn gcd_vartime(&self, rhs: &Int<LIMBS>) -> Self::Output {
-        self.bingcd_vartime(&rhs.abs())
+        self.safegcd_vartime(&rhs.abs())
     }
 }
 
@@ -296,11 +348,11 @@ impl<const LIMBS: usize> Gcd<Uint<LIMBS>> for OddUint<LIMBS> {
     type Output = OddUint<LIMBS>;
 
     fn gcd(&self, rhs: &Uint<LIMBS>) -> Self::Output {
-        self.bingcd(rhs)
+        self.safegcd(rhs)
     }
 
     fn gcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self::Output {
-        self.bingcd_vartime(rhs)
+        self.safegcd_vartime(rhs)
     }
 }
 
@@ -308,11 +360,11 @@ impl<const LIMBS: usize> Gcd<Int<LIMBS>> for OddUint<LIMBS> {
     type Output = OddUint<LIMBS>;
 
     fn gcd(&self, rhs: &Int<LIMBS>) -> Self::Output {
-        self.bingcd(&rhs.abs())
+        self.safegcd(&rhs.abs())
     }
 
     fn gcd_vartime(&self, rhs: &Int<LIMBS>) -> Self::Output {
-        self.bingcd_vartime(&rhs.abs())
+        self.safegcd_vartime(&rhs.abs())
     }
 }
 
@@ -533,6 +585,18 @@ mod tests {
             let sixty_one = U256::from(61u32);
             assert_eq!(sixty_one, <U256 as Gcd<I256>>::gcd(&f, &g));
             assert_eq!(sixty_one, <U256 as Gcd<I256>>::gcd(&f, &g.wrapping_neg()));
+        }
+
+        #[test]
+        fn xgcd_expected() {
+            // Two numbers with a shared factor of 61
+            let f = U256::from(61u32 * 71);
+            let g = U256::from(59u32 * 61);
+
+            let actual = f.binxgcd(&g);
+            assert_eq!(U256::from(61u32), actual.gcd);
+            assert_eq!(I256::from(5i32), actual.x);
+            assert_eq!(I256::from(-6i32), actual.y);
         }
     }
 }

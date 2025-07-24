@@ -17,7 +17,7 @@ pub(crate) mod boxed;
 use core::fmt;
 
 use crate::{
-    ConstChoice, ConstCtOption, I64, Int, Inverter, Limb, Odd, U64, Uint, Word,
+    ConstChoice, ConstCtOption, I64, Int, Inverter, Limb, NonZero, Odd, U64, Uint, Word,
     const_choice::u32_min,
 };
 use subtle::CtOption;
@@ -71,7 +71,7 @@ impl<const LIMBS: usize> SafeGcdInverter<LIMBS> {
         Self {
             modulus: *modulus,
             adjuster: *adjuster,
-            inverse: invert_mod2_62(modulus.0.as_words()),
+            inverse: invert_mod_u64(modulus.0.as_words()),
         }
     }
 
@@ -85,7 +85,7 @@ impl<const LIMBS: usize> SafeGcdInverter<LIMBS> {
     /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
     pub const fn invert(&self, value: &Uint<LIMBS>) -> ConstCtOption<Uint<LIMBS>> {
-        invert_mod_precomp::<LIMBS, false>(value, &self.modulus, &self.adjuster, self.inverse)
+        invert_mod_precomp::<LIMBS, false>(value, &self.modulus, self.inverse, &self.adjuster)
     }
 
     /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
@@ -102,7 +102,7 @@ impl<const LIMBS: usize> SafeGcdInverter<LIMBS> {
     ///
     /// This version is variable-time with respect to `value`.
     pub const fn invert_vartime(&self, value: &Uint<LIMBS>) -> ConstCtOption<Uint<LIMBS>> {
-        invert_mod_precomp::<LIMBS, true>(value, &self.modulus, &self.adjuster, self.inverse)
+        invert_mod_precomp::<LIMBS, true>(value, &self.modulus, self.inverse, &self.adjuster)
     }
 }
 
@@ -118,138 +118,188 @@ impl<const LIMBS: usize> Inverter for SafeGcdInverter<LIMBS> {
     }
 }
 
-/// Returns the multiplicative inverse of the argument modulo 2^62. The implementation is based
-/// on the Hurchalla's method for computing the multiplicative inverse modulo a power of two.
-///
-/// For better understanding the implementation, the following paper is recommended:
-/// J. Hurchalla, "An Improved Integer Multiplicative Inverse (modulo 2^w)",
-/// <https://arxiv.org/pdf/2204.04342.pdf>
-///
-/// Variable time with respect to the number of words in `value`, however that number will be
-/// fixed for a given integer size.
-const fn invert_mod2_62(value: &[Word]) -> u64 {
-    let value = {
-        #[cfg(target_pointer_width = "32")]
-        {
-            debug_assert!(value.len() >= 1);
-            let mut ret = value[0] as u64;
-
-            if value.len() >= 2 {
-                ret |= (value[1] as u64) << 32;
-            }
-
-            ret
-        }
-
-        #[cfg(target_pointer_width = "64")]
-        {
-            value[0]
-        }
-    };
-
-    let x = value.wrapping_mul(3) ^ 2;
-    let y = 1u64.wrapping_sub(x.wrapping_mul(value));
-    let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
-    let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
-    let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
-    x.wrapping_mul(y.wrapping_add(1)) & (u64::MAX >> 2)
-}
-
+#[inline]
 pub const fn invert_mod<const LIMBS: usize, const VARTIME: bool>(
     a: &Uint<LIMBS>,
     m: &Odd<Uint<LIMBS>>,
 ) -> ConstCtOption<Uint<LIMBS>> {
-    let mi = invert_mod2_62(m.as_ref().as_words());
-    invert_mod_precomp::<LIMBS, VARTIME>(a, m, &Uint::ONE, mi)
+    let mi = invert_mod_u64(m.as_ref().as_words());
+    invert_mod_precomp::<LIMBS, VARTIME>(a, m, mi, &Uint::ONE)
 }
 
-pub const fn invert_mod_precomp<const LIMBS: usize, const VARTIME: bool>(
+/// Calculate the multipicative inverse of `a` modulo `m`.
+///
+const fn invert_mod_precomp<const LIMBS: usize, const VARTIME: bool>(
     a: &Uint<LIMBS>,
     m: &Odd<Uint<LIMBS>>,
-    e: &Uint<LIMBS>,
     mi: u64,
+    e: &Uint<LIMBS>,
 ) -> ConstCtOption<Uint<LIMBS>> {
-    let (f, d, _) = xgcd_precomp::<LIMBS, VARTIME>(m, a, e, mi);
-    let d = d.norm(f.sign, m.as_ref());
-    ConstCtOption::new(d, Uint::eq(&f.magnitude, &Uint::ONE))
-}
-
-pub const fn gcd<const LIMBS: usize>(f: &Odd<Uint<LIMBS>>, g: &Uint<LIMBS>) -> Uint<LIMBS> {
-    let (mut f, mut g) = (Sint::from_uint(*f.as_ref()), Sint::from_uint(*g));
-    let mut steps = iterations(Uint::<LIMBS>::BITS);
-    let mut delta = 1;
-    let mut t;
-
-    while steps > 0 {
-        let batch = u32_min(steps, GCD_BATCH_SIZE);
-        (delta, t) = gcd_jump(f.lowest(), g.lowest(), delta, batch);
-        (f, g) = update_fg(&f, &g, t, batch);
-        steps -= batch;
-    }
-
-    f.abs()
-}
-
-const fn xgcd_precomp<const LIMBS: usize, const VARTIME: bool>(
-    f: &Odd<Uint<LIMBS>>,
-    g: &Uint<LIMBS>,
-    e: &Uint<LIMBS>,
-    mi: u64,
-) -> (Sint<LIMBS>, Sint<LIMBS>, Sint<LIMBS>) {
-    let m = f;
-    let (mut f, mut g) = (Sint::from_uint(*f.as_ref()), Sint::from_uint(*g));
+    let (mut f, mut g) = (Sint::from_uint(*m.as_ref()), Sint::from_uint(*a));
     let (mut d, mut e) = (Sint::<LIMBS>::ZERO, Sint::from_uint(*e));
     let mut steps = iterations(Uint::<LIMBS>::BITS);
     let mut delta = 1;
     let mut t;
 
     while steps > 0 {
-        if VARTIME && g.is_zero().to_bool_vartime() {
+        if VARTIME && g.is_zero_vartime() {
             break;
         }
         let batch = u32_min(steps, GCD_BATCH_SIZE);
-        (delta, t) = gcd_jump(f.lowest(), g.lowest(), delta, batch);
+        (delta, t) = jump::<VARTIME>(f.lowest(), g.lowest(), delta, batch);
         (f, g) = update_fg(&f, &g, t, batch);
-        (d, e) = update_de(&d, &e, t, batch, m.as_ref(), U64::from_u64(mi));
+        (d, e) = update_de(&d, &e, m.as_ref(), batch, U64::from_u64(mi), t);
         steps -= batch;
     }
 
-    (f, d, e)
+    let d = d.norm(f.is_negative(), m.as_ref());
+    ConstCtOption::new(d, Uint::eq(&f.magnitude, &Uint::ONE))
 }
 
-const fn gcd_jump(mut f: u64, mut g: u64, mut delta: i64, mut batch: u32) -> (i64, Matrix) {
+/// Calculate the greatest common denominator of `f` and `g`.
+pub const fn gcd<const LIMBS: usize, const VARTIME: bool>(
+    f: &Uint<LIMBS>,
+    g: &Uint<LIMBS>,
+) -> Uint<LIMBS> {
+    let f_is_zero = f.is_nonzero().not();
+    // Note: is non-zero by construction
+    let f_nz = NonZero(Uint::select(f, &Uint::ONE, f_is_zero));
+    // gcd of (0, g) is g
+    Uint::select(gcd_nz::<LIMBS, VARTIME>(&f_nz, g).as_ref(), g, f_is_zero)
+}
+
+/// Calculate the greatest common denominator of nonzero `f`, and `g`.
+pub const fn gcd_nz<const LIMBS: usize, const VARTIME: bool>(
+    f: &NonZero<Uint<LIMBS>>,
+    g: &Uint<LIMBS>,
+) -> NonZero<Uint<LIMBS>> {
+    // Note the following two GCD identity rules:
+    // 1) gcd(2f, 2g) = 2•gcd(f, g), and
+    // 2) gcd(a, 2g) = gcd(f, g) if f is odd.
+    //
+    // Combined, these rules imply that
+    // 3) gcd(2^i•f, 2^j•g) = 2^k•gcd(f, g), with k = min(i, j).
+    //
+    // However, to save ourselves having to divide out 2^j, we also note that
+    // 4) 2^k•gcd(f, g) = 2^k•gcd(a, 2^j•b)
+
+    let i = f.as_ref().trailing_zeros();
+    let k = u32_min(i, g.trailing_zeros());
+
+    let f_odd = Odd(f.as_ref().shr(i));
+    NonZero(gcd_odd::<LIMBS, VARTIME>(&f_odd, g).as_ref().shl(k))
+}
+
+/// Calculate the greatest common denominator of odd `f`, and `g`.
+pub const fn gcd_odd<const LIMBS: usize, const VARTIME: bool>(
+    f: &Odd<Uint<LIMBS>>,
+    g: &Uint<LIMBS>,
+) -> Odd<Uint<LIMBS>> {
+    let (mut f, mut g) = (Sint::from_uint(*f.as_ref()), Sint::from_uint(*g));
+    let mut steps = iterations(Uint::<LIMBS>::BITS);
+    let mut delta = 1;
+    let mut t;
+
+    while steps > 0 {
+        if VARTIME && g.is_zero_vartime() {
+            break;
+        }
+        let batch = u32_min(steps, GCD_BATCH_SIZE);
+        (delta, t) = jump::<VARTIME>(f.lowest(), g.lowest(), delta, batch);
+        (f, g) = update_fg(&f, &g, t, batch);
+        steps -= batch;
+    }
+
+    f.magnitude().to_odd().expect("odd by construction")
+}
+
+/// Perform `batch` steps of the gcd reduction process on signed tail values `f` and `g`.
+#[inline]
+const fn jump<const VARTIME: bool>(
+    mut f: i64,
+    mut g: i64,
+    mut delta: i64,
+    mut batch: u32,
+) -> (i64, Matrix) {
+    debug_assert!(f & 1 == 1, "f must be odd");
     let mut t = [[1i64, 0], [0, 1]];
     while batch > 0 {
-        (f, g, delta, t) = gcd_jump_core(f, g, delta, t);
+        (f, g, delta, t) = if VARTIME {
+            jump_step_vartime(f, g, delta, t)
+        } else {
+            jump_step(f, g, delta, t)
+        };
         batch -= 1;
     }
     (delta, t)
 }
 
+/// Perform one step of the gcd reduction in constant time.
+/// This follows the half-delta variant of safegcd-bounds which reduces the round count.
+/// https://github.com/sipa/safegcd-bounds
 #[inline(always)]
-const fn gcd_jump_core(
-    mut f: u64,
-    mut g: u64,
+const fn jump_step(
+    mut f: i64,
+    mut g: i64,
     mut delta: i64,
     mut t: Matrix,
-) -> (u64, u64, i64, Matrix) {
-    let d_pnz = ConstChoice::from_u64_lsb(!(delta as u64) >> 63);
-    let g_odd = ConstChoice::from_u64_lsb(g & 1);
-    let g_adj = g_odd.select_u64(0, f);
-    let b1 = d_pnz.and(g_odd);
-    delta = b1.select_i64(2 + delta, 2 - delta);
-    f = b1.select_u64(f, g);
-    g = b1.select_u64(g.wrapping_add(g_adj), g.wrapping_sub(g_adj)) >> 1;
-
-    let t0 = t[1][0] + g_odd.select_i64(0, d_pnz.select_i64(t[0][0], -t[0][0]));
-    let t1 = t[1][1] + g_odd.select_i64(0, d_pnz.select_i64(t[0][1], -t[0][1]));
+) -> (i64, i64, i64, Matrix) {
+    let d_gtz = ConstChoice::from_u64_nonzero((delta & !(delta >> 63)) as u64);
+    let g_odd = ConstChoice::from_u64_lsb((g & 1) as u64);
+    let g_adj = g_odd.select_i64(0, f);
+    let swap = d_gtz.and(g_odd);
+    delta = swap.select_i64(2i64.wrapping_add(delta), 2i64.wrapping_sub(delta));
+    f = swap.select_i64(f, g);
+    g = swap.select_i64(g.wrapping_add(g_adj), g.wrapping_sub(g_adj)) >> 1;
     t = [
         [
-            b1.select_i64(t[0][0], t[1][0]) << 1,
-            b1.select_i64(t[0][1], t[1][1]) << 1,
+            swap.select_i64(t[0][0], t[1][0]) << 1,
+            swap.select_i64(t[0][1], t[1][1]) << 1,
         ],
-        [t0, t1],
+        [
+            t[1][0].wrapping_add(g_odd.select_i64(0, d_gtz.select_i64(t[0][0], -t[0][0]))),
+            t[1][1].wrapping_add(g_odd.select_i64(0, d_gtz.select_i64(t[0][1], -t[0][1]))),
+        ],
     ];
+    (f, g, delta, t)
+}
+
+/// Perform one step of the gcd reduction in variable time.
+#[inline(always)]
+const fn jump_step_vartime(
+    mut f: i64,
+    mut g: i64,
+    mut delta: i64,
+    mut t: Matrix,
+) -> (i64, i64, i64, Matrix) {
+    if (g & 1) != 0 {
+        (f, g, delta, t) = if delta > 0 {
+            (
+                g,
+                g.wrapping_sub(f),
+                2i64.wrapping_sub(delta),
+                [
+                    t[1],
+                    [t[1][0].wrapping_sub(t[0][0]), t[1][1].wrapping_sub(t[0][1])],
+                ],
+            )
+        } else {
+            (
+                f,
+                g.wrapping_add(f),
+                2i64.wrapping_add(delta),
+                [
+                    t[0],
+                    [t[1][0].wrapping_add(t[0][0]), t[1][1].wrapping_add(t[0][1])],
+                ],
+            )
+        };
+    } else {
+        delta = 2i64.wrapping_add(delta);
+    }
+    g >>= 1;
+    t[0][0] <<= 1;
+    t[0][1] <<= 1;
     (f, g, delta, t)
 }
 
@@ -258,40 +308,22 @@ const fn update_fg<const LIMBS: usize>(
     a: &Sint<LIMBS>,
     b: &Sint<LIMBS>,
     t: Matrix,
-    batch: u32,
+    shift: u32,
 ) -> (Sint<LIMBS>, Sint<LIMBS>) {
-    const fn update_term<const LIMBS: usize, const S: usize>(
-        a: &Sint<LIMBS>,
-        b: &Sint<LIMBS>,
-        row: &(Int<S>, Int<S>),
-        batch: u32,
-    ) -> Sint<LIMBS> {
-        let (mut a, mut a_hi, a_sign) = Sint::lincomb_uint_int(a, b, &row.0, &row.1);
-
-        a = a.shr_vartime(batch);
-        (a_hi, _) = a_hi.shl_limb(Uint::<S>::BITS - batch);
-        a.limbs[LIMBS - S] = a.limbs[LIMBS - S].bitor(a_hi.limbs[0]);
-        let mut i = 1;
-        while i < S {
-            a.limbs[LIMBS - i] = a_hi.limbs[S - i];
-            i += 1;
-        }
-
-        Sint::from_uint_sign(a, a_sign)
-    }
-
     (
-        update_term(
+        Sint::lincomb_int_reduce_shift(
             a,
             b,
-            &(I64::from_i64(t[0][0]), I64::from_i64(t[0][1])),
-            batch,
+            &I64::from_i64(t[0][0]),
+            &I64::from_i64(t[0][1]),
+            shift,
         ),
-        update_term(
+        Sint::lincomb_int_reduce_shift(
             a,
             b,
-            &(I64::from_i64(t[1][0]), I64::from_i64(t[1][1])),
-            batch,
+            &I64::from_i64(t[1][0]),
+            &I64::from_i64(t[1][1]),
+            shift,
         ),
     )
 }
@@ -300,68 +332,34 @@ const fn update_fg<const LIMBS: usize>(
 const fn update_de<const LIMBS: usize, const S: usize>(
     d: &Sint<LIMBS>,
     e: &Sint<LIMBS>,
-    t: Matrix,
-    batch: u32,
     m: &Uint<LIMBS>,
+    shift: u32,
     mi: Uint<S>,
+    t: Matrix,
 ) -> (Sint<LIMBS>, Sint<LIMBS>) {
-    const fn update_term<const LIMBS: usize, const S: usize>(
-        d: &Sint<LIMBS>,
-        e: &Sint<LIMBS>,
-        t: &(Int<S>, Int<S>),
-        batch: u32,
-        m: &Uint<LIMBS>,
-        mi: Uint<S>,
-    ) -> Sint<LIMBS> {
-        let (mut c, mut c_hi, mut c_sign) = Sint::lincomb_uint_int(d, e, &t.0, &t.1);
-        let mut mf = c.resize::<S>().wrapping_mul(&mi);
-        mf = mf.bitand(&Uint::MAX.shr_vartime(Uint::<S>::BITS - batch));
-        let (ca, ca_hi) = m.widening_mul(&mf);
-
-        let mut borrow;
-        (c, borrow) = c.borrowing_sub(&ca, Limb::ZERO);
-        (c_hi, borrow) = c_hi.borrowing_sub(&ca_hi, borrow);
-
-        let swap = borrow.is_nonzero();
-        conditional_negate_wide(&mut c, &mut c_hi, swap);
-        c_sign = c_sign.xor(swap);
-
-        c = c.shr_vartime(batch);
-        let carry;
-        (c_hi, carry) = c_hi.shl_limb(Uint::<S>::BITS - batch);
-        c.limbs[LIMBS - S] = c.limbs[LIMBS - S].bitor(c_hi.limbs[0]);
-        let mut i = 1;
-        while i < S {
-            c.limbs[LIMBS - i] = c_hi.limbs[S - i];
-            i += 1;
-        }
-
-        let sub_m = carry.is_nonzero();
-        c = c.wrapping_sub(&Uint::select(&Uint::ZERO, m, sub_m));
-
-        Sint::from_uint_sign(c, c_sign)
-    }
-
     (
-        update_term(
+        Sint::lincomb_int_reduce_shift_mod(
             d,
             e,
-            &(Int::from_i64(t[0][0]), Int::from_i64(t[0][1])),
-            batch,
+            &Int::from_i64(t[0][0]),
+            &Int::from_i64(t[0][1]),
+            shift,
             m,
             mi,
         ),
-        update_term(
+        Sint::lincomb_int_reduce_shift_mod(
             d,
             e,
-            &(Int::from_i64(t[1][0]), Int::from_i64(t[1][1])),
-            batch,
+            &Int::from_i64(t[1][0]),
+            &Int::from_i64(t[1][1]),
+            shift,
             m,
             mi,
         ),
     )
 }
 
+/// Conditionally negate a wide Uint represented by `(lo, hi)`.
 #[inline]
 const fn conditional_negate_wide<const L: usize, const H: usize>(
     lo: &mut Uint<L>,
@@ -376,52 +374,106 @@ const fn conditional_negate_wide<const L: usize, const H: usize>(
     *hi = Uint::select(hi, &hi_neg, flag);
 }
 
+/// Calculate the maximum number of iterations required according to
+/// safegcd-bounds: https://github.com/sipa/safegcd-bounds
 #[inline]
 const fn iterations(bits: u32) -> u32 {
     (45907 * bits + 26313) / 19929
 }
 
+#[inline(always)]
+const fn extract_u64(words: &[Word]) -> u64 {
+    #[cfg(target_pointer_width = "32")]
+    {
+        debug_assert!(value.len() >= 1);
+        let mut ret = words[0] as u64;
+
+        if words.len() >= 2 {
+            ret |= (words[1] as u64) << 32;
+        }
+
+        ret
+    }
+
+    #[cfg(target_pointer_width = "64")]
+    {
+        words[0]
+    }
+}
+
+/// Returns the multiplicative inverse of the argument modulo 2^64. The implementation is based
+/// on the Hurchalla's method for computing the multiplicative inverse modulo a power of two.
+///
+/// For better understanding the implementation, the following paper is recommended:
+/// J. Hurchalla, "An Improved Integer Multiplicative Inverse (modulo 2^w)",
+/// <https://arxiv.org/pdf/2204.04342.pdf>
+///
+/// Variable time with respect to the number of words in `value`, however that number will be
+/// fixed for a given integer size.
+const fn invert_mod_u64(words: &[Word]) -> u64 {
+    let value = extract_u64(words);
+    let x = value.wrapping_mul(3) ^ 2;
+    let y = 1u64.wrapping_sub(x.wrapping_mul(value));
+    let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
+    let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
+    let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
+    x.wrapping_mul(y.wrapping_add(1))
+}
+
+/// A `Uint` which carries a separate sign in order to maintain the same range.
+#[derive(Clone, Copy)]
 struct Sint<const LIMBS: usize> {
     sign: ConstChoice,
     magnitude: Uint<LIMBS>,
 }
 
 impl<const LIMBS: usize> Sint<LIMBS> {
-    const ZERO: Self = Self::from_uint(Uint::ZERO);
-    const ONE: Self = Self::from_uint(Uint::ONE);
+    pub const ZERO: Self = Self::from_uint(Uint::ZERO);
 
-    const fn from_int(int: Int<LIMBS>) -> Self {
-        let (magnitude, sign) = int.abs_sign();
-        Self { sign, magnitude }
-    }
-
-    const fn from_uint(uint: Uint<LIMBS>) -> Self {
+    /// Construct a new `Sint` from a `Uint`.
+    pub const fn from_uint(uint: Uint<LIMBS>) -> Self {
         Self {
             sign: ConstChoice::FALSE,
             magnitude: uint,
         }
     }
 
-    const fn from_uint_sign(magnitude: Uint<LIMBS>, sign: ConstChoice) -> Self {
+    /// Construct a new `Sint` from a `Uint` and a sign flag.
+    pub const fn from_uint_sign(magnitude: Uint<LIMBS>, sign: ConstChoice) -> Self {
         Self { sign, magnitude }
     }
 
-    const fn abs(&self) -> Uint<LIMBS> {
+    /// Obtain the magnitude of the `Sint`, ie. its absolute value.
+    pub const fn magnitude(&self) -> Uint<LIMBS> {
         self.magnitude
     }
 
-    const fn is_zero(&self) -> ConstChoice {
-        self.magnitude.is_nonzero().not()
+    /// Determine if the `Sint` is non-zero.
+    pub const fn is_nonzero(&self) -> ConstChoice {
+        self.magnitude.is_nonzero()
     }
 
-    const fn lowest(&self) -> u64 {
-        // FIXME support 32 bit
-        let mag = self.magnitude.as_words()[0];
-        self.sign.select_u64(mag, mag.wrapping_neg())
+    /// Determine if the `Sint` is zero in variable time.
+    pub const fn is_zero_vartime(&self) -> bool {
+        self.magnitude.cmp_vartime(&Uint::ZERO).is_eq()
     }
 
+    /// Determine if the `Sint` is negative.
+    /// Note: `-0` is representable in this type, so it may be necessary
+    /// to check `self.is_nonzero()` as well.
+    pub const fn is_negative(&self) -> ConstChoice {
+        self.sign
+    }
+
+    // Extract the lowest 63 bits and convert to its signed representation.
+    pub const fn lowest(&self) -> i64 {
+        let mag = (extract_u64(self.magnitude.as_words()) & (u64::MAX >> 1)) as i64;
+        self.sign.select_i64(mag, mag.wrapping_neg())
+    }
+
+    /// Compute the linear combination `a•b + c•d`, returning `(lo, hi, sign)`.
     #[inline]
-    const fn lincomb_uint_int<const RHS: usize>(
+    pub(crate) const fn lincomb_int<const RHS: usize>(
         a: &Sint<LIMBS>,
         b: &Sint<LIMBS>,
         c: &Int<RHS>,
@@ -429,7 +481,7 @@ impl<const LIMBS: usize> Sint<LIMBS> {
     ) -> (Uint<LIMBS>, Uint<RHS>, ConstChoice) {
         let (c, c_sign) = c.abs_sign();
         let (d, d_sign) = d.abs_sign();
-        // Each uint * abs(int) leaves an empty upper bit
+        // Each Sint • abs(Int) product leaves an empty upper bit.
         let (mut x, mut x_hi) = a.magnitude.widening_mul(&c);
         let x_neg = a.sign.xor(c_sign);
         let (mut y, mut y_hi) = b.magnitude.widening_mul(&d);
@@ -444,24 +496,96 @@ impl<const LIMBS: usize> Sint<LIMBS> {
         (x_hi, borrow) = x_hi.borrowing_sub(&y_hi, borrow);
         let swap = borrow.is_nonzero().and(odd_neg);
 
+        // Negate the result if we did not negate y and there was a borrow,
+        // indicating that |y| > |x|.
         conditional_negate_wide(&mut x, &mut x_hi, swap);
 
         let sign = x_neg.and(swap.not()).or(y_neg.and(swap));
         (x, x_hi, sign)
     }
 
-    const fn to_int(&self) -> Int<LIMBS> {
-        // Note: does not perform bounds checking
-        Int::select(
-            self.magnitude.as_int(),
-            self.magnitude.wrapping_neg().as_int(),
-            self.sign,
-        )
+    /// Compute the linear combination `a•b + c•d`, and shift the result
+    /// `shift` bits to the right, returning a signed value in the same range
+    /// as the `Sint` inputs.
+    pub(crate) const fn lincomb_int_reduce_shift<const S: usize>(
+        a: &Self,
+        b: &Self,
+        c: &Int<S>,
+        d: &Int<S>,
+        shift: u32,
+    ) -> Self {
+        let (mut a, mut a_hi, a_sign) = Self::lincomb_int(a, b, c, d);
+
+        a = a.shr_vartime(shift);
+        a_hi = a_hi.shl_vartime(Uint::<S>::BITS - shift);
+        a.limbs[LIMBS - S] = a.limbs[LIMBS - S].bitor(a_hi.limbs[0]);
+        let mut i = 1;
+        while i < S {
+            a.limbs[LIMBS - i] = a_hi.limbs[S - i];
+            i += 1;
+        }
+
+        Sint::from_uint_sign(a, a_sign)
     }
 
+    /// Compute the linear combination `a•b + c•d`, and shift the result
+    /// `shift` bits to the right modulo `m`, returning a signed value in the
+    /// same range as the `Sint` inputs.
+    pub(crate) const fn lincomb_int_reduce_shift_mod<const S: usize>(
+        a: &Self,
+        b: &Self,
+        c: &Int<S>,
+        d: &Int<S>,
+        shift: u32,
+        m: &Uint<LIMBS>,
+        mi: Uint<S>,
+    ) -> Sint<LIMBS> {
+        let (mut c, mut c_hi, mut c_sign) = Sint::lincomb_int(a, b, c, d);
+
+        // Compute the multiple of m that will clear the low N bits of (c, h_hi).
+        let mut mf = c.resize::<S>().wrapping_mul(&mi);
+        mf = mf.bitand(&Uint::MAX.shr_vartime(Uint::<S>::BITS - shift));
+        let (ca, ca_hi) = m.widening_mul(&mf);
+
+        // Subtract the adjustment from (c, c_hi) potentially producing a borrow.
+        let mut borrow;
+        (c, borrow) = c.borrowing_sub(&ca, Limb::ZERO);
+        (c_hi, borrow) = c_hi.borrowing_sub(&ca_hi, borrow);
+
+        // Negate (c, c_hi) if the subtract borrowed.
+        let swap = borrow.is_nonzero();
+        conditional_negate_wide(&mut c, &mut c_hi, swap);
+        c_sign = c_sign.xor(swap);
+
+        // Shift the result, eliminating the trailing zeros.
+        c = c.shr_vartime(shift);
+        let overflow = c_hi.shr_vartime(shift).limbs[0];
+        c_hi = c_hi.shl_vartime(Uint::<S>::BITS - shift);
+        c.limbs[LIMBS - S] = c.limbs[LIMBS - S].bitor(c_hi.limbs[0]);
+        let mut i = 1;
+        while i < S {
+            c.limbs[LIMBS - i] = c_hi.limbs[S - i];
+            i += 1;
+        }
+
+        // The magnitude `c` is now in the range [0, 2m), which may produce
+        // a carry bit iff the high bit of m is one. We conditionally subtract
+        // m in order to keep the outputs in the representable range.
+        let sub_m = overflow.is_nonzero();
+        c = c.wrapping_sub(&Uint::select(&Uint::ZERO, m, sub_m));
+
+        Sint::from_uint_sign(c, c_sign)
+    }
+
+    /// Normalize the value to a `Uint` in the range `[0, m)`.
     const fn norm(&self, f_sign: ConstChoice, m: &Uint<LIMBS>) -> Uint<LIMBS> {
         let sign = f_sign.xor(self.sign);
         Uint::select(&self.magnitude, &m.wrapping_sub(&self.magnitude), sign)
+    }
+
+    /// Compare two `Sint` in constant time.
+    pub const fn eq(a: &Self, b: &Self) -> ConstChoice {
+        Uint::eq(&a.magnitude, &b.magnitude).and(a.sign.eq(b.sign).or(a.is_nonzero().not()))
     }
 }
 
@@ -476,6 +600,26 @@ impl<const LIMBS: usize> fmt::Debug for Sint<LIMBS> {
             },
             &self.magnitude
         ))
+    }
+}
+
+impl<const LIMBS: usize> PartialEq for Sint<LIMBS> {
+    fn eq(&self, other: &Self) -> bool {
+        Self::eq(self, other).to_bool_vartime()
+    }
+}
+
+impl<const LIMBS: usize> ConstCtOption<Odd<Sint<LIMBS>>> {
+    /// Returns the contained value, consuming the `self` value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value is none with a custom panic message provided by
+    /// `msg`.
+    #[inline]
+    pub const fn expect(self, msg: &str) -> Odd<Sint<LIMBS>> {
+        assert!(self.is_some().is_true_vartime(), "{}", msg);
+        *self.components_ref().0
     }
 }
 
