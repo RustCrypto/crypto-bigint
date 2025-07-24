@@ -89,6 +89,12 @@ impl ConstChoice {
 
     /// Returns the truthy value if `value != 0`, and the falsy value otherwise.
     #[inline]
+    pub(crate) const fn from_u64_nonzero(value: u64) -> Self {
+        Self::from_u64_lsb((value | value.wrapping_neg()) >> (u64::BITS - 1))
+    }
+
+    /// Returns the truthy value if `value != 0`, and the falsy value otherwise.
+    #[inline]
     pub(crate) const fn from_word_nonzero(value: Word) -> Self {
         Self::from_word_lsb((value | value.wrapping_neg()) >> (Word::BITS - 1))
     }
