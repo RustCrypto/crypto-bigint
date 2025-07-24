@@ -377,7 +377,20 @@ fn gcd_bench<const LIMBS: usize>(g: &mut BenchmarkGroup<WallTime>, _x: Uint<LIMB
         )
     });
 
-    g.bench_function(BenchmarkId::new("bingcd (classic)", LIMBS), |b| {
+    g.bench_function(BenchmarkId::new("gcd_vartime", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                (
+                    Uint::<LIMBS>::random(&mut rng),
+                    Uint::<LIMBS>::random(&mut rng),
+                )
+            },
+            |(f, g)| black_box(Uint::gcd_vartime(&f, &g)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    g.bench_function(BenchmarkId::new("bingcd", LIMBS), |b| {
         b.iter_batched(
             || {
                 (
@@ -385,25 +398,12 @@ fn gcd_bench<const LIMBS: usize>(g: &mut BenchmarkGroup<WallTime>, _x: Uint<LIMB
                     Uint::<LIMBS>::random(&mut rng),
                 )
             },
-            |(f, g)| black_box(f.classic_bingcd(&g)),
+            |(f, g)| black_box(f.bingcd(&g)),
             BatchSize::SmallInput,
         )
     });
 
-    g.bench_function(BenchmarkId::new("bingcd (optimized)", LIMBS), |b| {
-        b.iter_batched(
-            || {
-                (
-                    OddUint::<LIMBS>::random(&mut rng),
-                    Uint::<LIMBS>::random(&mut rng),
-                )
-            },
-            |(f, g)| black_box(f.optimized_bingcd(&g)),
-            BatchSize::SmallInput,
-        )
-    });
-
-    g.bench_function(BenchmarkId::new("bingcd (vt)", LIMBS), |b| {
+    g.bench_function(BenchmarkId::new("bingcd_vartime", LIMBS), |b| {
         b.iter_batched(
             || {
                 (
@@ -412,32 +412,6 @@ fn gcd_bench<const LIMBS: usize>(g: &mut BenchmarkGroup<WallTime>, _x: Uint<LIMB
                 )
             },
             |(f, g)| black_box(f.bingcd_vartime(&g)),
-            BatchSize::SmallInput,
-        )
-    });
-
-    g.bench_function(BenchmarkId::new("bingcd (classic, vt)", LIMBS), |b| {
-        b.iter_batched(
-            || {
-                (
-                    OddUint::<LIMBS>::random(&mut rng),
-                    Uint::<LIMBS>::random(&mut rng),
-                )
-            },
-            |(f, g)| black_box(f.classic_bingcd_vartime(&g)),
-            BatchSize::SmallInput,
-        )
-    });
-
-    g.bench_function(BenchmarkId::new("bingcd (optimized, vt)", LIMBS), |b| {
-        b.iter_batched(
-            || {
-                (
-                    OddUint::<LIMBS>::random(&mut rng),
-                    Uint::<LIMBS>::random(&mut rng),
-                )
-            },
-            |(f, g)| black_box(f.optimized_bingcd_vartime(&g)),
             BatchSize::SmallInput,
         )
     });
