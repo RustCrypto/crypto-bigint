@@ -89,7 +89,7 @@ impl<const LIMBS: usize> SafeGcdInverter<LIMBS> {
     /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
     pub const fn invert(&self, value: &Uint<LIMBS>) -> ConstCtOption<Uint<LIMBS>> {
-        invert_mod_precomp::<LIMBS, false>(value, &self.modulus, self.inverse, &self.adjuster)
+        invert_odd_mod_precomp::<LIMBS, false>(value, &self.modulus, self.inverse, &self.adjuster)
     }
 
     /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
@@ -106,7 +106,7 @@ impl<const LIMBS: usize> SafeGcdInverter<LIMBS> {
     ///
     /// This version is variable-time with respect to `value`.
     pub const fn invert_vartime(&self, value: &Uint<LIMBS>) -> ConstCtOption<Uint<LIMBS>> {
-        invert_mod_precomp::<LIMBS, true>(value, &self.modulus, self.inverse, &self.adjuster)
+        invert_odd_mod_precomp::<LIMBS, true>(value, &self.modulus, self.inverse, &self.adjuster)
     }
 }
 
@@ -123,17 +123,17 @@ impl<const LIMBS: usize> Inverter for SafeGcdInverter<LIMBS> {
 }
 
 #[inline]
-pub const fn invert_mod<const LIMBS: usize, const VARTIME: bool>(
+pub const fn invert_odd_mod<const LIMBS: usize, const VARTIME: bool>(
     a: &Uint<LIMBS>,
     m: &Odd<Uint<LIMBS>>,
 ) -> ConstCtOption<Uint<LIMBS>> {
     let mi = invert_mod_u64(m.as_ref().as_words());
-    invert_mod_precomp::<LIMBS, VARTIME>(a, m, mi, &Uint::ONE)
+    invert_odd_mod_precomp::<LIMBS, VARTIME>(a, m, mi, &Uint::ONE)
 }
 
 /// Calculate the multipicative inverse of `a` modulo `m`.
 ///
-const fn invert_mod_precomp<const LIMBS: usize, const VARTIME: bool>(
+const fn invert_odd_mod_precomp<const LIMBS: usize, const VARTIME: bool>(
     a: &Uint<LIMBS>,
     m: &Odd<Uint<LIMBS>>,
     mi: u64,
@@ -365,7 +365,7 @@ const fn update_de<const LIMBS: usize, const S: usize>(
 
 /// Conditionally negate a wide Uint represented by `(lo, hi)`.
 #[inline]
-const fn conditional_negate_wide<const L: usize, const H: usize>(
+const fn conditional_negate_in_place_wide<const L: usize, const H: usize>(
     lo: &mut Uint<L>,
     hi: &mut Uint<H>,
     flag: ConstChoice,
@@ -376,6 +376,26 @@ const fn conditional_negate_wide<const L: usize, const H: usize>(
         .wrapping_add(&Uint::select(&Uint::ZERO, &Uint::ONE, carry));
     *lo = Uint::select(lo, &neg, flag);
     *hi = Uint::select(hi, &hi_neg, flag);
+}
+
+/// Right shift a wide Uint represented by `(lo, hi)` returning any remaining high bits.
+#[inline]
+const fn shr_in_place_wide<const L: usize, const H: usize>(
+    lo: &mut Uint<L>,
+    hi: &mut Uint<H>,
+    shift: u32,
+) -> Uint<H> {
+    debug_assert!(H <= L);
+    let overflow = hi.shr_vartime(shift);
+    *hi = hi.shl_vartime(Uint::<H>::BITS - shift);
+    *lo = lo.shr_vartime(shift);
+    lo.limbs[L - H] = lo.limbs[L - H].bitor(hi.limbs[0]);
+    let mut i = 1;
+    while i < H {
+        lo.limbs[L - i] = hi.limbs[H - i];
+        i += 1;
+    }
+    overflow
 }
 
 /// Calculate the maximum number of iterations required according to
@@ -493,7 +513,7 @@ impl<const LIMBS: usize> Sint<LIMBS> {
         let odd_neg = x_neg.xor(y_neg);
 
         // Negate y if none or both of the multiplication results are negative.
-        conditional_negate_wide(&mut y, &mut y_hi, odd_neg.not());
+        conditional_negate_in_place_wide(&mut y, &mut y_hi, odd_neg.not());
 
         let mut borrow;
         (x, borrow) = x.borrowing_sub(&y, Limb::ZERO);
@@ -502,7 +522,7 @@ impl<const LIMBS: usize> Sint<LIMBS> {
 
         // Negate the result if we did not negate y and there was a borrow,
         // indicating that |y| > |x|.
-        conditional_negate_wide(&mut x, &mut x_hi, swap);
+        conditional_negate_in_place_wide(&mut x, &mut x_hi, swap);
 
         let sign = x_neg.and(swap.not()).or(y_neg.and(swap));
         (x, x_hi, sign)
@@ -518,17 +538,9 @@ impl<const LIMBS: usize> Sint<LIMBS> {
         d: &Int<S>,
         shift: u32,
     ) -> Self {
+        debug_assert!(shift < Uint::<S>::BITS);
         let (mut a, mut a_hi, a_sign) = Self::lincomb_int(a, b, c, d);
-
-        a = a.shr_vartime(shift);
-        a_hi = a_hi.shl_vartime(Uint::<S>::BITS - shift);
-        a.limbs[LIMBS - S] = a.limbs[LIMBS - S].bitor(a_hi.limbs[0]);
-        let mut i = 1;
-        while i < S {
-            a.limbs[LIMBS - i] = a_hi.limbs[S - i];
-            i += 1;
-        }
-
+        shr_in_place_wide(&mut a, &mut a_hi, shift);
         Sint::from_uint_sign(a, a_sign)
     }
 
@@ -544,6 +556,7 @@ impl<const LIMBS: usize> Sint<LIMBS> {
         m: &Uint<LIMBS>,
         mi: Uint<S>,
     ) -> Sint<LIMBS> {
+        debug_assert!(shift < Uint::<S>::BITS);
         let (mut c, mut c_hi, mut c_sign) = Sint::lincomb_int(a, b, c, d);
 
         // Compute the multiple of m that will clear the low N bits of (c, h_hi).
@@ -558,24 +571,24 @@ impl<const LIMBS: usize> Sint<LIMBS> {
 
         // Negate (c, c_hi) if the subtract borrowed.
         let swap = borrow.is_nonzero();
-        conditional_negate_wide(&mut c, &mut c_hi, swap);
+        conditional_negate_in_place_wide(&mut c, &mut c_hi, swap);
         c_sign = c_sign.xor(swap);
 
         // Shift the result, eliminating the trailing zeros.
-        c = c.shr_vartime(shift);
-        let overflow = c_hi.shr_vartime(shift).limbs[0];
-        c_hi = c_hi.shl_vartime(Uint::<S>::BITS - shift);
-        c.limbs[LIMBS - S] = c.limbs[LIMBS - S].bitor(c_hi.limbs[0]);
-        let mut i = 1;
-        while i < S {
-            c.limbs[LIMBS - i] = c_hi.limbs[S - i];
-            i += 1;
-        }
+        let overflow = shr_in_place_wide(&mut c, &mut c_hi, shift);
+        debug_assert!(
+            overflow.shr1().is_nonzero().not().to_bool_vartime(),
+            "overflow was larger than one bit"
+        );
 
-        // The magnitude `c` is now in the range [0, 2m), which may produce
-        // a carry bit iff the high bit of m is one. We conditionally subtract
-        // m in order to keep the outputs in the representable range.
-        let sub_m = overflow.is_nonzero();
+        // The magnitude `c` is now in the range [0, 2m). We conditionally subtract
+        // m in order to keep the outputs in the representable range. We select
+        // `c` if either the subtraction proceeds without borrowing, or there was
+        // an overflow remaining after the right shift.
+        let (cm, borrow) = c.borrowing_sub(m, Limb::ZERO);
+        c = Uint::select(&c, &cm, borrow.is_nonzero().not().or(overflow.is_nonzero()));
+
+        let sub_m = overflow.limbs[0].is_nonzero();
         c = c.wrapping_sub(&Uint::select(&Uint::ZERO, m, sub_m));
 
         Sint::from_uint_sign(c, c_sign)
