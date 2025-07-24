@@ -152,12 +152,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     pub const fn invert_odd_mod(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
-        safegcd::invert_mod::<LIMBS, false>(self, modulus)
+        safegcd::invert_odd_mod::<LIMBS, false>(self, modulus)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     pub const fn invert_odd_mod_vartime(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
-        safegcd::invert_mod::<LIMBS, true>(self, modulus)
+        safegcd::invert_odd_mod::<LIMBS, true>(self, modulus)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`.
@@ -377,5 +377,33 @@ mod tests {
 
         let res = a.invert_odd_mod(&m);
         assert!(res.is_none().is_true_vartime());
+    }
+
+    #[test]
+    fn test_invert_edge() {
+        assert_eq!(
+            U256::ZERO
+                .invert_odd_mod(&U256::ONE.to_odd().unwrap())
+                .unwrap(),
+            U256::ZERO
+        );
+        assert_eq!(
+            U256::ONE
+                .invert_odd_mod(&U256::ONE.to_odd().unwrap())
+                .unwrap(),
+            U256::ZERO
+        );
+        assert_eq!(
+            U256::ONE
+                .invert_odd_mod(&U256::MAX.to_odd().unwrap())
+                .unwrap(),
+            U256::ONE
+        );
+        assert!(
+            U256::MAX
+                .invert_odd_mod(&U256::MAX.to_odd().unwrap())
+                .is_none()
+                .to_bool_vartime()
+        );
     }
 }
