@@ -12,6 +12,10 @@
 #![allow(clippy::needless_range_loop)]
 
 #[cfg(feature = "alloc")]
+#[macro_use]
+pub(crate) mod macros;
+
+#[cfg(feature = "alloc")]
 pub(crate) mod boxed;
 
 use core::fmt;

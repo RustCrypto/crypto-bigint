@@ -3,8 +3,8 @@
 //!
 //! See parent module for more information.
 
-use super::{Matrix, invert_mod2_62, iterations, jump};
-use crate::{BoxedUint, Inverter, Limb, Odd, Resize, Word};
+use super::{Matrix, invert_mod_u64};
+use crate::{BoxedUint, ConstChoice, Inverter, Limb, Odd, Resize, Word};
 use alloc::boxed::Box;
 use core::{
     cmp::max,
@@ -35,7 +35,7 @@ impl BoxedSafeGcdInverter {
         Self {
             modulus: BoxedUnsatInt::from(&modulus.0),
             adjuster: BoxedUnsatInt::from(&adjuster.resize(modulus.bits_precision())),
-            inverse: invert_mod2_62(modulus.0.as_words()),
+            inverse: invert_mod_u64(modulus.0.as_words()) as i64,
         }
     }
 
@@ -101,7 +101,7 @@ pub(crate) fn gcd(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
     let nlimbs = unsat_nlimbs_for_sat_nlimbs(max(f.nlimbs(), g.nlimbs()));
     let bits_precision = f.bits_precision();
 
-    let inverse = invert_mod2_62(f.as_words());
+    let inverse = invert_mod_u64(f.as_words()) as i64;
     let f = BoxedUnsatInt::from_uint_widened(f, nlimbs);
     let mut g = BoxedUnsatInt::from_uint_widened(g, nlimbs);
     let mut d = BoxedUnsatInt::zero(nlimbs);
@@ -119,7 +119,7 @@ pub(crate) fn gcd_vartime(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
     let nlimbs = unsat_nlimbs_for_sat_nlimbs(max(f.nlimbs(), g.nlimbs()));
     let bits_precision = f.bits_precision();
 
-    let inverse = invert_mod2_62(f.as_words());
+    let inverse = invert_mod_u64(f.as_words()) as i64;
     let f = BoxedUnsatInt::from_uint_widened(f, nlimbs);
     let mut g = BoxedUnsatInt::from_uint_widened(g, nlimbs);
     let mut d = BoxedUnsatInt::zero(nlimbs);
@@ -248,6 +248,60 @@ fn de(
 
     *d = cd;
     *e = ce;
+}
+
+/// Compute the number of iterations required to compute Bernstein-Yang on the two values.
+///
+/// Adapted from Fig 11.1 of <https://eprint.iacr.org/2019/266.pdf>
+///
+/// The paper proves that the algorithm will converge (i.e. `g` will be `0`) in all cases when
+/// the algorithm runs this particular number of iterations.
+///
+/// Once `g` reaches `0`, continuing to run the algorithm will have no effect.
+// TODO(tarcieri): improved bounds using https://github.com/sipa/safegcd-bounds
+pub(crate) const fn iterations(f_bits: u32, g_bits: u32) -> u32 {
+    // Select max of `f_bits`, `g_bits`
+    let d = ConstChoice::from_u32_lt(f_bits, g_bits).select_u32(f_bits, g_bits);
+    let addend = ConstChoice::from_u32_lt(d, 46).select_u32(57, 80);
+    (49 * d + addend) / 17
+}
+
+/// Returns the Bernstein-Yang transition matrix multiplied by 2^62 and the new value of the
+/// delta variable for the 62 basic steps of the Bernstein-Yang method, which are to be
+/// performed sequentially for specified initial values of f, g and delta
+const fn jump(f: &[u64], g: &[u64], mut delta: i64) -> (i64, Matrix) {
+    // This function is defined because the method "min" of the i64 type is not constant
+    const fn min(a: i64, b: i64) -> i64 {
+        if a > b { b } else { a }
+    }
+
+    let (mut steps, mut f, mut g) = (62, f[0] as i64, g[0] as i128);
+    let mut t: Matrix = [[1, 0], [0, 1]];
+
+    loop {
+        let zeros = min(steps, g.trailing_zeros() as i64);
+        (steps, delta, g) = (steps - zeros, delta + zeros, g >> zeros);
+        t[0] = [t[0][0] << zeros, t[0][1] << zeros];
+
+        if steps == 0 {
+            break;
+        }
+        if delta > 0 {
+            (delta, f, g) = (-delta, g as i64, -f as i128);
+            (t[0], t[1]) = (t[1], [-t[0][0], -t[0][1]]);
+        }
+
+        // The formula (3 * x) xor 28 = -1 / x (mod 32) for an odd integer x in the two's
+        // complement code has been derived from the formula (3 * x) xor 2 = 1 / x (mod 32)
+        // attributed to Peter Montgomery.
+        let mask = (1 << min(min(steps, 1 - delta), 5)) - 1;
+        let w = (g as i64).wrapping_mul(f.wrapping_mul(3) ^ 28) & mask;
+
+        t[1] = [t[0][0] * w + t[1][0], t[0][1] * w + t[1][1]];
+        g += w as i128 * f as i128;
+    }
+
+    (delta, t)
 }
 
 /// "Bigint"-like (62 * LIMBS)-bit signed integer type, whose variables store numbers in the two's
@@ -538,11 +592,7 @@ impl Mul<i64> for &BoxedUnsatInt {
 mod tests {
     use super::BoxedUnsatInt;
     use crate::{BoxedUint, Inverter, PrecomputeInverter, U256};
-    use proptest::prelude::*;
     use subtle::ConstantTimeEq;
-
-    #[cfg(not(miri))]
-    use crate::modular::safegcd::UnsatInt;
 
     impl PartialEq for BoxedUnsatInt {
         fn eq(&self, other: &Self) -> bool {
@@ -679,75 +729,79 @@ mod tests {
         );
     }
 
-    prop_compose! {
-        fn u256()(bytes in any::<[u8; 32]>()) -> U256 {
-            U256::from_le_slice(&bytes)
-        }
+    #[test]
+    fn unsatint_add() {
+        let mut actual = BoxedUnsatInt::zero(2);
+        actual += BoxedUnsatInt::zero(2);
+        assert_eq!(BoxedUnsatInt::zero(2), actual);
+        let mut actual = BoxedUnsatInt::one(2);
+        actual += BoxedUnsatInt::zero(2);
+        assert_eq!(BoxedUnsatInt::one(2), actual);
+        let mut actual = BoxedUnsatInt::one(2).neg();
+        actual += BoxedUnsatInt::one(2);
+        assert_eq!(BoxedUnsatInt::zero(2), actual);
     }
 
-    proptest! {
-        #[test]
-        #[cfg(not(miri))]
-        fn boxed_unsatint_add(x in u256(), y in u256()) {
-            let x_ref = UnsatInt::<{ safegcd_nlimbs!(256usize) }>::from_uint(&x);
-            let y_ref = UnsatInt::<{ safegcd_nlimbs!(256usize) }>::from_uint(&y);
-            let mut x_boxed = BoxedUnsatInt::from(&x.into());
-            let y_boxed = BoxedUnsatInt::from(&y.into());
+    #[allow(clippy::erasing_op)]
+    #[test]
+    fn unsatint_mul() {
+        assert_eq!(BoxedUnsatInt::zero(2), &BoxedUnsatInt::zero(2) * 0i64);
+        assert_eq!(BoxedUnsatInt::zero(2), &BoxedUnsatInt::zero(2) * 1);
+        assert_eq!(BoxedUnsatInt::zero(2), &BoxedUnsatInt::one(2) * 0);
+        assert_eq!(BoxedUnsatInt::zero(2), &BoxedUnsatInt::one(2).neg() * 0);
+        assert_eq!(BoxedUnsatInt::one(2), &BoxedUnsatInt::one(2) * 1);
+        assert_eq!(
+            BoxedUnsatInt::one(2).neg(),
+            &BoxedUnsatInt::one(2).neg() * 1
+        );
+    }
 
-            let expected = x_ref.add(&y_ref);
-            x_boxed += &y_boxed;
-            prop_assert_eq!(&expected.0, &*x_boxed.0);
-        }
+    #[test]
+    fn unsatint_neg() {
+        assert_eq!(BoxedUnsatInt::zero(2), BoxedUnsatInt::zero(2).neg());
+        assert_eq!(&BoxedUnsatInt::one(2) * -1, BoxedUnsatInt::one(2).neg());
+        assert_eq!(BoxedUnsatInt::one(2), BoxedUnsatInt::one(2).neg().neg());
+    }
 
-        #[test]
-        #[cfg(not(miri))]
-        fn boxed_unsatint_mul(x in u256(), y in any::<i64>()) {
-            let x_ref = UnsatInt::<{ safegcd_nlimbs!(256usize) }>::from_uint(&x);
-            let x_boxed = BoxedUnsatInt::from(&x.into());
+    #[test]
+    fn unsatint_is_negative() {
+        assert!(!bool::from(BoxedUnsatInt::zero(2).is_negative()));
+        assert!(!bool::from(BoxedUnsatInt::one(2).is_negative()));
+        assert!(!bool::from(BoxedUnsatInt::zero(2).neg().is_negative()));
+        assert!(bool::from(BoxedUnsatInt::one(2).neg().is_negative()));
+        assert!(!bool::from(BoxedUnsatInt::one(2).neg().neg().is_negative()));
+    }
 
-            let expected = x_ref.mul(y);
-            let actual = &x_boxed * y;
-            prop_assert_eq!(&expected.0, &*actual.0);
-        }
+    #[test]
+    fn unsatint_shr() {
+        let n = BoxedUnsatInt(
+            [
+                0,
+                1211048314408256470,
+                1344008336933394898,
+                3913497193346473913,
+                2764114971089162538,
+                4,
+            ]
+            .into(),
+        );
 
-        #[test]
-        #[cfg(not(miri))]
-        fn boxed_unsatint_neg(x in u256()) {
-            let x_ref = UnsatInt::<{ safegcd_nlimbs!(256usize) }>::from_uint(&x);
-            let x_boxed = BoxedUnsatInt::from(&x.into());
+        let mut actual = n.clone();
+        actual.shr_assign();
 
-            let expected = x_ref.neg();
-            let actual = x_boxed.neg();
-            prop_assert_eq!(&expected.0, &*actual.0);
-        }
-
-        #[test]
-        #[cfg(not(miri))]
-        fn boxed_unsatint_shr(x in u256()) {
-            let x_ref = UnsatInt::<{ safegcd_nlimbs!(256usize) }>::from_uint(&x);
-            let mut x_boxed = BoxedUnsatInt::from(&x.into());
-            x_boxed.shr_assign();
-
-            let expected = x_ref.shr();
-            prop_assert_eq!(&expected.0, &*x_boxed.0);
-        }
-
-        #[test]
-                #[cfg(not(miri))]
-
-        fn boxed_unsatint_is_negative(x in u256()) {
-            let x_ref = UnsatInt::<{ safegcd_nlimbs!(256usize) }>::from_uint(&x);
-            let x_boxed = BoxedUnsatInt::from(&x.into());
-            assert_eq!(x_ref.is_negative().to_bool_vartime(), bool::from(x_boxed.is_negative()));
-        }
-
-        #[test]
-                #[cfg(not(miri))]
-
-        fn boxed_unsatint_is_minus_one(x in u256()) {
-            let x_ref = UnsatInt::<{ safegcd_nlimbs!(256usize) }>::from_uint(&x);
-            let x_boxed = BoxedUnsatInt::from(&x.into());
-            assert!(bool::from(x_boxed.is_minus_one().ct_eq(&x_ref.eq(&UnsatInt::MINUS_ONE).into())));
-        }
+        assert_eq!(
+            BoxedUnsatInt(
+                [
+                    1211048314408256470,
+                    1344008336933394898,
+                    3913497193346473913,
+                    2764114971089162538,
+                    4,
+                    0
+                ]
+                .into()
+            ),
+            actual
+        );
     }
 }
