@@ -384,18 +384,21 @@ const fn shr_in_place_wide<const L: usize, const H: usize>(
     lo: &mut Uint<L>,
     hi: &mut Uint<H>,
     shift: u32,
-) -> Uint<H> {
+) {
     debug_assert!(H <= L);
-    let overflow = hi.shr_vartime(shift);
-    *hi = hi.shl_vartime(Uint::<H>::BITS - shift);
+    debug_assert!(shift < Uint::<H>::BITS);
+    let copy = hi.shl_vartime(Uint::<H>::BITS - shift);
+    *hi = hi.shr_vartime(shift);
     *lo = lo.shr_vartime(shift);
-    lo.limbs[L - H] = lo.limbs[L - H].bitor(hi.limbs[0]);
-    let mut i = 1;
-    while i < H {
-        lo.limbs[L - i] = hi.limbs[H - i];
-        i += 1;
+    let mut offs = shift.div_ceil(Limb::BITS) as usize;
+    lo.limbs[L - offs] = lo.limbs[L - offs].bitor(copy.limbs[H - offs]);
+    loop {
+        offs -= 1;
+        if offs == 0 {
+            break;
+        }
+        lo.limbs[L - offs] = copy.limbs[H - offs];
     }
-    overflow
 }
 
 /// Calculate the maximum number of iterations required according to
@@ -406,7 +409,7 @@ const fn iterations(bits: u32) -> u32 {
 }
 
 #[inline(always)]
-const fn extract_u64(words: &[Word]) -> u64 {
+const fn lowest_u64(words: &[Word]) -> u64 {
     #[cfg(target_pointer_width = "32")]
     {
         debug_assert!(words.len() >= 1);
@@ -435,7 +438,7 @@ const fn extract_u64(words: &[Word]) -> u64 {
 /// Variable time with respect to the number of words in `value`, however that number will be
 /// fixed for a given integer size.
 const fn invert_mod_u64(words: &[Word]) -> u64 {
-    let value = extract_u64(words);
+    let value = lowest_u64(words);
     let x = value.wrapping_mul(3) ^ 2;
     let y = 1u64.wrapping_sub(x.wrapping_mul(value));
     let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
@@ -491,7 +494,7 @@ impl<const LIMBS: usize> Sint<LIMBS> {
 
     // Extract the lowest 63 bits and convert to its signed representation.
     pub const fn lowest(&self) -> i64 {
-        let mag = (extract_u64(self.magnitude.as_words()) & (u64::MAX >> 1)) as i64;
+        let mag = (lowest_u64(self.magnitude.as_words()) & (u64::MAX >> 1)) as i64;
         self.sign.select_i64(mag, mag.wrapping_neg())
     }
 
@@ -575,9 +578,9 @@ impl<const LIMBS: usize> Sint<LIMBS> {
         c_sign = c_sign.xor(swap);
 
         // Shift the result, eliminating the trailing zeros.
-        let overflow = shr_in_place_wide(&mut c, &mut c_hi, shift);
+        shr_in_place_wide(&mut c, &mut c_hi, shift);
         debug_assert!(
-            overflow.shr1().is_nonzero().not().to_bool_vartime(),
+            c_hi.shr1().is_nonzero().not().to_bool_vartime(),
             "overflow was larger than one bit"
         );
 
@@ -586,9 +589,9 @@ impl<const LIMBS: usize> Sint<LIMBS> {
         // `c` if either the subtraction proceeds without borrowing, or there was
         // an overflow remaining after the right shift.
         let (cm, borrow) = c.borrowing_sub(m, Limb::ZERO);
-        c = Uint::select(&c, &cm, borrow.is_nonzero().not().or(overflow.is_nonzero()));
+        c = Uint::select(&c, &cm, borrow.is_nonzero().not().or(c_hi.is_nonzero()));
 
-        let sub_m = overflow.limbs[0].is_nonzero();
+        let sub_m = c_hi.limbs[0].is_nonzero();
         c = c.wrapping_sub(&Uint::select(&Uint::ZERO, m, sub_m));
 
         Sint::from_uint_sign(c, c_sign)
@@ -642,7 +645,7 @@ impl<const LIMBS: usize> ConstCtOption<Odd<Sint<LIMBS>>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{PrecomputeInverter, U256};
+    use crate::{PrecomputeInverter, U128, U256, modular::safegcd::shr_in_place_wide};
 
     #[test]
     fn invert() {
@@ -658,5 +661,25 @@ mod tests {
             U256::from_be_hex("FB668F8F509790BC549B077098918604283D42901C92981062EB48BC723F617B"),
             result
         );
+    }
+
+    #[test]
+    fn shr_wide() {
+        let hi = U128::from_u128(0x11111111222222223333333344444444);
+        let lo = U256::MAX;
+        let (mut a, mut a_hi) = (lo, hi);
+        shr_in_place_wide(&mut a, &mut a_hi, 16);
+        assert_eq!(
+            a,
+            U256::from_be_hex("4444FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+        );
+        assert_eq!(a_hi, U128::from_u128(0x1111111122222222333333334444));
+        let (mut b, mut b_hi) = (lo, hi);
+        shr_in_place_wide(&mut b, &mut b_hi, 68);
+        assert_eq!(
+            b,
+            U256::from_be_hex("23333333344444444FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+        );
+        assert_eq!(b_hi, U128::from_u128(0x111111112222222));
     }
 }
