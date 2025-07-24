@@ -82,7 +82,7 @@ impl<const LIMBS: usize> SafeGcdInverter<LIMBS> {
     /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
     #[deprecated(since = "0.7.0", note = "please use `invert` instead")]
-    pub fn inv(&self, value: &Uint<LIMBS>) -> ConstCtOption<Uint<LIMBS>> {
+    pub const fn inv(&self, value: &Uint<LIMBS>) -> ConstCtOption<Uint<LIMBS>> {
         self.invert(value)
     }
 
