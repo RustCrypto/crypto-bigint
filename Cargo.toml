@@ -30,7 +30,7 @@ zeroize = { version = "1", optional = true, default-features = false }
 
 [dev-dependencies]
 bincode = { version = "2", features = ["serde"] }
-criterion = { version = "0.6", features = ["html_reports"] }
+criterion = { version = "0.7", features = ["html_reports"] }
 hex-literal = "1"
 num-bigint = "0.4"
 num-integer = "0.1"
