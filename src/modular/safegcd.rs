@@ -559,41 +559,35 @@ impl<const LIMBS: usize> SignedInt<LIMBS> {
         mi: Uint<S>,
     ) -> SignedInt<LIMBS> {
         debug_assert!(shift < Uint::<S>::BITS);
-        let (mut c, mut c_hi, mut c_sign) = SignedInt::lincomb_int(a, b, c, d);
+        let (mut x, mut x_hi, mut x_sign) = SignedInt::lincomb_int(a, b, c, d);
 
-        // Compute the multiple of m that will clear the low N bits of (c, h_hi).
-        let mut mf = c.resize::<S>().wrapping_mul(&mi);
+        // Compute the multiple of m that will clear the low N bits of (x, x_hi).
+        let mut mf = x.resize::<S>().wrapping_mul(&mi);
         mf = mf.bitand(&Uint::MAX.shr_vartime(Uint::<S>::BITS - shift));
-        let (ca, ca_hi) = m.widening_mul(&mf);
+        let (xa, xa_hi) = m.widening_mul(&mf);
 
-        // Subtract the adjustment from (c, c_hi) potentially producing a borrow.
+        // Subtract the adjustment from (x, x_hi) potentially producing a borrow.
         let mut borrow;
-        (c, borrow) = c.borrowing_sub(&ca, Limb::ZERO);
-        (c_hi, borrow) = c_hi.borrowing_sub(&ca_hi, borrow);
+        (x, borrow) = x.borrowing_sub(&xa, Limb::ZERO);
+        (x_hi, borrow) = x_hi.borrowing_sub(&xa_hi, borrow);
 
-        // Negate (c, c_hi) if the subtract borrowed.
+        // Negate (x, x_hi) if the subtraction borrowed.
         let swap = borrow.is_nonzero();
-        conditional_negate_in_place_wide(&mut c, &mut c_hi, swap);
-        c_sign = c_sign.xor(swap);
+        conditional_negate_in_place_wide(&mut x, &mut x_hi, swap);
+        x_sign = x_sign.xor(swap);
 
         // Shift the result, eliminating the trailing zeros.
-        shr_in_place_wide(&mut c, &mut c_hi, shift);
+        shr_in_place_wide(&mut x, &mut x_hi, shift);
         debug_assert!(
-            c_hi.shr1().is_nonzero().not().to_bool_vartime(),
+            x_hi.shr1().is_nonzero().not().to_bool_vartime(),
             "overflow was larger than one bit"
         );
 
-        // The magnitude `c` is now in the range [0, 2m). We conditionally subtract
-        // m in order to keep the outputs in the representable range. We select
-        // `c` if either the subtraction proceeds without borrowing, or there was
-        // an overflow remaining after the right shift.
-        let (cm, borrow) = c.borrowing_sub(m, Limb::ZERO);
-        c = Uint::select(&c, &cm, borrow.is_nonzero().not().or(c_hi.is_nonzero()));
+        // The magnitude x is now in the range [0, 2m). We conditionally subtract
+        // m in order to keep the output in (-m, m).
+        x = x.sub_mod_with_carry(x_hi.limbs[0], m, m);
 
-        let sub_m = c_hi.limbs[0].is_nonzero();
-        c = c.wrapping_sub(&Uint::select(&Uint::ZERO, m, sub_m));
-
-        SignedInt::from_uint_sign(c, c_sign)
+        SignedInt::from_uint_sign(x, x_sign)
     }
 
     /// Normalize the value to a `Uint` in the range `[0, m)`.
@@ -636,6 +630,7 @@ impl<const LIMBS: usize> ConstCtOption<Odd<SignedInt<LIMBS>>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[track_caller]
     pub const fn expect(self, msg: &str) -> Odd<SignedInt<LIMBS>> {
         assert!(self.is_some().is_true_vartime(), "{}", msg);
         *self.components_ref().0
