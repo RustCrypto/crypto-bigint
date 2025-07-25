@@ -405,5 +405,11 @@ mod tests {
                 .is_none()
                 .to_bool_vartime()
         );
+        assert_eq!(
+            U256::MAX
+                .invert_odd_mod(&U256::ONE.to_odd().unwrap())
+                .unwrap(),
+            U256::ZERO
+        );
     }
 }
