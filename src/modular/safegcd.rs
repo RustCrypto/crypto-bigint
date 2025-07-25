@@ -9,8 +9,6 @@
 
 // TODO(tarcieri): optimized implementation for 32-bit platforms (#380)
 
-#![allow(clippy::needless_range_loop)]
-
 #[cfg(feature = "alloc")]
 #[macro_use]
 pub(crate) mod macros;
@@ -139,8 +137,8 @@ const fn invert_odd_mod_precomp<const LIMBS: usize, const VARTIME: bool>(
     mi: u64,
     e: &Uint<LIMBS>,
 ) -> ConstCtOption<Uint<LIMBS>> {
-    let (mut f, mut g) = (Sint::from_uint(*m.as_ref()), Sint::from_uint(*a));
-    let (mut d, mut e) = (Sint::<LIMBS>::ZERO, Sint::from_uint(*e));
+    let (mut f, mut g) = (SignedInt::from_uint(*m.as_ref()), SignedInt::from_uint(*a));
+    let (mut d, mut e) = (SignedInt::<LIMBS>::ZERO, SignedInt::from_uint(*e));
     let mut steps = iterations(Uint::<LIMBS>::BITS);
     let mut delta = 1;
     let mut t;
@@ -199,7 +197,7 @@ pub const fn gcd_odd<const LIMBS: usize, const VARTIME: bool>(
     f: &Odd<Uint<LIMBS>>,
     g: &Uint<LIMBS>,
 ) -> Odd<Uint<LIMBS>> {
-    let (mut f, mut g) = (Sint::from_uint(*f.as_ref()), Sint::from_uint(*g));
+    let (mut f, mut g) = (SignedInt::from_uint(*f.as_ref()), SignedInt::from_uint(*g));
     let mut steps = iterations(Uint::<LIMBS>::BITS);
     let mut delta = 1;
     let mut t;
@@ -309,20 +307,20 @@ const fn jump_step_vartime(
 
 #[inline]
 const fn update_fg<const LIMBS: usize>(
-    a: &Sint<LIMBS>,
-    b: &Sint<LIMBS>,
+    a: &SignedInt<LIMBS>,
+    b: &SignedInt<LIMBS>,
     t: Matrix,
     shift: u32,
-) -> (Sint<LIMBS>, Sint<LIMBS>) {
+) -> (SignedInt<LIMBS>, SignedInt<LIMBS>) {
     (
-        Sint::lincomb_int_reduce_shift(
+        SignedInt::lincomb_int_reduce_shift(
             a,
             b,
             &I64::from_i64(t[0][0]),
             &I64::from_i64(t[0][1]),
             shift,
         ),
-        Sint::lincomb_int_reduce_shift(
+        SignedInt::lincomb_int_reduce_shift(
             a,
             b,
             &I64::from_i64(t[1][0]),
@@ -334,15 +332,15 @@ const fn update_fg<const LIMBS: usize>(
 
 #[inline]
 const fn update_de<const LIMBS: usize, const S: usize>(
-    d: &Sint<LIMBS>,
-    e: &Sint<LIMBS>,
+    d: &SignedInt<LIMBS>,
+    e: &SignedInt<LIMBS>,
     m: &Uint<LIMBS>,
     shift: u32,
     mi: Uint<S>,
     t: Matrix,
-) -> (Sint<LIMBS>, Sint<LIMBS>) {
+) -> (SignedInt<LIMBS>, SignedInt<LIMBS>) {
     (
-        Sint::lincomb_int_reduce_shift_mod(
+        SignedInt::lincomb_int_reduce_shift_mod(
             d,
             e,
             &Int::from_i64(t[0][0]),
@@ -351,7 +349,7 @@ const fn update_de<const LIMBS: usize, const S: usize>(
             m,
             mi,
         ),
-        Sint::lincomb_int_reduce_shift_mod(
+        SignedInt::lincomb_int_reduce_shift_mod(
             d,
             e,
             &Int::from_i64(t[1][0]),
@@ -449,15 +447,15 @@ const fn invert_mod_u64(words: &[Word]) -> u64 {
 
 /// A `Uint` which carries a separate sign in order to maintain the same range.
 #[derive(Clone, Copy)]
-struct Sint<const LIMBS: usize> {
+struct SignedInt<const LIMBS: usize> {
     sign: ConstChoice,
     magnitude: Uint<LIMBS>,
 }
 
-impl<const LIMBS: usize> Sint<LIMBS> {
+impl<const LIMBS: usize> SignedInt<LIMBS> {
     pub const ZERO: Self = Self::from_uint(Uint::ZERO);
 
-    /// Construct a new `Sint` from a `Uint`.
+    /// Construct a new `SignedInt` from a `Uint`.
     pub const fn from_uint(uint: Uint<LIMBS>) -> Self {
         Self {
             sign: ConstChoice::FALSE,
@@ -465,27 +463,27 @@ impl<const LIMBS: usize> Sint<LIMBS> {
         }
     }
 
-    /// Construct a new `Sint` from a `Uint` and a sign flag.
+    /// Construct a new `SignedInt` from a `Uint` and a sign flag.
     pub const fn from_uint_sign(magnitude: Uint<LIMBS>, sign: ConstChoice) -> Self {
         Self { sign, magnitude }
     }
 
-    /// Obtain the magnitude of the `Sint`, ie. its absolute value.
+    /// Obtain the magnitude of the `SignedInt`, ie. its absolute value.
     pub const fn magnitude(&self) -> Uint<LIMBS> {
         self.magnitude
     }
 
-    /// Determine if the `Sint` is non-zero.
+    /// Determine if the `SignedInt` is non-zero.
     pub const fn is_nonzero(&self) -> ConstChoice {
         self.magnitude.is_nonzero()
     }
 
-    /// Determine if the `Sint` is zero in variable time.
+    /// Determine if the `SignedInt` is zero in variable time.
     pub const fn is_zero_vartime(&self) -> bool {
         self.magnitude.cmp_vartime(&Uint::ZERO).is_eq()
     }
 
-    /// Determine if the `Sint` is negative.
+    /// Determine if the `SignedInt` is negative.
     /// Note: `-0` is representable in this type, so it may be necessary
     /// to check `self.is_nonzero()` as well.
     pub const fn is_negative(&self) -> ConstChoice {
@@ -501,14 +499,14 @@ impl<const LIMBS: usize> Sint<LIMBS> {
     /// Compute the linear combination `a•b + c•d`, returning `(lo, hi, sign)`.
     #[inline]
     pub(crate) const fn lincomb_int<const RHS: usize>(
-        a: &Sint<LIMBS>,
-        b: &Sint<LIMBS>,
+        a: &SignedInt<LIMBS>,
+        b: &SignedInt<LIMBS>,
         c: &Int<RHS>,
         d: &Int<RHS>,
     ) -> (Uint<LIMBS>, Uint<RHS>, ConstChoice) {
         let (c, c_sign) = c.abs_sign();
         let (d, d_sign) = d.abs_sign();
-        // Each Sint • abs(Int) product leaves an empty upper bit.
+        // Each SignedInt • abs(Int) product leaves an empty upper bit.
         let (mut x, mut x_hi) = a.magnitude.widening_mul(&c);
         let x_neg = a.sign.xor(c_sign);
         let (mut y, mut y_hi) = b.magnitude.widening_mul(&d);
@@ -533,7 +531,7 @@ impl<const LIMBS: usize> Sint<LIMBS> {
 
     /// Compute the linear combination `a•b + c•d`, and shift the result
     /// `shift` bits to the right, returning a signed value in the same range
-    /// as the `Sint` inputs.
+    /// as the `SignedInt` inputs.
     pub(crate) const fn lincomb_int_reduce_shift<const S: usize>(
         a: &Self,
         b: &Self,
@@ -544,12 +542,12 @@ impl<const LIMBS: usize> Sint<LIMBS> {
         debug_assert!(shift < Uint::<S>::BITS);
         let (mut a, mut a_hi, a_sign) = Self::lincomb_int(a, b, c, d);
         shr_in_place_wide(&mut a, &mut a_hi, shift);
-        Sint::from_uint_sign(a, a_sign)
+        SignedInt::from_uint_sign(a, a_sign)
     }
 
     /// Compute the linear combination `a•b + c•d`, and shift the result
     /// `shift` bits to the right modulo `m`, returning a signed value in the
-    /// same range as the `Sint` inputs.
+    /// same range as the `SignedInt` inputs.
     pub(crate) const fn lincomb_int_reduce_shift_mod<const S: usize>(
         a: &Self,
         b: &Self,
@@ -558,9 +556,9 @@ impl<const LIMBS: usize> Sint<LIMBS> {
         shift: u32,
         m: &Uint<LIMBS>,
         mi: Uint<S>,
-    ) -> Sint<LIMBS> {
+    ) -> SignedInt<LIMBS> {
         debug_assert!(shift < Uint::<S>::BITS);
-        let (mut c, mut c_hi, mut c_sign) = Sint::lincomb_int(a, b, c, d);
+        let (mut c, mut c_hi, mut c_sign) = SignedInt::lincomb_int(a, b, c, d);
 
         // Compute the multiple of m that will clear the low N bits of (c, h_hi).
         let mut mf = c.resize::<S>().wrapping_mul(&mi);
@@ -594,7 +592,7 @@ impl<const LIMBS: usize> Sint<LIMBS> {
         let sub_m = c_hi.limbs[0].is_nonzero();
         c = c.wrapping_sub(&Uint::select(&Uint::ZERO, m, sub_m));
 
-        Sint::from_uint_sign(c, c_sign)
+        SignedInt::from_uint_sign(c, c_sign)
     }
 
     /// Normalize the value to a `Uint` in the range `[0, m)`.
@@ -603,13 +601,13 @@ impl<const LIMBS: usize> Sint<LIMBS> {
         Uint::select(&self.magnitude, &m.wrapping_sub(&self.magnitude), sign)
     }
 
-    /// Compare two `Sint` in constant time.
+    /// Compare two `SignedInt` in constant time.
     pub const fn eq(a: &Self, b: &Self) -> ConstChoice {
         Uint::eq(&a.magnitude, &b.magnitude).and(a.sign.eq(b.sign).or(a.is_nonzero().not()))
     }
 }
 
-impl<const LIMBS: usize> fmt::Debug for Sint<LIMBS> {
+impl<const LIMBS: usize> fmt::Debug for SignedInt<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_fmt(format_args!(
             "{}0x{}",
@@ -623,13 +621,13 @@ impl<const LIMBS: usize> fmt::Debug for Sint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> PartialEq for Sint<LIMBS> {
+impl<const LIMBS: usize> PartialEq for SignedInt<LIMBS> {
     fn eq(&self, other: &Self) -> bool {
         Self::eq(self, other).to_bool_vartime()
     }
 }
 
-impl<const LIMBS: usize> ConstCtOption<Odd<Sint<LIMBS>>> {
+impl<const LIMBS: usize> ConstCtOption<Odd<SignedInt<LIMBS>>> {
     /// Returns the contained value, consuming the `self` value.
     ///
     /// # Panics
@@ -637,7 +635,7 @@ impl<const LIMBS: usize> ConstCtOption<Odd<Sint<LIMBS>>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
-    pub const fn expect(self, msg: &str) -> Odd<Sint<LIMBS>> {
+    pub const fn expect(self, msg: &str) -> Odd<SignedInt<LIMBS>> {
         assert!(self.is_some().is_true_vartime(), "{}", msg);
         *self.components_ref().0
     }
