@@ -17,8 +17,7 @@ pub(crate) use ref_type::UintRef;
 
 use crate::{
     Bounded, ConstChoice, ConstCtOption, ConstZero, Constants, Encoding, FixedInteger, Int,
-    Integer, Limb, NonZero, Odd, PrecomputeInverter, PrecomputeInverterWithAdjuster, Word,
-    modular::{MontyForm, SafeGcdInverter},
+    Integer, Limb, NonZero, Odd, Word, modular::MontyForm,
 };
 
 #[macro_use]

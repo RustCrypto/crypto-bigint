@@ -7,14 +7,7 @@ use crate::{
 use core::{fmt, marker::PhantomData};
 use subtle::CtOption;
 
-impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
-    ConstMontyForm<MOD, SAT_LIMBS>
-where
-    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-            Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
-            Output = Uint<SAT_LIMBS>,
-        >,
-{
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
     /// Computes `self^-1` representing the multiplicative inverse of `self`,
     /// i.e. `self * self^-1 = 1`.
     ///
@@ -31,7 +24,7 @@ where
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
     pub const fn invert(&self) -> ConstCtOption<Self> {
-        let inverter = <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(
+        let inverter = <Odd<Uint<LIMBS>> as PrecomputeInverter>::Inverter::new(
             &MOD::PARAMS.modulus,
             &MOD::PARAMS.r2,
         );
@@ -69,7 +62,7 @@ where
     /// This version is variable-time with respect to the value of `self`, but constant-time with
     /// respect to `MOD`.
     pub const fn invert_vartime(&self) -> ConstCtOption<Self> {
-        let inverter = <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(
+        let inverter = <Odd<Uint<LIMBS>> as PrecomputeInverter>::Inverter::new(
             &MOD::PARAMS.modulus,
             &MOD::PARAMS.r2,
         );
@@ -86,14 +79,7 @@ where
     }
 }
 
-impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Invert
-    for ConstMontyForm<MOD, SAT_LIMBS>
-where
-    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-            Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
-            Output = Uint<SAT_LIMBS>,
-        >,
-{
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Invert for ConstMontyForm<MOD, LIMBS> {
     type Output = CtOption<Self>;
 
     fn invert(&self) -> Self::Output {
@@ -106,22 +92,12 @@ where
 }
 
 /// Bernstein-Yang inverter which inverts [`ConstMontyForm`] types.
-pub struct ConstMontyFormInverter<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize>
-where
-    Odd<Uint<LIMBS>>: PrecomputeInverter<Output = Uint<LIMBS>>,
-{
+pub struct ConstMontyFormInverter<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> {
     inverter: <Odd<Uint<LIMBS>> as PrecomputeInverter>::Inverter,
     phantom: PhantomData<MOD>,
 }
 
-impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
-    ConstMontyFormInverter<MOD, SAT_LIMBS>
-where
-    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-            Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
-            Output = Uint<SAT_LIMBS>,
-        >,
-{
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyFormInverter<MOD, LIMBS> {
     /// Create a new [`ConstMontyFormInverter`] for the given [`ConstMontyParams`].
     #[allow(clippy::new_without_default)]
     pub const fn new() -> Self {
@@ -138,8 +114,8 @@ where
     #[deprecated(since = "0.7.0", note = "please use `invert` instead")]
     pub const fn inv(
         &self,
-        value: &ConstMontyForm<MOD, SAT_LIMBS>,
-    ) -> ConstCtOption<ConstMontyForm<MOD, SAT_LIMBS>> {
+        value: &ConstMontyForm<MOD, LIMBS>,
+    ) -> ConstCtOption<ConstMontyForm<MOD, LIMBS>> {
         self.invert(value)
     }
 
@@ -147,8 +123,8 @@ where
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
     pub const fn invert(
         &self,
-        value: &ConstMontyForm<MOD, SAT_LIMBS>,
-    ) -> ConstCtOption<ConstMontyForm<MOD, SAT_LIMBS>> {
+        value: &ConstMontyForm<MOD, LIMBS>,
+    ) -> ConstCtOption<ConstMontyForm<MOD, LIMBS>> {
         let montgomery_form = self.inverter.invert(&value.montgomery_form);
         let (montgomery_form_ref, is_some) = montgomery_form.components_ref();
         let ret = ConstMontyForm {
@@ -166,8 +142,8 @@ where
     #[deprecated(since = "0.7.0", note = "please use `invert_vartime` instead")]
     pub const fn inv_vartime(
         &self,
-        value: &ConstMontyForm<MOD, SAT_LIMBS>,
-    ) -> ConstCtOption<ConstMontyForm<MOD, SAT_LIMBS>> {
+        value: &ConstMontyForm<MOD, LIMBS>,
+    ) -> ConstCtOption<ConstMontyForm<MOD, LIMBS>> {
         self.invert_vartime(value)
     }
 
@@ -178,8 +154,8 @@ where
     /// respect to `MOD`.
     pub const fn invert_vartime(
         &self,
-        value: &ConstMontyForm<MOD, SAT_LIMBS>,
-    ) -> ConstCtOption<ConstMontyForm<MOD, SAT_LIMBS>> {
+        value: &ConstMontyForm<MOD, LIMBS>,
+    ) -> ConstCtOption<ConstMontyForm<MOD, LIMBS>> {
         let montgomery_form = self.inverter.invert_vartime(&value.montgomery_form);
         let (montgomery_form_ref, is_some) = montgomery_form.components_ref();
         let ret = ConstMontyForm {
@@ -190,32 +166,26 @@ where
     }
 }
 
-impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Inverter
-    for ConstMontyFormInverter<MOD, SAT_LIMBS>
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Inverter
+    for ConstMontyFormInverter<MOD, LIMBS>
 where
-    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-            Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
-            Output = Uint<SAT_LIMBS>,
-        >,
+    Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS>, Output = Uint<LIMBS>>,
 {
-    type Output = ConstMontyForm<MOD, SAT_LIMBS>;
+    type Output = ConstMontyForm<MOD, LIMBS>;
 
-    fn invert(&self, value: &ConstMontyForm<MOD, SAT_LIMBS>) -> CtOption<Self::Output> {
+    fn invert(&self, value: &ConstMontyForm<MOD, LIMBS>) -> CtOption<Self::Output> {
         self.invert(value).into()
     }
 
-    fn invert_vartime(&self, value: &ConstMontyForm<MOD, SAT_LIMBS>) -> CtOption<Self::Output> {
+    fn invert_vartime(&self, value: &ConstMontyForm<MOD, LIMBS>) -> CtOption<Self::Output> {
         self.invert_vartime(value).into()
     }
 }
 
-impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> fmt::Debug
-    for ConstMontyFormInverter<MOD, SAT_LIMBS>
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> fmt::Debug
+    for ConstMontyFormInverter<MOD, LIMBS>
 where
-    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-            Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
-            Output = Uint<SAT_LIMBS>,
-        >,
+    Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS>, Output = Uint<LIMBS>>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("ConstMontyFormInverter")

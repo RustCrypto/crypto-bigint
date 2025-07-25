@@ -22,6 +22,13 @@ prop_compose! {
     }
 }
 
+prop_compose! {
+    fn odd_uint()(bytes in any::<[u8; 32]>()) -> Odd<U256> {
+        let val = U256::from_le_slice(&bytes);
+        (val | U256::ONE).to_odd().unwrap()
+    }
+}
+
 #[cfg(feature = "alloc")]
 prop_compose! {
     fn boxed_uint()(byte_vec in any::<Vec<u8>>()) -> BoxedUint {
@@ -37,7 +44,28 @@ prop_compose! {
 
 proptest! {
     #[test]
-    fn invert_mod(x in uint()) {
+    fn invert_odd_mod(x in uint(), m in odd_uint()) {
+        let x_bi = to_biguint(&x);
+        let m_bi = to_biguint(&m);
+
+        let expected_is_some = x_bi.gcd(&m_bi) == BigUint::one();
+        let actual = x.invert_odd_mod(&m);
+
+        prop_assert_eq!(expected_is_some, bool::from(actual.is_some()));
+
+        if let Some(actual) = Option::<U256>::from(actual) {
+            let inv_bi = to_biguint(&actual);
+            let res = (inv_bi * x_bi) % m_bi;
+            prop_assert_eq!(res, BigUint::one());
+
+            // check vartime implementation equivalence
+            let actual_vartime = x.invert_odd_mod_vartime(&m).unwrap();
+            prop_assert_eq!(actual, actual_vartime);
+        }
+    }
+
+    #[test]
+    fn invert_precomputed(x in uint()) {
         let x_bi = to_biguint(&x);
         let p_bi = to_biguint(&P);
 

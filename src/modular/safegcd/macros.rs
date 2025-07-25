@@ -33,3 +33,19 @@ macro_rules! impl_limb_convert {
         }
     }};
 }
+
+/// Calculate the number of 62-bit unsaturated limbs required to represent the given number of bits when performing
+/// Bernstein-Yang inversions.
+///
+/// We need to ensure that:
+///
+/// ```text
+/// $bits <= (safegcd_nlimbs($bits) * 62) - 64
+/// ```
+// TODO(tarcieri): replace with `generic_const_exprs` (rust-lang/rust#76560) when stable
+#[cfg(feature = "alloc")]
+macro_rules! safegcd_nlimbs {
+    ($bits:expr) => {
+        ($bits + 64).div_ceil(62)
+    };
+}

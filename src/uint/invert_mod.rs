@@ -1,6 +1,7 @@
 use super::Uint;
 use crate::{
-    ConstChoice, ConstCtOption, InvertMod, Odd, PrecomputeInverter, modular::SafeGcdInverter,
+    ConstChoice, ConstCtOption, InvertMod, Odd, PrecomputeInverter, PrecomputeInverterWithAdjuster,
+    modular::{SafeGcdInverter, safegcd},
 };
 use subtle::CtOption;
 
@@ -142,12 +143,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         ConstCtOption::new(x, is_some)
     }
-}
 
-impl<const LIMBS: usize, const UNSAT_LIMBS: usize> Uint<LIMBS>
-where
-    Odd<Self>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
-{
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     #[deprecated(since = "0.7.0", note = "please use `invert_odd_mod` instead")]
     pub const fn inv_odd_mod(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
@@ -156,7 +152,12 @@ where
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     pub const fn invert_odd_mod(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
-        SafeGcdInverter::<LIMBS, UNSAT_LIMBS>::new(modulus, &Uint::ONE).invert(self)
+        safegcd::invert_odd_mod::<LIMBS, false>(self, modulus)
+    }
+
+    /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
+    pub const fn invert_odd_mod_vartime(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
+        safegcd::invert_odd_mod::<LIMBS, true>(self, modulus)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`.
@@ -208,14 +209,31 @@ where
     }
 }
 
-impl<const LIMBS: usize, const UNSAT_LIMBS: usize> InvertMod for Uint<LIMBS>
-where
-    Odd<Self>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
-{
+impl<const LIMBS: usize> InvertMod for Uint<LIMBS> {
     type Output = Self;
 
     fn invert_mod(&self, modulus: &Self) -> CtOption<Self> {
         self.invert_mod(modulus).into()
+    }
+}
+
+/// Precompute a Bernstein-Yang inverter using `self` as the modulus.
+impl<const LIMBS: usize> PrecomputeInverter for Odd<Uint<LIMBS>> {
+    type Inverter = SafeGcdInverter<LIMBS>;
+
+    type Output = Uint<LIMBS>;
+
+    #[inline]
+    fn precompute_inverter(&self) -> Self::Inverter {
+        Self::precompute_inverter_with_adjuster(self, &Uint::ONE)
+    }
+}
+
+/// Precompute a Bernstein-Yang inverter using `self` as the modulus.
+impl<const LIMBS: usize> PrecomputeInverterWithAdjuster<Uint<LIMBS>> for Odd<Uint<LIMBS>> {
+    #[inline]
+    fn precompute_inverter_with_adjuster(&self, adjuster: &Uint<LIMBS>) -> Self::Inverter {
+        SafeGcdInverter::new(self, adjuster)
     }
 }
 
@@ -359,5 +377,33 @@ mod tests {
 
         let res = a.invert_odd_mod(&m);
         assert!(res.is_none().is_true_vartime());
+    }
+
+    #[test]
+    fn test_invert_edge() {
+        assert!(
+            U256::ZERO
+                .invert_odd_mod(&U256::ONE.to_odd().unwrap())
+                .is_none()
+                .to_bool_vartime()
+        );
+        assert_eq!(
+            U256::ONE
+                .invert_odd_mod(&U256::ONE.to_odd().unwrap())
+                .unwrap(),
+            U256::ZERO
+        );
+        assert_eq!(
+            U256::ONE
+                .invert_odd_mod(&U256::MAX.to_odd().unwrap())
+                .unwrap(),
+            U256::ONE
+        );
+        assert!(
+            U256::MAX
+                .invert_odd_mod(&U256::MAX.to_odd().unwrap())
+                .is_none()
+                .to_bool_vartime()
+        );
     }
 }

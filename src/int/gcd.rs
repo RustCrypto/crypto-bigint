@@ -70,6 +70,18 @@ impl<const LIMBS: usize> Int<LIMBS> {
             rhs_on_gcd,
         }
     }
+
+    /// Compute the gcd of `self` and `rhs` leveraging the safegcd algorithm.
+    pub const fn safegcd(&self, rhs: &Self) -> Uint<LIMBS> {
+        self.abs().safegcd(&rhs.abs())
+    }
+
+    /// Compute the gcd of `self` and `rhs` leveraging the safegcd algorithm.
+    ///
+    /// Executes in variable time w.r.t. all input parameters.
+    pub const fn safegcd_vartime(&self, rhs: &Self) -> Uint<LIMBS> {
+        self.abs().safegcd_vartime(&rhs.abs())
+    }
 }
 
 impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
@@ -132,6 +144,18 @@ impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
             rhs_on_gcd,
         }
     }
+
+    /// Compute the gcd of `self` and `rhs` leveraging the safegcd algorithm.
+    pub const fn safegcd(&self, rhs: &Self) -> NonZero<Uint<LIMBS>> {
+        self.abs().safegcd(&rhs.as_ref().abs())
+    }
+
+    /// Compute the gcd of `self` and `rhs` leveraging the safegcd algorithm.
+    ///
+    /// Executes in variable time w.r.t. all input parameters.
+    pub const fn safegcd_vartime(&self, rhs: &Self) -> NonZeroUint<LIMBS> {
+        self.abs().safegcd_vartime(rhs.abs().as_ref())
+    }
 }
 
 impl<const LIMBS: usize> Odd<Int<LIMBS>> {
@@ -175,6 +199,18 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
             rhs_on_gcd,
         }
     }
+
+    /// Compute the gcd of `self` and `rhs` leveraging the safegcd algorithm.
+    pub const fn safegcd(&self, rhs: &Self) -> Odd<Uint<LIMBS>> {
+        self.abs().safegcd(&rhs.as_ref().abs())
+    }
+
+    /// Compute the gcd of `self` and `rhs` leveraging the safegcd algorithm.
+    ///
+    /// Executes in variable time w.r.t. all input parameters.
+    pub const fn safegcd_vartime(&self, rhs: &Self) -> OddUint<LIMBS> {
+        self.abs().safegcd_vartime(rhs.abs().as_ref())
+    }
 }
 
 /// Output of the Binary XGCD algorithm applied to two [`Int`]s.
@@ -216,11 +252,11 @@ impl<const LIMBS: usize> Gcd for Int<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn gcd(&self, rhs: &Self) -> Self::Output {
-        self.bingcd(rhs)
+        self.safegcd(rhs)
     }
 
     fn gcd_vartime(&self, rhs: &Self) -> Self::Output {
-        self.bingcd_vartime(rhs)
+        self.safegcd_vartime(rhs)
     }
 }
 
@@ -228,11 +264,11 @@ impl<const LIMBS: usize> Gcd for NonZeroInt<LIMBS> {
     type Output = NonZeroUint<LIMBS>;
 
     fn gcd(&self, rhs: &Self) -> Self::Output {
-        self.bingcd(rhs)
+        self.safegcd(rhs)
     }
 
     fn gcd_vartime(&self, rhs: &Self) -> Self::Output {
-        self.bingcd_vartime(rhs)
+        self.safegcd_vartime(rhs)
     }
 }
 
@@ -240,11 +276,11 @@ impl<const LIMBS: usize> Gcd for OddInt<LIMBS> {
     type Output = OddUint<LIMBS>;
 
     fn gcd(&self, rhs: &Self) -> Self::Output {
-        self.bingcd(rhs)
+        self.safegcd(rhs)
     }
 
     fn gcd_vartime(&self, rhs: &Self) -> Self::Output {
-        self.bingcd_vartime(rhs)
+        self.safegcd_vartime(rhs)
     }
 }
 
@@ -252,11 +288,11 @@ impl<const LIMBS: usize> Gcd<Uint<LIMBS>> for Int<LIMBS> {
     type Output = Uint<LIMBS>;
 
     fn gcd(&self, rhs: &Uint<LIMBS>) -> Self::Output {
-        self.abs().bingcd(rhs)
+        self.abs().safegcd(rhs)
     }
 
     fn gcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self::Output {
-        self.abs().bingcd_vartime(rhs)
+        self.abs().safegcd_vartime(rhs)
     }
 }
 
@@ -264,11 +300,11 @@ impl<const LIMBS: usize> Gcd<NonZeroUint<LIMBS>> for NonZeroInt<LIMBS> {
     type Output = NonZeroUint<LIMBS>;
 
     fn gcd(&self, rhs: &NonZeroUint<LIMBS>) -> Self::Output {
-        self.abs().bingcd(rhs)
+        self.abs().safegcd(rhs)
     }
 
     fn gcd_vartime(&self, rhs: &NonZeroUint<LIMBS>) -> Self::Output {
-        self.abs().bingcd_vartime(rhs)
+        self.abs().safegcd_vartime(rhs)
     }
 }
 
@@ -276,11 +312,11 @@ impl<const LIMBS: usize> Gcd<OddUint<LIMBS>> for OddInt<LIMBS> {
     type Output = OddUint<LIMBS>;
 
     fn gcd(&self, rhs: &OddUint<LIMBS>) -> Self::Output {
-        self.abs().bingcd(rhs)
+        self.abs().safegcd(rhs)
     }
 
     fn gcd_vartime(&self, rhs: &OddUint<LIMBS>) -> Self::Output {
-        self.abs().bingcd_vartime(rhs)
+        self.abs().safegcd_vartime(rhs)
     }
 }
 
