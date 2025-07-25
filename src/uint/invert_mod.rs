@@ -381,11 +381,11 @@ mod tests {
 
     #[test]
     fn test_invert_edge() {
-        assert_eq!(
+        assert!(
             U256::ZERO
                 .invert_odd_mod(&U256::ONE.to_odd().unwrap())
-                .unwrap(),
-            U256::ZERO
+                .is_none()
+                .to_bool_vartime()
         );
         assert_eq!(
             U256::ONE

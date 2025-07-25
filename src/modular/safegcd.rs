@@ -137,6 +137,7 @@ const fn invert_odd_mod_precomp<const LIMBS: usize, const VARTIME: bool>(
     mi: u64,
     e: &Uint<LIMBS>,
 ) -> ConstCtOption<Uint<LIMBS>> {
+    let a_nonzero = a.is_nonzero();
     let (mut f, mut g) = (SignedInt::from_uint(*m.as_ref()), SignedInt::from_uint(*a));
     let (mut d, mut e) = (SignedInt::<LIMBS>::ZERO, SignedInt::from_uint(*e));
     let mut steps = iterations(Uint::<LIMBS>::BITS);
@@ -155,7 +156,7 @@ const fn invert_odd_mod_precomp<const LIMBS: usize, const VARTIME: bool>(
     }
 
     let d = d.norm(f.is_negative(), m.as_ref());
-    ConstCtOption::new(d, Uint::eq(&f.magnitude, &Uint::ONE))
+    ConstCtOption::new(d, Uint::eq(&f.magnitude, &Uint::ONE).and(a_nonzero))
 }
 
 /// Calculate the greatest common denominator of `f` and `g`.
