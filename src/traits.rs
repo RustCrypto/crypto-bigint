@@ -699,17 +699,15 @@ pub trait RemMixed<Reductor>: Sized {
     fn rem_mixed(&self, reductor: &NonZero<Reductor>) -> Reductor;
 }
 
-/// Modular reduction on a fixed modulus.
+/// Modular reduction from a larger value `T`.
 ///
-/// Used when there is a fixed modulus for which it is natural to reduce the value to.
+/// This can be seen as fixed modular reduction, where the modulus is fixed at compile time
+/// by `Self`.
 ///
 /// For modular reduction with a variable modulus, use [`Rem`].
-pub trait Reduce<Modulus> {
-    /// Output type.
-    type Output;
-
+pub trait Reduce<T>: Sized {
     /// Reduces `self` modulo `Modulus`.
-    fn reduce(&self) -> Self::Output;
+    fn reduce(value: T) -> Self;
 }
 
 /// Division in variable time.
