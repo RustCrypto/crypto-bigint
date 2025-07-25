@@ -1,6 +1,7 @@
 //! [`BoxedUint`] negation operations.
 
 use crate::{BoxedUint, Limb, WideWord, Word, WrappingNeg};
+use subtle::{Choice, ConditionallySelectable};
 
 impl BoxedUint {
     /// Perform wrapping negation.
@@ -15,6 +16,18 @@ impl BoxedUint {
         }
 
         ret.into()
+    }
+
+    /// Perform in-place wrapping subtraction, returning the truthy value as the second element of
+    /// the tuple if an underflow has occurred.
+    pub(crate) fn conditional_wrapping_neg_assign(&mut self, choice: Choice) {
+        let mut carry = 1;
+
+        for i in 0..self.nlimbs() {
+            let r = (!self.limbs[i].0 as WideWord) + carry;
+            self.limbs[i].conditional_assign(&Limb(r as Word), choice);
+            carry = r >> Limb::BITS;
+        }
     }
 }
 

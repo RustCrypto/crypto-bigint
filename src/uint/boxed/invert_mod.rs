@@ -1,8 +1,9 @@
 //! [`BoxedUint`] modular inverse (i.e. reciprocal) operations.
 
 use crate::{
-    BoxedUint, ConstantTimeSelect, Integer, InvertMod, Inverter, Odd, PrecomputeInverter,
-    PrecomputeInverterWithAdjuster, modular::BoxedSafeGcdInverter,
+    BoxedUint, ConstantTimeSelect, Integer, InvertMod, Odd, PrecomputeInverter,
+    PrecomputeInverterWithAdjuster,
+    modular::{BoxedSafeGcdInverter, safegcd},
 };
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
@@ -15,7 +16,13 @@ impl BoxedUint {
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     pub fn invert_odd_mod(&self, modulus: &Odd<Self>) -> CtOption<Self> {
-        modulus.precompute_inverter().invert(self)
+        // modulus.precompute_inverter().invert(self)
+        safegcd::boxed::invert_odd_mod::<false>(self, modulus)
+    }
+
+    /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
+    pub fn invert_odd_mod_vartime(&self, modulus: &Odd<Self>) -> CtOption<Self> {
+        safegcd::boxed::invert_odd_mod::<true>(self, modulus)
     }
 
     /// Computes 1/`self` mod `2^k`.
@@ -210,6 +217,8 @@ impl PrecomputeInverterWithAdjuster<BoxedUint> for Odd<BoxedUint> {
 
 #[cfg(test)]
 mod tests {
+    use crate::U256;
+
     use super::BoxedUint;
     use hex_literal::hex;
 
@@ -360,5 +369,31 @@ mod tests {
         let res = a.invert_odd_mod(&m);
         let is_none: bool = res.is_none().into();
         assert!(is_none);
+    }
+
+    #[test]
+    fn test_invert_edge() {
+        assert!(bool::from(
+            BoxedUint::zero()
+                .invert_odd_mod(&BoxedUint::one().to_odd().unwrap())
+                .is_none()
+        ));
+        assert_eq!(
+            BoxedUint::one()
+                .invert_odd_mod(&BoxedUint::one().to_odd().unwrap())
+                .unwrap(),
+            BoxedUint::zero()
+        );
+        assert_eq!(
+            BoxedUint::one()
+                .invert_odd_mod(&BoxedUint::from(U256::MAX).to_odd().unwrap())
+                .unwrap(),
+            BoxedUint::one()
+        );
+        assert!(bool::from(
+            BoxedUint::from(U256::MAX)
+                .invert_odd_mod(&BoxedUint::from(U256::MAX).to_odd().unwrap())
+                .is_none()
+        ));
     }
 }

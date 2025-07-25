@@ -3,14 +3,14 @@
 //!
 //! See parent module for more information.
 
-use super::{Matrix, invert_mod_u64};
-use crate::{BoxedUint, ConstChoice, Inverter, Limb, Odd, Resize, Word};
-use alloc::boxed::Box;
-use core::{
-    cmp::max,
-    ops::{AddAssign, Mul},
+use super::{GCD_BATCH_SIZE, Matrix, invert_mod_u64, iterations, jump};
+use crate::{
+    BoxedUint, ConstChoice, ConstCtOption, ConstantTimeSelect, I64, Int, Inverter, Limb, NonZero,
+    Odd, Resize, U64, Uint,
+    const_choice::{u32_max, u32_min},
 };
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, CtOption};
+use core::fmt;
+use subtle::{Choice, CtOption};
 
 /// Modular multiplicative inverter based on the Bernstein-Yang method.
 ///
@@ -18,13 +18,13 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreate
 #[derive(Clone, Debug)]
 pub struct BoxedSafeGcdInverter {
     /// Modulus
-    pub(crate) modulus: BoxedUnsatInt,
+    pub(crate) modulus: Odd<BoxedUint>,
 
     /// Adjusting parameter (see toplevel documentation).
-    adjuster: BoxedUnsatInt,
+    adjuster: BoxedUint,
 
     /// Multiplicative inverse of the modulus modulo 2^62
-    inverse: i64,
+    inverse: u64,
 }
 
 impl BoxedSafeGcdInverter {
@@ -33,20 +33,10 @@ impl BoxedSafeGcdInverter {
     /// Modulus must be odd. Returns `None` if it is not.
     pub fn new(modulus: &Odd<BoxedUint>, adjuster: &BoxedUint) -> Self {
         Self {
-            modulus: BoxedUnsatInt::from(&modulus.0),
-            adjuster: BoxedUnsatInt::from(&adjuster.resize(modulus.bits_precision())),
-            inverse: invert_mod_u64(modulus.0.as_words()) as i64,
+            modulus: modulus.clone(),
+            adjuster: adjuster.resize(modulus.bits_precision()),
+            inverse: invert_mod_u64(modulus.0.as_words()),
         }
-    }
-
-    /// Returns either "value (mod M)" or "-value (mod M)", where M is the modulus the inverter
-    /// was created for, depending on "negate", which determines the presence of "-" in the used
-    /// formula. The input integer lies in the interval (-2 * M, M).
-    fn norm(&self, mut value: BoxedUnsatInt, negate: Choice) -> BoxedUnsatInt {
-        value.conditional_add(&self.modulus, value.is_negative());
-        value.conditional_assign(&value.neg(), negate);
-        value.conditional_add(&self.modulus, value.is_negative());
-        value
     }
 }
 
@@ -54,551 +44,401 @@ impl Inverter for BoxedSafeGcdInverter {
     type Output = BoxedUint;
 
     fn invert(&self, value: &BoxedUint) -> CtOption<Self::Output> {
-        let mut d = BoxedUnsatInt::zero(self.modulus.nlimbs());
-        let mut g = BoxedUnsatInt::from(value).widen(d.nlimbs());
-        let f = divsteps(&mut d, &self.adjuster, &self.modulus, &mut g, self.inverse);
-
-        // At this point the absolute value of "f" equals the greatest common divisor of the
-        // integer to be inverted and the modulus the inverter was created for.
-        // Thus, if "f" is neither 1 nor -1, then the sought inverse does not exist.
-        let antiunit = f.is_minus_one();
-        let ret = self.norm(d, antiunit);
-        let is_some = f.is_one() | antiunit;
-
-        CtOption::new(ret.to_uint(value.bits_precision()), is_some)
+        invert_odd_mod_precomp::<false>(
+            value,
+            &self.modulus,
+            self.inverse,
+            Some(self.adjuster.clone()),
+        )
     }
 
     fn invert_vartime(&self, value: &BoxedUint) -> CtOption<Self::Output> {
-        let mut d = BoxedUnsatInt::zero(self.modulus.nlimbs());
-        let mut g = BoxedUnsatInt::from(value).widen(d.nlimbs());
-        let f = divsteps_vartime(&mut d, &self.adjuster, &self.modulus, &mut g, self.inverse);
-
-        // At this point the absolute value of "f" equals the greatest common divisor of the
-        // integer to be inverted and the modulus the inverter was created for.
-        // Thus, if "f" is neither 1 nor -1, then the sought inverse does not exist.
-        let antiunit = f.is_minus_one();
-        let ret = self.norm(d, antiunit);
-        let is_some = f.is_one() | antiunit;
-
-        CtOption::new(ret.to_uint(value.bits_precision()), is_some)
+        invert_odd_mod_precomp::<true>(
+            value,
+            &self.modulus,
+            self.inverse,
+            Some(self.adjuster.clone()),
+        )
     }
 }
 
-/// Compute the number of unsaturated limbs needed to represent a saturated integer with the given
-/// number of saturated limbs.
-fn unsat_nlimbs_for_sat_nlimbs(saturated_nlimbs: usize) -> usize {
-    let saturated_nlimbs = if Word::BITS == 32 && saturated_nlimbs == 1 {
-        2
-    } else {
-        saturated_nlimbs
-    };
-
-    safegcd_nlimbs!(saturated_nlimbs * Limb::BITS as usize)
+#[inline]
+pub fn invert_odd_mod<const VARTIME: bool>(
+    a: &BoxedUint,
+    m: &Odd<BoxedUint>,
+) -> CtOption<BoxedUint> {
+    let mi = invert_mod_u64(m.as_ref().as_words());
+    invert_odd_mod_precomp::<VARTIME>(a, m, mi, None)
 }
 
-/// Returns the greatest common divisor (GCD) of the two given numbers.
-pub(crate) fn gcd(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
-    let nlimbs = unsat_nlimbs_for_sat_nlimbs(max(f.nlimbs(), g.nlimbs()));
-    let bits_precision = f.bits_precision();
-
-    let inverse = invert_mod_u64(f.as_words()) as i64;
-    let f = BoxedUnsatInt::from_uint_widened(f, nlimbs);
-    let mut g = BoxedUnsatInt::from_uint_widened(g, nlimbs);
-    let mut d = BoxedUnsatInt::zero(nlimbs);
-    let e = BoxedUnsatInt::one(nlimbs);
-
-    let mut f = divsteps(&mut d, &e, &f, &mut g, inverse);
-    f.conditional_negate(f.is_negative());
-    f.to_uint(bits_precision)
-}
-
-/// Returns the greatest common divisor (GCD) of the two given numbers.
+/// Calculate the multipicative inverse of `a` modulo `m`.
 ///
-/// Variable time with respect to `g`.
-pub(crate) fn gcd_vartime(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
-    let nlimbs = unsat_nlimbs_for_sat_nlimbs(max(f.nlimbs(), g.nlimbs()));
-    let bits_precision = f.bits_precision();
-
-    let inverse = invert_mod_u64(f.as_words()) as i64;
-    let f = BoxedUnsatInt::from_uint_widened(f, nlimbs);
-    let mut g = BoxedUnsatInt::from_uint_widened(g, nlimbs);
-    let mut d = BoxedUnsatInt::zero(nlimbs);
-    let e = BoxedUnsatInt::one(nlimbs);
-
-    let mut f = divsteps_vartime(&mut d, &e, &f, &mut g, inverse);
-    f.conditional_negate(f.is_negative());
-    f.to_uint(bits_precision)
-}
-
-/// Algorithm `divsteps2` to compute (δₙ, fₙ, gₙ) = divstepⁿ(δ, f, g) as described in Figure 10.1
-/// of <https://eprint.iacr.org/2019/266.pdf>.
-///
-/// This version is variable-time with respect to `g`.
-fn divsteps(
-    d: &mut BoxedUnsatInt,
-    e: &BoxedUnsatInt,
-    f_0: &BoxedUnsatInt,
-    g: &mut BoxedUnsatInt,
-    inverse: i64,
-) -> BoxedUnsatInt {
-    debug_assert_eq!(f_0.nlimbs(), g.nlimbs());
-
-    let mut e = e.clone();
-    let mut f = f_0.clone();
+fn invert_odd_mod_precomp<const VARTIME: bool>(
+    a: &BoxedUint,
+    m: &Odd<BoxedUint>,
+    mi: u64,
+    e: Option<BoxedUint>,
+) -> CtOption<BoxedUint> {
+    let a_nonzero = a.is_nonzero();
+    let bits_precision = u32_max(a.bits_precision(), m.as_ref().bits_precision());
+    let m = m.as_ref().resize(bits_precision);
+    let (mut f, mut g) = (
+        SignedBoxedInt::from_uint(m.clone()),
+        SignedBoxedInt::from_uint_with_precision(a, bits_precision),
+    );
+    let (mut d, mut e) = (
+        SignedBoxedInt::zero_with_precision(bits_precision),
+        SignedBoxedInt::from_uint(
+            e.map(|e| e.resize(bits_precision))
+                .unwrap_or_else(|| BoxedUint::one_with_precision(bits_precision)),
+        ),
+    );
+    let mut steps = iterations(bits_precision);
     let mut delta = 1;
-    let mut matrix;
+    let mut t;
 
-    for _ in 0..iterations(f_0.bits(), g.bits()) {
-        (delta, matrix) = jump(&f.0, &g.0, delta);
-        fg(&mut f, g, matrix);
-        de(f_0, inverse, matrix, d, &mut e);
-    }
-
-    f
-}
-
-/// Algorithm `divsteps2` to compute (δₙ, fₙ, gₙ) = divstepⁿ(δ, f, g) as described in Figure 10.1
-/// of <https://eprint.iacr.org/2019/266.pdf>.
-///
-/// This version runs in a fixed number of iterations relative to the highest bit of `f` or `g`
-/// as described in Figure 11.1.
-fn divsteps_vartime(
-    d: &mut BoxedUnsatInt,
-    e: &BoxedUnsatInt,
-    f_0: &BoxedUnsatInt,
-    g: &mut BoxedUnsatInt,
-    inverse: i64,
-) -> BoxedUnsatInt {
-    debug_assert_eq!(f_0.nlimbs(), g.nlimbs());
-
-    let mut e = e.clone();
-    let mut f = f_0.clone();
-    let mut delta = 1;
-    let mut matrix;
-
-    while !bool::from(g.is_zero()) {
-        (delta, matrix) = jump(&f.0, &g.0, delta);
-        fg(&mut f, g, matrix);
-        de(f_0, inverse, matrix, d, &mut e);
-    }
-
-    f
-}
-
-/// Returns the updated values of the variables f and g for specified initial ones and
-/// Bernstein-Yang transition matrix multiplied by 2^62.
-///
-/// The returned vector is "matrix * (f, g)' / 2^62", where "'" is the transpose operator.
-fn fg(f: &mut BoxedUnsatInt, g: &mut BoxedUnsatInt, t: Matrix) {
-    // TODO(tarcieri): reduce allocations
-    let mut f2 = &*f * t[0][0];
-    f2 += &*g * t[0][1];
-    f2.shr_assign();
-
-    let mut g2 = &*f * t[1][0];
-    g2 += &*g * t[1][1];
-    g2.shr_assign();
-
-    *f = f2;
-    *g = g2;
-}
-
-/// Returns the updated values of the variables d and e for specified initial ones and
-/// Bernstein-Yang transition matrix multiplied by 2^62.
-///
-/// The returned vector is congruent modulo M to "matrix * (d, e)' / 2^62 (mod M)", where M is the
-/// modulus the inverter was created for and "'" stands for the transpose operator.
-///
-/// Both the input and output values lie in the interval (-2 * M, M).
-fn de(
-    modulus: &BoxedUnsatInt,
-    inverse: i64,
-    t: Matrix,
-    d: &mut BoxedUnsatInt,
-    e: &mut BoxedUnsatInt,
-) {
-    let mask = BoxedUnsatInt::MASK as i64;
-    let mut md =
-        t[0][0] * d.is_negative().unwrap_u8() as i64 + t[0][1] * e.is_negative().unwrap_u8() as i64;
-    let mut me =
-        t[1][0] * d.is_negative().unwrap_u8() as i64 + t[1][1] * e.is_negative().unwrap_u8() as i64;
-
-    let cd = t[0][0]
-        .wrapping_mul(d.lowest() as i64)
-        .wrapping_add(t[0][1].wrapping_mul(e.lowest() as i64))
-        & mask;
-
-    let ce = t[1][0]
-        .wrapping_mul(d.lowest() as i64)
-        .wrapping_add(t[1][1].wrapping_mul(e.lowest() as i64))
-        & mask;
-
-    md -= (inverse.wrapping_mul(cd).wrapping_add(md)) & mask;
-    me -= (inverse.wrapping_mul(ce).wrapping_add(me)) & mask;
-
-    let mut cd = d.mul(t[0][0]);
-    cd += &e.mul(t[0][1]);
-    cd += &modulus.mul(md);
-    cd.shr_assign();
-
-    let mut ce = d.mul(t[1][0]);
-    ce += &e.mul(t[1][1]);
-    ce += &modulus.mul(me);
-    ce.shr_assign();
-
-    *d = cd;
-    *e = ce;
-}
-
-/// Compute the number of iterations required to compute Bernstein-Yang on the two values.
-///
-/// Adapted from Fig 11.1 of <https://eprint.iacr.org/2019/266.pdf>
-///
-/// The paper proves that the algorithm will converge (i.e. `g` will be `0`) in all cases when
-/// the algorithm runs this particular number of iterations.
-///
-/// Once `g` reaches `0`, continuing to run the algorithm will have no effect.
-// TODO(tarcieri): improved bounds using https://github.com/sipa/safegcd-bounds
-pub(crate) const fn iterations(f_bits: u32, g_bits: u32) -> u32 {
-    // Select max of `f_bits`, `g_bits`
-    let d = ConstChoice::from_u32_lt(f_bits, g_bits).select_u32(f_bits, g_bits);
-    let addend = ConstChoice::from_u32_lt(d, 46).select_u32(57, 80);
-    (49 * d + addend) / 17
-}
-
-/// Returns the Bernstein-Yang transition matrix multiplied by 2^62 and the new value of the
-/// delta variable for the 62 basic steps of the Bernstein-Yang method, which are to be
-/// performed sequentially for specified initial values of f, g and delta
-const fn jump(f: &[u64], g: &[u64], mut delta: i64) -> (i64, Matrix) {
-    // This function is defined because the method "min" of the i64 type is not constant
-    const fn min(a: i64, b: i64) -> i64 {
-        if a > b { b } else { a }
-    }
-
-    let (mut steps, mut f, mut g) = (62, f[0] as i64, g[0] as i128);
-    let mut t: Matrix = [[1, 0], [0, 1]];
-
-    loop {
-        let zeros = min(steps, g.trailing_zeros() as i64);
-        (steps, delta, g) = (steps - zeros, delta + zeros, g >> zeros);
-        t[0] = [t[0][0] << zeros, t[0][1] << zeros];
-
-        if steps == 0 {
+    while steps > 0 {
+        if VARTIME && g.is_zero_vartime() {
             break;
         }
-        if delta > 0 {
-            (delta, f, g) = (-delta, g as i64, -f as i128);
-            (t[0], t[1]) = (t[1], [-t[0][0], -t[0][1]]);
+        let batch = u32_min(steps, GCD_BATCH_SIZE);
+        (delta, t) = jump::<VARTIME>(f.lowest(), g.lowest(), delta, batch);
+        (f, g) = update_fg(&f, &g, t, batch);
+        (d, e) = update_de(&d, &e, &m, mi, t, batch);
+        steps -= batch;
+    }
+
+    let d = d
+        .norm(f.is_negative(), &m)
+        .resize_unchecked(a.bits_precision());
+    CtOption::new(d, f.magnitude().is_one() & a_nonzero)
+}
+
+/// Calculate the greatest common denominator of `f` and `g`.
+pub fn gcd<const VARTIME: bool>(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
+    let f_is_zero = f.is_zero();
+    // Note: is non-zero by construction
+    let f_nz = NonZero(BoxedUint::ct_select(
+        f,
+        &BoxedUint::one_with_precision(f.bits_precision()),
+        f_is_zero,
+    ));
+    // gcd of (0, g) is g
+    let mut r = gcd_nz::<VARTIME>(&f_nz, g).0;
+    r.ct_assign(g, f_is_zero);
+    r
+}
+
+/// Calculate the greatest common denominator of nonzero `f`, and `g`.
+pub fn gcd_nz<const VARTIME: bool>(f: &NonZero<BoxedUint>, g: &BoxedUint) -> NonZero<BoxedUint> {
+    // Note the following two GCD identity rules:
+    // 1) gcd(2f, 2g) = 2•gcd(f, g), and
+    // 2) gcd(a, 2g) = gcd(f, g) if f is odd.
+    //
+    // Combined, these rules imply that
+    // 3) gcd(2^i•f, 2^j•g) = 2^k•gcd(f, g), with k = min(i, j).
+    //
+    // However, to save ourselves having to divide out 2^j, we also note that
+    // 4) 2^k•gcd(f, g) = 2^k•gcd(a, 2^j•b)
+
+    let i = f.as_ref().trailing_zeros();
+    let k = u32_min(i, g.trailing_zeros());
+
+    let f_odd = Odd(f.as_ref().shr(i));
+    let mut r = gcd_odd::<VARTIME>(&f_odd, g).0;
+    r.shl_assign(k);
+    NonZero(r)
+}
+
+/// Calculate the greatest common denominator of odd `f`, and `g`.
+pub fn gcd_odd<const VARTIME: bool>(f: &Odd<BoxedUint>, g: &BoxedUint) -> Odd<BoxedUint> {
+    let bits_precision = u32_max(f.as_ref().bits_precision(), g.bits_precision());
+    let (mut f, mut g) = (
+        SignedBoxedInt::from_uint_with_precision(f.as_ref(), bits_precision),
+        SignedBoxedInt::from_uint_with_precision(g, bits_precision),
+    );
+    let mut steps = iterations(bits_precision);
+    let mut delta = 1;
+    let mut t;
+
+    while steps > 0 {
+        if VARTIME && g.is_zero_vartime() {
+            break;
         }
-
-        // The formula (3 * x) xor 28 = -1 / x (mod 32) for an odd integer x in the two's
-        // complement code has been derived from the formula (3 * x) xor 2 = 1 / x (mod 32)
-        // attributed to Peter Montgomery.
-        let mask = (1 << min(min(steps, 1 - delta), 5)) - 1;
-        let w = (g as i64).wrapping_mul(f.wrapping_mul(3) ^ 28) & mask;
-
-        t[1] = [t[0][0] * w + t[1][0], t[0][1] * w + t[1][1]];
-        g += w as i128 * f as i128;
+        let batch = u32_min(steps, GCD_BATCH_SIZE);
+        (delta, t) = jump::<VARTIME>(f.lowest(), g.lowest(), delta, batch);
+        (f, g) = update_fg(&f, &g, t, batch);
+        steps -= batch;
     }
 
-    (delta, t)
+    f.magnitude()
+        .resize_unchecked(bits_precision)
+        .to_odd()
+        .expect("odd by construction")
 }
 
-/// "Bigint"-like (62 * LIMBS)-bit signed integer type, whose variables store numbers in the two's
-/// complement code as arrays of 62-bit limbs in little endian order.
-///
-/// The arithmetic operations for this type are wrapping ones.
-#[derive(Clone, Debug)]
-pub(crate) struct BoxedUnsatInt(Box<[u64]>);
+#[inline]
+fn update_fg(
+    a: &SignedBoxedInt,
+    b: &SignedBoxedInt,
+    t: Matrix,
+    shift: u32,
+) -> (SignedBoxedInt, SignedBoxedInt) {
+    (
+        SignedBoxedInt::lincomb_int_reduce_shift(
+            a,
+            b,
+            &I64::from_i64(t[0][0]),
+            &I64::from_i64(t[0][1]),
+            shift,
+        ),
+        SignedBoxedInt::lincomb_int_reduce_shift(
+            a,
+            b,
+            &I64::from_i64(t[1][0]),
+            &I64::from_i64(t[1][1]),
+            shift,
+        ),
+    )
+}
 
-/// Convert from 32/64-bit saturated representation used by `Uint` to the 62-bit unsaturated
-/// representation used by `BoxedUnsatInt`.
-///
-/// Returns a big unsigned integer as an array of 62-bit chunks, which is equal modulo
-/// 2 ^ (62 * S) to the input big unsigned integer stored as an array of 64-bit chunks.
-///
-/// The ordering of the chunks in these arrays is little-endian.
-impl From<&BoxedUint> for BoxedUnsatInt {
-    fn from(input: &BoxedUint) -> BoxedUnsatInt {
-        Self::from_uint_widened(input, unsat_nlimbs_for_sat_nlimbs(input.nlimbs()))
+#[inline]
+fn update_de(
+    d: &SignedBoxedInt,
+    e: &SignedBoxedInt,
+    m: &BoxedUint,
+    mi: u64,
+    t: Matrix,
+    shift: u32,
+) -> (SignedBoxedInt, SignedBoxedInt) {
+    (
+        SignedBoxedInt::lincomb_int_reduce_shift_mod(
+            d,
+            e,
+            &Int::from_i64(t[0][0]),
+            &Int::from_i64(t[0][1]),
+            shift,
+            m,
+            U64::from_u64(mi),
+        ),
+        SignedBoxedInt::lincomb_int_reduce_shift_mod(
+            d,
+            e,
+            &Int::from_i64(t[1][0]),
+            &Int::from_i64(t[1][1]),
+            shift,
+            m,
+            U64::from_u64(mi),
+        ),
+    )
+}
+
+/// A `Uint` which carries a separate sign in order to maintain the same range.
+#[derive(Clone)]
+struct SignedBoxedInt {
+    sign: ConstChoice,
+    magnitude: BoxedUint,
+}
+
+impl SignedBoxedInt {
+    pub fn zero_with_precision(bits_precision: u32) -> Self {
+        Self::from_uint(BoxedUint::zero_with_precision(bits_precision))
+    }
+
+    /// Construct a new `SignedInt` from a `Uint`.
+    pub const fn from_uint(uint: BoxedUint) -> Self {
+        Self {
+            sign: ConstChoice::FALSE,
+            magnitude: uint,
+        }
+    }
+
+    /// Construct a new `SignedInt` from a `Uint`.
+    pub fn from_uint_with_precision(uint: &BoxedUint, bits_precision: u32) -> Self {
+        Self {
+            sign: ConstChoice::FALSE,
+            magnitude: uint.resize(bits_precision),
+        }
+    }
+
+    /// Construct a new `SignedInt` from a `Uint` and a sign flag.
+    pub const fn from_uint_sign(magnitude: BoxedUint, sign: ConstChoice) -> Self {
+        Self { sign, magnitude }
+    }
+
+    /// Obtain the magnitude of the `SignedInt`, ie. its absolute value.
+    pub const fn magnitude(&self) -> &BoxedUint {
+        &self.magnitude
+    }
+
+    /// Determine if the `SignedInt` is non-zero.
+    pub fn is_nonzero(&self) -> Choice {
+        self.magnitude.is_nonzero()
+    }
+
+    /// Determine if the `SignedInt` is zero in variable time.
+    pub fn is_zero_vartime(&self) -> bool {
+        self.magnitude.is_zero_vartime()
+    }
+
+    /// Determine if the `SignedInt` is negative.
+    /// Note: `-0` is representable in this type, so it may be necessary
+    /// to check `self.is_nonzero()` as well.
+    pub const fn is_negative(&self) -> ConstChoice {
+        self.sign
+    }
+
+    // Extract the lowest 63 bits and convert to its signed representation.
+    pub fn lowest(&self) -> i64 {
+        let mag = (super::lowest_u64(self.magnitude.as_words()) & (u64::MAX >> 1)) as i64;
+        self.sign.select_i64(mag, mag.wrapping_neg())
+    }
+
+    /// Compute the linear combination `a•b + c•d`, returning a widened result.
+    #[inline]
+    pub(crate) fn lincomb_int<const RHS: usize>(
+        a: &Self,
+        b: &Self,
+        c: &Int<RHS>,
+        d: &Int<RHS>,
+    ) -> Self {
+        debug_assert!(a.magnitude.bits_precision() == b.magnitude.bits_precision());
+        let (c, c_sign) = c.abs_sign();
+        let (d, d_sign) = d.abs_sign();
+        // Each SignedBoxedInt • abs(Int) product leaves an empty upper bit.
+        let mut x = a.magnitude.mul_uint(&c);
+        let x_neg = a.sign.xor(c_sign);
+        let mut y = b.magnitude.mul_uint(&d);
+        let y_neg = b.sign.xor(d_sign);
+        let odd_neg = x_neg.xor(y_neg);
+
+        // Negate y if none or both of the multiplication results are negative.
+        y.conditional_wrapping_neg_assign(odd_neg.not().into());
+
+        let borrow;
+        (x, borrow) = x.borrowing_sub(&y, Limb::ZERO);
+        let swap = borrow.is_nonzero().and(odd_neg);
+
+        // Negate the result if we did not negate y and there was a borrow,
+        // indicating that |y| > |x|.
+        x.conditional_wrapping_neg_assign(swap.into());
+
+        let sign = x_neg.and(swap.not()).or(y_neg.and(swap));
+        Self::from_uint_sign(x, sign)
+    }
+
+    /// Compute the linear combination `a•b + c•d`, and shift the result
+    /// `shift` bits to the right, returning a signed value in the same range
+    /// as the `SignedInt` inputs.
+    pub(crate) fn lincomb_int_reduce_shift<const S: usize>(
+        a: &Self,
+        b: &Self,
+        c: &Int<S>,
+        d: &Int<S>,
+        shift: u32,
+    ) -> Self {
+        debug_assert!(shift < Uint::<S>::BITS);
+        let SignedBoxedInt {
+            sign,
+            mut magnitude,
+        } = Self::lincomb_int(a, b, c, d);
+        magnitude.shr_assign(shift);
+        Self::from_uint_sign(
+            magnitude.resize_unchecked(a.magnitude.bits_precision()),
+            sign,
+        )
+    }
+
+    /// Compute the linear combination `a•b + c•d`, and shift the result
+    /// `shift` bits to the right modulo `m`, returning a signed value in the
+    /// same range as the `SignedInt` inputs.
+    pub(crate) fn lincomb_int_reduce_shift_mod<const S: usize>(
+        a: &Self,
+        b: &Self,
+        c: &Int<S>,
+        d: &Int<S>,
+        shift: u32,
+        m: &BoxedUint,
+        mi: Uint<S>,
+    ) -> Self {
+        debug_assert!(shift < Uint::<S>::BITS);
+        let SignedBoxedInt {
+            sign: mut x_sign,
+            magnitude: mut x,
+        } = Self::lincomb_int(a, b, c, d);
+
+        // Compute the multiple of m that will clear the low N bits of x.
+        let mut xs = Uint::<S>::ZERO;
+        xs.limbs.copy_from_slice(&x.limbs[..S]);
+        let mut mf = xs.wrapping_mul(&mi);
+        mf = mf.bitand(&Uint::MAX.shr_vartime(Uint::<S>::BITS - shift));
+        let xa = m.mul_uint(&mf);
+
+        // Subtract the adjustment from x potentially producing a borrow.
+        let borrow = x.borrowing_sub_assign(&xa, Limb::ZERO);
+
+        // Negate x if the subtraction borrowed.
+        let swap = borrow.is_nonzero();
+        x.conditional_wrapping_neg_assign(swap.into());
+        x_sign = x_sign.xor(swap);
+
+        // Shift the result, eliminating the trailing zeros.
+        x.shr_assign(shift);
+
+        // The magnitude x is now in the range [0, 2m). We conditionally subtract
+        // m in order to keep the output in (-m, m).
+        let x_hi = x.limbs[m.nlimbs()];
+        x = x.resize_unchecked(m.bits_precision());
+        x.sub_assign_mod_with_carry(x_hi, m, m);
+
+        Self::from_uint_sign(x, x_sign)
+    }
+
+    /// Normalize the value to a `BoxedUint` in the range `[0, m)`.
+    fn norm(&self, f_sign: ConstChoice, m: &BoxedUint) -> BoxedUint {
+        let swap = Choice::from(f_sign.xor(self.sign)) & self.is_nonzero();
+        BoxedUint::ct_select(&self.magnitude, &m.wrapping_sub(&self.magnitude), swap)
     }
 }
 
-impl BoxedUnsatInt {
-    /// Number of bits in each limb.
-    pub const LIMB_BITS: usize = 62;
+impl fmt::Debug for SignedBoxedInt {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_fmt(format_args!(
+            "{}0x{}",
+            if self.sign.is_true_vartime() {
+                "-"
+            } else {
+                "+"
+            },
+            &self.magnitude
+        ))
+    }
+}
 
-    /// Mask, in which the 62 lowest bits are 1.
-    pub const MASK: u64 = u64::MAX >> (64 - Self::LIMB_BITS);
+// impl PartialEq for SignedBoxedInt {
+//     fn eq(&self, other: &Self) -> bool {
+//         Self::eq(self, other).to_bool_vartime()
+//     }
+// }
 
-    /// Convert from 32/64-bit saturated representation used by `BoxedUint` to the 62-bit
-    /// unsaturated representation used by `BoxedUnsatInt`.
+impl ConstCtOption<Odd<SignedBoxedInt>> {
+    /// Returns the contained value, consuming the `self` value.
     ///
-    /// Returns a big unsigned integer as an array of 62-bit chunks, which is equal modulo
-    /// 2 ^ (62 * S) to the input big unsigned integer stored as an array of 64-bit chunks.
+    /// # Panics
     ///
-    /// The ordering of the chunks in these arrays is little-endian.
-    ///
-    /// The `nlimbs` parameter defines the number of unsaturated limbs in the output.
-    /// It's provided explicitly so multiple values can be padded to the same size.
-    #[allow(trivial_numeric_casts)]
-    fn from_uint_widened(input: &BoxedUint, nlimbs: usize) -> BoxedUnsatInt {
-        debug_assert!(nlimbs >= unsat_nlimbs_for_sat_nlimbs(input.nlimbs()));
-
-        // Workaround for 32-bit platforms: if the input is a single limb, it will be smaller input
-        // than is usable for Bernstein-Yang with is currently natively 64-bits on all targets
-        let mut tmp: [Word; 2] = [0; 2];
-
-        let input = if Word::BITS == 32 && input.nlimbs() == 1 {
-            tmp[0] = input.limbs[0].0;
-            &tmp
-        } else {
-            input.as_words()
-        };
-
-        let mut output = vec![0u64; nlimbs];
-        impl_limb_convert!(Word, Word::BITS as usize, input, u64, 62, output);
-        Self(output.into())
-    }
-
-    /// Convert to a `BoxedUint` of the given precision.
-    #[allow(trivial_numeric_casts)]
-    fn to_uint(&self, mut bits_precision: u32) -> BoxedUint {
-        // Shorten to the required value after conversion.
-        let shorten = bits_precision == 32;
-
-        // The current Bernstein-Yang implementation is natively 64-bit on all targets
-        if bits_precision == 32 {
-            bits_precision = 64;
-        }
-
-        debug_assert_eq!(self.nlimbs(), safegcd_nlimbs!(bits_precision as usize));
-        assert!(
-            !bool::from(self.is_negative()),
-            "can't convert negative number to BoxedUint"
-        );
-
-        let mut ret = BoxedUint {
-            limbs: vec![Limb::ZERO; nlimbs!(bits_precision)].into(),
-        };
-
-        impl_limb_convert!(
-            u64,
-            62,
-            &self.0,
-            Word,
-            Word::BITS as usize,
-            ret.as_mut_words()
-        );
-
-        if shorten {
-            debug_assert!(ret.bits_vartime() <= 32);
-            ret.resize(32)
-        } else {
-            ret
-        }
-    }
-
-    /// Conditionally add the given value to this one depending on the given [`Choice`].
-    pub fn conditional_add(&mut self, other: &Self, choice: Choice) {
-        debug_assert_eq!(self.nlimbs(), other.nlimbs());
-        let mut carry = 0;
-
-        for i in 0..self.nlimbs() {
-            let addend = u64::conditional_select(&0, &other.0[i], choice);
-            let sum = self.0[i] + addend + carry;
-            self.0[i] = sum & Self::MASK;
-            carry = sum >> Self::LIMB_BITS;
-        }
-    }
-
-    /// Conditionally assign a value to this one depending on the given [`Choice`].
-    // NOTE: we can't impl `subtle::ConditionallySelectable` due to its `Copy` bound.
-    pub fn conditional_assign(&mut self, other: &Self, choice: Choice) {
-        for i in 0..self.nlimbs() {
-            self.0[i] = u64::conditional_select(&self.0[i], &other.0[i], choice);
-        }
-    }
-
-    /// Conditionally negate this value depending on the given [`Choice`].
-    // NOTE: we can't impl `subtle::ConditionallyNegatable` due to its `Copy` bound.
-    pub fn conditional_negate(&mut self, choice: Choice) {
-        // TODO(tarcieri): avoid allocations
-        self.conditional_assign(&self.neg(), choice);
-    }
-
-    /// Negate this value.
-    ///
-    /// This is an inherent method rather than a `Neg` trait impl so it can borrow.
-    pub fn neg(&self) -> Self {
-        // For the two's complement code the additive negation is the result of adding 1 to the
-        // bitwise inverted argument's representation.
-        let nlimbs = self.nlimbs();
-        let mut ret = Self::zero(nlimbs);
-        let mut carry = 1;
-
-        for i in 0..nlimbs {
-            let sum = (self.0[i] ^ Self::MASK) + carry;
-            ret.0[i] = sum & Self::MASK;
-            carry = sum >> Self::LIMB_BITS;
-        }
-
-        ret
-    }
-
-    /// Apply 62-bit right arithmetical shift in-place.
-    pub fn shr_assign(&mut self) {
-        let is_negative = self.is_negative();
-
-        for i in 0..(self.nlimbs() - 1) {
-            self.0[i] = self.0[i + 1];
-        }
-
-        self.0[self.nlimbs() - 1] = u64::conditional_select(&0, &Self::MASK, is_negative);
-    }
-
-    /// Get the value zero for the given number of limbs.
-    pub fn zero(nlimbs: usize) -> Self {
-        Self(vec![0; nlimbs].into())
-    }
-
-    /// Get the value one for the given number of limbs.
-    pub fn one(nlimbs: usize) -> Self {
-        let mut ret = Self::zero(nlimbs);
-        ret.0[0] = 1;
-        ret
-    }
-
-    /// Widen self to the given number of limbs.
-    pub fn widen(self, nlimbs: usize) -> Self {
-        debug_assert!(nlimbs >= self.nlimbs(),);
-        let mut limbs = self.0.into_vec();
-        limbs.resize(nlimbs, 0);
-        Self(limbs.into())
-    }
-
-    /// Is the current value -1?
-    pub fn is_minus_one(&self) -> Choice {
-        self.0
-            .iter()
-            .fold(Choice::from(1), |acc, &limb| acc & limb.ct_eq(&Self::MASK))
-    }
-
-    /// Returns "true" iff the current number is negative.
-    pub fn is_negative(&self) -> Choice {
-        self.0[self.nlimbs() - 1].ct_gt(&(Self::MASK >> 1))
-    }
-
-    /// Is the current value zero?
-    pub fn is_zero(&self) -> Choice {
-        self.0
-            .iter()
-            .fold(Choice::from(1), |acc, &limb| acc & limb.ct_eq(&0))
-    }
-
-    /// Is the current value one?
-    pub fn is_one(&self) -> Choice {
-        self.0[1..]
-            .iter()
-            .fold(self.lowest().ct_eq(&1), |acc, &limb| acc & limb.ct_eq(&0))
-    }
-
-    /// Returns the lowest 62 bits of the current number.
-    pub fn lowest(&self) -> u64 {
-        self.0[0]
-    }
-
-    /// Returns the number of limbs used by this integer.
-    pub fn nlimbs(&self) -> usize {
-        self.0.len()
-    }
-
-    /// Calculate the number of leading zeros in the binary representation of this number.
-    pub fn leading_zeros(&self) -> u32 {
-        let mut count = 0;
-        let mut nonzero_limb_not_encountered = Choice::from(1);
-
-        for l in self.0.iter() {
-            let z = l.leading_zeros() - 2;
-            count += u32::conditional_select(&0, &z, nonzero_limb_not_encountered);
-            nonzero_limb_not_encountered &= !l.ct_eq(&0);
-        }
-
-        count
-    }
-
-    /// Calculate the number of bits in this value (i.e. index of the highest bit) in constant time.
-    pub fn bits(&self) -> u32 {
-        (self.0.len() as u32 * 62) - self.leading_zeros()
-    }
-}
-
-impl AddAssign<BoxedUnsatInt> for BoxedUnsatInt {
-    fn add_assign(&mut self, rhs: BoxedUnsatInt) {
-        self.add_assign(&rhs);
-    }
-}
-
-impl AddAssign<&BoxedUnsatInt> for BoxedUnsatInt {
-    fn add_assign(&mut self, rhs: &BoxedUnsatInt) {
-        debug_assert_eq!(self.nlimbs(), rhs.nlimbs());
-        let mut carry = 0;
-
-        for i in 0..self.nlimbs() {
-            let sum = self.0[i] + rhs.0[i] + carry;
-            self.0[i] = sum & Self::MASK;
-            carry = sum >> Self::LIMB_BITS;
-        }
-    }
-}
-
-impl Mul<i64> for &BoxedUnsatInt {
-    type Output = BoxedUnsatInt;
-
-    fn mul(self, other: i64) -> BoxedUnsatInt {
-        let nlimbs = self.nlimbs();
-        let mut ret = BoxedUnsatInt::zero(nlimbs);
-
-        // If the short multiplicand is non-negative, the standard multiplication algorithm is
-        // performed. Otherwise, the product of the additively negated multiplicands is found as
-        // follows.
-        //
-        // Since for the two's complement code the additive negation is the result of adding 1 to
-        // the bitwise inverted argument's representation, for any encoded integers x and y we have
-        // x * y = (-x) * (-y) = (!x + 1) * (-y) = !x * (-y) + (-y), where "!" is the bitwise
-        // inversion and arithmetic operations are performed according to the rules of the code.
-        //
-        // If the short multiplicand is negative, the algorithm below uses this formula by
-        // substituting the short multiplicand for y and turns into the modified standard
-        // multiplication algorithm, where the carry flag is initialized with the additively
-        // negated short multiplicand and the chunks of the long multiplicand are bitwise inverted.
-        let (other, mut carry, mask) = if other < 0 {
-            (-other, -other as u64, BoxedUnsatInt::MASK)
-        } else {
-            (other, 0, 0)
-        };
-
-        for i in 0..nlimbs {
-            let sum = (carry as u128) + ((self.0[i] ^ mask) as u128) * (other as u128);
-            ret.0[i] = sum as u64 & BoxedUnsatInt::MASK;
-            carry = (sum >> BoxedUnsatInt::LIMB_BITS) as u64;
-        }
-
-        ret
+    /// Panics if the value is none with a custom panic message provided by
+    /// `msg`.
+    #[inline]
+    #[track_caller]
+    pub fn expect(self, msg: &str) -> Odd<SignedBoxedInt> {
+        assert!(self.is_some().is_true_vartime(), "{}", msg);
+        self.components_ref().0.clone()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::BoxedUnsatInt;
-    use crate::{BoxedUint, Inverter, PrecomputeInverter, U256};
-    use subtle::ConstantTimeEq;
-
-    impl PartialEq for BoxedUnsatInt {
-        fn eq(&self, other: &Self) -> bool {
-            self.0.ct_eq(&other.0).into()
-        }
-    }
+    use crate::{BoxedUint, Inverter, PrecomputeInverter};
 
     #[test]
     fn invert() {
@@ -623,185 +463,6 @@ mod tests {
             )
             .unwrap(),
             result
-        );
-    }
-
-    #[test]
-    fn de() {
-        let modulus = BoxedUnsatInt(
-            vec![
-                3727233105432618321,
-                3718823987352861203,
-                4611686018427387899,
-                4611685743549481023,
-                255,
-                0,
-            ]
-            .into(),
-        );
-        let inverse = 3687945983376704433;
-        let mut d = BoxedUnsatInt(
-            vec![
-                3490544662636853909,
-                2211268325417683828,
-                992023446686701852,
-                4539270294123539695,
-                4611686018427387762,
-                4611686018427387903,
-            ]
-            .into(),
-        );
-        let mut e = BoxedUnsatInt(
-            vec![
-                4004071259428196451,
-                1262234674432503659,
-                4060414504149367846,
-                1804121722707079191,
-                4611686018427387712,
-                4611686018427387903,
-            ]
-            .into(),
-        );
-        let t = [[-45035996273704960, 409827566090715136], [-14, 25]];
-
-        super::de(&modulus, inverse, t, &mut d, &mut e);
-        assert_eq!(
-            d,
-            BoxedUnsatInt(
-                vec![
-                    1211048314408256470,
-                    1344008336933394898,
-                    3913497193346473913,
-                    2764114971089162538,
-                    4,
-                    0,
-                ]
-                .into()
-            )
-        );
-
-        assert_eq!(e, BoxedUnsatInt(vec![0, 0, 0, 0, 0, 0].into()));
-    }
-
-    #[test]
-    fn boxed_unsatint_is_zero() {
-        let zero = BoxedUnsatInt::from(&U256::ZERO.into());
-        assert!(bool::from(zero.is_zero()));
-
-        let one = BoxedUnsatInt::from(&U256::ONE.into());
-        assert!(!bool::from(one.is_zero()));
-    }
-
-    #[test]
-    fn boxed_unsatint_is_one() {
-        let zero = BoxedUnsatInt::from(&U256::ZERO.into());
-        assert!(!bool::from(zero.is_one()));
-
-        let one = BoxedUnsatInt::from(&U256::ONE.into());
-        assert!(bool::from(one.is_one()));
-    }
-
-    #[test]
-    fn unsatint_shr_assign() {
-        let mut n = BoxedUnsatInt(
-            vec![
-                0,
-                1211048314408256470,
-                1344008336933394898,
-                3913497193346473913,
-                2764114971089162538,
-                4,
-            ]
-            .into(),
-        );
-        n.shr_assign();
-
-        assert_eq!(
-            &*n.0,
-            &[
-                1211048314408256470,
-                1344008336933394898,
-                3913497193346473913,
-                2764114971089162538,
-                4,
-                0
-            ]
-        );
-    }
-
-    #[test]
-    fn unsatint_add() {
-        let mut actual = BoxedUnsatInt::zero(2);
-        actual += BoxedUnsatInt::zero(2);
-        assert_eq!(BoxedUnsatInt::zero(2), actual);
-        let mut actual = BoxedUnsatInt::one(2);
-        actual += BoxedUnsatInt::zero(2);
-        assert_eq!(BoxedUnsatInt::one(2), actual);
-        let mut actual = BoxedUnsatInt::one(2).neg();
-        actual += BoxedUnsatInt::one(2);
-        assert_eq!(BoxedUnsatInt::zero(2), actual);
-    }
-
-    #[allow(clippy::erasing_op)]
-    #[test]
-    fn unsatint_mul() {
-        assert_eq!(BoxedUnsatInt::zero(2), &BoxedUnsatInt::zero(2) * 0i64);
-        assert_eq!(BoxedUnsatInt::zero(2), &BoxedUnsatInt::zero(2) * 1);
-        assert_eq!(BoxedUnsatInt::zero(2), &BoxedUnsatInt::one(2) * 0);
-        assert_eq!(BoxedUnsatInt::zero(2), &BoxedUnsatInt::one(2).neg() * 0);
-        assert_eq!(BoxedUnsatInt::one(2), &BoxedUnsatInt::one(2) * 1);
-        assert_eq!(
-            BoxedUnsatInt::one(2).neg(),
-            &BoxedUnsatInt::one(2).neg() * 1
-        );
-    }
-
-    #[test]
-    fn unsatint_neg() {
-        assert_eq!(BoxedUnsatInt::zero(2), BoxedUnsatInt::zero(2).neg());
-        assert_eq!(&BoxedUnsatInt::one(2) * -1, BoxedUnsatInt::one(2).neg());
-        assert_eq!(BoxedUnsatInt::one(2), BoxedUnsatInt::one(2).neg().neg());
-    }
-
-    #[test]
-    fn unsatint_is_negative() {
-        assert!(!bool::from(BoxedUnsatInt::zero(2).is_negative()));
-        assert!(!bool::from(BoxedUnsatInt::one(2).is_negative()));
-        assert!(!bool::from(BoxedUnsatInt::zero(2).neg().is_negative()));
-        assert!(bool::from(BoxedUnsatInt::one(2).neg().is_negative()));
-        assert!(!bool::from(BoxedUnsatInt::one(2).neg().neg().is_negative()));
-    }
-
-    #[test]
-    fn unsatint_shr() {
-        let n = BoxedUnsatInt(
-            [
-                0,
-                1211048314408256470,
-                1344008336933394898,
-                3913497193346473913,
-                2764114971089162538,
-                4,
-            ]
-            .into(),
-        );
-
-        let mut actual = n.clone();
-        actual.shr_assign();
-
-        assert_eq!(
-            BoxedUnsatInt(
-                [
-                    1211048314408256470,
-                    1344008336933394898,
-                    3913497193346473913,
-                    2764114971089162538,
-                    4,
-                    0
-                ]
-                .into()
-            ),
-            actual
         );
     }
 }
