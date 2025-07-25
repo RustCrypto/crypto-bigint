@@ -150,7 +150,7 @@ const fn invert_odd_mod_precomp<const LIMBS: usize, const VARTIME: bool>(
         let batch = u32_min(steps, GCD_BATCH_SIZE);
         (delta, t) = jump::<VARTIME>(f.lowest(), g.lowest(), delta, batch);
         (f, g) = update_fg(&f, &g, t, batch);
-        (d, e) = update_de(&d, &e, m.as_ref(), batch, U64::from_u64(mi), t);
+        (d, e) = update_de(&d, &e, m.as_ref(), batch, mi, t);
         steps -= batch;
     }
 
@@ -331,12 +331,12 @@ const fn update_fg<const LIMBS: usize>(
 }
 
 #[inline]
-const fn update_de<const LIMBS: usize, const S: usize>(
+const fn update_de<const LIMBS: usize>(
     d: &SignedInt<LIMBS>,
     e: &SignedInt<LIMBS>,
     m: &Uint<LIMBS>,
     shift: u32,
-    mi: Uint<S>,
+    mi: u64,
     t: Matrix,
 ) -> (SignedInt<LIMBS>, SignedInt<LIMBS>) {
     (
@@ -347,7 +347,7 @@ const fn update_de<const LIMBS: usize, const S: usize>(
             &Int::from_i64(t[0][1]),
             shift,
             m,
-            mi,
+            U64::from_u64(mi),
         ),
         SignedInt::lincomb_int_reduce_shift_mod(
             d,
@@ -356,7 +356,7 @@ const fn update_de<const LIMBS: usize, const S: usize>(
             &Int::from_i64(t[1][1]),
             shift,
             m,
-            mi,
+            U64::from_u64(mi),
         ),
     )
 }
