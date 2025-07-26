@@ -1,7 +1,7 @@
 //! [`BoxedUint`] multiplication operations.
 
 use crate::{
-    BoxedUint, CheckedMul, ConcatenatingMul, Limb, Resize, Wrapping, WrappingMul, Zero,
+    BoxedUint, CheckedMul, ConcatenatingMul, Limb, Resize, Uint, Wrapping, WrappingMul, Zero,
     uint::mul::{
         karatsuba::{KARATSUBA_MIN_STARTING_LIMBS, karatsuba_mul_limbs, karatsuba_square_limbs},
         mul_limbs, square_limbs,
@@ -15,19 +15,31 @@ impl BoxedUint {
     ///
     /// Returns a widened output with a limb count equal to the sums of the input limb counts.
     pub fn mul(&self, rhs: &Self) -> Self {
-        let size = self.nlimbs() + rhs.nlimbs();
-        let overlap = self.nlimbs().min(rhs.nlimbs());
+        self.widening_mul_limbs(rhs.as_limbs())
+    }
 
-        if self.nlimbs().min(rhs.nlimbs()) >= KARATSUBA_MIN_STARTING_LIMBS {
+    /// Multiply `self` by `rhs`.
+    ///
+    /// Returns a widened output with a limb count equal to the sums of the input limb counts.
+    pub(crate) fn mul_uint<const LIMBS: usize>(&self, rhs: &Uint<LIMBS>) -> Self {
+        self.widening_mul_limbs(rhs.as_limbs())
+    }
+
+    #[inline(always)]
+    fn widening_mul_limbs(&self, rhs: &[Limb]) -> Self {
+        let size = self.nlimbs() + rhs.len();
+        let overlap = self.nlimbs().min(rhs.len());
+
+        if self.nlimbs().min(rhs.len()) >= KARATSUBA_MIN_STARTING_LIMBS {
             let mut limbs = vec![Limb::ZERO; size + overlap * 2];
             let (out, scratch) = limbs.as_mut_slice().split_at_mut(size);
-            karatsuba_mul_limbs(&self.limbs, &rhs.limbs, out, scratch);
+            karatsuba_mul_limbs(&self.limbs, rhs, out, scratch);
             limbs.truncate(size);
             return limbs.into();
         }
 
         let mut limbs = vec![Limb::ZERO; size];
-        mul_limbs(&self.limbs, &rhs.limbs, &mut limbs);
+        mul_limbs(&self.limbs, rhs, &mut limbs);
         limbs.into()
     }
 

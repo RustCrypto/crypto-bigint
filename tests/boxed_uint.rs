@@ -161,9 +161,13 @@ proptest! {
     }
 
     #[test]
-    fn mod_invert((a, mut b) in uint_pair()) {
+    fn mod_invert((mut a, mut b) in uint_pair()) {
+        if a.is_zero().into() {
+            // we disagree on whether the inverse of zero exists
+            a = BoxedUint::one_with_precision(a.bits_precision());
+        }
         if b.is_even().into() {
-            b = BoxedUint::one_with_precision(a.bits_precision());
+            b = b.wrapping_add(&BoxedUint::one());
         }
 
         let b = b.to_odd().unwrap();

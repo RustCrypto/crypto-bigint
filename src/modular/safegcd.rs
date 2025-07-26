@@ -10,10 +10,6 @@
 // TODO(tarcieri): optimized implementation for 32-bit platforms (#380)
 
 #[cfg(feature = "alloc")]
-#[macro_use]
-pub(crate) mod macros;
-
-#[cfg(feature = "alloc")]
 pub(crate) mod boxed;
 
 use core::fmt;

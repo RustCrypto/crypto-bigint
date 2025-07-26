@@ -32,6 +32,11 @@ impl BoxedUint {
             i -= 1;
         }
     }
+
+    /// Determine in variable time whether the `self` is zero.
+    pub(crate) fn is_zero_vartime(&self) -> bool {
+        !self.limbs.iter().any(|l| l.0 != 0)
+    }
 }
 
 impl ConstantTimeEq for BoxedUint {
