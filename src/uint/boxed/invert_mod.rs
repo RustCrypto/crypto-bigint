@@ -211,7 +211,7 @@ impl PrecomputeInverter for Odd<BoxedUint> {
 /// Precompute a Bernstein-Yang inverter using `self` as the modulus.
 impl PrecomputeInverterWithAdjuster<BoxedUint> for Odd<BoxedUint> {
     fn precompute_inverter_with_adjuster(&self, adjuster: &BoxedUint) -> BoxedSafeGcdInverter {
-        BoxedSafeGcdInverter::new(self, adjuster)
+        BoxedSafeGcdInverter::new(self.clone(), adjuster.clone())
     }
 }
 

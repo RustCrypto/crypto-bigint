@@ -31,11 +31,13 @@ impl BoxedSafeGcdInverter {
     /// Creates the inverter for specified modulus and adjusting parameter.
     ///
     /// Modulus must be odd. Returns `None` if it is not.
-    pub fn new(modulus: &Odd<BoxedUint>, adjuster: &BoxedUint) -> Self {
+    pub fn new(modulus: Odd<BoxedUint>, mut adjuster: BoxedUint) -> Self {
+        let inverse = invert_mod_u64(modulus.0.as_words());
+        adjuster = adjuster.resize(modulus.bits_precision());
         Self {
-            modulus: modulus.clone(),
-            adjuster: adjuster.resize(modulus.bits_precision()),
-            inverse: invert_mod_u64(modulus.0.as_words()),
+            modulus,
+            adjuster,
+            inverse,
         }
     }
 }
