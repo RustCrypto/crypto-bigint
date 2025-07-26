@@ -129,8 +129,7 @@ pub const fn invert_odd_mod<const LIMBS: usize, const VARTIME: bool>(
     invert_odd_mod_precomp::<LIMBS, VARTIME>(a, m, mi, &Uint::ONE)
 }
 
-/// Calculate the multipicative inverse of `a` modulo `m`.
-///
+/// Calculate the multiplicative inverse of `a` modulo `m`.
 const fn invert_odd_mod_precomp<const LIMBS: usize, const VARTIME: bool>(
     a: &Uint<LIMBS>,
     m: &Odd<Uint<LIMBS>>,
@@ -592,8 +591,8 @@ impl<const LIMBS: usize> SignedInt<LIMBS> {
 
     /// Normalize the value to a `Uint` in the range `[0, m)`.
     const fn norm(&self, f_sign: ConstChoice, m: &Uint<LIMBS>) -> Uint<LIMBS> {
-        let sign = f_sign.xor(self.sign);
-        Uint::select(&self.magnitude, &m.wrapping_sub(&self.magnitude), sign)
+        let swap = f_sign.xor(self.sign).and(self.is_nonzero());
+        Uint::select(&self.magnitude, &m.wrapping_sub(&self.magnitude), swap)
     }
 
     /// Compare two `SignedInt` in constant time.
