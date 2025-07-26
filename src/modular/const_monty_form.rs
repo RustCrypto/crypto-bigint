@@ -7,6 +7,7 @@ mod mul;
 mod neg;
 mod pow;
 mod sub;
+mod reduce;
 
 use self::invert::ConstMontyFormInverter;
 use super::{MontyParams, Retrieve, div_by_2::div_by_2, reduction::montgomery_reduction};
