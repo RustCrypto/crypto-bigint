@@ -337,8 +337,12 @@ impl<T> ConstCtOption<T> {
 
     /// This returns the underlying value but panics if it is not `Some`.
     #[inline]
+    #[track_caller]
     pub fn unwrap(self) -> T {
-        assert!(self.is_some.is_true_vartime());
+        assert!(
+            self.is_some.is_true_vartime(),
+            "called `ConstCtOption::unwrap()` on a `None` value"
+        );
         self.value
     }
 
@@ -386,6 +390,7 @@ impl<const LIMBS: usize> ConstCtOption<Uint<LIMBS>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[track_caller]
     pub const fn expect(self, msg: &str) -> Uint<LIMBS> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -406,6 +411,7 @@ impl<const LIMBS: usize> ConstCtOption<(Uint<LIMBS>, Uint<LIMBS>)> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[track_caller]
     pub const fn expect(self, msg: &str) -> (Uint<LIMBS>, Uint<LIMBS>) {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -420,6 +426,7 @@ impl<const LIMBS: usize> ConstCtOption<NonZero<Uint<LIMBS>>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[track_caller]
     pub const fn expect(self, msg: &str) -> NonZero<Uint<LIMBS>> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -434,6 +441,7 @@ impl<const LIMBS: usize> ConstCtOption<Odd<Uint<LIMBS>>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[track_caller]
     pub const fn expect(self, msg: &str) -> Odd<Uint<LIMBS>> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -454,6 +462,7 @@ impl<const LIMBS: usize> ConstCtOption<Int<LIMBS>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[track_caller]
     pub const fn expect(self, msg: &str) -> Int<LIMBS> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -468,6 +477,7 @@ impl<const LIMBS: usize> ConstCtOption<NonZeroInt<LIMBS>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[track_caller]
     pub const fn expect(self, msg: &str) -> NonZeroInt<LIMBS> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -482,6 +492,7 @@ impl<const LIMBS: usize> ConstCtOption<OddInt<LIMBS>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[track_caller]
     pub const fn expect(self, msg: &str) -> OddInt<LIMBS> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -496,6 +507,7 @@ impl ConstCtOption<NonZero<Limb>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[track_caller]
     pub const fn expect(self, msg: &str) -> NonZero<Limb> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -510,6 +522,7 @@ impl<const LIMBS: usize> ConstCtOption<SafeGcdInverter<LIMBS>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[track_caller]
     pub const fn expect(self, msg: &str) -> SafeGcdInverter<LIMBS> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -529,6 +542,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstCtOption<ConstMontyF
     ///
     /// Panics if the value is none with a custom panic message provided by `msg`.
     #[inline]
+    #[track_caller]
     pub const fn expect(self, msg: &str) -> ConstMontyForm<MOD, LIMBS> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
