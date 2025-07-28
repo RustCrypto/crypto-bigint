@@ -82,7 +82,7 @@ mod tests {
             U256::from_be_hex("0748d9d99f59ff1105d314967254398f2b6cedcb87925c23c999e990f3f29c6d")
         );
         assert_eq!(
-            Modulus1::PARAMS.mod_neg_inv,
+            Modulus1::PARAMS.mod_neg_inv(),
             U64::from_be_hex("fffffffeffffffff").limbs[0]
         );
     }
@@ -100,7 +100,7 @@ mod tests {
             montgomery_reduction::<{ Modulus2::LIMBS }>(
                 &(Modulus2::PARAMS.one, Uint::ZERO),
                 &Modulus2::PARAMS.modulus,
-                Modulus2::PARAMS.mod_neg_inv
+                Modulus2::PARAMS.mod_neg_inv()
             ),
             Uint::ONE
         );
@@ -113,7 +113,7 @@ mod tests {
             montgomery_reduction::<{ Modulus2::LIMBS }>(
                 &(Modulus2::PARAMS.r2, Uint::ZERO),
                 &Modulus2::PARAMS.modulus,
-                Modulus2::PARAMS.mod_neg_inv
+                Modulus2::PARAMS.mod_neg_inv()
             ),
             Modulus2::PARAMS.one
         );
@@ -127,7 +127,7 @@ mod tests {
             montgomery_reduction::<{ Modulus2::LIMBS }>(
                 &(lo, hi),
                 &Modulus2::PARAMS.modulus,
-                Modulus2::PARAMS.mod_neg_inv
+                Modulus2::PARAMS.mod_neg_inv()
             ),
             Modulus2::PARAMS.one
         );
@@ -143,7 +143,7 @@ mod tests {
             montgomery_reduction::<{ Modulus2::LIMBS }>(
                 &product,
                 &Modulus2::PARAMS.modulus,
-                Modulus2::PARAMS.mod_neg_inv
+                Modulus2::PARAMS.mod_neg_inv()
             ),
             x
         );
@@ -168,7 +168,7 @@ mod tests {
             montgomery_reduction::<{ Modulus2::LIMBS }>(
                 &product,
                 &Modulus2::PARAMS.modulus,
-                Modulus2::PARAMS.mod_neg_inv
+                Modulus2::PARAMS.mod_neg_inv()
             ),
             lo
         );

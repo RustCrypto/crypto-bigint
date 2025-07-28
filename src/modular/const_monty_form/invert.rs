@@ -24,8 +24,9 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
     pub const fn invert(&self) -> ConstCtOption<Self> {
-        let inverter = <Odd<Uint<LIMBS>> as PrecomputeInverter>::Inverter::new(
+        let inverter = <Odd<Uint<LIMBS>> as PrecomputeInverter>::Inverter::new_with_inverse(
             &MOD::PARAMS.modulus,
+            MOD::PARAMS.mod_inv,
             &MOD::PARAMS.r2,
         );
 
@@ -62,8 +63,9 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     /// This version is variable-time with respect to the value of `self`, but constant-time with
     /// respect to `MOD`.
     pub const fn invert_vartime(&self) -> ConstCtOption<Self> {
-        let inverter = <Odd<Uint<LIMBS>> as PrecomputeInverter>::Inverter::new(
+        let inverter = <Odd<Uint<LIMBS>> as PrecomputeInverter>::Inverter::new_with_inverse(
             &MOD::PARAMS.modulus,
+            MOD::PARAMS.mod_inv,
             &MOD::PARAMS.r2,
         );
 
@@ -101,7 +103,8 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyFormInverter<MO
     /// Create a new [`ConstMontyFormInverter`] for the given [`ConstMontyParams`].
     #[allow(clippy::new_without_default)]
     pub const fn new() -> Self {
-        let inverter = SafeGcdInverter::new(&MOD::PARAMS.modulus, &MOD::PARAMS.r2);
+        let inverter =
+            SafeGcdInverter::new_with_inverse(&MOD::PARAMS.modulus, MOD::PARAMS.mod_inv, &MOD::PARAMS.r2);
 
         Self {
             inverter,

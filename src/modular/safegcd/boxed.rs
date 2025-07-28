@@ -3,7 +3,7 @@
 //!
 //! See parent module for more information.
 
-use super::{GCD_BATCH_SIZE, Matrix, invert_mod_u64, iterations, jump};
+use super::{GCD_BATCH_SIZE, Matrix, invert_mod_u64, iterations, jump, lowest_u64};
 use crate::{
     BoxedUint, ConstChoice, ConstCtOption, ConstantTimeSelect, I64, Int, Inverter, Limb, NonZero,
     Odd, Resize, U64, Uint,
@@ -20,24 +20,35 @@ pub struct BoxedSafeGcdInverter {
     /// Modulus
     pub(crate) modulus: Odd<BoxedUint>,
 
-    /// Adjusting parameter (see toplevel documentation).
-    adjuster: BoxedUint,
-
     /// Multiplicative inverse of the modulus modulo 2^62
     inverse: u64,
+
+    /// Adjusting parameter (see toplevel documentation).
+    adjuster: BoxedUint,
 }
 
 impl BoxedSafeGcdInverter {
     /// Creates the inverter for specified modulus and adjusting parameter.
     ///
     /// Modulus must be odd. Returns `None` if it is not.
-    pub fn new(modulus: Odd<BoxedUint>, mut adjuster: BoxedUint) -> Self {
-        let inverse = invert_mod_u64(modulus.0.as_words());
+    pub fn new(modulus: Odd<BoxedUint>, adjuster: BoxedUint) -> Self {
+        let inverse = U64::from_u64(invert_mod_u64(modulus.as_ref().as_words()));
+        Self::new_with_inverse(modulus, inverse, adjuster)
+    }
+
+    /// Creates the inverter for specified modulus and adjusting parameter.
+    ///
+    /// Modulus must be odd. Returns `None` if it is not.
+    pub(crate) fn new_with_inverse(
+        modulus: Odd<BoxedUint>,
+        inverse: U64,
+        mut adjuster: BoxedUint,
+    ) -> Self {
         adjuster = adjuster.resize(modulus.bits_precision());
         Self {
             modulus,
+            inverse: lowest_u64(inverse.as_words()),
             adjuster,
-            inverse,
         }
     }
 }
@@ -292,7 +303,7 @@ impl SignedBoxedInt {
 
     // Extract the lowest 63 bits and convert to its signed representation.
     pub fn lowest(&self) -> i64 {
-        let mag = (super::lowest_u64(self.magnitude.as_words()) & (u64::MAX >> 1)) as i64;
+        let mag = (lowest_u64(self.magnitude.as_words()) & (u64::MAX >> 1)) as i64;
         self.sign.select_i64(mag, mag.wrapping_neg())
     }
 

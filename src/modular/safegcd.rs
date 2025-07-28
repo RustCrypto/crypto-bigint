@@ -51,11 +51,11 @@ pub struct SafeGcdInverter<const LIMBS: usize> {
     /// Modulus
     pub(super) modulus: Odd<Uint<LIMBS>>,
 
-    /// Adjusting parameter (see toplevel documentation).
-    adjuster: Uint<LIMBS>,
-
     /// Multiplicative inverse of the modulus modulo 2^62
     inverse: u64,
+
+    /// Adjusting parameter (see toplevel documentation).
+    adjuster: Uint<LIMBS>,
 }
 
 /// Type of the Bernstein-Yang transition matrix multiplied by 2^62
@@ -66,10 +66,23 @@ impl<const LIMBS: usize> SafeGcdInverter<LIMBS> {
     ///
     /// Modulus must be odd. Returns `None` if it is not.
     pub const fn new(modulus: &Odd<Uint<LIMBS>>, adjuster: &Uint<LIMBS>) -> Self {
+        Self::new_with_inverse(
+            modulus,
+            U64::from_u64(invert_mod_u64(modulus.as_ref().as_words())),
+            adjuster,
+        )
+    }
+
+    #[inline]
+    pub(crate) const fn new_with_inverse(
+        modulus: &Odd<Uint<LIMBS>>,
+        inverse: U64,
+        adjuster: &Uint<LIMBS>,
+    ) -> Self {
         Self {
             modulus: *modulus,
+            inverse: lowest_u64(inverse.as_words()),
             adjuster: *adjuster,
-            inverse: invert_mod_u64(modulus.0.as_words()),
         }
     }
 
@@ -431,7 +444,7 @@ const fn lowest_u64(words: &[Word]) -> u64 {
 ///
 /// Variable time with respect to the number of words in `value`, however that number will be
 /// fixed for a given integer size.
-const fn invert_mod_u64(words: &[Word]) -> u64 {
+pub(crate) const fn invert_mod_u64(words: &[Word]) -> u64 {
     let value = lowest_u64(words);
     let x = value.wrapping_mul(3) ^ 2;
     let y = 1u64.wrapping_sub(x.wrapping_mul(value));
