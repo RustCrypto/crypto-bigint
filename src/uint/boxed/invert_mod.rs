@@ -115,7 +115,7 @@ impl BoxedUint {
         (x, is_some)
     }
 
-    /// Computes the multiplicaitve inverse of `self` mod `modulus`
+    /// Computes the multiplicative inverse of `self` mod `modulus`
     ///
     /// `self` and `modulus` must have the same number of limbs, or the function will panic
     ///
@@ -125,7 +125,7 @@ impl BoxedUint {
         self.invert_mod(modulus)
     }
 
-    /// Computes the multiplicaitve inverse of `self` mod `modulus`
+    /// Computes the multiplicative inverse of `self` mod `modulus`
     ///
     /// `self` and `modulus` must have the same number of limbs, or the function will panic
     ///
