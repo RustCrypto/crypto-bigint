@@ -97,17 +97,19 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
             // If the subtraction borrowed, then decrement q and add back the divisor
             // The probability of this being needed is very low, about 2/(Limb::MAX+1)
-            let ct_borrow = ConstChoice::from_word_mask(borrow.0);
-            carry = Limb::ZERO;
-            i = (xi + 1).saturating_sub(RHS_LIMBS);
-            while i <= xi {
-                (x[i], carry) = x[i].carrying_add(
-                    Limb::select(Limb::ZERO, y[RHS_LIMBS + i - xi - 1], ct_borrow),
-                    carry,
-                );
-                i += 1;
-            }
-            quo = ct_borrow.select_word(quo, quo.saturating_sub(1));
+            quo = {
+                let ct_borrow = ConstChoice::from_word_mask(borrow.0);
+                carry = Limb::ZERO;
+                i = (xi + 1).saturating_sub(RHS_LIMBS);
+                while i <= xi {
+                    (x[i], carry) = x[i].carrying_add(
+                        Limb::select(Limb::ZERO, y[RHS_LIMBS + i - xi - 1], ct_borrow),
+                        carry,
+                    );
+                    i += 1;
+                }
+                ct_borrow.select_word(quo, quo.saturating_sub(1))
+            };
 
             // Store the quotient within dividend and set x_hi to the current highest word
             x_hi = Limb::select(x[xi], x_hi, done);
@@ -362,7 +364,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // We proceed similarly to `div_rem_vartime()` applied to the high half of
         // the dividend, fetching the limbs from the lower part as we go.
 
-        loop {
+        while xi > 0 {
             // Divide high dividend words by the high divisor word to estimate the quotient word
             let mut quo = div3by2(x_hi.0, x[xi].0, x[xi - 1].0, &reciprocal, y[LIMBS - 2].0);
 
@@ -390,21 +392,21 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             // The probability of this being needed is very low, about 2/(Limb::MAX+1)
             {
                 let ct_borrow = ConstChoice::from_word_mask(borrow.0);
-                let mut carry = Limb::ZERO;
-                i = 0;
-                while i < LIMBS {
-                    (x[xi + i + 1 - LIMBS], carry) = x[xi + i + 1 - LIMBS]
-                        .carrying_add(Limb::select(Limb::ZERO, y[i], ct_borrow), carry);
+                carry = Limb::ZERO;
+                i = (xi + 1).saturating_sub(LIMBS);
+                while i <= xi {
+                    (x[i], carry) = x[i].carrying_add(
+                        Limb::select(Limb::ZERO, y[LIMBS + i - xi - 1], ct_borrow),
+                        carry,
+                    );
                     i += 1;
                 }
             }
 
-            // Set x_hi to the current highest word
-            x_hi = x[xi];
-
             // If we have lower limbs remaining, shift the divisor words one word left
             if extra_limbs > 0 {
                 extra_limbs -= 1;
+                x_hi = x[xi];
                 i = LIMBS - 1;
                 while i > 0 {
                     x[i] = x[i - 1];
@@ -412,13 +414,26 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 }
                 x[0] = x_lo.limbs[extra_limbs];
             } else {
-                if xi == LIMBS - 1 {
-                    break;
-                }
-                x[xi] = Limb::ZERO;
+                x_hi = Limb::select(x[xi], x_hi, done);
+                x[xi] = Limb::select(
+                    Limb::ZERO,
+                    x[xi],
+                    ConstChoice::from_u32_lt(xi as u32, dwords),
+                );
+                x[xi] = Limb::select(x[xi], x_hi, ConstChoice::from_u32_eq(xi as u32, dwords - 1));
                 xi -= 1;
             }
         }
+
+        // Calculate quotient and remainder for the case where the divisor is a single word
+        // Note that `div2by1()` will panic if `x_hi >= reciprocal.divisor_normalized`,
+        // but this can only be the case if `limb_div` is falsy,
+        // in which case we discard the result anyway,
+        // so we conditionally set `x_hi` to zero for this branch.
+        let limb_div = ConstChoice::from_u32_eq(1, dwords);
+        let x_hi_adjusted = Limb::select(Limb::ZERO, x_hi, limb_div);
+        let (_, rem) = div2by1(x_hi_adjusted.0, x[0].0, &reciprocal);
+        x[0] = Limb::select(x[0], Limb(rem), limb_div);
 
         // Unshift the remainder from the earlier adjustment
         Uint::new(x).shr_limb(lshift).0
@@ -1189,8 +1204,10 @@ mod tests {
         assert_eq!(r3, expect.1);
         let r4 = Uint::rem_vartime(&x, &NonZero::new(y.resize()).unwrap());
         assert_eq!(r4, expect.1);
-        let r5 = Uint::rem_wide_vartime((lo, hi), &NonZero::new(y).unwrap());
+        let r5 = Uint::rem_wide((lo, hi), &NonZero::new(y).unwrap());
         assert_eq!(r5.resize(), expect.1);
+        let r6 = Uint::rem_wide_vartime((lo, hi), &NonZero::new(y).unwrap());
+        assert_eq!(r6.resize(), expect.1);
     }
 
     #[test]
@@ -1255,19 +1272,22 @@ mod tests {
     }
 
     #[test]
-    fn rem_wide_vartime_corner_case() {
+    fn rem_wide_corner_case() {
         let modulus = "0000000000000000000000000000000081000000000000000000000000000001";
         let modulus = NonZero::new(U256::from_be_hex(modulus)).expect("it's odd and not zero");
         let lo_hi = (
             U256::from_be_hex("1000000000000000000000000000000000000000000000000000000000000001"),
             U256::ZERO,
         );
-        let rem = U256::rem_wide_vartime(lo_hi, &modulus);
+        let rem = U256::rem_wide(lo_hi, &modulus);
         // Lower half is zero
         assert_eq!(rem.to_be_bytes()[0..16], U128::ZERO.to_be_bytes());
         // Upper half
         let expected = U128::from_be_hex("203F80FE03F80FE03F80FE03F80FE041");
         assert_eq!(rem.to_be_bytes()[16..], expected.to_be_bytes());
+
+        let remv = U256::rem_wide_vartime(lo_hi, &modulus);
+        assert_eq!(rem, remv);
     }
 
     #[test]
