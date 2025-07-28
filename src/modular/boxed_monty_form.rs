@@ -34,8 +34,6 @@ struct BoxedMontyParamsInner {
     one: BoxedUint,
     /// R^2, used to move into Montgomery form
     r2: BoxedUint,
-    /// R^3, used to compute the multiplicative inverse
-    r3: BoxedUint,
     /// The lowest limbs of MODULUS^-1 mod 2**64
     /// This value is used in Montgomery reduction and modular inversion
     mod_inv: U64,
@@ -66,21 +64,14 @@ impl BoxedMontyParams {
 
         // The inverse of the modulus modulo 2**64
         let mod_inv = U64::from_u64(invert_mod_u64(modulus.as_ref().as_words()));
-        let mod_neg_inv = mod_inv.limbs[0].wrapping_neg();
 
         let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
-
-        let r3 = {
-            let mut mm = BoxedMontyMultiplier::new(&modulus, mod_neg_inv);
-            mm.square(&r2)
-        };
 
         Self(
             BoxedMontyParamsInner {
                 modulus,
                 one,
                 r2,
-                r3,
                 mod_inv,
                 mod_leading_zeros,
             }
@@ -107,21 +98,14 @@ impl BoxedMontyParams {
 
         // The inverse of the modulus modulo 2**64
         let mod_inv = U64::from_u64(invert_mod_u64(modulus.as_ref().as_words()));
-        let mod_neg_inv = mod_inv.limbs[0].wrapping_neg();
 
         let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
-
-        let r3 = {
-            let mut mm = BoxedMontyMultiplier::new(&modulus, mod_neg_inv);
-            mm.square(&r2)
-        };
 
         Self(
             BoxedMontyParamsInner {
                 modulus,
                 one,
                 r2,
-                r3,
                 mod_inv,
                 mod_leading_zeros,
             }
@@ -167,7 +151,6 @@ impl<const LIMBS: usize> From<&MontyParams<LIMBS>> for BoxedMontyParams {
                 modulus: params.modulus.into(),
                 one: params.one.into(),
                 r2: params.r2.into(),
-                r3: params.r3.into(),
                 mod_inv: params.mod_inv,
                 mod_leading_zeros: params.mod_leading_zeros,
             }
