@@ -28,8 +28,6 @@ pub struct MontyParams<const LIMBS: usize> {
     pub(super) one: Uint<LIMBS>,
     /// `R^2 mod modulus`, used to move into Montgomery form
     pub(super) r2: Uint<LIMBS>,
-    /// `R^3 mod modulus`, used to compute the multiplicative inverse
-    pub(super) r3: Uint<LIMBS>,
     /// The lowest limbs of MODULUS^-1 mod 2**64
     /// This value is used in Montgomery reduction and modular inversion
     pub(super) mod_inv: U64,
@@ -59,20 +57,15 @@ where
 
         // The inverse of the modulus modulo 2**64
         let mod_inv = U64::from_u64(invert_mod_u64(modulus.as_ref().as_words()));
-        let mod_neg_inv = mod_inv.limbs[0].wrapping_neg();
 
         let mod_leading_zeros = modulus.as_ref().leading_zeros();
         let mod_leading_zeros = ConstChoice::from_u32_lt(mod_leading_zeros, Word::BITS - 1)
             .select_u32(Word::BITS - 1, mod_leading_zeros);
 
-        // `R^3 mod modulus`, used for inversion in Montgomery form.
-        let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);
-
         Self {
             modulus,
             one,
             r2,
-            r3,
             mod_inv,
             mod_leading_zeros,
         }
@@ -93,7 +86,6 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
 
         // The inverse of the modulus modulo 2**64
         let mod_inv = U64::from_u64(invert_mod_u64(modulus.as_ref().as_words()));
-        let mod_neg_inv = mod_inv.limbs[0].wrapping_neg();
 
         let mod_leading_zeros = modulus.as_ref().leading_zeros_vartime();
         let mod_leading_zeros = if mod_leading_zeros < Word::BITS - 1 {
@@ -102,14 +94,10 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
             Word::BITS - 1
         };
 
-        // `R^3 mod modulus`, used for inversion in Montgomery form.
-        let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);
-
         Self {
             modulus,
             one,
             r2,
-            r3,
             mod_inv,
             mod_leading_zeros,
         }
@@ -133,7 +121,6 @@ impl<const LIMBS: usize> ConditionallySelectable for MontyParams<LIMBS> {
             modulus: Odd::conditional_select(&a.modulus, &b.modulus, choice),
             one: Uint::conditional_select(&a.one, &b.one, choice),
             r2: Uint::conditional_select(&a.r2, &b.r2, choice),
-            r3: Uint::conditional_select(&a.r3, &b.r3, choice),
             mod_inv: U64::conditional_select(&a.mod_inv, &b.mod_inv, choice),
             mod_leading_zeros: u32::conditional_select(
                 &a.mod_leading_zeros,
@@ -149,7 +136,6 @@ impl<const LIMBS: usize> ConstantTimeEq for MontyParams<LIMBS> {
         self.modulus.ct_eq(&other.modulus)
             & self.one.ct_eq(&other.one)
             & self.r2.ct_eq(&other.r2)
-            & self.r3.ct_eq(&other.r3)
             & self.mod_inv.ct_eq(&other.mod_inv)
     }
 }
@@ -160,7 +146,6 @@ impl<const LIMBS: usize> zeroize::Zeroize for MontyParams<LIMBS> {
         self.modulus.zeroize();
         self.one.zeroize();
         self.r2.zeroize();
-        self.r3.zeroize();
         self.mod_inv.zeroize();
         self.mod_leading_zeros.zeroize();
     }
