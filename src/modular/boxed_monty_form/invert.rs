@@ -1,7 +1,7 @@
 //! Multiplicative inverses of boxed integers in Montgomery form.
 
 use super::{BoxedMontyForm, BoxedMontyParams};
-use crate::modular::BoxedSafeGcdInverter;
+use crate::{Invert, modular::BoxedSafeGcdInverter};
 use core::fmt;
 use subtle::CtOption;
 
@@ -19,6 +19,18 @@ impl BoxedMontyForm {
     /// respect to `self`'s `params`.
     pub fn invert_vartime(&self) -> CtOption<Self> {
         self.params.inverter().invert_vartime(self)
+    }
+}
+
+impl Invert for BoxedMontyForm {
+    type Output = CtOption<Self>;
+
+    fn invert(&self) -> Self::Output {
+        self.invert()
+    }
+
+    fn invert_vartime(&self) -> Self::Output {
+        self.invert_vartime()
     }
 }
 
