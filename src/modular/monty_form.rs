@@ -161,7 +161,7 @@ impl<const LIMBS: usize> zeroize::Zeroize for MontyParams<LIMBS> {
         self.one.zeroize();
         self.r2.zeroize();
         self.r3.zeroize();
-        self.mod_neg_inv.zeroize();
+        self.mod_inv.zeroize();
         self.mod_leading_zeros.zeroize();
     }
 }
