@@ -88,7 +88,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
     /// Create a modular inverter for the modulus of these params.
     // TODO(tarcieri): make `pub`?
     const fn inverter(&self) -> SafeGcdInverter<LIMBS> {
-        SafeGcdInverter::new(&self.modulus, &self.r2)
+        SafeGcdInverter::new_with_inverse(&self.modulus, self.mod_inv, &self.r2)
     }
 }
 

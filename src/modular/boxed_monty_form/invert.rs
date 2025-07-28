@@ -1,10 +1,7 @@
 //! Multiplicative inverses of boxed integers in Montgomery form.
 
 use super::{BoxedMontyForm, BoxedMontyParams};
-use crate::{
-    Invert, Inverter, PrecomputeInverter, PrecomputeInverterWithAdjuster,
-    modular::BoxedSafeGcdInverter,
-};
+use crate::{Invert, Inverter, PrecomputeInverter, modular::BoxedSafeGcdInverter};
 use core::fmt;
 use subtle::CtOption;
 
@@ -43,7 +40,11 @@ impl PrecomputeInverter for BoxedMontyParams {
 
     fn precompute_inverter(&self) -> BoxedMontyFormInverter {
         BoxedMontyFormInverter {
-            inverter: self.modulus().precompute_inverter_with_adjuster(self.r2()),
+            inverter: BoxedSafeGcdInverter::new_with_inverse(
+                self.modulus().clone(),
+                self.mod_inv(),
+                self.r2().clone(),
+            ),
             params: self.clone(),
         }
     }

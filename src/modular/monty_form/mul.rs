@@ -18,7 +18,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
                 &self.montgomery_form,
                 &rhs.montgomery_form,
                 &self.params.modulus,
-                self.params.mod_neg_inv,
+                self.params.mod_neg_inv(),
             ),
             params: self.params,
         }
@@ -30,7 +30,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
             montgomery_form: square_montgomery_form(
                 &self.montgomery_form,
                 &self.params.modulus,
-                self.params.mod_neg_inv,
+                self.params.mod_neg_inv(),
             ),
             params: self.params,
         }
@@ -110,7 +110,7 @@ impl<'a, const LIMBS: usize> MontyMultiplier<'a> for DynMontyMultiplier<'a, LIMB
             &lhs.montgomery_form,
             &rhs.montgomery_form,
             &self.0.modulus,
-            self.0.mod_neg_inv,
+            self.0.mod_neg_inv(),
         );
         lhs.montgomery_form = product;
     }
@@ -118,7 +118,7 @@ impl<'a, const LIMBS: usize> MontyMultiplier<'a> for DynMontyMultiplier<'a, LIMB
     /// Performs a Montgomery squaring, assigning a fully reduced result to `lhs`.
     fn square_assign(&mut self, lhs: &mut Self::Monty) {
         let product =
-            square_montgomery_form(&lhs.montgomery_form, &self.0.modulus, self.0.mod_neg_inv);
+            square_montgomery_form(&lhs.montgomery_form, &self.0.modulus, self.0.mod_neg_inv());
         lhs.montgomery_form = product;
     }
 }

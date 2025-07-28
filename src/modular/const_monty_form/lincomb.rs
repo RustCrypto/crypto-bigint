@@ -15,7 +15,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
             montgomery_form: lincomb_const_monty_form(
                 products,
                 &MOD::PARAMS.modulus,
-                MOD::PARAMS.mod_neg_inv,
+                MOD::PARAMS.mod_neg_inv(),
             ),
             phantom: PhantomData,
         }

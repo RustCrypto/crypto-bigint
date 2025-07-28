@@ -35,7 +35,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
                 exponent_bits,
                 &self.params.modulus,
                 &self.params.one,
-                self.params.mod_neg_inv,
+                self.params.mod_neg_inv(),
             ),
             params: self.params,
         }
@@ -77,7 +77,7 @@ impl<const N: usize, const LIMBS: usize, const RHS_LIMBS: usize>
                 exponent_bits,
                 &params.modulus,
                 &params.one,
-                params.mod_neg_inv,
+                params.mod_neg_inv(),
             ),
             params,
         }
@@ -108,7 +108,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize>
                 exponent_bits,
                 &params.modulus,
                 &params.one,
-                params.mod_neg_inv,
+                params.mod_neg_inv(),
             ),
             params,
         }

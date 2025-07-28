@@ -35,7 +35,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
                 exponent_bits,
                 &MOD::PARAMS.modulus,
                 &MOD::PARAMS.one,
-                MOD::PARAMS.mod_neg_inv,
+                MOD::PARAMS.mod_neg_inv(),
             ),
             phantom: core::marker::PhantomData,
         }
@@ -74,7 +74,7 @@ impl<const N: usize, MOD: ConstMontyParams<LIMBS>, const LIMBS: usize, const RHS
                 exponent_bits,
                 &MOD::PARAMS.modulus,
                 &MOD::PARAMS.one,
-                MOD::PARAMS.mod_neg_inv,
+                MOD::PARAMS.mod_neg_inv(),
             ),
             phantom: core::marker::PhantomData,
         }
@@ -100,7 +100,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize, const RHS_LIMBS: usize>
                 exponent_bits,
                 &MOD::PARAMS.modulus,
                 &MOD::PARAMS.one,
-                MOD::PARAMS.mod_neg_inv,
+                MOD::PARAMS.mod_neg_inv(),
             ),
             phantom: core::marker::PhantomData,
         }

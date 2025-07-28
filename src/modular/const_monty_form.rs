@@ -82,8 +82,11 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     /// Instantiates a new [`ConstMontyForm`] that represents this `integer` mod `MOD`.
     pub const fn new(integer: &Uint<LIMBS>) -> Self {
         let product = integer.widening_mul(&MOD::PARAMS.r2);
-        let montgomery_form =
-            montgomery_reduction::<LIMBS>(&product, &MOD::PARAMS.modulus, MOD::PARAMS.mod_neg_inv);
+        let montgomery_form = montgomery_reduction::<LIMBS>(
+            &product,
+            &MOD::PARAMS.modulus,
+            MOD::PARAMS.mod_neg_inv(),
+        );
 
         Self {
             montgomery_form,
@@ -96,7 +99,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
         montgomery_reduction::<LIMBS>(
             &(self.montgomery_form, Uint::ZERO),
             &MOD::PARAMS.modulus,
-            MOD::PARAMS.mod_neg_inv,
+            MOD::PARAMS.mod_neg_inv(),
         )
     }
 
