@@ -3,14 +3,14 @@
 mod common;
 
 use common::to_biguint;
-use crypto_bigint::{Odd, PrecomputeInverter, U256};
+use crypto_bigint::{Odd, U256, Uint, modular::SafeGcdInverter};
 use num_bigint::BigUint;
 use num_integer::Integer;
 use num_traits::One;
 use proptest::prelude::*;
 
 #[cfg(feature = "alloc")]
-use crypto_bigint::{BoxedUint, Inverter, Resize};
+use crypto_bigint::{BoxedUint, Resize};
 
 /// Example prime number (NIST P-256 curve order)
 const P: Odd<U256> =
@@ -70,7 +70,7 @@ proptest! {
         let p_bi = to_biguint(&P);
 
         let expected_is_some = x_bi.gcd(&p_bi) == BigUint::one();
-        let inverter = P.precompute_inverter();
+        let inverter = SafeGcdInverter::new(&P, &Uint::ONE);
         let actual = inverter.invert(&x);
 
         prop_assert_eq!(expected_is_some, bool::from(actual.is_some()));
@@ -96,8 +96,7 @@ proptest! {
         let p_bi = to_biguint(&P);
 
         let expected_is_some = x_bi.gcd(&p_bi) == BigUint::one();
-        let inverter = p.precompute_inverter();
-        let actual = inverter.invert(&x);
+        let actual = x.invert_mod(&p);
 
         prop_assert_eq!(expected_is_some, bool::from(actual.is_some()));
 
@@ -107,7 +106,7 @@ proptest! {
             prop_assert_eq!(res, BigUint::one());
 
             // check vartime implementation equivalence
-            let actual_vartime = inverter.invert_vartime(&x).unwrap();
+            let actual_vartime = x.invert_mod(&p).unwrap();
             prop_assert_eq!(actual, actual_vartime);
         }
     }

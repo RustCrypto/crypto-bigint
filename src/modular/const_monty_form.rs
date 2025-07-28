@@ -45,7 +45,7 @@ pub trait ConstMontyParams<const LIMBS: usize>:
     /// Precompute a Bernstein-Yang inverter for this modulus.
     ///
     /// Use [`ConstMontyFormInverter::new`] if you need `const fn` access.
-    fn precompute_inverter() -> ConstMontyFormInverter<Self, LIMBS> {
+    fn inverter() -> ConstMontyFormInverter<Self, LIMBS> {
         ConstMontyFormInverter::new()
     }
 }

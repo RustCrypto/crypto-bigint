@@ -54,7 +54,7 @@ proptest! {
     #[test]
     fn precomputed_invert(x in uint()) {
         let x = reduce(&x);
-        let inverter = Modulus::precompute_inverter();
+        let inverter = Modulus::inverter();
         let actual = Option::<ConstMontyForm>::from(inverter.invert(&x));
 
         let x_bi = retrieve_biguint(&x);

@@ -1,11 +1,7 @@
 //! Multiplicative inverses of integers in Montgomery form with a modulus set at runtime.
 
 use super::{MontyForm, MontyParams};
-use crate::{
-    ConstCtOption, Inverter, Odd, PrecomputeInverter, PrecomputeInverterWithAdjuster, Uint,
-    modular::SafeGcdInverter, traits::Invert,
-};
-use core::fmt;
+use crate::{ConstCtOption, modular::SafeGcdInverter, traits::Invert};
 use subtle::CtOption;
 
 impl<const LIMBS: usize> MontyForm<LIMBS> {
@@ -86,69 +82,15 @@ impl<const LIMBS: usize> Invert for MontyForm<LIMBS> {
 
 impl<const LIMBS: usize> MontyParams<LIMBS> {
     /// Create a modular inverter for the modulus of these params.
-    // TODO(tarcieri): make `pub`?
     const fn inverter(&self) -> SafeGcdInverter<LIMBS> {
         SafeGcdInverter::new_with_inverse(&self.modulus, self.mod_inv, &self.r2)
-    }
-}
-
-impl<const LIMBS: usize> PrecomputeInverter for MontyParams<LIMBS> {
-    type Inverter = MontyFormInverter<LIMBS>;
-    type Output = MontyForm<LIMBS>;
-
-    fn precompute_inverter(&self) -> MontyFormInverter<LIMBS> {
-        MontyFormInverter {
-            inverter: self.modulus.precompute_inverter_with_adjuster(&self.r2),
-            params: *self,
-        }
-    }
-}
-
-/// Bernstein-Yang inverter which inverts [`MontyForm`] types.
-pub struct MontyFormInverter<const LIMBS: usize> {
-    inverter: <Odd<Uint<LIMBS>> as PrecomputeInverter>::Inverter,
-    params: MontyParams<LIMBS>,
-}
-
-impl<const LIMBS: usize> Inverter for MontyFormInverter<LIMBS> {
-    type Output = MontyForm<LIMBS>;
-
-    fn invert(&self, value: &MontyForm<LIMBS>) -> CtOption<Self::Output> {
-        debug_assert_eq!(self.params, value.params);
-
-        Inverter::invert(&self.inverter, &value.montgomery_form).map(|montgomery_form| MontyForm {
-            montgomery_form,
-            params: value.params,
-        })
-    }
-
-    fn invert_vartime(&self, value: &MontyForm<LIMBS>) -> CtOption<Self::Output> {
-        debug_assert_eq!(self.params, value.params);
-
-        Inverter::invert_vartime(&self.inverter, &value.montgomery_form).map(|montgomery_form| {
-            MontyForm {
-                montgomery_form,
-                params: value.params,
-            }
-        })
-    }
-}
-
-impl<const LIMBS: usize> fmt::Debug for MontyFormInverter<LIMBS>
-where
-    Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS>, Output = Uint<LIMBS>>,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("MontyFormInverter")
-            .field("modulus", &self.inverter.modulus)
-            .finish()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::{MontyForm, MontyParams};
-    use crate::{Inverter, Odd, PrecomputeInverter, U256};
+    use crate::{Odd, U256};
 
     fn params() -> MontyParams<{ U256::LIMBS }> {
         MontyParams::new_vartime(Odd::<U256>::from_be_hex(
@@ -164,20 +106,6 @@ mod tests {
         let x_monty = MontyForm::new(&x, params);
 
         let inv = x_monty.invert().unwrap();
-        let res = x_monty * inv;
-
-        assert_eq!(res.retrieve(), U256::ONE);
-    }
-
-    #[test]
-    fn test_self_inverse_precomputed() {
-        let params = params();
-        let x =
-            U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
-        let x_monty = MontyForm::new(&x, params);
-
-        let inverter = params.precompute_inverter();
-        let inv = inverter.invert(&x_monty).unwrap();
         let res = x_monty * inv;
 
         assert_eq!(res.retrieve(), U256::ONE);

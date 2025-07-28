@@ -15,10 +15,9 @@ pub(crate) mod boxed;
 use core::fmt;
 
 use crate::{
-    ConstChoice, ConstCtOption, I64, Int, Inverter, Limb, NonZero, Odd, U64, Uint, Word,
+    ConstChoice, ConstCtOption, I64, Int, Limb, NonZero, Odd, U64, Uint, Word,
     const_choice::u32_min,
 };
-use subtle::CtOption;
 
 const GCD_BATCH_SIZE: u32 = 62;
 
@@ -114,18 +113,6 @@ impl<const LIMBS: usize> SafeGcdInverter<LIMBS> {
     /// This version is variable-time with respect to `value`.
     pub const fn invert_vartime(&self, value: &Uint<LIMBS>) -> ConstCtOption<Uint<LIMBS>> {
         invert_odd_mod_precomp::<LIMBS, true>(value, &self.modulus, self.inverse, &self.adjuster)
-    }
-}
-
-impl<const LIMBS: usize> Inverter for SafeGcdInverter<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    fn invert(&self, value: &Uint<LIMBS>) -> CtOption<Self::Output> {
-        self.invert(value).into()
-    }
-
-    fn invert_vartime(&self, value: &Uint<LIMBS>) -> CtOption<Self::Output> {
-        self.invert_vartime(value).into()
     }
 }
 
@@ -647,7 +634,8 @@ impl<const LIMBS: usize> ConstCtOption<Odd<SignedInt<LIMBS>>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{PrecomputeInverter, U128, U256, modular::safegcd::shr_in_place_wide};
+    use super::SafeGcdInverter;
+    use crate::{U128, U256, modular::safegcd::shr_in_place_wide};
 
     #[test]
     fn invert() {
@@ -657,7 +645,7 @@ mod tests {
             U256::from_be_hex("FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551")
                 .to_odd()
                 .unwrap();
-        let inverter = modulus.precompute_inverter();
+        let inverter = SafeGcdInverter::new(&modulus, &U256::ONE);
         let result = inverter.invert(&g).unwrap();
         assert_eq!(
             U256::from_be_hex("FB668F8F509790BC549B077098918604283D42901C92981062EB48BC723F617B"),

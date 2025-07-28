@@ -5,8 +5,8 @@
 
 use super::{GCD_BATCH_SIZE, Matrix, invert_mod_u64, iterations, jump, lowest_u64};
 use crate::{
-    BoxedUint, ConstChoice, ConstCtOption, ConstantTimeSelect, I64, Int, Inverter, Limb, NonZero,
-    Odd, Resize, U64, Uint,
+    BoxedUint, ConstChoice, ConstCtOption, ConstantTimeSelect, I64, Int, Limb, NonZero, Odd,
+    Resize, U64, Uint,
     const_choice::{u32_max, u32_min},
 };
 use core::fmt;
@@ -51,12 +51,9 @@ impl BoxedSafeGcdInverter {
             adjuster,
         }
     }
-}
 
-impl Inverter for BoxedSafeGcdInverter {
-    type Output = BoxedUint;
-
-    fn invert(&self, value: &BoxedUint) -> CtOption<Self::Output> {
+    /// Perform constant-time modular inversion.
+    pub(crate) fn invert(&self, value: &BoxedUint) -> CtOption<BoxedUint> {
         invert_odd_mod_precomp::<false>(
             value,
             &self.modulus,
@@ -65,7 +62,8 @@ impl Inverter for BoxedSafeGcdInverter {
         )
     }
 
-    fn invert_vartime(&self, value: &BoxedUint) -> CtOption<Self::Output> {
+    /// Perform variable-time modular inversion.
+    pub(crate) fn invert_vartime(&self, value: &BoxedUint) -> CtOption<BoxedUint> {
         invert_odd_mod_precomp::<true>(
             value,
             &self.modulus,
@@ -451,7 +449,8 @@ impl ConstCtOption<Odd<SignedBoxedInt>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{BoxedUint, Inverter, PrecomputeInverter};
+    use super::BoxedSafeGcdInverter;
+    use crate::BoxedUint;
 
     #[test]
     fn invert() {
@@ -467,7 +466,7 @@ mod tests {
         .unwrap()
         .to_odd()
         .unwrap();
-        let inverter = modulus.precompute_inverter();
+        let inverter = BoxedSafeGcdInverter::new(modulus, BoxedUint::one());
         let result = inverter.invert(&g).unwrap();
         assert_eq!(
             BoxedUint::from_be_hex(
