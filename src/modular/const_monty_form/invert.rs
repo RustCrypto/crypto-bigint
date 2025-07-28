@@ -103,8 +103,11 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyFormInverter<MO
     /// Create a new [`ConstMontyFormInverter`] for the given [`ConstMontyParams`].
     #[allow(clippy::new_without_default)]
     pub const fn new() -> Self {
-        let inverter =
-            SafeGcdInverter::new_with_inverse(&MOD::PARAMS.modulus, MOD::PARAMS.mod_inv, &MOD::PARAMS.r2);
+        let inverter = SafeGcdInverter::new_with_inverse(
+            &MOD::PARAMS.modulus,
+            MOD::PARAMS.mod_inv,
+            &MOD::PARAMS.r2,
+        );
 
         Self {
             inverter,
