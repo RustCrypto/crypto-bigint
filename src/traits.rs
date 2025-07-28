@@ -1,12 +1,8 @@
 //! Traits provided by this crate
 
-mod sealed;
-
 pub use num_traits::{
     ConstZero, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr, WrappingSub,
 };
-
-pub(crate) use sealed::PrecomputeInverterWithAdjuster;
 
 use crate::{Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
 use core::fmt::{self, Debug};
@@ -228,36 +224,6 @@ pub trait Xgcd<Rhs = Self>: Sized {
 
     /// Compute the extended greatest common divisor of `self` and `rhs` in variable time.
     fn xgcd_vartime(&self, rhs: &Rhs) -> Self::Output;
-}
-
-/// Trait impl'd by precomputed modular inverters obtained via the [`PrecomputeInverter`] trait.
-pub trait Inverter {
-    /// Output of an inversion.
-    type Output;
-
-    /// Compute a modular inversion, returning `None` if the result is undefined (i.e. if `value` is
-    /// zero or isn't prime relative to the modulus).
-    fn invert(&self, value: &Self::Output) -> CtOption<Self::Output>;
-
-    /// Compute a modular inversion, returning `None` if the result is undefined (i.e. if `value` is
-    /// zero or isn't prime relative to the modulus).
-    ///
-    /// This version is variable-time with respect to `value`.
-    fn invert_vartime(&self, value: &Self::Output) -> CtOption<Self::Output>;
-}
-
-/// Obtain a precomputed inverter for efficiently computing modular inversions for a given modulus.
-pub trait PrecomputeInverter {
-    /// Inverter type for integers of this size.
-    type Inverter: Inverter<Output = Self::Output> + Sized;
-
-    /// Output produced by the inverter.
-    type Output;
-
-    /// Obtain a precomputed inverter for `&self` as the modulus, using `Self::one()` as an adjusting parameter.
-    ///
-    /// Returns `None` if `self` is even.
-    fn precompute_inverter(&self) -> Self::Inverter;
 }
 
 /// Zero values.

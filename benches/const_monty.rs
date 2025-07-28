@@ -91,7 +91,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         b.iter_batched(
             || {
                 let x = ConstMontyForm::random(&mut rng);
-                let inverter = Modulus::precompute_inverter();
+                let inverter = Modulus::inverter();
                 (x, inverter)
             },
             |(x, inverter)| inverter.invert(&black_box(x)),

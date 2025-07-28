@@ -6,7 +6,7 @@ mod common;
 
 use common::to_biguint;
 use crypto_bigint::{
-    BoxedUint, Integer, Inverter, Limb, Odd, PrecomputeInverter, Resize,
+    BoxedUint, Integer, Limb, Odd, Resize,
     modular::{BoxedMontyForm, BoxedMontyParams},
 };
 use num_bigint::BigUint;
@@ -82,31 +82,6 @@ proptest! {
 
         match (expected, actual) {
             (Some(exp), Some(act)) => prop_assert_eq!(exp, to_biguint(&act)),
-            (None, None) => (),
-            (exp, _) => {
-                if exp.is_some() && x.is_zero().into() {
-                     // we disagree on whether the inverse of zero exists
-                } else {
-                    panic!("disagreement on if modular inverse exists")
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn precomputed_invert(x in uint(), n in modulus()) {
-        let x = reduce(&x, n.clone());
-        let inverter = x.params().precompute_inverter();
-        let actual = Option::<BoxedMontyForm>::from(inverter.invert(&x));
-
-        let x_bi = retrieve_biguint(&x);
-        let n_bi = to_biguint(n.modulus());
-        let expected = x_bi.invm(&n_bi);
-
-        match (expected, actual) {
-            (Some(exp), Some(act)) => {
-                prop_assert_eq!(exp, retrieve_biguint(&act));
-            }
             (None, None) => (),
             (exp, _) => {
                 if exp.is_some() && x.is_zero().into() {

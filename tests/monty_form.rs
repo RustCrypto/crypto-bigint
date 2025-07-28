@@ -4,8 +4,9 @@ mod common;
 
 use common::to_biguint;
 use crypto_bigint::{
-    Bounded, Constants, Encoding, Integer, Invert, Inverter, Monty, NonZero, Odd,
-    PrecomputeInverter, U128, U256, U512, U1024, U2048, U4096, modular::MontyForm,
+    Bounded, Constants, Encoding, Integer, Invert, Monty, NonZero, Odd, U128, U256, U512, U1024,
+    U2048, U4096,
+    modular::{MontyForm, MontyParams},
 };
 use num_bigint::BigUint;
 use num_modular::ModularUnaryOps;
@@ -14,8 +15,8 @@ use prop::test_runner::TestRng;
 use proptest::prelude::*;
 use subtle::CtOption;
 
-type MontyForm256 = crypto_bigint::modular::MontyForm<{ U256::LIMBS }>;
-type MontyParams256 = crypto_bigint::modular::MontyParams<{ U256::LIMBS }>;
+type MontyForm256 = MontyForm<{ U256::LIMBS }>;
+type MontyParams256 = MontyParams<{ U256::LIMBS }>;
 
 fn retrieve_biguint(monty_form: &MontyForm256) -> BigUint {
     to_biguint(&monty_form.retrieve())
@@ -307,25 +308,6 @@ proptest! {
             (Some(exp), Some(act)) => {
                 let res = x * act;
                 prop_assert_eq!(res.retrieve(), U256::ONE);
-                prop_assert_eq!(exp, retrieve_biguint(&act));
-            }
-            (None, None) => (),
-            (_, _) => panic!("disagreement on if modular inverse exists")
-        }
-    }
-
-    #[test]
-    fn precomputed_invert(x in uint(), n in modulus()) {
-        let x = reduce(&x, n);
-        let inverter = x.params().precompute_inverter();
-        let actual = Option::<MontyForm256>::from(inverter.invert(&x));
-
-        let x_bi = retrieve_biguint(&x);
-        let n_bi = to_biguint(n.modulus());
-        let expected = x_bi.invm(&n_bi);
-
-        match (expected, actual) {
-            (Some(exp), Some(act)) => {
                 prop_assert_eq!(exp, retrieve_biguint(&act));
             }
             (None, None) => (),

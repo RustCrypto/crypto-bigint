@@ -1,8 +1,5 @@
 use super::Uint;
-use crate::{
-    ConstChoice, ConstCtOption, InvertMod, Odd, PrecomputeInverter, PrecomputeInverterWithAdjuster,
-    modular::{SafeGcdInverter, safegcd},
-};
+use crate::{ConstChoice, ConstCtOption, InvertMod, Odd, modular::safegcd};
 use subtle::CtOption;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -174,26 +171,6 @@ impl<const LIMBS: usize> InvertMod for Uint<LIMBS> {
 
     fn invert_mod(&self, modulus: &Self) -> CtOption<Self> {
         self.invert_mod(modulus).into()
-    }
-}
-
-/// Precompute a Bernstein-Yang inverter using `self` as the modulus.
-impl<const LIMBS: usize> PrecomputeInverter for Odd<Uint<LIMBS>> {
-    type Inverter = SafeGcdInverter<LIMBS>;
-
-    type Output = Uint<LIMBS>;
-
-    #[inline]
-    fn precompute_inverter(&self) -> Self::Inverter {
-        Self::precompute_inverter_with_adjuster(self, &Uint::ONE)
-    }
-}
-
-/// Precompute a Bernstein-Yang inverter using `self` as the modulus.
-impl<const LIMBS: usize> PrecomputeInverterWithAdjuster<Uint<LIMBS>> for Odd<Uint<LIMBS>> {
-    #[inline]
-    fn precompute_inverter_with_adjuster(&self, adjuster: &Uint<LIMBS>) -> Self::Inverter {
-        SafeGcdInverter::new(self, adjuster)
     }
 }
 

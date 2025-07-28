@@ -1,10 +1,6 @@
 //! [`BoxedUint`] modular inverse (i.e. reciprocal) operations.
 
-use crate::{
-    BoxedUint, ConstantTimeSelect, Integer, InvertMod, Odd, PrecomputeInverter,
-    PrecomputeInverterWithAdjuster,
-    modular::{BoxedSafeGcdInverter, safegcd},
-};
+use crate::{BoxedUint, ConstantTimeSelect, Integer, InvertMod, Odd, modular::safegcd};
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
 impl BoxedUint {
@@ -16,7 +12,6 @@ impl BoxedUint {
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     pub fn invert_odd_mod(&self, modulus: &Odd<Self>) -> CtOption<Self> {
-        // modulus.precompute_inverter().invert(self)
         safegcd::boxed::invert_odd_mod::<false>(self, modulus)
     }
 
@@ -165,23 +160,6 @@ impl InvertMod for BoxedUint {
 
     fn invert_mod(&self, modulus: &Self) -> CtOption<Self> {
         self.invert_mod(modulus)
-    }
-}
-
-/// Precompute a Bernstein-Yang inverter using `self` as the modulus.
-impl PrecomputeInverter for Odd<BoxedUint> {
-    type Inverter = BoxedSafeGcdInverter;
-    type Output = BoxedUint;
-
-    fn precompute_inverter(&self) -> BoxedSafeGcdInverter {
-        Self::precompute_inverter_with_adjuster(self, &BoxedUint::one())
-    }
-}
-
-/// Precompute a Bernstein-Yang inverter using `self` as the modulus.
-impl PrecomputeInverterWithAdjuster<BoxedUint> for Odd<BoxedUint> {
-    fn precompute_inverter_with_adjuster(&self, adjuster: &BoxedUint) -> BoxedSafeGcdInverter {
-        BoxedSafeGcdInverter::new(self.clone(), adjuster.clone())
     }
 }
 

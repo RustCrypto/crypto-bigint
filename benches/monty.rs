@@ -2,7 +2,7 @@ use criterion::{
     BatchSize, BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::Measurement,
 };
 use crypto_bigint::{
-    Inverter, Odd, PrecomputeInverter, Random, RandomMod, U256,
+    Odd, Random, RandomMod, U256,
     modular::{MontyForm, MontyParams},
 };
 use rand_chacha::ChaChaRng;
@@ -136,14 +136,12 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("Bernstein-Yang invert, U256", |b| {
         b.iter_batched(
             || {
-                let x = MontyForm::new(
+                MontyForm::new(
                     &U256::random_mod(&mut rng, params.modulus().as_nz_ref()),
                     params,
-                );
-                let inverter = x.params().precompute_inverter();
-                (x, inverter)
+                )
             },
-            |(x, inverter)| inverter.invert(&black_box(x)),
+            |x| black_box(x).invert(),
             BatchSize::SmallInput,
         )
     });
