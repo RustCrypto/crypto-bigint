@@ -1,7 +1,7 @@
 //! Multiplicative inverses of boxed integers in Montgomery form.
 
 use super::{BoxedMontyForm, BoxedMontyParams};
-use crate::{Invert, modular::BoxedSafeGcdInverter};
+use crate::{Invert, modular::safegcd::boxed::BoxedSafeGcdInverter};
 use subtle::CtOption;
 
 impl BoxedMontyForm {

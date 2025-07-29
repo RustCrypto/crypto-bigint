@@ -36,14 +36,12 @@ pub use self::{
     const_monty_form::{ConstMontyForm, ConstMontyParams, invert::ConstMontyFormInverter},
     monty_form::{MontyForm, MontyParams},
     reduction::montgomery_reduction,
-    safegcd::SafeGcdInverter,
 };
 
+pub(crate) use self::safegcd::SafeGcdInverter;
+
 #[cfg(feature = "alloc")]
-pub use self::{
-    boxed_monty_form::{BoxedMontyForm, BoxedMontyParams},
-    safegcd::boxed::BoxedSafeGcdInverter,
-};
+pub use self::boxed_monty_form::{BoxedMontyForm, BoxedMontyParams};
 
 /// A generalization for numbers kept in optimized representations (e.g. Montgomery)
 /// that can be converted back to the original form.

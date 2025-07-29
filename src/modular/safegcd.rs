@@ -46,7 +46,7 @@ const GCD_BATCH_SIZE: u32 = 62;
 /// - P. Wuille, "The safegcd implementation in libsecp256k1 explained",
 ///   <https://github.com/bitcoin-core/secp256k1/blob/master/doc/safegcd_implementation.md>
 #[derive(Clone, Debug)]
-pub struct SafeGcdInverter<const LIMBS: usize> {
+pub(crate) struct SafeGcdInverter<const LIMBS: usize> {
     /// Modulus
     pub(super) modulus: Odd<Uint<LIMBS>>,
 
@@ -62,9 +62,8 @@ type Matrix = [[i64; 2]; 2];
 
 impl<const LIMBS: usize> SafeGcdInverter<LIMBS> {
     /// Creates the inverter for specified modulus and adjusting parameter.
-    ///
-    /// Modulus must be odd. Returns `None` if it is not.
-    pub const fn new(modulus: &Odd<Uint<LIMBS>>, adjuster: &Uint<LIMBS>) -> Self {
+    #[cfg(test)]
+    pub(crate) const fn new(modulus: &Odd<Uint<LIMBS>>, adjuster: &Uint<LIMBS>) -> Self {
         Self::new_with_inverse(
             modulus,
             U64::from_u64(invert_mod_u64(modulus.as_ref().as_words())),
@@ -87,24 +86,8 @@ impl<const LIMBS: usize> SafeGcdInverter<LIMBS> {
 
     /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
-    #[deprecated(since = "0.7.0", note = "please use `invert` instead")]
-    pub const fn inv(&self, value: &Uint<LIMBS>) -> ConstCtOption<Uint<LIMBS>> {
-        self.invert(value)
-    }
-
-    /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
-    /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
     pub const fn invert(&self, value: &Uint<LIMBS>) -> ConstCtOption<Uint<LIMBS>> {
         invert_odd_mod_precomp::<LIMBS, false>(value, &self.modulus, self.inverse, &self.adjuster)
-    }
-
-    /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
-    /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
-    ///
-    /// This version is variable-time with respect to `value`.
-    #[deprecated(since = "0.7.0", note = "please use `invert_vartime` instead")]
-    pub const fn inv_vartime(&self, value: &Uint<LIMBS>) -> ConstCtOption<Uint<LIMBS>> {
-        self.invert_vartime(value)
     }
 
     /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
