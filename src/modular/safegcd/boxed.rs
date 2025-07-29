@@ -16,7 +16,7 @@ use subtle::{Choice, CtOption};
 ///
 /// See [`super::SafeGcdInverter`] for more information.
 #[derive(Clone, Debug)]
-pub struct BoxedSafeGcdInverter {
+pub(crate) struct BoxedSafeGcdInverter {
     /// Modulus
     pub(crate) modulus: Odd<BoxedUint>,
 
@@ -31,6 +31,7 @@ impl BoxedSafeGcdInverter {
     /// Creates the inverter for specified modulus and adjusting parameter.
     ///
     /// Modulus must be odd. Returns `None` if it is not.
+    #[cfg(test)]
     pub fn new(modulus: Odd<BoxedUint>, adjuster: BoxedUint) -> Self {
         let inverse = U64::from_u64(invert_mod_u64(modulus.as_ref().as_words()));
         Self::new_with_inverse(modulus, inverse, adjuster)
