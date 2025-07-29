@@ -2,23 +2,38 @@
 
 use super::{BoxedMontyForm, BoxedMontyParams};
 use crate::{Invert, modular::BoxedSafeGcdInverter};
-use core::fmt;
 use subtle::CtOption;
 
 impl BoxedMontyForm {
     /// Computes `self^-1` representing the multiplicative inverse of `self`,
     /// i.e. `self * self^-1 = 1`.
     pub fn invert(&self) -> CtOption<Self> {
-        self.params.inverter().invert(self)
+        let montgomery_form = self.params.inverter().invert(&self.montgomery_form);
+        let is_some = montgomery_form.is_some();
+        let montgomery_form2 = self.montgomery_form.clone();
+        let ret = BoxedMontyForm {
+            montgomery_form: Option::from(montgomery_form).unwrap_or(montgomery_form2),
+            params: self.params.clone(),
+        };
+
+        CtOption::new(ret, is_some)
     }
 
     /// Computes `self^-1` representing the multiplicative inverse of `self`,
     /// i.e. `self * self^-1 = 1`.
     ///
-    /// This version is variable-time with respect to the value of `self`, but constant-time with
+    /// This version is variable-time with respect to the self of `self`, but constant-time with
     /// respect to `self`'s `params`.
     pub fn invert_vartime(&self) -> CtOption<Self> {
-        self.params.inverter().invert_vartime(self)
+        let montgomery_form = self.params.inverter().invert_vartime(&self.montgomery_form);
+        let is_some = montgomery_form.is_some();
+        let montgomery_form2 = self.montgomery_form.clone();
+        let ret = BoxedMontyForm {
+            montgomery_form: Option::from(montgomery_form).unwrap_or(montgomery_form2),
+            params: self.params.clone(),
+        };
+
+        CtOption::new(ret, is_some)
     }
 }
 
@@ -36,62 +51,12 @@ impl Invert for BoxedMontyForm {
 
 impl BoxedMontyParams {
     /// Compute the inverter for these params.
-    fn inverter(&self) -> BoxedMontyFormInverter {
-        BoxedMontyFormInverter {
-            inverter: BoxedSafeGcdInverter::new_with_inverse(
-                self.modulus().clone(),
-                self.mod_inv(),
-                self.r2().clone(),
-            ),
-            params: self.clone(),
-        }
-    }
-}
-
-/// Bernstein-Yang inverter which inverts [`DynResidue`] types.
-pub struct BoxedMontyFormInverter {
-    /// Bernstein-Yang inverter.
-    inverter: BoxedSafeGcdInverter,
-
-    /// Residue parameters.
-    params: BoxedMontyParams,
-}
-
-impl BoxedMontyFormInverter {
-    fn invert(&self, value: &BoxedMontyForm) -> CtOption<BoxedMontyForm> {
-        debug_assert_eq!(self.params, value.params);
-
-        let montgomery_form = self.inverter.invert(&value.montgomery_form);
-        let is_some = montgomery_form.is_some();
-        let montgomery_form2 = value.montgomery_form.clone();
-        let ret = BoxedMontyForm {
-            montgomery_form: Option::from(montgomery_form).unwrap_or(montgomery_form2),
-            params: value.params.clone(),
-        };
-
-        CtOption::new(ret, is_some)
-    }
-
-    fn invert_vartime(&self, value: &BoxedMontyForm) -> CtOption<BoxedMontyForm> {
-        debug_assert_eq!(self.params, value.params);
-
-        let montgomery_form = self.inverter.invert_vartime(&value.montgomery_form);
-        let is_some = montgomery_form.is_some();
-        let montgomery_form2 = value.montgomery_form.clone();
-        let ret = BoxedMontyForm {
-            montgomery_form: Option::from(montgomery_form).unwrap_or(montgomery_form2),
-            params: value.params.clone(),
-        };
-
-        CtOption::new(ret, is_some)
-    }
-}
-
-impl fmt::Debug for BoxedMontyFormInverter {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("BoxedMontyFormInverter")
-            .field("modulus", &self.inverter.modulus)
-            .finish()
+    fn inverter(&self) -> BoxedSafeGcdInverter {
+        BoxedSafeGcdInverter::new_with_inverse(
+            self.modulus().clone(),
+            self.mod_inv(),
+            self.r2().clone(),
+        )
     }
 }
 
