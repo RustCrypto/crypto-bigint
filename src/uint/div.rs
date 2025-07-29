@@ -56,6 +56,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         let dbits = rhs.0.bits();
+        assert!(dbits > 0, "zero divisor");
         let dwords = dbits.div_ceil(Limb::BITS);
         let lshift = (Limb::BITS - (dbits % Limb::BITS)) % Limb::BITS;
 
@@ -80,36 +81,31 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             quo = done.select_word(quo, 0);
 
             // Subtract q*divisor from the dividend
-            let borrow = {
-                carry = Limb::ZERO;
-                let mut borrow = Limb::ZERO;
-                let mut tmp;
-                i = (xi + 1).saturating_sub(RHS_LIMBS);
-                while i <= xi {
-                    (tmp, carry) =
-                        y[RHS_LIMBS + i - xi - 1].carrying_mul_add(Limb(quo), carry, Limb::ZERO);
-                    (x[i], borrow) = x[i].borrowing_sub(tmp, borrow);
-                    i += 1;
-                }
-                (_, borrow) = x_hi.borrowing_sub(carry, borrow);
-                borrow
-            };
+            carry = Limb::ZERO;
+            let mut borrow = Limb::ZERO;
+            let mut tmp;
+            i = (xi + 1).saturating_sub(RHS_LIMBS);
+            while i <= xi {
+                (tmp, carry) =
+                    y[RHS_LIMBS + i - xi - 1].carrying_mul_add(Limb(quo), carry, Limb::ZERO);
+                (x[i], borrow) = x[i].borrowing_sub(tmp, borrow);
+                i += 1;
+            }
+            (_, borrow) = x_hi.borrowing_sub(carry, borrow);
 
             // If the subtraction borrowed, then decrement q and add back the divisor
             // The probability of this being needed is very low, about 2/(Limb::MAX+1)
-            quo = {
-                let ct_borrow = ConstChoice::from_word_mask(borrow.0);
-                carry = Limb::ZERO;
-                i = (xi + 1).saturating_sub(RHS_LIMBS);
-                while i <= xi {
-                    (x[i], carry) = x[i].carrying_add(
-                        Limb::select(Limb::ZERO, y[RHS_LIMBS + i - xi - 1], ct_borrow),
-                        carry,
-                    );
-                    i += 1;
-                }
-                ct_borrow.select_word(quo, quo.saturating_sub(1))
-            };
+            let ct_borrow = ConstChoice::from_word_mask(borrow.0);
+            carry = Limb::ZERO;
+            i = (xi + 1).saturating_sub(RHS_LIMBS);
+            while i <= xi {
+                (x[i], carry) = x[i].carrying_add(
+                    Limb::select(Limb::ZERO, y[RHS_LIMBS + i - xi - 1], ct_borrow),
+                    carry,
+                );
+                i += 1;
+            }
+            quo = ct_borrow.select_word(quo, quo.saturating_sub(1));
 
             // Store the quotient within dividend and set x_hi to the current highest word
             x_hi = Limb::select(x[xi], x_hi, done);
