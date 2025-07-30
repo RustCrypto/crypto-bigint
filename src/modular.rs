@@ -173,6 +173,18 @@ mod tests {
     }
 
     #[test]
+    fn test_reducing_close() {
+        assert_eq!(
+            montgomery_reduction::<{ Modulus2::LIMBS }>(
+                &(Modulus2::PARAMS.modulus.0 - Uint::ONE, Uint::ZERO),
+                &Modulus2::PARAMS.modulus,
+                Modulus2::PARAMS.mod_neg_inv()
+            ),
+            Modulus2::PARAMS.modulus.0 - Uint::ONE
+        );
+    }
+
+    #[test]
     fn test_new_retrieve() {
         let x =
             U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
