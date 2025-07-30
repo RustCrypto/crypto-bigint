@@ -35,7 +35,6 @@ pub(crate) mod boxed_monty_form;
 pub use self::{
     const_monty_form::{ConstMontyForm, ConstMontyParams, invert::ConstMontyFormInverter},
     monty_form::{MontyForm, MontyParams},
-    reduction::montgomery_reduction,
 };
 
 pub(crate) use self::safegcd::SafeGcdInverter;
