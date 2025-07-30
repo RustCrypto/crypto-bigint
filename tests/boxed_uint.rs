@@ -5,7 +5,7 @@
 mod common;
 
 use common::to_biguint;
-use crypto_bigint::{BitOps, BoxedUint, CheckedAdd, Gcd, Integer, Limb, NonZero, Resize};
+use crypto_bigint::{BitOps, BoxedUint, CheckedAdd, Gcd, Integer, Limb, NonZero, Odd, Resize};
 use num_bigint::BigUint;
 use num_integer::Integer as _;
 use num_modular::ModularUnaryOps;
@@ -21,10 +21,8 @@ fn to_uint(big_uint: BigUint) -> BoxedUint {
     BoxedUint::from_be_slice(&padded_bytes, padded_bytes.len() as u32 * 8).unwrap()
 }
 
-fn reduce(x: &BoxedUint, n: &BoxedUint) -> BoxedUint {
-    let bits_precision = n.bits_precision();
-    let modulus = NonZero::new(n.clone()).expect("odd n");
-    x.rem_vartime(&modulus).resize(bits_precision)
+fn reduce(x: &BoxedUint, n: &NonZero<BoxedUint>) -> BoxedUint {
+    x.rem_vartime(n)
 }
 
 prop_compose! {
@@ -45,12 +43,12 @@ prop_compose! {
 }
 prop_compose! {
     /// Generate a random odd modulus.
-    fn modulus()(n in uint()) -> BoxedUint {
+    fn modulus()(n in uint()) -> Odd<BoxedUint> {
         if n.is_even().into() {
             n.wrapping_add(&BoxedUint::one())
         } else {
             n
-        }
+        }.to_odd().expect("odd by construction")
     }
 }
 
@@ -97,7 +95,7 @@ proptest! {
     }
 
     #[test]
-    fn div_rem((a, mut b) in uint_pair()) {
+    fn div_rem(a in uint(), mut b in uint()) {
         if b.is_zero().into() {
             b = b.wrapping_add(&BoxedUint::one());
         }
@@ -186,8 +184,8 @@ proptest! {
 
     #[test]
     fn mul_mod(a in uint(), b in uint(), n in modulus()) {
-        let a = reduce(&a, &n);
-        let b = reduce(&b, &n);
+        let a = reduce(&a, n.as_nz_ref());
+        let b = reduce(&b, n.as_nz_ref());
 
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
