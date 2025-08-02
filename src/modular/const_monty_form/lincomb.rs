@@ -7,10 +7,7 @@ use crate::modular::lincomb::lincomb_const_monty_form;
 
 impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
     /// Calculate the sum of products of pairs `(a, b)` in `products`.
-    ///
-    /// This method is variable time only with the value of the modulus.
-    /// For a modulus with leading zeros, this method is more efficient than a naive sum of products.
-    pub const fn lincomb_vartime(products: &[(Self, Self)]) -> Self {
+    pub const fn lincomb(products: &[(Self, Self)]) -> Self {
         Self {
             montgomery_form: lincomb_const_monty_form(
                 products,
@@ -51,7 +48,7 @@ mod tests {
                 a.mul_mod(&b, modulus)
                     .add_mod(&c.mul_mod(&d, modulus), modulus)
                     .add_mod(&e.mul_mod(&f, modulus), modulus),
-                ConstMontyForm::<P, { P::LIMBS }>::lincomb_vartime(&[
+                ConstMontyForm::<P, { P::LIMBS }>::lincomb(&[
                     (ConstMontyForm::new(&a), ConstMontyForm::new(&b)),
                     (ConstMontyForm::new(&c), ConstMontyForm::new(&d)),
                     (ConstMontyForm::new(&e), ConstMontyForm::new(&f)),
