@@ -6,6 +6,7 @@ use super::div_limb::{
 };
 use crate::{
     CheckedDiv, ConstChoice, DivRemLimb, DivVartime, Limb, NonZero, RemLimb, Uint, Wrapping,
+    const_choice::u32_min,
 };
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 
@@ -47,7 +48,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Based on Section 4.3.1, of The Art of Computer Programming, Volume 2, by Donald E. Knuth.
         // Further explanation at https://janmr.com/blog/2014/04/basic-multiple-precision-long-division/
 
-        // Statically determined short circuit for Uint<1>
+        // Statically determined short circuit for a single-limb sized divisor
         if RHS_LIMBS == 1 {
             let (quo, rem_limb) = self.div_rem_limb(rhs.0.limbs[0].to_nz().expect("zero divisor"));
             let mut rem = Uint::<RHS_LIMBS>::ZERO;
@@ -58,19 +59,22 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let dbits = rhs.0.bits();
         assert!(dbits > 0, "zero divisor");
         let dwords = dbits.div_ceil(Limb::BITS);
-        let lshift = (Limb::BITS - (dbits % Limb::BITS)) % Limb::BITS;
 
-        // Shift entire divisor such that the high bit is set
+        // Shift the entire divisor such that the high bit is set
         let mut y = rhs.0.shl(Uint::<RHS_LIMBS>::BITS - dbits).to_limbs();
+
         // Shift the dividend to align the words
+        let lshift = (Limb::BITS - (dbits % Limb::BITS)) % Limb::BITS;
         let (x, mut x_hi) = self.shl_limb(lshift);
         let mut x = x.to_limbs();
+
+        // Calculate a reciprocal from the highest word of the divisor
+        let reciprocal = Reciprocal::new(y[RHS_LIMBS - 1].to_nz().expect("zero divisor"));
+
         let mut xi = LIMBS - 1;
-        let mut x_lo = x[LIMBS - 1];
+        let mut x_lo = x[xi];
         let mut i;
         let mut carry;
-
-        let reciprocal = Reciprocal::new(y[RHS_LIMBS - 1].to_nz().expect("zero divisor"));
 
         while xi > 0 {
             // Divide high dividend words by the high divisor word to estimate the quotient word
@@ -81,31 +85,35 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             quo = done.select_word(quo, 0);
 
             // Subtract q*divisor from the dividend
-            carry = Limb::ZERO;
-            let mut borrow = Limb::ZERO;
-            let mut tmp;
-            i = (xi + 1).saturating_sub(RHS_LIMBS);
-            while i <= xi {
-                (tmp, carry) =
-                    y[RHS_LIMBS + i - xi - 1].carrying_mul_add(Limb(quo), carry, Limb::ZERO);
-                (x[i], borrow) = x[i].borrowing_sub(tmp, borrow);
-                i += 1;
-            }
-            (_, borrow) = x_hi.borrowing_sub(carry, borrow);
+            let borrow = {
+                carry = Limb::ZERO;
+                let mut borrow = Limb::ZERO;
+                let mut tmp;
+                i = (xi + 1).saturating_sub(RHS_LIMBS);
+                while i <= xi {
+                    (tmp, carry) =
+                        y[RHS_LIMBS + i - xi - 1].carrying_mul_add(Limb(quo), carry, Limb::ZERO);
+                    (x[i], borrow) = x[i].borrowing_sub(tmp, borrow);
+                    i += 1;
+                }
+                x_hi.borrowing_sub(carry, borrow).1
+            };
 
             // If the subtraction borrowed, then decrement q and add back the divisor
             // The probability of this being needed is very low, about 2/(Limb::MAX+1)
-            let ct_borrow = ConstChoice::from_word_mask(borrow.0);
-            carry = Limb::ZERO;
-            i = (xi + 1).saturating_sub(RHS_LIMBS);
-            while i <= xi {
-                (x[i], carry) = x[i].carrying_add(
-                    Limb::select(Limb::ZERO, y[RHS_LIMBS + i - xi - 1], ct_borrow),
-                    carry,
-                );
-                i += 1;
-            }
-            quo = ct_borrow.select_word(quo, quo.saturating_sub(1));
+            quo = {
+                let ct_borrow = ConstChoice::from_word_mask(borrow.0);
+                carry = Limb::ZERO;
+                i = (xi + 1).saturating_sub(RHS_LIMBS);
+                while i <= xi {
+                    (x[i], carry) = x[i].carrying_add(
+                        Limb::select(Limb::ZERO, y[RHS_LIMBS + i - xi - 1], ct_borrow),
+                        carry,
+                    );
+                    i += 1;
+                }
+                ct_borrow.select_word(quo, quo.saturating_sub(1))
+            };
 
             // Store the quotient within dividend and set x_hi to the current highest word
             x_hi = Limb::select(x[xi], x_hi, done);
@@ -114,38 +122,37 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             xi -= 1;
         }
 
-        let limb_div = ConstChoice::from_u32_eq(1, dwords);
-
         // Calculate quotient and remainder for the case where the divisor is a single word
+        let limb_div = ConstChoice::from_u32_eq(1, dwords);
         // Note that `div2by1()` will panic if `x_hi >= reciprocal.divisor_normalized`,
-        // but this can only be the case if `limb_div` is falsy,
-        // in which case we discard the result anyway,
-        // so we conditionally set `x_hi` to zero for this branch.
+        // but this can only be the case if `limb_div` is falsy, in which case we discard
+        // the result anyway, so we conditionally set `x_hi` to zero for this branch
         let x_hi_adjusted = Limb::select(Limb::ZERO, x_hi, limb_div);
         let (quo2, rem2) = div2by1(x_hi_adjusted.0, x_lo.0, &reciprocal);
 
         // Adjust the quotient for single limb division
         x[0] = Limb::select(x[0], Limb(quo2), limb_div);
 
-        // Copy out the remainder
+        // Copy out the low limb of the remainder
         y[0] = Limb::select(x[0], Limb(rem2), limb_div);
-        i = 1;
 
         // Note: this does not invalidate the constant time contract; branching on constants
         let min = if LIMBS < RHS_LIMBS { LIMBS } else { RHS_LIMBS };
+        let hi_pos = u32_min(LIMBS as u32, dwords - 1);
+        i = 1;
         while i < min {
             y[i] = Limb::select(Limb::ZERO, x[i], ConstChoice::from_u32_lt(i as u32, dwords));
-            y[i] = Limb::select(y[i], x_hi, ConstChoice::from_u32_eq(i as u32, dwords - 1));
+            y[i] = Limb::select(y[i], x_hi, ConstChoice::from_u32_eq(i as u32, hi_pos));
             i += 1;
         }
         while i < RHS_LIMBS {
-            y[i] = Limb::ZERO;
+            y[i] = Limb::select(Limb::ZERO, x_hi, ConstChoice::from_u32_eq(i as u32, hi_pos));
             i += 1;
         }
 
         (
-            Uint::new(x).shr((dwords - 1) * Limb::BITS),
-            Uint::new(y).shr(lshift),
+            Uint::new(x).wrapping_shr((dwords - 1) * Limb::BITS),
+            Uint::new(y).shr_limb(lshift).0,
         )
     }
 
@@ -999,7 +1006,7 @@ impl<const LIMBS: usize> RemLimb for Uint<LIMBS> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        DivVartime, Limb, NonZero, RemMixed, U64, U128, U256, U512, U896, U1024, Uint, Word, Zero,
+        DivVartime, Limb, NonZero, RemMixed, U64, U128, U256, U896, U1024, Uint, Word, Zero,
     };
 
     #[cfg(feature = "rand")]
@@ -1098,12 +1105,46 @@ mod tests {
 
     #[test]
     fn div_rem_larger_denominator() {
-        let denom = U128::from_be_hex("AAAA0000FFFF11117777333344449999");
-        let (full_q, full_r) = U256::MAX.div_rem(&denom.to_nz().unwrap());
-        let (q, r) = U256::MAX.div_rem(&denom.resize::<{ U512::LIMBS }>().to_nz().unwrap());
+        // 1 = len(x) < len(y) and x < y
+        let x = U64::from_be_hex("8000000000000000");
+        let y = U128::from_be_hex("00000000000000010000000000000000")
+            .to_nz()
+            .unwrap();
+        let (quo, rem) = x.div_rem(&y);
+        assert_eq!(quo, Uint::ZERO);
+        assert_eq!(rem, x.resize());
 
-        assert_eq!(full_q, q);
-        assert_eq!(full_r.resize(), r);
+        // 1 = len(x) < len(y) and x > y
+        let x = U64::from_be_hex("8000000000000000");
+        let y = U128::from_be_hex("00000000000000000000000000001000")
+            .to_nz()
+            .unwrap();
+        let (quo, rem) = x.div_rem(&y);
+        assert_eq!(quo, U64::from_be_hex("0008000000000000"));
+        assert_eq!(rem, U128::ZERO);
+
+        // 2 = len(x) < len(y) and x < y
+        let x = U128::from_be_hex("80000000000000008000000000000000");
+        let y =
+            U256::from_be_hex("0000000000000001000000000000000000000000000000010000000000000000")
+                .to_nz()
+                .unwrap();
+        let (quo, rem) = x.div_rem(&y);
+        assert_eq!(quo, U128::ZERO);
+        assert_eq!(rem, x.resize());
+
+        // 2 = len(x) < len(y) and x > y
+        let x = U128::from_be_hex("80000000000000008000000000000000");
+        let y =
+            U256::from_be_hex("0000000000000000000000000000000000000000000000000000000000110000")
+                .to_nz()
+                .unwrap();
+        let (quo, rem) = x.div_rem(&y);
+        assert_eq!(quo, U128::from_be_hex("000007878787878787878f0f0f0f0f0f"));
+        assert_eq!(
+            rem,
+            U256::from_be_hex("0000000000000000000000000000000000000000000000000000000000010000",)
+        );
     }
 
     #[test]
