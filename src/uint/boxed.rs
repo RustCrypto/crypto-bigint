@@ -189,7 +189,17 @@ impl BoxedUint {
         self.limbs.len()
     }
 
-    /// Convert into an [`Odd`].
+    /// Convert to a [`NonZero<BoxedUint>`].
+    ///
+    /// Returns some if the original value is non-zero, and false otherwise.
+    pub fn to_nz(self) -> CtOption<NonZero<Self>> {
+        let is_nz = self.is_nonzero();
+        CtOption::new(NonZero(self), is_nz)
+    }
+
+    /// Convert to an [`Odd<BoxedUint>`].
+    ///
+    /// Returns some if the original value is odd, and false otherwise.
     pub fn to_odd(&self) -> CtOption<Odd<Self>> {
         let is_odd = self.is_odd();
         CtOption::new(Odd(self.clone()), is_odd)

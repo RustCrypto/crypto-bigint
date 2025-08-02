@@ -1,6 +1,6 @@
 //! [`BoxedUint`] bitwise right shift operations.
 
-use crate::{BoxedUint, ConstantTimeSelect, Limb, ShrVartime, WrappingShr, Zero};
+use crate::{BoxedUint, ConstChoice, ConstantTimeSelect, Limb, ShrVartime, WrappingShr, Zero};
 use core::ops::{Shr, ShrAssign};
 use subtle::{Choice, ConstantTimeLess, CtOption};
 
@@ -69,6 +69,13 @@ impl BoxedUint {
     /// exceed the type's width.
     pub fn wrapping_shr(&self, shift: u32) -> Self {
         self.overflowing_shr(shift).0
+    }
+
+    /// Computes `self >> shift` in a panic-free manner, masking off bits of `shift` which would cause the shift to
+    /// exceed the type's width.
+    pub fn wrapping_shr_assign(&mut self, shift: u32) {
+        // self is zeroed in the case of an overflowing shift
+        self.overflowing_shr_assign(shift);
     }
 
     /// Computes `self >> shift` in variable-time in a panic-free manner, masking off bits of `shift` which would cause
@@ -144,6 +151,26 @@ impl BoxedUint {
             self.limbs[i - 1].0 |= (self.limbs[i].0 & 1) << Limb::HI_BIT;
             self.limbs[i].shr_assign(1);
         }
+    }
+
+    /// Computes `self >> shift` where `0 <= shift < Limb::BITS` in-place in constant time.
+    pub(crate) fn shr_assign_limb(&mut self, shift: u32) -> Limb {
+        assert!(shift < Limb::BITS);
+        let nz = ConstChoice::from_u32_nonzero(shift);
+        let lshift = nz.select_u32(0, Limb::BITS - shift);
+
+        let mut carry = Limb::ZERO;
+        let mut i = self.nlimbs();
+        while i > 0 {
+            i -= 1;
+
+            let limb = self.limbs[i].shr(shift);
+            (self.limbs[i], carry) = (
+                limb.bitor(carry),
+                Limb::select(Limb::ZERO, self.limbs[i].shl(lshift), nz),
+            );
+        }
+        carry
     }
 }
 

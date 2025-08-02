@@ -3,6 +3,7 @@
 use crate::{
     BoxedUint, CheckedDiv, ConstChoice, ConstantTimeSelect, DivRemLimb, DivVartime, Limb, NonZero,
     Reciprocal, RemLimb, RemMixed, Wrapping,
+    const_choice::u32_min,
     uint::{
         boxed,
         div_limb::{div2by1, div3by2},
@@ -135,71 +136,77 @@ impl BoxedUint {
         // Based on Section 4.3.1, of The Art of Computer Programming, Volume 2, by Donald E. Knuth.
         // Further explanation at https://janmr.com/blog/2014/04/basic-multiple-precision-long-division/
 
-        let size = self.limbs.len();
-        assert_eq!(
-            size,
-            rhs.limbs.len(),
-            "the precision of the divisor must match the dividend"
-        );
+        let xsize = self.nlimbs();
+        let ysize = rhs.nlimbs();
 
-        // Short circuit for single-word precision
-        if size == 1 {
+        // Short circuit for single-word divisor
+        if ysize == 1 {
             let (quo, rem_limb) = self.div_rem_limb(rhs.limbs[0].to_nz().expect("zero divisor"));
-            let mut rem = Self::zero_with_precision(self.bits_precision());
+            let mut rem = Self::zero_with_precision(rhs.bits_precision());
             rem.limbs[0] = rem_limb;
             return (quo, rem);
         }
 
-        let dbits = rhs.bits();
-        assert!(dbits > 0, "zero divisor");
-        let dwords = dbits.div_ceil(Limb::BITS);
-        let lshift = (Limb::BITS - (dbits % Limb::BITS)) % Limb::BITS;
+        // Compute the size of the divisor
+        let ybits = rhs.bits();
+        assert!(ybits > 0, "zero divisor");
+        let ywords = ybits.div_ceil(Limb::BITS);
 
-        // Shift entire divisor such that the high bit is set
-        let mut y = rhs.shl((size as u32) * Limb::BITS - dbits).to_limbs();
+        // Shift the entire divisor such that the high bit is set
+        let mut y = rhs.shl(rhs.bits_precision() - ybits).to_limbs();
+
         // Shift the dividend to align the words
+        let lshift = (Limb::BITS - (ybits % Limb::BITS)) % Limb::BITS;
         let (x, mut x_hi) = self.shl_limb(lshift);
         let mut x = x.to_limbs();
-        let mut xi = size - 1;
-        let mut x_lo = x[size - 1];
+
+        // Calculate a reciprocal from the highest word of the divisor
+        let reciprocal = Reciprocal::new(y[ysize - 1].to_nz().expect("zero divisor"));
+
+        let mut xi = xsize - 1;
+        let mut x_lo = x[xi];
         let mut i;
         let mut carry;
 
-        let reciprocal = Reciprocal::new(y[size - 1].to_nz().expect("zero divisor"));
-
         while xi > 0 {
             // Divide high dividend words by the high divisor word to estimate the quotient word
-            let mut quo = div3by2(x_hi.0, x_lo.0, x[xi - 1].0, &reciprocal, y[size - 2].0);
+            let mut quo = div3by2(x_hi.0, x_lo.0, x[xi - 1].0, &reciprocal, y[ysize - 2].0);
 
             // This loop is a no-op once xi is smaller than the number of words in the divisor
-            let done = ConstChoice::from_u32_lt(xi as u32, dwords - 1);
+            let done = ConstChoice::from_u32_lt(xi as u32, ywords - 1);
             quo = done.select_word(quo, 0);
 
             // Subtract q*divisor from the dividend
-            carry = Limb::ZERO;
-            let mut borrow = Limb::ZERO;
-            let mut tmp;
-            i = 0;
-            while i <= xi {
-                (tmp, carry) = y[size - xi + i - 1].carrying_mul_add(Limb(quo), carry, Limb::ZERO);
-                (x[i], borrow) = x[i].borrowing_sub(tmp, borrow);
-                i += 1;
-            }
-            (_, borrow) = x_hi.borrowing_sub(carry, borrow);
+            let borrow = {
+                carry = Limb::ZERO;
+                let mut borrow = Limb::ZERO;
+                let mut tmp;
+                i = (xi + 1).saturating_sub(ysize);
+                while i <= xi {
+                    (tmp, carry) =
+                        y[ysize + i - xi - 1].carrying_mul_add(Limb(quo), carry, Limb::ZERO);
+                    (x[i], borrow) = x[i].borrowing_sub(tmp, borrow);
+                    i += 1;
+                }
+                (_, borrow) = x_hi.borrowing_sub(carry, borrow);
+                borrow
+            };
 
             // If the subtraction borrowed, then decrement q and add back the divisor
             // The probability of this being needed is very low, about 2/(Limb::MAX+1)
-            let ct_borrow = ConstChoice::from_word_mask(borrow.0);
-            carry = Limb::ZERO;
-            i = 0;
-            while i <= xi {
-                (x[i], carry) = x[i].carrying_add(
-                    Limb::select(Limb::ZERO, y[size - xi + i - 1], ct_borrow),
-                    carry,
-                );
-                i += 1;
-            }
-            quo = ct_borrow.select_word(quo, quo.saturating_sub(1));
+            quo = {
+                let ct_borrow = ConstChoice::from_word_mask(borrow.0);
+                carry = Limb::ZERO;
+                i = (xi + 1).saturating_sub(ysize);
+                while i <= xi {
+                    (x[i], carry) = x[i].carrying_add(
+                        Limb::select(Limb::ZERO, y[ysize + i - xi - 1], ct_borrow),
+                        carry,
+                    );
+                    i += 1;
+                }
+                ct_borrow.select_word(quo, quo.saturating_sub(1))
+            };
 
             // Store the quotient within dividend and set x_hi to the current highest word
             x_hi = Limb::select(x[xi], x_hi, done);
@@ -208,32 +215,39 @@ impl BoxedUint {
             xi -= 1;
         }
 
-        let limb_div = ConstChoice::from_u32_eq(1, dwords);
-
-        // Calculate quotient and remainder for the case where the divisor is a single word
+        // Calculate quotient and remainder for the case where the divisor is a single word.
+        let limb_div = ConstChoice::from_u32_eq(1, ywords);
         // Note that `div2by1()` will panic if `x_hi >= reciprocal.divisor_normalized`,
-        // but this can only be the case if `limb_div` is falsy,
-        // in which case we discard the result anyway,
-        // so we conditionally set `x_hi` to zero for this branch.
+        // but this can only be the case if `limb_div` is falsy, in which case we discard
+        // the result anyway, so we conditionally set `x_hi` to zero for this branch.
         let x_hi_adjusted = Limb::select(Limb::ZERO, x_hi, limb_div);
         let (quo2, rem2) = div2by1(x_hi_adjusted.0, x_lo.0, &reciprocal);
 
         // Adjust the quotient for single limb division
         x[0] = Limb::select(x[0], Limb(quo2), limb_div);
 
-        // Copy out the remainder
+        // Copy out the low limb of the remainder
         y[0] = Limb::select(x[0], Limb(rem2), limb_div);
+
+        // Note: branching only based on the size of the operands, which is not secret
+        let min = if xsize < ysize { xsize } else { ysize };
+        let hi_pos = u32_min(xsize as u32, ywords - 1);
         i = 1;
-        while i < size {
-            y[i] = Limb::select(Limb::ZERO, x[i], ConstChoice::from_u32_lt(i as u32, dwords));
-            y[i] = Limb::select(y[i], x_hi, ConstChoice::from_u32_eq(i as u32, dwords - 1));
+        while i < min {
+            y[i] = Limb::select(Limb::ZERO, x[i], ConstChoice::from_u32_lt(i as u32, ywords));
+            y[i] = Limb::select(y[i], x_hi, ConstChoice::from_u32_eq(i as u32, hi_pos));
+            i += 1;
+        }
+        while i < ysize {
+            y[i] = Limb::select(Limb::ZERO, x_hi, ConstChoice::from_u32_eq(i as u32, hi_pos));
             i += 1;
         }
 
-        (
-            Self { limbs: x }.shr((dwords - 1) * Limb::BITS),
-            Self { limbs: y }.shr(lshift),
-        )
+        let mut x = Self { limbs: x };
+        x.wrapping_shr_assign((ywords - 1) * Limb::BITS);
+        let mut y = Self { limbs: y };
+        y.shr_assign_limb(lshift);
+        (x, y)
     }
 }
 
@@ -524,7 +538,7 @@ pub(crate) fn div_rem_vartime_in_place(x: &mut [Limb], y: &mut [Limb]) {
 
 #[cfg(test)]
 mod tests {
-    use crate::{DivVartime, Zero};
+    use crate::{DivVartime, Resize, Zero};
 
     use super::{BoxedUint, Limb, NonZero};
 
@@ -533,6 +547,65 @@ mod tests {
         let n = BoxedUint::from(0xFFEECCBBAA99887766u128);
         let p = NonZero::new(BoxedUint::from(997u128)).unwrap();
         assert_eq!(BoxedUint::from(648u128), n.rem(&p));
+    }
+
+    #[test]
+    fn div_rem_larger_denominator() {
+        // 1 = len(x) < len(y) and x < y
+        let x = BoxedUint::from_be_hex("8000000000000000", 64).unwrap();
+        let y = BoxedUint::from_be_hex("00000000000000010000000000000000", 128)
+            .unwrap()
+            .to_nz()
+            .unwrap();
+        let (quo, rem) = x.div_rem(&y);
+        assert_eq!(quo, BoxedUint::zero_with_precision(64));
+        assert_eq!(rem, x.resize_unchecked(128));
+
+        // 1 = len(x) < len(y) and x > y
+        let x = BoxedUint::from_be_hex("8000000000000000", 64).unwrap();
+        let y = BoxedUint::from_be_hex("00000000000000000000000000001000", 128)
+            .unwrap()
+            .to_nz()
+            .unwrap();
+        let (quo, rem) = x.div_rem(&y);
+        assert_eq!(quo, BoxedUint::from_be_hex("0008000000000000", 64).unwrap());
+        assert_eq!(rem, BoxedUint::zero_with_precision(128));
+
+        // 2 = len(x) < len(y) and x < y
+        let x = BoxedUint::from_be_hex("80000000000000008000000000000000", 128).unwrap();
+        let y = BoxedUint::from_be_hex(
+            "0000000000000001000000000000000000000000000000010000000000000000",
+            256,
+        )
+        .unwrap()
+        .to_nz()
+        .unwrap();
+        let (quo, rem) = x.div_rem(&y);
+        assert_eq!(quo, BoxedUint::zero_with_precision(128));
+        assert_eq!(rem, x.resize_unchecked(256));
+
+        // 2 = len(x) < len(y) and x > y
+        let x = BoxedUint::from_be_hex("80000000000000008000000000000000", 128).unwrap();
+        let y = BoxedUint::from_be_hex(
+            "0000000000000000000000000000000000000000000000000000000000110000",
+            256,
+        )
+        .unwrap()
+        .to_nz()
+        .unwrap();
+        let (quo, rem) = x.div_rem(&y);
+        assert_eq!(
+            quo,
+            BoxedUint::from_be_hex("000007878787878787878f0f0f0f0f0f", 128).unwrap()
+        );
+        assert_eq!(
+            rem,
+            BoxedUint::from_be_hex(
+                "0000000000000000000000000000000000000000000000000000000000010000",
+                256
+            )
+            .unwrap()
+        );
     }
 
     #[test]
