@@ -312,6 +312,18 @@ fn bench_division(c: &mut Criterion) {
         )
     });
 
+    group.bench_function("rem_wide, U256", |b| {
+        b.iter_batched(
+            || {
+                let (x_lo, x_hi) = (U256::random(&mut rng), U256::random(&mut rng));
+                let y = U256::random(&mut rng);
+                (x_lo, x_hi, NonZero::new(y).unwrap())
+            },
+            |(x_lo, x_hi, y)| Uint::rem_wide((x_lo, x_hi), &y),
+            BatchSize::SmallInput,
+        )
+    });
+
     group.bench_function("rem_wide_vartime, U256", |b| {
         b.iter_batched(
             || {

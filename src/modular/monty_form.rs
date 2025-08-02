@@ -15,7 +15,7 @@ use super::{
     reduction::montgomery_reduction,
     safegcd::invert_mod_u64,
 };
-use crate::{Concat, ConstChoice, Limb, Monty, NonZero, Odd, Split, U64, Uint, Word};
+use crate::{ConstChoice, Limb, Monty, Odd, U64, Uint, Word};
 use mul::DynMontyMultiplier;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
@@ -35,11 +35,7 @@ pub struct MontyParams<const LIMBS: usize> {
     pub(super) mod_leading_zeros: u32,
 }
 
-impl<const LIMBS: usize, const WIDE_LIMBS: usize> MontyParams<LIMBS>
-where
-    Uint<LIMBS>: Concat<Output = Uint<WIDE_LIMBS>>,
-    Uint<WIDE_LIMBS>: Split<Output = Uint<LIMBS>>,
-{
+impl<const LIMBS: usize> MontyParams<LIMBS> {
     /// Instantiates a new set of `MontyParams` representing the given odd `modulus`.
     pub const fn new(modulus: Odd<Uint<LIMBS>>) -> Self {
         // `R mod modulus` where `R = 2^BITS`.
@@ -49,11 +45,7 @@ where
             .wrapping_add(&Uint::ONE);
 
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
-        let r2 = one
-            .square()
-            .rem(&NonZero(modulus.0.concat(&Uint::ZERO)))
-            .split()
-            .0;
+        let r2 = Uint::rem_wide(one.square_wide(), modulus.as_nz_ref());
 
         // The inverse of the modulus modulo 2**64
         let mod_inv = U64::from_u64(invert_mod_u64(modulus.as_ref().as_words()));

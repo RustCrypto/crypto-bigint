@@ -1,35 +1,15 @@
 //! [`Uint`] modular multiplication operations.
 
-use crate::{
-    Concat, Limb, MulMod, NonZero, Split, Uint, WideWord, Word,
-    div_limb::mul_rem,
-    modular::{MontyForm, MontyParams},
-};
+use crate::{Limb, MulMod, NonZero, Uint, WideWord, Word, div_limb::mul_rem};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Computes `self * rhs mod p` for odd `p`.
-    ///
-    /// Panics if `p` is even. (TODO: support even `p`)
-    pub fn mul_mod<const WIDE_LIMBS: usize>(
-        &self,
-        rhs: &Uint<LIMBS>,
-        p: &NonZero<Uint<LIMBS>>,
-    ) -> Uint<LIMBS>
-    where
-        Uint<LIMBS>: Concat<Output = Uint<WIDE_LIMBS>>,
-        Uint<WIDE_LIMBS>: Split<Output = Uint<LIMBS>>,
-    {
-        // NOTE: the overhead of converting to Montgomery form to perform this operation and then
-        // immediately converting out of Montgomery form after just a single operation is likely to
-        // be higher than other possible implementations of this function, such as using a
-        // Barrett reduction instead.
-        //
-        // It's worth potentially exploring other approaches to improve efficiency.
-        let params = MontyParams::new(p.to_odd().expect("p should be odd"));
-        (MontyForm::new(self, params) * MontyForm::new(rhs, params)).retrieve()
+    /// Computes `self * rhs mod p`.
+    pub fn mul_mod(&self, rhs: &Uint<LIMBS>, p: &NonZero<Uint<LIMBS>>) -> Uint<LIMBS> {
+        let lo_hi = self.widening_mul(rhs);
+        Self::rem_wide(lo_hi, p)
     }
 
-    /// Computes `self * rhs mod p` for odd `p` in variable time with respect to `p`.
+    /// Computes `self * rhs mod p` in variable time with respect to `p`.
     pub fn mul_mod_vartime(&self, rhs: &Uint<LIMBS>, p: &NonZero<Uint<LIMBS>>) -> Uint<LIMBS> {
         let lo_hi = self.widening_mul(rhs);
         Self::rem_wide_vartime(lo_hi, p)
