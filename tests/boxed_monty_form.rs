@@ -6,7 +6,7 @@ mod common;
 
 use common::to_biguint;
 use crypto_bigint::{
-    BoxedUint, Integer, Limb, Odd, Resize,
+    BoxedUint, Integer, Limb, Odd,
     modular::{BoxedMontyForm, BoxedMontyParams},
 };
 use num_bigint::BigUint;
@@ -19,9 +19,7 @@ fn retrieve_biguint(monty_form: &BoxedMontyForm) -> BigUint {
 }
 
 fn reduce(n: &BoxedUint, p: BoxedMontyParams) -> BoxedMontyForm {
-    let n_reduced = n
-        .rem_vartime(p.modulus().as_nz_ref())
-        .resize(p.bits_precision());
+    let n_reduced = n.rem_vartime(p.modulus().as_nz_ref());
 
     BoxedMontyForm::new(n_reduced, p)
 }

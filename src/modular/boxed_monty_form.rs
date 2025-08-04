@@ -12,7 +12,7 @@ use super::{Retrieve, div_by_2};
 use mul::BoxedMontyMultiplier;
 
 use crate::{
-    BoxedUint, Limb, Monty, Odd, Resize, U64, Word,
+    BoxedUint, Limb, Monty, Odd, U64, Word,
     modular::{MontyParams, safegcd::invert_mod_u64},
 };
 use alloc::sync::Arc;
@@ -42,10 +42,8 @@ struct BoxedMontyParamsInner {
 }
 
 impl BoxedMontyParams {
-    /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`, which
-    /// must be odd.
+    /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`.
     ///
-    /// Returns a `CtOption` that is `None` if the provided modulus is not odd.
     /// TODO(tarcieri): DRY out with `MontyParams::new`?
     pub fn new(modulus: Odd<BoxedUint>) -> Self {
         let bits_precision = modulus.bits_precision();
@@ -57,10 +55,7 @@ impl BoxedMontyParams {
             .wrapping_add(&BoxedUint::one());
 
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
-        let r2 = one
-            .square()
-            .rem(&modulus.as_nz_ref().resize_unchecked(bits_precision * 2))
-            .resize_unchecked(bits_precision);
+        let r2 = one.square().rem(modulus.as_nz_ref());
 
         // The inverse of the modulus modulo 2**64
         let mod_inv = U64::from_u64(invert_mod_u64(modulus.as_ref().as_words()));
@@ -79,10 +74,9 @@ impl BoxedMontyParams {
         )
     }
 
-    /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`, which
-    /// must be odd. This version operates in variable-time with respect to the modulus.
+    /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`.
+    /// This version operates in variable-time with respect to the modulus.
     ///
-    /// Returns `None` if the provided modulus is not odd.
     /// TODO(tarcieri): DRY out with `MontyParams::new`?
     pub fn new_vartime(modulus: Odd<BoxedUint>) -> Self {
         let bits_precision = modulus.bits_precision();
