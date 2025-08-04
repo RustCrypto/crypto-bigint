@@ -6,6 +6,7 @@ mod lincomb;
 mod mul;
 mod neg;
 mod pow;
+mod reduce;
 mod sub;
 
 use self::invert::ConstMontyFormInverter;
