@@ -55,7 +55,7 @@ pub trait Retrieve {
 #[cfg(test)]
 mod tests {
     use crate::{
-        NonZero, U64, U256, Uint, const_monty_form, const_monty_params,
+        NonZero, U64, U256, Uint, const_monty_params,
         modular::{
             const_monty_form::{ConstMontyForm, ConstMontyParams},
             reduction::montgomery_reduction,
@@ -179,15 +179,5 @@ mod tests {
 
         // Confirm that when creating a Modular and retrieving the value, that it equals the original
         assert_eq!(x, x_mod.retrieve());
-    }
-
-    #[test]
-    fn test_const_monty_form_macro() {
-        let x =
-            U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
-        assert_eq!(
-            ConstMontyForm::<Modulus2, { Modulus2::LIMBS }>::new(&x),
-            const_monty_form!(x, Modulus2)
-        );
     }
 }

@@ -90,9 +90,11 @@
 //!
 //! ### Modular arithmetic
 //!
-//! This library has initial support for modular arithmetic in the form of the
-//! [`AddMod`], [`SubMod`], [`NegMod`], and [`MulMod`] traits, as well as the
-//! support for the [`Rem`] trait when used with a [`NonZero`] operand.
+//! See the [`modular`] module for types which implement Montgomery form modular arithmetic.
+//!
+//! This library also has support for performing modular arithmetic on integers in the form of the
+//! [`AddMod`], [`SubMod`], [`NegMod`], and [`MulMod`] traits, as well as the support for the
+//! [`Rem`] trait when used with a [`NonZero`] operand.
 //!
 //! ```
 //! use crypto_bigint::{AddMod, U256};
@@ -109,16 +111,10 @@
 //! assert_eq!(b, U256::ZERO);
 //! ```
 //!
-//! It also supports modular arithmetic over constant moduli using `ConstMontyForm`,
-//! and over moduli set at runtime using `MontyForm`.
-//! That includes modular exponentiation and multiplicative inverses.
-//! These features are described in the [`modular`] module.
-//!
 //! ### Random number generation
 //!
-//! When the `rand_core` or `rand` features of this crate are enabled, it's
-//! possible to generate random numbers using any RNG by using the
-//! [`Random`] trait:
+//! When the `rand_core` feature of this crate are enabled, it's possible to generate random numbers
+//! using any RNG by using the [`Random`] trait:
 //!
 //! ```
 //! # #[cfg(feature = "rand")]
