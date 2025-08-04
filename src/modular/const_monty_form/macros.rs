@@ -49,8 +49,7 @@ macro_rules! const_monty_params {
     };
 }
 
-/// Creates a [`ConstMontyForm`] with the given value for a specific modulus, i.e. a type which
-/// impls [`ConstMontyParams`].
+/// Creates a type alias to [`ConstMontyForm`] with the given [`ConstMontyParams`].
 ///
 /// # Usage
 ///
@@ -64,12 +63,20 @@ macro_rules! const_monty_params {
 /// #    "Docs for my modulus"
 /// # );
 ///
-/// const_monty_form!(U256::from(105u64), MyModulus);
+/// const_monty_form!(MyFieldElement, MyModulus, "My field element");
 /// ```
 #[macro_export]
 macro_rules! const_monty_form {
-    ($value:expr, $modulus:ident) => {
-        $crate::modular::ConstMontyForm::<$modulus, { $modulus::LIMBS }>::new(&$value)
+    ($name:ident, $modulus:ident) => {
+        $crate::const_monty_form!(
+            $name,
+            $modulus,
+            "Type alias for `ConstMontyForm` specialized for a particular modulus"
+        );
+    };
+    ($name:ident, $modulus:ident, $doc:expr) => {
+        #[doc = $doc]
+        pub type $name = $crate::modular::ConstMontyForm<$modulus, { $modulus::LIMBS }>;
     };
 }
 

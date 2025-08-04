@@ -39,11 +39,13 @@ mod tests {
         "15477BCCEFE197328255BFA79A1217899016D927EF460F4FF404029D24FA4409"
     );
 
+    const_monty_form!(Fe, Modulus);
+
     #[test]
     fn test_negate() {
         let x =
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
-        let x_mod = const_monty_form!(x, Modulus);
+        let x_mod = Fe::new(&x);
 
         let res = -x_mod;
         let expected =
