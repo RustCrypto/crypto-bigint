@@ -131,11 +131,11 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         )
     });
 
-    group.bench_function("lincomb_vartime, U256*U256+U256*U256", |b| {
+    group.bench_function("lincomb, U256*U256+U256*U256", |b| {
         b.iter_batched(
             || ConstMontyForm::random(&mut rng),
             |a| {
-                ConstMontyForm::lincomb_vartime(&[
+                ConstMontyForm::lincomb(&[
                     (black_box(a), black_box(a)),
                     (black_box(a), black_box(a)),
                 ])
