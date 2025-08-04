@@ -87,18 +87,6 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         )
     });
 
-    group.bench_function("Bernstein-Yang invert, U256", |b| {
-        b.iter_batched(
-            || {
-                let x = ConstMontyForm::random(&mut rng);
-                let inverter = Modulus::inverter();
-                (x, inverter)
-            },
-            |(x, inverter)| inverter.invert(&black_box(x)),
-            BatchSize::SmallInput,
-        )
-    });
-
     group.bench_function("multiplication, U256*U256", |b| {
         b.iter_batched(
             || {

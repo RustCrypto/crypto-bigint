@@ -9,7 +9,6 @@ mod pow;
 mod reduce;
 mod sub;
 
-use self::invert::ConstMontyFormInverter;
 use super::{MontyParams, Retrieve, div_by_2::div_by_2, reduction::montgomery_reduction};
 use crate::{ConstChoice, ConstZero, Uint};
 use core::{fmt::Debug, marker::PhantomData};
@@ -42,13 +41,6 @@ pub trait ConstMontyParams<const LIMBS: usize>:
 
     /// Montgomery parameters constant.
     const PARAMS: MontyParams<LIMBS>;
-
-    /// Precompute a Bernstein-Yang inverter for this modulus.
-    ///
-    /// Use [`ConstMontyFormInverter::new`] if you need `const fn` access.
-    fn inverter() -> ConstMontyFormInverter<Self, LIMBS> {
-        ConstMontyFormInverter::new()
-    }
 }
 
 /// An integer in Montgomery form modulo `MOD`, represented using `LIMBS` limbs.

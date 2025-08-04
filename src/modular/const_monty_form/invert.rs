@@ -202,17 +202,4 @@ mod tests {
 
         assert_eq!(res.retrieve(), U256::ONE);
     }
-
-    #[test]
-    fn test_self_inverse_precomputed() {
-        let x =
-            U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
-        let x_mod = const_monty_form!(x, Modulus);
-        let inverter = Modulus::inverter();
-
-        let inv = inverter.invert(&x_mod).unwrap();
-        let res = x_mod * inv;
-
-        assert_eq!(res.retrieve(), U256::ONE);
-    }
 }
