@@ -33,7 +33,7 @@ mod sub;
 pub(crate) mod boxed_monty_form;
 
 pub use self::{
-    const_monty_form::{ConstMontyForm, ConstMontyParams, invert::ConstMontyFormInverter},
+    const_monty_form::{ConstMontyForm, ConstMontyParams},
     monty_form::{MontyForm, MontyParams},
 };
 

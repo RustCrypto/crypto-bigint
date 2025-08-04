@@ -2,7 +2,7 @@
 
 use super::{ConstMontyForm, ConstMontyParams};
 use crate::{ConstCtOption, Invert, modular::SafeGcdInverter};
-use core::{fmt, marker::PhantomData};
+use core::marker::PhantomData;
 use subtle::CtOption;
 
 impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
@@ -88,95 +88,6 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Invert for ConstMontyForm
 
     fn invert_vartime(&self) -> Self::Output {
         self.invert_vartime().into()
-    }
-}
-
-/// Bernstein-Yang inverter which inverts [`ConstMontyForm`] types.
-pub struct ConstMontyFormInverter<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> {
-    inverter: SafeGcdInverter<LIMBS>,
-    phantom: PhantomData<MOD>,
-}
-
-impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyFormInverter<MOD, LIMBS> {
-    /// Create a new [`ConstMontyFormInverter`] for the given [`ConstMontyParams`].
-    #[allow(clippy::new_without_default)]
-    pub const fn new() -> Self {
-        let inverter = SafeGcdInverter::new_with_inverse(
-            &MOD::PARAMS.modulus,
-            MOD::PARAMS.mod_inv,
-            &MOD::PARAMS.r2,
-        );
-
-        Self {
-            inverter,
-            phantom: PhantomData,
-        }
-    }
-
-    /// Returns either the adjusted modular multiplicative inverse for the argument or None
-    /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
-    #[deprecated(since = "0.7.0", note = "please use `invert` instead")]
-    pub const fn inv(
-        &self,
-        value: &ConstMontyForm<MOD, LIMBS>,
-    ) -> ConstCtOption<ConstMontyForm<MOD, LIMBS>> {
-        self.invert(value)
-    }
-
-    /// Returns either the adjusted modular multiplicative inverse for the argument or None
-    /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
-    pub const fn invert(
-        &self,
-        value: &ConstMontyForm<MOD, LIMBS>,
-    ) -> ConstCtOption<ConstMontyForm<MOD, LIMBS>> {
-        let montgomery_form = self.inverter.invert(&value.montgomery_form);
-        let (montgomery_form_ref, is_some) = montgomery_form.components_ref();
-        let ret = ConstMontyForm {
-            montgomery_form: *montgomery_form_ref,
-            phantom: PhantomData,
-        };
-        ConstCtOption::new(ret, is_some)
-    }
-
-    /// Returns either the adjusted modular multiplicative inverse for the argument or None
-    /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
-    ///
-    /// This version is variable-time with respect to the value of `self`, but constant-time with
-    /// respect to `MOD`.
-    #[deprecated(since = "0.7.0", note = "please use `invert_vartime` instead")]
-    pub const fn inv_vartime(
-        &self,
-        value: &ConstMontyForm<MOD, LIMBS>,
-    ) -> ConstCtOption<ConstMontyForm<MOD, LIMBS>> {
-        self.invert_vartime(value)
-    }
-
-    /// Returns either the adjusted modular multiplicative inverse for the argument or None
-    /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
-    ///
-    /// This version is variable-time with respect to the value of `self`, but constant-time with
-    /// respect to `MOD`.
-    pub const fn invert_vartime(
-        &self,
-        value: &ConstMontyForm<MOD, LIMBS>,
-    ) -> ConstCtOption<ConstMontyForm<MOD, LIMBS>> {
-        let montgomery_form = self.inverter.invert_vartime(&value.montgomery_form);
-        let (montgomery_form_ref, is_some) = montgomery_form.components_ref();
-        let ret = ConstMontyForm {
-            montgomery_form: *montgomery_form_ref,
-            phantom: PhantomData,
-        };
-        ConstCtOption::new(ret, is_some)
-    }
-}
-
-impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> fmt::Debug
-    for ConstMontyFormInverter<MOD, LIMBS>
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ConstMontyFormInverter")
-            .field("modulus", &self.inverter.modulus)
-            .finish()
     }
 }
 
