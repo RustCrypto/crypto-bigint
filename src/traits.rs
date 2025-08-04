@@ -673,7 +673,7 @@ pub trait RemMixed<Reductor>: Sized {
 /// For modular reduction with a variable modulus, use [`Rem`].
 pub trait Reduce<T>: Sized {
     /// Reduces `self` modulo `Modulus`.
-    fn reduce(value: T) -> Self;
+    fn reduce(value: &T) -> Self;
 }
 
 /// Division in variable time.
