@@ -1114,7 +1114,7 @@ impl<const LIMBS: usize> RemLimb for Uint<LIMBS> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        DivVartime, Limb, NonZero, RemMixed, U64, U128, U256, U896, U1024, Uint, Word, Zero,
+        DivVartime, Limb, NonZero, RemMixed, U64, U128, U256, U512, U896, U1024, Uint, Word, Zero,
     };
 
     #[cfg(feature = "rand")]
