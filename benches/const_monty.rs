@@ -21,7 +21,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
     let mut rng = ChaChaRng::from_os_rng();
     group.bench_function("ConstMontyForm creation", |b| {
         b.iter_batched(
-            || U256::random_mod(&mut rng, Modulus::MODULUS.as_nz_ref()),
+            || U256::random_mod(&mut rng, Modulus::PARAMS.modulus().as_nz_ref()),
             |x| black_box(ConstMontyForm::new(&x)),
             BatchSize::SmallInput,
         )
@@ -87,18 +87,6 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         )
     });
 
-    group.bench_function("Bernstein-Yang invert, U256", |b| {
-        b.iter_batched(
-            || {
-                let x = ConstMontyForm::random(&mut rng);
-                let inverter = Modulus::precompute_inverter();
-                (x, inverter)
-            },
-            |(x, inverter)| inverter.invert(&black_box(x)),
-            BatchSize::SmallInput,
-        )
-    });
-
     group.bench_function("multiplication, U256*U256", |b| {
         b.iter_batched(
             || {
@@ -131,11 +119,11 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         )
     });
 
-    group.bench_function("lincomb_vartime, U256*U256+U256*U256", |b| {
+    group.bench_function("lincomb, U256*U256+U256*U256", |b| {
         b.iter_batched(
             || ConstMontyForm::random(&mut rng),
             |a| {
-                ConstMontyForm::lincomb_vartime(&[
+                ConstMontyForm::lincomb(&[
                     (black_box(a), black_box(a)),
                     (black_box(a), black_box(a)),
                 ])

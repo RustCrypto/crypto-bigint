@@ -1,5 +1,5 @@
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
-use crypto_bigint::{BoxedUint, Limb, NonZero, RandomBits};
+use crypto_bigint::{BoxedUint, Gcd, Integer, Limb, NonZero, RandomBits};
 use num_bigint::BigUint;
 use rand_core::OsRng;
 use std::hint::black_box;
@@ -228,6 +228,70 @@ fn bench_radix_encoding(c: &mut Criterion) {
     }
 }
 
+fn bench_gcd(c: &mut Criterion) {
+    let mut group = c.benchmark_group("gcd");
+
+    group.bench_function("gcd", |b| {
+        b.iter_batched(
+            || {
+                (
+                    BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+                    BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+                )
+            },
+            |(x, y)| black_box(x.gcd(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("gcd_vartime", |b| {
+        b.iter_batched(
+            || {
+                (
+                    BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+                    BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+                )
+            },
+            |(x, y)| black_box(x.gcd_vartime(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
+fn bench_invert(c: &mut Criterion) {
+    let mut group = c.benchmark_group("invert");
+
+    group.bench_function("invert_odd_mod", |b| {
+        b.iter_batched(
+            || {
+                let (x, mut y) = (
+                    BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+                    BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+                );
+                if y.is_even().into() {
+                    y = y.wrapping_add(&BoxedUint::one());
+                }
+                (x, y.to_odd().unwrap())
+            },
+            |(x, y)| black_box(x.invert_odd_mod(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("invert_mod", |b| {
+        b.iter_batched(
+            || {
+                (
+                    BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+                    BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+                )
+            },
+            |(x, y)| black_box(x.invert_mod(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
 criterion_group!(
     benches,
     bench_mul,
@@ -235,6 +299,8 @@ criterion_group!(
     bench_shifts,
     bench_boxed_sqrt,
     bench_radix_encoding,
+    bench_gcd,
+    bench_invert,
 );
 
 criterion_main!(benches);

@@ -8,10 +8,13 @@ mod neg;
 mod pow;
 mod sub;
 
-use super::{ConstMontyParams, Retrieve, div_by_2};
+use super::{Retrieve, div_by_2};
 use mul::BoxedMontyMultiplier;
 
-use crate::{BoxedUint, Limb, Monty, Odd, Resize, Word};
+use crate::{
+    BoxedUint, Limb, Monty, Odd, U64, Word,
+    modular::{MontyParams, safegcd::invert_mod_u64},
+};
 use alloc::sync::Arc;
 use subtle::Choice;
 
@@ -31,20 +34,16 @@ struct BoxedMontyParamsInner {
     one: BoxedUint,
     /// R^2, used to move into Montgomery form
     r2: BoxedUint,
-    /// R^3, used to compute the multiplicative inverse
-    r3: BoxedUint,
-    /// The lowest limbs of -(MODULUS^-1) mod R
-    /// We only need the LSB because during reduction this value is multiplied modulo 2**Limb::BITS.
-    mod_neg_inv: Limb,
+    /// The lowest limbs of MODULUS^-1 mod 2**64
+    /// This value is used in Montgomery reduction and modular inversion
+    mod_inv: U64,
     /// Leading zeros in the modulus, used to choose optimized algorithms
     mod_leading_zeros: u32,
 }
 
 impl BoxedMontyParams {
-    /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`, which
-    /// must be odd.
+    /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`.
     ///
-    /// Returns a `CtOption` that is `None` if the provided modulus is not odd.
     /// TODO(tarcieri): DRY out with `MontyParams::new`?
     pub fn new(modulus: Odd<BoxedUint>) -> Self {
         let bits_precision = modulus.bits_precision();
@@ -56,41 +55,28 @@ impl BoxedMontyParams {
             .wrapping_add(&BoxedUint::one());
 
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
-        let r2 = one
-            .square()
-            .rem(&modulus.as_nz_ref().resize_unchecked(bits_precision * 2))
-            .resize_unchecked(bits_precision);
+        let r2 = one.square().rem(modulus.as_nz_ref());
 
-        // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
-        let (inv_mod_limb, inv_mod_limb_exists) = modulus.invert_mod2k_vartime(Word::BITS);
-        debug_assert!(bool::from(inv_mod_limb_exists));
-
-        let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));
+        // The inverse of the modulus modulo 2**64
+        let mod_inv = U64::from_u64(invert_mod_u64(modulus.as_ref().as_words()));
 
         let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
-
-        let r3 = {
-            let mut mm = BoxedMontyMultiplier::new(&modulus, mod_neg_inv);
-            mm.square(&r2)
-        };
 
         Self(
             BoxedMontyParamsInner {
                 modulus,
                 one,
                 r2,
-                r3,
-                mod_neg_inv,
+                mod_inv,
                 mod_leading_zeros,
             }
             .into(),
         )
     }
 
-    /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`, which
-    /// must be odd. This version operates in variable-time with respect to the modulus.
+    /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`.
+    /// This version operates in variable-time with respect to the modulus.
     ///
-    /// Returns `None` if the provided modulus is not odd.
     /// TODO(tarcieri): DRY out with `MontyParams::new`?
     pub fn new_vartime(modulus: Odd<BoxedUint>) -> Self {
         let bits_precision = modulus.bits_precision();
@@ -104,26 +90,17 @@ impl BoxedMontyParams {
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
         let r2 = one.square().rem_vartime(modulus.as_nz_ref());
 
-        // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
-        let (inv_mod_limb, inv_mod_limb_exists) = modulus.invert_mod2k_full_vartime(Word::BITS);
-        debug_assert!(bool::from(inv_mod_limb_exists));
-
-        let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs[0].0));
+        // The inverse of the modulus modulo 2**64
+        let mod_inv = U64::from_u64(invert_mod_u64(modulus.as_ref().as_words()));
 
         let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
-
-        let r3 = {
-            let mut mm = BoxedMontyMultiplier::new(&modulus, mod_neg_inv);
-            mm.square(&r2)
-        };
 
         Self(
             BoxedMontyParamsInner {
                 modulus,
                 one,
                 r2,
-                r3,
-                mod_neg_inv,
+                mod_inv,
                 mod_leading_zeros,
             }
             .into(),
@@ -148,27 +125,37 @@ impl BoxedMontyParams {
         &self.0.one
     }
 
+    pub(crate) fn mod_inv(&self) -> U64 {
+        self.0.mod_inv
+    }
+
     pub(crate) fn mod_neg_inv(&self) -> Limb {
-        self.0.mod_neg_inv
+        self.0.mod_inv.limbs[0].wrapping_neg()
     }
 
     pub(crate) fn mod_leading_zeros(&self) -> u32 {
         self.0.mod_leading_zeros
     }
+}
 
-    /// Create from a set of [`ConstMontyParams`].
-    pub fn from_const_params<const LIMBS: usize, P: ConstMontyParams<LIMBS>>() -> Self {
+impl<const LIMBS: usize> From<&MontyParams<LIMBS>> for BoxedMontyParams {
+    fn from(params: &MontyParams<LIMBS>) -> Self {
         Self(
             BoxedMontyParamsInner {
-                modulus: P::MODULUS.into(),
-                one: P::ONE.into(),
-                r2: P::R2.into(),
-                r3: P::R3.into(),
-                mod_neg_inv: P::MOD_NEG_INV,
-                mod_leading_zeros: P::MOD_LEADING_ZEROS,
+                modulus: params.modulus.into(),
+                one: params.one.into(),
+                r2: params.r2.into(),
+                mod_inv: params.mod_inv,
+                mod_leading_zeros: params.mod_leading_zeros,
             }
             .into(),
         )
+    }
+}
+
+impl<const LIMBS: usize> From<MontyParams<LIMBS>> for BoxedMontyParams {
+    fn from(params: MontyParams<LIMBS>) -> Self {
+        BoxedMontyParams::from(&params)
     }
 }
 
@@ -363,7 +350,8 @@ fn convert_to_montgomery(integer: &mut BoxedUint, params: &BoxedMontyParams) {
 
 #[cfg(test)]
 mod tests {
-    use super::{BoxedMontyForm, BoxedMontyParams, BoxedUint, Limb, Odd};
+    use super::{BoxedMontyForm, BoxedMontyParams};
+    use crate::{BoxedUint, Limb, Odd};
 
     #[test]
     fn new_params_with_valid_modulus() {

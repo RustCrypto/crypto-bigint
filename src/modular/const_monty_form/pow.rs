@@ -33,9 +33,9 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
                 &self.montgomery_form,
                 exponent,
                 exponent_bits,
-                &MOD::MODULUS,
-                &MOD::ONE,
-                MOD::MOD_NEG_INV,
+                &MOD::PARAMS.modulus,
+                &MOD::PARAMS.one,
+                MOD::PARAMS.mod_neg_inv(),
             ),
             phantom: core::marker::PhantomData,
         }
@@ -72,9 +72,9 @@ impl<const N: usize, MOD: ConstMontyParams<LIMBS>, const LIMBS: usize, const RHS
             montgomery_form: multi_exponentiate_montgomery_form_array(
                 &bases_and_exponents_montgomery_form,
                 exponent_bits,
-                &MOD::MODULUS,
-                &MOD::ONE,
-                MOD::MOD_NEG_INV,
+                &MOD::PARAMS.modulus,
+                &MOD::PARAMS.one,
+                MOD::PARAMS.mod_neg_inv(),
             ),
             phantom: core::marker::PhantomData,
         }
@@ -98,9 +98,9 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize, const RHS_LIMBS: usize>
             montgomery_form: multi_exponentiate_montgomery_form_slice(
                 &bases_and_exponents,
                 exponent_bits,
-                &MOD::MODULUS,
-                &MOD::ONE,
-                MOD::MOD_NEG_INV,
+                &MOD::PARAMS.modulus,
+                &MOD::PARAMS.one,
+                MOD::PARAMS.mod_neg_inv(),
             ),
             phantom: core::marker::PhantomData,
         }
@@ -120,10 +120,12 @@ mod tests {
         "9CC24C5DF431A864188AB905AC751B727C9447A8E99E6366E1AD78A21E8D882B"
     );
 
+    const_monty_form!(Fe, Modulus);
+
     #[test]
     fn test_powmod_small_base() {
         let base = U256::from(105u64);
-        let base_mod = const_monty_form!(base, Modulus);
+        let base_mod = Fe::new(&base);
 
         let exponent =
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
@@ -139,7 +141,7 @@ mod tests {
     fn test_powmod_small_exponent() {
         let base =
             U256::from_be_hex("3435D18AA8313EBBE4D20002922225B53F75DC4453BB3EEC0378646F79B524A4");
-        let base_mod = const_monty_form!(base, Modulus);
+        let base_mod = Fe::new(&base);
 
         let exponent = U256::from(105u64);
 
@@ -154,7 +156,7 @@ mod tests {
     fn test_powmod() {
         let base =
             U256::from_be_hex("3435D18AA8313EBBE4D20002922225B53F75DC4453BB3EEC0378646F79B524A4");
-        let base_mod = const_monty_form!(base, Modulus);
+        let base_mod = Fe::new(&base);
 
         let exponent =
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
@@ -169,7 +171,7 @@ mod tests {
     #[test]
     fn test_multi_exp_array() {
         let base = U256::from(2u8);
-        let base_mod = const_monty_form!(base, Modulus);
+        let base_mod = Fe::new(&base);
 
         let exponent = U256::from(33u8);
         let bases_and_exponents = [(base_mod, exponent)];
@@ -184,7 +186,7 @@ mod tests {
 
         let base2 =
             U256::from_be_hex("3435D18AA8313EBBE4D20002922225B53F75DC4453BB3EEC0378646F79B524A4");
-        let base2_mod = const_monty_form!(base2, Modulus);
+        let base2_mod = Fe::new(&base2);
 
         let exponent2 =
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
@@ -202,7 +204,7 @@ mod tests {
     #[test]
     fn test_multi_exp_slice() {
         let base = U256::from(2u8);
-        let base_mod = const_monty_form!(base, Modulus);
+        let base_mod = Fe::new(&base);
 
         let exponent = U256::from(33u8);
         let bases_and_exponents = vec![(base_mod, exponent)];
@@ -217,7 +219,7 @@ mod tests {
 
         let base2 =
             U256::from_be_hex("3435D18AA8313EBBE4D20002922225B53F75DC4453BB3EEC0378646F79B524A4");
-        let base2_mod = const_monty_form!(base2, Modulus);
+        let base2_mod = Fe::new(&base2);
 
         let exponent2 =
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## 0.7.0-pre.5 (2025-06-16)
 _The below list is very much incomplete._
 
+### Added
+- `Reduce` trait for modular reduction with a constant modulus.
+
 ### Changed
 - Replace `Limb::mac` with `::carrying_mul_add` ([#817]).
   - Note: `::carrying_mul_add` requires a different parameter order than `::mac`.

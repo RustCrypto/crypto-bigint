@@ -1,20 +1,11 @@
 //! Multiplicative inverses of integers in Montgomery form with a constant modulus.
 
 use super::{ConstMontyForm, ConstMontyParams};
-use crate::{
-    ConstCtOption, Invert, Inverter, Odd, PrecomputeInverter, Uint, modular::SafeGcdInverter,
-};
-use core::{fmt, marker::PhantomData};
+use crate::{ConstCtOption, Invert, modular::SafeGcdInverter};
+use core::marker::PhantomData;
 use subtle::CtOption;
 
-impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
-    ConstMontyForm<MOD, SAT_LIMBS>
-where
-    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-            Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
-            Output = Uint<SAT_LIMBS>,
-        >,
-{
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
     /// Computes `self^-1` representing the multiplicative inverse of `self`,
     /// i.e. `self * self^-1 = 1`.
     ///
@@ -31,8 +22,11 @@ where
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
     pub const fn invert(&self) -> ConstCtOption<Self> {
-        let inverter =
-            <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(&MOD::MODULUS, &MOD::R2);
+        let inverter = SafeGcdInverter::new_with_inverse(
+            &MOD::PARAMS.modulus,
+            MOD::PARAMS.mod_inv,
+            &MOD::PARAMS.r2,
+        );
 
         let maybe_inverse = inverter.invert(&self.montgomery_form);
         let (inverse, inverse_is_some) = maybe_inverse.components_ref();
@@ -67,8 +61,11 @@ where
     /// This version is variable-time with respect to the value of `self`, but constant-time with
     /// respect to `MOD`.
     pub const fn invert_vartime(&self) -> ConstCtOption<Self> {
-        let inverter =
-            <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(&MOD::MODULUS, &MOD::R2);
+        let inverter = SafeGcdInverter::new_with_inverse(
+            &MOD::PARAMS.modulus,
+            MOD::PARAMS.mod_inv,
+            &MOD::PARAMS.r2,
+        );
 
         let maybe_inverse = inverter.invert_vartime(&self.montgomery_form);
         let (inverse, inverse_is_some) = maybe_inverse.components_ref();
@@ -82,14 +79,7 @@ where
     }
 }
 
-impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Invert
-    for ConstMontyForm<MOD, SAT_LIMBS>
-where
-    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-            Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
-            Output = Uint<SAT_LIMBS>,
-        >,
-{
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Invert for ConstMontyForm<MOD, LIMBS> {
     type Output = CtOption<Self>;
 
     fn invert(&self) -> Self::Output {
@@ -98,125 +88,6 @@ where
 
     fn invert_vartime(&self) -> Self::Output {
         self.invert_vartime().into()
-    }
-}
-
-/// Bernstein-Yang inverter which inverts [`ConstMontyForm`] types.
-pub struct ConstMontyFormInverter<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize>
-where
-    Odd<Uint<LIMBS>>: PrecomputeInverter<Output = Uint<LIMBS>>,
-{
-    inverter: <Odd<Uint<LIMBS>> as PrecomputeInverter>::Inverter,
-    phantom: PhantomData<MOD>,
-}
-
-impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
-    ConstMontyFormInverter<MOD, SAT_LIMBS>
-where
-    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-            Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
-            Output = Uint<SAT_LIMBS>,
-        >,
-{
-    /// Create a new [`ConstMontyFormInverter`] for the given [`ConstMontyParams`].
-    #[allow(clippy::new_without_default)]
-    pub const fn new() -> Self {
-        let inverter = SafeGcdInverter::new(&MOD::MODULUS, &MOD::R2);
-
-        Self {
-            inverter,
-            phantom: PhantomData,
-        }
-    }
-
-    /// Returns either the adjusted modular multiplicative inverse for the argument or None
-    /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
-    #[deprecated(since = "0.7.0", note = "please use `invert` instead")]
-    pub const fn inv(
-        &self,
-        value: &ConstMontyForm<MOD, SAT_LIMBS>,
-    ) -> ConstCtOption<ConstMontyForm<MOD, SAT_LIMBS>> {
-        self.invert(value)
-    }
-
-    /// Returns either the adjusted modular multiplicative inverse for the argument or None
-    /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
-    pub const fn invert(
-        &self,
-        value: &ConstMontyForm<MOD, SAT_LIMBS>,
-    ) -> ConstCtOption<ConstMontyForm<MOD, SAT_LIMBS>> {
-        let montgomery_form = self.inverter.invert(&value.montgomery_form);
-        let (montgomery_form_ref, is_some) = montgomery_form.components_ref();
-        let ret = ConstMontyForm {
-            montgomery_form: *montgomery_form_ref,
-            phantom: PhantomData,
-        };
-        ConstCtOption::new(ret, is_some)
-    }
-
-    /// Returns either the adjusted modular multiplicative inverse for the argument or None
-    /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
-    ///
-    /// This version is variable-time with respect to the value of `self`, but constant-time with
-    /// respect to `MOD`.
-    #[deprecated(since = "0.7.0", note = "please use `invert_vartime` instead")]
-    pub const fn inv_vartime(
-        &self,
-        value: &ConstMontyForm<MOD, SAT_LIMBS>,
-    ) -> ConstCtOption<ConstMontyForm<MOD, SAT_LIMBS>> {
-        self.invert_vartime(value)
-    }
-
-    /// Returns either the adjusted modular multiplicative inverse for the argument or None
-    /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
-    ///
-    /// This version is variable-time with respect to the value of `self`, but constant-time with
-    /// respect to `MOD`.
-    pub const fn invert_vartime(
-        &self,
-        value: &ConstMontyForm<MOD, SAT_LIMBS>,
-    ) -> ConstCtOption<ConstMontyForm<MOD, SAT_LIMBS>> {
-        let montgomery_form = self.inverter.invert_vartime(&value.montgomery_form);
-        let (montgomery_form_ref, is_some) = montgomery_form.components_ref();
-        let ret = ConstMontyForm {
-            montgomery_form: *montgomery_form_ref,
-            phantom: PhantomData,
-        };
-        ConstCtOption::new(ret, is_some)
-    }
-}
-
-impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> Inverter
-    for ConstMontyFormInverter<MOD, SAT_LIMBS>
-where
-    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-            Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
-            Output = Uint<SAT_LIMBS>,
-        >,
-{
-    type Output = ConstMontyForm<MOD, SAT_LIMBS>;
-
-    fn invert(&self, value: &ConstMontyForm<MOD, SAT_LIMBS>) -> CtOption<Self::Output> {
-        self.invert(value).into()
-    }
-
-    fn invert_vartime(&self, value: &ConstMontyForm<MOD, SAT_LIMBS>) -> CtOption<Self::Output> {
-        self.invert_vartime(value).into()
-    }
-}
-
-impl<MOD: ConstMontyParams<SAT_LIMBS>, const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> fmt::Debug
-    for ConstMontyFormInverter<MOD, SAT_LIMBS>
-where
-    Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
-            Inverter = SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>,
-            Output = Uint<SAT_LIMBS>,
-        >,
-{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ConstMontyFormInverter")
-            .field("modulus", &self.inverter.modulus)
-            .finish()
     }
 }
 
@@ -231,26 +102,15 @@ mod tests {
         "15477BCCEFE197328255BFA79A1217899016D927EF460F4FF404029D24FA4409"
     );
 
+    const_monty_form!(Fe, Modulus);
+
     #[test]
     fn test_self_inverse() {
         let x =
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
-        let x_mod = const_monty_form!(x, Modulus);
+        let x_mod = Fe::new(&x);
 
         let inv = x_mod.invert().unwrap();
-        let res = x_mod * inv;
-
-        assert_eq!(res.retrieve(), U256::ONE);
-    }
-
-    #[test]
-    fn test_self_inverse_precomputed() {
-        let x =
-            U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
-        let x_mod = const_monty_form!(x, Modulus);
-        let inverter = Modulus::precompute_inverter();
-
-        let inv = inverter.invert(&x_mod).unwrap();
         let res = x_mod * inv;
 
         assert_eq!(res.retrieve(), U256::ONE);

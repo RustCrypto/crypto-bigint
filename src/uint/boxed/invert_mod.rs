@@ -1,9 +1,6 @@
 //! [`BoxedUint`] modular inverse (i.e. reciprocal) operations.
 
-use crate::{
-    BoxedUint, ConstantTimeSelect, Integer, InvertMod, Inverter, Odd, PrecomputeInverter,
-    PrecomputeInverterWithAdjuster, modular::BoxedSafeGcdInverter,
-};
+use crate::{BoxedUint, ConstantTimeSelect, Integer, InvertMod, Odd, modular::safegcd};
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
 impl BoxedUint {
@@ -15,37 +12,12 @@ impl BoxedUint {
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     pub fn invert_odd_mod(&self, modulus: &Odd<Self>) -> CtOption<Self> {
-        modulus.precompute_inverter().invert(self)
+        safegcd::boxed::invert_odd_mod::<false>(self, modulus)
     }
 
-    /// Computes 1/`self` mod `2^k`.
-    /// This method is variable w.r.t. `self` and `k`.
-    ///
-    /// If the inverse does not exist (`k > 0` and `self` is even),
-    /// returns `Choice::FALSE` as the second element of the tuple,
-    /// otherwise returns `Choice::TRUE`.
-    pub(crate) fn invert_mod2k_full_vartime(&self, k: u32) -> (Self, Choice) {
-        let mut x = Self::zero_with_precision(self.bits_precision()); // keeps `x` during iterations
-        let mut b = Self::one_with_precision(self.bits_precision()); // keeps `b_i` during iterations
-
-        // The inverse exists either if `k` is 0 or if `self` is odd.
-        if k != 0 && !bool::from(self.is_odd()) {
-            return (x, Choice::from(0));
-        }
-
-        for i in 0..k {
-            // X_i = b_i mod 2
-            let x_i = b.limbs[0].0 & 1;
-            // b_{i+1} = (b_i - a * X_i) / 2
-            if x_i != 0 {
-                b.wrapping_sub_assign(self);
-            }
-            b.shr1_assign();
-            // Store the X_i bit in the result (x = x | (1 << X_i))
-            x.set_bit_vartime(i, x_i != 0);
-        }
-
-        (x, Choice::from(1))
+    /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
+    pub fn invert_odd_mod_vartime(&self, modulus: &Odd<Self>) -> CtOption<Self> {
+        safegcd::boxed::invert_odd_mod::<true>(self, modulus)
     }
 
     /// Computes 1/`self` mod `2^k`.
@@ -191,25 +163,10 @@ impl InvertMod for BoxedUint {
     }
 }
 
-/// Precompute a Bernstein-Yang inverter using `self` as the modulus.
-impl PrecomputeInverter for Odd<BoxedUint> {
-    type Inverter = BoxedSafeGcdInverter;
-    type Output = BoxedUint;
-
-    fn precompute_inverter(&self) -> BoxedSafeGcdInverter {
-        Self::precompute_inverter_with_adjuster(self, &BoxedUint::one())
-    }
-}
-
-/// Precompute a Bernstein-Yang inverter using `self` as the modulus.
-impl PrecomputeInverterWithAdjuster<BoxedUint> for Odd<BoxedUint> {
-    fn precompute_inverter_with_adjuster(&self, adjuster: &BoxedUint) -> BoxedSafeGcdInverter {
-        BoxedSafeGcdInverter::new(self, adjuster)
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use crate::U256;
+
     use super::BoxedUint;
     use hex_literal::hex;
 
@@ -360,5 +317,31 @@ mod tests {
         let res = a.invert_odd_mod(&m);
         let is_none: bool = res.is_none().into();
         assert!(is_none);
+    }
+
+    #[test]
+    fn test_invert_edge() {
+        assert!(bool::from(
+            BoxedUint::zero()
+                .invert_odd_mod(&BoxedUint::one().to_odd().unwrap())
+                .is_none()
+        ));
+        assert_eq!(
+            BoxedUint::one()
+                .invert_odd_mod(&BoxedUint::one().to_odd().unwrap())
+                .unwrap(),
+            BoxedUint::zero()
+        );
+        assert_eq!(
+            BoxedUint::one()
+                .invert_odd_mod(&BoxedUint::from(U256::MAX).to_odd().unwrap())
+                .unwrap(),
+            BoxedUint::one()
+        );
+        assert!(bool::from(
+            BoxedUint::from(U256::MAX)
+                .invert_odd_mod(&BoxedUint::from(U256::MAX).to_odd().unwrap())
+                .is_none()
+        ));
     }
 }

@@ -18,7 +18,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
             montgomery_form: lincomb_monty_form(
                 products,
                 &params.modulus,
-                params.mod_neg_inv,
+                params.mod_neg_inv(),
                 params.mod_leading_zeros,
             ),
             params: products[0].0.params,

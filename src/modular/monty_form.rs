@@ -13,8 +13,9 @@ use super::{
     const_monty_form::{ConstMontyForm, ConstMontyParams},
     div_by_2::div_by_2,
     reduction::montgomery_reduction,
+    safegcd::invert_mod_u64,
 };
-use crate::{Concat, ConstChoice, Limb, Monty, NonZero, Odd, Split, Uint, Word};
+use crate::{ConstChoice, Limb, Monty, Odd, U64, Uint, Word};
 use mul::DynMontyMultiplier;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
@@ -22,25 +23,19 @@ use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct MontyParams<const LIMBS: usize> {
     /// The constant modulus
-    modulus: Odd<Uint<LIMBS>>,
+    pub(super) modulus: Odd<Uint<LIMBS>>,
     /// 1 in Montgomery form (a.k.a. `R`)
-    one: Uint<LIMBS>,
+    pub(super) one: Uint<LIMBS>,
     /// `R^2 mod modulus`, used to move into Montgomery form
-    r2: Uint<LIMBS>,
-    /// `R^3 mod modulus`, used to compute the multiplicative inverse
-    r3: Uint<LIMBS>,
-    /// The lowest limbs of -(MODULUS^-1) mod R
-    /// We only need the LSB because during reduction this value is multiplied modulo 2**Limb::BITS.
-    mod_neg_inv: Limb,
+    pub(super) r2: Uint<LIMBS>,
+    /// The lowest limbs of MODULUS^-1 mod 2**64
+    /// This value is used in Montgomery reduction and modular inversion
+    pub(super) mod_inv: U64,
     /// Leading zeros in the modulus, used to choose optimized algorithms
-    mod_leading_zeros: u32,
+    pub(super) mod_leading_zeros: u32,
 }
 
-impl<const LIMBS: usize, const WIDE_LIMBS: usize> MontyParams<LIMBS>
-where
-    Uint<LIMBS>: Concat<Output = Uint<WIDE_LIMBS>>,
-    Uint<WIDE_LIMBS>: Split<Output = Uint<LIMBS>>,
-{
+impl<const LIMBS: usize> MontyParams<LIMBS> {
     /// Instantiates a new set of `MontyParams` representing the given odd `modulus`.
     pub const fn new(modulus: Odd<Uint<LIMBS>>) -> Self {
         // `R mod modulus` where `R = 2^BITS`.
@@ -50,33 +45,20 @@ where
             .wrapping_add(&Uint::ONE);
 
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
-        let r2 = one
-            .square()
-            .rem(&NonZero(modulus.0.concat(&Uint::ZERO)))
-            .split()
-            .0;
+        let r2 = Uint::rem_wide(one.square_wide(), modulus.as_nz_ref());
 
-        // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
-        let inv_mod = modulus
-            .as_ref()
-            .invert_mod2k_vartime(Word::BITS)
-            .expect("modular inverse should exist");
-
-        let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
+        // The inverse of the modulus modulo 2**64
+        let mod_inv = U64::from_u64(invert_mod_u64(modulus.as_ref().as_words()));
 
         let mod_leading_zeros = modulus.as_ref().leading_zeros();
         let mod_leading_zeros = ConstChoice::from_u32_lt(mod_leading_zeros, Word::BITS - 1)
             .select_u32(Word::BITS - 1, mod_leading_zeros);
 
-        // `R^3 mod modulus`, used for inversion in Montgomery form.
-        let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);
-
         Self {
             modulus,
             one,
             r2,
-            r3,
-            mod_neg_inv,
+            mod_inv,
             mod_leading_zeros,
         }
     }
@@ -94,13 +76,8 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
         let r2 = Uint::rem_wide_vartime(one.square_wide(), modulus.as_nz_ref());
 
-        // The modular inverse should always exist, because it was ensured odd above, which also ensures it's non-zero
-        let inv_mod = modulus
-            .as_ref()
-            .invert_mod2k_full_vartime(Word::BITS)
-            .expect("modular inverse should exist");
-
-        let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod.limbs[0].0));
+        // The inverse of the modulus modulo 2**64
+        let mod_inv = U64::from_u64(invert_mod_u64(modulus.as_ref().as_words()));
 
         let mod_leading_zeros = modulus.as_ref().leading_zeros_vartime();
         let mod_leading_zeros = if mod_leading_zeros < Word::BITS - 1 {
@@ -109,15 +86,11 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
             Word::BITS - 1
         };
 
-        // `R^3 mod modulus`, used for inversion in Montgomery form.
-        let r3 = montgomery_reduction(&r2.square_wide(), &modulus, mod_neg_inv);
-
         Self {
             modulus,
             one,
             r2,
-            r3,
-            mod_neg_inv,
+            mod_inv,
             mod_leading_zeros,
         }
     }
@@ -127,19 +100,10 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
         &self.modulus
     }
 
-    /// Create `MontyParams` corresponding to a `ConstMontyParams`.
-    pub const fn from_const_params<P>() -> Self
-    where
-        P: ConstMontyParams<LIMBS>,
-    {
-        Self {
-            modulus: Odd(P::MODULUS.0),
-            one: P::ONE,
-            r2: P::R2,
-            r3: P::R3,
-            mod_neg_inv: P::MOD_NEG_INV,
-            mod_leading_zeros: P::MOD_LEADING_ZEROS,
-        }
+    /// Returns the modulus which was used to initialize these parameters.
+    #[inline(always)]
+    pub(crate) const fn mod_neg_inv(&self) -> Limb {
+        self.mod_inv.limbs[0].wrapping_neg()
     }
 }
 
@@ -149,8 +113,7 @@ impl<const LIMBS: usize> ConditionallySelectable for MontyParams<LIMBS> {
             modulus: Odd::conditional_select(&a.modulus, &b.modulus, choice),
             one: Uint::conditional_select(&a.one, &b.one, choice),
             r2: Uint::conditional_select(&a.r2, &b.r2, choice),
-            r3: Uint::conditional_select(&a.r3, &b.r3, choice),
-            mod_neg_inv: Limb::conditional_select(&a.mod_neg_inv, &b.mod_neg_inv, choice),
+            mod_inv: U64::conditional_select(&a.mod_inv, &b.mod_inv, choice),
             mod_leading_zeros: u32::conditional_select(
                 &a.mod_leading_zeros,
                 &b.mod_leading_zeros,
@@ -165,8 +128,7 @@ impl<const LIMBS: usize> ConstantTimeEq for MontyParams<LIMBS> {
         self.modulus.ct_eq(&other.modulus)
             & self.one.ct_eq(&other.one)
             & self.r2.ct_eq(&other.r2)
-            & self.r3.ct_eq(&other.r3)
-            & self.mod_neg_inv.ct_eq(&other.mod_neg_inv)
+            & self.mod_inv.ct_eq(&other.mod_inv)
     }
 }
 
@@ -176,8 +138,7 @@ impl<const LIMBS: usize> zeroize::Zeroize for MontyParams<LIMBS> {
         self.modulus.zeroize();
         self.one.zeroize();
         self.r2.zeroize();
-        self.r3.zeroize();
-        self.mod_neg_inv.zeroize();
+        self.mod_inv.zeroize();
         self.mod_leading_zeros.zeroize();
     }
 }
@@ -194,7 +155,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Instantiates a new `MontyForm` that represents this `integer` mod `MOD`.
     pub const fn new(integer: &Uint<LIMBS>, params: MontyParams<LIMBS>) -> Self {
         let product = integer.widening_mul(&params.r2);
-        let montgomery_form = montgomery_reduction(&product, &params.modulus, params.mod_neg_inv);
+        let montgomery_form = montgomery_reduction(&product, &params.modulus, params.mod_neg_inv());
 
         Self {
             montgomery_form,
@@ -207,7 +168,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
         montgomery_reduction(
             &(self.montgomery_form, Uint::ZERO),
             &self.params.modulus,
-            self.params.mod_neg_inv,
+            self.params.mod_neg_inv(),
         )
     }
 
@@ -324,7 +285,7 @@ impl<const LIMBS: usize, P: ConstMontyParams<LIMBS>> From<&ConstMontyForm<P, LIM
     fn from(const_monty_form: &ConstMontyForm<P, LIMBS>) -> Self {
         Self {
             montgomery_form: const_monty_form.to_montgomery(),
-            params: MontyParams::from_const_params::<P>(),
+            params: P::PARAMS,
         }
     }
 }
@@ -358,7 +319,8 @@ impl<const LIMBS: usize> zeroize::Zeroize for MontyForm<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Limb, MontyParams, Odd, Uint};
+    use super::MontyParams;
+    use crate::{Limb, Odd, Uint};
 
     #[test]
     fn new_params_with_valid_modulus() {

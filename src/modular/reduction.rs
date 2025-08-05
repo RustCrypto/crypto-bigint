@@ -46,7 +46,7 @@ const fn montgomery_reduction_inner(
 }
 
 /// Algorithm 14.32 in Handbook of Applied Cryptography <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
-pub const fn montgomery_reduction<const LIMBS: usize>(
+pub(crate) const fn montgomery_reduction<const LIMBS: usize>(
     lower_upper: &(Uint<LIMBS>, Uint<LIMBS>),
     modulus: &Odd<Uint<LIMBS>>,
     mod_neg_inv: Limb,

@@ -1,36 +1,5 @@
 //! Macros used to define traits on aliases of `Uint`.
 
-/// Impl the `Inverter` trait, where we need to compute the number of unsaturated limbs for a given number of bits.
-macro_rules! impl_precompute_inverter_trait {
-    ($name:ident, $bits:expr) => {
-        /// Precompute a Bernstein-Yang inverter using `self` as the modulus.
-        impl PrecomputeInverter for Odd<$name> {
-            #[allow(trivial_numeric_casts)]
-            type Inverter =
-                SafeGcdInverter<{ nlimbs!($bits) }, { safegcd_nlimbs!($bits as usize) }>;
-
-            type Output = $name;
-
-            fn precompute_inverter(&self) -> Self::Inverter {
-                Self::precompute_inverter_with_adjuster(self, &Uint::ONE)
-            }
-        }
-
-        /// Precompute a Bernstein-Yang inverter using `self` as the modulus.
-        impl PrecomputeInverterWithAdjuster<$name> for Odd<$name> {
-            fn precompute_inverter_with_adjuster(&self, adjuster: &$name) -> Self::Inverter {
-                Self::Inverter::new(self, adjuster)
-            }
-        }
-
-        /// Const assertion that the unsaturated integer is sufficiently sized to hold the maximum
-        /// value represented by a saturated `$bits`-sized integer.
-        #[cfg(debug_assertions)]
-        #[allow(trivial_numeric_casts)]
-        const _: () = assert!((safegcd_nlimbs!($bits as usize) * 62) - 64 >= $bits);
-    };
-}
-
 // TODO(tarcieri): use `generic_const_exprs` when stable to make generic around bits.
 macro_rules! impl_uint_aliases {
     ($(($name:ident, $bits:expr, $doc:expr)),+) => {
@@ -74,8 +43,6 @@ macro_rules! impl_uint_aliases {
                     encoding::uint_to_le_bytes(self)
                 }
             }
-
-            impl_precompute_inverter_trait!($name, $bits);
         )+
      };
 }

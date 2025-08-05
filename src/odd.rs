@@ -305,6 +305,7 @@ impl<T: zeroize::Zeroize> zeroize::Zeroize for Odd<T> {
         self.0.zeroize();
     }
 }
+
 #[cfg(test)]
 mod tests {
     #[cfg(feature = "alloc")]

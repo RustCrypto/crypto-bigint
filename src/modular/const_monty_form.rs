@@ -6,11 +6,11 @@ mod lincomb;
 mod mul;
 mod neg;
 mod pow;
+mod reduce;
 mod sub;
 
-use self::invert::ConstMontyFormInverter;
-use super::{Retrieve, SafeGcdInverter, div_by_2::div_by_2, reduction::montgomery_reduction};
-use crate::{ConstZero, Limb, Odd, PrecomputeInverter, Uint};
+use super::{MontyParams, Retrieve, div_by_2::div_by_2, reduction::montgomery_reduction};
+use crate::{ConstChoice, ConstZero, Uint};
 use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
@@ -39,35 +39,14 @@ pub trait ConstMontyParams<const LIMBS: usize>:
     /// Number of limbs required to encode the Montgomery form
     const LIMBS: usize;
 
-    /// The constant modulus
-    const MODULUS: Odd<Uint<LIMBS>>;
-    /// 1 in Montgomery form
-    const ONE: Uint<LIMBS>;
-    /// `R^2 mod MODULUS`, used to move into Montgomery form
-    const R2: Uint<LIMBS>;
-    /// `R^3 mod MODULUS`, used to perform a multiplicative inverse
-    const R3: Uint<LIMBS>;
-    /// The lowest limbs of -(MODULUS^-1) mod R
-    // We only need the LSB because during reduction this value is multiplied modulo 2**Limb::BITS.
-    const MOD_NEG_INV: Limb;
-    /// Leading zeros in the modulus, used to choose optimized algorithms
-    const MOD_LEADING_ZEROS: u32;
-
-    /// Precompute a Bernstein-Yang inverter for this modulus.
-    ///
-    /// Use [`ConstMontyFormInverter::new`] if you need `const fn` access.
-    fn precompute_inverter<const UNSAT_LIMBS: usize>() -> ConstMontyFormInverter<Self, LIMBS>
-    where
-        Odd<Uint<LIMBS>>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>, Output = Uint<LIMBS>>,
-    {
-        ConstMontyFormInverter::new()
-    }
+    /// Montgomery parameters constant.
+    const PARAMS: MontyParams<LIMBS>;
 }
 
 /// An integer in Montgomery form modulo `MOD`, represented using `LIMBS` limbs.
 /// The modulus is constant, so it cannot be set at runtime.
 ///
-/// Internally, the value is stored in Montgomery form (multiplied by MOD::ONE) until it is retrieved.
+/// Internally, the value is stored in Montgomery form (multiplied by MOD::PARAMS.one) until it is retrieved.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ConstMontyForm<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> {
     montgomery_form: Uint<LIMBS>,
@@ -89,16 +68,18 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
 
     /// The representation of 1 mod `MOD`.
     pub const ONE: Self = Self {
-        montgomery_form: MOD::ONE,
+        montgomery_form: MOD::PARAMS.one,
         phantom: PhantomData,
     };
 
-    /// Internal helper function to convert to Montgomery form;
-    /// this lets us cleanly wrap the constructors.
-    const fn from_integer(integer: &Uint<LIMBS>) -> Self {
-        let product = integer.widening_mul(&MOD::R2);
-        let montgomery_form =
-            montgomery_reduction::<LIMBS>(&product, &MOD::MODULUS, MOD::MOD_NEG_INV);
+    /// Instantiates a new [`ConstMontyForm`] that represents this `integer` mod `MOD`.
+    pub const fn new(integer: &Uint<LIMBS>) -> Self {
+        let product = integer.widening_mul(&MOD::PARAMS.r2);
+        let montgomery_form = montgomery_reduction::<LIMBS>(
+            &product,
+            &MOD::PARAMS.modulus,
+            MOD::PARAMS.mod_neg_inv(),
+        );
 
         Self {
             montgomery_form,
@@ -106,17 +87,12 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
         }
     }
 
-    /// Instantiates a new [`ConstMontyForm`] that represents this `integer` mod `MOD`.
-    pub const fn new(integer: &Uint<LIMBS>) -> Self {
-        Self::from_integer(integer)
-    }
-
     /// Retrieves the integer currently encoded in this [`ConstMontyForm`], guaranteed to be reduced.
     pub const fn retrieve(&self) -> Uint<LIMBS> {
         montgomery_reduction::<LIMBS>(
             &(self.montgomery_form, Uint::ZERO),
-            &MOD::MODULUS,
-            MOD::MOD_NEG_INV,
+            &MOD::PARAMS.modulus,
+            MOD::PARAMS.mod_neg_inv(),
         )
     }
 
@@ -146,7 +122,16 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     /// Performs division by 2, that is returns `x` such that `x + x = self`.
     pub const fn div_by_2(&self) -> Self {
         Self {
-            montgomery_form: div_by_2(&self.montgomery_form, &MOD::MODULUS),
+            montgomery_form: div_by_2(&self.montgomery_form, &MOD::PARAMS.modulus),
+            phantom: PhantomData,
+        }
+    }
+
+    /// Return `b` if `c` is truthy, otherwise return `a`.
+    #[inline]
+    pub(crate) const fn select(a: &Self, b: &Self, choice: ConstChoice) -> Self {
+        ConstMontyForm {
+            montgomery_form: Uint::select(&a.montgomery_form, &b.montgomery_form, choice),
             phantom: PhantomData,
         }
     }
@@ -206,7 +191,7 @@ where
     fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
         Ok(Self::new(&Uint::try_random_mod(
             rng,
-            MOD::MODULUS.as_nz_ref(),
+            MOD::PARAMS.modulus.as_nz_ref(),
         )?))
     }
 }
@@ -229,7 +214,7 @@ where
         D: Deserializer<'de>,
     {
         Uint::<LIMBS>::deserialize(deserializer).and_then(|montgomery_form| {
-            if montgomery_form < MOD::MODULUS.0 {
+            if montgomery_form < MOD::PARAMS.modulus.0 {
                 Ok(Self {
                     montgomery_form,
                     phantom: PhantomData,

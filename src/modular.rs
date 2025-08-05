@@ -33,17 +33,14 @@ mod sub;
 pub(crate) mod boxed_monty_form;
 
 pub use self::{
-    const_monty_form::{ConstMontyForm, ConstMontyParams, invert::ConstMontyFormInverter},
-    monty_form::{MontyForm, MontyParams, invert::MontyFormInverter},
-    reduction::montgomery_reduction,
-    safegcd::SafeGcdInverter,
+    const_monty_form::{ConstMontyForm, ConstMontyParams},
+    monty_form::{MontyForm, MontyParams},
 };
 
+pub(crate) use self::safegcd::SafeGcdInverter;
+
 #[cfg(feature = "alloc")]
-pub use self::{
-    boxed_monty_form::{BoxedMontyForm, BoxedMontyParams},
-    safegcd::boxed::BoxedSafeGcdInverter,
-};
+pub use self::boxed_monty_form::{BoxedMontyForm, BoxedMontyParams};
 
 /// A generalization for numbers kept in optimized representations (e.g. Montgomery)
 /// that can be converted back to the original form.
@@ -58,7 +55,7 @@ pub trait Retrieve {
 #[cfg(test)]
 mod tests {
     use crate::{
-        NonZero, U64, U256, Uint, const_monty_form, const_monty_params,
+        NonZero, U64, U256, Uint, const_monty_params,
         modular::{
             const_monty_form::{ConstMontyForm, ConstMontyParams},
             reduction::montgomery_reduction,
@@ -74,15 +71,15 @@ mod tests {
     #[test]
     fn test_montgomery_params() {
         assert_eq!(
-            Modulus1::ONE,
+            Modulus1::PARAMS.one,
             U256::from_be_hex("1824b159acc5056f998c4fefecbc4ff55884b7fa0003480200000001fffffffe")
         );
         assert_eq!(
-            Modulus1::R2,
+            Modulus1::PARAMS.r2,
             U256::from_be_hex("0748d9d99f59ff1105d314967254398f2b6cedcb87925c23c999e990f3f29c6d")
         );
         assert_eq!(
-            Modulus1::MOD_NEG_INV,
+            Modulus1::PARAMS.mod_neg_inv(),
             U64::from_be_hex("fffffffeffffffff").limbs[0]
         );
     }
@@ -98,9 +95,9 @@ mod tests {
         // Divide the value R by R, which should equal 1
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(
-                &(Modulus2::ONE, Uint::ZERO),
-                &Modulus2::MODULUS,
-                Modulus2::MOD_NEG_INV
+                &(Modulus2::PARAMS.one, Uint::ZERO),
+                &Modulus2::PARAMS.modulus,
+                Modulus2::PARAMS.mod_neg_inv()
             ),
             Uint::ONE
         );
@@ -111,25 +108,25 @@ mod tests {
         // Divide the value R^2 by R, which should equal R
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(
-                &(Modulus2::R2, Uint::ZERO),
-                &Modulus2::MODULUS,
-                Modulus2::MOD_NEG_INV
+                &(Modulus2::PARAMS.r2, Uint::ZERO),
+                &Modulus2::PARAMS.modulus,
+                Modulus2::PARAMS.mod_neg_inv()
             ),
-            Modulus2::ONE
+            Modulus2::PARAMS.one
         );
     }
 
     #[test]
     fn test_reducing_r2_wide() {
         // Divide the value ONE^2 by R, which should equal ONE
-        let (lo, hi) = Modulus2::ONE.square().split();
+        let (lo, hi) = Modulus2::PARAMS.one.square().split();
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(
                 &(lo, hi),
-                &Modulus2::MODULUS,
-                Modulus2::MOD_NEG_INV
+                &Modulus2::PARAMS.modulus,
+                Modulus2::PARAMS.mod_neg_inv()
             ),
-            Modulus2::ONE
+            Modulus2::PARAMS.one
         );
     }
 
@@ -138,12 +135,12 @@ mod tests {
         // Reducing xR should return x
         let x =
             U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
-        let product = x.widening_mul(&Modulus2::ONE);
+        let product = x.widening_mul(&Modulus2::PARAMS.one);
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(
                 &product,
-                &Modulus2::MODULUS,
-                Modulus2::MOD_NEG_INV
+                &Modulus2::PARAMS.modulus,
+                Modulus2::PARAMS.mod_neg_inv()
             ),
             x
         );
@@ -154,20 +151,21 @@ mod tests {
         // Reducing xR^2 should return xR
         let x =
             U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
-        let product = x.widening_mul(&Modulus2::R2);
+        let product = x.widening_mul(&Modulus2::PARAMS.r2);
 
         // Computing xR mod modulus without Montgomery reduction
-        let (lo, hi) = x.widening_mul(&Modulus2::ONE);
+        let (lo, hi) = x.widening_mul(&Modulus2::PARAMS.one);
         let c = lo.concat(&hi);
-        let red = c.rem_vartime(&NonZero::new(Modulus2::MODULUS.0.concat(&U256::ZERO)).unwrap());
+        let red =
+            c.rem_vartime(&NonZero::new(Modulus2::PARAMS.modulus.0.concat(&U256::ZERO)).unwrap());
         let (lo, hi) = red.split();
         assert_eq!(hi, Uint::ZERO);
 
         assert_eq!(
             montgomery_reduction::<{ Modulus2::LIMBS }>(
                 &product,
-                &Modulus2::MODULUS,
-                Modulus2::MOD_NEG_INV
+                &Modulus2::PARAMS.modulus,
+                Modulus2::PARAMS.mod_neg_inv()
             ),
             lo
         );
@@ -181,15 +179,5 @@ mod tests {
 
         // Confirm that when creating a Modular and retrieving the value, that it equals the original
         assert_eq!(x, x_mod.retrieve());
-    }
-
-    #[test]
-    fn test_const_monty_form_macro() {
-        let x =
-            U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
-        assert_eq!(
-            ConstMontyForm::<Modulus2, { Modulus2::LIMBS }>::new(&x),
-            const_monty_form!(x, Modulus2)
-        );
     }
 }

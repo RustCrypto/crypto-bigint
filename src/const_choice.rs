@@ -1,7 +1,8 @@
 use subtle::{Choice, CtOption};
 
 use crate::{
-    Int, Limb, NonZero, NonZeroInt, Odd, OddInt, Uint, WideWord, Word, modular::SafeGcdInverter,
+    Int, Limb, NonZero, NonZeroInt, Odd, OddInt, Uint, WideWord, Word,
+    modular::{ConstMontyForm, ConstMontyParams, SafeGcdInverter},
 };
 
 /// A boolean value returned by constant-time `const fn`s.
@@ -106,12 +107,6 @@ impl ConstChoice {
 
     /// Returns the truthy value if `x == y`, and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn from_u64_eq(x: u64, y: u64) -> Self {
-        Self::from_u64_nonzero(x ^ y).not()
-    }
-
-    /// Returns the truthy value if `x == y`, and the falsy value otherwise.
-    #[inline]
     pub(crate) const fn from_word_eq(x: Word, y: Word) -> Self {
         Self::from_word_nonzero(x ^ y).not()
     }
@@ -162,20 +157,6 @@ impl ConstChoice {
         Self::from_u32_lsb(bit)
     }
 
-    /// Returns the truthy value if `x < y`, and the falsy value otherwise.
-    #[inline]
-    pub(crate) const fn from_u64_lt(x: u64, y: u64) -> Self {
-        // See "Hacker's Delight" 2nd ed, section 2-12 (Comparison predicates)
-        let bit = (((!x) & y) | (((!x) | y) & (x.wrapping_sub(y)))) >> (u64::BITS - 1);
-        Self::from_u64_lsb(bit)
-    }
-
-    /// Returns the truthy value if `x > y`, and the falsy value otherwise.
-    #[inline]
-    pub(crate) const fn from_u64_gt(x: u64, y: u64) -> Self {
-        Self::from_u64_lt(y, x)
-    }
-
     #[inline]
     pub(crate) const fn not(&self) -> Self {
         Self(!self.0)
@@ -223,6 +204,12 @@ impl ConstChoice {
     #[inline]
     pub(crate) const fn select_u32(&self, a: u32, b: u32) -> u32 {
         a ^ (self.as_u32_mask() & (a ^ b))
+    }
+
+    /// Return `b` if `self` is truthy, otherwise return `a`.
+    #[inline]
+    pub(crate) const fn select_i64(&self, a: i64, b: i64) -> i64 {
+        self.select_u64(a as u64, b as u64) as i64
     }
 
     /// Return `b` if `self` is truthy, otherwise return `a`.
@@ -350,8 +337,12 @@ impl<T> ConstCtOption<T> {
 
     /// This returns the underlying value but panics if it is not `Some`.
     #[inline]
+    #[track_caller]
     pub fn unwrap(self) -> T {
-        assert!(self.is_some.is_true_vartime());
+        assert!(
+            self.is_some.is_true_vartime(),
+            "called `ConstCtOption::unwrap()` on a `None` value"
+        );
         self.value
     }
 
@@ -399,6 +390,7 @@ impl<const LIMBS: usize> ConstCtOption<Uint<LIMBS>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[track_caller]
     pub const fn expect(self, msg: &str) -> Uint<LIMBS> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -419,6 +411,7 @@ impl<const LIMBS: usize> ConstCtOption<(Uint<LIMBS>, Uint<LIMBS>)> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[track_caller]
     pub const fn expect(self, msg: &str) -> (Uint<LIMBS>, Uint<LIMBS>) {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -433,6 +426,7 @@ impl<const LIMBS: usize> ConstCtOption<NonZero<Uint<LIMBS>>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[track_caller]
     pub const fn expect(self, msg: &str) -> NonZero<Uint<LIMBS>> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -447,6 +441,7 @@ impl<const LIMBS: usize> ConstCtOption<Odd<Uint<LIMBS>>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[track_caller]
     pub const fn expect(self, msg: &str) -> Odd<Uint<LIMBS>> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -467,6 +462,7 @@ impl<const LIMBS: usize> ConstCtOption<Int<LIMBS>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[track_caller]
     pub const fn expect(self, msg: &str) -> Int<LIMBS> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -481,6 +477,7 @@ impl<const LIMBS: usize> ConstCtOption<NonZeroInt<LIMBS>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[track_caller]
     pub const fn expect(self, msg: &str) -> NonZeroInt<LIMBS> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -495,6 +492,7 @@ impl<const LIMBS: usize> ConstCtOption<OddInt<LIMBS>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[track_caller]
     pub const fn expect(self, msg: &str) -> OddInt<LIMBS> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
@@ -509,15 +507,14 @@ impl ConstCtOption<NonZero<Limb>> {
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
+    #[track_caller]
     pub const fn expect(self, msg: &str) -> NonZero<Limb> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
     }
 }
 
-impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
-    ConstCtOption<SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS>>
-{
+impl<const LIMBS: usize> ConstCtOption<SafeGcdInverter<LIMBS>> {
     /// Returns the contained value, consuming the `self` value.
     ///
     /// # Panics
@@ -525,7 +522,28 @@ impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize>
     /// Panics if the value is none with a custom panic message provided by
     /// `msg`.
     #[inline]
-    pub const fn expect(self, msg: &str) -> SafeGcdInverter<SAT_LIMBS, UNSAT_LIMBS> {
+    #[track_caller]
+    pub const fn expect(self, msg: &str) -> SafeGcdInverter<LIMBS> {
+        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        self.value
+    }
+}
+
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstCtOption<ConstMontyForm<MOD, LIMBS>> {
+    /// This returns the underlying value if it is `Some` or the provided value otherwise.
+    #[inline]
+    pub const fn unwrap_or(self, def: ConstMontyForm<MOD, LIMBS>) -> ConstMontyForm<MOD, LIMBS> {
+        ConstMontyForm::<MOD, LIMBS>::select(&def, &self.value, self.is_some)
+    }
+
+    /// Returns the contained value, consuming the `self` value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value is none with a custom panic message provided by `msg`.
+    #[inline]
+    #[track_caller]
+    pub const fn expect(self, msg: &str) -> ConstMontyForm<MOD, LIMBS> {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
     }

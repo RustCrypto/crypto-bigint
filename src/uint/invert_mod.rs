@@ -1,50 +1,8 @@
 use super::Uint;
-use crate::{
-    ConstChoice, ConstCtOption, InvertMod, Odd, PrecomputeInverter, modular::SafeGcdInverter,
-};
+use crate::{ConstChoice, ConstCtOption, InvertMod, Odd, modular::safegcd};
 use subtle::CtOption;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Computes 1/`self` mod `2^k`.
-    /// This method is variable w.r.t. `self` and `k`.
-    ///
-    /// If the inverse does not exist (`k > 0` and `self` is even),
-    /// returns `ConstChoice::FALSE` as the second element of the tuple,
-    /// otherwise returns `ConstChoice::TRUE`.
-    pub(crate) const fn invert_mod2k_full_vartime(&self, k: u32) -> Option<Self> {
-        // Using the Algorithm 3 from "A Secure Algorithm for Inversion Modulo 2k"
-        // by Sadiel de la Fe and Carles Ferrer.
-        // See <https://www.mdpi.com/2410-387X/2/3/23>.
-
-        // Note that we are not using Alrgorithm 4, since we have a different approach
-        // of enforcing constant-timeness w.r.t. `self`.
-
-        let mut x = Self::ZERO; // keeps `x` during iterations
-        let mut b = Self::ONE; // keeps `b_i` during iterations
-        let mut i = 0;
-
-        // The inverse exists either if `k` is 0 or if `self` is odd.
-        if k != 0 && !self.is_odd().to_bool_vartime() {
-            return None;
-        }
-
-        while i < k {
-            // X_i = b_i mod 2
-            let x_i = b.limbs[0].0 & 1;
-            // b_{i+1} = (b_i - a * X_i) / 2
-            if x_i != 0 {
-                b = b.wrapping_sub(self);
-            }
-            b = b.shr1();
-            // Store the X_i bit in the result (x = x | (1 << X_i))
-            x = x.set_bit_vartime(i, x_i != 0);
-
-            i += 1;
-        }
-
-        Some(x)
-    }
-
     /// Computes 1/`self` mod `2^k`.
     /// This method is constant-time w.r.t. `self` but not `k`.
     ///
@@ -142,12 +100,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         ConstCtOption::new(x, is_some)
     }
-}
 
-impl<const LIMBS: usize, const UNSAT_LIMBS: usize> Uint<LIMBS>
-where
-    Odd<Self>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
-{
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     #[deprecated(since = "0.7.0", note = "please use `invert_odd_mod` instead")]
     pub const fn inv_odd_mod(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
@@ -156,7 +109,12 @@ where
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     pub const fn invert_odd_mod(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
-        SafeGcdInverter::<LIMBS, UNSAT_LIMBS>::new(modulus, &Uint::ONE).invert(self)
+        safegcd::invert_odd_mod::<LIMBS, false>(self, modulus)
+    }
+
+    /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
+    pub const fn invert_odd_mod_vartime(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
+        safegcd::invert_odd_mod::<LIMBS, true>(self, modulus)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`.
@@ -208,10 +166,7 @@ where
     }
 }
 
-impl<const LIMBS: usize, const UNSAT_LIMBS: usize> InvertMod for Uint<LIMBS>
-where
-    Odd<Self>: PrecomputeInverter<Inverter = SafeGcdInverter<LIMBS, UNSAT_LIMBS>>,
-{
+impl<const LIMBS: usize> InvertMod for Uint<LIMBS> {
     type Output = Self;
 
     fn invert_mod(&self, modulus: &Self) -> CtOption<Self> {
@@ -359,5 +314,39 @@ mod tests {
 
         let res = a.invert_odd_mod(&m);
         assert!(res.is_none().is_true_vartime());
+    }
+
+    #[test]
+    fn test_invert_edge() {
+        assert!(
+            U256::ZERO
+                .invert_odd_mod(&U256::ONE.to_odd().unwrap())
+                .is_none()
+                .to_bool_vartime()
+        );
+        assert_eq!(
+            U256::ONE
+                .invert_odd_mod(&U256::ONE.to_odd().unwrap())
+                .unwrap(),
+            U256::ZERO
+        );
+        assert_eq!(
+            U256::ONE
+                .invert_odd_mod(&U256::MAX.to_odd().unwrap())
+                .unwrap(),
+            U256::ONE
+        );
+        assert!(
+            U256::MAX
+                .invert_odd_mod(&U256::MAX.to_odd().unwrap())
+                .is_none()
+                .to_bool_vartime()
+        );
+        assert_eq!(
+            U256::MAX
+                .invert_odd_mod(&U256::ONE.to_odd().unwrap())
+                .unwrap(),
+            U256::ZERO
+        );
     }
 }

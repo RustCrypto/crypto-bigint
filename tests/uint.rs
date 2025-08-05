@@ -4,7 +4,7 @@ mod common;
 
 use common::to_biguint;
 use crypto_bigint::{
-    Encoding, Integer, Limb, NonZero, Odd, U256, U4096, U8192, Uint, Word,
+    Encoding, Gcd, Integer, Limb, NonZero, Odd, U256, U4096, U8192, Uint, Word,
     modular::{MontyForm, MontyParams},
 };
 use num_bigint::BigUint;
@@ -211,12 +211,14 @@ proptest! {
         let p_bi = to_biguint(&P);
 
         let expected = to_uint((a_bi * b_bi) % p_bi);
-        let actual = a.mul_mod_vartime(&b, P.as_nz_ref());
+        let actual = a.mul_mod(&b, P.as_nz_ref());
 
         prop_assert!(expected < P);
         prop_assert!(actual < P);
 
         prop_assert_eq!(expected, actual);
+        let actual_vartime = a.mul_mod_vartime(&b, P.as_nz_ref());
+        prop_assert_eq!(expected, actual_vartime);
     }
 
     #[test]
@@ -311,7 +313,6 @@ proptest! {
         }
     }
 
-
     #[test]
     fn rem_wide(a in uint(), b in uint(), c in uint()) {
         let ab_bi = to_biguint(&a) * to_biguint(&b);
@@ -321,8 +322,10 @@ proptest! {
             let expected = to_uint(ab_bi.div_rem(&c_bi).1);
             let (lo, hi) = a.widening_mul(&b);
             let c_nz = NonZero::new(c).unwrap();
-            let actual = Uint::rem_wide_vartime((lo, hi), &c_nz);
+            let actual = Uint::rem_wide((lo, hi), &c_nz);
             prop_assert_eq!(expected, actual);
+            let actual_vartime = Uint::rem_wide_vartime((lo, hi), &c_nz);
+            prop_assert_eq!(expected, actual_vartime);
         }
     }
 

@@ -81,8 +81,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
         *product_abs.wrapping_neg_if(lhs_sign).as_int()
     }
 
-    /// Checked multiplication of self with an `Uint<RHS_LIMBS>`, where the result is to be stored
-    /// in an `Int<RHS_LIMBS>`.
+    /// Checked multiplication of self with an [`Uint<RHS_LIMBS>`], where the result is to be stored
+    /// in an [`Int<RHS_LIMBS>`].
     #[deprecated(since = "0.7.0", note = "please use `Uint::checked_mul(_int)` instead")]
     pub fn checked_mul_uint_right<const RHS_LIMBS: usize>(
         &self,

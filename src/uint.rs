@@ -17,8 +17,7 @@ pub(crate) use ref_type::UintRef;
 
 use crate::{
     Bounded, ConstChoice, ConstCtOption, ConstZero, Constants, Encoding, FixedInteger, Int,
-    Integer, Limb, NonZero, Odd, PrecomputeInverter, PrecomputeInverterWithAdjuster, Word,
-    modular::{MontyForm, SafeGcdInverter},
+    Integer, Limb, NonZero, Odd, Word, modular::MontyForm,
 };
 
 #[macro_use]
@@ -26,7 +25,6 @@ mod macros;
 
 mod add;
 mod add_mod;
-pub(crate) mod bingcd;
 mod bit_and;
 mod bit_not;
 mod bit_or;
@@ -38,7 +36,7 @@ mod div;
 pub(crate) mod div_limb;
 pub(crate) mod encoding;
 mod from;
-mod gcd;
+pub(crate) mod gcd;
 mod invert_mod;
 pub(crate) mod mul;
 mod mul_mod;
@@ -223,7 +221,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
     }
 
-    /// Convert this type into an [`Int`]; returns `None` if this value is greater than `Int::MAX`.
+    /// Convert this type into an [`Int`]; returns `None` if this value is greater than [`Int::MAX`].
     ///
     /// Note: this is the conversion operation. See [`Self::as_int`] for the unchecked equivalent.
     pub const fn try_into_int(self) -> ConstCtOption<Int<LIMBS>> {

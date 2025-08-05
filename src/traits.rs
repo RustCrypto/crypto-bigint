@@ -1,12 +1,8 @@
 //! Traits provided by this crate
 
-mod sealed;
-
 pub use num_traits::{
     ConstZero, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr, WrappingSub,
 };
-
-pub(crate) use sealed::PrecomputeInverterWithAdjuster;
 
 use crate::{Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
 use core::fmt::{self, Debug};
@@ -218,34 +214,16 @@ pub trait Gcd<Rhs = Self>: Sized {
     fn gcd_vartime(&self, rhs: &Rhs) -> Self::Output;
 }
 
-/// Trait impl'd by precomputed modular inverters obtained via the [`PrecomputeInverter`] trait.
-pub trait Inverter {
-    /// Output of an inversion.
+/// Compute the extended greatest common divisor of two integers.
+pub trait Xgcd<Rhs = Self>: Sized {
+    /// Output type.
     type Output;
 
-    /// Compute a modular inversion, returning `None` if the result is undefined (i.e. if `value` is
-    /// zero or isn't prime relative to the modulus).
-    fn invert(&self, value: &Self::Output) -> CtOption<Self::Output>;
+    /// Compute the extended greatest common divisor of `self` and `rhs`.
+    fn xgcd(&self, rhs: &Rhs) -> Self::Output;
 
-    /// Compute a modular inversion, returning `None` if the result is undefined (i.e. if `value` is
-    /// zero or isn't prime relative to the modulus).
-    ///
-    /// This version is variable-time with respect to `value`.
-    fn invert_vartime(&self, value: &Self::Output) -> CtOption<Self::Output>;
-}
-
-/// Obtain a precomputed inverter for efficiently computing modular inversions for a given modulus.
-pub trait PrecomputeInverter {
-    /// Inverter type for integers of this size.
-    type Inverter: Inverter<Output = Self::Output> + Sized;
-
-    /// Output produced by the inverter.
-    type Output;
-
-    /// Obtain a precomputed inverter for `&self` as the modulus, using `Self::one()` as an adjusting parameter.
-    ///
-    /// Returns `None` if `self` is even.
-    fn precompute_inverter(&self) -> Self::Inverter;
+    /// Compute the extended greatest common divisor of `self` and `rhs` in variable time.
+    fn xgcd_vartime(&self, rhs: &Rhs) -> Self::Output;
 }
 
 /// Zero values.
@@ -685,6 +663,17 @@ pub trait DivRemLimb: Sized {
 pub trait RemMixed<Reductor>: Sized {
     /// Calculate the remainder of `self` by the `reductor`.
     fn rem_mixed(&self, reductor: &NonZero<Reductor>) -> Reductor;
+}
+
+/// Modular reduction from a larger value `T`.
+///
+/// This can be seen as fixed modular reduction, where the modulus is fixed at compile time
+/// by `Self`.
+///
+/// For modular reduction with a variable modulus, use [`Rem`].
+pub trait Reduce<T>: Sized {
+    /// Reduces `self` modulo `Modulus`.
+    fn reduce(value: &T) -> Self;
 }
 
 /// Division in variable time.
