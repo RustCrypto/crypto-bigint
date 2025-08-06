@@ -1114,7 +1114,7 @@ impl<const LIMBS: usize> RemLimb for Uint<LIMBS> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        DivVartime, Limb, NonZero, RemMixed, U64, U128, U256, U896, U1024, Uint, Word, Zero,
+        DivVartime, Limb, NonZero, RemMixed, U64, U128, U256, U512, U896, U1024, Uint, Word, Zero,
     };
 
     #[cfg(feature = "rand")]
@@ -1386,6 +1386,29 @@ mod tests {
         assert_eq!(rem.as_words(), &rem_control.as_words()[0..U128::LIMBS]);
         assert!(
             rem_control.as_words()[U128::LIMBS..]
+                .iter()
+                .all(|w| *w == 0)
+        );
+    }
+
+    #[test]
+    fn rem_mixed_even() {
+        let x = U1024::from_be_hex(concat![
+            "3740C11DB8F260753BC6B97DD2B8746D3E2694412772AC6ABD975119EE0A6190",
+            "F27F6F0969BCA069D8D151031AF83EE2283CC2E3E4FADBBDB9EEDBF0B8F4C1FD",
+            "51912C0D329FDC37D49176DB0A1A2D17E5E6D4F9F6B217FE9412EAA2F881F702",
+            "7A831C1B06D31D3618D218D6E667DBD85BFC7B6B6B93422D52516989376AA29A",
+        ]);
+        let y = U512::from_u64(1234567890987654321);
+        let rem: U512 = x.rem_mixed(&y.to_nz().unwrap());
+
+        let y_wide = U512::concat_mixed(&y, &U512::ZERO);
+        let rem_control: U1024 = x.rem(&NonZero::new(y_wide).unwrap());
+
+        assert_eq!(rem.bits(), rem_control.bits());
+        assert_eq!(rem.as_words(), &rem_control.as_words()[0..U512::LIMBS]);
+        assert!(
+            rem_control.as_words()[U512::LIMBS..]
                 .iter()
                 .all(|w| *w == 0)
         );

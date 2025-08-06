@@ -22,11 +22,13 @@ _The below list is very much incomplete._
 
 ### Changed
 - Make `as_limbs_mut` const ([#757])
+- Impl `RemMixed` for even splits as well ([#791])
 - Make `Integer` be fmt::Binary, LowerHex and UpperHex ([#792])
-
+-
 [#757]: https://github.com/RustCrypto/crypto-bigint/pull/757
 [#760]: https://github.com/RustCrypto/crypto-bigint/pull/760
-[#792]: https://github.com/RustCrypto/crypto-bigint/pull/792
+[#791]: https://github.com/RustCrypto/crypto-bigint/pull/791
+[#792]:https://github.com/RustCrypto/crypto-bigint/pull/792
 
 ## 0.6.0 (2025-01-22)
 ### Added
