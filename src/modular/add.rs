@@ -5,7 +5,7 @@ pub(crate) const fn add_montgomery_form<const LIMBS: usize>(
     b: &Uint<LIMBS>,
     modulus: &Odd<Uint<LIMBS>>,
 ) -> Uint<LIMBS> {
-    a.add_mod(b, &modulus.0)
+    a.add_mod(b, modulus.as_nz_ref())
 }
 
 pub(crate) const fn double_montgomery_form<const LIMBS: usize>(

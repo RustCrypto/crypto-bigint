@@ -171,7 +171,7 @@ proptest! {
         let p_bi = to_biguint(&P);
 
         let expected = to_uint((a_bi + b_bi) % p_bi);
-        let actual = a.add_mod(&b, &P);
+        let actual = a.add_mod(&b, P.as_nz_ref());
 
         prop_assert!(expected < P);
         prop_assert!(actual < P);
@@ -193,7 +193,7 @@ proptest! {
         let p_bi = to_biguint(&P);
 
         let expected = to_uint((a_bi - b_bi) % p_bi);
-        let actual = a.sub_mod(&b, &P);
+        let actual = a.sub_mod(&b, P.as_nz_ref());
 
         prop_assert!(expected < P);
         prop_assert!(actual < P);

@@ -55,8 +55,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 impl<const LIMBS: usize> MulMod for Uint<LIMBS> {
     type Output = Self;
 
-    fn mul_mod(&self, rhs: &Self, p: &Self) -> Self {
-        self.mul_mod_vartime(rhs, &NonZero::new(*p).expect("p should be non-zero"))
+    fn mul_mod(&self, rhs: &Self, p: &NonZero<Self>) -> Self {
+        self.mul_mod(rhs, p)
     }
 }
 

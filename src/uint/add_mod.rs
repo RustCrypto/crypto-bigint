@@ -1,22 +1,22 @@
 //! [`Uint`] modular addition operations.
 
-use crate::{AddMod, Limb, Uint};
+use crate::{AddMod, Limb, NonZero, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self + rhs mod p`.
     ///
     /// Assumes `self + rhs` as unbounded integer is `< 2p`.
-    pub const fn add_mod(&self, rhs: &Self, p: &Self) -> Self {
+    pub const fn add_mod(&self, rhs: &Self, p: &NonZero<Self>) -> Self {
         let (w, carry) = self.carrying_add(rhs, Limb::ZERO);
 
         // Attempt to subtract the modulus, to ensure the result is in the field.
-        let (w, borrow) = w.borrowing_sub(p, Limb::ZERO);
+        let (w, borrow) = w.borrowing_sub(p.as_ref(), Limb::ZERO);
         let (_, mask) = carry.borrowing_sub(Limb::ZERO, borrow);
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the
         // modulus.
-        w.wrapping_add(&p.bitand_limb(mask))
+        w.wrapping_add(&p.as_ref().bitand_limb(mask))
     }
 
     /// Computes `self + rhs mod p` for the special modulus
@@ -54,9 +54,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 impl<const LIMBS: usize> AddMod for Uint<LIMBS> {
     type Output = Self;
 
-    fn add_mod(&self, rhs: &Self, p: &Self) -> Self {
-        debug_assert!(self < p);
-        debug_assert!(rhs < p);
+    fn add_mod(&self, rhs: &Self, p: &NonZero<Self>) -> Self {
+        debug_assert!(self < p.as_ref());
+        debug_assert!(rhs < p.as_ref());
         self.add_mod(rhs, p)
     }
 }
@@ -73,7 +73,9 @@ mod tests {
         let b =
             U256::from_be_hex("d5777c45019673125ad240f83094d4252d829516fac8601ed01979ec1ec1a251");
         let n =
-            U256::from_be_hex("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551");
+            U256::from_be_hex("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551")
+                .to_nz()
+                .unwrap();
 
         let actual = a.add_mod(&b, &n);
         let expected =
@@ -87,7 +89,9 @@ mod tests {
         let a =
             U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
         let n =
-            U256::from_be_hex("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551");
+            U256::from_be_hex("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551")
+                .to_nz()
+                .unwrap();
 
         assert_eq!(a.add_mod(&a, &n), a.double_mod(&n));
     }
