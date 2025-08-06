@@ -55,7 +55,7 @@ impl BoxedMontyParams {
             .wrapping_add(&BoxedUint::one());
 
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
-        let r2 = one.square().rem(modulus.as_nz_ref());
+        let r2 = one.square_mod(modulus.as_nz_ref());
 
         // The inverse of the modulus modulo 2**64
         let mod_inv = U64::from_u64(invert_mod_u64(modulus.as_ref().as_words()));
@@ -88,7 +88,7 @@ impl BoxedMontyParams {
             .wrapping_add(&BoxedUint::one());
 
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
-        let r2 = one.square().rem_vartime(modulus.as_nz_ref());
+        let r2 = one.square_mod_vartime(modulus.as_nz_ref());
 
         // The inverse of the modulus modulo 2**64
         let mod_inv = U64::from_u64(invert_mod_u64(modulus.as_ref().as_words()));

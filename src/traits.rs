@@ -141,6 +141,7 @@ pub trait Integer:
     + Shr<u32, Output = Self>
     + ShrAssign<u32>
     + ShrVartime
+    + SquareMod<Output = Self>
     + Sub<Output = Self>
     + for<'a> Sub<&'a Self, Output = Self>
     + SubAssign<Self>
@@ -466,6 +467,15 @@ pub trait MulMod<Rhs = Self, Mod = NonZero<Self>> {
 
     /// Compute `self * rhs mod p`.
     fn mul_mod(&self, rhs: &Rhs, p: &Mod) -> Self::Output;
+}
+
+/// Compute `self * self mod p`.
+pub trait SquareMod<Mod = NonZero<Self>> {
+    /// Output type.
+    type Output;
+
+    /// Compute `self * self mod p`.
+    fn square_mod(&self, p: &Mod) -> Self::Output;
 }
 
 /// Compute `1 / self mod p`.

@@ -1,6 +1,6 @@
 //! [`BoxedUint`] modular multiplication operations.
 
-use crate::{BoxedUint, Limb, MulMod, NonZero, WideWord, Word, div_limb::mul_rem};
+use crate::{BoxedUint, Limb, MulMod, NonZero, SquareMod, WideWord, Word, div_limb::mul_rem};
 
 impl BoxedUint {
     /// Computes `self * rhs mod p` for non-zero `p`.
@@ -48,6 +48,16 @@ impl BoxedUint {
 
         lo
     }
+
+    /// Computes `self * self mod p`.
+    pub fn square_mod(&self, p: &NonZero<BoxedUint>) -> Self {
+        self.square().rem(p)
+    }
+
+    /// Computes `self * self mod p` in variable time with respect to `p`.
+    pub fn square_mod_vartime(&self, p: &NonZero<BoxedUint>) -> Self {
+        self.square().rem_vartime(p)
+    }
 }
 
 impl MulMod for BoxedUint {
@@ -55,6 +65,14 @@ impl MulMod for BoxedUint {
 
     fn mul_mod(&self, rhs: &Self, p: &NonZero<Self>) -> Self {
         self.mul_mod(rhs, p)
+    }
+}
+
+impl SquareMod for BoxedUint {
+    type Output = Self;
+
+    fn square_mod(&self, p: &NonZero<Self>) -> Self {
+        self.square_mod(p)
     }
 }
 
