@@ -1,30 +1,11 @@
 //! [`BoxedUint`] modular multiplication operations.
 
-use crate::{
-    BoxedUint, Limb, MulMod, NonZero, Odd, WideWord, Word,
-    div_limb::mul_rem,
-    modular::{BoxedMontyForm, BoxedMontyParams},
-};
+use crate::{BoxedUint, Limb, MulMod, NonZero, WideWord, Word, div_limb::mul_rem};
 
 impl BoxedUint {
-    /// Computes `self * rhs mod p` for odd `p`.
+    /// Computes `self * rhs mod p` for non-zero `p`.
     pub fn mul_mod(&self, rhs: &BoxedUint, p: &NonZero<BoxedUint>) -> BoxedUint {
-        // NOTE: the overhead of converting to Montgomery form to perform this operation and then
-        // immediately converting out of Montgomery form after just a single operation is likely to
-        // be higher than other possible implementations of this function, such as using a
-        // Barrett reduction instead.
-        //
-        // It's worth potentially exploring other approaches to improve efficiency.
-        match Odd::new(p.as_ref().clone()).into() {
-            Some(p) => {
-                let params = BoxedMontyParams::new(p);
-                let lhs = BoxedMontyForm::new(self.clone(), params.clone());
-                let rhs = BoxedMontyForm::new(rhs.clone(), params);
-                let ret = lhs * rhs;
-                ret.retrieve()
-            }
-            None => todo!("even moduli are currently unsupported"),
-        }
+        self.mul(rhs).rem(p)
     }
 
     /// Computes `self * rhs mod p` for the special modulus
