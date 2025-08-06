@@ -432,12 +432,15 @@ proptest! {
     }
 
     #[test]
-    fn invert_mod(a in uint(), b in uint()) {
+    fn invert_mod(a in uint(), mut b in uint()) {
+        if b.is_zero() {
+            b = Uint::ONE;
+        }
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
 
         let expected_is_some = a_bi.gcd(&b_bi) == BigUint::one();
-        let actual = a.invert_mod(&b);
+        let actual = a.invert_mod(&b.to_nz().unwrap());
         let actual_is_some = bool::from(actual.is_some());
 
         prop_assert_eq!(expected_is_some, actual_is_some);

@@ -21,14 +21,14 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Computes the multiplicative inverse of `self` mod `modulus`.
     ///
     /// Returns some if an inverse exists, otherwise none.
-    pub const fn invert_mod(&self, modulus: &Uint<LIMBS>) -> ConstCtOption<Uint<LIMBS>> {
+    pub const fn invert_mod(&self, modulus: &NonZero<Uint<LIMBS>>) -> ConstCtOption<Uint<LIMBS>> {
         let (abs, sgn) = self.abs_sign();
         let maybe_inv = abs.invert_mod(modulus);
         let (abs_inv, inv_is_some) = maybe_inv.components_ref();
         // Note: when `self` is negative and modulus is non-zero, then
         // self^{-1} % modulus = modulus - |self|^{-1} % modulus
         ConstCtOption::new(
-            Uint::select(abs_inv, &modulus.wrapping_sub(abs_inv), sgn),
+            Uint::select(abs_inv, &modulus.as_ref().wrapping_sub(abs_inv), sgn),
             inv_is_some,
         )
     }
@@ -41,7 +41,7 @@ where
     type Output = Uint<LIMBS>;
 
     fn invert_mod(&self, modulus: &NonZero<Uint<LIMBS>>) -> CtOption<Self::Output> {
-        Self::invert_mod(self, modulus.as_ref()).into()
+        Self::invert_mod(self, modulus).into()
     }
 }
 

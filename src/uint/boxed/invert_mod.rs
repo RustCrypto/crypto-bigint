@@ -1,6 +1,6 @@
 //! [`BoxedUint`] modular inverse (i.e. reciprocal) operations.
 
-use crate::{BoxedUint, ConstantTimeSelect, Integer, InvertMod, Odd, modular::safegcd};
+use crate::{BoxedUint, ConstantTimeSelect, Integer, InvertMod, NonZero, Odd, modular::safegcd};
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
 impl BoxedUint {
@@ -117,7 +117,17 @@ impl BoxedUint {
     /// TODO: maybe some better documentation is needed
     #[deprecated(since = "0.7.0", note = "please use `invert_mod` instead")]
     pub fn inv_mod(&self, modulus: &Self) -> CtOption<Self> {
-        self.invert_mod(modulus)
+        let is_nz = modulus.is_nonzero();
+        let m = NonZero(Self::ct_select(
+            &Self::one_with_precision(self.bits_precision()),
+            modulus,
+            is_nz,
+        ));
+        let inv_mod_s = self.invert_mod(&m);
+        let is_some = inv_mod_s.is_some();
+        let result =
+            Option::from(inv_mod_s).unwrap_or(Self::zero_with_precision(self.bits_precision()));
+        CtOption::new(result, is_some & is_nz)
     }
 
     /// Computes the multiplicaitve inverse of `self` mod `modulus`
@@ -125,14 +135,13 @@ impl BoxedUint {
     /// `self` and `modulus` must have the same number of limbs, or the function will panic
     ///
     /// TODO: maybe some better documentation is needed
-    pub fn invert_mod(&self, modulus: &Self) -> CtOption<Self> {
+    pub fn invert_mod(&self, modulus: &NonZero<Self>) -> CtOption<Self> {
         debug_assert_eq!(self.bits_precision(), modulus.bits_precision());
         let k = modulus.trailing_zeros();
-        let (s, _overflowed) = modulus.overflowing_shr(k);
+        let s = Odd(modulus.shr(k));
 
-        let s_is_odd = s.is_odd();
-        let inv_mod_s = self.invert_odd_mod(&Odd(s.clone()));
-        let invertible_mod_s = inv_mod_s.is_some() & s_is_odd;
+        let inv_mod_s = self.invert_odd_mod(&s);
+        let invertible_mod_s = inv_mod_s.is_some();
         // NOTE: this is some strange acrobatics to get around BoxedUint not supporting
         // ConditionallySelectable
         let inv_mod_s =
@@ -142,8 +151,7 @@ impl BoxedUint {
         let is_some = invertible_mod_s & invertible_mod_2k;
 
         let (s_inverse_mod2k, _) = s.invert_mod2k(k);
-        let (shifted, _overflowed) =
-            BoxedUint::one_with_precision(self.bits_precision()).overflowing_shl(k);
+        let shifted = BoxedUint::one_with_precision(self.bits_precision()).shl(k);
         let mask = shifted.wrapping_sub(&BoxedUint::one_with_precision(self.bits_precision()));
         let t = inverse_mod2k
             .wrapping_sub(&inv_mod_s)
@@ -158,7 +166,7 @@ impl BoxedUint {
 impl InvertMod for BoxedUint {
     type Output = Self;
 
-    fn invert_mod(&self, modulus: &Self) -> CtOption<Self> {
+    fn invert_mod(&self, modulus: &NonZero<Self>) -> CtOption<Self> {
         self.invert_mod(modulus)
     }
 }
@@ -237,7 +245,7 @@ mod tests {
         .unwrap();
         assert_eq!(a.invert_odd_mod(&m).unwrap(), expected);
 
-        assert_eq!(a.invert_mod(&m).unwrap(), expected);
+        assert_eq!(a.invert_mod(m.as_nz_ref()).unwrap(), expected);
     }
 
     #[test]
@@ -284,6 +292,8 @@ mod tests {
             ],
             1024,
         )
+        .unwrap()
+        .to_nz()
         .unwrap();
         let expected = BoxedUint::from_be_hex(
             concat![

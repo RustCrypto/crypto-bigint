@@ -1,5 +1,5 @@
 use super::Uint;
-use crate::{ConstChoice, ConstCtOption, InvertMod, Odd, modular::safegcd};
+use crate::{ConstChoice, ConstCtOption, InvertMod, NonZero, Odd, modular::safegcd};
 use subtle::CtOption;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -122,21 +122,22 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Returns some if an inverse exists, otherwise none.
     #[deprecated(since = "0.7.0", note = "please use `invert_mod` instead")]
     pub const fn inv_mod(&self, modulus: &Self) -> ConstCtOption<Self> {
-        self.invert_mod(modulus)
+        let is_nz = modulus.is_nonzero();
+        let m = NonZero(Uint::select(&Uint::ONE, modulus, is_nz));
+        self.invert_mod(&m).and_choice(is_nz)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`.
     ///
     /// Returns some if an inverse exists, otherwise none.
-    pub const fn invert_mod(&self, modulus: &Self) -> ConstCtOption<Self> {
+    pub const fn invert_mod(&self, modulus: &NonZero<Self>) -> ConstCtOption<Self> {
         // Decompose `modulus = s * 2^k` where `s` is odd
-        let k = modulus.trailing_zeros();
-        let s = modulus.overflowing_shr(k).unwrap_or(Self::ZERO);
+        let k = modulus.as_ref().trailing_zeros();
+        let s = Odd(modulus.as_ref().shr(k));
 
         // Decompose `self` into RNS with moduli `2^k` and `s` and calculate the inverses.
         // Using the fact that `(z^{-1} mod (m1 * m2)) mod m1 == z^{-1} mod m1`
-        let s_is_odd = s.is_odd();
-        let maybe_a = self.invert_odd_mod(&Odd(s)).and_choice(s_is_odd);
+        let maybe_a = self.invert_odd_mod(&s);
 
         let maybe_b = self.invert_mod2k(k);
         let is_some = maybe_a.is_some().and(maybe_b.is_some());
@@ -152,16 +153,16 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // (essentially one step of the Garner's algorithm for recovery from RNS).
 
         // `s` is odd, so this always exists
-        let m_odd_inv = s.invert_mod2k(k).expect("inverse mod 2^k exists");
+        let m_odd_inv = s.as_ref().invert_mod2k(k).expect("inverse mod 2^k exists");
 
         // This part is mod 2^k
-        let shifted = Uint::ONE.overflowing_shl(k).unwrap_or(Self::ZERO);
+        let shifted = Uint::ONE.shl(k);
         let mask = shifted.wrapping_sub(&Uint::ONE);
         let t = (b.wrapping_sub(&a).wrapping_mul(&m_odd_inv)).bitand(&mask);
 
         // Will not overflow since `a <= s - 1`, `t <= 2^k - 1`,
         // so `a + s * t <= s * 2^k - 1 == modulus - 1`.
-        let result = a.wrapping_add(&s.wrapping_mul(&t));
+        let result = a.wrapping_add(&s.as_ref().wrapping_mul(&t));
         ConstCtOption::new(result, is_some)
     }
 }
@@ -169,7 +170,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 impl<const LIMBS: usize> InvertMod for Uint<LIMBS> {
     type Output = Self;
 
-    fn invert_mod(&self, modulus: &Self) -> CtOption<Self> {
+    fn invert_mod(&self, modulus: &NonZero<Self>) -> CtOption<Self> {
         self.invert_mod(modulus).into()
     }
 }
@@ -253,7 +254,7 @@ mod tests {
         assert_eq!(res, expected);
 
         // Even though it is less efficient, it still works
-        let res = a.invert_mod(&m).unwrap();
+        let res = a.invert_mod(m.as_nz_ref()).unwrap();
         assert_eq!(res, expected);
     }
 
@@ -286,7 +287,9 @@ mod tests {
             "37BFE27A9AC9EEA2969B357ABC5C0EE214BE16A7D4C58FC620D5B5A20AFF001A",
             "D198D3155E5799DC4EA76652D64983A7E130B5EACEBAC768D28D589C36EC749C",
             "558D0B64E37CD0775C0D0104AE7D98BA23C815185DD43CD8B16292FD94156000"
-        ]);
+        ])
+        .to_nz()
+        .unwrap();
         let expected = U1024::from_be_hex(concat![
             "1EBF391306817E1BC610E213F4453AD70911CCBD59A901B2A468A4FC1D64F357",
             "DBFC6381EC5635CAA664DF280028AF4651482C77A143DF38D6BFD4D64B6C0225",

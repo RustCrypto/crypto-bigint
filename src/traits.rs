@@ -491,7 +491,7 @@ where
 }
 
 /// Compute `1 / self mod p`.
-pub trait InvertMod<Mod = Self>: Sized {
+pub trait InvertMod<Mod = NonZero<Self>>: Sized {
     /// Output type.
     type Output;
 

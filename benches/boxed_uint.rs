@@ -281,10 +281,14 @@ fn bench_invert(c: &mut Criterion) {
     group.bench_function("invert_mod", |b| {
         b.iter_batched(
             || {
-                (
+                let (x, mut y) = (
                     BoxedUint::random_bits(&mut OsRng, UINT_BITS),
                     BoxedUint::random_bits(&mut OsRng, UINT_BITS),
-                )
+                );
+                if y.is_zero().into() {
+                    y = BoxedUint::one();
+                }
+                (x, y.to_nz().unwrap())
             },
             |(x, y)| black_box(x.invert_mod(&y)),
             BatchSize::SmallInput,
