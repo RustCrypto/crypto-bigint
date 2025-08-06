@@ -7,7 +7,9 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Negates the number.
     pub const fn neg(&self) -> Self {
         Self {
-            montgomery_form: self.montgomery_form.neg_mod(self.params.modulus.as_ref()),
+            montgomery_form: self
+                .montgomery_form
+                .neg_mod(self.params.modulus.as_nz_ref()),
             params: self.params,
         }
     }

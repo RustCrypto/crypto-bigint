@@ -12,7 +12,7 @@ impl BoxedMontyForm {
         Self {
             montgomery_form: self
                 .montgomery_form
-                .sub_mod(&rhs.montgomery_form, self.params.modulus()),
+                .sub_mod(&rhs.montgomery_form, self.params.modulus().as_nz_ref()),
             params: self.params.clone(),
         }
     }

@@ -1,13 +1,13 @@
 //! [`Uint`] modular negation operations.
 
-use crate::{Limb, NegMod, Uint};
+use crate::{Limb, NegMod, NonZero, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `-a mod p`.
     /// Assumes `self` is in `[0, p)`.
-    pub const fn neg_mod(&self, p: &Self) -> Self {
+    pub const fn neg_mod(&self, p: &NonZero<Self>) -> Self {
         let z = self.is_nonzero();
-        let mut ret = p.borrowing_sub(self, Limb::ZERO).0;
+        let mut ret = p.as_ref().borrowing_sub(self, Limb::ZERO).0;
         let mut i = 0;
         while i < LIMBS {
             // Set ret to 0 if the original value was 0, in which
@@ -28,8 +28,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 impl<const LIMBS: usize> NegMod for Uint<LIMBS> {
     type Output = Self;
 
-    fn neg_mod(&self, p: &Self) -> Self {
-        debug_assert!(self < p);
+    fn neg_mod(&self, p: &NonZero<Self>) -> Self {
+        debug_assert!(self < p.as_ref());
         self.neg_mod(p)
     }
 }
@@ -43,7 +43,9 @@ mod tests {
         let x =
             U256::from_be_hex("8d16e171674b4e6d8529edba4593802bf30b8cb161dd30aa8e550d41380007c2");
         let p =
-            U256::from_be_hex("928334a4e4be0843ec225a4c9c61df34bdc7a81513e4b6f76f2bfa3148e2e1b5");
+            U256::from_be_hex("928334a4e4be0843ec225a4c9c61df34bdc7a81513e4b6f76f2bfa3148e2e1b5")
+                .to_nz()
+                .unwrap();
 
         let actual = x.neg_mod(&p);
         let expected =
@@ -57,7 +59,9 @@ mod tests {
         let x =
             U256::from_be_hex("0000000000000000000000000000000000000000000000000000000000000000");
         let p =
-            U256::from_be_hex("928334a4e4be0843ec225a4c9c61df34bdc7a81513e4b6f76f2bfa3148e2e1b5");
+            U256::from_be_hex("928334a4e4be0843ec225a4c9c61df34bdc7a81513e4b6f76f2bfa3148e2e1b5")
+                .to_nz()
+                .unwrap();
 
         let actual = x.neg_mod(&p);
         let expected =

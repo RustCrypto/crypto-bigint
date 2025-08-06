@@ -192,7 +192,7 @@ proptest! {
         let n_bi = to_biguint(&n);
 
         let expected = to_uint((a_bi * b_bi) % n_bi);
-        let actual = a.mul_mod(&b, &n);
+        let actual = a.mul_mod(&b, n.as_nz_ref());
         prop_assert_eq!(expected, actual);
     }
 

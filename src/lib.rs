@@ -97,10 +97,10 @@
 //! [`Rem`] trait when used with a [`NonZero`] operand.
 //!
 //! ```
-//! use crypto_bigint::{AddMod, U256};
+//! use crypto_bigint::{AddMod, NonZero, U256};
 //!
 //! // mod 3
-//! let modulus = U256::from(3u8);
+//! let modulus = NonZero::new(U256::from(3u8)).expect("non-zero");
 //!
 //! // 1 + 1 mod 3 = 2
 //! let a = U256::ONE.add_mod(&U256::ONE, &modulus);

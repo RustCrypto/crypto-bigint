@@ -575,7 +575,7 @@ fn bench_invert_mod(c: &mut Criterion) {
                     }
                 }
             },
-            |(x, m)| black_box(x.invert_mod(&m)),
+            |(x, m)| black_box(x.invert_mod(m.as_nz_ref())),
             BatchSize::SmallInput,
         )
     });
@@ -583,7 +583,7 @@ fn bench_invert_mod(c: &mut Criterion) {
     group.bench_function("invert_mod, U256", |b| {
         b.iter_batched(
             || {
-                let m = U256::random(&mut rng);
+                let m = NonZero::<U256>::random(&mut rng);
                 loop {
                     let x = U256::random(&mut rng);
                     let inv_x = x.invert_mod(&m);

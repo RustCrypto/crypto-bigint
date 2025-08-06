@@ -74,7 +74,7 @@ proptest! {
         let p_bi = to_biguint(&P);
 
         let expected_is_some = x_bi.gcd(&p_bi) == BigUint::one();
-        let actual = x.invert_mod(&p);
+        let actual = x.invert_mod(p.as_nz_ref());
 
         prop_assert_eq!(expected_is_some, bool::from(actual.is_some()));
 
@@ -84,7 +84,7 @@ proptest! {
             prop_assert_eq!(res, BigUint::one());
 
             // check vartime implementation equivalence
-            let actual_vartime = x.invert_mod(&p).unwrap();
+            let actual_vartime = x.invert_mod(p.as_nz_ref()).unwrap();
             prop_assert_eq!(actual, actual_vartime);
         }
     }

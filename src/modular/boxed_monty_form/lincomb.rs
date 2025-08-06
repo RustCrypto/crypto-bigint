@@ -50,9 +50,9 @@ mod tests {
             let f = BoxedUint::random_mod(&mut rng, modulus.as_nz_ref());
 
             let std = a
-                .mul_mod(&b, &modulus)
-                .add_mod(&c.mul_mod(&d, &modulus), &modulus)
-                .add_mod(&e.mul_mod(&f, &modulus), &modulus);
+                .mul_mod(&b, modulus.as_nz_ref())
+                .add_mod(&c.mul_mod(&d, modulus.as_nz_ref()), modulus.as_nz_ref())
+                .add_mod(&e.mul_mod(&f, modulus.as_nz_ref()), modulus.as_nz_ref());
 
             let lincomb = BoxedMontyForm::lincomb_vartime(&[
                 (

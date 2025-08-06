@@ -1,17 +1,17 @@
 //! [`Uint`] modular subtraction operations.
 
-use crate::{Limb, SubMod, Uint};
+use crate::{Limb, NonZero, SubMod, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self - rhs mod p`.
     ///
     /// Assumes `self - rhs` as unbounded signed integer is in `[-p, p)`.
-    pub const fn sub_mod(&self, rhs: &Self, p: &Self) -> Self {
+    pub const fn sub_mod(&self, rhs: &Self, p: &NonZero<Self>) -> Self {
         let (out, mask) = self.borrowing_sub(rhs, Limb::ZERO);
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-        out.wrapping_add(&p.bitand_limb(mask))
+        out.wrapping_add(&p.as_ref().bitand_limb(mask))
     }
 
     /// Returns `(self..., carry) - (rhs...) mod (p...)`, where `carry <= 1`.
@@ -48,9 +48,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 impl<const LIMBS: usize> SubMod for Uint<LIMBS> {
     type Output = Self;
 
-    fn sub_mod(&self, rhs: &Self, p: &Self) -> Self {
-        debug_assert!(self < p);
-        debug_assert!(rhs < p);
+    fn sub_mod(&self, rhs: &Self, p: &NonZero<Self>) -> Self {
+        debug_assert!(self < p.as_ref());
+        debug_assert!(rhs < p.as_ref());
         self.sub_mod(rhs, p)
     }
 }
@@ -67,7 +67,9 @@ mod tests {
         let b =
             U256::from_be_hex("d5777c45019673125ad240f83094d4252d829516fac8601ed01979ec1ec1a251");
         let n =
-            U256::from_be_hex("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551");
+            U256::from_be_hex("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551")
+                .to_nz()
+                .unwrap();
 
         let actual = a.sub_mod(&b, &n);
         let expected =

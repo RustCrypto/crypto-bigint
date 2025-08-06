@@ -158,7 +158,7 @@ proptest! {
             "a*a⁻¹ ≠ 1 (normal form, wide)"
         );
         // …and agrees with normal form inversion
-        let normal_form_inv = r.invert_mod(monty_params.modulus()).unwrap();
+        let normal_form_inv = r.invert_mod(monty_params.modulus().as_nz_ref()).unwrap();
         assert_eq!(
             normal_form_inv,
             r_monty_inv.retrieve(),
@@ -197,7 +197,7 @@ proptest! {
             "a*a⁻¹ ≠ 1 (normal form, wide)"
         );
         // …and agrees with normal form inversion
-        let normal_form_inv = r.invert_mod(monty_params.modulus()).unwrap();
+        let normal_form_inv = r.invert_mod(monty_params.modulus().as_nz_ref()).unwrap();
         assert_eq!(
             normal_form_inv,
             r_monty_inv.retrieve(),
@@ -236,7 +236,7 @@ proptest! {
             "a*a⁻¹ ≠ 1 (normal form, wide)"
         );
         // …and agrees with normal form inversion
-        let normal_form_inv = r.invert_mod(monty_params.modulus()).unwrap();
+        let normal_form_inv = r.invert_mod(monty_params.modulus().as_nz_ref()).unwrap();
         assert_eq!(
             normal_form_inv,
             r_monty_inv.retrieve(),
@@ -275,7 +275,7 @@ proptest! {
             "a*a⁻¹ ≠ 1 (normal form, wide)"
         );
         // …and agrees with normal form inversion
-        let normal_form_inv = r.invert_mod(monty_params.modulus()).unwrap();
+        let normal_form_inv = r.invert_mod(monty_params.modulus().as_nz_ref()).unwrap();
         assert_eq!(
             normal_form_inv,
             r_monty_inv.retrieve(),
