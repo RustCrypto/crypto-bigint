@@ -382,7 +382,7 @@ const fn shr_in_place_wide<const L: usize, const H: usize>(
 /// safegcd-bounds: https://github.com/sipa/safegcd-bounds
 #[inline]
 const fn iterations(bits: u32) -> u32 {
-    (45907 * bits + 26313) / 19929
+    (45907 * bits + 30179) / 19929
 }
 
 #[inline(always)]
