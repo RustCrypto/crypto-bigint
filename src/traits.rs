@@ -428,44 +428,44 @@ pub trait RandomMod: Sized + Zero {
 }
 
 /// Compute `self + rhs mod p`.
-pub trait AddMod<Rhs = Self> {
+pub trait AddMod<Rhs = Self, Mod = NonZero<Self>> {
     /// Output type.
     type Output;
 
     /// Compute `self + rhs mod p`.
     ///
     /// Assumes `self` and `rhs` are `< p`.
-    fn add_mod(&self, rhs: &Rhs, p: &Self) -> Self::Output;
+    fn add_mod(&self, rhs: &Rhs, p: &Mod) -> Self::Output;
 }
 
 /// Compute `self - rhs mod p`.
-pub trait SubMod<Rhs = Self> {
+pub trait SubMod<Rhs = Self, Mod = NonZero<Self>> {
     /// Output type.
     type Output;
 
     /// Compute `self - rhs mod p`.
     ///
     /// Assumes `self` and `rhs` are `< p`.
-    fn sub_mod(&self, rhs: &Rhs, p: &Self) -> Self::Output;
+    fn sub_mod(&self, rhs: &Rhs, p: &Mod) -> Self::Output;
 }
 
 /// Compute `-self mod p`.
-pub trait NegMod {
+pub trait NegMod<Mod = NonZero<Self>> {
     /// Output type.
     type Output;
 
     /// Compute `-self mod p`.
     #[must_use]
-    fn neg_mod(&self, p: &Self) -> Self::Output;
+    fn neg_mod(&self, p: &Mod) -> Self::Output;
 }
 
 /// Compute `self * rhs mod p`.
-pub trait MulMod<Rhs = Self> {
+pub trait MulMod<Rhs = Self, Mod = NonZero<Self>> {
     /// Output type.
     type Output;
 
     /// Compute `self * rhs mod p`.
-    fn mul_mod(&self, rhs: &Rhs, p: &Self) -> Self::Output;
+    fn mul_mod(&self, rhs: &Rhs, p: &Mod) -> Self::Output;
 }
 
 /// Compute `1 / self mod p`.
@@ -491,12 +491,12 @@ where
 }
 
 /// Compute `1 / self mod p`.
-pub trait InvertMod<Rhs = Self>: Sized {
+pub trait InvertMod<Mod = Self>: Sized {
     /// Output type.
     type Output;
 
     /// Compute `1 / self mod p`.
-    fn invert_mod(&self, p: &Rhs) -> CtOption<Self::Output>;
+    fn invert_mod(&self, p: &Mod) -> CtOption<Self::Output>;
 }
 
 /// Checked addition.
