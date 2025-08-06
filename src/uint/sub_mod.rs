@@ -21,9 +21,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         debug_assert!(carry.0 <= 1);
 
         let (out, borrow) = self.borrowing_sub(rhs, Limb::ZERO);
-
-        // The new `borrow = Word::MAX` iff `carry == 0` and `borrow == Word::MAX`.
-        let mask = carry.wrapping_neg().not().bitand(borrow);
+        let (_, mask) = carry.borrowing_sub(Limb::ZERO, borrow);
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.

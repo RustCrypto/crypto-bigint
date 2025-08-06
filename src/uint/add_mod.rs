@@ -8,15 +8,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Assumes `self + rhs` as unbounded integer is `< 2p`.
     pub const fn add_mod(&self, rhs: &Self, p: &NonZero<Self>) -> Self {
         let (w, carry) = self.carrying_add(rhs, Limb::ZERO);
-
-        // Attempt to subtract the modulus, to ensure the result is in the field.
-        let (w, borrow) = w.borrowing_sub(p.as_ref(), Limb::ZERO);
-        let (_, mask) = carry.borrowing_sub(Limb::ZERO, borrow);
-
-        // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
-        // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the
-        // modulus.
-        w.wrapping_add(&p.as_ref().bitand_limb(mask))
+        w.sub_mod_with_carry(carry, p.as_ref(), p.as_ref())
     }
 
     /// Computes `self + rhs mod p` for the special modulus
@@ -37,17 +29,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self + self mod p`.
     ///
     /// Assumes `self` as unbounded integer is `< p`.
-    pub const fn double_mod(&self, p: &Self) -> Self {
+    pub const fn double_mod(&self, p: &NonZero<Self>) -> Self {
         let (w, carry) = self.overflowing_shl1();
-
-        // Attempt to subtract the modulus, to ensure the result is in the field.
-        let (w, borrow) = w.borrowing_sub(p, Limb::ZERO);
-        let (_, mask) = carry.borrowing_sub(Limb::ZERO, borrow);
-
-        // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
-        // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the
-        // modulus.
-        w.wrapping_add(&p.bitand_limb(mask))
+        w.sub_mod_with_carry(carry, p.as_ref(), p.as_ref())
     }
 }
 
