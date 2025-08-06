@@ -1,6 +1,6 @@
 //! [`Uint`] modular multiplication operations.
 
-use crate::{Limb, MulMod, NonZero, Uint, WideWord, Word, div_limb::mul_rem};
+use crate::{Limb, MulMod, NonZero, SquareMod, Uint, WideWord, Word, div_limb::mul_rem};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self * rhs mod p`.
@@ -50,6 +50,18 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         lo
     }
+
+    /// Computes `self * self mod p`.
+    pub const fn square_mod(&self, p: &NonZero<Uint<LIMBS>>) -> Self {
+        let lo_hi = self.square_wide();
+        Self::rem_wide(lo_hi, p)
+    }
+
+    /// Computes `self * self mod p` in variable time with respect to `p`.
+    pub const fn square_mod_vartime(&self, p: &NonZero<Uint<LIMBS>>) -> Self {
+        let lo_hi = self.square_wide();
+        Self::rem_wide_vartime(lo_hi, p)
+    }
 }
 
 impl<const LIMBS: usize> MulMod for Uint<LIMBS> {
@@ -57,6 +69,14 @@ impl<const LIMBS: usize> MulMod for Uint<LIMBS> {
 
     fn mul_mod(&self, rhs: &Self, p: &NonZero<Self>) -> Self {
         self.mul_mod(rhs, p)
+    }
+}
+
+impl<const LIMBS: usize> SquareMod for Uint<LIMBS> {
+    type Output = Self;
+
+    fn square_mod(&self, p: &NonZero<Self>) -> Self {
+        self.square_mod(p)
     }
 }
 
