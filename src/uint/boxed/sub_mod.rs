@@ -1,16 +1,16 @@
 //! [`BoxedUint`] modular subtraction operations.
 
-use crate::{BoxedUint, Limb, SubMod, Zero};
+use crate::{BoxedUint, Limb, NonZero, SubMod, Zero};
 
 impl BoxedUint {
     /// Computes `self - rhs mod p`.
     ///
     /// Assumes `self - rhs` as unbounded signed integer is in `[-p, p)`.
-    pub fn sub_mod(&self, rhs: &Self, p: &Self) -> Self {
+    pub fn sub_mod(&self, rhs: &Self, p: &NonZero<Self>) -> Self {
         debug_assert_eq!(self.bits_precision(), p.bits_precision());
         debug_assert_eq!(rhs.bits_precision(), p.bits_precision());
-        debug_assert!(self < p);
-        debug_assert!(rhs < p);
+        debug_assert!(self < p.as_ref());
+        debug_assert!(rhs < p.as_ref());
 
         let (mut out, borrow) = self.borrowing_sub(rhs, Limb::ZERO);
 
@@ -54,7 +54,7 @@ impl BoxedUint {
 impl SubMod for BoxedUint {
     type Output = Self;
 
-    fn sub_mod(&self, rhs: &Self, p: &Self) -> Self {
+    fn sub_mod(&self, rhs: &Self, p: &NonZero<Self>) -> Self {
         self.sub_mod(rhs, p)
     }
 }
@@ -80,6 +80,8 @@ mod tests {
             &hex!("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"),
             256,
         )
+        .unwrap()
+        .to_nz()
         .unwrap();
 
         let actual = a.sub_mod(&b, &n);

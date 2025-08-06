@@ -8,17 +8,14 @@ use crate::{
 
 impl BoxedUint {
     /// Computes `self * rhs mod p` for odd `p`.
-    ///
-    /// Panics if `p` is even.
-    // TODO(tarcieri): support for even `p`?
-    pub fn mul_mod(&self, rhs: &BoxedUint, p: &BoxedUint) -> BoxedUint {
+    pub fn mul_mod(&self, rhs: &BoxedUint, p: &NonZero<BoxedUint>) -> BoxedUint {
         // NOTE: the overhead of converting to Montgomery form to perform this operation and then
         // immediately converting out of Montgomery form after just a single operation is likely to
         // be higher than other possible implementations of this function, such as using a
         // Barrett reduction instead.
         //
         // It's worth potentially exploring other approaches to improve efficiency.
-        match Odd::new(p.clone()).into() {
+        match Odd::new(p.as_ref().clone()).into() {
             Some(p) => {
                 let params = BoxedMontyParams::new(p);
                 let lhs = BoxedMontyForm::new(self.clone(), params.clone());
@@ -75,7 +72,7 @@ impl BoxedUint {
 impl MulMod for BoxedUint {
     type Output = Self;
 
-    fn mul_mod(&self, rhs: &Self, p: &Self) -> Self {
+    fn mul_mod(&self, rhs: &Self, p: &NonZero<Self>) -> Self {
         self.mul_mod(rhs, p)
     }
 }

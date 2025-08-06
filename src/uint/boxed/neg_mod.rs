@@ -1,12 +1,12 @@
 //! [`BoxedUint`] modular negation operations.
 
-use crate::{BoxedUint, Limb, NegMod};
+use crate::{BoxedUint, Limb, NegMod, NonZero};
 use subtle::ConditionallySelectable;
 
 impl BoxedUint {
     /// Computes `-a mod p`.
     /// Assumes `self` is in `[0, p)`.
-    pub fn neg_mod(&self, p: &Self) -> Self {
+    pub fn neg_mod(&self, p: &NonZero<Self>) -> Self {
         debug_assert_eq!(self.bits_precision(), p.bits_precision());
         let is_zero = self.is_zero();
         let mut ret = p.borrowing_sub(self, Limb::ZERO).0;
@@ -30,8 +30,8 @@ impl BoxedUint {
 impl NegMod for BoxedUint {
     type Output = Self;
 
-    fn neg_mod(&self, p: &Self) -> Self {
-        debug_assert!(self < p);
+    fn neg_mod(&self, p: &NonZero<Self>) -> Self {
+        debug_assert!(self < p.as_ref());
         self.neg_mod(p)
     }
 }
@@ -52,6 +52,8 @@ mod tests {
             &hex!("928334a4e4be0843ec225a4c9c61df34bdc7a81513e4b6f76f2bfa3148e2e1b5"),
             256,
         )
+        .unwrap()
+        .to_nz()
         .unwrap();
 
         let actual = x.neg_mod(&p);
@@ -75,6 +77,8 @@ mod tests {
             &hex!("928334a4e4be0843ec225a4c9c61df34bdc7a81513e4b6f76f2bfa3148e2e1b5"),
             256,
         )
+        .unwrap()
+        .to_nz()
         .unwrap();
 
         let actual = x.neg_mod(&p);
