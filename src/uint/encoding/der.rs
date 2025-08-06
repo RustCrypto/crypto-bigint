@@ -162,7 +162,7 @@ pub mod test {
 
         let decoded = {
             let mut reader = der::SliceReader::new(encoded_value)?;
-            let header = Header::new(Tag::Integer, encoded_value.len())?;
+            let header = Header::new(Tag::Integer, encoded_value.len().try_into()?);
             Uint::<LIMBS>::decode_value(&mut reader, header)?
         };
 
@@ -187,7 +187,7 @@ pub mod test {
         );
         let decoded = {
             let mut reader = der::SliceReader::new(encoded_value)?;
-            let header = Header::new(Tag::Integer, encoded_value.len())?;
+            let header = Header::new(Tag::Integer, encoded_value.len().try_into()?);
             BoxedUint::decode_value(&mut reader, header)?
         };
 
