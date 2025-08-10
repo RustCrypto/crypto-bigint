@@ -55,7 +55,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let bit = ConstChoice::from_u32_lsb((shift >> i) & 1);
             result = Uint::select(
                 &result,
-                &result.wrapping_shr_by_limbs(1 << (i - Limb::LOG2_BITS)),
+                &result.wrapping_shr_by_limbs_vartime(1 << (i - Limb::LOG2_BITS)),
                 bit,
             );
             i += 1;
@@ -66,7 +66,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self >> (shift * Limb::BITS)` in a panic-free manner, returning zero if the
     /// shift exceeds the precision.
     #[inline(always)]
-    pub(crate) const fn wrapping_shr_by_limbs(&self, shift: u32) -> Self {
+    pub(crate) const fn wrapping_shr_by_limbs_vartime(&self, shift: u32) -> Self {
         let shift = shift as usize;
         let mut limbs = [Limb::ZERO; LIMBS];
         let mut i = 0;
@@ -92,7 +92,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         let shift_num = shift / Limb::BITS;
-        let mut res = self.wrapping_shr_by_limbs(shift_num);
+        let mut res = self.wrapping_shr_by_limbs_vartime(shift_num);
         let rem = shift % Limb::BITS;
 
         if rem > 0 {
@@ -357,13 +357,11 @@ mod tests {
     }
 
     #[test]
-    fn wrapping_shr_by_limbs() {
-        let val = U128::from_be_hex("876543210FEDCBA90123456FEDCBA987");
+    fn wrapping_shr_by_limbs_vartime() {
+        let val = Uint::<2>::from_words([1, 99]);
 
-        for i in 0..3 {
-            let result = val.wrapping_shr_by_limbs(i);
-            let expect = val.wrapping_shr_vartime(Limb::BITS * i);
-            assert_eq!(result, expect);
-        }
+        assert_eq!(val.wrapping_shr_by_limbs_vartime(0).as_words(), &[1, 99]);
+        assert_eq!(val.wrapping_shr_by_limbs_vartime(1).as_words(), &[99, 0]);
+        assert_eq!(val.wrapping_shr_by_limbs_vartime(2).as_words(), &[0, 0]);
     }
 }
