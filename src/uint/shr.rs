@@ -360,16 +360,10 @@ mod tests {
     fn wrapping_shr_by_limbs() {
         let val = U128::from_be_hex("876543210FEDCBA90123456FEDCBA987");
 
-        let res = val.wrapping_shr_by_limbs(0);
-        assert_eq!(res, val);
-
-        let res = val.wrapping_shr_by_limbs(1);
-        assert_eq!(res, val.shr_vartime(Limb::BITS));
-
-        let res = val.wrapping_shr_by_limbs(2);
-        assert_eq!(res, Uint::ZERO);
-
-        let res = val.wrapping_shr_by_limbs(3);
-        assert_eq!(res, Uint::ZERO);
+        for i in 0..3 {
+            let result = val.wrapping_shr_by_limbs(i);
+            let expect = val.wrapping_shr_vartime(Limb::BITS * i);
+            assert_eq!(result, expect);
+        }
     }
 }
