@@ -1,6 +1,6 @@
 //! [`Uint`] bitwise left shift operations.
 
-use crate::{ConstChoice, ConstCtOption, Limb, ShlVartime, Uint, Word, WrappingShl};
+use crate::{ConstChoice, ConstCtOption, Limb, ShlVartime, Uint, WrappingShl};
 use core::ops::{Shl, ShlAssign};
 use subtle::CtOption;
 
@@ -24,27 +24,57 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self << shift`.
     ///
     /// Returns `None` if `shift >= Self::BITS`.
+    #[inline]
     pub const fn overflowing_shl(&self, shift: u32) -> ConstCtOption<Self> {
+        let overflow = ConstChoice::from_u32_lt(shift, Self::BITS).not();
+        let result = self.bounded_wrapping_shl(shift % Self::BITS, Self::BITS);
+        ConstCtOption::new(Uint::select(&result, &Self::ZERO, overflow), overflow.not())
+    }
+
+    /// Computes `self << shift` where `shift < `shift_upper_bound`, returning zero
+    /// if the shift exceeds the precision. The runtime is determined by `shift_upper_bound`
+    /// which may be smaller than `Self::BITS`.
+    pub(crate) const fn bounded_wrapping_shl(&self, shift: u32, shift_upper_bound: u32) -> Self {
+        assert!(shift < shift_upper_bound);
         // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
         // (which lies in range `0 <= shift < BITS`).
-        let shift_bits = u32::BITS - (Self::BITS - 1).leading_zeros();
-        let overflow = ConstChoice::from_u32_lt(shift, Self::BITS).not();
-        let shift = shift % Self::BITS;
+        let shift_bits = u32::BITS - (shift_upper_bound - 1).leading_zeros();
+        let limb_bits = if shift_bits < Limb::LOG2_BITS {
+            shift_bits
+        } else {
+            Limb::LOG2_BITS
+        };
         let mut result = *self;
         let mut i = 0;
+        while i < limb_bits {
+            let bit = ConstChoice::from_u32_lsb((shift >> i) & 1);
+            result = Uint::select(&result, &result.shl_limb_nonzero(1 << i).0, bit);
+            i += 1;
+        }
         while i < shift_bits {
             let bit = ConstChoice::from_u32_lsb((shift >> i) & 1);
             result = Uint::select(
                 &result,
-                &result
-                    .overflowing_shl_vartime(1 << i)
-                    .expect("shift within range"),
+                &result.wrapping_shl_by_limbs(1 << (i - Limb::LOG2_BITS)),
                 bit,
             );
             i += 1;
         }
+        result
+    }
 
-        ConstCtOption::new(Uint::select(&result, &Self::ZERO, overflow), overflow.not())
+    /// Computes `self << (shift * Limb::BITS)` in a panic-free manner, returning zero if the
+    /// shift exceeds the precision.
+    #[inline(always)]
+    pub(crate) const fn wrapping_shl_by_limbs(&self, shift: u32) -> Self {
+        let shift = shift as usize;
+        let mut limbs = [Limb::ZERO; LIMBS];
+        let mut i = shift;
+        while i < LIMBS {
+            limbs[i] = self.limbs[i - shift];
+            i += 1;
+        }
+        Self { limbs }
     }
 
     /// Computes `self << shift`.
@@ -57,37 +87,28 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// to `self`.
     #[inline(always)]
     pub const fn overflowing_shl_vartime(&self, shift: u32) -> ConstCtOption<Self> {
-        let mut limbs = [Limb::ZERO; LIMBS];
-
         if shift >= Self::BITS {
             return ConstCtOption::none(Self::ZERO);
         }
 
-        let shift_num = (shift / Limb::BITS) as usize;
+        let shift_num = shift / Limb::BITS;
+        let mut res = self.wrapping_shl_by_limbs(shift_num);
         let rem = shift % Limb::BITS;
 
-        let mut i = shift_num;
-        while i < LIMBS {
-            limbs[i] = self.limbs[i - shift_num];
-            i += 1;
+        if rem > 0 {
+            let mut carry = Limb::ZERO;
+
+            let mut i = shift_num as usize;
+            while i < LIMBS {
+                let shifted = res.limbs[i].shl(rem);
+                let new_carry = res.limbs[i].shr(Limb::BITS - rem);
+                res.limbs[i] = shifted.bitor(carry);
+                carry = new_carry;
+                i += 1;
+            }
         }
 
-        if rem == 0 {
-            return ConstCtOption::some(Self { limbs });
-        }
-
-        let mut carry = Limb::ZERO;
-
-        let mut i = shift_num;
-        while i < LIMBS {
-            let shifted = limbs[i].shl(rem);
-            let new_carry = limbs[i].shr(Limb::BITS - rem);
-            limbs[i] = shifted.bitor(carry);
-            carry = new_carry;
-            i += 1;
-        }
-
-        ConstCtOption::some(Self { limbs })
+        ConstCtOption::some(res)
     }
 
     /// Computes a left shift on a wide input as `(lo, hi)`.
@@ -141,24 +162,41 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// returning the result and the carry.
     #[inline(always)]
     pub(crate) const fn shl_limb(&self, shift: u32) -> (Self, Limb) {
+        let nz = ConstChoice::from_u32_nonzero(shift);
+        let shift = nz.select_u32(1, shift);
+        let (res, carry) = self.shl_limb_nonzero(shift);
+        (
+            Uint::select(self, &res, nz),
+            Limb::select(Limb::ZERO, carry, nz),
+        )
+    }
+
+    /// Computes `self << shift` where `0 <= shift < Limb::BITS`,
+    /// returning the result and the carry.
+    ///
+    /// Note: this operation should not be used in situations where `shift == 0`; it looks like
+    /// something in the execution pipeline can sometimes sniff this case out and optimize it away,
+    /// possibly leading to variable time behaviour.
+    #[inline(always)]
+    pub(crate) const fn shl_limb_nonzero(&self, shift: u32) -> (Self, Limb) {
+        assert!(0 < shift);
+        assert!(shift < Limb::BITS);
+
         let mut limbs = [Limb::ZERO; LIMBS];
 
-        let nz = ConstChoice::from_u32_nonzero(shift);
         let lshift = shift;
-        let rshift = nz.if_true_u32(Limb::BITS - shift);
-        let carry = nz.if_true_word(self.limbs[LIMBS - 1].0.wrapping_shr(Word::BITS - shift));
+        let rshift = Limb::BITS - shift;
+        let carry = self.limbs[LIMBS - 1].shr(rshift);
 
-        limbs[0] = Limb(self.limbs[0].0 << lshift);
+        limbs[0] = self.limbs[0].shl(lshift);
         let mut i = 1;
         while i < LIMBS {
-            let mut limb = self.limbs[i].0 << lshift;
-            let hi = self.limbs[i - 1].0 >> rshift;
-            limb |= nz.if_true_word(hi);
-            limbs[i] = Limb(limb);
+            let lo = self.limbs[i - 1].shr(rshift);
+            limbs[i] = self.limbs[i].shl(lshift).bitor(lo);
             i += 1
         }
 
-        (Uint::<LIMBS>::new(limbs), Limb(carry))
+        (Uint::<LIMBS>::new(limbs), carry)
     }
 
     /// Computes `self << 1` in constant-time, returning [`ConstChoice::TRUE`]
@@ -321,5 +359,22 @@ mod tests {
                 .is_none()
                 .is_true_vartime(),
         );
+    }
+
+    #[test]
+    fn wrapping_shl_by_limbs() {
+        let val = U128::from_be_hex("876543210FEDCBA90123456FEDCBA987");
+
+        let res = val.wrapping_shl_by_limbs(0);
+        assert_eq!(res, val);
+
+        let res = val.wrapping_shl_by_limbs(1);
+        assert_eq!(res, val.shl_vartime(Limb::BITS));
+
+        let res = val.wrapping_shl_by_limbs(2);
+        assert_eq!(res, Uint::ZERO);
+
+        let res = val.wrapping_shl_by_limbs(3);
+        assert_eq!(res, Uint::ZERO);
     }
 }

@@ -95,6 +95,9 @@ impl Limb {
     #[cfg(target_pointer_width = "64")]
     pub const BYTES: usize = 8;
 
+    /// `floor(log2(Self::BITS))`.
+    pub const LOG2_BITS: u32 = u32::BITS - (Self::BITS - 1).leading_zeros();
+
     /// Convert to a [`NonZero<Limb>`].
     ///
     /// Returns some if the original value is non-zero, and false otherwise.
