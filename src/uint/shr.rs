@@ -97,7 +97,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         if rem > 0 {
             let mut carry = Limb::ZERO;
-            let mut i = LIMBS - shift_num as usize;
+            let mut i = LIMBS.saturating_sub(shift_num as usize);
             while i > 0 {
                 i -= 1;
                 let shifted = res.limbs[i].shr(rem);
