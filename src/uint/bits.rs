@@ -60,6 +60,36 @@ pub(crate) const fn bits_vartime(limbs: &[Limb]) -> u32 {
 }
 
 #[inline(always)]
+pub(crate) const fn set_bit(limbs: &mut [Limb], index: u32, bit_value: ConstChoice) {
+    let limb_num = index / Limb::BITS;
+    let index_in_limb = index % Limb::BITS;
+    let index_mask = 1 << index_in_limb;
+
+    let mut i = 0;
+    while i < limbs.len() {
+        let is_right_limb = ConstChoice::from_u32_eq(i as u32, limb_num);
+        let old_limb = limbs[i].0;
+        let new_limb = bit_value.select_word(old_limb & !index_mask, old_limb | index_mask);
+        limbs[i] = Limb(is_right_limb.select_word(old_limb, new_limb));
+        i += 1;
+    }
+}
+
+#[inline(always)]
+pub(crate) const fn set_bit_vartime(limbs: &mut [Limb], index: u32, bit_value: bool) {
+    let limb_num = (index / Limb::BITS) as usize;
+    let index_in_limb = index % Limb::BITS;
+    if bit_value {
+        limbs[limb_num].0 |= 1 << index_in_limb;
+    } else {
+        #[allow(trivial_numeric_casts)]
+        {
+            limbs[limb_num].0 &= !((1 as Word) << index_in_limb);
+        }
+    }
+}
+
+#[inline(always)]
 pub(crate) const fn trailing_zeros(limbs: &[Limb]) -> u32 {
     let mut count = 0;
     let mut i = 0;
@@ -191,18 +221,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
     pub(crate) const fn set_bit(self, index: u32, bit_value: ConstChoice) -> Self {
         let mut result = self;
-        let limb_num = index / Limb::BITS;
-        let index_in_limb = index % Limb::BITS;
-        let index_mask = 1 << index_in_limb;
-
-        let mut i = 0;
-        while i < LIMBS {
-            let is_right_limb = ConstChoice::from_u32_eq(i as u32, limb_num);
-            let old_limb = result.limbs[i].0;
-            let new_limb = bit_value.select_word(old_limb & !index_mask, old_limb | index_mask);
-            result.limbs[i] = Limb(is_right_limb.select_word(old_limb, new_limb));
-            i += 1;
-        }
+        set_bit(result.as_mut_limbs(), index, bit_value);
         result
     }
 
@@ -210,16 +229,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// variable time in `self`.
     pub(crate) const fn set_bit_vartime(self, index: u32, bit_value: bool) -> Self {
         let mut result = self;
-        let limb_num = (index / Limb::BITS) as usize;
-        let index_in_limb = index % Limb::BITS;
-        if bit_value {
-            result.limbs[limb_num].0 |= 1 << index_in_limb;
-        } else {
-            #[allow(trivial_numeric_casts)]
-            {
-                result.limbs[limb_num].0 &= !((1 as Word) << index_in_limb);
-            }
-        }
+        set_bit_vartime(result.as_mut_limbs(), index, bit_value);
         result
     }
 }
