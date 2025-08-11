@@ -1,6 +1,6 @@
 //! [`BoxedUint`] modular addition operations.
 
-use crate::{AddMod, BoxedUint, Limb, NonZero, Zero};
+use crate::{AddMod, BoxedUint, Limb, NonZero};
 
 impl BoxedUint {
     /// Computes `self + rhs mod p`.
@@ -22,31 +22,15 @@ impl BoxedUint {
         debug_assert!(rhs < p.as_ref());
 
         let carry = self.carrying_add_assign(rhs, Limb::ZERO);
-
-        // Attempt to subtract the modulus, to ensure the result is in the field.
-        let borrow = self.borrowing_sub_assign(p.as_ref(), Limb::ZERO);
-        let (_, borrow) = carry.borrowing_sub(Limb::ZERO, borrow);
-
-        // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
-        // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the
-        // modulus.
-        self.conditional_carrying_add_assign(p, !borrow.is_zero());
+        self.sub_assign_mod_with_carry(carry, p, p);
     }
 
     /// Computes `self + self mod p`.
     ///
     /// Assumes `self` as unbounded integer is `< p`.
     pub fn double_mod(&self, p: &NonZero<Self>) -> Self {
-        let (mut w, carry) = self.overflowing_shl1();
-
-        // Attempt to subtract the modulus, to ensure the result is in the field.
-        let borrow = w.borrowing_sub_assign(p.as_ref(), Limb::ZERO);
-        let (_, borrow) = carry.borrowing_sub(Limb::ZERO, borrow);
-
-        // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
-        // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the
-        // modulus.
-        w.conditional_carrying_add_assign(p, !borrow.is_zero());
+        let (mut w, carry) = self.shl1();
+        w.sub_assign_mod_with_carry(carry, p, p);
         w
     }
 }

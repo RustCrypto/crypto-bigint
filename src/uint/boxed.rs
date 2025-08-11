@@ -30,8 +30,8 @@ mod rand;
 
 use crate::{Integer, Limb, NonZero, Odd, Resize, UintRef, Word, Zero, modular::BoxedMontyForm};
 use alloc::{boxed::Box, vec, vec::Vec};
-use core::fmt;
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+use core::{fmt, ops::IndexMut};
+use subtle::{Choice, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -184,6 +184,14 @@ impl BoxedUint {
         UintRef::new_mut(&mut self.limbs)
     }
 
+    /// Mutably borrow a subset the limbs of this [`BoxedUint`] as a [`UintRef`].
+    pub(crate) fn as_mut_uint_ref_range<R>(&mut self, range: R) -> &mut UintRef
+    where
+        [Limb]: IndexMut<R, Output = [Limb]>,
+    {
+        UintRef::new_mut(&mut self.limbs[range])
+    }
+
     /// Get the number of limbs in this [`BoxedUint`].
     pub fn nlimbs(&self) -> usize {
         self.limbs.len()
@@ -273,15 +281,6 @@ impl BoxedUint {
         }
 
         limbs.into()
-    }
-
-    /// Set the value of `self` to zero in-place if `choice` is truthy.
-    pub(crate) fn conditional_set_zero(&mut self, choice: Choice) {
-        let nlimbs = self.nlimbs();
-        let limbs = self.limbs.as_mut();
-        for i in 0..nlimbs {
-            limbs[i] = Limb::conditional_select(&limbs[i], &Limb::ZERO, choice);
-        }
     }
 
     /// Returns `true` if the integer's bit size is smaller or equal to `bits`.

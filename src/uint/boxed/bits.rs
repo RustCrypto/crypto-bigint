@@ -1,13 +1,13 @@
 //! Bit manipulation functions.
 
 use crate::{
-    BitOps, BoxedUint, Limb, Word,
+    BitOps, BoxedUint, Limb,
     uint::bits::{
-        bit, bit_vartime, bits_vartime, leading_zeros, trailing_ones, trailing_ones_vartime,
-        trailing_zeros, trailing_zeros_vartime,
+        bit, bit_vartime, bits_vartime, leading_zeros, set_bit, set_bit_vartime, trailing_ones,
+        trailing_ones_vartime, trailing_zeros, trailing_zeros_vartime,
     },
 };
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
+use subtle::Choice;
 
 impl BoxedUint {
     /// Get the value of the bit at position `index`, as a truthy or falsy `Choice`.
@@ -73,34 +73,11 @@ impl BoxedUint {
 
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
     pub(crate) fn set_bit(&mut self, index: u32, bit_value: Choice) {
-        let limb_num = (index / Limb::BITS) as usize;
-        let index_in_limb = index % Limb::BITS;
-        let index_mask = 1 << index_in_limb;
-
-        for i in 0..self.nlimbs() {
-            let limb = &mut self.limbs[i];
-            let is_right_limb = i.ct_eq(&limb_num);
-            let old_limb = *limb;
-            let new_limb = Limb::conditional_select(
-                &Limb(old_limb.0 & !index_mask),
-                &Limb(old_limb.0 | index_mask),
-                bit_value,
-            );
-            *limb = Limb::conditional_select(&old_limb, &new_limb, is_right_limb);
-        }
+        set_bit(&mut self.limbs, index, bit_value.into());
     }
 
     pub(crate) fn set_bit_vartime(&mut self, index: u32, bit_value: bool) {
-        let limb_num = (index / Limb::BITS) as usize;
-        let index_in_limb = index % Limb::BITS;
-        if bit_value {
-            self.limbs[limb_num].0 |= 1 << index_in_limb;
-        } else {
-            #[allow(trivial_numeric_casts)]
-            {
-                self.limbs[limb_num].0 &= !((1 as Word) << index_in_limb);
-            }
-        }
+        set_bit_vartime(&mut self.limbs, index, bit_value);
     }
 }
 

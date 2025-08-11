@@ -1,10 +1,8 @@
 //! [`BoxedUint`] bitwise left shift operations.
 
-use crate::{
-    BoxedUint, ConstChoice, ConstantTimeSelect, Limb, ShlVartime, Word, WrappingShl, Zero,
-};
+use crate::{BoxedUint, ConstChoice, Limb, ShlVartime, WrappingShl};
 use core::ops::{Shl, ShlAssign};
-use subtle::{Choice, ConstantTimeLess, CtOption};
+use subtle::{Choice, CtOption};
 
 impl BoxedUint {
     /// Computes `self << shift`.
@@ -34,31 +32,28 @@ impl BoxedUint {
         (result, overflow)
     }
 
+    /// Computes `self << shift` in variable-time.
+    ///
+    /// Returns a zero and a truthy `Choice` if `shift >= self.bits_precision()`,
+    /// or the result and a falsy `Choice` otherwise.
+    pub fn overflowing_shl_vartime(&self, shift: u32) -> (Self, Choice) {
+        let mut result = self.clone();
+        let overflow = result.overflowing_shl_assign_vartime(shift);
+        (result, overflow)
+    }
+
     /// Computes `self <<= shift`.
     ///
     /// Returns a truthy `Choice` if `shift >= self.bits_precision()` or a falsy `Choice` otherwise.
     pub fn overflowing_shl_assign(&mut self, shift: u32) -> Choice {
-        // `floor(log2(bits_precision - 1))` is the number of bits in the representation of `shift`
-        // (which lies in range `0 <= shift < bits_precision`).
-        let shift_bits = u32::BITS - (self.bits_precision() - 1).leading_zeros();
-        let overflow = !shift.ct_lt(&self.bits_precision());
-        let shift = shift % self.bits_precision();
-        let mut temp = self.clone();
+        self.as_mut_uint_ref().overflowing_shl_assign(shift)
+    }
 
-        for i in 0..shift_bits {
-            let bit = Choice::from(((shift >> i) & 1) as u8);
-            temp.set_zero();
-            // Will not overflow by construction
-            self.shl_vartime_into(&mut temp, 1 << i)
-                .expect("shift within range");
-            self.ct_assign(&temp, bit);
-        }
-
-        #[cfg(feature = "zeroize")]
-        zeroize::Zeroize::zeroize(&mut temp);
-
-        self.conditional_set_zero(overflow);
-        overflow
+    /// Computes `self <<= shift` in variable-time.
+    ///
+    /// Returns a truthy `Choice` if `shift >= self.bits_precision()` or a falsy `Choice` otherwise.
+    pub fn overflowing_shl_assign_vartime(&mut self, shift: u32) -> Choice {
+        self.as_mut_uint_ref().overflowing_shl_assign_vartime(shift)
     }
 
     /// Computes `self << shift` in a panic-free manner, masking off bits of `shift` which would cause the shift to
@@ -67,50 +62,24 @@ impl BoxedUint {
         self.overflowing_shl(shift).0
     }
 
+    /// Computes `self <<= shift` in a panic-free manner, masking off bits of `shift` which would cause the shift to
+    /// exceed the type's width.
+    pub fn wrapping_shl_assign(&mut self, shift: u32) {
+        // self is zeroed in the case of an overflowing shift
+        self.overflowing_shl_assign(shift);
+    }
+
     /// Computes `self << shift` in variable-time in a panic-free manner, masking off bits of `shift` which would cause
     /// the shift to exceed the type's width.
     pub fn wrapping_shl_vartime(&self, shift: u32) -> Self {
-        let mut result = Self::zero_with_precision(self.bits_precision());
-        let _ = self.shl_vartime_into(&mut result, shift);
+        let mut result = self.clone();
+        result.wrapping_shl_assign_vartime(shift);
         result
     }
 
-    /// Computes `self << shift` and writes the result into `dest`.
-    /// Returns `None` if `shift >= self.bits_precision()`.
-    ///
-    /// WARNING: for performance reasons, `dest` is assumed to be pre-zeroized.
-    ///
-    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
-    ///
-    /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
-    #[inline(always)]
-    fn shl_vartime_into(&self, dest: &mut Self, shift: u32) -> Option<()> {
-        if shift >= self.bits_precision() {
-            return None;
-        }
-
-        let nlimbs = self.nlimbs();
-        let shift_num = (shift / Limb::BITS) as usize;
-        let rem = shift % Limb::BITS;
-
-        for i in shift_num..nlimbs {
-            dest.limbs[i] = self.limbs[i - shift_num];
-        }
-
-        if rem == 0 {
-            return Some(());
-        }
-
-        let mut carry = Limb::ZERO;
-
-        for i in shift_num..nlimbs {
-            let shifted = dest.limbs[i].shl(rem);
-            let new_carry = dest.limbs[i].shr(Limb::BITS - rem);
-            dest.limbs[i] = shifted.bitor(carry);
-            carry = new_carry;
-        }
-
-        Some(())
+    /// Computes `self <<= shift` in variable-time in a panic-free manner, producing zero in the case of overflow.
+    pub fn wrapping_shl_assign_vartime(&mut self, shift: u32) {
+        self.as_mut_uint_ref().wrapping_shl_assign_vartime(shift);
     }
 
     /// Computes `self << shift`.
@@ -121,58 +90,55 @@ impl BoxedUint {
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
     pub fn shl_vartime(&self, shift: u32) -> Option<Self> {
-        let mut result = Self::zero_with_precision(self.bits_precision());
-        let success = self.shl_vartime_into(&mut result, shift);
-        success.map(|_| result)
+        // This could use `UintRef::wrapping_shl_assign_vartime`, but it is faster to operate
+        // on a zero'ed clone and let the compiler reuse the memory allocation when possible.
+
+        let nbits = self.bits_precision();
+        if shift >= nbits {
+            return None;
+        }
+
+        let mut dest = Self::zero_with_precision(nbits);
+        let nlimbs = self.nlimbs();
+        let shift_limbs = (shift / Limb::BITS) as usize;
+        let rem = shift % Limb::BITS;
+
+        for i in shift_limbs..nlimbs {
+            dest.limbs[i] = self.limbs[i - shift_limbs];
+        }
+
+        if rem > 0 {
+            dest.as_mut_uint_ref_range(shift_limbs..nlimbs)
+                .shl_assign_limb(rem);
+        }
+
+        Some(dest)
     }
 
     /// Computes `self << 1` in constant-time.
-    pub(crate) fn overflowing_shl1(&self) -> (Self, Limb) {
+    pub(crate) fn shl1(&self) -> (Self, Limb) {
         let mut ret = self.clone();
-        let carry = ret.shl1_assign();
+        let carry = Limb::select(Limb::ZERO, Limb::ONE, ret.shl1_assign());
         (ret, carry)
     }
 
-    /// Computes `self << 1` in-place in constant-time.
-    pub(crate) fn shl1_assign(&mut self) -> Limb {
-        let mut carry = self.limbs[0] >> Limb::HI_BIT;
-        self.limbs[0].shl_assign(1);
-        for i in 1..self.limbs.len() {
-            (self.limbs[i], carry) = ((self.limbs[i] << 1) | carry, self.limbs[i] >> Limb::HI_BIT);
-        }
-        carry
+    /// Computes `self <<= 1` in constant-time.
+    pub(crate) fn shl1_assign(&mut self) -> ConstChoice {
+        self.as_mut_uint_ref().shl1_assign()
     }
 
     /// Computes `self << shift` where `0 <= shift < Limb::BITS`,
     /// returning the result and the carry.
     pub(crate) fn shl_limb(&self, shift: u32) -> (Self, Limb) {
-        let mut limbs = vec![Limb::ZERO; self.limbs.len()];
+        let mut ret = self.clone();
+        let carry = ret.shl_assign_limb(shift);
+        (ret, carry)
+    }
 
-        let nz = ConstChoice::from_u32_nonzero(shift);
-        let lshift = shift;
-        let rshift = nz.if_true_u32(Limb::BITS - shift);
-        let carry = nz.if_true_word(
-            self.limbs[self.limbs.len() - 1]
-                .0
-                .wrapping_shr(Word::BITS - shift),
-        );
-
-        limbs[0] = Limb(self.limbs[0].0 << lshift);
-        let mut i = 1;
-        while i < self.limbs.len() {
-            let mut limb = self.limbs[i].0 << lshift;
-            let hi = self.limbs[i - 1].0 >> rshift;
-            limb |= nz.if_true_word(hi);
-            limbs[i] = Limb(limb);
-            i += 1
-        }
-
-        (
-            BoxedUint {
-                limbs: limbs.into(),
-            },
-            Limb(carry),
-        )
+    /// Computes `self <<= shift` where `0 <= shift < Limb::BITS` in constant time.
+    #[inline(always)]
+    pub(crate) fn shl_assign_limb(&mut self, shift: u32) -> Limb {
+        self.as_mut_uint_ref().shl_assign_limb(shift)
     }
 }
 

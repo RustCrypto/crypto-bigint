@@ -68,7 +68,7 @@ impl BoxedUint {
             let q =
                 self.wrapping_div_vartime(&NonZero::<Self>::new(x.clone()).expect("Division by 0"));
             let t = x.wrapping_add(&q);
-            let next_x = t.shr1();
+            let (next_x, _) = t.shr1();
 
             // If `next_x` is the same as `x` or greater, we reached convergence
             // (`x` is guaranteed to either go down or oscillate between
