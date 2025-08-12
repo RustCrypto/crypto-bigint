@@ -123,13 +123,6 @@ impl BoxedUint {
         Some(dest)
     }
 
-    /// Computes `self >> 1` in constant-time.
-    pub(crate) fn shr1(&self) -> (Self, Limb) {
-        let mut ret = self.clone();
-        let carry = Limb::select(Limb::ZERO, Limb::ONE, ret.shr1_assign());
-        (ret, carry)
-    }
-
     /// Computes `self >>= 1` in-place in constant-time.
     pub(crate) fn shr1_assign(&mut self) -> ConstChoice {
         self.as_mut_uint_ref().shr1_assign()
