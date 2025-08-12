@@ -1,13 +1,8 @@
 //! [`BoxedUint`] division operations.
 
 use crate::{
-    BoxedUint, CheckedDiv, ConstChoice, ConstantTimeSelect, DivRemLimb, DivVartime, Limb, NonZero,
-    Reciprocal, RemLimb, RemMixed, Wrapping,
-    const_choice::u32_min,
-    uint::{
-        boxed,
-        div_limb::{div2by1, div3by2},
-    },
+    BoxedUint, CheckedDiv, ConstantTimeSelect, DivRemLimb, DivVartime, Limb, NonZero, Reciprocal,
+    RemLimb, RemMixed, Wrapping,
 };
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::CtOption;
@@ -16,30 +11,37 @@ impl BoxedUint {
     /// Computes `self / rhs` using a pre-made reciprocal,
     /// returns the quotient (q) and remainder (r).
     pub fn div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb) {
-        boxed::div_limb::div_rem_limb_with_reciprocal(self, reciprocal)
+        let mut quo = self.clone();
+        let rem = quo
+            .as_mut_uint_ref()
+            .div_rem_limb_with_reciprocal(reciprocal);
+        (quo, rem)
     }
 
     /// Computes `self / rhs`, returns the quotient (q) and remainder (r).
     pub fn div_rem_limb(&self, rhs: NonZero<Limb>) -> (Self, Limb) {
-        boxed::div_limb::div_rem_limb_with_reciprocal(self, &Reciprocal::new(rhs))
+        let mut quo = self.clone();
+        let rem = quo.as_mut_uint_ref().div_rem_limb(rhs);
+        (quo, rem)
     }
 
     /// Computes `self % rhs` using a pre-made reciprocal.
     #[inline(always)]
     pub fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb {
-        boxed::div_limb::rem_limb_with_reciprocal(self, reciprocal)
+        self.as_uint_ref().rem_limb_with_reciprocal(reciprocal)
     }
 
     /// Computes `self % rhs`.
     #[inline(always)]
     pub fn rem_limb(&self, rhs: NonZero<Limb>) -> Limb {
-        boxed::div_limb::rem_limb_with_reciprocal(self, &Reciprocal::new(rhs))
+        self.as_uint_ref().rem_limb(rhs)
     }
 
     /// Computes self / rhs, returns the quotient, remainder.
     pub fn div_rem(&self, rhs: &NonZero<Self>) -> (Self, Self) {
-        // Since `rhs` is nonzero, this should always hold.
-        self.div_rem_unchecked(rhs.as_ref())
+        let (mut quo, mut rem) = (self.clone(), rhs.as_ref().clone());
+        quo.as_mut_uint_ref().div_rem(rem.as_mut_uint_ref());
+        (quo, rem)
     }
 
     /// Computes self % rhs, returns the remainder.
@@ -47,29 +49,13 @@ impl BoxedUint {
         self.div_rem(rhs).1
     }
 
-    /// Computes self / rhs, returns the quotient, remainder.
+    /// Computes self / rhs, returns the quotient and remainder.
     ///
     /// Variable-time with respect to `rhs`
     pub fn div_rem_vartime(&self, rhs: &NonZero<Self>) -> (Self, Self) {
-        let yc = rhs.0.bits_vartime().div_ceil(Limb::BITS) as usize;
-
-        match yc {
-            0 => panic!("zero divisor"),
-            1 => {
-                // Perform limb division
-                let (quo, rem_limb) =
-                    self.div_rem_limb(rhs.0.limbs[0].to_nz().expect("zero divisor"));
-                let mut rem = Self::zero_with_precision(rhs.bits_precision());
-                rem.limbs[0] = rem_limb;
-                (quo, rem)
-            }
-            _ => {
-                let mut quo = self.clone();
-                let mut rem = rhs.0.clone();
-                div_rem_vartime_in_place(&mut quo.limbs, &mut rem.limbs[..yc]);
-                (quo, rem)
-            }
-        }
+        let (mut quo, mut rem) = (self.clone(), rhs.as_ref().clone());
+        quo.as_mut_uint_ref().div_rem_vartime(rem.as_mut_uint_ref());
+        (quo, rem)
     }
 
     /// Computes self % rhs, returns the remainder.
@@ -82,7 +68,9 @@ impl BoxedUint {
             0 => panic!("zero divisor"),
             1 => {
                 // Perform limb division
-                let rem_limb = self.rem_limb(rhs.0.limbs[0].to_nz().expect("zero divisor"));
+                let rem_limb = self
+                    .as_uint_ref()
+                    .rem_limb(rhs.0.limbs[0].to_nz().expect("zero divisor"));
                 let mut rem = Self::zero_with_precision(rhs.bits_precision());
                 rem.limbs[0] = rem_limb;
                 rem
@@ -95,7 +83,7 @@ impl BoxedUint {
             _ => {
                 let mut quo = self.clone();
                 let mut rem = rhs.0.clone();
-                div_rem_vartime_in_place(&mut quo.limbs, &mut rem.limbs[..yc]);
+                quo.as_mut_uint_ref().div_rem_vartime(rem.as_mut_uint_ref());
                 rem
             }
         }
@@ -122,132 +110,12 @@ impl BoxedUint {
     /// Perform checked division, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
     pub fn checked_div(&self, rhs: &Self) -> CtOption<Self> {
+        let mut quo = self.clone();
         let is_nz = rhs.is_nonzero();
-        let nz = NonZero(Self::ct_select(
-            &Self::one_with_precision(self.bits_precision()),
-            rhs,
-            is_nz,
-        ));
-        let q = self.div_rem_unchecked(&nz).0;
-        CtOption::new(q, is_nz)
-    }
-
-    fn div_rem_unchecked(&self, rhs: &Self) -> (Self, Self) {
-        // Based on Section 4.3.1, of The Art of Computer Programming, Volume 2, by Donald E. Knuth.
-        // Further explanation at https://janmr.com/blog/2014/04/basic-multiple-precision-long-division/
-
-        let xsize = self.nlimbs();
-        let ysize = rhs.nlimbs();
-
-        // Short circuit for single-word divisor
-        if ysize == 1 {
-            let (quo, rem_limb) = self.div_rem_limb(rhs.limbs[0].to_nz().expect("zero divisor"));
-            let mut rem = Self::zero_with_precision(rhs.bits_precision());
-            rem.limbs[0] = rem_limb;
-            return (quo, rem);
-        }
-
-        // Compute the size of the divisor
-        let ybits = rhs.bits();
-        assert!(ybits > 0, "zero divisor");
-        let ywords = ybits.div_ceil(Limb::BITS);
-
-        // Shift the entire divisor such that the high bit is set
-        let mut y = rhs.shl(rhs.bits_precision() - ybits).to_limbs();
-
-        // Shift the dividend to align the words
-        let lshift = (Limb::BITS - (ybits % Limb::BITS)) % Limb::BITS;
-        let (x, mut x_hi) = self.shl_limb(lshift);
-        let mut x = x.to_limbs();
-
-        // Calculate a reciprocal from the highest word of the divisor
-        let reciprocal = Reciprocal::new(y[ysize - 1].to_nz().expect("zero divisor"));
-
-        let mut xi = xsize - 1;
-        let mut x_lo = x[xi];
-        let mut i;
-        let mut carry;
-
-        while xi > 0 {
-            // Divide high dividend words by the high divisor word to estimate the quotient word
-            let mut quo = div3by2(x_hi.0, x_lo.0, x[xi - 1].0, &reciprocal, y[ysize - 2].0);
-
-            // This loop is a no-op once xi is smaller than the number of words in the divisor
-            let done = ConstChoice::from_u32_lt(xi as u32, ywords - 1);
-            quo = done.select_word(quo, 0);
-
-            // Subtract q*divisor from the dividend
-            let borrow = {
-                carry = Limb::ZERO;
-                let mut borrow = Limb::ZERO;
-                let mut tmp;
-                i = (xi + 1).saturating_sub(ysize);
-                while i <= xi {
-                    (tmp, carry) =
-                        y[ysize + i - xi - 1].carrying_mul_add(Limb(quo), carry, Limb::ZERO);
-                    (x[i], borrow) = x[i].borrowing_sub(tmp, borrow);
-                    i += 1;
-                }
-                (_, borrow) = x_hi.borrowing_sub(carry, borrow);
-                borrow
-            };
-
-            // If the subtraction borrowed, then decrement q and add back the divisor
-            // The probability of this being needed is very low, about 2/(Limb::MAX+1)
-            quo = {
-                let ct_borrow = ConstChoice::from_word_mask(borrow.0);
-                carry = Limb::ZERO;
-                i = (xi + 1).saturating_sub(ysize);
-                while i <= xi {
-                    (x[i], carry) = x[i].carrying_add(
-                        Limb::select(Limb::ZERO, y[ysize + i - xi - 1], ct_borrow),
-                        carry,
-                    );
-                    i += 1;
-                }
-                ct_borrow.select_word(quo, quo.saturating_sub(1))
-            };
-
-            // Store the quotient within dividend and set x_hi to the current highest word
-            x_hi = Limb::select(x[xi], x_hi, done);
-            x[xi] = Limb::select(Limb(quo), x[xi], done);
-            x_lo = Limb::select(x[xi - 1], x_lo, done);
-            xi -= 1;
-        }
-
-        // Calculate quotient and remainder for the case where the divisor is a single word.
-        let limb_div = ConstChoice::from_u32_eq(1, ywords);
-        // Note that `div2by1()` will panic if `x_hi >= reciprocal.divisor_normalized`,
-        // but this can only be the case if `limb_div` is falsy, in which case we discard
-        // the result anyway, so we conditionally set `x_hi` to zero for this branch.
-        let x_hi_adjusted = Limb::select(Limb::ZERO, x_hi, limb_div);
-        let (quo2, rem2) = div2by1(x_hi_adjusted.0, x_lo.0, &reciprocal);
-
-        // Adjust the quotient for single limb division
-        x[0] = Limb::select(x[0], Limb(quo2), limb_div);
-
-        // Copy out the low limb of the remainder
-        y[0] = Limb::select(x[0], Limb(rem2), limb_div);
-
-        // Note: branching only based on the size of the operands, which is not secret
-        let min = if xsize < ysize { xsize } else { ysize };
-        let hi_pos = u32_min(xsize as u32, ywords - 1);
-        i = 1;
-        while i < min {
-            y[i] = Limb::select(Limb::ZERO, x[i], ConstChoice::from_u32_lt(i as u32, ywords));
-            y[i] = Limb::select(y[i], x_hi, ConstChoice::from_u32_eq(i as u32, hi_pos));
-            i += 1;
-        }
-        while i < ysize {
-            y[i] = Limb::select(Limb::ZERO, x_hi, ConstChoice::from_u32_eq(i as u32, hi_pos));
-            i += 1;
-        }
-
-        let mut x = Self { limbs: x };
-        x.wrapping_shr_assign((ywords - 1) * Limb::BITS);
-        let mut y = Self { limbs: y };
-        y.shr_assign_limb(lshift);
-        (x, y)
+        let mut rem = Self::one_with_precision(self.bits_precision());
+        rem.ct_assign(rhs, is_nz);
+        quo.as_mut_uint_ref().div_rem(rem.as_mut_uint_ref());
+        CtOption::new(quo, is_nz)
     }
 }
 
@@ -415,125 +283,6 @@ impl RemMixed<BoxedUint> for BoxedUint {
     fn rem_mixed(&self, reductor: &NonZero<BoxedUint>) -> BoxedUint {
         Self::div_rem_vartime(self, reductor).1
     }
-}
-
-/// Computes `limbs << shift` inplace, where `0 <= shift < Limb::BITS`, returning the carry.
-fn shl_limb_vartime(limbs: &mut [Limb], shift: u32) -> Limb {
-    if shift == 0 {
-        return Limb::ZERO;
-    }
-
-    let lshift = shift;
-    let rshift = Limb::BITS - shift;
-    let limbs_num = limbs.len();
-
-    let carry = limbs[limbs_num - 1] >> rshift;
-    for i in (1..limbs_num).rev() {
-        limbs[i] = (limbs[i] << lshift) | (limbs[i - 1] >> rshift);
-    }
-    limbs[0] <<= lshift;
-
-    carry
-}
-
-/// Computes `limbs >> shift` inplace, where `0 <= shift < Limb::BITS`.
-fn shr_limb_vartime(limbs: &mut [Limb], shift: u32) {
-    if shift == 0 {
-        return;
-    }
-
-    let lshift = Limb::BITS - shift;
-    let rshift = shift;
-
-    let limbs_num = limbs.len();
-
-    for i in 0..limbs_num - 1 {
-        limbs[i] = (limbs[i] >> rshift) | (limbs[i + 1] << lshift);
-    }
-    limbs[limbs_num - 1] >>= rshift;
-}
-
-/// Computes `x` / `y`, returning the quotient in `x` and the remainder in `y`.
-///
-/// This function operates in variable-time. It will panic if the divisor is zero
-/// or the leading word of the divisor is zero.
-pub(crate) fn div_rem_vartime_in_place(x: &mut [Limb], y: &mut [Limb]) {
-    let xc = x.len();
-    let yc = y.len();
-    assert!(
-        yc > 0 && y[yc - 1].0 != 0,
-        "divisor must have a non-zero leading word"
-    );
-
-    if xc == 0 {
-        // If the quotient is empty, set the remainder to zero and return.
-        y.fill(Limb::ZERO);
-        return;
-    } else if yc > xc {
-        // Divisor is greater than dividend. Return zero and the dividend as the
-        // quotient and remainder
-        y[..xc].copy_from_slice(&x[..xc]);
-        y[xc..].fill(Limb::ZERO);
-        x.fill(Limb::ZERO);
-        return;
-    }
-
-    let lshift = y[yc - 1].leading_zeros();
-
-    // Shift divisor such that it has no leading zeros
-    // This means that div2by1 requires no extra shifts, and ensures that the high word >= b/2
-    shl_limb_vartime(y, lshift);
-
-    // Shift the dividend to match
-    let mut x_hi = shl_limb_vartime(x, lshift);
-
-    let reciprocal = Reciprocal::new(y[yc - 1].to_nz().expect("zero divisor"));
-
-    for xi in (yc - 1..xc).rev() {
-        // Divide high dividend words by the high divisor word to estimate the quotient word
-        let mut quo = div3by2(x_hi.0, x[xi].0, x[xi - 1].0, &reciprocal, y[yc - 2].0);
-
-        // Subtract q*divisor from the dividend
-        let borrow = {
-            let mut carry = Limb::ZERO;
-            let mut borrow = Limb::ZERO;
-            let mut tmp;
-            for i in 0..yc {
-                (tmp, carry) = y[i].carrying_mul_add(Limb(quo), carry, Limb::ZERO);
-                (x[xi + i + 1 - yc], borrow) = x[xi + i + 1 - yc].borrowing_sub(tmp, borrow);
-            }
-            (_, borrow) = x_hi.borrowing_sub(carry, borrow);
-            borrow
-        };
-
-        // If the subtraction borrowed, then decrement q and add back the divisor
-        // The probability of this being needed is very low, about 2/(Limb::MAX+1)
-        quo = {
-            let ct_borrow = ConstChoice::from_word_mask(borrow.0);
-            let mut carry = Limb::ZERO;
-            for i in 0..yc {
-                (x[xi + i + 1 - yc], carry) = x[xi + i + 1 - yc]
-                    .carrying_add(Limb::select(Limb::ZERO, y[i], ct_borrow), carry);
-            }
-            ct_borrow.select_word(quo, quo.wrapping_sub(1))
-        };
-
-        // Store the quotient within dividend and set x_hi to the current highest word
-        x_hi = x[xi];
-        x[xi] = Limb(quo);
-    }
-
-    // Copy the remainder to divisor
-    y[..yc - 1].copy_from_slice(&x[..yc - 1]);
-    y[yc - 1] = x_hi;
-
-    // Unshift the remainder from the earlier adjustment
-    shr_limb_vartime(y, lshift);
-
-    // Shift the quotient to the low limbs within dividend
-    // let x_size = xc - yc + 1;
-    x.copy_within(yc - 1..xc, 0);
-    x[xc - yc + 1..].fill(Limb::ZERO);
 }
 
 #[cfg(test)]

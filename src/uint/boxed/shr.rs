@@ -52,14 +52,16 @@ impl BoxedUint {
     ///
     /// Returns a truthy `Choice` if `shift >= self.bits_precision()` or a falsy `Choice` otherwise.
     pub fn overflowing_shr_assign(&mut self, shift: u32) -> Choice {
-        self.as_mut_uint_ref().overflowing_shr_assign(shift)
+        self.as_mut_uint_ref().overflowing_shr_assign(shift).into()
     }
 
     /// Computes `self >>= shift` in variable-time.
     ///
     /// Returns a truthy `Choice` if `shift >= self.bits_precision()` or a falsy `Choice` otherwise.
     pub fn overflowing_shr_assign_vartime(&mut self, shift: u32) -> Choice {
-        self.as_mut_uint_ref().overflowing_shr_assign_vartime(shift)
+        self.as_mut_uint_ref()
+            .overflowing_shr_assign_vartime(shift)
+            .into()
     }
 
     /// Computes `self >> shift` in a panic-free manner, masking off bits of `shift` which would cause the shift to
@@ -131,11 +133,6 @@ impl BoxedUint {
     /// Computes `self >>= 1` in-place in constant-time.
     pub(crate) fn shr1_assign(&mut self) -> ConstChoice {
         self.as_mut_uint_ref().shr1_assign()
-    }
-
-    /// Computes `self >>= shift` where `0 <= shift < Limb::BITS` in constant time.
-    pub(crate) fn shr_assign_limb(&mut self, shift: u32) -> Limb {
-        self.as_mut_uint_ref().shr_assign_limb(shift)
     }
 }
 

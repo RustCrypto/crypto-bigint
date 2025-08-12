@@ -17,6 +17,8 @@ mod slice;
 mod sub;
 
 #[cfg(feature = "alloc")]
+mod div;
+#[cfg(feature = "alloc")]
 mod shr;
 
 /// Unsigned integer reference type.
