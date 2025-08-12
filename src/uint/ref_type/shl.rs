@@ -228,19 +228,19 @@ mod tests {
         let mut val = N;
         let carry = val.as_mut_uint_ref().shl_assign_limb(1);
         assert_eq!(val, N.shl_vartime(1));
-        assert_eq!(carry, N.limbs[3].shr(Limb::BITS - 1));
+        assert_eq!(carry, N.limbs[U256::LIMBS - 1].shr(Limb::BITS - 1));
 
         // Shift by any
         let mut val = N;
         let carry = val.as_mut_uint_ref().shl_assign_limb(13);
         assert_eq!(val, N.shl_vartime(13));
-        assert_eq!(carry, N.limbs[3].shr(Limb::BITS - 13));
+        assert_eq!(carry, N.limbs[U256::LIMBS - 1].shr(Limb::BITS - 13));
 
         // Shift by max
         let mut val = N;
         let carry = val.as_mut_uint_ref().shl_assign_limb(Limb::BITS - 1);
         assert_eq!(val, N.shl_vartime(Limb::BITS - 1));
-        assert_eq!(carry, N.limbs[3].shr(1));
+        assert_eq!(carry, N.limbs[U256::LIMBS - 1].shr(1));
     }
 
     #[test]
