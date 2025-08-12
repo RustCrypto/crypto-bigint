@@ -13,8 +13,6 @@ use super::Uint;
 use crate::{DecodeError, Limb, Word};
 
 #[cfg(feature = "alloc")]
-use super::boxed::div::div_rem_vartime_in_place;
-#[cfg(feature = "alloc")]
 use super::div_limb::{Reciprocal, div2by1};
 #[cfg(feature = "alloc")]
 use crate::{NonZero, WideWord};
@@ -670,8 +668,11 @@ impl RadixDivisionParams {
             // Divide by the large divisor and recurse on the encoding of the digits
             let mut remain;
             while limb_count >= RADIX_ENCODING_LIMBS_LARGE {
+                use crate::UintRef;
+
                 remain = self.div_large;
-                div_rem_vartime_in_place(&mut limbs[..limb_count], &mut remain);
+                UintRef::new_mut(&mut limbs[..limb_count])
+                    .div_rem_vartime(UintRef::new_mut(&mut remain));
                 limb_count = limb_count + 1 - RADIX_ENCODING_LIMBS_LARGE;
                 if limbs[limb_count - 1] == Limb::ZERO {
                     limb_count -= 1;

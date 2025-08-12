@@ -3,6 +3,11 @@ use crate::{ConstChoice, Limb, traits::BitOps};
 use subtle::Choice;
 
 impl UintRef {
+    /// Get the precision of this [`BoxedUint`] in bits.
+    pub const fn bits_precision(&self) -> u32 {
+        self.0.len() as u32 * Limb::BITS
+    }
+
     #[inline(always)]
     pub const fn bit(&self, index: u32) -> ConstChoice {
         let limb_num = index / Limb::BITS;
@@ -21,23 +26,6 @@ impl UintRef {
         ConstChoice::from_word_lsb(result >> index_in_limb)
     }
 
-    /// Calculate the number of leading zeros in the binary representation of this number.
-    pub const fn leading_zeros(&self) -> u32 {
-        let mut count = 0;
-        let mut i = self.0.len();
-        let mut nonzero_limb_not_encountered = ConstChoice::TRUE;
-        while i > 0 {
-            i -= 1;
-            let l = self.0[i];
-            let z = l.leading_zeros();
-            count += nonzero_limb_not_encountered.if_true_u32(z);
-            nonzero_limb_not_encountered =
-                nonzero_limb_not_encountered.and(ConstChoice::from_word_nonzero(l.0).not());
-        }
-
-        count
-    }
-
     #[inline(always)]
     pub const fn bit_vartime(&self, index: u32) -> bool {
         let limb_num = (index / Limb::BITS) as usize;
@@ -47,6 +35,15 @@ impl UintRef {
         } else {
             (self.0[limb_num].0 >> index_in_limb) & 1 == 1
         }
+    }
+
+    /// Calculate the number of bits needed to represent this number, i.e. the index of the highest
+    /// set bit.
+    ///
+    /// Use [`UintRef::bits_precision`] to get the total capacity of this integer.
+    #[cfg(feature = "alloc")]
+    pub const fn bits(&self) -> u32 {
+        self.bits_precision() - self.leading_zeros()
     }
 
     #[inline(always)]
@@ -85,6 +82,23 @@ impl UintRef {
         } else {
             self.0[limb_num].0 &= !(1 << index_in_limb);
         }
+    }
+
+    /// Calculate the number of leading zeros in the binary representation of this number.
+    pub const fn leading_zeros(&self) -> u32 {
+        let mut count = 0;
+        let mut i = self.0.len();
+        let mut nonzero_limb_not_encountered = ConstChoice::TRUE;
+        while i > 0 {
+            i -= 1;
+            let l = self.0[i];
+            let z = l.leading_zeros();
+            count += nonzero_limb_not_encountered.if_true_u32(z);
+            nonzero_limb_not_encountered =
+                nonzero_limb_not_encountered.and(ConstChoice::from_word_nonzero(l.0).not());
+        }
+
+        count
     }
 
     #[inline(always)]
@@ -177,7 +191,7 @@ impl UintRef {
 impl BitOps for UintRef {
     #[inline(always)]
     fn bits_precision(&self) -> u32 {
-        self.0.len() as u32 * Limb::BITS
+        self.bits_precision()
     }
 
     #[inline(always)]

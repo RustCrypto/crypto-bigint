@@ -1,6 +1,6 @@
 //! [`BoxedUint`] square root operations.
 
-use subtle::{ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, CtOption};
+use subtle::{ConstantTimeEq, ConstantTimeGreater, CtOption};
 
 use crate::{BitOps, BoxedUint, ConstantTimeSelect, NonZero, SquareRoot};
 
@@ -31,11 +31,7 @@ impl BoxedUint {
 
             // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
             let x_nonzero = x.is_nonzero();
-            let mut j = 0;
-            while j < nz_x.0.limbs.len() {
-                nz_x.0.limbs[j].conditional_assign(&x.limbs[j], x_nonzero);
-                j += 1;
-            }
+            nz_x.0.ct_assign(&x, x_nonzero);
             let (q, _) = self.div_rem(&nz_x);
             x.conditional_carrying_add_assign(&q, x_nonzero);
             x.shr1_assign();
