@@ -1,7 +1,7 @@
 //! [`UintRef`] bitwise right shift operations.
 
 use super::UintRef;
-use crate::{BitOps, ConstChoice, Limb};
+use crate::{BitOps, ConstChoice, Limb, NonZero};
 use subtle::{Choice, ConstantTimeLess};
 
 impl UintRef {
@@ -50,7 +50,7 @@ impl UintRef {
         let mut i = 0;
         while i < limb_bits {
             let bit = ConstChoice::from_u32_lsb((shift >> i) & 1);
-            self.conditional_shr_assign_limb(1 << i, bit);
+            self.conditional_shr_assign_limb_nonzero(NonZero(1 << i), bit);
             i += 1;
         }
         while i < shift_bits {
@@ -147,32 +147,38 @@ impl UintRef {
 
     /// Conditionally right-shifts by `shift` bits where `0 < shift < Limb::BITS`, returning
     /// the carry.
+    ///
+    /// Panics if `shift >= Limb::BITS`.
     #[inline]
-    pub(crate) const fn conditional_shr_assign_limb(&mut self, shift: u32, c: ConstChoice) -> Limb {
-        assert!(shift < Limb::BITS);
+    pub(crate) const fn conditional_shr_assign_limb_nonzero(
+        &mut self,
+        shift: NonZero<u32>,
+        choice: ConstChoice,
+    ) -> Limb {
+        assert!(shift.0 < Limb::BITS);
 
-        let nz = ConstChoice::from_u32_nonzero(shift);
-        let rshift = shift;
-        let lshift = nz.select_u32(0, Limb::BITS - shift);
-        let apply = c.and(nz);
+        let rshift = shift.0;
+        let lshift = Limb::BITS - shift.0;
         let mut carry = Limb::ZERO;
 
         let mut i = self.0.len();
         while i > 0 {
             i -= 1;
             (self.0[i], carry) = (
-                Limb::select(self.0[i], self.0[i].shr(rshift).bitor(carry), apply),
+                Limb::select(self.0[i], self.0[i].shr(rshift).bitor(carry), choice),
                 self.0[i].shl(lshift),
             );
         }
 
-        Limb::select(Limb::ZERO, carry, apply)
+        Limb::select(Limb::ZERO, carry, choice)
     }
 
     /// Right-shifts by `shift` bits where `0 < shift < Limb::BITS`, returning the carry.
-    #[inline(always)]
+    ///
+    /// Panics if `shift >= Limb::BITS`.
     pub const fn shr_assign_limb(&mut self, shift: u32) -> Limb {
-        self.conditional_shr_assign_limb(shift, ConstChoice::TRUE)
+        let nz = ConstChoice::from_u32_nonzero(shift);
+        self.conditional_shr_assign_limb_nonzero(NonZero(nz.select_u32(1, shift)), nz)
     }
 }
 
