@@ -113,14 +113,14 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
     pub(crate) const fn binxgcd_nz(&self, rhs: &NonZeroUint<LIMBS>) -> PatternXgcdOutput<LIMBS> {
         let (lhs_, rhs_) = (self.as_ref(), rhs.as_ref());
 
-        // The `binxgcd` subroutine requires `rhs` needs to be odd.
+        // The `xgcd` subroutine requires `rhs` to be odd.
         // We leverage the equality gcd(lhs, rhs) = gcd(lhs, |lhs-rhs|) to deal with the case that
         // `rhs` is even.
         let rhs_is_even = rhs_.is_odd().not();
         let (abs_diff, rhs_gt_lhs) = lhs_.abs_diff(rhs_);
         let odd_rhs = Odd(Uint::select(rhs_, &abs_diff, rhs_is_even));
 
-        let mut output = self.classic_binxgcd(&odd_rhs).divide();
+        let mut output = self.binxgcd_odd(&odd_rhs);
         let matrix = &mut output.matrix;
 
         // Modify the output to negate the transformation applied to the input.
@@ -132,6 +132,14 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
         matrix.conditional_negate(case_two);
 
         output
+    }
+
+    /// Execute the classic Extended GCD algorithm.
+    ///
+    /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
+    #[inline]
+    pub(crate) const fn binxgcd_odd(&self, rhs: &Self) -> PatternXgcdOutput<LIMBS> {
+        self.classic_binxgcd(rhs).divide()
     }
 
     /// Execute the classic Binary Extended GCD algorithm.
@@ -263,7 +271,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 #[cfg(all(test, not(miri)))]
 mod tests {
     use crate::modular::bingcd::xgcd::PatternXgcdOutput;
-    use crate::{ConcatMixed, Uint};
+    use crate::{ConcatMixed, Gcd, Uint};
     use core::ops::Div;
     use num_traits::Zero;
 
@@ -482,7 +490,7 @@ mod tests {
         Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
     {
         // Test the gcd
-        assert_eq!(lhs.bingcd(&rhs), output.gcd, "{lhs} {rhs}");
+        assert_eq!(lhs.gcd(&rhs), output.gcd, "{lhs} {rhs}");
 
         // Test the quotients
         let (lhs_on_gcd, rhs_on_gcd) = output.quotients();

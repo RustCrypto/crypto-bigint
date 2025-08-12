@@ -15,8 +15,7 @@ pub(crate) mod boxed;
 use core::fmt;
 
 use crate::{
-    ConstChoice, ConstCtOption, I64, Int, Limb, NonZero, Odd, U64, Uint, Word,
-    const_choice::u32_min,
+    ConstChoice, ConstCtOption, I64, Int, Limb, Odd, U64, Uint, Word, const_choice::u32_min,
 };
 
 const GCD_BATCH_SIZE: u32 = 62;
@@ -135,40 +134,6 @@ const fn invert_odd_mod_precomp<const LIMBS: usize, const VARTIME: bool>(
 
     let d = d.norm(f.is_negative(), m.as_ref());
     ConstCtOption::new(d, Uint::eq(&f.magnitude, &Uint::ONE).and(a_nonzero))
-}
-
-/// Calculate the greatest common denominator of `f` and `g`.
-pub const fn gcd<const LIMBS: usize, const VARTIME: bool>(
-    f: &Uint<LIMBS>,
-    g: &Uint<LIMBS>,
-) -> Uint<LIMBS> {
-    let f_is_zero = f.is_nonzero().not();
-    // Note: is non-zero by construction
-    let f_nz = NonZero(Uint::select(f, &Uint::ONE, f_is_zero));
-    // gcd of (0, g) is g
-    Uint::select(gcd_nz::<LIMBS, VARTIME>(&f_nz, g).as_ref(), g, f_is_zero)
-}
-
-/// Calculate the greatest common denominator of nonzero `f`, and `g`.
-pub const fn gcd_nz<const LIMBS: usize, const VARTIME: bool>(
-    f: &NonZero<Uint<LIMBS>>,
-    g: &Uint<LIMBS>,
-) -> NonZero<Uint<LIMBS>> {
-    // Note the following two GCD identity rules:
-    // 1) gcd(2f, 2g) = 2•gcd(f, g), and
-    // 2) gcd(a, 2g) = gcd(f, g) if f is odd.
-    //
-    // Combined, these rules imply that
-    // 3) gcd(2^i•f, 2^j•g) = 2^k•gcd(f, g), with k = min(i, j).
-    //
-    // However, to save ourselves having to divide out 2^j, we also note that
-    // 4) 2^k•gcd(f, g) = 2^k•gcd(a, 2^j•b)
-
-    let i = f.as_ref().trailing_zeros();
-    let k = u32_min(i, g.trailing_zeros());
-
-    let f_odd = Odd(f.as_ref().shr(i));
-    NonZero(gcd_odd::<LIMBS, VARTIME>(&f_odd, g).as_ref().shl(k))
 }
 
 /// Calculate the greatest common denominator of odd `f`, and `g`.

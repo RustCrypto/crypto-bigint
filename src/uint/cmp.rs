@@ -55,6 +55,19 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Limb(b).is_nonzero()
     }
 
+    /// Determine in variable time whether the `self` is zero.
+    #[inline]
+    pub(crate) const fn is_zero_vartime(&self) -> bool {
+        let mut i = 0;
+        while i < LIMBS {
+            if self.limbs[i].0 != 0 {
+                return false;
+            }
+            i += 1;
+        }
+        true
+    }
+
     /// Returns the truthy value if `self` is odd or the falsy value otherwise.
     pub(crate) const fn is_odd(&self) -> ConstChoice {
         ConstChoice::from_word_lsb(self.limbs[0].0 & 1)
