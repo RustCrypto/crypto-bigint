@@ -5,13 +5,16 @@ use core::{
     fmt,
     ops::{Index, IndexMut},
 };
-use subtle::{Choice, ConditionallySelectable};
 
 #[cfg(feature = "alloc")]
 use crate::Word;
+#[cfg(feature = "alloc")]
+use subtle::{Choice, ConditionallySelectable};
 
 mod bits;
+#[cfg(feature = "alloc")]
 mod shl;
+#[cfg(feature = "alloc")]
 mod shr;
 
 /// Unsigned integer reference type.
@@ -89,6 +92,7 @@ impl UintRef {
         self.0.iter_mut()
     }
 
+    #[cfg(feature = "alloc")]
     #[inline]
     pub fn conditional_set_zero(&mut self, choice: Choice) {
         for i in 0..self.0.len() {
