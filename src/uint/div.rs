@@ -151,7 +151,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         (
-            Uint::new(x).wrapping_shr((dwords - 1) * Limb::BITS),
+            Uint::new(x).wrapping_shr_by_limbs(dwords - 1),
             Uint::new(y).shr_limb(lshift).0,
         )
     }
