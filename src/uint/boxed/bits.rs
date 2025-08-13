@@ -1,19 +1,13 @@
 //! Bit manipulation functions.
 
-use crate::{
-    BitOps, BoxedUint, Limb,
-    uint::bits::{
-        bit, bit_vartime, bits_vartime, leading_zeros, set_bit, set_bit_vartime, trailing_ones,
-        trailing_ones_vartime, trailing_zeros, trailing_zeros_vartime,
-    },
-};
+use crate::{BitOps, BoxedUint, Limb};
 use subtle::Choice;
 
 impl BoxedUint {
     /// Get the value of the bit at position `index`, as a truthy or falsy `Choice`.
     /// Returns the falsy value for indices out of range.
     pub fn bit(&self, index: u32) -> Choice {
-        bit(&self.limbs, index).into()
+        self.as_uint_ref().bit(index).into()
     }
 
     /// Returns `true` if the bit at position `index` is set, `false` otherwise.
@@ -22,7 +16,7 @@ impl BoxedUint {
     /// This operation is variable time with respect to `index` only.
     #[inline(always)]
     pub const fn bit_vartime(&self, index: u32) -> bool {
-        bit_vartime(&self.limbs, index)
+        self.as_uint_ref().bit_vartime(index)
     }
 
     /// Calculate the number of bits needed to represent this number, i.e. the index of the highest
@@ -36,48 +30,49 @@ impl BoxedUint {
     /// Calculate the number of bits needed to represent this number in variable-time with respect
     /// to `self`.
     pub fn bits_vartime(&self) -> u32 {
-        bits_vartime(&self.limbs)
+        self.as_uint_ref().bits_vartime()
     }
 
     /// Calculate the number of leading zeros in the binary representation of this number.
     pub const fn leading_zeros(&self) -> u32 {
-        leading_zeros(&self.limbs)
+        self.as_uint_ref().leading_zeros()
     }
 
     /// Get the precision of this [`BoxedUint`] in bits.
+    #[inline(always)]
     pub fn bits_precision(&self) -> u32 {
         self.limbs.len() as u32 * Limb::BITS
     }
 
     /// Calculate the number of trailing zeros in the binary representation of this number.
     pub fn trailing_zeros(&self) -> u32 {
-        trailing_zeros(&self.limbs)
+        self.as_uint_ref().trailing_zeros()
     }
 
     /// Calculate the number of trailing ones in the binary representation of this number.
     pub fn trailing_ones(&self) -> u32 {
-        trailing_ones(&self.limbs)
+        self.as_uint_ref().trailing_ones()
     }
 
     /// Calculate the number of trailing zeros in the binary representation of this number in
     /// variable-time with respect to `self`.
     pub fn trailing_zeros_vartime(&self) -> u32 {
-        trailing_zeros_vartime(&self.limbs)
+        self.as_uint_ref().trailing_zeros_vartime()
     }
 
     /// Calculate the number of trailing ones in the binary representation of this number,
     /// variable time in `self`.
     pub fn trailing_ones_vartime(&self) -> u32 {
-        trailing_ones_vartime(&self.limbs)
+        self.as_uint_ref().trailing_ones_vartime()
     }
 
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
     pub(crate) fn set_bit(&mut self, index: u32, bit_value: Choice) {
-        set_bit(&mut self.limbs, index, bit_value.into());
+        self.as_mut_uint_ref().set_bit(index, bit_value.into())
     }
 
     pub(crate) fn set_bit_vartime(&mut self, index: u32, bit_value: bool) {
-        set_bit_vartime(&mut self.limbs, index, bit_value);
+        self.as_mut_uint_ref().set_bit_vartime(index, bit_value)
     }
 }
 
