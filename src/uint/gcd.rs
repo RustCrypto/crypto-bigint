@@ -352,7 +352,7 @@ impl_gcd_uint_rhs!(
     NonZeroUint<LIMBS>,
     [NonZeroUint<LIMBS>, OddUint<LIMBS>]
 );
-impl_gcd_uint_lhs!(OddUint<LIMBS>, [Uint<LIMBS>, NonZeroUint<LIMBS>]);
+impl_gcd_uint_lhs!(OddUint<LIMBS>, [Uint<LIMBS>, NonZeroUint<LIMBS>, OddUint<LIMBS>]);
 
 impl<const LIMBS: usize> Xgcd for Uint<LIMBS> {
     type Output = UintXgcdOutput<LIMBS>;
