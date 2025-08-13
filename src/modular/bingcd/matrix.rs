@@ -130,6 +130,7 @@ impl<const LIMBS: usize> DividedPatternMatrix<LIMBS> {
     /// Apply this matrix to a vector of [Uint]s, returning the result as a vector of
     /// [ExtendedInt]s.
     #[inline]
+    #[allow(unused)] // save for optimized xgcd
     pub const fn extended_apply_to<const VEC_LIMBS: usize, const UPPER_BOUND: u32>(
         &self,
         vec: Vector<Uint<VEC_LIMBS>>,

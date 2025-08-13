@@ -1,5 +1,5 @@
 /// Constructing a compact representation of a [`Uint`]
-use crate::Uint;
+use crate::{Limb, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Construct a [Uint] containing the bits in `self` in the range `[idx, idx + length)`.
@@ -17,7 +17,20 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         debug_assert!(idx + length <= Self::BITS);
 
         let mask = Uint::ONE.shl_vartime(length).wrapping_sub(&Uint::ONE);
-        self.shr(idx).resize::<SECTION_LIMBS>().bitand(&mask)
+        if LIMBS > SECTION_LIMBS {
+            let (shr_limbs, shr_bits) = (idx / Limb::BITS, idx % Limb::BITS);
+            // shift into the lower SECTION_LIMBS+1 limbs
+            let buf = self.wrapping_shr_by_limbs(shr_limbs);
+            // shift the lower SECTION_LIMBS limbs by the remaining bits and carry the high bits
+            let (mut lo, hi) = (
+                buf.resize::<SECTION_LIMBS>().shr_limb(shr_bits).0,
+                buf.limbs[SECTION_LIMBS],
+            );
+            lo.limbs[SECTION_LIMBS - 1] = lo.limbs[SECTION_LIMBS - 1].bitor(hi.shr(shr_bits));
+            lo.bitand(&mask)
+        } else {
+            self.shr(idx).resize::<SECTION_LIMBS>().bitand(&mask)
+        }
     }
 
     /// Construct a [Uint] containing the bits in `self` in the range `[idx, idx + length)`.
