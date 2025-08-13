@@ -1,10 +1,160 @@
 use super::UintRef;
-use crate::uint::bits::{
-    bit, bit_vartime, bits_vartime, leading_zeros, set_bit, set_bit_vartime, trailing_ones,
-    trailing_ones_vartime, trailing_zeros, trailing_zeros_vartime,
-};
-use crate::{Limb, traits::BitOps};
+use crate::{ConstChoice, Limb, traits::BitOps};
 use subtle::Choice;
+
+impl UintRef {
+    #[inline(always)]
+    pub const fn bit(&self, index: u32) -> ConstChoice {
+        let limb_num = index / Limb::BITS;
+        let index_in_limb = index % Limb::BITS;
+        let index_mask = 1 << index_in_limb;
+
+        let mut result = 0;
+        let mut i = 0;
+        while i < self.0.len() {
+            let bit = self.0[i].0 & index_mask;
+            let is_right_limb = ConstChoice::from_u32_eq(i as u32, limb_num);
+            result |= is_right_limb.if_true_word(bit);
+            i += 1;
+        }
+
+        ConstChoice::from_word_lsb(result >> index_in_limb)
+    }
+
+    /// Calculate the number of leading zeros in the binary representation of this number.
+    pub const fn leading_zeros(&self) -> u32 {
+        let mut count = 0;
+        let mut i = self.0.len();
+        let mut nonzero_limb_not_encountered = ConstChoice::TRUE;
+        while i > 0 {
+            i -= 1;
+            let l = self.0[i];
+            let z = l.leading_zeros();
+            count += nonzero_limb_not_encountered.if_true_u32(z);
+            nonzero_limb_not_encountered =
+                nonzero_limb_not_encountered.and(ConstChoice::from_word_nonzero(l.0).not());
+        }
+
+        count
+    }
+
+    #[inline(always)]
+    pub const fn bit_vartime(&self, index: u32) -> bool {
+        let limb_num = (index / Limb::BITS) as usize;
+        let index_in_limb = (index % Limb::BITS) as usize;
+        if limb_num >= self.0.len() {
+            false
+        } else {
+            (self.0[limb_num].0 >> index_in_limb) & 1 == 1
+        }
+    }
+
+    #[inline(always)]
+    pub const fn bits_vartime(&self) -> u32 {
+        let mut i = self.0.len() - 1;
+        while i > 0 && self.0[i].0 == 0 {
+            i -= 1;
+        }
+
+        let limb = self.0[i];
+        Limb::BITS * (i as u32 + 1) - limb.leading_zeros()
+    }
+
+    #[inline(always)]
+    pub const fn set_bit(&mut self, index: u32, bit_value: ConstChoice) {
+        let limb_num = index / Limb::BITS;
+        let index_in_limb = index % Limb::BITS;
+        let index_mask = 1 << index_in_limb;
+
+        let mut i = 0;
+        while i < self.0.len() {
+            let is_right_limb = ConstChoice::from_u32_eq(i as u32, limb_num);
+            let old_limb = self.0[i].0;
+            let new_limb = bit_value.select_word(old_limb & !index_mask, old_limb | index_mask);
+            self.0[i] = Limb(is_right_limb.select_word(old_limb, new_limb));
+            i += 1;
+        }
+    }
+
+    #[inline(always)]
+    pub const fn set_bit_vartime(&mut self, index: u32, bit_value: bool) {
+        let limb_num = (index / Limb::BITS) as usize;
+        let index_in_limb = index % Limb::BITS;
+        if bit_value {
+            self.0[limb_num].0 |= 1 << index_in_limb;
+        } else {
+            self.0[limb_num].0 &= !(1 << index_in_limb);
+        }
+    }
+
+    #[inline(always)]
+    pub const fn trailing_zeros(&self) -> u32 {
+        let mut count = 0;
+        let mut i = 0;
+        let mut nonzero_limb_not_encountered = ConstChoice::TRUE;
+        while i < self.0.len() {
+            let l = self.0[i];
+            let z = l.trailing_zeros();
+            count += nonzero_limb_not_encountered.if_true_u32(z);
+            nonzero_limb_not_encountered =
+                nonzero_limb_not_encountered.and(ConstChoice::from_word_nonzero(l.0).not());
+            i += 1;
+        }
+
+        count
+    }
+
+    #[inline(always)]
+    pub const fn trailing_zeros_vartime(&self) -> u32 {
+        let mut count = 0;
+        let mut i = 0;
+        while i < self.0.len() {
+            let l = self.0[i];
+            let z = l.trailing_zeros();
+            count += z;
+            if z != Limb::BITS {
+                break;
+            }
+            i += 1;
+        }
+
+        count
+    }
+
+    #[inline(always)]
+    pub const fn trailing_ones(&self) -> u32 {
+        let mut count = 0;
+        let mut i = 0;
+        let mut nonmax_limb_not_encountered = ConstChoice::TRUE;
+        while i < self.0.len() {
+            let l = self.0[i];
+            let z = l.trailing_ones();
+            count += nonmax_limb_not_encountered.if_true_u32(z);
+            nonmax_limb_not_encountered =
+                nonmax_limb_not_encountered.and(ConstChoice::from_word_eq(l.0, Limb::MAX.0));
+            i += 1;
+        }
+
+        count
+    }
+
+    #[inline(always)]
+    pub const fn trailing_ones_vartime(&self) -> u32 {
+        let mut count = 0;
+        let mut i = 0;
+        while i < self.0.len() {
+            let l = self.0[i];
+            let z = l.trailing_ones();
+            count += z;
+            if z != Limb::BITS {
+                break;
+            }
+            i += 1;
+        }
+
+        count
+    }
+}
 
 impl BitOps for UintRef {
     #[inline(always)]
@@ -18,42 +168,42 @@ impl BitOps for UintRef {
     }
 
     fn leading_zeros(&self) -> u32 {
-        leading_zeros(self.as_slice())
+        self.leading_zeros()
     }
 
     fn bit(&self, index: u32) -> Choice {
-        bit(self.as_slice(), index).into()
+        self.bit(index).into()
     }
 
     fn set_bit(&mut self, index: u32, bit_value: Choice) {
-        set_bit(self.as_mut_slice(), index, bit_value.into());
+        self.set_bit(index, bit_value.into());
     }
 
     fn trailing_zeros(&self) -> u32 {
-        trailing_zeros(self.as_slice())
+        self.trailing_zeros()
     }
 
     fn trailing_ones(&self) -> u32 {
-        trailing_ones(self.as_slice())
+        self.trailing_ones()
     }
 
     fn bit_vartime(&self, index: u32) -> bool {
-        bit_vartime(self.as_slice(), index)
+        self.bit_vartime(index)
     }
 
     fn bits_vartime(&self) -> u32 {
-        bits_vartime(self.as_slice())
+        self.bits_vartime()
     }
 
     fn set_bit_vartime(&mut self, index: u32, bit_value: bool) {
-        set_bit_vartime(self.as_mut_slice(), index, bit_value);
+        self.set_bit_vartime(index, bit_value);
     }
 
     fn trailing_zeros_vartime(&self) -> u32 {
-        trailing_zeros_vartime(self.as_slice())
+        self.trailing_zeros_vartime()
     }
 
     fn trailing_ones_vartime(&self) -> u32 {
-        trailing_ones_vartime(self.as_slice())
+        self.trailing_ones_vartime()
     }
 }
