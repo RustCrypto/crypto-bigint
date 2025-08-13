@@ -1,6 +1,6 @@
 //! The Binary Extended GCD algorithm.
 use crate::modular::bingcd::matrix::{DividedPatternMatrix, PatternMatrix};
-use crate::{ConstChoice, Int, NonZeroUint, Odd, OddUint, Uint};
+use crate::{ConstChoice, Int, Limb, NonZeroUint, Odd, OddUint, Uint};
 
 /// Container for the raw output of the Binary XGCD algorithm.
 pub(crate) struct RawXgcdOutput<const LIMBS: usize, MATRIX> {
@@ -244,13 +244,10 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute the absolute difference between `self` and `rhs`.
     /// In addition to the result, also returns whether `rhs > self`.
-    const fn abs_diff(&self, rhs_: &Self) -> (Self, ConstChoice) {
-        let rhs_gt_self = Uint::gt(rhs_, self);
-        let abs_diff = Uint::select(
-            &self.wrapping_sub(rhs_),
-            &rhs_.wrapping_sub(self),
-            rhs_gt_self,
-        );
+    const fn abs_diff(&self, rhs: &Self) -> (Self, ConstChoice) {
+        let (diff, borrow) = self.borrowing_sub(rhs, Limb::ZERO);
+        let rhs_gt_self = borrow.is_nonzero();
+        let abs_diff = Uint::select(&diff, &diff.wrapping_neg(), rhs_gt_self);
         (abs_diff, rhs_gt_self)
     }
 }
