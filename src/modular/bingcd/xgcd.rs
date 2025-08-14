@@ -244,7 +244,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     const fn abs_diff(&self, rhs: &Self) -> (Self, ConstChoice) {
         let (diff, borrow) = self.borrowing_sub(rhs, Limb::ZERO);
         let rhs_gt_self = borrow.is_nonzero();
-        let abs_diff = Uint::select(&diff, &diff.wrapping_neg(), rhs_gt_self);
+        let abs_diff = diff.wrapping_neg_if(rhs_gt_self);
         (abs_diff, rhs_gt_self)
     }
 }

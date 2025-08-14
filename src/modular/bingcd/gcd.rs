@@ -62,7 +62,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         let (a_sub_b, borrow) = a.borrowing_sub(&Uint::select(&Uint::ZERO, b, a_odd), Limb::ZERO);
         let swap = borrow.is_nonzero();
         *b = Uint::select(b, a, swap);
-        *a = Uint::select(&a_sub_b, &a_sub_b.wrapping_neg(), swap).shr1();
+        *a = a_sub_b.wrapping_neg_if(swap).shr1();
         (a_odd, swap)
     }
 
