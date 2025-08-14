@@ -8,6 +8,14 @@ use core::{
 
 #[cfg(feature = "alloc")]
 use crate::Word;
+#[cfg(feature = "alloc")]
+use subtle::{Choice, ConditionallySelectable};
+
+mod bits;
+#[cfg(feature = "alloc")]
+mod shl;
+#[cfg(feature = "alloc")]
+mod shr;
 
 /// Unsigned integer reference type.
 ///
@@ -82,6 +90,14 @@ impl UintRef {
     #[allow(dead_code)] // TODO(tarcieri): use this
     pub fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut Limb> {
         self.0.iter_mut()
+    }
+
+    #[cfg(feature = "alloc")]
+    #[inline]
+    pub fn conditional_set_zero(&mut self, choice: Choice) {
+        for i in 0..self.0.len() {
+            self.0[i] = Limb::conditional_select(&self.0[i], &Limb::ZERO, choice);
+        }
     }
 }
 

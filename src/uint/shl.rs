@@ -1,6 +1,6 @@
 //! [`Uint`] bitwise left shift operations.
 
-use crate::{ConstChoice, ConstCtOption, Limb, ShlVartime, Uint, WrappingShl};
+use crate::{ConstChoice, ConstCtOption, Limb, NonZero, ShlVartime, Uint, WrappingShl};
 use core::ops::{Shl, ShlAssign};
 use subtle::CtOption;
 
@@ -48,7 +48,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut i = 0;
         while i < limb_bits {
             let bit = ConstChoice::from_u32_lsb((shift >> i) & 1);
-            result = Uint::select(&result, &result.shl_limb_nonzero(1 << i).0, bit);
+            result = result.conditional_shl_limb_nonzero(NonZero(1 << i), bit).0;
             i += 1;
         }
         while i < shift_bits {
@@ -95,15 +95,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut res = self.wrapping_shl_by_limbs_vartime(shift_num);
         let rem = shift % Limb::BITS;
 
-        if rem > 0 {
+        if rem != 0 {
             let mut carry = Limb::ZERO;
 
             let mut i = shift_num as usize;
             while i < LIMBS {
-                let shifted = res.limbs[i].shl(rem);
-                let new_carry = res.limbs[i].shr(Limb::BITS - rem);
-                res.limbs[i] = shifted.bitor(carry);
-                carry = new_carry;
+                (res.limbs[i], carry) = (
+                    res.limbs[i].shl(rem).bitor(carry),
+                    res.limbs[i].shr(Limb::BITS - rem),
+                );
                 i += 1;
             }
         }
@@ -158,45 +158,46 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         self.overflowing_shl_vartime(shift).unwrap_or(Self::ZERO)
     }
 
-    /// Computes `self << shift` where `0 <= shift < Limb::BITS`,
+    /// Conditionally computes `self << shift` where `0 <= shift < Limb::BITS`,
     /// returning the result and the carry.
+    ///
+    /// Panics if `shift >= Limb::BITS`.
     #[inline(always)]
-    pub(crate) const fn shl_limb(&self, shift: u32) -> (Self, Limb) {
-        let nz = ConstChoice::from_u32_nonzero(shift);
-        let shift = nz.select_u32(1, shift);
-        let (res, carry) = self.shl_limb_nonzero(shift);
-        (
-            Uint::select(self, &res, nz),
-            Limb::select(Limb::ZERO, carry, nz),
-        )
+    pub(crate) const fn conditional_shl_limb_nonzero(
+        &self,
+        shift: NonZero<u32>,
+        choice: ConstChoice,
+    ) -> (Self, Limb) {
+        assert!(shift.0 < Limb::BITS);
+
+        let mut limbs = [Limb::ZERO; LIMBS];
+        let lshift = shift.0;
+        let rshift = Limb::BITS - shift.0;
+        let mut carry = Limb::ZERO;
+
+        let mut i = 0;
+        while i < LIMBS {
+            (limbs[i], carry) = (
+                Limb::select(
+                    self.limbs[i],
+                    self.limbs[i].shl(lshift).bitor(carry),
+                    choice,
+                ),
+                self.limbs[i].shr(rshift),
+            );
+            i += 1;
+        }
+
+        (Self { limbs }, Limb::select(Limb::ZERO, carry, choice))
     }
 
     /// Computes `self << shift` where `0 <= shift < Limb::BITS`,
     /// returning the result and the carry.
     ///
-    /// Note: this operation should not be used in situations where `shift == 0`; it looks like
-    /// something in the execution pipeline can sometimes sniff this case out and optimize it away,
-    /// possibly leading to variable time behaviour.
-    #[inline(always)]
-    pub(crate) const fn shl_limb_nonzero(&self, shift: u32) -> (Self, Limb) {
-        assert!(0 < shift);
-        assert!(shift < Limb::BITS);
-
-        let mut limbs = [Limb::ZERO; LIMBS];
-
-        let lshift = shift;
-        let rshift = Limb::BITS - shift;
-        let carry = self.limbs[LIMBS - 1].shr(rshift);
-
-        limbs[0] = self.limbs[0].shl(lshift);
-        let mut i = 1;
-        while i < LIMBS {
-            let lo = self.limbs[i - 1].shr(rshift);
-            limbs[i] = self.limbs[i].shl(lshift).bitor(lo);
-            i += 1
-        }
-
-        (Uint::<LIMBS>::new(limbs), carry)
+    /// Panics if `shift >= Limb::BITS`.
+    pub(crate) const fn shl_limb(&self, shift: u32) -> (Self, Limb) {
+        let nz = ConstChoice::from_u32_nonzero(shift);
+        self.conditional_shl_limb_nonzero(NonZero(nz.select_u32(1, shift)), nz)
     }
 
     /// Computes `self << 1` in constant-time, returning [`ConstChoice::TRUE`]
