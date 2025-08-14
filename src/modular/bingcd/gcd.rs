@@ -120,7 +120,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let (.., matrix) = a_
                 .to_odd()
                 .expect("a_ is always odd")
-                .partial_binxgcd_vartime::<LIMBS_K, false>(&b_, K - 1);
+                .partial_binxgcd::<LIMBS_K, false>(&b_, K - 1);
 
             // Update `a` and `b` using the update matrix
             // Safe to use vartime: the number of doublings is constant (K-1).
@@ -163,7 +163,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let (.., matrix) = a_
                 .to_odd()
                 .expect("a_ is always odd")
-                .partial_binxgcd_vartime::<LIMBS_K, false>(&b_, K - 1);
+                .partial_binxgcd::<LIMBS_K, false>(&b_, K - 1);
 
             // Update `a` and `b` using the update matrix
             let (updated_a, updated_b) = matrix.extended_apply_to_vartime((a, b));

@@ -142,7 +142,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
     /// <https://eprint.iacr.org/2020/972.pdf>.
     pub(crate) const fn classic_binxgcd(&self, rhs: &Self) -> DividedPatternXgcdOutput<LIMBS> {
         let (gcd, _, matrix) =
-            self.partial_binxgcd_vartime::<LIMBS, true>(rhs.as_ref(), Self::MIN_BINXGCD_ITERATIONS);
+            self.partial_binxgcd::<LIMBS, true>(rhs.as_ref(), Self::MIN_BINXGCD_ITERATIONS);
         DividedPatternXgcdOutput { gcd, matrix }
     }
 
@@ -160,10 +160,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
     ///
     /// The function executes in time variable in `iterations`.
     #[inline]
-    pub(super) const fn partial_binxgcd_vartime<
-        const UPDATE_LIMBS: usize,
-        const HALT_AT_ZERO: bool,
-    >(
+    pub(super) const fn partial_binxgcd<const UPDATE_LIMBS: usize, const HALT_AT_ZERO: bool>(
         &self,
         rhs: &Uint<LIMBS>,
         iterations: u32,
@@ -414,7 +411,7 @@ mod tests {
 
         #[test]
         fn test_partial_binxgcd() {
-            let (.., matrix) = A.partial_binxgcd_vartime::<{ U64::LIMBS }, true>(&B, 5);
+            let (.., matrix) = A.partial_binxgcd::<{ U64::LIMBS }, true>(&B, 5);
             assert_eq!(matrix.k, 5);
             assert_eq!(
                 matrix,
@@ -427,7 +424,7 @@ mod tests {
             let target_a = U64::from_be_hex("1CB3FB3FA1218FDB").to_odd().unwrap();
             let target_b = U64::from_be_hex("0EA028AF0F8966B6");
 
-            let (new_a, new_b, matrix) = A.partial_binxgcd_vartime::<{ U64::LIMBS }, true>(&B, 5);
+            let (new_a, new_b, matrix) = A.partial_binxgcd::<{ U64::LIMBS }, true>(&B, 5);
 
             assert_eq!(new_a, target_a);
             assert_eq!(new_b, target_b);
@@ -446,8 +443,7 @@ mod tests {
 
         #[test]
         fn test_partial_binxgcd_halts() {
-            let (gcd, _, matrix) =
-                SMALL_A.partial_binxgcd_vartime::<{ U64::LIMBS }, true>(&SMALL_B, 60);
+            let (gcd, _, matrix) = SMALL_A.partial_binxgcd::<{ U64::LIMBS }, true>(&SMALL_B, 60);
             assert_eq!(matrix.k, 35);
             assert_eq!(matrix.k_upper_bound, 60);
             assert_eq!(gcd.get(), SMALL_A.gcd(&SMALL_B));
@@ -455,8 +451,7 @@ mod tests {
 
         #[test]
         fn test_partial_binxgcd_does_not_halt() {
-            let (gcd, .., matrix) =
-                SMALL_A.partial_binxgcd_vartime::<{ U64::LIMBS }, false>(&SMALL_B, 60);
+            let (gcd, .., matrix) = SMALL_A.partial_binxgcd::<{ U64::LIMBS }, false>(&SMALL_B, 60);
             assert_eq!(matrix.k, 60);
             assert_eq!(matrix.k_upper_bound, 60);
             assert_eq!(gcd.get(), SMALL_A.gcd(&SMALL_B));
