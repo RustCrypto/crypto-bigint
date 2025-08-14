@@ -229,12 +229,11 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
         matrix.conditional_subtract_bottom_row_from_top(a_odd);
 
         // Double the bottom row of the matrix when a was ≠ 0 and when not halting.
-        let double = if HALT_AT_ZERO {
-            a.is_nonzero()
+        if HALT_AT_ZERO {
+            matrix.conditional_double_bottom_row(a.is_nonzero());
         } else {
-            ConstChoice::TRUE
+            matrix.double_bottom_row();
         };
-        matrix.conditional_double_bottom_row(double);
     }
 }
 

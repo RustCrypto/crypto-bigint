@@ -93,6 +93,13 @@ impl<const LIMBS: usize> PatternMatrix<LIMBS> {
         self.m11 = Uint::select(&self.m11, &self.m11.overflowing_shl1().0, double);
     }
 
+    /// Double the bottom row of this matrix if `double` is truthy. Otherwise, do nothing.
+    #[inline]
+    pub(crate) const fn double_bottom_row(&mut self) {
+        self.m10 = self.m10.overflowing_shl1().0;
+        self.m11 = self.m11.overflowing_shl1().0;
+    }
+
     /// Negate the elements in this matrix if `negate` is truthy. Otherwise, do nothing.
     #[inline]
     pub(crate) const fn conditional_negate(&mut self, negate: ConstChoice) {
@@ -177,6 +184,14 @@ impl<const LIMBS: usize> DividedPatternMatrix<LIMBS> {
     pub const fn conditional_double_bottom_row(&mut self, double: ConstChoice) {
         self.inner.conditional_double_bottom_row(double);
         self.k = double.select_u32(self.k, self.k + 1);
+        self.k_upper_bound += 1;
+    }
+
+    /// Double the bottom row of this matrix if `double` is truthy. Otherwise, do nothing.
+    #[inline]
+    pub const fn double_bottom_row(&mut self) {
+        self.inner.double_bottom_row();
+        self.k += 1;
         self.k_upper_bound += 1;
     }
 }
