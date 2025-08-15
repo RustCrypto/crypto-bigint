@@ -4,7 +4,7 @@ mod common;
 
 use common::to_biguint;
 use crypto_bigint::{
-    Encoding, Gcd, Integer, Limb, NonZero, Odd, U256, U4096, U8192, Uint, Word,
+    Encoding, Gcd, Limb, NonZero, Odd, U256, U4096, U8192, Uint, Word,
     modular::{MontyForm, MontyParams},
 };
 use num_bigint::BigUint;
@@ -360,55 +360,24 @@ proptest! {
 
         let expected = to_uint(f_bi.gcd(&g_bi));
         let actual = f.gcd(&g);
+        let actual_vartime = f.gcd_vartime(&g);
         prop_assert_eq!(expected, actual);
+        prop_assert_eq!(expected, actual_vartime);
     }
 
-    /// Hits `classic_bingcd`
     #[test]
-    fn bingcd(f in uint(), g in uint()) {
-        let f_bi = to_biguint(&f);
-        let g_bi = to_biguint(&g);
-
-        let expected = to_uint(f_bi.gcd(&g_bi));
-        let actual = f.bingcd(&g);
-        prop_assert_eq!(expected, actual);
-    }
-
-    /// Hits `optimized_bingcd`
-    #[test]
-    fn bingcd_large(f in uint_large(), g in uint_large()) {
+    // Hits optimized GCD
+    fn gcd_large(f in uint_large(), g in uint_large()) {
         let f_bi = to_biguint(&f);
         let g_bi = to_biguint(&g);
 
         let expected = to_uint_large(f_bi.gcd(&g_bi));
-        let actual = f.bingcd(&g);
+        let actual = f.gcd(&g);
+        let actual_vartime = f.gcd_vartime(&g);
         prop_assert_eq!(expected, actual);
+        prop_assert_eq!(expected, actual_vartime);
     }
 
-    #[test]
-    fn gcd_vartime(mut f in uint(), g in uint()) {
-        if bool::from(f.is_even()) {
-            f += U256::ONE;
-        }
-
-        let f_bi = to_biguint(&f);
-        let g_bi = to_biguint(&g);
-        let expected = to_uint(f_bi.gcd(&g_bi));
-
-        let f = Odd::new(f).unwrap();
-        let actual = f.gcd_vartime(&g);
-        prop_assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn bingcd_vartime(f in uint(), g in uint()) {
-        let f_bi = to_biguint(&f);
-        let g_bi = to_biguint(&g);
-
-        let expected = to_uint(f_bi.gcd(&g_bi));
-        let actual = f.bingcd_vartime(&g);
-        prop_assert_eq!(expected, actual);
-    }
 
     #[test]
     fn invert_mod2k(a in uint(), k in any::<u32>()) {

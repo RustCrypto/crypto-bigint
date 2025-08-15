@@ -13,7 +13,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
     /// <https://eprint.iacr.org/2020/972.pdf>
     #[inline]
-    pub const fn classic_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
+    pub(crate) const fn classic_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
         // (self, rhs) corresponds to (m, y) in the Algorithm 1 notation.
         let (mut a, mut b) = (*rhs, *self.as_ref());
         let mut j = 0;
@@ -28,7 +28,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
     /// Variable time equivalent of [`Self::classic_bingcd`].
     #[inline]
-    pub const fn classic_bingcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
+    pub(crate) const fn classic_bingcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
         // (self, rhs) corresponds to (m, y) in the Algorithm 1 notation.
         let (mut a, mut b) = (*rhs, *self.as_ref());
         while !a.is_zero_vartime() {
@@ -78,7 +78,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
     /// <https://eprint.iacr.org/2020/972.pdf>
     #[inline]
-    pub const fn optimized_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
+    pub(crate) const fn optimized_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
         self.optimized_bingcd_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
     }
 
@@ -98,7 +98,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// - `LIMBS_K`: should be chosen as the minimum number s.t. [`Uint::<LIMBS>::BITS`] `≥ K`,
     /// - `LIMBS_2K`: should be chosen as the minimum number s.t. [`Uint::<LIMBS>::BITS`] `≥ 2K`.
     #[inline]
-    pub const fn optimized_bingcd_<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
+    const fn optimized_bingcd_<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
         &self,
         rhs: &Uint<LIMBS>,
     ) -> Self {
@@ -135,13 +135,13 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
     /// Variable time equivalent of [`Self::optimized_bingcd`].
     #[inline]
-    pub const fn optimized_bingcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
+    pub(crate) const fn optimized_bingcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
         self.optimized_bingcd_vartime_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
     }
 
     /// Variable time equivalent of [`Self::optimized_bingcd_`].
     #[inline]
-    pub const fn optimized_bingcd_vartime_<
+    const fn optimized_bingcd_vartime_<
         const K: u32,
         const LIMBS_K: usize,
         const LIMBS_2K: usize,
