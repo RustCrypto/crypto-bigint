@@ -35,11 +35,7 @@ macro_rules! const_monty_params {
         #[doc = $doc]
         #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
         pub struct $name;
-        impl<const DLIMBS: usize> $crate::modular::ConstMontyParams<{ <$uint_type>::LIMBS }>
-            for $name
-        where
-            $uint_type: $crate::ConcatMixed<MixedOutput = $crate::Uint<DLIMBS>>,
-        {
+        impl $crate::modular::ConstMontyParams<{ <$uint_type>::LIMBS }> for $name {
             const LIMBS: usize = <$uint_type>::LIMBS;
             const PARAMS: $crate::modular::MontyParams<{ <$uint_type>::LIMBS }> =
                 $crate::modular::MontyParams::new_vartime($crate::Odd::<$uint_type>::from_be_hex(
