@@ -110,7 +110,7 @@ impl BoxedUint {
         (x, is_some)
     }
 
-    /// Computes the multiplicaitve inverse of `self` mod `modulus`
+    /// Computes the multiplicative inverse of `self` mod `modulus`
     ///
     /// `self` and `modulus` must have the same number of limbs, or the function will panic
     ///
@@ -130,7 +130,7 @@ impl BoxedUint {
         CtOption::new(result, is_some & is_nz)
     }
 
-    /// Computes the multiplicaitve inverse of `self` mod `modulus`
+    /// Computes the multiplicative inverse of `self` mod `modulus`
     ///
     /// `self` and `modulus` must have the same number of limbs, or the function will panic
     ///
