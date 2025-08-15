@@ -119,6 +119,22 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         )
     });
 
+    group.bench_function("jacobi_symbol", |b| {
+        b.iter_batched(
+            || ConstMontyForm::random(&mut rng),
+            |a| a.jacobi_symbol(),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("jacobi_symbol_vartime", |b| {
+        b.iter_batched(
+            || ConstMontyForm::random(&mut rng),
+            |a| a.jacobi_symbol_vartime(),
+            BatchSize::SmallInput,
+        )
+    });
+
     group.bench_function("lincomb, U256*U256+U256*U256", |b| {
         b.iter_batched(
             || ConstMontyForm::random(&mut rng),
