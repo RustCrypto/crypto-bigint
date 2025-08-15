@@ -1,9 +1,47 @@
-use crate::const_choice::u32_max;
-use crate::{ConstChoice, Limb, Odd, U64, U128, Uint};
+use crate::const_choice::{u32_max, u32_min};
+use crate::{ConstChoice, Limb, Odd, U64, U128, Uint, Word};
+
+/// Binary GCD update step.
+///
+/// This is a condensed, constant time execution of the following algorithm:
+/// ```text
+/// if a mod 2 == 1
+///    if a < b
+///        (a, b) ← (b, a)
+///    a ← a - b
+/// a ← a/2
+/// ```
+///
+/// Note: assumes `b` to be odd. Might yield an incorrect result if this is not the case.
+///
+/// Ref: Pornin, Algorithm 1, L3-9, <https://eprint.iacr.org/2020/972.pdf>.
+#[inline(always)]
+pub(super) const fn bingcd_step<const LIMBS: usize>(
+    a: &mut Uint<LIMBS>,
+    b: &mut Uint<LIMBS>,
+) -> (ConstChoice, ConstChoice, Word) {
+    let a_b_mod_4 = (a.limbs[0].0 & b.limbs[0].0) & 3;
+
+    let a_odd = a.is_odd();
+    let (a_sub_b, borrow) = a.borrowing_sub(&Uint::select(&Uint::ZERO, b, a_odd), Limb::ZERO);
+    let swap = borrow.is_nonzero();
+    *b = Uint::select(b, a, swap);
+    *a = a_sub_b.wrapping_neg_if(swap).shr1();
+
+    // (b|a) = -(a|b) iff a = b = 3 mod 4 (quadratic reciprocity)
+    let mut jacobi_neg = swap.if_true_word(a_b_mod_4 & (a_b_mod_4 >> 1) & 1);
+
+    // (2a|b) = -(a|b) iff b = ±3 mod 8
+    // b is always odd, so we ignore the lower bit and check that bits 2 and 3 are '01' or '10'
+    let b_lo = b.limbs[0].0;
+    jacobi_neg ^= ((b_lo >> 1) ^ (b_lo >> 2)) & 1;
+
+    (a_odd, swap, jacobi_neg)
+}
 
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// The minimal number of binary GCD iterations required to guarantee successful completion.
-    const MINIMAL_BINGCD_ITERATIONS: u32 = 2 * Self::BITS - 1;
+    pub(crate) const MINIMAL_BINGCD_ITERATIONS: u32 = 2 * Self::BITS - 1;
 
     /// Computes `gcd(self, rhs)`, leveraging (a constant time implementation of) the classic
     /// Binary GCD algorithm.
@@ -13,57 +51,57 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
     /// <https://eprint.iacr.org/2020/972.pdf>
     #[inline]
-    pub(crate) const fn classic_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
+    pub const fn classic_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
+        self.classic_bingcd_(rhs).0
+    }
+
+    /// Computes `gcd(self, rhs)`, leveraging (a constant time implementation of) the classic
+    /// Binary GCD algorithm.
+    ///
+    /// Note: this algorithm is efficient for [Uint]s with relatively few `LIMBS`.
+    ///
+    /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
+    /// <https://eprint.iacr.org/2020/972.pdf>
+    ///
+    /// This method returns a pair consisting of the GCD and the sign of the Jacobi symbol,
+    /// 0 for positive and 1 for negative.
+    #[inline(always)]
+    pub const fn classic_bingcd_(&self, rhs: &Uint<LIMBS>) -> (Self, Word) {
         // (self, rhs) corresponds to (m, y) in the Algorithm 1 notation.
         let (mut a, mut b) = (*rhs, *self.as_ref());
-        let mut j = 0;
-        while j < Self::MINIMAL_BINGCD_ITERATIONS {
-            Self::bingcd_step(&mut a, &mut b);
-            j += 1;
+        let mut i = 0;
+        let mut jacobi_neg = 0;
+        while i < Self::MINIMAL_BINGCD_ITERATIONS {
+            jacobi_neg ^= bingcd_step(&mut a, &mut b).2;
+            i += 1;
         }
 
-        b.to_odd()
-            .expect("gcd of an odd value with something else is always odd")
+        let gcd = b
+            .to_odd()
+            .expect("gcd of an odd value with something else is always odd");
+        (gcd, jacobi_neg)
     }
 
     /// Variable time equivalent of [`Self::classic_bingcd`].
     #[inline]
-    pub(crate) const fn classic_bingcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
-        // (self, rhs) corresponds to (m, y) in the Algorithm 1 notation.
-        let (mut a, mut b) = (*rhs, *self.as_ref());
-        while !a.is_zero_vartime() {
-            Self::bingcd_step(&mut a, &mut b);
-        }
-
-        b.to_odd()
-            .expect("gcd of an odd value with something else is always odd")
+    pub const fn classic_bingcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
+        self.classic_bingcd_vartime_(rhs).0
     }
 
-    /// Binary GCD update step.
-    ///
-    /// This is a condensed, constant time execution of the following algorithm:
-    /// ```text
-    /// if a mod 2 == 1
-    ///    if a < b
-    ///        (a, b) ← (b, a)
-    ///    a ← a - b
-    /// a ← a/2
-    /// ```
-    ///
-    /// Note: assumes `b` to be odd. Might yield an incorrect result if this is not the case.
-    ///
-    /// Ref: Pornin, Algorithm 1, L3-9, <https://eprint.iacr.org/2020/972.pdf>.
+    /// Variable time equivalent of [`Self::classic_bingcd_`].
     #[inline(always)]
-    pub(super) const fn bingcd_step(
-        a: &mut Uint<LIMBS>,
-        b: &mut Uint<LIMBS>,
-    ) -> (ConstChoice, ConstChoice) {
-        let a_odd = a.is_odd();
-        let (a_sub_b, borrow) = a.borrowing_sub(&Uint::select(&Uint::ZERO, b, a_odd), Limb::ZERO);
-        let swap = borrow.is_nonzero();
-        *b = Uint::select(b, a, swap);
-        *a = a_sub_b.wrapping_neg_if(swap).shr1();
-        (a_odd, swap)
+    pub const fn classic_bingcd_vartime_(&self, rhs: &Uint<LIMBS>) -> (Self, Word) {
+        // (self, rhs) corresponds to (m, y) in the Algorithm 1 notation.
+        let (mut a, mut b) = (*rhs, *self.as_ref());
+        let mut jacobi_neg = 0;
+        while !a.is_zero_vartime() {
+            jacobi_neg ^= bingcd_step(&mut a, &mut b).2;
+        }
+
+        let gcd = b
+            .to_odd()
+            .expect("gcd of an odd value with something else is always odd");
+        (gcd, jacobi_neg)
     }
 
     /// Computes `gcd(self, rhs)`, leveraging the optimized Binary GCD algorithm.
@@ -77,9 +115,10 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
     /// <https://eprint.iacr.org/2020/972.pdf>
-    #[inline]
-    pub(crate) const fn optimized_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
-        self.optimized_bingcd_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
+    #[inline(always)]
+    pub const fn optimized_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
+        self.optimized_bingcd_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(rhs, U64::BITS - 1)
+            .0
     }
 
     /// Computes `gcd(self, rhs)`, leveraging the optimized Binary GCD algorithm.
@@ -93,63 +132,76 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ///
     /// This function is generic over the following three values:
     /// - `K`: the number of bits used when summarizing `self` and `rhs` for the inner loop. The
-    ///   `K+1` top bits and `K-1` least significant bits are selected. It is recommended to keep
+    ///   `K` top bits and `K` least significant bits are selected. It is recommended to keep
     ///   `K` close to a (multiple of) the number of bits that fit in a single register.
     /// - `LIMBS_K`: should be chosen as the minimum number s.t. [`Uint::<LIMBS>::BITS`] `≥ K`,
     /// - `LIMBS_2K`: should be chosen as the minimum number s.t. [`Uint::<LIMBS>::BITS`] `≥ 2K`.
-    #[inline]
-    const fn optimized_bingcd_<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
+    ///
+    /// This method returns a pair consisting of the GCD and the sign of the Jacobi symbol,
+    /// 0 for positive and 1 for negative.
+    #[inline(always)]
+    pub const fn optimized_bingcd_<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
         &self,
         rhs: &Uint<LIMBS>,
-    ) -> Self {
+        batch_max: u32,
+    ) -> (Self, Word) {
         let (mut a, mut b) = (*self.as_ref(), *rhs);
+        let mut jacobi_neg = 0;
 
-        let iterations = Self::MINIMAL_BINGCD_ITERATIONS.div_ceil(K);
-        let mut i = 0;
-        while i < iterations {
-            i += 1;
+        let mut iterations = Self::MINIMAL_BINGCD_ITERATIONS;
+        while iterations > 0 {
+            let batch = u32_min(iterations, batch_max);
+            iterations -= batch;
 
             // Construct a_ and b_ as the summary of a and b, respectively.
             let n = u32_max(2 * K, a.bitor(&b).bits());
             let a_ = a.compact::<K, LIMBS_2K>(n);
             let b_ = b.compact::<K, LIMBS_2K>(n);
 
-            // Compute the K-1 iteration update matrix from a_ and b_
-            // Safe to vartime; function executes in time variable in `iterations` only, which is
-            // a public constant K-1 here.
-            let (.., matrix) = a_
+            // Compute the batch update matrix from a_ and b_.
+            let (.., matrix, j_neg) = a_
                 .to_odd()
                 .expect("a_ is always odd")
-                .partial_binxgcd::<LIMBS_K, false>(&b_, K - 1);
+                .partial_binxgcd::<LIMBS_K, false>(&b_, batch);
+            jacobi_neg ^= j_neg;
 
-            // Update `a` and `b` using the update matrix
-            // Safe to use vartime: the number of doublings is constant (K-1).
+            // Update `a` and `b` using the update matrix.
+            // Safe to use vartime: the number of doublings is the same as the batch size.
             let (updated_a, updated_b) = matrix.extended_apply_to_vartime::<LIMBS>((a, b));
             (a, _) = updated_a.wrapping_drop_extension();
             (b, _) = updated_b.wrapping_drop_extension();
         }
 
-        a.to_odd()
-            .expect("gcd of an odd value with something else is always odd")
+        (
+            a.to_odd()
+                .expect("gcd of an odd value with something else is always odd"),
+            jacobi_neg,
+        )
     }
 
     /// Variable time equivalent of [`Self::optimized_bingcd`].
-    #[inline]
-    pub(crate) const fn optimized_bingcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
-        self.optimized_bingcd_vartime_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(rhs)
+    #[inline(always)]
+    pub const fn optimized_bingcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
+        self.optimized_bingcd_vartime_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(
+            rhs,
+            U64::BITS - 1,
+        )
+        .0
     }
 
     /// Variable time equivalent of [`Self::optimized_bingcd_`].
-    #[inline]
-    const fn optimized_bingcd_vartime_<
+    #[inline(always)]
+    pub const fn optimized_bingcd_vartime_<
         const K: u32,
         const LIMBS_K: usize,
         const LIMBS_2K: usize,
     >(
         &self,
         rhs: &Uint<LIMBS>,
-    ) -> Self {
+        batch_max: u32,
+    ) -> (Self, Word) {
         let (mut a, mut b) = (*self.as_ref(), *rhs);
+        let mut jacobi_neg = 0;
 
         while !b.is_zero_vartime() {
             // Construct a_ and b_ as the summary of a and b, respectively.
@@ -159,7 +211,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
             if n <= Uint::<LIMBS_2K>::BITS {
                 loop {
-                    Odd::<Uint<LIMBS_2K>>::bingcd_step(&mut b_, &mut a_);
+                    jacobi_neg ^= bingcd_step(&mut b_, &mut a_).2;
                     if b_.is_zero_vartime() {
                         break;
                     }
@@ -168,22 +220,24 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
                 break;
             }
 
-            // Compute the K-1 iteration update matrix from a_ and b_
-            // Safe to vartime; function executes in time variable in `iterations` only, which is
-            // a public constant K-1 here.
-            let (.., matrix) = a_
+            // Compute the batch update matrix from a_ and b_.
+            let (.., matrix, j_neg) = a_
                 .to_odd()
                 .expect("a_ is always odd")
-                .partial_binxgcd::<LIMBS_K, false>(&b_, K - 1);
+                .partial_binxgcd::<LIMBS_K, false>(&b_, batch_max);
+            jacobi_neg ^= j_neg;
 
-            // Update `a` and `b` using the update matrix
+            // Update `a` and `b` using the update matrix.
             let (updated_a, updated_b) = matrix.extended_apply_to_vartime((a, b));
             (a, _) = updated_a.wrapping_drop_extension();
             (b, _) = updated_b.wrapping_drop_extension();
         }
 
-        a.to_odd()
-            .expect("gcd of an odd value with something else is always odd")
+        (
+            a.to_odd()
+                .expect("gcd of an odd value with something else is always odd"),
+            jacobi_neg,
+        )
     }
 }
 

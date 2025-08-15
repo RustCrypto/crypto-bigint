@@ -23,6 +23,7 @@ mod encoding;
 mod from;
 mod gcd;
 mod invert_mod;
+mod mod_symbol;
 mod mul;
 mod mul_uint;
 mod neg;

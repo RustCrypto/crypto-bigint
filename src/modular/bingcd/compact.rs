@@ -53,8 +53,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             .bitand(&mask)
     }
 
-    /// Compact `self` to a form containing the concatenation of its bit ranges `[0, K-1)`
-    /// and `[n-K-1, n)`.
+    /// Compact `self` to a form containing the concatenation of its bit ranges `[0, K)`
+    /// and `[n-K, n)`.
     ///
     /// Assumes `K ≤ Uint::<SUMMARY_LIMBS>::BITS`, `n ≤ Self::BITS` and `n ≥ 2K`.
     #[inline(always)]
@@ -67,13 +67,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         debug_assert!(n >= 2 * K);
 
         // safe to vartime; this function is vartime in length only, which is a public constant
-        let hi = self.section_vartime_length(n - K - 1, K + 1);
+        let hi = self.section_vartime_length(n - K, K);
         // safe to vartime; this function is vartime in idx and length only, which are both public
         // constants
-        let lo = self.section_vartime(0, K - 1);
+        let lo = self.section_vartime(0, K);
         // safe to vartime; shl_vartime is variable in the value of shift only. Since this shift
         // is a public constant, the constant time property of this algorithm is not impacted.
-        hi.shl_vartime(K - 1).bitxor(&lo)
+        hi.shl_vartime(K).bitxor(&lo)
     }
 
     /// Vartime equivalent of [`Self::compact`].
@@ -87,13 +87,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         debug_assert!(n >= 2 * K);
 
         // safe to vartime; this function is vartime in length only, which is a public constant
-        let hi = self.section_vartime(n - K - 1, K + 1);
+        let hi = self.section_vartime(n - K, K);
         // safe to vartime; this function is vartime in idx and length only, which are both public
         // constants
-        let lo = self.section_vartime(0, K - 1);
+        let lo = self.section_vartime(0, K);
         // safe to vartime; shl_vartime is variable in the value of shift only. Since this shift
         // is a public constant, the constant time property of this algorithm is not impacted.
-        hi.shl_vartime(K - 1).bitxor(&lo)
+        hi.shl_vartime(K).bitxor(&lo)
     }
 }
 
@@ -105,7 +105,7 @@ mod tests {
     fn test_compact() {
         let val =
             U256::from_be_hex("CFCF1535CEBE19BBF289933AB8645189397450A32BFEC57579FB7EB14E27D101");
-        let target = U128::from_be_hex("BBF289933AB86451F9FB7EB14E27D101");
+        let target = U128::from_be_hex("BBF289933AB8645179FB7EB14E27D101");
 
         let compact = val.compact::<64, { U128::LIMBS }>(200);
         assert_eq!(compact, target);
