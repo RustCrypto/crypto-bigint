@@ -459,7 +459,7 @@ impl<const LIMBS: usize> SignedInt<LIMBS> {
 
     /// Determine if the `SignedInt` is zero in variable time.
     pub const fn is_zero_vartime(&self) -> bool {
-        self.magnitude.cmp_vartime(&Uint::ZERO).is_eq()
+        self.magnitude.is_zero_vartime()
     }
 
     /// Determine if the `SignedInt` is negative.

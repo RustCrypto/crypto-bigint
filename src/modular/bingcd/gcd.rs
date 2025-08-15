@@ -31,7 +31,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     pub const fn classic_bingcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
         // (self, rhs) corresponds to (m, y) in the Algorithm 1 notation.
         let (mut a, mut b) = (*rhs, *self.as_ref());
-        while a.is_nonzero().to_bool_vartime() {
+        while !a.is_zero_vartime() {
             Self::bingcd_step(&mut a, &mut b);
         }
 
@@ -151,11 +151,22 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     ) -> Self {
         let (mut a, mut b) = (*self.as_ref(), *rhs);
 
-        while b.is_nonzero().to_bool_vartime() {
+        while !b.is_zero_vartime() {
             // Construct a_ and b_ as the summary of a and b, respectively.
             let n = u32_max(2 * K, u32_max(a.bits_vartime(), b.bits_vartime()));
-            let a_ = a.compact_vartime::<K, LIMBS_2K>(n);
-            let b_ = b.compact_vartime::<K, LIMBS_2K>(n);
+            let mut a_ = a.compact_vartime::<K, LIMBS_2K>(n);
+            let mut b_ = b.compact_vartime::<K, LIMBS_2K>(n);
+
+            if n <= Uint::<LIMBS_2K>::BITS {
+                loop {
+                    Odd::<Uint<LIMBS_2K>>::bingcd_step(&mut b_, &mut a_);
+                    if b_.is_zero_vartime() {
+                        break;
+                    }
+                }
+                a = a_.resize();
+                break;
+            }
 
             // Compute the K-1 iteration update matrix from a_ and b_
             // Safe to vartime; function executes in time variable in `iterations` only, which is
