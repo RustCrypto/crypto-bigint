@@ -139,10 +139,12 @@ impl NonZero<Limb> {
 
 impl<const LIMBS: usize> NonZeroUint<LIMBS> {
     /// Creates a new non-zero integer in a const context.
-    /// Panics if the value is zero.
     ///
     /// In future versions of Rust it should be possible to replace this with
     /// `NonZero::new(…).unwrap()`
+    ///
+    /// # Panics
+    /// - if the value is zero.
     // TODO: Remove when `Self::new` and `CtOption::unwrap` support `const fn`
     pub const fn new_unwrap(n: Uint<LIMBS>) -> Self {
         if n.is_nonzero().is_true_vartime() {
@@ -150,6 +152,22 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
         } else {
             panic!("Invalid value: zero")
         }
+    }
+
+    /// Create a new [`NonZero<Uint>`] from the provided big endian hex string.
+    ///
+    /// # Panics
+    /// - if the hex is zero, malformed, or not zero-padded accordingly for the size.
+    pub const fn from_be_hex(hex: &str) -> Self {
+        Self::new_unwrap(Uint::from_be_hex(hex))
+    }
+
+    /// Create a new [`NonZero<Uint>`] from the provided little endian hex string.
+    ///
+    /// # Panics
+    /// - if the hex is zero, malformed, or not zero-padded accordingly for the size.
+    pub const fn from_le_hex(hex: &str) -> Self {
+        Self::new_unwrap(Uint::from_le_hex(hex))
     }
 
     /// Create a [`NonZeroUint`] from a [`NonZeroU8`] (const-friendly)
