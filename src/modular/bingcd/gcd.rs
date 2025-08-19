@@ -51,7 +51,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
     /// <https://eprint.iacr.org/2020/972.pdf>
     #[inline]
-    pub const fn classic_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
+    pub(crate) const fn classic_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
         self.classic_bingcd_(rhs).0
     }
 
@@ -66,7 +66,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// This method returns a pair consisting of the GCD and the sign of the Jacobi symbol,
     /// 0 for positive and 1 for negative.
     #[inline(always)]
-    pub const fn classic_bingcd_(&self, rhs: &Uint<LIMBS>) -> (Self, Word) {
+    pub(crate) const fn classic_bingcd_(&self, rhs: &Uint<LIMBS>) -> (Self, Word) {
         // (self, rhs) corresponds to (m, y) in the Algorithm 1 notation.
         let (mut a, mut b) = (*rhs, *self.as_ref());
         let mut i = 0;
@@ -84,13 +84,13 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
     /// Variable time equivalent of [`Self::classic_bingcd`].
     #[inline]
-    pub const fn classic_bingcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
+    pub(crate) const fn classic_bingcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
         self.classic_bingcd_vartime_(rhs).0
     }
 
     /// Variable time equivalent of [`Self::classic_bingcd_`].
     #[inline(always)]
-    pub const fn classic_bingcd_vartime_(&self, rhs: &Uint<LIMBS>) -> (Self, Word) {
+    pub(crate) const fn classic_bingcd_vartime_(&self, rhs: &Uint<LIMBS>) -> (Self, Word) {
         // (self, rhs) corresponds to (m, y) in the Algorithm 1 notation.
         let (mut a, mut b) = (*rhs, *self.as_ref());
         let mut jacobi_neg = 0;
@@ -116,7 +116,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
     /// <https://eprint.iacr.org/2020/972.pdf>
     #[inline(always)]
-    pub const fn optimized_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
+    pub(crate) const fn optimized_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
         self.optimized_bingcd_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(rhs, U64::BITS - 1)
             .0
     }
@@ -140,7 +140,11 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// This method returns a pair consisting of the GCD and the sign of the Jacobi symbol,
     /// 0 for positive and 1 for negative.
     #[inline(always)]
-    pub const fn optimized_bingcd_<const K: u32, const LIMBS_K: usize, const LIMBS_2K: usize>(
+    pub(crate) const fn optimized_bingcd_<
+        const K: u32,
+        const LIMBS_K: usize,
+        const LIMBS_2K: usize,
+    >(
         &self,
         rhs: &Uint<LIMBS>,
         batch_max: u32,
@@ -181,7 +185,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
     /// Variable time equivalent of [`Self::optimized_bingcd`].
     #[inline(always)]
-    pub const fn optimized_bingcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
+    pub(crate) const fn optimized_bingcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
         self.optimized_bingcd_vartime_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(
             rhs,
             U64::BITS - 1,
@@ -191,7 +195,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
     /// Variable time equivalent of [`Self::optimized_bingcd_`].
     #[inline(always)]
-    pub const fn optimized_bingcd_vartime_<
+    pub(crate) const fn optimized_bingcd_vartime_<
         const K: u32,
         const LIMBS_K: usize,
         const LIMBS_2K: usize,
