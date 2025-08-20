@@ -3,7 +3,7 @@
 //!
 //! See parent module for more information.
 
-use super::{GCD_BATCH_SIZE, Matrix, invert_mod_u64, iterations, jump, lowest_u64};
+use super::{GCD_BATCH_SIZE, Matrix, iterations, jump, lowest_u64};
 use crate::{
     BoxedUint, ConstChoice, ConstCtOption, ConstantTimeSelect, I64, Int, Limb, NonZero, Odd,
     Resize, U64, Uint,
@@ -33,7 +33,7 @@ impl BoxedSafeGcdInverter {
     /// Modulus must be odd. Returns `None` if it is not.
     #[cfg(test)]
     pub fn new(modulus: Odd<BoxedUint>, adjuster: BoxedUint) -> Self {
-        let inverse = U64::from_u64(invert_mod_u64(modulus.as_ref().as_words()));
+        let inverse = U64::from_u64(modulus.as_uint_ref().invert_mod_u64());
         Self::new_with_inverse(modulus, inverse, adjuster)
     }
 
@@ -79,7 +79,7 @@ pub fn invert_odd_mod<const VARTIME: bool>(
     a: &BoxedUint,
     m: &Odd<BoxedUint>,
 ) -> CtOption<BoxedUint> {
-    let mi = invert_mod_u64(m.as_ref().as_words());
+    let mi = m.as_uint_ref().invert_mod_u64();
     invert_odd_mod_precomp::<VARTIME>(a, m, mi, None)
 }
 

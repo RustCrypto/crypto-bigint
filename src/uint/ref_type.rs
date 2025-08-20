@@ -17,6 +17,8 @@ mod shl;
 #[cfg(feature = "alloc")]
 mod shr;
 
+mod inv_mod;
+
 /// Unsigned integer reference type.
 ///
 /// This type contains a limb slice which can be borrowed from either a [`Uint`] or [`BoxedUint`] and

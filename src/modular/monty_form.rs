@@ -14,7 +14,6 @@ use super::{
     const_monty_form::{ConstMontyForm, ConstMontyParams},
     div_by_2::div_by_2,
     reduction::{montgomery_reduction, montgomery_retrieve},
-    safegcd::invert_mod_u64,
 };
 use crate::{ConstChoice, Limb, Monty, Odd, U64, Uint, Word};
 use mul::DynMontyMultiplier;
@@ -49,7 +48,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
         let r2 = one.square_mod(modulus.as_nz_ref());
 
         // The inverse of the modulus modulo 2**64
-        let mod_inv = U64::from_u64(invert_mod_u64(modulus.as_ref().as_words()));
+        let mod_inv = U64::from_u64(modulus.as_uint_ref().invert_mod_u64());
 
         let mod_leading_zeros = modulus.as_ref().leading_zeros();
         let mod_leading_zeros = ConstChoice::from_u32_lt(mod_leading_zeros, Word::BITS - 1)
@@ -78,7 +77,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
         let r2 = one.square_mod_vartime(modulus.as_nz_ref());
 
         // The inverse of the modulus modulo 2**64
-        let mod_inv = U64::from_u64(invert_mod_u64(modulus.as_ref().as_words()));
+        let mod_inv = U64::from_u64(modulus.as_uint_ref().invert_mod_u64());
 
         let mod_leading_zeros = modulus.as_ref().leading_zeros_vartime();
         let mod_leading_zeros = if mod_leading_zeros < Word::BITS - 1 {
