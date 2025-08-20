@@ -39,7 +39,7 @@ pub type NonZeroBoxedUint = NonZero<BoxedUint>;
 /// Wrapper type for non-zero integers.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 #[repr(transparent)]
-pub struct NonZero<T>(pub(crate) T);
+pub struct NonZero<T: ?Sized>(pub(crate) T);
 
 impl<T> NonZero<T> {
     /// Create a new non-zero integer.
@@ -51,20 +51,22 @@ impl<T> NonZero<T> {
         CtOption::new(Self(n), !is_zero)
     }
 
-    /// Provides access to the contents of `NonZero` in a `const` context.
-    pub const fn as_ref(&self) -> &T {
-        &self.0
-    }
-
     /// Returns the inner value.
     pub fn get(self) -> T {
         self.0
     }
 }
 
+impl<T: ?Sized> NonZero<T> {
+    /// Provides access to the contents of `NonZero` in a `const` context.
+    pub const fn as_ref(&self) -> &T {
+        &self.0
+    }
+}
+
 impl<T> NonZero<T>
 where
-    T: Bounded,
+    T: Bounded + ?Sized,
 {
     /// Total size of the represented integer in bits.
     pub const BITS: u32 = T::BITS;
@@ -287,7 +289,7 @@ where
     }
 }
 
-impl<T> AsRef<T> for NonZero<T> {
+impl<T: ?Sized> AsRef<T> for NonZero<T> {
     fn as_ref(&self) -> &T {
         &self.0
     }
@@ -304,7 +306,7 @@ where
 
 impl<T> ConstantTimeEq for NonZero<T>
 where
-    T: ConstantTimeEq,
+    T: ConstantTimeEq + ?Sized,
 {
     fn ct_eq(&self, other: &Self) -> Choice {
         self.0.ct_eq(&other.0)
@@ -320,7 +322,7 @@ where
     }
 }
 
-impl<T> Deref for NonZero<T> {
+impl<T: ?Sized> Deref for NonZero<T> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -410,7 +412,7 @@ impl<T> From<Odd<T>> for NonZero<T> {
 
 impl<T> fmt::Display for NonZero<T>
 where
-    T: fmt::Display,
+    T: fmt::Display + ?Sized,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, f)
@@ -419,7 +421,7 @@ where
 
 impl<T> fmt::Binary for NonZero<T>
 where
-    T: fmt::Binary,
+    T: fmt::Binary + ?Sized,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Binary::fmt(&self.0, f)
@@ -428,7 +430,7 @@ where
 
 impl<T> fmt::Octal for NonZero<T>
 where
-    T: fmt::Octal,
+    T: fmt::Octal + ?Sized,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Octal::fmt(&self.0, f)
@@ -437,7 +439,7 @@ where
 
 impl<T> fmt::LowerHex for NonZero<T>
 where
-    T: fmt::LowerHex,
+    T: fmt::LowerHex + ?Sized,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::LowerHex::fmt(&self.0, f)
@@ -446,7 +448,7 @@ where
 
 impl<T> fmt::UpperHex for NonZero<T>
 where
-    T: fmt::UpperHex,
+    T: fmt::UpperHex + ?Sized,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::UpperHex::fmt(&self.0, f)

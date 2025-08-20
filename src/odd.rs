@@ -1,8 +1,11 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{Bounded, ConstChoice, Int, Integer, Limb, NonZero, One, Uint};
-use core::ops::Mul;
-use core::{cmp::Ordering, fmt, ops::Deref};
+use crate::{Bounded, ConstChoice, Int, Integer, Limb, NonZero, One, Uint, UintRef};
+use core::{
+    cmp::Ordering,
+    fmt,
+    ops::{Deref, Mul},
+};
 use num_traits::ConstOne;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
@@ -38,7 +41,7 @@ pub type OddBoxedUint = Odd<BoxedUint>;
 /// These are frequently used in cryptography, e.g. as a modulus.
 #[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, PartialOrd, Ord)]
 #[repr(transparent)]
-pub struct Odd<T>(pub(crate) T);
+pub struct Odd<T: ?Sized>(pub(crate) T);
 
 impl<T> Odd<T> {
     /// Create a new odd integer.
@@ -50,6 +53,13 @@ impl<T> Odd<T> {
         CtOption::new(Self(n), is_odd)
     }
 
+    /// Returns the inner value.
+    pub fn get(self) -> T {
+        self.0
+    }
+}
+
+impl<T: ?Sized> Odd<T> {
     /// Provides access to the contents of [`Odd`] in a `const` context.
     pub const fn as_ref(&self) -> &T {
         &self.0
@@ -62,16 +72,11 @@ impl<T> Odd<T> {
             &*(&self.0 as *const T as *const NonZero<T>)
         }
     }
-
-    /// Returns the inner value.
-    pub fn get(self) -> T {
-        self.0
-    }
 }
 
 impl<T> Odd<T>
 where
-    T: Bounded,
+    T: Bounded + ?Sized,
 {
     /// Total size of the represented integer in bits.
     pub const BITS: u32 = T::BITS;
@@ -98,6 +103,15 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         assert!(uint.is_odd().is_true_vartime(), "number must be odd");
         Odd(uint)
     }
+
+    /// Borrow the limbs of this [`Odd<Uint>`] as a [`Odd<UintRef>`].
+    pub(crate) const fn as_uint_ref(&self) -> &Odd<UintRef> {
+        // SAFETY: `Odd` is a `repr(transparent)` newtype.
+        #[allow(trivial_casts, unsafe_code)]
+        unsafe {
+            &*(self.0.as_uint_ref() as *const UintRef as *const Odd<UintRef>)
+        }
+    }
 }
 
 impl<const LIMBS: usize> Odd<Int<LIMBS>> {
@@ -114,7 +128,7 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
     }
 }
 
-impl<T> AsRef<T> for Odd<T> {
+impl<T: ?Sized> AsRef<T> for Odd<T> {
     fn as_ref(&self) -> &T {
         &self.0
     }
@@ -129,7 +143,7 @@ where
     }
 }
 
-impl<T> AsRef<NonZero<T>> for Odd<T> {
+impl<T: ?Sized> AsRef<NonZero<T>> for Odd<T> {
     fn as_ref(&self) -> &NonZero<T> {
         self.as_nz_ref()
     }
@@ -146,14 +160,14 @@ where
 
 impl<T> ConstantTimeEq for Odd<T>
 where
-    T: ConstantTimeEq,
+    T: ConstantTimeEq + ?Sized,
 {
     fn ct_eq(&self, other: &Self) -> Choice {
         self.0.ct_eq(&other.0)
     }
 }
 
-impl<T> Deref for Odd<T> {
+impl<T: ?Sized> Deref for Odd<T> {
     type Target = T;
 
     fn deref(&self) -> &T {
@@ -213,6 +227,18 @@ impl<const LIMBS: usize> PartialEq<Odd<Uint<LIMBS>>> for Uint<LIMBS> {
 impl<const LIMBS: usize> PartialOrd<Odd<Uint<LIMBS>>> for Uint<LIMBS> {
     fn partial_cmp(&self, other: &Odd<Uint<LIMBS>>) -> Option<Ordering> {
         Some(self.cmp(&other.0))
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl Odd<BoxedUint> {
+    /// Borrow the limbs of this [`Odd<BoxedUint>`] as a [`Odd<UintRef>`].
+    pub(crate) const fn as_uint_ref(&self) -> &Odd<UintRef> {
+        // SAFETY: `Odd` is a `repr(transparent)` newtype.
+        #[allow(trivial_casts, unsafe_code)]
+        unsafe {
+            &*(self.0.as_uint_ref() as *const UintRef as *const Odd<UintRef>)
+        }
     }
 }
 
@@ -278,7 +304,7 @@ impl Odd<BoxedUint> {
 
 impl<T> fmt::Display for Odd<T>
 where
-    T: fmt::Display,
+    T: fmt::Display + ?Sized,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(&self.0, f)
@@ -287,7 +313,7 @@ where
 
 impl<T> fmt::Binary for Odd<T>
 where
-    T: fmt::Binary,
+    T: fmt::Binary + ?Sized,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Binary::fmt(&self.0, f)
@@ -296,7 +322,7 @@ where
 
 impl<T> fmt::Octal for Odd<T>
 where
-    T: fmt::Octal,
+    T: fmt::Octal + ?Sized,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::Octal::fmt(&self.0, f)
@@ -305,7 +331,7 @@ where
 
 impl<T> fmt::LowerHex for Odd<T>
 where
-    T: fmt::LowerHex,
+    T: fmt::LowerHex + ?Sized,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::LowerHex::fmt(&self.0, f)
@@ -314,7 +340,7 @@ where
 
 impl<T> fmt::UpperHex for Odd<T>
 where
-    T: fmt::UpperHex,
+    T: fmt::UpperHex + ?Sized,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::UpperHex::fmt(&self.0, f)
