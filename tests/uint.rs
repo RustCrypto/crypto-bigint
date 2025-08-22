@@ -391,8 +391,8 @@ proptest! {
         let g_bi = to_biguint(&g);
 
         let expected = g_bi.jacobi(&f_bi);
-        let actual = g.jacobi_symbol(&f);
-        let actual_vartime = g.jacobi_symbol_vartime(&f);
+        let actual = g.jacobi_symbol(&f) as i8;
+        let actual_vartime = g.jacobi_symbol_vartime(&f) as i8;
         prop_assert_eq!(expected, actual);
         prop_assert_eq!(expected, actual_vartime);
     }

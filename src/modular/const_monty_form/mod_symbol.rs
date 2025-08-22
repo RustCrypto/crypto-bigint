@@ -1,5 +1,7 @@
 //! Modular symbol calculation for integers in Montgomery form with a constant modulus.
 
+use crate::JacobiSymbol;
+
 use super::{ConstMontyForm, ConstMontyParams};
 
 impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
@@ -7,7 +9,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     ///
     /// For a prime modulus, this corresponds to the Legendre symbol and indicates
     /// whether `self` is quadratic residue.
-    pub const fn jacobi_symbol(&self) -> i8 {
+    pub const fn jacobi_symbol(&self) -> JacobiSymbol {
         self.retrieve().jacobi_symbol(MOD::PARAMS.modulus())
     }
 
@@ -17,7 +19,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     /// whether `self` is quadratic residue.
     ///
     /// This method is variable-time with respect to the value of `self`.
-    pub const fn jacobi_symbol_vartime(&self) -> i8 {
+    pub const fn jacobi_symbol_vartime(&self) -> JacobiSymbol {
         self.retrieve().jacobi_symbol_vartime(MOD::PARAMS.modulus())
     }
 }
@@ -25,7 +27,8 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
 #[cfg(test)]
 mod tests {
     use crate::{
-        U256, const_monty_form, const_monty_params, modular::const_monty_form::ConstMontyParams,
+        JacobiSymbol, U256, const_monty_form, const_monty_params,
+        modular::const_monty_form::ConstMontyParams,
     };
 
     const_monty_params!(
@@ -43,7 +46,7 @@ mod tests {
 
         let jac = x_mod.jacobi_symbol();
         let jac_vartime = x_mod.jacobi_symbol_vartime();
-        assert_eq!(jac, 1);
+        assert_eq!(jac, JacobiSymbol::One);
         assert_eq!(jac, jac_vartime);
     }
 
@@ -55,7 +58,7 @@ mod tests {
 
         let jac = x_mod.jacobi_symbol();
         let jac_vartime = x_mod.jacobi_symbol_vartime();
-        assert_eq!(jac, -1);
+        assert_eq!(jac, JacobiSymbol::MinusOne);
         assert_eq!(jac, jac_vartime);
     }
 }
