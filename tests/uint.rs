@@ -9,6 +9,7 @@ use crypto_bigint::{
 };
 use num_bigint::BigUint;
 use num_integer::Integer as _;
+use num_modular::ModularSymbols;
 use num_traits::identities::{One, Zero};
 use proptest::prelude::*;
 use std::mem;
@@ -47,6 +48,12 @@ fn to_uint_xlarge(big_uint: BigUint) -> U8192 {
 prop_compose! {
     fn uint()(bytes in any::<[u8; 32]>()) -> U256 {
         U256::from_le_slice(&bytes)
+    }
+}
+prop_compose! {
+    fn odd_uint()(mut bytes in any::<[u8; 32]>()) -> Odd<U256> {
+        bytes[0] |= 1;
+        U256::from_le_slice(&bytes).to_odd().unwrap()
     }
 }
 prop_compose! {
@@ -378,6 +385,17 @@ proptest! {
         prop_assert_eq!(expected, actual_vartime);
     }
 
+    #[test]
+    fn jacobi_symbol(f in odd_uint(), g in uint()) {
+        let f_bi = to_biguint(&f);
+        let g_bi = to_biguint(&g);
+
+        let expected = g_bi.jacobi(&f_bi);
+        let actual = g.jacobi_symbol(&f) as i8;
+        let actual_vartime = g.jacobi_symbol_vartime(&f) as i8;
+        prop_assert_eq!(expected, actual);
+        prop_assert_eq!(expected, actual_vartime);
+    }
 
     #[test]
     fn invert_mod2k(a in uint(), k in any::<u32>()) {

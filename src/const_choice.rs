@@ -157,6 +157,12 @@ impl ConstChoice {
         Self::from_u32_lsb(bit)
     }
 
+    /// Returns the truthy value if `x == y`, and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn from_i64_eq(x: i64, y: i64) -> Self {
+        Self::from_word_nonzero(x as Word ^ y as Word).not()
+    }
+
     #[inline]
     pub(crate) const fn not(&self) -> Self {
         Self(!self.0)
