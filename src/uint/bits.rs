@@ -77,6 +77,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         result.as_mut_uint_ref().set_bit_vartime(index, bit_value);
         result
     }
+
+    /// Clear any bits at or above a given bit position.
+    pub(crate) const fn restrict_bits(mut self, len: u32) -> Self {
+        self.as_mut_uint_ref().restrict_bits(len);
+        self
+    }
 }
 
 impl<const LIMBS: usize> BitOps for Uint<LIMBS> {
