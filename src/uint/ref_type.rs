@@ -1,23 +1,22 @@
 //! Unsigned integer reference type.
 
-use crate::Limb;
+use crate::{Limb, Uint};
 use core::{
     fmt,
     ops::{Index, IndexMut},
 };
 
 #[cfg(feature = "alloc")]
-use crate::Word;
-#[cfg(feature = "alloc")]
-use subtle::{Choice, ConditionallySelectable};
+use crate::{ConstChoice, Word};
 
 mod bits;
-#[cfg(feature = "alloc")]
+mod inv_mod;
 mod shl;
+mod slice;
+mod sub;
+
 #[cfg(feature = "alloc")]
 mod shr;
-
-mod inv_mod;
 
 /// Unsigned integer reference type.
 ///
@@ -94,12 +93,37 @@ impl UintRef {
         self.0.iter_mut()
     }
 
+    /// Access the number of limbs.
+    #[inline]
+    pub const fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    /// Conditionally assign all of the limbs to zero.
     #[cfg(feature = "alloc")]
     #[inline]
-    pub fn conditional_set_zero(&mut self, choice: Choice) {
-        for i in 0..self.0.len() {
-            self.0[i] = Limb::conditional_select(&self.0[i], &Limb::ZERO, choice);
+    pub const fn conditional_set_zero(&mut self, choice: ConstChoice) {
+        let mut i = 0;
+        while i < self.len() {
+            self.0[i] = Limb::select(self.0[i], Limb::ZERO, choice);
+            i += 1;
         }
+    }
+
+    /// Extract up to `LIMBS` limbs into a new `Uint`.
+    pub const fn to_uint_resize<const LIMBS: usize>(&self) -> Uint<LIMBS> {
+        let mut out = Uint::ZERO;
+        let len = if self.len() > LIMBS {
+            LIMBS
+        } else {
+            self.len()
+        };
+        let mut i = 0;
+        while i < len {
+            out.limbs[i] = self.0[i];
+            i += 1;
+        }
+        out
     }
 }
 

@@ -112,6 +112,13 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             &*(self.0.as_uint_ref() as *const UintRef as *const Odd<UintRef>)
         }
     }
+
+    /// Construct an [`Odd<Uint<T>>`] from the unsigned integer value,
+    /// truncating the upper bits if the value is too large to be
+    /// represented.
+    pub const fn resize<const T: usize>(&self) -> Odd<Uint<T>> {
+        Odd(self.0.resize())
+    }
 }
 
 impl<const LIMBS: usize> Odd<Int<LIMBS>> {
@@ -227,6 +234,15 @@ impl<const LIMBS: usize> PartialEq<Odd<Uint<LIMBS>>> for Uint<LIMBS> {
 impl<const LIMBS: usize> PartialOrd<Odd<Uint<LIMBS>>> for Uint<LIMBS> {
     fn partial_cmp(&self, other: &Odd<Uint<LIMBS>>) -> Option<Ordering> {
         Some(self.cmp(&other.0))
+    }
+}
+
+impl Odd<UintRef> {
+    /// Construct an [`Odd<Uint<T>>`] from the unsigned integer value,
+    /// truncating the upper bits if the value is too large to be
+    /// represented.
+    pub const fn to_uint_resize<const T: usize>(&self) -> Odd<Uint<T>> {
+        Odd(self.0.to_uint_resize())
     }
 }
 

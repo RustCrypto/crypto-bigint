@@ -1,3 +1,5 @@
+use crate::Word;
+
 use super::Limb;
 
 impl Limb {
@@ -23,5 +25,11 @@ impl Limb {
     #[inline(always)]
     pub const fn trailing_ones(self) -> u32 {
         self.0.trailing_ones()
+    }
+
+    /// Clear bits at or above the given bit position.
+    pub const fn restrict_bits(self, len: u32) -> Self {
+        #[allow(trivial_numeric_casts)]
+        self.bitand(Limb((1 as Word).overflowing_shl(len).0 - 1))
     }
 }

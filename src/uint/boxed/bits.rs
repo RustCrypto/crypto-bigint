@@ -74,6 +74,11 @@ impl BoxedUint {
     pub(crate) fn set_bit_vartime(&mut self, index: u32, bit_value: bool) {
         self.as_mut_uint_ref().set_bit_vartime(index, bit_value)
     }
+
+    /// Clear any bits at or above a given bit position.
+    pub(crate) const fn restrict_bits(&mut self, len: u32) {
+        self.as_mut_uint_ref().restrict_bits(len);
+    }
 }
 
 impl BitOps for BoxedUint {

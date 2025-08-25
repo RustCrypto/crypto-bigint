@@ -42,11 +42,6 @@ impl BoxedUint {
         borrow
     }
 
-    /// Perform wrapping subtraction inplace, discarding overflow.
-    pub(crate) fn wrapping_sub_assign(&mut self, rhs: &Self) {
-        self.borrowing_sub_assign(rhs, Limb::ZERO);
-    }
-
     /// Perform wrapping subtraction, discarding overflow.
     pub fn wrapping_sub(&self, rhs: &Self) -> Self {
         self.borrowing_sub(rhs, Limb::ZERO).0
