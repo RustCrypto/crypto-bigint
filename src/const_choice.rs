@@ -36,6 +36,11 @@ impl ConstChoice {
         self.0
     }
 
+    #[inline]
+    pub(crate) const fn as_word_mask(&self) -> Word {
+        self.0
+    }
+
     /// Returns the truthy value if `value == Word::MAX`, and the falsy value if `value == 0`.
     /// Panics for other values.
     #[inline]
