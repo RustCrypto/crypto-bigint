@@ -442,7 +442,7 @@ mod tests {
     }
 
     #[test]
-    fn invert_mod2k_full() {
+    fn invert_mod_precision() {
         const BIG: Odd<Uint<8>> = Odd(Uint::MAX);
 
         fn test_invert_size<const LIMBS: usize>() {
