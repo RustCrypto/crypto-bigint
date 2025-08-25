@@ -190,7 +190,7 @@ impl InvertMod for BoxedUint {
 
 #[cfg(test)]
 mod tests {
-    use crate::U256;
+    use crate::{Limb, Odd, Resize, U256};
 
     use super::BoxedUint;
     use hex_literal::hex;
@@ -370,5 +370,16 @@ mod tests {
                 .invert_odd_mod(&BoxedUint::from(U256::MAX).to_odd().unwrap())
                 .is_none()
         ));
+    }
+
+    #[test]
+    fn invert_mod_precision() {
+        const PRECISION: u32 = 8 * Limb::BITS;
+
+        for limbs in 1..10 {
+            let a = Odd(BoxedUint::max(PRECISION).resize_unchecked(limbs));
+            let a_inv = a.invert_mod_precision();
+            assert_eq!(a.as_ref().wrapping_mul(&a_inv), BoxedUint::one());
+        }
     }
 }

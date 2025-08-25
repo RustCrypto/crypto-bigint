@@ -442,26 +442,24 @@ mod tests {
     }
 
     #[test]
-    fn invert_mod2k_full() {
+    fn invert_mod_precision() {
         const BIG: Odd<Uint<8>> = Odd(Uint::MAX);
 
         fn test_invert_size<const LIMBS: usize>() {
             let a = BIG.resize::<LIMBS>();
             let a_inv = a.invert_mod_precision();
-            println!("{LIMBS} a: {a:?}");
-            println!("a inv: {a_inv:?}");
             assert_eq!(a.as_ref().wrapping_mul(&a_inv), Uint::ONE);
         }
 
         test_invert_size::<1>();
-        // test_invert_size::<2>();
-        // test_invert_size::<3>();
+        test_invert_size::<2>();
+        test_invert_size::<3>();
         test_invert_size::<4>();
-        // test_invert_size::<5>();
-        // test_invert_size::<6>();
-        // test_invert_size::<7>();
+        test_invert_size::<5>();
+        test_invert_size::<6>();
+        test_invert_size::<7>();
         test_invert_size::<8>();
-        // test_invert_size::<9>();
+        test_invert_size::<9>();
         test_invert_size::<10>();
     }
 }
