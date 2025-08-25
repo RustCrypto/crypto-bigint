@@ -199,12 +199,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // (essentially one step of the Garner's algorithm for recovery from RNS).
 
         // `s` is odd, so this always exists
-        let m_odd_inv = s.as_ref().invert_mod2k(k).expect("inverse mod 2^k exists");
+        let m_odd_inv = s.invert_mod_precision();
 
         // This part is mod 2^k
-        let shifted = Uint::ONE.shl(k);
-        let mask = shifted.wrapping_sub(&Uint::ONE);
-        let t = (b.wrapping_sub(&a).wrapping_mul(&m_odd_inv)).bitand(&mask);
+        let t = b.wrapping_sub(&a).wrapping_mul(&m_odd_inv).restrict_bits(k);
 
         // Will not overflow since `a <= s - 1`, `t <= 2^k - 1`,
         // so `a + s * t <= s * 2^k - 1 == modulus - 1`.
@@ -252,6 +250,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         if k_bits > 0 {
             inv.limbs[k_limbs - 1] = inv.limbs[k_limbs - 1].restrict_bits(k_bits);
         }
+
         inv
     }
 }
