@@ -156,10 +156,7 @@ impl Odd<BoxedUint> {
 
         if k_limbs <= U64::LIMBS {
             // trim to k_limbs
-            inv.as_mut_uint_ref()
-                .leading_mut(U64::LIMBS)
-                .trailing_mut(k_limbs)
-                .fill(Limb::ZERO);
+            inv.as_mut_uint_ref().trailing_mut(k_limbs).fill(Limb::ZERO);
         } else {
             // expand to k_limbs
             let mut scratch = BoxedUint::zero_with_precision(k_limbs as u32 * 2 * Limb::BITS);

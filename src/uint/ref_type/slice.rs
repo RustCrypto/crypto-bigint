@@ -30,7 +30,7 @@ impl UintRef {
         }
     }
 
-    /// Split the mutable limb slice at a fixed position, producing head and tail slices.
+    /// Split the mutable limb slice at index `mid`, producing head and tail slices.
     #[cfg(feature = "alloc")]
     #[inline]
     pub const fn split_at_mut(&mut self, mid: usize) -> (&mut Self, &mut Self) {
@@ -38,19 +38,19 @@ impl UintRef {
         (UintRef::new_mut(a), UintRef::new_mut(b))
     }
 
-    /// Access a limb slice up to a fixed position.
+    /// Access a limb slice up to a number of elements `len`.
     #[inline]
     pub const fn leading(&self, len: usize) -> &Self {
         Self::new(self.0.split_at(len).0)
     }
 
-    /// Access a mutable limb slice up to a fixed position.
+    /// Access a mutable limb slice up to a number of elements `len`.
     #[inline]
     pub const fn leading_mut(&mut self, len: usize) -> &mut Self {
         Self::new_mut(self.0.split_at_mut(len).0)
     }
 
-    /// Access a mutable limb slice starting from a fixed position.
+    /// Access a mutable limb slice starting from the index `start`.
     #[inline]
     pub const fn trailing_mut(&mut self, start: usize) -> &mut Self {
         Self::new_mut(self.0.split_at_mut(start).1)

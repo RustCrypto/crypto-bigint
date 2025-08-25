@@ -228,12 +228,9 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         let k_limbs = k.div_ceil(Limb::BITS) as usize;
         let mut inv = U64::from_u64(self.as_uint_ref().invert_mod_u64()).resize::<LIMBS>();
 
-        if LIMBS <= U64::LIMBS {
+        if k_limbs <= U64::LIMBS {
             // trim to k_limbs
-            inv.as_mut_uint_ref()
-                .leading_mut(U64::LIMBS)
-                .trailing_mut(k_limbs)
-                .fill(Limb::ZERO);
+            inv.as_mut_uint_ref().trailing_mut(k_limbs).fill(Limb::ZERO);
         } else {
             // expand to k_limbs
             let mut scratch = (Uint::<LIMBS>::ZERO, Uint::<LIMBS>::ZERO);
