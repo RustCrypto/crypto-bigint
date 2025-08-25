@@ -725,6 +725,14 @@ fn bench_invert_mod(c: &mut Criterion) {
         )
     });
 
+    group.bench_function("invert_mod2k, U256", |b| {
+        b.iter_batched(
+            || U256::random(&mut rng),
+            |x| x.invert_mod2k(black_box(1)),
+            BatchSize::SmallInput,
+        )
+    });
+
     group.finish();
 }
 
