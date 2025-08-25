@@ -37,6 +37,7 @@ pub(crate) const fn expand_invert_mod2k(
     let mut target = if zs > 0 { p >> zs } else { p.div_ceil(2) };
     if target > 8 {
         expand_invert_mod2k(a, buf.leading_mut(target), k, (scratch.0, scratch.1));
+        k = target;
         target = p;
     } else if target <= k {
         target = p;
