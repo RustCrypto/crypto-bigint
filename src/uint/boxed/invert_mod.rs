@@ -123,7 +123,7 @@ impl BoxedUint {
         let (inverse_mod2k, invertible_mod_2k) = self.invert_mod2k(k);
         let is_some = invertible_mod_s & invertible_mod_2k;
 
-        let (s_inverse_mod2k, _) = s.invert_mod2k(k);
+        let s_inverse_mod2k = s.invert_mod_precision();
         let mut t = inverse_mod2k
             .wrapping_sub(&inv_mod_s)
             .wrapping_mul(&s_inverse_mod2k);
