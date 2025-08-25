@@ -315,6 +315,14 @@ fn bench_invert(c: &mut Criterion) {
             BatchSize::SmallInput,
         )
     });
+
+    group.bench_function("invert_mod2k", |b| {
+        b.iter_batched(
+            || BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+            |x| x.invert_mod2k(black_box(1)),
+            BatchSize::SmallInput,
+        )
+    });
 }
 
 criterion_group!(
