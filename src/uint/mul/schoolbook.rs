@@ -83,20 +83,16 @@ pub const fn wrapping_mul(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) {
     while i < lhs.len() {
         let mut carry = Limb::ZERO;
         let xi = lhs[i];
-        let mut j = 0;
-        let mut k;
+        let mut k = i;
 
-        loop {
-            k = i + j;
-            if j == rhs.len() || k == lhs.len() {
+        while k < lhs.len() {
+            let j = k - i;
+            if k == rhs.len() {
+                out[k] = carry;
                 break;
             }
             (out[k], carry) = xi.carrying_mul_add(rhs[j], out[k], carry);
-            j += 1;
-        }
-
-        if k < lhs.len() {
-            out[k] = carry;
+            k += 1;
         }
         i += 1;
     }
