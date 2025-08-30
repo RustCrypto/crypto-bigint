@@ -468,6 +468,46 @@ fn bench_gcd(c: &mut Criterion) {
     group.finish();
 }
 
+fn mod_symbols_bench<const LIMBS: usize>(g: &mut BenchmarkGroup<WallTime>, _x: Uint<LIMBS>) {
+    let mut rng = make_rng();
+
+    g.bench_function(BenchmarkId::new("jacobi_symbol", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                (
+                    OddUint::<LIMBS>::random(&mut rng),
+                    Uint::<LIMBS>::random(&mut rng),
+                )
+            },
+            |(f, g)| black_box(g.jacobi_symbol(&f)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    g.bench_function(BenchmarkId::new("jacobi_symbol_vartime", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                (
+                    OddUint::<LIMBS>::random(&mut rng),
+                    Uint::<LIMBS>::random(&mut rng),
+                )
+            },
+            |(f, g)| black_box(g.jacobi_symbol_vartime(&f)),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
+fn bench_mod_symbols(c: &mut Criterion) {
+    let mut group = c.benchmark_group("modular symbols");
+
+    mod_symbols_bench(&mut group, Uint::<1>::ZERO);
+    mod_symbols_bench(&mut group, Uint::<4>::ZERO);
+    mod_symbols_bench(&mut group, Uint::<64>::ZERO);
+
+    group.finish();
+}
+
 fn bench_shl(c: &mut Criterion) {
     let mut group = c.benchmark_group("left shift");
 
@@ -631,6 +671,7 @@ criterion_group!(
     bench_mul,
     bench_division,
     bench_gcd,
+    bench_mod_symbols,
     bench_shl,
     bench_shr,
     bench_invert_mod,
