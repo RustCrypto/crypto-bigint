@@ -11,10 +11,7 @@ mod sub;
 use super::{Retrieve, div_by_2};
 use mul::BoxedMontyMultiplier;
 
-use crate::{
-    BoxedUint, Limb, Monty, Odd, U64, Word,
-    modular::{MontyParams, safegcd::invert_mod_u64},
-};
+use crate::{BoxedUint, Limb, Monty, Odd, U64, Word, modular::MontyParams};
 use alloc::sync::Arc;
 use subtle::Choice;
 
@@ -58,7 +55,7 @@ impl BoxedMontyParams {
         let r2 = one.square_mod(modulus.as_nz_ref());
 
         // The inverse of the modulus modulo 2**64
-        let mod_inv = U64::from_u64(invert_mod_u64(modulus.as_ref().as_words()));
+        let mod_inv = U64::from_u64(modulus.as_uint_ref().invert_mod_u64());
 
         let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
 
@@ -91,7 +88,7 @@ impl BoxedMontyParams {
         let r2 = one.square_mod_vartime(modulus.as_nz_ref());
 
         // The inverse of the modulus modulo 2**64
-        let mod_inv = U64::from_u64(invert_mod_u64(modulus.as_ref().as_words()));
+        let mod_inv = U64::from_u64(modulus.as_uint_ref().invert_mod_u64());
 
         let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
 

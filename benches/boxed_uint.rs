@@ -61,6 +61,19 @@ fn bench_mul(c: &mut Criterion) {
         )
     });
 
+    group.bench_function("boxed_wrapping_mul", |b| {
+        b.iter_batched(
+            || {
+                (
+                    BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+                    BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+                )
+            },
+            |(x, y)| black_box(x.wrapping_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
     group.bench_function("boxed_square", |b| {
         b.iter_batched(
             || BoxedUint::random_bits(&mut OsRng, UINT_BITS),
@@ -291,6 +304,22 @@ fn bench_invert(c: &mut Criterion) {
                 (x, y.to_nz().unwrap())
             },
             |(x, y)| black_box(x.invert_mod(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("invert_mod2k", |b| {
+        b.iter_batched(
+            || BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+            |x| x.invert_mod2k(black_box(1)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("invert_mod2k_vartime", |b| {
+        b.iter_batched(
+            || BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+            |x| x.invert_mod2k_vartime(black_box(1)),
             BatchSize::SmallInput,
         )
     });
