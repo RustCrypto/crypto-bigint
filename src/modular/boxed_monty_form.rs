@@ -13,7 +13,7 @@ use mul::BoxedMontyMultiplier;
 
 use crate::{
     BoxedUint, Limb, Monty, Odd, U64, Word,
-    modular::{MontyParams, safegcd::invert_mod_u64},
+    modular::{MontyParams, reduction::montgomery_retrieve_inner, safegcd::invert_mod_u64},
 };
 use alloc::sync::Arc;
 use subtle::Choice;
@@ -189,8 +189,14 @@ impl BoxedMontyForm {
 
     /// Retrieves the integer currently encoded in this [`BoxedMontyForm`], guaranteed to be reduced.
     pub fn retrieve(&self) -> BoxedUint {
-        let mut mm = BoxedMontyMultiplier::from(&self.params);
-        mm.mul_by_one(&self.montgomery_form)
+        let mut out = BoxedUint::zero_with_precision(self.bits_precision());
+        montgomery_retrieve_inner(
+            &self.montgomery_form.limbs,
+            &mut out.limbs,
+            self.params.modulus().as_ref().as_limbs(),
+            self.params.mod_neg_inv(),
+        );
+        out
     }
 
     /// Instantiates a new `ConstMontyForm` that represents zero.
