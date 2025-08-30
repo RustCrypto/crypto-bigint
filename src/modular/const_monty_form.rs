@@ -10,7 +10,11 @@ mod pow;
 mod reduce;
 mod sub;
 
-use super::{MontyParams, Retrieve, div_by_2::div_by_2, reduction::montgomery_reduction};
+use super::{
+    MontyParams, Retrieve,
+    div_by_2::div_by_2,
+    reduction::{montgomery_reduction, montgomery_retrieve},
+};
 use crate::{ConstChoice, ConstZero, Uint};
 use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
@@ -90,8 +94,8 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
 
     /// Retrieves the integer currently encoded in this [`ConstMontyForm`], guaranteed to be reduced.
     pub const fn retrieve(&self) -> Uint<LIMBS> {
-        montgomery_reduction::<LIMBS>(
-            &(self.montgomery_form, Uint::ZERO),
+        montgomery_retrieve(
+            &self.montgomery_form,
             &MOD::PARAMS.modulus,
             MOD::PARAMS.mod_neg_inv(),
         )
