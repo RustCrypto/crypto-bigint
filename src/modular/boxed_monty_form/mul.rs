@@ -148,26 +148,6 @@ impl<'a> BoxedMontyMultiplier<'a> {
         debug_assert!(&*a < self.modulus);
     }
 
-    /// Perform a Montgomery multiplication, assigning a fully reduced result to `a`.
-    pub(super) fn mul_by_one(&mut self, a: &BoxedUint) -> BoxedUint {
-        debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
-
-        let mut ret = a.clone();
-
-        self.clear_product();
-        almost_montgomery_mul_by_one(
-            self.product.as_mut_limbs(),
-            a.as_limbs(),
-            self.modulus.as_limbs(),
-            self.mod_neg_inv,
-        );
-        ret.limbs.copy_from_slice(&self.product.limbs);
-
-        // Note: no reduction is required, see the doc comment of `almost_montgomery_mul()`.
-
-        ret
-    }
-
     /// Perform a squaring using Montgomery multiplication, returning a fully reduced result.
     pub(super) fn square(&mut self, a: &BoxedUint) -> BoxedUint {
         let mut ret = a.clone();
@@ -313,43 +293,6 @@ pub(crate) const fn almost_montgomery_mul(
     let mut i = 0;
     while i < n {
         let mut c = add_mul_carry(z, x, y[i]);
-        (ts, c) = ts.overflowing_add(c);
-        let ts1 = c;
-
-        let t = z[0].wrapping_mul(k);
-
-        c = add_mul_carry_and_shift(z, m, t);
-        (z[n - 1], c) = ts.overflowing_add(c);
-        ts = ts1.wrapping_add(c);
-
-        i += 1;
-    }
-
-    // If the result overflows the integer size, subtract the modulus.
-    let overflow = ConstChoice::from_word_lsb(ts.0);
-    conditional_sub(z, m, overflow);
-}
-
-/// Same as `almost_montgomery_mul()` with `y == 1`.
-///
-/// Used for retrieving from Montgomery form.
-pub(crate) const fn almost_montgomery_mul_by_one(z: &mut [Limb], x: &[Limb], m: &[Limb], k: Limb) {
-    let n = z.len();
-
-    // This preconditions check allows compiler to remove bound checks later in the code.
-    if !(x.len() == n && m.len() == n) {
-        panic!("Failed preconditions in `almost_montgomery_mul_by_one`");
-    }
-
-    let mut ts = Limb::ZERO;
-
-    let mut i = 0;
-    while i < n {
-        let mut c = if i == 0 {
-            add_mul_carry(z, x, Limb::ONE)
-        } else {
-            Limb::ZERO
-        };
         (ts, c) = ts.overflowing_add(c);
         let ts1 = c;
 

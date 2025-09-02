@@ -13,7 +13,7 @@ use super::{
     Retrieve,
     const_monty_form::{ConstMontyForm, ConstMontyParams},
     div_by_2::div_by_2,
-    reduction::montgomery_reduction,
+    reduction::{montgomery_reduction, montgomery_retrieve},
     safegcd::invert_mod_u64,
 };
 use crate::{ConstChoice, Limb, Monty, Odd, U64, Uint, Word};
@@ -166,8 +166,8 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
 
     /// Retrieves the integer currently encoded in this `MontyForm`, guaranteed to be reduced.
     pub const fn retrieve(&self) -> Uint<LIMBS> {
-        montgomery_reduction(
-            &(self.montgomery_form, Uint::ZERO),
+        montgomery_retrieve(
+            &self.montgomery_form,
             &self.params.modulus,
             self.params.mod_neg_inv(),
         )
