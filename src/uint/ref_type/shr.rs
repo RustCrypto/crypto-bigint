@@ -184,7 +184,7 @@ impl UintRef {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, U256, Uint};
+    use crate::{ConstChoice, Limb, U256, Uint};
 
     const N: U256 =
         U256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
@@ -195,8 +195,19 @@ mod tests {
     #[test]
     fn shr1_assign() {
         let mut n = N;
-        n.as_mut_uint_ref().shr1_assign();
+        let carry = n.as_mut_uint_ref().shr1_assign();
         assert_eq!(n, N_2);
+        assert_eq!(carry, ConstChoice::TRUE);
+
+        let mut m = U256::MAX;
+        let carry = m.as_mut_uint_ref().shr1_assign();
+        assert_eq!(m, U256::MAX.shr_vartime(1));
+        assert_eq!(carry, ConstChoice::TRUE);
+
+        let mut z = U256::ZERO;
+        let carry = z.as_mut_uint_ref().shr1_assign();
+        assert_eq!(z, U256::ZERO);
+        assert_eq!(carry, ConstChoice::FALSE);
     }
 
     #[test]
