@@ -92,6 +92,51 @@ proptest! {
     }
 
     #[test]
+    fn add((a, b) in monty_form_pair()) {
+        let p = a.params().modulus();
+        let actual = &a + &b;
+        prop_assert!(actual.as_montgomery() < a.params().modulus());
+
+        let a_bi = retrieve_biguint(&a);
+        let b_bi = retrieve_biguint(&b);
+        let p_bi = to_biguint(&p);
+        let expected = (a_bi + b_bi) % p_bi;
+
+        prop_assert_eq!(retrieve_biguint(&actual), expected);
+    }
+
+    #[test]
+    fn double(a in monty_form()) {
+        let p = a.params().modulus();
+        let actual = a.double();
+        prop_assert!(actual.as_montgomery() < a.params().modulus());
+
+        let a_bi = retrieve_biguint(&a);
+        let p_bi = to_biguint(&p);
+        let expected = (a_bi << 1) % p_bi;
+
+        prop_assert_eq!(retrieve_biguint(&actual), expected);
+    }
+
+    #[test]
+    fn sub((a, b) in monty_form_pair()) {
+        let p = a.params().modulus();
+        let actual = &a - &b;
+        prop_assert!(actual.as_montgomery() < a.params().modulus());
+
+        let a_bi = retrieve_biguint(&a);
+        let b_bi = retrieve_biguint(&b);
+        let p_bi = to_biguint(&p);
+        let expected = if a_bi >= b_bi {
+            (a_bi - b_bi) % &p_bi
+        } else {
+            (&p_bi - (b_bi - a_bi)) % &p_bi
+        };
+
+        prop_assert_eq!(retrieve_biguint(&actual), expected);
+    }
+
+    #[test]
     fn mul((a, b) in monty_form_pair()) {
         let p = a.params().modulus();
         let actual = &a * &b;
@@ -113,7 +158,7 @@ proptest! {
 
         let a_bi = retrieve_biguint(&a);
         let p_bi = to_biguint(&p);
-        let expected = (&a_bi * &a_bi) % p_bi;
+        let expected = a_bi.sqm(&p_bi);
 
         prop_assert_eq!(retrieve_biguint(&actual), expected);
     }

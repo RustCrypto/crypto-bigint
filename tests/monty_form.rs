@@ -296,6 +296,76 @@ proptest! {
     }
 
     #[test]
+    fn add(x in uint(), y in uint(), n in modulus()) {
+        let x = reduce(&x, n);
+        let y = reduce(&y, n);
+        let actual = x + y;
+
+        let x_bi = retrieve_biguint(&x);
+        let y_bi = retrieve_biguint(&y);
+        let n_bi = to_biguint(n.modulus());
+        let expected = (x_bi + y_bi) % n_bi;
+
+        prop_assert_eq!(retrieve_biguint(&actual), expected);
+    }
+
+    #[test]
+    fn sub(x in uint(), y in uint(), n in modulus()) {
+        let x = reduce(&x, n);
+        let y = reduce(&y, n);
+        let actual = x - y;
+
+        let x_bi = retrieve_biguint(&x);
+        let y_bi = retrieve_biguint(&y);
+        let n_bi = to_biguint(n.modulus());
+        let expected = if x_bi >= y_bi {
+            (x_bi - y_bi) % &n_bi
+        } else {
+            (&n_bi - (y_bi - x_bi)) % &n_bi
+        };
+
+        prop_assert_eq!(retrieve_biguint(&actual), expected);
+    }
+
+    #[test]
+    fn double(x in uint(),  n in modulus()) {
+        let x = reduce(&x, n);
+        let actual = x.double();
+
+        let x_bi = retrieve_biguint(&x);
+        let n_bi = to_biguint(n.modulus());
+        let expected = (x_bi << 1) % n_bi;
+
+        prop_assert_eq!(retrieve_biguint(&actual), expected);
+    }
+
+    #[test]
+    fn mul(x in uint(), y in uint(), n in modulus()) {
+        let x = reduce(&x, n);
+        let y = reduce(&y, n);
+        let actual = x * y;
+
+        let x_bi = retrieve_biguint(&x);
+        let y_bi = retrieve_biguint(&y);
+        let n_bi = to_biguint(n.modulus());
+        let expected = (x_bi * y_bi) % n_bi;
+
+        prop_assert_eq!(retrieve_biguint(&actual), expected);
+    }
+
+    #[test]
+    fn square(x in uint(), n in modulus()) {
+        let x = reduce(&x, n);
+        let actual = x.square();
+
+        let x_bi = retrieve_biguint(&x);
+        let n_bi = to_biguint(n.modulus());
+        let expected = x_bi.sqm(&n_bi);
+
+        prop_assert_eq!(retrieve_biguint(&actual), expected);
+    }
+
+    #[test]
     fn invert(x in uint(), n in modulus()) {
         let x = reduce(&x, n);
         let actual = Option::<MontyForm256>::from(x.invert());
@@ -313,5 +383,35 @@ proptest! {
             (None, None) => (),
             (_, _) => panic!("disagreement on if modular inverse exists")
         }
+    }
+
+    #[test]
+    fn pow(x in uint(), y in uint(), n in modulus()) {
+        let x = reduce(&x, n);
+        let actual = x.pow(&y);
+
+        let x_bi = retrieve_biguint(&x);
+        let y_bi = to_biguint(&y);
+        let n_bi = to_biguint(n.modulus());
+        let expected = x_bi.modpow(&y_bi, &n_bi);
+
+        prop_assert_eq!(retrieve_biguint(&actual), expected);
+    }
+
+    #[test]
+    fn div_by_2(x in uint(), n in modulus()) {
+        let x = reduce(&x, n);
+        let actual = x.div_by_2();
+
+        let x_bi = retrieve_biguint(&x);
+        let n_bi = to_biguint(n.modulus());
+        let expected = if x.retrieve().is_odd().into() {
+            (x_bi + n_bi) >> 1
+        }
+        else {
+            x_bi >> 1
+        };
+
+        prop_assert_eq!(&retrieve_biguint(&actual), &expected);
     }
 }
