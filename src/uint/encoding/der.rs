@@ -1,9 +1,9 @@
 //! Support for decoding/encoding [`Uint`] as an ASN.1 DER `INTEGER`.
 
-use crate::{ArrayEncoding, Encoding, Limb, Uint, UintRef, hybrid_array::Array};
+use crate::{ArrayEncoding, Encoding, Limb, Uint, hybrid_array::Array, uint::bits::leading_zeros};
 use ::der::{
     DecodeValue, EncodeValue, FixedTag, Length, Tag,
-    asn1::{AnyRef, UintRef as Asn1UintRef},
+    asn1::{AnyRef, UintRef},
 };
 
 impl<'a, const LIMBS: usize> TryFrom<AnyRef<'a>> for Uint<LIMBS>
@@ -13,17 +13,17 @@ where
     type Error = der::Error;
 
     fn try_from(any: AnyRef<'a>) -> der::Result<Uint<LIMBS>> {
-        Asn1UintRef::try_from(any)?.try_into()
+        UintRef::try_from(any)?.try_into()
     }
 }
 
-impl<'a, const LIMBS: usize> TryFrom<Asn1UintRef<'a>> for Uint<LIMBS>
+impl<'a, const LIMBS: usize> TryFrom<UintRef<'a>> for Uint<LIMBS>
 where
     Uint<LIMBS>: ArrayEncoding,
 {
     type Error = der::Error;
 
-    fn try_from(bytes: Asn1UintRef<'a>) -> der::Result<Uint<LIMBS>> {
+    fn try_from(bytes: UintRef<'a>) -> der::Result<Uint<LIMBS>> {
         let mut array = Array::default();
         let offset = array.len().saturating_sub(bytes.len().try_into()?);
         array[offset..].copy_from_slice(bytes.as_bytes());
@@ -38,7 +38,7 @@ where
     type Error = der::Error;
 
     fn decode_value<R: der::Reader<'a>>(reader: &mut R, header: der::Header) -> der::Result<Self> {
-        Asn1UintRef::decode_value(reader, header)?.try_into()
+        UintRef::decode_value(reader, header)?.try_into()
     }
 }
 
@@ -52,7 +52,7 @@ where
 
     fn encode_value(&self, encoder: &mut impl der::Writer) -> der::Result<()> {
         let array = self.to_be_byte_array();
-        Asn1UintRef::new(&array)?.encode_value(encoder)
+        UintRef::new(&array)?.encode_value(encoder)
     }
 }
 
@@ -67,7 +67,7 @@ where
 #[inline]
 pub(crate) fn count_der_be_bytes(limbs: &[Limb]) -> u32 {
     // Number of 0x00 bytes (also index of first non-zero byte)
-    let leading_zero_bytes = UintRef::new(limbs).leading_zeros() / 8;
+    let leading_zero_bytes = leading_zeros(limbs) / 8;
 
     // Limbs indexed in reverse
     let limb_index = limbs
@@ -101,7 +101,7 @@ pub(crate) fn count_der_be_bytes(limbs: &[Limb]) -> u32 {
 
 #[cfg(feature = "alloc")]
 pub mod allocating {
-    use der::{DecodeValue, EncodeValue, FixedTag, Length, Tag, asn1::UintRef as Asn1UintRef};
+    use der::{DecodeValue, EncodeValue, FixedTag, Length, Tag, asn1::UintRef};
 
     use crate::{BoxedUint, encoding::der::count_der_be_bytes};
 
@@ -112,7 +112,7 @@ pub mod allocating {
 
         fn encode_value(&self, encoder: &mut impl der::Writer) -> der::Result<()> {
             let array = self.to_be_bytes();
-            Asn1UintRef::new(&array)?.encode_value(encoder)
+            UintRef::new(&array)?.encode_value(encoder)
         }
     }
 
@@ -123,11 +123,11 @@ pub mod allocating {
             reader: &mut R,
             header: der::Header,
         ) -> der::Result<Self> {
-            let value = Asn1UintRef::decode_value(reader, header)?;
+            let value = UintRef::decode_value(reader, header)?;
             let bits_precision = value.as_bytes().len() as u32 * 8;
 
             let value = BoxedUint::from_be_slice(value.as_bytes(), bits_precision)
-                .map_err(|_| Asn1UintRef::TAG.value_error())?;
+                .map_err(|_| UintRef::TAG.value_error())?;
             Ok(value)
         }
     }
