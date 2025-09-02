@@ -142,7 +142,7 @@ impl UintRef {
             carry = new_carry;
             i += 1;
         }
-        ConstChoice::from_word_lsb(carry.0 >> Limb::HI_BIT)
+        ConstChoice::from_word_lsb(carry.0)
     }
 
     /// Conditionally left-shifts by `shift` bits where `0 < shift < Limb::BITS`, returning
@@ -184,7 +184,7 @@ impl UintRef {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, U256, Uint};
+    use crate::{ConstChoice, Limb, U256, Uint};
 
     const N: U256 =
         U256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
@@ -193,18 +193,21 @@ mod tests {
         U256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD755DB9CD5E9140777FA4BD19A06C8282");
 
     #[test]
-    fn shl_simple() {
-        let mut t = U256::from(1u8);
-        assert_eq!(t << 1, U256::from(2u8));
-        t = U256::from(3u8);
-        assert_eq!(t << 8, U256::from(0x300u16));
-    }
-
-    #[test]
     fn shl1_assign() {
         let mut n = N;
-        n.as_mut_uint_ref().shl1_assign();
+        let carry = n.as_mut_uint_ref().shl1_assign();
         assert_eq!(n, TWO_N);
+        assert_eq!(carry, ConstChoice::TRUE);
+
+        let mut m = U256::MAX;
+        let carry = m.as_mut_uint_ref().shl1_assign();
+        assert_eq!(m, U256::MAX.shl_vartime(1));
+        assert_eq!(carry, ConstChoice::TRUE);
+
+        let mut z = U256::ZERO;
+        let carry = z.as_mut_uint_ref().shl1_assign();
+        assert_eq!(z, U256::ZERO);
+        assert_eq!(carry, ConstChoice::FALSE);
     }
 
     #[test]
