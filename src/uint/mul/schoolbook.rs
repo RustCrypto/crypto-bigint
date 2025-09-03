@@ -179,3 +179,45 @@ pub const fn square_wide(limbs: &[Limb], lo: &mut [Limb], hi: &mut [Limb]) {
         i += 1;
     }
 }
+
+/// Schoolbook squaring which only calculates the lower limbs of the product.
+#[inline(always)]
+pub const fn wrapping_square(limbs: &[Limb], out: &mut [Limb]) {
+    assert!(
+        limbs.len() == out.len(),
+        "schoolbook wrapping squaring length mismatch"
+    );
+
+    let mut i = 1;
+
+    while i < limbs.len() {
+        let mut carry = Limb::ZERO;
+        let xi = limbs[i];
+        let mut k = i;
+
+        while k < 2 * i && k < limbs.len() {
+            (out[k], carry) = xi.carrying_mul_add(limbs[k - i], out[k], carry);
+            k += 1;
+        }
+
+        if k < limbs.len() {
+            out[k] = carry;
+        }
+        i += 1;
+    }
+
+    // Double the current result and fill in the diagonal terms.
+    let mut carry = Limb::ZERO;
+    let mut limb;
+    let mut hi_bit = Limb::ZERO;
+    i = 0;
+    while i < limbs.len() {
+        (limb, hi_bit) = (out[i].shl(1).bitor(hi_bit), out[i].shr(Limb::HI_BIT));
+        (out[i], carry) = if i & 1 == 0 {
+            limbs[i / 2].carrying_mul_add(limbs[i / 2], limb, carry)
+        } else {
+            limb.overflowing_add(carry)
+        };
+        i += 1;
+    }
+}

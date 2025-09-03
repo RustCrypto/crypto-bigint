@@ -81,6 +81,14 @@ fn bench_mul(c: &mut Criterion) {
             BatchSize::SmallInput,
         )
     });
+
+    group.bench_function("boxed_wrapping_square", |b| {
+        b.iter_batched(
+            || BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+            |x| black_box(x.wrapping_square()),
+            BatchSize::SmallInput,
+        )
+    });
 }
 
 fn bench_division(c: &mut Criterion) {

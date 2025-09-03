@@ -214,6 +214,22 @@ fn bench_mul(c: &mut Criterion) {
         )
     });
 
+    group.bench_function("wrapping_square, U256xU256", |b| {
+        b.iter_batched(
+            || U256::random(&mut rng),
+            |x| x.wrapping_square(),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("wrapping_square, U4096xU4096", |b| {
+        b.iter_batched(
+            || (U4096::random(&mut rng)),
+            |x| x.wrapping_square(),
+            BatchSize::SmallInput,
+        )
+    });
+
     group.bench_function("mul_mod, U256", |b| {
         b.iter_batched(
             || {

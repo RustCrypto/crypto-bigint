@@ -83,6 +83,13 @@ impl BoxedUint {
         square_limbs(&self.limbs, &mut limbs);
         limbs.into()
     }
+
+    /// Multiply `self` by itself, wrapping to the width of `self`.
+    pub fn wrapping_square(&self) -> Self {
+        let mut limbs = vec![Limb::ZERO; self.nlimbs()];
+        schoolbook::wrapping_square(&self.limbs, &mut limbs);
+        limbs.into()
+    }
 }
 
 impl CheckedMul for BoxedUint {

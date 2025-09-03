@@ -119,7 +119,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Perform wrapping square, discarding overflow.
     pub const fn wrapping_square(&self) -> Uint<LIMBS> {
-        self.square_wide().0
+        let mut lo = Uint::ZERO;
+        schoolbook::wrapping_square(&self.limbs, &mut lo.limbs);
+        lo
     }
 
     /// Perform saturating squaring, returning `MAX` on overflow.
