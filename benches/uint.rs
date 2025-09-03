@@ -4,7 +4,7 @@ use criterion::{
 };
 use crypto_bigint::{
     Gcd, Limb, NonZero, Odd, OddUint, Random, RandomBits, RandomMod, Reciprocal, U128, U256, U512,
-    U1024, U2048, U4096, Uint,
+    U1024, U2048, U4096, U8192, Uint,
 };
 use rand_chacha::ChaCha8Rng;
 use rand_core::{RngCore, SeedableRng};
@@ -166,6 +166,38 @@ fn bench_mul(c: &mut Criterion) {
         )
     });
 
+    group.bench_function("widening_mul, U8192xU4096", |b| {
+        b.iter_batched(
+            || (U8192::random(&mut rng), U4096::random(&mut rng)),
+            |(x, y)| black_box(x.widening_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("wrapping_mul, U256xU256", |b| {
+        b.iter_batched(
+            || (U256::random(&mut rng), U256::random(&mut rng)),
+            |(x, y)| black_box(x.wrapping_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("wrapping_mul, U4096xU4096", |b| {
+        b.iter_batched(
+            || (U4096::random(&mut rng), U4096::random(&mut rng)),
+            |(x, y)| black_box(x.wrapping_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("wrapping_mul, U8192xU4096", |b| {
+        b.iter_batched(
+            || (U8192::random(&mut rng), U4096::random(&mut rng)),
+            |(x, y)| black_box(x.wrapping_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
     group.bench_function("square_wide, U256", |b| {
         b.iter_batched(
             || U256::random(&mut rng),
@@ -178,6 +210,22 @@ fn bench_mul(c: &mut Criterion) {
         b.iter_batched(
             || U4096::random(&mut rng),
             |x| black_box(x.square_wide()),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("wrapping_square, U256xU256", |b| {
+        b.iter_batched(
+            || U256::random(&mut rng),
+            |x| x.wrapping_square(),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("wrapping_square, U4096xU4096", |b| {
+        b.iter_batched(
+            || (U4096::random(&mut rng)),
+            |x| x.wrapping_square(),
             BatchSize::SmallInput,
         )
     });
