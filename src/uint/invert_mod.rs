@@ -32,8 +32,8 @@ pub(crate) const fn expand_invert_mod2k(
 
     // Calculate a target width at which we may need to trim the output of
     // the doubling loop. We reduce the size of `p` by eliminating multiple factors
-    // of two or a single odd factor, recursing until the width is small enough to
-    // calculate by doubling without significant overhead.
+    // of two or a single odd factor, recursing until the target width is small enough
+    // to calculate by doubling without significant overhead.
     let mut target = if zs > 0 { p >> zs } else { p.div_ceil(2) };
     if target > 8 {
         expand_invert_mod2k(a, buf.leading_mut(target), k, (scratch.0, scratch.1));
@@ -62,37 +62,27 @@ pub(crate) const fn expand_invert_mod2k(
 const fn expand_invert_mod2k_step(
     a: &Odd<UintRef>,
     buf: &mut UintRef,
-    half_len: usize,
+    buf_init_len: usize,
     scratch: (&mut UintRef, &mut UintRef),
 ) {
-    let len = buf.len();
-    assert!(scratch.0.len() >= len && scratch.1.len() >= len && half_len >= len / 2);
-    let (lo, hi) = (
-        scratch.0.leading_mut(half_len),
-        scratch.1.leading_mut(half_len),
+    let new_len = buf.len();
+    assert!(
+        scratch.0.len() >= new_len
+            && scratch.1.len() >= new_len
+            && buf_init_len < new_len
+            && buf_init_len >= new_len / 2
     );
-    // scratch.0, scratch.1 = u0^2
-    lo.fill(Limb::ZERO);
-    hi.fill(Limb::ZERO);
-    schoolbook::square_wide(
-        buf.leading(half_len).as_slice(),
-        lo.as_mut_slice(),
-        hi.as_mut_slice(),
-    );
-    // scratch.0 = u0^2 (wrapped)
-    scratch
-        .0
-        .leading_mut(len)
-        .trailing_mut(half_len)
-        .copy_from(scratch.1.leading(len - half_len));
+
+    // Calculate u0^2, wrapping at `new_len` words
+    let u0_p2 = scratch.0.leading_mut(new_len);
+    u0_p2.fill(Limb::ZERO);
+    schoolbook::wrapping_square(buf.leading(buf_init_len).as_slice(), u0_p2.as_mut_slice());
+
     // tmp = u0^2•a
-    let tmp = scratch.1.leading_mut(len);
+    let tmp = scratch.1.leading_mut(new_len);
     tmp.fill(Limb::ZERO);
-    schoolbook::wrapping_mul(
-        scratch.0.leading(len).as_slice(),
-        a.as_ref().as_slice(),
-        tmp.as_mut_slice(),
-    );
+    schoolbook::wrapping_mul(u0_p2.as_slice(), a.as_ref().as_slice(), tmp.as_mut_slice());
+
     // u1 = u0 << 1
     buf.shl1_assign();
     // u1 -= u0^2•a

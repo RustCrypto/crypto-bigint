@@ -5,6 +5,7 @@ use crate::Limb;
 ///
 /// The most efficient method for small numbers.
 #[inline(always)]
+#[track_caller]
 pub const fn mul_wide(lhs: &[Limb], rhs: &[Limb], lo: &mut [Limb], hi: &mut [Limb]) {
     assert!(
         lhs.len() == lo.len() && rhs.len() == hi.len(),
@@ -42,6 +43,7 @@ pub const fn mul_wide(lhs: &[Limb], rhs: &[Limb], lo: &mut [Limb], hi: &mut [Lim
 /// Add the schoolbook product of two limb slices to a limb slice, returning the carry.
 #[cfg(feature = "alloc")]
 #[inline]
+#[track_caller]
 pub const fn carrying_add_mul(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) -> Limb {
     assert!(
         lhs.len() + rhs.len() == out.len(),
@@ -72,6 +74,7 @@ pub const fn carrying_add_mul(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) -> L
 
 /// Schoolbook multiplication which only calculates the lower limbs of the product.
 #[inline(always)]
+#[track_caller]
 pub const fn wrapping_mul(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) {
     assert!(
         lhs.len() == out.len(),
@@ -102,6 +105,7 @@ pub const fn wrapping_mul(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) {
 ///
 /// Like schoolbook multiplication, but only considering half of the multiplication grid.
 #[inline(always)]
+#[track_caller]
 pub const fn square_wide(limbs: &[Limb], lo: &mut [Limb], hi: &mut [Limb]) {
     // Translated from https://github.com/ucbrise/jedi-pairing/blob/c4bf151/include/core/bigint.hpp#L410
     //
@@ -180,11 +184,12 @@ pub const fn square_wide(limbs: &[Limb], lo: &mut [Limb], hi: &mut [Limb]) {
     }
 }
 
-/// Schoolbook squaring which only calculates the lower limbs of the product.
+/// Schoolbook squaring which may calculate a limited number of limbs of the product.
 #[inline(always)]
+#[track_caller]
 pub const fn wrapping_square(limbs: &[Limb], out: &mut [Limb]) {
     assert!(
-        limbs.len() == out.len(),
+        limbs.len() * 2 >= out.len(),
         "schoolbook wrapping squaring length mismatch"
     );
 
@@ -195,12 +200,12 @@ pub const fn wrapping_square(limbs: &[Limb], out: &mut [Limb]) {
         let xi = limbs[i];
         let mut k = i;
 
-        while k < 2 * i && k < limbs.len() {
+        while k < 2 * i && k < out.len() {
             (out[k], carry) = xi.carrying_mul_add(limbs[k - i], out[k], carry);
             k += 1;
         }
 
-        if k < limbs.len() {
+        if k < out.len() {
             out[k] = carry;
         }
         i += 1;
@@ -211,7 +216,7 @@ pub const fn wrapping_square(limbs: &[Limb], out: &mut [Limb]) {
     let mut limb;
     let mut hi_bit = Limb::ZERO;
     i = 0;
-    while i < limbs.len() {
+    while i < out.len() {
         (limb, hi_bit) = (out[i].shl(1).bitor(hi_bit), out[i].shr(Limb::HI_BIT));
         (out[i], carry) = if i & 1 == 0 {
             limbs[i / 2].carrying_mul_add(limbs[i / 2], limb, carry)
