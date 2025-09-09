@@ -212,7 +212,6 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Compute a quadratic inversion, `self^-1 mod 2^k` where `k <= Self::BITS`.
     ///
     /// This method is variable-time in `k` only.
-    #[inline]
     pub(crate) const fn invert_mod2k_vartime(&self, k: u32) -> Uint<LIMBS> {
         assert!(k <= Self::BITS);
 

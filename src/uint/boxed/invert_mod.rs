@@ -144,13 +144,11 @@ impl Odd<BoxedUint> {
     /// Compute a quadratic inversion, `self^-1 mod 2^k` where `k <= bits_precision()`.
     ///
     /// This method is variable-time in `k` only.
-    #[inline]
     pub(crate) fn invert_mod2k_vartime(&self, k: u32) -> BoxedUint {
         let bits = self.bits_precision();
         assert!(k <= bits);
 
         let k_limbs = k.div_ceil(Limb::BITS) as usize;
-
         let inv_64 = U64::from_u64(self.as_uint_ref().invert_mod_u64());
         let mut inv = BoxedUint::from_words_with_precision(*inv_64.as_words(), bits);
 
