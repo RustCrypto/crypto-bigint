@@ -95,7 +95,7 @@ impl UintRef {
 
     /// Access the number of limbs.
     #[inline]
-    pub const fn len(&self) -> usize {
+    pub const fn nlimbs(&self) -> usize {
         self.0.len()
     }
 
@@ -104,7 +104,7 @@ impl UintRef {
     #[inline]
     pub const fn conditional_set_zero(&mut self, choice: ConstChoice) {
         let mut i = 0;
-        while i < self.len() {
+        while i < self.nlimbs() {
             self.0[i] = Limb::select(self.0[i], Limb::ZERO, choice);
             i += 1;
         }
@@ -113,10 +113,10 @@ impl UintRef {
     /// Extract up to `LIMBS` limbs into a new `Uint`.
     pub const fn to_uint_resize<const LIMBS: usize>(&self) -> Uint<LIMBS> {
         let mut out = Uint::ZERO;
-        let len = if self.len() > LIMBS {
+        let len = if self.nlimbs() > LIMBS {
             LIMBS
         } else {
-            self.len()
+            self.nlimbs()
         };
         let mut i = 0;
         while i < len {
