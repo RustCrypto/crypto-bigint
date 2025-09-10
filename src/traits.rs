@@ -191,7 +191,7 @@ pub trait Signed:
     /// Whether this [`Signed`] is negative, as a [`ConstChoice`].
     fn is_negative(&self) -> ConstChoice;
 
-    /// Whether this [`Int`] is positive, as a `ConstChoice`.
+    /// Whether this [`Signed`] is positive, as a [`ConstChoice`].
     fn is_positive(&self) -> ConstChoice;
 }
 
