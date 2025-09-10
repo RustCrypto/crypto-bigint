@@ -14,9 +14,7 @@ pub(crate) mod boxed;
 
 use core::fmt;
 
-use crate::{
-    ConstChoice, ConstCtOption, I64, Int, Limb, Odd, U64, Uint, Word, const_choice::u32_min,
-};
+use crate::{ConstChoice, ConstCtOption, I64, Int, Limb, Odd, U64, Uint, const_choice::u32_min};
 
 const GCD_BATCH_SIZE: u32 = 62;
 
@@ -78,7 +76,7 @@ impl<const LIMBS: usize> SafeGcdInverter<LIMBS> {
     ) -> Self {
         Self {
             modulus: *modulus,
-            inverse: lowest_u64(inverse.as_words()),
+            inverse: inverse.as_uint_ref().lowest_u64(),
             adjuster: *adjuster,
         }
     }
@@ -350,26 +348,6 @@ const fn iterations(bits: u32) -> u32 {
     (45907 * bits + 30179) / 19929
 }
 
-#[inline(always)]
-const fn lowest_u64(words: &[Word]) -> u64 {
-    #[cfg(target_pointer_width = "32")]
-    {
-        debug_assert!(words.len() >= 1);
-        let mut ret = words[0] as u64;
-
-        if words.len() >= 2 {
-            ret |= (words[1] as u64) << 32;
-        }
-
-        ret
-    }
-
-    #[cfg(target_pointer_width = "64")]
-    {
-        words[0]
-    }
-}
-
 /// A `Uint` which carries a separate sign in order to maintain the same range.
 #[derive(Clone, Copy)]
 struct SignedInt<const LIMBS: usize> {
@@ -417,7 +395,7 @@ impl<const LIMBS: usize> SignedInt<LIMBS> {
 
     // Extract the lowest 63 bits and convert to its signed representation.
     pub const fn lowest(&self) -> i64 {
-        let mag = (lowest_u64(self.magnitude.as_words()) & (u64::MAX >> 1)) as i64;
+        let mag = (self.magnitude.as_uint_ref().lowest_u64() & (u64::MAX >> 1)) as i64;
         self.sign.select_i64(mag, mag.wrapping_neg())
     }
 
