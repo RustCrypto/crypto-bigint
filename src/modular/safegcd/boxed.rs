@@ -3,7 +3,7 @@
 //!
 //! See parent module for more information.
 
-use super::{GCD_BATCH_SIZE, Matrix, iterations, jump, lowest_u64};
+use super::{GCD_BATCH_SIZE, Matrix, iterations, jump};
 use crate::{
     BoxedUint, ConstChoice, ConstCtOption, ConstantTimeSelect, I64, Int, Limb, NonZero, Odd,
     Resize, U64, Uint,
@@ -48,7 +48,7 @@ impl BoxedSafeGcdInverter {
         adjuster = adjuster.resize(modulus.bits_precision());
         Self {
             modulus,
-            inverse: lowest_u64(inverse.as_words()),
+            inverse: inverse.as_uint_ref().lowest_u64(),
             adjuster,
         }
     }
@@ -302,7 +302,7 @@ impl SignedBoxedInt {
 
     // Extract the lowest 63 bits and convert to its signed representation.
     pub fn lowest(&self) -> i64 {
-        let mag = (lowest_u64(self.magnitude.as_words()) & (u64::MAX >> 1)) as i64;
+        let mag = (self.magnitude.as_uint_ref().lowest_u64() & (u64::MAX >> 1)) as i64;
         self.sign.select_i64(mag, mag.wrapping_neg())
     }
 
