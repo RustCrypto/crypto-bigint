@@ -5,7 +5,7 @@ pub use num_traits::{
     WrappingSub,
 };
 
-use crate::{Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
+use crate::{ConstChoice, Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
 use core::fmt::{self, Debug};
 use core::ops::{
     Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign,
@@ -176,6 +176,12 @@ pub trait Signed:
 {
     /// Corresponding unsigned integer type.
     type Unsigned: Unsigned;
+
+    /// Whether this [`Signed`] is negative, as a [`ConstChoice`].
+    fn is_negative(&self) -> ConstChoice;
+
+    /// Whether this [`Int`] is positive, as a `ConstChoice`.
+    fn is_positive(&self) -> ConstChoice;
 }
 
 /// Unsigned [`Integer`]s.

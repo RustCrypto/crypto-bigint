@@ -249,6 +249,14 @@ impl<const LIMBS: usize> Integer for Int<LIMBS> {
 
 impl<const LIMBS: usize> Signed for Int<LIMBS> {
     type Unsigned = Uint<LIMBS>;
+
+    fn is_negative(&self) -> ConstChoice {
+        self.is_negative()
+    }
+
+    fn is_positive(&self) -> ConstChoice {
+        self.is_positive()
+    }
 }
 
 impl<const LIMBS: usize> ConstZero for Int<LIMBS> {
