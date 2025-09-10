@@ -28,7 +28,9 @@ mod sub_mod;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Integer, Limb, NonZero, Odd, Resize, UintRef, Word, Zero, modular::BoxedMontyForm};
+use crate::{
+    Integer, Limb, NonZero, Odd, Resize, UintRef, Unsigned, Word, Zero, modular::BoxedMontyForm,
+};
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{fmt, ops::IndexMut};
 use subtle::{Choice, ConstantTimeEq, CtOption};
@@ -431,6 +433,8 @@ impl Zero for BoxedUint {
         self.limbs.as_mut().fill(Limb::ZERO)
     }
 }
+
+impl Unsigned for BoxedUint {}
 
 impl num_traits::Zero for BoxedUint {
     fn zero() -> Self {
