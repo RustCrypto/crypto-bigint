@@ -10,7 +10,7 @@ use core::{
 use crate::{ConstChoice, Word};
 
 mod bits;
-mod inv_mod;
+mod invert_mod;
 mod shl;
 mod slice;
 mod sub;
