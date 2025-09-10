@@ -27,10 +27,10 @@ impl UintRef {
     pub const fn lowest_u64(&self) -> u64 {
         #[cfg(target_pointer_width = "32")]
         {
-            debug_assert!(self.len() >= 1);
+            debug_assert!(self.nlimbs() >= 1);
             let mut ret = self.0[0].0 as u64;
 
-            if self.len() >= 2 {
+            if self.nlimbs() >= 2 {
                 ret |= (self.0[1].0 as u64) << 32;
             }
 

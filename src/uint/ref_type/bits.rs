@@ -161,7 +161,7 @@ impl UintRef {
         let limb_mask = Limb((1 << (len % Limb::BITS)) - 1);
         let mut i = 0;
         let mut clear = ConstChoice::FALSE;
-        while i < self.len() {
+        while i < self.nlimbs() {
             let apply = ConstChoice::from_u32_eq(i as u32, limb);
             self.0[i] = self.0[i].bitand(Limb::select(
                 Limb(clear.not().as_word_mask()),

@@ -27,7 +27,7 @@ pub(crate) const fn expand_invert_mod2k(
     scratch: (&mut UintRef, &mut UintRef),
 ) {
     assert!(k > 0);
-    let p = buf.len();
+    let p = buf.nlimbs();
     let zs = p.trailing_zeros();
 
     // Calculate a target width at which we may need to trim the output of
@@ -65,10 +65,10 @@ const fn expand_invert_mod2k_step(
     buf_init_len: usize,
     scratch: (&mut UintRef, &mut UintRef),
 ) {
-    let new_len = buf.len();
+    let new_len = buf.nlimbs();
     assert!(
-        scratch.0.len() >= new_len
-            && scratch.1.len() >= new_len
+        scratch.0.nlimbs() >= new_len
+            && scratch.1.nlimbs() >= new_len
             && buf_init_len < new_len
             && buf_init_len >= new_len / 2
     );
