@@ -198,10 +198,13 @@ pub trait Integer:
     }
 }
 
-/// Marker trait for signed integers.
-pub trait Signed: Integer {}
+/// Signed integers.
+pub trait Signed: Integer {
+    /// Corresponding unsigned integer type.
+    type Unsigned: Unsigned;
+}
 
-/// Marker trait for unsigned integers.
+/// Unsigned integers.
 pub trait Unsigned: Integer {}
 
 /// Fixed-width integers.
