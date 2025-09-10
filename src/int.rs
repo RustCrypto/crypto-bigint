@@ -1,17 +1,17 @@
 //! Stack-allocated big signed integers.
 
+use crate::{
+    Bounded, ConstChoice, ConstCtOption, Constants, FixedInteger, Integer, Limb, NonZero, Odd, One,
+    Signed, Uint, Word, Zero,
+};
 use core::fmt;
 use num_traits::{ConstOne, ConstZero};
-
-#[cfg(feature = "serde")]
-use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "serde")]
 use crate::Encoding;
-use crate::{
-    Bounded, ConstChoice, ConstCtOption, Constants, Limb, NonZero, Odd, One, Uint, Word, Zero,
-};
+#[cfg(feature = "serde")]
+use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 mod add;
 mod bit_and;
@@ -237,11 +237,19 @@ impl<const LIMBS: usize> Default for Int<LIMBS> {
     }
 }
 
-// TODO: impl FixedInteger
+impl<const LIMBS: usize> FixedInteger for Int<LIMBS> {
+    const LIMBS: usize = LIMBS;
+}
 
-// TODO: impl Integer
+impl<const LIMBS: usize> Integer for Int<LIMBS> {
+    fn nlimbs(&self) -> usize {
+        self.0.nlimbs()
+    }
+}
 
-// TODO: impl Signed
+impl<const LIMBS: usize> Signed for Int<LIMBS> {
+    type Unsigned = Uint<LIMBS>;
+}
 
 impl<const LIMBS: usize> ConstZero for Int<LIMBS> {
     const ZERO: Self = Self::ZERO;

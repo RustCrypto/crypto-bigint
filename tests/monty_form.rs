@@ -5,7 +5,7 @@ mod common;
 use common::to_biguint;
 use crypto_bigint::{
     Bounded, Constants, Encoding, Integer, Invert, Monty, NonZero, Odd, U128, U256, U512, U1024,
-    U2048, U4096,
+    U2048, U4096, Unsigned,
     modular::{MontyForm, MontyParams},
 };
 use num_bigint::BigUint;
@@ -46,15 +46,15 @@ prop_compose! {
 // inverted montgomery form and the normal form inverse from the num_modular crate.
 fn random_invertible_uint<T>(
     bytes: T::Repr,
-    monty_params: <<T as Integer>::Monty as Monty>::Params,
+    monty_params: <<T as Unsigned>::Monty as Monty>::Params,
     modulus: T,
-) -> Result<(T, <T as Integer>::Monty, <T as Integer>::Monty, BigUint), TestCaseError>
+) -> Result<(T, <T as Unsigned>::Monty, <T as Unsigned>::Monty, BigUint), TestCaseError>
 where
-    T: Integer + Bounded + Encoding,
-    <T as Integer>::Monty: Invert<Output = CtOption<T::Monty>>,
+    T: Unsigned + Bounded + Encoding,
+    <T as Unsigned>::Monty: Invert<Output = CtOption<T::Monty>>,
 {
     let r = T::from_be_bytes(bytes);
-    let rm = <T as Integer>::Monty::new(r.clone(), monty_params);
+    let rm = <T as Unsigned>::Monty::new(r.clone(), monty_params);
     let rm_inv = rm.invert();
     prop_assume!(bool::from(rm_inv.is_some()), "r={:?} is not invertible", r);
     let num_modular_modulus = BigUint::from_be_bytes(modulus.to_be_bytes().as_ref());
@@ -71,9 +71,9 @@ where
 fn monty_params_from_edge<T>(
     edge_bytes: [u8; 2],
     rng: &mut TestRng,
-) -> <<T as Integer>::Monty as Monty>::Params
+) -> <<T as Unsigned>::Monty as Monty>::Params
 where
-    T: Integer + Constants + Encoding,
+    T: Unsigned + Constants + Encoding,
 {
     let mut bytes = T::MAX.to_be_bytes();
     let len = bytes.as_ref().len();
@@ -89,7 +89,7 @@ where
     bytes.as_mut()[edge].copy_from_slice(&edge_bytes);
     let mut modulus = T::from_be_bytes(bytes);
     modulus.set_bit_vartime(0, true);
-    <T as Integer>::Monty::new_params_vartime(Odd::new(modulus).unwrap())
+    <T as Unsigned>::Monty::new_params_vartime(Odd::new(modulus).unwrap())
 }
 
 prop_compose! {
@@ -98,7 +98,7 @@ prop_compose! {
         monty_params in any::<[u8;2]>().prop_perturb(|edge_bytes, mut rng|{
             monty_params_from_edge::<U128>(edge_bytes, &mut rng)
         })
-    ) -> Result<(U128, <U128 as Integer>::Monty , <U128 as Integer>::Monty, BigUint),TestCaseError> {
+    ) -> Result<(U128, <U128 as Unsigned>::Monty , <U128 as Unsigned>::Monty, BigUint),TestCaseError> {
         random_invertible_uint(bytes, monty_params, monty_params.modulus().get())
     }
 }
@@ -108,7 +108,7 @@ prop_compose! {
         monty_params in any::<[u8;2]>().prop_perturb(|edge_bytes, mut rng|{
             monty_params_from_edge::<U256>(edge_bytes, &mut rng)
         })
-    ) -> Result<(U256, <U256 as Integer>::Monty , <U256 as Integer>::Monty, BigUint),TestCaseError> {
+    ) -> Result<(U256, <U256 as Unsigned>::Monty , <U256 as Unsigned>::Monty, BigUint),TestCaseError> {
         random_invertible_uint(bytes, monty_params, monty_params.modulus().get())
     }
 }
@@ -118,7 +118,7 @@ prop_compose! {
         monty_params in any::<[u8;2]>().prop_perturb(|edge_bytes, mut rng|{
             monty_params_from_edge::<U2048>(edge_bytes, &mut rng)
         })
-    ) -> Result<(U2048, <U2048 as Integer>::Monty , <U2048 as Integer>::Monty, BigUint),TestCaseError> {
+    ) -> Result<(U2048, <U2048 as Unsigned>::Monty , <U2048 as Unsigned>::Monty, BigUint),TestCaseError> {
         random_invertible_uint(bytes, monty_params, monty_params.modulus().get())
     }
 }
@@ -128,7 +128,7 @@ prop_compose! {
         monty_params in any::<[u8;2]>().prop_perturb(|edge_bytes, mut rng|{
             monty_params_from_edge::<U1024>(edge_bytes, &mut rng)
         })
-    ) -> Result<(U1024, <U1024 as Integer>::Monty, <U1024 as Integer>::Monty, BigUint),TestCaseError> {
+    ) -> Result<(U1024, <U1024 as Unsigned>::Monty, <U1024 as Unsigned>::Monty, BigUint),TestCaseError> {
         random_invertible_uint(bytes, monty_params, monty_params.modulus().get())
     }
 }

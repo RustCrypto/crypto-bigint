@@ -300,18 +300,18 @@ impl<const LIMBS: usize> FixedInteger for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> Integer for Uint<LIMBS> {
-    type Monty = MontyForm<LIMBS>;
-
-    fn from_limb_like(limb: Limb, _other: &Self) -> Self {
-        Self::from(limb)
-    }
-
     fn nlimbs(&self) -> usize {
         Self::LIMBS
     }
 }
 
-impl<const LIMBS: usize> Unsigned for Uint<LIMBS> {}
+impl<const LIMBS: usize> Unsigned for Uint<LIMBS> {
+    type Monty = MontyForm<LIMBS>;
+
+    fn from_limb_like(limb: Limb, _other: &Self) -> Self {
+        Self::from(limb)
+    }
+}
 
 impl<const LIMBS: usize> num_traits::Num for Uint<LIMBS> {
     type FromStrRadixErr = crate::DecodeError;

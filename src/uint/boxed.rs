@@ -404,16 +404,18 @@ impl Default for BoxedUint {
 }
 
 impl Integer for BoxedUint {
+    fn nlimbs(&self) -> usize {
+        self.nlimbs()
+    }
+}
+
+impl Unsigned for BoxedUint {
     type Monty = BoxedMontyForm;
 
     fn from_limb_like(limb: Limb, other: &Self) -> Self {
         let mut ret = Self::zero_with_precision(other.bits_precision());
         ret.limbs[0] = limb;
         ret
-    }
-
-    fn nlimbs(&self) -> usize {
-        self.nlimbs()
     }
 }
 
@@ -445,8 +447,6 @@ impl One for BoxedUint {
         self.limbs[0] = Limb::ONE;
     }
 }
-
-impl Unsigned for BoxedUint {}
 
 impl num_traits::Zero for BoxedUint {
     fn zero() -> Self {

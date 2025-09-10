@@ -81,7 +81,6 @@ pub trait Integer:
     + for<'a> Add<&'a Self, Output = Self>
     + AddAssign<Self>
     + for<'a> AddAssign<&'a Self>
-    + AddMod<Output = Self>
     + AsRef<[Limb]>
     + BitAnd<Output = Self>
     + for<'a> BitAnd<&'a Self, Output = Self>
@@ -95,7 +94,6 @@ pub trait Integer:
     + for<'a> BitXor<&'a Self, Output = Self>
     + BitXorAssign
     + for<'a> BitXorAssign<&'a Self>
-    + BitOps
     + CheckedAdd
     + CheckedSub
     + CheckedMul
@@ -107,26 +105,16 @@ pub trait Integer:
     + ConstantTimeSelect
     + Debug
     + Default
-    + Div<NonZero<Self>, Output = Self>
-    + for<'a> Div<&'a NonZero<Self>, Output = Self>
     + DivAssign<NonZero<Self>>
     + for<'a> DivAssign<&'a NonZero<Self>>
-    + DivRemLimb
     + Eq
     + fmt::LowerHex
     + fmt::UpperHex
     + fmt::Binary
-    + From<u8>
-    + From<u16>
-    + From<u32>
-    + From<u64>
-    + From<Limb>
     + Mul<Output = Self>
     + for<'a> Mul<&'a Self, Output = Self>
     + MulAssign<Self>
     + for<'a> MulAssign<&'a Self>
-    + MulMod<Output = Self>
-    + NegMod<Output = Self>
     + Not<Output = Self>
     + One
     + Ord
@@ -134,7 +122,6 @@ pub trait Integer:
     + for<'a> Rem<&'a NonZero<Self>, Output = Self>
     + RemAssign<NonZero<Self>>
     + for<'a> RemAssign<&'a NonZero<Self>>
-    + RemLimb
     + Send
     + Sized
     + Shl<u32, Output = Self>
@@ -143,29 +130,19 @@ pub trait Integer:
     + Shr<u32, Output = Self>
     + ShrAssign<u32>
     + ShrVartime
-    + SquareMod<Output = Self>
     + Sub<Output = Self>
     + for<'a> Sub<&'a Self, Output = Self>
     + SubAssign<Self>
     + for<'a> SubAssign<&'a Self>
-    + SubMod<Output = Self>
     + Sync
-    + SquareRoot
     + WrappingAdd
     + WrappingSub
-    + WrappingMul
+    // TODO(tarcieri): + WrappingMul
     + WrappingNeg
     + WrappingShl
     + WrappingShr
     + Zero
 {
-    /// The corresponding Montgomery representation,
-    /// optimized for the performance of modular operations at the price of a conversion overhead.
-    type Monty: Monty<Integer = Self>;
-
-    /// Returns an integer with the first limb set to `limb`, and the same precision as `other`.
-    fn from_limb_like(limb: Limb, other: &Self) -> Self;
-
     /// Number of limbs in this integer.
     fn nlimbs(&self) -> usize;
 
@@ -191,14 +168,49 @@ pub trait Integer:
     }
 }
 
-/// Signed integers.
-pub trait Signed: Integer {
+/// Signed [`Integer`]s.
+pub trait Signed:
+    Div<NonZero<Self>, Output = CtOption<Self>>
+    + for<'a> Div<&'a NonZero<Self>, Output = CtOption<Self>>
+    + Integer
+{
     /// Corresponding unsigned integer type.
     type Unsigned: Unsigned;
 }
 
-/// Unsigned integers.
-pub trait Unsigned: Integer {}
+/// Unsigned [`Integer`]s.
+pub trait Unsigned:
+    AddMod<Output = Self>
+    + BitOps
+    + Div<NonZero<Self>, Output = Self>
+    + for<'a> Div<&'a NonZero<Self>, Output = Self>
+    + DivRemLimb
+    + From<u8>
+    + From<u16>
+    + From<u32>
+    + From<u64>
+    + From<Limb>
+    + Integer
+    + MulMod<Output = Self>
+    + NegMod<Output = Self>
+    + RemLimb
+    + SquareRoot
+    + SquareMod<Output = Self>
+    + SubMod<Output = Self>
+    + WrappingMul // here instead of `Integer` because `Int` lacks a `wrapping_mul` impl
+{
+    /// The corresponding Montgomery representation,
+    /// optimized for the performance of modular operations at the price of a conversion overhead.
+    type Monty: Monty<Integer = Self>;
+
+    /// The value `1` with the same precision as `other`.
+    fn one_like(other: &Self) -> Self {
+        Self::from_limb_like(Limb::ONE, other)
+    }
+
+    /// Returns an integer with the first limb set to `limb`, and the same precision as `other`.
+    fn from_limb_like(limb: Limb, other: &Self) -> Self;
+}
 
 /// Zero values: additive identity element for `Self`.
 pub trait Zero: ConstantTimeEq + Sized {
@@ -976,7 +988,7 @@ pub trait Monty:
     + SquareAssign
 {
     /// The original integer type.
-    type Integer: Integer<Monty = Self>;
+    type Integer: Unsigned<Monty = Self>;
 
     /// Prepared Montgomery multiplier for tight loops.
     type Multiplier<'a>: Debug + Clone + MontyMultiplier<'a, Monty = Self>;

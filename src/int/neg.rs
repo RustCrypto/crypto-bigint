@@ -1,6 +1,7 @@
 //! [`Int`] negation-related operations.
 
 use crate::{ConstChoice, ConstCtOption, Int, Uint};
+use num_traits::WrappingNeg;
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Map this [`Int`] to its two's-complement negation:
@@ -36,6 +37,13 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub const fn checked_neg(&self) -> ConstCtOption<Self> {
         let (value, overflow) = self.overflowing_neg();
         ConstCtOption::new(value, overflow.not())
+    }
+}
+
+impl<const LIMBS: usize> WrappingNeg for Int<LIMBS> {
+    #[inline]
+    fn wrapping_neg(&self) -> Self {
+        self.wrapping_neg()
     }
 }
 
