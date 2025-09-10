@@ -198,6 +198,12 @@ pub trait Integer:
     }
 }
 
+/// Marker trait for signed integers.
+pub trait Signed: Integer {}
+
+/// Marker trait for unsigned integers.
+pub trait Unsigned: Integer {}
+
 /// Fixed-width integers.
 pub trait FixedInteger: Bounded + ConditionallySelectable + Constants + Copy + Integer {
     /// The number of limbs used on this platform.

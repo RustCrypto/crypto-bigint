@@ -240,6 +240,8 @@ impl<const LIMBS: usize> Default for Int<LIMBS> {
 
 // TODO: impl Integer
 
+// TODO: impl Signed
+
 impl<const LIMBS: usize> ConstZero for Int<LIMBS> {
     const ZERO: Self = Self::ZERO;
 }

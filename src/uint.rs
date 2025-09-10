@@ -17,7 +17,7 @@ pub(crate) use ref_type::UintRef;
 
 use crate::{
     Bounded, ConstChoice, ConstCtOption, ConstZero, Constants, Encoding, FixedInteger, Int,
-    Integer, Limb, NonZero, Odd, Word, modular::MontyForm,
+    Integer, Limb, NonZero, Odd, Unsigned, Word, modular::MontyForm,
 };
 
 #[macro_use]
@@ -315,6 +315,8 @@ impl<const LIMBS: usize> Integer for Uint<LIMBS> {
         Self::LIMBS
     }
 }
+
+impl<const LIMBS: usize> Unsigned for Uint<LIMBS> {}
 
 impl<const LIMBS: usize> num_traits::Num for Uint<LIMBS> {
     type FromStrRadixErr = crate::DecodeError;
