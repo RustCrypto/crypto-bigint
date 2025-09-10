@@ -250,6 +250,10 @@ impl<const LIMBS: usize> Integer for Int<LIMBS> {
 impl<const LIMBS: usize> Signed for Int<LIMBS> {
     type Unsigned = Uint<LIMBS>;
 
+    fn abs_sign(&self) -> (Uint<LIMBS>, ConstChoice) {
+        self.abs_sign()
+    }
+
     fn is_negative(&self) -> ConstChoice {
         self.is_negative()
     }

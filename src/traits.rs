@@ -6,10 +6,13 @@ pub use num_traits::{
 };
 
 use crate::{ConstChoice, Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
-use core::fmt::{self, Debug};
-use core::ops::{
-    Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign,
-    Mul, MulAssign, Neg, Not, Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
+use core::{
+    fmt::{self, Debug},
+    ops::{
+        Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div,
+        DivAssign, Mul, MulAssign, Neg, Not, Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub,
+        SubAssign,
+    },
 };
 use subtle::{
     Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
@@ -177,6 +180,14 @@ pub trait Signed:
     /// Corresponding unsigned integer type.
     type Unsigned: Unsigned;
 
+    /// The sign and magnitude of this [`Signed`].
+    fn abs_sign(&self) -> (Self::Unsigned, ConstChoice);
+
+    /// The magnitude of this [`Signed`].
+    fn abs(&self) -> Self::Unsigned {
+        self.abs_sign().0
+    }
+
     /// Whether this [`Signed`] is negative, as a [`ConstChoice`].
     fn is_negative(&self) -> ConstChoice;
 
@@ -288,7 +299,7 @@ pub trait Constants: ConstZero + ConstOne {
     const MAX: Self;
 }
 
-/// Fixed-width integers.
+/// Fixed-width [`Integer`]s.
 pub trait FixedInteger: Bounded + ConditionallySelectable + Constants + Copy + Integer {
     /// The number of limbs used on this platform.
     const LIMBS: usize;
