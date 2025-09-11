@@ -1,7 +1,85 @@
 use crate::modular::bingcd::extension::ExtendedInt;
 use crate::{ConstChoice, Uint};
 
+pub trait Unit: Sized {
+    /// The unit matrix.
+    const UNIT: Self;
+}
+
 type Vector<T> = (T, T);
+
+/// [`Int`] with an extra limb.
+type ExtraLimbInt<const LIMBS: usize> = ExtendedInt<LIMBS, 1>;
+
+/// 2x2-Matrix with integers for elements.
+///
+/// ### Representation
+/// The internal state represents the matrix
+/// ```text
+/// [ m00  m01 ]
+/// [ m10  m11 ]
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct IntMatrix<const LIMBS: usize> {
+    m00: ExtraLimbInt<LIMBS>,
+    m01: ExtraLimbInt<LIMBS>,
+    m10: ExtraLimbInt<LIMBS>,
+    m11: ExtraLimbInt<LIMBS>,
+}
+
+impl<const LIMBS: usize> Unit for IntMatrix<LIMBS> {
+    const UNIT: Self = Self {
+        m00: ExtraLimbInt::ONE,
+        m01: ExtraLimbInt::ZERO,
+        m10: ExtraLimbInt::ZERO,
+        m11: ExtraLimbInt::ONE,
+    };
+}
+
+impl<const LIMBS: usize> IntMatrix<LIMBS> {
+    /// Negate the top row of this matrix if `negate`; otherwise do nothing.
+    pub(super) const fn conditional_negate_top_row(&mut self, negate: ConstChoice) {
+        self.m00 = self.m00.wrapping_neg_if(negate);
+        self.m01 = self.m01.wrapping_neg_if(negate);
+    }
+
+    /// Negate the bottom row of this matrix if `negate`; otherwise do nothing.
+    pub(super) const fn conditional_negate_bottom_row(&mut self, negate: ConstChoice) {
+        self.m10 = self.m10.wrapping_neg_if(negate);
+        self.m11 = self.m11.wrapping_neg_if(negate);
+    }
+
+    pub(super) const fn to_pattern_matrix(self) -> PatternMatrix<LIMBS> {
+        let (abs_m00, m00_is_negative) = self.m00.abs_sign();
+        let (abs_m01, m01_is_negative) = self.m01.abs_sign();
+        let (abs_m10, m10_is_negative) = self.m10.abs_sign();
+        let (abs_m11, m11_is_negative) = self.m11.abs_sign();
+
+        // Construct the pattern.
+        let m00_is_zero = abs_m00.is_zero();
+        let m01_is_zero = abs_m01.is_zero();
+        let pattern_vote_1 = m00_is_zero.not().and(m00_is_negative.not());
+        let pattern_vote_2 = m01_is_zero.not().and(m01_is_negative);
+
+        let m00_and_m01_are_zero = m00_is_zero.and(m01_is_zero);
+        let m10_is_zero = abs_m10.is_zero();
+        let m11_is_zero = abs_m11.is_zero();
+        let pattern_vote_3 = m00_and_m01_are_zero.and(m10_is_zero.not().and(m10_is_negative));
+        let pattern_vote_4 = m00_and_m01_are_zero.and(m11_is_zero.not().and(m11_is_negative.not()));
+        let pattern = pattern_vote_1
+            .or(pattern_vote_2)
+            .or(pattern_vote_3)
+            .or(pattern_vote_4);
+
+        PatternMatrix {
+            m00: abs_m00.checked_drop_extension().expect("m00 fits"),
+            m01: abs_m01.checked_drop_extension().expect("m01 fits"),
+            m10: abs_m10.checked_drop_extension().expect("m10 fits"),
+            m11: abs_m11.checked_drop_extension().expect("m11 fits"),
+            pattern,
+        }
+    }
+}
 
 /// 2x2-Matrix where either the diagonal or off-diagonal elements are negative.
 ///
@@ -100,6 +178,25 @@ impl<const LIMBS: usize> PatternMatrix<LIMBS> {
     }
 }
 
+/// A matrix whose elements still need to be divided by `2^k`.
+///
+/// Since some of the operations conditionally increase `k`, this struct furthermore keeps track of
+/// `k_upper_bound`; an upper bound on the value of `k`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct DividedMatrix<const LIMBS: usize, MATRIX: Unit> {
+    pub(super) inner: MATRIX,
+    pub k: u32,
+    pub k_upper_bound: u32,
+}
+
+impl<const LIMBS: usize, Matrix: Unit> Unit for DividedMatrix<LIMBS, Matrix> {
+    const UNIT: Self = Self {
+        inner: Matrix::UNIT,
+        k: 0,
+        k_upper_bound: 0,
+    };
+}
+
 /// Variation on [`PatternMatrix`], where the contents of the matrix need to be divided by
 /// `2^k`.
 /// The internal state represents the matrix
@@ -178,6 +275,28 @@ impl<const LIMBS: usize> DividedPatternMatrix<LIMBS> {
         self.inner.conditional_double_bottom_row(double);
         self.k = double.select_u32(self.k, self.k + 1);
         self.k_upper_bound += 1;
+    }
+}
+
+pub(crate) type DividedIntMatrix<const LIMBS: usize> = DividedMatrix<LIMBS, IntMatrix<LIMBS>>;
+
+impl<const LIMBS: usize> DividedIntMatrix<LIMBS> {
+    /// Negate the top row of this matrix if `negate`; otherwise do nothing.
+    pub(super) const fn conditional_negate_top_row(&mut self, negate: ConstChoice) {
+        self.inner.conditional_negate_top_row(negate);
+    }
+
+    /// Negate the bottom row of this matrix if `negate`; otherwise do nothing.
+    pub(super) const fn conditional_negate_bottom_row(&mut self, negate: ConstChoice) {
+        self.inner.conditional_negate_bottom_row(negate);
+    }
+
+    pub(super) const fn to_divided_pattern_matrix(self) -> DividedPatternMatrix<LIMBS> {
+        DividedPatternMatrix {
+            inner: self.inner.to_pattern_matrix(),
+            k: self.k,
+            k_upper_bound: self.k_upper_bound,
+        }
     }
 }
 
