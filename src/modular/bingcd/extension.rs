@@ -166,6 +166,13 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
             .as_extended_int()
     }
 
+    #[inline]
+    pub(crate) const fn wrapping_add(&self, rhs: &Self) -> Self {
+        let (lo, carry) = self.0.carrying_add(&rhs.0, Limb::ZERO);
+        let (hi, _) = self.1.carrying_add(&rhs.1, carry);
+        Self(lo, hi)
+    }
+
     /// Compute `self - rhs`, wrapping any underflow.
     #[inline]
     pub const fn wrapping_sub(&self, rhs: &Self) -> Self {
