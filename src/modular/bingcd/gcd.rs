@@ -166,7 +166,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let (.., matrix, j_neg) = a_
                 .to_odd()
                 .expect("a_ is always odd")
-                .partial_binxgcd::<LIMBS_K, false>(&b_, batch);
+                .partial_binxgcd::<LIMBS_K>(&b_, batch, ConstChoice::FALSE);
             jacobi_neg ^= j_neg;
 
             // Update `a` and `b` using the update matrix.
@@ -228,7 +228,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let (.., matrix, j_neg) = a_
                 .to_odd()
                 .expect("a_ is always odd")
-                .partial_binxgcd::<LIMBS_K, false>(&b_, batch_max);
+                .partial_binxgcd::<LIMBS_K>(&b_, batch_max, ConstChoice::FALSE);
             jacobi_neg ^= j_neg;
 
             // Update `a` and `b` using the update matrix.
