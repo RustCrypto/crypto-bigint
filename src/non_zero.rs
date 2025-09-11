@@ -1,11 +1,14 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{Bounded, ConstChoice, ConstCtOption, Constants, Encoding, Int, Limb, Odd, Uint, Zero};
+use crate::{
+    Bounded, ConstChoice, ConstCtOption, Constants, Encoding, Int, Limb, Odd, One, Uint, Zero,
+};
 use core::{
     fmt,
     num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128},
-    ops::Deref,
+    ops::{Deref, Mul},
 };
+use num_traits::ConstOne;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "alloc")]
@@ -93,6 +96,49 @@ where
     /// Decode from little endian bytes.
     pub fn from_le_bytes(bytes: T::Repr) -> CtOption<Self> {
         Self::new(T::from_le_bytes(bytes))
+    }
+}
+
+impl<T> ConstOne for NonZero<T>
+where
+    T: ConstOne + One,
+{
+    const ONE: Self = Self(T::ONE);
+}
+
+impl<T> One for NonZero<T>
+where
+    T: One,
+{
+    #[inline]
+    fn one() -> Self {
+        Self(T::one())
+    }
+}
+
+impl<T> num_traits::One for NonZero<T>
+where
+    T: One + Mul<T, Output = T>,
+{
+    #[inline]
+    fn one() -> Self {
+        Self(T::one())
+    }
+
+    fn is_one(&self) -> bool {
+        self.0.is_one().into()
+    }
+}
+
+/// Any non-zero integer multiplied by another non-zero integer is definitionally non-zero.
+impl<T> Mul<Self> for NonZero<T>
+where
+    T: Mul<T, Output = T>,
+{
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self {
+        Self(self.0 * rhs.0)
     }
 }
 

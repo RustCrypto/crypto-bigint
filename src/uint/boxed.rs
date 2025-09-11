@@ -29,7 +29,8 @@ mod sub_mod;
 mod rand;
 
 use crate::{
-    Integer, Limb, NonZero, Odd, Resize, UintRef, Unsigned, Word, Zero, modular::BoxedMontyForm,
+    Integer, Limb, NonZero, Odd, One, Resize, UintRef, Unsigned, Word, Zero,
+    modular::BoxedMontyForm,
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{fmt, ops::IndexMut};
@@ -405,10 +406,6 @@ impl Default for BoxedUint {
 impl Integer for BoxedUint {
     type Monty = BoxedMontyForm;
 
-    fn one() -> Self {
-        Self::one()
-    }
-
     fn from_limb_like(limb: Limb, other: &Self) -> Self {
         let mut ret = Self::zero_with_precision(other.bits_precision());
         ret.limbs[0] = limb;
@@ -434,6 +431,21 @@ impl Zero for BoxedUint {
     }
 }
 
+impl One for BoxedUint {
+    fn one() -> Self {
+        Self::one()
+    }
+
+    fn is_one(&self) -> Choice {
+        self.is_one()
+    }
+
+    fn set_one(&mut self) {
+        self.limbs.as_mut().fill(Limb::ZERO);
+        self.limbs[0] = Limb::ONE;
+    }
+}
+
 impl Unsigned for BoxedUint {}
 
 impl num_traits::Zero for BoxedUint {
@@ -444,6 +456,10 @@ impl num_traits::Zero for BoxedUint {
     fn is_zero(&self) -> bool {
         self.is_zero().into()
     }
+
+    fn set_zero(&mut self) {
+        Zero::set_zero(self)
+    }
 }
 
 impl num_traits::One for BoxedUint {
@@ -453,6 +469,10 @@ impl num_traits::One for BoxedUint {
 
     fn is_one(&self) -> bool {
         self.is_one().into()
+    }
+
+    fn set_one(&mut self) {
+        One::set_one(self)
     }
 }
 

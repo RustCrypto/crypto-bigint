@@ -1,7 +1,8 @@
 //! Traits provided by this crate
 
 pub use num_traits::{
-    ConstZero, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr, WrappingSub,
+    ConstOne, ConstZero, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr,
+    WrappingSub,
 };
 
 use crate::ConstChoice;
@@ -128,6 +129,7 @@ pub trait Integer:
     + MulMod<Output = Self>
     + NegMod<Output = Self>
     + Not<Output = Self>
+    + One
     + Ord
     + Rem<NonZero<Self>, Output = Self>
     + for<'a> Rem<&'a NonZero<Self>, Output = Self>
@@ -161,14 +163,6 @@ pub trait Integer:
     /// The corresponding Montgomery representation,
     /// optimized for the performance of modular operations at the price of a conversion overhead.
     type Monty: Monty<Integer = Self>;
-
-    /// The value `1`.
-    fn one() -> Self;
-
-    /// The value `1` with the same precision as `other`.
-    fn one_like(other: &Self) -> Self {
-        Self::from_limb_like(Limb::ONE, other)
-    }
 
     /// Returns an integer with the first limb set to `limb`, and the same precision as `other`.
     fn from_limb_like(limb: Limb, other: &Self) -> Self;
@@ -207,6 +201,76 @@ pub trait Signed: Integer {
 /// Unsigned integers.
 pub trait Unsigned: Integer {}
 
+/// Zero values: additive identity element for `Self`.
+pub trait Zero: ConstantTimeEq + Sized {
+    /// Returns the additive identity element of `Self`, `0`.
+    fn zero() -> Self;
+
+    /// Determine if this value is equal to `0`.
+    ///
+    /// # Returns
+    ///
+    /// If zero, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
+    #[inline]
+    fn is_zero(&self) -> Choice {
+        self.ct_eq(&Self::zero())
+    }
+
+    /// Set `self` to its additive identity, i.e. `Self::zero`.
+    #[inline]
+    fn set_zero(&mut self) {
+        *self = Zero::zero();
+    }
+
+    /// Return the value `0` with the same precision as `other`.
+    fn zero_like(other: &Self) -> Self
+    where
+        Self: Clone,
+    {
+        let mut ret = other.clone();
+        ret.set_zero();
+        ret
+    }
+}
+
+/// One values: multiplicative identity element for `Self`.
+pub trait One: ConstantTimeEq + Sized {
+    /// Returns the multiplicative identity element of `Self`, `1`.
+    fn one() -> Self;
+
+    /// Determine if this value is equal to `1`.
+    ///
+    /// # Returns
+    ///
+    /// If one, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
+    #[inline]
+    fn is_one(&self) -> Choice {
+        self.ct_eq(&Self::one())
+    }
+
+    /// Set `self` to its multiplicative identity, i.e. `Self::one`.
+    #[inline]
+    fn set_one(&mut self) {
+        *self = One::one();
+    }
+
+    /// Return the value `0` with the same precision as `other`.
+    fn one_like(other: &Self) -> Self
+    where
+        Self: Clone,
+    {
+        let mut ret = other.clone();
+        ret.set_one();
+        ret
+    }
+}
+
+/// Trait for associating constant values with a type.
+pub trait Constants: ConstZero + ConstOne {
+    /// Maximum value this integer can express.
+    const MAX: Self;
+}
+
 /// Fixed-width integers.
 pub trait FixedInteger: Bounded + ConditionallySelectable + Constants + Copy + Integer {
     /// The number of limbs used on this platform.
@@ -235,54 +299,6 @@ pub trait Xgcd<Rhs = Self>: Sized {
 
     /// Compute the extended greatest common divisor of `self` and `rhs` in variable time.
     fn xgcd_vartime(&self, rhs: &Rhs) -> Self::Output;
-}
-
-/// Zero values.
-pub trait Zero: ConstantTimeEq + Sized {
-    /// The value `0`.
-    fn zero() -> Self;
-
-    /// Determine if this value is equal to zero.
-    ///
-    /// # Returns
-    ///
-    /// If zero, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
-    #[inline]
-    fn is_zero(&self) -> Choice {
-        self.ct_eq(&Self::zero())
-    }
-
-    /// Set `self` to its additive identity, i.e. `Self::zero`.
-    #[inline]
-    fn set_zero(&mut self) {
-        *self = Zero::zero();
-    }
-
-    /// Return the value `0` with the same precision as `other`.
-    fn zero_like(other: &Self) -> Self
-    where
-        Self: Clone,
-    {
-        let mut ret = other.clone();
-        ret.set_zero();
-        ret
-    }
-}
-
-impl<T: ConstZero + ConstantTimeEq> Zero for T {
-    #[inline(always)]
-    fn zero() -> T {
-        Self::ZERO
-    }
-}
-
-/// Trait for associating constant values with a type.
-pub trait Constants: ConstZero {
-    /// The value `1`.
-    const ONE: Self;
-
-    /// Maximum value this integer can express.
-    const MAX: Self;
 }
 
 /// Random number generation support.

@@ -1,15 +1,17 @@
 //! Stack-allocated big signed integers.
 
 use core::fmt;
+use num_traits::{ConstOne, ConstZero};
 
-use num_traits::ConstZero;
 #[cfg(feature = "serde")]
 use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "serde")]
 use crate::Encoding;
-use crate::{Bounded, ConstChoice, ConstCtOption, Constants, Limb, NonZero, Odd, Uint, Word};
+use crate::{
+    Bounded, ConstChoice, ConstCtOption, Constants, Limb, NonZero, Odd, One, Uint, Word, Zero,
+};
 
 mod add;
 mod bit_and;
@@ -226,7 +228,6 @@ impl<const LIMBS: usize> Bounded for Int<LIMBS> {
 }
 
 impl<const LIMBS: usize> Constants for Int<LIMBS> {
-    const ONE: Self = Self::ONE;
     const MAX: Self = Self::MAX;
 }
 
@@ -246,7 +247,26 @@ impl<const LIMBS: usize> ConstZero for Int<LIMBS> {
     const ZERO: Self = Self::ZERO;
 }
 
+impl<const LIMBS: usize> ConstOne for Int<LIMBS> {
+    const ONE: Self = Self::ONE;
+}
+
+impl<const LIMBS: usize> Zero for Int<LIMBS> {
+    #[inline(always)]
+    fn zero() -> Self {
+        Self::ZERO
+    }
+}
+
+impl<const LIMBS: usize> One for Int<LIMBS> {
+    #[inline(always)]
+    fn one() -> Self {
+        Self::ONE
+    }
+}
+
 impl<const LIMBS: usize> num_traits::Zero for Int<LIMBS> {
+    #[inline(always)]
     fn zero() -> Self {
         Self::ZERO
     }
@@ -257,6 +277,7 @@ impl<const LIMBS: usize> num_traits::Zero for Int<LIMBS> {
 }
 
 impl<const LIMBS: usize> num_traits::One for Int<LIMBS> {
+    #[inline(always)]
     fn one() -> Self {
         Self::ONE
     }

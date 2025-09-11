@@ -16,8 +16,8 @@ pub use extra_sizes::*;
 pub(crate) use ref_type::UintRef;
 
 use crate::{
-    Bounded, ConstChoice, ConstCtOption, ConstZero, Constants, Encoding, FixedInteger, Int,
-    Integer, Limb, NonZero, Odd, Unsigned, Word, modular::MontyForm,
+    Bounded, ConstChoice, ConstCtOption, ConstOne, ConstZero, Constants, Encoding, FixedInteger,
+    Int, Integer, Limb, NonZero, Odd, One, Unsigned, Word, Zero, modular::MontyForm,
 };
 
 #[macro_use]
@@ -286,7 +286,6 @@ impl<const LIMBS: usize> Bounded for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> Constants for Uint<LIMBS> {
-    const ONE: Self = Self::ONE;
     const MAX: Self = Self::MAX;
 }
 
@@ -302,10 +301,6 @@ impl<const LIMBS: usize> FixedInteger for Uint<LIMBS> {
 
 impl<const LIMBS: usize> Integer for Uint<LIMBS> {
     type Monty = MontyForm<LIMBS>;
-
-    fn one() -> Self {
-        Self::ONE
-    }
 
     fn from_limb_like(limb: Limb, _other: &Self) -> Self {
         Self::from(limb)
@@ -331,7 +326,26 @@ impl<const LIMBS: usize> ConstZero for Uint<LIMBS> {
     const ZERO: Self = Self::ZERO;
 }
 
+impl<const LIMBS: usize> ConstOne for Uint<LIMBS> {
+    const ONE: Self = Self::ONE;
+}
+
+impl<const LIMBS: usize> Zero for Uint<LIMBS> {
+    #[inline(always)]
+    fn zero() -> Self {
+        Self::ZERO
+    }
+}
+
+impl<const LIMBS: usize> One for Uint<LIMBS> {
+    #[inline(always)]
+    fn one() -> Self {
+        Self::ONE
+    }
+}
+
 impl<const LIMBS: usize> num_traits::Zero for Uint<LIMBS> {
+    #[inline(always)]
     fn zero() -> Self {
         Self::ZERO
     }
@@ -342,6 +356,7 @@ impl<const LIMBS: usize> num_traits::Zero for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> num_traits::One for Uint<LIMBS> {
+    #[inline(always)]
     fn one() -> Self {
         Self::ONE
     }

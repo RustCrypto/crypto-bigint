@@ -1,6 +1,8 @@
 //! Wrapping arithmetic.
 
-use crate::{WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr, WrappingSub, Zero};
+use crate::{
+    One, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr, WrappingSub, Zero,
+};
 use core::{
     fmt,
     ops::{Add, Mul, Neg, Shl, Shr, Sub},
@@ -200,6 +202,13 @@ impl<T: Zero> Zero for Wrapping<T> {
     #[inline]
     fn zero() -> Self {
         Wrapping(T::zero())
+    }
+}
+
+impl<T: One> One for Wrapping<T> {
+    #[inline]
+    fn one() -> Self {
+        Wrapping(T::one())
     }
 }
 
