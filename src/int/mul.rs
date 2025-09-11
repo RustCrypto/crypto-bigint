@@ -1,7 +1,7 @@
 //! [`Int`] multiplication operations.
 
 use core::ops::{Mul, MulAssign};
-
+use num_traits::WrappingMul;
 use subtle::CtOption;
 
 use crate::{Checked, CheckedMul, ConcatMixed, ConstChoice, ConstCtOption, Int, Uint, Zero};
@@ -105,6 +105,12 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Int<RHS_LIMBS>> for 
         let (lo, hi, is_negative) = self.widening_mul(rhs);
         let val = Self::new_from_abs_sign(lo, is_negative);
         CtOption::from(val).and_then(|int| CtOption::new(int, hi.is_zero()))
+    }
+}
+
+impl<const LIMBS: usize> WrappingMul for Int<LIMBS> {
+    fn wrapping_mul(&self, v: &Self) -> Self {
+        self.wrapping_mul(v)
     }
 }
 
