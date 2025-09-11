@@ -1,4 +1,4 @@
-use crate::{ConstChoice, ConstCtOption, Limb, Uint};
+use crate::{ConstChoice, ConstCtOption, Int, Limb, Uint};
 
 pub(crate) struct ExtendedUint<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
     Uint<LIMBS>,
@@ -13,6 +13,13 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
     pub const fn from_product(lhs: Uint<LIMBS>, rhs: Uint<EXTRA>) -> Self {
         let (lo, hi) = lhs.widening_mul(&rhs);
         ExtendedUint(lo, hi)
+    }
+
+    /// Wrapping multiply `self` with `rhs`
+    pub const fn wrapping_mul<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> Self {
+        let (lo, hi) = self.0.widening_mul(rhs);
+        let hi = self.1.wrapping_mul(rhs).wrapping_add(&hi.resize::<EXTRA>());
+        Self(lo, hi)
     }
 
     /// Interpret `self` as an [`ExtendedInt`]
@@ -127,6 +134,22 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     #[inline]
     pub const fn from_product(lhs: Uint<LIMBS>, rhs: Uint<EXTRA>) -> Self {
         ExtendedUint::from_product(lhs, rhs).as_extended_int()
+    }
+
+    /// Wrapping multiply `self` with `rhs`, which is passed as a
+    pub(crate) const fn wrapping_mul<const RHS_LIMBS: usize>(
+        &self,
+        rhs: (&Uint<RHS_LIMBS>, &ConstChoice),
+    ) -> Self {
+        let (abs_self, self_is_negative) = self.abs_sign();
+        let (abs_rhs, rhs_is_negative) = rhs;
+        let mut abs_val = abs_self.wrapping_mul(abs_rhs);
+
+        // Make sure the top bit of `abs_val` is not set
+        abs_val.1 = abs_val.1.bitand(Int::<EXTRA>::SIGN_MASK.not().as_uint());
+
+        let val_is_negative = self_is_negative.xor(*rhs_is_negative);
+        abs_val.wrapping_neg_if(val_is_negative).as_extended_int()
     }
 
     /// Interpret this as an [`ExtendedUint`].
