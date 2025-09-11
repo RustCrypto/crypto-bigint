@@ -265,20 +265,6 @@ pub trait One: ConstantTimeEq + Sized {
     }
 }
 
-impl<T: ConstZero + ConstantTimeEq> Zero for T {
-    #[inline(always)]
-    fn zero() -> T {
-        Self::ZERO
-    }
-}
-
-impl<T: ConstOne + ConstantTimeEq> One for T {
-    #[inline(always)]
-    fn one() -> T {
-        Self::ONE
-    }
-}
-
 /// Trait for associating constant values with a type.
 pub trait Constants: ConstZero + ConstOne {
     /// Maximum value this integer can express.

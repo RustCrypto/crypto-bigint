@@ -1,7 +1,9 @@
 //! Wrapper type for non-zero integers.
 
 use crate::{Bounded, ConstChoice, Int, Integer, Limb, NonZero, One, Uint};
+use core::ops::Mul;
 use core::{cmp::Ordering, fmt, ops::Deref};
+use num_traits::ConstOne;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "alloc")]
@@ -159,12 +161,46 @@ impl<T> Deref for Odd<T> {
     }
 }
 
+impl<T> ConstOne for Odd<T>
+where
+    T: ConstOne + One,
+{
+    const ONE: Self = Self(T::ONE);
+}
+
 impl<T> One for Odd<T>
 where
     T: One,
 {
+    #[inline]
     fn one() -> Self {
         Self(T::one())
+    }
+}
+
+impl<T> num_traits::One for Odd<T>
+where
+    T: One + Mul<T, Output = T>,
+{
+    #[inline]
+    fn one() -> Self {
+        Self(T::one())
+    }
+
+    fn is_one(&self) -> bool {
+        self.0.is_one().into()
+    }
+}
+
+/// Any odd integer multiplied by another odd integer is definitionally odd.
+impl<T> Mul<Self> for Odd<T>
+where
+    T: Mul<T, Output = T>,
+{
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self {
+        Self(self.0 * rhs.0)
     }
 }
 

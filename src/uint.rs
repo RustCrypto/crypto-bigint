@@ -17,7 +17,7 @@ pub(crate) use ref_type::UintRef;
 
 use crate::{
     Bounded, ConstChoice, ConstCtOption, ConstOne, ConstZero, Constants, Encoding, FixedInteger,
-    Int, Integer, Limb, NonZero, Odd, Unsigned, Word, modular::MontyForm,
+    Int, Integer, Limb, NonZero, Odd, One, Unsigned, Word, Zero, modular::MontyForm,
 };
 
 #[macro_use]
@@ -330,7 +330,22 @@ impl<const LIMBS: usize> ConstOne for Uint<LIMBS> {
     const ONE: Self = Self::ONE;
 }
 
+impl<const LIMBS: usize> Zero for Uint<LIMBS> {
+    #[inline(always)]
+    fn zero() -> Self {
+        Self::ZERO
+    }
+}
+
+impl<const LIMBS: usize> One for Uint<LIMBS> {
+    #[inline(always)]
+    fn one() -> Self {
+        Self::ONE
+    }
+}
+
 impl<const LIMBS: usize> num_traits::Zero for Uint<LIMBS> {
+    #[inline(always)]
     fn zero() -> Self {
         Self::ZERO
     }
@@ -341,6 +356,7 @@ impl<const LIMBS: usize> num_traits::Zero for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> num_traits::One for Uint<LIMBS> {
+    #[inline(always)]
     fn one() -> Self {
         Self::ONE
     }
