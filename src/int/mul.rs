@@ -266,6 +266,9 @@ mod tests {
         // no wrapping
         let c = I64::from_i64(-12345i64);
         assert_eq!(a.wrapping_mul(&c), I128::from_be_hex("0000D9DEF2248095850866CFEBF727D2"));
+
+        // core case
+        assert_eq!(I128::MAX.wrapping_mul(&I128::from_i64(2i64)), I128::from_i64(-2i64));
     }
 
     #[test]
