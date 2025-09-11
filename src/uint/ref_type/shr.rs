@@ -14,7 +14,7 @@ impl UintRef {
         let bits = self.bits_precision();
         let overflow = !shift.ct_lt(&bits);
         self.bounded_wrapping_shr_assign(shift % bits, bits);
-        self.conditional_set_zero(overflow);
+        self.conditional_set_zero(overflow.into());
         overflow
     }
 

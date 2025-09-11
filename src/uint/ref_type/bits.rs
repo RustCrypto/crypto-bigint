@@ -154,6 +154,24 @@ impl UintRef {
 
         count
     }
+
+    /// Clear all bits at or above a given bit position.
+    pub const fn restrict_bits(&mut self, len: u32) {
+        let limb = len / Limb::BITS;
+        let limb_mask = Limb((1 << (len % Limb::BITS)) - 1);
+        let mut i = 0;
+        let mut clear = ConstChoice::FALSE;
+        while i < self.nlimbs() {
+            let apply = ConstChoice::from_u32_eq(i as u32, limb);
+            self.0[i] = self.0[i].bitand(Limb::select(
+                Limb(clear.not().as_word_mask()),
+                limb_mask,
+                apply,
+            ));
+            clear = clear.or(apply);
+            i += 1;
+        }
+    }
 }
 
 impl BitOps for UintRef {

@@ -1,6 +1,93 @@
 use super::Uint;
-use crate::{ConstChoice, ConstCtOption, InvertMod, NonZero, Odd, modular::safegcd};
+use crate::{
+    ConstChoice, ConstCtOption, InvertMod, Limb, NonZero, Odd, U64, UintRef, modular::safegcd,
+    mul::schoolbook,
+};
+
 use subtle::CtOption;
+
+/// Perform a modified recursive Hensel quadratic modular inversion to calculate
+/// `a^-1 mod w^p` given `a^-1 mod w^k` where `w` is the size of `Limb`.
+/// For reference see Algorithm 2: <https://arxiv.org/pdf/1209.6626>
+///
+/// `p` is determined by the length of the in-out buffer `buf`, which must be
+/// pre-populated with `a^-1 mod w^k` (constituting `k` limbs).
+///
+/// This method uses recursion, but the maximum depth is limited by
+/// the bit-width of the number of limbs being inverted (`p`).
+///
+/// This method is variable time in `k` and `p` only.
+///
+/// `scratch` must be a pair of mutable buffers, each with capacity at least `p`.
+#[inline]
+pub(crate) const fn expand_invert_mod2k(
+    a: &Odd<UintRef>,
+    buf: &mut UintRef,
+    mut k: usize,
+    scratch: (&mut UintRef, &mut UintRef),
+) {
+    assert!(k > 0);
+    let p = buf.nlimbs();
+    let zs = p.trailing_zeros();
+
+    // Calculate a target width at which we may need to trim the output of
+    // the doubling loop. We reduce the size of `p` by eliminating multiple factors
+    // of two or a single odd factor, recursing until the target width is small enough
+    // to calculate by doubling without significant overhead.
+    let mut target = if zs > 0 { p >> zs } else { p.div_ceil(2) };
+    if target > 8 {
+        expand_invert_mod2k(a, buf.leading_mut(target), k, (scratch.0, scratch.1));
+        k = target;
+        target = p;
+    } else if target <= k {
+        target = p;
+    }
+
+    // Perform the required number of doublings.
+    while k < p {
+        let mut k2 = k * 2;
+        // `target` represents the point at which we may need to trim the output before
+        // continuing with the doubling until we reach `p`.
+        if k2 >= target {
+            (k2, target) = (target, p);
+        }
+        expand_invert_mod2k_step(a, buf.leading_mut(k2), k, (scratch.0, scratch.1));
+        k = k2;
+    }
+}
+
+/// One step of the Hensel quadratic modular inverse calculation, doubling the width
+/// of the inverted output, and wrapping at capacity of `buf`.
+#[inline(always)]
+const fn expand_invert_mod2k_step(
+    a: &Odd<UintRef>,
+    buf: &mut UintRef,
+    buf_init_len: usize,
+    scratch: (&mut UintRef, &mut UintRef),
+) {
+    let new_len = buf.nlimbs();
+    assert!(
+        scratch.0.nlimbs() >= new_len
+            && scratch.1.nlimbs() >= new_len
+            && buf_init_len < new_len
+            && buf_init_len >= new_len / 2
+    );
+
+    // Calculate u0^2, wrapping at `new_len` words
+    let u0_p2 = scratch.0.leading_mut(new_len);
+    u0_p2.fill(Limb::ZERO);
+    schoolbook::wrapping_square(buf.leading(buf_init_len).as_slice(), u0_p2.as_mut_slice());
+
+    // tmp = u0^2•a
+    let tmp = scratch.1.leading_mut(new_len);
+    tmp.fill(Limb::ZERO);
+    schoolbook::wrapping_mul(u0_p2.as_slice(), a.as_ref().as_slice(), tmp.as_mut_slice());
+
+    // u1 = u0 << 1
+    buf.shl1_assign();
+    // u1 -= u0^2•a
+    buf.borrowing_sub_assign(tmp, Limb::ZERO);
+}
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes 1/`self` mod `2^k`.
@@ -17,47 +104,24 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes 1/`self` mod `2^k`.
     /// This method is constant-time w.r.t. `self` but not `k`.
     ///
-    /// If the inverse does not exist (`k > 0` and `self` is even),
-    /// returns `ConstChoice::FALSE` as the second element of the tuple,
-    /// otherwise returns `ConstChoice::TRUE`.
+    /// If the inverse does not exist (`k > 0` and `self` is even, or `k > Self::BITS`),
+    /// returns `ConstCtOption::none`, otherwise returns `ConstCtOption::some`.
     pub const fn invert_mod2k_vartime(&self, k: u32) -> ConstCtOption<Self> {
-        // Using the Algorithm 3 from "A Secure Algorithm for Inversion Modulo 2k"
-        // by Sadiel de la Fe and Carles Ferrer.
-        // See <https://www.mdpi.com/2410-387X/2/3/23>.
-
-        // Note that we are not using Alrgorithm 4, since we have a different approach
-        // of enforcing constant-timeness w.r.t. `self`.
-
-        let mut x = Self::ZERO; // keeps `x` during iterations
-        let mut b = Self::ONE; // keeps `b_i` during iterations
-        let mut i = 0;
-
-        // The inverse exists either if `k` is 0 or if `self` is odd.
-        let is_some = ConstChoice::from_u32_nonzero(k).not().or(self.is_odd());
-
-        while i < k {
-            // X_i = b_i mod 2
-            let x_i = b.limbs[0].0 & 1;
-            let x_i_choice = ConstChoice::from_word_lsb(x_i);
-            // b_{i+1} = (b_i - a * X_i) / 2
-            b = Self::select(&b, &b.wrapping_sub(self), x_i_choice).shr1();
-            // Store the X_i bit in the result (x = x | (1 << X_i))
-            let shifted = Uint::from_word(x_i)
-                .overflowing_shl_vartime(i)
-                .expect("shift within range");
-            x = x.bitor(&shifted);
-
-            i += 1;
+        if k == 0 {
+            ConstCtOption::some(Self::ZERO)
+        } else if k > Self::BITS {
+            ConstCtOption::none(Self::ZERO)
+        } else {
+            let is_some = self.is_odd();
+            let inv = Odd(Uint::select(&Uint::ONE, self, is_some)).invert_mod2k_vartime(k);
+            ConstCtOption::new(inv, is_some)
         }
-
-        ConstCtOption::new(x, is_some)
     }
 
     /// Computes 1/`self` mod `2^k`.
     ///
-    /// If the inverse does not exist (`k > 0` and `self` is even),
-    /// returns `ConstChoice::FALSE` as the second element of the tuple,
-    /// otherwise returns `ConstChoice::TRUE`.
+    /// If the inverse does not exist (`k > 0` and `self` is even, `k > Self::BITS`),
+    /// returns `ConstCtOption::none`, otherwise returns `ConstCtOption::some`.
     #[deprecated(since = "0.7.0", note = "please use `invert_mod2k` instead")]
     pub const fn inv_mod2k(&self, k: u32) -> ConstCtOption<Self> {
         self.invert_mod2k(k)
@@ -65,40 +129,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes 1/`self` mod `2^k`.
     ///
-    /// If the inverse does not exist (`k > 0` and `self` is even),
-    /// returns `ConstChoice::FALSE` as the second element of the tuple,
-    /// otherwise returns `ConstChoice::TRUE`.
+    /// If the inverse does not exist (`k > 0` and `self` is even, or `k > Self::BITS`),
+    /// returns `ConstCtOption::none`, otherwise returns `ConstCtOption::some`.
     pub const fn invert_mod2k(&self, k: u32) -> ConstCtOption<Self> {
-        // This is the same algorithm as in `invert_mod2k_vartime()`,
-        // but made constant-time w.r.t `k` as well.
-
-        let mut x = Self::ZERO; // keeps `x` during iterations
-        let mut b = Self::ONE; // keeps `b_i` during iterations
-        let mut i = 0;
-
-        // The inverse exists either if `k` is 0 or if `self` is odd.
-        let is_some = ConstChoice::from_u32_nonzero(k).not().or(self.is_odd());
-
-        while i < Self::BITS {
-            // Only iterations for i = 0..k need to change `x`,
-            // the rest are dummy ones performed for the sake of constant-timeness.
-            let within_range = ConstChoice::from_u32_lt(i, k);
-
-            // X_i = b_i mod 2
-            let x_i = b.limbs[0].0 & 1;
-            let x_i_choice = ConstChoice::from_word_lsb(x_i);
-            // b_{i+1} = (b_i - self * X_i) / 2
-            b = Self::select(&b, &b.wrapping_sub(self), x_i_choice).shr1();
-
-            // Store the X_i bit in the result (x = x | (1 << X_i))
-            // Don't change the result in dummy iterations.
-            let x_i_choice = x_i_choice.and(within_range);
-            x = x.set_bit(i, x_i_choice);
-
-            i += 1;
-        }
-
-        ConstCtOption::new(x, is_some)
+        let is_some = ConstChoice::from_u32_le(k, Self::BITS)
+            .and(ConstChoice::from_u32_nonzero(k).not().or(self.is_odd()));
+        let inv = Odd(Uint::select(&Uint::ONE, self, is_some)).invert_mod_precision();
+        ConstCtOption::new(inv.restrict_bits(k), is_some)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
@@ -153,17 +190,55 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // (essentially one step of the Garner's algorithm for recovery from RNS).
 
         // `s` is odd, so this always exists
-        let m_odd_inv = s.as_ref().invert_mod2k(k).expect("inverse mod 2^k exists");
+        let m_odd_inv = s.invert_mod_precision();
 
         // This part is mod 2^k
-        let shifted = Uint::ONE.shl(k);
-        let mask = shifted.wrapping_sub(&Uint::ONE);
-        let t = (b.wrapping_sub(&a).wrapping_mul(&m_odd_inv)).bitand(&mask);
+        let t = b.wrapping_sub(&a).wrapping_mul(&m_odd_inv).restrict_bits(k);
 
         // Will not overflow since `a <= s - 1`, `t <= 2^k - 1`,
         // so `a + s * t <= s * 2^k - 1 == modulus - 1`.
         let result = a.wrapping_add(&s.as_ref().wrapping_mul(&t));
         ConstCtOption::new(result, is_some)
+    }
+}
+
+impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
+    /// Compute a full-width quadratic inversion, `self^-1 mod 2^Self::BITS`.
+    #[inline]
+    pub(crate) const fn invert_mod_precision(&self) -> Uint<LIMBS> {
+        self.invert_mod2k_vartime(Self::BITS)
+    }
+
+    /// Compute a quadratic inversion, `self^-1 mod 2^k` where `k <= Self::BITS`.
+    ///
+    /// This method is variable-time in `k` only.
+    pub(crate) const fn invert_mod2k_vartime(&self, k: u32) -> Uint<LIMBS> {
+        assert!(k <= Self::BITS);
+
+        let k_limbs = k.div_ceil(Limb::BITS) as usize;
+        let mut inv = U64::from_u64(self.as_uint_ref().invert_mod_u64()).resize::<LIMBS>();
+
+        if k_limbs <= U64::LIMBS {
+            // trim to k_limbs
+            inv.as_mut_uint_ref().trailing_mut(k_limbs).fill(Limb::ZERO);
+        } else {
+            // expand to k_limbs
+            let mut scratch = (Uint::<LIMBS>::ZERO, Uint::<LIMBS>::ZERO);
+            expand_invert_mod2k(
+                self.as_uint_ref(),
+                inv.as_mut_uint_ref().leading_mut(k_limbs),
+                U64::LIMBS,
+                (scratch.0.as_mut_uint_ref(), scratch.1.as_mut_uint_ref()),
+            );
+        }
+
+        // clear bits in the high limb if necessary
+        let k_bits = k % Limb::BITS;
+        if k_bits > 0 {
+            inv.limbs[k_limbs - 1] = inv.limbs[k_limbs - 1].restrict_bits(k_bits);
+        }
+
+        inv
     }
 }
 
@@ -177,7 +252,7 @@ impl<const LIMBS: usize> InvertMod for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{U64, U256, U1024};
+    use crate::{Odd, U64, U256, U1024, Uint};
 
     #[test]
     fn invert_mod2k() {
@@ -351,5 +426,27 @@ mod tests {
                 .unwrap(),
             U256::ZERO
         );
+    }
+
+    #[test]
+    fn invert_mod_precision() {
+        const BIG: Odd<Uint<8>> = Odd(Uint::MAX);
+
+        fn test_invert_size<const LIMBS: usize>() {
+            let a = BIG.resize::<LIMBS>();
+            let a_inv = a.invert_mod_precision();
+            assert_eq!(a.as_ref().wrapping_mul(&a_inv), Uint::ONE);
+        }
+
+        test_invert_size::<1>();
+        test_invert_size::<2>();
+        test_invert_size::<3>();
+        test_invert_size::<4>();
+        test_invert_size::<5>();
+        test_invert_size::<6>();
+        test_invert_size::<7>();
+        test_invert_size::<8>();
+        test_invert_size::<9>();
+        test_invert_size::<10>();
     }
 }
