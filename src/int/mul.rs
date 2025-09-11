@@ -1,7 +1,7 @@
 //! [`Int`] multiplication operations.
 
 use core::ops::{Mul, MulAssign};
-
+use num_traits::WrappingMul;
 use subtle::CtOption;
 
 use crate::{Checked, CheckedMul, ConcatMixed, ConstChoice, ConstCtOption, Int, Uint, Zero};
@@ -63,6 +63,14 @@ impl<const LIMBS: usize> Int<LIMBS> {
         // always fits
         Int::from_bits(product_abs.wrapping_neg_if(product_sign))
     }
+
+    /// Multiply `self` by `rhs`, wrapping the result in case of overflow.
+    pub const fn wrapping_mul<const RHS_LIMBS: usize>(&self, rhs: &Int<RHS_LIMBS>) -> Self {
+        let (abs_lhs, lhs_sgn) = self.abs_sign();
+        let (abs_rhs, rhs_sgn) = rhs.abs_sign();
+        let (lo, _) = abs_lhs.widening_mul(&abs_rhs);
+        *lo.wrapping_neg_if(lhs_sgn.xor(rhs_sgn)).as_int()
+    }
 }
 
 /// Squaring operations.
@@ -97,6 +105,12 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Int<RHS_LIMBS>> for 
         let (lo, hi, is_negative) = self.widening_mul(rhs);
         let val = Self::new_from_abs_sign(lo, is_negative);
         CtOption::from(val).and_then(|int| CtOption::new(int, hi.is_zero()))
+    }
+}
+
+impl<const LIMBS: usize> WrappingMul for Int<LIMBS> {
+    fn wrapping_mul(&self, v: &Self) -> Self {
+        self.wrapping_mul(v)
     }
 }
 
@@ -145,23 +159,9 @@ impl<const LIMBS: usize> MulAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
     }
 }
 
-// TODO(lleoha): unfortunately we cannot satisfy this (yet!).
-// impl<const LIMBS: usize, const RHS_LIMBS: usize, const WIDE_LIMBS: usize>
-// ConcatenatingMul<Int<RHS_LIMBS>> for Int<LIMBS>
-// where
-//     Uint<LIMBS>: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
-// {
-//     type Output = Int<WIDE_LIMBS>;
-//
-//     #[inline]
-//     fn concatenating_mul(&self, rhs: Int<RHS_LIMBS>) -> Self::Output {
-//         self.concatenating_mul(&rhs)
-//     }
-// }
-
 #[cfg(test)]
 mod tests {
-    use crate::{CheckedMul, ConstChoice, I128, I256, Int, U128, U256};
+    use crate::{CheckedMul, ConstChoice, I64, I128, I256, Int, U128, U256};
 
     #[test]
     #[allow(clippy::init_numbered_fields)]
@@ -254,6 +254,50 @@ mod tests {
 
         let result = I128::MAX.checked_mul(&I128::MAX);
         assert!(bool::from(result.is_none()));
+    }
+
+    #[test]
+    fn test_wrapping_mul() {
+        // wrapping
+        let a = I128::from_be_hex("FFFFFFFB7B63198EF870DF1F90D9BD9E");
+        let b = I128::from_be_hex("F20C29FA87B356AA3B4C05C4F9C24B4A");
+        assert_eq!(
+            a.wrapping_mul(&b),
+            I128::from_be_hex("AA700D354D6CF4EE881F8FF8093A19AC")
+        );
+
+        // no wrapping
+        let c = I64::from_i64(-12345i64);
+        assert_eq!(
+            a.wrapping_mul(&c),
+            I128::from_be_hex("0000D9DEF2248095850866CFEBF727D2")
+        );
+
+        // core case
+        assert_eq!(i8::MAX.wrapping_mul(2), -2);
+        assert_eq!(i64::MAX.wrapping_mul(2), -2);
+        assert_eq!(
+            I128::MAX.wrapping_mul(&I128::from_i64(2i64)),
+            I128::from_i64(-2i64)
+        );
+
+        let x = -197044252290277702i64;
+        let y = -2631691865753118366;
+        let z = -2988283350644101836;
+        assert_eq!(x.wrapping_mul(y), z);
+        assert_eq!(
+            I64::from_i64(x).wrapping_mul(&I64::from_i64(y)),
+            I64::from_i64(z)
+        );
+
+        let x = -86027672844719838068326470675019902915i128;
+        let y = -21188806580823612823777395451044967239i128;
+        let z = 11054120842379932838712398402517374997i128;
+        assert_eq!(x.wrapping_mul(y), z);
+        assert_eq!(
+            I128::from_i128(x).wrapping_mul(&I128::from_i128(y)),
+            I128::from_i128(z)
+        );
     }
 
     #[test]
