@@ -118,6 +118,9 @@ pub(crate) struct ExtendedInt<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
 );
 
 impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
+    pub(super) const ZERO: Self = Self(Uint::ZERO, Uint::ZERO);
+    pub(super) const ONE: Self = Self(Uint::ONE, Uint::ZERO);
+
     /// Construct an [`ExtendedInt`] from the product of a [`Uint<LIMBS>`] and a [`Uint<EXTRA>`].
     ///
     /// Assumes the top bit of the product is not set.
