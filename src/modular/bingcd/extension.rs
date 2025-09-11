@@ -27,6 +27,12 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
         self.0.is_nonzero().not().and(self.1.is_nonzero().not())
     }
 
+    /// Drop the extension.
+    #[inline]
+    pub const fn checked_drop_extension(&self) -> ConstCtOption<Uint<LIMBS>> {
+        ConstCtOption::new(self.0, self.1.is_nonzero().not())
+    }
+
     /// Construction the binary negation of `self`, i.e., map `self` to `!self + 1`.
     ///
     /// Note: maps `0` to itself.
