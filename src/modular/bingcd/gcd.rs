@@ -172,8 +172,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             // Update `a` and `b` using the update matrix.
             // Safe to use vartime: the number of doublings is the same as the batch size.
             let (updated_a, updated_b) = matrix.extended_apply_to_vartime::<LIMBS>((a, b));
-            (a, _) = updated_a.wrapping_drop_extension();
-            (b, _) = updated_b.wrapping_drop_extension();
+            (a, _) = updated_a.dropped_abs_sign();
+            (b, _) = updated_b.dropped_abs_sign();
         }
 
         (
@@ -233,8 +233,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
             // Update `a` and `b` using the update matrix.
             let (updated_a, updated_b) = matrix.extended_apply_to_vartime((a, b));
-            (a, _) = updated_a.wrapping_drop_extension();
-            (b, _) = updated_b.wrapping_drop_extension();
+            (a, _) = updated_a.dropped_abs_sign();
+            (b, _) = updated_b.dropped_abs_sign();
         }
 
         (

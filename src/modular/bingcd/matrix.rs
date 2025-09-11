@@ -386,11 +386,11 @@ mod tests {
 
         let (a_, b_) = matrix.extended_apply_to::<{ U64::LIMBS }, 18>((a, b));
         assert_eq!(
-            a_.wrapping_drop_extension().0,
+            a_.dropped_abs_sign().0,
             Uint::from_be_hex("002AC7CDD032B9B9")
         );
         assert_eq!(
-            b_.wrapping_drop_extension().0,
+            b_.dropped_abs_sign().0,
             Uint::from_be_hex("006CFBCEE172C863")
         );
     }

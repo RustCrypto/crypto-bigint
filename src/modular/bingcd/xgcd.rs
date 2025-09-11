@@ -446,8 +446,8 @@ mod tests {
 
             let (computed_a, computed_b) =
                 matrix.extended_apply_to::<{ U64::LIMBS }, 6>((A.get(), B));
-            let computed_a = computed_a.wrapping_drop_extension().0;
-            let computed_b = computed_b.wrapping_drop_extension().0;
+            let computed_a = computed_a.dropped_abs_sign().0;
+            let computed_b = computed_b.dropped_abs_sign().0;
 
             assert_eq!(computed_a, target_a);
             assert_eq!(computed_b, target_b);

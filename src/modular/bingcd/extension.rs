@@ -181,9 +181,9 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
         Self(lo, hi)
     }
 
-    /// Returns self without the extension.
+    /// Returns the absolute value and sign of `self`, without the extension.
     #[inline]
-    pub const fn wrapping_drop_extension(&self) -> (Uint<LIMBS>, ConstChoice) {
+    pub const fn dropped_abs_sign(&self) -> (Uint<LIMBS>, ConstChoice) {
         let (abs, sgn) = self.abs_sign();
         (abs.0, sgn)
     }
