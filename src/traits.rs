@@ -140,7 +140,7 @@ pub trait Integer:
     + Sync
     + WrappingAdd
     + WrappingSub
-    // TODO(tarcieri): + WrappingMul
+    + WrappingMul
     + WrappingNeg
     + WrappingShl
     + WrappingShr
@@ -214,7 +214,6 @@ pub trait Unsigned:
     + SquareRoot
     + SquareMod<Output = Self>
     + SubMod<Output = Self>
-    + WrappingMul // here instead of `Integer` because `Int` lacks a `wrapping_mul` impl
 {
     /// The corresponding Montgomery representation,
     /// optimized for the performance of modular operations at the price of a conversion overhead.
