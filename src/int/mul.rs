@@ -161,7 +161,7 @@ impl<const LIMBS: usize> MulAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
 
 #[cfg(test)]
 mod tests {
-    use crate::{CheckedMul, ConstChoice, I128, I256, Int, U128, U256, I64};
+    use crate::{CheckedMul, ConstChoice, I64, I128, I256, Int, U128, U256};
 
     #[test]
     #[allow(clippy::init_numbered_fields)]
@@ -261,28 +261,43 @@ mod tests {
         // wrapping
         let a = I128::from_be_hex("FFFFFFFB7B63198EF870DF1F90D9BD9E");
         let b = I128::from_be_hex("F20C29FA87B356AA3B4C05C4F9C24B4A");
-        assert_eq!(a.wrapping_mul(&b), I128::from_be_hex("AA700D354D6CF4EE881F8FF8093A19AC"));
+        assert_eq!(
+            a.wrapping_mul(&b),
+            I128::from_be_hex("AA700D354D6CF4EE881F8FF8093A19AC")
+        );
 
         // no wrapping
         let c = I64::from_i64(-12345i64);
-        assert_eq!(a.wrapping_mul(&c), I128::from_be_hex("0000D9DEF2248095850866CFEBF727D2"));
+        assert_eq!(
+            a.wrapping_mul(&c),
+            I128::from_be_hex("0000D9DEF2248095850866CFEBF727D2")
+        );
 
         // core case
         assert_eq!(i8::MAX.wrapping_mul(2), -2);
         assert_eq!(i64::MAX.wrapping_mul(2), -2);
-        assert_eq!(I128::MAX.wrapping_mul(&I128::from_i64(2i64)), I128::from_i64(-2i64));
+        assert_eq!(
+            I128::MAX.wrapping_mul(&I128::from_i64(2i64)),
+            I128::from_i64(-2i64)
+        );
 
         let x = -197044252290277702i64;
         let y = -2631691865753118366;
         let z = -2988283350644101836;
         assert_eq!(x.wrapping_mul(y), z);
-        assert_eq!(I64::from_i64(x).wrapping_mul(&I64::from_i64(y)), I64::from_i64(z));
+        assert_eq!(
+            I64::from_i64(x).wrapping_mul(&I64::from_i64(y)),
+            I64::from_i64(z)
+        );
 
         let x = -86027672844719838068326470675019902915i128;
         let y = -21188806580823612823777395451044967239i128;
         let z = 11054120842379932838712398402517374997i128;
         assert_eq!(x.wrapping_mul(y), z);
-        assert_eq!(I128::from_i128(x).wrapping_mul(&I128::from_i128(y)), I128::from_i128(z));
+        assert_eq!(
+            I128::from_i128(x).wrapping_mul(&I128::from_i128(y)),
+            I128::from_i128(z)
+        );
     }
 
     #[test]
