@@ -153,20 +153,6 @@ impl<const LIMBS: usize> MulAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
     }
 }
 
-// TODO(lleoha): unfortunately we cannot satisfy this (yet!).
-// impl<const LIMBS: usize, const RHS_LIMBS: usize, const WIDE_LIMBS: usize>
-// ConcatenatingMul<Int<RHS_LIMBS>> for Int<LIMBS>
-// where
-//     Uint<LIMBS>: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
-// {
-//     type Output = Int<WIDE_LIMBS>;
-//
-//     #[inline]
-//     fn concatenating_mul(&self, rhs: Int<RHS_LIMBS>) -> Self::Output {
-//         self.concatenating_mul(&rhs)
-//     }
-// }
-
 #[cfg(test)]
 mod tests {
     use crate::{CheckedMul, ConstChoice, I128, I256, Int, U128, U256, I64};
