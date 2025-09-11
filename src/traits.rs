@@ -181,18 +181,18 @@ pub trait Signed:
     type Unsigned: Unsigned;
 
     /// The sign and magnitude of this [`Signed`].
-    fn abs_sign(&self) -> (Self::Unsigned, ConstChoice);
+    fn abs_sign(&self) -> (Self::Unsigned, Choice);
 
     /// The magnitude of this [`Signed`].
     fn abs(&self) -> Self::Unsigned {
         self.abs_sign().0
     }
 
-    /// Whether this [`Signed`] is negative, as a [`ConstChoice`].
-    fn is_negative(&self) -> ConstChoice;
+    /// Whether this [`Signed`] is negative (and non-zero), as a [`Choice`].
+    fn is_negative(&self) -> Choice;
 
-    /// Whether this [`Signed`] is positive, as a [`ConstChoice`].
-    fn is_positive(&self) -> ConstChoice;
+    /// Whether this [`Signed`] is positive (and non-zero), as a [`Choice`].
+    fn is_positive(&self) -> Choice;
 }
 
 /// Unsigned [`Integer`]s.
