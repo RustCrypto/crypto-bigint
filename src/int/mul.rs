@@ -63,6 +63,14 @@ impl<const LIMBS: usize> Int<LIMBS> {
         // always fits
         Int::from_bits(product_abs.wrapping_neg_if(product_sign))
     }
+
+    /// Multiply `self` by `rhs`, wrapping the result in case of overflow.
+    pub const fn wrapping_mul<const RHS_LIMBS: usize>(&self, rhs: &Int<RHS_LIMBS>) -> Self {
+        let (abs_lhs, lhs_sgn) = self.abs_sign();
+        let (abs_rhs, rhs_sgn) = rhs.abs_sign();
+        let (lo, _) = abs_lhs.widening_mul(&abs_rhs);
+        *lo.wrapping_neg_if(lhs_sgn.xor(rhs_sgn)).as_int()
+    }
 }
 
 /// Squaring operations.
@@ -161,7 +169,7 @@ impl<const LIMBS: usize> MulAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
 
 #[cfg(test)]
 mod tests {
-    use crate::{CheckedMul, ConstChoice, I128, I256, Int, U128, U256};
+    use crate::{CheckedMul, ConstChoice, I128, I256, Int, U128, U256, I64};
 
     #[test]
     #[allow(clippy::init_numbered_fields)]
@@ -254,6 +262,18 @@ mod tests {
 
         let result = I128::MAX.checked_mul(&I128::MAX);
         assert!(bool::from(result.is_none()));
+    }
+
+    #[test]
+    fn test_wrapping_mul() {
+        // wrapping
+        let a = I128::from_be_hex("FFFFFFFB7B63198EF870DF1F90D9BD9E");
+        let b = I128::from_be_hex("F20C29FA87B356AA3B4C05C4F9C24B4A");
+        assert_eq!(a.wrapping_mul(&b), I128::from_be_hex("AA700D354D6CF4EE881F8FF8093A19AC"));
+
+        // no wrapping
+        let c = I64::from_i64(-12345i64);
+        assert_eq!(a.wrapping_mul(&c), I128::from_be_hex("0000D9DEF2248095850866CFEBF727D2"));
     }
 
     #[test]
