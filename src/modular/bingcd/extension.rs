@@ -154,13 +154,13 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     /// Returns self without the extension.
     #[inline]
     pub const fn wrapping_drop_extension(&self) -> (Uint<LIMBS>, ConstChoice) {
-        let (abs, sgn) = self.abs_sgn();
+        let (abs, sgn) = self.abs_sign();
         (abs.0, sgn)
     }
 
     /// Decompose `self` into is absolute value and signum.
     #[inline]
-    pub const fn abs_sgn(&self) -> (ExtendedUint<LIMBS, EXTRA>, ConstChoice) {
+    pub const fn abs_sign(&self) -> (ExtendedUint<LIMBS, EXTRA>, ConstChoice) {
         let is_negative = self.1.as_int().is_negative();
         (
             self.wrapping_neg_if(is_negative).as_extended_uint(),
@@ -173,7 +173,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     /// Panics if `k ≥ UPPER_BOUND`.
     #[inline]
     pub const fn bounded_div_2k<const UPPER_BOUND: u32>(&self, k: u32) -> Self {
-        let (abs, sgn) = self.abs_sgn();
+        let (abs, sgn) = self.abs_sign();
         abs.bounded_shr::<UPPER_BOUND>(k)
             .wrapping_neg_if(sgn)
             .as_extended_int()
@@ -182,7 +182,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     /// Divide self by `2^k`, rounding towards zero.
     #[inline]
     pub const fn div_2k_vartime(&self, k: u32) -> Self {
-        let (abs, sgn) = self.abs_sgn();
+        let (abs, sgn) = self.abs_sign();
         abs.shr_vartime(k).wrapping_neg_if(sgn).as_extended_int()
     }
 }
