@@ -1,6 +1,6 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{Bounded, ConstChoice, Int, Integer, Limb, NonZero, Uint};
+use crate::{Bounded, ConstChoice, Int, Integer, Limb, NonZero, One, Uint};
 use core::{cmp::Ordering, fmt, ops::Deref};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
@@ -156,6 +156,15 @@ impl<T> Deref for Odd<T> {
 
     fn deref(&self) -> &T {
         &self.0
+    }
+}
+
+impl<T> One for Odd<T>
+where
+    T: One,
+{
+    fn one() -> Self {
+        Self(T::one())
     }
 }
 

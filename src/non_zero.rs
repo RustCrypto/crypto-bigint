@@ -1,6 +1,8 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{Bounded, ConstChoice, ConstCtOption, Constants, Encoding, Int, Limb, Odd, Uint, Zero};
+use crate::{
+    Bounded, ConstChoice, ConstCtOption, Constants, Encoding, Int, Limb, Odd, One, Uint, Zero,
+};
 use core::{
     fmt,
     num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128},
@@ -93,6 +95,15 @@ where
     /// Decode from little endian bytes.
     pub fn from_le_bytes(bytes: T::Repr) -> CtOption<Self> {
         Self::new(T::from_le_bytes(bytes))
+    }
+}
+
+impl<T> One for NonZero<T>
+where
+    T: One,
+{
+    fn one() -> Self {
+        Self(T::one())
     }
 }
 

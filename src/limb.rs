@@ -19,7 +19,7 @@ mod sub;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Bounded, ConstCtOption, ConstZero, Constants, NonZero};
+use crate::{Bounded, ConstCtOption, ConstOne, ConstZero, Constants, NonZero};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
@@ -112,7 +112,6 @@ impl Bounded for Limb {
 }
 
 impl Constants for Limb {
-    const ONE: Self = Self::ONE;
     const MAX: Self = Self::MAX;
 }
 
@@ -125,6 +124,10 @@ impl ConditionallySelectable for Limb {
 
 impl ConstZero for Limb {
     const ZERO: Self = Self::ZERO;
+}
+
+impl ConstOne for Limb {
+    const ONE: Self = Self::ONE;
 }
 
 impl num_traits::Zero for Limb {
