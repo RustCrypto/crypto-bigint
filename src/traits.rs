@@ -5,7 +5,7 @@ pub use num_traits::{
     WrappingSub,
 };
 
-use crate::{ConstChoice, Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
+use crate::{Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
 use core::{
     fmt::{self, Debug},
     ops::{
@@ -222,11 +222,6 @@ pub trait Unsigned:
     /// The corresponding Montgomery representation,
     /// optimized for the performance of modular operations at the price of a conversion overhead.
     type Monty: Monty<Integer = Self>;
-
-    /// The value `1` with the same precision as `other`.
-    fn one_like(other: &Self) -> Self {
-        Self::from_limb_like(Limb::ONE, other)
-    }
 
     /// Returns an integer with the first limb set to `limb`, and the same precision as `other`.
     fn from_limb_like(limb: Limb, other: &Self) -> Self;
