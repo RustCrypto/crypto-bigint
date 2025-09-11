@@ -175,6 +175,10 @@ pub trait Integer:
 pub trait Signed:
     Div<NonZero<Self>, Output = CtOption<Self>>
     + for<'a> Div<&'a NonZero<Self>, Output = CtOption<Self>>
+    + From<i8>
+    + From<i16>
+    + From<i32>
+    + From<i64>
     + Integer
 {
     /// Corresponding unsigned integer type.
