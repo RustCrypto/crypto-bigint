@@ -126,6 +126,31 @@ impl<const LIMBS: usize> PatternMatrix<LIMBS> {
         )
     }
 
+    /// Wrapping apply this matrix to `rhs`. Return the result in a [`IntMatrix<RHS_LIMBS>`].
+    #[inline]
+    pub(super) const fn mul_int_matrix<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &IntMatrix<RHS_LIMBS>,
+    ) -> IntMatrix<RHS_LIMBS> {
+        let a0 = rhs.m00.wrapping_mul((&self.m00, &self.pattern.not()));
+        let a1 = rhs.m10.wrapping_mul((&self.m01, &self.pattern));
+        let m00 = a0.wrapping_add(&a1);
+
+        let b0 = rhs.m01.wrapping_mul((&self.m00, &self.pattern.not()));
+        let b1 = rhs.m11.wrapping_mul((&self.m01, &self.pattern));
+        let m01 = b0.wrapping_add(&b1);
+
+        let c0 = rhs.m00.wrapping_mul((&self.m10, &self.pattern));
+        let c1 = rhs.m10.wrapping_mul((&self.m11, &self.pattern.not()));
+        let m10 = c0.wrapping_add(&c1);
+
+        let d0 = rhs.m01.wrapping_mul((&self.m10, &self.pattern));
+        let d1 = rhs.m11.wrapping_mul((&self.m11, &self.pattern.not()));
+        let m11 = d0.wrapping_add(&d1);
+
+        IntMatrix { m00, m01, m10, m11 }
+    }
+
     /// Swap the rows of this matrix if `swap` is truthy. Otherwise, do nothing.
     #[inline]
     pub(crate) const fn conditional_swap_rows(&mut self, swap: ConstChoice) {
@@ -248,6 +273,19 @@ impl<const LIMBS: usize> DividedPatternMatrix<LIMBS> {
     ) -> Vector<ExtendedInt<VEC_LIMBS, LIMBS>> {
         let (a, b) = self.inner.extended_apply_to(vec);
         (a.div_2k_vartime(self.k), b.div_2k_vartime(self.k))
+    }
+
+    /// Multiply `self` with `rhs`. Return the result as a [`DividedIntMatrix<LIMBS>`].
+    #[inline]
+    pub const fn mul_int_matrix<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &DividedIntMatrix<RHS_LIMBS>,
+    ) -> DividedIntMatrix<RHS_LIMBS> {
+        DividedIntMatrix {
+            inner: self.inner.mul_int_matrix(&rhs.inner),
+            k: self.k + rhs.k,
+            k_upper_bound: self.k_upper_bound + rhs.k_upper_bound,
+        }
     }
 
     /// Swap the rows of this matrix if `swap` is truthy. Otherwise, do nothing.
