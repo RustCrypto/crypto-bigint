@@ -5,7 +5,6 @@ pub use num_traits::{
     WrappingSub,
 };
 
-use crate::ConstChoice;
 use crate::{Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
 use core::fmt::{self, Debug};
 use core::ops::{
@@ -1047,58 +1046,3 @@ pub trait MontyMultiplier<'a>: From<&'a <Self::Monty as Monty>::Params> {
     /// Performs a Montgomery squaring, assigning a fully reduced result to `lhs`.
     fn square_assign(&mut self, lhs: &mut Self::Monty);
 }
-
-/// Possible return values for Jacobi symbol calculations.
-#[derive(Debug, Copy, Clone)]
-#[repr(i8)]
-pub enum JacobiSymbol {
-    /// The two arguments are not coprime, they have a common divisor apart from 1.
-    Zero = 0,
-    /// The two arguments are coprime. If the lower argument is prime, then the upper argument
-    /// is quadratic residue modulo the lower argument. Otherwise, the upper argument is known to
-    /// be quadratic nonresidue for an even number of prime factors of the lower argument.
-    One = 1,
-    /// The two terms are coprime, and the upper argument is a quadratic nonresidue modulo the
-    /// lower argument.
-    MinusOne = -1,
-}
-
-impl JacobiSymbol {
-    /// Determine if the symbol is zero.
-    pub const fn is_zero(&self) -> ConstChoice {
-        ConstChoice::from_i64_eq(*self as i8 as i64, 0)
-    }
-
-    /// Determine if the symbol is one.
-    pub const fn is_one(&self) -> ConstChoice {
-        ConstChoice::from_i64_eq(*self as i8 as i64, 1)
-    }
-
-    /// Determine if the symbol is minus one.
-    pub const fn is_minus_one(&self) -> ConstChoice {
-        ConstChoice::from_i64_eq(*self as i8 as i64, -1)
-    }
-
-    pub(crate) const fn from_i8(value: i8) -> Self {
-        match value {
-            0 => Self::Zero,
-            1 => Self::One,
-            -1 => Self::MinusOne,
-            _ => panic!("invalid value for Jacobi symbol"),
-        }
-    }
-}
-
-impl ConstantTimeEq for JacobiSymbol {
-    fn ct_eq(&self, other: &Self) -> Choice {
-        (*self as i8).ct_eq(&(*other as i8))
-    }
-}
-
-impl PartialEq for JacobiSymbol {
-    fn eq(&self, other: &Self) -> bool {
-        bool::from(self.ct_eq(other))
-    }
-}
-
-impl Eq for JacobiSymbol {}
