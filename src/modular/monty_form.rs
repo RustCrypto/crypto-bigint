@@ -101,6 +101,16 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
         &self.modulus
     }
 
+    /// 1 in Montgomery form (a.k.a. `R`).
+    pub const fn one(&self) -> &Uint<LIMBS> {
+        &self.one
+    }
+
+    /// `R^2 mod modulus`, used to move into Montgomery form.
+    pub const fn r2(&self) -> &Uint<LIMBS> {
+        &self.r2
+    }
+
     /// Returns the modulus which was used to initialize these parameters.
     #[inline(always)]
     pub(crate) const fn mod_neg_inv(&self) -> Limb {
