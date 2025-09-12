@@ -1,7 +1,85 @@
 use crate::modular::bingcd::extension::ExtendedInt;
 use crate::{ConstChoice, Uint};
 
+pub trait Unit: Sized {
+    /// The unit matrix.
+    const UNIT: Self;
+}
+
 type Vector<T> = (T, T);
+
+/// [`Int`] with an extra limb.
+type ExtraLimbInt<const LIMBS: usize> = ExtendedInt<LIMBS, 1>;
+
+/// 2x2-Matrix with integers for elements.
+///
+/// ### Representation
+/// The internal state represents the matrix
+/// ```text
+/// [ m00  m01 ]
+/// [ m10  m11 ]
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct IntMatrix<const LIMBS: usize> {
+    m00: ExtraLimbInt<LIMBS>,
+    m01: ExtraLimbInt<LIMBS>,
+    m10: ExtraLimbInt<LIMBS>,
+    m11: ExtraLimbInt<LIMBS>,
+}
+
+impl<const LIMBS: usize> Unit for IntMatrix<LIMBS> {
+    const UNIT: Self = Self {
+        m00: ExtraLimbInt::ONE,
+        m01: ExtraLimbInt::ZERO,
+        m10: ExtraLimbInt::ZERO,
+        m11: ExtraLimbInt::ONE,
+    };
+}
+
+impl<const LIMBS: usize> IntMatrix<LIMBS> {
+    /// Negate the top row of this matrix if `negate`; otherwise do nothing.
+    pub(super) const fn conditional_negate_top_row(&mut self, negate: ConstChoice) {
+        self.m00 = self.m00.wrapping_neg_if(negate);
+        self.m01 = self.m01.wrapping_neg_if(negate);
+    }
+
+    /// Negate the bottom row of this matrix if `negate`; otherwise do nothing.
+    pub(super) const fn conditional_negate_bottom_row(&mut self, negate: ConstChoice) {
+        self.m10 = self.m10.wrapping_neg_if(negate);
+        self.m11 = self.m11.wrapping_neg_if(negate);
+    }
+
+    pub(super) const fn to_pattern_matrix(self) -> PatternMatrix<LIMBS> {
+        let (abs_m00, m00_is_negative) = self.m00.abs_sign();
+        let (abs_m01, m01_is_negative) = self.m01.abs_sign();
+        let (abs_m10, m10_is_negative) = self.m10.abs_sign();
+        let (abs_m11, m11_is_negative) = self.m11.abs_sign();
+
+        // Construct the pattern.
+        let m00_is_zero = abs_m00.is_zero();
+        let m01_is_zero = abs_m01.is_zero();
+        let pattern_vote_1 = m00_is_zero.not().and(m00_is_negative.not());
+        let pattern_vote_2 = m01_is_zero.not().and(m01_is_negative);
+
+        let m00_and_m01_are_zero = m00_is_zero.and(m01_is_zero);
+        let m10_is_zero = abs_m10.is_zero();
+        let m11_is_zero = abs_m11.is_zero();
+        let pattern_vote_3 = m00_and_m01_are_zero.and(m10_is_zero.not().and(m10_is_negative));
+        let pattern_vote_4 = m00_and_m01_are_zero.and(m11_is_zero.not().and(m11_is_negative.not()));
+        let pattern = pattern_vote_1
+            .or(pattern_vote_2)
+            .or(pattern_vote_3)
+            .or(pattern_vote_4);
+
+        PatternMatrix {
+            m00: abs_m00.checked_drop_extension().expect("m00 fits"),
+            m01: abs_m01.checked_drop_extension().expect("m01 fits"),
+            m10: abs_m10.checked_drop_extension().expect("m10 fits"),
+            m11: abs_m11.checked_drop_extension().expect("m11 fits"),
+            pattern,
+        }
+    }
+}
 
 /// 2x2-Matrix where either the diagonal or off-diagonal elements are negative.
 ///
@@ -46,6 +124,31 @@ impl<const LIMBS: usize> PatternMatrix<LIMBS> {
             m00a.wrapping_sub(&m01b).wrapping_neg_if(self.pattern.not()),
             m11b.wrapping_sub(&m10a).wrapping_neg_if(self.pattern.not()),
         )
+    }
+
+    /// Wrapping apply this matrix to `rhs`. Return the result in a [`IntMatrix<RHS_LIMBS>`].
+    #[inline]
+    pub(super) const fn mul_int_matrix<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &IntMatrix<RHS_LIMBS>,
+    ) -> IntMatrix<RHS_LIMBS> {
+        let a0 = rhs.m00.wrapping_mul((&self.m00, &self.pattern.not()));
+        let a1 = rhs.m10.wrapping_mul((&self.m01, &self.pattern));
+        let m00 = a0.wrapping_add(&a1);
+
+        let b0 = rhs.m01.wrapping_mul((&self.m00, &self.pattern.not()));
+        let b1 = rhs.m11.wrapping_mul((&self.m01, &self.pattern));
+        let m01 = b0.wrapping_add(&b1);
+
+        let c0 = rhs.m00.wrapping_mul((&self.m10, &self.pattern));
+        let c1 = rhs.m10.wrapping_mul((&self.m11, &self.pattern.not()));
+        let m10 = c0.wrapping_add(&c1);
+
+        let d0 = rhs.m01.wrapping_mul((&self.m10, &self.pattern));
+        let d1 = rhs.m11.wrapping_mul((&self.m11, &self.pattern.not()));
+        let m11 = d0.wrapping_add(&d1);
+
+        IntMatrix { m00, m01, m10, m11 }
     }
 
     /// Swap the rows of this matrix if `swap` is truthy. Otherwise, do nothing.
@@ -93,18 +196,30 @@ impl<const LIMBS: usize> PatternMatrix<LIMBS> {
         self.m11 = Uint::select(&self.m11, &self.m11.overflowing_shl1().0, double);
     }
 
-    /// Double the bottom row of this matrix if `double` is truthy. Otherwise, do nothing.
-    #[inline]
-    pub(crate) const fn double_bottom_row(&mut self) {
-        self.m10 = self.m10.overflowing_shl1().0;
-        self.m11 = self.m11.overflowing_shl1().0;
-    }
-
     /// Negate the elements in this matrix if `negate` is truthy. Otherwise, do nothing.
     #[inline]
     pub(crate) const fn conditional_negate(&mut self, negate: ConstChoice) {
         self.pattern = self.pattern.xor(negate);
     }
+}
+
+/// A matrix whose elements still need to be divided by `2^k`.
+///
+/// Since some of the operations conditionally increase `k`, this struct furthermore keeps track of
+/// `k_upper_bound`; an upper bound on the value of `k`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct DividedMatrix<const LIMBS: usize, MATRIX: Unit> {
+    pub(super) inner: MATRIX,
+    pub k: u32,
+    pub k_upper_bound: u32,
+}
+
+impl<const LIMBS: usize, Matrix: Unit> Unit for DividedMatrix<LIMBS, Matrix> {
+    const UNIT: Self = Self {
+        inner: Matrix::UNIT,
+        k: 0,
+        k_upper_bound: 0,
+    };
 }
 
 /// Variation on [`PatternMatrix`], where the contents of the matrix need to be divided by
@@ -160,6 +275,19 @@ impl<const LIMBS: usize> DividedPatternMatrix<LIMBS> {
         (a.div_2k_vartime(self.k), b.div_2k_vartime(self.k))
     }
 
+    /// Multiply `self` with `rhs`. Return the result as a [`DividedIntMatrix<LIMBS>`].
+    #[inline]
+    pub const fn mul_int_matrix<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &DividedIntMatrix<RHS_LIMBS>,
+    ) -> DividedIntMatrix<RHS_LIMBS> {
+        DividedIntMatrix {
+            inner: self.inner.mul_int_matrix(&rhs.inner),
+            k: self.k + rhs.k,
+            k_upper_bound: self.k_upper_bound + rhs.k_upper_bound,
+        }
+    }
+
     /// Swap the rows of this matrix if `swap` is truthy. Otherwise, do nothing.
     #[inline]
     pub const fn conditional_swap_rows(&mut self, swap: ConstChoice) {
@@ -186,13 +314,27 @@ impl<const LIMBS: usize> DividedPatternMatrix<LIMBS> {
         self.k = double.select_u32(self.k, self.k + 1);
         self.k_upper_bound += 1;
     }
+}
 
-    /// Double the bottom row of this matrix if `double` is truthy. Otherwise, do nothing.
-    #[inline]
-    pub const fn double_bottom_row(&mut self) {
-        self.inner.double_bottom_row();
-        self.k += 1;
-        self.k_upper_bound += 1;
+pub(crate) type DividedIntMatrix<const LIMBS: usize> = DividedMatrix<LIMBS, IntMatrix<LIMBS>>;
+
+impl<const LIMBS: usize> DividedIntMatrix<LIMBS> {
+    /// Negate the top row of this matrix if `negate`; otherwise do nothing.
+    pub(super) const fn conditional_negate_top_row(&mut self, negate: ConstChoice) {
+        self.inner.conditional_negate_top_row(negate);
+    }
+
+    /// Negate the bottom row of this matrix if `negate`; otherwise do nothing.
+    pub(super) const fn conditional_negate_bottom_row(&mut self, negate: ConstChoice) {
+        self.inner.conditional_negate_bottom_row(negate);
+    }
+
+    pub(super) const fn to_divided_pattern_matrix(self) -> DividedPatternMatrix<LIMBS> {
+        DividedPatternMatrix {
+            inner: self.inner.to_pattern_matrix(),
+            k: self.k,
+            k_upper_bound: self.k_upper_bound,
+        }
     }
 }
 
@@ -244,11 +386,11 @@ mod tests {
 
         let (a_, b_) = matrix.extended_apply_to::<{ U64::LIMBS }, 18>((a, b));
         assert_eq!(
-            a_.wrapping_drop_extension().0,
+            a_.dropped_abs_sign().0,
             Uint::from_be_hex("002AC7CDD032B9B9")
         );
         assert_eq!(
-            b_.wrapping_drop_extension().0,
+            b_.dropped_abs_sign().0,
             Uint::from_be_hex("006CFBCEE172C863")
         );
     }
