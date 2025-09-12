@@ -6,10 +6,13 @@ pub use num_traits::{
 };
 
 use crate::{Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
-use core::fmt::{self, Debug};
-use core::ops::{
-    Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign,
-    Mul, MulAssign, Neg, Not, Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
+use core::{
+    fmt::{self, Debug},
+    ops::{
+        Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div,
+        DivAssign, Mul, MulAssign, Neg, Not, Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub,
+        SubAssign,
+    },
 };
 use subtle::{
     Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
@@ -81,7 +84,6 @@ pub trait Integer:
     + for<'a> Add<&'a Self, Output = Self>
     + AddAssign<Self>
     + for<'a> AddAssign<&'a Self>
-    + AddMod<Output = Self>
     + AsRef<[Limb]>
     + BitAnd<Output = Self>
     + for<'a> BitAnd<&'a Self, Output = Self>
@@ -95,7 +97,6 @@ pub trait Integer:
     + for<'a> BitXor<&'a Self, Output = Self>
     + BitXorAssign
     + for<'a> BitXorAssign<&'a Self>
-    + BitOps
     + CheckedAdd
     + CheckedSub
     + CheckedMul
@@ -107,26 +108,16 @@ pub trait Integer:
     + ConstantTimeSelect
     + Debug
     + Default
-    + Div<NonZero<Self>, Output = Self>
-    + for<'a> Div<&'a NonZero<Self>, Output = Self>
     + DivAssign<NonZero<Self>>
     + for<'a> DivAssign<&'a NonZero<Self>>
-    + DivRemLimb
     + Eq
     + fmt::LowerHex
     + fmt::UpperHex
     + fmt::Binary
-    + From<u8>
-    + From<u16>
-    + From<u32>
-    + From<u64>
-    + From<Limb>
     + Mul<Output = Self>
     + for<'a> Mul<&'a Self, Output = Self>
     + MulAssign<Self>
     + for<'a> MulAssign<&'a Self>
-    + MulMod<Output = Self>
-    + NegMod<Output = Self>
     + Not<Output = Self>
     + One
     + Ord
@@ -134,7 +125,6 @@ pub trait Integer:
     + for<'a> Rem<&'a NonZero<Self>, Output = Self>
     + RemAssign<NonZero<Self>>
     + for<'a> RemAssign<&'a NonZero<Self>>
-    + RemLimb
     + Send
     + Sized
     + Shl<u32, Output = Self>
@@ -143,14 +133,11 @@ pub trait Integer:
     + Shr<u32, Output = Self>
     + ShrAssign<u32>
     + ShrVartime
-    + SquareMod<Output = Self>
     + Sub<Output = Self>
     + for<'a> Sub<&'a Self, Output = Self>
     + SubAssign<Self>
     + for<'a> SubAssign<&'a Self>
-    + SubMod<Output = Self>
     + Sync
-    + SquareRoot
     + WrappingAdd
     + WrappingSub
     + WrappingMul
@@ -159,13 +146,6 @@ pub trait Integer:
     + WrappingShr
     + Zero
 {
-    /// The corresponding Montgomery representation,
-    /// optimized for the performance of modular operations at the price of a conversion overhead.
-    type Monty: Monty<Integer = Self>;
-
-    /// Returns an integer with the first limb set to `limb`, and the same precision as `other`.
-    fn from_limb_like(limb: Limb, other: &Self) -> Self;
-
     /// Number of limbs in this integer.
     fn nlimbs(&self) -> usize;
 
@@ -191,14 +171,61 @@ pub trait Integer:
     }
 }
 
-/// Signed integers.
-pub trait Signed: Integer {
+/// Signed [`Integer`]s.
+pub trait Signed:
+    Div<NonZero<Self>, Output = CtOption<Self>>
+    + for<'a> Div<&'a NonZero<Self>, Output = CtOption<Self>>
+    + From<i8>
+    + From<i16>
+    + From<i32>
+    + From<i64>
+    + Integer
+{
     /// Corresponding unsigned integer type.
     type Unsigned: Unsigned;
+
+    /// The sign and magnitude of this [`Signed`].
+    fn abs_sign(&self) -> (Self::Unsigned, Choice);
+
+    /// The magnitude of this [`Signed`].
+    fn abs(&self) -> Self::Unsigned {
+        self.abs_sign().0
+    }
+
+    /// Whether this [`Signed`] is negative (and non-zero), as a [`Choice`].
+    fn is_negative(&self) -> Choice;
+
+    /// Whether this [`Signed`] is positive (and non-zero), as a [`Choice`].
+    fn is_positive(&self) -> Choice;
 }
 
-/// Unsigned integers.
-pub trait Unsigned: Integer {}
+/// Unsigned [`Integer`]s.
+pub trait Unsigned:
+    AddMod<Output = Self>
+    + BitOps
+    + Div<NonZero<Self>, Output = Self>
+    + for<'a> Div<&'a NonZero<Self>, Output = Self>
+    + DivRemLimb
+    + From<u8>
+    + From<u16>
+    + From<u32>
+    + From<u64>
+    + From<Limb>
+    + Integer
+    + MulMod<Output = Self>
+    + NegMod<Output = Self>
+    + RemLimb
+    + SquareRoot
+    + SquareMod<Output = Self>
+    + SubMod<Output = Self>
+{
+    /// The corresponding Montgomery representation,
+    /// optimized for the performance of modular operations at the price of a conversion overhead.
+    type Monty: Monty<Integer = Self>;
+
+    /// Returns an integer with the first limb set to `limb`, and the same precision as `other`.
+    fn from_limb_like(limb: Limb, other: &Self) -> Self;
+}
 
 /// Zero values: additive identity element for `Self`.
 pub trait Zero: ConstantTimeEq + Sized {
@@ -270,7 +297,7 @@ pub trait Constants: ConstZero + ConstOne {
     const MAX: Self;
 }
 
-/// Fixed-width integers.
+/// Fixed-width [`Integer`]s.
 pub trait FixedInteger: Bounded + ConditionallySelectable + Constants + Copy + Integer {
     /// The number of limbs used on this platform.
     const LIMBS: usize;
@@ -976,7 +1003,7 @@ pub trait Monty:
     + SquareAssign
 {
     /// The original integer type.
-    type Integer: Integer<Monty = Self>;
+    type Integer: Unsigned<Monty = Self>;
 
     /// Prepared Montgomery multiplier for tight loops.
     type Multiplier<'a>: Debug + Clone + MontyMultiplier<'a, Monty = Self>;

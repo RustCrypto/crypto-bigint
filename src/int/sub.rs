@@ -60,6 +60,18 @@ impl<const LIMBS: usize> Sub<&Int<LIMBS>> for Int<LIMBS> {
     }
 }
 
+impl<const LIMBS: usize> SubAssign<Int<LIMBS>> for Int<LIMBS> {
+    fn sub_assign(&mut self, rhs: Int<LIMBS>) {
+        *self = self.sub(&rhs)
+    }
+}
+
+impl<const LIMBS: usize> SubAssign<&Int<LIMBS>> for Int<LIMBS> {
+    fn sub_assign(&mut self, rhs: &Int<LIMBS>) {
+        *self = self.sub(rhs)
+    }
+}
+
 impl<const LIMBS: usize> SubAssign for Wrapping<Int<LIMBS>> {
     fn sub_assign(&mut self, other: Self) {
         *self = *self - other;

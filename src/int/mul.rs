@@ -147,6 +147,18 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Int<RHS_LIMBS>> for &Int<L
     }
 }
 
+impl<const LIMBS: usize, const RHS_LIMBS: usize> MulAssign<Int<RHS_LIMBS>> for Int<LIMBS> {
+    fn mul_assign(&mut self, rhs: Int<RHS_LIMBS>) {
+        *self = self.mul(&rhs)
+    }
+}
+
+impl<const LIMBS: usize, const RHS_LIMBS: usize> MulAssign<&Int<RHS_LIMBS>> for Int<LIMBS> {
+    fn mul_assign(&mut self, rhs: &Int<RHS_LIMBS>) {
+        *self = self.mul(rhs)
+    }
+}
+
 impl<const LIMBS: usize> MulAssign<Checked<Int<LIMBS>>> for Checked<Int<LIMBS>> {
     fn mul_assign(&mut self, other: Checked<Int<LIMBS>>) {
         *self = *self * other;
