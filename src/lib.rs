@@ -186,8 +186,8 @@ pub use crate::uint::boxed::BoxedUint;
 pub use crate::{
     checked::Checked,
     const_choice::{ConstChoice, ConstCtOption},
-    int::types::*,
-    int::*,
+    int::{types::*, *},
+    jacobi::JacobiSymbol,
     limb::{Limb, WideWord, Word},
     non_zero::*,
     odd::*,
@@ -206,6 +206,7 @@ mod array;
 mod checked;
 mod const_choice;
 mod int;
+mod jacobi;
 mod limb;
 mod non_zero;
 mod odd;
