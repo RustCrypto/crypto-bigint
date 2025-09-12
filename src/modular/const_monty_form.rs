@@ -15,7 +15,7 @@ use super::{
     div_by_2::div_by_2,
     reduction::{montgomery_reduction, montgomery_retrieve},
 };
-use crate::{ConstChoice, ConstZero, Uint};
+use crate::{ConstChoice, ConstOne, ConstZero, One, Uint, Zero};
 use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
@@ -175,6 +175,13 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstZero for ConstMontyF
     const ZERO: Self = Self::ZERO;
 }
 
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Zero for ConstMontyForm<MOD, LIMBS> {
+    #[inline(always)]
+    fn zero() -> Self {
+        Self::ZERO
+    }
+}
+
 impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> num_traits::Zero
     for ConstMontyForm<MOD, LIMBS>
 {
@@ -184,6 +191,29 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> num_traits::Zero
 
     fn is_zero(&self) -> bool {
         self.ct_eq(&Self::ZERO).into()
+    }
+}
+
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstOne for ConstMontyForm<MOD, LIMBS> {
+    const ONE: Self = Self::ONE;
+}
+
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> One for ConstMontyForm<MOD, LIMBS> {
+    #[inline(always)]
+    fn one() -> Self {
+        Self::ONE
+    }
+}
+
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> num_traits::One
+    for ConstMontyForm<MOD, LIMBS>
+{
+    fn one() -> Self {
+        Self::ONE
+    }
+
+    fn is_one(&self) -> bool {
+        self.ct_eq(&Self::ONE).into()
     }
 }
 
