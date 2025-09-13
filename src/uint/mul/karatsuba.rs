@@ -22,7 +22,7 @@ use super::{uint_mul_limbs, uint_square_limbs};
 use crate::{ConstChoice, Limb, Uint};
 
 #[cfg(feature = "alloc")]
-use super::{schoolbook, square_limbs};
+use super::square_limbs;
 #[cfg(feature = "alloc")]
 use crate::{WideWord, Word};
 
@@ -189,7 +189,7 @@ pub(crate) fn karatsuba_mul_limbs(
     };
     if size <= KARATSUBA_MAX_REDUCE_LIMBS {
         out.fill(Limb::ZERO);
-        schoolbook::carrying_add_mul(lhs, rhs, out);
+        carrying_add_mul_limbs(lhs, rhs, out);
         return;
     }
     if lhs.len() + rhs.len() != out.len() || scratch.len() < 2 * size {
@@ -278,11 +278,11 @@ pub(crate) fn karatsuba_mul_limbs(
 
     // Handle trailing limbs
     if !xt.is_empty() {
-        schoolbook::carrying_add_mul(xt, rhs, &mut out[size..]);
+        carrying_add_mul_limbs(xt, rhs, &mut out[size..]);
     }
     if !yt.is_empty() {
         let end_pos = 2 * size + yt.len();
-        carry = schoolbook::carrying_add_mul(yt, x, &mut out[size..end_pos]);
+        carry = carrying_add_mul_limbs(yt, x, &mut out[size..end_pos]);
         i = end_pos;
         while i < out.len() {
             (out[i], carry) = out[i].carrying_add(Limb::ZERO, carry);
@@ -385,6 +385,34 @@ fn conditional_wrapping_neg_assign(limbs: &mut [Limb], choice: ConstChoice) {
         carry = r >> Word::BITS;
         i += 1;
     }
+}
+
+/// Add the schoolbook product of two limb slices to a limb slice, returning the carry.
+#[cfg(feature = "alloc")]
+fn carrying_add_mul_limbs(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) -> Limb {
+    if lhs.len() + rhs.len() != out.len() {
+        panic!("carrying_add_mul_limbs length mismatch");
+    }
+
+    let mut carry = Limb::ZERO;
+    let mut i = 0;
+    while i < lhs.len() {
+        let mut j = 0;
+        let mut carry2 = Limb::ZERO;
+        let xi = lhs[i];
+
+        while j < rhs.len() {
+            let k = i + j;
+            (out[k], carry2) = xi.carrying_mul_add(rhs[j], out[k], carry2);
+            j += 1;
+        }
+
+        carry = carry.wrapping_add(carry2);
+        (out[i + j], carry) = out[i + j].carrying_add(Limb::ZERO, carry);
+        i += 1;
+    }
+
+    carry
 }
 
 impl_uint_karatsuba_multiplication!(128, 64, 32, 16, 8);
