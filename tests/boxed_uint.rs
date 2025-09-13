@@ -208,6 +208,39 @@ proptest! {
     }
 
     #[test]
+    fn widening_square(a in uint()) {
+        let a_bi = to_biguint(&a);
+
+        let expected = a_bi.pow(2);
+        let actual = a.square();
+
+        prop_assert_eq!(expected, to_biguint(&actual));
+    }
+
+    #[test]
+    fn wrapping_mul(a in uint(), b in uint()) {
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+
+        let cap = BigUint::from(2u32).pow(a.bits_precision());
+        let expected = (a_bi * b_bi) % cap;
+        let actual = a.wrapping_mul(&b);
+
+        prop_assert_eq!(expected, to_biguint(&actual));
+    }
+
+    #[test]
+    fn wrapping_square(a in uint()) {
+        let a_bi = to_biguint(&a);
+
+        let cap = BigUint::from(2u32).pow(a.bits_precision());
+        let expected = a_bi.pow(2) % cap;
+        let actual = a.wrapping_square();
+
+        prop_assert_eq!(expected, to_biguint(&actual));
+    }
+
+    #[test]
     fn rem((a, b) in uint_pair()) {
         if bool::from(!b.is_zero()) {
             let a_bi = to_biguint(&a);

@@ -222,19 +222,31 @@ mod tests {
     #[cfg(feature = "rand_core")]
     #[test]
     fn mul_cmp() {
-        use crate::RandomBits;
+        use crate::{RandomBits, Resize};
         use rand_core::SeedableRng;
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
 
         for _ in 0..50 {
             let a = BoxedUint::random_bits(&mut rng, 4096);
             assert_eq!(a.mul(&a), a.square(), "a = {a}");
+            assert_eq!(a.wrapping_mul(&a), a.wrapping_square(), "a = {a}");
         }
 
         for _ in 0..50 {
             let a = BoxedUint::random_bits(&mut rng, 4096);
             let b = BoxedUint::random_bits(&mut rng, 5000);
-            assert_eq!(a.mul(&b), b.mul(&a), "a={a}, b={b}");
+            let expect = a.mul(&b);
+            assert_eq!(b.mul(&a), expect, "a={a}, b={b}");
+            assert_eq!(
+                a.wrapping_mul(&b),
+                expect.clone().resize_unchecked(a.bits_precision()),
+                "a={a}, b={b}"
+            );
+            assert_eq!(
+                b.wrapping_mul(&a),
+                expect.clone().resize_unchecked(b.bits_precision()),
+                "a={a}, b={b}"
+            );
         }
     }
 }

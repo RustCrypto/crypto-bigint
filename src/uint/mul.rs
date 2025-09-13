@@ -313,6 +313,7 @@ mod tests {
                 let expected = U64::from_u64(a_int as u64 * b_int as u64);
                 assert_eq!(lo, expected);
                 assert!(bool::from(hi.is_zero()));
+                assert_eq!(lo, U64::from_u32(a_int).wrapping_mul(&U64::from_u32(b_int)));
             }
         }
     }
@@ -335,8 +336,26 @@ mod tests {
     fn mul_concat_mixed() {
         let a = U64::from_u64(0x0011223344556677);
         let b = U128::from_u128(0x8899aabbccddeeff_8899aabbccddeeff);
-        assert_eq!(a.concatenating_mul(&b), U192::from(&a).saturating_mul(&b));
-        assert_eq!(b.concatenating_mul(&a), U192::from(&b).saturating_mul(&a));
+        let expected = U192::from(&b).saturating_mul(&a);
+        assert_eq!(a.concatenating_mul(&b), expected);
+        assert_eq!(b.concatenating_mul(&a), expected);
+    }
+
+    #[test]
+    fn wrapping_mul_even() {
+        assert_eq!(U64::ZERO.wrapping_mul(&U64::MAX), U64::ZERO);
+        assert_eq!(U64::MAX.wrapping_mul(&U64::ZERO), U64::ZERO);
+        assert_eq!(U64::MAX.wrapping_mul(&U64::MAX), U64::ONE);
+        assert_eq!(U64::ONE.wrapping_mul(&U64::MAX), U64::MAX);
+    }
+
+    #[test]
+    fn wrapping_mul_mixed() {
+        let a = U64::from_u64(0x0011223344556677);
+        let b = U128::from_u128(0x8899aabbccddeeff_8899aabbccddeeff);
+        let expected = U192::from(&b).saturating_mul(&a);
+        assert_eq!(b.wrapping_mul(&a), expected.resize());
+        assert_eq!(a.wrapping_mul(&b), expected.resize());
     }
 
     #[test]
