@@ -87,7 +87,7 @@ pub const fn wrapping_mul(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) {
 
         while k < lhs.len() {
             let j = k - i;
-            if k == rhs.len() {
+            if j == rhs.len() {
                 out[k] = carry;
                 break;
             }
