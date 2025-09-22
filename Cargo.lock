@@ -302,9 +302,9 @@ checksum = "bcaaec4551594c969335c98c903c1397853d4198408ea609190f420500f6be71"
 
 [[package]]
 name = "hybrid-array"
-version = "0.4.1"
+version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7116c472cf19838450b1d421b4e842569f52b519d640aee9ace1ebcf5b21051"
+checksum = "4a09fa0190457fce307a699c050054974f81b6975b7a017f1e784eb7d9c2d4bc"
 dependencies = [
  "typenum",
 ]
