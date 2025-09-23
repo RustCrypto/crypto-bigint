@@ -244,14 +244,27 @@ proptest! {
     }
 
     #[test]
-    fn wrapping_mul(a in uint(), b in uint()) {
+    fn wrapping_mul(a in uint(), b in uint_large()) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
 
-        let expected = to_uint(a_bi * b_bi);
-        let actual = a.wrapping_mul(&b);
+        let expected_a = to_uint(&a_bi * &b_bi);
+        let expected_b = to_uint_large(b_bi * a_bi);
+        let actual_a = a.wrapping_mul(&b);
+        let actual_b = b.wrapping_mul(&a);
 
-        prop_assert_eq!(expected, actual);
+        prop_assert_eq!(expected_a, actual_a);
+        prop_assert_eq!(expected_b, actual_b);
+    }
+
+    #[test]
+    fn wrapping_square(a in uint()) {
+        let a_bi = to_biguint(&a);
+
+        let expected = to_uint(&a_bi * &a_bi);
+        let actual = a.wrapping_square();
+
+        assert_eq!(expected, actual);
     }
 
     #[test]
@@ -292,7 +305,6 @@ proptest! {
 
         assert_eq!(expected, actual);
     }
-
 
     #[test]
     fn square_large(a in uint_large()) {

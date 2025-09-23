@@ -12,124 +12,7 @@ use crate::{
 use self::karatsuba::UintKaratsubaMul;
 
 pub(crate) mod karatsuba;
-
-/// Schoolbook multiplication a.k.a. long multiplication, i.e. the traditional method taught in
-/// schools.
-///
-/// The most efficient method for small numbers.
-#[inline(always)]
-const fn schoolbook_multiplication(lhs: &[Limb], rhs: &[Limb], lo: &mut [Limb], hi: &mut [Limb]) {
-    if lhs.len() != lo.len() || rhs.len() != hi.len() {
-        panic!("schoolbook multiplication length mismatch");
-    }
-
-    let mut i = 0;
-    while i < lhs.len() {
-        let mut j = 0;
-        let mut carry = Limb::ZERO;
-        let xi = lhs[i];
-
-        while j < rhs.len() {
-            let k = i + j;
-
-            if k >= lhs.len() {
-                (hi[k - lhs.len()], carry) = xi.carrying_mul_add(rhs[j], hi[k - lhs.len()], carry);
-            } else {
-                (lo[k], carry) = xi.carrying_mul_add(rhs[j], lo[k], carry);
-            }
-
-            j += 1;
-        }
-
-        if i + j >= lhs.len() {
-            hi[i + j - lhs.len()] = carry;
-        } else {
-            lo[i + j] = carry;
-        }
-        i += 1;
-    }
-}
-
-/// Schoolbook method of squaring.
-///
-/// Like schoolbook multiplication, but only considering half of the multiplication grid.
-#[inline(always)]
-pub(crate) const fn schoolbook_squaring(limbs: &[Limb], lo: &mut [Limb], hi: &mut [Limb]) {
-    // Translated from https://github.com/ucbrise/jedi-pairing/blob/c4bf151/include/core/bigint.hpp#L410
-    //
-    // Permission to relicense the resulting translation as Apache 2.0 + MIT was given
-    // by the original author Sam Kumar: https://github.com/RustCrypto/crypto-bigint/pull/133#discussion_r1056870411
-
-    if limbs.len() != lo.len() || lo.len() != hi.len() {
-        panic!("schoolbook squaring length mismatch");
-    }
-
-    let mut i = 1;
-    while i < limbs.len() {
-        let mut j = 0;
-        let mut carry = Limb::ZERO;
-        let xi = limbs[i];
-
-        while j < i {
-            let k = i + j;
-
-            if k >= limbs.len() {
-                (hi[k - limbs.len()], carry) =
-                    xi.carrying_mul_add(limbs[j], hi[k - limbs.len()], carry);
-            } else {
-                (lo[k], carry) = xi.carrying_mul_add(limbs[j], lo[k], carry);
-            }
-
-            j += 1;
-        }
-
-        if (2 * i) < limbs.len() {
-            lo[2 * i] = carry;
-        } else {
-            hi[2 * i - limbs.len()] = carry;
-        }
-
-        i += 1;
-    }
-
-    // Double the current result, this accounts for the other half of the multiplication grid.
-    // The top word is empty, so we use a special purpose shl.
-    let mut carry = Limb::ZERO;
-    let mut i = 0;
-    while i < limbs.len() {
-        (lo[i].0, carry) = ((lo[i].0 << 1) | carry.0, lo[i].shr(Limb::BITS - 1));
-        i += 1;
-    }
-
-    let mut i = 0;
-    while i < limbs.len() - 1 {
-        (hi[i].0, carry) = ((hi[i].0 << 1) | carry.0, hi[i].shr(Limb::BITS - 1));
-        i += 1;
-    }
-    hi[limbs.len() - 1] = carry;
-
-    // Handle the diagonal of the multiplication grid, which finishes the multiplication grid.
-    let mut carry = Limb::ZERO;
-    let mut i = 0;
-    while i < limbs.len() {
-        let xi = limbs[i];
-        if (i * 2) < limbs.len() {
-            (lo[i * 2], carry) = xi.carrying_mul_add(xi, lo[i * 2], carry);
-        } else {
-            (hi[i * 2 - limbs.len()], carry) =
-                xi.carrying_mul_add(xi, hi[i * 2 - limbs.len()], carry);
-        }
-
-        if (i * 2 + 1) < limbs.len() {
-            (lo[i * 2 + 1], carry) = lo[i * 2 + 1].overflowing_add(carry);
-        } else {
-            (hi[i * 2 + 1 - limbs.len()], carry) =
-                hi[i * 2 + 1 - limbs.len()].overflowing_add(carry);
-        }
-
-        i += 1;
-    }
-}
+pub(crate) mod schoolbook;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
@@ -184,8 +67,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform wrapping multiplication, discarding overflow.
-    pub const fn wrapping_mul<const H: usize>(&self, rhs: &Uint<H>) -> Self {
-        self.widening_mul(rhs).0
+    pub const fn wrapping_mul<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> Self {
+        // A single special case that is faster for now
+        if LIMBS == RHS_LIMBS && LIMBS == 128 {
+            return self.widening_mul(rhs).0;
+        }
+
+        let mut lo = Uint::ZERO;
+        schoolbook::wrapping_mul(&self.limbs, &rhs.limbs, &mut lo.limbs);
+        lo
     }
 
     /// Perform saturating multiplication, returning `MAX` on overflow.
@@ -229,7 +119,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Perform wrapping square, discarding overflow.
     pub const fn wrapping_square(&self) -> Uint<LIMBS> {
-        self.square_wide().0
+        let mut lo = Uint::ZERO;
+        schoolbook::wrapping_square(&self.limbs, &mut lo.limbs);
+        lo
     }
 
     /// Perform saturating squaring, returning `MAX` on overflow.
@@ -366,9 +258,9 @@ pub(crate) const fn uint_mul_limbs<const LIMBS: usize, const RHS_LIMBS: usize>(
     rhs: &[Limb],
 ) -> (Uint<LIMBS>, Uint<RHS_LIMBS>) {
     debug_assert!(lhs.len() == LIMBS && rhs.len() == RHS_LIMBS);
-    let mut lo: Uint<LIMBS> = Uint::<LIMBS>::ZERO;
+    let mut lo = Uint::<LIMBS>::ZERO;
     let mut hi = Uint::<RHS_LIMBS>::ZERO;
-    schoolbook_multiplication(lhs, rhs, &mut lo.limbs, &mut hi.limbs);
+    schoolbook::mul_wide(lhs, rhs, &mut lo.limbs, &mut hi.limbs);
     (lo, hi)
 }
 
@@ -379,7 +271,7 @@ pub(crate) const fn uint_square_limbs<const LIMBS: usize>(
 ) -> (Uint<LIMBS>, Uint<LIMBS>) {
     let mut lo = Uint::<LIMBS>::ZERO;
     let mut hi = Uint::<LIMBS>::ZERO;
-    schoolbook_squaring(limbs, &mut lo.limbs, &mut hi.limbs);
+    schoolbook::square_wide(limbs, &mut lo.limbs, &mut hi.limbs);
     (lo, hi)
 }
 
@@ -388,7 +280,7 @@ pub(crate) const fn uint_square_limbs<const LIMBS: usize>(
 pub(crate) fn mul_limbs(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) {
     debug_assert_eq!(lhs.len() + rhs.len(), out.len());
     let (lo, hi) = out.split_at_mut(lhs.len());
-    schoolbook_multiplication(lhs, rhs, lo, hi);
+    schoolbook::mul_wide(lhs, rhs, lo, hi);
 }
 
 /// Wrapper function used by `BoxedUint`
@@ -396,7 +288,7 @@ pub(crate) fn mul_limbs(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) {
 pub(crate) fn square_limbs(limbs: &[Limb], out: &mut [Limb]) {
     debug_assert_eq!(limbs.len() * 2, out.len());
     let (lo, hi) = out.split_at_mut(limbs.len());
-    schoolbook_squaring(limbs, lo, hi);
+    schoolbook::square_wide(limbs, lo, hi);
 }
 
 #[cfg(test)]
@@ -421,6 +313,7 @@ mod tests {
                 let expected = U64::from_u64(a_int as u64 * b_int as u64);
                 assert_eq!(lo, expected);
                 assert!(bool::from(hi.is_zero()));
+                assert_eq!(lo, U64::from_u32(a_int).wrapping_mul(&U64::from_u32(b_int)));
             }
         }
     }
@@ -443,8 +336,26 @@ mod tests {
     fn mul_concat_mixed() {
         let a = U64::from_u64(0x0011223344556677);
         let b = U128::from_u128(0x8899aabbccddeeff_8899aabbccddeeff);
-        assert_eq!(a.concatenating_mul(&b), U192::from(&a).saturating_mul(&b));
-        assert_eq!(b.concatenating_mul(&a), U192::from(&b).saturating_mul(&a));
+        let expected = U192::from(&b).saturating_mul(&a);
+        assert_eq!(a.concatenating_mul(&b), expected);
+        assert_eq!(b.concatenating_mul(&a), expected);
+    }
+
+    #[test]
+    fn wrapping_mul_even() {
+        assert_eq!(U64::ZERO.wrapping_mul(&U64::MAX), U64::ZERO);
+        assert_eq!(U64::MAX.wrapping_mul(&U64::ZERO), U64::ZERO);
+        assert_eq!(U64::MAX.wrapping_mul(&U64::MAX), U64::ONE);
+        assert_eq!(U64::ONE.wrapping_mul(&U64::MAX), U64::MAX);
+    }
+
+    #[test]
+    fn wrapping_mul_mixed() {
+        let a = U64::from_u64(0x0011223344556677);
+        let b = U128::from_u128(0x8899aabbccddeeff_8899aabbccddeeff);
+        let expected = U192::from(&b).saturating_mul(&a);
+        assert_eq!(b.wrapping_mul(&a), expected.resize());
+        assert_eq!(a.wrapping_mul(&b), expected.resize());
     }
 
     #[test]
