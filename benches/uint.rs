@@ -224,7 +224,7 @@ fn bench_mul(c: &mut Criterion) {
 
     group.bench_function("wrapping_square, U4096xU4096", |b| {
         b.iter_batched(
-            || (U4096::random(&mut rng)),
+            || U4096::random(&mut rng),
             |x| x.wrapping_square(),
             BatchSize::SmallInput,
         )
