@@ -516,6 +516,43 @@ fn bench_gcd(c: &mut Criterion) {
     group.finish();
 }
 
+fn xgcd_bench<const LIMBS: usize>(g: &mut BenchmarkGroup<WallTime>, _x: Uint<LIMBS>) {
+    let mut rng = make_rng();
+
+    g.bench_function(BenchmarkId::new("xgcd", LIMBS), |b| {
+        b.iter_batched(
+            || {
+                (
+                    Uint::<LIMBS>::random(&mut rng),
+                    Uint::<LIMBS>::random(&mut rng),
+                )
+            },
+            |(f, g)| black_box(Uint::xgcd(&f, &g)),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
+fn bench_xgcd(c: &mut Criterion) {
+    let mut group = c.benchmark_group("extended greatest common divisor");
+
+    xgcd_bench(&mut group, Uint::<1>::ZERO);
+    xgcd_bench(&mut group, Uint::<2>::ZERO);
+    xgcd_bench(&mut group, Uint::<3>::ZERO);
+    xgcd_bench(&mut group, Uint::<4>::ZERO);
+    xgcd_bench(&mut group, Uint::<5>::ZERO);
+    xgcd_bench(&mut group, Uint::<6>::ZERO);
+    xgcd_bench(&mut group, Uint::<7>::ZERO);
+    xgcd_bench(&mut group, Uint::<8>::ZERO);
+    xgcd_bench(&mut group, Uint::<16>::ZERO);
+    xgcd_bench(&mut group, Uint::<32>::ZERO);
+    xgcd_bench(&mut group, Uint::<64>::ZERO);
+    xgcd_bench(&mut group, Uint::<128>::ZERO);
+    xgcd_bench(&mut group, Uint::<256>::ZERO);
+
+    group.finish();
+}
+
 fn mod_symbols_bench<const LIMBS: usize>(g: &mut BenchmarkGroup<WallTime>, _x: Uint<LIMBS>) {
     let mut rng = make_rng();
 
@@ -719,6 +756,7 @@ criterion_group!(
     bench_mul,
     bench_division,
     bench_gcd,
+    bench_xgcd,
     bench_mod_symbols,
     bench_shl,
     bench_shr,
