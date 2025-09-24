@@ -22,7 +22,7 @@
 //!
 //!   x^2 = (x0 + x1•b)^2 = x0^2 + 2x0x1•b + (x1•b)^2
 //!
-//! The wrapping implementions of these methods employ variations on these algorithms. Because
+//! The wrapping implementations of these methods employ variations on these algorithms. Because
 //! the fixed-size implementations for power-of-two `Uint` sizes are optimized well by the
 //! compiler, the dynamic implementations break down large multiplications into calls to these
 //! optimized methods.
@@ -270,7 +270,7 @@ pub const fn widening_square_fixed<const LIMBS: usize>(
         schoolbook::square_wide(uint.as_slice(), lo.as_mut_limbs(), hi.as_mut_limbs());
         (lo, hi)
     }
-    // Forward to optimized implementations or the dynamic implemenation. This choice should
+    // Forward to optimized implementations or the dynamic implementation. This choice should
     // be determined statically, resulting in an optimized method for each integer size.
     else {
         match LIMBS {
@@ -489,7 +489,7 @@ pub(crate) const fn wrapping_square(uint: &UintRef, out: &mut UintRef) {
 
     // Select an optimized 'split' such that a wide multiplication will not
     // calculate too many unnecessary limbs. We select the largest power of 2
-    // <= the output size, and step back to the previous power if it exeeds the
+    // <= the output size, and step back to the previous power if it exceeds the
     // input size or more than MIN_STARTING_LIMBS limbs would be truncated.
     let mut split = previous_power_of_2(out.nlimbs());
     if split > x.nlimbs() || 2 * split >= out.nlimbs() + MIN_STARTING_LIMBS {
