@@ -33,7 +33,7 @@ use crate::{
     modular::BoxedMontyForm,
 };
 use alloc::{boxed::Box, vec, vec::Vec};
-use core::{fmt, ops::IndexMut};
+use core::{fmt, iter::repeat, ops::IndexMut};
 use subtle::{Choice, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "zeroize")]
@@ -125,6 +125,25 @@ impl BoxedUint {
     pub fn from_words(words: impl IntoIterator<Item = Word>) -> Self {
         Self {
             limbs: words.into_iter().map(Into::into).collect(),
+        }
+    }
+
+    /// Create a [`BoxedUint`] from an array of [`Word`]s (i.e. word-sized unsigned
+    /// integers), specifying the precision of the result. Any words above the given
+    /// precision will be dropped.
+    #[inline]
+    pub fn from_words_with_precision(
+        words: impl IntoIterator<Item = Word>,
+        at_least_bits_precision: u32,
+    ) -> Self {
+        let size = Self::limbs_for_precision(at_least_bits_precision);
+        Self {
+            limbs: words
+                .into_iter()
+                .map(Into::into)
+                .chain(repeat(Limb::ZERO))
+                .take(size)
+                .collect(),
         }
     }
 

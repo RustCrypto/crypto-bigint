@@ -14,9 +14,7 @@ pub(crate) mod boxed;
 
 use core::fmt;
 
-use crate::{
-    ConstChoice, ConstCtOption, I64, Int, Limb, Odd, U64, Uint, Word, const_choice::u32_min,
-};
+use crate::{ConstChoice, ConstCtOption, I64, Int, Limb, Odd, U64, Uint, const_choice::u32_min};
 
 const GCD_BATCH_SIZE: u32 = 62;
 
@@ -65,7 +63,7 @@ impl<const LIMBS: usize> SafeGcdInverter<LIMBS> {
     pub(crate) const fn new(modulus: &Odd<Uint<LIMBS>>, adjuster: &Uint<LIMBS>) -> Self {
         Self::new_with_inverse(
             modulus,
-            U64::from_u64(invert_mod_u64(modulus.as_ref().as_words())),
+            U64::from_u64(modulus.as_uint_ref().invert_mod_u64()),
             adjuster,
         )
     }
@@ -78,7 +76,7 @@ impl<const LIMBS: usize> SafeGcdInverter<LIMBS> {
     ) -> Self {
         Self {
             modulus: *modulus,
-            inverse: lowest_u64(inverse.as_words()),
+            inverse: inverse.as_uint_ref().lowest_u64(),
             adjuster: *adjuster,
         }
     }
@@ -103,7 +101,7 @@ pub const fn invert_odd_mod<const LIMBS: usize, const VARTIME: bool>(
     a: &Uint<LIMBS>,
     m: &Odd<Uint<LIMBS>>,
 ) -> ConstCtOption<Uint<LIMBS>> {
-    let mi = invert_mod_u64(m.as_ref().as_words());
+    let mi = m.as_uint_ref().invert_mod_u64();
     invert_odd_mod_precomp::<LIMBS, VARTIME>(a, m, mi, &Uint::ONE)
 }
 
@@ -350,45 +348,6 @@ const fn iterations(bits: u32) -> u32 {
     (45907 * bits + 30179) / 19929
 }
 
-#[inline(always)]
-const fn lowest_u64(words: &[Word]) -> u64 {
-    #[cfg(target_pointer_width = "32")]
-    {
-        debug_assert!(words.len() >= 1);
-        let mut ret = words[0] as u64;
-
-        if words.len() >= 2 {
-            ret |= (words[1] as u64) << 32;
-        }
-
-        ret
-    }
-
-    #[cfg(target_pointer_width = "64")]
-    {
-        words[0]
-    }
-}
-
-/// Returns the multiplicative inverse of the argument modulo 2^64. The implementation is based
-/// on the Hurchalla's method for computing the multiplicative inverse modulo a power of two.
-///
-/// For better understanding the implementation, the following paper is recommended:
-/// J. Hurchalla, "An Improved Integer Multiplicative Inverse (modulo 2^w)",
-/// <https://arxiv.org/pdf/2204.04342.pdf>
-///
-/// Variable time with respect to the number of words in `value`, however that number will be
-/// fixed for a given integer size.
-pub(crate) const fn invert_mod_u64(words: &[Word]) -> u64 {
-    let value = lowest_u64(words);
-    let x = value.wrapping_mul(3) ^ 2;
-    let y = 1u64.wrapping_sub(x.wrapping_mul(value));
-    let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
-    let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
-    let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
-    x.wrapping_mul(y.wrapping_add(1))
-}
-
 /// A `Uint` which carries a separate sign in order to maintain the same range.
 #[derive(Clone, Copy)]
 struct SignedInt<const LIMBS: usize> {
@@ -436,7 +395,7 @@ impl<const LIMBS: usize> SignedInt<LIMBS> {
 
     // Extract the lowest 63 bits and convert to its signed representation.
     pub const fn lowest(&self) -> i64 {
-        let mag = (lowest_u64(self.magnitude.as_words()) & (u64::MAX >> 1)) as i64;
+        let mag = (self.magnitude.as_uint_ref().lowest_u64() & (u64::MAX >> 1)) as i64;
         self.sign.select_i64(mag, mag.wrapping_neg())
     }
 
