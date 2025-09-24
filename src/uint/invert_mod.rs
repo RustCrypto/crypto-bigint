@@ -81,7 +81,7 @@ const fn expand_invert_mod2k_step(
     // tmp = u0^2•a
     let tmp = scratch.1.leading_mut(new_len);
     tmp.fill(Limb::ZERO);
-    schoolbook::wrapping_mul(u0_p2.as_slice(), a.as_ref().as_slice(), tmp.as_mut_slice());
+    schoolbook::wrapping_mul_add(u0_p2.as_slice(), a.as_ref().as_slice(), tmp.as_mut_slice());
 
     // u1 = u0 << 1
     buf.shl1_assign();
