@@ -5,6 +5,7 @@ use crate::Limb;
 ///
 /// The most efficient method for small numbers.
 #[inline(always)]
+#[track_caller]
 pub const fn mul_wide(lhs: &[Limb], rhs: &[Limb], lo: &mut [Limb], hi: &mut [Limb]) {
     assert!(
         lhs.len() == lo.len() && rhs.len() == hi.len(),
@@ -39,69 +40,47 @@ pub const fn mul_wide(lhs: &[Limb], rhs: &[Limb], lo: &mut [Limb], hi: &mut [Lim
     }
 }
 
-/// Add the schoolbook product of two limb slices to a limb slice, returning the carry.
-#[cfg(feature = "alloc")]
-#[inline]
-pub const fn carrying_add_mul(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) -> Limb {
-    assert!(
-        lhs.len() + rhs.len() == out.len(),
-        "carrying_add_mul length mismatch"
-    );
-
-    let mut carry = Limb::ZERO;
-    let mut i = 0;
-
-    while i < lhs.len() {
-        let mut carry2 = Limb::ZERO;
-        let xi = lhs[i];
-        let mut j = 0;
-
-        while j < rhs.len() {
-            let k = i + j;
-            (out[k], carry2) = xi.carrying_mul_add(rhs[j], out[k], carry2);
-            j += 1;
-        }
-
-        carry = carry.wrapping_add(carry2);
-        (out[i + j], carry) = out[i + j].carrying_add(Limb::ZERO, carry);
-        i += 1;
-    }
-
-    carry
-}
-
 /// Schoolbook multiplication which only calculates the lower limbs of the product.
 #[inline(always)]
-pub const fn wrapping_mul(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) {
+#[track_caller]
+pub const fn wrapping_mul_add(lhs: &[Limb], rhs: &[Limb], out: &mut [Limb]) -> Limb {
     assert!(
-        lhs.len() == out.len(),
+        lhs.len() + rhs.len() >= out.len(),
         "wrapping schoolbook multiplication length mismatch"
     );
 
     let mut i = 0;
+    let mut meta_carry = Limb::ZERO;
 
     while i < lhs.len() {
         let mut carry = Limb::ZERO;
         let xi = lhs[i];
         let mut k = i;
 
-        while k < lhs.len() {
+        loop {
             let j = k - i;
-            if j == rhs.len() {
-                out[k] = carry;
+            if k >= out.len() {
+                meta_carry = meta_carry.wrapping_add(carry);
+                break;
+            } else if j == rhs.len() {
+                (out[k], meta_carry) = out[k].carrying_add(carry, meta_carry);
                 break;
             }
             (out[k], carry) = xi.carrying_mul_add(rhs[j], out[k], carry);
             k += 1;
         }
+
         i += 1;
     }
+
+    meta_carry
 }
 
 /// Schoolbook method of squaring.
 ///
 /// Like schoolbook multiplication, but only considering half of the multiplication grid.
 #[inline(always)]
+#[track_caller]
 pub const fn square_wide(limbs: &[Limb], lo: &mut [Limb], hi: &mut [Limb]) {
     // Translated from https://github.com/ucbrise/jedi-pairing/blob/c4bf151/include/core/bigint.hpp#L410
     //

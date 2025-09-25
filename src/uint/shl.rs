@@ -204,9 +204,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// if the most significant bit was set, and [`ConstChoice::FALSE`] otherwise.
     #[inline(always)]
     pub(crate) const fn overflowing_shl1(&self) -> (Self, Limb) {
+        self.carrying_shl1(Limb::ZERO)
+    }
+
+    pub(crate) const fn carrying_shl1(&self, mut carry: Limb) -> (Self, Limb) {
         let mut ret = Self::ZERO;
         let mut i = 0;
-        let mut carry = Limb::ZERO;
         while i < LIMBS {
             let (shifted, new_carry) = self.limbs[i].shl1();
             ret.limbs[i] = shifted.bitor(carry);
