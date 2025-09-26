@@ -135,14 +135,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut quo = [x_lo.to_limbs(), x.to_limbs()];
 
         if LIMBS == 1 {
-            let r = UintRef::new_mut(quo.as_flattened_mut())
+            let r = UintRef::new_flattened_mut(&mut quo)
                 .rem_limb(rhs.0.limbs[0].to_nz().expect("zero divisor"));
             return Uint::from_word(r.0);
         }
 
         // Perform the division in place, leaving the remainder in y
         UintRef::div_rem_shifted(
-            UintRef::new_mut(quo.as_flattened_mut()),
+            UintRef::new_flattened_mut(&mut quo),
             x_hi,
             y.as_mut_uint_ref(),
             ywords,
@@ -162,7 +162,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut x = [lower_upper.0.to_limbs(), lower_upper.1.to_limbs()];
         let mut y = *rhs.as_ref();
 
-        UintRef::rem_vartime(UintRef::new_mut(x.as_flattened_mut()), y.as_mut_uint_ref());
+        UintRef::rem_vartime(UintRef::new_flattened_mut(&mut x), y.as_mut_uint_ref());
         y
     }
 
