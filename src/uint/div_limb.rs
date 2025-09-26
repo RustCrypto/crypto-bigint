@@ -261,27 +261,6 @@ impl Default for Reciprocal {
     }
 }
 
-/// Divides `u` by the divisor encoded in the `reciprocal`, and returns
-/// the quotient and the remainder.
-#[inline(always)]
-pub(crate) const fn div_rem_limb_with_reciprocal<const L: usize>(
-    u: &Uint<L>,
-    reciprocal: &Reciprocal,
-) -> (Uint<L>, Limb) {
-    let (u_shifted, u_hi) = u.shl_limb(reciprocal.shift);
-    let mut r = u_hi.0;
-    let mut q = [Limb::ZERO; L];
-
-    let mut j = L;
-    while j > 0 {
-        j -= 1;
-        let (qj, rj) = div2by1(r, u_shifted.as_limbs()[j].0, reciprocal);
-        q[j] = Limb(qj);
-        r = rj;
-    }
-    (Uint::<L>::new(q), Limb(r >> reciprocal.shift))
-}
-
 /// Divides `u` by the divisor encoded in the `reciprocal`, and returns the remainder.
 #[inline(always)]
 pub(crate) const fn rem_limb_with_reciprocal<const L: usize>(
@@ -295,32 +274,6 @@ pub(crate) const fn rem_limb_with_reciprocal<const L: usize>(
     while j > 0 {
         j -= 1;
         let (_, rj) = div2by1(r, u_shifted.as_limbs()[j].0, reciprocal);
-        r = rj;
-    }
-    Limb(r >> reciprocal.shift)
-}
-
-/// Divides the wide `u` by the divisor encoded in the `reciprocal`, and returns the remainder.
-#[inline(always)]
-pub(crate) const fn rem_limb_with_reciprocal_wide<const L: usize>(
-    lo_hi: (&Uint<L>, &Uint<L>),
-    reciprocal: &Reciprocal,
-) -> Limb {
-    let (lo_shifted, carry) = lo_hi.0.shl_limb(reciprocal.shift);
-    let (mut hi_shifted, xhi) = lo_hi.1.shl_limb(reciprocal.shift);
-    hi_shifted.limbs[0].0 |= carry.0;
-    let mut r = xhi.0;
-
-    let mut j = L;
-    while j > 0 {
-        j -= 1;
-        let (_, rj) = div2by1(r, hi_shifted.as_limbs()[j].0, reciprocal);
-        r = rj;
-    }
-    j = L;
-    while j > 0 {
-        j -= 1;
-        let (_, rj) = div2by1(r, lo_shifted.as_limbs()[j].0, reciprocal);
         r = rj;
     }
     Limb(r >> reciprocal.shift)

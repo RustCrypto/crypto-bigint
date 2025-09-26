@@ -1,8 +1,8 @@
 //! [`BoxedUint`] square root operations.
 
-use subtle::{ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, CtOption};
+use subtle::{ConstantTimeEq, ConstantTimeGreater, CtOption};
 
-use crate::{BitOps, BoxedUint, ConstantTimeSelect, NonZero, SquareRoot};
+use crate::{BitOps, BoxedUint, ConstantTimeSelect, Limb, SquareRoot};
 
 impl BoxedUint {
     /// Computes √(`self`) in constant time.
@@ -17,35 +17,35 @@ impl BoxedUint {
 
         // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < b`.
         // Will not overflow since `b <= BITS`.
-        let (mut x, _overflow) =
-            Self::one_with_precision(self.bits_precision()).overflowing_shl((self.bits() + 1) >> 1); // ≥ √(`self`)
+        let mut x = Self::one_with_precision(self.bits_precision());
+        x.overflowing_shl_assign((self.bits() + 1) >> 1); // ≥ √(`self`)
+
+        let mut nz_x = x.clone();
+        let mut quo = Self::zero_with_precision(self.bits_precision());
+        let mut rem = Self::zero_with_precision(self.bits_precision());
+        let mut i = 0;
 
         // Repeat enough times to guarantee result has stabilized.
-        let mut i = 0;
-        let mut x_prev = x.clone(); // keep the previous iteration in case we need to roll back.
-        let mut nz_x = NonZero(x.clone());
-
         // TODO (#378): the tests indicate that just `Self::LOG2_BITS` may be enough.
         while i < self.log2_bits() + 2 {
-            x_prev.limbs.clone_from_slice(&x.limbs);
+            let x_nonzero = x.is_nonzero();
+            nz_x.ct_assign(&x, x_nonzero);
 
             // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
-            let x_nonzero = x.is_nonzero();
-            let mut j = 0;
-            while j < nz_x.0.limbs.len() {
-                nz_x.0.limbs[j].conditional_assign(&x.limbs[j], x_nonzero);
-                j += 1;
-            }
-            let (q, _) = self.div_rem(&nz_x);
-            x.conditional_carrying_add_assign(&q, x_nonzero);
+            quo.limbs.copy_from_slice(&self.limbs);
+            rem.limbs.copy_from_slice(&nz_x.limbs);
+            quo.as_mut_uint_ref().div_rem(rem.as_mut_uint_ref());
+            x.conditional_carrying_add_assign(&quo, x_nonzero);
             x.shr1_assign();
+
             i += 1;
         }
 
         // At this point `x_prev == x_{n}` and `x == x_{n+1}`
         // where `n == i - 1 == LOG2_BITS + 1 == floor(log2(BITS)) + 1`.
         // Thus, according to Hast, `sqrt(self) = min(x_n, x_{n+1})`.
-        Self::ct_select(&x_prev, &x, Self::ct_gt(&x_prev, &x))
+        x.ct_assign(&nz_x, Self::ct_gt(&x, &nz_x));
+        x
     }
 
     /// Computes √(`self`)
@@ -54,37 +54,40 @@ impl BoxedUint {
     pub fn sqrt_vartime(&self) -> Self {
         // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13
 
+        if self.is_zero_vartime() {
+            return Self::zero_with_precision(self.bits_precision());
+        }
+
         // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < b`.
         // Will not overflow since `b <= BITS`.
-        let (mut x, _overflow) =
-            Self::one_with_precision(self.bits_precision()).overflowing_shl((self.bits() + 1) >> 1); // ≥ √(`self`)
+        // The initial value of `x` is always greater than zero.
+        let mut x = Self::one_with_precision(self.bits_precision());
+        x.overflowing_shl_assign_vartime((self.bits() + 1) >> 1); // ≥ √(`self`)
 
-        // Stop right away if `x` is zero to avoid divizion by zero.
-        while !x
-            .cmp_vartime(&Self::zero_with_precision(self.bits_precision()))
-            .is_eq()
-        {
+        let mut quo = Self::zero_with_precision(self.bits_precision());
+        let mut rem = Self::zero_with_precision(self.bits_precision());
+
+        loop {
             // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
-            let q =
-                self.wrapping_div_vartime(&NonZero::<Self>::new(x.clone()).expect("Division by 0"));
-            let t = x.wrapping_add(&q);
-            let (next_x, _) = t.shr1();
+            quo.limbs.copy_from_slice(&self.limbs);
+            rem.limbs.copy_from_slice(&x.limbs);
+            quo.as_mut_uint_ref().div_rem_vartime(rem.as_mut_uint_ref());
+            quo.carrying_add_assign(&x, Limb::ZERO);
+            quo.shr1_assign();
 
-            // If `next_x` is the same as `x` or greater, we reached convergence
+            // If `quo` is the same as `x` or greater, we reached convergence
             // (`x` is guaranteed to either go down or oscillate between
             // `sqrt(self)` and `sqrt(self) + 1`)
-            if !x.cmp_vartime(&next_x).is_gt() {
+            if !x.cmp_vartime(&quo).is_gt() {
                 break;
             }
-
-            x = next_x;
+            x.limbs.copy_from_slice(&quo.limbs);
+            if x.is_zero_vartime() {
+                break;
+            }
         }
 
-        if self.is_nonzero().into() {
-            x
-        } else {
-            Self::zero_with_precision(self.bits_precision())
-        }
+        x
     }
 
     /// Wrapped sqrt is just normal √(`self`)
