@@ -2,6 +2,24 @@ use super::UintRef;
 use crate::Limb;
 
 impl UintRef {
+    /// Copy the contents from a [`UintRef`].
+    #[inline(always)]
+    pub const fn copy_from(&mut self, rhs: &UintRef) {
+        self.copy_from_slice(&rhs.0);
+    }
+
+    /// Copy the contents from a limb slice.
+    #[inline(always)]
+    pub const fn copy_from_slice(&mut self, limbs: &[Limb]) {
+        // TODO core::slice::copy_from_slice should eventually be const
+        debug_assert!(self.0.len() == limbs.len(), "length mismatch");
+        let mut i = 0;
+        while i < self.0.len() {
+            self.0[i] = limbs[i];
+            i += 1;
+        }
+    }
+
     /// Fill the limb slice with a repeated limb value.
     #[inline(always)]
     pub const fn fill(&mut self, limb: Limb) {
