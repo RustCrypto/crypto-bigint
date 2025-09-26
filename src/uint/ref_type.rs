@@ -10,15 +10,12 @@ use core::{
 use crate::{ConstChoice, Word};
 
 mod bits;
+mod div;
 mod invert_mod;
 mod shl;
+mod shr;
 mod slice;
 mod sub;
-
-#[cfg(feature = "alloc")]
-mod div;
-#[cfg(feature = "alloc")]
-mod shr;
 
 /// Unsigned integer reference type.
 ///

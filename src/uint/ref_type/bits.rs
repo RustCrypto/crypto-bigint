@@ -42,6 +42,7 @@ impl UintRef {
     ///
     /// Use [`UintRef::bits_precision`] to get the total capacity of this integer.
     #[cfg(feature = "alloc")]
+    #[inline(always)]
     pub const fn bits(&self) -> u32 {
         self.bits_precision() - self.leading_zeros()
     }
