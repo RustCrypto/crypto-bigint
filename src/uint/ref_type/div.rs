@@ -1,7 +1,7 @@
 //! In-place integer division
 //!
 //! Based on Section 4.3.1, of The Art of Computer Programming, Volume 2, by Donald E. Knuth.
-//! Further explanation at https://janmr.com/blog/2014/04/basic-multiple-precision-long-division/
+//! Further explanation at <https://janmr.com/blog/2014/04/basic-multiple-precision-long-division/>
 
 use super::UintRef;
 use crate::const_choice::u32_min;
