@@ -37,6 +37,19 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn wrapping_add(&self, rhs: &Self) -> Self {
         self.carrying_add(rhs, Limb::ZERO).0
     }
+
+    /// Computes `self + rhs + carry`, returning the result along with the new carry.
+    pub(crate) const fn overflowing_add_limb(&self, mut carry: Limb) -> (Self, Limb) {
+        let mut limbs = [Limb::ZERO; LIMBS];
+        let mut i = 0;
+
+        while i < LIMBS {
+            (limbs[i], carry) = self.limbs[i].overflowing_add(carry);
+            i += 1;
+        }
+
+        (Self { limbs }, carry)
+    }
 }
 
 impl<const LIMBS: usize> Add for Uint<LIMBS> {
