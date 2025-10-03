@@ -182,7 +182,7 @@ impl UintRef {
     /// The dividend and divisor must be left-shifted such that the high bit of the divisor
     /// is set, and `x_hi` holds the top bits of the dividend.
     #[inline(always)]
-    const fn div_rem_large_shifted(
+    pub const fn div_rem_large_shifted(
         &mut self,
         mut x_hi: Limb,
         y: &Self,
@@ -287,13 +287,24 @@ impl UintRef {
     /// Divides `self` by the divisor encoded in the `reciprocal`, setting `self`
     /// to the quotient and returning the remainder.
     pub(crate) const fn div_rem_limb_with_reciprocal(&mut self, reciprocal: &Reciprocal) -> Limb {
-        let mut r = self.shl_assign_limb(reciprocal.shift());
+        let hi = self.shl_assign_limb(reciprocal.shift());
+        self.div_rem_limb_with_reciprocal_shifted(hi, reciprocal)
+    }
+
+    /// Divides `self` by the divisor encoded in the `reciprocal`, setting `self`
+    /// to the quotient and returning the remainder.
+    #[inline(always)]
+    pub(crate) const fn div_rem_limb_with_reciprocal_shifted(
+        &mut self,
+        mut hi: Limb,
+        reciprocal: &Reciprocal,
+    ) -> Limb {
         let mut j = self.0.len();
         while j > 0 {
             j -= 1;
-            (self.0[j].0, r.0) = div2by1(r.0, self.0[j].0, reciprocal);
+            (self.0[j].0, hi.0) = div2by1(hi.0, self.0[j].0, reciprocal);
         }
-        r.shr(reciprocal.shift())
+        hi.shr(reciprocal.shift())
     }
 
     /// Divides `self` by the divisor encoded in the `reciprocal`, returning the remainder.
@@ -304,10 +315,13 @@ impl UintRef {
 
     /// Divides `self` by the divisor encoded in the `reciprocal`, and returns the remainder.
     pub(crate) const fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb {
+        let nlimbs = self.nlimbs();
+        if nlimbs == 0 {
+            return Limb::ZERO;
+        }
         let lshift = reciprocal.shift();
         let nz = ConstChoice::from_u32_nonzero(lshift);
         let rshift = nz.if_true_u32(Limb::BITS - lshift);
-        let nlimbs = self.nlimbs();
         let mut hi = nz.if_true_word(self.0[nlimbs - 1].0 >> rshift);
         let mut lo;
         let mut j = nlimbs;
