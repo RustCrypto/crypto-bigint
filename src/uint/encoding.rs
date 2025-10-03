@@ -710,6 +710,7 @@ impl RadixDivisionParams {
         }
     }
 
+    #[allow(trivial_numeric_casts)]
     fn encode_limbs_small(&self, mut limbs: &mut UintRef, out: &mut [u8]) {
         const DIGITS: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 
@@ -752,6 +753,7 @@ impl RadixDivisionParams {
 /// such that `divisor = radix ** digits`. The value `div_limb` is the
 /// largest power of `radix` that can fit within a limb.
 #[cfg(feature = "alloc")]
+#[allow(trivial_numeric_casts)]
 const fn radix_large_divisor(
     radix: u32,
     div_limb: NonZero<Limb>,
