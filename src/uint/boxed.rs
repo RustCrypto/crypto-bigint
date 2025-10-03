@@ -10,7 +10,6 @@ mod bits;
 mod cmp;
 mod ct;
 pub(crate) mod div;
-mod div_limb;
 pub(crate) mod encoding;
 mod from;
 mod gcd;
