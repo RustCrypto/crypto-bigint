@@ -4,9 +4,9 @@ use super::{Limb, Word};
 use crate::Encoding;
 
 impl Encoding for Limb {
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     type Repr = [u8; 4];
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     type Repr = [u8; 8];
 
     #[inline]
@@ -65,10 +65,10 @@ impl Limb {
 mod test {
     use super::*;
 
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     const LIMB: Limb = Limb(0x7654_3210);
 
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     const LIMB: Limb = Limb(0xFEDCBA9876543210);
 
     #[test]

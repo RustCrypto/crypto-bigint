@@ -173,7 +173,7 @@ mod tests {
     }
 
     // Test requires 1-limb is capable of representing a 64-bit integer
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     test_sub_mod!(1, sub1);
 
     test_sub_mod!(2, sub2);

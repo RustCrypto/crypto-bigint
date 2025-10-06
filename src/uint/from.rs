@@ -33,7 +33,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Create a [`Uint`] from a `u64` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u64>` when stable
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     pub const fn from_u64(n: u64) -> Self {
         assert!(LIMBS >= 2, "number of limbs must be two or greater");
         let mut limbs = [Limb::ZERO; LIMBS];
@@ -44,7 +44,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Create a [`Uint`] from a `u64` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u64>` when stable
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     pub const fn from_u64(n: u64) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         let mut limbs = [Limb::ZERO; LIMBS];
@@ -140,14 +140,14 @@ impl<const LIMBS: usize> From<u128> for Uint<LIMBS> {
     }
 }
 
-#[cfg(target_pointer_width = "32")]
+#[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
 impl From<U64> for u64 {
     fn from(n: U64) -> u64 {
         (n.limbs[0].0 as u64) | ((n.limbs[1].0 as u64) << 32)
     }
 }
 
-#[cfg(target_pointer_width = "64")]
+#[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
 impl From<U64> for u64 {
     fn from(n: U64) -> u64 {
         n.limbs[0].into()
@@ -233,10 +233,10 @@ impl<const LIMBS: usize, const LIMBS2: usize> From<&Uint<LIMBS>> for Uint<LIMBS2
 mod tests {
     use crate::{Limb, U128, Word};
 
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     use crate::U64 as UintEx;
 
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     use crate::U128 as UintEx;
 
     #[test]

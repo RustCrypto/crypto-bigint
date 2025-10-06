@@ -74,7 +74,7 @@ impl_uint_array_encoding! {
     (U8192, typenum::U1024)
 }
 
-#[cfg(target_pointer_width = "32")]
+#[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
 impl_uint_array_encoding! {
     (U224, typenum::U28), // For NIST P-224
     (U544, typenum::U68)  // For NIST P-521
@@ -85,24 +85,24 @@ mod tests {
     use crate::{ArrayDecoding, ArrayEncoding, Limb};
     use hex_literal::hex;
 
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     use crate::U64 as UintEx;
 
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     use crate::U128 as UintEx;
 
     /// Byte array that corresponds to `UintEx`
     type ByteArray = crate::ByteArray<UintEx>;
 
     #[test]
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     fn from_be_byte_array() {
         let n = UintEx::from_be_byte_array(hex!("0011223344556677").into());
         assert_eq!(n.as_limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
     }
 
     #[test]
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     fn from_be_byte_array() {
         let n = UintEx::from_be_byte_array(hex!("00112233445566778899aabbccddeeff").into());
         assert_eq!(
@@ -112,14 +112,14 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     fn from_le_byte_array() {
         let n = UintEx::from_le_byte_array(hex!("7766554433221100").into());
         assert_eq!(n.as_limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
     }
 
     #[test]
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     fn from_le_byte_array() {
         let n = UintEx::from_le_byte_array(hex!("ffeeddccbbaa99887766554433221100").into());
         assert_eq!(
@@ -129,7 +129,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     fn to_be_byte_array() {
         let expected_bytes = ByteArray::from(hex!("0011223344556677"));
         let actual_bytes = UintEx::from_be_byte_array(expected_bytes).to_be_byte_array();
@@ -137,7 +137,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     fn to_be_byte_array() {
         let expected_bytes = ByteArray::from(hex!("00112233445566778899aabbccddeeff"));
         let actual_bytes = UintEx::from_be_byte_array(expected_bytes).to_be_byte_array();
@@ -145,7 +145,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     fn to_le_byte_array() {
         let expected_bytes = ByteArray::from(hex!("7766554433221100"));
         let actual_bytes = UintEx::from_le_byte_array(expected_bytes).to_le_byte_array();
@@ -153,7 +153,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     fn to_le_byte_array() {
         let expected_bytes = ByteArray::from(hex!("ffeeddccbbaa99887766554433221100"));
         let actual_bytes = UintEx::from_le_byte_array(expected_bytes).to_le_byte_array();
@@ -161,7 +161,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     fn into_uint_be() {
         let expected_bytes = ByteArray::from(hex!("0011223344556677"));
         let actual_bytes = expected_bytes.into_uint_be().to_be_byte_array();
@@ -169,7 +169,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     fn into_uint_be() {
         let expected_bytes = ByteArray::from(hex!("00112233445566778899aabbccddeeff"));
         let actual_bytes = expected_bytes.into_uint_be().to_be_byte_array();
@@ -177,7 +177,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     fn into_uint_le() {
         let expected_bytes = ByteArray::from(hex!("7766554433221100"));
         let actual_bytes = expected_bytes.into_uint_le().to_le_byte_array();
@@ -185,7 +185,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     fn into_uint_le() {
         let expected_bytes = ByteArray::from(hex!("ffeeddccbbaa99887766554433221100"));
         let actual_bytes = expected_bytes.into_uint_le().to_le_byte_array();

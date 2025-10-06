@@ -179,7 +179,7 @@ impl NonZero<Limb> {
 
     /// Create a [`NonZero<Limb>`] from a [`NonZeroU64`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU64>` when stable
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     pub const fn from_u64(n: NonZeroU64) -> Self {
         Self(Limb::from_u64(n.get()))
     }
@@ -367,7 +367,7 @@ impl From<NonZeroU32> for NonZero<Limb> {
     }
 }
 
-#[cfg(target_pointer_width = "64")]
+#[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
 impl From<NonZeroU64> for NonZero<Limb> {
     fn from(integer: NonZeroU64) -> Self {
         Self::from_u64(integer)

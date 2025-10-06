@@ -9,7 +9,7 @@ use crate::{
 };
 
 /// Calculates the reciprocal of the given 32-bit divisor with the highmost bit set.
-#[cfg(target_pointer_width = "32")]
+#[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
 pub const fn reciprocal(d: Word) -> Word {
     debug_assert!(d >= (1 << (Word::BITS - 1)));
 
@@ -42,7 +42,7 @@ pub const fn reciprocal(d: Word) -> Word {
 }
 
 /// Calculates the reciprocal of the given 64-bit divisor with the highmost bit set.
-#[cfg(target_pointer_width = "64")]
+#[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
 pub const fn reciprocal(d: Word) -> Word {
     debug_assert!(d >= (1 << (Word::BITS - 1)));
 

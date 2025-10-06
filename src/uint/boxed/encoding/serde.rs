@@ -27,13 +27,13 @@ impl Serialize for BoxedUint {
 #[cfg(test)]
 mod tests {
     use super::BoxedUint;
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     use crate::Limb;
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     use hex_literal::hex;
 
     #[test]
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     fn serde() {
         let test: BoxedUint = BoxedUint::from_be_hex("7711223344556600", 64).unwrap();
 
@@ -47,7 +47,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     fn from_le_slice_eq_test() {
         let bytes = hex!("7766554433221100");
         let box_uint = BoxedUint::from_le_slice(&bytes, 64).unwrap();

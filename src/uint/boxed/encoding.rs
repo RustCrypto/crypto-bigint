@@ -271,7 +271,7 @@ mod tests {
     use hex_literal::hex;
 
     #[test]
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     fn from_be_slice_eq() {
         let bytes = hex!("0011223344556677");
         let n = BoxedUint::from_be_slice(&bytes, 64).unwrap();
@@ -279,7 +279,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     fn from_be_slice_eq() {
         let bytes = hex!("00112233445566778899aabbccddeeff");
         let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
@@ -290,7 +290,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     fn from_be_hex_eq() {
         let hex = "00112233445566778899aabbccddeeff";
         let n = BoxedUint::from_be_hex(hex, 128).unwrap();
@@ -301,7 +301,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     fn from_be_slice_short() {
         let bytes = hex!("0011223344556677");
         let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
@@ -312,7 +312,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     fn from_be_slice_short() {
         let bytes = hex!("00112233445566778899aabbccddeeff");
         let n = BoxedUint::from_be_slice(&bytes, 256).unwrap();
@@ -337,7 +337,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     fn from_be_slice_not_word_sized() {
         let bytes = hex!("112233445566778899aabbccddeeff");
         let n = BoxedUint::from_be_slice(&bytes, 127).unwrap();
@@ -354,7 +354,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     fn from_be_slice_not_word_sized() {
         let bytes = hex!("112233445566778899aabbccddeeff");
         let n = BoxedUint::from_be_slice(&bytes, 127).unwrap();
@@ -384,7 +384,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     fn from_le_slice_eq() {
         let bytes = hex!("7766554433221100");
         let n = BoxedUint::from_le_slice(&bytes, 64).unwrap();
@@ -392,7 +392,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     fn from_le_slice_eq() {
         let bytes = hex!("ffeeddccbbaa99887766554433221100");
         let n = BoxedUint::from_le_slice(&bytes, 128).unwrap();
@@ -403,7 +403,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     fn from_le_slice_short() {
         let bytes = hex!("7766554433221100");
         let n = BoxedUint::from_le_slice(&bytes, 128).unwrap();
@@ -414,7 +414,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     fn from_le_slice_short() {
         let bytes = hex!("ffeeddccbbaa99887766554433221100");
         let n = BoxedUint::from_le_slice(&bytes, 256).unwrap();
@@ -439,7 +439,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     fn from_le_slice_not_word_sized() {
         let bytes = hex!("ffeeddccbbaa998877665544332211");
         let n = BoxedUint::from_le_slice(&bytes, 127).unwrap();
@@ -456,7 +456,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     fn from_le_slice_not_word_sized() {
         let bytes = hex!("ffeeddccbbaa998877665544332211");
         let n = BoxedUint::from_le_slice(&bytes, 127).unwrap();

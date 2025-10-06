@@ -34,11 +34,11 @@ compile_error!("this crate builds on 32-bit and 64-bit platforms only");
 //
 
 /// Inner integer type that the [`Limb`] newtype wraps.
-#[cfg(target_pointer_width = "32")]
+#[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
 pub type Word = u32;
 
 /// Unsigned wide integer type: double the width of [`Word`].
-#[cfg(target_pointer_width = "32")]
+#[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
 pub type WideWord = u64;
 
 //
@@ -46,11 +46,11 @@ pub type WideWord = u64;
 //
 
 /// Unsigned integer type that the [`Limb`] newtype wraps.
-#[cfg(target_pointer_width = "64")]
+#[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
 pub type Word = u64;
 
 /// Wide integer type: double the width of [`Word`].
-#[cfg(target_pointer_width = "64")]
+#[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
 pub type WideWord = u128;
 
 /// Big integers are represented as an array/vector of smaller CPU word-size integers called
@@ -80,19 +80,19 @@ impl Limb {
     // 32-bit
 
     /// Size of the inner integer in bits.
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     pub const BITS: u32 = 32;
     /// Size of the inner integer in bytes.
-    #[cfg(target_pointer_width = "32")]
+    #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
     pub const BYTES: usize = 4;
 
     // 64-bit
 
     /// Size of the inner integer in bits.
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     pub const BITS: u32 = 64;
     /// Size of the inner integer in bytes.
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     pub const BYTES: usize = 8;
 
     /// `floor(log2(Self::BITS))`.
@@ -239,10 +239,10 @@ mod tests {
     #[cfg(feature = "alloc")]
     #[test]
     fn debug() {
-        #[cfg(target_pointer_width = "32")]
+        #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
         assert_eq!(format!("{:?}", Limb(42)), "Limb(0x0000002A)");
 
-        #[cfg(target_pointer_width = "64")]
+        #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
         assert_eq!(format!("{:?}", Limb(42)), "Limb(0x000000000000002A)");
     }
 }

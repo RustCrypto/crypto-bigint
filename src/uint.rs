@@ -461,13 +461,13 @@ impl_uint_aliases! {
     (U32768, 32768, "32768-bit")
 }
 
-#[cfg(target_pointer_width = "32")]
+#[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
 impl_uint_aliases! {
     (U224, 224, "224-bit"), // For NIST P-224
     (U544, 544, "544-bit")  // For NIST P-521
 }
 
-#[cfg(target_pointer_width = "32")]
+#[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
 impl_uint_concat_split_even! {
     U64,
 }
@@ -533,14 +533,14 @@ mod tests {
     #[cfg(feature = "alloc")]
     use alloc::format;
 
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     #[test]
     fn as_words() {
         let n = U128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
         assert_eq!(n.as_words(), &[0xCCCCCCCCDDDDDDDD, 0xAAAAAAAABBBBBBBB]);
     }
 
-    #[cfg(target_pointer_width = "64")]
+    #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
     #[test]
     fn as_words_mut() {
         let mut n = U128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");

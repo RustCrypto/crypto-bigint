@@ -25,7 +25,7 @@ impl Odd<UintRef> {
 impl UintRef {
     #[inline(always)]
     pub const fn lowest_u64(&self) -> u64 {
-        #[cfg(target_pointer_width = "32")]
+        #[cfg(all(target_pointer_width = "32", not(target_family = "wasm")))]
         {
             debug_assert!(self.nlimbs() >= 1);
             let mut ret = self.0[0].0 as u64;
@@ -37,7 +37,7 @@ impl UintRef {
             ret
         }
 
-        #[cfg(target_pointer_width = "64")]
+        #[cfg(any(target_pointer_width = "64", target_family = "wasm"))]
         {
             self.0[0].0
         }
