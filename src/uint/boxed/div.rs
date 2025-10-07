@@ -28,7 +28,8 @@ impl BoxedUint {
     /// Computes `self % rhs` using a pre-made reciprocal.
     #[inline(always)]
     pub fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb {
-        self.as_uint_ref().rem_limb_with_reciprocal(reciprocal)
+        self.as_uint_ref()
+            .rem_limb_with_reciprocal(reciprocal, Limb::ZERO)
     }
 
     /// Computes `self % rhs`.

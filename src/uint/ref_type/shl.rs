@@ -8,7 +8,6 @@ impl UintRef {
     ///
     /// Produces zero and returns truthy `ConstChoice` if `shift >= self.bits_precision()`,
     /// or the result and a falsy `ConstChoice` otherwise.
-    #[cfg(feature = "alloc")]
     #[inline(always)]
     pub const fn overflowing_shl_assign(&mut self, shift: u32) -> ConstChoice {
         let bits = self.bits_precision();
@@ -36,7 +35,6 @@ impl UintRef {
     }
 
     /// Left-shifts by `shift` bits, producing zero if the shift exceeds the precision.
-    #[cfg(feature = "alloc")]
     #[inline(always)]
     pub(crate) const fn wrapping_shl_assign(&mut self, shift: u32) {
         self.overflowing_shl_assign(shift);
@@ -45,7 +43,7 @@ impl UintRef {
     /// Left-shifts by `shift` bits where `shift < `shift_upper_bound`, producing zero if
     /// the shift exceeds the precision. The runtime is determined by `shift_upper_bound`
     /// which may be smaller than `self.bits_precision()`.
-    #[cfg(feature = "alloc")]
+    #[inline(always)]
     pub(crate) const fn bounded_wrapping_shl_assign(&mut self, shift: u32, shift_upper_bound: u32) {
         assert!(shift < shift_upper_bound);
         // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
@@ -75,7 +73,6 @@ impl UintRef {
     /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
-    #[cfg(feature = "alloc")]
     #[inline(always)]
     pub(crate) const fn conditional_shl_assign_by_limbs_vartime(
         &mut self,
@@ -188,7 +185,7 @@ impl UintRef {
     /// Left-shifts by `shift` bits where `0 < shift < Limb::BITS`, returning the carry.
     ///
     /// Panics if `shift >= Limb::BITS`.
-    #[inline]
+    #[inline(always)]
     pub const fn shl_assign_limb(&mut self, shift: u32) -> Limb {
         let nz = ConstChoice::from_u32_nonzero(shift);
         self.conditional_shl_assign_limb_nonzero(NonZero(nz.select_u32(1, shift)), nz)
@@ -200,6 +197,7 @@ impl UintRef {
     /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
+    #[inline(always)]
     pub const fn shl_assign_limb_vartime(&mut self, shift: u32) -> Limb {
         assert!(shift < Limb::BITS);
 

@@ -26,7 +26,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes `self % rhs` using a pre-made reciprocal.
     pub const fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb {
-        self.as_uint_ref().rem_limb_with_reciprocal(reciprocal)
+        self.as_uint_ref()
+            .rem_limb_with_reciprocal(reciprocal, Limb::ZERO)
     }
 
     /// Computes `self % rhs` for a `Limb`-sized divisor.
@@ -41,27 +42,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
     ) -> (Self, Uint<RHS_LIMBS>) {
-        // Statically determined short circuit for a single-limb sized divisor
-        if RHS_LIMBS == 1 {
-            let (quo, rem_limb) = self.div_rem_limb(rhs.0.limbs[0].to_nz().expect("zero divisor"));
-            return (quo, Uint::from_word(rem_limb.0));
-        }
-
-        let ybits = rhs.0.bits();
-        assert!(ybits > 0, "zero divisor");
-        let ywords = ybits.div_ceil(Limb::BITS);
-
-        // Shift the entire divisor such that the high bit is set
-        let mut y = rhs.0.shl(Uint::<RHS_LIMBS>::BITS - ybits);
-
-        // Shift the dividend to align the words
-        let lshift = (Limb::BITS - (ybits % Limb::BITS)) % Limb::BITS;
-        let (mut x, x_hi) = self.shl_limb(lshift);
-
-        // Perform the division in place, leaving the remainder in y
-        UintRef::div_rem_shifted(x.as_mut_uint_ref(), x_hi, y.as_mut_uint_ref(), ywords);
-
-        (x.wrapping_shr_by_limbs(ywords - 1), y.shr_limb(lshift).0)
+        let (mut x, mut y) = (*self, *rhs.as_ref());
+        UintRef::div_rem(x.as_mut_uint_ref(), y.as_mut_uint_ref());
+        (x, y)
     }
 
     /// Computes `self` / `rhs`, returning the quotient and the remainder.
@@ -85,27 +68,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
     ) -> Uint<RHS_LIMBS> {
-        // Statically determined short circuit for a single-limb sized divisor
-        if RHS_LIMBS == 1 {
-            let rem_limb = self.rem_limb(rhs.0.limbs[0].to_nz().expect("zero divisor"));
-            return Uint::from_word(rem_limb.0);
-        }
-
-        let ybits = rhs.0.bits();
-        assert!(ybits > 0, "zero divisor");
-        let ywords = ybits.div_ceil(Limb::BITS);
-
-        // Shift the entire divisor such that the high bit is set
-        let mut y = rhs.0.shl(Uint::<RHS_LIMBS>::BITS - ybits);
-
-        // Shift the dividend to align the words
-        let lshift = (Limb::BITS - (ybits % Limb::BITS)) % Limb::BITS;
-        let (mut x, x_hi) = self.shl_limb(lshift);
-
-        // Perform the division in place, leaving the remainder in y
-        UintRef::div_rem_shifted(x.as_mut_uint_ref(), x_hi, y.as_mut_uint_ref(), ywords);
-
-        y.shr_limb(lshift).0
+        let (mut x, mut y) = (*self, *rhs.as_ref());
+        UintRef::div_rem(x.as_mut_uint_ref(), y.as_mut_uint_ref());
+        y
     }
 
     /// Computes `self` % `rhs` in variable-time with respect to `rhs`.
@@ -115,41 +80,25 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[inline]
     pub const fn rem_vartime(&self, rhs: &NonZero<Self>) -> Self {
         let (mut x, mut y) = (*self, *rhs.as_ref());
-        UintRef::rem_vartime(x.as_mut_uint_ref(), y.as_mut_uint_ref());
+        UintRef::rem_wide_vartime(
+            (UintRef::new_mut(&mut []), x.as_mut_uint_ref()),
+            y.as_mut_uint_ref(),
+        );
         y
     }
 
     /// Computes `self` % `rhs` for a double-width `Uint`.
-    pub const fn rem_wide(lower_upper: (Self, Self), rhs: &NonZero<Self>) -> Self {
-        let ybits = rhs.0.bits();
-        let ywords = ybits.div_ceil(Limb::BITS);
-        let lshift = (Limb::BITS - (ybits % Limb::BITS)) % Limb::BITS;
-
-        // Shift entire divisor such that the high bit is set
-        let mut y = rhs.0.shl(Uint::<LIMBS>::BITS - ybits);
-        // Shift the dividend to align the words
-        let (x_lo, x_lo_carry) = lower_upper.0.shl_limb(lshift);
-        let (mut x, x_hi) = lower_upper.1.shl_limb(lshift);
-        x.limbs[0].0 |= x_lo_carry.0;
-
-        let mut quo = [x_lo.to_limbs(), x.to_limbs()];
-
-        if LIMBS == 1 {
-            let r = UintRef::new_flattened_mut(&mut quo)
-                .rem_limb(rhs.0.limbs[0].to_nz().expect("zero divisor"));
-            return Uint::from_word(r.0);
-        }
-
-        // Perform the division in place, leaving the remainder in y
-        UintRef::div_rem_shifted(
-            UintRef::new_flattened_mut(&mut quo),
-            x_hi,
+    #[inline]
+    pub const fn rem_wide(mut lower_upper: (Self, Self), rhs: &NonZero<Self>) -> Self {
+        let mut y = *rhs.as_ref();
+        UintRef::rem_wide(
+            (
+                lower_upper.0.as_mut_uint_ref(),
+                lower_upper.1.as_mut_uint_ref(),
+            ),
             y.as_mut_uint_ref(),
-            ywords,
         );
-
-        // Unshift the remainder from the earlier adjustment
-        y.shr_limb(lshift).0
+        y
     }
 
     /// Computes `self` % `rhs`.
@@ -158,11 +107,16 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub const fn rem_wide_vartime(lower_upper: (Self, Self), rhs: &NonZero<Self>) -> Self {
-        let mut x = [lower_upper.0.to_limbs(), lower_upper.1.to_limbs()];
+    #[inline]
+    pub const fn rem_wide_vartime(mut lower_upper: (Self, Self), rhs: &NonZero<Self>) -> Self {
         let mut y = *rhs.as_ref();
-
-        UintRef::rem_vartime(UintRef::new_flattened_mut(&mut x), y.as_mut_uint_ref());
+        UintRef::rem_wide_vartime(
+            (
+                lower_upper.0.as_mut_uint_ref(),
+                lower_upper.1.as_mut_uint_ref(),
+            ),
+            y.as_mut_uint_ref(),
+        );
         y
     }
 
@@ -877,36 +831,40 @@ mod tests {
 
     #[test]
     fn reduce_tests() {
-        let r = U256::from(10u8).rem_vartime(&NonZero::new(U256::from(2u8)).unwrap());
-        assert_eq!(r, U256::ZERO);
-        let r = U256::from(10u8).rem_vartime(&NonZero::new(U256::from(3u8)).unwrap());
-        assert_eq!(r, U256::ONE);
-        let r = U256::from(10u8).rem_vartime(&NonZero::new(U256::from(7u8)).unwrap());
-        assert_eq!(r, U256::from(3u8));
+        let tests = [
+            (U256::from(2u8), 0u8),
+            (U256::from(3u8), 1u8),
+            (U256::from(7u8), 3u8),
+            (U256::MAX, 10u8),
+        ];
+        for (divisor, expect) in tests {
+            let r1 = U256::from(10u8).rem(&NonZero::new(divisor).unwrap());
+            let r2 = U256::from(10u8).rem_vartime(&NonZero::new(divisor).unwrap());
+            assert_eq!(r1, U256::from(expect));
+            assert_eq!(r1, r2);
+        }
     }
 
     #[test]
     fn reduce_tests_wide_zero_padded() {
-        let r = U256::rem_wide_vartime(
-            (U256::from(10u8), U256::ZERO),
-            &NonZero::new(U256::from(2u8)).unwrap(),
-        );
-        assert_eq!(r, U256::ZERO);
-        let r = U256::rem_wide_vartime(
-            (U256::from(10u8), U256::ZERO),
-            &NonZero::new(U256::from(3u8)).unwrap(),
-        );
-        assert_eq!(r, U256::ONE);
-        let r = U256::rem_wide_vartime(
-            (U256::from(10u8), U256::ZERO),
-            &NonZero::new(U256::from(7u8)).unwrap(),
-        );
-        assert_eq!(r, U256::from(3u8));
-        let r = U256::rem_wide_vartime(
-            (U256::from(10u8), U256::ZERO),
-            &NonZero::new(U256::MAX).unwrap(),
-        );
-        assert_eq!(r, U256::from(10u8));
+        let tests = [
+            (U256::from(2u8), 0u8),
+            (U256::from(3u8), 1u8),
+            (U256::from(7u8), 3u8),
+            (U256::MAX, 10u8),
+        ];
+        for (divisor, expect) in tests {
+            let r1 = U256::rem_wide(
+                (U256::from(10u8), U256::ZERO),
+                &NonZero::new(divisor).unwrap(),
+            );
+            let r2 = U256::rem_wide_vartime(
+                (U256::from(10u8), U256::ZERO),
+                &NonZero::new(divisor).unwrap(),
+            );
+            assert_eq!(r1, U256::from(expect));
+            assert_eq!(r1, r2);
+        }
     }
 
     #[test]

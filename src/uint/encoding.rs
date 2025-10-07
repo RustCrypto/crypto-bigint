@@ -13,7 +13,7 @@ use super::Uint;
 use crate::{DecodeError, Limb, Word};
 
 #[cfg(feature = "alloc")]
-use crate::{NonZero, Reciprocal, UintRef, WideWord};
+use crate::{ConstChoice, NonZero, Reciprocal, UintRef, WideWord};
 
 #[cfg(feature = "hybrid-array")]
 use crate::Encoding;
@@ -686,6 +686,7 @@ impl RadixDivisionParams {
                     div_large,
                     RADIX_ENCODING_LIMBS_LARGE as u32,
                     self.recip_large,
+                    ConstChoice::TRUE,
                 );
                 let limbs_rem;
                 // At this point, the limbs at and above RADIX_ENCODING_LIMBS_LARGE represent
