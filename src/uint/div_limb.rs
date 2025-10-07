@@ -71,25 +71,10 @@ pub const fn reciprocal(d: Word) -> Word {
     v3.wrapping_sub(hi).wrapping_sub(d)
 }
 
-/// Returns `u32::MAX` if `a < b` and `0` otherwise.
-#[inline]
-const fn lt(a: u32, b: u32) -> u32 {
-    // TODO: Move to using ConstChoice::le
-    let bit = (((!a) & b) | (((!a) | b) & (a.wrapping_sub(b)))) >> (u32::BITS - 1);
-    bit.wrapping_neg()
-}
-
-/// Returns `a` if `c == 0` and `b` if `c == u32::MAX`.
-#[inline(always)]
-const fn select(a: u32, b: u32, c: u32) -> u32 {
-    // TODO: Move to using ConstChoice::select
-    a ^ (c & (a ^ b))
-}
-
 /// Calculates `dividend / divisor`, given `dividend` and `divisor`
 /// along with their maximum bitsizes.
 #[inline(always)]
-const fn short_div(dividend: u32, dividend_bits: u32, divisor: u32, divisor_bits: u32) -> u32 {
+const fn short_div(mut dividend: u32, dividend_bits: u32, divisor: u32, divisor_bits: u32) -> u32 {
     // TODO: this may be sped up even more using the fact that `dividend` is a known constant.
 
     // In the paper this is a table lookup, but since we want it to be constant-time,
@@ -99,18 +84,16 @@ const fn short_div(dividend: u32, dividend_bits: u32, divisor: u32, divisor_bits
     // Passing `dividend_bits` and `divisor_bits` because calling `.leading_zeros()`
     // causes a significant slowdown, and we know those values anyway.
 
-    let mut dividend = dividend;
     let mut divisor = divisor << (dividend_bits - divisor_bits);
     let mut quotient: u32 = 0;
     let mut i = dividend_bits - divisor_bits + 1;
 
     while i > 0 {
         i -= 1;
-        let bit = lt(dividend, divisor);
-        dividend = select(dividend.wrapping_sub(divisor), dividend, bit);
+        let bit = ConstChoice::from_u32_lt(dividend, divisor);
+        dividend = bit.select_u32(dividend.wrapping_sub(divisor), dividend);
         divisor >>= 1;
-        let inv_bit = !bit;
-        quotient |= (inv_bit >> (u32::BITS - 1)) << i;
+        quotient |= bit.not().if_true_u32(1 << i);
     }
 
     quotient
