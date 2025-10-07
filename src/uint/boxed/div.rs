@@ -2,7 +2,7 @@
 
 use crate::{
     BoxedUint, CheckedDiv, ConstantTimeSelect, DivRemLimb, DivVartime, Limb, NonZero, Reciprocal,
-    RemLimb, RemMixed, Wrapping,
+    RemLimb, RemMixed, UintRef, Wrapping,
 };
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::CtOption;
@@ -47,7 +47,12 @@ impl BoxedUint {
 
     /// Computes self % rhs, returns the remainder.
     pub fn rem(&self, rhs: &NonZero<Self>) -> Self {
-        self.div_rem(rhs).1
+        let xc = self.limbs.len();
+        let yc = rhs.0.limbs.len();
+        let (mut quo, mut rem) = (self.clone(), rhs.as_ref().clone());
+        let x = quo.as_mut_uint_ref().split_at_mut(xc.saturating_sub(yc));
+        UintRef::rem_wide(x, rem.as_mut_uint_ref());
+        rem
     }
 
     /// Computes self / rhs, returns the quotient and remainder.
@@ -63,6 +68,7 @@ impl BoxedUint {
     ///
     /// Variable-time with respect to `rhs`.
     pub fn rem_vartime(&self, rhs: &NonZero<Self>) -> Self {
+        let xc = self.limbs.len();
         let yc = rhs.0.bits_vartime().div_ceil(Limb::BITS) as usize;
 
         match yc {
@@ -76,15 +82,16 @@ impl BoxedUint {
                 rem.limbs[0] = rem_limb;
                 rem
             }
-            _ if yc > self.limbs.len() => {
+            _ if yc > xc => {
                 let mut rem = Self::zero_with_precision(rhs.bits_precision());
-                rem.limbs[..self.limbs.len()].copy_from_slice(&self.limbs);
+                rem.limbs[..xc].copy_from_slice(&self.limbs);
                 rem
             }
             _ => {
                 let mut quo = self.clone();
                 let mut rem = rhs.0.clone();
-                quo.as_mut_uint_ref().div_rem_vartime(rem.as_mut_uint_ref());
+                let x = quo.as_mut_uint_ref().split_at_mut(xc - yc);
+                UintRef::rem_wide_vartime(x, rem.as_mut_uint_ref());
                 rem
             }
         }
