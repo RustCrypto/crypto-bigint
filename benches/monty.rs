@@ -133,19 +133,6 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         )
     });
 
-    group.bench_function("Bernstein-Yang invert, U256", |b| {
-        b.iter_batched(
-            || {
-                MontyForm::new(
-                    &U256::random_mod(&mut rng, params.modulus().as_nz_ref()),
-                    params,
-                )
-            },
-            |x| black_box(x).invert(),
-            BatchSize::SmallInput,
-        )
-    });
-
     group.bench_function("multiplication, U256*U256", |b| {
         b.iter_batched(
             || {
@@ -160,6 +147,19 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                 (x, y)
             },
             |(x, y)| black_box(x * y),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("square, U256", |b| {
+        b.iter_batched(
+            || {
+                MontyForm::new(
+                    &U256::random_mod(&mut rng, params.modulus().as_nz_ref()),
+                    params,
+                )
+            },
+            |x| x.square(),
             BatchSize::SmallInput,
         )
     });

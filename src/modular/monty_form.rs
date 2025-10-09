@@ -13,7 +13,8 @@ use super::{
     Retrieve,
     const_monty_form::{ConstMontyForm, ConstMontyParams},
     div_by_2::div_by_2,
-    reduction::{montgomery_reduction, montgomery_retrieve},
+    mul::mul_montgomery_form,
+    reduction::montgomery_retrieve,
 };
 use crate::{ConstChoice, Limb, Monty, Odd, U64, Uint, Word};
 use mul::DynMontyMultiplier;
@@ -164,9 +165,8 @@ pub struct MontyForm<const LIMBS: usize> {
 impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Instantiates a new `MontyForm` that represents this `integer` mod `MOD`.
     pub const fn new(integer: &Uint<LIMBS>, params: MontyParams<LIMBS>) -> Self {
-        let product = integer.widening_mul(&params.r2);
-        let montgomery_form = montgomery_reduction(&product, &params.modulus, params.mod_neg_inv());
-
+        let montgomery_form =
+            mul_montgomery_form(integer, &params.r2, &params.modulus, params.mod_neg_inv());
         Self {
             montgomery_form,
             params,
