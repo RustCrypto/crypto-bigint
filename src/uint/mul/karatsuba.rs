@@ -28,7 +28,7 @@
 //! optimized methods.
 
 use super::schoolbook;
-use crate::{Limb, Uint, UintRef};
+use crate::{ConstChoice, Limb, Uint, UintRef};
 
 pub const MIN_STARTING_LIMBS: usize = 16;
 
@@ -219,6 +219,47 @@ pub const fn wrapping_mul_fixed<const LHS: usize>(
     let mut lo = Uint::ZERO;
     let carry = wrapping_mul(lhs, rhs, lo.as_mut_uint_ref(), false);
     (lo, carry)
+}
+
+#[inline]
+pub const fn checked_mul_fixed<const LHS: usize>(
+    lhs: &UintRef,
+    rhs: &UintRef,
+) -> (Uint<LHS>, ConstChoice) {
+    let (ret, overflow) = wrapping_mul_fixed(lhs, rhs);
+    (
+        ret,
+        check_wrapping_overflow(lhs, rhs, overflow.is_nonzero()),
+    )
+}
+
+/// We determine whether an overflow would occur by comparing limbs in
+/// `lhs[i=0..n]` and `rhs[j=0..m]`. Any combination where the sum of indexes
+/// `i + j >= n`, `lhs[i] != 0`, and `rhs[j] != 0` would cause an overflow.
+/// For efficiency we OR all limbs in `rhs` that would apply to each limb in
+/// `lhs` in turn.
+const fn check_wrapping_overflow(
+    lhs: &UintRef,
+    rhs: &UintRef,
+    mut overflow: ConstChoice,
+) -> ConstChoice {
+    let mut rhs_tail = Limb::ZERO;
+    let mut i = 0;
+    let mut j = lhs.nlimbs();
+    let mut k = rhs.nlimbs().saturating_sub(1);
+    while k > j {
+        rhs_tail = rhs_tail.bitor(rhs.0[k]);
+        k -= 1;
+    }
+    while i < lhs.nlimbs() {
+        j = lhs.nlimbs() - i;
+        if j < rhs.nlimbs() {
+            rhs_tail = rhs_tail.bitor(rhs.0[j]);
+            overflow = overflow.or(lhs.0[i].is_nonzero().and(rhs_tail.is_nonzero()));
+        }
+        i += 1;
+    }
+    overflow
 }
 
 /// Compute a wide squaring result for a fixed-size argument. Common power-of-two limb counts
@@ -426,6 +467,13 @@ pub const fn wrapping_mul(lhs: &UintRef, rhs: &UintRef, out: &mut UintRef, add: 
     }
 }
 
+#[cfg(feature = "alloc")]
+#[inline]
+pub const fn checked_mul(lhs: &UintRef, rhs: &UintRef, out: &mut UintRef) -> ConstChoice {
+    let overflow = wrapping_mul(lhs, rhs, out, false);
+    check_wrapping_overflow(lhs, rhs, overflow.is_nonzero())
+}
+
 /// Square a limb slice, placing the potentially-truncated result in `out`.
 ///
 /// `out` must have a limb count less than or equal to the width of the wide squaring of `uint`.
@@ -546,6 +594,7 @@ const fn previous_power_of_2(value: usize) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Random;
     use crate::{Limb, Uint};
     use rand_core::{RngCore, SeedableRng};
 
@@ -554,8 +603,6 @@ mod tests {
         const SIZE: usize = 200;
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
         for n in 0..100 {
-            use crate::Random;
-
             let a = Uint::<SIZE>::random(&mut rng);
             let b = Uint::<SIZE>::random(&mut rng);
             let size_a = rng.next_u32() as usize % SIZE;
@@ -582,8 +629,6 @@ mod tests {
         const SIZE: usize = 200;
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
         for n in 0..100 {
-            use crate::Random;
-
             let a = Uint::<SIZE>::random(&mut rng);
             let size_a = rng.next_u32() as usize % SIZE;
             let a = a.as_uint_ref().leading(size_a);
@@ -600,6 +645,27 @@ mod tests {
                     "comparison failed n={n}, a={a}, size={size}"
                 );
             }
+        }
+    }
+
+    #[test]
+    fn checked_mul() {
+        const SIZE: usize = 8;
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+        for n in 1..1000 {
+            let a_index = rng.next_u32() % (Limb::BITS * SIZE as u32);
+            let b_index = rng.next_u32() % (Limb::BITS * SIZE as u32);
+            let (mut a, mut b) = (Uint::<SIZE>::ZERO, Uint::<SIZE>::ZERO);
+            a = a.set_bit_vartime(a_index, true);
+            b = b.set_bit_vartime(b_index, true);
+            let res = a.widening_mul(&b);
+            let res_overflow = res.1.is_nonzero();
+            let (wrapped, overflow) = checked_mul_fixed(a.as_uint_ref(), b.as_uint_ref());
+            assert_eq!(
+                (wrapped, overflow),
+                (res.0, res_overflow),
+                "a = 2**{a_index}, b = 2**{b_index}, n={n}"
+            );
         }
     }
 }

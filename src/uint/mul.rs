@@ -6,7 +6,7 @@ use subtle::CtOption;
 
 use crate::{
     Checked, CheckedMul, Concat, ConcatMixed, ConcatenatingMul, ConstCtOption, Uint, Wrapping,
-    WrappingMul, Zero,
+    WrappingMul,
 };
 
 pub(crate) mod karatsuba;
@@ -46,7 +46,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform wrapping multiplication, discarding overflow.
-    // #[inline(always)]
     pub const fn wrapping_mul<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> Self {
         karatsuba::wrapping_mul_fixed::<LIMBS>(self.as_uint_ref(), rhs.as_uint_ref()).0
     }
@@ -82,7 +81,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform wrapping square, discarding overflow.
-    // #[inline(always)]
     pub const fn wrapping_square(&self) -> Uint<LIMBS> {
         karatsuba::wrapping_square_fixed(self.as_uint_ref())
     }
@@ -106,10 +104,9 @@ where
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Uint<RHS_LIMBS>> for Uint<LIMBS> {
-    #[inline]
     fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
-        let (lo, hi) = self.widening_mul(rhs);
-        CtOption::new(lo, hi.is_zero())
+        let (lo, overflow) = karatsuba::checked_mul_fixed(self.as_uint_ref(), rhs.as_uint_ref());
+        CtOption::new(lo, overflow.not().into())
     }
 }
 

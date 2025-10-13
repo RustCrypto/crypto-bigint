@@ -1,11 +1,11 @@
 //! [`BoxedUint`] multiplication operations.
 
 use crate::{
-    BoxedUint, CheckedMul, ConcatenatingMul, Limb, Uint, UintRef, Wrapping, WrappingMul, Zero,
+    BoxedUint, CheckedMul, ConcatenatingMul, Limb, Uint, UintRef, Wrapping, WrappingMul,
     uint::mul::karatsuba,
 };
 use core::ops::{Mul, MulAssign};
-use subtle::{Choice, CtOption};
+use subtle::CtOption;
 
 impl BoxedUint {
     /// Multiply `self` by `rhs`.
@@ -68,16 +68,13 @@ impl BoxedUint {
 
 impl CheckedMul for BoxedUint {
     fn checked_mul(&self, rhs: &BoxedUint) -> CtOption<Self> {
-        let product = self.mul(rhs);
-
-        // Ensure high limbs are all zero
-        let is_some = product.limbs[self.nlimbs()..]
-            .iter()
-            .fold(Choice::from(1), |choice, limb| choice & limb.is_zero());
-
-        let mut limbs = product.limbs.into_vec();
-        limbs.truncate(self.nlimbs());
-        CtOption::new(limbs.into(), is_some)
+        let mut limbs = vec![Limb::ZERO; self.nlimbs()];
+        let overflow = karatsuba::checked_mul(
+            self.as_uint_ref(),
+            rhs.as_uint_ref(),
+            UintRef::new_mut(limbs.as_mut_slice()),
+        );
+        CtOption::new(limbs.into(), overflow.not().into())
     }
 }
 

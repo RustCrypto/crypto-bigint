@@ -1,5 +1,5 @@
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
-use crypto_bigint::{BoxedUint, Gcd, Integer, Limb, NonZero, RandomBits};
+use crypto_bigint::{BoxedUint, CheckedMul, Gcd, Integer, Limb, NonZero, RandomBits};
 use num_bigint::BigUint;
 use rand_core::OsRng;
 use std::hint::black_box;
@@ -70,6 +70,19 @@ fn bench_mul(c: &mut Criterion) {
                 )
             },
             |(x, y)| black_box(x.wrapping_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("boxed_checked_mul", |b| {
+        b.iter_batched(
+            || {
+                (
+                    BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+                    BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+                )
+            },
+            |(x, y)| black_box(x.checked_mul(&y)),
             BatchSize::SmallInput,
         )
     });
