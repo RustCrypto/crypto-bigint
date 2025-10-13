@@ -233,35 +233,6 @@ pub const fn checked_mul_fixed<const LHS: usize>(
     )
 }
 
-/// We determine whether an overflow would occur by comparing limbs in
-/// `lhs[i=0..n]` and `rhs[j=0..m]`. Any combination where the sum of indexes
-/// `i + j >= n`, `lhs[i] != 0`, and `rhs[j] != 0` would cause an overflow.
-/// For efficiency we OR all limbs in `rhs` that would apply to each limb in
-/// `lhs` in turn.
-const fn check_wrapping_overflow(
-    lhs: &UintRef,
-    rhs: &UintRef,
-    mut overflow: ConstChoice,
-) -> ConstChoice {
-    let mut rhs_tail = Limb::ZERO;
-    let mut i = 0;
-    let mut j = lhs.nlimbs();
-    let mut k = rhs.nlimbs().saturating_sub(1);
-    while k > j {
-        rhs_tail = rhs_tail.bitor(rhs.0[k]);
-        k -= 1;
-    }
-    while i < lhs.nlimbs() {
-        j = lhs.nlimbs() - i;
-        if j < rhs.nlimbs() {
-            rhs_tail = rhs_tail.bitor(rhs.0[j]);
-            overflow = overflow.or(lhs.0[i].is_nonzero().and(rhs_tail.is_nonzero()));
-        }
-        i += 1;
-    }
-    overflow
-}
-
 /// Compute a wide squaring result for a fixed-size argument. Common power-of-two limb counts
 /// are implemented explicitly and used as a basis for general squaring.
 ///
@@ -334,10 +305,19 @@ pub const fn widening_square_fixed<const LIMBS: usize>(
 ///
 /// The limb count of `uint` must be `LIMBS`.
 #[inline]
-pub const fn wrapping_square_fixed<const LIMBS: usize>(uint: &UintRef) -> Uint<LIMBS> {
+pub const fn wrapping_square_fixed<const LIMBS: usize>(uint: &UintRef) -> (Uint<LIMBS>, Limb) {
     let mut lo = Uint::ZERO;
-    wrapping_square(uint, lo.as_mut_uint_ref());
-    lo
+    let carry = wrapping_square(uint, lo.as_mut_uint_ref());
+    (lo, carry)
+}
+
+#[inline]
+pub const fn checked_square_fixed<const LHS: usize>(lhs: &UintRef) -> (Uint<LHS>, ConstChoice) {
+    let (ret, overflow) = wrapping_square_fixed(lhs);
+    (
+        ret,
+        check_wrapping_overflow(lhs, lhs, overflow.is_nonzero()),
+    )
 }
 
 /// Multiply two limb slices, placing the potentially-truncated result in `out`.
@@ -478,14 +458,14 @@ pub const fn checked_mul(lhs: &UintRef, rhs: &UintRef, out: &mut UintRef) -> Con
 ///
 /// `out` must have a limb count less than or equal to the width of the wide squaring of `uint`.
 #[inline]
-pub(crate) const fn wrapping_square(uint: &UintRef, out: &mut UintRef) {
+pub(crate) const fn wrapping_square(uint: &UintRef, out: &mut UintRef) -> Limb {
     assert!(
         out.nlimbs() <= uint.nlimbs() * 2,
         "invalid arguments to wrapping_square"
     );
 
     // Use the optimized squaring for `LIMBS` limbs to break down the calculation of the product.
-    const fn reduce<const LIMBS: usize>(x: &UintRef, out: &mut UintRef) {
+    const fn reduce<const LIMBS: usize>(x: &UintRef, out: &mut UintRef) -> Limb {
         let (x0, x1) = x.split_at(LIMBS);
         let (lo, hi) = out.split_at_mut(LIMBS);
 
@@ -497,7 +477,14 @@ pub(crate) const fn wrapping_square(uint: &UintRef, out: &mut UintRef) {
         if hi.nlimbs() <= LIMBS {
             let (z1, _carry) = wrapping_mul_fixed::<LIMBS>(x0, x1);
             let z1 = z1.overflowing_shl1().0;
-            hi.copy_from(z0.1.wrapping_add(&z1).as_uint_ref().leading(hi.nlimbs()));
+            let z2 = z0.1.wrapping_add(&z1);
+            let (z2, tail) = z2.as_uint_ref().split_at(hi.nlimbs());
+            hi.copy_from(z2);
+            if tail.is_empty() {
+                Limb::ZERO
+            } else {
+                tail.0[0]
+            }
         } else {
             let (z01, z2) = hi.split_at_mut(LIMBS);
             z01.copy_from(z0.1.as_uint_ref());
@@ -518,7 +505,7 @@ pub(crate) const fn wrapping_square(uint: &UintRef, out: &mut UintRef) {
             let (z1, z1tail) = hi.split_at_mut(LIMBS + z2_len);
             let c = wrapping_mul(dx0.as_uint_ref(), x1, z1, true);
             carry = carry.wrapping_add(c);
-            z1tail.add_assign_limb(carry);
+            z1tail.add_assign_limb(carry)
         }
     }
 
@@ -531,8 +518,7 @@ pub(crate) const fn wrapping_square(uint: &UintRef, out: &mut UintRef) {
 
     // Handle smaller integer sizes
     if x.nlimbs() <= MIN_STARTING_LIMBS {
-        schoolbook::wrapping_square(x.as_slice(), out.as_mut_slice());
-        return;
+        return schoolbook::wrapping_square(x.as_slice(), out.as_mut_slice());
     }
 
     // Select an optimized 'split' such that a wide multiplication will not
@@ -552,6 +538,42 @@ pub(crate) const fn wrapping_square(uint: &UintRef, out: &mut UintRef) {
         128 => reduce::<128>(x, out),
         _ => reduce::<256>(x, out),
     }
+}
+
+#[cfg(feature = "alloc")]
+#[inline]
+pub const fn checked_square(lhs: &UintRef, out: &mut UintRef) -> ConstChoice {
+    let overflow = wrapping_square(lhs, out);
+    check_wrapping_overflow(lhs, lhs, overflow.is_nonzero())
+}
+
+/// We determine whether an overflow would occur by comparing limbs in
+/// `lhs[i=0..n]` and `rhs[j=0..m]`. Any combination where the sum of indexes
+/// `i + j >= n`, `lhs[i] != 0`, and `rhs[j] != 0` would cause an overflow.
+/// For efficiency we OR all limbs in `rhs` that would apply to each limb in
+/// `lhs` in turn.
+const fn check_wrapping_overflow(
+    lhs: &UintRef,
+    rhs: &UintRef,
+    mut overflow: ConstChoice,
+) -> ConstChoice {
+    let mut rhs_tail = Limb::ZERO;
+    let mut i = 0;
+    let mut j = lhs.nlimbs();
+    let mut k = rhs.nlimbs().saturating_sub(1);
+    while k > j {
+        rhs_tail = rhs_tail.bitor(rhs.0[k]);
+        k -= 1;
+    }
+    while i < lhs.nlimbs() {
+        j = lhs.nlimbs() - i;
+        if j < rhs.nlimbs() {
+            rhs_tail = rhs_tail.bitor(rhs.0[j]);
+            overflow = overflow.or(lhs.0[i].is_nonzero().and(rhs_tail.is_nonzero()));
+        }
+        i += 1;
+    }
+    overflow
 }
 
 /// Join two `Uints` into an output `Uint`, potentially larger than both in size.
@@ -665,6 +687,25 @@ mod tests {
                 (wrapped, overflow),
                 (res.0, res_overflow),
                 "a = 2**{a_index}, b = 2**{b_index}, n={n}"
+            );
+        }
+    }
+
+    #[test]
+    fn checked_square() {
+        const SIZE: usize = 8;
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+        for n in 1..1000 {
+            let a_index = rng.next_u32() % (Limb::BITS * SIZE as u32);
+            let mut a = Uint::<SIZE>::ZERO;
+            a = a.set_bit_vartime(a_index, true);
+            let res = a.square_wide();
+            let res_overflow = res.1.is_nonzero();
+            let (wrapped, overflow) = checked_square_fixed(a.as_uint_ref());
+            assert_eq!(
+                (wrapped, overflow),
+                (res.0, res_overflow),
+                "a = 2**{a_index}, n={n}"
             );
         }
     }

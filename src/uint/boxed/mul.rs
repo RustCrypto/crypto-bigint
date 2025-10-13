@@ -64,6 +64,15 @@ impl BoxedUint {
         karatsuba::wrapping_square(self.as_uint_ref(), UintRef::new_mut(limbs.as_mut_slice()));
         limbs.into()
     }
+
+    /// Multiply `self` by itself, wrapping to the width of `self`.
+    /// Returns `CtOption::None` if the result overflowed the precision of `self`.
+    pub fn checked_square(&self) -> CtOption<Self> {
+        let mut limbs = vec![Limb::ZERO; self.nlimbs()];
+        let overflow =
+            karatsuba::checked_square(self.as_uint_ref(), UintRef::new_mut(limbs.as_mut_slice()));
+        CtOption::new(limbs.into(), overflow.not().into())
+    }
 }
 
 impl CheckedMul for BoxedUint {
@@ -219,5 +228,15 @@ mod tests {
                 "a={a}, b={b}, i={i}"
             );
         }
+    }
+
+    #[test]
+    fn checked_square() {
+        let n =
+            BoxedUint::from_words_with_precision([u64::MAX], 256).wrapping_add(&BoxedUint::one());
+        let n2 = n.checked_square();
+        assert_eq!(n2.is_some().unwrap_u8(), 1);
+        let n4 = n2.unwrap().checked_square();
+        assert_eq!(n4.is_none().unwrap_u8(), 1);
     }
 }

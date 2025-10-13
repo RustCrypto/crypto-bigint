@@ -76,13 +76,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Square self, checking that the result fits in the original [`Uint`] size.
     pub const fn checked_square(&self) -> ConstCtOption<Uint<LIMBS>> {
-        let (lo, hi) = self.square_wide();
-        ConstCtOption::new(lo, Self::eq(&hi, &Self::ZERO))
+        let (lo, overflow) = karatsuba::checked_square_fixed(self.as_uint_ref());
+        ConstCtOption::new(lo, overflow.not())
     }
 
     /// Perform wrapping square, discarding overflow.
     pub const fn wrapping_square(&self) -> Uint<LIMBS> {
-        karatsuba::wrapping_square_fixed(self.as_uint_ref())
+        karatsuba::wrapping_square_fixed(self.as_uint_ref()).0
     }
 
     /// Perform saturating squaring, returning `MAX` on overflow.
