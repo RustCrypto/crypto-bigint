@@ -15,7 +15,7 @@ use super::{
     div_by_2::div_by_2,
     reduction::{montgomery_reduction, montgomery_retrieve},
 };
-use crate::{ConstChoice, ConstOne, ConstZero, One, Uint, Zero};
+use crate::{ConstChoice, ConstOne, ConstZero, Odd, One, Uint, Zero};
 use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
@@ -76,6 +76,9 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
         montgomery_form: MOD::PARAMS.one,
         phantom: PhantomData,
     };
+
+    /// Modulus as an unsigned integer.
+    pub const MODULUS: Odd<Uint<LIMBS>> = *MOD::PARAMS.modulus();
 
     /// Instantiates a new [`ConstMontyForm`] that represents this `integer` mod `MOD`.
     pub const fn new(integer: &Uint<LIMBS>) -> Self {
