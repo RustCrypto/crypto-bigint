@@ -187,7 +187,7 @@ impl WrappingMul for BoxedUint {
 
 #[cfg(test)]
 mod tests {
-    use crate::BoxedUint;
+    use crate::{BoxedUint, Resize};
 
     #[test]
     fn mul_zero_and_one() {
@@ -250,8 +250,9 @@ mod tests {
 
     #[test]
     fn checked_square() {
-        let n =
-            BoxedUint::from_words_with_precision([u64::MAX], 256).wrapping_add(&BoxedUint::one());
+        let n = BoxedUint::max(64)
+            .resize_unchecked(256)
+            .wrapping_add(&BoxedUint::one());
         let n2 = n.checked_square();
         assert_eq!(n2.is_some().unwrap_u8(), 1);
         let n4 = n2.unwrap().checked_square();
