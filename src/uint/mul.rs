@@ -52,8 +52,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Perform saturating multiplication, returning `MAX` on overflow.
     pub const fn saturating_mul<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> Self {
-        let (res, overflow) = self.widening_mul(rhs);
-        Self::select(&res, &Self::MAX, overflow.is_nonzero())
+        self.checked_mul(rhs).unwrap_or(Uint::MAX)
     }
 
     /// Perform wrapping multiplication, checking that the result fits in the original [`Uint`] size.
@@ -100,8 +99,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Perform saturating squaring, returning `MAX` on overflow.
     pub const fn saturating_square(&self) -> Self {
-        let (res, overflow) = self.square_wide();
-        Self::select(&res, &Self::MAX, overflow.is_nonzero())
+        self.checked_square().unwrap_or(Uint::MAX)
     }
 }
 
@@ -407,6 +405,7 @@ mod tests {
             let a = U4096::random(&mut rng);
             assert_eq!(a.widening_mul(&a), a.square_wide(), "a = {a}");
             assert_eq!(a.wrapping_mul(&a), a.wrapping_square(), "a = {a}");
+            assert_eq!(a.saturating_mul(&a), a.saturating_square(), "a = {a}");
         }
     }
 

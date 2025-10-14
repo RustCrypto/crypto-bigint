@@ -12,83 +12,95 @@ impl BoxedUint {
     ///
     /// Returns a widened output with a limb count equal to the sums of the input limb counts.
     pub fn mul(&self, rhs: &Self) -> Self {
-        self.widening_mul_limbs(rhs.as_limbs())
+        self.wrapping_mul_carry(rhs.as_limbs(), self.nlimbs() + rhs.nlimbs())
+            .0
     }
 
     /// Multiply `self` by `rhs`.
     ///
     /// Returns a widened output with a limb count equal to the sums of the input limb counts.
     pub(crate) fn mul_uint<const LIMBS: usize>(&self, rhs: &Uint<LIMBS>) -> Self {
-        self.widening_mul_limbs(rhs.as_limbs())
-    }
-
-    #[inline(always)]
-    fn widening_mul_limbs(&self, rhs: &[Limb]) -> Self {
-        let mut limbs = vec![Limb::ZERO; self.nlimbs() + rhs.len()];
-        karatsuba::wrapping_mul(
-            self.as_uint_ref(),
-            UintRef::new(rhs),
-            UintRef::new_mut(limbs.as_mut_slice()),
-            false,
-        );
-        limbs.into()
+        self.wrapping_mul_carry(rhs.as_limbs(), self.nlimbs() + LIMBS)
+            .0
     }
 
     /// Perform wrapping multiplication, wrapping to the width of `self`.
     pub fn wrapping_mul(&self, rhs: &Self) -> Self {
-        self.wrapping_mul_limbs(rhs.as_limbs())
+        self.wrapping_mul_carry(rhs.as_limbs(), self.nlimbs()).0
+    }
+
+    /// Multiply `self` by `rhs`, wrapping to the width of `self`.
+    /// Returns `CtOption::None` if the result overflowed the precision of `self`.
+    pub fn checked_mul(&self, rhs: &Self) -> CtOption<Self> {
+        let (res, carry) = self.wrapping_mul_carry(rhs.as_limbs(), self.nlimbs());
+        let overflow =
+            wrapping_mul_overflow(self.as_uint_ref(), self.as_uint_ref(), carry.is_nonzero());
+        CtOption::new(res, overflow.not().into())
+    }
+
+    /// Perform saturating multiplication, returning `MAX` on overflow.
+    pub fn saturating_mul(&self, rhs: &BoxedUint) -> Self {
+        let (mut res, carry) = self.wrapping_mul_carry(rhs.as_limbs(), self.nlimbs());
+        let overflow =
+            wrapping_mul_overflow(self.as_uint_ref(), rhs.as_uint_ref(), carry.is_nonzero());
+        res.as_mut_uint_ref().conditional_set_max(overflow);
+        res
     }
 
     #[inline(always)]
-    fn wrapping_mul_limbs(&self, rhs: &[Limb]) -> Self {
-        let mut limbs = vec![Limb::ZERO; self.nlimbs()];
-        karatsuba::wrapping_mul(
+    fn wrapping_mul_carry(&self, rhs: &[Limb], size: usize) -> (Self, Limb) {
+        let mut limbs = vec![Limb::ZERO; size];
+        let carry = karatsuba::wrapping_mul(
             self.as_uint_ref(),
             UintRef::new(rhs),
             UintRef::new_mut(limbs.as_mut_slice()),
             false,
         );
-        limbs.into()
+        (limbs.into(), carry)
     }
 
     /// Multiply `self` by itself.
     pub fn square(&self) -> Self {
-        let mut limbs = vec![Limb::ZERO; self.nlimbs() * 2];
-        karatsuba::wrapping_square(self.as_uint_ref(), UintRef::new_mut(limbs.as_mut_slice()));
-        limbs.into()
+        self.wrapping_square_carry(self.nlimbs() * 2).0
     }
 
     /// Multiply `self` by itself, wrapping to the width of `self`.
     pub fn wrapping_square(&self) -> Self {
-        let mut limbs = vec![Limb::ZERO; self.nlimbs()];
-        karatsuba::wrapping_square(self.as_uint_ref(), UintRef::new_mut(limbs.as_mut_slice()));
-        limbs.into()
+        self.wrapping_square_carry(self.nlimbs()).0
     }
 
     /// Multiply `self` by itself, wrapping to the width of `self`.
     /// Returns `CtOption::None` if the result overflowed the precision of `self`.
     pub fn checked_square(&self) -> CtOption<Self> {
-        let mut limbs = vec![Limb::ZERO; self.nlimbs()];
-        let carry =
-            karatsuba::wrapping_square(self.as_uint_ref(), UintRef::new_mut(limbs.as_mut_slice()));
+        let (res, carry) = self.wrapping_square_carry(self.nlimbs());
         let overflow =
             wrapping_mul_overflow(self.as_uint_ref(), self.as_uint_ref(), carry.is_nonzero());
-        CtOption::new(limbs.into(), overflow.not().into())
+        CtOption::new(res, overflow.not().into())
+    }
+
+    /// Perform saturating squaring, returning `MAX` on overflow.
+    pub fn saturating_square(&self) -> Self {
+        let (mut res, carry) = self.wrapping_square_carry(self.nlimbs());
+        let overflow =
+            wrapping_mul_overflow(self.as_uint_ref(), self.as_uint_ref(), carry.is_nonzero());
+        res.as_mut_uint_ref().conditional_set_max(overflow);
+        res
+    }
+
+    /// Multiply `self` by itself, wrapping to the width of `self`.
+    /// Returns a pair of the wrapped product and a Limb representing the carry.
+    #[inline(always)]
+    fn wrapping_square_carry(&self, size: usize) -> (Self, Limb) {
+        let mut limbs = vec![Limb::ZERO; size];
+        let carry =
+            karatsuba::wrapping_square(self.as_uint_ref(), UintRef::new_mut(limbs.as_mut_slice()));
+        (limbs.into(), carry)
     }
 }
 
 impl CheckedMul for BoxedUint {
     fn checked_mul(&self, rhs: &BoxedUint) -> CtOption<Self> {
-        let mut limbs = vec![Limb::ZERO; self.nlimbs()];
-        let carry = karatsuba::wrapping_mul(
-            self.as_uint_ref(),
-            rhs.as_uint_ref(),
-            UintRef::new_mut(limbs.as_mut_slice()),
-            false,
-        );
-        let overflow =
-            wrapping_mul_overflow(self.as_uint_ref(), rhs.as_uint_ref(), carry.is_nonzero());
-        CtOption::new(limbs.into(), overflow.not().into())
+        self.checked_mul(rhs)
     }
 }
 
@@ -215,6 +227,7 @@ mod tests {
             let a = BoxedUint::random_bits(&mut rng, 4096);
             assert_eq!(a.mul(&a), a.square(), "a={a}, i={i}");
             assert_eq!(a.wrapping_mul(&a), a.wrapping_square(), "a={a}, i={i}");
+            assert_eq!(a.saturating_mul(&a), a.saturating_square(), "a={a}, i={i}");
         }
 
         for i in 0..50 {

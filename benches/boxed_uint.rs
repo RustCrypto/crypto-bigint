@@ -1,5 +1,5 @@
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
-use crypto_bigint::{BoxedUint, CheckedMul, Gcd, Integer, Limb, NonZero, RandomBits};
+use crypto_bigint::{BoxedUint, Gcd, Integer, Limb, NonZero, RandomBits};
 use num_bigint::BigUint;
 use rand_core::OsRng;
 use std::hint::black_box;
