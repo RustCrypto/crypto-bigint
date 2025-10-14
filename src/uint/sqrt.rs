@@ -124,7 +124,7 @@ mod tests {
 
     #[cfg(feature = "rand")]
     use {
-        crate::{CheckedMul, Random, U512},
+        crate::{Random, U512},
         rand_chacha::ChaChaRng,
         rand_core::{RngCore, SeedableRng},
     };

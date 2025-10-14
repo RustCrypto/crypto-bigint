@@ -673,12 +673,7 @@ mod tests {
     };
 
     #[cfg(feature = "rand")]
-    use {
-        crate::{CheckedMul, Random},
-        rand_chacha::ChaChaRng,
-        rand_core::RngCore,
-        rand_core::SeedableRng,
-    };
+    use {crate::Random, rand_chacha::ChaChaRng, rand_core::RngCore, rand_core::SeedableRng};
 
     #[test]
     fn div_word() {
@@ -715,9 +710,10 @@ mod tests {
                 NonZero::new(U256::random(&mut rng).overflowing_shr_vartime(128).unwrap()).unwrap();
             let n = num.checked_mul(den.as_ref());
             if n.is_some().into() {
-                let (q, _) = n.unwrap().div_rem(&den);
+                let n = n.unwrap();
+                let (q, _) = n.div_rem(&den);
                 assert_eq!(q, num);
-                let (q, _) = n.unwrap().div_rem_vartime(&den);
+                let (q, _) = n.div_rem_vartime(&den);
                 assert_eq!(q, num);
             }
         }

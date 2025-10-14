@@ -238,5 +238,9 @@ mod tests {
         assert_eq!(n2.is_some().unwrap_u8(), 1);
         let n4 = n2.unwrap().checked_square();
         assert_eq!(n4.is_none().unwrap_u8(), 1);
+        let z = BoxedUint::zero_with_precision(256).checked_square();
+        assert_eq!(z.is_some().unwrap_u8(), 1);
+        let m = BoxedUint::max(256).checked_square();
+        assert_eq!(m.is_none().unwrap_u8(), 1);
     }
 }

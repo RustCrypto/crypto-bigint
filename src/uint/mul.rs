@@ -55,6 +55,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let (res, overflow) = self.widening_mul(rhs);
         Self::select(&res, &Self::MAX, overflow.is_nonzero())
     }
+
+    /// Perform wrapping multiplication, checking that the result fits in the original [`Uint`] size.
+    pub const fn checked_mul<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> ConstCtOption<Uint<LIMBS>> {
+        let (lo, overflow) = karatsuba::checked_mul_fixed(self.as_uint_ref(), rhs.as_uint_ref());
+        ConstCtOption::new(lo, overflow.not())
+    }
 }
 
 /// Squaring operations
@@ -105,8 +114,7 @@ where
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Uint<RHS_LIMBS>> for Uint<LIMBS> {
     fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
-        let (lo, overflow) = karatsuba::checked_mul_fixed(self.as_uint_ref(), rhs.as_uint_ref());
-        CtOption::new(lo, overflow.not().into())
+        self.checked_mul(rhs).into()
     }
 }
 
@@ -213,7 +221,7 @@ impl<const LIMBS: usize> WrappingMul for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{CheckedMul, ConstChoice, U64, U128, U192, U256, Zero};
+    use crate::{ConstChoice, U64, U128, U192, U256, Zero};
 
     #[test]
     fn widening_mul_zero_and_one() {
@@ -285,11 +293,12 @@ mod tests {
             n.checked_mul(&n).unwrap(),
             U64::from_u64(0xffff_fffe_0000_0001)
         );
+        assert_eq!(U64::ZERO.checked_mul(&U64::ZERO).unwrap(), U64::ZERO);
     }
 
     #[test]
     fn checked_mul_overflow() {
-        let n = U64::from_u64(0xffff_ffff_ffff_ffff);
+        let n = U64::MAX;
         assert!(bool::from(n.checked_mul(&n).is_none()));
     }
 
@@ -329,6 +338,10 @@ mod tests {
         assert_eq!(n2.is_some(), ConstChoice::TRUE);
         let n4 = n2.unwrap().checked_square();
         assert_eq!(n4.is_none(), ConstChoice::TRUE);
+        let z = U256::ZERO.checked_square();
+        assert_eq!(z.is_some(), ConstChoice::TRUE);
+        let m = U256::MAX.checked_square();
+        assert_eq!(m.is_none(), ConstChoice::TRUE);
     }
 
     #[test]
