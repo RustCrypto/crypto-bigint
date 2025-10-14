@@ -5,8 +5,8 @@ use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
 
 use crate::{
-    Checked, CheckedMul, Concat, ConcatMixed, ConcatenatingMul, ConstCtOption, Uint, Wrapping,
-    WrappingMul,
+    Checked, CheckedMul, Concat, ConcatMixed, ConcatenatingMul, ConstChoice, ConstCtOption, Limb,
+    Uint, UintRef, Wrapping, WrappingMul,
 };
 
 pub(crate) mod karatsuba;
@@ -61,7 +61,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> ConstCtOption<Uint<LIMBS>> {
-        let (lo, overflow) = karatsuba::checked_mul_fixed(self.as_uint_ref(), rhs.as_uint_ref());
+        let (lo, carry) = karatsuba::wrapping_mul_fixed(self.as_uint_ref(), rhs.as_uint_ref());
+        let overflow =
+            wrapping_mul_overflow(self.as_uint_ref(), rhs.as_uint_ref(), carry.is_nonzero());
         ConstCtOption::new(lo, overflow.not())
     }
 }
@@ -85,7 +87,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Square self, checking that the result fits in the original [`Uint`] size.
     pub const fn checked_square(&self) -> ConstCtOption<Uint<LIMBS>> {
-        let (lo, overflow) = karatsuba::checked_square_fixed(self.as_uint_ref());
+        let (lo, carry) = karatsuba::wrapping_square_fixed(self.as_uint_ref());
+        let overflow =
+            wrapping_mul_overflow(self.as_uint_ref(), self.as_uint_ref(), carry.is_nonzero());
         ConstCtOption::new(lo, overflow.not())
     }
 
@@ -219,9 +223,40 @@ impl<const LIMBS: usize> WrappingMul for Uint<LIMBS> {
     }
 }
 
+/// We determine whether an overflow would occur by comparing limbs in
+/// `lhs[i=0..n]` and `rhs[j=0..m]`. Any combination where the sum of indexes
+/// `i + j >= n`, `lhs[i] != 0`, and `rhs[j] != 0` would cause an overflow.
+/// For efficiency we OR all limbs in `rhs` that would apply to each limb in
+/// `lhs` in turn.
+pub(crate) const fn wrapping_mul_overflow(
+    lhs: &UintRef,
+    rhs: &UintRef,
+    mut overflow: ConstChoice,
+) -> ConstChoice {
+    let mut rhs_tail = Limb::ZERO;
+    let mut i = 0;
+    let mut j = lhs.nlimbs();
+    let mut k = rhs.nlimbs().saturating_sub(1);
+    while k > j {
+        rhs_tail = rhs_tail.bitor(rhs.0[k]);
+        k -= 1;
+    }
+    while i < lhs.nlimbs() {
+        j = lhs.nlimbs() - i;
+        if j < rhs.nlimbs() {
+            rhs_tail = rhs_tail.bitor(rhs.0[j]);
+            overflow = overflow.or(lhs.0[i].is_nonzero().and(rhs_tail.is_nonzero()));
+        }
+        i += 1;
+    }
+    overflow
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{ConstChoice, U64, U128, U192, U256, Zero};
+    #[cfg(feature = "rand_core")]
+    use rand_core::{RngCore, SeedableRng};
 
     #[test]
     fn widening_mul_zero_and_one() {
@@ -366,13 +401,60 @@ mod tests {
     #[test]
     fn mul_cmp() {
         use crate::{Random, U4096};
-        use rand_core::SeedableRng;
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
 
         for _ in 0..50 {
             let a = U4096::random(&mut rng);
             assert_eq!(a.widening_mul(&a), a.square_wide(), "a = {a}");
             assert_eq!(a.wrapping_mul(&a), a.wrapping_square(), "a = {a}");
+        }
+    }
+
+    #[cfg(feature = "rand_core")]
+    #[test]
+    fn checked_mul_random() {
+        use crate::{Limb, Uint};
+
+        const SIZE: usize = 8;
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+
+        for n in 1..1000 {
+            let a_index = rng.next_u32() % (Limb::BITS * SIZE as u32);
+            let b_index = rng.next_u32() % (Limb::BITS * SIZE as u32);
+            let (mut a, mut b) = (Uint::<SIZE>::ZERO, Uint::<SIZE>::ZERO);
+            a = a.set_bit_vartime(a_index, true);
+            b = b.set_bit_vartime(b_index, true);
+            let res = a.widening_mul(&b);
+            let res_overflow = res.1.is_nonzero();
+            let checked = a.checked_mul(&b);
+            assert_eq!(
+                checked.components_ref(),
+                (&res.0, res_overflow.not()),
+                "a = 2**{a_index}, b = 2**{b_index}, n={n}"
+            );
+        }
+    }
+
+    #[cfg(feature = "rand_core")]
+    #[test]
+    fn checked_square_random() {
+        use crate::{Limb, Uint};
+
+        const SIZE: usize = 8;
+        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+
+        for n in 1..1000 {
+            let a_index = rng.next_u32() % (Limb::BITS * SIZE as u32);
+            let mut a = Uint::<SIZE>::ZERO;
+            a = a.set_bit_vartime(a_index, true);
+            let res = a.square_wide();
+            let res_overflow = res.1.is_nonzero();
+            let checked = a.checked_square();
+            assert_eq!(
+                checked.components_ref(),
+                (&res.0, res_overflow.not()),
+                "a = 2**{a_index}, n={n}"
+            );
         }
     }
 }

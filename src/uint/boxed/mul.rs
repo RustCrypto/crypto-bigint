@@ -2,7 +2,7 @@
 
 use crate::{
     BoxedUint, CheckedMul, ConcatenatingMul, Limb, Uint, UintRef, Wrapping, WrappingMul,
-    uint::mul::karatsuba,
+    uint::mul::{karatsuba, wrapping_mul_overflow},
 };
 use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
@@ -69,8 +69,10 @@ impl BoxedUint {
     /// Returns `CtOption::None` if the result overflowed the precision of `self`.
     pub fn checked_square(&self) -> CtOption<Self> {
         let mut limbs = vec![Limb::ZERO; self.nlimbs()];
+        let carry =
+            karatsuba::wrapping_square(self.as_uint_ref(), UintRef::new_mut(limbs.as_mut_slice()));
         let overflow =
-            karatsuba::checked_square(self.as_uint_ref(), UintRef::new_mut(limbs.as_mut_slice()));
+            wrapping_mul_overflow(self.as_uint_ref(), self.as_uint_ref(), carry.is_nonzero());
         CtOption::new(limbs.into(), overflow.not().into())
     }
 }
@@ -78,11 +80,14 @@ impl BoxedUint {
 impl CheckedMul for BoxedUint {
     fn checked_mul(&self, rhs: &BoxedUint) -> CtOption<Self> {
         let mut limbs = vec![Limb::ZERO; self.nlimbs()];
-        let overflow = karatsuba::checked_mul(
+        let carry = karatsuba::wrapping_mul(
             self.as_uint_ref(),
             rhs.as_uint_ref(),
             UintRef::new_mut(limbs.as_mut_slice()),
+            false,
         );
+        let overflow =
+            wrapping_mul_overflow(self.as_uint_ref(), rhs.as_uint_ref(), carry.is_nonzero());
         CtOption::new(limbs.into(), overflow.not().into())
     }
 }
