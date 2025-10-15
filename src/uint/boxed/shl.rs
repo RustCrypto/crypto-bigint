@@ -28,8 +28,8 @@ impl BoxedUint {
     /// or the result and a falsy `Choice` otherwise.
     pub fn overflowing_shl(&self, shift: u32) -> (Self, Choice) {
         let mut result = self.clone();
-        let overflow = result.overflowing_shl_assign(shift);
-        (result, overflow)
+        let overflow = result.as_mut_uint_ref().overflowing_shl_assign(shift);
+        (result, overflow.into())
     }
 
     /// Computes `self << shift` in variable-time.
@@ -38,22 +38,26 @@ impl BoxedUint {
     /// or the result and a falsy `Choice` otherwise.
     pub fn overflowing_shl_vartime(&self, shift: u32) -> (Self, Choice) {
         let mut result = self.clone();
-        let overflow = result.overflowing_shl_assign_vartime(shift);
-        (result, overflow)
+        let overflow = result
+            .as_mut_uint_ref()
+            .overflowing_shl_assign_vartime(shift);
+        (result, overflow.into())
     }
 
     /// Computes `self <<= shift`.
     ///
     /// Returns a truthy `Choice` if `shift >= self.bits_precision()` or a falsy `Choice` otherwise.
     pub fn overflowing_shl_assign(&mut self, shift: u32) -> Choice {
-        self.as_mut_uint_ref().overflowing_shl_assign(shift)
+        self.as_mut_uint_ref().overflowing_shl_assign(shift).into()
     }
 
     /// Computes `self <<= shift` in variable-time.
     ///
     /// Returns a truthy `Choice` if `shift >= self.bits_precision()` or a falsy `Choice` otherwise.
     pub fn overflowing_shl_assign_vartime(&mut self, shift: u32) -> Choice {
-        self.as_mut_uint_ref().overflowing_shl_assign_vartime(shift)
+        self.as_mut_uint_ref()
+            .overflowing_shl_assign_vartime(shift)
+            .into()
     }
 
     /// Computes `self << shift` in a panic-free manner, masking off bits of `shift` which would cause the shift to
@@ -66,14 +70,14 @@ impl BoxedUint {
     /// exceed the type's width.
     pub fn wrapping_shl_assign(&mut self, shift: u32) {
         // self is zeroed in the case of an overflowing shift
-        self.overflowing_shl_assign(shift);
+        self.as_mut_uint_ref().overflowing_shl_assign(shift);
     }
 
     /// Computes `self << shift` in variable-time in a panic-free manner, masking off bits of `shift` which would cause
     /// the shift to exceed the type's width.
     pub fn wrapping_shl_vartime(&self, shift: u32) -> Self {
         let mut result = self.clone();
-        result.wrapping_shl_assign_vartime(shift);
+        result.as_mut_uint_ref().wrapping_shl_assign_vartime(shift);
         result
     }
 
@@ -125,20 +129,6 @@ impl BoxedUint {
     /// Computes `self <<= 1` in constant-time.
     pub(crate) fn shl1_assign(&mut self) -> ConstChoice {
         self.as_mut_uint_ref().shl1_assign()
-    }
-
-    /// Computes `self << shift` where `0 <= shift < Limb::BITS`,
-    /// returning the result and the carry.
-    pub(crate) fn shl_limb(&self, shift: u32) -> (Self, Limb) {
-        let mut ret = self.clone();
-        let carry = ret.shl_assign_limb(shift);
-        (ret, carry)
-    }
-
-    /// Computes `self <<= shift` where `0 <= shift < Limb::BITS` in constant time.
-    #[inline(always)]
-    pub(crate) fn shl_assign_limb(&mut self, shift: u32) -> Limb {
-        self.as_mut_uint_ref().shl_assign_limb(shift)
     }
 }
 

@@ -1,23 +1,22 @@
 //! Unsigned integer reference type.
 
-use crate::{Limb, Uint};
+use crate::{ConstChoice, Limb, Uint};
 use core::{
     fmt,
     ops::{Index, IndexMut},
 };
 
 #[cfg(feature = "alloc")]
-use crate::{ConstChoice, Word};
+use crate::Word;
 
 mod add;
 mod bits;
+mod div;
 mod invert_mod;
 mod shl;
+mod shr;
 mod slice;
 mod sub;
-
-#[cfg(feature = "alloc")]
-mod shr;
 
 /// Unsigned integer reference type.
 ///
@@ -110,8 +109,7 @@ impl UintRef {
     }
 
     /// Conditionally assign all of the limbs to zero.
-    #[cfg(feature = "alloc")]
-    #[inline]
+    #[inline(always)]
     pub const fn conditional_set_zero(&mut self, choice: ConstChoice) {
         let mut i = 0;
         while i < self.nlimbs() {

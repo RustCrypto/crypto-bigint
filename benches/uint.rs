@@ -397,10 +397,23 @@ fn bench_division(c: &mut Criterion) {
         )
     });
 
+    group.bench_function("div/rem_vartime, U256/Limb, full size", |b| {
+        b.iter_batched(
+            || {
+                let x = U256::random(&mut rng);
+                let y_small = Limb::random(&mut rng);
+                let y = U256::from_word(y_small.0);
+                (x, NonZero::new(y).unwrap())
+            },
+            |(x, y)| x.div_rem_vartime(&y),
+            BatchSize::SmallInput,
+        )
+    });
+
     group.bench_function("div/rem, U256/Limb, single limb", |b| {
         b.iter_batched(
             || (U256::random(&mut rng), NonZero::<Limb>::random(&mut rng)),
-            |(x, y)| x.div_rem_limb(y),
+            |(x, y)| black_box(x).div_rem_limb(black_box(y)),
             BatchSize::SmallInput,
         )
     });
@@ -413,7 +426,28 @@ fn bench_division(c: &mut Criterion) {
                     Reciprocal::new(NonZero::<Limb>::random(&mut rng)),
                 )
             },
-            |(x, r)| x.div_rem_limb_with_reciprocal(&r),
+            |(x, r)| black_box(x).div_rem_limb_with_reciprocal(black_box(&r)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("rem, U256/Limb, single limb", |b| {
+        b.iter_batched(
+            || (U256::random(&mut rng), NonZero::<Limb>::random(&mut rng)),
+            |(x, r)| black_box(x).rem_limb(black_box(r)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("rem, U256/Limb, single limb with reciprocal", |b| {
+        b.iter_batched(
+            || {
+                (
+                    U256::random(&mut rng),
+                    Reciprocal::new(NonZero::<Limb>::random(&mut rng)),
+                )
+            },
+            |(x, r)| black_box(x).rem_limb_with_reciprocal(black_box(&r)),
             BatchSize::SmallInput,
         )
     });

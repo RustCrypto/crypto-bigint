@@ -13,17 +13,15 @@ use super::Uint;
 use crate::{DecodeError, Limb, Word};
 
 #[cfg(feature = "alloc")]
-use super::boxed::div::div_rem_vartime_in_place;
-#[cfg(feature = "alloc")]
-use super::div_limb::{Reciprocal, div2by1};
-#[cfg(feature = "alloc")]
-use crate::{NonZero, WideWord};
+use crate::{ConstChoice, NonZero, Reciprocal, UintRef, WideWord};
 
 #[cfg(feature = "hybrid-array")]
 use crate::Encoding;
 
 #[cfg(feature = "alloc")]
-const RADIX_ENCODING_LIMBS_LARGE: usize = 32;
+const RADIX_ENCODING_LIMBS_LARGE: usize = 16;
+#[cfg(feature = "alloc")]
+const RADIX_ENCODING_THRESHOLD_LARGE: usize = 24;
 
 const RADIX_ENCODING_MIN: u32 = 2;
 const RADIX_ENCODING_MAX: u32 = 36;
@@ -204,7 +202,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[cfg(feature = "alloc")]
     pub fn to_string_radix_vartime(&self, radix: u32) -> String {
         let mut buf = *self;
-        radix_encode_limbs_mut_to_string(radix, buf.as_mut_limbs())
+        radix_encode_limbs_mut_to_string(radix, buf.as_mut_uint_ref())
     }
 }
 
@@ -518,7 +516,7 @@ pub(crate) fn radix_encode_limbs_to_string(radix: u32, limbs: &[Limb]) -> String
         vec_buf.extend_from_slice(limbs);
         &mut vec_buf[..limb_count]
     };
-    radix_encode_limbs_mut_to_string(radix, buf)
+    radix_encode_limbs_mut_to_string(radix, UintRef::new_mut(buf))
 }
 
 /// Encode a slice of limbs to a string in base `radix`. The contents of the slice
@@ -526,7 +524,7 @@ pub(crate) fn radix_encode_limbs_to_string(radix: u32, limbs: &[Limb]) -> String
 /// the value itself is zero.
 /// Panics if `radix` is not in the range from 2 to 36.
 #[cfg(feature = "alloc")]
-pub(crate) fn radix_encode_limbs_mut_to_string(radix: u32, limbs: &mut [Limb]) -> String {
+pub(crate) fn radix_encode_limbs_mut_to_string(radix: u32, limbs: &mut UintRef) -> String {
     if !(RADIX_ENCODING_MIN..=RADIX_ENCODING_MAX).contains(&radix) {
         panic!("unsupported radix");
     }
@@ -534,12 +532,12 @@ pub(crate) fn radix_encode_limbs_mut_to_string(radix: u32, limbs: &mut [Limb]) -
     let mut out;
     if radix.is_power_of_two() {
         let bits = radix.trailing_zeros() as usize;
-        let size = (limbs.len() * Limb::BITS as usize).div_ceil(bits);
+        let size = (limbs.nlimbs() * Limb::BITS as usize).div_ceil(bits);
         out = vec![0u8; size];
         radix_encode_limbs_by_shifting(radix, limbs, &mut out[..]);
     } else {
         let params = RadixDivisionParams::for_radix(radix);
-        let size = params.encoded_size(limbs.len());
+        let size = params.encoded_size(limbs.nlimbs());
         out = vec![0u8; size];
         params.encode_limbs(limbs, &mut out[..]);
     }
@@ -560,7 +558,7 @@ pub(crate) fn radix_encode_limbs_mut_to_string(radix: u32, limbs: &mut [Limb]) -
 /// fill `out`. The slice `limbs` is used as a working buffer. Output will be truncated
 /// if the provided buffer is too small.
 #[cfg(feature = "alloc")]
-fn radix_encode_limbs_by_shifting(radix: u32, limbs: &mut [Limb], out: &mut [u8]) {
+fn radix_encode_limbs_by_shifting(radix: u32, limbs: &UintRef, out: &mut [u8]) {
     debug_assert!(radix.is_power_of_two());
     debug_assert!(!out.is_empty());
 
@@ -594,10 +592,13 @@ fn radix_encode_limbs_by_shifting(radix: u32, limbs: &mut [Limb], out: &mut [u8]
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RadixDivisionParams {
     radix: u32,
-    digits_limb: usize,
-    reciprocal: Reciprocal,
+    digits_per_limb: usize,
+    bits_per_limb: u32,
+    recip_limb: Reciprocal,
     digits_large: usize,
     div_large: [Limb; RADIX_ENCODING_LIMBS_LARGE],
+    recip_large: Reciprocal,
+    shift_large: u32,
 }
 
 #[cfg(feature = "alloc")]
@@ -607,10 +608,13 @@ impl RadixDivisionParams {
     const ALL: [Self; 31] = {
         let mut res = [Self {
             radix: 0,
-            digits_limb: 0,
-            reciprocal: Reciprocal::default(),
+            digits_per_limb: 0,
+            bits_per_limb: 0,
+            recip_limb: Reciprocal::default(),
             digits_large: 0,
             div_large: [Limb::ZERO; RADIX_ENCODING_LIMBS_LARGE],
+            shift_large: 0,
+            recip_large: Reciprocal::default(),
         }; 31];
         let mut radix: u32 = 3;
         let mut i: usize = 0;
@@ -621,14 +625,23 @@ impl RadixDivisionParams {
             }
             let digits_limb = Word::MAX.ilog(radix as Word);
             let div_limb = NonZero(Limb((radix as Word).pow(digits_limb)));
-            let (div_large, digits_large) =
+            let bits_limb = Limb::BITS - div_limb.0.leading_zeros() - 1;
+            let (div_large, digits_large, shift_large) =
                 radix_large_divisor(radix, div_limb, digits_limb as usize);
+            let recip_large = Reciprocal::new(
+                div_large[RADIX_ENCODING_LIMBS_LARGE - 1]
+                    .to_nz()
+                    .expect("zero divisor"),
+            );
             res[i] = Self {
                 radix,
-                digits_limb: digits_limb as usize,
-                reciprocal: Reciprocal::new(div_limb),
+                digits_per_limb: digits_limb as usize,
+                bits_per_limb: bits_limb,
+                recip_limb: Reciprocal::new(div_limb),
                 digits_large,
                 div_large,
+                shift_large,
+                recip_large,
             };
             radix += 1;
             i += 1;
@@ -651,92 +664,86 @@ impl RadixDivisionParams {
     /// Get the minimum size of the required output buffer for encoding a set of limbs.
     pub const fn encoded_size(&self, limb_count: usize) -> usize {
         // a slightly pessimistic estimate
-        limb_count * (self.digits_limb + 1)
+        limb_count * (self.digits_per_limb + 1)
     }
 
     /// Encode the mutable limb slice to the output buffer as ASCII characters in base
     /// `radix`. Leading zeros are added to fill `out`. The slice `limbs` is used as a
     /// working buffer. Output will be truncated if the provided buffer is too small.
-    #[allow(trivial_numeric_casts)]
-    fn encode_limbs(&self, limbs: &mut [Limb], out: &mut [u8]) {
-        debug_assert!(!limbs.is_empty());
-
-        let radix = self.radix as Word;
-        let div_limb = self.reciprocal.divisor().0;
-        let mut limb_count = limbs.len();
+    pub fn encode_limbs(&self, mut limbs: &mut UintRef, out: &mut [u8]) {
         let mut out_idx = out.len();
+        let mut remain = Uint::<RADIX_ENCODING_LIMBS_LARGE>::ZERO;
 
-        if limb_count > RADIX_ENCODING_LIMBS_LARGE {
-            // Divide by the large divisor and recurse on the encoding of the digits
-            let mut remain;
-            while limb_count >= RADIX_ENCODING_LIMBS_LARGE {
-                remain = self.div_large;
-                div_rem_vartime_in_place(&mut limbs[..limb_count], &mut remain);
-                limb_count = limb_count + 1 - RADIX_ENCODING_LIMBS_LARGE;
-                if limbs[limb_count - 1] == Limb::ZERO {
-                    limb_count -= 1;
-                }
-                let next_idx = out_idx.saturating_sub(self.digits_large);
-                self.encode_limbs(&mut remain, &mut out[next_idx..out_idx]);
-                out_idx = next_idx;
-            }
-        }
+        while out_idx > 0 {
+            let (digits, next_idx) = if limbs.nlimbs() >= RADIX_ENCODING_THRESHOLD_LARGE {
+                let div_large = UintRef::new(&self.div_large);
+                let remain_mut = remain.as_mut_uint_ref();
 
-        let lshift = self.reciprocal.shift();
-        let rshift = (Limb::BITS - lshift) % Limb::BITS;
-        let mut hi = Limb::ZERO;
-        let mut digits_word;
-        let mut digit;
+                // Divide by the large divisor
+                let limbs_hi = limbs.shl_assign_limb_vartime(self.shift_large);
+                let rem_high = limbs.div_rem_large_shifted(
+                    limbs_hi,
+                    div_large,
+                    RADIX_ENCODING_LIMBS_LARGE as u32,
+                    self.recip_large,
+                    ConstChoice::TRUE,
+                );
+                let limbs_rem;
+                // At this point, the limbs at and above RADIX_ENCODING_LIMBS_LARGE represent
+                // the quotient, and the limbs below (plus rem_high) represent the remainder
+                (limbs_rem, limbs) = limbs.split_at_mut(RADIX_ENCODING_LIMBS_LARGE - 1);
 
-        loop {
-            digits_word = if limb_count > 0 {
-                let mut carry = Limb::ZERO;
+                // Copy out the remainder
+                remain_mut
+                    .leading_mut(RADIX_ENCODING_LIMBS_LARGE - 1)
+                    .copy_from(limbs_rem);
+                remain_mut.0[RADIX_ENCODING_LIMBS_LARGE - 1] = rem_high;
+                remain_mut.shr_assign_limb_vartime(self.shift_large);
 
-                // If required by the reciprocal, left shift the buffer, placing the
-                // overflow into `hi`.
-                if lshift > 0 {
-                    for limb in limbs[..limb_count].iter_mut() {
-                        (*limb, carry) = ((*limb << lshift) | carry, *limb >> rshift);
-                    }
-                    carry |= hi << lshift;
-                } else {
-                    carry = hi;
-                }
-
-                // Divide in place by `radix ** digits_per_limb`
-                for limb in limbs[..limb_count].iter_mut().rev() {
-                    (limb.0, carry.0) = div2by1(carry.0, limb.0, &self.reciprocal);
-                }
-                if limbs[limb_count - 1] << lshift < div_limb {
-                    hi = limbs[limb_count - 1];
-                    limb_count -= 1;
-                } else {
-                    hi = Limb::ZERO
-                }
-
-                // The remainder represents a digit in base `radix ** digits_per_limb`
-                carry.0 >> lshift
+                (remain_mut, out_idx.saturating_sub(self.digits_large))
             } else {
-                // Use up the remainder in `hi`, and on any further loops continue with `0` if necessary
-                let res = hi.0;
-                hi = Limb::ZERO;
-                res
+                (core::mem::replace(&mut limbs, UintRef::new_mut(&mut [])), 0)
             };
 
-            // Output the individual digits
-            for _ in 0..self.digits_limb.min(out_idx) {
-                out_idx -= 1;
-                (digits_word, digit) = (digits_word / radix, (digits_word % radix) as u8);
-                out[out_idx] = if digit < 10 {
-                    b'0' + digit
-                } else {
-                    b'a' + (digit - 10)
-                };
+            // Encode the next batch of digits
+            self.encode_limbs_small(digits, &mut out[next_idx..out_idx]);
+            out_idx = next_idx;
+        }
+    }
+
+    #[allow(trivial_numeric_casts)]
+    fn encode_limbs_small(&self, mut limbs: &mut UintRef, out: &mut [u8]) {
+        const DIGITS: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
+
+        let radix = self.radix as Word;
+        let mut out_idx = out.len();
+        let mut bits_acc = 0;
+        let (mut digit, mut digits_word);
+
+        while out_idx > 0 {
+            if limbs.is_empty() {
+                out[0..out_idx].fill(b'0');
+                break;
             }
 
-            // Finished when the buffer is full
-            if out_idx == 0 {
-                break;
+            // The remainder represents a digit in base `radix ** digits_per_limb`
+            let limbs_hi = limbs.shl_assign_limb_vartime(self.recip_limb.shift());
+            digits_word = limbs
+                .div_rem_limb_with_reciprocal_shifted(limbs_hi, &self.recip_limb)
+                .0;
+
+            // Reduce the length of the input as we consume a limb's worth of bits (conservatively)
+            bits_acc += self.bits_per_limb;
+            if bits_acc >= Limb::BITS {
+                bits_acc -= Limb::BITS;
+                limbs = limbs.leading_mut(limbs.nlimbs().saturating_sub(1));
+            }
+
+            // Output the individual digits
+            for _ in 0..self.digits_per_limb.min(out_idx) {
+                out_idx -= 1;
+                (digits_word, digit) = (digits_word / radix, (digits_word % radix) as usize);
+                out[out_idx] = DIGITS[digit];
             }
         }
     }
@@ -752,7 +759,7 @@ const fn radix_large_divisor(
     radix: u32,
     div_limb: NonZero<Limb>,
     digits_limb: usize,
-) -> ([Limb; RADIX_ENCODING_LIMBS_LARGE], usize) {
+) -> ([Limb; RADIX_ENCODING_LIMBS_LARGE], usize, u32) {
     let mut out = [Limb::ZERO; RADIX_ENCODING_LIMBS_LARGE];
     let mut digits_large = digits_limb;
     let mut top = 1;
@@ -787,7 +794,11 @@ const fn radix_large_divisor(
             break;
         }
     }
-    (out, digits_large)
+
+    let out_mut = UintRef::new_mut(&mut out);
+    let shift = out_mut.leading_zeros();
+    out_mut.shl_assign_limb_vartime(shift);
+    (out, digits_large, shift)
 }
 
 #[cfg(test)]

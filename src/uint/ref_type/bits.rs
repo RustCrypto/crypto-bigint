@@ -3,6 +3,13 @@ use crate::{ConstChoice, Limb, traits::BitOps};
 use subtle::Choice;
 
 impl UintRef {
+    /// Get the precision of this number in bits.
+    pub const fn bits_precision(&self) -> u32 {
+        self.0.len() as u32 * Limb::BITS
+    }
+
+    /// Get the value of the bit at position `index`, as a truthy or falsy [`ConstChoice`].
+    /// Returns the falsy value for indices out of range.
     #[inline(always)]
     pub const fn bit(&self, index: u32) -> ConstChoice {
         let limb_num = index / Limb::BITS;
@@ -19,6 +26,74 @@ impl UintRef {
         }
 
         ConstChoice::from_word_lsb(result >> index_in_limb)
+    }
+
+    /// Returns `true` if the bit at position `index` is set, `false` for an unset bit
+    /// or for indices out of range.
+    ///
+    /// # Remarks
+    /// This operation is variable time with respect to `index` only.
+    #[inline(always)]
+    pub const fn bit_vartime(&self, index: u32) -> bool {
+        let limb_num = (index / Limb::BITS) as usize;
+        let index_in_limb = index % Limb::BITS;
+        if limb_num >= self.0.len() {
+            false
+        } else {
+            (self.0[limb_num].0 >> index_in_limb) & 1 == 1
+        }
+    }
+
+    /// Calculate the number of bits needed to represent this number, i.e. the index of the highest
+    /// set bit.
+    ///
+    /// Use [`UintRef::bits_precision`] to get the total capacity of this integer.
+    #[inline(always)]
+    pub const fn bits(&self) -> u32 {
+        self.bits_precision() - self.leading_zeros()
+    }
+
+    /// Calculate the number of bits needed to represent this number in variable-time with respect
+    /// to `self`.
+    #[inline(always)]
+    pub const fn bits_vartime(&self) -> u32 {
+        let mut i = self.0.len() - 1;
+        while i > 0 && self.0[i].0 == 0 {
+            i -= 1;
+        }
+
+        let limb = self.0[i];
+        Limb::BITS * (i as u32 + 1) - limb.leading_zeros()
+    }
+
+    /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
+    #[inline(always)]
+    pub const fn set_bit(&mut self, index: u32, bit_value: ConstChoice) {
+        let limb_num = index / Limb::BITS;
+        let index_in_limb = index % Limb::BITS;
+        let index_mask = 1 << index_in_limb;
+
+        let mut i = 0;
+        while i < self.0.len() {
+            let is_right_limb = ConstChoice::from_u32_eq(i as u32, limb_num);
+            let old_limb = self.0[i].0;
+            let new_limb = bit_value.select_word(old_limb & !index_mask, old_limb | index_mask);
+            self.0[i] = Limb(is_right_limb.select_word(old_limb, new_limb));
+            i += 1;
+        }
+    }
+
+    /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`, in variable-time
+    /// with respect to `index`.
+    #[inline(always)]
+    pub const fn set_bit_vartime(&mut self, index: u32, bit_value: bool) {
+        let limb_num = (index / Limb::BITS) as usize;
+        let index_in_limb = index % Limb::BITS;
+        if bit_value {
+            self.0[limb_num].0 |= 1 << index_in_limb;
+        } else {
+            self.0[limb_num].0 &= !(1 << index_in_limb);
+        }
     }
 
     /// Calculate the number of leading zeros in the binary representation of this number.
@@ -38,55 +113,7 @@ impl UintRef {
         count
     }
 
-    #[inline(always)]
-    pub const fn bit_vartime(&self, index: u32) -> bool {
-        let limb_num = (index / Limb::BITS) as usize;
-        let index_in_limb = (index % Limb::BITS) as usize;
-        if limb_num >= self.0.len() {
-            false
-        } else {
-            (self.0[limb_num].0 >> index_in_limb) & 1 == 1
-        }
-    }
-
-    #[inline(always)]
-    pub const fn bits_vartime(&self) -> u32 {
-        let mut i = self.0.len() - 1;
-        while i > 0 && self.0[i].0 == 0 {
-            i -= 1;
-        }
-
-        let limb = self.0[i];
-        Limb::BITS * (i as u32 + 1) - limb.leading_zeros()
-    }
-
-    #[inline(always)]
-    pub const fn set_bit(&mut self, index: u32, bit_value: ConstChoice) {
-        let limb_num = index / Limb::BITS;
-        let index_in_limb = index % Limb::BITS;
-        let index_mask = 1 << index_in_limb;
-
-        let mut i = 0;
-        while i < self.0.len() {
-            let is_right_limb = ConstChoice::from_u32_eq(i as u32, limb_num);
-            let old_limb = self.0[i].0;
-            let new_limb = bit_value.select_word(old_limb & !index_mask, old_limb | index_mask);
-            self.0[i] = Limb(is_right_limb.select_word(old_limb, new_limb));
-            i += 1;
-        }
-    }
-
-    #[inline(always)]
-    pub const fn set_bit_vartime(&mut self, index: u32, bit_value: bool) {
-        let limb_num = (index / Limb::BITS) as usize;
-        let index_in_limb = index % Limb::BITS;
-        if bit_value {
-            self.0[limb_num].0 |= 1 << index_in_limb;
-        } else {
-            self.0[limb_num].0 &= !(1 << index_in_limb);
-        }
-    }
-
+    /// Calculate the number of trailing zeros in the binary representation of this number.
     #[inline(always)]
     pub const fn trailing_zeros(&self) -> u32 {
         let mut count = 0;
@@ -104,6 +131,8 @@ impl UintRef {
         count
     }
 
+    /// Calculate the number of trailing zeros in the binary representation of this number, in
+    /// variable-time with respect to `self`.
     #[inline(always)]
     pub const fn trailing_zeros_vartime(&self) -> u32 {
         let mut count = 0;
@@ -121,6 +150,7 @@ impl UintRef {
         count
     }
 
+    /// Calculate the number of trailing ones in the binary representation of this number.
     #[inline(always)]
     pub const fn trailing_ones(&self) -> u32 {
         let mut count = 0;
@@ -138,6 +168,8 @@ impl UintRef {
         count
     }
 
+    /// Calculate the number of trailing ones in the binary representation of this number, in
+    /// variable-time with respect to `self`.
     #[inline(always)]
     pub const fn trailing_ones_vartime(&self) -> u32 {
         let mut count = 0;
@@ -177,7 +209,7 @@ impl UintRef {
 impl BitOps for UintRef {
     #[inline(always)]
     fn bits_precision(&self) -> u32 {
-        self.0.len() as u32 * Limb::BITS
+        self.bits_precision()
     }
 
     #[inline(always)]
