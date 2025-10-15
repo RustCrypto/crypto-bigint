@@ -11,9 +11,8 @@ mod reduce;
 mod sub;
 
 use super::{
-    MontyParams, Retrieve,
-    div_by_2::div_by_2,
-    reduction::{montgomery_reduction, montgomery_retrieve},
+    MontyParams, Retrieve, div_by_2::div_by_2, mul::mul_montgomery_form,
+    reduction::montgomery_retrieve,
 };
 use crate::{ConstChoice, ConstOne, ConstZero, Odd, One, Uint, Zero};
 use core::{fmt::Debug, marker::PhantomData};
@@ -82,9 +81,9 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
 
     /// Instantiates a new [`ConstMontyForm`] that represents this `integer` mod `MOD`.
     pub const fn new(integer: &Uint<LIMBS>) -> Self {
-        let product = integer.widening_mul(&MOD::PARAMS.r2);
-        let montgomery_form = montgomery_reduction::<LIMBS>(
-            &product,
+        let montgomery_form = mul_montgomery_form(
+            integer,
+            &MOD::PARAMS.r2,
             &MOD::PARAMS.modulus,
             MOD::PARAMS.mod_neg_inv(),
         );

@@ -162,8 +162,7 @@ pub fn lincomb_boxed_monty_form(
             let carry =
                 impl_longa_monty_lincomb!(window, buf.limbs, modulus.0.limbs, mod_neg_inv, nlimbs);
             buf.sub_assign_mod_with_carry(carry, &modulus.0, &modulus.0);
-            let carry = ret.carrying_add_assign(&buf, Limb::ZERO);
-            ret.sub_assign_mod_with_carry(carry, &modulus.0, &modulus.0);
+            ret.add_mod_assign(&buf, modulus.as_nz_ref());
             remain -= count;
         }
     }
