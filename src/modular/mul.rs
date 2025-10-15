@@ -4,7 +4,17 @@ use crate::{Limb, Odd, Uint, WideWord, Word};
 /// Based on Algorithm 14.36 in Handbook of Applied Cryptography
 /// <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>
 ///
-/// Multiply `x` and `y` in Montgomery form, producing `x•y•R^-1 mod modulus`.
+/// Multiply `x` and `y` in Montgomery form, producing `x•y•R^-1 mod modulus + a•modulus`.
+///
+/// This algorithm roughly corresponds to the Finely Integrated Operand Scanning (FIOS)
+/// method of "Analyzing and Comparing Montgomery Multiplication Algorithms" by Koc et al
+/// <https://www.microsoft.com/en-us/research/wp-content/uploads/1996/01/j37acmon.pdf>
+/// but using wide words to track the intermediate products and carry.
+///
+/// The final conditional subtraction of the modulus to produce a result in the range
+/// `[0, modulus)` is not performed here, and must be performed by the caller. In some
+/// cases this may be deferred, as demonstrated by the `almost_montgomery_mul` method used
+/// in `BoxedMontyMultiplier`.
 #[inline(always)]
 pub const fn montgomery_multiply_inner(
     x: &[Limb],

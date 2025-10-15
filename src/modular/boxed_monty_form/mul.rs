@@ -254,6 +254,32 @@ pub(crate) fn montgomery_mul(
     out.sub_assign_mod_with_carry(carry, modulus, modulus);
 }
 
+/// Computes an 'almost' Montgomery multiplication of `x` and `y` into `out`, that is
+/// `out = x * y * 2^(-n*W) mod m + am` assuming `k = -1/m mod 2^W`,
+/// where `W` is the bit size of the limb, and `n * W` is the full bit size of the integer.
+///
+/// NOTE: `out` is assumed to be pre-zeroized.
+///
+/// Unlike the standard Montgomery multiplication, we are reducing the final result only if
+/// it overflows `2^(n*W)`, not when it overflows `m`.
+///
+/// This means that this function does not assume `x` and `y` are reduced `mod m`,
+/// and the result will be correct `mod m`, but potentially greater than `m`,
+/// and smaller than `2^(n * W) + m`.
+/// See "Efficient Software Implementations of Modular Exponentiation" by S. Gueron for details
+/// (<https://eprint.iacr.org/2011/239.pdf>).
+///
+/// This function exhibits certain properties which were discovered via randomized tests,
+/// but (to my knowledge at this moment) have not been proven formally.
+/// Hereinafter we denote `f(x) = floor(x / m)`, that is `f` is the number of subtractions
+/// of the modulus required to fully reduce `x`.
+///
+/// 1. In general, if `f(x) = k` and `f(y) = n`, then `f(AMM(x, y)) <= min(k, n) + 1`.
+///    That is the "reduction error" grows with every operation,
+///    but is determined by the argument with the lower error.
+/// 2. To retrieve the number from Montgomery form we MM it by 1. In this case `f(AMM(x, 1)) = 0`,
+///    that is the result is always fully reduced regardless of `f(x)`.
+/// 3. `f(AMM(x, x)) <= 1` regardless of `f(x)`. That is, squaring resets the error to at most 1.
 #[inline]
 pub(crate) fn almost_montgomery_mul(
     x: &BoxedUint,
