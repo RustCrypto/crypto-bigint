@@ -302,6 +302,7 @@ pub(crate) fn almost_montgomery_mul(
 #[cfg(test)]
 mod tests {
     use super::{BoxedMontyForm, BoxedMontyParams, BoxedUint};
+    use crate::SquareAssign;
 
     /// Regression test for RustCrypto/crypto-bigint#441
     #[test]
@@ -316,5 +317,15 @@ mod tests {
 
         // TODO(tarcieri): test for correct output
         assert!(boxed_square.as_montgomery() < boxed_square.params().modulus());
+
+        // Check mul_assign
+        let mut boxed_mut = boxed_monty.clone();
+        boxed_mut *= &boxed_monty;
+        assert_eq!(boxed_mut, boxed_square);
+
+        // Check square_assign
+        let mut boxed_mut = boxed_monty.clone();
+        boxed_mut.square_assign();
+        assert_eq!(boxed_mut, boxed_square);
     }
 }
