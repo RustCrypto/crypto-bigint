@@ -310,7 +310,7 @@ pub(crate) const fn almost_montgomery_mul(
     conditional_sub(z, m, overflow);
 }
 
-/// Calcaultes `z += x * y` and returns the carry.
+/// Calculates `z += x * y` and returns the carry.
 #[inline]
 const fn add_mul_carry(z: &mut [Limb], x: &[Limb], y: Limb) -> Limb {
     let n = z.len();
@@ -327,7 +327,7 @@ const fn add_mul_carry(z: &mut [Limb], x: &[Limb], y: Limb) -> Limb {
     c
 }
 
-/// Calcaultes `z = (z + x * y) / 2^W` and returns the carry (of the `z + x * y`).
+/// Calculates `z = (z + x * y) / 2^W` and returns the carry (of the `z + x * y`).
 #[inline]
 const fn add_mul_carry_and_shift(z: &mut [Limb], x: &[Limb], y: Limb) -> Limb {
     let n = z.len();

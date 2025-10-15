@@ -83,7 +83,7 @@ pub fn invert_odd_mod<const VARTIME: bool>(
     invert_odd_mod_precomp::<VARTIME>(a, m, mi, None)
 }
 
-/// Calculate the multipicative inverse of `a` modulo `m`.
+/// Calculate the multiplicative inverse of `a` modulo `m`.
 ///
 fn invert_odd_mod_precomp<const VARTIME: bool>(
     a: &BoxedUint,
