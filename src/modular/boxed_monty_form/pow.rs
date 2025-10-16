@@ -1,8 +1,8 @@
 //! Modular exponentiation support for [`BoxedMontyForm`].
 
-use super::{BoxedMontyForm, mul::BoxedMontyMultiplier};
+use super::{BoxedMontyForm, BoxedMontyParams, mul::BoxedMontyMultiplier};
 use crate::{BoxedUint, ConstantTimeSelect, Limb, PowBoundedExp, Word};
-use alloc::vec::Vec;
+use core::{array, mem};
 use subtle::{ConstantTimeEq, ConstantTimeLess};
 
 impl BoxedMontyForm {
@@ -22,9 +22,7 @@ impl BoxedMontyForm {
                 &self.montgomery_form,
                 exponent,
                 exponent_bits,
-                self.params.modulus(),
-                self.params.one(),
-                self.params.mod_neg_inv(),
+                &self.params,
             ),
             params: self.params.clone(),
         };
@@ -49,10 +47,10 @@ fn pow_montgomery_form(
     x: &BoxedUint,
     exponent: &BoxedUint,
     exponent_bits: u32,
-    modulus: &BoxedUint,
-    one: &BoxedUint,
-    mod_neg_inv: Limb,
+    params: &BoxedMontyParams,
 ) -> BoxedUint {
+    let one = params.one();
+
     if exponent_bits == 0 {
         return one.clone(); // 1 in Montgomery form
     }
@@ -60,16 +58,19 @@ fn pow_montgomery_form(
     const WINDOW: u32 = 4;
     const WINDOW_MASK: Word = (1 << WINDOW) - 1;
 
-    let mut multiplier = BoxedMontyMultiplier::new(modulus, mod_neg_inv);
+    let mut multiplier = BoxedMontyMultiplier::from(params);
+    let mut power = x.clone();
 
     // powers[i] contains x^i
-    let mut powers = Vec::with_capacity(1 << WINDOW);
-    powers.push(one.clone()); // 1 in Montgomery form
-    powers.push(x.clone());
-
-    for i in 2..(1 << WINDOW) {
-        powers.push(multiplier.mul_amm(&powers[i - 1], x));
-    }
+    let powers: [BoxedUint; 1 << WINDOW] = array::from_fn(|n| {
+        if n == 0 {
+            one.clone()
+        } else {
+            let mut new_power = multiplier.mul_amm(&power, x);
+            mem::swap(&mut power, &mut new_power);
+            new_power
+        }
+    });
 
     let starting_limb = ((exponent_bits - 1) / Limb::BITS) as usize;
     let starting_bit_in_limb = (exponent_bits - 1) % Limb::BITS;
@@ -125,6 +126,7 @@ fn pow_montgomery_form(
     // Now that we exited the loop, we need to reduce `z` at most twice
     // to bring it within `[0, modulus)`.
 
+    let modulus = params.modulus();
     z.conditional_borrowing_sub_assign(modulus, !z.ct_lt(modulus));
     z.conditional_borrowing_sub_assign(modulus, !z.ct_lt(modulus));
     debug_assert!(&z < modulus);
