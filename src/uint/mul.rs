@@ -252,9 +252,7 @@ pub(crate) const fn wrapping_mul_overflow(
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, U64, U128, U192, U256, Zero};
-    #[cfg(feature = "rand_core")]
-    use rand_core::{RngCore, SeedableRng};
+    use crate::{ConstChoice, U64, U128, U192, U256, Uint, Zero};
 
     #[test]
     fn widening_mul_zero_and_one() {
@@ -399,6 +397,7 @@ mod tests {
     #[test]
     fn mul_cmp() {
         use crate::{Random, U4096};
+        use rand_core::SeedableRng;
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
 
         for _ in 0..50 {
@@ -409,50 +408,45 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "rand_core")]
     #[test]
-    fn checked_mul_random() {
-        use crate::{Limb, Uint};
+    fn checked_mul_sizes() {
+        const SIZE_A: usize = 4;
+        const SIZE_B: usize = 8;
 
-        const SIZE: usize = 8;
-        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+        for n in 0..Uint::<SIZE_A>::BITS {
+            let mut a = Uint::<SIZE_A>::ZERO;
+            a = a.set_bit_vartime(n, true);
 
-        for n in 1..1000 {
-            let a_index = rng.next_u32() % (Limb::BITS * SIZE as u32);
-            let b_index = rng.next_u32() % (Limb::BITS * SIZE as u32);
-            let (mut a, mut b) = (Uint::<SIZE>::ZERO, Uint::<SIZE>::ZERO);
-            a = a.set_bit_vartime(a_index, true);
-            b = b.set_bit_vartime(b_index, true);
-            let res = a.widening_mul(&b);
-            let res_overflow = res.1.is_nonzero();
-            let checked = a.checked_mul(&b);
-            assert_eq!(
-                checked.components_ref(),
-                (&res.0, res_overflow.not()),
-                "a = 2**{a_index}, b = 2**{b_index}, n={n}"
-            );
+            for m in (0..Uint::<SIZE_B>::BITS).step_by(16) {
+                let mut b = Uint::<SIZE_B>::ZERO;
+                b = b.set_bit_vartime(m, true);
+                let res = a.widening_mul(&b);
+                let res_overflow = res.1.is_nonzero();
+                let checked = a.checked_mul(&b);
+                assert_eq!(
+                    checked.components_ref(),
+                    (&res.0, res_overflow.not()),
+                    "a = 2**{n}, b = 2**{m}"
+                );
+            }
         }
     }
 
-    #[cfg(feature = "rand_core")]
     #[test]
-    fn checked_square_random() {
-        use crate::{Limb, Uint};
+    fn checked_square_sizes() {
+        const SIZE: usize = 4;
 
-        const SIZE: usize = 8;
-        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
-
-        for n in 1..1000 {
-            let a_index = rng.next_u32() % (Limb::BITS * SIZE as u32);
+        for n in 0..Uint::<SIZE>::BITS {
             let mut a = Uint::<SIZE>::ZERO;
-            a = a.set_bit_vartime(a_index, true);
+            a = a.set_bit_vartime(n, true);
+
             let res = a.square_wide();
             let res_overflow = res.1.is_nonzero();
             let checked = a.checked_square();
             assert_eq!(
                 checked.components_ref(),
                 (&res.0, res_overflow.not()),
-                "a = 2**{a_index}, n={n}"
+                "a = 2**{n}"
             );
         }
     }
