@@ -422,6 +422,14 @@ impl Default for BoxedUint {
 }
 
 impl Integer for BoxedUint {
+    fn as_limbs(&self) -> &[Limb] {
+        &self.limbs
+    }
+
+    fn as_mut_limbs(&mut self) -> &mut [Limb] {
+        &mut self.limbs
+    }
+
     fn nlimbs(&self) -> usize {
         self.nlimbs()
     }

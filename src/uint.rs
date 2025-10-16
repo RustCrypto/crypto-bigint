@@ -300,6 +300,14 @@ impl<const LIMBS: usize> FixedInteger for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> Integer for Uint<LIMBS> {
+    fn as_limbs(&self) -> &[Limb] {
+        &self.limbs
+    }
+
+    fn as_mut_limbs(&mut self) -> &mut [Limb] {
+        &mut self.limbs
+    }
+
     fn nlimbs(&self) -> usize {
         Self::LIMBS
     }

@@ -7,10 +7,11 @@
 
 use super::{BoxedMontyForm, BoxedMontyParams};
 use crate::{
-    BoxedUint, ConstChoice, Limb, MontyMultiplier, Square, SquareAssign,
+    AmmMultiplier, BoxedUint, ConstChoice, Limb, MontyMultiplier, Square, SquareAssign,
     modular::mul::montgomery_multiply_inner,
 };
 use core::ops::{Mul, MulAssign};
+use subtle::ConstantTimeLess;
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -46,6 +47,32 @@ impl BoxedMontyForm {
         Self {
             montgomery_form: out,
             params: self.params.clone(),
+        }
+    }
+
+    /// Instantiate [`BoxedMontyForm`] from the result of an "Almost Montgomery Multiplication".
+    pub(crate) fn from_amm(mut z: BoxedUint, params: BoxedMontyParams) -> Self {
+        // Ensure the output is properly reduced.
+        //
+        // Using the properties of `almost_montgomery_mul()` (see its documentation):
+        // - We have an incoming `x` which is fully reduced (`floor(x / modulus) = 0`).
+        // - We build an array of `powers` which are produced by multiplying the previous power by
+        //   `x`, so for each power `floor(power / modulus) <= 1`.
+        // - Then we take turns squaring the accumulator `z` (bringing `floor(z / modulus)` to 1
+        //   regardless of the previous reduction level) and multiplying by a power of `x`
+        //   (bringing `floor(z / modulus)` to at most 2).
+        // - Then we either exit the loop, or square again, which brings `floor(z / modulus)` back
+        //   to 1.
+        //
+        // We now need to reduce `z` at most twice to bring it within `[0, modulus)`.
+        let modulus = params.modulus();
+        z.conditional_borrowing_sub_assign(modulus, !z.ct_lt(modulus));
+        z.conditional_borrowing_sub_assign(modulus, !z.ct_lt(modulus));
+        debug_assert!(&z < modulus);
+
+        Self {
+            montgomery_form: z,
+            params,
         }
     }
 }
@@ -113,6 +140,7 @@ pub struct BoxedMontyMultiplier<'a> {
 }
 
 impl<'a> From<&'a BoxedMontyParams> for BoxedMontyMultiplier<'a> {
+    #[inline]
     fn from(params: &'a BoxedMontyParams) -> BoxedMontyMultiplier<'a> {
         BoxedMontyMultiplier::new(params.modulus(), params.mod_neg_inv())
     }
@@ -122,13 +150,27 @@ impl<'a> MontyMultiplier<'a> for BoxedMontyMultiplier<'a> {
     type Monty = BoxedMontyForm;
 
     /// Performs a Montgomery multiplication, assigning a fully reduced result to `lhs`.
-    fn mul_assign(&mut self, lhs: &mut Self::Monty, rhs: &Self::Monty) {
+    #[inline]
+    fn mul_assign(&mut self, lhs: &mut BoxedMontyForm, rhs: &BoxedMontyForm) {
         self.mul_assign(&mut lhs.montgomery_form, &rhs.montgomery_form);
     }
 
     /// Performs a Montgomery squaring, assigning a fully reduced result to `lhs`.
-    fn square_assign(&mut self, lhs: &mut Self::Monty) {
+    #[inline]
+    fn square_assign(&mut self, lhs: &mut BoxedMontyForm) {
         self.square_assign(&mut lhs.montgomery_form);
+    }
+}
+
+impl<'a> AmmMultiplier<'a> for BoxedMontyMultiplier<'a> {
+    #[inline]
+    fn mul_amm_assign(&mut self, a: &mut BoxedUint, b: &BoxedUint) {
+        self.mul_amm_assign(a, b);
+    }
+
+    #[inline]
+    fn square_amm_assign(&mut self, a: &mut BoxedUint) {
+        self.square_amm_assign(a);
     }
 }
 
@@ -164,17 +206,6 @@ impl<'a> BoxedMontyMultiplier<'a> {
         debug_assert!(&*a < self.modulus);
     }
 
-    /// Perform an "Almost Montgomery Multiplication".
-    ///
-    /// NOTE: the resulting output will be reduced to the *bit length* of the modulus, but not fully reduced and may
-    /// exceed the modulus. A final reduction is required to ensure AMM results are fully reduced, and should not be
-    /// exposed outside the internals of this crate.
-    pub(super) fn mul_amm(&mut self, a: &BoxedUint, b: &BoxedUint) -> BoxedUint {
-        let mut ret = a.clone();
-        self.mul_amm_assign(&mut ret, b);
-        ret
-    }
-
     /// Perform an "Almost Montgomery Multiplication", assigning the product to `a`.
     ///
     /// NOTE: the resulting output will be reduced to the *bit length* of the modulus, but not fully reduced and may
@@ -187,18 +218,6 @@ impl<'a> BoxedMontyMultiplier<'a> {
         self.clear_product();
         almost_montgomery_mul(a, b, &mut self.product, self.modulus, self.mod_neg_inv);
         a.limbs.copy_from_slice(&self.product.limbs);
-    }
-
-    /// Perform a squaring using "Almost Montgomery Multiplication".
-    ///
-    /// NOTE: the resulting output will be reduced to the *bit length* of the modulus, but not fully reduced and may
-    /// exceed the modulus. A final reduction is required to ensure AMM results are fully reduced, and should not be
-    /// exposed outside the internals of this crate.
-    #[allow(dead_code)] // TODO(tarcieri): use this?
-    pub(super) fn square_amm(&mut self, a: &BoxedUint) -> BoxedUint {
-        let mut ret = a.clone();
-        self.square_amm_assign(&mut ret);
-        ret
     }
 
     /// Perform a squaring using "Almost Montgomery Multiplication", assigning the result to `a`.
