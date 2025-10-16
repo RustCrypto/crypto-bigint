@@ -1,8 +1,10 @@
 use super::mul::{mul_montgomery_form, square_montgomery_form};
-use crate::{ConstChoice, Limb, Odd, Uint, Word};
+use crate::{AmmMultiplier, ConstChoice, Limb, Monty, Odd, Uint, Unsigned, Word};
 
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
+use core::{array, mem};
+use subtle::ConstantTimeEq;
 
 const WINDOW: u32 = 4;
 const WINDOW_MASK: Word = (1 << WINDOW) - 1;
@@ -26,6 +28,100 @@ pub const fn pow_montgomery_form<const LIMBS: usize, const RHS_LIMBS: usize>(
         one,
         mod_neg_inv,
     )
+}
+
+/// Performs modular exponentiation using "Almost Montgomery Multiplication".
+///
+/// NOTE: the resulting output will be reduced to the *bit length* of the modulus, but not fully
+/// reduced and may exceed the modulus.
+///
+/// A final reduction is required to ensure AMM results are fully reduced, and should not be exposed
+/// outside the internals of this crate.
+///
+/// `exponent_bits` represents the length of the exponent in bits.
+///
+/// NOTE: `exponent_bits` is leaked in the time pattern.
+// NOTE: this function is intended to work without alloc, so we `allow(dead_code)` to ensure such
+#[cfg_attr(not(feature = "alloc"), allow(dead_code))] // TODO(tarcieri): use w\ `MontyForm`
+#[allow(clippy::needless_range_loop)]
+pub fn pow_montgomery_form_amm<'a, U>(
+    x: &U,
+    exponent: &U,
+    exponent_bits: u32,
+    params: &'a <U::Monty as Monty>::Params,
+) -> U
+where
+    U: Unsigned,
+    <U::Monty as Monty>::Multiplier<'a>: AmmMultiplier<'a>,
+{
+    let one = U::Monty::one(params.clone()).as_montgomery().clone();
+
+    if exponent_bits == 0 {
+        return one.clone(); // 1 in Montgomery form
+    }
+
+    const WINDOW: u32 = 4;
+    const WINDOW_MASK: Word = (1 << WINDOW) - 1;
+
+    let mut multiplier = <U::Monty as Monty>::Multiplier::from(params);
+    let mut power = x.clone();
+
+    // powers[i] contains x^i
+    let powers: [U; 1 << WINDOW] = array::from_fn(|n| {
+        if n == 0 {
+            one.clone()
+        } else if n == (1 << WINDOW) - 1 {
+            power.clone()
+        } else {
+            let mut new_power = power.clone();
+            multiplier.mul_amm_assign(&mut new_power, x);
+
+            mem::swap(&mut power, &mut new_power);
+            new_power
+        }
+    });
+
+    let starting_limb = ((exponent_bits - 1) / Limb::BITS) as usize;
+    let starting_bit_in_limb = (exponent_bits - 1) % Limb::BITS;
+    let starting_window = starting_bit_in_limb / WINDOW;
+    let starting_window_mask = (1 << (starting_bit_in_limb % WINDOW + 1)) - 1;
+
+    let mut z = one.clone(); // 1 in Montgomery form
+    let mut power = powers[0].clone();
+
+    for limb_num in (0..=starting_limb).rev() {
+        let w = exponent.as_limbs()[limb_num].0;
+
+        let mut window_num = if limb_num == starting_limb {
+            starting_window + 1
+        } else {
+            Limb::BITS / WINDOW
+        };
+
+        while window_num > 0 {
+            window_num -= 1;
+
+            let mut idx = (w >> (window_num * WINDOW)) & WINDOW_MASK;
+
+            if limb_num == starting_limb && window_num == starting_window {
+                idx &= starting_window_mask;
+            } else {
+                for _ in 1..=WINDOW {
+                    multiplier.square_amm_assign(&mut z);
+                }
+            }
+
+            // Constant-time lookup in the array of powers
+            power.as_mut_limbs().copy_from_slice(powers[0].as_limbs());
+            for i in 1..(1 << WINDOW) {
+                power.ct_assign(&powers[i], (i as Word).ct_eq(&idx));
+            }
+
+            multiplier.mul_amm_assign(&mut z, &power);
+        }
+    }
+
+    z
 }
 
 pub const fn multi_exponentiate_montgomery_form_array<

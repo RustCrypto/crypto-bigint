@@ -146,6 +146,12 @@ pub trait Integer:
     + WrappingShr
     + Zero
 {
+    /// Borrow the raw limbs used to represent this integer.
+    fn as_limbs(&self) -> &[Limb];
+
+    /// Mutably borrow the raw limbs used to represent this integer.
+    fn as_mut_limbs(&mut self) -> &mut [Limb];
+
     /// Number of limbs in this integer.
     fn nlimbs(&self) -> usize;
 
@@ -1072,4 +1078,22 @@ pub trait MontyMultiplier<'a>: From<&'a <Self::Monty as Monty>::Params> {
 
     /// Performs a Montgomery squaring, assigning a fully reduced result to `lhs`.
     fn square_assign(&mut self, lhs: &mut Self::Monty);
+}
+
+/// Prepared Montgomery multiplier for tight loops, performing "Almost Montgomery Multiplication".
+///
+/// NOTE: the resulting output of any of these functions will be reduced to the *bit length* of the
+/// modulus, but not fully reduced and may exceed the modulus. A final reduction is required to
+/// ensure AMM results are fully reduced, and should not be exposed outside the internals of this
+/// crate.
+pub(crate) trait AmmMultiplier<'a>: MontyMultiplier<'a> {
+    /// Perform an "Almost Montgomery Multiplication", assigning the product to `a`.
+    fn mul_amm_assign(
+        &mut self,
+        a: &mut <Self::Monty as Monty>::Integer,
+        b: &<Self::Monty as Monty>::Integer,
+    );
+
+    /// Perform a squaring using "Almost Montgomery Multiplication", assigning the result to `a`.
+    fn square_amm_assign(&mut self, a: &mut <Self::Monty as Monty>::Integer);
 }
