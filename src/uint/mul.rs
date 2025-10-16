@@ -5,8 +5,8 @@ use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
 
 use crate::{
-    Checked, CheckedMul, Concat, ConcatMixed, ConcatenatingMul, ConstCtOption, Uint, Wrapping,
-    WrappingMul, Zero,
+    Checked, CheckedMul, Concat, ConcatMixed, ConcatenatingMul, ConstChoice, ConstCtOption, Limb,
+    Uint, UintRef, Wrapping, WrappingMul,
 };
 
 pub(crate) mod karatsuba;
@@ -46,15 +46,24 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform wrapping multiplication, discarding overflow.
-    // #[inline(always)]
     pub const fn wrapping_mul<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> Self {
         karatsuba::wrapping_mul_fixed::<LIMBS>(self.as_uint_ref(), rhs.as_uint_ref()).0
     }
 
     /// Perform saturating multiplication, returning `MAX` on overflow.
     pub const fn saturating_mul<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> Self {
-        let (res, overflow) = self.widening_mul(rhs);
-        Self::select(&res, &Self::MAX, overflow.is_nonzero())
+        self.checked_mul(rhs).unwrap_or(Uint::MAX)
+    }
+
+    /// Perform wrapping multiplication, checking that the result fits in the original [`Uint`] size.
+    pub const fn checked_mul<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> ConstCtOption<Uint<LIMBS>> {
+        let (lo, carry) = karatsuba::wrapping_mul_fixed(self.as_uint_ref(), rhs.as_uint_ref());
+        let overflow =
+            wrapping_mul_overflow(self.as_uint_ref(), rhs.as_uint_ref(), carry.is_nonzero());
+        ConstCtOption::new(lo, overflow.not())
     }
 }
 
@@ -77,20 +86,20 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Square self, checking that the result fits in the original [`Uint`] size.
     pub const fn checked_square(&self) -> ConstCtOption<Uint<LIMBS>> {
-        let (lo, hi) = self.square_wide();
-        ConstCtOption::new(lo, Self::eq(&hi, &Self::ZERO))
+        let (lo, carry) = karatsuba::wrapping_square_fixed(self.as_uint_ref());
+        let overflow =
+            wrapping_mul_overflow(self.as_uint_ref(), self.as_uint_ref(), carry.is_nonzero());
+        ConstCtOption::new(lo, overflow.not())
     }
 
     /// Perform wrapping square, discarding overflow.
-    // #[inline(always)]
     pub const fn wrapping_square(&self) -> Uint<LIMBS> {
-        karatsuba::wrapping_square_fixed(self.as_uint_ref())
+        karatsuba::wrapping_square_fixed(self.as_uint_ref()).0
     }
 
     /// Perform saturating squaring, returning `MAX` on overflow.
     pub const fn saturating_square(&self) -> Self {
-        let (res, overflow) = self.square_wide();
-        Self::select(&res, &Self::MAX, overflow.is_nonzero())
+        self.checked_square().unwrap_or(Uint::MAX)
     }
 }
 
@@ -106,10 +115,8 @@ where
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Uint<RHS_LIMBS>> for Uint<LIMBS> {
-    #[inline]
     fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
-        let (lo, hi) = self.widening_mul(rhs);
-        CtOption::new(lo, hi.is_zero())
+        self.checked_mul(rhs).into()
     }
 }
 
@@ -214,9 +221,38 @@ impl<const LIMBS: usize> WrappingMul for Uint<LIMBS> {
     }
 }
 
+/// We determine whether an overflow would occur by comparing limbs in
+/// `lhs[i=0..n]` and `rhs[j=0..m]`. Any combination where the sum of indexes
+/// `i + j >= n`, `lhs[i] != 0`, and `rhs[j] != 0` would cause an overflow.
+/// For efficiency we OR all limbs in `rhs` that would apply to each limb in
+/// `lhs` in turn.
+pub(crate) const fn wrapping_mul_overflow(
+    lhs: &UintRef,
+    rhs: &UintRef,
+    mut overflow: ConstChoice,
+) -> ConstChoice {
+    let mut rhs_tail = Limb::ZERO;
+    let mut i = 0;
+    let mut j = lhs.nlimbs();
+    let mut k = rhs.nlimbs().saturating_sub(1);
+    while k > j {
+        rhs_tail = rhs_tail.bitor(rhs.0[k]);
+        k -= 1;
+    }
+    while i < lhs.nlimbs() {
+        j = lhs.nlimbs() - i;
+        if j < rhs.nlimbs() {
+            rhs_tail = rhs_tail.bitor(rhs.0[j]);
+            overflow = overflow.or(lhs.0[i].is_nonzero().and(rhs_tail.is_nonzero()));
+        }
+        i += 1;
+    }
+    overflow
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{CheckedMul, ConstChoice, U64, U128, U192, U256, Zero};
+    use crate::{ConstChoice, U64, U128, U192, U256, Uint, Zero};
 
     #[test]
     fn widening_mul_zero_and_one() {
@@ -288,11 +324,12 @@ mod tests {
             n.checked_mul(&n).unwrap(),
             U64::from_u64(0xffff_fffe_0000_0001)
         );
+        assert_eq!(U64::ZERO.checked_mul(&U64::ZERO).unwrap(), U64::ZERO);
     }
 
     #[test]
     fn checked_mul_overflow() {
-        let n = U64::from_u64(0xffff_ffff_ffff_ffff);
+        let n = U64::MAX;
         assert!(bool::from(n.checked_mul(&n).is_none()));
     }
 
@@ -332,6 +369,10 @@ mod tests {
         assert_eq!(n2.is_some(), ConstChoice::TRUE);
         let n4 = n2.unwrap().checked_square();
         assert_eq!(n4.is_none(), ConstChoice::TRUE);
+        let z = U256::ZERO.checked_square();
+        assert_eq!(z.is_some(), ConstChoice::TRUE);
+        let m = U256::MAX.checked_square();
+        assert_eq!(m.is_none(), ConstChoice::TRUE);
     }
 
     #[test]
@@ -363,6 +404,50 @@ mod tests {
             let a = U4096::random(&mut rng);
             assert_eq!(a.widening_mul(&a), a.square_wide(), "a = {a}");
             assert_eq!(a.wrapping_mul(&a), a.wrapping_square(), "a = {a}");
+            assert_eq!(a.saturating_mul(&a), a.saturating_square(), "a = {a}");
+        }
+    }
+
+    #[test]
+    fn checked_mul_sizes() {
+        const SIZE_A: usize = 4;
+        const SIZE_B: usize = 8;
+
+        for n in 0..Uint::<SIZE_A>::BITS {
+            let mut a = Uint::<SIZE_A>::ZERO;
+            a = a.set_bit_vartime(n, true);
+
+            for m in (0..Uint::<SIZE_B>::BITS).step_by(16) {
+                let mut b = Uint::<SIZE_B>::ZERO;
+                b = b.set_bit_vartime(m, true);
+                let res = a.widening_mul(&b);
+                let res_overflow = res.1.is_nonzero();
+                let checked = a.checked_mul(&b);
+                assert_eq!(
+                    checked.components_ref(),
+                    (&res.0, res_overflow.not()),
+                    "a = 2**{n}, b = 2**{m}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn checked_square_sizes() {
+        const SIZE: usize = 4;
+
+        for n in 0..Uint::<SIZE>::BITS {
+            let mut a = Uint::<SIZE>::ZERO;
+            a = a.set_bit_vartime(n, true);
+
+            let res = a.square_wide();
+            let res_overflow = res.1.is_nonzero();
+            let checked = a.checked_square();
+            assert_eq!(
+                checked.components_ref(),
+                (&res.0, res_overflow.not()),
+                "a = 2**{n}"
+            );
         }
     }
 }

@@ -74,6 +74,19 @@ fn bench_mul(c: &mut Criterion) {
         )
     });
 
+    group.bench_function("boxed_checked_mul", |b| {
+        b.iter_batched(
+            || {
+                (
+                    BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+                    BoxedUint::random_bits(&mut OsRng, UINT_BITS),
+                )
+            },
+            |(x, y)| black_box(x.checked_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
     group.bench_function("boxed_square", |b| {
         b.iter_batched(
             || BoxedUint::random_bits(&mut OsRng, UINT_BITS),

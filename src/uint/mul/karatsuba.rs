@@ -293,10 +293,10 @@ pub const fn widening_square_fixed<const LIMBS: usize>(
 ///
 /// The limb count of `uint` must be `LIMBS`.
 #[inline]
-pub const fn wrapping_square_fixed<const LIMBS: usize>(uint: &UintRef) -> Uint<LIMBS> {
+pub const fn wrapping_square_fixed<const LIMBS: usize>(uint: &UintRef) -> (Uint<LIMBS>, Limb) {
     let mut lo = Uint::ZERO;
-    wrapping_square(uint, lo.as_mut_uint_ref());
-    lo
+    let carry = wrapping_square(uint, lo.as_mut_uint_ref());
+    (lo, carry)
 }
 
 /// Multiply two limb slices, placing the potentially-truncated result in `out`.
@@ -430,14 +430,14 @@ pub const fn wrapping_mul(lhs: &UintRef, rhs: &UintRef, out: &mut UintRef, add: 
 ///
 /// `out` must have a limb count less than or equal to the width of the wide squaring of `uint`.
 #[inline]
-pub(crate) const fn wrapping_square(uint: &UintRef, out: &mut UintRef) {
+pub(crate) const fn wrapping_square(uint: &UintRef, out: &mut UintRef) -> Limb {
     assert!(
         out.nlimbs() <= uint.nlimbs() * 2,
         "invalid arguments to wrapping_square"
     );
 
     // Use the optimized squaring for `LIMBS` limbs to break down the calculation of the product.
-    const fn reduce<const LIMBS: usize>(x: &UintRef, out: &mut UintRef) {
+    const fn reduce<const LIMBS: usize>(x: &UintRef, out: &mut UintRef) -> Limb {
         let (x0, x1) = x.split_at(LIMBS);
         let (lo, hi) = out.split_at_mut(LIMBS);
 
@@ -449,7 +449,14 @@ pub(crate) const fn wrapping_square(uint: &UintRef, out: &mut UintRef) {
         if hi.nlimbs() <= LIMBS {
             let (z1, _carry) = wrapping_mul_fixed::<LIMBS>(x0, x1);
             let z1 = z1.overflowing_shl1().0;
-            hi.copy_from(z0.1.wrapping_add(&z1).as_uint_ref().leading(hi.nlimbs()));
+            let z2 = z0.1.wrapping_add(&z1);
+            let (z2, tail) = z2.as_uint_ref().split_at(hi.nlimbs());
+            hi.copy_from(z2);
+            if tail.is_empty() {
+                Limb::ZERO
+            } else {
+                tail.0[0]
+            }
         } else {
             let (z01, z2) = hi.split_at_mut(LIMBS);
             z01.copy_from(z0.1.as_uint_ref());
@@ -470,7 +477,7 @@ pub(crate) const fn wrapping_square(uint: &UintRef, out: &mut UintRef) {
             let (z1, z1tail) = hi.split_at_mut(LIMBS + z2_len);
             let c = wrapping_mul(dx0.as_uint_ref(), x1, z1, true);
             carry = carry.wrapping_add(c);
-            z1tail.add_assign_limb(carry);
+            z1tail.add_assign_limb(carry)
         }
     }
 
@@ -483,8 +490,7 @@ pub(crate) const fn wrapping_square(uint: &UintRef, out: &mut UintRef) {
 
     // Handle smaller integer sizes
     if x.nlimbs() <= MIN_STARTING_LIMBS {
-        schoolbook::wrapping_square(x.as_slice(), out.as_mut_slice());
-        return;
+        return schoolbook::wrapping_square(x.as_slice(), out.as_mut_slice());
     }
 
     // Select an optimized 'split' such that a wide multiplication will not
@@ -546,6 +552,7 @@ const fn previous_power_of_2(value: usize) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::Random;
     use crate::{Limb, Uint};
     use rand_core::{RngCore, SeedableRng};
 
@@ -554,8 +561,6 @@ mod tests {
         const SIZE: usize = 200;
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
         for n in 0..100 {
-            use crate::Random;
-
             let a = Uint::<SIZE>::random(&mut rng);
             let b = Uint::<SIZE>::random(&mut rng);
             let size_a = rng.next_u32() as usize % SIZE;
@@ -582,8 +587,6 @@ mod tests {
         const SIZE: usize = 200;
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
         for n in 0..100 {
-            use crate::Random;
-
             let a = Uint::<SIZE>::random(&mut rng);
             let size_a = rng.next_u32() as usize % SIZE;
             let a = a.as_uint_ref().leading(size_a);

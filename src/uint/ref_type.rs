@@ -118,6 +118,17 @@ impl UintRef {
         }
     }
 
+    /// Conditionally assign all of the limbs to the maximum.
+    #[cfg(feature = "alloc")]
+    #[inline]
+    pub const fn conditional_set_max(&mut self, choice: ConstChoice) {
+        let mut i = 0;
+        while i < self.nlimbs() {
+            self.0[i] = Limb::select(self.0[i], Limb::MAX, choice);
+            i += 1;
+        }
+    }
+
     /// Extract up to `LIMBS` limbs into a new `Uint`.
     pub const fn to_uint_resize<const LIMBS: usize>(&self) -> Uint<LIMBS> {
         let mut out = Uint::ZERO;

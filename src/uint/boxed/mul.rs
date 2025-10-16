@@ -1,83 +1,106 @@
 //! [`BoxedUint`] multiplication operations.
 
 use crate::{
-    BoxedUint, CheckedMul, ConcatenatingMul, Limb, Uint, UintRef, Wrapping, WrappingMul, Zero,
-    uint::mul::karatsuba,
+    BoxedUint, CheckedMul, ConcatenatingMul, Limb, Uint, UintRef, Wrapping, WrappingMul,
+    uint::mul::{karatsuba, wrapping_mul_overflow},
 };
 use core::ops::{Mul, MulAssign};
-use subtle::{Choice, CtOption};
+use subtle::CtOption;
 
 impl BoxedUint {
     /// Multiply `self` by `rhs`.
     ///
     /// Returns a widened output with a limb count equal to the sums of the input limb counts.
     pub fn mul(&self, rhs: &Self) -> Self {
-        self.widening_mul_limbs(rhs.as_limbs())
+        self.wrapping_mul_carry(rhs.as_limbs(), self.nlimbs() + rhs.nlimbs())
+            .0
     }
 
     /// Multiply `self` by `rhs`.
     ///
     /// Returns a widened output with a limb count equal to the sums of the input limb counts.
     pub(crate) fn mul_uint<const LIMBS: usize>(&self, rhs: &Uint<LIMBS>) -> Self {
-        self.widening_mul_limbs(rhs.as_limbs())
-    }
-
-    #[inline(always)]
-    fn widening_mul_limbs(&self, rhs: &[Limb]) -> Self {
-        let mut limbs = vec![Limb::ZERO; self.nlimbs() + rhs.len()];
-        karatsuba::wrapping_mul(
-            self.as_uint_ref(),
-            UintRef::new(rhs),
-            UintRef::new_mut(limbs.as_mut_slice()),
-            false,
-        );
-        limbs.into()
+        self.wrapping_mul_carry(rhs.as_limbs(), self.nlimbs() + LIMBS)
+            .0
     }
 
     /// Perform wrapping multiplication, wrapping to the width of `self`.
     pub fn wrapping_mul(&self, rhs: &Self) -> Self {
-        self.wrapping_mul_limbs(rhs.as_limbs())
+        self.wrapping_mul_carry(rhs.as_limbs(), self.nlimbs()).0
+    }
+
+    /// Multiply `self` by `rhs`, wrapping to the width of `self`.
+    /// Returns `CtOption::None` if the result overflowed the precision of `self`.
+    pub fn checked_mul(&self, rhs: &Self) -> CtOption<Self> {
+        let (res, carry) = self.wrapping_mul_carry(rhs.as_limbs(), self.nlimbs());
+        let overflow =
+            wrapping_mul_overflow(self.as_uint_ref(), self.as_uint_ref(), carry.is_nonzero());
+        CtOption::new(res, overflow.not().into())
+    }
+
+    /// Perform saturating multiplication, returning `MAX` on overflow.
+    pub fn saturating_mul(&self, rhs: &BoxedUint) -> Self {
+        let (mut res, carry) = self.wrapping_mul_carry(rhs.as_limbs(), self.nlimbs());
+        let overflow =
+            wrapping_mul_overflow(self.as_uint_ref(), rhs.as_uint_ref(), carry.is_nonzero());
+        res.as_mut_uint_ref().conditional_set_max(overflow);
+        res
     }
 
     #[inline(always)]
-    fn wrapping_mul_limbs(&self, rhs: &[Limb]) -> Self {
-        let mut limbs = vec![Limb::ZERO; self.nlimbs()];
-        karatsuba::wrapping_mul(
+    fn wrapping_mul_carry(&self, rhs: &[Limb], size: usize) -> (Self, Limb) {
+        let mut limbs = vec![Limb::ZERO; size];
+        let carry = karatsuba::wrapping_mul(
             self.as_uint_ref(),
             UintRef::new(rhs),
             UintRef::new_mut(limbs.as_mut_slice()),
             false,
         );
-        limbs.into()
+        (limbs.into(), carry)
     }
 
     /// Multiply `self` by itself.
     pub fn square(&self) -> Self {
-        let mut limbs = vec![Limb::ZERO; self.nlimbs() * 2];
-        karatsuba::wrapping_square(self.as_uint_ref(), UintRef::new_mut(limbs.as_mut_slice()));
-        limbs.into()
+        self.wrapping_square_carry(self.nlimbs() * 2).0
     }
 
     /// Multiply `self` by itself, wrapping to the width of `self`.
     pub fn wrapping_square(&self) -> Self {
-        let mut limbs = vec![Limb::ZERO; self.nlimbs()];
-        karatsuba::wrapping_square(self.as_uint_ref(), UintRef::new_mut(limbs.as_mut_slice()));
-        limbs.into()
+        self.wrapping_square_carry(self.nlimbs()).0
+    }
+
+    /// Multiply `self` by itself, wrapping to the width of `self`.
+    /// Returns `CtOption::None` if the result overflowed the precision of `self`.
+    pub fn checked_square(&self) -> CtOption<Self> {
+        let (res, carry) = self.wrapping_square_carry(self.nlimbs());
+        let overflow =
+            wrapping_mul_overflow(self.as_uint_ref(), self.as_uint_ref(), carry.is_nonzero());
+        CtOption::new(res, overflow.not().into())
+    }
+
+    /// Perform saturating squaring, returning `MAX` on overflow.
+    pub fn saturating_square(&self) -> Self {
+        let (mut res, carry) = self.wrapping_square_carry(self.nlimbs());
+        let overflow =
+            wrapping_mul_overflow(self.as_uint_ref(), self.as_uint_ref(), carry.is_nonzero());
+        res.as_mut_uint_ref().conditional_set_max(overflow);
+        res
+    }
+
+    /// Multiply `self` by itself, wrapping to the width of `self`.
+    /// Returns a pair of the wrapped product and a Limb representing the carry.
+    #[inline(always)]
+    fn wrapping_square_carry(&self, size: usize) -> (Self, Limb) {
+        let mut limbs = vec![Limb::ZERO; size];
+        let carry =
+            karatsuba::wrapping_square(self.as_uint_ref(), UintRef::new_mut(limbs.as_mut_slice()));
+        (limbs.into(), carry)
     }
 }
 
 impl CheckedMul for BoxedUint {
     fn checked_mul(&self, rhs: &BoxedUint) -> CtOption<Self> {
-        let product = self.mul(rhs);
-
-        // Ensure high limbs are all zero
-        let is_some = product.limbs[self.nlimbs()..]
-            .iter()
-            .fold(Choice::from(1), |choice, limb| choice & limb.is_zero());
-
-        let mut limbs = product.limbs.into_vec();
-        limbs.truncate(self.nlimbs());
-        CtOption::new(limbs.into(), is_some)
+        self.checked_mul(rhs)
     }
 }
 
@@ -164,7 +187,7 @@ impl WrappingMul for BoxedUint {
 
 #[cfg(test)]
 mod tests {
-    use crate::BoxedUint;
+    use crate::{BoxedUint, Resize};
 
     #[test]
     fn mul_zero_and_one() {
@@ -204,6 +227,7 @@ mod tests {
             let a = BoxedUint::random_bits(&mut rng, 4096);
             assert_eq!(a.mul(&a), a.square(), "a={a}, i={i}");
             assert_eq!(a.wrapping_mul(&a), a.wrapping_square(), "a={a}, i={i}");
+            assert_eq!(a.saturating_mul(&a), a.saturating_square(), "a={a}, i={i}");
         }
 
         for i in 0..50 {
@@ -222,5 +246,20 @@ mod tests {
                 "a={a}, b={b}, i={i}"
             );
         }
+    }
+
+    #[test]
+    fn checked_square() {
+        let n = BoxedUint::max(64)
+            .resize_unchecked(256)
+            .wrapping_add(&BoxedUint::one());
+        let n2 = n.checked_square();
+        assert_eq!(n2.is_some().unwrap_u8(), 1);
+        let n4 = n2.unwrap().checked_square();
+        assert_eq!(n4.is_none().unwrap_u8(), 1);
+        let z = BoxedUint::zero_with_precision(256).checked_square();
+        assert_eq!(z.is_some().unwrap_u8(), 1);
+        let m = BoxedUint::max(256).checked_square();
+        assert_eq!(m.is_none().unwrap_u8(), 1);
     }
 }

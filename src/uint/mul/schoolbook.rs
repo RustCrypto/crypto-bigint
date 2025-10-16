@@ -162,7 +162,7 @@ pub const fn square_wide(limbs: &[Limb], lo: &mut [Limb], hi: &mut [Limb]) {
 /// Schoolbook squaring which may calculate a limited number of limbs of the product.
 #[inline(always)]
 #[track_caller]
-pub const fn wrapping_square(limbs: &[Limb], out: &mut [Limb]) {
+pub const fn wrapping_square(limbs: &[Limb], out: &mut [Limb]) -> Limb {
     assert!(
         limbs.len() * 2 >= out.len(),
         "schoolbook wrapping squaring length mismatch"
@@ -200,4 +200,5 @@ pub const fn wrapping_square(limbs: &[Limb], out: &mut [Limb]) {
         };
         i += 1;
     }
+    carry.wrapping_add(hi_bit)
 }
