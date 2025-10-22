@@ -186,7 +186,7 @@ pub use crate::uint::boxed::BoxedUint;
 pub use crate::{
     checked::Checked,
     const_choice::{ConstChoice, ConstCtOption},
-    int::{types::*, *},
+    int::{*},
     jacobi::JacobiSymbol,
     limb::{Limb, WideWord, Word},
     non_zero::*,
