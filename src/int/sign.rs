@@ -3,7 +3,7 @@ use num_traits::ConstZero;
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Returns the word of most significant [`Limb`].
-    /// For the generative case where the number of limbs is zero,
+    /// For the degenerate case where the number of limbs is zero,
     /// zeroed word is returned (which is semantically correct).
     /// This method leaks the limb length of the value, which is also OK.
     const fn most_significant_word(&self) -> Word {

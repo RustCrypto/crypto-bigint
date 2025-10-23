@@ -21,8 +21,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
         // Step 2. determine whether overflow happened.
         // Note:
-        // - overflow can only happen when the inputs have the same sign, and then
-        // - overflow occurs if and only if the result has the opposite sign of both inputs.
+        // - overflow can only happen when the inputs have the same sign, and
+        // - overflow occurs if and only if the result has the opposite sign from both inputs.
         //
         // We can thus express the overflow flag as: (self.msb == rhs.msb) & (self.msb != res.msb)
         let self_msb = self.is_negative();

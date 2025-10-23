@@ -16,7 +16,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
         // Step 2. check whether underflow happened.
         // Note:
-        // - underflow can only happen when the inputs have opposing signs, and then
+        // - underflow can only happen when the inputs have opposing signs, and
         // - underflow occurs if and only if the result and the lhs have opposing signs.
         //
         // We can thus express the overflow flag as: (self.msb != rhs.msb) & (self.msb != res.msb)
