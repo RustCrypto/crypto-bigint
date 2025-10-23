@@ -28,7 +28,7 @@ impl Limb {
 
     /// Return `b` if `c` is truthy, otherwise return `a`.
     #[inline]
-    pub(crate) const fn select(a: Self, b: Self, c: ConstChoice) -> Self {
+    pub const fn select(a: Self, b: Self, c: ConstChoice) -> Self {
         Self(c.select_word(a.0, b.0))
     }
 
@@ -40,7 +40,7 @@ impl Limb {
 
     /// Returns the truthy value if `self != 0` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn is_nonzero(&self) -> ConstChoice {
+    pub const fn is_nonzero(&self) -> ConstChoice {
         ConstChoice::from_word_nonzero(self.0)
     }
 }
