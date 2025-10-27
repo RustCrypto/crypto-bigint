@@ -35,7 +35,7 @@ hex-literal = "1"
 num-bigint = "0.4"
 num-integer = "0.1"
 num-modular = { version = "0.6", features = ["num-bigint", "num-integer", "num-traits"] }
-proptest = "1.8"
+proptest = "1.9"
 rand_core = { version = "0.9", features = ["std", "os_rng"] }
 rand_chacha = "0.9"
 
