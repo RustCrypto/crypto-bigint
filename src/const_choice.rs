@@ -44,7 +44,7 @@ impl ConstChoice {
     /// Returns the truthy value if `value == Word::MAX`, and the falsy value if `value == 0`.
     /// Panics for other values.
     #[inline]
-    pub(crate) const fn from_word_mask(value: Word) -> Self {
+    pub const fn from_word_mask(value: Word) -> Self {
         debug_assert!(value == Self::FALSE.0 || value == Self::TRUE.0);
         Self(value)
     }
@@ -88,7 +88,7 @@ impl ConstChoice {
 
     /// Returns the truthy value if `value != 0`, and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn from_u32_nonzero(value: u32) -> Self {
+    pub const fn from_u32_nonzero(value: u32) -> Self {
         Self::from_u32_lsb((value | value.wrapping_neg()) >> (u32::BITS - 1))
     }
 
@@ -132,7 +132,7 @@ impl ConstChoice {
 
     /// Returns the truthy value if `x < y`, and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn from_u32_lt(x: u32, y: u32) -> Self {
+    pub const fn from_u32_lt(x: u32, y: u32) -> Self {
         // See "Hacker's Delight" 2nd ed, section 2-12 (Comparison predicates)
         let bit = (((!x) & y) | (((!x) | y) & (x.wrapping_sub(y)))) >> (u32::BITS - 1);
         Self::from_u32_lsb(bit)
@@ -156,7 +156,7 @@ impl ConstChoice {
 
     /// Returns the truthy value if `x <= y` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn from_u32_le(x: u32, y: u32) -> Self {
+    pub const fn from_u32_le(x: u32, y: u32) -> Self {
         // See "Hacker's Delight" 2nd ed, section 2-12 (Comparison predicates)
         let bit = (((!x) | y) & ((x ^ y) | !(y.wrapping_sub(x)))) >> (u32::BITS - 1);
         Self::from_u32_lsb(bit)
@@ -169,38 +169,38 @@ impl ConstChoice {
     }
 
     #[inline]
-    pub(crate) const fn not(&self) -> Self {
+    pub const fn not(&self) -> Self {
         Self(!self.0)
     }
 
     #[inline]
-    pub(crate) const fn or(&self, other: Self) -> Self {
+    pub const fn or(&self, other: Self) -> Self {
         Self(self.0 | other.0)
     }
 
     #[inline]
-    pub(crate) const fn and(&self, other: Self) -> Self {
+    pub const fn and(&self, other: Self) -> Self {
         Self(self.0 & other.0)
     }
 
     #[inline]
-    pub(crate) const fn xor(&self, other: Self) -> Self {
+    pub const fn xor(&self, other: Self) -> Self {
         Self(self.0 ^ other.0)
     }
 
     #[inline]
-    pub(crate) const fn ne(&self, other: Self) -> Self {
+    pub const fn ne(&self, other: Self) -> Self {
         Self::xor(self, other)
     }
 
     #[inline]
-    pub(crate) const fn eq(&self, other: Self) -> Self {
+    pub const fn eq(&self, other: Self) -> Self {
         Self::ne(self, other).not()
     }
 
     /// Return `b` if `self` is truthy, otherwise return `a`.
     #[inline]
-    pub(crate) const fn select_word(&self, a: Word, b: Word) -> Word {
+    pub const fn select_word(&self, a: Word, b: Word) -> Word {
         a ^ (self.0 & (a ^ b))
     }
 
@@ -213,7 +213,7 @@ impl ConstChoice {
 
     /// Return `b` if `self` is truthy, otherwise return `a`.
     #[inline]
-    pub(crate) const fn select_u32(&self, a: u32, b: u32) -> u32 {
+    pub const fn select_u32(&self, a: u32, b: u32) -> u32 {
         a ^ (self.as_u32_mask() & (a ^ b))
     }
 
@@ -227,6 +227,12 @@ impl ConstChoice {
     #[inline]
     pub(crate) const fn select_u64(&self, a: u64, b: u64) -> u64 {
         a ^ (self.as_u64_mask() & (a ^ b))
+    }
+
+    /// Swap `a` and `b` if `self` is truthy. Otherwise do nothing.
+    #[inline]
+    pub const fn conditional_swap_u32(&self, a: &mut u32, b: &mut u32) {
+        (*a, *b) = (self.select_u32(*a, *b), self.select_u32(*b, *a))
     }
 
     /// Return `x` if `self` is truthy, otherwise return 0.
@@ -253,7 +259,7 @@ impl ConstChoice {
 
     /// WARNING: this method should only be used in contexts that aren't constant-time critical!
     #[inline]
-    pub(crate) const fn to_bool_vartime(self) -> bool {
+    pub const fn to_bool_vartime(self) -> bool {
         self.to_u8() != 0
     }
 }
@@ -303,12 +309,12 @@ pub struct ConstCtOption<T> {
 
 impl<T> ConstCtOption<T> {
     #[inline]
-    pub(crate) const fn new(value: T, is_some: ConstChoice) -> Self {
+    pub const fn new(value: T, is_some: ConstChoice) -> Self {
         Self { value, is_some }
     }
 
     #[inline]
-    pub(crate) const fn some(value: T) -> Self {
+    pub const fn some(value: T) -> Self {
         Self {
             value,
             is_some: ConstChoice::TRUE,
@@ -316,7 +322,7 @@ impl<T> ConstCtOption<T> {
     }
 
     #[inline]
-    pub(crate) const fn none(dummy_value: T) -> Self {
+    pub const fn none(dummy_value: T) -> Self {
         Self {
             value: dummy_value,
             is_some: ConstChoice::FALSE,
@@ -327,7 +333,7 @@ impl<T> ConstCtOption<T> {
     ///
     /// **Note:** if the second element is `None`, the first value may take any value.
     #[inline]
-    pub(crate) const fn components_ref(&self) -> (&T, ConstChoice) {
+    pub const fn components_ref(&self) -> (&T, ConstChoice) {
         // Since Rust is not smart enough to tell that we would be moving the value,
         // and hence no destructors will be called, we have to return a reference instead.
         // See https://github.com/rust-lang/rust/issues/66753
@@ -359,7 +365,7 @@ impl<T> ConstCtOption<T> {
 
     /// Apply an additional [`ConstChoice`] requirement to `is_some`.
     #[inline]
-    pub(crate) const fn and_choice(mut self, is_some: ConstChoice) -> Self {
+    pub const fn and_choice(mut self, is_some: ConstChoice) -> Self {
         self.is_some = self.is_some.and(is_some);
         self
     }
@@ -424,6 +430,20 @@ impl<const LIMBS: usize> ConstCtOption<(Uint<LIMBS>, Uint<LIMBS>)> {
     #[inline]
     #[track_caller]
     pub const fn expect(self, msg: &str) -> (Uint<LIMBS>, Uint<LIMBS>) {
+        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        self.value
+    }
+}
+
+impl<const LIMBS: usize> ConstCtOption<(Uint<LIMBS>, ConstChoice)> {
+    /// Returns the contained value, consuming the `self` value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value is none with a custom panic message provided by
+    /// `msg`.
+    #[inline]
+    pub const fn expect(self, msg: &str) -> (Uint<LIMBS>, ConstChoice) {
         assert!(self.is_some.is_true_vartime(), "{}", msg);
         self.value
     }
