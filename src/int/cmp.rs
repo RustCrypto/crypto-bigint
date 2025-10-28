@@ -11,37 +11,37 @@ use crate::{ConstChoice, Int, Uint};
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Return `b` if `c` is truthy, otherwise return `a`.
     #[inline]
-    pub(crate) const fn select(a: &Self, b: &Self, c: ConstChoice) -> Self {
+    pub const fn select(a: &Self, b: &Self, c: ConstChoice) -> Self {
         Self(Uint::select(&a.0, &b.0, c))
     }
 
     /// Swap `a` and `b` if `c` is truthy, otherwise, do nothing.
     #[inline]
-    pub(crate) const fn conditional_swap(a: &mut Self, b: &mut Self, c: ConstChoice) {
+    pub const fn conditional_swap(a: &mut Self, b: &mut Self, c: ConstChoice) {
         Uint::conditional_swap(&mut a.0, &mut b.0, c);
     }
 
     /// Returns the truthy value if `self`!=0 or the falsy value otherwise.
     #[inline]
-    pub(crate) const fn is_nonzero(&self) -> ConstChoice {
+    pub const fn is_nonzero(&self) -> ConstChoice {
         Uint::is_nonzero(&self.0)
     }
 
     /// Returns the truthy value if `self == rhs` or the falsy value otherwise.
     #[inline]
-    pub(crate) const fn eq(lhs: &Self, rhs: &Self) -> ConstChoice {
+    pub const fn eq(lhs: &Self, rhs: &Self) -> ConstChoice {
         Uint::eq(&lhs.0, &rhs.0)
     }
 
     /// Returns the truthy value if `self < rhs` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn lt(lhs: &Self, rhs: &Self) -> ConstChoice {
+    pub const fn lt(lhs: &Self, rhs: &Self) -> ConstChoice {
         Uint::lt(&lhs.invert_msb().0, &rhs.invert_msb().0)
     }
 
     /// Returns the truthy value if `self > rhs` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn gt(lhs: &Self, rhs: &Self) -> ConstChoice {
+    pub const fn gt(lhs: &Self, rhs: &Self) -> ConstChoice {
         Uint::gt(&lhs.invert_msb().0, &rhs.invert_msb().0)
     }
 
@@ -51,7 +51,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///   0 is Equal
     ///   1 is Greater
     #[inline]
-    pub(crate) const fn cmp(lhs: &Self, rhs: &Self) -> i8 {
+    pub const fn cmp(lhs: &Self, rhs: &Self) -> i8 {
         Uint::cmp(&lhs.invert_msb().0, &rhs.invert_msb().0)
     }
 
