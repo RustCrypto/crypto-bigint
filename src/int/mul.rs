@@ -4,7 +4,7 @@ use core::ops::{Mul, MulAssign};
 use num_traits::WrappingMul;
 use subtle::CtOption;
 
-use crate::{Checked, CheckedMul, ConcatMixed, ConstChoice, ConstCtOption, Int, Uint, Zero};
+use crate::{Checked, CheckedMul, ConcatMixed, ConstChoice, ConstCtOption, Int, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute "wide" multiplication as a 3-tuple `(lo, hi, negate)`.
@@ -64,12 +64,26 @@ impl<const LIMBS: usize> Int<LIMBS> {
         Int::from_bits(product_abs.wrapping_neg_if(product_sign))
     }
 
+    /// Multiply `self` by `rhs`, returning a `ConstCtOption` which is `is_some` only if
+    /// overflow did not occur.
+    pub const fn checked_mul<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Int<RHS_LIMBS>,
+    ) -> ConstCtOption<Self> {
+        let (abs_lhs, lhs_sgn) = self.abs_sign();
+        let (abs_rhs, rhs_sgn) = rhs.abs_sign();
+        let maybe_res = abs_lhs.checked_mul(&abs_rhs);
+        let (lo, is_some) = maybe_res.components_ref();
+        Self::new_from_abs_sign(*lo, lhs_sgn.xor(rhs_sgn)).and_choice(is_some)
+    }
+
     /// Multiply `self` by `rhs`, wrapping the result in case of overflow.
+    /// This is equivalent to `(self * rhs) % (Uint::<LIMBS>::MAX + 1)`.
     pub const fn wrapping_mul<const RHS_LIMBS: usize>(&self, rhs: &Int<RHS_LIMBS>) -> Self {
         let (abs_lhs, lhs_sgn) = self.abs_sign();
         let (abs_rhs, rhs_sgn) = rhs.abs_sign();
-        let (lo, _) = abs_lhs.widening_mul(&abs_rhs);
-        *lo.wrapping_neg_if(lhs_sgn.xor(rhs_sgn)).as_int()
+        let lo = Self(abs_lhs.wrapping_mul(&abs_rhs));
+        lo.wrapping_neg_if(lhs_sgn.xor(rhs_sgn))
     }
 }
 
@@ -102,9 +116,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Int<RHS_LIMBS>> for Int<LIMBS> {
     #[inline]
     fn checked_mul(&self, rhs: &Int<RHS_LIMBS>) -> CtOption<Self> {
-        let (lo, hi, is_negative) = self.widening_mul(rhs);
-        let val = Self::new_from_abs_sign(lo, is_negative);
-        CtOption::from(val).and_then(|int| CtOption::new(int, hi.is_zero()))
+        self.checked_mul(rhs).into()
     }
 }
 
@@ -173,7 +185,7 @@ impl<const LIMBS: usize> MulAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
 
 #[cfg(test)]
 mod tests {
-    use crate::{CheckedMul, ConstChoice, I64, I128, I256, Int, U128, U256};
+    use crate::{ConstChoice, I64, I128, I256, Int, U128, U256};
 
     #[test]
     #[allow(clippy::init_numbered_fields)]
@@ -271,19 +283,25 @@ mod tests {
     #[test]
     fn test_wrapping_mul() {
         // wrapping
-        let a = I128::from_be_hex("FFFFFFFB7B63198EF870DF1F90D9BD9E");
-        let b = I128::from_be_hex("F20C29FA87B356AA3B4C05C4F9C24B4A");
+        let a = 0xFFFFFFFB7B63198EF870DF1F90D9BD9Eu128 as i128;
+        let b = 0xF20C29FA87B356AA3B4C05C4F9C24B4Au128 as i128;
+        let z = 0xAA700D354D6CF4EE881F8FF8093A19ACu128 as i128;
+        assert_eq!(a.wrapping_mul(b), z);
         assert_eq!(
-            a.wrapping_mul(&b),
-            I128::from_be_hex("AA700D354D6CF4EE881F8FF8093A19AC")
+            I128::from_i128(a).wrapping_mul(&I128::from_i128(b)),
+            I128::from_i128(z)
         );
 
         // no wrapping
-        let c = I64::from_i64(-12345i64);
+        let c = -12345i64;
         assert_eq!(
-            a.wrapping_mul(&c),
-            I128::from_be_hex("0000D9DEF2248095850866CFEBF727D2")
+            I128::from_i128(a).wrapping_mul(&I128::from_i64(c)),
+            I128::from_i128(a.wrapping_mul(c as i128))
         );
+
+        // overflow into MSB
+        let a = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFu128 as i128;
+        assert!(!a.is_negative() && a.wrapping_mul(a).is_negative());
 
         // core case
         assert_eq!(i8::MAX.wrapping_mul(2), -2);
