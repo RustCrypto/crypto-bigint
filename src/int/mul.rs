@@ -77,6 +77,19 @@ impl<const LIMBS: usize> Int<LIMBS> {
         Self::new_from_abs_sign(*lo, lhs_sgn.xor(rhs_sgn)).and_choice(is_some)
     }
 
+    /// Multiply `self` by `rhs`, saturating at the numeric bounds instead of overflowing.
+    pub const fn saturating_mul<const RHS_LIMBS: usize>(&self, rhs: &Int<RHS_LIMBS>) -> Self {
+        let (abs_lhs, lhs_sgn) = self.abs_sign();
+        let (abs_rhs, rhs_sgn) = rhs.abs_sign();
+        let maybe_res = abs_lhs.checked_mul(&abs_rhs);
+        let (lo, is_some) = maybe_res.components_ref();
+        let is_neg = lhs_sgn.xor(rhs_sgn);
+        let bound = Self::select(&Self::MAX, &Self::MIN, is_neg);
+        Self::new_from_abs_sign(*lo, is_neg)
+            .and_choice(is_some)
+            .unwrap_or(bound)
+    }
+
     /// Multiply `self` by `rhs`, wrapping the result in case of overflow.
     /// This is equivalent to `(self * rhs) % (Uint::<LIMBS>::MAX + 1)`.
     pub const fn wrapping_mul<const RHS_LIMBS: usize>(&self, rhs: &Int<RHS_LIMBS>) -> Self {
@@ -327,6 +340,51 @@ mod tests {
         assert_eq!(
             I128::from_i128(x).wrapping_mul(&I128::from_i128(y)),
             I128::from_i128(z)
+        );
+    }
+
+    #[test]
+    fn test_saturating_mul() {
+        // wrapping
+        let a = 0xFFFFFFFB7B63198EF870DF1F90D9BD9Eu128 as i128;
+        let b = 0xF20C29FA87B356AA3B4C05C4F9C24B4Au128 as i128;
+        assert_eq!(a.saturating_mul(b), i128::MAX);
+        assert_eq!(
+            I128::from_i128(a).saturating_mul(&I128::from_i128(b)),
+            I128::MAX
+        );
+
+        // no wrapping
+        let c = -12345i64;
+        assert_eq!(
+            I128::from_i128(a).saturating_mul(&I128::from_i64(c)),
+            I128::from_i128(a.saturating_mul(c as i128))
+        );
+
+        // core case
+        assert_eq!(i8::MAX.saturating_mul(2), i8::MAX);
+        assert_eq!(i8::MAX.saturating_mul(-2), i8::MIN);
+        assert_eq!(i64::MAX.saturating_mul(2), i64::MAX);
+        assert_eq!(i64::MAX.saturating_mul(-2), i64::MIN);
+        assert_eq!(I128::MAX.saturating_mul(&I128::from_i64(2i64)), I128::MAX);
+        assert_eq!(I128::MAX.saturating_mul(&I128::from_i64(-2i64)), I128::MIN);
+
+        let x = -197044252290277702i64;
+        let y = -2631691865753118366;
+        assert_eq!(x.saturating_mul(y), i64::MAX);
+        assert_eq!(I64::from_i64(x).saturating_mul(&I64::from_i64(y)), I64::MAX);
+
+        let x = -86027672844719838068326470675019902915i128;
+        let y = 21188806580823612823777395451044967239i128;
+        assert_eq!(x.saturating_mul(y), i128::MIN);
+        assert_eq!(x.saturating_mul(-y), i128::MAX);
+        assert_eq!(
+            I128::from_i128(x).saturating_mul(&I128::from_i128(y)),
+            I128::MIN
+        );
+        assert_eq!(
+            I128::from_i128(x).saturating_mul(&I128::from_i128(-y)),
+            I128::MAX
         );
     }
 
