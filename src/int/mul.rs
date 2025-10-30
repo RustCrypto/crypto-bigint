@@ -93,10 +93,12 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Multiply `self` by `rhs`, wrapping the result in case of overflow.
     /// This is equivalent to `(self * rhs) % (Uint::<LIMBS>::MAX + 1)`.
     pub const fn wrapping_mul<const RHS_LIMBS: usize>(&self, rhs: &Int<RHS_LIMBS>) -> Self {
-        let (abs_lhs, lhs_sgn) = self.abs_sign();
-        let (abs_rhs, rhs_sgn) = rhs.abs_sign();
-        let lo = Self(abs_lhs.wrapping_mul(&abs_rhs));
-        lo.wrapping_neg_if(lhs_sgn.xor(rhs_sgn))
+        if RHS_LIMBS >= LIMBS {
+            Self(self.0.wrapping_mul(&rhs.0))
+        } else {
+            let (abs_rhs, rhs_sgn) = rhs.abs_sign();
+            Self(self.0.wrapping_mul(&abs_rhs).wrapping_neg_if(rhs_sgn))
+        }
     }
 }
 
@@ -198,7 +200,7 @@ impl<const LIMBS: usize> MulAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, I64, I128, I256, Int, U128, U256};
+    use crate::{ConstChoice, I64, I128, I256, Int, U64, U128, U256};
 
     #[test]
     #[allow(clippy::init_numbered_fields)]
@@ -340,6 +342,43 @@ mod tests {
         assert_eq!(
             I128::from_i128(x).wrapping_mul(&I128::from_i128(y)),
             I128::from_i128(z)
+        );
+    }
+
+    #[test]
+    fn test_wrapping_mul_mixed() {
+        let a = U64::from_u64(0x0011223344556677);
+        let b = U128::from_u128(0x8899aabbccddeeff_8899aabbccddeeff);
+        let expected = a.as_int().concatenating_mul(b.as_int());
+        assert_eq!(a.as_int().wrapping_mul(b.as_int()), expected.resize());
+        assert_eq!(b.as_int().wrapping_mul(a.as_int()), expected.resize());
+        assert_eq!(
+            a.as_int().wrapping_neg().wrapping_mul(b.as_int()),
+            expected.wrapping_neg().resize()
+        );
+        assert_eq!(
+            a.as_int().wrapping_mul(&b.as_int().wrapping_neg()),
+            expected.wrapping_neg().resize()
+        );
+        assert_eq!(
+            b.as_int().wrapping_neg().wrapping_mul(a.as_int()),
+            expected.wrapping_neg().resize()
+        );
+        assert_eq!(
+            b.as_int().wrapping_mul(&a.as_int().wrapping_neg()),
+            expected.wrapping_neg().resize()
+        );
+        assert_eq!(
+            a.as_int()
+                .wrapping_neg()
+                .wrapping_mul(&b.as_int().wrapping_neg()),
+            expected.resize()
+        );
+        assert_eq!(
+            b.as_int()
+                .wrapping_neg()
+                .wrapping_mul(&a.as_int().wrapping_neg()),
+            expected.resize()
         );
     }
 
