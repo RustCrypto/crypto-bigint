@@ -589,7 +589,7 @@ mod tests {
     fn encode_radix_round_trip() {
         use crate::RandomBits;
         use rand_core::SeedableRng;
-        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+        let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
 
         for _ in 0..100 {
             let uint = BoxedUint::random_bits(&mut rng, 4096);

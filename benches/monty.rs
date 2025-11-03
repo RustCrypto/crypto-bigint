@@ -1,3 +1,4 @@
+use chacha20::ChaCha8Rng;
 use criterion::{
     BatchSize, BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::Measurement,
 };
@@ -5,7 +6,6 @@ use crypto_bigint::{
     Odd, Random, RandomMod, U256,
     modular::{MontyForm, MontyParams},
 };
-use rand_chacha::ChaChaRng;
 use rand_core::SeedableRng;
 use std::hint::black_box;
 
@@ -13,7 +13,7 @@ use std::hint::black_box;
 use crypto_bigint::MultiExponentiate;
 
 fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
-    let mut rng = ChaChaRng::from_os_rng();
+    let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
     group.bench_function("MontyParams::new", |b| {
         b.iter_batched(
             || Odd::<U256>::random(&mut rng),
@@ -55,7 +55,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
 }
 
 fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
-    let mut rng = ChaChaRng::from_os_rng();
+    let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
     let params = MontyParams::new_vartime(Odd::<U256>::random(&mut rng));
 
     group.bench_function("add, U256", |b| {

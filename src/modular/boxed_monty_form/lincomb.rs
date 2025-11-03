@@ -38,7 +38,7 @@ mod tests {
 
         const SIZE: u32 = 511;
 
-        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+        let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
         for n in 0..100 {
             let modulus = Odd::<BoxedUint>::random(&mut rng, SIZE);
             let params = BoxedMontyParams::new(modulus.clone());

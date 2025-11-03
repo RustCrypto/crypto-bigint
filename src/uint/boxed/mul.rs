@@ -221,7 +221,7 @@ mod tests {
     fn mul_cmp() {
         use crate::{RandomBits, Resize};
         use rand_core::SeedableRng;
-        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+        let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
 
         for i in 0..50 {
             let a = BoxedUint::random_bits(&mut rng, 4096);

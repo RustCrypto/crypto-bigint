@@ -1,5 +1,5 @@
+use chacha20::ChaCha8Rng;
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
-use rand_chacha::ChaChaRng;
 use rand_core::SeedableRng;
 use std::hint::black_box;
 use std::ops::Div;
@@ -7,7 +7,7 @@ use std::ops::Div;
 use crypto_bigint::{I128, I256, I512, I1024, I2048, I4096, NonZero, Random};
 
 fn bench_mul(c: &mut Criterion) {
-    let mut rng = ChaChaRng::from_os_rng();
+    let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
     let mut group = c.benchmark_group("wrapping ops");
 
     group.bench_function("widening_mul, I128xI128", |b| {
@@ -60,7 +60,7 @@ fn bench_mul(c: &mut Criterion) {
 }
 
 fn bench_concatenating_mul(c: &mut Criterion) {
-    let mut rng = ChaChaRng::from_os_rng();
+    let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
     let mut group = c.benchmark_group("widening ops");
 
     group.bench_function("concatenating_mul, I128xI128", |b| {
@@ -113,7 +113,7 @@ fn bench_concatenating_mul(c: &mut Criterion) {
 }
 
 fn bench_div(c: &mut Criterion) {
-    let mut rng = ChaChaRng::from_os_rng();
+    let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
     let mut group = c.benchmark_group("wrapping ops");
 
     group.bench_function("div, I256/I128, full size", |b| {
@@ -180,7 +180,7 @@ fn bench_div(c: &mut Criterion) {
 }
 
 fn bench_add(c: &mut Criterion) {
-    let mut rng = ChaChaRng::from_os_rng();
+    let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
     let mut group = c.benchmark_group("wrapping ops");
 
     group.bench_function("add, I128+I128", |b| {
@@ -259,7 +259,7 @@ fn bench_add(c: &mut Criterion) {
 }
 
 fn bench_sub(c: &mut Criterion) {
-    let mut rng = ChaChaRng::from_os_rng();
+    let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
     let mut group = c.benchmark_group("wrapping ops");
 
     group.bench_function("sub, I128-I128", |b| {

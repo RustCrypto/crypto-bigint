@@ -1,8 +1,8 @@
+use chacha20::ChaCha8Rng;
 use criterion::{
     BatchSize, BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::Measurement,
 };
 use crypto_bigint::{Random, RandomMod, U256, const_monty_params, modular::ConstMontyParams};
-use rand_chacha::ChaChaRng;
 use rand_core::SeedableRng;
 use std::hint::black_box;
 
@@ -18,7 +18,7 @@ const_monty_params!(
 type ConstMontyForm = crypto_bigint::modular::ConstMontyForm<Modulus, { U256::LIMBS }>;
 
 fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
-    let mut rng = ChaChaRng::from_os_rng();
+    let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
     group.bench_function("ConstMontyForm creation", |b| {
         b.iter_batched(
             || U256::random_mod(&mut rng, Modulus::PARAMS.modulus().as_nz_ref()),
@@ -37,7 +37,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
 }
 
 fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
-    let mut rng = ChaChaRng::from_os_rng();
+    let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
 
     group.bench_function("add, U256", |b| {
         b.iter_batched(

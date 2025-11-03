@@ -673,7 +673,7 @@ mod tests {
     };
 
     #[cfg(feature = "rand")]
-    use {crate::Random, rand_chacha::ChaChaRng, rand_core::RngCore, rand_core::SeedableRng};
+    use {crate::Random, chacha20::ChaCha8Rng, rand_core::RngCore, rand_core::SeedableRng};
 
     #[test]
     fn div_word() {
@@ -703,7 +703,7 @@ mod tests {
     #[cfg(feature = "rand")]
     #[test]
     fn div() {
-        let mut rng = ChaChaRng::from_seed([7u8; 32]);
+        let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
         for _ in 0..25 {
             let num = U256::random(&mut rng).overflowing_shr_vartime(128).unwrap();
             let den =
@@ -898,7 +898,7 @@ mod tests {
     #[cfg(feature = "rand")]
     #[test]
     fn rem2krand() {
-        let mut rng = ChaChaRng::from_seed([7u8; 32]);
+        let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
         for _ in 0..25 {
             let num = U256::random(&mut rng);
             let k = rng.next_u32() % 256;

@@ -35,7 +35,7 @@ mod tests {
         );
         let modulus = P::PARAMS.modulus.as_nz_ref();
 
-        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+        let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
         for n in 0..1000 {
             let a = U256::random_mod(&mut rng, modulus);
             let b = U256::random_mod(&mut rng, modulus);

@@ -166,7 +166,7 @@ where
 mod tests {
     use crate::uint::rand::random_bits_core;
     use crate::{Limb, NonZero, Random, RandomBits, RandomMod, U256, U1024, Uint};
-    use rand_chacha::ChaCha8Rng;
+    use chacha20::ChaCha8Rng;
     use rand_core::{RngCore, SeedableRng};
 
     const RANDOM_OUTPUT: U1024 = Uint::from_be_hex(concat![
