@@ -119,7 +119,7 @@
 //! ```
 //! # #[cfg(feature = "rand")]
 //! # {
-//! # use rand_chacha::ChaCha8Rng;
+//! # use chacha20::ChaCha8Rng;
 //! # use rand_core::SeedableRng;
 //! # fn rng() -> ChaCha8Rng {
 //! #     ChaCha8Rng::from_seed(*b"01234567890123456789012345678901")
@@ -138,7 +138,7 @@
 //! ```
 //! # #[cfg(feature = "rand")]
 //! # {
-//! # use rand_chacha::ChaCha8Rng;
+//! # use chacha20::ChaCha8Rng;
 //! # use rand_core::SeedableRng;
 //! # fn rng() -> ChaCha8Rng {
 //! #     ChaCha8Rng::from_seed(*b"01234567890123456789012345678901")

@@ -138,7 +138,7 @@ mod tests {
     #[cfg(feature = "rand")]
     use {
         crate::RandomBits,
-        rand_chacha::ChaChaRng,
+        chacha20::ChaCha8Rng,
         rand_core::{RngCore, SeedableRng},
     };
 
@@ -291,7 +291,7 @@ mod tests {
     #[cfg(feature = "rand")]
     #[test]
     fn fuzz() {
-        let mut rng = ChaChaRng::from_seed([7u8; 32]);
+        let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
         for _ in 0..50 {
             let t = rng.next_u32() as u64;
             let s = BoxedUint::from(t);

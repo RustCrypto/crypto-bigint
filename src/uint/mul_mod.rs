@@ -108,7 +108,7 @@ mod tests {
         ($size:expr, $test_name:ident) => {
             #[test]
             fn $test_name() {
-                let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+                let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
                 let moduli = [
                     NonZero::<Limb>::random(&mut rng),
                     NonZero::<Limb>::random(&mut rng),

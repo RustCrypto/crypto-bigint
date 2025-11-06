@@ -398,7 +398,7 @@ mod tests {
     fn mul_cmp() {
         use crate::{Random, U4096};
         use rand_core::SeedableRng;
-        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+        let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
 
         for _ in 0..50 {
             let a = U4096::random(&mut rng);

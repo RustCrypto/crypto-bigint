@@ -559,7 +559,7 @@ mod tests {
     #[test]
     fn wrapping_mul_sizes() {
         const SIZE: usize = 200;
-        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+        let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
         for n in 0..100 {
             let a = Uint::<SIZE>::random(&mut rng);
             let b = Uint::<SIZE>::random(&mut rng);
@@ -585,7 +585,7 @@ mod tests {
     #[test]
     fn wrapping_square_sizes() {
         const SIZE: usize = 200;
-        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+        let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
         for n in 0..100 {
             let a = Uint::<SIZE>::random(&mut rng);
             let size_a = rng.next_u32() as usize % SIZE;

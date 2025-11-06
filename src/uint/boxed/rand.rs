@@ -57,7 +57,7 @@ mod tests {
 
     #[test]
     fn random() {
-        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+        let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
 
         let r = BoxedUint::random_bits(&mut rng, 256);
         assert!(r.bits_precision() == 256);
@@ -69,7 +69,7 @@ mod tests {
 
     #[test]
     fn random_mod() {
-        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(1);
+        let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
 
         // Ensure `random_mod` runs in a reasonable amount of time
         let modulus = NonZero::new(BoxedUint::from(42u8)).unwrap();
