@@ -56,19 +56,16 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub const ONE: Self = Self(Uint::ONE); // Bit sequence (be): 0000....0001
 
     /// The value `-1`
-    pub const MINUS_ONE: Self = Self::FULL_MASK; // Bit sequence (be): 1111....1111
+    pub const MINUS_ONE: Self = Self(Uint::MAX); // Bit sequence (be): 1111....1111
 
     /// Smallest value this [`Int`] can express.
-    pub const MIN: Self = Self(Uint::MAX.bitxor(&Uint::MAX.shr(1u32))); // Bit sequence (be): 1000....0000
+    pub const MIN: Self = Self::MAX.not(); // Bit sequence (be): 1000....0000
 
     /// Maximum value this [`Int`] can express.
-    pub const MAX: Self = Self(Uint::MAX.shr(1u32)); // Bit sequence (be): 0111....1111
+    pub const MAX: Self = Self(Uint::MAX.shr_vartime(1u32)); // Bit sequence (be): 0111....1111
 
     /// Bit mask for the sign bit of this [`Int`].
     pub const SIGN_MASK: Self = Self::MIN; // Bit sequence (be): 1000....0000
-
-    /// All-one bit mask.
-    pub const FULL_MASK: Self = Self(Uint::MAX); // Bit sequence (be): 1111...1111
 
     /// Total size of the represented integer in bits.
     pub const BITS: u32 = Uint::<LIMBS>::BITS;
@@ -113,7 +110,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Borrow the inner limbs as a mutable array of [`Word`]s.
-    pub fn as_mut_words(&mut self) -> &mut [Word; LIMBS] {
+    pub const fn as_mut_words(&mut self) -> &mut [Word; LIMBS] {
         self.0.as_mut_words()
     }
 
@@ -182,7 +179,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Whether this [`Int`] is equal to `Self::MAX`.
-    pub fn is_max(&self) -> ConstChoice {
+    pub const fn is_max(&self) -> ConstChoice {
         Self::eq(self, &Self::MAX)
     }
 
