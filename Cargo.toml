@@ -32,18 +32,24 @@ zeroize = { version = "1", optional = true, default-features = false }
 bincode = { version = "2", features = ["serde"] }
 chacha20 = { version = "0.10.0-rc.3", default-features = false, features = ["rng"] }
 criterion = { version = "0.7", features = ["html_reports"] }
+gungraun = { version = "0.17.0"}
 hex-literal = "1"
 num-bigint = "0.4"
 num-integer = "0.1"
 num-modular = { version = "0.6", features = ["num-bigint", "num-integer", "num-traits"] }
 proptest = "1.9"
 rand_core = "0.10.0-rc-2"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1" }
+walkdir = "2"
+
 
 [features]
 default = ["rand"]
 alloc = ["serdect?/alloc"]
 
 extra-sizes = []
+gungraun = []
 rand = ["rand_core"]
 serde = ["dep:serdect"]
 
@@ -83,6 +89,12 @@ harness = false
 [[bench]]
 name = "int"
 harness = false
+
+[[bench]]
+name = "ct_gungraun"
+path = "benches/gungraun/mod.rs"
+harness = false
+required-features = ["gungraun", "rand"]
 
 [profile.dev]
 opt-level = 2
