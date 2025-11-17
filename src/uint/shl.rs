@@ -203,7 +203,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self << 1` in constant-time, returning [`ConstChoice::TRUE`]
     /// if the most significant bit was set, and [`ConstChoice::FALSE`] otherwise.
     #[inline(always)]
-    pub(crate) const fn overflowing_shl1(&self) -> (Self, Limb) {
+    pub const fn overflowing_shl1(&self) -> (Self, Limb) {
         self.carrying_shl1(Limb::ZERO)
     }
 
