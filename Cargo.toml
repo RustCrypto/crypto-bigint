@@ -44,6 +44,7 @@ default = ["rand"]
 alloc = ["serdect?/alloc"]
 
 extra-sizes = []
+extra-sizes-16k = ["extra-sizes"]
 rand = ["rand_core"]
 serde = ["dep:serdect"]
 

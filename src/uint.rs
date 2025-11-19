@@ -13,6 +13,9 @@ use zeroize::DefaultIsZeroes;
 #[cfg(feature = "extra-sizes")]
 pub use extra_sizes::*;
 
+#[cfg(feature = "extra-sizes-16k")]
+pub use extra_sizes_16k::*;
+
 pub(crate) use ref_type::UintRef;
 
 use crate::{
@@ -529,6 +532,8 @@ impl_uint_concat_split_mixed! {
 
 #[cfg(feature = "extra-sizes")]
 mod extra_sizes;
+#[cfg(feature = "extra-sizes-16k")]
+mod extra_sizes_16k;
 mod mul_int;
 mod ref_type;
 
