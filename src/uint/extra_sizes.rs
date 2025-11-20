@@ -110,7 +110,7 @@ impl_uint_aliases! {
     (U8064, 8064, "8064-bit"),
     (U8128, 8128, "8128-bit"),
     (U8320, 8320, "8320-bit"),
-    (U12288, 12288, "12288-bit"),
+    (U12288, 12288, "12288-bit")
 }
 
 impl_uint_concat_split_even! {
@@ -160,5 +160,5 @@ impl_uint_concat_split_even! {
     U7936,
     U8064,
     U8320,
-    U12288
+    U12288,
 }
