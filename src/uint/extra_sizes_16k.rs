@@ -6,6 +6,7 @@
 // TODO(tarcieri): switch to a fully const generic implementation using `generic_const_exprs`
 
 use super::*;
+use extra_sizes::*;
 
 impl_uint_aliases! {
     (U8256, 8256, "8256-bit"),
