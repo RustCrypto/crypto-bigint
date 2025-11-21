@@ -1,6 +1,45 @@
-use crate::{Concat, ConcatMixed, Limb, Uint};
+use crate::{Concat, ConcatMixed, Limb, NewConcat, Uint};
+
+const fn new_concat<const L: usize, const H: usize, const O: usize>(
+    lo: &Uint<L>,
+    hi: &Uint<H>,
+) -> Uint<O> {
+    const {
+        if L + H != O {
+            panic!(
+                "The sum of widths of concatenated integers must be equal to the width of the result"
+            );
+        }
+    }
+
+    let mut result = Uint::<O>::ZERO;
+
+    let mut i = 0;
+    while i < L {
+        result.limbs[i] = lo.limbs[i];
+        i += 1;
+    }
+    while i < L + H {
+        result.limbs[i] = hi.limbs[i - L];
+        i += 1;
+    }
+
+    result
+}
+
+impl<const L: usize, const H: usize, const O: usize> NewConcat<Uint<O>, Uint<H>> for Uint<L> {
+    fn new_concat(&self, hi: &Uint<H>) -> Uint<O> {
+        new_concat(self, hi)
+    }
+}
 
 impl<const L: usize> Uint<L> {
+    /// Concatenate the two values, with `self` as least significant and `hi` as the most
+    /// significant.
+    pub const fn new_concat<const O: usize>(&self, hi: &Self) -> Uint<O> {
+        Uint::new_concat_mixed(self, hi)
+    }
+
     /// Concatenate the two values, with `self` as least significant and `hi` as the most
     /// significant.
     pub const fn concat<const O: usize>(&self, hi: &Self) -> Uint<O>
@@ -8,6 +47,13 @@ impl<const L: usize> Uint<L> {
         Self: Concat<Output = Uint<O>>,
     {
         Uint::concat_mixed(self, hi)
+    }
+
+    /// Concatenate the two values, with `self` as least significant and `hi`
+    /// as the most significant.
+    #[inline]
+    pub const fn new_concat_mixed<const H: usize, const O: usize>(&self, hi: &Uint<H>) -> Uint<O> {
+        new_concat(self, hi)
     }
 
     /// Concatenate the two values, with `lo` as least significant and `hi`

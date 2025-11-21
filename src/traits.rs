@@ -618,6 +618,13 @@ pub trait ConcatMixed<Hi: ?Sized = Self> {
     fn concat_mixed(&self, hi: &Hi) -> Self::MixedOutput;
 }
 
+/// Concatenate two numbers into a "wide" combined-width value.
+pub trait NewConcat<Output, Hi: ?Sized = Self> {
+    /// Concatenate the two values, with `self` as least significant and `hi` as the most
+    /// significant.
+    fn new_concat(&self, hi: &Hi) -> Output;
+}
+
 /// Split a number in half, returning the least significant half followed by the most significant.
 pub trait Split: SplitMixed<Self::Output, Self::Output> {
     /// Split output: low/high components of the value.
@@ -900,33 +907,26 @@ pub trait Invert {
 
 /// Widening multiply: returns a value with a number of limbs equal to the sum of the inputs.
 #[deprecated(since = "0.7.0", note = "please use `ConcatenatingMul` instead")]
-pub trait WideningMul<Rhs = Self>: Sized {
-    /// Output of the widening multiplication.
-    type Output: Integer;
-
+pub trait WideningMul<Output, Rhs = Self>: Sized {
     /// Perform widening multiplication.
-    fn widening_mul(&self, rhs: Rhs) -> Self::Output;
+    fn widening_mul(&self, rhs: Rhs) -> Output;
 }
 
 #[allow(deprecated)]
-impl<T, Rhs> WideningMul<Rhs> for T
+impl<T, Rhs, Output> WideningMul<Output, Rhs> for T
 where
-    T: ConcatenatingMul<Rhs>,
+    T: ConcatenatingMul<Output, Rhs>,
 {
-    type Output = <T as ConcatenatingMul<Rhs>>::Output;
-
-    fn widening_mul(&self, rhs: Rhs) -> Self::Output {
+    fn widening_mul(&self, rhs: Rhs) -> Output {
         self.concatenating_mul(rhs)
     }
 }
 
-/// Widening multiply: returns a value with a number of limbs equal to the sum of the inputs.
-pub trait ConcatenatingMul<Rhs = Self>: Sized {
-    /// Output of the widening multiplication.
-    type Output: Integer;
-
+/// Widening multiply: returns a value with a number of limbs greater than or equal to
+/// the sum of the inputs.
+pub trait ConcatenatingMul<Output, Rhs = Self>: Sized {
     /// Perform widening multiplication.
-    fn concatenating_mul(&self, rhs: Rhs) -> Self::Output;
+    fn concatenating_mul(&self, rhs: Rhs) -> Output;
 }
 
 /// Left shifts, variable time in `shift`.

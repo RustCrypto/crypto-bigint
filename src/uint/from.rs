@@ -1,6 +1,6 @@
 //! `From`-like conversions for [`Uint`].
 
-use crate::{ConcatMixed, Limb, SplitMixed, U64, U128, Uint, WideWord, Word};
+use crate::{Limb, SplitMixed, U64, U128, Uint, WideWord, Word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a [`Uint`] from a `u8` (const-friendly)
@@ -196,21 +196,15 @@ impl<const LIMBS: usize> From<Limb> for Uint<LIMBS> {
     }
 }
 
-impl<const L: usize, const H: usize, const LIMBS: usize> From<(Uint<L>, Uint<H>)> for Uint<LIMBS>
-where
-    Uint<L>: ConcatMixed<Uint<H>, MixedOutput = Uint<LIMBS>>,
-{
+impl<const L: usize, const H: usize, const LIMBS: usize> From<(Uint<L>, Uint<H>)> for Uint<LIMBS> {
     fn from(nums: (Uint<L>, Uint<H>)) -> Uint<LIMBS> {
-        nums.0.concat_mixed(&nums.1)
+        nums.0.new_concat_mixed(&nums.1)
     }
 }
 
-impl<const L: usize, const H: usize, const LIMBS: usize> From<&(Uint<L>, Uint<H>)> for Uint<LIMBS>
-where
-    Uint<L>: ConcatMixed<Uint<H>, MixedOutput = Uint<LIMBS>>,
-{
+impl<const L: usize, const H: usize, const LIMBS: usize> From<&(Uint<L>, Uint<H>)> for Uint<LIMBS> {
     fn from(nums: &(Uint<L>, Uint<H>)) -> Uint<LIMBS> {
-        nums.0.concat_mixed(&nums.1)
+        nums.0.new_concat_mixed(&nums.1)
     }
 }
 
