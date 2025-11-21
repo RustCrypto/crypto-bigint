@@ -19,7 +19,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         rhs: &Uint<RHS_LIMBS>,
     ) -> Uint<WIDE_LIMBS> {
         let (lo, hi) = self.widening_mul(rhs);
-        Uint::new_concat_mixed(&lo, &hi)
+        lo.new_concat_mixed(&hi)
     }
 
     /// Compute "wide" multiplication as a 2-tuple containing the `(lo, hi)` components of the product, whose sizes
@@ -75,7 +75,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Square self, returning a concatenated "wide" result.
     pub const fn widening_square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS> {
         let (lo, hi) = self.square_wide();
-        Uint::new_concat_mixed(&lo, &hi)
+        lo.new_concat_mixed(&hi)
     }
 
     /// Square self, checking that the result fits in the original [`Uint`] size.
@@ -332,7 +332,7 @@ mod tests {
     #[test]
     fn square() {
         let n = U64::from_u64(0xffff_ffff_ffff_ffff);
-        let (lo, hi) = n.square::<{ nlimbs!(128) }>().split();
+        let (lo, hi) = n.square::<{ nlimbs!(128) }>().new_split();
         assert_eq!(lo, U64::from_u64(1));
         assert_eq!(hi, U64::from_u64(0xffff_ffff_ffff_fffe));
     }
@@ -340,7 +340,7 @@ mod tests {
     #[test]
     fn square_larger() {
         let n = U256::MAX;
-        let (lo, hi) = n.square::<{ nlimbs!(512) }>().split();
+        let (lo, hi) = n.square::<{ nlimbs!(512) }>().new_split();
         assert_eq!(lo, U256::ONE);
         assert_eq!(hi, U256::MAX.wrapping_sub(&U256::ONE));
     }

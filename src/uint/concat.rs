@@ -37,7 +37,7 @@ impl<const L: usize> Uint<L> {
     /// Concatenate the two values, with `self` as least significant and `hi` as the most
     /// significant.
     pub const fn new_concat<const O: usize>(&self, hi: &Self) -> Uint<O> {
-        Uint::new_concat_mixed(self, hi)
+        new_concat(self, hi)
     }
 
     /// Concatenate the two values, with `self` as least significant and `hi` as the most
@@ -90,14 +90,14 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConcatMixed, U64, U128, U192};
+    use crate::{U64, U128, U192};
 
     #[test]
     fn concat() {
         let hi = U64::from_u64(0x0011223344556677);
         let lo = U64::from_u64(0x8899aabbccddeeff);
         assert_eq!(
-            lo.concat(&hi),
+            lo.new_concat(&hi),
             U128::from_be_hex("00112233445566778899aabbccddeeff")
         );
     }
@@ -107,11 +107,11 @@ mod tests {
         let hi = U64::from_u64(0x0011223344556677);
         let lo = U128::from_u128(0x8899aabbccddeeff_8899aabbccddeeff);
         assert_eq!(
-            lo.concat_mixed(&hi),
+            lo.new_concat_mixed(&hi),
             U192::from_be_hex("00112233445566778899aabbccddeeff8899aabbccddeeff")
         );
         assert_eq!(
-            hi.concat_mixed(&lo),
+            hi.new_concat_mixed(&lo),
             U192::from_be_hex("8899aabbccddeeff8899aabbccddeeff0011223344556677")
         );
     }

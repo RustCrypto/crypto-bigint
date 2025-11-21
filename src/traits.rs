@@ -748,12 +748,6 @@ pub trait DivRemLimb: Sized {
     fn div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb);
 }
 
-/// Support for calculating the remainder of two differently sized integers.
-pub trait RemMixed<Reductor>: Sized {
-    /// Calculate the remainder of `self` by the `reductor`.
-    fn rem_mixed(&self, reductor: &NonZero<Reductor>) -> Reductor;
-}
-
 /// Modular reduction from a larger value `T`.
 ///
 /// This can be seen as fixed modular reduction, where the modulus is fixed at compile time
