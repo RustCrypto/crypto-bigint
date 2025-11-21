@@ -122,10 +122,7 @@ mod tests {
     #[test]
     fn test_reducing_r2_wide() {
         // Divide the value ONE^2 by R, which should equal ONE
-        let (lo, hi) = Modulus256::PARAMS
-            .one
-            .square::<{ nlimbs!(512) }>()
-            .new_split();
+        let (lo, hi) = Modulus256::PARAMS.one.square::<{ nlimbs!(512) }>().split();
         assert_eq!(
             montgomery_reduction::<{ Modulus256::LIMBS }>(
                 &(lo, hi),
@@ -161,11 +158,10 @@ mod tests {
 
         // Computing xR mod modulus without Montgomery reduction
         let (lo, hi) = x.widening_mul(&Modulus256::PARAMS.one);
-        let c: U512 = lo.new_concat(&hi);
-        let red = c.rem_vartime(
-            &NonZero::new(Modulus256::PARAMS.modulus.0.new_concat(&U256::ZERO)).unwrap(),
-        );
-        let (lo, hi) = red.new_split();
+        let c: U512 = lo.concat(&hi);
+        let red =
+            c.rem_vartime(&NonZero::new(Modulus256::PARAMS.modulus.0.concat(&U256::ZERO)).unwrap());
+        let (lo, hi) = red.split();
         assert_eq!(hi, Uint::ZERO);
 
         assert_eq!(
@@ -291,11 +287,10 @@ mod tests {
 
         // Computing xR mod modulus without Montgomery reduction
         let (lo, hi) = x.widening_mul(&Modulus256::PARAMS.one);
-        let c: U512 = lo.new_concat(&hi);
-        let red = c.rem_vartime(
-            &NonZero::new(Modulus256::PARAMS.modulus.0.new_concat(&U256::ZERO)).unwrap(),
-        );
-        let (lo, hi) = red.new_split();
+        let c: U512 = lo.concat(&hi);
+        let red =
+            c.rem_vartime(&NonZero::new(Modulus256::PARAMS.modulus.0.concat(&U256::ZERO)).unwrap());
+        let (lo, hi) = red.split();
         assert_eq!(hi, Uint::ZERO);
 
         // Reducing xR^2 should return xR

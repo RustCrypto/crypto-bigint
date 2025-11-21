@@ -933,7 +933,7 @@ mod tests {
         let y = U128::from_u64(1234567890987654321);
         let rem = x.rem(&y.to_nz().unwrap());
 
-        let y2: U1024 = y.new_concat_mixed(&U896::ZERO);
+        let y2: U1024 = y.concat_mixed(&U896::ZERO);
         let rem_control = x.rem(&NonZero::new(y2).unwrap());
 
         assert_eq!(rem.bits(), rem_control.bits());
@@ -956,7 +956,7 @@ mod tests {
         let y = U512::from_u64(1234567890987654321);
         let rem: U512 = x.rem(&y.to_nz().unwrap());
 
-        let y_wide = y.new_concat_mixed(&U512::ZERO);
+        let y_wide = y.concat_mixed(&U512::ZERO);
         let rem_control: U1024 = x.rem(&NonZero::new(y_wide).unwrap());
 
         assert_eq!(rem.bits(), rem_control.bits());

@@ -1,6 +1,6 @@
-use crate::{Concat, ConcatMixed, Limb, NewConcat, Uint};
+use crate::{Concat, Uint};
 
-const fn new_concat<const L: usize, const H: usize, const O: usize>(
+const fn concat<const L: usize, const H: usize, const O: usize>(
     lo: &Uint<L>,
     hi: &Uint<H>,
 ) -> Uint<O> {
@@ -27,65 +27,25 @@ const fn new_concat<const L: usize, const H: usize, const O: usize>(
     result
 }
 
-impl<const L: usize, const H: usize, const O: usize> NewConcat<Uint<O>, Uint<H>> for Uint<L> {
-    fn new_concat(&self, hi: &Uint<H>) -> Uint<O> {
-        new_concat(self, hi)
+impl<const L: usize, const H: usize, const O: usize> Concat<Uint<O>, Uint<H>> for Uint<L> {
+    fn concat(&self, hi: &Uint<H>) -> Uint<O> {
+        concat(self, hi)
     }
 }
 
 impl<const L: usize> Uint<L> {
     /// Concatenate the two values, with `self` as least significant and `hi` as the most
     /// significant.
-    pub const fn new_concat<const O: usize>(&self, hi: &Self) -> Uint<O> {
-        new_concat(self, hi)
-    }
-
-    /// Concatenate the two values, with `self` as least significant and `hi` as the most
-    /// significant.
-    pub const fn concat<const O: usize>(&self, hi: &Self) -> Uint<O>
-    where
-        Self: Concat<Output = Uint<O>>,
-    {
-        Uint::concat_mixed(self, hi)
+    pub const fn concat<const O: usize>(&self, hi: &Self) -> Uint<O> {
+        concat(self, hi)
     }
 
     /// Concatenate the two values, with `self` as least significant and `hi`
     /// as the most significant.
     #[inline]
-    pub const fn new_concat_mixed<const H: usize, const O: usize>(&self, hi: &Uint<H>) -> Uint<O> {
-        new_concat(self, hi)
+    pub const fn concat_mixed<const H: usize, const O: usize>(&self, hi: &Uint<H>) -> Uint<O> {
+        concat(self, hi)
     }
-
-    /// Concatenate the two values, with `lo` as least significant and `hi`
-    /// as the most significant.
-    #[inline]
-    pub const fn concat_mixed<const H: usize, const O: usize>(lo: &Uint<L>, hi: &Uint<H>) -> Uint<O>
-    where
-        Self: ConcatMixed<Uint<H>, MixedOutput = Uint<O>>,
-    {
-        let top = L + H;
-        let top = if top < O { top } else { O };
-        let mut limbs = [Limb::ZERO; O];
-        let mut i = 0;
-
-        while i < top {
-            if i < L {
-                limbs[i] = lo.limbs[i];
-            } else {
-                limbs[i] = hi.limbs[i - L];
-            }
-            i += 1;
-        }
-
-        Uint { limbs }
-    }
-}
-
-impl<T> Concat for T
-where
-    T: ConcatMixed<T>,
-{
-    type Output = Self::MixedOutput;
 }
 
 #[cfg(test)]
@@ -97,7 +57,7 @@ mod tests {
         let hi = U64::from_u64(0x0011223344556677);
         let lo = U64::from_u64(0x8899aabbccddeeff);
         assert_eq!(
-            lo.new_concat(&hi),
+            lo.concat(&hi),
             U128::from_be_hex("00112233445566778899aabbccddeeff")
         );
     }
@@ -107,11 +67,11 @@ mod tests {
         let hi = U64::from_u64(0x0011223344556677);
         let lo = U128::from_u128(0x8899aabbccddeeff_8899aabbccddeeff);
         assert_eq!(
-            lo.new_concat_mixed(&hi),
+            lo.concat_mixed(&hi),
             U192::from_be_hex("00112233445566778899aabbccddeeff8899aabbccddeeff")
         );
         assert_eq!(
-            hi.new_concat_mixed(&lo),
+            hi.concat_mixed(&lo),
             U192::from_be_hex("8899aabbccddeeff8899aabbccddeeff0011223344556677")
         );
     }

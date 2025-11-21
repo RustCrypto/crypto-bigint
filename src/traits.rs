@@ -595,45 +595,18 @@ pub trait CheckedSub<Rhs = Self>: Sized {
     fn checked_sub(&self, rhs: &Rhs) -> CtOption<Self>;
 }
 
-/// Concatenate two numbers into a "wide" double-width value, using the `hi` value as the most
-/// significant portion of the resulting value.
-pub trait Concat: ConcatMixed<Self, MixedOutput = Self::Output> {
-    /// Concatenated output: twice the width of `Self`.
-    type Output: Integer;
-
-    /// Concatenate the two halves, with `self` as least significant and `hi` as the most significant.
-    fn concat(&self, hi: &Self) -> Self::Output {
-        self.concat_mixed(hi)
-    }
-}
-
-/// Concatenate two numbers into a "wide" combined-width value, using the `hi` value as the most
-/// significant value.
-pub trait ConcatMixed<Hi: ?Sized = Self> {
-    /// Concatenated output: combination of `Self` and `Hi`.
-    type MixedOutput: Integer;
-
-    /// Concatenate the two values, with `self` as least significant and `hi` as the most
-    /// significant.
-    fn concat_mixed(&self, hi: &Hi) -> Self::MixedOutput;
-}
-
 /// Concatenate two numbers into a "wide" combined-width value.
-pub trait NewConcat<Output, Hi: ?Sized = Self> {
+pub trait Concat<Output, Hi: ?Sized = Self> {
     /// Concatenate the two values, with `self` as least significant and `hi` as the most
     /// significant.
-    fn new_concat(&self, hi: &Hi) -> Output;
+    fn concat(&self, hi: &Hi) -> Output;
 }
 
-/// Split a number in half, returning the least significant half followed by the most significant.
-pub trait Split: SplitMixed<Self::Output, Self::Output> {
-    /// Split output: low/high components of the value.
-    type Output;
-
-    /// Split this number in half, returning its low and high components respectively.
-    fn split(&self) -> (Self::Output, Self::Output) {
-        self.split_mixed()
-    }
+/// Split a number into parts, returning the least significant part followed by the most
+/// significant.
+pub trait Split<Output>: SplitMixed<Output, Output> {
+    /// Split this number into parts, returning its low and high components respectively.
+    fn split(&self) -> (Output, Output);
 }
 
 /// Split a number into parts, returning the least significant part followed by the most
@@ -641,20 +614,6 @@ pub trait Split: SplitMixed<Self::Output, Self::Output> {
 pub trait SplitMixed<Lo, Hi> {
     /// Split this number into parts, returning its low and high components respectively.
     fn split_mixed(&self) -> (Lo, Hi);
-}
-
-/// Split a number into parts, returning the least significant part followed by the most
-/// significant.
-pub trait NewSplit<Output>: SplitMixed<Output, Output> {
-    /// Split this number into parts, returning its low and high components respectively.
-    fn new_split(&self) -> (Output, Output);
-}
-
-/// Split a number into parts, returning the least significant part followed by the most
-/// significant.
-pub trait NewSplitMixed<Lo, Hi> {
-    /// Split this number into parts, returning its low and high components respectively.
-    fn new_split_mixed(&self) -> (Lo, Hi);
 }
 
 /// Encoding support.
