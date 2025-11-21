@@ -1,5 +1,32 @@
 use crate::{Limb, Split, SplitMixed, Uint};
 
+const fn split_mixed<const I: usize, const L: usize, const H: usize>(
+    value: &Uint<I>,
+) -> (Uint<L>, Uint<H>) {
+    const {
+        if L + H != I {
+            panic!(
+                "The sum of widths of low and high parts after the split must be equal to the width of the input"
+            );
+        }
+    }
+
+    let mut lo = Uint::<L>::ZERO;
+    let mut hi = Uint::<H>::ZERO;
+
+    let mut i = 0;
+    while i < L {
+        lo.limbs[i] = value.limbs[i];
+        i += 1;
+    }
+    while i < H {
+        hi.limbs[i - L] = value.limbs[i];
+        i += 1;
+    }
+
+    (lo, hi)
+}
+
 impl<const I: usize> Uint<I> {
     /// Split this number in half into low and high components.
     pub const fn split<const O: usize>(&self) -> (Uint<O>, Uint<O>)
@@ -31,6 +58,16 @@ impl<const I: usize> Uint<I> {
         }
 
         (Uint { limbs: lo }, Uint { limbs: hi })
+    }
+
+    /// Split this number in half into low and high components.
+    pub const fn new_split<const O: usize>(&self) -> (Uint<O>, Uint<O>) {
+        split_mixed(self)
+    }
+
+    /// Split this number into low and high components respectively.
+    pub const fn new_split_mixed<const L: usize, const H: usize>(&self) -> (Uint<L>, Uint<H>) {
+        split_mixed(self)
     }
 }
 

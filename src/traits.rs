@@ -643,6 +643,20 @@ pub trait SplitMixed<Lo, Hi> {
     fn split_mixed(&self) -> (Lo, Hi);
 }
 
+/// Split a number into parts, returning the least significant part followed by the most
+/// significant.
+pub trait NewSplit<Output>: SplitMixed<Output, Output> {
+    /// Split this number into parts, returning its low and high components respectively.
+    fn new_split(&self) -> (Output, Output);
+}
+
+/// Split a number into parts, returning the least significant part followed by the most
+/// significant.
+pub trait NewSplitMixed<Lo, Hi> {
+    /// Split this number into parts, returning its low and high components respectively.
+    fn new_split_mixed(&self) -> (Lo, Hi);
+}
+
 /// Encoding support.
 pub trait Encoding: Sized {
     /// Byte array representation.
