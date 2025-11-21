@@ -602,18 +602,10 @@ pub trait Concat<Output, Hi: ?Sized = Self> {
     fn concat(&self, hi: &Hi) -> Output;
 }
 
-/// Split a number into parts, returning the least significant part followed by the most
-/// significant.
-pub trait Split<Output>: SplitMixed<Output, Output> {
+/// Split a number into parts.
+pub trait Split<Lo, Hi = Lo> {
     /// Split this number into parts, returning its low and high components respectively.
-    fn split(&self) -> (Output, Output);
-}
-
-/// Split a number into parts, returning the least significant part followed by the most
-/// significant.
-pub trait SplitMixed<Lo, Hi> {
-    /// Split this number into parts, returning its low and high components respectively.
-    fn split_mixed(&self) -> (Lo, Hi);
+    fn split(&self) -> (Lo, Hi);
 }
 
 /// Encoding support.

@@ -28,20 +28,34 @@ const fn concat<const L: usize, const H: usize, const O: usize>(
 }
 
 impl<const L: usize, const H: usize, const O: usize> Concat<Uint<O>, Uint<H>> for Uint<L> {
+    /// Concatenate the two values, with `self` as least significant and `hi` as the most
+    /// significant.
+    ///
+    /// <div class="warning">
+    /// The sum of input lengths must be equal to the output length.
+    /// </div>
     fn concat(&self, hi: &Uint<H>) -> Uint<O> {
-        concat(self, hi)
+        self.concat_mixed(hi)
     }
 }
 
 impl<const L: usize> Uint<L> {
     /// Concatenate the two values, with `self` as least significant and `hi` as the most
     /// significant.
+    ///
+    /// <div class="warning">
+    /// The sum of input lengths must be equal to the output length.
+    /// </div>
     pub const fn concat<const O: usize>(&self, hi: &Self) -> Uint<O> {
         concat(self, hi)
     }
 
     /// Concatenate the two values, with `self` as least significant and `hi`
     /// as the most significant.
+    ///
+    /// <div class="warning">
+    /// The sum of input lengths must be equal to the output length.
+    /// </div>
     #[inline]
     pub const fn concat_mixed<const H: usize, const O: usize>(&self, hi: &Uint<H>) -> Uint<O> {
         concat(self, hi)

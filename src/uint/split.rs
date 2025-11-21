@@ -1,6 +1,6 @@
-use crate::Uint;
+use crate::{Split, Uint};
 
-const fn split_mixed<const I: usize, const L: usize, const H: usize>(
+const fn split<const I: usize, const L: usize, const H: usize>(
     value: &Uint<I>,
 ) -> (Uint<L>, Uint<H>) {
     const {
@@ -27,15 +27,34 @@ const fn split_mixed<const I: usize, const L: usize, const H: usize>(
     (lo, hi)
 }
 
+impl<const L: usize, const H: usize, const O: usize> Split<Uint<L>, Uint<H>> for Uint<O> {
+    /// Split this number into low and high components respectively.
+    ///
+    /// <div class="warning">
+    /// The sum of output lengths must be equal to the input length.
+    /// </div>
+    fn split(&self) -> (Uint<L>, Uint<H>) {
+        self.split_mixed()
+    }
+}
+
 impl<const I: usize> Uint<I> {
     /// Split this number in half into low and high components.
+    ///
+    /// <div class="warning">
+    /// The sum of output lengths must be equal to the input length.
+    /// </div>
     pub const fn split<const O: usize>(&self) -> (Uint<O>, Uint<O>) {
-        split_mixed::<I, O, O>(self)
+        split::<I, O, O>(self)
     }
 
     /// Split this number into low and high components respectively.
+    ///
+    /// <div class="warning">
+    /// The sum of output lengths must be equal to the input length.
+    /// </div>
     pub const fn split_mixed<const L: usize, const H: usize>(&self) -> (Uint<L>, Uint<H>) {
-        split_mixed::<I, L, H>(self)
+        split::<I, L, H>(self)
     }
 }
 
