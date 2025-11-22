@@ -644,7 +644,7 @@ pub trait Encoding: Sized {
         + Copy
         + Clone
         + Sized
-        + for<'a> TryFrom<&'a [u8], Error = core::array::TryFromSliceError>;
+        + for<'a> TryFrom<&'a [u8], Error: core::error::Error>;
 
     /// Decode from big endian bytes.
     fn from_be_bytes(bytes: Self::Repr) -> Self;
