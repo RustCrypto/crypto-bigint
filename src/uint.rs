@@ -16,9 +16,12 @@ pub use extra_sizes::*;
 pub(crate) use ref_type::UintRef;
 
 use crate::{
-    Bounded, ConstChoice, ConstCtOption, ConstOne, ConstZero, Constants, Encoding, FixedInteger,
-    Int, Integer, Limb, NonZero, Odd, One, Unsigned, Word, Zero, modular::MontyForm,
+    Bounded, ConstChoice, ConstCtOption, ConstOne, ConstZero, Constants, FixedInteger, Int,
+    Integer, Limb, NonZero, Odd, One, Unsigned, Word, Zero, modular::MontyForm,
 };
+
+#[cfg(feature = "serde")]
+use crate::Encoding;
 
 #[macro_use]
 mod macros;
@@ -413,10 +416,10 @@ where
     where
         D: Deserializer<'de>,
     {
-        let mut buffer = Self::ZERO.to_le_bytes();
+        let mut buffer = Encoding::to_le_bytes(&Self::ZERO);
         serdect::array::deserialize_hex_or_bin(buffer.as_mut(), deserializer)?;
 
-        Ok(Self::from_le_bytes(buffer))
+        Ok(Encoding::from_le_bytes(buffer))
     }
 }
 
@@ -429,7 +432,7 @@ where
     where
         S: Serializer,
     {
-        serdect::array::serialize_hex_lower_or_bin(&Encoding::to_le_bytes(self), serializer)
+        serdect::slice::serialize_hex_lower_or_bin(&Encoding::to_le_bytes(self), serializer)
     }
 }
 
@@ -603,7 +606,7 @@ mod tests {
         let be_bytes = a.to_be_bytes();
         let le_bytes = a.to_le_bytes();
         for i in 0..16 {
-            assert_eq!(le_bytes[i], be_bytes[15 - i]);
+            assert_eq!(le_bytes.as_ref()[i], be_bytes.as_ref()[15 - i]);
         }
 
         let a_from_be = U128::from_be_bytes(be_bytes);

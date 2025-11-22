@@ -231,6 +231,14 @@ impl Serialize for Limb {
 #[cfg(feature = "zeroize")]
 impl zeroize::DefaultIsZeroes for Limb {}
 
+// SAFETY: `Limb` is a newtype of an integer POD type
+#[allow(unsafe_code)]
+unsafe impl bytemuck::Zeroable for Limb {}
+
+// SAFETY: `Limb` is a newtype of an integer POD type
+#[allow(unsafe_code)]
+unsafe impl bytemuck::Pod for Limb {}
+
 #[cfg(test)]
 mod tests {
     #[cfg(feature = "alloc")]

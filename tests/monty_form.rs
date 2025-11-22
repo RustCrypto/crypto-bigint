@@ -4,8 +4,8 @@ mod common;
 
 use common::to_biguint;
 use crypto_bigint::{
-    Bounded, Constants, Encoding, Integer, Invert, Monty, NonZero, Odd, U128, U256, U512, U1024,
-    U2048, U4096, Unsigned,
+    Bounded, Constants, EncodedUint, Encoding, Integer, Invert, Monty, NonZero, Odd, U128, U256,
+    U512, U1024, U2048, U4096, Unsigned,
     modular::{MontyForm, MontyParams},
 };
 use num_bigint::BigUint;
@@ -99,7 +99,7 @@ prop_compose! {
             monty_params_from_edge::<U128>(edge_bytes, &mut rng)
         })
     ) -> Result<(U128, <U128 as Unsigned>::Monty , <U128 as Unsigned>::Monty, BigUint),TestCaseError> {
-        random_invertible_uint(bytes, monty_params, monty_params.modulus().get())
+        random_invertible_uint(EncodedUint::try_from(bytes.as_ref()).unwrap(), monty_params, monty_params.modulus().get())
     }
 }
 prop_compose! {
@@ -109,7 +109,7 @@ prop_compose! {
             monty_params_from_edge::<U256>(edge_bytes, &mut rng)
         })
     ) -> Result<(U256, <U256 as Unsigned>::Monty , <U256 as Unsigned>::Monty, BigUint),TestCaseError> {
-        random_invertible_uint(bytes, monty_params, monty_params.modulus().get())
+        random_invertible_uint(EncodedUint::try_from(bytes.as_ref()).unwrap(), monty_params, monty_params.modulus().get())
     }
 }
 prop_compose! {
@@ -119,7 +119,7 @@ prop_compose! {
             monty_params_from_edge::<U2048>(edge_bytes, &mut rng)
         })
     ) -> Result<(U2048, <U2048 as Unsigned>::Monty , <U2048 as Unsigned>::Monty, BigUint),TestCaseError> {
-        random_invertible_uint(bytes, monty_params, monty_params.modulus().get())
+        random_invertible_uint(EncodedUint::try_from(bytes.as_ref()).unwrap(), monty_params, monty_params.modulus().get())
     }
 }
 prop_compose! {
@@ -129,7 +129,7 @@ prop_compose! {
             monty_params_from_edge::<U1024>(edge_bytes, &mut rng)
         })
     ) -> Result<(U1024, <U1024 as Unsigned>::Monty, <U1024 as Unsigned>::Monty, BigUint),TestCaseError> {
-        random_invertible_uint(bytes, monty_params, monty_params.modulus().get())
+        random_invertible_uint(EncodedUint::try_from(bytes.as_ref()).unwrap(), monty_params, monty_params.modulus().get())
     }
 }
 proptest! {
@@ -166,7 +166,7 @@ proptest! {
         );
         // …and agrees with the num_modular crate
         assert_eq!(
-            BigUint::from_be_bytes(&normal_form_inv.to_be_bytes()),
+            BigUint::from_be_bytes(normal_form_inv.to_be_bytes().as_ref()),
             r_num_modular_inv,
             "num_modular ≠ crypto_bigint"
         )
@@ -205,7 +205,7 @@ proptest! {
         );
         // …and agrees with the num_modular crate
         assert_eq!(
-            BigUint::from_be_bytes(&normal_form_inv.to_be_bytes()),
+            BigUint::from_be_bytes(normal_form_inv.to_be_bytes().as_ref()),
             r_num_modular_inv,
             "num_modular ≠ crypto_bigint"
         )
@@ -244,7 +244,7 @@ proptest! {
         );
         // …and agrees with the num_modular crate
         assert_eq!(
-            BigUint::from_be_bytes(&normal_form_inv.to_be_bytes()),
+            BigUint::from_be_bytes(normal_form_inv.to_be_bytes().as_ref()),
             r_num_modular_inv,
             "num_modular ≠ crypto_bigint"
         )
@@ -283,7 +283,7 @@ proptest! {
         );
         // …and agrees with the num_modular crate
         assert_eq!(
-            BigUint::from_be_bytes(&normal_form_inv.to_be_bytes()),
+            BigUint::from_be_bytes(normal_form_inv.to_be_bytes().as_ref()),
             r_num_modular_inv,
             "num_modular ≠ crypto_bigint"
         )

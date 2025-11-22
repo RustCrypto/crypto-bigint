@@ -872,10 +872,16 @@ mod tests {
         );
         let rem = U256::rem_wide(lo_hi, &modulus);
         // Lower half is zero
-        assert_eq!(rem.to_be_bytes()[0..16], U128::ZERO.to_be_bytes());
+        assert_eq!(
+            &rem.to_be_bytes().as_ref()[0..16],
+            U128::ZERO.to_be_bytes().as_ref()
+        );
         // Upper half
         let expected = U128::from_be_hex("203F80FE03F80FE03F80FE03F80FE041");
-        assert_eq!(rem.to_be_bytes()[16..], expected.to_be_bytes());
+        assert_eq!(
+            &rem.to_be_bytes().as_ref()[16..],
+            expected.to_be_bytes().as_ref()
+        );
 
         let remv = U256::rem_wide_vartime(lo_hi, &modulus);
         assert_eq!(rem, remv);
