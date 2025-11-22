@@ -16,9 +16,12 @@ pub use extra_sizes::*;
 pub(crate) use ref_type::UintRef;
 
 use crate::{
-    Bounded, ConstChoice, ConstCtOption, ConstOne, ConstZero, Constants, Encoding, FixedInteger,
-    Int, Integer, Limb, NonZero, Odd, One, Unsigned, Word, Zero, modular::MontyForm,
+    Bounded, ConstChoice, ConstCtOption, ConstOne, ConstZero, Constants, FixedInteger, Int,
+    Integer, Limb, NonZero, Odd, One, Unsigned, Word, Zero, modular::MontyForm,
 };
+
+#[cfg(feature = "serde")]
+use crate::Encoding;
 
 #[macro_use]
 mod macros;
@@ -413,10 +416,10 @@ where
     where
         D: Deserializer<'de>,
     {
-        let mut buffer = Self::ZERO.to_le_bytes();
+        let mut buffer = Encoding::to_le_bytes(&Self::ZERO);
         serdect::array::deserialize_hex_or_bin(buffer.as_mut(), deserializer)?;
 
-        Ok(Self::from_le_bytes(buffer))
+        Ok(Encoding::from_le_bytes(buffer))
     }
 }
 
@@ -429,7 +432,7 @@ where
     where
         S: Serializer,
     {
-        serdect::array::serialize_hex_lower_or_bin(&Encoding::to_le_bytes(self), serializer)
+        serdect::slice::serialize_hex_lower_or_bin(&Encoding::to_le_bytes(self), serializer)
     }
 }
 
@@ -473,58 +476,6 @@ impl_uint_aliases! {
 impl_uint_aliases! {
     (U224, 224, "224-bit"), // For NIST P-224
     (U544, 544, "544-bit")  // For NIST P-521
-}
-
-#[cfg(target_pointer_width = "32")]
-impl_uint_concat_split_even! {
-    U64,
-}
-
-// Implement concat and split for double-width Uint sizes: these should be
-// multiples of 128 bits.
-impl_uint_concat_split_even! {
-    U128,
-    U256,
-    U384,
-    U512,
-    U640,
-    U768,
-    U896,
-    U1024,
-    U1280,
-    U1536,
-    U1792,
-    U2048,
-    U3072,
-    U3584,
-    U4096,
-    U4224,
-    U4352,
-    U6144,
-    U8192,
-    U16384,
-}
-
-// Implement mixed concat, split and reduce for combinations not implemented by
-// impl_uint_concat_split_even. The numbers represent the size of each
-// component Uint in multiple of 64 bits. For example,
-// (U256, [1, 3]) will allow splitting U256 into (U64, U192) as well as
-// (U192, U64), while the (U128, U128) combination is already covered.
-impl_uint_concat_split_mixed! {
-    (U192, [1, 2]),
-    (U256, [1, 3]),
-    (U320, [1, 2, 3, 4]),
-    (U384, [1, 2, 4, 5]),
-    (U448, [1, 2, 3, 4, 5, 6]),
-    (U512, [1, 2, 3, 5, 6, 7]),
-    (U576, [1, 2, 3, 4, 5, 6, 7, 8]),
-    (U640, [1, 2, 3, 4, 6, 7, 8, 9]),
-    (U704, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
-    (U768, [1, 2, 3, 4, 5, 7, 8, 9, 10, 11]),
-    (U832, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
-    (U896, [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13]),
-    (U960, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]),
-    (U1024, [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15]),
 }
 
 #[cfg(feature = "extra-sizes")]
@@ -655,7 +606,7 @@ mod tests {
         let be_bytes = a.to_be_bytes();
         let le_bytes = a.to_le_bytes();
         for i in 0..16 {
-            assert_eq!(le_bytes[i], be_bytes[15 - i]);
+            assert_eq!(le_bytes.as_ref()[i], be_bytes.as_ref()[15 - i]);
         }
 
         let a_from_be = U128::from_be_bytes(be_bytes);

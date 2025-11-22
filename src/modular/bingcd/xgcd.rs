@@ -369,7 +369,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 #[cfg(all(test, not(miri)))]
 mod tests {
     use crate::modular::bingcd::xgcd::PatternXgcdOutput;
-    use crate::{ConcatMixed, Gcd, Uint};
+    use crate::{ConcatenatingMul, Gcd, Uint};
     use core::ops::Div;
     use num_traits::Zero;
 
@@ -584,7 +584,7 @@ mod tests {
         rhs: Uint<LIMBS>,
         output: PatternXgcdOutput<LIMBS>,
     ) where
-        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+        Uint<LIMBS>: ConcatenatingMul<Uint<DOUBLE>>,
     {
         // Test the gcd
         assert_eq!(lhs.gcd(&rhs), output.gcd, "{lhs} {rhs}");
@@ -598,7 +598,7 @@ mod tests {
         let (x, y) = output.bezout_coefficients();
         assert_eq!(
             x.concatenating_mul_uint(&lhs) + y.concatenating_mul_uint(&rhs),
-            *output.gcd.resize().as_int(),
+            *output.gcd.resize::<DOUBLE>().as_int(),
         );
 
         // Test the Bezout coefficients for minimality
@@ -613,15 +613,15 @@ mod tests {
     mod test_binxgcd_nz {
         use crate::modular::bingcd::xgcd::tests::test_xgcd;
         use crate::{
-            ConcatMixed, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096, U8192,
-            Uint,
+            ConcatenatingMul, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096,
+            U8192, Uint,
         };
 
         fn binxgcd_nz_test<const LIMBS: usize, const DOUBLE: usize>(
             lhs: Uint<LIMBS>,
             rhs: Uint<LIMBS>,
         ) where
-            Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+            Uint<LIMBS>: ConcatenatingMul<Uint<DOUBLE>>,
         {
             let output = lhs.to_odd().unwrap().binxgcd_nz(&rhs.to_nz().unwrap());
             test_xgcd(lhs, rhs, output);
@@ -629,7 +629,7 @@ mod tests {
 
         fn binxgcd_nz_tests<const LIMBS: usize, const DOUBLE: usize>()
         where
-            Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+            Uint<LIMBS>: ConcatenatingMul<Uint<DOUBLE>>,
         {
             let max_int = *Int::MAX.as_uint();
             let int_abs_min = Int::MIN.abs();
@@ -665,15 +665,15 @@ mod tests {
     mod test_classic_binxgcd {
         use crate::modular::bingcd::xgcd::tests::test_xgcd;
         use crate::{
-            ConcatMixed, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096, U8192,
-            Uint,
+            ConcatenatingMul, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096,
+            U8192, Uint,
         };
 
         fn classic_binxgcd_test<const LIMBS: usize, const DOUBLE: usize>(
             lhs: Uint<LIMBS>,
             rhs: Uint<LIMBS>,
         ) where
-            Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+            Uint<LIMBS>: ConcatenatingMul<Uint<DOUBLE>>,
         {
             let output = lhs
                 .to_odd()
@@ -685,7 +685,7 @@ mod tests {
 
         fn classic_binxgcd_tests<const LIMBS: usize, const DOUBLE: usize>()
         where
-            Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+            Uint<LIMBS>: ConcatenatingMul<Uint<DOUBLE>>,
         {
             let max_int = *Int::MAX.as_uint();
 
@@ -718,13 +718,13 @@ mod tests {
         use crate::modular::bingcd::xgcd::tests::test_xgcd;
         use crate::modular::bingcd::xgcd::{DOUBLE_SUMMARY_LIMBS, SUMMARY_BITS, SUMMARY_LIMBS};
         use crate::{
-            ConcatMixed, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096, U8192,
-            Uint,
+            ConcatenatingMul, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096,
+            U8192, Uint,
         };
 
         fn test<const LIMBS: usize, const DOUBLE: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
         where
-            Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+            Uint<LIMBS>: ConcatenatingMul<Uint<DOUBLE>>,
         {
             let output = lhs
                 .to_odd()
@@ -736,7 +736,7 @@ mod tests {
 
         fn run_tests<const LIMBS: usize, const DOUBLE: usize>()
         where
-            Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+            Uint<LIMBS>: ConcatenatingMul<Uint<DOUBLE>>,
         {
             let upper_bound = *Int::MAX.as_uint();
             test(Uint::ONE, Uint::ONE);
@@ -771,10 +771,10 @@ mod tests {
                 a.compact::<SUMMARY_BITS, DOUBLE_SUMMARY_LIMBS>(U256::BITS)
                     < b.compact::<SUMMARY_BITS, DOUBLE_SUMMARY_LIMBS>(U256::BITS)
             );
-            test(a, b);
+            test::<{ U256::LIMBS }, { U512::LIMBS }>(a, b);
 
             // Case #2: a < b but a.compact() > b.compact()
-            test(b, a);
+            test::<{ U256::LIMBS }, { U512::LIMBS }>(b, a);
 
             // Case #3: a > b but a.compact() = b.compact()
             let a = U256::from_be_hex(
@@ -788,10 +788,10 @@ mod tests {
                 a.compact::<SUMMARY_BITS, DOUBLE_SUMMARY_LIMBS>(U256::BITS),
                 b.compact::<SUMMARY_BITS, DOUBLE_SUMMARY_LIMBS>(U256::BITS)
             );
-            test(a, b);
+            test::<{ U256::LIMBS }, { U512::LIMBS }>(a, b);
 
             // Case #4: a < b but a.compact() = b.compact()
-            test(b, a);
+            test::<{ U256::LIMBS }, { U512::LIMBS }>(b, a);
         }
 
         #[test]
