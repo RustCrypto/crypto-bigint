@@ -531,11 +531,11 @@ proptest! {
     #[test]
     fn encoding_reverse(a in uint()) {
         let mut bytes = a.to_be_bytes();
-        bytes.reverse();
+        bytes.as_mut().reverse();
         prop_assert_eq!(a, U256::from_le_bytes(bytes));
 
         let mut bytes = a.to_le_bytes();
-        bytes.reverse();
+        bytes.as_mut().reverse();
         prop_assert_eq!(a, U256::from_be_bytes(bytes));
     }
 
