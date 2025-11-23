@@ -18,7 +18,6 @@ rust-version = "1.85"
 
 [dependencies]
 subtle = { version = "2.6", default-features = false }
-bytemuck = { version = "1.24", default-features = false, features = ["must_cast", "must_cast_extra"] }
 
 # optional dependencies
 der = { version = "0.8.0-rc.9", optional = true, default-features = false }

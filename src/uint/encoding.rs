@@ -223,6 +223,18 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct EncodedUint<const LIMBS: usize>([Word; LIMBS]);
 
+#[allow(unsafe_code)]
+const fn cast_slice(limbs: &[Word]) -> &[u8] {
+    let new_len = size_of_val(limbs);
+    unsafe { core::slice::from_raw_parts(limbs.as_ptr() as *mut u8, new_len) }
+}
+
+#[allow(unsafe_code)]
+const fn cast_slice_mut(limbs: &mut [Word]) -> &mut [u8] {
+    let new_len = size_of_val(limbs);
+    unsafe { core::slice::from_raw_parts_mut(limbs.as_mut_ptr() as *mut u8, new_len) }
+}
+
 impl<const LIMBS: usize> EncodedUint<LIMBS> {
     const fn new_le(value: &Uint<LIMBS>) -> Self {
         let mut buffer = [0; LIMBS];
@@ -233,8 +245,7 @@ impl<const LIMBS: usize> EncodedUint<LIMBS> {
 
             // We could cast the whole `buffer` to bytes at once,
             // but IndexMut does not work in const context.
-            let dst_bytes: &mut [u8] =
-                bytemuck::must_cast_slice_mut(core::slice::from_mut(&mut buffer[i]));
+            let dst_bytes: &mut [u8] = cast_slice_mut(core::slice::from_mut(&mut buffer[i]));
 
             // `copy_from_slice` can be used here when MSRV moves past 1.87
             let mut j = 0;
@@ -257,7 +268,7 @@ impl<const LIMBS: usize> EncodedUint<LIMBS> {
             // We could cast the whole `buffer` to bytes at once,
             // but IndexMut does not work in const context.
             let dst_bytes: &mut [u8] =
-                bytemuck::must_cast_slice_mut(core::slice::from_mut(&mut buffer[LIMBS - 1 - i]));
+                cast_slice_mut(core::slice::from_mut(&mut buffer[LIMBS - 1 - i]));
 
             // `copy_from_slice` can be used here when MSRV moves past 1.87
             let mut j = 0;
@@ -280,13 +291,13 @@ impl<const LIMBS: usize> Default for EncodedUint<LIMBS> {
 
 impl<const LIMBS: usize> AsRef<[u8]> for EncodedUint<LIMBS> {
     fn as_ref(&self) -> &[u8] {
-        bytemuck::must_cast_slice(&self.0)
+        cast_slice(&self.0)
     }
 }
 
 impl<const LIMBS: usize> AsMut<[u8]> for EncodedUint<LIMBS> {
     fn as_mut(&mut self) -> &mut [u8] {
-        bytemuck::must_cast_slice_mut(&mut self.0)
+        cast_slice_mut(&mut self.0)
     }
 }
 
