@@ -1,50 +1,71 @@
-use crate::{Concat, ConcatMixed, Limb, Uint};
+use crate::{Concat, Uint};
+
+const fn concat<const L: usize, const H: usize, const O: usize>(
+    lo: &Uint<L>,
+    hi: &Uint<H>,
+) -> Uint<O> {
+    const {
+        if L + H != O {
+            panic!(concat![
+                "The size of the declared type of `Uint` concatenation is not equal to ",
+                "the sum of the sizes of argument types. ",
+            ]);
+        }
+    }
+
+    let mut result = Uint::<O>::ZERO;
+
+    let mut i = 0;
+    while i < L {
+        result.limbs[i] = lo.limbs[i];
+        i += 1;
+    }
+    while i < L + H {
+        result.limbs[i] = hi.limbs[i - L];
+        i += 1;
+    }
+
+    result
+}
+
+impl<const L: usize, const H: usize, const O: usize> Concat<Uint<O>, Uint<H>> for Uint<L> {
+    /// Concatenate the two values, with `self` as least significant and `hi` as the most
+    /// significant.
+    ///
+    /// <div class="warning">
+    /// The sum of input lengths must be equal to the output length.
+    /// </div>
+    fn concat(&self, hi: &Uint<H>) -> Uint<O> {
+        self.concat_mixed(hi)
+    }
+}
 
 impl<const L: usize> Uint<L> {
     /// Concatenate the two values, with `self` as least significant and `hi` as the most
     /// significant.
-    pub const fn concat<const O: usize>(&self, hi: &Self) -> Uint<O>
-    where
-        Self: Concat<Output = Uint<O>>,
-    {
-        Uint::concat_mixed(self, hi)
+    ///
+    /// <div class="warning">
+    /// The sum of input lengths must be equal to the output length.
+    /// </div>
+    pub const fn concat<const O: usize>(&self, hi: &Self) -> Uint<O> {
+        concat(self, hi)
     }
 
-    /// Concatenate the two values, with `lo` as least significant and `hi`
+    /// Concatenate the two values, with `self` as least significant and `hi`
     /// as the most significant.
+    ///
+    /// <div class="warning">
+    /// The sum of input lengths must be equal to the output length.
+    /// </div>
     #[inline]
-    pub const fn concat_mixed<const H: usize, const O: usize>(lo: &Uint<L>, hi: &Uint<H>) -> Uint<O>
-    where
-        Self: ConcatMixed<Uint<H>, MixedOutput = Uint<O>>,
-    {
-        let top = L + H;
-        let top = if top < O { top } else { O };
-        let mut limbs = [Limb::ZERO; O];
-        let mut i = 0;
-
-        while i < top {
-            if i < L {
-                limbs[i] = lo.limbs[i];
-            } else {
-                limbs[i] = hi.limbs[i - L];
-            }
-            i += 1;
-        }
-
-        Uint { limbs }
+    pub const fn concat_mixed<const H: usize, const O: usize>(&self, hi: &Uint<H>) -> Uint<O> {
+        concat(self, hi)
     }
-}
-
-impl<T> Concat for T
-where
-    T: ConcatMixed<T>,
-{
-    type Output = Self::MixedOutput;
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConcatMixed, U64, U128, U192};
+    use crate::{U64, U128, U192};
 
     #[test]
     fn concat() {

@@ -595,45 +595,17 @@ pub trait CheckedSub<Rhs = Self>: Sized {
     fn checked_sub(&self, rhs: &Rhs) -> CtOption<Self>;
 }
 
-/// Concatenate two numbers into a "wide" double-width value, using the `hi` value as the most
-/// significant portion of the resulting value.
-pub trait Concat: ConcatMixed<Self, MixedOutput = Self::Output> {
-    /// Concatenated output: twice the width of `Self`.
-    type Output: Integer;
-
-    /// Concatenate the two halves, with `self` as least significant and `hi` as the most significant.
-    fn concat(&self, hi: &Self) -> Self::Output {
-        self.concat_mixed(hi)
-    }
-}
-
-/// Concatenate two numbers into a "wide" combined-width value, using the `hi` value as the most
-/// significant value.
-pub trait ConcatMixed<Hi: ?Sized = Self> {
-    /// Concatenated output: combination of `Self` and `Hi`.
-    type MixedOutput: Integer;
-
+/// Concatenate two numbers into a "wide" combined-width value.
+pub trait Concat<Output, Hi: ?Sized = Self> {
     /// Concatenate the two values, with `self` as least significant and `hi` as the most
     /// significant.
-    fn concat_mixed(&self, hi: &Hi) -> Self::MixedOutput;
+    fn concat(&self, hi: &Hi) -> Output;
 }
 
-/// Split a number in half, returning the least significant half followed by the most significant.
-pub trait Split: SplitMixed<Self::Output, Self::Output> {
-    /// Split output: low/high components of the value.
-    type Output;
-
-    /// Split this number in half, returning its low and high components respectively.
-    fn split(&self) -> (Self::Output, Self::Output) {
-        self.split_mixed()
-    }
-}
-
-/// Split a number into parts, returning the least significant part followed by the most
-/// significant.
-pub trait SplitMixed<Lo, Hi> {
+/// Split a number into parts.
+pub trait Split<Lo, Hi = Lo> {
     /// Split this number into parts, returning its low and high components respectively.
-    fn split_mixed(&self) -> (Lo, Hi);
+    fn split(&self) -> (Lo, Hi);
 }
 
 /// Encoding support.
@@ -725,12 +697,6 @@ pub trait DivRemLimb: Sized {
 
     /// Computes `self / rhs`, returns the quotient (q) and remainder (r).
     fn div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb);
-}
-
-/// Support for calculating the remainder of two differently sized integers.
-pub trait RemMixed<Reductor>: Sized {
-    /// Calculate the remainder of `self` by the `reductor`.
-    fn rem_mixed(&self, reductor: &NonZero<Reductor>) -> Reductor;
 }
 
 /// Modular reduction from a larger value `T`.
@@ -900,33 +866,26 @@ pub trait Invert {
 
 /// Widening multiply: returns a value with a number of limbs equal to the sum of the inputs.
 #[deprecated(since = "0.7.0", note = "please use `ConcatenatingMul` instead")]
-pub trait WideningMul<Rhs = Self>: Sized {
-    /// Output of the widening multiplication.
-    type Output: Integer;
-
+pub trait WideningMul<Output, Rhs = Self>: Sized {
     /// Perform widening multiplication.
-    fn widening_mul(&self, rhs: Rhs) -> Self::Output;
+    fn widening_mul(&self, rhs: Rhs) -> Output;
 }
 
 #[allow(deprecated)]
-impl<T, Rhs> WideningMul<Rhs> for T
+impl<T, Rhs, Output> WideningMul<Output, Rhs> for T
 where
-    T: ConcatenatingMul<Rhs>,
+    T: ConcatenatingMul<Output, Rhs>,
 {
-    type Output = <T as ConcatenatingMul<Rhs>>::Output;
-
-    fn widening_mul(&self, rhs: Rhs) -> Self::Output {
+    fn widening_mul(&self, rhs: Rhs) -> Output {
         self.concatenating_mul(rhs)
     }
 }
 
-/// Widening multiply: returns a value with a number of limbs equal to the sum of the inputs.
-pub trait ConcatenatingMul<Rhs = Self>: Sized {
-    /// Output of the widening multiplication.
-    type Output: Integer;
-
+/// Widening multiply: returns a value with a number of limbs greater than or equal to
+/// the sum of the inputs.
+pub trait ConcatenatingMul<Output, Rhs = Self>: Sized {
     /// Perform widening multiplication.
-    fn concatenating_mul(&self, rhs: Rhs) -> Self::Output;
+    fn concatenating_mul(&self, rhs: Rhs) -> Output;
 }
 
 /// Left shifts, variable time in `shift`.

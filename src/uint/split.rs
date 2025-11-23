@@ -1,36 +1,61 @@
-use crate::{Limb, Split, SplitMixed, Uint};
+use crate::{Split, Uint};
+
+const fn split<const I: usize, const L: usize, const H: usize>(
+    value: &Uint<I>,
+) -> (Uint<L>, Uint<H>) {
+    const {
+        if L + H != I {
+            panic!(concat![
+                "The sum of the sizes of the declared types of `Uint` split is not equal to ",
+                "the size of the input type. ",
+            ]);
+        }
+    }
+
+    let mut lo = Uint::<L>::ZERO;
+    let mut hi = Uint::<H>::ZERO;
+
+    let mut i = 0;
+    while i < L {
+        lo.limbs[i] = value.limbs[i];
+        i += 1;
+    }
+    while i < L + H {
+        hi.limbs[i - L] = value.limbs[i];
+        i += 1;
+    }
+
+    (lo, hi)
+}
+
+impl<const L: usize, const H: usize, const O: usize> Split<Uint<L>, Uint<H>> for Uint<O> {
+    /// Split this number into low and high components respectively.
+    ///
+    /// <div class="warning">
+    /// The sum of output lengths must be equal to the input length.
+    /// </div>
+    fn split(&self) -> (Uint<L>, Uint<H>) {
+        self.split_mixed()
+    }
+}
 
 impl<const I: usize> Uint<I> {
     /// Split this number in half into low and high components.
-    pub const fn split<const O: usize>(&self) -> (Uint<O>, Uint<O>)
-    where
-        Self: Split<Output = Uint<O>>,
-    {
-        self.split_mixed()
+    ///
+    /// <div class="warning">
+    /// The sum of output lengths must be equal to the input length.
+    /// </div>
+    pub const fn split<const O: usize>(&self) -> (Uint<O>, Uint<O>) {
+        split::<I, O, O>(self)
     }
 
     /// Split this number into low and high components respectively.
-    #[inline]
-    pub const fn split_mixed<const L: usize, const H: usize>(&self) -> (Uint<L>, Uint<H>)
-    where
-        Self: SplitMixed<Uint<L>, Uint<H>>,
-    {
-        let top = L + H;
-        let top = if top < I { top } else { I };
-        let mut lo = [Limb::ZERO; L];
-        let mut hi = [Limb::ZERO; H];
-        let mut i = 0;
-
-        while i < top {
-            if i < L {
-                lo[i] = self.limbs[i];
-            } else {
-                hi[i - L] = self.limbs[i];
-            }
-            i += 1;
-        }
-
-        (Uint { limbs: lo }, Uint { limbs: hi })
+    ///
+    /// <div class="warning">
+    /// The sum of output lengths must be equal to the input length.
+    /// </div>
+    pub const fn split_mixed<const L: usize, const H: usize>(&self) -> (Uint<L>, Uint<H>) {
+        split::<I, L, H>(self)
     }
 }
 
