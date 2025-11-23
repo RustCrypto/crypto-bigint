@@ -4,12 +4,13 @@ const fn split<const I: usize, const L: usize, const H: usize>(
     value: &Uint<I>,
 ) -> (Uint<L>, Uint<H>) {
     const {
-        if L + H != I {
-            panic!(concat![
+        assert!(
+            L + H == I,
+            concat![
                 "The sum of the sizes of the declared types of `Uint` split is not equal to ",
                 "the size of the input type. ",
-            ]);
-        }
+            ]
+        );
     }
 
     let mut lo = Uint::<L>::ZERO;

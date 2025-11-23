@@ -5,12 +5,13 @@ const fn concat<const L: usize, const H: usize, const O: usize>(
     hi: &Uint<H>,
 ) -> Uint<O> {
     const {
-        if L + H != O {
-            panic!(concat![
+        assert!(
+            L + H == O,
+            concat![
                 "The size of the declared type of `Uint` concatenation is not equal to ",
                 "the sum of the sizes of argument types. ",
-            ]);
-        }
+            ]
+        );
     }
 
     let mut result = Uint::<O>::ZERO;
