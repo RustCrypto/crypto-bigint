@@ -6,7 +6,7 @@ mod der;
 #[cfg(feature = "rlp")]
 mod rlp;
 
-use core::fmt;
+use core::{fmt, ops::Deref};
 
 #[cfg(feature = "alloc")]
 use alloc::{string::String, vec::Vec};
@@ -287,6 +287,13 @@ impl<const LIMBS: usize> AsRef<[u8]> for EncodedUint<LIMBS> {
 impl<const LIMBS: usize> AsMut<[u8]> for EncodedUint<LIMBS> {
     fn as_mut(&mut self) -> &mut [u8] {
         bytemuck::must_cast_slice_mut(&mut self.0)
+    }
+}
+
+impl<const LIMBS: usize> Deref for EncodedUint<LIMBS> {
+    type Target = [u8];
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
     }
 }
 
