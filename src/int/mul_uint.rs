@@ -1,7 +1,7 @@
 use core::ops::Mul;
 use subtle::CtOption;
 
-use crate::{CheckedMul, ConcatMixed, ConstChoice, ConstCtOption, Int, Uint};
+use crate::{CheckedMul, ConstChoice, ConstCtOption, Int, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute "wide" multiplication between an [`Int`] and [`Uint`] as 3-tuple `(lo, hi, negate)`.
@@ -70,10 +70,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub const fn concatenating_mul_uint<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
-    ) -> Int<WIDE_LIMBS>
-    where
-        Uint<LIMBS>: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
-    {
+    ) -> Int<WIDE_LIMBS> {
         let (lhs_abs, lhs_sign) = self.abs_sign();
         let product_abs = lhs_abs.concatenating_mul(rhs);
 

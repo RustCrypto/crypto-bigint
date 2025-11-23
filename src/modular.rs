@@ -55,7 +55,7 @@ pub trait Retrieve {
 #[cfg(test)]
 mod tests {
     use crate::{
-        NonZero, U64, U128, U256, Uint, const_monty_params,
+        NonZero, U64, U128, U256, U512, Uint, const_monty_params,
         modular::{
             const_monty_form::{ConstMontyForm, ConstMontyParams},
             mul::{mul_montgomery_form, square_montgomery_form},
@@ -122,7 +122,7 @@ mod tests {
     #[test]
     fn test_reducing_r2_wide() {
         // Divide the value ONE^2 by R, which should equal ONE
-        let (lo, hi) = Modulus256::PARAMS.one.square().split();
+        let (lo, hi) = Modulus256::PARAMS.one.square::<{ nlimbs!(512) }>().split();
         assert_eq!(
             montgomery_reduction::<{ Modulus256::LIMBS }>(
                 &(lo, hi),
@@ -158,7 +158,7 @@ mod tests {
 
         // Computing xR mod modulus without Montgomery reduction
         let (lo, hi) = x.widening_mul(&Modulus256::PARAMS.one);
-        let c = lo.concat(&hi);
+        let c: U512 = lo.concat(&hi);
         let red =
             c.rem_vartime(&NonZero::new(Modulus256::PARAMS.modulus.0.concat(&U256::ZERO)).unwrap());
         let (lo, hi) = red.split();
@@ -287,7 +287,7 @@ mod tests {
 
         // Computing xR mod modulus without Montgomery reduction
         let (lo, hi) = x.widening_mul(&Modulus256::PARAMS.one);
-        let c = lo.concat(&hi);
+        let c: U512 = lo.concat(&hi);
         let red =
             c.rem_vartime(&NonZero::new(Modulus256::PARAMS.modulus.0.concat(&U256::ZERO)).unwrap());
         let (lo, hi) = red.split();
