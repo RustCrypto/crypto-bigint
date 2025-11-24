@@ -1,7 +1,7 @@
 //! Random number generator support
 
 use super::{Uint, Word};
-use crate::{Encoding, Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod, Zero};
+use crate::{Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod, Zero};
 use rand_core::{RngCore, TryRngCore};
 use subtle::ConstantTimeLess;
 
@@ -30,7 +30,7 @@ pub(crate) fn random_bits_core<R: TryRngCore + ?Sized>(
     rng: &mut R,
     zeroed_limbs: &mut [Limb],
     bit_length: u32,
-) -> Result<(), RandomBitsError<R::Error>> {
+) -> Result<(), R::Error> {
     if bit_length == 0 {
         return Ok(());
     }
@@ -43,8 +43,7 @@ pub(crate) fn random_bits_core<R: TryRngCore + ?Sized>(
     let mask = Word::MAX >> ((Word::BITS - partial_limb) % Word::BITS);
 
     for i in 0..nonzero_limbs - 1 {
-        rng.try_fill_bytes(&mut buffer)
-            .map_err(RandomBitsError::RandCore)?;
+        rng.try_fill_bytes(&mut buffer)?;
         zeroed_limbs[i] = Limb(Word::from_le_bytes(buffer));
     }
 
@@ -62,8 +61,7 @@ pub(crate) fn random_bits_core<R: TryRngCore + ?Sized>(
         buffer.as_mut_slice()
     };
 
-    rng.try_fill_bytes(slice)
-        .map_err(RandomBitsError::RandCore)?;
+    rng.try_fill_bytes(slice)?;
     zeroed_limbs[nonzero_limbs - 1] = Limb(Word::from_le_bytes(buffer) & mask);
 
     Ok(())
@@ -95,7 +93,7 @@ impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
             });
         }
         let mut limbs = [Limb::ZERO; LIMBS];
-        random_bits_core(rng, &mut limbs, bit_length)?;
+        random_bits_core(rng, &mut limbs, bit_length).map_err(RandomBitsError::RandCore)?;
         Ok(Self::from(limbs))
     }
 }
@@ -128,36 +126,12 @@ pub(super) fn random_mod_core<T, R: TryRngCore + ?Sized>(
 where
     T: AsMut<[Limb]> + AsRef<[Limb]> + ConstantTimeLess + Zero,
 {
-    #[cfg(target_pointer_width = "64")]
-    let mut next_word = || rng.try_next_u64();
-    #[cfg(target_pointer_width = "32")]
-    let mut next_word = || rng.try_next_u32();
-
-    let n_limbs = n_bits.div_ceil(Limb::BITS) as usize;
-
-    let hi_word_modulus = modulus.as_ref().as_ref()[n_limbs - 1].0;
-    let mask = !0 >> hi_word_modulus.leading_zeros();
-    let mut hi_word = next_word()? & mask;
-
     loop {
-        while hi_word > hi_word_modulus {
-            hi_word = next_word()? & mask;
-        }
-        // Set high limb
-        n.as_mut()[n_limbs - 1] = Limb::from_le_bytes(hi_word.to_le_bytes());
-        // Set low limbs
-        for i in 0..n_limbs - 1 {
-            // Need to deserialize from little-endian to make sure that two 32-bit limbs
-            // deserialized sequentially are equal to one 64-bit limb produced from the same
-            // byte stream.
-            n.as_mut()[i] = Limb::from_le_bytes(next_word()?.to_le_bytes());
-        }
-        // If the high limb is equal to the modulus' high limb, it's still possible
-        // that the full uint is too big so we check and repeat if it is.
+        random_bits_core(rng, n.as_mut(), n_bits)?;
+
         if n.ct_lt(modulus).into() {
             break;
         }
-        hi_word = next_word()? & mask;
     }
     Ok(())
 }
@@ -300,11 +274,10 @@ mod tests {
         let mut state = [0u8; 16];
         rng.fill_bytes(&mut state);
 
-        // XXX Passes on 64-bit, fails on 32-bit
         assert_eq!(
             state,
             [
-                55, 192, 216, 186, 95, 165, 70, 119, 230, 166, 226, 129, 50, 13, 251, 178,
+                103, 247, 133, 181, 55, 192, 216, 186, 95, 165, 70, 119, 230, 166, 226, 129,
             ],
         );
     }
