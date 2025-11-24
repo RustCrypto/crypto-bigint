@@ -164,7 +164,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::uint::rand::random_bits_core;
+    use crate::uint::rand::{random_bits_core, random_mod_core};
     use crate::{Limb, NonZero, Random, RandomBits, RandomMod, U256, U1024, Uint};
     use chacha20::ChaCha8Rng;
     use rand_core::{RngCore, SeedableRng};
@@ -285,6 +285,27 @@ mod tests {
             [
                 198, 196, 132, 164, 240, 211, 223, 12, 36, 189, 139, 48, 94, 1, 123, 253
             ]
+        );
+    }
+
+    /// Make sure random_mod output is consistent across platforms
+    #[test]
+    fn random_mod_platform_independence() {
+        let mut rng = get_four_sequential_rng();
+
+        let modulus = NonZero::new(U256::from_u8(7)).unwrap();
+        let mut val = U256::ZERO;
+        let _ = random_mod_core(&mut rng, &mut val, &modulus, modulus.bits_vartime());
+
+        let mut state = [0u8; 16];
+        rng.fill_bytes(&mut state);
+
+        // XXX Passes on 64-bit, fails on 32-bit
+        assert_eq!(
+            state,
+            [
+                55, 192, 216, 186, 95, 165, 70, 119, 230, 166, 226, 129, 50, 13, 251, 178,
+            ],
         );
     }
 
