@@ -267,12 +267,12 @@ mod tests {
     fn random_mod_platform_independence() {
         let mut rng = get_four_sequential_rng();
 
-        let modulus = NonZero::new(U256::from_u32(7776)).unwrap();
-        let mut vals = [U256::ZERO, U256::ZERO, U256::ZERO, U256::ZERO];
+        let modulus = NonZero::new(U256::from_u32(8192)).unwrap();
+        let mut vals = [U256::ZERO, U256::ZERO, U256::ZERO, U256::ZERO, U256::ZERO];
         for val in &mut vals {
             random_mod_core(&mut rng, val, &modulus, modulus.bits_vartime()).unwrap();
         }
-        let expected = [7020, 5991, 55, 1375];
+        let expected = [55, 3378, 2172, 1657, 5323];
         for (want, got) in expected.into_iter().zip(vals.into_iter()) {
             assert_eq!(got, U256::from_u32(want));
         }
@@ -283,7 +283,7 @@ mod tests {
         assert_eq!(
             state,
             [
-                230, 166, 226, 129, 50, 13, 251, 178, 124, 136, 155, 143, 164, 96, 103, 15,
+                60, 146, 46, 106, 157, 83, 56, 212, 186, 104, 211, 210, 125, 28, 120, 239
             ],
         );
     }
