@@ -293,18 +293,23 @@ mod tests {
     fn random_mod_platform_independence() {
         let mut rng = get_four_sequential_rng();
 
-        let modulus = NonZero::new(U256::from_u8(7)).unwrap();
-        let mut val = U256::ZERO;
-        let _ = random_mod_core(&mut rng, &mut val, &modulus, modulus.bits_vartime());
+        let modulus = NonZero::new(U256::from_u32(7776)).unwrap();
+        let mut vals = [U256::ZERO, U256::ZERO, U256::ZERO, U256::ZERO];
+        for val in &mut vals {
+            random_mod_core(&mut rng, val, &modulus, modulus.bits_vartime()).unwrap();
+        }
+        let expected = [7020, 55, 1766, 2172];
+        for (want, got) in expected.into_iter().zip(vals.into_iter()) {
+            assert_eq!(got, U256::from_u32(want));
+        }
 
         let mut state = [0u8; 16];
         rng.fill_bytes(&mut state);
 
-        // XXX Passes on 64-bit, fails on 32-bit
         assert_eq!(
             state,
             [
-                55, 192, 216, 186, 95, 165, 70, 119, 230, 166, 226, 129, 50, 13, 251, 178,
+                121, 70, 2, 50, 103, 102, 13, 225, 189, 176, 126, 148, 203, 20, 174, 140,
             ],
         );
     }
