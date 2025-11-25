@@ -161,14 +161,18 @@ impl MulAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     }
 }
 
-impl ConcatenatingMul<BoxedUint> for BoxedUint {
+impl ConcatenatingMul for BoxedUint {
+    type Output = Self;
+
     #[inline]
     fn concatenating_mul(&self, rhs: BoxedUint) -> Self {
         self.mul(&rhs)
     }
 }
 
-impl ConcatenatingMul<BoxedUint, &BoxedUint> for BoxedUint {
+impl ConcatenatingMul<&BoxedUint> for BoxedUint {
+    type Output = Self;
+
     #[inline]
     fn concatenating_mul(&self, rhs: &BoxedUint) -> Self {
         self.mul(rhs)

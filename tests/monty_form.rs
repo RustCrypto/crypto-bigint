@@ -4,8 +4,8 @@ mod common;
 
 use common::to_biguint;
 use crypto_bigint::{
-    Bounded, Constants, EncodedUint, Encoding, Integer, Invert, Monty, NonZero, Odd, U128, U256,
-    U512, U1024, U2048, U4096, Unsigned,
+    Bounded, Constants, Encoding, Integer, Invert, Monty, NonZero, Odd, U128, U256, U512, U1024,
+    U2048, U4096, Unsigned,
     modular::{MontyForm, MontyParams},
 };
 use num_bigint::BigUint;
@@ -99,7 +99,7 @@ prop_compose! {
             monty_params_from_edge::<U128>(edge_bytes, &mut rng)
         })
     ) -> Result<(U128, <U128 as Unsigned>::Monty , <U128 as Unsigned>::Monty, BigUint),TestCaseError> {
-        random_invertible_uint(EncodedUint::try_from(bytes.as_ref()).unwrap(), monty_params, monty_params.modulus().get())
+        random_invertible_uint(bytes, monty_params, monty_params.modulus().get())
     }
 }
 prop_compose! {
@@ -109,7 +109,7 @@ prop_compose! {
             monty_params_from_edge::<U256>(edge_bytes, &mut rng)
         })
     ) -> Result<(U256, <U256 as Unsigned>::Monty , <U256 as Unsigned>::Monty, BigUint),TestCaseError> {
-        random_invertible_uint(EncodedUint::try_from(bytes.as_ref()).unwrap(), monty_params, monty_params.modulus().get())
+        random_invertible_uint(bytes, monty_params, monty_params.modulus().get())
     }
 }
 prop_compose! {
@@ -119,7 +119,7 @@ prop_compose! {
             monty_params_from_edge::<U2048>(edge_bytes, &mut rng)
         })
     ) -> Result<(U2048, <U2048 as Unsigned>::Monty , <U2048 as Unsigned>::Monty, BigUint),TestCaseError> {
-        random_invertible_uint(EncodedUint::try_from(bytes.as_ref()).unwrap(), monty_params, monty_params.modulus().get())
+        random_invertible_uint(bytes, monty_params, monty_params.modulus().get())
     }
 }
 prop_compose! {
@@ -129,7 +129,7 @@ prop_compose! {
             monty_params_from_edge::<U1024>(edge_bytes, &mut rng)
         })
     ) -> Result<(U1024, <U1024 as Unsigned>::Monty, <U1024 as Unsigned>::Monty, BigUint),TestCaseError> {
-        random_invertible_uint(EncodedUint::try_from(bytes.as_ref()).unwrap(), monty_params, monty_params.modulus().get())
+        random_invertible_uint(bytes, monty_params, monty_params.modulus().get())
     }
 }
 proptest! {
@@ -151,7 +151,7 @@ proptest! {
         assert_eq!(one_monty.retrieve(), U128::ONE, "a*a⁻¹ ≠ 1 (normal form)");
         // …and when converted back to normal form and used in a widening operation
         let wide_modulus = NonZero::new(Into::<U256>::into(&monty_params.modulus().get())).unwrap();
-        let one: U256 = r_monty_inv.retrieve().concatenating_mul(&r);
+        let one = r_monty_inv.retrieve().concatenating_mul(&r);
         assert_eq!(
             one % wide_modulus,
             U256::ONE,
@@ -166,7 +166,7 @@ proptest! {
         );
         // …and agrees with the num_modular crate
         assert_eq!(
-            BigUint::from_be_bytes(normal_form_inv.to_be_bytes().as_ref()),
+            BigUint::from_be_bytes(&normal_form_inv.to_be_bytes()),
             r_num_modular_inv,
             "num_modular ≠ crypto_bigint"
         )
@@ -190,7 +190,7 @@ proptest! {
         assert_eq!(one_monty.retrieve(), U256::ONE, "a*a⁻¹ ≠ 1 (normal form)");
         // …and when converted back to normal form and used in a widening operation
         let wide_modulus = NonZero::new(Into::<U512>::into(&monty_params.modulus().get())).unwrap();
-        let one: U512 = r_monty_inv.retrieve().concatenating_mul(&r);
+        let one = r_monty_inv.retrieve().concatenating_mul(&r);
         assert_eq!(
             one % wide_modulus,
             U512::ONE,
@@ -205,7 +205,7 @@ proptest! {
         );
         // …and agrees with the num_modular crate
         assert_eq!(
-            BigUint::from_be_bytes(normal_form_inv.to_be_bytes().as_ref()),
+            BigUint::from_be_bytes(&normal_form_inv.to_be_bytes()),
             r_num_modular_inv,
             "num_modular ≠ crypto_bigint"
         )
@@ -229,7 +229,7 @@ proptest! {
         assert_eq!(one_monty.retrieve(), U1024::ONE, "a*a⁻¹ ≠ 1 (normal form)");
         // …and when converted back to normal form and used in a widening operation
         let wide_modulus = NonZero::new(Into::<U2048>::into(&monty_params.modulus().get())).unwrap();
-        let one: U2048 = r_monty_inv.retrieve().concatenating_mul(&r);
+        let one = r_monty_inv.retrieve().concatenating_mul(&r);
         assert_eq!(
             one % wide_modulus,
             U2048::ONE,
@@ -244,7 +244,7 @@ proptest! {
         );
         // …and agrees with the num_modular crate
         assert_eq!(
-            BigUint::from_be_bytes(normal_form_inv.to_be_bytes().as_ref()),
+            BigUint::from_be_bytes(&normal_form_inv.to_be_bytes()),
             r_num_modular_inv,
             "num_modular ≠ crypto_bigint"
         )
@@ -268,7 +268,7 @@ proptest! {
         assert_eq!(one_monty.retrieve(), U2048::ONE, "a*a⁻¹ ≠ 1 (normal form)");
         // …and when converted back to normal form and used in a widening operation
         let wide_modulus = NonZero::new(Into::<U4096>::into(&monty_params.modulus().get())).unwrap();
-        let one: U4096 = r_monty_inv.retrieve().concatenating_mul(&r);
+        let one = r_monty_inv.retrieve().concatenating_mul(&r);
         assert_eq!(
             one % wide_modulus,
             U4096::ONE,
@@ -283,7 +283,7 @@ proptest! {
         );
         // …and agrees with the num_modular crate
         assert_eq!(
-            BigUint::from_be_bytes(normal_form_inv.to_be_bytes().as_ref()),
+            BigUint::from_be_bytes(&normal_form_inv.to_be_bytes()),
             r_num_modular_inv,
             "num_modular ≠ crypto_bigint"
         )

@@ -4,7 +4,7 @@ use rand_core::SeedableRng;
 use std::hint::black_box;
 use std::ops::Div;
 
-use crypto_bigint::{I128, I256, I512, I1024, I2048, I4096, NonZero, Random, nlimbs};
+use crypto_bigint::{I128, I256, I512, I1024, I2048, I4096, NonZero, Random};
 
 fn bench_mul(c: &mut Criterion) {
     let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
@@ -66,7 +66,7 @@ fn bench_concatenating_mul(c: &mut Criterion) {
     group.bench_function("concatenating_mul, I128xI128", |b| {
         b.iter_batched(
             || (I128::random(&mut rng), I128::random(&mut rng)),
-            |(x, y)| black_box(x.concatenating_mul::<{ I128::LIMBS }, { I256::LIMBS }>(&y)),
+            |(x, y)| black_box(x.concatenating_mul(&y)),
             BatchSize::SmallInput,
         )
     });
@@ -74,7 +74,7 @@ fn bench_concatenating_mul(c: &mut Criterion) {
     group.bench_function("concatenating_mul, I256xI256", |b| {
         b.iter_batched(
             || (I256::random(&mut rng), I256::random(&mut rng)),
-            |(x, y)| black_box(x.concatenating_mul::<{ I256::LIMBS }, { I512::LIMBS }>(&y)),
+            |(x, y)| black_box(x.concatenating_mul(&y)),
             BatchSize::SmallInput,
         )
     });
@@ -82,7 +82,7 @@ fn bench_concatenating_mul(c: &mut Criterion) {
     group.bench_function("concatenating_mul, I512xI512", |b| {
         b.iter_batched(
             || (I512::random(&mut rng), I512::random(&mut rng)),
-            |(x, y)| black_box(x.concatenating_mul::<{ I512::LIMBS }, { I1024::LIMBS }>(&y)),
+            |(x, y)| black_box(x.concatenating_mul(&y)),
             BatchSize::SmallInput,
         )
     });
@@ -90,7 +90,7 @@ fn bench_concatenating_mul(c: &mut Criterion) {
     group.bench_function("concatenating_mul, I1024xI1024", |b| {
         b.iter_batched(
             || (I1024::random(&mut rng), I1024::random(&mut rng)),
-            |(x, y)| black_box(x.concatenating_mul::<{ I1024::LIMBS }, { I2048::LIMBS }>(&y)),
+            |(x, y)| black_box(x.concatenating_mul(&y)),
             BatchSize::SmallInput,
         )
     });
@@ -98,7 +98,7 @@ fn bench_concatenating_mul(c: &mut Criterion) {
     group.bench_function("concatenating_mul, I2048xI2048", |b| {
         b.iter_batched(
             || (I2048::random(&mut rng), I2048::random(&mut rng)),
-            |(x, y)| black_box(x.concatenating_mul::<{ I2048::LIMBS }, { I4096::LIMBS }>(&y)),
+            |(x, y)| black_box(x.concatenating_mul(&y)),
             BatchSize::SmallInput,
         )
     });
@@ -106,7 +106,7 @@ fn bench_concatenating_mul(c: &mut Criterion) {
     group.bench_function("concatenating_mul, I4096xI4096", |b| {
         b.iter_batched(
             || (I4096::random(&mut rng), I4096::random(&mut rng)),
-            |(x, y)| black_box(x.concatenating_mul::<{ I4096::LIMBS }, { nlimbs!(8192) }>(&y)),
+            |(x, y)| black_box(x.concatenating_mul(&y)),
             BatchSize::SmallInput,
         )
     });

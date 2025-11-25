@@ -167,8 +167,6 @@
 #[macro_use]
 extern crate alloc;
 
-pub use uint::encoding::{EncodedUint, TryFromSliceError};
-
 #[cfg(feature = "rand_core")]
 pub use rand_core;
 #[cfg(feature = "rlp")]

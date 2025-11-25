@@ -668,8 +668,9 @@ impl<const LIMBS: usize> RemLimb for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{DivVartime, Limb, NonZero, U64, U128, U256, U512, U896, U1024, Uint, Word, Zero};
-    use core::ops::Rem;
+    use crate::{
+        DivVartime, Limb, NonZero, RemMixed, U64, U128, U256, U512, U896, U1024, Uint, Word, Zero,
+    };
 
     #[cfg(feature = "rand")]
     use {crate::Random, chacha20::ChaCha8Rng, rand_core::RngCore, rand_core::SeedableRng};
@@ -872,16 +873,10 @@ mod tests {
         );
         let rem = U256::rem_wide(lo_hi, &modulus);
         // Lower half is zero
-        assert_eq!(
-            &rem.to_be_bytes().as_ref()[0..16],
-            U128::ZERO.to_be_bytes().as_ref()
-        );
+        assert_eq!(rem.to_be_bytes()[0..16], U128::ZERO.to_be_bytes());
         // Upper half
         let expected = U128::from_be_hex("203F80FE03F80FE03F80FE03F80FE041");
-        assert_eq!(
-            &rem.to_be_bytes().as_ref()[16..],
-            expected.to_be_bytes().as_ref()
-        );
+        assert_eq!(rem.to_be_bytes()[16..], expected.to_be_bytes());
 
         let remv = U256::rem_wide_vartime(lo_hi, &modulus);
         assert_eq!(rem, remv);
@@ -937,9 +932,9 @@ mod tests {
             "7A831C1B06D31D3618D218D6E667DBD85BFC7B6B6B93422D52516989376AA29A",
         ]);
         let y = U128::from_u64(1234567890987654321);
-        let rem = x.rem(&y.to_nz().unwrap());
+        let rem = x.rem_mixed(&y.to_nz().unwrap());
 
-        let y2: U1024 = y.concat_mixed(&U896::ZERO);
+        let y2: U1024 = U128::concat_mixed(&y, &U896::ZERO);
         let rem_control = x.rem(&NonZero::new(y2).unwrap());
 
         assert_eq!(rem.bits(), rem_control.bits());
@@ -960,9 +955,9 @@ mod tests {
             "7A831C1B06D31D3618D218D6E667DBD85BFC7B6B6B93422D52516989376AA29A",
         ]);
         let y = U512::from_u64(1234567890987654321);
-        let rem: U512 = x.rem(&y.to_nz().unwrap());
+        let rem: U512 = x.rem_mixed(&y.to_nz().unwrap());
 
-        let y_wide = y.concat_mixed(&U512::ZERO);
+        let y_wide = U512::concat_mixed(&y, &U512::ZERO);
         let rem_control: U1024 = x.rem(&NonZero::new(y_wide).unwrap());
 
         assert_eq!(rem.bits(), rem_control.bits());
@@ -972,6 +967,30 @@ mod tests {
                 .iter()
                 .all(|w| *w == 0)
         );
+    }
+
+    #[test]
+    fn rem_mixed_through_traits() {
+        struct A<T, U> {
+            t: T,
+            u: U,
+        }
+        impl<T, U> A<T, U>
+        where
+            T: RemMixed<U>,
+            U: Clone + Zero,
+        {
+            fn reduce_t_by_u(&self) -> U {
+                let rhs = &NonZero::new(self.u.clone()).unwrap();
+                self.t.rem_mixed(rhs)
+            }
+        }
+
+        let a = A {
+            t: U1024::from(1234567890u64),
+            u: U128::from(456u64),
+        };
+        assert_eq!(a.reduce_t_by_u(), U128::from(330u64));
     }
 
     #[test]

@@ -6,16 +6,17 @@ mod der;
 #[cfg(feature = "rlp")]
 mod rlp;
 
-use core::{fmt, ops::Deref};
-
 #[cfg(feature = "alloc")]
 use alloc::{string::String, vec::Vec};
 
 use super::Uint;
-use crate::{DecodeError, Encoding, Limb, Word};
+use crate::{DecodeError, Limb, Word};
 
 #[cfg(feature = "alloc")]
 use crate::{ConstChoice, NonZero, Reciprocal, UintRef, WideWord};
+
+#[cfg(feature = "hybrid-array")]
+use crate::Encoding;
 
 #[cfg(feature = "alloc")]
 const RADIX_ENCODING_LIMBS_LARGE: usize = 16;
@@ -203,158 +204,58 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut buf = *self;
         radix_encode_limbs_mut_to_string(radix, buf.as_mut_uint_ref())
     }
+}
 
-    /// Serialize as big endian bytes.
-    pub const fn to_be_bytes(&self) -> EncodedUint<LIMBS> {
-        EncodedUint::new_be(self)
+/// Encode a [`Uint`] to a big endian byte array of the given size.
+pub(crate) const fn uint_to_be_bytes<const LIMBS: usize, const BYTES: usize>(
+    uint: &Uint<LIMBS>,
+) -> [u8; BYTES] {
+    if BYTES != LIMBS * Limb::BYTES {
+        panic!("BYTES != LIMBS * Limb::BYTES");
     }
 
-    /// Serialize as little endian bytes.
-    pub const fn to_le_bytes(&self) -> EncodedUint<LIMBS> {
-        EncodedUint::new_le(self)
-    }
-}
+    let mut ret = [0u8; BYTES];
+    let mut i = 0;
 
-/// [`Uint`] encoded as bytes.
-// Until const generic expressions are stable, we cannot statically declare a `u8` array
-// of the size `LIMBS * Limb::BYTES`.
-// So instead we use the array of words, and treat it as an array of bytes.
-// It's a little hacky, but it works, because the array is guaranteed to be contiguous.
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct EncodedUint<const LIMBS: usize>([Word; LIMBS]);
+    while i < LIMBS {
+        let limb_bytes = uint.limbs[LIMBS - i - 1].0.to_be_bytes();
+        let mut j = 0;
 
-#[allow(unsafe_code)]
-const fn cast_slice(limbs: &[Word]) -> &[u8] {
-    let new_len = size_of_val(limbs);
-    unsafe { core::slice::from_raw_parts(limbs.as_ptr() as *mut u8, new_len) }
-}
-
-#[allow(unsafe_code)]
-const fn cast_slice_mut(limbs: &mut [Word]) -> &mut [u8] {
-    let new_len = size_of_val(limbs);
-    unsafe { core::slice::from_raw_parts_mut(limbs.as_mut_ptr() as *mut u8, new_len) }
-}
-
-impl<const LIMBS: usize> EncodedUint<LIMBS> {
-    const fn new_le(value: &Uint<LIMBS>) -> Self {
-        let mut buffer = [0; LIMBS];
-        let mut i = 0;
-
-        while i < LIMBS {
-            let src_bytes = &value.limbs[i].0.to_le_bytes();
-
-            // We could cast the whole `buffer` to bytes at once,
-            // but IndexMut does not work in const context.
-            let dst_bytes: &mut [u8] = cast_slice_mut(core::slice::from_mut(&mut buffer[i]));
-
-            // `copy_from_slice` can be used here when MSRV moves past 1.87
-            let mut j = 0;
-            while j < Limb::BYTES {
-                dst_bytes[j] = src_bytes[j];
-                j += 1;
-            }
-
-            i += 1;
+        while j < Limb::BYTES {
+            ret[i * Limb::BYTES + j] = limb_bytes[j];
+            j += 1;
         }
-        Self(buffer)
+
+        i += 1;
     }
 
-    const fn new_be(value: &Uint<LIMBS>) -> Self {
-        let mut buffer = [0; LIMBS];
-        let mut i = 0;
-        while i < LIMBS {
-            let src_bytes = &value.limbs[i].0.to_be_bytes();
+    ret
+}
 
-            // We could cast the whole `buffer` to bytes at once,
-            // but IndexMut does not work in const context.
-            let dst_bytes: &mut [u8] =
-                cast_slice_mut(core::slice::from_mut(&mut buffer[LIMBS - 1 - i]));
+/// Encode a [`Uint`] to a little endian byte array of the given size.
+pub(crate) const fn uint_to_le_bytes<const LIMBS: usize, const BYTES: usize>(
+    uint: &Uint<LIMBS>,
+) -> [u8; BYTES] {
+    if BYTES != LIMBS * Limb::BYTES {
+        panic!("BYTES != LIMBS * Limb::BYTES");
+    }
 
-            // `copy_from_slice` can be used here when MSRV moves past 1.87
-            let mut j = 0;
-            while j < Limb::BYTES {
-                dst_bytes[j] = src_bytes[j];
-                j += 1;
-            }
+    let mut ret = [0u8; BYTES];
+    let mut i = 0;
 
-            i += 1;
+    while i < LIMBS {
+        let limb_bytes = uint.limbs[i].0.to_le_bytes();
+        let mut j = 0;
+
+        while j < Limb::BYTES {
+            ret[i * Limb::BYTES + j] = limb_bytes[j];
+            j += 1;
         }
-        Self(buffer)
-    }
-}
 
-impl<const LIMBS: usize> Default for EncodedUint<LIMBS> {
-    fn default() -> Self {
-        Self([0; LIMBS])
-    }
-}
-
-impl<const LIMBS: usize> AsRef<[u8]> for EncodedUint<LIMBS> {
-    fn as_ref(&self) -> &[u8] {
-        cast_slice(&self.0)
-    }
-}
-
-impl<const LIMBS: usize> AsMut<[u8]> for EncodedUint<LIMBS> {
-    fn as_mut(&mut self) -> &mut [u8] {
-        cast_slice_mut(&mut self.0)
-    }
-}
-
-impl<const LIMBS: usize> Deref for EncodedUint<LIMBS> {
-    type Target = [u8];
-    fn deref(&self) -> &Self::Target {
-        self.as_ref()
-    }
-}
-
-/// Returned if an object cannot be instantiated from the given byte slice.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct TryFromSliceError;
-
-impl fmt::Display for TryFromSliceError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(f, "TryFromSliceError")
-    }
-}
-
-impl core::error::Error for TryFromSliceError {}
-
-impl<'a, const LIMBS: usize> TryFrom<&'a [u8]> for EncodedUint<LIMBS> {
-    type Error = TryFromSliceError;
-
-    fn try_from(bytes: &'a [u8]) -> Result<Self, Self::Error> {
-        if bytes.len() != Uint::<LIMBS>::BYTES {
-            return Err(TryFromSliceError);
-        }
-        let mut result = Self::default();
-        result.as_mut().copy_from_slice(bytes);
-        Ok(result)
-    }
-}
-
-impl<const LIMBS: usize> Encoding for Uint<LIMBS> {
-    type Repr = EncodedUint<LIMBS>;
-
-    #[inline]
-    fn from_be_bytes(bytes: Self::Repr) -> Self {
-        Self::from_be_slice(bytes.as_ref())
+        i += 1;
     }
 
-    #[inline]
-    fn from_le_bytes(bytes: Self::Repr) -> Self {
-        Self::from_le_slice(bytes.as_ref())
-    }
-
-    #[inline]
-    fn to_be_bytes(&self) -> Self::Repr {
-        self.to_be_bytes()
-    }
-
-    #[inline]
-    fn to_le_bytes(&self) -> Self::Repr {
-        self.to_le_bytes()
-    }
+    ret
 }
 
 /// Decode a single nibble of upper or lower hex
@@ -1156,7 +1057,7 @@ mod tests {
         let n = UintEx::from_be_hex("0011223344556677");
 
         let bytes = n.to_be_bytes();
-        assert_eq!(bytes.as_ref(), hex!("0011223344556677"));
+        assert_eq!(bytes, hex!("0011223344556677"));
 
         #[cfg(feature = "der")]
         assert_eq!(super::der::count_der_be_bytes(&n.limbs), 7);
@@ -1168,7 +1069,7 @@ mod tests {
         let n = UintEx::from_be_hex("00112233445566778899aabbccddeeff");
 
         let bytes = n.to_be_bytes();
-        assert_eq!(bytes.as_ref(), hex!("00112233445566778899aabbccddeeff"));
+        assert_eq!(bytes, hex!("00112233445566778899aabbccddeeff"));
 
         #[cfg(feature = "der")]
         assert_eq!(super::der::count_der_be_bytes(&n.limbs), 15);
