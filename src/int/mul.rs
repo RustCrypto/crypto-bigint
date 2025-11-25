@@ -4,7 +4,7 @@ use core::ops::{Mul, MulAssign};
 use num_traits::WrappingMul;
 use subtle::CtOption;
 
-use crate::{Checked, CheckedMul, ConstChoice, ConstCtOption, Int, Uint, Zero};
+use crate::{Checked, CheckedMul, ConcatMixed, ConstChoice, ConstCtOption, Int, Uint, Zero};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute "wide" multiplication as a 3-tuple `(lo, hi, negate)`.
@@ -51,7 +51,10 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub const fn concatenating_mul<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
-    ) -> Int<WIDE_LIMBS> {
+    ) -> Int<WIDE_LIMBS>
+    where
+        Uint<LIMBS>: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+    {
         let (lhs_abs, lhs_sign) = self.abs_sign();
         let (rhs_abs, rhs_sign) = rhs.abs_sign();
         let product_abs = lhs_abs.concatenating_mul(&rhs_abs);
@@ -73,7 +76,10 @@ impl<const LIMBS: usize> Int<LIMBS> {
 /// Squaring operations.
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Square self, returning a concatenated "wide" result.
-    pub fn widening_square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS> {
+    pub fn widening_square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS>
+    where
+        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+    {
         self.abs().widening_square()
     }
 

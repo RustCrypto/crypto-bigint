@@ -428,10 +428,15 @@ mod tests {
     }
 
     mod xgcd {
-        use crate::{Gcd, Int, U64, U128, U256, U512, U1024, U2048, U4096, U8192, U16384, Uint};
+        use crate::{
+            Concat, Gcd, Int, U64, U128, U256, U512, U1024, U2048, U4096, U8192, U16384, Uint,
+        };
         use core::ops::Div;
 
-        fn test<const LIMBS: usize, const DOUBLE: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>) {
+        fn test<const LIMBS: usize, const DOUBLE: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
+        where
+            Uint<LIMBS>: Concat<Output = Uint<DOUBLE>>,
+        {
             let output = lhs.xgcd(&rhs);
             assert_eq!(output.gcd, lhs.gcd(&rhs));
 
@@ -442,30 +447,32 @@ mod tests {
 
             let (x, y) = output.bezout_coefficients();
             assert_eq!(
-                x.concatenating_mul_uint::<LIMBS, DOUBLE>(&lhs)
-                    + y.concatenating_mul_uint::<LIMBS, DOUBLE>(&rhs),
+                x.concatenating_mul_uint(&lhs) + y.concatenating_mul_uint(&rhs),
                 *output.gcd.resize().as_int()
             );
         }
 
-        fn run_tests<const LIMBS: usize, const DOUBLE: usize>() {
+        fn run_tests<const LIMBS: usize, const DOUBLE: usize>()
+        where
+            Uint<LIMBS>: Concat<Output = Uint<DOUBLE>>,
+        {
             let min = Int::MIN.abs();
-            test::<LIMBS, DOUBLE>(Uint::ZERO, Uint::ZERO);
-            test::<LIMBS, DOUBLE>(Uint::ZERO, Uint::ONE);
-            test::<LIMBS, DOUBLE>(Uint::ZERO, min);
-            test::<LIMBS, DOUBLE>(Uint::ZERO, Uint::MAX);
-            test::<LIMBS, DOUBLE>(Uint::ONE, Uint::ZERO);
-            test::<LIMBS, DOUBLE>(Uint::ONE, Uint::ONE);
-            test::<LIMBS, DOUBLE>(Uint::ONE, min);
-            test::<LIMBS, DOUBLE>(Uint::ONE, Uint::MAX);
-            test::<LIMBS, DOUBLE>(min, Uint::ZERO);
-            test::<LIMBS, DOUBLE>(min, Uint::ONE);
-            test::<LIMBS, DOUBLE>(min, Int::MIN.abs());
-            test::<LIMBS, DOUBLE>(min, Uint::MAX);
-            test::<LIMBS, DOUBLE>(Uint::MAX, Uint::ZERO);
-            test::<LIMBS, DOUBLE>(Uint::MAX, Uint::ONE);
-            test::<LIMBS, DOUBLE>(Uint::MAX, min);
-            test::<LIMBS, DOUBLE>(Uint::MAX, Uint::MAX);
+            test(Uint::ZERO, Uint::ZERO);
+            test(Uint::ZERO, Uint::ONE);
+            test(Uint::ZERO, min);
+            test(Uint::ZERO, Uint::MAX);
+            test(Uint::ONE, Uint::ZERO);
+            test(Uint::ONE, Uint::ONE);
+            test(Uint::ONE, min);
+            test(Uint::ONE, Uint::MAX);
+            test(min, Uint::ZERO);
+            test(min, Uint::ONE);
+            test(min, Int::MIN.abs());
+            test(min, Uint::MAX);
+            test(Uint::MAX, Uint::ZERO);
+            test(Uint::MAX, Uint::ONE);
+            test(Uint::MAX, min);
+            test(Uint::MAX, Uint::MAX);
         }
 
         #[test]
@@ -489,7 +496,7 @@ mod tests {
             let b = U256::from_be_hex(
                 "000000000000345EAEDFA8CA03C1F0F5B578A787FE2D23B82A807F178B37FD8E",
             );
-            test::<{ nlimbs!(256) }, { nlimbs!(512) }>(a, b);
+            test(a, b);
 
             // Sent in by @kayabaNerve (https://github.com/RustCrypto/crypto-bigint/pull/761#issuecomment-2771581512)
             let a = U256::from_be_hex(
@@ -498,7 +505,7 @@ mod tests {
             let b = U256::from_be_hex(
                 "000000000000072B69C9DD0AA15F135675EA9C5180CF8FF0A59298CFC92E87FA",
             );
-            test::<{ nlimbs!(256) }, { nlimbs!(512) }>(a, b);
+            test(a, b);
 
             // Sent in by @kayabaNerve (https://github.com/RustCrypto/crypto-bigint/pull/761#issuecomment-2782912608)
             let a = U512::from_be_hex(concat![
@@ -509,7 +516,7 @@ mod tests {
                 "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFD755DB9CD5E9140777FA4BD19A06C8283",
                 "9D671CD581C69BC5E697F5E45BCD07C52EC373A8BDC598B4493F50A1380E1281"
             ]);
-            test::<{ nlimbs!(512) }, { nlimbs!(1024) }>(a, b);
+            test(a, b);
         }
     }
 

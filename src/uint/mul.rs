@@ -5,8 +5,8 @@ use core::ops::{Mul, MulAssign};
 use subtle::CtOption;
 
 use crate::{
-    Checked, CheckedMul, ConcatenatingMul, ConstChoice, ConstCtOption, Limb, Uint, UintRef,
-    Wrapping, WrappingMul,
+    Checked, CheckedMul, Concat, ConcatMixed, ConcatenatingMul, ConstChoice, ConstCtOption, Limb,
+    Uint, UintRef, Wrapping, WrappingMul,
 };
 
 pub(crate) mod karatsuba;
@@ -17,9 +17,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn concatenating_mul<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
-    ) -> Uint<WIDE_LIMBS> {
+    ) -> Uint<WIDE_LIMBS>
+    where
+        Self: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+    {
         let (lo, hi) = self.widening_mul(rhs);
-        lo.concat_mixed(&hi)
+        Uint::concat_mixed(&lo, &hi)
     }
 
     /// Compute "wide" multiplication as a 2-tuple containing the `(lo, hi)` components of the product, whose sizes
@@ -73,9 +76,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Square self, returning a concatenated "wide" result.
-    pub const fn widening_square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS> {
+    pub const fn widening_square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS>
+    where
+        Self: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+    {
         let (lo, hi) = self.square_wide();
-        lo.concat_mixed(&hi)
+        Uint::concat_mixed(&lo, &hi)
     }
 
     /// Square self, checking that the result fits in the original [`Uint`] size.
@@ -97,9 +103,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Uint<LIMBS> {
+impl<const LIMBS: usize, const WIDE_LIMBS: usize> Uint<LIMBS>
+where
+    Self: Concat<Output = Uint<WIDE_LIMBS>>,
+{
     /// Square self, returning a concatenated "wide" result.
-    pub const fn square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS> {
+    pub const fn square(&self) -> Uint<WIDE_LIMBS> {
         let (lo, hi) = self.square_wide();
         lo.concat(&hi)
     }
@@ -181,19 +190,27 @@ impl<const LIMBS: usize> MulAssign<&Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize, const WIDE_LIMBS: usize>
-    ConcatenatingMul<Uint<WIDE_LIMBS>, Uint<RHS_LIMBS>> for Uint<LIMBS>
+    ConcatenatingMul<Uint<RHS_LIMBS>> for Uint<LIMBS>
+where
+    Self: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
 {
+    type Output = <Self as ConcatMixed<Uint<RHS_LIMBS>>>::MixedOutput;
+
     #[inline]
-    fn concatenating_mul(&self, rhs: Uint<RHS_LIMBS>) -> Uint<WIDE_LIMBS> {
+    fn concatenating_mul(&self, rhs: Uint<RHS_LIMBS>) -> Self::Output {
         self.concatenating_mul(&rhs)
     }
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize, const WIDE_LIMBS: usize>
-    ConcatenatingMul<Uint<WIDE_LIMBS>, &Uint<RHS_LIMBS>> for Uint<LIMBS>
+    ConcatenatingMul<&Uint<RHS_LIMBS>> for Uint<LIMBS>
+where
+    Self: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
 {
+    type Output = <Self as ConcatMixed<Uint<RHS_LIMBS>>>::MixedOutput;
+
     #[inline]
-    fn concatenating_mul(&self, rhs: &Uint<RHS_LIMBS>) -> Uint<WIDE_LIMBS> {
+    fn concatenating_mul(&self, rhs: &Uint<RHS_LIMBS>) -> Self::Output {
         self.concatenating_mul(rhs)
     }
 }
@@ -332,7 +349,7 @@ mod tests {
     #[test]
     fn square() {
         let n = U64::from_u64(0xffff_ffff_ffff_ffff);
-        let (lo, hi) = n.square::<{ nlimbs!(128) }>().split();
+        let (lo, hi) = n.square().split();
         assert_eq!(lo, U64::from_u64(1));
         assert_eq!(hi, U64::from_u64(0xffff_ffff_ffff_fffe));
     }
@@ -340,7 +357,7 @@ mod tests {
     #[test]
     fn square_larger() {
         let n = U256::MAX;
-        let (lo, hi) = n.square::<{ nlimbs!(512) }>().split();
+        let (lo, hi) = n.square().split();
         assert_eq!(lo, U256::ONE);
         assert_eq!(hi, U256::MAX.wrapping_sub(&U256::ONE));
     }
