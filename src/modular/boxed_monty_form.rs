@@ -380,4 +380,18 @@ mod tests {
         assert_eq!(zero.div_by_2(), zero);
         assert_eq!(one.div_by_2().mul(&two), one);
     }
+
+    #[test]
+    fn as_montgomery_mut() {
+        let modulus = Odd::new(BoxedUint::from(9u8)).unwrap();
+        let params = BoxedMontyParams::new(modulus);
+        let one = BoxedMontyForm::one(params.clone());
+        let two = one.add(&one);
+        let four = two.mul(&two);
+        let mut x = two.clone();
+
+        *x.as_montgomery_mut() = four.as_montgomery().clone();
+
+        assert_eq!(x, four);
+    }
 }
