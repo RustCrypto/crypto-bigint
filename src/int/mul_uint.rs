@@ -96,8 +96,10 @@ impl<const LIMBS: usize> Int<LIMBS> {
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> ConstCtOption<Int<LIMBS>> {
-        let (lo, hi, is_negative) = self.widening_mul_uint(rhs);
-        Self::new_from_abs_sign(lo, is_negative).and_choice(hi.is_nonzero().not())
+        let (abs_lhs, lhs_sgn) = self.abs_sign();
+        let maybe_lo = abs_lhs.checked_mul(rhs);
+        let (lo, is_some) = maybe_lo.components_ref();
+        Self::new_from_abs_sign(*lo, lhs_sgn).and_choice(is_some)
     }
 }
 
@@ -136,7 +138,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Uint<RHS_LIMBS>> for &Int<
     type Output = Int<LIMBS>;
 
     fn mul(self, rhs: &Uint<RHS_LIMBS>) -> Self::Output {
-        self.checked_mul(rhs)
+        self.checked_mul_uint(rhs)
             .expect("attempted to multiply with overflow")
     }
 }

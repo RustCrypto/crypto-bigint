@@ -112,6 +112,59 @@ fn bench_concatenating_mul(c: &mut Criterion) {
     });
 }
 
+fn bench_wrapping_mul(c: &mut Criterion) {
+    let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
+    let mut group = c.benchmark_group("wrapping ops");
+
+    group.bench_function("wrapping_mul, I128xI128", |b| {
+        b.iter_batched(
+            || (I256::random(&mut rng), I256::random(&mut rng)),
+            |(x, y)| black_box(x.wrapping_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("wrapping_mul, I256xI256", |b| {
+        b.iter_batched(
+            || (I256::random(&mut rng), I256::random(&mut rng)),
+            |(x, y)| black_box(x.wrapping_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("wrapping_mul, I512xI512", |b| {
+        b.iter_batched(
+            || (I512::random(&mut rng), I512::random(&mut rng)),
+            |(x, y)| black_box(x.wrapping_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("wrapping_mul, I1024xI1024", |b| {
+        b.iter_batched(
+            || (I1024::random(&mut rng), I1024::random(&mut rng)),
+            |(x, y)| black_box(x.wrapping_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("wrapping_mul, I2048xI2048", |b| {
+        b.iter_batched(
+            || (I2048::random(&mut rng), I2048::random(&mut rng)),
+            |(x, y)| black_box(x.wrapping_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("wrapping_mul, I4096xI4096", |b| {
+        b.iter_batched(
+            || (I4096::random(&mut rng), I4096::random(&mut rng)),
+            |(x, y)| black_box(x.wrapping_mul(&y)),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
 fn bench_div(c: &mut Criterion) {
     let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
     let mut group = c.benchmark_group("wrapping ops");
@@ -341,6 +394,7 @@ criterion_group!(
     benches,
     bench_mul,
     bench_concatenating_mul,
+    bench_wrapping_mul,
     bench_div,
     bench_add,
     bench_sub,
