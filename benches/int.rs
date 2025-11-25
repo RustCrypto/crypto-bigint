@@ -113,7 +113,7 @@ fn bench_concatenating_mul(c: &mut Criterion) {
 }
 
 fn bench_wrapping_mul(c: &mut Criterion) {
-    let mut rng = ChaChaRng::from_os_rng();
+    let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
     let mut group = c.benchmark_group("wrapping ops");
 
     group.bench_function("wrapping_mul, I128xI128", |b| {
