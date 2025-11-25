@@ -242,6 +242,11 @@ impl BoxedMontyForm {
         &self.montgomery_form
     }
 
+    /// Mutably access the [`BoxedMontyForm`] value in Montgomery form.
+    pub fn as_montgomery_mut(&mut self) -> &mut BoxedUint {
+        &mut self.montgomery_form
+    }
+
     /// Create a [`BoxedMontyForm`] from a value in Montgomery form.
     pub fn from_montgomery(integer: BoxedUint, params: BoxedMontyParams) -> Self {
         debug_assert_eq!(integer.bits_precision(), params.bits_precision());
