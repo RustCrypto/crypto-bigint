@@ -177,7 +177,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes `self >> 1` in constant-time.
-    pub(crate) const fn shr1(&self) -> Self {
+    pub const fn shr1(&self) -> Self {
         self.shr1_with_carry().0
     }
 

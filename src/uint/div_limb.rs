@@ -134,13 +134,7 @@ pub(crate) const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Wor
 /// In place of `v1` takes its reciprocal, and assumes that `v` was already pre-shifted
 /// so that v1 has its most significant bit set (that is, the reciprocal's `shift` is 0).
 #[inline(always)]
-pub(crate) const fn div3by2(
-    u2: Word,
-    u1: Word,
-    u0: Word,
-    v1_reciprocal: &Reciprocal,
-    v0: Word,
-) -> Word {
+pub const fn div3by2(u2: Word, u1: Word, u0: Word, v1_reciprocal: &Reciprocal, v0: Word) -> Word {
     debug_assert!(v1_reciprocal.shift == 0);
     debug_assert!(u2 <= v1_reciprocal.divisor_normalized);
 
