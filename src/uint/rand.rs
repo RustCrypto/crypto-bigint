@@ -280,6 +280,41 @@ mod tests {
         );
     }
 
+    /// Make sure random_mod output is consistent across platforms
+    #[test]
+    fn random_mod_platform_independence() {
+        let mut rng = get_four_sequential_rng();
+
+        let modulus = NonZero::new(U256::from_u32(8192)).unwrap();
+        let mut vals = [U256::ZERO; 5];
+        for val in &mut vals {
+            *val = U256::random_mod(&mut rng, &modulus);
+        }
+        let expected = [55, 2172, 1657, 4668, 7688];
+        for (want, got) in expected.into_iter().zip(vals.into_iter()) {
+            // assert_eq!(got.as_words()[0], want);
+            assert_eq!(got, U256::from_u32(want));
+        }
+
+        let modulus =
+            NonZero::new(U256::ZERO.wrapping_sub(&U256::from_u64(rng.next_u64()))).unwrap();
+        let val = U256::random_mod(&mut rng, &modulus);
+        assert_eq!(
+            val,
+            U256::from_be_hex("C54302F2EB1E2F69C3B919AE0D16DF2259CD1A8A9B8EA8E0862878227D4B40A3")
+        );
+
+        let mut state = [0u8; 16];
+        rng.fill_bytes(&mut state);
+
+        assert_eq!(
+            state,
+            [
+                71, 204, 238, 147, 198, 196, 132, 164, 240, 211, 223, 12, 36, 189, 139, 48,
+            ],
+        );
+    }
+
     /// Test that random bytes are sampled consecutively.
     #[test]
     fn random_bits_4_bytes_sequential() {
