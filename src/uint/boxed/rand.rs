@@ -1,10 +1,7 @@
 //! Random number generator support.
 
 use super::BoxedUint;
-use crate::{
-    NonZero, RandomBits, RandomBitsError, RandomMod,
-    uint::rand::{random_bits_core, random_mod_core},
-};
+use crate::{NonZero, RandomBits, RandomBitsError, RandomMod, uint::rand::random_bits_core};
 use rand_core::{RngCore, TryRngCore};
 
 impl RandomBits for BoxedUint {
@@ -28,25 +25,35 @@ impl RandomBits for BoxedUint {
         }
 
         let mut ret = BoxedUint::zero_with_precision(bits_precision);
-        random_bits_core(rng, &mut ret.limbs, bit_length)?;
+        random_bits_core(rng, &mut ret.limbs, bit_length).map_err(RandomBitsError::RandCore)?;
         Ok(ret)
     }
 }
 
 impl RandomMod for BoxedUint {
     fn random_mod<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
-        let mut n = BoxedUint::zero_with_precision(modulus.bits_precision());
-        let Ok(()) = random_mod_core(rng, &mut n, modulus, modulus.bits());
-        n
+        let Ok(val) = Self::try_random_mod(rng, modulus);
+        val
     }
 
     fn try_random_mod<R: TryRngCore + ?Sized>(
         rng: &mut R,
         modulus: &NonZero<Self>,
     ) -> Result<Self, R::Error> {
-        let mut n = BoxedUint::zero_with_precision(modulus.bits_precision());
-        random_mod_core(rng, &mut n, modulus, modulus.bits())?;
-        Ok(n)
+        let n_bits = modulus.bits_vartime();
+        loop {
+            let val = match BoxedUint::try_random_bits(rng, n_bits) {
+                Ok(n) => n,
+                Err(RandomBitsError::RandCore(e)) => return Err(e),
+                Err(
+                    RandomBitsError::BitsPrecisionMismatch { .. }
+                    | RandomBitsError::BitLengthTooLarge { .. },
+                ) => unreachable!(),
+            };
+            if &val < modulus.as_ref() {
+                return Ok(val);
+            }
+        }
     }
 }
 
