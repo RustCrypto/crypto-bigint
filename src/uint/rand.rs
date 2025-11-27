@@ -1,7 +1,7 @@
 //! Random number generator support
 
 use super::{Uint, Word};
-use crate::{Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod, Zero};
+use crate::{Encoding, Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod, Zero};
 use rand_core::{RngCore, TryRngCore};
 use subtle::ConstantTimeLess;
 
@@ -128,19 +128,20 @@ pub(super) fn random_mod_core<T, R: TryRngCore + ?Sized>(
 where
     T: AsMut<[Limb]> + AsRef<[Limb]> + ConstantTimeLess + Zero,
 {
-    #[cfg(target_pointer_width = "64")]
-    let next_word = |rng: &mut R| rng.try_next_u64();
-    #[cfg(target_pointer_width = "32")]
-    let next_word = |rng: &mut R| rng.try_next_u32();
-
     let n_limbs = n_bits.div_ceil(Limb::BITS) as usize;
     let mask = !0 >> n.as_ref().as_ref()[n_limbs - 1].0.leading_zeros();
 
+    let buffer: Word = 0;
+    let mut buffer = buffer.to_le_bytes();
+
     loop {
         for limb in &mut x.as_mut()[..n_limbs - 1] {
-            limb.0 = next_word(rng)?;
+            rng.try_fill_bytes(&mut buffer)?;
+            *limb = Limb::from_le_bytes(buffer);
         }
-        x.as_mut()[n_limbs - 1].0 = next_word(rng)? & mask;
+
+        rng.try_fill_bytes(&mut buffer)?;
+        x.as_mut()[n_limbs - 1] = Limb::from(Word::from_le_bytes(buffer) & mask);
         if cfg!(target_pointer_width = "32") && n_limbs & 1 == 1 {
             // Read entropy in 64-bit blocks, even on 32-bit platforms.
             let _ = rng.try_next_u32()?;
