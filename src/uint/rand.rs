@@ -301,7 +301,7 @@ mod tests {
         let val = U256::random_mod(&mut rng, &modulus);
         assert_eq!(
             val,
-            U256::from_be_hex("C54302F2EB1E2F69C3B919AE0D16DF2259CD1A8A9B8EA8E0862878227D4B40A3")
+            U256::from_be_hex("C3B919AE0D16DF2259CD1A8A9B8EA8E0862878227D4B40A3C54302F2EB1E2F69")
         );
 
         let mut state = [0u8; 16];
