@@ -121,43 +121,35 @@ impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
 // TODO(tarcieri): obtain `n_bits` via a trait like `Integer`
 pub(super) fn random_mod_core<T, R: TryRngCore + ?Sized>(
     rng: &mut R,
-    n: &mut T,
-    modulus: &NonZero<T>,
+    x: &mut T,
+    n: &NonZero<T>,
     n_bits: u32,
 ) -> Result<(), R::Error>
 where
     T: AsMut<[Limb]> + AsRef<[Limb]> + ConstantTimeLess + Zero,
 {
-    #[cfg(target_pointer_width = "64")]
-    let mut next_word = || rng.try_next_u64();
-    #[cfg(target_pointer_width = "32")]
-    let mut next_word = || rng.try_next_u32();
-
     let n_limbs = n_bits.div_ceil(Limb::BITS) as usize;
+    let mask = !0 >> n.as_ref().as_ref()[n_limbs - 1].0.leading_zeros();
 
-    let hi_word_modulus = modulus.as_ref().as_ref()[n_limbs - 1].0;
-    let mask = !0 >> hi_word_modulus.leading_zeros();
-    let mut hi_word = next_word()? & mask;
+    let buffer: Word = 0;
+    let mut buffer = buffer.to_le_bytes();
 
     loop {
-        while hi_word > hi_word_modulus {
-            hi_word = next_word()? & mask;
+        for limb in &mut x.as_mut()[..n_limbs - 1] {
+            rng.try_fill_bytes(&mut buffer)?;
+            *limb = Limb::from_le_bytes(buffer);
         }
-        // Set high limb
-        n.as_mut()[n_limbs - 1] = Limb::from_le_bytes(hi_word.to_le_bytes());
-        // Set low limbs
-        for i in 0..n_limbs - 1 {
-            // Need to deserialize from little-endian to make sure that two 32-bit limbs
-            // deserialized sequentially are equal to one 64-bit limb produced from the same
-            // byte stream.
-            n.as_mut()[i] = Limb::from_le_bytes(next_word()?.to_le_bytes());
+
+        rng.try_fill_bytes(&mut buffer)?;
+        x.as_mut()[n_limbs - 1] = Limb::from(Word::from_le_bytes(buffer) & mask);
+        if cfg!(target_pointer_width = "32") && n_limbs & 1 == 1 {
+            // Read entropy in 64-bit blocks, even on 32-bit platforms.
+            let _ = rng.try_next_u32()?;
         }
-        // If the high limb is equal to the modulus' high limb, it's still possible
-        // that the full uint is too big so we check and repeat if it is.
-        if n.ct_lt(modulus).into() {
+
+        if x.ct_lt(n).into() {
             break;
         }
-        hi_word = next_word()? & mask;
     }
     Ok(())
 }
