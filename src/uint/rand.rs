@@ -129,19 +129,21 @@ where
     T: AsMut<[Limb]> + AsRef<[Limb]> + ConstantTimeLess + Zero,
 {
     #[cfg(target_pointer_width = "64")]
-    let mut next_word = || rng.try_next_u64();
+    let next_word = |rng: &mut R| rng.try_next_u64();
     #[cfg(target_pointer_width = "32")]
-    let mut next_word = || rng.try_next_u32();
+    let next_word = |rng: &mut R| rng.try_next_u32();
 
     let n_limbs = n_bits.div_ceil(Limb::BITS) as usize;
 
     let hi_word_modulus = modulus.as_ref().as_ref()[n_limbs - 1].0;
     let mask = !0 >> hi_word_modulus.leading_zeros();
-    let mut hi_word = next_word()? & mask;
+    let mut hi_word = next_word(rng)? & mask;
 
     loop {
         while hi_word > hi_word_modulus {
-            hi_word = next_word()? & mask;
+            hi_word = next_word(rng)? & mask;
+            #[cfg(target_pointer_width = "32")]
+            let _ = next_word(rng)?;
         }
         // Set high limb
         n.as_mut()[n_limbs - 1] = Limb::from_le_bytes(hi_word.to_le_bytes());
@@ -150,14 +152,16 @@ where
             // Need to deserialize from little-endian to make sure that two 32-bit limbs
             // deserialized sequentially are equal to one 64-bit limb produced from the same
             // byte stream.
-            n.as_mut()[i] = Limb::from_le_bytes(next_word()?.to_le_bytes());
+            n.as_mut()[i] = Limb::from_le_bytes(next_word(rng)?.to_le_bytes());
         }
         // If the high limb is equal to the modulus' high limb, it's still possible
         // that the full uint is too big so we check and repeat if it is.
         if n.ct_lt(modulus).into() {
             break;
         }
-        hi_word = next_word()? & mask;
+        hi_word = next_word(rng)? & mask;
+        #[cfg(target_pointer_width = "32")]
+        let _ = next_word(rng)?;
     }
     Ok(())
 }
