@@ -28,7 +28,7 @@ impl RandomBits for BoxedUint {
         }
 
         let mut ret = BoxedUint::zero_with_precision(bits_precision);
-        random_bits_core(rng, &mut ret.limbs, bit_length)?;
+        random_bits_core(rng, &mut ret.limbs, bit_length).map_err(RandomBitsError::RandCore)?;
         Ok(ret)
     }
 }
