@@ -126,14 +126,14 @@ pub(super) fn random_mod_core<T, R: TryRngCore + ?Sized>(
 where
     T: AsMut<[Limb]> + AsRef<[Limb]> + ConstantTimeLess + Zero,
 {
-    loop {
+    for _ in 0..u32::MAX {
         random_bits_core(rng, n.as_mut(), n_bits)?;
 
         if n.ct_lt(modulus).into() {
-            break;
+            return Ok(());
         }
     }
-    Ok(())
+    panic!("got really unlucky");
 }
 
 #[cfg(test)]
