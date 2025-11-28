@@ -147,7 +147,7 @@ where
             // Read entropy in 64-bit blocks, even on 32-bit platforms.
             let _ = rng.try_next_u32()?;
         }
-        // Do a manual, variable-time comparison loop here to avoid a copiler bug that causes a
+        // Do a manual, variable-time comparison loop here to avoid a compiler bug that causes a
         // hang on linux-aarch64 under `--release` with `Uint` of 5 or more limbs using `ct_lt`.
         let x = x.as_ref();
         let n = n.as_ref().as_ref();
