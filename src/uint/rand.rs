@@ -1,7 +1,9 @@
 //! Random number generator support
 
+use core::cmp::Ordering;
+
 use super::{Uint, Word};
-use crate::{Encoding, Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod, Zero};
+use crate::{Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod, Zero};
 use rand_core::{RngCore, TryRngCore};
 use subtle::ConstantTimeLess;
 
@@ -128,30 +130,35 @@ pub(super) fn random_mod_core<T, R: TryRngCore + ?Sized>(
 where
     T: AsMut<[Limb]> + AsRef<[Limb]> + ConstantTimeLess + Zero,
 {
+    #[cfg(target_pointer_width = "64")]
+    let next_word = |rng: &mut R| rng.try_next_u64();
+    #[cfg(target_pointer_width = "32")]
+    let next_word = |rng: &mut R| rng.try_next_u32();
+
     let n_limbs = n_bits.div_ceil(Limb::BITS) as usize;
     let mask = !0 >> n.as_ref().as_ref()[n_limbs - 1].0.leading_zeros();
 
-    let buffer: Word = 0;
-    let mut buffer = buffer.to_le_bytes();
-
-    loop {
+    'outer: loop {
         for limb in &mut x.as_mut()[..n_limbs - 1] {
-            rng.try_fill_bytes(&mut buffer)?;
-            *limb = Limb::from_le_bytes(buffer);
+            *limb = Limb::from(next_word(rng)?);
         }
-
-        rng.try_fill_bytes(&mut buffer)?;
-        x.as_mut()[n_limbs - 1] = Limb::from(Word::from_le_bytes(buffer) & mask);
+        x.as_mut()[n_limbs - 1] = Limb::from(next_word(rng)? & mask);
         if cfg!(target_pointer_width = "32") && n_limbs & 1 == 1 {
             // Read entropy in 64-bit blocks, even on 32-bit platforms.
             let _ = rng.try_next_u32()?;
         }
-
-        if x.ct_lt(n).into() {
-            break;
+        // Do a manual, variable-time comparison loop here to avoid a copiler bug that causes a
+        // hang on linux-aarch64 under `--release` with `Uint` of 5 or more limbs using `ct_lt`.
+        let x = x.as_ref();
+        let n = n.as_ref().as_ref();
+        for i in (0..n_limbs).rev() {
+            match x[i].cmp(&n[i]) {
+                Ordering::Less => return Ok(()),
+                Ordering::Greater => continue 'outer,
+                Ordering::Equal => (),
+            }
         }
     }
-    Ok(())
 }
 
 #[cfg(test)]
