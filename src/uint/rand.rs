@@ -30,7 +30,7 @@ pub(crate) fn random_bits_core<R: TryRngCore + ?Sized>(
     rng: &mut R,
     zeroed_limbs: &mut [Limb],
     bit_length: u32,
-) -> Result<(), RandomBitsError<R::Error>> {
+) -> Result<(), R::Error> {
     if bit_length == 0 {
         return Ok(());
     }
@@ -43,8 +43,7 @@ pub(crate) fn random_bits_core<R: TryRngCore + ?Sized>(
     let mask = Word::MAX >> ((Word::BITS - partial_limb) % Word::BITS);
 
     for i in 0..nonzero_limbs - 1 {
-        rng.try_fill_bytes(&mut buffer)
-            .map_err(RandomBitsError::RandCore)?;
+        rng.try_fill_bytes(&mut buffer)?;
         zeroed_limbs[i] = Limb(Word::from_le_bytes(buffer));
     }
 
@@ -62,8 +61,7 @@ pub(crate) fn random_bits_core<R: TryRngCore + ?Sized>(
         buffer.as_mut_slice()
     };
 
-    rng.try_fill_bytes(slice)
-        .map_err(RandomBitsError::RandCore)?;
+    rng.try_fill_bytes(slice)?;
     zeroed_limbs[nonzero_limbs - 1] = Limb(Word::from_le_bytes(buffer) & mask);
 
     Ok(())
@@ -95,7 +93,7 @@ impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
             });
         }
         let mut limbs = [Limb::ZERO; LIMBS];
-        random_bits_core(rng, &mut limbs, bit_length)?;
+        random_bits_core(rng, &mut limbs, bit_length).map_err(RandomBitsError::RandCore)?;
         Ok(Self::from(limbs))
     }
 }
