@@ -1,7 +1,7 @@
 //! Const-friendly decoding operations for [`BoxedUint`].
 
 use super::BoxedUint;
-use crate::{DecodeError, Limb, Word, uint::encoding};
+use crate::{DecodeError, Encoding, Limb, Word, uint::encoding};
 use alloc::{boxed::Box, string::String, vec::Vec};
 use subtle::{Choice, CtOption};
 
@@ -242,6 +242,28 @@ impl BoxedUint {
     /// Panics if `radix` is not in the range from 2 to 36.
     pub fn to_string_radix_vartime(&self, radix: u32) -> String {
         encoding::radix_encode_limbs_to_string(radix, &self.limbs)
+    }
+}
+
+impl Encoding for BoxedUint {
+    type Repr = Box<[u8]>;
+
+    fn to_be_bytes(&self) -> Self::Repr {
+        BoxedUint::to_be_bytes(self)
+    }
+
+    fn to_le_bytes(&self) -> Self::Repr {
+        BoxedUint::to_le_bytes(self)
+    }
+
+    fn from_be_bytes(bytes: Self::Repr) -> Self {
+        BoxedUint::from_be_slice(&bytes, (bytes.len() * 8).try_into().expect("overflow"))
+            .expect("decode error")
+    }
+
+    fn from_le_bytes(bytes: Self::Repr) -> Self {
+        BoxedUint::from_le_slice(&bytes, (bytes.len() * 8).try_into().expect("overflow"))
+            .expect("decode error")
     }
 }
 
