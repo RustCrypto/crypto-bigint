@@ -58,7 +58,6 @@ jobs:
       - run: cargo build --all-features --benches
 
   test:
-    runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
@@ -89,6 +88,20 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             rust: stable
             args: --release
+
+          # 64-bit ARM Linux
+          - target: aarch64-unknown-linux-gnu
+            rust: stable
+            args: --release
+            runner: ubuntu-24.04-arm
+
+          # 64-bit ARM Darwin
+          - target: aarch64-apple-darwin
+            rust: stable
+            args: --release
+            runner: macos-latest
+
+    runs-on: ${{ matrix.runner != '' && matrix.runner || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@master
@@ -96,6 +109,7 @@ jobs:
           toolchain: ${{ matrix.rust }}
           targets: ${{ matrix.target }}
       - run: ${{ matrix.deps }}
+        if: ${{ matrix.deps != '' }}
       - run: cargo test --target ${{ matrix.target }} --no-default-features ${{ matrix.args }}
       - run: cargo test --target ${{ matrix.target }}  ${{ matrix.args }}
       - run: cargo test --target ${{ matrix.target }} --all-features ${{ matrix.args }}
@@ -114,10 +128,6 @@ jobs:
     strategy:
       matrix:
         include:
-          # ARM64
-          - target: aarch64-unknown-linux-gnu
-            rust: stable
-
           # PPC32 (big endian)
           - target: powerpc-unknown-linux-gnu
             rust: stable
