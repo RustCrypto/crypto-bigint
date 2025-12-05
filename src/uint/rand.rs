@@ -1,7 +1,9 @@
 //! Random number generator support
 
+use core::cmp::Ordering;
+
 use super::{Uint, Word};
-use crate::{Encoding, Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod, Zero};
+use crate::{Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod, Zero};
 use rand_core::{RngCore, TryRngCore};
 use subtle::ConstantTimeLess;
 
@@ -121,45 +123,42 @@ impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
 // TODO(tarcieri): obtain `n_bits` via a trait like `Integer`
 pub(super) fn random_mod_core<T, R: TryRngCore + ?Sized>(
     rng: &mut R,
-    n: &mut T,
-    modulus: &NonZero<T>,
+    x: &mut T,
+    n: &NonZero<T>,
     n_bits: u32,
 ) -> Result<(), R::Error>
 where
     T: AsMut<[Limb]> + AsRef<[Limb]> + ConstantTimeLess + Zero,
 {
     #[cfg(target_pointer_width = "64")]
-    let mut next_word = || rng.try_next_u64();
+    let next_word = |rng: &mut R| rng.try_next_u64();
     #[cfg(target_pointer_width = "32")]
-    let mut next_word = || rng.try_next_u32();
+    let next_word = |rng: &mut R| rng.try_next_u32();
 
     let n_limbs = n_bits.div_ceil(Limb::BITS) as usize;
+    let mask = !0 >> n.as_ref().as_ref()[n_limbs - 1].0.leading_zeros();
 
-    let hi_word_modulus = modulus.as_ref().as_ref()[n_limbs - 1].0;
-    let mask = !0 >> hi_word_modulus.leading_zeros();
-    let mut hi_word = next_word()? & mask;
-
-    loop {
-        while hi_word > hi_word_modulus {
-            hi_word = next_word()? & mask;
+    'outer: loop {
+        for limb in &mut x.as_mut()[..n_limbs - 1] {
+            *limb = Limb::from(next_word(rng)?);
         }
-        // Set high limb
-        n.as_mut()[n_limbs - 1] = Limb::from_le_bytes(hi_word.to_le_bytes());
-        // Set low limbs
-        for i in 0..n_limbs - 1 {
-            // Need to deserialize from little-endian to make sure that two 32-bit limbs
-            // deserialized sequentially are equal to one 64-bit limb produced from the same
-            // byte stream.
-            n.as_mut()[i] = Limb::from_le_bytes(next_word()?.to_le_bytes());
+        x.as_mut()[n_limbs - 1] = Limb::from(next_word(rng)? & mask);
+        if cfg!(target_pointer_width = "32") && n_limbs & 1 == 1 {
+            // Read entropy in 64-bit blocks, even on 32-bit platforms.
+            let _ = rng.try_next_u32()?;
         }
-        // If the high limb is equal to the modulus' high limb, it's still possible
-        // that the full uint is too big so we check and repeat if it is.
-        if n.ct_lt(modulus).into() {
-            break;
+        // Do a manual, variable-time comparison loop here to avoid a compiler bug that causes a
+        // hang on linux-aarch64 under `--release` with `Uint` of 5 or more limbs using `ct_lt`.
+        let x = x.as_ref();
+        let n = n.as_ref().as_ref();
+        for i in (0..n_limbs).rev() {
+            match x[i].cmp(&n[i]) {
+                Ordering::Less => return Ok(()),
+                Ordering::Greater => continue 'outer,
+                Ordering::Equal => (),
+            }
         }
-        hi_word = next_word()? & mask;
     }
-    Ok(())
 }
 
 #[cfg(test)]
@@ -285,6 +284,41 @@ mod tests {
             [
                 198, 196, 132, 164, 240, 211, 223, 12, 36, 189, 139, 48, 94, 1, 123, 253
             ]
+        );
+    }
+
+    /// Make sure random_mod output is consistent across platforms
+    #[test]
+    fn random_mod_platform_independence() {
+        let mut rng = get_four_sequential_rng();
+
+        let modulus = NonZero::new(U256::from_u32(8192)).unwrap();
+        let mut vals = [U256::ZERO; 5];
+        for val in &mut vals {
+            *val = U256::random_mod(&mut rng, &modulus);
+        }
+        let expected = [55, 2172, 1657, 4668, 7688];
+        for (want, got) in expected.into_iter().zip(vals.into_iter()) {
+            // assert_eq!(got.as_words()[0], want);
+            assert_eq!(got, U256::from_u32(want));
+        }
+
+        let modulus =
+            NonZero::new(U256::ZERO.wrapping_sub(&U256::from_u64(rng.next_u64()))).unwrap();
+        let val = U256::random_mod(&mut rng, &modulus);
+        assert_eq!(
+            val,
+            U256::from_be_hex("C3B919AE0D16DF2259CD1A8A9B8EA8E0862878227D4B40A3C54302F2EB1E2F69")
+        );
+
+        let mut state = [0u8; 16];
+        rng.fill_bytes(&mut state);
+
+        assert_eq!(
+            state,
+            [
+                71, 204, 238, 147, 198, 196, 132, 164, 240, 211, 223, 12, 36, 189, 139, 48,
+            ],
         );
     }
 
