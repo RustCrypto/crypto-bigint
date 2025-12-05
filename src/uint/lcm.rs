@@ -11,9 +11,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let self_is_nz = self.is_nonzero();
         let rhs_is_nz = rhs.is_nonzero();
 
-        let rhs_nz = Uint::select(&Uint::ONE, rhs, rhs_is_nz);
-
-        let gcd_nz = NonZero(self.gcd_uint(&rhs_nz));
+        let gcd_nz = NonZero(self.gcd_uint(&Uint::select(&Uint::ONE, rhs, rhs_is_nz)));
 
         let lcm = self.wrapping_div(&gcd_nz).concatenating_mul(rhs);
 
@@ -24,7 +22,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 #[cfg(test)]
 mod tests {
     mod lcm {
-        use crate::{ConcatMixed, U64, U128, U256, U512, U1024, U2048, U4096, Uint};
+        use crate::{ConcatMixed, U64, U128, U256, U512, U1024, U2048, U4096, U8192, Uint};
 
         fn test<const LIMBS: usize, const WIDE_LIMBS: usize>(
             lhs: Uint<LIMBS>,
@@ -65,13 +63,13 @@ mod tests {
 
         #[test]
         fn lcm_sizes() {
-            run_tests::<{ U64::LIMBS }, _>();
-            run_tests::<{ U128::LIMBS }, _>();
-            run_tests::<{ U256::LIMBS }, _>();
-            run_tests::<{ U512::LIMBS }, _>();
-            run_tests::<{ U1024::LIMBS }, _>();
-            run_tests::<{ U2048::LIMBS }, _>();
-            run_tests::<{ U4096::LIMBS }, _>();
+            run_tests::<{ U64::LIMBS }, { U128::LIMBS }>();
+            run_tests::<{ U128::LIMBS }, { U256::LIMBS }>();
+            run_tests::<{ U256::LIMBS }, { U512::LIMBS }>();
+            run_tests::<{ U512::LIMBS }, { U1024::LIMBS }>();
+            run_tests::<{ U1024::LIMBS }, { U2048::LIMBS }>();
+            run_tests::<{ U2048::LIMBS }, { U4096::LIMBS }>();
+            run_tests::<{ U4096::LIMBS }, { U8192::LIMBS }>();
         }
     }
 }
