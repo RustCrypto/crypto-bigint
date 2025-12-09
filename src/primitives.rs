@@ -31,11 +31,11 @@ pub(crate) const fn overflowing_add(lhs: Word, rhs: Word) -> (Word, Word) {
 /// Computes `lhs - (rhs + borrow)`, returning the result along with the new borrow.
 #[inline(always)]
 pub(crate) const fn borrowing_sub(lhs: Word, rhs: Word, borrow: Word) -> (Word, Word) {
-    let a = lhs as WideWord;
-    let b = rhs as WideWord;
-    let borrow = (borrow >> (Word::BITS - 1)) as WideWord;
-    let ret = a.wrapping_sub(b + borrow);
-    (ret as Word, (ret >> Word::BITS) as Word)
+    // XXX we cannot use WideWord casts here: https://github.com/rust-lang/rust/issues/149522
+    // rustc 1.87 through 1.91 incorrectly optimize some WideWord bit arithmetic.
+    let (ret, b2) = lhs.overflowing_sub(borrow >> (Word::BITS - 1));
+    let (ret, b1) = ret.overflowing_sub(rhs);
+    (ret, Word::MIN.wrapping_sub((b1 | b2) as Word))
 }
 
 /// Computes `lhs * rhs`, returning the low and the high words of the result.
