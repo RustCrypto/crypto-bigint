@@ -41,6 +41,7 @@ pub(crate) mod encoding;
 mod from;
 pub(crate) mod gcd;
 mod invert_mod;
+pub(crate) mod lcm;
 mod mod_symbol;
 pub(crate) mod mul;
 mod mul_mod;
