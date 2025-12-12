@@ -43,10 +43,10 @@ mod tests {
             let modulus = Odd::<U256>::random(&mut rng);
             let params = MontyParams::new_vartime(modulus);
             let m = modulus.as_nz_ref();
-            let a = U256::random_mod(&mut rng, m);
-            let b = U256::random_mod(&mut rng, m);
-            let c = U256::random_mod(&mut rng, m);
-            let d = U256::random_mod(&mut rng, m);
+            let a = U256::random_mod_vartime(&mut rng, m);
+            let b = U256::random_mod_vartime(&mut rng, m);
+            let c = U256::random_mod_vartime(&mut rng, m);
+            let d = U256::random_mod_vartime(&mut rng, m);
 
             assert_eq!(
                 a.mul_mod(&b, m).add_mod(&c.mul_mod(&d, m), m),

@@ -42,12 +42,12 @@ mod tests {
         for n in 0..100 {
             let modulus = Odd::<BoxedUint>::random(&mut rng, SIZE);
             let params = BoxedMontyParams::new(modulus.clone());
-            let a = BoxedUint::random_mod(&mut rng, modulus.as_nz_ref());
-            let b = BoxedUint::random_mod(&mut rng, modulus.as_nz_ref());
-            let c = BoxedUint::random_mod(&mut rng, modulus.as_nz_ref());
-            let d = BoxedUint::random_mod(&mut rng, modulus.as_nz_ref());
-            let e = BoxedUint::random_mod(&mut rng, modulus.as_nz_ref());
-            let f = BoxedUint::random_mod(&mut rng, modulus.as_nz_ref());
+            let a = BoxedUint::random_mod_vartime(&mut rng, modulus.as_nz_ref());
+            let b = BoxedUint::random_mod_vartime(&mut rng, modulus.as_nz_ref());
+            let c = BoxedUint::random_mod_vartime(&mut rng, modulus.as_nz_ref());
+            let d = BoxedUint::random_mod_vartime(&mut rng, modulus.as_nz_ref());
+            let e = BoxedUint::random_mod_vartime(&mut rng, modulus.as_nz_ref());
+            let f = BoxedUint::random_mod_vartime(&mut rng, modulus.as_nz_ref());
 
             let std = a
                 .mul_mod(&b, modulus.as_nz_ref())

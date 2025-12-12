@@ -226,7 +226,7 @@ where
 {
     #[inline]
     fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
-        Ok(Self::new(&Uint::try_random_mod(
+        Ok(Self::new(&Uint::try_random_mod_vartime(
             rng,
             MOD::PARAMS.modulus.as_nz_ref(),
         )?))

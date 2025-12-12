@@ -17,7 +17,7 @@ impl Random for Limb {
 }
 
 impl RandomMod for Limb {
-    fn try_random_mod<R: TryRngCore + ?Sized>(
+    fn try_random_mod_vartime<R: TryRngCore + ?Sized>(
         rng: &mut R,
         modulus: &NonZero<Self>,
     ) -> Result<Self, R::Error> {
