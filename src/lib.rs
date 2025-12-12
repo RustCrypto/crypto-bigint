@@ -146,7 +146,7 @@
 //! use crypto_bigint::{NonZero, RandomMod, U256};
 //!
 //! let modulus = NonZero::new(U256::from(3u8)).unwrap();
-//! let n = U256::random_mod(&mut rng(), &modulus);
+//! let n = U256::random_mod_vartime(&mut rng(), &modulus);
 //! # }
 //! ```
 //!

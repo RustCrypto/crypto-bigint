@@ -135,8 +135,8 @@ mod tests {
                     }
 
                     for _i in 0..100 {
-                        let a = Uint::<$size>::random_mod(&mut rng, p);
-                        let b = Uint::<$size>::random_mod(&mut rng, p);
+                        let a = Uint::<$size>::random_mod_vartime(&mut rng, p);
+                        let b = Uint::<$size>::random_mod_vartime(&mut rng, p);
 
                         let c = a.mul_mod_special(&b, *special.as_ref());
                         assert!(c < **p, "not reduced: {} >= {} ", c, p);

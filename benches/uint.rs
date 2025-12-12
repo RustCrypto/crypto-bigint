@@ -18,10 +18,10 @@ fn bench_random(c: &mut Criterion) {
     let mut group = c.benchmark_group("bounded random");
 
     let mut rng = make_rng();
-    group.bench_function("random_mod, U1024", |b| {
+    group.bench_function("random_mod_vartime, U1024", |b| {
         let bound = U1024::random(&mut rng);
         let bound_nz = NonZero::new(bound).unwrap();
-        b.iter(|| black_box(U1024::random_mod(&mut rng, &bound_nz)));
+        b.iter(|| black_box(U1024::random_mod_vartime(&mut rng, &bound_nz)));
     });
 
     let mut rng = make_rng();
@@ -38,10 +38,10 @@ fn bench_random(c: &mut Criterion) {
     });
 
     let mut rng = make_rng();
-    group.bench_function("random_mod, U1024, small bound", |b| {
+    group.bench_function("random_mod_vartime, U1024, small bound", |b| {
         let bound = U1024::from_u64(rng.next_u64());
         let bound_nz = NonZero::new(bound).unwrap();
-        b.iter(|| black_box(U1024::random_mod(&mut rng, &bound_nz)));
+        b.iter(|| black_box(U1024::random_mod_vartime(&mut rng, &bound_nz)));
     });
 
     let mut rng = make_rng();
@@ -58,11 +58,11 @@ fn bench_random(c: &mut Criterion) {
     });
 
     let mut rng = make_rng();
-    group.bench_function("random_mod, U1024, 512 bit bound low", |b| {
+    group.bench_function("random_mod_vartime, U1024, 512 bit bound low", |b| {
         let bound = U512::random(&mut rng);
         let bound = U1024::from((bound, U512::ZERO));
         let bound_nz = NonZero::new(bound).unwrap();
-        b.iter(|| black_box(U1024::random_mod(&mut rng, &bound_nz)));
+        b.iter(|| black_box(U1024::random_mod_vartime(&mut rng, &bound_nz)));
     });
 
     let mut rng = make_rng();
@@ -80,11 +80,11 @@ fn bench_random(c: &mut Criterion) {
     });
 
     let mut rng = make_rng();
-    group.bench_function("random_mod, U1024, 512 bit bound hi", |b| {
+    group.bench_function("random_mod_vartime, U1024, 512 bit bound hi", |b| {
         let bound = U512::random(&mut rng);
         let bound = U1024::from((U512::ZERO, bound));
         let bound_nz = NonZero::new(bound).unwrap();
-        b.iter(|| black_box(U1024::random_mod(&mut rng, &bound_nz)));
+        b.iter(|| black_box(U1024::random_mod_vartime(&mut rng, &bound_nz)));
     });
 
     let mut rng = make_rng();
@@ -103,11 +103,11 @@ fn bench_random(c: &mut Criterion) {
 
     // Slow case: the hi limb is just `2`
     let mut rng = make_rng();
-    group.bench_function("random_mod, U1024, tiny high limb", |b| {
+    group.bench_function("random_mod_vartime, U1024, tiny high limb", |b| {
         let hex_1024 = "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000291A6B42D1C7D2A7184D13E36F65773BBEFB4FA7996101300D49F09962A361F00";
         let modulus = U1024::from_be_hex(hex_1024);
         let modulus_nz = NonZero::new(modulus).unwrap();
-        b.iter(|| black_box(U1024::random_mod(&mut rng, &modulus_nz)));
+        b.iter(|| black_box(U1024::random_mod_vartime(&mut rng, &modulus_nz)));
     });
 
     // Slow case: the hi limb is just `2`
@@ -250,7 +250,7 @@ fn bench_mul(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let m = Odd::<U256>::random(&mut rng);
-                let x = U256::random_mod(&mut rng, m.as_nz_ref());
+                let x = U256::random_mod_vartime(&mut rng, m.as_nz_ref());
                 (m.to_nz().unwrap(), x)
             },
             |(m, x)| black_box(x).mul_mod(black_box(&x), &m),
@@ -262,7 +262,7 @@ fn bench_mul(c: &mut Criterion) {
         b.iter_batched(
             || {
                 let m = Odd::<U256>::random(&mut rng);
-                let x = U256::random_mod(&mut rng, m.as_nz_ref());
+                let x = U256::random_mod_vartime(&mut rng, m.as_nz_ref());
                 (m.to_nz().unwrap(), x)
             },
             |(m, x)| black_box(x).mul_mod_vartime(black_box(&x), &m),
