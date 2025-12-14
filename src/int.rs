@@ -8,10 +8,12 @@ use core::fmt;
 use num_traits::{ConstOne, ConstZero};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
-#[cfg(feature = "serde")]
 use crate::Encoding;
 #[cfg(feature = "serde")]
 use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+#[macro_use]
+mod macros;
 
 mod add;
 mod bit_and;
@@ -34,7 +36,6 @@ mod shl;
 mod shr;
 mod sign;
 mod sub;
-pub(crate) mod types;
 
 #[cfg(feature = "rand_core")]
 mod rand;
@@ -341,6 +342,38 @@ impl<const LIMBS: usize> fmt::UpperHex for Int<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         fmt::UpperHex::fmt(&self.0, f)
     }
+}
+
+impl_int_aliases! {
+    (I64, 64, "64-bit"),
+    (I128, 128, "128-bit"),
+    (I192, 192, "192-bit"),
+    (I256, 256, "256-bit"),
+    (I320, 320, "320-bit"),
+    (I384, 384, "384-bit"),
+    (I448, 448, "448-bit"),
+    (I512, 512, "512-bit"),
+    (I576, 576, "576-bit"),
+    (I640, 640, "640-bit"),
+    (I704, 704, "704-bit"),
+    (I768, 768, "768-bit"),
+    (I832, 832, "832-bit"),
+    (I896, 896, "896-bit"),
+    (I960, 960, "960-bit"),
+    (I1024, 1024, "1024-bit"),
+    (I1280, 1280, "1280-bit"),
+    (I1536, 1536, "1536-bit"),
+    (I1792, 1792, "1792-bit"),
+    (I2048, 2048, "2048-bit"),
+    (I3072, 3072, "3072-bit"),
+    (I3584, 3584, "3584-bit"),
+    (I4096, 4096, "4096-bit"),
+    (I4224, 4224, "4224-bit"),
+    (I4352, 4352, "4352-bit"),
+    (I6144, 6144, "6144-bit"),
+    (I8192, 8192, "8192-bit"),
+    (I16384, 16384, "16384-bit"),
+    (I32768, 32768, "32768-bit")
 }
 
 #[cfg(feature = "serde")]
