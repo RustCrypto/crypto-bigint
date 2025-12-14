@@ -82,25 +82,25 @@ impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
-    fn random_mod<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
+    fn random_mod_vartime<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
         let mut x = Self::ZERO;
-        let Ok(()) = random_mod_core(rng, &mut x, modulus, modulus.bits_vartime());
+        let Ok(()) = random_mod_vartime_core(rng, &mut x, modulus, modulus.bits_vartime());
         x
     }
 
-    fn try_random_mod<R: TryRngCore + ?Sized>(
+    fn try_random_mod_vartime<R: TryRngCore + ?Sized>(
         rng: &mut R,
         modulus: &NonZero<Self>,
     ) -> Result<Self, R::Error> {
         let mut x = Self::ZERO;
-        random_mod_core(rng, &mut x, modulus, modulus.bits_vartime())?;
+        random_mod_vartime_core(rng, &mut x, modulus, modulus.bits_vartime())?;
         Ok(x)
     }
 }
 
-/// Generic implementation of `random_mod` which can be shared with `BoxedUint`.
+/// Generic implementation of `random_mod_vartime` which can be shared with `BoxedUint`.
 // TODO(tarcieri): obtain `n_bits` via a trait like `Integer`
-pub(super) fn random_mod_core<T, R: TryRngCore + ?Sized>(
+pub(super) fn random_mod_vartime_core<T, R: TryRngCore + ?Sized>(
     rng: &mut R,
     x: &mut T,
     modulus: &NonZero<T>,
@@ -146,20 +146,20 @@ mod tests {
     }
 
     #[test]
-    fn random_mod() {
+    fn random_mod_vartime() {
         let mut rng = ChaCha8Rng::seed_from_u64(1);
 
-        // Ensure `random_mod` runs in a reasonable amount of time
+        // Ensure `random_mod_vartime` runs in a reasonable amount of time
         let modulus = NonZero::new(U256::from(42u8)).unwrap();
-        let res = U256::random_mod(&mut rng, &modulus);
+        let res = U256::random_mod_vartime(&mut rng, &modulus);
 
         // Check that the value is in range
         assert!(res < U256::from(42u8));
 
-        // Ensure `random_mod` runs in a reasonable amount of time
+        // Ensure `random_mod_vartime` runs in a reasonable amount of time
         // when the modulus is larger than 1 limb
         let modulus = NonZero::new(U256::from(0x10000000000000001u128)).unwrap();
-        let res = U256::random_mod(&mut rng, &modulus);
+        let res = U256::random_mod_vartime(&mut rng, &modulus);
 
         // Check that the value is in range
         assert!(res < U256::from(0x10000000000000001u128));
@@ -243,15 +243,15 @@ mod tests {
         );
     }
 
-    /// Make sure random_mod output is consistent across platforms
+    /// Make sure random_mod_vartime output is consistent across platforms
     #[test]
-    fn random_mod_platform_independence() {
+    fn random_mod_vartime_platform_independence() {
         let mut rng = get_four_sequential_rng();
 
         let modulus = NonZero::new(U256::from_u32(8192)).unwrap();
         let mut vals = [U256::ZERO; 5];
         for val in &mut vals {
-            *val = U256::random_mod(&mut rng, &modulus);
+            *val = U256::random_mod_vartime(&mut rng, &modulus);
         }
         let expected = [55, 3378, 2172, 1657, 5323];
         for (want, got) in expected.into_iter().zip(vals.into_iter()) {
@@ -261,7 +261,7 @@ mod tests {
 
         let modulus =
             NonZero::new(U256::ZERO.wrapping_sub(&U256::from_u64(rng.next_u64()))).unwrap();
-        let val = U256::random_mod(&mut rng, &modulus);
+        let val = U256::random_mod_vartime(&mut rng, &modulus);
         assert_eq!(
             val,
             U256::from_be_hex("E17653A37F1BCC44277FA208E6B31E08CDC4A23A7E88E660EF781C7DD2D368BA")

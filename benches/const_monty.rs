@@ -21,7 +21,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
     let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
     group.bench_function("ConstMontyForm creation", |b| {
         b.iter_batched(
-            || U256::random_mod(&mut rng, Modulus::PARAMS.modulus().as_nz_ref()),
+            || U256::random_mod_vartime(&mut rng, Modulus::PARAMS.modulus().as_nz_ref()),
             |x| black_box(ConstMontyForm::new(&x)),
             BatchSize::SmallInput,
         )

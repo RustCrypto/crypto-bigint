@@ -37,12 +37,12 @@ mod tests {
 
         let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
         for n in 0..1000 {
-            let a = U256::random_mod(&mut rng, modulus);
-            let b = U256::random_mod(&mut rng, modulus);
-            let c = U256::random_mod(&mut rng, modulus);
-            let d = U256::random_mod(&mut rng, modulus);
-            let e = U256::random_mod(&mut rng, modulus);
-            let f = U256::random_mod(&mut rng, modulus);
+            let a = U256::random_mod_vartime(&mut rng, modulus);
+            let b = U256::random_mod_vartime(&mut rng, modulus);
+            let c = U256::random_mod_vartime(&mut rng, modulus);
+            let d = U256::random_mod_vartime(&mut rng, modulus);
+            let e = U256::random_mod_vartime(&mut rng, modulus);
+            let f = U256::random_mod_vartime(&mut rng, modulus);
 
             assert_eq!(
                 a.mul_mod(&b, modulus)

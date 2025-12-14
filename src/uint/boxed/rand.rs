@@ -3,7 +3,7 @@
 use super::BoxedUint;
 use crate::{
     NonZero, RandomBits, RandomBitsError, RandomMod,
-    uint::rand::{random_bits_core, random_mod_core},
+    uint::rand::{random_bits_core, random_mod_vartime_core},
 };
 use rand_core::{RngCore, TryRngCore};
 
@@ -34,18 +34,18 @@ impl RandomBits for BoxedUint {
 }
 
 impl RandomMod for BoxedUint {
-    fn random_mod<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
+    fn random_mod_vartime<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
         let mut n = BoxedUint::zero_with_precision(modulus.bits_precision());
-        let Ok(()) = random_mod_core(rng, &mut n, modulus, modulus.bits());
+        let Ok(()) = random_mod_vartime_core(rng, &mut n, modulus, modulus.bits());
         n
     }
 
-    fn try_random_mod<R: TryRngCore + ?Sized>(
+    fn try_random_mod_vartime<R: TryRngCore + ?Sized>(
         rng: &mut R,
         modulus: &NonZero<Self>,
     ) -> Result<Self, R::Error> {
         let mut n = BoxedUint::zero_with_precision(modulus.bits_precision());
-        random_mod_core(rng, &mut n, modulus, modulus.bits())?;
+        random_mod_vartime_core(rng, &mut n, modulus, modulus.bits())?;
         Ok(n)
     }
 }
@@ -68,20 +68,20 @@ mod tests {
     }
 
     #[test]
-    fn random_mod() {
+    fn random_mod_vartime() {
         let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
 
-        // Ensure `random_mod` runs in a reasonable amount of time
+        // Ensure `random_mod_vartime` runs in a reasonable amount of time
         let modulus = NonZero::new(BoxedUint::from(42u8)).unwrap();
-        let res = BoxedUint::random_mod(&mut rng, &modulus);
+        let res = BoxedUint::random_mod_vartime(&mut rng, &modulus);
 
         // Check that the value is in range
         assert!(res < BoxedUint::from(42u8));
 
-        // Ensure `random_mod` runs in a reasonable amount of time
+        // Ensure `random_mod_vartime` runs in a reasonable amount of time
         // when the modulus is larger than 1 limb
         let modulus = NonZero::new(BoxedUint::from(0x10000000000000001u128)).unwrap();
-        let res = BoxedUint::random_mod(&mut rng, &modulus);
+        let res = BoxedUint::random_mod_vartime(&mut rng, &modulus);
 
         // Check that the value is in range
         assert!(res < BoxedUint::from(0x10000000000000001u128));
