@@ -4,7 +4,7 @@ mod common;
 
 use common::to_biguint;
 use crypto_bigint::{
-    Encoding, Gcd, Limb, NonZero, Odd, U256, U4096, U8192, Uint, Word,
+    Encoding, Gcd, Limb, NonZero, Odd, U256, U512, U4096, U8192, Uint, Word,
     modular::{MontyForm, MontyParams},
 };
 use num_bigint::BigUint;
@@ -25,6 +25,15 @@ fn to_uint(big_uint: BigUint) -> U256 {
     input[..l].copy_from_slice(&encoded[..l]);
 
     U256::from_le_slice(&input)
+}
+
+fn to_uint_wide(big_uint: BigUint) -> U512 {
+    let mut input = [0u8; U512::BYTES];
+    let encoded = big_uint.to_bytes_le();
+    let l = encoded.len().min(U512::BYTES);
+    input[..l].copy_from_slice(&encoded[..l]);
+
+    U512::from_le_slice(&input)
 }
 
 fn to_uint_large(big_uint: BigUint) -> U4096 {
@@ -395,6 +404,16 @@ proptest! {
         let actual_vartime = f.gcd_vartime(&g);
         prop_assert_eq!(expected, actual);
         prop_assert_eq!(expected, actual_vartime);
+    }
+
+    #[test]
+    fn lcm(f in uint(), g in uint()) {
+        let f_bi = to_biguint(&f);
+        let g_bi = to_biguint(&g);
+
+        let expected = to_uint_wide(f_bi.lcm(&g_bi));
+        let actual = f.lcm(&g);
+        prop_assert_eq!(expected, actual);
     }
 
     #[test]

@@ -4,7 +4,7 @@ use crate::{ConcatMixed, NonZero, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute the least common multiple of `self` and `rhs`.
-    pub const fn lcm_uint<const WIDE_LIMBS: usize>(&self, rhs: &Self) -> Uint<WIDE_LIMBS>
+    pub const fn lcm<const WIDE_LIMBS: usize>(&self, rhs: &Self) -> Uint<WIDE_LIMBS>
     where
         Self: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
     {
@@ -31,7 +31,7 @@ mod tests {
         ) where
             Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
         {
-            assert_eq!(lhs.lcm_uint(&rhs), target);
+            assert_eq!(lhs.lcm(&rhs), target);
         }
 
         fn run_tests<const LIMBS: usize, const WIDE_LIMBS: usize>()
