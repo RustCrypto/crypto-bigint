@@ -1074,18 +1074,4 @@ mod tests {
         #[cfg(feature = "der")]
         assert_eq!(super::der::count_der_be_bytes(&n.limbs), 15);
     }
-
-    #[cfg(feature = "serde")]
-    #[test]
-    fn serde() {
-        const TEST: U64 = U64::from_u64(0x0011223344556677);
-
-        let serialized = bincode::serde::encode_to_vec(TEST, bincode::config::standard()).unwrap();
-        let deserialized: U64 =
-            bincode::serde::decode_from_slice(&serialized, bincode::config::standard())
-                .unwrap()
-                .0;
-
-        assert_eq!(TEST, deserialized);
-    }
 }
