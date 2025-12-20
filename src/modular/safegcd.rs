@@ -508,7 +508,7 @@ impl<const LIMBS: usize> fmt::Debug for SignedInt<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_fmt(format_args!(
             "{}0x{}",
-            if self.sign.is_true_vartime() {
+            if self.sign.to_bool_vartime() {
                 "-"
             } else {
                 "+"
@@ -534,7 +534,7 @@ impl<const LIMBS: usize> ConstCtOption<Odd<SignedInt<LIMBS>>> {
     #[inline]
     #[track_caller]
     pub const fn expect(self, msg: &str) -> Odd<SignedInt<LIMBS>> {
-        assert!(self.is_some().is_true_vartime(), "{}", msg);
+        assert!(self.is_some().to_bool_vartime(), "{}", msg);
         *self.components_ref().0
     }
 }

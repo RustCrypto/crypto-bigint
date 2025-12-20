@@ -25,7 +25,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let (abs, sign) = self.abs_sign();
         let jacobi = abs.jacobi_symbol_vartime(rhs);
         JacobiSymbol::from_i8(
-            if sign.is_true_vartime() && rhs.as_ref().limbs[0].0 & 3 == 3 {
+            if sign.to_bool_vartime() && rhs.as_ref().limbs[0].0 & 3 == 3 {
                 -(jacobi as i8)
             } else {
                 jacobi as i8

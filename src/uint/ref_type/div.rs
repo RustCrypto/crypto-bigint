@@ -277,7 +277,7 @@ impl UintRef {
 
             // This loop is a no-op once xi is smaller than the number of words in the divisor
             let done = ConstChoice::from_u32_lt(xi as u32, ywords - 1);
-            if vartime.and(done).is_true_vartime() {
+            if vartime.and(done).to_bool_vartime() {
                 break;
             }
             quo = done.select_word(quo, 0);
@@ -450,7 +450,7 @@ impl UintRef {
 
             // This loop is a no-op once xi is smaller than the number of words in the divisor
             let done = ConstChoice::from_u32_lt(xi as u32, ywords - 1);
-            if vartime.and(done).is_true_vartime() {
+            if vartime.and(done).to_bool_vartime() {
                 break;
             }
             quo = done.select_word(quo, 0);
