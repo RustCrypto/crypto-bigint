@@ -1,4 +1,4 @@
-use crate::{ConstChoice, ConstCtOption, Int, Uint, Word};
+use crate::{ConstChoice, ConstCtOption, Int, Uint, Word, word};
 use num_traits::ConstZero;
 
 impl<const LIMBS: usize> Int<LIMBS> {
@@ -38,7 +38,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Whether this [`Int`] is negative, as a `ConstChoice`.
     #[inline(always)]
     pub const fn is_negative(&self) -> ConstChoice {
-        ConstChoice::from_word_msb(self.most_significant_word())
+        word::from_word_msb(self.most_significant_word())
     }
 
     /// Whether this [`Int`] is positive, as a `ConstChoice`.

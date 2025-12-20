@@ -1,6 +1,6 @@
 //! [`Uint`] bitwise right shift operations.
 
-use crate::{ConstChoice, ConstCtOption, Limb, NonZero, ShrVartime, Uint, WrappingShr};
+use crate::{ConstChoice, ConstCtOption, Limb, NonZero, ShrVartime, Uint, WrappingShr, word};
 use core::ops::{Shr, ShrAssign};
 use subtle::CtOption;
 
@@ -195,7 +195,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             carry = new_carry;
         }
 
-        (ret, ConstChoice::from_word_lsb(carry.0 >> Limb::HI_BIT))
+        (ret, word::from_word_lsb(carry.0 >> Limb::HI_BIT))
     }
 
     /// Conditionally right-shifts by `shift` bits where `0 < shift < Limb::BITS`, returning

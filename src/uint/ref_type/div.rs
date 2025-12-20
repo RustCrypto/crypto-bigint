@@ -4,9 +4,12 @@
 //! Further explanation at <https://janmr.com/blog/2014/04/basic-multiple-precision-long-division/>
 
 use super::UintRef;
-use crate::const_choice::u32_min;
-use crate::div_limb::{Reciprocal, div2by1, div3by2};
-use crate::{ConstChoice, Limb, NonZero};
+use crate::{
+    ConstChoice, Limb, NonZero,
+    ct::u32_min,
+    div_limb::{Reciprocal, div2by1, div3by2},
+    word,
+};
 
 impl UintRef {
     /// Computes `self` / `rhs`, returning the quotient in `self` and the remainder in `rhs`.
@@ -280,7 +283,7 @@ impl UintRef {
             if vartime.and(done).to_bool_vartime() {
                 break;
             }
-            quo = done.select_word(quo, 0);
+            quo = word::select_word(done, quo, 0);
 
             // Subtract q*divisor from the dividend
             let borrow = {
@@ -301,7 +304,7 @@ impl UintRef {
             // If the subtraction borrowed, then decrement quo and add back the divisor
             // The probability of this being needed is very low, about 2/(Limb::MAX+1)
             quo = {
-                let ct_borrow = ConstChoice::from_word_mask(borrow.0);
+                let ct_borrow = word::from_word_mask(borrow.0);
                 carry = Limb::ZERO;
                 i = (xi + 1).saturating_sub(ysize);
                 while i <= xi {
@@ -311,7 +314,7 @@ impl UintRef {
                     );
                     i += 1;
                 }
-                ct_borrow.select_word(quo, quo.saturating_sub(1))
+                word::select_word(ct_borrow, quo, quo.saturating_sub(1))
             };
 
             // Store the quotient within dividend and set x_hi to the current highest word
@@ -453,7 +456,7 @@ impl UintRef {
             if vartime.and(done).to_bool_vartime() {
                 break;
             }
-            quo = done.select_word(quo, 0);
+            quo = word::select_word(done, quo, 0);
 
             // Subtract q*divisor from the dividend
             let borrow = {
@@ -474,7 +477,7 @@ impl UintRef {
             // If the subtraction borrowed, then add back the divisor
             // The probability of this being needed is very low, about 2/(Limb::MAX+1)
             {
-                let ct_borrow = ConstChoice::from_word_mask(borrow.0);
+                let ct_borrow = word::from_word_mask(borrow.0);
                 carry = Limb::ZERO;
                 i = (xi + 1).saturating_sub(ysize);
                 while i <= xi {
@@ -556,14 +559,14 @@ impl UintRef {
         }
         let lshift = reciprocal.shift();
         let nz = ConstChoice::from_u32_nonzero(lshift);
-        let rshift = nz.if_true_u32(Limb::BITS - lshift);
-        let mut hi = (carry.0 << lshift) | nz.if_true_word(self.0[nlimbs - 1].0 >> rshift);
+        let rshift = nz.select_u32(0, Limb::BITS - lshift);
+        let mut hi = (carry.0 << lshift) | word::select_word(nz, 0, self.0[nlimbs - 1].0 >> rshift);
         let mut lo;
         let mut j = nlimbs;
         while j > 1 {
             j -= 1;
             lo = self.0[j].0 << lshift;
-            lo |= nz.if_true_word(self.0[j - 1].0 >> rshift);
+            lo |= word::select_word(nz, 0, self.0[j - 1].0 >> rshift);
             (_, hi) = div2by1(hi, lo, reciprocal);
         }
         (_, hi) = div2by1(hi, self.0[0].0 << lshift, reciprocal);

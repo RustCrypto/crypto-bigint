@@ -1,4 +1,4 @@
-use crate::{ConstChoice, Limb, Uint, WideWord, Word, WrappingNeg};
+use crate::{ConstChoice, Limb, Uint, WideWord, Word, WrappingNeg, word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform wrapping negation.
@@ -20,7 +20,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             carry = r >> Limb::BITS;
             i += 1;
         }
-        (Uint::new(ret), ConstChoice::from_word_lsb(carry as Word))
+        (Uint::new(ret), word::from_word_lsb(carry as Word))
     }
 
     /// Perform wrapping negation, if `negate` is truthy. Otherwise, return `self`.

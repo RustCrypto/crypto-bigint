@@ -1,7 +1,7 @@
 //! [`Uint`] bitwise left shift operations.
 
 use super::UintRef;
-use crate::{ConstChoice, Limb, NonZero};
+use crate::{ConstChoice, Limb, NonZero, word};
 
 impl UintRef {
     /// Left-shifts by `shift` bits in constant-time.
@@ -151,7 +151,7 @@ impl UintRef {
             carry = new_carry;
             i += 1;
         }
-        ConstChoice::from_word_lsb(carry.0)
+        word::from_word_lsb(carry.0)
     }
 
     /// Conditionally left-shifts by `shift` bits where `0 < shift < Limb::BITS`, returning

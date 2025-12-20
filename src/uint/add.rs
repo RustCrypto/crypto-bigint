@@ -1,6 +1,6 @@
 //! [`Uint`] addition operations.
 
-use crate::{Checked, CheckedAdd, ConstChoice, Limb, Uint, Wrapping, WrappingAdd, Zero};
+use crate::{Checked, CheckedAdd, Limb, Uint, Wrapping, WrappingAdd, Zero, word};
 use core::ops::{Add, AddAssign};
 use subtle::CtOption;
 
@@ -30,7 +30,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform saturating addition, returning `MAX` on overflow.
     pub const fn saturating_add(&self, rhs: &Self) -> Self {
         let (res, overflow) = self.carrying_add(rhs, Limb::ZERO);
-        Self::select(&res, &Self::MAX, ConstChoice::from_word_lsb(overflow.0))
+        Self::select(&res, &Self::MAX, word::from_word_lsb(overflow.0))
     }
 
     /// Perform wrapping addition, discarding overflow.
