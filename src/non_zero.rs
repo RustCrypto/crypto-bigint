@@ -152,7 +152,7 @@ impl NonZero<Limb> {
     /// `NonZero::new(…).unwrap()`
     // TODO: Remove when `Self::new` and `CtOption::unwrap` support `const fn`
     pub const fn new_unwrap(n: Limb) -> Self {
-        if n.is_nonzero().is_true_vartime() {
+        if n.is_nonzero().to_bool_vartime() {
             Self(n)
         } else {
             panic!("Invalid value: zero")
@@ -195,7 +195,7 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
     /// - if the value is zero.
     // TODO: Remove when `Self::new` and `CtOption::unwrap` support `const fn`
     pub const fn new_unwrap(n: Uint<LIMBS>) -> Self {
-        if n.is_nonzero().is_true_vartime() {
+        if n.is_nonzero().to_bool_vartime() {
             Self(n)
         } else {
             panic!("Invalid value: zero")

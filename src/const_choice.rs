@@ -241,20 +241,15 @@ impl ConstChoice {
         x & self.as_u32_mask()
     }
 
+    /// WARNING: this method should only be used in contexts that aren't constant-time critical!
     #[inline]
-    pub(crate) const fn is_true_vartime(&self) -> bool {
-        self.0 == ConstChoice::TRUE.0
+    pub(crate) const fn to_bool_vartime(self) -> bool {
+        self.0 != 0
     }
 
     #[inline]
     pub(crate) const fn to_u8(self) -> u8 {
         (self.0 as u8) & 1
-    }
-
-    /// WARNING: this method should only be used in contexts that aren't constant-time critical!
-    #[inline]
-    pub(crate) const fn to_bool_vartime(self) -> bool {
-        self.to_u8() != 0
     }
 }
 
@@ -284,7 +279,7 @@ impl From<Choice> for ConstChoice {
 
 impl From<ConstChoice> for bool {
     fn from(choice: ConstChoice) -> Self {
-        choice.is_true_vartime()
+        choice.to_bool_vartime()
     }
 }
 
@@ -351,7 +346,7 @@ impl<T> ConstCtOption<T> {
     #[track_caller]
     pub fn unwrap(self) -> T {
         assert!(
-            self.is_some.is_true_vartime(),
+            self.is_some.to_bool_vartime(),
             "called `ConstCtOption::unwrap()` on a `None` value"
         );
         self.value
@@ -403,7 +398,7 @@ impl<const LIMBS: usize> ConstCtOption<Uint<LIMBS>> {
     #[inline]
     #[track_caller]
     pub const fn expect(self, msg: &str) -> Uint<LIMBS> {
-        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        assert!(self.is_some.to_bool_vartime(), "{}", msg);
         self.value
     }
 
@@ -424,7 +419,7 @@ impl<const LIMBS: usize> ConstCtOption<(Uint<LIMBS>, Uint<LIMBS>)> {
     #[inline]
     #[track_caller]
     pub const fn expect(self, msg: &str) -> (Uint<LIMBS>, Uint<LIMBS>) {
-        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        assert!(self.is_some.to_bool_vartime(), "{}", msg);
         self.value
     }
 }
@@ -439,7 +434,7 @@ impl<const LIMBS: usize> ConstCtOption<NonZero<Uint<LIMBS>>> {
     #[inline]
     #[track_caller]
     pub const fn expect(self, msg: &str) -> NonZero<Uint<LIMBS>> {
-        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        assert!(self.is_some.to_bool_vartime(), "{}", msg);
         self.value
     }
 }
@@ -454,7 +449,7 @@ impl<const LIMBS: usize> ConstCtOption<Odd<Uint<LIMBS>>> {
     #[inline]
     #[track_caller]
     pub const fn expect(self, msg: &str) -> Odd<Uint<LIMBS>> {
-        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        assert!(self.is_some.to_bool_vartime(), "{}", msg);
         self.value
     }
 }
@@ -475,7 +470,7 @@ impl<const LIMBS: usize> ConstCtOption<Int<LIMBS>> {
     #[inline]
     #[track_caller]
     pub const fn expect(self, msg: &str) -> Int<LIMBS> {
-        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        assert!(self.is_some.to_bool_vartime(), "{}", msg);
         self.value
     }
 }
@@ -490,7 +485,7 @@ impl<const LIMBS: usize> ConstCtOption<NonZeroInt<LIMBS>> {
     #[inline]
     #[track_caller]
     pub const fn expect(self, msg: &str) -> NonZeroInt<LIMBS> {
-        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        assert!(self.is_some.to_bool_vartime(), "{}", msg);
         self.value
     }
 }
@@ -505,7 +500,7 @@ impl<const LIMBS: usize> ConstCtOption<OddInt<LIMBS>> {
     #[inline]
     #[track_caller]
     pub const fn expect(self, msg: &str) -> OddInt<LIMBS> {
-        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        assert!(self.is_some.to_bool_vartime(), "{}", msg);
         self.value
     }
 }
@@ -520,7 +515,7 @@ impl ConstCtOption<NonZero<Limb>> {
     #[inline]
     #[track_caller]
     pub const fn expect(self, msg: &str) -> NonZero<Limb> {
-        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        assert!(self.is_some.to_bool_vartime(), "{}", msg);
         self.value
     }
 }
@@ -535,7 +530,7 @@ impl<const LIMBS: usize> ConstCtOption<SafeGcdInverter<LIMBS>> {
     #[inline]
     #[track_caller]
     pub const fn expect(self, msg: &str) -> SafeGcdInverter<LIMBS> {
-        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        assert!(self.is_some.to_bool_vartime(), "{}", msg);
         self.value
     }
 }
@@ -555,7 +550,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstCtOption<ConstMontyF
     #[inline]
     #[track_caller]
     pub const fn expect(self, msg: &str) -> ConstMontyForm<MOD, LIMBS> {
-        assert!(self.is_some.is_true_vartime(), "{}", msg);
+        assert!(self.is_some.to_bool_vartime(), "{}", msg);
         self.value
     }
 }

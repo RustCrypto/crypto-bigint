@@ -162,13 +162,13 @@ mod tests {
     #[test]
     fn bit() {
         let u = uint_with_bits_at(&[16, 48, 112, 127, 255]);
-        assert!(!u.bit(0).is_true_vartime());
-        assert!(!u.bit(1).is_true_vartime());
-        assert!(u.bit(16).is_true_vartime());
-        assert!(u.bit(127).is_true_vartime());
-        assert!(u.bit(255).is_true_vartime());
-        assert!(!u.bit(256).is_true_vartime());
-        assert!(!u.bit(260).is_true_vartime());
+        assert!(!u.bit(0).to_bool_vartime());
+        assert!(!u.bit(1).to_bool_vartime());
+        assert!(u.bit(16).to_bool_vartime());
+        assert!(u.bit(127).to_bool_vartime());
+        assert!(u.bit(255).to_bool_vartime());
+        assert!(!u.bit(256).to_bool_vartime());
+        assert!(!u.bit(260).to_bool_vartime());
     }
 
     #[test]

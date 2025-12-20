@@ -153,8 +153,8 @@ mod tests {
 
     #[test]
     fn shl256_const() {
-        assert!(N.overflowing_shl(256).is_none().is_true_vartime());
-        assert!(N.overflowing_shl_vartime(256).is_none().is_true_vartime());
+        assert!(N.overflowing_shl(256).is_none().to_bool_vartime());
+        assert!(N.overflowing_shl_vartime(256).is_none().to_bool_vartime());
     }
 
     #[test]

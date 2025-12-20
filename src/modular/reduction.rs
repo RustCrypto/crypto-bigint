@@ -104,7 +104,7 @@ pub const fn montgomery_retrieve<const LIMBS: usize>(
     modulus: &Odd<Uint<LIMBS>>,
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {
-    debug_assert!(Uint::lt(montgomery_form, modulus.as_ref()).is_true_vartime());
+    debug_assert!(Uint::lt(montgomery_form, modulus.as_ref()).to_bool_vartime());
     let mut res = Uint::ZERO;
     montgomery_retrieve_inner(
         montgomery_form.as_limbs(),

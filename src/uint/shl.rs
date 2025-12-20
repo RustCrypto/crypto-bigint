@@ -321,8 +321,8 @@ mod tests {
 
     #[test]
     fn shl256_const() {
-        assert!(N.overflowing_shl(256).is_none().is_true_vartime());
-        assert!(N.overflowing_shl_vartime(256).is_none().is_true_vartime());
+        assert!(N.overflowing_shl(256).is_none().to_bool_vartime());
+        assert!(N.overflowing_shl_vartime(256).is_none().to_bool_vartime());
     }
 
     #[test]
@@ -361,7 +361,7 @@ mod tests {
         assert!(
             Uint::overflowing_shl_vartime_wide((U128::MAX, U128::MAX), 256)
                 .is_none()
-                .is_true_vartime(),
+                .to_bool_vartime(),
         );
     }
 

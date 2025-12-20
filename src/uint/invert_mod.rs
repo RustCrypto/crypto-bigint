@@ -291,10 +291,10 @@ mod tests {
         // An inverse of an even number does not exist.
 
         let a = U256::from(10u64).invert_mod2k(4);
-        assert!(a.is_none().is_true_vartime());
+        assert!(a.is_none().to_bool_vartime());
 
         let a = U256::from(10u64).invert_mod2k_vartime(4);
-        assert!(a.is_none().is_true_vartime());
+        assert!(a.is_none().to_bool_vartime());
 
         // A degenerate case. An inverse mod 2^0 == 1 always exists even for even numbers.
 
@@ -346,7 +346,7 @@ mod tests {
 
         // `m` is a multiple of `p1`, so no inverse exists
         let res = p1.invert_odd_mod(&m);
-        assert!(res.is_none().is_true_vartime());
+        assert!(res.is_none().to_bool_vartime());
     }
 
     #[test]
@@ -391,7 +391,7 @@ mod tests {
         let m = U64::from(49u64).to_odd().unwrap();
 
         let res = a.invert_odd_mod(&m);
-        assert!(res.is_none().is_true_vartime());
+        assert!(res.is_none().to_bool_vartime());
     }
 
     #[test]
