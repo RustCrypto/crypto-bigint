@@ -23,7 +23,7 @@ subtle = { version = "2.6", default-features = false }
 der = { version = "0.8.0-rc.10", optional = true, default-features = false }
 hybrid-array = { version = "0.4.5", optional = true, features = ["subtle"] }
 num-traits = { version = "0.2.19", default-features = false }
-rand_core = { version = "0.10.0-rc-2", optional = true, default-features = false }
+rand_core = { version = "0.10.0-rc-3", optional = true, default-features = false }
 rlp = { version = "0.6", optional = true, default-features = false }
 serdect = { version = "0.4", optional = true, default-features = false }
 zeroize = { version = "1", optional = true, default-features = false }
@@ -36,7 +36,7 @@ num-bigint = "0.4"
 num-integer = "0.1"
 num-modular = { version = "0.6", features = ["num-bigint", "num-integer", "num-traits"] }
 proptest = "1.9"
-rand_core = "0.10.0-rc-2"
+rand_core = "0.10.0-rc-3"
 
 [features]
 default = ["rand"]
