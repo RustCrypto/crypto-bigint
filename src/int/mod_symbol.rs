@@ -1,6 +1,6 @@
 //! Support for computing modular symbols.
 
-use crate::{ConstChoice, Int, JacobiSymbol, Odd, Uint};
+use crate::{Int, JacobiSymbol, Odd, Uint, word};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute the Jacobi symbol `(self|rhs)`.
@@ -11,7 +11,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let (abs, sign) = self.abs_sign();
         let jacobi = abs.jacobi_symbol(rhs) as i64;
         // (-self|rhs) = -(self|rhs) iff rhs = 3 mod 4
-        let swap = sign.and(ConstChoice::from_word_eq(rhs.as_ref().limbs[0].0 & 3, 3));
+        let swap = sign.and(word::from_word_eq(rhs.as_ref().limbs[0].0 & 3, 3));
         JacobiSymbol::from_i8(swap.select_i64(jacobi, -jacobi) as i8)
     }
 

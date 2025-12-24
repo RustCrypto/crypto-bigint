@@ -1,12 +1,13 @@
 //! Implementation of constant-time division via reciprocal precomputation, as described in
 //! "Improved Division by Invariant Integers" by Niels Möller and Torbjorn Granlund
 //! (DOI: 10.1109/TC.2010.143, <https://gmplib.org/~tege/division-paper.pdf>).
-use subtle::{Choice, ConditionallySelectable};
 
 use crate::{
     ConstChoice, Limb, NonZero, Uint, WideWord, Word,
     primitives::{addhilo, widening_mul},
+    word,
 };
+use subtle::{Choice, ConditionallySelectable};
 
 /// Calculates the reciprocal of the given 32-bit divisor with the highmost bit set.
 #[cfg(target_pointer_width = "32")]
@@ -36,7 +37,7 @@ pub const fn reciprocal(d: Word) -> Word {
     // Hence the `ct_select()`.
     let x = v2.wrapping_add(1);
     let (_lo, hi) = widening_mul(x, d);
-    let hi = ConstChoice::from_u32_nonzero(x).select_word(d, hi);
+    let hi = word::select_word(ConstChoice::from_u32_nonzero(x), d, hi);
 
     v2.wrapping_sub(hi).wrapping_sub(d)
 }
@@ -66,7 +67,7 @@ pub const fn reciprocal(d: Word) -> Word {
     // Hence the `ct_select()`.
     let x = v3.wrapping_add(1);
     let (_lo, hi) = widening_mul(x, d);
-    let hi = ConstChoice::from_word_nonzero(x).select_word(d, hi);
+    let hi = word::select_word(word::from_word_nonzero(x), d, hi);
 
     v3.wrapping_sub(hi).wrapping_sub(d)
 }
@@ -93,7 +94,7 @@ const fn short_div(mut dividend: u32, dividend_bits: u32, divisor: u32, divisor_
         let bit = ConstChoice::from_u32_lt(dividend, divisor);
         dividend = bit.select_u32(dividend.wrapping_sub(divisor), dividend);
         divisor >>= 1;
-        quotient |= bit.not().if_true_u32(1 << i);
+        quotient |= bit.not().select_u32(0, 1 << i);
     }
 
     quotient
@@ -113,17 +114,17 @@ pub(crate) const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Wor
     let q1 = q1.wrapping_add(1);
     let r = u0.wrapping_sub(q1.wrapping_mul(d));
 
-    let r_gt_q0 = ConstChoice::from_word_lt(q0, r);
-    let q1 = r_gt_q0.select_word(q1, q1.wrapping_sub(1));
-    let r = r_gt_q0.select_word(r, r.wrapping_add(d));
+    let r_gt_q0 = word::from_word_lt(q0, r);
+    let q1 = word::select_word(r_gt_q0, q1, q1.wrapping_sub(1));
+    let r = word::select_word(r_gt_q0, r, r.wrapping_add(d));
 
     // If this was a normal `if`, we wouldn't need wrapping ops, because there would be no overflow.
     // But since we calculate both results either way, we have to wrap.
     // Added an assert to still check the lack of overflow in debug mode.
     debug_assert!(r < d || q1 < Word::MAX);
-    let r_ge_d = ConstChoice::from_word_le(d, r);
-    let q1 = r_ge_d.select_word(q1, q1.wrapping_add(1));
-    let r = r_ge_d.select_word(r, r.wrapping_sub(d));
+    let r_ge_d = word::from_word_le(d, r);
+    let q1 = word::select_word(r_ge_d, q1, q1.wrapping_add(1));
+    let r = word::select_word(r_ge_d, r, r.wrapping_sub(d));
 
     (q1, r)
 }
@@ -147,22 +148,30 @@ pub(crate) const fn div3by2(
     // This method corresponds to Algorithm Q:
     // https://janmr.com/blog/2014/04/basic-multiple-precision-long-division/
 
-    let q_maxed = ConstChoice::from_word_eq(u2, v1_reciprocal.divisor_normalized);
-    let (mut quo, rem) = div2by1(q_maxed.select_word(u2, 0), u1, v1_reciprocal);
+    let q_maxed = word::from_word_eq(u2, v1_reciprocal.divisor_normalized);
+    let (mut quo, rem) = div2by1(word::select_word(q_maxed, u2, 0), u1, v1_reciprocal);
     // When the leading dividend word equals the leading divisor word, cap the quotient
     // at Word::MAX and set the remainder to the sum of the top dividend words.
-    quo = q_maxed.select_word(quo, Word::MAX);
-    let mut rem = q_maxed.select_wide_word(rem as WideWord, (u2 as WideWord) + (u1 as WideWord));
+    quo = word::select_word(q_maxed, quo, Word::MAX);
+    let mut rem = word::select_wide_word(
+        q_maxed,
+        rem as WideWord,
+        (u2 as WideWord) + (u1 as WideWord),
+    );
 
     let mut i = 0;
     while i < 2 {
         let qy = (quo as WideWord) * (v0 as WideWord);
         let rx = (rem << Word::BITS) | (u0 as WideWord);
         // If r < b and q*y[-2] > r*x[-1], then set q = q - 1 and r = r + v1
-        let done = ConstChoice::from_word_nonzero((rem >> Word::BITS) as Word)
-            .or(ConstChoice::from_wide_word_le(qy, rx));
-        quo = done.select_word(quo.wrapping_sub(1), quo);
-        rem = done.select_wide_word(rem + (v1_reciprocal.divisor_normalized as WideWord), rem);
+        let done = word::from_word_nonzero((rem >> Word::BITS) as Word)
+            .or(word::from_wide_word_le(qy, rx));
+        quo = word::select_word(done, quo.wrapping_sub(1), quo);
+        rem = word::select_wide_word(
+            done,
+            rem + (v1_reciprocal.divisor_normalized as WideWord),
+            rem,
+        );
         i += 1;
     }
 

@@ -1,6 +1,6 @@
 //! This module implements Binary (Extended) GCD for [`Uint`].
 
-use crate::const_choice::u32_min;
+use crate::ct::u32_min;
 use crate::modular::bingcd::xgcd::PatternXgcdOutput;
 use crate::modular::safegcd;
 use crate::{ConstChoice, Gcd, Int, NonZero, NonZeroUint, Odd, OddUint, Uint, Xgcd};

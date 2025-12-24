@@ -19,39 +19,14 @@ mod sub;
 #[cfg(feature = "rand_core")]
 mod rand;
 
-use crate::{Bounded, ConstCtOption, ConstOne, ConstZero, Constants, NonZero, One, Zero};
+use crate::{
+    Bounded, ConstCtOption, ConstOne, ConstZero, Constants, NonZero, One, WideWord, Word, Zero,
+};
 use core::fmt;
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
 #[cfg(feature = "serde")]
 use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-#[cfg(not(any(target_pointer_width = "32", target_pointer_width = "64")))]
-compile_error!("this crate builds on 32-bit and 64-bit platforms only");
-
-//
-// 32-bit definitions
-//
-
-/// Inner integer type that the [`Limb`] newtype wraps.
-#[cfg(target_pointer_width = "32")]
-pub type Word = u32;
-
-/// Unsigned wide integer type: double the width of [`Word`].
-#[cfg(target_pointer_width = "32")]
-pub type WideWord = u64;
-
-//
-// 64-bit definitions
-//
-
-/// Unsigned integer type that the [`Limb`] newtype wraps.
-#[cfg(target_pointer_width = "64")]
-pub type Word = u64;
-
-/// Wide integer type: double the width of [`Word`].
-#[cfg(target_pointer_width = "64")]
-pub type WideWord = u128;
 
 /// Big integers are represented as an array/vector of smaller CPU word-size integers called
 /// "limbs".

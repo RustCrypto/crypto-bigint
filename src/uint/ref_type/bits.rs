@@ -1,5 +1,5 @@
 use super::UintRef;
-use crate::{ConstChoice, Limb, traits::BitOps};
+use crate::{ConstChoice, Limb, traits::BitOps, word};
 use subtle::Choice;
 
 impl UintRef {
@@ -21,11 +21,11 @@ impl UintRef {
         while i < self.0.len() {
             let bit = self.0[i].0 & index_mask;
             let is_right_limb = ConstChoice::from_u32_eq(i as u32, limb_num);
-            result |= is_right_limb.if_true_word(bit);
+            result |= word::select_word(is_right_limb, 0, bit);
             i += 1;
         }
 
-        ConstChoice::from_word_lsb(result >> index_in_limb)
+        word::from_word_lsb(result >> index_in_limb)
     }
 
     /// Returns `true` if the bit at position `index` is set, `false` for an unset bit
@@ -77,8 +77,9 @@ impl UintRef {
         while i < self.0.len() {
             let is_right_limb = ConstChoice::from_u32_eq(i as u32, limb_num);
             let old_limb = self.0[i].0;
-            let new_limb = bit_value.select_word(old_limb & !index_mask, old_limb | index_mask);
-            self.0[i] = Limb(is_right_limb.select_word(old_limb, new_limb));
+            let new_limb =
+                word::select_word(bit_value, old_limb & !index_mask, old_limb | index_mask);
+            self.0[i] = Limb(word::select_word(is_right_limb, old_limb, new_limb));
             i += 1;
         }
     }
@@ -105,9 +106,9 @@ impl UintRef {
             i -= 1;
             let l = self.0[i];
             let z = l.leading_zeros();
-            count += nonzero_limb_not_encountered.if_true_u32(z);
+            count += nonzero_limb_not_encountered.select_u32(0, z);
             nonzero_limb_not_encountered =
-                nonzero_limb_not_encountered.and(ConstChoice::from_word_nonzero(l.0).not());
+                nonzero_limb_not_encountered.and(word::from_word_nonzero(l.0).not());
         }
 
         count
@@ -122,9 +123,9 @@ impl UintRef {
         while i < self.0.len() {
             let l = self.0[i];
             let z = l.trailing_zeros();
-            count += nonzero_limb_not_encountered.if_true_u32(z);
+            count += nonzero_limb_not_encountered.select_u32(0, z);
             nonzero_limb_not_encountered =
-                nonzero_limb_not_encountered.and(ConstChoice::from_word_nonzero(l.0).not());
+                nonzero_limb_not_encountered.and(word::from_word_nonzero(l.0).not());
             i += 1;
         }
 
@@ -159,9 +160,9 @@ impl UintRef {
         while i < self.0.len() {
             let l = self.0[i];
             let z = l.trailing_ones();
-            count += nonmax_limb_not_encountered.if_true_u32(z);
+            count += nonmax_limb_not_encountered.select_u32(0, z);
             nonmax_limb_not_encountered =
-                nonmax_limb_not_encountered.and(ConstChoice::from_word_eq(l.0, Limb::MAX.0));
+                nonmax_limb_not_encountered.and(word::from_word_eq(l.0, Limb::MAX.0));
             i += 1;
         }
 
@@ -196,7 +197,7 @@ impl UintRef {
         while i < self.nlimbs() {
             let apply = ConstChoice::from_u32_eq(i as u32, limb);
             self.0[i] = self.0[i].bitand(Limb::select(
-                Limb(clear.not().as_word_mask()),
+                Limb(word::choice_to_word_mask(clear.not())),
                 limb_mask,
                 apply,
             ));

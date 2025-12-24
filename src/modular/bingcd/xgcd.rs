@@ -1,6 +1,6 @@
 //! The Binary Extended GCD algorithm.
 use super::gcd::bingcd_step;
-use crate::const_choice::u32_max;
+use crate::ct::u32_max;
 use crate::modular::bingcd::matrix::{DividedIntMatrix, DividedPatternMatrix, PatternMatrix, Unit};
 use crate::{ConstChoice, Int, Limb, NonZeroUint, Odd, OddUint, U64, U128, Uint, Word};
 

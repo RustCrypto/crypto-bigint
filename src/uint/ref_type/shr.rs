@@ -3,6 +3,9 @@
 use super::UintRef;
 use crate::{ConstChoice, Limb, NonZero};
 
+#[cfg(feature = "alloc")]
+use crate::word;
+
 impl UintRef {
     /// Right-shifts by `shift` bits in constant-time.
     ///
@@ -163,7 +166,7 @@ impl UintRef {
             self.0[i] = limb.bitor(carry);
             carry = new_carry;
         }
-        ConstChoice::from_word_lsb(carry.0 >> Limb::HI_BIT)
+        word::from_word_lsb(carry.0 >> Limb::HI_BIT)
     }
 
     /// Conditionally right-shifts by `shift` bits where `0 < shift < Limb::BITS`, returning

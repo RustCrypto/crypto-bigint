@@ -144,6 +144,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b94f61472cee1439c0b966b47e3aca9ae07e45d070759512cd390ea2bebc6675"
 
 [[package]]
+name = "cmov"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8db222d9b98fd3e72eecfc24c870ac8944dac951418802467dcdbf045c8c37d3"
+
+[[package]]
 name = "cpufeatures"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -222,6 +228,7 @@ version = "0.7.0-rc.10"
 dependencies = [
  "chacha20",
  "criterion",
+ "ctutils",
  "der",
  "hex-literal",
  "hybrid-array",
@@ -235,6 +242,15 @@ dependencies = [
  "serdect",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "ctutils"
+version = "0.1.0"
+source = "git+https://github.com/RustCrypto/utils#5d2e2fd107c46d0ed20d54e0014eb43176672f3d"
+dependencies = [
+ "cmov",
+ "subtle",
 ]
 
 [[package]]

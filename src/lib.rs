@@ -187,14 +187,15 @@ pub use {
 pub use crate::uint::boxed::BoxedUint;
 pub use crate::{
     checked::Checked,
-    const_choice::{ConstChoice, ConstCtOption},
+    ct::{ConstChoice, ConstCtOption},
     int::{types::*, *},
     jacobi::JacobiSymbol,
-    limb::{Limb, WideWord, Word},
+    limb::Limb,
     non_zero::*,
     odd::*,
     traits::*,
     uint::{div_limb::Reciprocal, *},
+    word::{WideWord, Word},
     wrapping::Wrapping,
 };
 
@@ -206,7 +207,7 @@ pub mod modular;
 #[cfg(feature = "hybrid-array")]
 mod array;
 mod checked;
-mod const_choice;
+mod ct;
 mod int;
 mod jacobi;
 mod limb;
@@ -215,6 +216,7 @@ mod odd;
 mod primitives;
 mod traits;
 mod uint;
+mod word;
 mod wrapping;
 
 /// Import prelude for this crate: includes important traits.

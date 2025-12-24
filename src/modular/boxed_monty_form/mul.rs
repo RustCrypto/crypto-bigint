@@ -7,8 +7,8 @@
 
 use super::{BoxedMontyForm, BoxedMontyParams};
 use crate::{
-    AmmMultiplier, BoxedUint, ConstChoice, Limb, MontyMultiplier, Square, SquareAssign,
-    modular::mul::montgomery_multiply_inner,
+    AmmMultiplier, BoxedUint, Limb, MontyMultiplier, Square, SquareAssign,
+    modular::mul::montgomery_multiply_inner, word,
 };
 use core::ops::{Mul, MulAssign};
 use subtle::ConstantTimeLess;
@@ -314,7 +314,7 @@ pub(crate) fn almost_montgomery_mul(
         modulus.as_limbs(),
         mod_neg_inv,
     );
-    let overflow = ConstChoice::from_word_lsb(overflow.0);
+    let overflow = word::from_word_lsb(overflow.0);
     out.conditional_borrowing_sub_assign(modulus, overflow.into());
 }
 

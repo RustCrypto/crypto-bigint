@@ -1,5 +1,5 @@
 use super::mul::{mul_montgomery_form, square_montgomery_form};
-use crate::{AmmMultiplier, ConstChoice, Limb, Monty, Odd, Uint, Unsigned, Word};
+use crate::{AmmMultiplier, Limb, Monty, Odd, Uint, Unsigned, Word, word};
 
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
@@ -258,7 +258,7 @@ const fn multi_exponentiate_montgomery_form_internal<const LIMBS: usize, const R
                 let mut power = powers[0];
                 let mut j = 1;
                 while j < 1 << WINDOW {
-                    let choice = ConstChoice::from_word_eq(j, idx);
+                    let choice = word::from_word_eq(j, idx);
                     power = Uint::<LIMBS>::select(&power, &powers[j as usize], choice);
                     j += 1;
                 }

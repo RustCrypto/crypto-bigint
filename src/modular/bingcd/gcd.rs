@@ -1,5 +1,8 @@
-use crate::const_choice::{u32_max, u32_min};
-use crate::{ConstChoice, Limb, Odd, U64, U128, Uint, Word};
+use crate::{
+    ConstChoice, Limb, Odd, U64, U128, Uint, Word,
+    ct::{u32_max, u32_min},
+    word,
+};
 
 /// Binary GCD update step.
 ///
@@ -29,7 +32,7 @@ pub(super) const fn bingcd_step<const LIMBS: usize>(
     *a = a_sub_b.wrapping_neg_if(swap).shr1();
 
     // (b|a) = -(a|b) iff a = b = 3 mod 4 (quadratic reciprocity)
-    let mut jacobi_neg = swap.if_true_word(a_b_mod_4 & (a_b_mod_4 >> 1) & 1);
+    let mut jacobi_neg = word::select_word(swap, 0, a_b_mod_4 & (a_b_mod_4 >> 1) & 1);
 
     // (2a|b) = -(a|b) iff b = ±3 mod 8
     // b is always odd, so we ignore the lower bit and check that bits 2 and 3 are '01' or '10'
