@@ -5,8 +5,7 @@
 
 use super::{GCD_BATCH_SIZE, Matrix, iterations, jump};
 use crate::{
-    BoxedUint, ConstChoice, ConstCtOption, ConstantTimeSelect, I64, Int, Limb, NonZero, Odd,
-    Resize, U64, Uint,
+    BoxedUint, ConstChoice, ConstantTimeSelect, I64, Int, Limb, NonZero, Odd, Resize, U64, Uint,
     ct::{u32_max, u32_min},
 };
 use core::fmt;
@@ -424,27 +423,6 @@ impl fmt::Debug for SignedBoxedInt {
             },
             &self.magnitude
         ))
-    }
-}
-
-// impl PartialEq for SignedBoxedInt {
-//     fn eq(&self, other: &Self) -> bool {
-//         Self::eq(self, other).to_bool_vartime()
-//     }
-// }
-
-impl ConstCtOption<Odd<SignedBoxedInt>> {
-    /// Returns the contained value, consuming the `self` value.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the value is none with a custom panic message provided by
-    /// `msg`.
-    #[inline]
-    #[track_caller]
-    pub fn expect(self, msg: &str) -> Odd<SignedBoxedInt> {
-        assert!(self.is_some().to_bool_vartime(), "{}", msg);
-        self.components_ref().0.clone()
     }
 }
 

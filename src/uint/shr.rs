@@ -10,7 +10,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Panics if `shift >= Self::BITS`.
     pub const fn shr(&self, shift: u32) -> Self {
         self.overflowing_shr(shift)
-            .expect("`shift` within the bit size of the integer")
+            .expect_copied("`shift` within the bit size of the integer")
     }
 
     /// Computes `self >> shift` in variable time.
@@ -18,7 +18,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Panics if `shift >= Self::BITS`.
     pub const fn shr_vartime(&self, shift: u32) -> Self {
         self.overflowing_shr_vartime(shift)
-            .expect("`shift` within the bit size of the integer")
+            .expect_copied("`shift` within the bit size of the integer")
     }
 
     /// Computes `self >> shift`.
@@ -107,7 +107,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[inline(always)]
     pub const fn overflowing_shr_vartime(&self, shift: u32) -> ConstCtOption<Self> {
         if shift >= Self::BITS {
-            return ConstCtOption::none(Self::ZERO);
+            return ConstCtOption::new(Self::ZERO, ConstChoice::FALSE);
         }
 
         let shift_num = shift / Limb::BITS;
@@ -144,22 +144,22 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ) -> ConstCtOption<(Self, Self)> {
         let (lower, upper) = lower_upper;
         if shift >= 2 * Self::BITS {
-            ConstCtOption::none((Self::ZERO, Self::ZERO))
+            ConstCtOption::new((Self::ZERO, Self::ZERO), ConstChoice::FALSE)
         } else if shift >= Self::BITS {
             let lower = upper
                 .overflowing_shr_vartime(shift - Self::BITS)
-                .expect("shift within range");
+                .expect_copied("shift within range");
             ConstCtOption::some((lower, Self::ZERO))
         } else {
             let new_upper = upper
                 .overflowing_shr_vartime(shift)
-                .expect("shift within range");
+                .expect_copied("shift within range");
             let lower_hi = upper
                 .overflowing_shl_vartime(Self::BITS - shift)
-                .expect("shift within range");
+                .expect_copied("shift within range");
             let lower_lo = lower
                 .overflowing_shr_vartime(shift)
-                .expect("shift within range");
+                .expect_copied("shift within range");
             ConstCtOption::some((lower_lo.bitor(&lower_hi), new_upper))
         }
     }
@@ -167,13 +167,17 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self >> shift` in a panic-free manner, returning zero if the shift exceeds the
     /// precision.
     pub const fn wrapping_shr(&self, shift: u32) -> Self {
-        self.overflowing_shr(shift).unwrap_or(Self::ZERO)
+        ctutils::unwrap_or!(self.overflowing_shr(shift), Self::ZERO, Self::select)
     }
 
     /// Computes `self >> shift` in variable-time in a panic-free manner, returning zero if the
     /// shift exceeds the precision.
     pub const fn wrapping_shr_vartime(&self, shift: u32) -> Self {
-        self.overflowing_shr_vartime(shift).unwrap_or(Self::ZERO)
+        ctutils::unwrap_or!(
+            self.overflowing_shr_vartime(shift),
+            Self::ZERO,
+            Self::select
+        )
     }
 
     /// Computes `self >> 1` in constant-time.

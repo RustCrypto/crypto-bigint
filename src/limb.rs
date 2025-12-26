@@ -20,10 +20,12 @@ mod sub;
 mod rand;
 
 use crate::{
-    Bounded, ConstCtOption, ConstOne, ConstZero, Constants, NonZero, One, WideWord, Word, Zero,
+    Bounded, ConstChoice, ConstCtOption, ConstOne, ConstZero, Constants, NonZero, One, WideWord,
+    Word, Zero,
 };
 use core::fmt;
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
+use ctutils::CtSelect;
+use subtle::{Choice, ConstantTimeEq};
 
 #[cfg(feature = "serde")]
 use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -90,10 +92,17 @@ impl Constants for Limb {
     const MAX: Self = Self::MAX;
 }
 
-impl ConditionallySelectable for Limb {
+impl subtle::ConditionallySelectable for Limb {
     #[inline]
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Self(Word::conditional_select(&a.0, &b.0, choice))
+        a.ct_select(b, choice.into())
+    }
+}
+
+impl CtSelect for Limb {
+    #[inline]
+    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
+        Self(self.0.ct_select(&other.0, choice))
     }
 }
 

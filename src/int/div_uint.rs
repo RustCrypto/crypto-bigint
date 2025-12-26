@@ -39,7 +39,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let (quotient, remainder, lhs_sgn) = self.div_rem_base_uint(rhs);
         (
             Self(quotient).wrapping_neg_if(lhs_sgn),
-            Int::new_from_abs_sign(remainder, lhs_sgn).expect("no overflow; always fits"),
+            Int::new_from_abs_sign(remainder, lhs_sgn).expect_copied("no overflow; always fits"),
         )
     }
 

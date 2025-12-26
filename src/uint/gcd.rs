@@ -124,8 +124,8 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
         // At this point, either lhs or rhs is odd (or both); swap to make sure lhs is odd.
         let swap = ConstChoice::from_u32_lt(j, i);
         Uint::conditional_swap(&mut lhs, &mut rhs, swap);
-        let lhs = lhs.to_odd().expect("odd by construction");
-        let rhs = rhs.to_nz().expect("non-zero by construction");
+        let lhs = lhs.to_odd().expect_copied("odd by construction");
+        let rhs = rhs.to_nz().expect_copied("non-zero by construction");
 
         let odd_output = OddUintXgcdOutput::from_pattern_output(lhs.binxgcd_nz(&rhs));
         odd_output.to_nz_output(k, swap)
@@ -280,7 +280,7 @@ impl<const LIMBS: usize> OddUintXgcdOutput<LIMBS> {
             .as_ref()
             .shl(k)
             .to_nz()
-            .expect("is non-zero by construction");
+            .expect_copied("is non-zero by construction");
         Int::conditional_swap(&mut x, &mut y, swap);
         Uint::conditional_swap(&mut lhs_on_gcd, &mut rhs_on_gcd, swap);
 

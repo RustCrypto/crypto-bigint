@@ -25,7 +25,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// Returns `None` if `shift >= Self::BITS`.
     pub const fn overflowing_shl(&self, shift: u32) -> ConstCtOption<Self> {
-        self.0.overflowing_shl(shift).as_int()
+        Self::from_uint_opt(self.0.overflowing_shl(shift))
     }
 
     /// Computes `self << shift`.
@@ -38,7 +38,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// to `self`.
     #[inline(always)]
     pub const fn overflowing_shl_vartime(&self, shift: u32) -> ConstCtOption<Self> {
-        self.0.overflowing_shl_vartime(shift).as_int()
+        Self::from_uint_opt(self.0.overflowing_shl_vartime(shift))
     }
 
     /// Computes `self << shift` in a panic-free manner, returning zero if the shift exceeds the

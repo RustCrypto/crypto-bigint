@@ -1,8 +1,6 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{
-    Bounded, ConstChoice, ConstCtOption, Constants, Encoding, Int, Limb, Odd, One, Uint, Zero,
-};
+use crate::{Bounded, ConstChoice, Constants, Encoding, Int, Limb, Odd, One, Uint, Zero};
 use core::{
     fmt,
     num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128},
@@ -151,12 +149,10 @@ impl NonZero<Limb> {
     /// In future versions of Rust it should be possible to replace this with
     /// `NonZero::new(…).unwrap()`
     // TODO: Remove when `Self::new` and `CtOption::unwrap` support `const fn`
+    #[track_caller]
     pub const fn new_unwrap(n: Limb) -> Self {
-        if n.is_nonzero().to_bool_vartime() {
-            Self(n)
-        } else {
-            panic!("Invalid value: zero")
-        }
+        assert!(n.is_nonzero().to_bool_vartime(), "invalid value: zero");
+        Self(n)
     }
 
     /// Create a [`NonZero<Limb>`] from a [`NonZeroU8`] (const-friendly)
@@ -194,12 +190,10 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
     /// # Panics
     /// - if the value is zero.
     // TODO: Remove when `Self::new` and `CtOption::unwrap` support `const fn`
+    #[track_caller]
     pub const fn new_unwrap(n: Uint<LIMBS>) -> Self {
-        if n.is_nonzero().to_bool_vartime() {
-            Self(n)
-        } else {
-            panic!("Invalid value: zero")
-        }
+        assert!(n.is_nonzero().to_bool_vartime(), "invalid value: zero");
+        Self(n)
     }
 
     /// Create a new [`NonZero<Uint>`] from the provided big endian hex string.
@@ -256,8 +250,10 @@ impl<const LIMBS: usize> NonZeroInt<LIMBS> {
     /// In future versions of Rust it should be possible to replace this with
     /// `NonZero::new(…).unwrap()`
     // TODO: Remove when `Self::new` and `CtOption::unwrap` support `const fn`
+    #[inline]
     pub const fn new_unwrap(n: Int<LIMBS>) -> Self {
-        ConstCtOption::new(Self(n), n.is_nonzero()).expect("Invalid value: zero")
+        assert!(n.is_nonzero().to_bool_vartime(), "invalid value: zero");
+        Self(n)
     }
 
     /// The sign and magnitude of this [`NonZeroInt`].

@@ -52,7 +52,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Perform saturating multiplication, returning `MAX` on overflow.
     pub const fn saturating_mul<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> Self {
-        self.checked_mul(rhs).unwrap_or(Uint::MAX)
+        ctutils::unwrap_or!(self.checked_mul(rhs), Uint::MAX, Self::select)
     }
 
     /// Perform wrapping multiplication, checking that the result fits in the original [`Uint`] size.
@@ -99,7 +99,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Perform saturating squaring, returning `MAX` on overflow.
     pub const fn saturating_square(&self) -> Self {
-        self.checked_square().unwrap_or(Uint::MAX)
+        ctutils::unwrap_or!(self.checked_square(), Self::MAX, Self::select)
     }
 }
 
@@ -423,9 +423,10 @@ mod tests {
                 let res = a.widening_mul(&b);
                 let res_overflow = res.1.is_nonzero();
                 let checked = a.checked_mul(&b);
+                assert_eq!(checked.is_some(), res_overflow.not());
                 assert_eq!(
-                    checked.components_ref(),
-                    (&res.0, res_overflow.not()),
+                    checked.as_inner_unchecked(),
+                    &res.0,
                     "a = 2**{n}, b = 2**{m}"
                 );
             }
@@ -443,11 +444,8 @@ mod tests {
             let res = a.square_wide();
             let res_overflow = res.1.is_nonzero();
             let checked = a.checked_square();
-            assert_eq!(
-                checked.components_ref(),
-                (&res.0, res_overflow.not()),
-                "a = 2**{n}"
-            );
+            assert_eq!(checked.is_some(), res_overflow.not());
+            assert_eq!(checked.as_inner_unchecked(), &res.0, "a = 2**{n}");
         }
     }
 }

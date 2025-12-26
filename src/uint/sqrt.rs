@@ -18,7 +18,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Will not overflow since `b <= BITS`.
         let mut x = Self::ONE
             .overflowing_shl((self.bits() + 1) >> 1)
-            .expect("shift within range"); // ≥ √(`self`)
+            .expect_copied("shift within range"); // ≥ √(`self`)
 
         // Repeat enough times to guarantee result has stabilized.
         let mut i = 0;
@@ -55,12 +55,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Will not overflow since `b <= BITS`.
         let mut x = Self::ONE
             .overflowing_shl((self.bits() + 1) >> 1)
-            .expect("shift within range"); // ≥ √(`self`)
+            .expect_copied("shift within range"); // ≥ √(`self`)
 
         // Stop right away if `x` is zero to avoid divizion by zero.
         while !x.cmp_vartime(&Self::ZERO).is_eq() {
             // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
-            let q = self.wrapping_div_vartime(&x.to_nz().expect("ensured non-zero"));
+            let q = self.wrapping_div_vartime(&x.to_nz().expect_copied("ensured non-zero"));
             let t = x.wrapping_add(&q);
             let next_x = t.shr1();
 

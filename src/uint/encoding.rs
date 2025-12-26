@@ -730,7 +730,7 @@ impl RadixDivisionParams {
             let recip_large = Reciprocal::new(
                 div_large[RADIX_ENCODING_LIMBS_LARGE - 1]
                     .to_nz()
-                    .expect("zero divisor"),
+                    .expect_copied("zero divisor"),
             );
             res[i] = Self {
                 radix,

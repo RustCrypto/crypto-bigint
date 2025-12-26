@@ -29,14 +29,13 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
         );
 
         let maybe_inverse = inverter.invert(&self.montgomery_form);
-        let (inverse, inverse_is_some) = maybe_inverse.components_ref();
 
         let ret = Self {
-            montgomery_form: *inverse,
+            montgomery_form: maybe_inverse.to_inner_unchecked(),
             phantom: PhantomData,
         };
 
-        ConstCtOption::new(ret, inverse_is_some)
+        ConstCtOption::new(ret, maybe_inverse.is_some())
     }
 
     /// Computes `self^-1` representing the multiplicative inverse of `self`,
@@ -68,14 +67,13 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
         );
 
         let maybe_inverse = inverter.invert_vartime(&self.montgomery_form);
-        let (inverse, inverse_is_some) = maybe_inverse.components_ref();
 
         let ret = Self {
-            montgomery_form: *inverse,
+            montgomery_form: maybe_inverse.to_inner_unchecked(),
             phantom: PhantomData,
         };
 
-        ConstCtOption::new(ret, inverse_is_some)
+        ConstCtOption::new(ret, maybe_inverse.is_some())
     }
 }
 

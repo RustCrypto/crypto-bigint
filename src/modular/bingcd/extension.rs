@@ -74,13 +74,13 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
         let hi = self
             .1
             .bounded_overflowing_shr::<UPPER_BOUND>(shift)
-            .expect("shift ≤ UPPER_BOUND");
+            .expect_copied("shift ≤ UPPER_BOUND");
         // TODO: replace with carrying_shl
         let carry = Uint::select(&self.1, &Uint::ZERO, shift_is_zero).shl(left_shift);
         let mut lo = self
             .0
             .bounded_overflowing_shr::<UPPER_BOUND>(shift)
-            .expect("shift ≤ UPPER_BOUND");
+            .expect_copied("shift ≤ UPPER_BOUND");
 
         // Apply carry
         let limb_diff = LIMBS.wrapping_sub(EXTRA) as u32;
@@ -241,7 +241,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 &result,
                 &result
                     .overflowing_shr_vartime(1 << i)
-                    .expect("shift within range"),
+                    .expect_copied("shift within range"),
                 bit,
             );
             i += 1;

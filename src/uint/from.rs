@@ -5,6 +5,7 @@ use crate::{ConcatMixed, Limb, SplitMixed, U64, U128, Uint, WideWord, Word};
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a [`Uint`] from a `u8` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u8>` when stable
+    #[inline]
     pub const fn from_u8(n: u8) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         let mut limbs = [Limb::ZERO; LIMBS];
@@ -14,6 +15,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Create a [`Uint`] from a `u16` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u16>` when stable
+    #[inline]
     pub const fn from_u16(n: u16) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         let mut limbs = [Limb::ZERO; LIMBS];
@@ -24,6 +26,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a [`Uint`] from a `u32` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u32>` when stable
     #[allow(trivial_numeric_casts)]
+    #[inline]
     pub const fn from_u32(n: u32) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         let mut limbs = [Limb::ZERO; LIMBS];
@@ -34,6 +37,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a [`Uint`] from a `u64` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u64>` when stable
     #[cfg(target_pointer_width = "32")]
+    #[inline]
     pub const fn from_u64(n: u64) -> Self {
         assert!(LIMBS >= 2, "number of limbs must be two or greater");
         let mut limbs = [Limb::ZERO; LIMBS];
@@ -45,6 +49,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a [`Uint`] from a `u64` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u64>` when stable
     #[cfg(target_pointer_width = "64")]
+    #[inline]
     pub const fn from_u64(n: u64) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         let mut limbs = [Limb::ZERO; LIMBS];
@@ -54,6 +59,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Create a [`Uint`] from a `u128` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u128>` when stable
+    #[inline]
     pub const fn from_u128(n: u128) -> Self {
         assert!(
             LIMBS >= 16 / Limb::BYTES,
@@ -82,6 +88,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Create a [`Uint`] from a `Word` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<Word>` when stable
+    #[inline]
     pub const fn from_word(n: Word) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         let mut limbs = [Limb::ZERO; LIMBS];
@@ -91,6 +98,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Create a [`Uint`] from a `WideWord` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<WideWord>` when stable
+    #[inline]
     pub const fn from_wide_word(n: WideWord) -> Self {
         assert!(LIMBS >= 2, "number of limbs must be two or greater");
         let mut limbs = [Limb::ZERO; LIMBS];
@@ -101,6 +109,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> From<u8> for Uint<LIMBS> {
+    #[inline]
     fn from(n: u8) -> Self {
         // TODO(tarcieri): const where clause when possible
         debug_assert!(LIMBS > 0, "limbs must be non-zero");
@@ -109,6 +118,7 @@ impl<const LIMBS: usize> From<u8> for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> From<u16> for Uint<LIMBS> {
+    #[inline]
     fn from(n: u16) -> Self {
         // TODO(tarcieri): const where clause when possible
         debug_assert!(LIMBS > 0, "limbs must be non-zero");
@@ -117,6 +127,7 @@ impl<const LIMBS: usize> From<u16> for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> From<u32> for Uint<LIMBS> {
+    #[inline]
     fn from(n: u32) -> Self {
         // TODO(tarcieri): const where clause when possible
         debug_assert!(LIMBS > 0, "limbs must be non-zero");
@@ -125,6 +136,7 @@ impl<const LIMBS: usize> From<u32> for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> From<u64> for Uint<LIMBS> {
+    #[inline]
     fn from(n: u64) -> Self {
         // TODO(tarcieri): const where clause when possible
         debug_assert!(LIMBS >= 8 / Limb::BYTES, "not enough limbs");
@@ -133,6 +145,7 @@ impl<const LIMBS: usize> From<u64> for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> From<u128> for Uint<LIMBS> {
+    #[inline]
     fn from(n: u128) -> Self {
         // TODO(tarcieri): const where clause when possible
         debug_assert!(LIMBS >= 16 / Limb::BYTES, "not enough limbs");
@@ -142,6 +155,7 @@ impl<const LIMBS: usize> From<u128> for Uint<LIMBS> {
 
 #[cfg(target_pointer_width = "32")]
 impl From<U64> for u64 {
+    #[inline]
     fn from(n: U64) -> u64 {
         (n.limbs[0].0 as u64) | ((n.limbs[1].0 as u64) << 32)
     }
@@ -149,12 +163,14 @@ impl From<U64> for u64 {
 
 #[cfg(target_pointer_width = "64")]
 impl From<U64> for u64 {
+    #[inline]
     fn from(n: U64) -> u64 {
         n.limbs[0].into()
     }
 }
 
 impl From<U128> for u128 {
+    #[inline]
     fn from(n: U128) -> u128 {
         let mut i = U128::LIMBS - 1;
         let mut res = n.limbs[i].0 as u128;
@@ -167,30 +183,35 @@ impl From<U128> for u128 {
 }
 
 impl<const LIMBS: usize> From<[Word; LIMBS]> for Uint<LIMBS> {
+    #[inline]
     fn from(arr: [Word; LIMBS]) -> Self {
         Self::from_words(arr)
     }
 }
 
 impl<const LIMBS: usize> From<Uint<LIMBS>> for [Word; LIMBS] {
+    #[inline]
     fn from(n: Uint<LIMBS>) -> [Word; LIMBS] {
         *n.as_ref()
     }
 }
 
 impl<const LIMBS: usize> From<[Limb; LIMBS]> for Uint<LIMBS> {
+    #[inline]
     fn from(limbs: [Limb; LIMBS]) -> Self {
         Self { limbs }
     }
 }
 
 impl<const LIMBS: usize> From<Uint<LIMBS>> for [Limb; LIMBS] {
+    #[inline]
     fn from(n: Uint<LIMBS>) -> [Limb; LIMBS] {
         n.limbs
     }
 }
 
 impl<const LIMBS: usize> From<Limb> for Uint<LIMBS> {
+    #[inline]
     fn from(limb: Limb) -> Self {
         limb.0.into()
     }
@@ -200,6 +221,7 @@ impl<const L: usize, const H: usize, const LIMBS: usize> From<(Uint<L>, Uint<H>)
 where
     Uint<L>: ConcatMixed<Uint<H>, MixedOutput = Uint<LIMBS>>,
 {
+    #[inline]
     fn from(nums: (Uint<L>, Uint<H>)) -> Uint<LIMBS> {
         nums.0.concat_mixed(&nums.1)
     }
@@ -209,6 +231,7 @@ impl<const L: usize, const H: usize, const LIMBS: usize> From<&(Uint<L>, Uint<H>
 where
     Uint<L>: ConcatMixed<Uint<H>, MixedOutput = Uint<LIMBS>>,
 {
+    #[inline]
     fn from(nums: &(Uint<L>, Uint<H>)) -> Uint<LIMBS> {
         nums.0.concat_mixed(&nums.1)
     }
@@ -218,12 +241,14 @@ impl<const L: usize, const H: usize, const LIMBS: usize> From<Uint<LIMBS>> for (
 where
     Uint<LIMBS>: SplitMixed<Uint<L>, Uint<H>>,
 {
+    #[inline]
     fn from(num: Uint<LIMBS>) -> (Uint<L>, Uint<H>) {
         num.split_mixed()
     }
 }
 
 impl<const LIMBS: usize, const LIMBS2: usize> From<&Uint<LIMBS>> for Uint<LIMBS2> {
+    #[inline]
     fn from(num: &Uint<LIMBS>) -> Uint<LIMBS2> {
         num.resize()
     }

@@ -169,22 +169,16 @@ extern crate alloc;
 
 pub use uint::encoding::{EncodedUint, TryFromSliceError};
 
+pub use ctutils;
+pub use subtle;
+
 #[cfg(feature = "rand_core")]
 pub use rand_core;
 #[cfg(feature = "rlp")]
 pub use rlp;
-pub use subtle;
 #[cfg(feature = "zeroize")]
 pub use zeroize;
 
-#[cfg(feature = "hybrid-array")]
-pub use {
-    crate::array::{ArrayDecoding, ArrayEncoding, ByteArray},
-    hybrid_array::{self, typenum::consts},
-};
-
-#[cfg(feature = "alloc")]
-pub use crate::uint::boxed::BoxedUint;
 pub use crate::{
     checked::Checked,
     ct::{ConstChoice, ConstCtOption},
@@ -198,6 +192,15 @@ pub use crate::{
     word::{WideWord, Word},
     wrapping::Wrapping,
 };
+
+#[cfg(feature = "hybrid-array")]
+pub use {
+    crate::array::{ArrayDecoding, ArrayEncoding, ByteArray},
+    hybrid_array::{self, typenum::consts},
+};
+
+#[cfg(feature = "alloc")]
+pub use crate::uint::boxed::BoxedUint;
 
 #[macro_use]
 mod macros;

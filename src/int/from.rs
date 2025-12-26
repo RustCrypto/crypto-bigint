@@ -1,10 +1,11 @@
 //! `From`-like conversions for [`Int`].
 
-use crate::{I64, I128, Int, Limb, Uint, Word};
+use crate::{ConstCtOption, I64, I128, Int, Limb, Uint, Word};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Create a [`Int`] from an `i8` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<i8>` when stable
+    #[inline]
     pub const fn from_i8(n: i8) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         Uint::new([Limb(n as Word)]).as_int().resize()
@@ -12,6 +13,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Create a [`Int`] from an `i16` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<i16>` when stable
+    #[inline]
     pub const fn from_i16(n: i16) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         Uint::new([Limb(n as Word)]).as_int().resize()
@@ -19,6 +21,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Create a [`Int`] from an `i32` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<i32>` when stable
+    #[inline]
     pub const fn from_i32(n: i32) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         Uint::new([Limb(n as Word)]).as_int().resize()
@@ -27,6 +30,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Create a [`Int`] from an `i64` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<i64>` when stable
     #[cfg(target_pointer_width = "32")]
+    #[inline]
     pub const fn from_i64(n: i64) -> Self {
         Uint::<{ I64::LIMBS }>::from_u64(n as u64).as_int().resize()
     }
@@ -34,6 +38,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Create a [`Int`] from an `i64` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<i64>` when stable
     #[cfg(target_pointer_width = "64")]
+    #[inline]
     pub const fn from_i64(n: i64) -> Self {
         assert!(LIMBS >= 1, "number of limbs must be greater than zero");
         Uint::new([Limb(n as Word)]).as_int().resize()
@@ -41,14 +46,23 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Create a [`Int`] from an `i128` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<i128>` when stable
+    #[inline]
     pub const fn from_i128(n: i128) -> Self {
         Uint::<{ I128::LIMBS }>::from_u128(n as u128)
             .as_int()
             .resize()
     }
+
+    /// Convert a `CtOption<Uint<LIMBS>>` to a `CtOption<Int<LIMBS>>`
+    // TODO(tarcieri): replace with `const impl From<CtOption<Uint>>` when stable
+    #[inline]
+    pub(super) const fn from_uint_opt(opt: ConstCtOption<Uint<LIMBS>>) -> ConstCtOption<Self> {
+        ConstCtOption::new(*opt.as_inner_unchecked().as_int(), opt.is_some())
+    }
 }
 
 impl<const LIMBS: usize> From<i8> for Int<LIMBS> {
+    #[inline]
     fn from(n: i8) -> Self {
         // TODO(tarcieri): const where clause when possible
         debug_assert!(LIMBS > 0, "limbs must be non-zero");
@@ -57,6 +71,7 @@ impl<const LIMBS: usize> From<i8> for Int<LIMBS> {
 }
 
 impl<const LIMBS: usize> From<i16> for Int<LIMBS> {
+    #[inline]
     fn from(n: i16) -> Self {
         // TODO(tarcieri): const where clause when possible
         debug_assert!(LIMBS > 0, "limbs must be non-zero");
@@ -65,6 +80,7 @@ impl<const LIMBS: usize> From<i16> for Int<LIMBS> {
 }
 
 impl<const LIMBS: usize> From<i32> for Int<LIMBS> {
+    #[inline]
     fn from(n: i32) -> Self {
         // TODO(tarcieri): const where clause when possible
         debug_assert!(LIMBS > 0, "limbs must be non-zero");
@@ -73,6 +89,7 @@ impl<const LIMBS: usize> From<i32> for Int<LIMBS> {
 }
 
 impl<const LIMBS: usize> From<i64> for Int<LIMBS> {
+    #[inline]
     fn from(n: i64) -> Self {
         // TODO(tarcieri): const where clause when possible
         debug_assert!(LIMBS >= 8 / Limb::BYTES, "not enough limbs");
@@ -81,6 +98,7 @@ impl<const LIMBS: usize> From<i64> for Int<LIMBS> {
 }
 
 impl<const LIMBS: usize> From<i128> for Int<LIMBS> {
+    #[inline]
     fn from(n: i128) -> Self {
         // TODO(tarcieri): const where clause when possible
         debug_assert!(LIMBS >= 16 / Limb::BYTES, "not enough limbs");
@@ -89,18 +107,21 @@ impl<const LIMBS: usize> From<i128> for Int<LIMBS> {
 }
 
 impl From<I64> for i64 {
+    #[inline]
     fn from(n: I64) -> i64 {
         u64::from(n.0) as i64
     }
 }
 
 impl From<I128> for i128 {
+    #[inline]
     fn from(n: I128) -> i128 {
         u128::from(n.0) as i128
     }
 }
 
 impl<const LIMBS: usize, const LIMBS2: usize> From<&Int<LIMBS>> for Int<LIMBS2> {
+    #[inline]
     fn from(num: &Int<LIMBS>) -> Int<LIMBS2> {
         num.resize()
     }

@@ -154,7 +154,7 @@ pub const fn gcd_odd<const LIMBS: usize, const VARTIME: bool>(
         steps -= batch;
     }
 
-    f.magnitude().to_odd().expect("odd by construction")
+    f.magnitude().to_odd().expect_copied("odd by construction")
 }
 
 /// Perform `batch` steps of the gcd reduction process on signed tail values `f` and `g`.
@@ -521,21 +521,6 @@ impl<const LIMBS: usize> fmt::Debug for SignedInt<LIMBS> {
 impl<const LIMBS: usize> PartialEq for SignedInt<LIMBS> {
     fn eq(&self, other: &Self) -> bool {
         Self::eq(self, other).to_bool_vartime()
-    }
-}
-
-impl<const LIMBS: usize> ConstCtOption<Odd<SignedInt<LIMBS>>> {
-    /// Returns the contained value, consuming the `self` value.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the value is none with a custom panic message provided by
-    /// `msg`.
-    #[inline]
-    #[track_caller]
-    pub const fn expect(self, msg: &str) -> Odd<SignedInt<LIMBS>> {
-        assert!(self.is_some().to_bool_vartime(), "{}", msg);
-        *self.components_ref().0
     }
 }
 
