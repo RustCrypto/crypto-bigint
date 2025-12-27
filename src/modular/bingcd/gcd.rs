@@ -32,7 +32,7 @@ pub(super) const fn bingcd_step<const LIMBS: usize>(
     *a = a_sub_b.wrapping_neg_if(swap).shr1();
 
     // (b|a) = -(a|b) iff a = b = 3 mod 4 (quadratic reciprocity)
-    let mut jacobi_neg = word::select_word(swap, 0, a_b_mod_4 & (a_b_mod_4 >> 1) & 1);
+    let mut jacobi_neg = word::select(0, a_b_mod_4 & (a_b_mod_4 >> 1) & 1, swap);
 
     // (2a|b) = -(a|b) iff b = ±3 mod 8
     // b is always odd, so we ignore the lower bit and check that bits 2 and 3 are '01' or '10'

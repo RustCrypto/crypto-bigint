@@ -151,7 +151,7 @@ impl UintRef {
             carry = new_carry;
             i += 1;
         }
-        word::from_word_lsb(carry.0)
+        word::choice_from_lsb(carry.0)
     }
 
     /// Conditionally left-shifts by `shift` bits where `0 < shift < Limb::BITS`, returning

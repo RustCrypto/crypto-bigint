@@ -314,7 +314,7 @@ pub(crate) fn almost_montgomery_mul(
         modulus.as_limbs(),
         mod_neg_inv,
     );
-    let overflow = word::from_word_lsb(overflow.0);
+    let overflow = word::choice_from_lsb(overflow.0);
     out.conditional_borrowing_sub_assign(modulus, overflow.into());
 }
 

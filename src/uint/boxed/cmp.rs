@@ -59,7 +59,7 @@ impl ConstantTimeGreater for BoxedUint {
     #[inline]
     fn ct_gt(&self, other: &Self) -> Choice {
         let (_, borrow) = other.borrowing_sub(self, Limb::ZERO);
-        word::from_word_mask(borrow.0).into()
+        word::choice_from_mask(borrow.0).into()
     }
 }
 
@@ -67,7 +67,7 @@ impl ConstantTimeLess for BoxedUint {
     #[inline]
     fn ct_lt(&self, other: &Self) -> Choice {
         let (_, borrow) = self.borrowing_sub(other, Limb::ZERO);
-        word::from_word_mask(borrow.0).into()
+        word::choice_from_mask(borrow.0).into()
     }
 }
 

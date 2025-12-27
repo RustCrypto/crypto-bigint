@@ -12,7 +12,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         while i < LIMBS {
             // Set ret to 0 if the original value was 0, in which
             // case ret would be p.
-            ret.limbs[i].0 = word::select_word(z, 0, ret.limbs[i].0);
+            ret.limbs[i].0 = word::select(0, ret.limbs[i].0, z);
             i += 1;
         }
         ret

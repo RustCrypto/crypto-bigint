@@ -199,7 +199,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             carry = new_carry;
         }
 
-        (ret, word::from_word_lsb(carry.0 >> Limb::HI_BIT))
+        (ret, word::choice_from_lsb(carry.0 >> Limb::HI_BIT))
     }
 
     /// Conditionally right-shifts by `shift` bits where `0 < shift < Limb::BITS`, returning
