@@ -2,7 +2,7 @@
 
 use subtle::{ConstantTimeEq, ConstantTimeGreater, CtOption};
 
-use crate::{BitOps, BoxedUint, ConstantTimeSelect, Limb, SquareRoot};
+use crate::{BitOps, BoxedUint, CtSelect, Limb, SquareRoot};
 
 impl BoxedUint {
     /// Computes √(`self`) in constant time.
@@ -29,7 +29,7 @@ impl BoxedUint {
         // TODO (#378): the tests indicate that just `Self::LOG2_BITS` may be enough.
         while i < self.log2_bits() + 2 {
             let x_nonzero = x.is_nonzero();
-            nz_x.ct_assign(&x, x_nonzero);
+            nz_x.ct_assign(&x, x_nonzero.into());
 
             // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
             quo.limbs.copy_from_slice(&self.limbs);
@@ -44,7 +44,7 @@ impl BoxedUint {
         // At this point `x_prev == x_{n}` and `x == x_{n+1}`
         // where `n == i - 1 == LOG2_BITS + 1 == floor(log2(BITS)) + 1`.
         // Thus, according to Hast, `sqrt(self) = min(x_n, x_{n+1})`.
-        x.ct_assign(&nz_x, Self::ct_gt(&x, &nz_x));
+        x.ct_assign(&nz_x, Self::ct_gt(&x, &nz_x).into());
         x
     }
 

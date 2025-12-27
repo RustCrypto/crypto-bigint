@@ -1,7 +1,7 @@
 //! [`BoxedUint`] modular inverse (i.e. reciprocal) operations.
 
 use crate::{
-    BoxedUint, ConstantTimeSelect, Integer, InvertMod, Limb, NonZero, Odd, U64, modular::safegcd,
+    BoxedUint, CtSelect, Integer, InvertMod, Limb, NonZero, Odd, U64, modular::safegcd,
     uint::invert_mod::expand_invert_mod2k,
 };
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
@@ -50,7 +50,7 @@ impl BoxedUint {
             let inv = Odd(Self::ct_select(
                 &Self::one_with_precision(bits),
                 self,
-                is_some,
+                is_some.into(),
             ))
             .invert_mod2k_vartime(k);
             (inv, is_some)
@@ -76,14 +76,14 @@ impl BoxedUint {
         let mut inv = Odd(Self::ct_select(
             &Self::one_with_precision(bits),
             self,
-            is_some,
+            is_some.into(),
         ))
         .invert_mod_precision();
         inv.restrict_bits(k);
         (inv, is_some)
     }
 
-    /// Computes the multiplicaitve inverse of `self` mod `modulus`
+    /// Computes the multiplicative inverse of `self` mod `modulus`
     ///
     /// `self` and `modulus` must have the same number of limbs, or the function will panic
     ///
@@ -94,7 +94,7 @@ impl BoxedUint {
         let m = NonZero(Self::ct_select(
             &Self::one_with_precision(self.bits_precision()),
             modulus,
-            is_nz,
+            is_nz.into(),
         ));
         let inv_mod_s = self.invert_mod(&m);
         let is_some = inv_mod_s.is_some();
@@ -103,7 +103,7 @@ impl BoxedUint {
         CtOption::new(result, is_some & is_nz)
     }
 
-    /// Computes the multiplicaitve inverse of `self` mod `modulus`
+    /// Computes the multiplicative inverse of `self` mod `modulus`
     ///
     /// `self` and `modulus` must have the same number of limbs, or the function will panic
     ///
