@@ -21,7 +21,7 @@ impl UintRef {
 
         // Short circuit for single-word divisor
         if y.nlimbs() == 1 {
-            y.0[0] = x.div_rem_limb(y.0[0].to_nz().expect("zero divisor"));
+            y.0[0] = x.div_rem_limb(y.0[0].to_nz().expect_copied("zero divisor"));
             return;
         }
 
@@ -62,7 +62,7 @@ impl UintRef {
             }
             (_, 1) => {
                 // Perform limb division
-                let rem_limb = x.div_rem_limb(y.0[0].to_nz().expect("zero divisor"));
+                let rem_limb = x.div_rem_limb(y.0[0].to_nz().expect_copied("zero divisor"));
                 y.fill(Limb::ZERO);
                 y.0[0] = rem_limb;
                 return;
@@ -97,7 +97,7 @@ impl UintRef {
 
         // Short circuit for single-word divisor
         if y.nlimbs() == 1 {
-            let reciprocal = Reciprocal::new(y.0[0].to_nz().expect("zero divisor"));
+            let reciprocal = Reciprocal::new(y.0[0].to_nz().expect_copied("zero divisor"));
             let carry = x.rem_limb_with_reciprocal(&reciprocal, Limb::ZERO);
             y.0[0] = x_lo.rem_limb_with_reciprocal(&reciprocal, carry);
             return;
@@ -148,7 +148,7 @@ impl UintRef {
             }
             (_, 1) => {
                 // Short circuit for single-word divisor
-                let reciprocal = Reciprocal::new(y.0[0].to_nz().expect("zero divisor"));
+                let reciprocal = Reciprocal::new(y.0[0].to_nz().expect_copied("zero divisor"));
                 y.fill(Limb::ZERO);
                 let carry = x.rem_limb_with_reciprocal(&reciprocal, Limb::ZERO);
                 y.0[0] = x_lo.rem_limb_with_reciprocal(&reciprocal, carry);
@@ -172,7 +172,7 @@ impl UintRef {
         x.0[0] = x.0[0].bitor(x_lo_carry);
 
         // Calculate a reciprocal from the highest word of the divisor
-        let reciprocal = Reciprocal::new(y.0[ysize - 1].to_nz().expect("zero divisor"));
+        let reciprocal = Reciprocal::new(y.0[ysize - 1].to_nz().expect_copied("zero divisor"));
 
         // Perform the core division algorithm
         x_hi = Self::rem_wide_large_shifted(
@@ -204,7 +204,7 @@ impl UintRef {
         let x = self;
 
         // Calculate a reciprocal from the highest word of the divisor
-        let reciprocal = Reciprocal::new(y.0[y.nlimbs() - 1].to_nz().expect("zero divisor"));
+        let reciprocal = Reciprocal::new(y.0[y.nlimbs() - 1].to_nz().expect_copied("zero divisor"));
         debug_assert!(reciprocal.shift() == 0);
 
         // Perform the core division algorithm
@@ -344,7 +344,7 @@ impl UintRef {
         let mut x_hi = x.shl_assign_limb_vartime(lshift);
 
         // Calculate a reciprocal from the highest word of the divisor
-        let reciprocal = Reciprocal::new(y.0[ysize - 1].to_nz().expect("zero divisor"));
+        let reciprocal = Reciprocal::new(y.0[ysize - 1].to_nz().expect_copied("zero divisor"));
 
         // Perform the core division algorithm
         x_hi = Self::div_rem_large_shifted(x, x_hi, y, ysize as u32, reciprocal, ConstChoice::TRUE);
@@ -376,7 +376,7 @@ impl UintRef {
         let ysize = y.nlimbs();
 
         // Calculate a reciprocal from the highest word of the divisor
-        let reciprocal = Reciprocal::new(y.0[ysize - 1].to_nz().expect("zero divisor"));
+        let reciprocal = Reciprocal::new(y.0[ysize - 1].to_nz().expect_copied("zero divisor"));
         debug_assert!(reciprocal.shift() == 0);
 
         // Perform the core division algorithm

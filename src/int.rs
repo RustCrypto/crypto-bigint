@@ -5,8 +5,9 @@ use crate::{
     Signed, Uint, Word, Zero,
 };
 use core::fmt;
+use ctutils::CtSelect;
 use num_traits::{ConstOne, ConstZero};
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
+use subtle::{Choice, ConstantTimeEq};
 
 #[cfg(feature = "serde")]
 use crate::Encoding;
@@ -213,9 +214,17 @@ impl<const LIMBS: usize> AsMut<[Limb]> for Int<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> ConditionallySelectable for Int<LIMBS> {
+impl<const LIMBS: usize> subtle::ConditionallySelectable for Int<LIMBS> {
+    #[inline]
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Self(Uint::conditional_select(&a.0, &b.0, choice))
+        a.ct_select(b, choice.into())
+    }
+}
+
+impl<const LIMBS: usize> CtSelect for Int<LIMBS> {
+    #[inline]
+    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
+        Self(self.0.ct_select(&other.0, choice))
     }
 }
 

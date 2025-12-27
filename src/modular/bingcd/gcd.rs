@@ -74,6 +74,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         let (mut a, mut b) = (*rhs, *self.as_ref());
         let mut i = 0;
         let mut jacobi_neg = 0;
+
         while i < Self::MINIMAL_BINGCD_ITERATIONS {
             jacobi_neg ^= bingcd_step(&mut a, &mut b).2;
             i += 1;
@@ -81,7 +82,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
         let gcd = b
             .to_odd()
-            .expect("gcd of an odd value with something else is always odd");
+            .expect_copied("gcd of an odd value with something else is always odd");
+
         (gcd, jacobi_neg)
     }
 
@@ -103,7 +105,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
         let gcd = b
             .to_odd()
-            .expect("gcd of an odd value with something else is always odd");
+            .expect_copied("gcd of an odd value with something else is always odd");
+
         (gcd, jacobi_neg)
     }
 
@@ -168,7 +171,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             // Compute the batch update matrix from a_ and b_.
             let (.., matrix, j_neg) = a_
                 .to_odd()
-                .expect("a_ is always odd")
+                .expect_copied("a_ is always odd")
                 .partial_binxgcd::<LIMBS_K>(&b_, batch, ConstChoice::FALSE);
             jacobi_neg ^= j_neg;
 
@@ -181,7 +184,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
         (
             a.to_odd()
-                .expect("gcd of an odd value with something else is always odd"),
+                .expect_copied("gcd of an odd value is always odd"),
             jacobi_neg,
         )
     }
@@ -230,7 +233,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             // Compute the batch update matrix from a_ and b_.
             let (.., matrix, j_neg) = a_
                 .to_odd()
-                .expect("a_ is always odd")
+                .expect_copied("a_ is always odd")
                 .partial_binxgcd::<LIMBS_K>(&b_, batch_max, ConstChoice::FALSE);
             jacobi_neg ^= j_neg;
 
@@ -242,7 +245,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
         (
             a.to_odd()
-                .expect("gcd of an odd value with something else is always odd"),
+                .expect_copied("gcd of an odd value with something else is always odd"),
             jacobi_neg,
         )
     }

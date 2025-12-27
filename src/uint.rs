@@ -3,10 +3,11 @@
 #![allow(clippy::needless_range_loop, clippy::many_single_char_names)]
 
 use core::fmt;
+use ctutils::CtSelect;
+use subtle::ConstantTimeEq;
 
 #[cfg(feature = "serde")]
 use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 #[cfg(feature = "zeroize")]
 use zeroize::DefaultIsZeroes;
 
@@ -272,15 +273,19 @@ impl<const LIMBS: usize> AsMut<UintRef> for Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> ConditionallySelectable for Uint<LIMBS> {
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        let mut limbs = [Limb::ZERO; LIMBS];
+impl<const LIMBS: usize> subtle::ConditionallySelectable for Uint<LIMBS> {
+    #[inline]
+    fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
+        a.ct_select(b, choice.into())
+    }
+}
 
-        for i in 0..LIMBS {
-            limbs[i] = Limb::conditional_select(&a.limbs[i], &b.limbs[i], choice);
+impl<const LIMBS: usize> CtSelect for Uint<LIMBS> {
+    #[inline]
+    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
+        Self {
+            limbs: self.limbs.ct_select(&other.limbs, choice),
         }
-
-        Self { limbs }
     }
 }
 

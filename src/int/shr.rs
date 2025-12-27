@@ -15,7 +15,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Panics if `shift >= Self::BITS`.
     pub const fn shr(&self, shift: u32) -> Self {
         self.overflowing_shr(shift)
-            .expect("`shift` within the bit size of the integer")
+            .expect_copied("`shift` within the bit size of the integer")
     }
 
     /// Computes `self >> shift` in variable time.
@@ -26,7 +26,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Panics if `shift >= Self::BITS`.
     pub const fn shr_vartime(&self, shift: u32) -> Self {
         self.overflowing_shr_vartime(shift)
-            .expect("`shift` within the bit size of the integer")
+            .expect_copied("`shift` within the bit size of the integer")
     }
 
     /// Computes `self >> shift`.
@@ -49,7 +49,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
                 &result,
                 &result
                     .overflowing_shr_vartime(1 << i)
-                    .expect("shift within range"),
+                    .expect_copied("shift within range"),
                 bit,
             );
             i += 1;
@@ -74,7 +74,10 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let is_negative = self.is_negative();
 
         if shift >= Self::BITS {
-            return ConstCtOption::none(Self::select(&Self::ZERO, &Self::MINUS_ONE, is_negative));
+            return ConstCtOption::new(
+                Self::select(&Self::ZERO, &Self::MINUS_ONE, is_negative),
+                ConstChoice::FALSE,
+            );
         }
 
         // Select the base limb, based on the sign of this value.
@@ -117,7 +120,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// - `-1` when `self` is negative.
     pub const fn wrapping_shr(&self, shift: u32) -> Self {
         let default = Self::select(&Self::ZERO, &Self::MINUS_ONE, self.is_negative());
-        self.overflowing_shr(shift).unwrap_or(default)
+        ctutils::unwrap_or!(self.overflowing_shr(shift), default, Self::select)
     }
 
     /// Computes `self >> shift` in variable-time in a panic-free manner.
@@ -127,7 +130,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// - `-1` when `self` is negative.
     pub const fn wrapping_shr_vartime(&self, shift: u32) -> Self {
         let default = Self::select(&Self::ZERO, &Self::MINUS_ONE, self.is_negative());
-        self.overflowing_shr_vartime(shift).unwrap_or(default)
+        ctutils::unwrap_or!(self.overflowing_shr_vartime(shift), default, Self::select)
     }
 }
 

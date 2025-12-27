@@ -9,12 +9,13 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub fn invert_odd_mod(&self, modulus: &Odd<Uint<LIMBS>>) -> ConstCtOption<Uint<LIMBS>> {
         let (abs, sgn) = self.abs_sign();
         let maybe_inv = abs.invert_odd_mod(modulus);
-        let (abs_inv, inv_is_some) = maybe_inv.components_ref();
+        let abs_inv = maybe_inv.as_inner_unchecked();
+
         // Note: when `self` is negative and modulus is non-zero, then
         // self^{-1} % modulus = modulus - |self|^{-1} % modulus
         ConstCtOption::new(
             Uint::select(abs_inv, &modulus.wrapping_sub(abs_inv), sgn),
-            inv_is_some,
+            maybe_inv.is_some(),
         )
     }
 
@@ -24,12 +25,13 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub const fn invert_mod(&self, modulus: &NonZero<Uint<LIMBS>>) -> ConstCtOption<Uint<LIMBS>> {
         let (abs, sgn) = self.abs_sign();
         let maybe_inv = abs.invert_mod(modulus);
-        let (abs_inv, inv_is_some) = maybe_inv.components_ref();
+        let abs_inv = maybe_inv.as_inner_unchecked();
+
         // Note: when `self` is negative and modulus is non-zero, then
         // self^{-1} % modulus = modulus - |self|^{-1} % modulus
         ConstCtOption::new(
             Uint::select(abs_inv, &modulus.as_ref().wrapping_sub(abs_inv), sgn),
-            inv_is_some,
+            maybe_inv.is_some(),
         )
     }
 }

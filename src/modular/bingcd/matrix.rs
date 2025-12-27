@@ -72,10 +72,10 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
             .or(pattern_vote_4);
 
         PatternMatrix {
-            m00: abs_m00.checked_drop_extension().expect("m00 fits"),
-            m01: abs_m01.checked_drop_extension().expect("m01 fits"),
-            m10: abs_m10.checked_drop_extension().expect("m10 fits"),
-            m11: abs_m11.checked_drop_extension().expect("m11 fits"),
+            m00: abs_m00.checked_drop_extension().expect_copied("m00 fits"),
+            m01: abs_m01.checked_drop_extension().expect_copied("m01 fits"),
+            m10: abs_m10.checked_drop_extension().expect_copied("m10 fits"),
+            m11: abs_m11.checked_drop_extension().expect_copied("m11 fits"),
             pattern,
         }
     }

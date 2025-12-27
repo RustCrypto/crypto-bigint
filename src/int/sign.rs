@@ -3,6 +3,7 @@ use num_traits::ConstZero;
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Returns the word of most significant [`Limb`].
+    ///
     /// For the degenerate case where the number of limbs is zero,
     /// zeroed word is returned (which is semantically correct).
     /// This method leaks the limb length of the value, which is also OK.
@@ -16,6 +17,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Construct new [`Int`] from an absolute value and sign.
+    ///
     /// Returns `None` when the result exceeds the bounds of an [`Int<LIMBS>`].
     #[inline]
     pub const fn new_from_abs_sign(
@@ -33,6 +35,16 @@ impl<const LIMBS: usize> Int<LIMBS> {
         // the sign of the wrapping negation is also negative.
         let fits = abs_msb.not().or(is_negative.and(signed.is_negative()));
         ConstCtOption::new(signed, fits)
+    }
+
+    /// Construct a new [`Int`] from an [`ConstCtOption`] of an absolute value and sign.
+    #[inline]
+    pub(crate) const fn new_from_abs_opt_sign(
+        maybe_abs: ConstCtOption<Uint<LIMBS>>,
+        is_negative: ConstChoice,
+    ) -> ConstCtOption<Self> {
+        Self::new_from_abs_sign(maybe_abs.to_inner_unchecked(), is_negative)
+            .filter_by(maybe_abs.is_some())
     }
 
     /// Whether this [`Int`] is negative, as a `ConstChoice`.

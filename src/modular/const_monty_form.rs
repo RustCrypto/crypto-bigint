@@ -14,7 +14,7 @@ use super::{
     MontyParams, Retrieve, div_by_2::div_by_2, mul::mul_montgomery_form,
     reduction::montgomery_retrieve,
 };
-use crate::{ConstChoice, ConstOne, ConstZero, Odd, One, Uint, Zero};
+use crate::{ConstOne, ConstZero, Odd, One, Uint, Zero};
 use core::{fmt::Debug, marker::PhantomData};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
 
@@ -130,15 +130,6 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     pub const fn div_by_2(&self) -> Self {
         Self {
             montgomery_form: div_by_2(&self.montgomery_form, &MOD::PARAMS.modulus),
-            phantom: PhantomData,
-        }
-    }
-
-    /// Return `b` if `c` is truthy, otherwise return `a`.
-    #[inline]
-    pub(crate) const fn select(a: &Self, b: &Self, choice: ConstChoice) -> Self {
-        ConstMontyForm {
-            montgomery_form: Uint::select(&a.montgomery_form, &b.montgomery_form, choice),
             phantom: PhantomData,
         }
     }

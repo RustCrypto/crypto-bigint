@@ -193,7 +193,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// assert_eq!(remainder, U448::from(1_u64));
     /// ```
     pub const fn wrapping_rem_vartime(&self, rhs: &Self) -> Self {
-        let nz_rhs = rhs.to_nz().expect("non-zero divisor");
+        let nz_rhs = rhs.to_nz().expect_copied("non-zero divisor");
         self.rem_vartime(&nz_rhs)
     }
 

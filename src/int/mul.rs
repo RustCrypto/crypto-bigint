@@ -73,8 +73,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let (abs_lhs, lhs_sgn) = self.abs_sign();
         let (abs_rhs, rhs_sgn) = rhs.abs_sign();
         let maybe_res = abs_lhs.checked_mul(&abs_rhs);
-        let (lo, is_some) = maybe_res.components_ref();
-        Self::new_from_abs_sign(*lo, lhs_sgn.xor(rhs_sgn)).and_choice(is_some)
+        Self::new_from_abs_opt_sign(maybe_res, lhs_sgn.xor(rhs_sgn))
     }
 
     /// Multiply `self` by `rhs`, saturating at the numeric bounds instead of overflowing.
@@ -82,12 +81,13 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let (abs_lhs, lhs_sgn) = self.abs_sign();
         let (abs_rhs, rhs_sgn) = rhs.abs_sign();
         let maybe_res = abs_lhs.checked_mul(&abs_rhs);
-        let (lo, is_some) = maybe_res.components_ref();
         let is_neg = lhs_sgn.xor(rhs_sgn);
         let bound = Self::select(&Self::MAX, &Self::MIN, is_neg);
-        Self::new_from_abs_sign(*lo, is_neg)
-            .and_choice(is_some)
-            .unwrap_or(bound)
+        ctutils::unwrap_or!(
+            Self::new_from_abs_opt_sign(maybe_res, is_neg),
+            bound,
+            Self::select
+        )
     }
 
     /// Multiply `self` by `rhs`, wrapping the result in case of overflow.

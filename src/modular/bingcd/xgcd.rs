@@ -91,12 +91,12 @@ impl<const LIMBS: usize> DividedPatternXgcdOutput<LIMBS> {
             *x = x.bounded_div2k_mod_q(
                 k,
                 k_upper_bound,
-                &rhs_div_gcd.to_odd().expect("odd by construction"),
+                &rhs_div_gcd.to_odd().expect_copied("odd by construction"),
             );
             *y = y.bounded_div2k_mod_q(
                 k,
                 k_upper_bound,
-                &lhs_div_gcd.to_odd().expect("odd by construction"),
+                &lhs_div_gcd.to_odd().expect_copied("odd by construction"),
             );
         }
 
@@ -283,7 +283,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
             // Compute the K-1 iteration update matrix from a_ and b_
             let (.., update_matrix, _) = compact_a
                 .to_odd()
-                .expect("a is always odd")
+                .expect_copied("a is always odd")
                 .partial_binxgcd::<LIMBS_K>(&compact_b, K - 1, b_eq_compact_b);
 
             // Update `a` and `b` using the update matrix
@@ -300,7 +300,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
 
         let gcd = a
             .to_odd()
-            .expect("gcd of an odd value with something else is always odd");
+            .expect_copied("gcd of an odd value with something else is always odd");
 
         let matrix = state.to_divided_pattern_matrix();
         DividedPatternXgcdOutput { gcd, matrix }
@@ -350,7 +350,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
         Uint::swap(&mut a, &mut b);
         matrix.swap_rows();
 
-        let a = a.to_odd().expect("a is always odd");
+        let a = a.to_odd().expect_copied("a is always odd");
         (a, b, matrix, jacobi_neg)
     }
 }
@@ -523,7 +523,7 @@ mod tests {
         use crate::modular::bingcd::matrix::DividedPatternMatrix;
         use crate::{ConstChoice, Gcd, Odd, U64};
 
-        const A: Odd<U64> = U64::from_be_hex("CA048AFA63CD6A1F").to_odd().expect("odd");
+        const A: Odd<U64> = Odd::from_be_hex("CA048AFA63CD6A1F");
         const B: U64 = U64::from_be_hex("AE693BF7BE8E5566");
 
         #[test]
@@ -556,7 +556,7 @@ mod tests {
             assert_eq!(computed_b, target_b);
         }
 
-        const SMALL_A: Odd<U64> = U64::from_be_hex("0000000003CD6A1F").to_odd().expect("odd");
+        const SMALL_A: Odd<U64> = Odd::from_be_hex("0000000003CD6A1F");
         const SMALL_B: U64 = U64::from_be_hex("000000000E8E5566");
 
         #[test]

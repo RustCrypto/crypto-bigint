@@ -110,7 +110,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         if k == 0 {
             ConstCtOption::some(Self::ZERO)
         } else if k > Self::BITS {
-            ConstCtOption::none(Self::ZERO)
+            ConstCtOption::new(Self::ZERO, ConstChoice::FALSE)
         } else {
             let is_some = self.is_odd();
             let inv = Odd(Uint::select(&Uint::ONE, self, is_some)).invert_mod2k_vartime(k);
@@ -161,7 +161,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn inv_mod(&self, modulus: &Self) -> ConstCtOption<Self> {
         let is_nz = modulus.is_nonzero();
         let m = NonZero(Uint::select(&Uint::ONE, modulus, is_nz));
-        self.invert_mod(&m).and_choice(is_nz)
+        self.invert_mod(&m).filter_by(is_nz)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`.
@@ -179,10 +179,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let maybe_b = self.invert_mod2k(k);
         let is_some = maybe_a.is_some().and(maybe_b.is_some());
 
-        // Unwrap to avoid mapping through ConstCtOptions.
+        // Extract inner values to avoid mapping through ConstCtOptions.
         // if `a` or `b` don't exist, the returned ConstCtOption will be None anyway.
-        let a = maybe_a.unwrap_or(Uint::ZERO);
-        let b = maybe_b.unwrap_or(Uint::ZERO);
+        let a = maybe_a.to_inner_unchecked();
+        let b = maybe_b.to_inner_unchecked();
 
         // Restore from RNS:
         // self^{-1} = a mod s = b mod 2^k

@@ -97,9 +97,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         rhs: &Uint<RHS_LIMBS>,
     ) -> ConstCtOption<Int<LIMBS>> {
         let (abs_lhs, lhs_sgn) = self.abs_sign();
-        let maybe_lo = abs_lhs.checked_mul(rhs);
-        let (lo, is_some) = maybe_lo.components_ref();
-        Self::new_from_abs_sign(*lo, lhs_sgn).and_choice(is_some)
+        Self::new_from_abs_opt_sign(abs_lhs.checked_mul(rhs), lhs_sgn)
     }
 }
 

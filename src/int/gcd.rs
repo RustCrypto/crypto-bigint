@@ -29,11 +29,11 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let self_is_zero = self.is_nonzero().not();
         let self_nz = Int::select(self, &Int::ONE, self_is_zero)
             .to_nz()
-            .expect("self is non zero by construction");
+            .expect_copied("self is non zero by construction");
         let rhs_is_zero = rhs.is_nonzero().not();
         let rhs_nz = Int::select(rhs, &Int::ONE, rhs_is_zero)
             .to_nz()
-            .expect("rhs is non zero by construction");
+            .expect_copied("rhs is non zero by construction");
 
         let NonZeroIntXgcdOutput {
             gcd,
@@ -49,8 +49,10 @@ impl<const LIMBS: usize> Int<LIMBS> {
         gcd = Uint::select(&gcd, &self.abs(), rhs_is_zero);
 
         // Correct the Bézout coefficients in case self and/or rhs was zero.
-        let signum_self = Int::new_from_abs_sign(Uint::ONE, self.is_negative()).expect("+/- 1");
-        let signum_rhs = Int::new_from_abs_sign(Uint::ONE, rhs.is_negative()).expect("+/- 1");
+        let signum_self =
+            Int::new_from_abs_sign(Uint::ONE, self.is_negative()).expect_copied("+/- 1");
+        let signum_rhs =
+            Int::new_from_abs_sign(Uint::ONE, rhs.is_negative()).expect_copied("+/- 1");
         x = Int::select(&x, &Int::ZERO, self_is_zero);
         y = Int::select(&y, &signum_rhs, self_is_zero);
         x = Int::select(&x, &signum_self, rhs_is_zero);
@@ -102,8 +104,8 @@ impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
         // Swap to make sure lhs is odd.
         let swap = ConstChoice::from_u32_lt(j, i);
         Int::conditional_swap(&mut lhs, &mut rhs, swap);
-        let lhs = lhs.to_odd().expect("odd by construction");
-        let rhs = rhs.to_nz().expect("non-zero by construction");
+        let lhs = lhs.to_odd().expect_copied("odd by construction");
+        let rhs = rhs.to_nz().expect_copied("non-zero by construction");
 
         let OddIntXgcdOutput {
             gcd,
@@ -122,7 +124,7 @@ impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
             .as_ref()
             .shl(k)
             .to_nz()
-            .expect("is non-zero by construction");
+            .expect_copied("is non-zero by construction");
 
         NonZeroIntXgcdOutput {
             gcd,
@@ -164,8 +166,10 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
 
         x = x.wrapping_neg_if(sgn_lhs);
         y = y.wrapping_neg_if(sgn_rhs);
-        let lhs_on_gcd = Int::new_from_abs_sign(abs_lhs_on_gcd, sgn_lhs).expect("no overflow");
-        let rhs_on_gcd = Int::new_from_abs_sign(abs_rhs_on_gcd, sgn_rhs).expect("no overflow");
+        let lhs_on_gcd =
+            Int::new_from_abs_sign(abs_lhs_on_gcd, sgn_lhs).expect_copied("no overflow");
+        let rhs_on_gcd =
+            Int::new_from_abs_sign(abs_rhs_on_gcd, sgn_rhs).expect_copied("no overflow");
 
         OddIntXgcdOutput {
             gcd,
