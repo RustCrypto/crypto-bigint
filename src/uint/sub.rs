@@ -31,7 +31,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform saturating subtraction, returning `ZERO` on underflow.
     pub const fn saturating_sub(&self, rhs: &Self) -> Self {
         let (res, underflow) = self.borrowing_sub(rhs, Limb::ZERO);
-        Self::select(&res, &Self::ZERO, word::from_word_mask(underflow.0))
+        Self::select(&res, &Self::ZERO, word::choice_from_mask(underflow.0))
     }
 
     /// Perform wrapping subtraction, discarding underflow and wrapping around

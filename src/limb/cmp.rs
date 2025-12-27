@@ -29,22 +29,22 @@ impl Limb {
     /// Return `b` if `c` is truthy, otherwise return `a`.
     #[inline]
     pub(crate) const fn select(a: Self, b: Self, c: ConstChoice) -> Self {
-        Self(word::select_word(c, a.0, b.0))
+        Self(word::select(a.0, b.0, c))
     }
 
     /// Swap the values of `a` and `b` if `c` is truthy, otherwise do nothing.
     #[inline]
     pub(crate) const fn ct_conditional_swap(a: &mut Self, b: &mut Self, c: ConstChoice) {
         (*a, *b) = (
-            Self(word::select_word(c, a.0, b.0)),
-            Self(word::select_word(c, b.0, a.0)),
+            Self(word::select(a.0, b.0, c)),
+            Self(word::select(b.0, a.0, c)),
         )
     }
 
     /// Returns the truthy value if `self != 0` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn is_nonzero(&self) -> ConstChoice {
-        word::from_word_nonzero(self.0)
+        word::choice_from_nonzero(self.0)
     }
 }
 
@@ -63,14 +63,14 @@ impl ConstantTimeEq for Limb {
 impl ConstantTimeGreater for Limb {
     #[inline]
     fn ct_gt(&self, other: &Self) -> Choice {
-        word::from_word_gt(self.0, other.0).into()
+        word::choice_from_gt(self.0, other.0).into()
     }
 }
 
 impl ConstantTimeLess for Limb {
     #[inline]
     fn ct_lt(&self, other: &Self) -> Choice {
-        word::from_word_lt(self.0, other.0).into()
+        word::choice_from_lt(self.0, other.0).into()
     }
 }
 

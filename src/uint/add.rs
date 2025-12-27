@@ -30,7 +30,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform saturating addition, returning `MAX` on overflow.
     pub const fn saturating_add(&self, rhs: &Self) -> Self {
         let (res, overflow) = self.carrying_add(rhs, Limb::ZERO);
-        Self::select(&res, &Self::MAX, word::from_word_lsb(overflow.0))
+        Self::select(&res, &Self::MAX, word::choice_from_lsb(overflow.0))
     }
 
     /// Perform wrapping addition, discarding overflow.

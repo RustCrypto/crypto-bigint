@@ -80,7 +80,7 @@ impl Limb {
             let (shifted, carry) = self.shr1();
             self = Self::select(self, shifted, execute);
 
-            let overflow = word::from_word_msb(carry.0);
+            let overflow = word::choice_from_msb(carry.0);
             let add_back_q = overflow.and(execute);
             self = self.wrapping_add(Self::select(Self::ZERO, one_half_mod_q, add_back_q));
             factor = factor.bitxor(Self::select(Self::ZERO, Self::ONE.shl(i), add_back_q));

@@ -166,7 +166,7 @@ impl UintRef {
             self.0[i] = limb.bitor(carry);
             carry = new_carry;
         }
-        word::from_word_lsb(carry.0 >> Limb::HI_BIT)
+        word::choice_from_lsb(carry.0 >> Limb::HI_BIT)
     }
 
     /// Conditionally right-shifts by `shift` bits where `0 < shift < Limb::BITS`, returning

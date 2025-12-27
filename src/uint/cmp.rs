@@ -67,7 +67,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Returns the truthy value if `self` is odd or the falsy value otherwise.
     pub(crate) const fn is_odd(&self) -> ConstChoice {
-        word::from_word_lsb(self.limbs[0].0 & 1)
+        word::choice_from_lsb(self.limbs[0].0 & 1)
     }
 
     /// Returns the truthy value if `self == rhs` or the falsy value otherwise.
@@ -92,7 +92,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // but since we have to use Uint::wrapping_sub(), which calls `borrowing_sub()`,
         // there are no savings compared to just calling `borrowing_sub()` directly.
         let (_res, borrow) = lhs.borrowing_sub(rhs, Limb::ZERO);
-        word::from_word_mask(borrow.0)
+        word::choice_from_mask(borrow.0)
     }
 
     /// Returns the truthy value if `self <= rhs` and the falsy value otherwise.
@@ -105,7 +105,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[inline]
     pub(crate) const fn gt(lhs: &Self, rhs: &Self) -> ConstChoice {
         let (_res, borrow) = rhs.borrowing_sub(lhs, Limb::ZERO);
-        word::from_word_mask(borrow.0)
+        word::choice_from_mask(borrow.0)
     }
 
     /// Returns the ordering between `self` and `rhs` as an i8.
