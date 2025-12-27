@@ -181,7 +181,6 @@ pub use zeroize;
 
 pub use crate::{
     checked::Checked,
-    ct::{ConstChoice, ConstCtOption},
     int::{types::*, *},
     jacobi::JacobiSymbol,
     limb::Limb,
@@ -193,14 +192,16 @@ pub use crate::{
     wrapping::Wrapping,
 };
 
+// TODO(tarcieri): get rid of `Const*` prefix
+pub use ctutils::{Choice as ConstChoice, CtOption as ConstCtOption};
+
+#[cfg(feature = "alloc")]
+pub use crate::uint::boxed::BoxedUint;
 #[cfg(feature = "hybrid-array")]
 pub use {
     crate::array::{ArrayDecoding, ArrayEncoding, ByteArray},
     hybrid_array::{self, typenum::consts},
 };
-
-#[cfg(feature = "alloc")]
-pub use crate::uint::boxed::BoxedUint;
 
 #[macro_use]
 mod macros;
@@ -210,7 +211,6 @@ pub mod modular;
 #[cfg(feature = "hybrid-array")]
 mod array;
 mod checked;
-mod ct;
 mod int;
 mod jacobi;
 mod limb;

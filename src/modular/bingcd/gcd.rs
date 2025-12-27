@@ -1,6 +1,6 @@
 use crate::{
     ConstChoice, Limb, Odd, U64, U128, Uint, Word,
-    ct::{u32_max, u32_min},
+    primitives::{u32_max, u32_min},
     word,
 };
 

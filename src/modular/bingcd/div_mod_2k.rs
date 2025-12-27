@@ -1,6 +1,6 @@
 //! Compute `x / 2^k mod q` for some prime `q`.
 
-use crate::{ConstChoice, Limb, Odd, OddUint, Uint, ct::u32_min, word};
+use crate::{ConstChoice, Limb, Odd, OddUint, Uint, primitives::u32_min, word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute `self / 2^k mod q`.

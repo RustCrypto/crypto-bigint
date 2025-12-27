@@ -6,8 +6,8 @@
 use super::UintRef;
 use crate::{
     ConstChoice, Limb, NonZero,
-    ct::u32_min,
     div_limb::{Reciprocal, div2by1, div3by2},
+    primitives::u32_min,
     word,
 };
 

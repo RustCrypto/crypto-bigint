@@ -14,7 +14,7 @@ pub(crate) mod boxed;
 
 use core::fmt;
 
-use crate::{ConstChoice, ConstCtOption, I64, Int, Limb, Odd, U64, Uint, ct::u32_min};
+use crate::{ConstChoice, ConstCtOption, I64, Int, Limb, Odd, U64, Uint, primitives::u32_min};
 
 const GCD_BATCH_SIZE: u32 = 62;
 
