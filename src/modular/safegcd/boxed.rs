@@ -6,7 +6,7 @@
 use super::{GCD_BATCH_SIZE, Matrix, iterations, jump};
 use crate::{
     BoxedUint, ConstChoice, ConstantTimeSelect, I64, Int, Limb, NonZero, Odd, Resize, U64, Uint,
-    ct::{u32_max, u32_min},
+    primitives::{u32_max, u32_min},
 };
 use core::fmt;
 use subtle::{Choice, CtOption};

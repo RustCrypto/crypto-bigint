@@ -1,4 +1,4 @@
-use crate::{WideWord, Word};
+use crate::{ConstChoice, WideWord, Word};
 
 /// Adds wide numbers represented by pairs of (least significant word, most significant word)
 /// and returns the result in the same format `(lo, hi)`.
@@ -70,8 +70,21 @@ pub(crate) const fn carrying_mul_add(
     (ret as Word, (ret >> Word::BITS) as Word)
 }
 
+/// `const fn` equivalent of `u32::max(a, b)`.
+#[inline]
+pub(crate) const fn u32_max(a: u32, b: u32) -> u32 {
+    ConstChoice::from_u32_lt(a, b).select_u32(a, b)
+}
+
+/// `const` equivalent of `u32::min(a, b)`.
+#[inline]
+pub(crate) const fn u32_min(a: u32, b: u32) -> u32 {
+    ConstChoice::from_u32_lt(a, b).select_u32(b, a)
+}
+
 #[cfg(test)]
 mod tests {
+    use super::{u32_max, u32_min};
     use crate::Word;
 
     #[test]
@@ -83,5 +96,21 @@ mod tests {
         let (result, carry_out) = super::carrying_mul_add(lhs, rhs, addend, carry_in);
         assert_eq!(result, Word::MAX);
         assert_eq!(carry_out, Word::MAX);
+    }
+
+    #[test]
+    fn test_u32_const_min() {
+        assert_eq!(u32_min(0, 5), 0);
+        assert_eq!(u32_min(7, 0), 0);
+        assert_eq!(u32_min(7, 5), 5);
+        assert_eq!(u32_min(7, 7), 7);
+    }
+
+    #[test]
+    fn test_u32_const_max() {
+        assert_eq!(u32_max(0, 5), 5);
+        assert_eq!(u32_max(7, 0), 7);
+        assert_eq!(u32_max(7, 5), 7);
+        assert_eq!(u32_max(7, 7), 7);
     }
 }

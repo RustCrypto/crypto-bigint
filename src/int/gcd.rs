@@ -2,7 +2,7 @@
 //! which is described by Pornin in "Optimized Binary GCD for Modular Inversion".
 //! Ref: <https://eprint.iacr.org/2020/972.pdf>
 
-use crate::ct::u32_min;
+use crate::primitives::u32_min;
 use crate::uint::gcd::{OddUintXgcdOutput, impl_gcd_uint_lhs, impl_gcd_uint_rhs};
 use crate::{
     ConstChoice, Gcd, Int, NonZero, NonZeroInt, NonZeroUint, Odd, OddInt, OddUint, Uint, Xgcd,
