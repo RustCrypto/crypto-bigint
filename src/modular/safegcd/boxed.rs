@@ -5,7 +5,7 @@
 
 use super::{GCD_BATCH_SIZE, Matrix, iterations, jump};
 use crate::{
-    BoxedUint, ConstChoice, ConstantTimeSelect, I64, Int, Limb, NonZero, Odd, Resize, U64, Uint,
+    BoxedUint, ConstChoice, CtSelect, I64, Int, Limb, NonZero, Odd, Resize, U64, Uint,
     primitives::{u32_max, u32_min},
 };
 use core::fmt;
@@ -127,7 +127,7 @@ fn invert_odd_mod_precomp<const VARTIME: bool>(
 
 /// Calculate the greatest common denominator of `f` and `g`.
 pub fn gcd<const VARTIME: bool>(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
-    let f_is_zero = f.is_zero();
+    let f_is_zero = f.is_zero().into();
     // Note: is non-zero by construction
     let f_nz = NonZero(BoxedUint::ct_select(
         f,
@@ -407,7 +407,7 @@ impl SignedBoxedInt {
 
     /// Normalize the value to a `BoxedUint` in the range `[0, m)`.
     fn norm(&self, f_sign: ConstChoice, m: &BoxedUint) -> BoxedUint {
-        let swap = Choice::from(f_sign.xor(self.sign)) & self.is_nonzero();
+        let swap = f_sign.xor(self.sign) & self.is_nonzero().into();
         BoxedUint::ct_select(&self.magnitude, &m.wrapping_sub(&self.magnitude), swap)
     }
 }

@@ -114,7 +114,7 @@ where
             // Constant-time lookup in the array of powers
             power.as_mut_limbs().copy_from_slice(powers[0].as_limbs());
             for i in 1..(1 << WINDOW) {
-                power.ct_assign(&powers[i], (i as Word).ct_eq(&idx));
+                power.ct_assign(&powers[i], (i as Word).ct_eq(&idx).into());
             }
 
             multiplier.mul_amm_assign(&mut z, &power);

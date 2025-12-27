@@ -1,8 +1,8 @@
 //! [`BoxedUint`] division operations.
 
 use crate::{
-    BoxedUint, CheckedDiv, ConstantTimeSelect, DivRemLimb, DivVartime, Limb, NonZero, Reciprocal,
-    RemLimb, RemMixed, UintRef, Wrapping,
+    BoxedUint, CheckedDiv, CtSelect, DivRemLimb, DivVartime, Limb, NonZero, Reciprocal, RemLimb,
+    RemMixed, UintRef, Wrapping,
 };
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 use subtle::CtOption;
@@ -121,7 +121,7 @@ impl BoxedUint {
         let mut quo = self.clone();
         let is_nz = rhs.is_nonzero();
         let mut rem = Self::one_with_precision(self.bits_precision());
-        rem.ct_assign(rhs, is_nz);
+        rem.ct_assign(rhs, is_nz.into());
         quo.as_mut_uint_ref().div_rem(rem.as_mut_uint_ref());
         CtOption::new(quo, is_nz)
     }

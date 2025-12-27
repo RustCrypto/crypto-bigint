@@ -193,7 +193,7 @@ pub use crate::{
 };
 
 // TODO(tarcieri): get rid of `Const*` prefix
-pub use ctutils::{Choice as ConstChoice, CtOption as ConstCtOption};
+pub use ctutils::{Choice as ConstChoice, CtOption as ConstCtOption, CtSelect};
 
 #[cfg(feature = "alloc")]
 pub use crate::uint::boxed::BoxedUint;
