@@ -200,7 +200,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Panics if `shift >= Limb::BITS`.
     pub(crate) const fn shl_limb(&self, shift: u32) -> (Self, Limb) {
-        let nz = ConstChoice::from_u32_nonzero(shift);
+        let nz = ConstChoice::from_u32_nz(shift);
         self.conditional_shl_limb_nonzero(NonZero(nz.select_u32(1, shift)), nz)
     }
 

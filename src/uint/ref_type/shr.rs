@@ -202,7 +202,7 @@ impl UintRef {
     /// Panics if `shift >= Limb::BITS`.
     #[inline(always)]
     pub const fn shr_assign_limb(&mut self, shift: u32) -> Limb {
-        let nz = ConstChoice::from_u32_nonzero(shift);
+        let nz = ConstChoice::from_u32_nz(shift);
         self.conditional_shr_assign_limb_nonzero(NonZero(nz.select_u32(1, shift)), nz)
     }
 
