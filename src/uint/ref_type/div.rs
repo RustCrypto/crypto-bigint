@@ -558,7 +558,7 @@ impl UintRef {
             return carry;
         }
         let lshift = reciprocal.shift();
-        let nz = ConstChoice::from_u32_nonzero(lshift);
+        let nz = ConstChoice::from_u32_nz(lshift);
         let rshift = nz.select_u32(0, Limb::BITS - lshift);
         let mut hi = (carry.0 << lshift) | word::select(0, self.0[nlimbs - 1].0 >> rshift, nz);
         let mut lo;

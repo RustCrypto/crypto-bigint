@@ -133,7 +133,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// returns `ConstCtOption::none`, otherwise returns `ConstCtOption::some`.
     pub const fn invert_mod2k(&self, k: u32) -> ConstCtOption<Self> {
         let is_some = ConstChoice::from_u32_le(k, Self::BITS)
-            .and(ConstChoice::from_u32_nonzero(k).not().or(self.is_odd()));
+            .and(ConstChoice::from_u32_nz(k).not().or(self.is_odd()));
         let inv = Odd(Uint::select(&Uint::ONE, self, is_some)).invert_mod_precision();
         ConstCtOption::new(inv.restrict_bits(k), is_some)
     }

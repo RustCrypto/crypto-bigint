@@ -188,7 +188,7 @@ const fn jump_step(
     mut delta: i64,
     mut t: Matrix,
 ) -> (i64, i64, i64, Matrix) {
-    let d_gtz = ConstChoice::from_u64_nonzero((delta & !(delta >> 63)) as u64);
+    let d_gtz = ConstChoice::from_u64_nz((delta & !(delta >> 63)) as u64);
     let g_odd = ConstChoice::from_u64_lsb((g & 1) as u64);
     let g_adj = g_odd.select_i64(0, f);
     let swap = d_gtz.and(g_odd);

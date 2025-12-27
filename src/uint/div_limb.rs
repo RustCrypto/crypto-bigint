@@ -37,7 +37,7 @@ pub const fn reciprocal(d: Word) -> Word {
     // Hence the `ct_select()`.
     let x = v2.wrapping_add(1);
     let (_lo, hi) = widening_mul(x, d);
-    let hi = word::select(d, hi, ConstChoice::from_u32_nonzero(x));
+    let hi = word::select(d, hi, ConstChoice::from_u32_nz(x));
 
     v2.wrapping_sub(hi).wrapping_sub(d)
 }
