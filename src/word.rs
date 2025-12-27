@@ -6,29 +6,70 @@ use crate::ConstChoice;
 #[cfg(not(any(target_pointer_width = "32", target_pointer_width = "64")))]
 compile_error!("this crate builds on 32-bit and 64-bit platforms only");
 
-//
-// 32-bit definitions
-//
-
-/// Inner integer type that the [`Limb`] newtype wraps.
+/// 32-bit definitions
 #[cfg(target_pointer_width = "32")]
-pub type Word = u32;
+mod word32 {
+    use crate::ConstChoice;
 
-/// Unsigned wide integer type: double the width of [`Word`].
+    /// Inner integer type that the [`Limb`] newtype wraps.
+    pub type Word = u32;
+
+    /// Unsigned wide integer type: double the width of [`Word`].
+    pub type WideWord = u64;
+
+    /// Returns the truthy value if `x <= y` and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn from_word_le(x: Word, y: Word) -> ConstChoice {
+        ConstChoice::from_u32_le(x, y)
+    }
+
+    /// Returns the truthy value if `x < y`, and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn from_word_lt(x: Word, y: Word) -> ConstChoice {
+        ConstChoice::from_u32_lt(x, y)
+    }
+
+    /// Returns the truthy value if `x <= y` and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn from_wide_word_le(x: WideWord, y: WideWord) -> ConstChoice {
+        ConstChoice::from_u64_le(x, y)
+    }
+}
+
+/// 64-bit definitions
+#[cfg(target_pointer_width = "64")]
+mod word64 {
+    use crate::ConstChoice;
+
+    /// Unsigned integer type that the [`Limb`][`crate::Limb`] newtype wraps.
+    pub type Word = u64;
+
+    /// Wide integer type: double the width of [`Word`].
+    pub type WideWord = u128;
+
+    /// Returns the truthy value if `x <= y` and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn from_word_le(x: Word, y: Word) -> ConstChoice {
+        ConstChoice::from_u64_le(x, y)
+    }
+
+    /// Returns the truthy value if `x < y`, and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn from_word_lt(x: Word, y: Word) -> ConstChoice {
+        ConstChoice::from_u64_lt(x, y)
+    }
+
+    /// Returns the truthy value if `x <= y` and the falsy value otherwise.
+    #[inline]
+    pub(crate) const fn from_wide_word_le(x: WideWord, y: WideWord) -> ConstChoice {
+        ConstChoice::from_u128_le(x, y)
+    }
+}
+
 #[cfg(target_pointer_width = "32")]
-pub type WideWord = u64;
-
-//
-// 64-bit definitions
-//
-
-/// Unsigned integer type that the [`Limb`][`crate::Limb`] newtype wraps.
+pub use word32::*;
 #[cfg(target_pointer_width = "64")]
-pub type Word = u64;
-
-/// Wide integer type: double the width of [`Word`].
-#[cfg(target_pointer_width = "64")]
-pub type WideWord = u128;
+pub use word64::*;
 
 /// Returns the truthy value if `x == y`, and the falsy value otherwise.
 #[inline]
@@ -42,27 +83,11 @@ pub(crate) const fn from_word_gt(x: Word, y: Word) -> ConstChoice {
     from_word_lt(y, x)
 }
 
-/// Returns the truthy value if `x <= y` and the falsy value otherwise.
-#[inline]
-pub(crate) const fn from_word_le(x: Word, y: Word) -> ConstChoice {
-    // See "Hacker's Delight" 2nd ed, section 2-12 (Comparison predicates)
-    let bit = (((!x) | y) & ((x ^ y) | !(y.wrapping_sub(x)))) >> (Word::BITS - 1);
-    from_word_lsb(bit)
-}
-
 /// Returns the truthy value if `value == 1`, and the falsy value if `value == 0`.
 /// Panics for other values.
 #[inline]
 pub(crate) const fn from_word_lsb(value: Word) -> ConstChoice {
     ConstChoice::new((value & 1) as u8)
-}
-
-/// Returns the truthy value if `x < y`, and the falsy value otherwise.
-#[inline]
-pub(crate) const fn from_word_lt(x: Word, y: Word) -> ConstChoice {
-    // See "Hacker's Delight" 2nd ed, section 2-12 (Comparison predicates)
-    let bit = (((!x) & y) | (((!x) | y) & (x.wrapping_sub(y)))) >> (Word::BITS - 1);
-    from_word_lsb(bit)
 }
 
 /// Returns the truthy value if `value == Word::MAX`, and the falsy value if `value == 0`.
@@ -83,21 +108,6 @@ pub(crate) const fn from_word_msb(value: Word) -> ConstChoice {
 #[inline]
 pub(crate) const fn from_word_nonzero(value: Word) -> ConstChoice {
     from_word_lsb((value | value.wrapping_neg()) >> (Word::BITS - 1))
-}
-
-/// Returns the truthy value if `x <= y` and the falsy value otherwise.
-#[inline]
-pub(crate) const fn from_wide_word_le(x: WideWord, y: WideWord) -> ConstChoice {
-    // See "Hacker's Delight" 2nd ed, section 2-12 (Comparison predicates)
-    let bit = (((!x) | y) & ((x ^ y) | !(y.wrapping_sub(x)))) >> (WideWord::BITS - 1);
-    from_wide_word_lsb(bit)
-}
-
-/// Returns the truthy value if `value == 1`, and the falsy value if `value == 0`.
-/// Panics for other values.
-#[inline]
-pub(crate) const fn from_wide_word_lsb(value: WideWord) -> ConstChoice {
-    ConstChoice::new((value & 1) as u8)
 }
 
 /// Return `b` if `self` is truthy, otherwise return `a`.
