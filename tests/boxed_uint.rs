@@ -5,13 +5,14 @@
 mod common;
 
 use common::to_biguint;
-use crypto_bigint::{BitOps, BoxedUint, CheckedAdd, Gcd, Integer, Limb, NonZero, Odd, Resize};
+use crypto_bigint::{
+    BitOps, BoxedUint, CheckedAdd, ConstChoice, Gcd, Integer, Limb, NonZero, Odd, Resize,
+};
 use num_bigint::BigUint;
 use num_integer::Integer as _;
 use num_modular::ModularUnaryOps;
 use num_traits::identities::One;
 use proptest::prelude::*;
-use subtle::Choice;
 
 fn to_uint(big_uint: BigUint) -> BoxedUint {
     let bytes = big_uint.to_bytes_be();
@@ -138,7 +139,7 @@ proptest! {
 
     #[test]
     fn invert_mod2k(mut a in uint(), k in any::<u32>()) {
-        a.set_bit(0, Choice::from(1)); // make odd
+        a.set_bit(0, ConstChoice::TRUE); // make odd
         let k = k % (a.bits() + 1);
         let a_bi = to_biguint(&a);
         let m_bi = BigUint::one() << k as usize;
