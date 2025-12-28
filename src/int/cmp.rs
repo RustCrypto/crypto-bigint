@@ -2,9 +2,8 @@
 //!
 //! By default, these are all constant-time.
 
-use crate::{ConstChoice, CtEq, Int, Uint};
+use crate::{ConstChoice, CtEq, CtGt, CtLt, Int, Uint};
 use core::cmp::Ordering;
-use subtle::{Choice, ConstantTimeGreater, ConstantTimeLess};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Return `b` if `c` is truthy, otherwise return `a`.
@@ -66,23 +65,37 @@ impl<const LIMBS: usize> CtEq for Int<LIMBS> {
     }
 }
 
+impl<const LIMBS: usize> CtGt for Int<LIMBS> {
+    #[inline]
+    fn ct_gt(&self, other: &Self) -> ConstChoice {
+        Int::gt(self, other)
+    }
+}
+
+impl<const LIMBS: usize> CtLt for Int<LIMBS> {
+    #[inline]
+    fn ct_lt(&self, other: &Self) -> ConstChoice {
+        Int::lt(self, other)
+    }
+}
+
 impl<const LIMBS: usize> subtle::ConstantTimeEq for Int<LIMBS> {
     #[inline]
-    fn ct_eq(&self, other: &Self) -> Choice {
+    fn ct_eq(&self, other: &Self) -> subtle::Choice {
         CtEq::ct_eq(self, other).into()
     }
 }
 
-impl<const LIMBS: usize> ConstantTimeGreater for Int<LIMBS> {
+impl<const LIMBS: usize> subtle::ConstantTimeGreater for Int<LIMBS> {
     #[inline]
-    fn ct_gt(&self, other: &Self) -> Choice {
-        Int::gt(self, other).into()
+    fn ct_gt(&self, other: &Self) -> subtle::Choice {
+        CtGt::ct_gt(self, other).into()
     }
 }
 
-impl<const LIMBS: usize> ConstantTimeLess for Int<LIMBS> {
+impl<const LIMBS: usize> subtle::ConstantTimeLess for Int<LIMBS> {
     #[inline]
-    fn ct_lt(&self, other: &Self) -> Choice {
+    fn ct_lt(&self, other: &Self) -> subtle::Choice {
         Int::lt(self, other).into()
     }
 }

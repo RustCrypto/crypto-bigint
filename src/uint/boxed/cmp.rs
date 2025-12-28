@@ -5,8 +5,7 @@
 pub(super) use core::cmp::{Ordering, max};
 
 use super::BoxedUint;
-use crate::{ConstChoice, CtEq, Limb, Uint, word};
-use subtle::{Choice, ConditionallySelectable, ConstantTimeGreater, ConstantTimeLess};
+use crate::{ConstChoice, CtEq, CtGt, CtLt, CtSelect, Limb, Uint, word};
 
 impl BoxedUint {
     /// Returns the Ordering between `self` and `rhs` in variable time.
@@ -53,26 +52,40 @@ impl CtEq for BoxedUint {
     }
 }
 
+impl CtGt for BoxedUint {
+    #[inline]
+    fn ct_gt(&self, other: &Self) -> ConstChoice {
+        let (_, borrow) = other.borrowing_sub(self, Limb::ZERO);
+        word::choice_from_mask(borrow.0)
+    }
+}
+
+impl CtLt for BoxedUint {
+    #[inline]
+    fn ct_lt(&self, other: &Self) -> ConstChoice {
+        let (_, borrow) = self.borrowing_sub(other, Limb::ZERO);
+        word::choice_from_mask(borrow.0)
+    }
+}
+
 impl subtle::ConstantTimeEq for BoxedUint {
     #[inline]
-    fn ct_eq(&self, other: &Self) -> Choice {
+    fn ct_eq(&self, other: &Self) -> subtle::Choice {
         CtEq::ct_eq(self, other).into()
     }
 }
 
-impl ConstantTimeGreater for BoxedUint {
+impl subtle::ConstantTimeGreater for BoxedUint {
     #[inline]
-    fn ct_gt(&self, other: &Self) -> Choice {
-        let (_, borrow) = other.borrowing_sub(self, Limb::ZERO);
-        word::choice_from_mask(borrow.0).into()
+    fn ct_gt(&self, other: &Self) -> subtle::Choice {
+        CtGt::ct_gt(self, other).into()
     }
 }
 
-impl ConstantTimeLess for BoxedUint {
+impl subtle::ConstantTimeLess for BoxedUint {
     #[inline]
-    fn ct_lt(&self, other: &Self) -> Choice {
-        let (_, borrow) = self.borrowing_sub(other, Limb::ZERO);
-        word::choice_from_mask(borrow.0).into()
+    fn ct_lt(&self, other: &Self) -> subtle::Choice {
+        CtLt::ct_lt(self, other).into()
     }
 }
 
@@ -92,8 +105,8 @@ impl<const LIMBS: usize> PartialEq<Uint<LIMBS>> for BoxedUint {
 impl Ord for BoxedUint {
     fn cmp(&self, other: &Self) -> Ordering {
         let mut ret = Ordering::Equal;
-        ret.conditional_assign(&Ordering::Greater, self.ct_gt(other));
-        ret.conditional_assign(&Ordering::Less, self.ct_lt(other));
+        ret.ct_assign(&Ordering::Greater, self.ct_gt(other));
+        ret.ct_assign(&Ordering::Less, self.ct_lt(other));
 
         #[cfg(debug_assertions)]
         if ret == Ordering::Equal {
