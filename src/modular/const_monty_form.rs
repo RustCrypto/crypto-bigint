@@ -14,9 +14,9 @@ use super::{
     MontyParams, Retrieve, div_by_2::div_by_2, mul::mul_montgomery_form,
     reduction::montgomery_retrieve,
 };
-use crate::{ConstOne, ConstZero, Odd, One, Uint, Zero};
+use crate::{ConstChoice, ConstOne, ConstZero, CtEq, Odd, One, Uint, Zero};
 use core::{fmt::Debug, marker::PhantomData};
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
+use subtle::{Choice, ConditionallySelectable};
 
 #[cfg(feature = "rand_core")]
 use crate::{Random, RandomMod, rand_core::TryRngCore};
@@ -150,11 +150,17 @@ impl<MOD: ConstMontyParams<LIMBS> + Copy, const LIMBS: usize> ConditionallySelec
     }
 }
 
-impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstantTimeEq
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> CtEq for ConstMontyForm<MOD, LIMBS> {
+    fn ct_eq(&self, other: &Self) -> ConstChoice {
+        CtEq::ct_eq(&self.montgomery_form, &other.montgomery_form)
+    }
+}
+
+impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> subtle::ConstantTimeEq
     for ConstMontyForm<MOD, LIMBS>
 {
     fn ct_eq(&self, other: &Self) -> Choice {
-        ConstantTimeEq::ct_eq(&self.montgomery_form, &other.montgomery_form)
+        CtEq::ct_eq(&self.montgomery_form, &other.montgomery_form).into()
     }
 }
 

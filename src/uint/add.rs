@@ -108,7 +108,7 @@ impl<const LIMBS: usize> AddAssign<&Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS
 impl<const LIMBS: usize> CheckedAdd for Uint<LIMBS> {
     fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
         let (result, carry) = self.carrying_add(rhs, Limb::ZERO);
-        CtOption::new(result, carry.is_zero())
+        CtOption::new(result, carry.is_zero().into())
     }
 }
 

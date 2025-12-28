@@ -1,25 +1,25 @@
 //! [`BoxedUint`] modular inverse (i.e. reciprocal) operations.
 
 use crate::{
-    BoxedUint, CtSelect, Integer, InvertMod, Limb, NonZero, Odd, U64, modular::safegcd,
-    uint::invert_mod::expand_invert_mod2k,
+    BoxedUint, ConstChoice, ConstCtOption, CtSelect, Integer, InvertMod, Limb, NonZero, Odd, U64,
+    modular::safegcd, uint::invert_mod::expand_invert_mod2k,
 };
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
 impl BoxedUint {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     #[deprecated(since = "0.7.0", note = "please use `invert_odd_mod` instead")]
-    pub fn inv_odd_mod(&self, modulus: &Odd<Self>) -> CtOption<Self> {
+    pub fn inv_odd_mod(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
         self.invert_odd_mod(modulus)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
-    pub fn invert_odd_mod(&self, modulus: &Odd<Self>) -> CtOption<Self> {
+    pub fn invert_odd_mod(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
         safegcd::boxed::invert_odd_mod::<false>(self, modulus)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
-    pub fn invert_odd_mod_vartime(&self, modulus: &Odd<Self>) -> CtOption<Self> {
+    pub fn invert_odd_mod_vartime(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
         safegcd::boxed::invert_odd_mod::<true>(self, modulus)
     }
 
@@ -29,7 +29,7 @@ impl BoxedUint {
     /// If the inverse does not exist (`k > 0` and `self` is even, or `k > bits_precision()`),
     /// returns `Choice::FALSE` as the second element of the tuple, otherwise returns `Choice::TRUE`.
     #[deprecated(since = "0.7.0", note = "please use `invert_mod2k_vartime` instead")]
-    pub fn inv_mod2k_vartime(&self, k: u32) -> (Self, Choice) {
+    pub fn inv_mod2k_vartime(&self, k: u32) -> (Self, ConstChoice) {
         self.invert_mod2k_vartime(k)
     }
 
@@ -38,19 +38,19 @@ impl BoxedUint {
     ///
     /// If the inverse does not exist (`k > 0` and `self` is even, or `k > bits_precision()`),
     /// returns `Choice::FALSE` as the second element of the tuple, otherwise returns `Choice::TRUE`.
-    pub fn invert_mod2k_vartime(&self, k: u32) -> (Self, Choice) {
+    pub fn invert_mod2k_vartime(&self, k: u32) -> (Self, ConstChoice) {
         let bits = self.bits_precision();
 
         if k == 0 {
-            (Self::zero_with_precision(bits), Choice::from(1))
+            (Self::zero_with_precision(bits), ConstChoice::TRUE)
         } else if k > bits {
-            (Self::zero_with_precision(bits), Choice::from(0))
+            (Self::zero_with_precision(bits), ConstChoice::FALSE)
         } else {
             let is_some = self.is_odd();
             let inv = Odd(Self::ct_select(
                 &Self::one_with_precision(bits),
                 self,
-                is_some.into(),
+                is_some,
             ))
             .invert_mod2k_vartime(k);
             (inv, is_some)
@@ -72,7 +72,7 @@ impl BoxedUint {
     /// returns `Choice::FALSE` as the second element of the tuple, otherwise returns `Choice::TRUE`.
     pub fn invert_mod2k(&self, k: u32) -> (Self, Choice) {
         let bits = self.bits_precision();
-        let is_some = k.ct_lt(&(bits + 1)) & (k.ct_eq(&0) | self.is_odd());
+        let is_some = k.ct_lt(&(bits + 1)) & (k.ct_eq(&0) | self.is_odd().into());
         let mut inv = Odd(Self::ct_select(
             &Self::one_with_precision(bits),
             self,
@@ -94,13 +94,13 @@ impl BoxedUint {
         let m = NonZero(Self::ct_select(
             &Self::one_with_precision(self.bits_precision()),
             modulus,
-            is_nz.into(),
+            is_nz,
         ));
         let inv_mod_s = self.invert_mod(&m);
         let is_some = inv_mod_s.is_some();
         let result =
             Option::from(inv_mod_s).unwrap_or(Self::zero_with_precision(self.bits_precision()));
-        CtOption::new(result, is_some & is_nz)
+        CtOption::new(result, is_some & is_nz.into())
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`
@@ -121,7 +121,7 @@ impl BoxedUint {
             Option::from(inv_mod_s).unwrap_or(Self::zero_with_precision(self.bits_precision()));
 
         let (inverse_mod2k, invertible_mod_2k) = self.invert_mod2k(k);
-        let is_some = invertible_mod_s & invertible_mod_2k;
+        let is_some = invertible_mod_s & invertible_mod_2k.into();
 
         let s_inverse_mod2k = s.invert_mod_precision();
         let mut t = inverse_mod2k
@@ -130,7 +130,7 @@ impl BoxedUint {
         t.restrict_bits(k);
         let result = inv_mod_s.wrapping_add(&s.wrapping_mul(&t));
 
-        CtOption::new(result, is_some)
+        CtOption::new(result, is_some.into())
     }
 }
 

@@ -1,6 +1,6 @@
 //! Checked arithmetic.
 
-use crate::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub};
+use crate::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, ConstChoice, CtEq, CtSelect};
 use core::ops::{Add, Div, Mul, Sub};
 use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
@@ -268,10 +268,33 @@ impl<T: ConditionallySelectable> ConditionallySelectable for Checked<T> {
     }
 }
 
-impl<T: ConstantTimeEq> ConstantTimeEq for Checked<T> {
+impl<T> ConstantTimeEq for Checked<T>
+where
+    T: ConstantTimeEq,
+{
     #[inline]
     fn ct_eq(&self, rhs: &Self) -> Choice {
         self.0.ct_eq(&rhs.0)
+    }
+}
+
+impl<T> CtEq for Checked<T>
+where
+    Self: ConstantTimeEq,
+{
+    #[inline]
+    fn ct_eq(&self, other: &Self) -> ConstChoice {
+        ConstantTimeEq::ct_eq(self, other).into()
+    }
+}
+
+impl<T> CtSelect for Checked<T>
+where
+    Self: ConditionallySelectable,
+{
+    #[inline]
+    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
+        Self::conditional_select(self, other, choice.into())
     }
 }
 

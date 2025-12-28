@@ -5,11 +5,11 @@
 
 use super::{GCD_BATCH_SIZE, Matrix, iterations, jump};
 use crate::{
-    BoxedUint, ConstChoice, CtSelect, I64, Int, Limb, NonZero, Odd, Resize, U64, Uint,
+    BoxedUint, ConstChoice, ConstCtOption, CtSelect, I64, Int, Limb, NonZero, Odd, Resize, U64,
+    Uint,
     primitives::{u32_max, u32_min},
 };
 use core::fmt;
-use subtle::{Choice, CtOption};
 
 /// Modular multiplicative inverter based on the Bernstein-Yang method.
 ///
@@ -53,7 +53,7 @@ impl BoxedSafeGcdInverter {
     }
 
     /// Perform constant-time modular inversion.
-    pub(crate) fn invert(&self, value: &BoxedUint) -> CtOption<BoxedUint> {
+    pub(crate) fn invert(&self, value: &BoxedUint) -> ConstCtOption<BoxedUint> {
         invert_odd_mod_precomp::<false>(
             value,
             &self.modulus,
@@ -63,7 +63,7 @@ impl BoxedSafeGcdInverter {
     }
 
     /// Perform variable-time modular inversion.
-    pub(crate) fn invert_vartime(&self, value: &BoxedUint) -> CtOption<BoxedUint> {
+    pub(crate) fn invert_vartime(&self, value: &BoxedUint) -> ConstCtOption<BoxedUint> {
         invert_odd_mod_precomp::<true>(
             value,
             &self.modulus,
@@ -77,7 +77,7 @@ impl BoxedSafeGcdInverter {
 pub fn invert_odd_mod<const VARTIME: bool>(
     a: &BoxedUint,
     m: &Odd<BoxedUint>,
-) -> CtOption<BoxedUint> {
+) -> ConstCtOption<BoxedUint> {
     let mi = m.as_uint_ref().invert_mod_u64();
     invert_odd_mod_precomp::<VARTIME>(a, m, mi, None)
 }
@@ -89,7 +89,7 @@ fn invert_odd_mod_precomp<const VARTIME: bool>(
     m: &Odd<BoxedUint>,
     mi: u64,
     e: Option<BoxedUint>,
-) -> CtOption<BoxedUint> {
+) -> ConstCtOption<BoxedUint> {
     let a_nonzero = a.is_nonzero();
     let bits_precision = u32_max(a.bits_precision(), m.as_ref().bits_precision());
     let m = m.as_ref().resize(bits_precision);
@@ -122,18 +122,21 @@ fn invert_odd_mod_precomp<const VARTIME: bool>(
     let d = d
         .norm(f.is_negative(), &m)
         .resize_unchecked(a.bits_precision());
-    CtOption::new(d, f.magnitude().is_one() & a_nonzero)
+
+    ConstCtOption::new(d, f.magnitude().is_one() & a_nonzero)
 }
 
 /// Calculate the greatest common denominator of `f` and `g`.
 pub fn gcd<const VARTIME: bool>(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
-    let f_is_zero = f.is_zero().into();
+    let f_is_zero = f.is_zero();
+
     // Note: is non-zero by construction
     let f_nz = NonZero(BoxedUint::ct_select(
         f,
         &BoxedUint::one_with_precision(f.bits_precision()),
         f_is_zero,
     ));
+
     // gcd of (0, g) is g
     let mut r = gcd_nz::<VARTIME>(&f_nz, g).0;
     r.ct_assign(g, f_is_zero);
@@ -277,13 +280,13 @@ impl SignedBoxedInt {
         Self { sign, magnitude }
     }
 
-    /// Obtain the magnitude of the `SignedInt`, ie. its absolute value.
+    /// Obtain the magnitude of the `SignedInt`, i.e. its absolute value.
     pub const fn magnitude(&self) -> &BoxedUint {
         &self.magnitude
     }
 
     /// Determine if the `SignedInt` is non-zero.
-    pub fn is_nonzero(&self) -> Choice {
+    pub fn is_nonzero(&self) -> ConstChoice {
         self.magnitude.is_nonzero()
     }
 
@@ -407,7 +410,7 @@ impl SignedBoxedInt {
 
     /// Normalize the value to a `BoxedUint` in the range `[0, m)`.
     fn norm(&self, f_sign: ConstChoice, m: &BoxedUint) -> BoxedUint {
-        let swap = f_sign.xor(self.sign) & self.is_nonzero().into();
+        let swap = f_sign.xor(self.sign) & self.is_nonzero();
         BoxedUint::ct_select(&self.magnitude, &m.wrapping_sub(&self.magnitude), swap)
     }
 }

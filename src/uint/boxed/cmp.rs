@@ -5,10 +5,8 @@
 pub(super) use core::cmp::{Ordering, max};
 
 use super::BoxedUint;
-use crate::{Limb, Uint, word};
-use subtle::{
-    Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
-};
+use crate::{ConstChoice, CtEq, Limb, Uint, word};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeGreater, ConstantTimeLess};
 
 impl BoxedUint {
     /// Returns the Ordering between `self` and `rhs` in variable time.
@@ -39,11 +37,11 @@ impl BoxedUint {
     }
 }
 
-impl ConstantTimeEq for BoxedUint {
+impl CtEq for BoxedUint {
     #[inline]
-    fn ct_eq(&self, other: &Self) -> Choice {
+    fn ct_eq(&self, other: &Self) -> ConstChoice {
         let limbs = max(self.nlimbs(), other.nlimbs());
-        let mut ret = Choice::from(1u8);
+        let mut ret = ConstChoice::TRUE;
 
         for i in 0..limbs {
             let a = self.limbs.get(i).unwrap_or(&Limb::ZERO);
@@ -52,6 +50,13 @@ impl ConstantTimeEq for BoxedUint {
         }
 
         ret
+    }
+}
+
+impl subtle::ConstantTimeEq for BoxedUint {
+    #[inline]
+    fn ct_eq(&self, other: &Self) -> Choice {
+        CtEq::ct_eq(self, other).into()
     }
 }
 

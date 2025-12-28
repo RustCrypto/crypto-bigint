@@ -28,12 +28,12 @@ mod sub_mod;
 mod rand;
 
 use crate::{
-    Integer, Limb, NonZero, Odd, One, Resize, UintRef, Unsigned, Word, Zero,
+    ConstChoice, CtEq, Integer, Limb, NonZero, Odd, One, Resize, UintRef, Unsigned, Word, Zero,
     modular::BoxedMontyForm,
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{fmt, iter::repeat, ops::IndexMut};
-use subtle::{Choice, ConstantTimeEq, CtOption};
+use subtle::CtOption;
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -91,20 +91,20 @@ impl BoxedUint {
     }
 
     /// Is this [`BoxedUint`] equal to zero?
-    pub fn is_zero(&self) -> Choice {
+    pub fn is_zero(&self) -> ConstChoice {
         self.limbs
             .iter()
-            .fold(Choice::from(1), |acc, limb| acc & limb.is_zero())
+            .fold(ConstChoice::TRUE, |acc, limb| acc & limb.is_zero())
     }
 
     /// Is this [`BoxedUint`] *NOT* equal to zero?
     #[inline]
-    pub fn is_nonzero(&self) -> Choice {
+    pub fn is_nonzero(&self) -> ConstChoice {
         !self.is_zero()
     }
 
     /// Is this [`BoxedUint`] equal to one?
-    pub fn is_one(&self) -> Choice {
+    pub fn is_one(&self) -> ConstChoice {
         let mut iter = self.limbs.iter();
         let choice = iter.next().copied().unwrap_or(Limb::ZERO).ct_eq(&Limb::ONE);
         iter.fold(choice, |acc, limb| acc & limb.is_zero())
@@ -226,7 +226,7 @@ impl BoxedUint {
     /// Returns some if the original value is non-zero, and false otherwise.
     pub fn to_nz(self) -> CtOption<NonZero<Self>> {
         let is_nz = self.is_nonzero();
-        CtOption::new(NonZero(self), is_nz)
+        CtOption::new(NonZero(self), is_nz.into())
     }
 
     /// Convert to an [`Odd<BoxedUint>`].
@@ -234,7 +234,7 @@ impl BoxedUint {
     /// Returns some if the original value is odd, and false otherwise.
     pub fn to_odd(&self) -> CtOption<Odd<Self>> {
         let is_odd = self.is_odd();
-        CtOption::new(Odd(self.clone()), is_odd)
+        CtOption::new(Odd(self.clone()), is_odd.into())
     }
 
     /// Widen this type's precision to the given number of bits.
@@ -450,7 +450,7 @@ impl Zero for BoxedUint {
         Self::zero()
     }
 
-    fn is_zero(&self) -> Choice {
+    fn is_zero(&self) -> ConstChoice {
         self.is_zero()
     }
 
@@ -464,7 +464,7 @@ impl One for BoxedUint {
         Self::one()
     }
 
-    fn is_one(&self) -> Choice {
+    fn is_one(&self) -> ConstChoice {
         self.is_one()
     }
 

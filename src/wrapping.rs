@@ -1,13 +1,14 @@
 //! Wrapping arithmetic.
 
 use crate::{
-    One, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr, WrappingSub, Zero,
+    ConstChoice, CtEq, CtSelect, One, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl,
+    WrappingShr, WrappingSub, Zero,
 };
 use core::{
     fmt,
     ops::{Add, Mul, Neg, Shl, Shr, Sub},
 };
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq};
+use subtle::{Choice, ConditionallySelectable};
 
 #[cfg(feature = "rand_core")]
 use {crate::Random, rand_core::TryRngCore};
@@ -191,10 +192,33 @@ impl<T: ConditionallySelectable> ConditionallySelectable for Wrapping<T> {
     }
 }
 
-impl<T: ConstantTimeEq> ConstantTimeEq for Wrapping<T> {
+impl<T> subtle::ConstantTimeEq for Wrapping<T>
+where
+    Self: CtEq,
+{
     #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
-        self.0.ct_eq(&other.0)
+        CtEq::ct_eq(self, other).into()
+    }
+}
+
+impl<T> CtEq for Wrapping<T>
+where
+    T: CtEq,
+{
+    #[inline]
+    fn ct_eq(&self, other: &Self) -> ConstChoice {
+        CtEq::ct_eq(&self.0, &other.0)
+    }
+}
+
+impl<T> CtSelect for Wrapping<T>
+where
+    T: CtSelect,
+{
+    #[inline]
+    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
+        Self(self.0.ct_select(&other.0, choice))
     }
 }
 

@@ -72,7 +72,7 @@ impl BoxedUint {
 impl CheckedSub for BoxedUint {
     fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
         let (result, carry) = self.borrowing_sub(rhs, Limb::ZERO);
-        CtOption::new(result, carry.is_zero())
+        CtOption::new(result, carry.is_zero().into())
     }
 }
 
@@ -118,9 +118,8 @@ impl SubAssign<BoxedUint> for BoxedUint {
 impl SubAssign<&BoxedUint> for BoxedUint {
     fn sub_assign(&mut self, rhs: &BoxedUint) {
         let carry = self.borrowing_sub_assign(rhs, Limb::ZERO);
-        assert_eq!(
-            carry.is_zero().unwrap_u8(),
-            1,
+        assert!(
+            carry.is_zero().to_bool(),
             "attempted to subtract with underflow"
         );
     }

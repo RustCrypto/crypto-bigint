@@ -29,13 +29,13 @@ impl BoxedUint {
         // TODO (#378): the tests indicate that just `Self::LOG2_BITS` may be enough.
         while i < self.log2_bits() + 2 {
             let x_nonzero = x.is_nonzero();
-            nz_x.ct_assign(&x, x_nonzero.into());
+            nz_x.ct_assign(&x, x_nonzero);
 
             // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
             quo.limbs.copy_from_slice(&self.limbs);
             rem.limbs.copy_from_slice(&nz_x.limbs);
             quo.as_mut_uint_ref().div_rem(rem.as_mut_uint_ref());
-            x.conditional_carrying_add_assign(&quo, x_nonzero);
+            x.conditional_carrying_add_assign(&quo, x_nonzero.into());
             x.shr1_assign();
 
             i += 1;
