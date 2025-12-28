@@ -67,7 +67,7 @@ pub const fn reciprocal(d: Word) -> Word {
     // Hence the `ct_select()`.
     let x = v3.wrapping_add(1);
     let (_lo, hi) = widening_mul(x, d);
-    let hi = word::select(d, hi, word::choice_from_nonzero(x));
+    let hi = word::select(d, hi, word::choice_from_nz(x));
 
     v3.wrapping_sub(hi).wrapping_sub(d)
 }
@@ -164,8 +164,8 @@ pub(crate) const fn div3by2(
         let qy = (quo as WideWord) * (v0 as WideWord);
         let rx = (rem << Word::BITS) | (u0 as WideWord);
         // If r < b and q*y[-2] > r*x[-1], then set q = q - 1 and r = r + v1
-        let done = word::choice_from_nonzero((rem >> Word::BITS) as Word)
-            .or(word::choice_from_wide_le(qy, rx));
+        let done =
+            word::choice_from_nz((rem >> Word::BITS) as Word).or(word::choice_from_wide_le(qy, rx));
         quo = word::select(quo.wrapping_sub(1), quo, done);
         rem = word::select_wide(
             rem + (v1_reciprocal.divisor_normalized as WideWord),

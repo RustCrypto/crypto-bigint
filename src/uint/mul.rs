@@ -1,12 +1,8 @@
 //! [`Uint`] multiplication operations.
 
-use core::ops::{Mul, MulAssign};
-
-use subtle::CtOption;
-
 use crate::{
     Checked, CheckedMul, Concat, ConcatMixed, ConcatenatingMul, ConstChoice, ConstCtOption, Limb,
-    Uint, UintRef, Wrapping, WrappingMul,
+    Mul, MulAssign, Uint, UintRef, Wrapping, WrappingMul,
 };
 
 pub(crate) mod karatsuba;
@@ -115,8 +111,8 @@ where
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Uint<RHS_LIMBS>> for Uint<LIMBS> {
-    fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
-        self.checked_mul(rhs).into()
+    fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> ConstCtOption<Self> {
+        self.checked_mul(rhs)
     }
 }
 
@@ -252,7 +248,7 @@ pub(crate) const fn wrapping_mul_overflow(
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, U64, U128, U192, U256, Uint, Zero};
+    use crate::{ConstChoice, U64, U128, U192, U256, Uint};
 
     #[test]
     fn widening_mul_zero_and_one() {

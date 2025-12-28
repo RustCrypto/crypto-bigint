@@ -36,7 +36,7 @@ pub(crate) fn div_by_2_boxed_assign(a: &mut BoxedUint, modulus: &Odd<BoxedUint>)
     debug_assert_eq!(a.bits_precision(), modulus.bits_precision());
 
     let is_odd = a.is_odd();
-    let carry = a.conditional_carrying_add_assign(modulus, is_odd.into());
+    let carry = a.conditional_carrying_add_assign(modulus, is_odd);
     a.shr1_assign();
-    a.set_bit(a.bits_precision() - 1, carry.into());
+    a.set_bit(a.bits_precision() - 1, carry);
 }

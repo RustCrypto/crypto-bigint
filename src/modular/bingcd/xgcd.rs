@@ -371,7 +371,6 @@ mod tests {
     use crate::modular::bingcd::xgcd::PatternXgcdOutput;
     use crate::{ConcatMixed, Gcd, Uint};
     use core::ops::Div;
-    use num_traits::Zero;
 
     mod test_extract_quotients {
         use crate::modular::bingcd::matrix::DividedPatternMatrix;
@@ -605,8 +604,8 @@ mod tests {
         assert!(x.abs() <= rhs.div(output.gcd.as_nz_ref()));
         assert!(y.abs() <= lhs.div(output.gcd.as_nz_ref()));
         if lhs != rhs {
-            assert!(x.abs() <= rhs_on_gcd.shr(1) || rhs_on_gcd.is_zero());
-            assert!(y.abs() <= lhs_on_gcd.shr(1) || lhs_on_gcd.is_zero());
+            assert!(x.abs() <= rhs_on_gcd.shr(1) || rhs_on_gcd.is_zero().to_bool());
+            assert!(y.abs() <= lhs_on_gcd.shr(1) || lhs_on_gcd.is_zero().to_bool());
         }
     }
 

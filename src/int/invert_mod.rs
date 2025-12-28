@@ -1,7 +1,5 @@
 //! Operations related to computing the inverse of an [`Int`] modulo a [`Uint`].
 
-use subtle::CtOption;
-
 use crate::{ConstCtOption, Int, InvertMod, NonZero, Odd, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {
@@ -42,8 +40,8 @@ where
 {
     type Output = Uint<LIMBS>;
 
-    fn invert_mod(&self, modulus: &NonZero<Uint<LIMBS>>) -> CtOption<Self::Output> {
-        Self::invert_mod(self, modulus).into()
+    fn invert_mod(&self, modulus: &NonZero<Uint<LIMBS>>) -> ConstCtOption<Self::Output> {
+        Self::invert_mod(self, modulus)
     }
 }
 

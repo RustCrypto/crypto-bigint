@@ -317,7 +317,6 @@ impl<const LIMBS: usize> Xgcd for OddInt<LIMBS> {
 mod tests {
     use crate::int::gcd::{IntXgcdOutput, NonZeroIntXgcdOutput, OddIntXgcdOutput};
     use crate::{ConcatMixed, Gcd, Int, Uint};
-    use num_traits::Zero;
 
     impl<const LIMBS: usize> From<NonZeroIntXgcdOutput<LIMBS>> for IntXgcdOutput<LIMBS> {
         fn from(value: NonZeroIntXgcdOutput<LIMBS>) -> Self {
@@ -420,7 +419,8 @@ mod tests {
 
         // Test quotients
         let (lhs_on_gcd, rhs_on_gcd) = output.quotients();
-        if gcd.is_zero() {
+
+        if gcd.is_zero().to_bool() {
             assert_eq!(lhs_on_gcd, Int::ZERO);
             assert_eq!(rhs_on_gcd, Int::ZERO);
         } else {
@@ -430,11 +430,11 @@ mod tests {
 
         // Test the Bezout coefficients on minimality
         let (x, y) = output.bezout_coefficients();
-        assert!(x.abs() <= rhs_on_gcd.abs() || rhs_on_gcd.is_zero());
-        assert!(y.abs() <= lhs_on_gcd.abs() || lhs_on_gcd.is_zero());
+        assert!(x.abs() <= rhs_on_gcd.abs() || rhs_on_gcd.is_zero().to_bool());
+        assert!(y.abs() <= lhs_on_gcd.abs() || lhs_on_gcd.is_zero().to_bool());
         if lhs.abs() != rhs.abs() {
-            assert!(x.abs() <= rhs_on_gcd.abs().shr(1) || rhs_on_gcd.is_zero());
-            assert!(y.abs() <= lhs_on_gcd.abs().shr(1) || lhs_on_gcd.is_zero());
+            assert!(x.abs() <= rhs_on_gcd.abs().shr(1) || rhs_on_gcd.is_zero().to_bool());
+            assert!(y.abs() <= lhs_on_gcd.abs().shr(1) || lhs_on_gcd.is_zero().to_bool());
         }
 
         // Test the Bezout coefficients for correctness

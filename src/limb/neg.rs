@@ -1,7 +1,6 @@
 //! Limb negation
 
-use crate::Limb;
-use num_traits::WrappingNeg;
+use crate::{Limb, WrappingNeg};
 
 impl Limb {
     /// Perform wrapping negation.

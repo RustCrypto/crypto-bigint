@@ -106,7 +106,7 @@ impl UintRef {
             let z = l.leading_zeros();
             count += nonzero_limb_not_encountered.select_u32(0, z);
             nonzero_limb_not_encountered =
-                nonzero_limb_not_encountered.and(word::choice_from_nonzero(l.0).not());
+                nonzero_limb_not_encountered.and(word::choice_from_nz(l.0).not());
         }
 
         count
@@ -123,7 +123,7 @@ impl UintRef {
             let z = l.trailing_zeros();
             count += nonzero_limb_not_encountered.select_u32(0, z);
             nonzero_limb_not_encountered =
-                nonzero_limb_not_encountered.and(word::choice_from_nonzero(l.0).not());
+                nonzero_limb_not_encountered.and(word::choice_from_nz(l.0).not());
             i += 1;
         }
 

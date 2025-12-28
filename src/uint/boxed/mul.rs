@@ -1,11 +1,10 @@
 //! [`BoxedUint`] multiplication operations.
 
 use crate::{
-    BoxedUint, CheckedMul, ConcatenatingMul, Limb, Uint, UintRef, Wrapping, WrappingMul,
+    BoxedUint, CheckedMul, ConcatenatingMul, ConstCtOption, Limb, Mul, MulAssign, Uint, UintRef,
+    Wrapping, WrappingMul,
     uint::mul::{karatsuba, wrapping_mul_overflow},
 };
-use core::ops::{Mul, MulAssign};
-use subtle::CtOption;
 
 impl BoxedUint {
     /// Multiply `self` by `rhs`.
@@ -31,11 +30,11 @@ impl BoxedUint {
 
     /// Multiply `self` by `rhs`, wrapping to the width of `self`.
     /// Returns `CtOption::None` if the result overflowed the precision of `self`.
-    pub fn checked_mul(&self, rhs: &Self) -> CtOption<Self> {
+    pub fn checked_mul(&self, rhs: &Self) -> ConstCtOption<Self> {
         let (res, carry) = self.wrapping_mul_carry(rhs.as_limbs(), self.nlimbs());
         let overflow =
             wrapping_mul_overflow(self.as_uint_ref(), self.as_uint_ref(), carry.is_nonzero());
-        CtOption::new(res, overflow.not().into())
+        ConstCtOption::new(res, overflow.not())
     }
 
     /// Perform saturating multiplication, returning `MAX` on overflow.
@@ -71,11 +70,11 @@ impl BoxedUint {
 
     /// Multiply `self` by itself, wrapping to the width of `self`.
     /// Returns `CtOption::None` if the result overflowed the precision of `self`.
-    pub fn checked_square(&self) -> CtOption<Self> {
+    pub fn checked_square(&self) -> ConstCtOption<Self> {
         let (res, carry) = self.wrapping_square_carry(self.nlimbs());
         let overflow =
             wrapping_mul_overflow(self.as_uint_ref(), self.as_uint_ref(), carry.is_nonzero());
-        CtOption::new(res, overflow.not().into())
+        ConstCtOption::new(res, overflow.not())
     }
 
     /// Perform saturating squaring, returning `MAX` on overflow.
@@ -99,7 +98,7 @@ impl BoxedUint {
 }
 
 impl CheckedMul for BoxedUint {
-    fn checked_mul(&self, rhs: &BoxedUint) -> CtOption<Self> {
+    fn checked_mul(&self, rhs: &BoxedUint) -> ConstCtOption<Self> {
         self.checked_mul(rhs)
     }
 }
@@ -254,12 +253,12 @@ mod tests {
             .resize_unchecked(256)
             .wrapping_add(&BoxedUint::one());
         let n2 = n.checked_square();
-        assert_eq!(n2.is_some().unwrap_u8(), 1);
+        assert!(n2.is_some().to_bool());
         let n4 = n2.unwrap().checked_square();
-        assert_eq!(n4.is_none().unwrap_u8(), 1);
+        assert!(n4.is_none().to_bool());
         let z = BoxedUint::zero_with_precision(256).checked_square();
-        assert_eq!(z.is_some().unwrap_u8(), 1);
+        assert!(z.is_some().to_bool());
         let m = BoxedUint::max(256).checked_square();
-        assert_eq!(m.is_none().unwrap_u8(), 1);
+        assert!(m.is_none().to_bool());
     }
 }

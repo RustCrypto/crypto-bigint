@@ -464,6 +464,12 @@ impl One for BoxedUint {
         Self::one()
     }
 
+    fn one_like(other: &Self) -> Self {
+        let mut ret = other.clone();
+        ret.set_one();
+        ret
+    }
+
     fn is_one(&self) -> ConstChoice {
         self.is_one()
     }

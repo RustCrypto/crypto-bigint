@@ -1,11 +1,8 @@
 //! [`Int`] subtraction operations.
 
-use core::ops::{Sub, SubAssign};
-
-use num_traits::WrappingSub;
-use subtle::CtOption;
-
-use crate::{Checked, CheckedSub, ConstChoice, ConstCtOption, Int, Wrapping};
+use crate::{
+    Checked, CheckedSub, ConstChoice, ConstCtOption, Int, Sub, SubAssign, Wrapping, WrappingSub,
+};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Perform subtraction, returning the result along with a [`ConstChoice`] which `is_true`
@@ -37,9 +34,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
 }
 
 impl<const LIMBS: usize> CheckedSub for Int<LIMBS> {
-    fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
+    fn checked_sub(&self, rhs: &Self) -> ConstCtOption<Self> {
         let (res, underflow) = Self::underflowing_sub(self, rhs);
-        ConstCtOption::new(res, underflow.not()).into()
+        ConstCtOption::new(res, underflow.not())
     }
 }
 

@@ -1,10 +1,9 @@
 //! [`Int`] multiplication operations.
 
-use core::ops::{Mul, MulAssign};
-use num_traits::WrappingMul;
-use subtle::CtOption;
-
-use crate::{Checked, CheckedMul, ConcatMixed, ConstChoice, ConstCtOption, Int, Uint};
+use crate::{
+    Checked, CheckedMul, ConcatMixed, ConstChoice, ConstCtOption, Int, Mul, MulAssign, Uint,
+    WrappingMul,
+};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute "wide" multiplication as a 3-tuple `(lo, hi, negate)`.
@@ -130,8 +129,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Int<RHS_LIMBS>> for Int<LIMBS> {
     #[inline]
-    fn checked_mul(&self, rhs: &Int<RHS_LIMBS>) -> CtOption<Self> {
-        self.checked_mul(rhs).into()
+    fn checked_mul(&self, rhs: &Int<RHS_LIMBS>) -> ConstCtOption<Self> {
+        self.checked_mul(rhs)
     }
 }
 

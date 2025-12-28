@@ -74,7 +74,7 @@ pub use word64::*;
 /// Returns the truthy value if `x == y`, and the falsy value otherwise.
 #[inline]
 pub(crate) const fn choice_from_eq(x: Word, y: Word) -> Choice {
-    choice_from_nonzero(x ^ y).not()
+    choice_from_nz(x ^ y).not()
 }
 
 /// Returns the truthy value if `x > y`, and the falsy value otherwise.
@@ -104,7 +104,7 @@ pub(crate) const fn choice_from_msb(value: Word) -> Choice {
 
 /// Returns the truthy value if `value != 0`, and the falsy value otherwise.
 #[inline]
-pub(crate) const fn choice_from_nonzero(value: Word) -> Choice {
+pub(crate) const fn choice_from_nz(value: Word) -> Choice {
     choice_from_lsb((value | value.wrapping_neg()) >> (Word::BITS - 1))
 }
 

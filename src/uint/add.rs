@@ -1,8 +1,8 @@
 //! [`Uint`] addition operations.
 
-use crate::{Checked, CheckedAdd, Limb, Uint, Wrapping, WrappingAdd, Zero, word};
-use core::ops::{Add, AddAssign};
-use subtle::CtOption;
+use crate::{
+    Add, AddAssign, Checked, CheckedAdd, ConstCtOption, Limb, Uint, Wrapping, WrappingAdd, word,
+};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self + rhs + carry`, returning the result along with the new carry.
@@ -106,9 +106,9 @@ impl<const LIMBS: usize> AddAssign<&Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS
 }
 
 impl<const LIMBS: usize> CheckedAdd for Uint<LIMBS> {
-    fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
+    fn checked_add(&self, rhs: &Self) -> ConstCtOption<Self> {
         let (result, carry) = self.carrying_add(rhs, Limb::ZERO);
-        CtOption::new(result, carry.is_zero().into())
+        ConstCtOption::new(result, carry.is_zero())
     }
 }
 

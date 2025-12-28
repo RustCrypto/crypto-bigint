@@ -1,11 +1,8 @@
 //! [`Int`] addition operations.
 
-use core::ops::{Add, AddAssign};
-
-use num_traits::WrappingAdd;
-use subtle::CtOption;
-
-use crate::{Checked, CheckedAdd, ConstChoice, ConstCtOption, Int, Wrapping};
+use crate::{
+    Add, AddAssign, Checked, CheckedAdd, ConstChoice, ConstCtOption, Int, Wrapping, WrappingAdd,
+};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Perform checked addition. Returns `none` when the addition overflowed.
@@ -52,7 +49,8 @@ impl<const LIMBS: usize> Add<&Int<LIMBS>> for Int<LIMBS> {
     type Output = Self;
 
     fn add(self, rhs: &Self) -> Self {
-        CtOption::from(self.checked_add(rhs)).expect("attempted to add with overflow")
+        self.checked_add(rhs)
+            .expect("attempted to add with overflow")
     }
 }
 
@@ -93,8 +91,8 @@ impl<const LIMBS: usize> AddAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
 }
 
 impl<const LIMBS: usize> CheckedAdd for Int<LIMBS> {
-    fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
-        self.checked_add(rhs).into()
+    fn checked_add(&self, rhs: &Self) -> ConstCtOption<Self> {
+        self.checked_add(rhs)
     }
 }
 

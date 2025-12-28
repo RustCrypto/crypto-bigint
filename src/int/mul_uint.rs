@@ -1,7 +1,5 @@
-use core::ops::Mul;
-use subtle::CtOption;
-
 use crate::{CheckedMul, ConcatMixed, ConstChoice, ConstCtOption, Int, Uint};
+use core::ops::Mul;
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute "wide" multiplication between an [`Int`] and [`Uint`] as 3-tuple `(lo, hi, negate)`.
@@ -87,8 +85,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub fn checked_mul_uint_right<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
-    ) -> CtOption<Int<RHS_LIMBS>> {
-        rhs.checked_mul_int(self).into()
+    ) -> ConstCtOption<Int<RHS_LIMBS>> {
+        rhs.checked_mul_int(self)
     }
 
     /// Checked multiplication with a [`Uint`].
@@ -103,8 +101,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Uint<RHS_LIMBS>> for Int<LIMBS> {
     #[inline]
-    fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
-        self.checked_mul_uint(rhs).into()
+    fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> ConstCtOption<Self> {
+        self.checked_mul_uint(rhs)
     }
 }
 

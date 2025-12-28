@@ -4,8 +4,6 @@ use crate::{
     mul::karatsuba,
 };
 
-use subtle::CtOption;
-
 /// Perform a modified recursive Hensel quadratic modular inversion to calculate
 /// `a^-1 mod w^p` given `a^-1 mod w^k` where `w` is the size of `Limb`.
 /// For reference see Algorithm 2: <https://arxiv.org/pdf/1209.6626>
@@ -245,8 +243,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 impl<const LIMBS: usize> InvertMod for Uint<LIMBS> {
     type Output = Self;
 
-    fn invert_mod(&self, modulus: &NonZero<Self>) -> CtOption<Self> {
-        self.invert_mod(modulus).into()
+    fn invert_mod(&self, modulus: &NonZero<Self>) -> ConstCtOption<Self> {
+        self.invert_mod(modulus)
     }
 }
 

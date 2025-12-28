@@ -1,11 +1,9 @@
 //! [`BoxedUint`] division operations.
 
 use crate::{
-    BoxedUint, CheckedDiv, ConstCtOption, CtSelect, DivRemLimb, DivVartime, Limb, NonZero,
-    Reciprocal, RemLimb, RemMixed, UintRef, Wrapping,
+    BoxedUint, CheckedDiv, ConstCtOption, CtSelect, Div, DivAssign, DivRemLimb, DivVartime, Limb,
+    NonZero, Reciprocal, Rem, RemAssign, RemLimb, RemMixed, UintRef, Wrapping,
 };
-use core::ops::{Div, DivAssign, Rem, RemAssign};
-use subtle::CtOption;
 
 impl BoxedUint {
     /// Computes `self / rhs` using a pre-made reciprocal,
@@ -115,7 +113,7 @@ impl BoxedUint {
         self.div_rem_vartime(rhs).0
     }
 
-    /// Perform checked division, returning a [`CtOption`] which `is_some`
+    /// Perform checked division, returning a [`ConstCtOption`] which `is_some`
     /// only if the rhs != 0
     pub fn checked_div(&self, rhs: &Self) -> ConstCtOption<Self> {
         let mut quo = self.clone();
@@ -128,8 +126,8 @@ impl BoxedUint {
 }
 
 impl CheckedDiv for BoxedUint {
-    fn checked_div(&self, rhs: &BoxedUint) -> CtOption<Self> {
-        self.checked_div(rhs).into()
+    fn checked_div(&self, rhs: &BoxedUint) -> ConstCtOption<Self> {
+        self.checked_div(rhs)
     }
 }
 
@@ -295,9 +293,8 @@ impl RemMixed<BoxedUint> for BoxedUint {
 
 #[cfg(test)]
 mod tests {
-    use crate::{DivVartime, Resize, Zero};
-
     use super::{BoxedUint, Limb, NonZero};
+    use crate::{CtSelect, DivVartime, One, Resize, Zero};
 
     #[test]
     fn rem() {
@@ -386,7 +383,7 @@ mod tests {
             x: T,
             y: T,
         }
-        impl<T: DivVartime + Clone + Zero> A<T> {
+        impl<T: DivVartime + Clone + Zero + One + CtSelect> A<T> {
             fn divide_x_by_y(&self) -> T {
                 let rhs = &NonZero::new(self.y.clone()).unwrap();
                 self.x.div_vartime(rhs)

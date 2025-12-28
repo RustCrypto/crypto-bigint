@@ -1,12 +1,9 @@
 //! Limb multiplication
 
 use crate::{
-    Checked, CheckedMul, Limb, Wrapping, Zero,
+    Checked, CheckedMul, ConstCtOption, Limb, Mul, MulAssign, Wrapping, WrappingMul,
     primitives::{carrying_mul_add, widening_mul},
 };
-use core::ops::{Mul, MulAssign};
-use num_traits::WrappingMul;
-use subtle::CtOption;
 
 impl Limb {
     /// Computes `self + (b * c) + carry`, returning the result along with the new carry.
@@ -46,9 +43,9 @@ impl Limb {
 
 impl CheckedMul for Limb {
     #[inline]
-    fn checked_mul(&self, rhs: &Self) -> CtOption<Self> {
+    fn checked_mul(&self, rhs: &Self) -> ConstCtOption<Self> {
         let (lo, hi) = self.widening_mul(*rhs);
-        CtOption::new(lo, hi.is_zero().into())
+        ConstCtOption::new(lo, hi.is_zero())
     }
 }
 

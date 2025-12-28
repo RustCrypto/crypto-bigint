@@ -1,8 +1,9 @@
 //! Limb subtraction
 
-use crate::{Checked, CheckedSub, Limb, Wrapping, WrappingSub, Zero, primitives::borrowing_sub};
-use core::ops::{Sub, SubAssign};
-use subtle::CtOption;
+use crate::{
+    Checked, CheckedSub, ConstCtOption, Limb, Sub, SubAssign, Wrapping, WrappingSub,
+    primitives::borrowing_sub,
+};
 
 impl Limb {
     /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
@@ -34,9 +35,9 @@ impl Limb {
 
 impl CheckedSub for Limb {
     #[inline]
-    fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
+    fn checked_sub(&self, rhs: &Self) -> ConstCtOption<Self> {
         let (result, underflow) = self.borrowing_sub(*rhs, Limb::ZERO);
-        CtOption::new(result, underflow.is_zero().into())
+        ConstCtOption::new(result, underflow.is_zero())
     }
 }
 

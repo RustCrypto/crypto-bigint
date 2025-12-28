@@ -1,8 +1,9 @@
 //! [`BoxedUint`] subtraction operations.
 
-use crate::{BoxedUint, CheckedSub, Limb, U64, U128, Uint, Wrapping, WrappingSub, Zero};
-use core::ops::{Sub, SubAssign};
-use subtle::{Choice, ConditionallySelectable, CtOption};
+use crate::{
+    BoxedUint, CheckedSub, ConstChoice, ConstCtOption, CtSelect, Limb, Sub, SubAssign, U64, U128,
+    Uint, Wrapping, WrappingSub,
+};
 
 impl BoxedUint {
     /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
@@ -52,10 +53,10 @@ impl BoxedUint {
     pub(crate) fn conditional_borrowing_sub_assign(
         &mut self,
         rhs: &Self,
-        choice: Choice,
-    ) -> Choice {
+        choice: ConstChoice,
+    ) -> ConstChoice {
         debug_assert!(self.bits_precision() <= rhs.bits_precision());
-        let mask = Limb::conditional_select(&Limb::ZERO, &Limb::MAX, choice);
+        let mask = Limb::ct_select(&Limb::ZERO, &Limb::MAX, choice);
         let mut borrow = Limb::ZERO;
 
         for i in 0..self.nlimbs() {
@@ -65,14 +66,14 @@ impl BoxedUint {
             borrow = b;
         }
 
-        Choice::from((borrow.0 & 1) as u8)
+        ConstChoice::new((borrow.0 & 1) as u8)
     }
 }
 
 impl CheckedSub for BoxedUint {
-    fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
+    fn checked_sub(&self, rhs: &Self) -> ConstCtOption<Self> {
         let (result, carry) = self.borrowing_sub(rhs, Limb::ZERO);
-        CtOption::new(result, carry.is_zero().into())
+        ConstCtOption::new(result, carry.is_zero())
     }
 }
 
