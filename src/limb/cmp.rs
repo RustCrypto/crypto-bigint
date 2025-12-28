@@ -1,8 +1,7 @@
 //! Limb comparisons
 
-use crate::{ConstChoice, CtEq, Limb, word};
+use crate::{ConstChoice, CtEq, CtGt, CtLt, CtSelect, Limb, word};
 use core::cmp::Ordering;
-use subtle::{Choice, ConditionallySelectable, ConstantTimeGreater, ConstantTimeLess};
 
 impl Limb {
     /// Is this limb an odd number?
@@ -58,29 +57,43 @@ impl CtEq for Limb {
     }
 }
 
+impl CtGt for Limb {
+    #[inline]
+    fn ct_gt(&self, other: &Self) -> ConstChoice {
+        word::choice_from_gt(self.0, other.0)
+    }
+}
+
+impl CtLt for Limb {
+    #[inline]
+    fn ct_lt(&self, other: &Self) -> ConstChoice {
+        word::choice_from_lt(self.0, other.0)
+    }
+}
+
 impl subtle::ConstantTimeEq for Limb {
     #[inline]
-    fn ct_eq(&self, other: &Self) -> Choice {
+    fn ct_eq(&self, other: &Self) -> subtle::Choice {
         CtEq::ct_eq(self, other).into()
     }
 
     #[inline]
-    fn ct_ne(&self, other: &Self) -> Choice {
+    fn ct_ne(&self, other: &Self) -> subtle::Choice {
         CtEq::ct_ne(self, other).into()
     }
 }
 
-impl ConstantTimeGreater for Limb {
+impl subtle::ConstantTimeGreater for Limb {
     #[inline]
-    fn ct_gt(&self, other: &Self) -> Choice {
-        word::choice_from_gt(self.0, other.0).into()
+    fn ct_gt(&self, other: &Self) -> subtle::Choice {
+        CtGt::ct_gt(self, other).into()
     }
 }
 
-impl ConstantTimeLess for Limb {
+impl subtle::ConstantTimeLess for Limb {
     #[inline]
-    fn ct_lt(&self, other: &Self) -> Choice {
-        word::choice_from_lt(self.0, other.0).into()
+    fn ct_lt(&self, other: &Self) -> subtle::Choice {
+        CtLt::ct_lt(self, other).into()
     }
 }
 
@@ -89,8 +102,8 @@ impl Eq for Limb {}
 impl Ord for Limb {
     fn cmp(&self, other: &Self) -> Ordering {
         let mut ret = Ordering::Less;
-        ret.conditional_assign(&Ordering::Equal, self.ct_eq(other).into());
-        ret.conditional_assign(&Ordering::Greater, self.ct_gt(other));
+        ret.ct_assign(&Ordering::Equal, self.ct_eq(other));
+        ret.ct_assign(&Ordering::Greater, self.ct_gt(other));
         debug_assert_eq!(ret == Ordering::Less, bool::from(self.ct_lt(other)));
         ret
     }

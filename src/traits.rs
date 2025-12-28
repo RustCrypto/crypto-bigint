@@ -1,11 +1,12 @@
 //! Traits provided by this crate
 
+pub use ctutils::{CtEq, CtGt, CtLt, CtSelect};
 pub use num_traits::{
     ConstOne, ConstZero, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr,
     WrappingSub,
 };
 
-use crate::{ConstChoice, CtEq, CtSelect, Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
+use crate::{ConstChoice, Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
 use core::{
     fmt::{self, Debug},
     ops::{
@@ -14,7 +15,7 @@ use core::{
         SubAssign,
     },
 };
-use subtle::{Choice, ConditionallySelectable, ConstantTimeGreater, ConstantTimeLess, CtOption};
+use subtle::{Choice, ConditionallySelectable, CtOption};
 
 #[cfg(feature = "rand_core")]
 use rand_core::{RngCore, TryRngCore};
@@ -53,9 +54,9 @@ pub trait Integer:
     + CheckedMul
     + CheckedDiv
     + Clone
-    + ConstantTimeGreater
-    + ConstantTimeLess
     + CtEq
+    + CtGt
+    + CtLt
     + CtSelect
     + Debug
     + Default
@@ -136,7 +137,7 @@ pub trait Signed:
     + From<i16>
     + From<i32>
     + From<i64>
-    + Integer
+    + Integer // + CtNeg TODO(tarcieri)
 {
     /// Corresponding unsigned integer type.
     type Unsigned: Unsigned;
