@@ -1,15 +1,14 @@
 //! Wrapper type for non-zero integers.
 
 use crate::{
-    Bounded, ConstChoice, Constants, CtEq, CtSelect, Encoding, Int, Limb, Odd, One, Uint, Zero,
+    Bounded, ConstChoice, ConstCtOption, ConstOne, Constants, CtEq, CtSelect, Encoding, Int, Limb,
+    Mul, Odd, One, Uint, Zero,
 };
 use core::{
     fmt,
     num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128},
-    ops::{Deref, Mul},
+    ops::Deref,
 };
-use num_traits::ConstOne;
-use subtle::{Choice, ConditionallySelectable, CtOption};
 
 #[cfg(feature = "alloc")]
 use crate::BoxedUint;
@@ -43,12 +42,17 @@ pub struct NonZero<T: ?Sized>(pub(crate) T);
 
 impl<T> NonZero<T> {
     /// Create a new non-zero integer.
-    pub fn new(n: T) -> CtOption<Self>
+    pub fn new(mut n: T) -> ConstCtOption<Self>
     where
-        T: Zero,
+        T: Zero + One + CtSelect,
     {
-        let is_zero = Choice::from(n.is_zero());
-        CtOption::new(Self(n), !is_zero)
+        let is_zero = n.is_zero();
+
+        // Use one as a placeholder in the event zero is provided, so functions that operate on
+        // `NonZero` values really can expect the value to never be zero, even in the case
+        // `CtOption::is_some` is false.
+        n.ct_assign(&T::one_like(&n), is_zero);
+        ConstCtOption::new(Self(n), !is_zero)
     }
 
     /// Returns the inner value.
@@ -88,15 +92,15 @@ where
 
 impl<T> NonZero<T>
 where
-    T: Encoding + Zero,
+    T: Zero + One + CtSelect + Encoding,
 {
     /// Decode from big endian bytes.
-    pub fn from_be_bytes(bytes: T::Repr) -> CtOption<Self> {
+    pub fn from_be_bytes(bytes: T::Repr) -> ConstCtOption<Self> {
         Self::new(T::from_be_bytes(bytes))
     }
 
     /// Decode from little endian bytes.
-    pub fn from_le_bytes(bytes: T::Repr) -> CtOption<Self> {
+    pub fn from_le_bytes(bytes: T::Repr) -> ConstCtOption<Self> {
         Self::new(T::from_le_bytes(bytes))
     }
 }
@@ -275,15 +279,15 @@ impl<const LIMBS: usize> NonZeroInt<LIMBS> {
 #[cfg(feature = "hybrid-array")]
 impl<T> NonZero<T>
 where
-    T: ArrayEncoding + Zero,
+    T: ArrayEncoding + Zero + One + CtSelect,
 {
     /// Decode a non-zero integer from big endian bytes.
-    pub fn from_be_byte_array(bytes: ByteArray<T>) -> CtOption<Self> {
+    pub fn from_be_byte_array(bytes: ByteArray<T>) -> ConstCtOption<Self> {
         Self::new(T::from_be_byte_array(bytes))
     }
 
     /// Decode a non-zero integer from big endian bytes.
-    pub fn from_le_byte_array(bytes: ByteArray<T>) -> CtOption<Self> {
+    pub fn from_le_byte_array(bytes: ByteArray<T>) -> ConstCtOption<Self> {
         Self::new(T::from_be_byte_array(bytes))
     }
 }
@@ -294,12 +298,13 @@ impl<T: ?Sized> AsRef<T> for NonZero<T> {
     }
 }
 
-impl<T> ConditionallySelectable for NonZero<T>
+impl<T> subtle::ConditionallySelectable for NonZero<T>
 where
-    T: ConditionallySelectable,
+    T: Copy,
+    Self: CtSelect,
 {
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Self(T::conditional_select(&a.0, &b.0, choice))
+    fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
+        CtSelect::ct_select(a, b, choice.into())
     }
 }
 
@@ -309,7 +314,7 @@ where
     Self: CtEq,
 {
     #[inline]
-    fn ct_eq(&self, other: &Self) -> Choice {
+    fn ct_eq(&self, other: &Self) -> subtle::Choice {
         CtEq::ct_eq(self, other).into()
     }
 }
@@ -355,7 +360,7 @@ impl<T: ?Sized> Deref for NonZero<T> {
 #[cfg(feature = "rand_core")]
 impl<T> Random for NonZero<T>
 where
-    T: Random + Zero,
+    T: Random + Zero + One + CtSelect,
 {
     /// This uses rejection sampling to avoid zero.
     ///

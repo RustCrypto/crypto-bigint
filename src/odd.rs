@@ -1,14 +1,10 @@
 //! Wrapper type for non-zero integers.
 
 use crate::{
-    Bounded, ConstChoice, CtEq, CtSelect, Int, Integer, Limb, NonZero, One, Uint, UintRef,
+    Bounded, ConstChoice, ConstOne, CtEq, CtSelect, Int, Integer, Limb, Mul, NonZero, One, Uint,
+    UintRef,
 };
-use core::{
-    cmp::Ordering,
-    fmt,
-    ops::{Deref, Mul},
-};
-use num_traits::ConstOne;
+use core::{cmp::Ordering, fmt, ops::Deref};
 use subtle::{Choice, ConditionallySelectable, CtOption};
 
 #[cfg(feature = "alloc")]

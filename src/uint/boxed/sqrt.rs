@@ -1,8 +1,6 @@
 //! [`BoxedUint`] square root operations.
 
-use subtle::{ConstantTimeEq, ConstantTimeGreater, CtOption};
-
-use crate::{BitOps, BoxedUint, CtSelect, Limb, SquareRoot};
+use crate::{BitOps, BoxedUint, ConstCtOption, CtEq, CtGt, CtSelect, Limb, SquareRoot};
 
 impl BoxedUint {
     /// Computes √(`self`) in constant time.
@@ -35,7 +33,7 @@ impl BoxedUint {
             quo.limbs.copy_from_slice(&self.limbs);
             rem.limbs.copy_from_slice(&nz_x.limbs);
             quo.as_mut_uint_ref().div_rem(rem.as_mut_uint_ref());
-            x.conditional_carrying_add_assign(&quo, x_nonzero.into());
+            x.conditional_carrying_add_assign(&quo, x_nonzero);
             x.shr1_assign();
 
             i += 1;
@@ -44,7 +42,7 @@ impl BoxedUint {
         // At this point `x_prev == x_{n}` and `x == x_{n+1}`
         // where `n == i - 1 == LOG2_BITS + 1 == floor(log2(BITS)) + 1`.
         // Thus, according to Hast, `sqrt(self) = min(x_n, x_{n+1})`.
-        x.ct_assign(&nz_x, Self::ct_gt(&x, &nz_x).into());
+        x.ct_assign(&nz_x, x.ct_gt(&nz_x));
         x
     }
 
@@ -104,20 +102,20 @@ impl BoxedUint {
         self.sqrt_vartime()
     }
 
-    /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
+    /// Perform checked sqrt, returning a [`ConstCtOption`] which `is_some`
     /// only if the √(`self`)² == self
-    pub fn checked_sqrt(&self) -> CtOption<Self> {
+    pub fn checked_sqrt(&self) -> ConstCtOption<Self> {
         let r = self.sqrt();
         let s = r.wrapping_mul(&r);
-        CtOption::new(r, ConstantTimeEq::ct_eq(self, &s))
+        ConstCtOption::new(r, self.ct_eq(&s))
     }
 
-    /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
+    /// Perform checked sqrt, returning a [`ConstCtOption`] which `is_some`
     /// only if the √(`self`)² == self
-    pub fn checked_sqrt_vartime(&self) -> CtOption<Self> {
+    pub fn checked_sqrt_vartime(&self) -> ConstCtOption<Self> {
         let r = self.sqrt_vartime();
         let s = r.wrapping_mul(&r);
-        CtOption::new(r, ConstantTimeEq::ct_eq(self, &s))
+        ConstCtOption::new(r, self.ct_eq(&s))
     }
 }
 
@@ -245,17 +243,17 @@ mod tests {
             let r = BoxedUint::from(*e);
             assert_eq!(l.sqrt(), r);
             assert_eq!(l.sqrt_vartime(), r);
-            assert_eq!(l.checked_sqrt().is_some().unwrap_u8(), 1u8);
-            assert_eq!(l.checked_sqrt_vartime().is_some().unwrap_u8(), 1u8);
+            assert!(l.checked_sqrt().is_some().to_bool());
+            assert!(l.checked_sqrt_vartime().is_some().to_bool());
         }
     }
 
     #[test]
     fn nonsquares() {
         assert_eq!(BoxedUint::from(2u8).sqrt(), BoxedUint::from(1u8));
-        assert_eq!(BoxedUint::from(2u8).checked_sqrt().is_some().unwrap_u8(), 0);
+        assert!(!BoxedUint::from(2u8).checked_sqrt().is_some().to_bool());
         assert_eq!(BoxedUint::from(3u8).sqrt(), BoxedUint::from(1u8));
-        assert_eq!(BoxedUint::from(3u8).checked_sqrt().is_some().unwrap_u8(), 0);
+        assert!(!BoxedUint::from(3u8).checked_sqrt().is_some().to_bool());
         assert_eq!(BoxedUint::from(5u8).sqrt(), BoxedUint::from(2u8));
         assert_eq!(BoxedUint::from(6u8).sqrt(), BoxedUint::from(2u8));
         assert_eq!(BoxedUint::from(7u8).sqrt(), BoxedUint::from(2u8));
@@ -266,20 +264,18 @@ mod tests {
     #[test]
     fn nonsquares_vartime() {
         assert_eq!(BoxedUint::from(2u8).sqrt_vartime(), BoxedUint::from(1u8));
-        assert_eq!(
-            BoxedUint::from(2u8)
+        assert!(
+            !BoxedUint::from(2u8)
                 .checked_sqrt_vartime()
                 .is_some()
-                .unwrap_u8(),
-            0
+                .to_bool()
         );
         assert_eq!(BoxedUint::from(3u8).sqrt_vartime(), BoxedUint::from(1u8));
-        assert_eq!(
-            BoxedUint::from(3u8)
+        assert!(
+            !BoxedUint::from(3u8)
                 .checked_sqrt_vartime()
                 .is_some()
-                .unwrap_u8(),
-            0
+                .to_bool()
         );
         assert_eq!(BoxedUint::from(5u8).sqrt_vartime(), BoxedUint::from(2u8));
         assert_eq!(BoxedUint::from(6u8).sqrt_vartime(), BoxedUint::from(2u8));
@@ -298,8 +294,8 @@ mod tests {
             let s2 = s.checked_mul(&s).unwrap();
             assert_eq!(s2.sqrt(), s);
             assert_eq!(s2.sqrt_vartime(), s);
-            assert_eq!(s2.checked_sqrt().is_some().unwrap_u8(), 1);
-            assert_eq!(s2.checked_sqrt_vartime().is_some().unwrap_u8(), 1);
+            assert!(s2.checked_sqrt().is_some().to_bool());
+            assert!(s2.checked_sqrt_vartime().is_some().to_bool());
         }
 
         for _ in 0..50 {

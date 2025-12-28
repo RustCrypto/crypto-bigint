@@ -208,8 +208,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Convert to a [`NonZero<Uint<LIMBS>>`].
     ///
     /// Returns some if the original value is non-zero, and false otherwise.
-    pub const fn to_nz(self) -> ConstCtOption<NonZero<Self>> {
-        ConstCtOption::new(NonZero(self), self.is_nonzero())
+    pub const fn to_nz(&self) -> ConstCtOption<NonZero<Self>> {
+        let is_nz = self.is_nonzero();
+
+        // Use `1` as a placeholder in the event this value is `0`
+        let ret = Self::select(&Self::ONE, self, is_nz);
+        ConstCtOption::new(NonZero(ret), is_nz)
     }
 
     /// Convert to a [`Odd<Uint<LIMBS>>`].
@@ -234,6 +238,19 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Note: this is the conversion operation. See [`Self::as_int`] for the unchecked equivalent.
     pub const fn try_into_int(self) -> ConstCtOption<Int<LIMBS>> {
         Int::new_from_abs_sign(self, ConstChoice::FALSE)
+    }
+
+    /// Is this [`Uint`] equal to [`Uint::ZERO`]?
+    pub const fn is_zero(&self) -> ConstChoice {
+        let mut ret = ConstChoice::TRUE;
+        let mut n = 0;
+
+        while n < LIMBS {
+            ret = ret.and(self.limbs[n].is_zero());
+            n += 1;
+        }
+
+        ret
     }
 }
 
@@ -333,7 +350,11 @@ impl<const LIMBS: usize> Unsigned for Uint<LIMBS> {
 impl<const LIMBS: usize> num_traits::Num for Uint<LIMBS> {
     type FromStrRadixErr = crate::DecodeError;
 
-    /// ⚠️ WARNING: `from_str_radix` impl operates in variable-time with respect to the input.
+    /// <div class="warning">
+    /// <b>WARNING: variable-time!</b>
+    ///
+    /// `from_str_radix` impl operates in variable-time with respect to the input.
+    /// </div>
     fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
         Self::from_str_radix_vartime(str, radix)
     }

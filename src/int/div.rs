@@ -1,10 +1,7 @@
 //! [`Int`] division operations.
 
-use core::ops::{Div, DivAssign, Rem, RemAssign};
-
-use subtle::CtOption;
-
 use crate::{CheckedDiv, ConstChoice, ConstCtOption, DivVartime, Int, NonZero, Uint, Wrapping};
+use core::ops::{Div, DivAssign, Rem, RemAssign};
 
 /// Checked division operations.
 impl<const LIMBS: usize> Int<LIMBS> {
@@ -64,13 +61,13 @@ impl<const LIMBS: usize> Int<LIMBS> {
         )
     }
 
-    /// Perform checked division, returning a [`CtOption`] which `is_some` if
+    /// Perform checked division, returning a [`ConstCtOption`] which `is_some` if
     /// - the `rhs != 0`, and
     /// - `self != MIN` or `rhs != MINUS_ONE`.
     ///
     /// Note: this operation rounds towards zero, truncating any fractional part of the exact result.
-    pub fn checked_div<const RHS_LIMBS: usize>(&self, rhs: &Int<RHS_LIMBS>) -> CtOption<Self> {
-        NonZero::new(*rhs).and_then(|rhs| self.checked_div_rem(&rhs).0.into())
+    pub fn checked_div<const RHS_LIMBS: usize>(&self, rhs: &Int<RHS_LIMBS>) -> ConstCtOption<Self> {
+        NonZero::new(*rhs).and_then(|rhs| self.checked_div_rem(&rhs).0)
     }
 
     /// Computes `self` % `rhs`, returns the remainder.
@@ -133,8 +130,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub fn checked_div_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
-    ) -> CtOption<Self> {
-        NonZero::new(*rhs).and_then(|rhs| self.checked_div_rem_vartime(&rhs).0.into())
+    ) -> ConstCtOption<Self> {
+        NonZero::new(*rhs).and_then(|rhs| self.checked_div_rem_vartime(&rhs).0)
     }
 
     /// Variable time equivalent of [`Self::rem`]
@@ -196,8 +193,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub fn checked_div_floor_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
-    ) -> CtOption<Self> {
-        NonZero::new(*rhs).and_then(|rhs| self.checked_div_rem_floor_vartime(&rhs).0.into())
+    ) -> ConstCtOption<Self> {
+        NonZero::new(*rhs).and_then(|rhs| self.checked_div_rem_floor_vartime(&rhs).0)
     }
 }
 
@@ -232,8 +229,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub fn checked_div_floor<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
-    ) -> CtOption<Self> {
-        NonZero::new(*rhs).and_then(|rhs| self.checked_div_rem_floor(&rhs).0.into())
+    ) -> ConstCtOption<Self> {
+        NonZero::new(*rhs).and_then(|rhs| self.checked_div_rem_floor(&rhs).0)
     }
 
     /// Perform checked division and mod, returning the quotient and remainder.
@@ -296,13 +293,13 @@ impl<const LIMBS: usize> Int<LIMBS> {
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedDiv<Int<RHS_LIMBS>> for Int<LIMBS> {
-    fn checked_div(&self, rhs: &Int<RHS_LIMBS>) -> CtOption<Self> {
+    fn checked_div(&self, rhs: &Int<RHS_LIMBS>) -> ConstCtOption<Self> {
         self.checked_div(rhs)
     }
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Int<RHS_LIMBS>>> for &Int<LIMBS> {
-    type Output = CtOption<Int<LIMBS>>;
+    type Output = ConstCtOption<Int<LIMBS>>;
 
     fn div(self, rhs: &NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         *self / *rhs
@@ -310,7 +307,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Int<RHS_LIMBS>>> f
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Int<RHS_LIMBS>>> for Int<LIMBS> {
-    type Output = CtOption<Int<LIMBS>>;
+    type Output = ConstCtOption<Int<LIMBS>>;
 
     fn div(self, rhs: &NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         self / *rhs
@@ -318,7 +315,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Int<RHS_LIMBS>>> f
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Int<RHS_LIMBS>>> for &Int<LIMBS> {
-    type Output = CtOption<Int<LIMBS>>;
+    type Output = ConstCtOption<Int<LIMBS>>;
 
     fn div(self, rhs: NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         *self / rhs
@@ -326,7 +323,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Int<RHS_LIMBS>>> fo
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Int<RHS_LIMBS>>> for Int<LIMBS> {
-    type Output = CtOption<Int<LIMBS>>;
+    type Output = ConstCtOption<Int<LIMBS>>;
 
     fn div(self, rhs: NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         self.checked_div(&rhs)
@@ -506,7 +503,7 @@ impl<const LIMBS: usize> RemAssign<&NonZero<Int<LIMBS>>> for Wrapping<Int<LIMBS>
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, DivVartime, I128, Int, NonZero, Zero};
+    use crate::{ConstChoice, CtSelect, DivVartime, I128, Int, NonZero, One, Zero};
 
     #[test]
     #[allow(clippy::init_numbered_fields)]
@@ -631,7 +628,7 @@ mod tests {
 
     #[test]
     fn div_vartime_through_trait() {
-        fn myfn<T: DivVartime + Zero>(x: T, y: T) -> T {
+        fn myfn<T: DivVartime + Zero + One + CtSelect>(x: T, y: T) -> T {
             x.div_vartime(&NonZero::new(y).unwrap())
         }
         assert_eq!(myfn(I128::from(8), I128::from(3)), I128::from(2));

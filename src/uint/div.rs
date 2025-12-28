@@ -1,10 +1,10 @@
 //! [`Uint`] division operations.
 
 use super::div_limb::Reciprocal;
-use crate::{CheckedDiv, DivRemLimb, DivVartime, Limb, NonZero, RemLimb, Uint, UintRef, Wrapping};
-use core::ops::{Div, DivAssign, Rem, RemAssign};
-
-use subtle::CtOption;
+use crate::{
+    CheckedDiv, ConstCtOption, Div, DivAssign, DivRemLimb, DivVartime, Limb, NonZero, Rem,
+    RemAssign, RemLimb, Uint, UintRef, Wrapping,
+};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self / rhs` using a pre-made reciprocal, returning the quotient
@@ -154,7 +154,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         self.div_rem_vartime(rhs).0
     }
 
-    /// Perform checked division, returning a [`CtOption`] which `is_some`
+    /// Perform checked division, returning a [`ConstCtOption`] which `is_some`
     /// only if the rhs != 0.
     ///
     /// ### Usage:
@@ -172,7 +172,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// let zero = U448::from(0_u64);
     /// assert!(bool::from(a.checked_div(&zero).is_none()), "Should be None for division by zero");
     /// ```
-    pub fn checked_div<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
+    pub fn checked_div<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> ConstCtOption<Self> {
         NonZero::new(*rhs).map(|rhs| {
             let (q, _r) = self.div_rem(&rhs);
             q
@@ -197,7 +200,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         self.rem_vartime(&nz_rhs)
     }
 
-    /// Perform checked reduction, returning a [`CtOption`] which `is_some`
+    /// Perform checked reduction, returning a [`ConstCtOption`] which `is_some`
     /// only if the rhs != 0
     ///
     /// ### Usage:
@@ -218,7 +221,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub fn checked_rem<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
-    ) -> CtOption<Uint<RHS_LIMBS>> {
+    ) -> ConstCtOption<Uint<RHS_LIMBS>> {
+        // TODO(tarcieri): proper constant-time operation
+        if rhs.is_zero().to_bool() {
+            return ConstCtOption::none();
+        }
+
         NonZero::new(*rhs).map(|rhs| self.rem(&rhs))
     }
 }
@@ -410,7 +418,7 @@ impl<const LIMBS: usize> RemAssign<&NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
 //
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedDiv<Uint<RHS_LIMBS>> for Uint<LIMBS> {
-    fn checked_div(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
+    fn checked_div(&self, rhs: &Uint<RHS_LIMBS>) -> ConstCtOption<Self> {
         self.checked_div(rhs)
     }
 }
@@ -669,7 +677,8 @@ impl<const LIMBS: usize> RemLimb for Uint<LIMBS> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        DivVartime, Limb, NonZero, RemMixed, U64, U128, U256, U512, U896, U1024, Uint, Word, Zero,
+        CtSelect, DivVartime, Limb, NonZero, One, RemMixed, U64, U128, U256, U512, U896, U1024,
+        Uint, Word, Zero,
     };
 
     #[cfg(feature = "rand")]
@@ -985,7 +994,7 @@ mod tests {
         impl<T, U> A<T, U>
         where
             T: RemMixed<U>,
-            U: Clone + Zero,
+            U: Clone + Zero + One + CtSelect,
         {
             fn reduce_t_by_u(&self) -> U {
                 let rhs = &NonZero::new(self.u.clone()).unwrap();
@@ -1008,7 +1017,7 @@ mod tests {
         }
         impl<T> A<T>
         where
-            T: DivVartime + Clone + Zero,
+            T: DivVartime + Clone + Zero + One + CtSelect,
         {
             fn divide_x_by_y(&self) -> T {
                 let rhs = &NonZero::new(self.y.clone()).unwrap();

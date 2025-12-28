@@ -1,5 +1,4 @@
-use crate::{ConstChoice, ConstCtOption, Int, Uint, Word, word};
-use num_traits::ConstZero;
+use crate::{ConstChoice, ConstCtOption, ConstZero, Int, Uint, Word, word};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Returns the word of most significant [`Limb`].

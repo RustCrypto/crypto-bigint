@@ -1,29 +1,30 @@
 //! Checked arithmetic.
 
-use crate::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, ConstChoice, CtEq, CtSelect};
+use crate::{
+    CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, ConstChoice, ConstCtOption, CtEq, CtSelect,
+};
 use core::ops::{Add, Div, Mul, Sub};
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
 
 #[cfg(feature = "serde")]
 use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// Provides intentionally-checked arithmetic on `T`.
 ///
-/// Internally this leverages the [`CtOption`] type from the [`subtle`] crate
-/// in order to handle overflows.
+/// Internally this leverages the [`ConstCtOption`] type from the [`ctutils`] crate in order to
+/// handle overflows.
 #[derive(Copy, Clone, Debug)]
-pub struct Checked<T>(pub CtOption<T>);
+pub struct Checked<T>(pub ConstCtOption<T>);
 
 impl<T> Checked<T> {
     /// Create a new checked arithmetic wrapper for the given value.
     pub fn new(val: T) -> Self {
-        Self(CtOption::new(val, Choice::from(1)))
+        Self(ConstCtOption::new(val, ConstChoice::TRUE))
     }
 }
 
 impl<T> Add<Self> for Checked<T>
 where
-    T: CheckedAdd + ConditionallySelectable + Default,
+    T: CheckedAdd + CtSelect + Default,
 {
     type Output = Checked<T>;
 
@@ -31,14 +32,15 @@ where
     fn add(self, rhs: Self) -> Self::Output {
         Checked(
             self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(&rhs))),
+                .as_ref()
+                .and_then(|lhs| rhs.0.as_ref().and_then(|rhs| lhs.checked_add(rhs))),
         )
     }
 }
 
 impl<T> Add<&Self> for Checked<T>
 where
-    T: CheckedAdd + ConditionallySelectable + Default,
+    T: CheckedAdd + CtSelect + Default,
 {
     type Output = Checked<T>;
 
@@ -46,14 +48,15 @@ where
     fn add(self, rhs: &Self) -> Self::Output {
         Checked(
             self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(&rhs))),
+                .as_ref()
+                .and_then(|lhs| rhs.0.as_ref().and_then(|rhs| lhs.checked_add(rhs))),
         )
     }
 }
 
 impl<T> Add<Checked<T>> for &Checked<T>
 where
-    T: CheckedAdd + ConditionallySelectable + Default,
+    T: CheckedAdd + CtSelect + Default,
 {
     type Output = Checked<T>;
 
@@ -61,14 +64,15 @@ where
     fn add(self, rhs: Checked<T>) -> Self::Output {
         Checked(
             self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(&rhs))),
+                .as_ref()
+                .and_then(|lhs| rhs.0.as_ref().and_then(|rhs| lhs.checked_add(rhs))),
         )
     }
 }
 
 impl<T> Add<&Checked<T>> for &Checked<T>
 where
-    T: CheckedAdd + ConditionallySelectable + Default,
+    T: CheckedAdd + CtSelect + Default,
 {
     type Output = Checked<T>;
 
@@ -76,14 +80,15 @@ where
     fn add(self, rhs: &Checked<T>) -> Self::Output {
         Checked(
             self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_add(&rhs))),
+                .as_ref()
+                .and_then(|lhs| rhs.0.as_ref().and_then(|rhs| lhs.checked_add(rhs))),
         )
     }
 }
 
 impl<T> Sub<Self> for Checked<T>
 where
-    T: CheckedSub + ConditionallySelectable + Default,
+    T: CheckedSub + CtSelect + Default,
 {
     type Output = Checked<T>;
 
@@ -91,14 +96,15 @@ where
     fn sub(self, rhs: Self) -> Self::Output {
         Checked(
             self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_sub(&rhs))),
+                .as_ref()
+                .and_then(|lhs| rhs.0.as_ref().and_then(|rhs| lhs.checked_sub(rhs))),
         )
     }
 }
 
 impl<T> Sub<&Self> for Checked<T>
 where
-    T: CheckedSub + ConditionallySelectable + Default,
+    T: CheckedSub + CtSelect + Default,
 {
     type Output = Checked<T>;
 
@@ -106,14 +112,15 @@ where
     fn sub(self, rhs: &Self) -> Self::Output {
         Checked(
             self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_sub(&rhs))),
+                .as_ref()
+                .and_then(|lhs| rhs.0.as_ref().and_then(|rhs| lhs.checked_sub(rhs))),
         )
     }
 }
 
 impl<T> Sub<Checked<T>> for &Checked<T>
 where
-    T: CheckedSub + ConditionallySelectable + Default,
+    T: CheckedSub + CtSelect + Default,
 {
     type Output = Checked<T>;
 
@@ -121,14 +128,15 @@ where
     fn sub(self, rhs: Checked<T>) -> Self::Output {
         Checked(
             self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_sub(&rhs))),
+                .as_ref()
+                .and_then(|lhs| rhs.0.as_ref().and_then(|rhs| lhs.checked_sub(rhs))),
         )
     }
 }
 
 impl<T> Sub<&Checked<T>> for &Checked<T>
 where
-    T: CheckedSub + ConditionallySelectable + Default,
+    T: CheckedSub + CtSelect + Default,
 {
     type Output = Checked<T>;
 
@@ -136,14 +144,15 @@ where
     fn sub(self, rhs: &Checked<T>) -> Self::Output {
         Checked(
             self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_sub(&rhs))),
+                .as_ref()
+                .and_then(|lhs| rhs.0.as_ref().and_then(|rhs| lhs.checked_sub(rhs))),
         )
     }
 }
 
 impl<T> Mul<Self> for Checked<T>
 where
-    T: CheckedMul + ConditionallySelectable + Default,
+    T: CheckedMul + CtSelect + Default,
 {
     type Output = Checked<T>;
 
@@ -151,14 +160,15 @@ where
     fn mul(self, rhs: Self) -> Self::Output {
         Checked(
             self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_mul(&rhs))),
+                .as_ref()
+                .and_then(|lhs| rhs.0.as_ref().and_then(|rhs| lhs.checked_mul(rhs))),
         )
     }
 }
 
 impl<T> Mul<&Self> for Checked<T>
 where
-    T: CheckedMul + ConditionallySelectable + Default,
+    T: CheckedMul + CtSelect + Default,
 {
     type Output = Checked<T>;
 
@@ -166,14 +176,15 @@ where
     fn mul(self, rhs: &Self) -> Self::Output {
         Checked(
             self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_mul(&rhs))),
+                .as_ref()
+                .and_then(|lhs| rhs.0.as_ref().and_then(|rhs| lhs.checked_mul(rhs))),
         )
     }
 }
 
 impl<T> Mul<Checked<T>> for &Checked<T>
 where
-    T: CheckedMul + ConditionallySelectable + Default,
+    T: CheckedMul + CtSelect + Default,
 {
     type Output = Checked<T>;
 
@@ -181,14 +192,15 @@ where
     fn mul(self, rhs: Checked<T>) -> Self::Output {
         Checked(
             self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_mul(&rhs))),
+                .as_ref()
+                .and_then(|lhs| rhs.0.as_ref().and_then(|rhs| lhs.checked_mul(rhs))),
         )
     }
 }
 
 impl<T> Mul<&Checked<T>> for &Checked<T>
 where
-    T: CheckedMul + ConditionallySelectable + Default,
+    T: CheckedMul + CtSelect + Default,
 {
     type Output = Checked<T>;
 
@@ -196,14 +208,15 @@ where
     fn mul(self, rhs: &Checked<T>) -> Self::Output {
         Checked(
             self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_mul(&rhs))),
+                .as_ref()
+                .and_then(|lhs| rhs.0.as_ref().and_then(|rhs| lhs.checked_mul(rhs))),
         )
     }
 }
 
 impl<T> Div<Self> for Checked<T>
 where
-    T: CheckedDiv + ConditionallySelectable + Default,
+    T: CheckedDiv + CtSelect + Default,
 {
     type Output = Checked<T>;
 
@@ -211,14 +224,15 @@ where
     fn div(self, rhs: Self) -> Self::Output {
         Checked(
             self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_div(&rhs))),
+                .as_ref()
+                .and_then(|lhs| rhs.0.as_ref().and_then(|rhs| lhs.checked_div(rhs))),
         )
     }
 }
 
 impl<T> Div<&Self> for Checked<T>
 where
-    T: CheckedDiv + ConditionallySelectable + Default,
+    T: CheckedDiv + CtSelect + Default,
 {
     type Output = Checked<T>;
 
@@ -226,14 +240,15 @@ where
     fn div(self, rhs: &Self) -> Self::Output {
         Checked(
             self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_div(&rhs))),
+                .as_ref()
+                .and_then(|lhs| rhs.0.as_ref().and_then(|rhs| lhs.checked_div(rhs))),
         )
     }
 }
 
 impl<T> Div<Checked<T>> for &Checked<T>
 where
-    T: CheckedDiv + ConditionallySelectable + Default,
+    T: CheckedDiv + CtSelect + Default,
 {
     type Output = Checked<T>;
 
@@ -241,14 +256,15 @@ where
     fn div(self, rhs: Checked<T>) -> Self::Output {
         Checked(
             self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_div(&rhs))),
+                .as_ref()
+                .and_then(|lhs| rhs.0.as_ref().and_then(|rhs| lhs.checked_div(rhs))),
         )
     }
 }
 
 impl<T> Div<&Checked<T>> for &Checked<T>
 where
-    T: CheckedDiv + ConditionallySelectable + Default,
+    T: CheckedDiv + CtSelect + Default,
 {
     type Output = Checked<T>;
 
@@ -256,45 +272,50 @@ where
     fn div(self, rhs: &Checked<T>) -> Self::Output {
         Checked(
             self.0
-                .and_then(|lhs| rhs.0.and_then(|rhs| lhs.checked_div(&rhs))),
+                .as_ref()
+                .and_then(|lhs| rhs.0.as_ref().and_then(|rhs| lhs.checked_div(rhs))),
         )
     }
 }
 
-impl<T: ConditionallySelectable> ConditionallySelectable for Checked<T> {
+impl<T> subtle::ConditionallySelectable for Checked<T>
+where
+    T: Copy,
+    Self: CtSelect,
+{
     #[inline]
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Self(CtOption::conditional_select(&a.0, &b.0, choice))
+    fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
+        a.ct_select(b, choice.into())
     }
 }
 
-impl<T> ConstantTimeEq for Checked<T>
+impl<T> subtle::ConstantTimeEq for Checked<T>
 where
-    T: ConstantTimeEq,
+    Self: CtEq,
 {
     #[inline]
-    fn ct_eq(&self, rhs: &Self) -> Choice {
-        self.0.ct_eq(&rhs.0)
+    fn ct_eq(&self, rhs: &Self) -> subtle::Choice {
+        CtEq::ct_eq(self, rhs).into()
     }
 }
 
 impl<T> CtEq for Checked<T>
 where
-    Self: ConstantTimeEq,
+    T: CtEq,
 {
     #[inline]
     fn ct_eq(&self, other: &Self) -> ConstChoice {
-        ConstantTimeEq::ct_eq(self, other).into()
+        self.0.ct_eq(&other.0)
     }
 }
 
 impl<T> CtSelect for Checked<T>
 where
-    Self: ConditionallySelectable,
+    T: CtSelect,
 {
     #[inline]
     fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
-        Self::conditional_select(self, other, choice.into())
+        Self(self.0.ct_select(&other.0, choice))
     }
 }
 
@@ -307,14 +328,14 @@ where
     }
 }
 
-impl<T> From<Checked<T>> for CtOption<T> {
-    fn from(checked: Checked<T>) -> CtOption<T> {
+impl<T> From<Checked<T>> for ConstCtOption<T> {
+    fn from(checked: Checked<T>) -> ConstCtOption<T> {
         checked.0
     }
 }
 
-impl<T> From<CtOption<T>> for Checked<T> {
-    fn from(ct_option: CtOption<T>) -> Checked<T> {
+impl<T> From<ConstCtOption<T>> for Checked<T> {
+    fn from(ct_option: ConstCtOption<T>) -> Checked<T> {
         Checked(ct_option)
     }
 }
@@ -332,8 +353,8 @@ impl<'de, T: Default + Deserialize<'de>> Deserialize<'de> for Checked<T> {
         D: Deserializer<'de>,
     {
         let value = Option::<T>::deserialize(deserializer)?;
-        let choice = Choice::from(value.is_some() as u8);
-        Ok(Self(CtOption::new(value.unwrap_or_default(), choice)))
+        let choice = ConstChoice::new(value.is_some() as u8);
+        Ok(Self(ConstCtOption::new(value.unwrap_or_default(), choice)))
     }
 }
 
@@ -343,6 +364,6 @@ impl<T: Copy + Serialize> Serialize for Checked<T> {
     where
         S: Serializer,
     {
-        Option::<T>::from(self.0).serialize(serializer)
+        self.0.into_option().serialize(serializer)
     }
 }

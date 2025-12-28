@@ -1,10 +1,9 @@
 //! [`BoxedUint`] modular inverse (i.e. reciprocal) operations.
 
 use crate::{
-    BoxedUint, ConstChoice, ConstCtOption, CtSelect, Integer, InvertMod, Limb, NonZero, Odd, U64,
-    modular::safegcd, uint::invert_mod::expand_invert_mod2k,
+    BoxedUint, ConstChoice, ConstCtOption, CtEq, CtLt, CtSelect, Integer, InvertMod, Limb, NonZero,
+    Odd, U64, modular::safegcd, uint::invert_mod::expand_invert_mod2k,
 };
-use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
 impl BoxedUint {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
@@ -62,7 +61,7 @@ impl BoxedUint {
     /// If the inverse does not exist (`k > 0` and `self` is even, or `k > bits_precision()`),
     /// returns `Choice::FALSE` as the second element of the tuple, otherwise returns `Choice::TRUE`.
     #[deprecated(since = "0.7.0", note = "please use `invert_mod2k` instead")]
-    pub fn inv_mod2k(&self, k: u32) -> (Self, Choice) {
+    pub fn inv_mod2k(&self, k: u32) -> (Self, ConstChoice) {
         self.invert_mod2k(k)
     }
 
@@ -70,13 +69,13 @@ impl BoxedUint {
     ///
     /// If the inverse does not exist (`k > 0` and `self` is even, or `k > bits_precision()`),
     /// returns `Choice::FALSE` as the second element of the tuple, otherwise returns `Choice::TRUE`.
-    pub fn invert_mod2k(&self, k: u32) -> (Self, Choice) {
+    pub fn invert_mod2k(&self, k: u32) -> (Self, ConstChoice) {
         let bits = self.bits_precision();
-        let is_some = k.ct_lt(&(bits + 1)) & (k.ct_eq(&0) | self.is_odd().into());
+        let is_some = k.ct_lt(&(bits + 1)) & (k.ct_eq(&0) | self.is_odd());
         let mut inv = Odd(Self::ct_select(
             &Self::one_with_precision(bits),
             self,
-            is_some.into(),
+            is_some,
         ))
         .invert_mod_precision();
         inv.restrict_bits(k);
@@ -89,7 +88,7 @@ impl BoxedUint {
     ///
     /// TODO: maybe some better documentation is needed
     #[deprecated(since = "0.7.0", note = "please use `invert_mod` instead")]
-    pub fn inv_mod(&self, modulus: &Self) -> CtOption<Self> {
+    pub fn inv_mod(&self, modulus: &Self) -> ConstCtOption<Self> {
         let is_nz = modulus.is_nonzero();
         let m = NonZero(Self::ct_select(
             &Self::one_with_precision(self.bits_precision()),
@@ -100,7 +99,7 @@ impl BoxedUint {
         let is_some = inv_mod_s.is_some();
         let result =
             Option::from(inv_mod_s).unwrap_or(Self::zero_with_precision(self.bits_precision()));
-        CtOption::new(result, is_some & is_nz.into())
+        ConstCtOption::new(result, is_some & is_nz)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`
@@ -108,20 +107,17 @@ impl BoxedUint {
     /// `self` and `modulus` must have the same number of limbs, or the function will panic
     ///
     /// TODO: maybe some better documentation is needed
-    pub fn invert_mod(&self, modulus: &NonZero<Self>) -> CtOption<Self> {
+    pub fn invert_mod(&self, modulus: &NonZero<Self>) -> ConstCtOption<Self> {
         debug_assert_eq!(self.bits_precision(), modulus.bits_precision());
         let k = modulus.trailing_zeros();
         let s = Odd(modulus.shr(k));
 
         let inv_mod_s = self.invert_odd_mod(&s);
         let invertible_mod_s = inv_mod_s.is_some();
-        // NOTE: this is some strange acrobatics to get around BoxedUint not supporting
-        // ConditionallySelectable
-        let inv_mod_s =
-            Option::from(inv_mod_s).unwrap_or(Self::zero_with_precision(self.bits_precision()));
+        let inv_mod_s = inv_mod_s.unwrap_or(Self::zero_with_precision(self.bits_precision()));
 
         let (inverse_mod2k, invertible_mod_2k) = self.invert_mod2k(k);
-        let is_some = invertible_mod_s & invertible_mod_2k.into();
+        let is_some = invertible_mod_s & invertible_mod_2k;
 
         let s_inverse_mod2k = s.invert_mod_precision();
         let mut t = inverse_mod2k
@@ -130,7 +126,7 @@ impl BoxedUint {
         t.restrict_bits(k);
         let result = inv_mod_s.wrapping_add(&s.wrapping_mul(&t));
 
-        CtOption::new(result, is_some.into())
+        ConstCtOption::new(result, is_some)
     }
 }
 
@@ -178,7 +174,7 @@ impl Odd<BoxedUint> {
 impl InvertMod for BoxedUint {
     type Output = Self;
 
-    fn invert_mod(&self, modulus: &NonZero<Self>) -> CtOption<Self> {
+    fn invert_mod(&self, modulus: &NonZero<Self>) -> ConstCtOption<Self> {
         self.invert_mod(modulus)
     }
 }

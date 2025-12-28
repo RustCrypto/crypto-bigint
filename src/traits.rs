@@ -1,21 +1,17 @@
 //! Traits provided by this crate
 
+pub use core::ops::{
+    Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign,
+    Mul, MulAssign, Neg, Not, Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
+};
 pub use ctutils::{CtEq, CtGt, CtLt, CtSelect};
 pub use num_traits::{
     ConstOne, ConstZero, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr,
     WrappingSub,
 };
 
-use crate::{ConstChoice, Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
-use core::{
-    fmt::{self, Debug},
-    ops::{
-        Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div,
-        DivAssign, Mul, MulAssign, Neg, Not, Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub,
-        SubAssign,
-    },
-};
-use subtle::CtOption;
+use crate::{ConstChoice, ConstCtOption, Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
+use core::fmt::{self, Debug};
 
 #[cfg(feature = "rand_core")]
 use rand_core::{RngCore, TryRngCore};
@@ -131,8 +127,8 @@ pub trait Integer:
 
 /// Signed [`Integer`]s.
 pub trait Signed:
-    Div<NonZero<Self>, Output = CtOption<Self>>
-    + for<'a> Div<&'a NonZero<Self>, Output = CtOption<Self>>
+    Div<NonZero<Self>, Output = ConstCtOption<Self>>
+    + for<'a> Div<&'a NonZero<Self>, Output = ConstCtOption<Self>>
     + From<i8>
     + From<i16>
     + From<i32>
@@ -239,13 +235,8 @@ pub trait One: CtEq + Sized {
     }
 
     /// Return the value `0` with the same precision as `other`.
-    fn one_like(other: &Self) -> Self
-    where
-        Self: Clone,
-    {
-        let mut ret = other.clone();
-        ret.set_one();
-        ret
+    fn one_like(_other: &Self) -> Self {
+        One::one()
     }
 }
 
@@ -526,7 +517,7 @@ pub trait InvMod<Rhs = Self>: Sized {
     type Output;
 
     /// Compute `1 / self mod p`.
-    fn inv_mod(&self, p: &Rhs) -> CtOption<Self::Output>;
+    fn inv_mod(&self, p: &Rhs) -> ConstCtOption<Self::Output>;
 }
 
 #[allow(deprecated)]
@@ -536,7 +527,7 @@ where
 {
     type Output = <T as InvertMod<Rhs>>::Output;
 
-    fn inv_mod(&self, p: &Rhs) -> CtOption<Self::Output> {
+    fn inv_mod(&self, p: &Rhs) -> ConstCtOption<Self::Output> {
         self.invert_mod(p)
     }
 }
@@ -547,35 +538,35 @@ pub trait InvertMod<Mod = NonZero<Self>>: Sized {
     type Output;
 
     /// Compute `1 / self mod p`.
-    fn invert_mod(&self, p: &Mod) -> CtOption<Self::Output>;
+    fn invert_mod(&self, p: &Mod) -> ConstCtOption<Self::Output>;
 }
 
 /// Checked addition.
 pub trait CheckedAdd<Rhs = Self>: Sized {
-    /// Perform checked addition, returning a [`CtOption`] which `is_some` only if the operation
+    /// Perform checked addition, returning a [`ConstCtOption`] which `is_some` only if the operation
     /// did not overflow.
-    fn checked_add(&self, rhs: &Rhs) -> CtOption<Self>;
+    fn checked_add(&self, rhs: &Rhs) -> ConstCtOption<Self>;
 }
 
 /// Checked division.
 pub trait CheckedDiv<Rhs = Self>: Sized {
-    /// Perform checked division, returning a [`CtOption`] which `is_some` only if the divisor is
+    /// Perform checked division, returning a [`ConstCtOption`] which `is_some` only if the divisor is
     /// non-zero.
-    fn checked_div(&self, rhs: &Rhs) -> CtOption<Self>;
+    fn checked_div(&self, rhs: &Rhs) -> ConstCtOption<Self>;
 }
 
 /// Checked multiplication.
 pub trait CheckedMul<Rhs = Self>: Sized {
-    /// Perform checked multiplication, returning a [`CtOption`] which `is_some`
+    /// Perform checked multiplication, returning a [`ConstCtOption`] which `is_some`
     /// only if the operation did not overflow.
-    fn checked_mul(&self, rhs: &Rhs) -> CtOption<Self>;
+    fn checked_mul(&self, rhs: &Rhs) -> ConstCtOption<Self>;
 }
 
 /// Checked subtraction.
 pub trait CheckedSub<Rhs = Self>: Sized {
-    /// Perform checked subtraction, returning a [`CtOption`] which `is_some`
+    /// Perform checked subtraction, returning a [`ConstCtOption`] which `is_some`
     /// only if the operation did not underflow.
-    fn checked_sub(&self, rhs: &Rhs) -> CtOption<Self>;
+    fn checked_sub(&self, rhs: &Rhs) -> ConstCtOption<Self>;
 }
 
 /// Concatenate two numbers into a "wide" double-width value, using the `hi` value as the most
@@ -916,7 +907,7 @@ pub trait ShlVartime: Sized {
     /// Computes `self << shift`.
     ///
     /// Returns `None` if `shift >= self.bits_precision()`.
-    fn overflowing_shl_vartime(&self, shift: u32) -> CtOption<Self>;
+    fn overflowing_shl_vartime(&self, shift: u32) -> ConstCtOption<Self>;
 
     /// Computes `self << shift` in a panic-free manner, masking off bits of `shift`
     /// which would cause the shift to exceed the type's width.
@@ -928,7 +919,7 @@ pub trait ShrVartime: Sized {
     /// Computes `self >> shift`.
     ///
     /// Returns `None` if `shift >= self.bits_precision()`.
-    fn overflowing_shr_vartime(&self, shift: u32) -> CtOption<Self>;
+    fn overflowing_shr_vartime(&self, shift: u32) -> ConstCtOption<Self>;
 
     /// Computes `self >> shift` in a panic-free manner, masking off bits of `shift`
     /// which would cause the shift to exceed the type's width.

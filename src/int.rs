@@ -1,13 +1,10 @@
 //! Stack-allocated big signed integers.
 
 use crate::{
-    Bounded, ConstChoice, ConstCtOption, Constants, FixedInteger, Integer, Limb, NonZero, Odd, One,
-    Signed, Uint, Word, Zero,
+    Bounded, ConstChoice, ConstCtOption, ConstOne, ConstZero, Constants, CtEq, CtSelect,
+    FixedInteger, Integer, Limb, NonZero, Odd, One, Signed, Uint, Word, Zero,
 };
 use core::fmt;
-use ctutils::CtSelect;
-use num_traits::{ConstOne, ConstZero};
-use subtle::{Choice, ConstantTimeEq};
 
 #[cfg(feature = "serde")]
 use crate::Encoding;
@@ -184,6 +181,11 @@ impl<const LIMBS: usize> Int<LIMBS> {
         Self::eq(self, &Self::MAX)
     }
 
+    /// Is this [`Int`] equal to zero?
+    pub const fn is_zero(&self) -> ConstChoice {
+        self.0.is_zero()
+    }
+
     /// Invert the most significant bit (msb) of this [`Int`]
     const fn invert_msb(&self) -> Self {
         Self(self.0.bitxor(&Self::SIGN_MASK.0))
@@ -216,7 +218,7 @@ impl<const LIMBS: usize> AsMut<[Limb]> for Int<LIMBS> {
 
 impl<const LIMBS: usize> subtle::ConditionallySelectable for Int<LIMBS> {
     #[inline]
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
+    fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
         a.ct_select(b, choice.into())
     }
 }

@@ -1,7 +1,6 @@
 //! [`Int`] negation-related operations.
 
-use crate::{ConstChoice, ConstCtOption, Int, Uint};
-use num_traits::WrappingNeg;
+use crate::{ConstChoice, ConstCtOption, Int, Uint, WrappingNeg};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Map this [`Int`] to its two's-complement negation:

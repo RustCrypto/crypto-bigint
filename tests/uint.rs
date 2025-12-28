@@ -451,7 +451,7 @@ proptest! {
 
     #[test]
     fn invert_mod(a in uint(), mut b in uint()) {
-        if b.is_zero() {
+        if b.is_zero().to_bool() {
             b = Uint::ONE;
         }
         let a_bi = to_biguint(&a);

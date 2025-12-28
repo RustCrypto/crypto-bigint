@@ -1,8 +1,6 @@
 //! Limb left bitshift
 
-use crate::Limb;
-use core::ops::{Shl, ShlAssign};
-use num_traits::WrappingShl;
+use crate::{Limb, Shl, ShlAssign, WrappingShl};
 
 impl Limb {
     /// Computes `self << shift`.

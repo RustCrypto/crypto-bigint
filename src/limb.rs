@@ -21,7 +21,7 @@ mod rand;
 
 use crate::{
     Bounded, ConstChoice, ConstCtOption, ConstOne, ConstZero, Constants, CtEq, NonZero, One,
-    WideWord, Word, Zero,
+    WideWord, Word, Zero, word,
 };
 use core::fmt;
 use ctutils::CtSelect;
@@ -75,11 +75,20 @@ impl Limb {
     /// `floor(log2(Self::BITS))`.
     pub const LOG2_BITS: u32 = u32::BITS - (Self::BITS - 1).leading_zeros();
 
+    /// Is this limb equal to [`Limb::ZERO`]?
+    pub const fn is_zero(&self) -> ConstChoice {
+        word::choice_from_nz(self.0).not()
+    }
+
     /// Convert to a [`NonZero<Limb>`].
     ///
     /// Returns some if the original value is non-zero, and false otherwise.
     pub const fn to_nz(self) -> ConstCtOption<NonZero<Self>> {
-        ConstCtOption::new(NonZero(self), self.is_nonzero())
+        let is_nz = self.is_nonzero();
+
+        // Use `1` as a placeholder in the event that `self` is `Limb(0)`
+        let nz_word = word::select(1, self.0, is_nz);
+        ConstCtOption::new(NonZero(Self(nz_word)), is_nz)
     }
 }
 

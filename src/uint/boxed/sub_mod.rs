@@ -1,7 +1,6 @@
 //! [`BoxedUint`] modular subtraction operations.
 
-use crate::{BoxedUint, Limb, NonZero, SubMod, Zero};
-use subtle::Choice;
+use crate::{BoxedUint, Limb, NonZero, SubMod};
 
 impl BoxedUint {
     /// Computes `self - rhs mod p`.
@@ -17,7 +16,7 @@ impl BoxedUint {
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-        out.conditional_carrying_add_assign(p, !Choice::from(borrow.is_zero()));
+        out.conditional_carrying_add_assign(p, !borrow.is_zero());
         out
     }
 
@@ -34,7 +33,7 @@ impl BoxedUint {
 
         // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
         // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-        self.conditional_carrying_add_assign(p, !Choice::from(mask.is_zero()));
+        self.conditional_carrying_add_assign(p, !mask.is_zero());
     }
 
     /// Computes `self - rhs mod p` for the special modulus

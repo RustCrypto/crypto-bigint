@@ -902,7 +902,7 @@ const fn radix_large_divisor(
 
 #[cfg(test)]
 mod tests {
-    use crate::{DecodeError, Limb, U64, U128, Zero};
+    use crate::{DecodeError, Limb, U64, U128};
     use hex_literal::hex;
 
     #[cfg(feature = "alloc")]

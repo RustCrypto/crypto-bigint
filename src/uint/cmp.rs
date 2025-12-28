@@ -222,11 +222,9 @@ impl<const LIMBS: usize> PartialEq for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
+    use crate::{ConstChoice, Integer, U128, Uint};
     use core::cmp::Ordering;
-
     use subtle::{ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
-
-    use crate::{ConstChoice, Integer, U128, Uint, Zero};
 
     #[test]
     fn is_zero() {

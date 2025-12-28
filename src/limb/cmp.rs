@@ -41,7 +41,7 @@ impl Limb {
     /// Returns the truthy value if `self != 0` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn is_nonzero(&self) -> ConstChoice {
-        word::choice_from_nonzero(self.0)
+        word::choice_from_nz(self.0)
     }
 }
 
@@ -125,7 +125,7 @@ impl PartialEq for Limb {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, Limb, Zero};
+    use crate::{ConstChoice, Limb};
     use core::cmp::Ordering;
     use subtle::{ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 

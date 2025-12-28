@@ -1,8 +1,8 @@
 //! [`Uint`] bitwise right shift operations.
 
-use crate::{ConstChoice, ConstCtOption, Limb, NonZero, ShrVartime, Uint, WrappingShr, word};
-use core::ops::{Shr, ShrAssign};
-use subtle::CtOption;
+use crate::{
+    ConstChoice, ConstCtOption, Limb, NonZero, Shr, ShrAssign, ShrVartime, Uint, WrappingShr, word,
+};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self >> shift`.
@@ -284,8 +284,8 @@ impl<const LIMBS: usize> WrappingShr for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> ShrVartime for Uint<LIMBS> {
-    fn overflowing_shr_vartime(&self, shift: u32) -> CtOption<Self> {
-        self.overflowing_shr(shift).into()
+    fn overflowing_shr_vartime(&self, shift: u32) -> ConstCtOption<Self> {
+        self.overflowing_shr(shift)
     }
     fn wrapping_shr_vartime(&self, shift: u32) -> Self {
         self.wrapping_shr(shift)
