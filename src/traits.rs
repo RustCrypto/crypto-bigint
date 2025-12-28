@@ -15,7 +15,7 @@ use core::{
         SubAssign,
     },
 };
-use subtle::{Choice, ConditionallySelectable, CtOption};
+use subtle::CtOption;
 
 #[cfg(feature = "rand_core")]
 use rand_core::{RngCore, TryRngCore};
@@ -143,18 +143,18 @@ pub trait Signed:
     type Unsigned: Unsigned;
 
     /// The sign and magnitude of this [`Signed`].
-    fn abs_sign(&self) -> (Self::Unsigned, Choice);
+    fn abs_sign(&self) -> (Self::Unsigned, ConstChoice);
 
     /// The magnitude of this [`Signed`].
     fn abs(&self) -> Self::Unsigned {
         self.abs_sign().0
     }
 
-    /// Whether this [`Signed`] is negative (and non-zero), as a [`Choice`].
-    fn is_negative(&self) -> Choice;
+    /// Whether this [`Signed`] is negative (and non-zero), as a [`ConstChoice`].
+    fn is_negative(&self) -> ConstChoice;
 
-    /// Whether this [`Signed`] is positive (and non-zero), as a [`Choice`].
-    fn is_positive(&self) -> Choice;
+    /// Whether this [`Signed`] is positive (and non-zero), as a [`ConstChoice`].
+    fn is_positive(&self) -> ConstChoice;
 }
 
 /// Unsigned [`Integer`]s.
@@ -256,7 +256,7 @@ pub trait Constants: ConstZero + ConstOne {
 }
 
 /// Fixed-width [`Integer`]s.
-pub trait FixedInteger: Bounded + ConditionallySelectable + Constants + Copy + Integer {
+pub trait FixedInteger: Bounded + Constants + Copy + Integer {
     /// The number of limbs used on this platform.
     const LIMBS: usize;
 }
@@ -758,10 +758,10 @@ pub trait BitOps {
 
     /// Get the value of the bit at position `index`, as a truthy or falsy `Choice`.
     /// Returns the falsy value for indices out of range.
-    fn bit(&self, index: u32) -> Choice;
+    fn bit(&self, index: u32) -> ConstChoice;
 
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
-    fn set_bit(&mut self, index: u32, bit_value: Choice);
+    fn set_bit(&mut self, index: u32, bit_value: ConstChoice);
 
     /// Calculate the number of bits required to represent a given number.
     fn bits(&self) -> u32 {

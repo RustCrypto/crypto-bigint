@@ -264,17 +264,16 @@ impl<const LIMBS: usize> Integer for Int<LIMBS> {
 impl<const LIMBS: usize> Signed for Int<LIMBS> {
     type Unsigned = Uint<LIMBS>;
 
-    fn abs_sign(&self) -> (Uint<LIMBS>, Choice) {
-        let (abs, sign) = self.abs_sign();
-        (abs, sign.into())
+    fn abs_sign(&self) -> (Uint<LIMBS>, ConstChoice) {
+        self.abs_sign()
     }
 
-    fn is_negative(&self) -> Choice {
-        self.is_negative().into()
+    fn is_negative(&self) -> ConstChoice {
+        self.is_negative()
     }
 
-    fn is_positive(&self) -> Choice {
-        self.is_positive().into()
+    fn is_positive(&self) -> ConstChoice {
+        self.is_positive()
     }
 }
 

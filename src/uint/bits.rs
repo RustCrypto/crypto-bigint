@@ -1,5 +1,3 @@
-use subtle::Choice;
-
 use crate::{BitOps, ConstChoice, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -98,12 +96,12 @@ impl<const LIMBS: usize> BitOps for Uint<LIMBS> {
         self.leading_zeros()
     }
 
-    fn bit(&self, index: u32) -> Choice {
-        self.bit(index).into()
+    fn bit(&self, index: u32) -> ConstChoice {
+        self.bit(index)
     }
 
-    fn set_bit(&mut self, index: u32, bit_value: Choice) {
-        *self = Self::set_bit(*self, index, bit_value.into());
+    fn set_bit(&mut self, index: u32, bit_value: ConstChoice) {
+        *self = Self::set_bit(*self, index, bit_value);
     }
 
     fn trailing_zeros(&self) -> u32 {

@@ -1,6 +1,5 @@
 use super::UintRef;
 use crate::{ConstChoice, Limb, traits::BitOps, word};
-use subtle::Choice;
 
 impl UintRef {
     /// Get the precision of this number in bits.
@@ -221,12 +220,12 @@ impl BitOps for UintRef {
         self.leading_zeros()
     }
 
-    fn bit(&self, index: u32) -> Choice {
-        self.bit(index).into()
+    fn bit(&self, index: u32) -> ConstChoice {
+        self.bit(index)
     }
 
-    fn set_bit(&mut self, index: u32, bit_value: Choice) {
-        self.set_bit(index, bit_value.into());
+    fn set_bit(&mut self, index: u32, bit_value: ConstChoice) {
+        self.set_bit(index, bit_value);
     }
 
     fn trailing_zeros(&self) -> u32 {
