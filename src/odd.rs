@@ -1,13 +1,15 @@
 //! Wrapper type for non-zero integers.
 
-use crate::{Bounded, ConstChoice, Int, Integer, Limb, NonZero, One, Uint, UintRef};
+use crate::{
+    Bounded, ConstChoice, CtEq, CtSelect, Int, Integer, Limb, NonZero, One, Uint, UintRef,
+};
 use core::{
     cmp::Ordering,
     fmt,
     ops::{Deref, Mul},
 };
 use num_traits::ConstOne;
-use subtle::{Choice, ConditionallySelectable, ConstantTimeEq, CtOption};
+use subtle::{Choice, ConditionallySelectable, CtOption};
 
 #[cfg(feature = "alloc")]
 use crate::{BoxedUint, Resize};
@@ -50,7 +52,7 @@ impl<T> Odd<T> {
         T: Integer,
     {
         let is_odd = n.is_odd();
-        CtOption::new(Self(n), is_odd)
+        CtOption::new(Self(n), is_odd.into())
     }
 
     /// Returns the inner value.
@@ -165,12 +167,33 @@ where
     }
 }
 
-impl<T> ConstantTimeEq for Odd<T>
+impl<T> subtle::ConstantTimeEq for Odd<T>
 where
-    T: ConstantTimeEq + ?Sized,
+    T: ?Sized,
+    Self: CtEq,
 {
     fn ct_eq(&self, other: &Self) -> Choice {
-        self.0.ct_eq(&other.0)
+        CtEq::ct_eq(self, other).into()
+    }
+}
+
+impl<T> CtEq for Odd<T>
+where
+    T: CtEq + ?Sized,
+{
+    #[inline]
+    fn ct_eq(&self, other: &Self) -> ConstChoice {
+        CtEq::ct_eq(&self.0, &other.0)
+    }
+}
+
+impl<T> CtSelect for Odd<T>
+where
+    T: CtSelect,
+{
+    #[inline]
+    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
+        Self(self.0.ct_select(&other.0, choice))
     }
 }
 

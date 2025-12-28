@@ -44,7 +44,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 impl<const LIMBS: usize> CheckedSub for Uint<LIMBS> {
     fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
         let (result, underflow) = self.borrowing_sub(rhs, Limb::ZERO);
-        CtOption::new(result, underflow.is_zero())
+        CtOption::new(result, underflow.is_zero().into())
     }
 }
 

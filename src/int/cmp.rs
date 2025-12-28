@@ -2,11 +2,9 @@
 //!
 //! By default, these are all constant-time.
 
+use crate::{ConstChoice, CtEq, Int, Uint};
 use core::cmp::Ordering;
-
-use subtle::{Choice, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
-
-use crate::{ConstChoice, Int, Uint};
+use subtle::{Choice, ConstantTimeGreater, ConstantTimeLess};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Return `b` if `c` is truthy, otherwise return `a`.
@@ -61,10 +59,17 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> ConstantTimeEq for Int<LIMBS> {
+impl<const LIMBS: usize> CtEq for Int<LIMBS> {
+    #[inline]
+    fn ct_eq(&self, other: &Self) -> ConstChoice {
+        CtEq::ct_eq(&self.0, &other.0)
+    }
+}
+
+impl<const LIMBS: usize> subtle::ConstantTimeEq for Int<LIMBS> {
     #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
-        Int::eq(self, other).into()
+        CtEq::ct_eq(self, other).into()
     }
 }
 

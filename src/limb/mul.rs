@@ -48,7 +48,7 @@ impl CheckedMul for Limb {
     #[inline]
     fn checked_mul(&self, rhs: &Self) -> CtOption<Self> {
         let (lo, hi) = self.widening_mul(*rhs);
-        CtOption::new(lo, hi.is_zero())
+        CtOption::new(lo, hi.is_zero().into())
     }
 }
 

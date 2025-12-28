@@ -20,12 +20,12 @@ mod sub;
 mod rand;
 
 use crate::{
-    Bounded, ConstChoice, ConstCtOption, ConstOne, ConstZero, Constants, NonZero, One, WideWord,
-    Word, Zero,
+    Bounded, ConstChoice, ConstCtOption, ConstOne, ConstZero, Constants, CtEq, NonZero, One,
+    WideWord, Word, Zero,
 };
 use core::fmt;
 use ctutils::CtSelect;
-use subtle::{Choice, ConstantTimeEq};
+use subtle::Choice;
 
 #[cfg(feature = "serde")]
 use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};

@@ -1,13 +1,13 @@
 //! Multiplicative inverses of boxed integers in Montgomery form.
 
 use super::{BoxedMontyForm, BoxedMontyParams};
-use crate::{Invert, modular::safegcd::boxed::BoxedSafeGcdInverter};
+use crate::{ConstCtOption, Invert, modular::safegcd::boxed::BoxedSafeGcdInverter};
 use subtle::CtOption;
 
 impl BoxedMontyForm {
     /// Computes `self^-1` representing the multiplicative inverse of `self`,
     /// i.e. `self * self^-1 = 1`.
-    pub fn invert(&self) -> CtOption<Self> {
+    pub fn invert(&self) -> ConstCtOption<Self> {
         let montgomery_form = self.params.inverter().invert(&self.montgomery_form);
         let is_some = montgomery_form.is_some();
         let montgomery_form2 = self.montgomery_form.clone();
@@ -16,7 +16,7 @@ impl BoxedMontyForm {
             params: self.params.clone(),
         };
 
-        CtOption::new(ret, is_some)
+        ConstCtOption::new(ret, is_some)
     }
 
     /// Computes `self^-1` representing the multiplicative inverse of `self`,
@@ -24,7 +24,7 @@ impl BoxedMontyForm {
     ///
     /// This version is variable-time with respect to the self of `self`, but constant-time with
     /// respect to `self`'s `params`.
-    pub fn invert_vartime(&self) -> CtOption<Self> {
+    pub fn invert_vartime(&self) -> ConstCtOption<Self> {
         let montgomery_form = self.params.inverter().invert_vartime(&self.montgomery_form);
         let is_some = montgomery_form.is_some();
         let montgomery_form2 = self.montgomery_form.clone();
@@ -33,7 +33,7 @@ impl BoxedMontyForm {
             params: self.params.clone(),
         };
 
-        CtOption::new(ret, is_some)
+        ConstCtOption::new(ret, is_some)
     }
 }
 
@@ -41,11 +41,11 @@ impl Invert for BoxedMontyForm {
     type Output = CtOption<Self>;
 
     fn invert(&self) -> Self::Output {
-        self.invert()
+        self.invert().into()
     }
 
     fn invert_vartime(&self) -> Self::Output {
-        self.invert_vartime()
+        self.invert_vartime().into()
     }
 }
 

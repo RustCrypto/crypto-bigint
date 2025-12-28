@@ -728,7 +728,8 @@ mod tests {
         assert_eq!(q, Uint::ZERO);
         a.limbs[a.limbs.len() - 1] = Limb(1 << (Limb::HI_BIT - 7));
         b.limbs[b.limbs.len() - 1] = Limb(0x82 << (Limb::HI_BIT - 7));
-        let q = a.wrapping_div(&NonZero::new(b).unwrap());
+        let b = NonZero::new(b).unwrap();
+        let q = a.wrapping_div(&b);
         assert_eq!(q, Uint::ZERO);
     }
 

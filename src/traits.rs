@@ -5,7 +5,7 @@ pub use num_traits::{
     WrappingSub,
 };
 
-use crate::{CtSelect, Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
+use crate::{ConstChoice, CtEq, CtSelect, Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
 use core::{
     fmt::{self, Debug},
     ops::{
@@ -14,10 +14,7 @@ use core::{
         SubAssign,
     },
 };
-use subtle::{
-    Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
-    CtOption,
-};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeGreater, ConstantTimeLess, CtOption};
 
 #[cfg(feature = "rand_core")]
 use rand_core::{RngCore, TryRngCore};
@@ -56,9 +53,9 @@ pub trait Integer:
     + CheckedMul
     + CheckedDiv
     + Clone
-    + ConstantTimeEq
     + ConstantTimeGreater
     + ConstantTimeLess
+    + CtEq
     + CtSelect
     + Debug
     + Default
@@ -113,12 +110,12 @@ pub trait Integer:
     ///
     /// # Returns
     ///
-    /// If odd, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
-    fn is_odd(&self) -> Choice {
+    /// If odd, returns `Choice::FALSE`. Otherwise, returns `Choice::TRUE`.
+    fn is_odd(&self) -> ConstChoice {
         self.as_ref()
             .first()
             .map(|limb| limb.is_odd())
-            .unwrap_or_else(|| Choice::from(0))
+            .unwrap_or(ConstChoice::FALSE)
     }
 
     /// Is this integer value an even number?
@@ -126,7 +123,7 @@ pub trait Integer:
     /// # Returns
     ///
     /// If even, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
-    fn is_even(&self) -> Choice {
+    fn is_even(&self) -> ConstChoice {
         !self.is_odd()
     }
 }
@@ -188,7 +185,7 @@ pub trait Unsigned:
 }
 
 /// Zero values: additive identity element for `Self`.
-pub trait Zero: ConstantTimeEq + Sized {
+pub trait Zero: CtEq + Sized {
     /// Returns the additive identity element of `Self`, `0`.
     fn zero() -> Self;
 
@@ -198,7 +195,7 @@ pub trait Zero: ConstantTimeEq + Sized {
     ///
     /// If zero, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
     #[inline]
-    fn is_zero(&self) -> Choice {
+    fn is_zero(&self) -> ConstChoice {
         self.ct_eq(&Self::zero())
     }
 
@@ -220,7 +217,7 @@ pub trait Zero: ConstantTimeEq + Sized {
 }
 
 /// One values: multiplicative identity element for `Self`.
-pub trait One: ConstantTimeEq + Sized {
+pub trait One: CtEq + Sized {
     /// Returns the multiplicative identity element of `Self`, `1`.
     fn one() -> Self;
 
@@ -230,7 +227,7 @@ pub trait One: ConstantTimeEq + Sized {
     ///
     /// If one, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
     #[inline]
-    fn is_one(&self) -> Choice {
+    fn is_one(&self) -> ConstChoice {
         self.ct_eq(&Self::one())
     }
 

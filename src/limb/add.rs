@@ -83,7 +83,7 @@ impl CheckedAdd for Limb {
     #[inline]
     fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
         let (result, carry) = self.overflowing_add(*rhs);
-        CtOption::new(result, carry.is_zero())
+        CtOption::new(result, carry.is_zero().into())
     }
 }
 

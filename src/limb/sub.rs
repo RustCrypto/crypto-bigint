@@ -36,7 +36,7 @@ impl CheckedSub for Limb {
     #[inline]
     fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
         let (result, underflow) = self.borrowing_sub(*rhs, Limb::ZERO);
-        CtOption::new(result, underflow.is_zero())
+        CtOption::new(result, underflow.is_zero().into())
     }
 }
 

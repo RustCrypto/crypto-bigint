@@ -107,11 +107,7 @@ impl AddAssign<BoxedUint> for BoxedUint {
 impl AddAssign<&BoxedUint> for BoxedUint {
     fn add_assign(&mut self, rhs: &BoxedUint) {
         let carry = self.carrying_add_assign(rhs, Limb::ZERO);
-        assert_eq!(
-            carry.is_zero().unwrap_u8(),
-            1,
-            "attempted to add with overflow"
-        );
+        assert!(carry.is_zero().to_bool(), "attempted to add with overflow");
     }
 }
 
@@ -176,7 +172,7 @@ impl AddAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
 impl CheckedAdd for BoxedUint {
     fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
         let (result, carry) = self.carrying_add(rhs, Limb::ZERO);
-        CtOption::new(result, carry.is_zero())
+        CtOption::new(result, carry.is_zero().into())
     }
 }
 

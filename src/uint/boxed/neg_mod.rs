@@ -1,7 +1,6 @@
 //! [`BoxedUint`] modular negation operations.
 
-use crate::{BoxedUint, Limb, NegMod, NonZero};
-use subtle::ConditionallySelectable;
+use crate::{BoxedUint, CtSelect, Limb, NegMod, NonZero};
 
 impl BoxedUint {
     /// Computes `-a mod p`.
@@ -14,7 +13,7 @@ impl BoxedUint {
         for i in 0..self.nlimbs() {
             // Set ret to 0 if the original value was 0, in which
             // case ret would be p.
-            ret.limbs[i].conditional_assign(&Limb::ZERO, is_zero);
+            ret.limbs[i].ct_assign(&Limb::ZERO, is_zero);
         }
 
         ret

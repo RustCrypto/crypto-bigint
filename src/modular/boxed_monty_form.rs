@@ -9,11 +9,9 @@ mod pow;
 mod sub;
 
 use super::{MontyParams, Retrieve, div_by_2, reduction::montgomery_retrieve_inner};
-use crate::{BoxedUint, Limb, Monty, Odd, U64, Word};
-use mul::BoxedMontyMultiplier;
-
+use crate::{BoxedUint, ConstChoice, Limb, Monty, Odd, U64, Word};
 use alloc::sync::Arc;
-use subtle::Choice;
+use mul::BoxedMontyMultiplier;
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -217,7 +215,7 @@ impl BoxedMontyForm {
     /// # Returns
     ///
     /// If zero, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
-    pub fn is_zero(&self) -> Choice {
+    pub fn is_zero(&self) -> ConstChoice {
         self.montgomery_form.is_zero()
     }
 
@@ -227,7 +225,7 @@ impl BoxedMontyForm {
     ///
     /// If zero, returns `Choice(0)`. Otherwise, returns `Choice(1)`.
     #[inline]
-    pub fn is_nonzero(&self) -> Choice {
+    pub fn is_nonzero(&self) -> ConstChoice {
         !self.is_zero()
     }
 

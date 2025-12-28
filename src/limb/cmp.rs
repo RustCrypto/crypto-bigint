@@ -1,16 +1,14 @@
 //! Limb comparisons
 
-use crate::{ConstChoice, Limb, word};
+use crate::{ConstChoice, CtEq, Limb, word};
 use core::cmp::Ordering;
-use subtle::{
-    Choice, ConditionallySelectable, ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess,
-};
+use subtle::{Choice, ConditionallySelectable, ConstantTimeGreater, ConstantTimeLess};
 
 impl Limb {
     /// Is this limb an odd number?
     #[inline]
-    pub fn is_odd(&self) -> Choice {
-        Choice::from(self.0 as u8 & 1)
+    pub fn is_odd(&self) -> ConstChoice {
+        word::choice_from_lsb(self.0 & 1)
     }
 
     /// Perform a comparison of the inner value in variable-time.
@@ -48,15 +46,27 @@ impl Limb {
     }
 }
 
-impl ConstantTimeEq for Limb {
+impl CtEq for Limb {
+    #[inline]
+    fn ct_eq(&self, other: &Self) -> ConstChoice {
+        CtEq::ct_eq(&self.0, &other.0)
+    }
+
+    #[inline]
+    fn ct_ne(&self, other: &Self) -> ConstChoice {
+        CtEq::ct_ne(&self.0, &other.0)
+    }
+}
+
+impl subtle::ConstantTimeEq for Limb {
     #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
-        self.0.ct_eq(&other.0)
+        CtEq::ct_eq(self, other).into()
     }
 
     #[inline]
     fn ct_ne(&self, other: &Self) -> Choice {
-        self.0.ct_ne(&other.0)
+        CtEq::ct_ne(self, other).into()
     }
 }
 
@@ -79,7 +89,7 @@ impl Eq for Limb {}
 impl Ord for Limb {
     fn cmp(&self, other: &Self) -> Ordering {
         let mut ret = Ordering::Less;
-        ret.conditional_assign(&Ordering::Equal, self.ct_eq(other));
+        ret.conditional_assign(&Ordering::Equal, self.ct_eq(other).into());
         ret.conditional_assign(&Ordering::Greater, self.ct_gt(other));
         debug_assert_eq!(ret == Ordering::Less, bool::from(self.ct_lt(other)));
         ret
