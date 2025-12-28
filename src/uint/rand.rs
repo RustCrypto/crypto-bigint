@@ -1,9 +1,8 @@
 //! Random number generator support
 
 use super::Uint;
-use crate::{Encoding, Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod};
+use crate::{CtLt, Encoding, Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod};
 use rand_core::{RngCore, TryRngCore};
-use subtle::ConstantTimeLess;
 
 impl<const LIMBS: usize> Random for Uint<LIMBS> {
     fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
@@ -107,7 +106,7 @@ pub(super) fn random_mod_vartime_core<T, R: TryRngCore + ?Sized>(
     n_bits: u32,
 ) -> Result<(), R::Error>
 where
-    T: Encoding + ConstantTimeLess,
+    T: Encoding + CtLt,
 {
     loop {
         random_bits_core(rng, x, n_bits)?;

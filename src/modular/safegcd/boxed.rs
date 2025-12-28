@@ -327,7 +327,7 @@ impl SignedBoxedInt {
         let odd_neg = x_neg.xor(y_neg);
 
         // Negate y if none or both of the multiplication results are negative.
-        y.conditional_wrapping_neg_assign(odd_neg.not().into());
+        y.conditional_wrapping_neg_assign(odd_neg.not());
 
         let borrow;
         (x, borrow) = x.borrowing_sub(&y, Limb::ZERO);
@@ -335,7 +335,7 @@ impl SignedBoxedInt {
 
         // Negate the result if we did not negate y and there was a borrow,
         // indicating that |y| > |x|.
-        x.conditional_wrapping_neg_assign(swap.into());
+        x.conditional_wrapping_neg_assign(swap);
 
         let sign = x_neg.and(swap.not()).or(y_neg.and(swap));
         Self::from_uint_sign(x, sign)
@@ -393,7 +393,7 @@ impl SignedBoxedInt {
 
         // Negate x if the subtraction borrowed.
         let swap = borrow.is_nonzero();
-        x.conditional_wrapping_neg_assign(swap.into());
+        x.conditional_wrapping_neg_assign(swap);
         x_sign = x_sign.xor(swap);
 
         // Shift the result, eliminating the trailing zeros.

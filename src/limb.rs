@@ -12,6 +12,7 @@ mod encoding;
 mod from;
 mod mul;
 mod neg;
+mod select;
 mod shl;
 mod shr;
 mod sub;
@@ -24,8 +25,6 @@ use crate::{
     WideWord, Word, Zero, word,
 };
 use core::fmt;
-use ctutils::CtSelect;
-use subtle::Choice;
 
 #[cfg(feature = "serde")]
 use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -99,20 +98,6 @@ impl Bounded for Limb {
 
 impl Constants for Limb {
     const MAX: Self = Self::MAX;
-}
-
-impl subtle::ConditionallySelectable for Limb {
-    #[inline]
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        a.ct_select(b, choice.into())
-    }
-}
-
-impl CtSelect for Limb {
-    #[inline]
-    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
-        Self(self.0.ct_select(&other.0, choice))
-    }
 }
 
 impl ConstZero for Limb {

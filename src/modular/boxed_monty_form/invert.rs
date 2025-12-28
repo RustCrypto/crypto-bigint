@@ -2,7 +2,6 @@
 
 use super::{BoxedMontyForm, BoxedMontyParams};
 use crate::{ConstCtOption, Invert, modular::safegcd::boxed::BoxedSafeGcdInverter};
-use subtle::CtOption;
 
 impl BoxedMontyForm {
     /// Computes `self^-1` representing the multiplicative inverse of `self`,
@@ -38,14 +37,14 @@ impl BoxedMontyForm {
 }
 
 impl Invert for BoxedMontyForm {
-    type Output = CtOption<Self>;
+    type Output = ConstCtOption<Self>;
 
     fn invert(&self) -> Self::Output {
-        self.invert().into()
+        self.invert()
     }
 
     fn invert_vartime(&self) -> Self::Output {
-        self.invert_vartime().into()
+        self.invert_vartime()
     }
 }
 

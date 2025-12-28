@@ -1,9 +1,7 @@
 //! [`Uint`] bitwise OR operations.
 
 use super::Uint;
-use crate::{Limb, Wrapping};
-use core::ops::{BitOr, BitOrAssign};
-use subtle::{Choice, CtOption};
+use crate::{BitOr, BitOrAssign, ConstCtOption, Limb, Wrapping};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes bitwise `a & b`.
@@ -28,10 +26,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         self.bitor(rhs)
     }
 
-    /// Perform checked bitwise `OR`, returning a [`CtOption`] which `is_some` always
-    pub fn checked_or(&self, rhs: &Self) -> CtOption<Self> {
-        let result = self.bitor(rhs);
-        CtOption::new(result, Choice::from(1))
+    /// Perform checked bitwise `OR`, returning a [`ConstCtOption`] which `is_some` always
+    pub const fn checked_or(&self, rhs: &Self) -> ConstCtOption<Self> {
+        ConstCtOption::some(self.bitor(rhs))
     }
 }
 

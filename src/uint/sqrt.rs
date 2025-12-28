@@ -1,7 +1,6 @@
 //! [`Uint`] square root operations.
 
-use crate::{NonZero, SquareRoot, Uint};
-use subtle::{ConstantTimeEq, CtOption};
+use crate::{ConstCtOption, CtEq, NonZero, SquareRoot, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes √(`self`) in constant time.
@@ -91,20 +90,20 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         self.sqrt_vartime()
     }
 
-    /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
+    /// Perform checked sqrt, returning a [`ConstCtOption`] which `is_some`
     /// only if the √(`self`)² == self
-    pub fn checked_sqrt(&self) -> CtOption<Self> {
+    pub fn checked_sqrt(&self) -> ConstCtOption<Self> {
         let r = self.sqrt();
         let s = r.wrapping_mul(&r);
-        CtOption::new(r, ConstantTimeEq::ct_eq(self, &s))
+        ConstCtOption::new(r, self.ct_eq(&s))
     }
 
-    /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
+    /// Perform checked sqrt, returning a [`ConstCtOption`] which `is_some`
     /// only if the √(`self`)² == self
-    pub fn checked_sqrt_vartime(&self) -> CtOption<Self> {
+    pub fn checked_sqrt_vartime(&self) -> ConstCtOption<Self> {
         let r = self.sqrt_vartime();
         let s = r.wrapping_mul(&r);
-        CtOption::new(r, ConstantTimeEq::ct_eq(self, &s))
+        ConstCtOption::new(r, self.ct_eq(&s))
     }
 }
 
@@ -196,17 +195,17 @@ mod tests {
             let r = U256::from(*e);
             assert_eq!(l.sqrt(), r);
             assert_eq!(l.sqrt_vartime(), r);
-            assert_eq!(l.checked_sqrt().is_some().unwrap_u8(), 1u8);
-            assert_eq!(l.checked_sqrt_vartime().is_some().unwrap_u8(), 1u8);
+            assert!(l.checked_sqrt().is_some().to_bool());
+            assert!(l.checked_sqrt_vartime().is_some().to_bool());
         }
     }
 
     #[test]
     fn nonsquares() {
         assert_eq!(U256::from(2u8).sqrt(), U256::from(1u8));
-        assert_eq!(U256::from(2u8).checked_sqrt().is_some().unwrap_u8(), 0);
+        assert!(!U256::from(2u8).checked_sqrt().is_some().to_bool());
         assert_eq!(U256::from(3u8).sqrt(), U256::from(1u8));
-        assert_eq!(U256::from(3u8).checked_sqrt().is_some().unwrap_u8(), 0);
+        assert!(!U256::from(3u8).checked_sqrt().is_some().to_bool());
         assert_eq!(U256::from(5u8).sqrt(), U256::from(2u8));
         assert_eq!(U256::from(6u8).sqrt(), U256::from(2u8));
         assert_eq!(U256::from(7u8).sqrt(), U256::from(2u8));
@@ -217,15 +216,9 @@ mod tests {
     #[test]
     fn nonsquares_vartime() {
         assert_eq!(U256::from(2u8).sqrt_vartime(), U256::from(1u8));
-        assert_eq!(
-            U256::from(2u8).checked_sqrt_vartime().is_some().unwrap_u8(),
-            0
-        );
+        assert!(!U256::from(2u8).checked_sqrt_vartime().is_some().to_bool());
         assert_eq!(U256::from(3u8).sqrt_vartime(), U256::from(1u8));
-        assert_eq!(
-            U256::from(3u8).checked_sqrt_vartime().is_some().unwrap_u8(),
-            0
-        );
+        assert!(!U256::from(3u8).checked_sqrt_vartime().is_some().to_bool());
         assert_eq!(U256::from(5u8).sqrt_vartime(), U256::from(2u8));
         assert_eq!(U256::from(6u8).sqrt_vartime(), U256::from(2u8));
         assert_eq!(U256::from(7u8).sqrt_vartime(), U256::from(2u8));
@@ -243,8 +236,8 @@ mod tests {
             let s2 = s.checked_mul(&s).unwrap();
             assert_eq!(s2.sqrt(), s);
             assert_eq!(s2.sqrt_vartime(), s);
-            assert_eq!(s2.checked_sqrt().is_some().unwrap_u8(), 1);
-            assert_eq!(s2.checked_sqrt_vartime().is_some().unwrap_u8(), 1);
+            assert!(s2.checked_sqrt().is_some().to_bool());
+            assert!(s2.checked_sqrt_vartime().is_some().to_bool());
         }
 
         for _ in 0..50 {

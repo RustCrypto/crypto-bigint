@@ -8,7 +8,6 @@ use core::{
     fmt,
     ops::{Add, Mul, Neg, Shl, Shr, Sub},
 };
-use subtle::{Choice, ConditionallySelectable};
 
 #[cfg(feature = "rand_core")]
 use {crate::Random, rand_core::TryRngCore};
@@ -185,10 +184,14 @@ impl<T: WrappingShr> Shr<u32> for &Wrapping<T> {
     }
 }
 
-impl<T: ConditionallySelectable> ConditionallySelectable for Wrapping<T> {
+impl<T> subtle::ConditionallySelectable for Wrapping<T>
+where
+    T: Copy,
+    Self: CtSelect,
+{
     #[inline]
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Wrapping(T::conditional_select(&a.0, &b.0, choice))
+    fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
+        a.ct_select(b, choice.into())
     }
 }
 
@@ -197,7 +200,7 @@ where
     Self: CtEq,
 {
     #[inline]
-    fn ct_eq(&self, other: &Self) -> Choice {
+    fn ct_eq(&self, other: &Self) -> subtle::Choice {
         CtEq::ct_eq(self, other).into()
     }
 }

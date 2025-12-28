@@ -4,7 +4,7 @@ pub use core::ops::{
     Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign,
     Mul, MulAssign, Neg, Not, Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
-pub use ctutils::{CtEq, CtGt, CtLt, CtSelect};
+pub use ctutils::{CtEq, CtGt, CtLt, CtNeg, CtSelect};
 pub use num_traits::{
     ConstOne, ConstZero, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr,
     WrappingSub,
@@ -958,6 +958,8 @@ pub trait Resize: Sized {
 pub trait Monty:
     'static
     + Clone
+    + CtEq
+    + CtSelect
     + Debug
     + Eq
     + Sized

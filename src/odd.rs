@@ -1,11 +1,10 @@
 //! Wrapper type for non-zero integers.
 
 use crate::{
-    Bounded, ConstChoice, ConstOne, CtEq, CtSelect, Int, Integer, Limb, Mul, NonZero, One, Uint,
-    UintRef,
+    Bounded, ConstChoice, ConstCtOption, ConstOne, CtEq, CtSelect, Int, Integer, Limb, Mul,
+    NonZero, One, Uint, UintRef,
 };
 use core::{cmp::Ordering, fmt, ops::Deref};
-use subtle::{Choice, ConditionallySelectable, CtOption};
 
 #[cfg(feature = "alloc")]
 use crate::{BoxedUint, Resize};
@@ -43,15 +42,22 @@ pub struct Odd<T: ?Sized>(pub(crate) T);
 
 impl<T> Odd<T> {
     /// Create a new odd integer.
-    pub fn new(n: T) -> CtOption<Self>
+    #[inline]
+    pub fn new(mut n: T) -> ConstCtOption<Self>
     where
         T: Integer,
     {
         let is_odd = n.is_odd();
-        CtOption::new(Self(n), is_odd.into())
+
+        // Use one as a placeholder in the event an even number is provided, so functions that
+        // operate on `NonZero` values really can expect the value to never be zero, even in the
+        // case `CtOption::is_some` is false.
+        n.ct_assign(&T::one_like(&n), !is_odd);
+        ConstCtOption::new(Self(n), is_odd)
     }
 
     /// Returns the inner value.
+    #[inline]
     pub fn get(self) -> T {
         self.0
     }
@@ -154,12 +160,13 @@ impl<T: ?Sized> AsRef<NonZero<T>> for Odd<T> {
     }
 }
 
-impl<T> ConditionallySelectable for Odd<T>
+impl<T> subtle::ConditionallySelectable for Odd<T>
 where
-    T: ConditionallySelectable,
+    T: Copy,
+    Self: CtSelect,
 {
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        Self(T::conditional_select(&a.0, &b.0, choice))
+    fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
+        a.ct_select(b, choice.into())
     }
 }
 
@@ -168,7 +175,7 @@ where
     T: ?Sized,
     Self: CtEq,
 {
-    fn ct_eq(&self, other: &Self) -> Choice {
+    fn ct_eq(&self, other: &Self) -> subtle::Choice {
         CtEq::ct_eq(self, other).into()
     }
 }

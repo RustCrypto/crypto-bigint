@@ -3,7 +3,6 @@
 use super::{ConstMontyForm, ConstMontyParams};
 use crate::{ConstCtOption, Invert, modular::SafeGcdInverter};
 use core::marker::PhantomData;
-use subtle::CtOption;
 
 impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
     /// Computes `self^-1` representing the multiplicative inverse of `self`,
@@ -78,14 +77,14 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
 }
 
 impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Invert for ConstMontyForm<MOD, LIMBS> {
-    type Output = CtOption<Self>;
+    type Output = ConstCtOption<Self>;
 
     fn invert(&self) -> Self::Output {
-        self.invert().into()
+        self.invert()
     }
 
     fn invert_vartime(&self) -> Self::Output {
-        self.invert_vartime().into()
+        self.invert_vartime()
     }
 }
 

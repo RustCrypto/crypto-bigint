@@ -23,21 +23,6 @@ impl Limb {
         self.0 == other.0
     }
 
-    /// Return `b` if `c` is truthy, otherwise return `a`.
-    #[inline]
-    pub(crate) const fn select(a: Self, b: Self, c: ConstChoice) -> Self {
-        Self(word::select(a.0, b.0, c))
-    }
-
-    /// Swap the values of `a` and `b` if `c` is truthy, otherwise do nothing.
-    #[inline]
-    pub(crate) const fn ct_conditional_swap(a: &mut Self, b: &mut Self, c: ConstChoice) {
-        (*a, *b) = (
-            Self(word::select(a.0, b.0, c)),
-            Self(word::select(b.0, a.0, c)),
-        )
-    }
-
     /// Returns the truthy value if `self != 0` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn is_nonzero(&self) -> ConstChoice {
@@ -125,9 +110,8 @@ impl PartialEq for Limb {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, Limb};
+    use crate::{ConstChoice, CtEq, CtGt, CtLt, Limb};
     use core::cmp::Ordering;
-    use subtle::{ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
     #[test]
     fn is_zero() {

@@ -3,11 +3,10 @@
 //! (DOI: 10.1109/TC.2010.143, <https://gmplib.org/~tege/division-paper.pdf>).
 
 use crate::{
-    ConstChoice, Limb, NonZero, Uint, WideWord, Word,
+    ConstChoice, CtSelect, Limb, NonZero, Uint, WideWord, Word,
     primitives::{addhilo, widening_mul},
     word,
 };
-use subtle::{Choice, ConditionallySelectable};
 
 /// Calculates the reciprocal of the given 32-bit divisor with the highmost bit set.
 #[cfg(target_pointer_width = "32")]
@@ -226,16 +225,16 @@ impl Reciprocal {
     }
 }
 
-impl ConditionallySelectable for Reciprocal {
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
+impl CtSelect for Reciprocal {
+    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
         Self {
-            divisor_normalized: Word::conditional_select(
-                &a.divisor_normalized,
-                &b.divisor_normalized,
+            divisor_normalized: Word::ct_select(
+                &self.divisor_normalized,
+                &other.divisor_normalized,
                 choice,
             ),
-            shift: u32::conditional_select(&a.shift, &b.shift, choice),
-            reciprocal: Word::conditional_select(&a.reciprocal, &b.reciprocal, choice),
+            shift: u32::ct_select(&self.shift, &other.shift, choice),
+            reciprocal: Word::ct_select(&self.reciprocal, &other.reciprocal, choice),
         }
     }
 }

@@ -42,6 +42,7 @@ pub struct NonZero<T: ?Sized>(pub(crate) T);
 
 impl<T> NonZero<T> {
     /// Create a new non-zero integer.
+    #[inline]
     pub fn new(mut n: T) -> ConstCtOption<Self>
     where
         T: Zero + One + CtSelect,
@@ -56,6 +57,7 @@ impl<T> NonZero<T> {
     }
 
     /// Returns the inner value.
+    #[inline]
     pub fn get(self) -> T {
         self.0
     }
