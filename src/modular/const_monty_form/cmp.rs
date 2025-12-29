@@ -10,6 +10,7 @@ where
     }
 }
 
+#[cfg(feature = "subtle")]
 impl<MOD, const LIMBS: usize> subtle::ConstantTimeEq for ConstMontyForm<MOD, LIMBS>
 where
     MOD: ConstMontyParams<LIMBS>,

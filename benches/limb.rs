@@ -2,10 +2,9 @@ use chacha20::ChaCha8Rng;
 use criterion::{
     BatchSize, BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::Measurement,
 };
-use crypto_bigint::{Limb, Random};
+use crypto_bigint::{CtEq, CtGt, CtLt, Limb, Random};
 use rand_core::SeedableRng;
 use std::hint::black_box;
-use subtle::{ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
 fn bench_cmp<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     let mut rng = ChaCha8Rng::from_seed([7u8; 32]);

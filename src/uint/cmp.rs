@@ -137,32 +137,6 @@ impl<const LIMBS: usize> CtLt for Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> subtle::ConstantTimeEq for Uint<LIMBS> {
-    #[inline]
-    fn ct_eq(&self, other: &Self) -> subtle::Choice {
-        CtEq::ct_eq(self, other).into()
-    }
-
-    #[inline]
-    fn ct_ne(&self, other: &Self) -> subtle::Choice {
-        CtEq::ct_ne(self, other).into()
-    }
-}
-
-impl<const LIMBS: usize> subtle::ConstantTimeGreater for Uint<LIMBS> {
-    #[inline]
-    fn ct_gt(&self, other: &Self) -> subtle::Choice {
-        CtGt::ct_gt(self, other).into()
-    }
-}
-
-impl<const LIMBS: usize> subtle::ConstantTimeLess for Uint<LIMBS> {
-    #[inline]
-    fn ct_lt(&self, other: &Self) -> subtle::Choice {
-        Uint::lt(self, other).into()
-    }
-}
-
 impl<const LIMBS: usize> Eq for Uint<LIMBS> {}
 
 impl<const LIMBS: usize> Ord for Uint<LIMBS> {
@@ -185,6 +159,35 @@ impl<const LIMBS: usize> PartialOrd for Uint<LIMBS> {
 impl<const LIMBS: usize> PartialEq for Uint<LIMBS> {
     fn eq(&self, other: &Self) -> bool {
         self.ct_eq(other).into()
+    }
+}
+
+#[cfg(feature = "subtle")]
+impl<const LIMBS: usize> subtle::ConstantTimeEq for Uint<LIMBS> {
+    #[inline]
+    fn ct_eq(&self, other: &Self) -> subtle::Choice {
+        CtEq::ct_eq(self, other).into()
+    }
+
+    #[inline]
+    fn ct_ne(&self, other: &Self) -> subtle::Choice {
+        CtEq::ct_ne(self, other).into()
+    }
+}
+
+#[cfg(feature = "subtle")]
+impl<const LIMBS: usize> subtle::ConstantTimeGreater for Uint<LIMBS> {
+    #[inline]
+    fn ct_gt(&self, other: &Self) -> subtle::Choice {
+        CtGt::ct_gt(self, other).into()
+    }
+}
+
+#[cfg(feature = "subtle")]
+impl<const LIMBS: usize> subtle::ConstantTimeLess for Uint<LIMBS> {
+    #[inline]
+    fn ct_lt(&self, other: &Self) -> subtle::Choice {
+        Uint::lt(self, other).into()
     }
 }
 

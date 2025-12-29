@@ -26,6 +26,7 @@ impl CtSelect for Limb {
     }
 }
 
+#[cfg(feature = "subtle")]
 impl subtle::ConditionallySelectable for Limb {
     #[inline]
     fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {

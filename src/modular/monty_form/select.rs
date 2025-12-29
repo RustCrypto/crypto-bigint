@@ -27,12 +27,14 @@ impl<const LIMBS: usize> CtSelect for MontyParams<LIMBS> {
     }
 }
 
+#[cfg(feature = "subtle")]
 impl<const LIMBS: usize> subtle::ConditionallySelectable for MontyForm<LIMBS> {
     fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
         a.ct_select(b, choice.into())
     }
 }
 
+#[cfg(feature = "subtle")]
 impl<const LIMBS: usize> subtle::ConditionallySelectable for MontyParams<LIMBS> {
     fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
         a.ct_select(b, choice.into())

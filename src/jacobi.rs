@@ -59,17 +59,11 @@ impl CtEq for JacobiSymbol {
     }
 }
 
-impl subtle::ConstantTimeEq for JacobiSymbol {
-    fn ct_eq(&self, other: &Self) -> subtle::Choice {
-        CtEq::ct_eq(self, other).into()
-    }
-}
-
 impl Eq for JacobiSymbol {}
 
 impl PartialEq for JacobiSymbol {
     fn eq(&self, other: &Self) -> bool {
-        bool::from(self.ct_eq(other))
+        self.ct_eq(other).to_bool()
     }
 }
 
@@ -88,5 +82,12 @@ impl Neg for JacobiSymbol {
             Self::One => Self::MinusOne,
             Self::MinusOne => Self::One,
         }
+    }
+}
+
+#[cfg(feature = "subtle")]
+impl subtle::ConstantTimeEq for JacobiSymbol {
+    fn ct_eq(&self, other: &Self) -> subtle::Choice {
+        CtEq::ct_eq(self, other).into()
     }
 }

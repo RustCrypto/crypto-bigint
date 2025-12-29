@@ -68,27 +68,6 @@ impl CtLt for BoxedUint {
     }
 }
 
-impl subtle::ConstantTimeEq for BoxedUint {
-    #[inline]
-    fn ct_eq(&self, other: &Self) -> subtle::Choice {
-        CtEq::ct_eq(self, other).into()
-    }
-}
-
-impl subtle::ConstantTimeGreater for BoxedUint {
-    #[inline]
-    fn ct_gt(&self, other: &Self) -> subtle::Choice {
-        CtGt::ct_gt(self, other).into()
-    }
-}
-
-impl subtle::ConstantTimeLess for BoxedUint {
-    #[inline]
-    fn ct_lt(&self, other: &Self) -> subtle::Choice {
-        CtLt::ct_lt(self, other).into()
-    }
-}
-
 impl Eq for BoxedUint {}
 impl PartialEq for BoxedUint {
     fn eq(&self, other: &Self) -> bool {
@@ -126,6 +105,30 @@ impl PartialOrd for BoxedUint {
 impl<const LIMBS: usize> PartialOrd<Uint<LIMBS>> for BoxedUint {
     fn partial_cmp(&self, other: &Uint<LIMBS>) -> Option<Ordering> {
         self.partial_cmp(&Self::from(other))
+    }
+}
+
+#[cfg(feature = "subtle")]
+impl subtle::ConstantTimeEq for BoxedUint {
+    #[inline]
+    fn ct_eq(&self, other: &Self) -> subtle::Choice {
+        CtEq::ct_eq(self, other).into()
+    }
+}
+
+#[cfg(feature = "subtle")]
+impl subtle::ConstantTimeGreater for BoxedUint {
+    #[inline]
+    fn ct_gt(&self, other: &Self) -> subtle::Choice {
+        CtGt::ct_gt(self, other).into()
+    }
+}
+
+#[cfg(feature = "subtle")]
+impl subtle::ConstantTimeLess for BoxedUint {
+    #[inline]
+    fn ct_lt(&self, other: &Self) -> subtle::Choice {
+        CtLt::ct_lt(self, other).into()
     }
 }
 
