@@ -7,6 +7,24 @@ macro_rules! impl_uint_aliases {
             #[doc = $doc]
             #[doc="unsigned big integer."]
             pub type $name = Uint<{ nlimbs!($bits) }>;
+
+            impl From<EncodedUint<{ nlimbs!($bits) }>> for [u8; { nlimbs!($bits) * Limb::BYTES }] {
+                #[inline]
+                fn from(input: EncodedUint<{ nlimbs!($bits) }>) -> Self {
+                    let mut output = [0u8; nlimbs!($bits) * Limb::BYTES];
+                    output.as_mut_slice().copy_from_slice(input.as_ref());
+                    output
+                }
+            }
+
+            impl From<[u8; { nlimbs!($bits) * Limb::BYTES }]> for EncodedUint< { nlimbs!($bits) }> {
+                #[inline]
+                fn from(input: [u8; { nlimbs!($bits) * Limb::BYTES }]) -> Self {
+                    let mut output = Self::default();
+                    output.as_mut().copy_from_slice(input.as_ref());
+                    output
+                }
+            }
         )+
      };
 }
