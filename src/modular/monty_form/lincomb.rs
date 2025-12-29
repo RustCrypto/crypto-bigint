@@ -40,7 +40,7 @@ mod tests {
 
         let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
         for n in 0..1500 {
-            let modulus = Odd::<U256>::random(&mut rng);
+            let modulus = Odd::<U256>::random_from_rng(&mut rng);
             let params = MontyParams::new_vartime(modulus);
             let m = modulus.as_nz_ref();
             let a = U256::random_mod_vartime(&mut rng, m);

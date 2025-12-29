@@ -561,8 +561,8 @@ mod tests {
         const SIZE: usize = 200;
         let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
         for n in 0..100 {
-            let a = Uint::<SIZE>::random(&mut rng);
-            let b = Uint::<SIZE>::random(&mut rng);
+            let a = Uint::<SIZE>::random_from_rng(&mut rng);
+            let b = Uint::<SIZE>::random_from_rng(&mut rng);
             let size_a = rng.next_u32() as usize % SIZE;
             let size_b = rng.next_u32() as usize % SIZE;
             let a = a.as_uint_ref().leading(size_a);
@@ -587,7 +587,7 @@ mod tests {
         const SIZE: usize = 200;
         let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
         for n in 0..100 {
-            let a = Uint::<SIZE>::random(&mut rng);
+            let a = Uint::<SIZE>::random_from_rng(&mut rng);
             let size_a = rng.next_u32() as usize % SIZE;
             let a = a.as_uint_ref().leading(size_a);
             let mut wide = [Limb::ZERO; SIZE * 2];

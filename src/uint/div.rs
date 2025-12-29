@@ -711,9 +711,15 @@ mod tests {
     fn div() {
         let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
         for _ in 0..25 {
-            let num = U256::random(&mut rng).overflowing_shr_vartime(128).unwrap();
-            let den =
-                NonZero::new(U256::random(&mut rng).overflowing_shr_vartime(128).unwrap()).unwrap();
+            let num = U256::random_from_rng(&mut rng)
+                .overflowing_shr_vartime(128)
+                .unwrap();
+            let den = NonZero::new(
+                U256::random_from_rng(&mut rng)
+                    .overflowing_shr_vartime(128)
+                    .unwrap(),
+            )
+            .unwrap();
             let n = num.checked_mul(den.as_ref());
             if n.is_some().into() {
                 let n = n.unwrap();
@@ -913,7 +919,7 @@ mod tests {
     fn rem2krand() {
         let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
         for _ in 0..25 {
-            let num = U256::random(&mut rng);
+            let num = U256::random_from_rng(&mut rng);
             let k = rng.next_u32() % 256;
             let den = U256::ONE.overflowing_shl_vartime(k).unwrap();
 

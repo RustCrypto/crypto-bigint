@@ -86,8 +86,8 @@ mod tests {
             fn $test_name() {
                 let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
                 let moduli = [
-                    NonZero::<Limb>::random(&mut rng),
-                    NonZero::<Limb>::random(&mut rng),
+                    NonZero::<Limb>::random_from_rng(&mut rng),
+                    NonZero::<Limb>::random_from_rng(&mut rng),
                 ];
 
                 for special in &moduli {

@@ -11,8 +11,8 @@ fn bench_cmp<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("ct_lt", |b| {
         b.iter_batched(
             || {
-                let x = Limb::random(&mut rng);
-                let y = Limb::random(&mut rng);
+                let x = Limb::random_from_rng(&mut rng);
+                let y = Limb::random_from_rng(&mut rng);
                 (x, y)
             },
             |(x, y)| black_box(x.ct_lt(&y)),
@@ -23,8 +23,8 @@ fn bench_cmp<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("ct_eq", |b| {
         b.iter_batched(
             || {
-                let x = Limb::random(&mut rng);
-                let y = Limb::random(&mut rng);
+                let x = Limb::random_from_rng(&mut rng);
+                let y = Limb::random_from_rng(&mut rng);
                 (x, y)
             },
             |(x, y)| black_box(x.ct_eq(&y)),
@@ -35,8 +35,8 @@ fn bench_cmp<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("ct_gt", |b| {
         b.iter_batched(
             || {
-                let x = Limb::random(&mut rng);
-                let y = Limb::random(&mut rng);
+                let x = Limb::random_from_rng(&mut rng);
+                let y = Limb::random_from_rng(&mut rng);
                 (x, y)
             },
             |(x, y)| black_box(x.ct_gt(&y)),

@@ -16,7 +16,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
     let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
     group.bench_function("MontyParams::new", |b| {
         b.iter_batched(
-            || Odd::<U256>::random(&mut rng),
+            || Odd::<U256>::random_from_rng(&mut rng),
             |modulus| black_box(MontyParams::new(modulus)),
             BatchSize::SmallInput,
         )
@@ -24,13 +24,13 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
 
     group.bench_function("MontyParams::new_vartime", |b| {
         b.iter_batched(
-            || Odd::<U256>::random(&mut rng),
+            || Odd::<U256>::random_from_rng(&mut rng),
             |modulus| black_box(MontyParams::new_vartime(modulus)),
             BatchSize::SmallInput,
         )
     });
 
-    let params = MontyParams::new_vartime(Odd::<U256>::random(&mut rng));
+    let params = MontyParams::new_vartime(Odd::<U256>::random_from_rng(&mut rng));
     group.bench_function("MontyForm::new", |b| {
         b.iter_batched(
             || U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref()),
@@ -39,7 +39,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
         )
     });
 
-    let params = MontyParams::new_vartime(Odd::<U256>::random(&mut rng));
+    let params = MontyParams::new_vartime(Odd::<U256>::random_from_rng(&mut rng));
     group.bench_function("MontyForm retrieve", |b| {
         b.iter_batched(
             || {
@@ -56,7 +56,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
 
 fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
-    let params = MontyParams::new_vartime(Odd::<U256>::random(&mut rng));
+    let params = MontyParams::new_vartime(Odd::<U256>::random_from_rng(&mut rng));
 
     group.bench_function("add, U256", |b| {
         b.iter_batched(

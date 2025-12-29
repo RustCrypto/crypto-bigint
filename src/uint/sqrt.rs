@@ -241,7 +241,7 @@ mod tests {
         }
 
         for _ in 0..50 {
-            let s = U256::random(&mut rng);
+            let s = U256::random_from_rng(&mut rng);
             let mut s2 = U512::ZERO;
             s2.limbs[..s.limbs.len()].copy_from_slice(&s.limbs);
             assert_eq!(s.square().sqrt(), s2);

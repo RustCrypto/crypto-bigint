@@ -1138,7 +1138,7 @@ mod tests {
         let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
 
         for _ in 0..100 {
-            let uint = U256::random(&mut rng);
+            let uint = U256::random_from_rng(&mut rng);
             for radix in 2..=36 {
                 let enc = uint.to_string_radix_vartime(radix);
                 let res = U256::from_str_radix_vartime(&enc, radix).expect("decoding error");

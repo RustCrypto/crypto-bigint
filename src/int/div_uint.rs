@@ -494,8 +494,10 @@ mod tests {
     fn test_div_ct_vs_vt() {
         let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
         for _ in 0..50 {
-            let num = I1024::random(&mut rng);
-            let denom = U1024::from(&U512::random(&mut rng)).to_nz().unwrap();
+            let num = I1024::random_from_rng(&mut rng);
+            let denom = U1024::from(&U512::random_from_rng(&mut rng))
+                .to_nz()
+                .unwrap();
 
             assert_eq!(num.div_uint(&denom), num.div_uint_vartime(&denom))
         }
@@ -563,8 +565,10 @@ mod tests {
     fn test_div_floor_ct_vs_vt() {
         let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
         for _ in 0..50 {
-            let num = I1024::random(&mut rng);
-            let denom = U1024::from(&U512::random(&mut rng)).to_nz().unwrap();
+            let num = I1024::random_from_rng(&mut rng);
+            let denom = U1024::from(&U512::random_from_rng(&mut rng))
+                .to_nz()
+                .unwrap();
 
             assert_eq!(
                 num.div_floor_uint(&denom),

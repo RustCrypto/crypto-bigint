@@ -5,11 +5,11 @@ use crate::{CtLt, Encoding, Limb, NonZero, Random, RandomBits, RandomBitsError, 
 use rand_core::{RngCore, TryRngCore};
 
 impl<const LIMBS: usize> Random for Uint<LIMBS> {
-    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+    fn try_random_from_rng<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
         let mut limbs = [Limb::ZERO; LIMBS];
 
         for limb in &mut limbs {
-            *limb = Limb::try_random(rng)?
+            *limb = Limb::try_random_from_rng(rng)?
         }
 
         Ok(limbs.into())
@@ -141,7 +141,7 @@ mod tests {
     #[test]
     fn random_platform_independence() {
         let mut rng = get_four_sequential_rng();
-        assert_eq!(U1024::random(&mut rng), RANDOM_OUTPUT);
+        assert_eq!(U1024::random_from_rng(&mut rng), RANDOM_OUTPUT);
     }
 
     #[test]

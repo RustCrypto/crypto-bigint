@@ -126,7 +126,7 @@
 //! # }
 //! use crypto_bigint::{Random, U256};
 //!
-//! let n = U256::random(&mut rng());
+//! let n = U256::random_from_rng(&mut rng());
 //! # }
 //! ```
 //!

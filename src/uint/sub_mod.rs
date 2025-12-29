@@ -82,8 +82,8 @@ mod tests {
             fn $test_name() {
                 let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
                 let moduli = [
-                    NonZero::<Uint<$size>>::random(&mut rng),
-                    NonZero::<Uint<$size>>::random(&mut rng),
+                    NonZero::<Uint<$size>>::random_from_rng(&mut rng),
+                    NonZero::<Uint<$size>>::random_from_rng(&mut rng),
                 ];
 
                 for p in &moduli {
@@ -102,8 +102,8 @@ mod tests {
 
                     if $size > 1 {
                         for _i in 0..100 {
-                            let a: Uint<$size> = Limb::random(&mut rng).into();
-                            let b: Uint<$size> = Limb::random(&mut rng).into();
+                            let a: Uint<$size> = Limb::random_from_rng(&mut rng).into();
+                            let b: Uint<$size> = Limb::random_from_rng(&mut rng).into();
                             let (a, b) = if a < b { (b, a) } else { (a, b) };
 
                             let c = a.sub_mod(&b, p);
@@ -135,8 +135,8 @@ mod tests {
             fn $test_name() {
                 let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
                 let moduli = [
-                    NonZero::<Limb>::random(&mut rng),
-                    NonZero::<Limb>::random(&mut rng),
+                    NonZero::<Limb>::random_from_rng(&mut rng),
+                    NonZero::<Limb>::random_from_rng(&mut rng),
                 ];
 
                 for special in &moduli {

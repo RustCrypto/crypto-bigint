@@ -397,7 +397,7 @@ mod tests {
         let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
 
         for _ in 0..50 {
-            let a = U4096::random(&mut rng);
+            let a = U4096::random_from_rng(&mut rng);
             assert_eq!(a.widening_mul(&a), a.square_wide(), "a = {a}");
             assert_eq!(a.wrapping_mul(&a), a.wrapping_square(), "a = {a}");
             assert_eq!(a.saturating_mul(&a), a.saturating_square(), "a = {a}");

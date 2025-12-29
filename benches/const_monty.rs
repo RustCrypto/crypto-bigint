@@ -29,7 +29,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
 
     group.bench_function("ConstMontyForm retrieve", |b| {
         b.iter_batched(
-            || ConstMontyForm::random(&mut rng),
+            || ConstMontyForm::random_from_rng(&mut rng),
             |x| black_box(x.retrieve()),
             BatchSize::SmallInput,
         )
@@ -42,8 +42,8 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("add, U256", |b| {
         b.iter_batched(
             || {
-                let a = ConstMontyForm::random(&mut rng);
-                let b = ConstMontyForm::random(&mut rng);
+                let a = ConstMontyForm::random_from_rng(&mut rng);
+                let b = ConstMontyForm::random_from_rng(&mut rng);
                 (a, b)
             },
             |(a, b)| black_box(a).add(&black_box(b)),
@@ -53,7 +53,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
 
     group.bench_function("double, U256", |b| {
         b.iter_batched(
-            || ConstMontyForm::random(&mut rng),
+            || ConstMontyForm::random_from_rng(&mut rng),
             |a| black_box(a).double(),
             BatchSize::SmallInput,
         )
@@ -62,8 +62,8 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("sub, U256", |b| {
         b.iter_batched(
             || {
-                let a = ConstMontyForm::random(&mut rng);
-                let b = ConstMontyForm::random(&mut rng);
+                let a = ConstMontyForm::random_from_rng(&mut rng);
+                let b = ConstMontyForm::random_from_rng(&mut rng);
                 (a, b)
             },
             |(a, b)| black_box(a).sub(&black_box(b)),
@@ -73,7 +73,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
 
     group.bench_function("neg, U256", |b| {
         b.iter_batched(
-            || ConstMontyForm::random(&mut rng),
+            || ConstMontyForm::random_from_rng(&mut rng),
             |a| black_box(a).neg(),
             BatchSize::SmallInput,
         )
@@ -81,7 +81,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
 
     group.bench_function("invert, U256", |b| {
         b.iter_batched(
-            || ConstMontyForm::random(&mut rng),
+            || ConstMontyForm::random_from_rng(&mut rng),
             |x| black_box(x).invert(),
             BatchSize::SmallInput,
         )
@@ -90,8 +90,8 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("multiplication, U256*U256", |b| {
         b.iter_batched(
             || {
-                let x = ConstMontyForm::random(&mut rng);
-                let y = ConstMontyForm::random(&mut rng);
+                let x = ConstMontyForm::random_from_rng(&mut rng);
+                let y = ConstMontyForm::random_from_rng(&mut rng);
                 (x, y)
             },
             |(x, y)| black_box(x).mul(&black_box(y)),
@@ -101,7 +101,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
 
     group.bench_function("squaring, U256*U256", |b| {
         b.iter_batched(
-            || ConstMontyForm::random(&mut rng),
+            || ConstMontyForm::random_from_rng(&mut rng),
             |x| black_box(x).square(),
             BatchSize::SmallInput,
         )
@@ -110,8 +110,8 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     group.bench_function("modpow, U256^U256", |b| {
         b.iter_batched(
             || {
-                let x_m = ConstMontyForm::random(&mut rng);
-                let p = U256::random(&mut rng) | (U256::ONE << (U256::BITS - 1));
+                let x_m = ConstMontyForm::random_from_rng(&mut rng);
+                let p = U256::random_from_rng(&mut rng) | (U256::ONE << (U256::BITS - 1));
                 (x_m, p)
             },
             |(x, p)| black_box(x.pow(&p)),
@@ -121,7 +121,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
 
     group.bench_function("jacobi_symbol", |b| {
         b.iter_batched(
-            || ConstMontyForm::random(&mut rng),
+            || ConstMontyForm::random_from_rng(&mut rng),
             |a| a.jacobi_symbol(),
             BatchSize::SmallInput,
         )
@@ -129,7 +129,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
 
     group.bench_function("jacobi_symbol_vartime", |b| {
         b.iter_batched(
-            || ConstMontyForm::random(&mut rng),
+            || ConstMontyForm::random_from_rng(&mut rng),
             |a| a.jacobi_symbol_vartime(),
             BatchSize::SmallInput,
         )
@@ -137,7 +137,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
 
     group.bench_function("lincomb, U256*U256+U256*U256", |b| {
         b.iter_batched(
-            || ConstMontyForm::random(&mut rng),
+            || ConstMontyForm::random_from_rng(&mut rng),
             |a| {
                 ConstMontyForm::lincomb(&[
                     (black_box(a), black_box(a)),
@@ -157,8 +157,9 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                     || {
                         let bases_and_exponents: Vec<(ConstMontyForm, U256)> = (1..=i)
                             .map(|_| {
-                                let x_m = ConstMontyForm::random(&mut rng);
-                                let p = U256::random(&mut rng) | (U256::ONE << (U256::BITS - 1));
+                                let x_m = ConstMontyForm::random_from_rng(&mut rng);
+                                let p = U256::random_from_rng(&mut rng)
+                                    | (U256::ONE << (U256::BITS - 1));
                                 (x_m, p)
                             })
                             .collect();
@@ -185,5 +186,4 @@ fn bench_montgomery(c: &mut Criterion) {
 }
 
 criterion_group!(benches, bench_montgomery);
-
 criterion_main!(benches);
