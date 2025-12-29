@@ -1,13 +1,15 @@
 //! `hybrid-array` integration with `Uint`.
 // TODO(tarcieri): completely phase out `hybrid-array` when const generics are powerful enough
 
-use crate::{ArrayDecoding, ArrayEncoding, ByteArray};
-use hybrid_array::{Array, typenum};
+use crate::{ArrayDecoding, ArrayEncoding, ByteArray, EncodedUint, Limb};
+use hybrid_array::{Array, ArrayN, typenum};
 
 macro_rules! impl_uint_array_encoding {
     ($(($uint:ident, $bytes:path)),+) => {
         $(
-            impl ArrayEncoding for super::$uint {
+            use crate::$uint;
+
+            impl ArrayEncoding for $uint {
                 type ByteSize = $bytes;
 
                 #[inline]
@@ -36,7 +38,7 @@ macro_rules! impl_uint_array_encoding {
             }
 
             impl ArrayDecoding for Array<u8, $bytes> {
-                type Output = super::$uint;
+                type Output = $uint;
 
                 fn into_uint_be(self) -> Self::Output {
                     Self::Output::from_be_byte_array(self)
@@ -44,6 +46,24 @@ macro_rules! impl_uint_array_encoding {
 
                 fn into_uint_le(self) -> Self::Output {
                     Self::Output::from_le_byte_array(self)
+                }
+            }
+
+            impl From<EncodedUint<{ $uint::LIMBS }>> for ArrayN<u8, { $uint::LIMBS * Limb::BYTES }> {
+                #[inline]
+                fn from(input: EncodedUint<{ $uint::LIMBS }>) -> Self {
+                    let mut output = Self::default();
+                    output.as_mut_slice().copy_from_slice(input.as_ref());
+                    output
+                }
+            }
+
+            impl From<ArrayN<u8, { $uint::LIMBS * Limb::BYTES }>> for EncodedUint< { $uint::LIMBS }> {
+                #[inline]
+                fn from(input: ArrayN<u8, { $uint::LIMBS * Limb::BYTES }>) -> Self {
+                    let mut output = Self::default();
+                    output.as_mut().copy_from_slice(input.as_ref());
+                    output
                 }
             }
         )+
@@ -190,5 +210,32 @@ mod tests {
         let expected_bytes = ByteArray::from(hex!("ffeeddccbbaa99887766554433221100"));
         let actual_bytes = expected_bytes.into_uint_le().to_le_byte_array();
         assert_eq!(expected_bytes, actual_bytes);
+    }
+
+    mod encoded_uint {
+        const LIMBS: usize = 4;
+        const BYTES: usize = crate::Limb::BYTES * LIMBS;
+
+        type Array = hybrid_array::ArrayN<u8, { BYTES }>;
+        type EncodedUint = crate::EncodedUint<LIMBS>;
+
+        const ARRAY: Array = {
+            let mut i = 0;
+            let mut ret = [0u8; BYTES];
+            while i < BYTES {
+                ret[i] = i as u8;
+                i += 1;
+            }
+            hybrid_array::Array(ret)
+        };
+
+        #[test]
+        fn from_impls_for_encoded_uint() {
+            let encoded_uint = EncodedUint::from(ARRAY);
+            assert_eq!(encoded_uint.as_ref(), ARRAY.as_slice());
+
+            let array = Array::from(encoded_uint);
+            assert_eq!(array, ARRAY);
+        }
     }
 }

@@ -8,8 +8,8 @@ pub use extra_sizes::*;
 pub(crate) use ref_type::UintRef;
 
 use crate::{
-    Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, FixedInteger, Int, Integer,
-    Limb, NonZero, Odd, One, Unsigned, Word, Zero, modular::MontyForm,
+    Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, EncodedUint, FixedInteger,
+    Int, Integer, Limb, NonZero, Odd, One, Unsigned, Word, Zero, modular::MontyForm,
 };
 use core::fmt;
 
