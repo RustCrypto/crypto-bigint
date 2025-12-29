@@ -167,16 +167,6 @@
 #[macro_use]
 extern crate alloc;
 
-pub use ctutils;
-pub use uint::encoding::{EncodedUint, TryFromSliceError};
-
-#[cfg(feature = "rand_core")]
-pub use rand_core;
-#[cfg(feature = "rlp")]
-pub use rlp;
-#[cfg(feature = "zeroize")]
-pub use zeroize;
-
 pub use crate::{
     checked::Checked,
     int::{types::*, *},
@@ -185,16 +175,26 @@ pub use crate::{
     non_zero::*,
     odd::*,
     traits::*,
-    uint::{div_limb::Reciprocal, *},
+    uint::{
+        div_limb::Reciprocal,
+        encoding::{EncodedUint, TryFromSliceError},
+        *,
+    },
     word::{WideWord, Word},
     wrapping::Wrapping,
 };
 
-// TODO(tarcieri): get rid of `Const*` prefix
-pub use ctutils::{Choice as ConstChoice, CtOption as ConstCtOption};
+pub use ctutils;
+pub use ctutils::{Choice, CtOption};
 
 #[cfg(feature = "alloc")]
 pub use crate::uint::boxed::BoxedUint;
+#[cfg(feature = "rand_core")]
+pub use rand_core;
+#[cfg(feature = "rlp")]
+pub use rlp;
+#[cfg(feature = "zeroize")]
+pub use zeroize;
 #[cfg(feature = "hybrid-array")]
 pub use {
     crate::array::{ArrayDecoding, ArrayEncoding, ByteArray},
@@ -226,3 +226,11 @@ pub mod prelude {
     pub use crate::array::{ArrayDecoding, ArrayEncoding};
     pub use crate::traits::*;
 }
+
+/// DEPRECATED: legacy type alias for [`Choice`].
+#[deprecated(since = "0.7.0", note = "use `Choice` instead")]
+pub type ConstChoice = Choice;
+
+/// DEPRECATED: legacy type alias for [`CtOption`].
+#[deprecated(since = "0.7.0", note = "use `CtOption` instead")]
+pub type ConstCtOption<T> = CtOption<T>;

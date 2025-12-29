@@ -1,6 +1,6 @@
 //! [`Uint`] square root operations.
 
-use crate::{ConstCtOption, CtEq, NonZero, SquareRoot, Uint};
+use crate::{CtEq, CtOption, NonZero, SquareRoot, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes √(`self`) in constant time.
@@ -90,20 +90,20 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         self.sqrt_vartime()
     }
 
-    /// Perform checked sqrt, returning a [`ConstCtOption`] which `is_some`
+    /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
     /// only if the √(`self`)² == self
-    pub fn checked_sqrt(&self) -> ConstCtOption<Self> {
+    pub fn checked_sqrt(&self) -> CtOption<Self> {
         let r = self.sqrt();
         let s = r.wrapping_mul(&r);
-        ConstCtOption::new(r, self.ct_eq(&s))
+        CtOption::new(r, self.ct_eq(&s))
     }
 
-    /// Perform checked sqrt, returning a [`ConstCtOption`] which `is_some`
+    /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
     /// only if the √(`self`)² == self
-    pub fn checked_sqrt_vartime(&self) -> ConstCtOption<Self> {
+    pub fn checked_sqrt_vartime(&self) -> CtOption<Self> {
         let r = self.sqrt_vartime();
         let s = r.wrapping_mul(&r);
-        ConstCtOption::new(r, self.ct_eq(&s))
+        CtOption::new(r, self.ct_eq(&s))
     }
 }
 

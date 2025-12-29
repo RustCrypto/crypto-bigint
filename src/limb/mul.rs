@@ -1,7 +1,7 @@
 //! Limb multiplication
 
 use crate::{
-    Checked, CheckedMul, ConstCtOption, Limb, Mul, MulAssign, Wrapping, WrappingMul,
+    Checked, CheckedMul, CtOption, Limb, Mul, MulAssign, Wrapping, WrappingMul,
     primitives::{carrying_mul_add, widening_mul},
 };
 
@@ -43,9 +43,9 @@ impl Limb {
 
 impl CheckedMul for Limb {
     #[inline]
-    fn checked_mul(&self, rhs: &Self) -> ConstCtOption<Self> {
+    fn checked_mul(&self, rhs: &Self) -> CtOption<Self> {
         let (lo, hi) = self.widening_mul(*rhs);
-        ConstCtOption::new(lo, hi.is_zero())
+        CtOption::new(lo, hi.is_zero())
     }
 }
 

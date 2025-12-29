@@ -3,7 +3,7 @@
 //! (DOI: 10.1109/TC.2010.143, <https://gmplib.org/~tege/division-paper.pdf>).
 
 use crate::{
-    ConstChoice, CtSelect, Limb, NonZero, Uint, WideWord, Word,
+    Choice, CtSelect, Limb, NonZero, Uint, WideWord, Word,
     primitives::{addhilo, widening_mul},
     word,
 };
@@ -36,7 +36,7 @@ pub const fn reciprocal(d: Word) -> Word {
     // Hence the `ct_select()`.
     let x = v2.wrapping_add(1);
     let (_lo, hi) = widening_mul(x, d);
-    let hi = word::select(d, hi, ConstChoice::from_u32_nz(x));
+    let hi = word::select(d, hi, Choice::from_u32_nz(x));
 
     v2.wrapping_sub(hi).wrapping_sub(d)
 }
@@ -90,7 +90,7 @@ const fn short_div(mut dividend: u32, dividend_bits: u32, divisor: u32, divisor_
 
     while i > 0 {
         i -= 1;
-        let bit = ConstChoice::from_u32_lt(dividend, divisor);
+        let bit = Choice::from_u32_lt(dividend, divisor);
         dividend = bit.select_u32(dividend.wrapping_sub(divisor), dividend);
         divisor >>= 1;
         quotient |= bit.not().select_u32(0, 1 << i);
@@ -226,7 +226,7 @@ impl Reciprocal {
 }
 
 impl CtSelect for Reciprocal {
-    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
+    fn ct_select(&self, other: &Self, choice: Choice) -> Self {
         Self {
             divisor_normalized: Word::ct_select(
                 &self.divisor_normalized,

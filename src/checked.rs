@@ -1,8 +1,6 @@
 //! Checked arithmetic.
 
-use crate::{
-    CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, ConstChoice, ConstCtOption, CtEq, CtSelect,
-};
+use crate::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Choice, CtEq, CtOption, CtSelect};
 use core::ops::{Add, Div, Mul, Sub};
 
 #[cfg(feature = "serde")]
@@ -10,15 +8,15 @@ use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// Provides intentionally-checked arithmetic on `T`.
 ///
-/// Internally this leverages the [`ConstCtOption`] type from the [`ctutils`] crate in order to
+/// Internally this leverages the [`CtOption`] type from the [`ctutils`] crate in order to
 /// handle overflows.
 #[derive(Copy, Clone, Debug)]
-pub struct Checked<T>(pub ConstCtOption<T>);
+pub struct Checked<T>(pub CtOption<T>);
 
 impl<T> Checked<T> {
     /// Create a new checked arithmetic wrapper for the given value.
     pub const fn new(val: T) -> Self {
-        Self(ConstCtOption::some(val))
+        Self(CtOption::some(val))
     }
 }
 
@@ -283,7 +281,7 @@ where
     T: CtEq,
 {
     #[inline]
-    fn ct_eq(&self, other: &Self) -> ConstChoice {
+    fn ct_eq(&self, other: &Self) -> Choice {
         self.0.ct_eq(&other.0)
     }
 }
@@ -293,7 +291,7 @@ where
     T: CtSelect,
 {
     #[inline]
-    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
+    fn ct_select(&self, other: &Self, choice: Choice) -> Self {
         Self(self.0.ct_select(&other.0, choice))
     }
 }
@@ -307,14 +305,14 @@ where
     }
 }
 
-impl<T> From<Checked<T>> for ConstCtOption<T> {
-    fn from(checked: Checked<T>) -> ConstCtOption<T> {
+impl<T> From<Checked<T>> for CtOption<T> {
+    fn from(checked: Checked<T>) -> CtOption<T> {
         checked.0
     }
 }
 
-impl<T> From<ConstCtOption<T>> for Checked<T> {
-    fn from(ct_option: ConstCtOption<T>) -> Checked<T> {
+impl<T> From<CtOption<T>> for Checked<T> {
+    fn from(ct_option: CtOption<T>) -> Checked<T> {
         Checked(ct_option)
     }
 }
@@ -332,8 +330,8 @@ impl<'de, T: Default + Deserialize<'de>> Deserialize<'de> for Checked<T> {
         D: Deserializer<'de>,
     {
         let value = Option::<T>::deserialize(deserializer)?;
-        let choice = ConstChoice::new(value.is_some() as u8);
-        Ok(Self(ConstCtOption::new(value.unwrap_or_default(), choice)))
+        let choice = Choice::new(value.is_some() as u8);
+        Ok(Self(CtOption::new(value.unwrap_or_default(), choice)))
     }
 }
 

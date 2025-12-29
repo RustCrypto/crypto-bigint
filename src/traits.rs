@@ -10,7 +10,7 @@ pub use num_traits::{
     WrappingSub,
 };
 
-use crate::{ConstChoice, ConstCtOption, Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
+use crate::{Choice, CtOption, Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
 use core::fmt::{self, Debug};
 
 #[cfg(feature = "rand_core")]
@@ -108,11 +108,11 @@ pub trait Integer:
     /// # Returns
     ///
     /// If odd, returns `Choice::FALSE`. Otherwise, returns `Choice::TRUE`.
-    fn is_odd(&self) -> ConstChoice {
+    fn is_odd(&self) -> Choice {
         self.as_ref()
             .first()
             .map(|limb| limb.is_odd())
-            .unwrap_or(ConstChoice::FALSE)
+            .unwrap_or(Choice::FALSE)
     }
 
     /// Is this integer value an even number?
@@ -120,15 +120,15 @@ pub trait Integer:
     /// # Returns
     ///
     /// If even, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
-    fn is_even(&self) -> ConstChoice {
+    fn is_even(&self) -> Choice {
         !self.is_odd()
     }
 }
 
 /// Signed [`Integer`]s.
 pub trait Signed:
-    Div<NonZero<Self>, Output = ConstCtOption<Self>>
-    + for<'a> Div<&'a NonZero<Self>, Output = ConstCtOption<Self>>
+    Div<NonZero<Self>, Output = CtOption<Self>>
+    + for<'a> Div<&'a NonZero<Self>, Output = CtOption<Self>>
     + From<i8>
     + From<i16>
     + From<i32>
@@ -139,18 +139,18 @@ pub trait Signed:
     type Unsigned: Unsigned;
 
     /// The sign and magnitude of this [`Signed`].
-    fn abs_sign(&self) -> (Self::Unsigned, ConstChoice);
+    fn abs_sign(&self) -> (Self::Unsigned, Choice);
 
     /// The magnitude of this [`Signed`].
     fn abs(&self) -> Self::Unsigned {
         self.abs_sign().0
     }
 
-    /// Whether this [`Signed`] is negative (and non-zero), as a [`ConstChoice`].
-    fn is_negative(&self) -> ConstChoice;
+    /// Whether this [`Signed`] is negative (and non-zero), as a [`Choice`].
+    fn is_negative(&self) -> Choice;
 
-    /// Whether this [`Signed`] is positive (and non-zero), as a [`ConstChoice`].
-    fn is_positive(&self) -> ConstChoice;
+    /// Whether this [`Signed`] is positive (and non-zero), as a [`Choice`].
+    fn is_positive(&self) -> Choice;
 }
 
 /// Unsigned [`Integer`]s.
@@ -192,7 +192,7 @@ pub trait Zero: CtEq + Sized {
     ///
     /// If zero, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
     #[inline]
-    fn is_zero(&self) -> ConstChoice {
+    fn is_zero(&self) -> Choice {
         self.ct_eq(&Self::zero())
     }
 
@@ -224,7 +224,7 @@ pub trait One: CtEq + Sized {
     ///
     /// If one, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
     #[inline]
-    fn is_one(&self) -> ConstChoice {
+    fn is_one(&self) -> Choice {
         self.ct_eq(&Self::one())
     }
 
@@ -517,7 +517,7 @@ pub trait InvMod<Rhs = Self>: Sized {
     type Output;
 
     /// Compute `1 / self mod p`.
-    fn inv_mod(&self, p: &Rhs) -> ConstCtOption<Self::Output>;
+    fn inv_mod(&self, p: &Rhs) -> CtOption<Self::Output>;
 }
 
 #[allow(deprecated)]
@@ -527,7 +527,7 @@ where
 {
     type Output = <T as InvertMod<Rhs>>::Output;
 
-    fn inv_mod(&self, p: &Rhs) -> ConstCtOption<Self::Output> {
+    fn inv_mod(&self, p: &Rhs) -> CtOption<Self::Output> {
         self.invert_mod(p)
     }
 }
@@ -538,35 +538,35 @@ pub trait InvertMod<Mod = NonZero<Self>>: Sized {
     type Output;
 
     /// Compute `1 / self mod p`.
-    fn invert_mod(&self, p: &Mod) -> ConstCtOption<Self::Output>;
+    fn invert_mod(&self, p: &Mod) -> CtOption<Self::Output>;
 }
 
 /// Checked addition.
 pub trait CheckedAdd<Rhs = Self>: Sized {
-    /// Perform checked addition, returning a [`ConstCtOption`] which `is_some` only if the operation
+    /// Perform checked addition, returning a [`CtOption`] which `is_some` only if the operation
     /// did not overflow.
-    fn checked_add(&self, rhs: &Rhs) -> ConstCtOption<Self>;
+    fn checked_add(&self, rhs: &Rhs) -> CtOption<Self>;
 }
 
 /// Checked division.
 pub trait CheckedDiv<Rhs = Self>: Sized {
-    /// Perform checked division, returning a [`ConstCtOption`] which `is_some` only if the divisor is
+    /// Perform checked division, returning a [`CtOption`] which `is_some` only if the divisor is
     /// non-zero.
-    fn checked_div(&self, rhs: &Rhs) -> ConstCtOption<Self>;
+    fn checked_div(&self, rhs: &Rhs) -> CtOption<Self>;
 }
 
 /// Checked multiplication.
 pub trait CheckedMul<Rhs = Self>: Sized {
-    /// Perform checked multiplication, returning a [`ConstCtOption`] which `is_some`
+    /// Perform checked multiplication, returning a [`CtOption`] which `is_some`
     /// only if the operation did not overflow.
-    fn checked_mul(&self, rhs: &Rhs) -> ConstCtOption<Self>;
+    fn checked_mul(&self, rhs: &Rhs) -> CtOption<Self>;
 }
 
 /// Checked subtraction.
 pub trait CheckedSub<Rhs = Self>: Sized {
-    /// Perform checked subtraction, returning a [`ConstCtOption`] which `is_some`
+    /// Perform checked subtraction, returning a [`CtOption`] which `is_some`
     /// only if the operation did not underflow.
-    fn checked_sub(&self, rhs: &Rhs) -> ConstCtOption<Self>;
+    fn checked_sub(&self, rhs: &Rhs) -> CtOption<Self>;
 }
 
 /// Concatenate two numbers into a "wide" double-width value, using the `hi` value as the most
@@ -749,10 +749,10 @@ pub trait BitOps {
 
     /// Get the value of the bit at position `index`, as a truthy or falsy `Choice`.
     /// Returns the falsy value for indices out of range.
-    fn bit(&self, index: u32) -> ConstChoice;
+    fn bit(&self, index: u32) -> Choice;
 
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
-    fn set_bit(&mut self, index: u32, bit_value: ConstChoice);
+    fn set_bit(&mut self, index: u32, bit_value: Choice);
 
     /// Calculate the number of bits required to represent a given number.
     fn bits(&self) -> u32 {
@@ -907,7 +907,7 @@ pub trait ShlVartime: Sized {
     /// Computes `self << shift`.
     ///
     /// Returns `None` if `shift >= self.bits_precision()`.
-    fn overflowing_shl_vartime(&self, shift: u32) -> ConstCtOption<Self>;
+    fn overflowing_shl_vartime(&self, shift: u32) -> CtOption<Self>;
 
     /// Computes `self << shift` in a panic-free manner, masking off bits of `shift`
     /// which would cause the shift to exceed the type's width.
@@ -919,7 +919,7 @@ pub trait ShrVartime: Sized {
     /// Computes `self >> shift`.
     ///
     /// Returns `None` if `shift >= self.bits_precision()`.
-    fn overflowing_shr_vartime(&self, shift: u32) -> ConstCtOption<Self>;
+    fn overflowing_shr_vartime(&self, shift: u32) -> CtOption<Self>;
 
     /// Computes `self >> shift` in a panic-free manner, masking off bits of `shift`
     /// which would cause the shift to exceed the type's width.

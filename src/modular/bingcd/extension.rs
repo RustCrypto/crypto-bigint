@@ -1,4 +1,4 @@
-use crate::{ConstChoice, ConstCtOption, Int, Limb, Uint};
+use crate::{Choice, CtOption, Int, Limb, Uint};
 
 pub(crate) struct ExtendedUint<const LIMBS: usize, const EXTENSION_LIMBS: usize>(
     Uint<LIMBS>,
@@ -30,14 +30,14 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
 
     /// Whether this form is `Self::ZERO`.
     #[inline]
-    pub const fn is_zero(&self) -> ConstChoice {
+    pub const fn is_zero(&self) -> Choice {
         self.0.is_nonzero().not().and(self.1.is_nonzero().not())
     }
 
     /// Drop the extension.
     #[inline]
-    pub const fn checked_drop_extension(&self) -> ConstCtOption<Uint<LIMBS>> {
-        ConstCtOption::new(self.0, self.1.is_nonzero().not())
+    pub const fn checked_drop_extension(&self) -> CtOption<Uint<LIMBS>> {
+        CtOption::new(self.0, self.1.is_nonzero().not())
     }
 
     /// Construction the binary negation of `self`, i.e., map `self` to `!self + 1`.
@@ -53,7 +53,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
 
     /// Negate `self` if `negate` is truthy. Otherwise returns `self`.
     #[inline]
-    pub const fn wrapping_neg_if(&self, negate: ConstChoice) -> Self {
+    pub const fn wrapping_neg_if(&self, negate: Choice) -> Self {
         let neg = self.wrapping_neg();
         Self(
             Uint::select(&self.0, &neg.0, negate),
@@ -68,7 +68,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
     pub const fn bounded_shr<const UPPER_BOUND: u32>(&self, shift: u32) -> Self {
         debug_assert!(shift <= UPPER_BOUND);
 
-        let shift_is_zero = ConstChoice::from_u32_eq(shift, 0);
+        let shift_is_zero = Choice::from_u32_eq(shift, 0);
         let left_shift = shift_is_zero.select_u32(Uint::<EXTRA>::BITS - shift, 0);
 
         let hi = self
@@ -99,7 +99,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
     pub const fn shr_vartime(&self, shift: u32) -> Self {
         debug_assert!(shift <= Uint::<EXTRA>::BITS);
 
-        let shift_is_zero = ConstChoice::from_u32_eq(shift, 0);
+        let shift_is_zero = Choice::from_u32_eq(shift, 0);
         let left_shift = shift_is_zero.select_u32(Uint::<EXTRA>::BITS - shift, 0);
 
         let hi = self.1.shr_vartime(shift);
@@ -139,7 +139,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     /// Wrapping multiply `self` with `rhs`, which is passed as a
     pub(crate) const fn wrapping_mul<const RHS_LIMBS: usize>(
         &self,
-        rhs: (&Uint<RHS_LIMBS>, &ConstChoice),
+        rhs: (&Uint<RHS_LIMBS>, &Choice),
     ) -> Self {
         let (abs_self, self_is_negative) = self.abs_sign();
         let (abs_rhs, rhs_is_negative) = rhs;
@@ -160,7 +160,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
 
     /// Return the negation of `self` if `negate` is truthy. Otherwise, return `self`.
     #[inline]
-    pub const fn wrapping_neg_if(&self, negate: ConstChoice) -> Self {
+    pub const fn wrapping_neg_if(&self, negate: Choice) -> Self {
         self.as_extended_uint()
             .wrapping_neg_if(negate)
             .as_extended_int()
@@ -183,14 +183,14 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
 
     /// Returns the absolute value and sign of `self`, without the extension.
     #[inline]
-    pub const fn dropped_abs_sign(&self) -> (Uint<LIMBS>, ConstChoice) {
+    pub const fn dropped_abs_sign(&self) -> (Uint<LIMBS>, Choice) {
         let (abs, sgn) = self.abs_sign();
         (abs.0, sgn)
     }
 
     /// Decompose `self` into is absolute value and signum.
     #[inline]
-    pub const fn abs_sign(&self) -> (ExtendedUint<LIMBS, EXTRA>, ConstChoice) {
+    pub const fn abs_sign(&self) -> (ExtendedUint<LIMBS, EXTRA>, Choice) {
         let is_negative = self.1.as_int().is_negative();
         (
             self.wrapping_neg_if(is_negative).as_extended_uint(),
@@ -224,19 +224,19 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn bounded_overflowing_shr<const UPPER_BOUND: u32>(
         &self,
         shift: u32,
-    ) -> ConstCtOption<Self> {
+    ) -> CtOption<Self> {
         assert!(UPPER_BOUND <= Self::BITS);
 
         // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
         // (which lies in range `0 <= shift < BITS`).
         let shift_bits = u32::BITS - (UPPER_BOUND - 1).leading_zeros();
-        let overflow = ConstChoice::from_u32_lt(shift, UPPER_BOUND).not();
+        let overflow = Choice::from_u32_lt(shift, UPPER_BOUND).not();
 
         let shift = shift % UPPER_BOUND;
         let mut result = *self;
         let mut i = 0;
         while i < shift_bits {
-            let bit = ConstChoice::from_u32_lsb((shift >> i) & 1);
+            let bit = Choice::from_u32_lsb((shift >> i) & 1);
             result = Uint::select(
                 &result,
                 &result
@@ -247,7 +247,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             i += 1;
         }
 
-        ConstCtOption::new(Uint::select(&result, &Self::ZERO, overflow), overflow.not())
+        CtOption::new(Uint::select(&result, &Self::ZERO, overflow), overflow.not())
     }
 }
 

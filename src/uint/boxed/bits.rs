@@ -1,11 +1,11 @@
 //! Bit manipulation functions.
 
-use crate::{BitOps, BoxedUint, ConstChoice, Limb};
+use crate::{BitOps, BoxedUint, Choice, Limb};
 
 impl BoxedUint {
     /// Get the value of the bit at position `index`, as a truthy or falsy `Choice`.
     /// Returns the falsy value for indices out of range.
-    pub fn bit(&self, index: u32) -> ConstChoice {
+    pub fn bit(&self, index: u32) -> Choice {
         self.as_uint_ref().bit(index)
     }
 
@@ -66,7 +66,7 @@ impl BoxedUint {
     }
 
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
-    pub(crate) fn set_bit(&mut self, index: u32, bit_value: ConstChoice) {
+    pub(crate) fn set_bit(&mut self, index: u32, bit_value: Choice) {
         self.as_mut_uint_ref().set_bit(index, bit_value)
     }
 
@@ -97,11 +97,11 @@ impl BitOps for BoxedUint {
         self.bits()
     }
 
-    fn bit(&self, index: u32) -> ConstChoice {
+    fn bit(&self, index: u32) -> Choice {
         self.bit(index)
     }
 
-    fn set_bit(&mut self, index: u32, bit_value: ConstChoice) {
+    fn set_bit(&mut self, index: u32, bit_value: Choice) {
         self.set_bit(index, bit_value)
     }
 
@@ -137,7 +137,7 @@ impl BitOps for BoxedUint {
 #[cfg(test)]
 mod tests {
     use super::BoxedUint;
-    use crate::ConstChoice;
+    use crate::Choice;
     use hex_literal::hex;
 
     fn uint_with_bits_at(positions: &[u32]) -> BoxedUint {
@@ -175,19 +175,19 @@ mod tests {
     #[test]
     fn set_bit() {
         let mut u = uint_with_bits_at(&[16, 79, 150]);
-        u.set_bit(127, ConstChoice::TRUE);
+        u.set_bit(127, Choice::TRUE);
         assert_eq!(u, uint_with_bits_at(&[16, 79, 127, 150]));
 
         let mut u = uint_with_bits_at(&[16, 79, 150]);
-        u.set_bit(150, ConstChoice::TRUE);
+        u.set_bit(150, Choice::TRUE);
         assert_eq!(u, uint_with_bits_at(&[16, 79, 150]));
 
         let mut u = uint_with_bits_at(&[16, 79, 150]);
-        u.set_bit(127, ConstChoice::FALSE);
+        u.set_bit(127, Choice::FALSE);
         assert_eq!(u, uint_with_bits_at(&[16, 79, 150]));
 
         let mut u = uint_with_bits_at(&[16, 79, 150]);
-        u.set_bit(150, ConstChoice::FALSE);
+        u.set_bit(150, Choice::FALSE);
         assert_eq!(u, uint_with_bits_at(&[16, 79]));
     }
 

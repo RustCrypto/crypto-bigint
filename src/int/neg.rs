@@ -1,6 +1,6 @@
 //! [`Int`] negation-related operations.
 
-use crate::{ConstChoice, ConstCtOption, Int, Uint, WrappingNeg};
+use crate::{Choice, CtOption, Int, Uint, WrappingNeg};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Map this [`Int`] to its two's-complement negation:
@@ -9,7 +9,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Returns the negation, as well as whether the operation overflowed.
     /// The operation overflows when attempting to negate [`Int::MIN`]; the positive counterpart
     /// of this value cannot be represented.
-    pub const fn overflowing_neg(&self) -> (Self, ConstChoice) {
+    pub const fn overflowing_neg(&self) -> (Self, Choice) {
         Self(self.0.bitxor(&Uint::MAX)).overflowing_add(&Int::ONE)
     }
 
@@ -25,7 +25,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// Warning: this operation maps [`Int::MIN`] to itself, since the positive counterpart of this
     /// value cannot be represented.
-    pub const fn wrapping_neg_if(&self, negate: ConstChoice) -> Int<LIMBS> {
+    pub const fn wrapping_neg_if(&self, negate: Choice) -> Int<LIMBS> {
         Self(self.0.wrapping_neg_if(negate))
     }
 
@@ -33,9 +33,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// Yields `None` when `self == Self::MIN`, since the positive counterpart of this value cannot
     /// be represented.
-    pub const fn checked_neg(&self) -> ConstCtOption<Self> {
+    pub const fn checked_neg(&self) -> CtOption<Self> {
         let (value, overflow) = self.overflowing_neg();
-        ConstCtOption::new(value, overflow.not())
+        CtOption::new(value, overflow.not())
     }
 }
 
@@ -48,7 +48,7 @@ impl<const LIMBS: usize> WrappingNeg for Int<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, I128};
+    use crate::{Choice, I128};
 
     #[test]
     fn overflowing_neg() {
@@ -58,23 +58,23 @@ mod tests {
 
         let (res, overflow) = I128::MIN.overflowing_neg();
         assert_eq!(res, I128::MIN);
-        assert_eq!(overflow, ConstChoice::TRUE);
+        assert_eq!(overflow, Choice::TRUE);
 
         let (res, overflow) = I128::MINUS_ONE.overflowing_neg();
         assert_eq!(res, I128::ONE);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
 
         let (res, overflow) = I128::ZERO.overflowing_neg();
         assert_eq!(res, I128::ZERO);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
 
         let (res, overflow) = I128::ONE.overflowing_neg();
         assert_eq!(res, I128::MINUS_ONE);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
 
         let (res, overflow) = I128::MAX.overflowing_neg();
         assert_eq!(res, min_plus_one);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
     }
 
     #[test]
@@ -83,14 +83,14 @@ mod tests {
             0: I128::MIN.0.wrapping_add(&I128::ONE.0),
         };
 
-        let do_negate = ConstChoice::TRUE;
+        let do_negate = Choice::TRUE;
         assert_eq!(I128::MIN.wrapping_neg_if(do_negate), I128::MIN);
         assert_eq!(I128::MINUS_ONE.wrapping_neg_if(do_negate), I128::ONE);
         assert_eq!(I128::ZERO.wrapping_neg_if(do_negate), I128::ZERO);
         assert_eq!(I128::ONE.wrapping_neg_if(do_negate), I128::MINUS_ONE);
         assert_eq!(I128::MAX.wrapping_neg_if(do_negate), min_plus_one);
 
-        let do_not_negate = ConstChoice::FALSE;
+        let do_not_negate = Choice::FALSE;
         assert_eq!(I128::MIN.wrapping_neg_if(do_not_negate), I128::MIN);
         assert_eq!(
             I128::MINUS_ONE.wrapping_neg_if(do_not_negate),
@@ -103,7 +103,7 @@ mod tests {
 
     #[test]
     fn checked_neg() {
-        assert_eq!(I128::MIN.checked_neg().is_none(), ConstChoice::TRUE);
+        assert_eq!(I128::MIN.checked_neg().is_none(), Choice::TRUE);
         assert_eq!(I128::MINUS_ONE.checked_neg().unwrap(), I128::ONE);
         assert_eq!(I128::ZERO.checked_neg().unwrap(), I128::ZERO);
         assert_eq!(I128::ONE.checked_neg().unwrap(), I128::MINUS_ONE);

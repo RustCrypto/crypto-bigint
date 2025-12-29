@@ -1,7 +1,7 @@
 //! Limb addition
 
 use crate::{
-    Add, AddAssign, Checked, CheckedAdd, ConstCtOption, Limb, Wrapping, WrappingAdd,
+    Add, AddAssign, Checked, CheckedAdd, CtOption, Limb, Wrapping, WrappingAdd,
     primitives::{carrying_add, overflowing_add},
 };
 
@@ -79,9 +79,9 @@ impl AddAssign<&Checked<Limb>> for Checked<Limb> {
 
 impl CheckedAdd for Limb {
     #[inline]
-    fn checked_add(&self, rhs: &Self) -> ConstCtOption<Self> {
+    fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
         let (result, carry) = self.overflowing_add(*rhs);
-        ConstCtOption::new(result, carry.is_zero())
+        CtOption::new(result, carry.is_zero())
     }
 }
 

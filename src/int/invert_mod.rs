@@ -1,17 +1,17 @@
 //! Operations related to computing the inverse of an [`Int`] modulo a [`Uint`].
 
-use crate::{ConstCtOption, Int, InvertMod, NonZero, Odd, Uint};
+use crate::{CtOption, Int, InvertMod, NonZero, Odd, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
-    pub fn invert_odd_mod(&self, modulus: &Odd<Uint<LIMBS>>) -> ConstCtOption<Uint<LIMBS>> {
+    pub fn invert_odd_mod(&self, modulus: &Odd<Uint<LIMBS>>) -> CtOption<Uint<LIMBS>> {
         let (abs, sgn) = self.abs_sign();
         let maybe_inv = abs.invert_odd_mod(modulus);
         let abs_inv = maybe_inv.as_inner_unchecked();
 
         // Note: when `self` is negative and modulus is non-zero, then
         // self^{-1} % modulus = modulus - |self|^{-1} % modulus
-        ConstCtOption::new(
+        CtOption::new(
             Uint::select(abs_inv, &modulus.wrapping_sub(abs_inv), sgn),
             maybe_inv.is_some(),
         )
@@ -20,14 +20,14 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Computes the multiplicative inverse of `self` mod `modulus`.
     ///
     /// Returns some if an inverse exists, otherwise none.
-    pub const fn invert_mod(&self, modulus: &NonZero<Uint<LIMBS>>) -> ConstCtOption<Uint<LIMBS>> {
+    pub const fn invert_mod(&self, modulus: &NonZero<Uint<LIMBS>>) -> CtOption<Uint<LIMBS>> {
         let (abs, sgn) = self.abs_sign();
         let maybe_inv = abs.invert_mod(modulus);
         let abs_inv = maybe_inv.as_inner_unchecked();
 
         // Note: when `self` is negative and modulus is non-zero, then
         // self^{-1} % modulus = modulus - |self|^{-1} % modulus
-        ConstCtOption::new(
+        CtOption::new(
             Uint::select(abs_inv, &modulus.as_ref().wrapping_sub(abs_inv), sgn),
             maybe_inv.is_some(),
         )
@@ -40,7 +40,7 @@ where
 {
     type Output = Uint<LIMBS>;
 
-    fn invert_mod(&self, modulus: &NonZero<Uint<LIMBS>>) -> ConstCtOption<Self::Output> {
+    fn invert_mod(&self, modulus: &NonZero<Uint<LIMBS>>) -> CtOption<Self::Output> {
         Self::invert_mod(self, modulus)
     }
 }

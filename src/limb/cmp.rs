@@ -1,12 +1,12 @@
 //! Limb comparisons
 
-use crate::{ConstChoice, CtEq, CtGt, CtLt, CtSelect, Limb, word};
+use crate::{Choice, CtEq, CtGt, CtLt, CtSelect, Limb, word};
 use core::cmp::Ordering;
 
 impl Limb {
     /// Is this limb an odd number?
     #[inline]
-    pub fn is_odd(&self) -> ConstChoice {
+    pub fn is_odd(&self) -> Choice {
         word::choice_from_lsb(self.0 & 1)
     }
 
@@ -25,33 +25,33 @@ impl Limb {
 
     /// Returns the truthy value if `self != 0` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn is_nonzero(&self) -> ConstChoice {
+    pub(crate) const fn is_nonzero(&self) -> Choice {
         word::choice_from_nz(self.0)
     }
 }
 
 impl CtEq for Limb {
     #[inline]
-    fn ct_eq(&self, other: &Self) -> ConstChoice {
+    fn ct_eq(&self, other: &Self) -> Choice {
         CtEq::ct_eq(&self.0, &other.0)
     }
 
     #[inline]
-    fn ct_ne(&self, other: &Self) -> ConstChoice {
+    fn ct_ne(&self, other: &Self) -> Choice {
         CtEq::ct_ne(&self.0, &other.0)
     }
 }
 
 impl CtGt for Limb {
     #[inline]
-    fn ct_gt(&self, other: &Self) -> ConstChoice {
+    fn ct_gt(&self, other: &Self) -> Choice {
         word::choice_from_gt(self.0, other.0)
     }
 }
 
 impl CtLt for Limb {
     #[inline]
-    fn ct_lt(&self, other: &Self) -> ConstChoice {
+    fn ct_lt(&self, other: &Self) -> Choice {
         word::choice_from_lt(self.0, other.0)
     }
 }
@@ -113,7 +113,7 @@ impl subtle::ConstantTimeLess for Limb {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, CtEq, CtGt, CtLt, Limb};
+    use crate::{Choice, CtEq, CtGt, CtLt, Limb};
     use core::cmp::Ordering;
 
     #[test]
@@ -191,11 +191,11 @@ mod tests {
         let mut a = Limb::MAX;
         let mut b = Limb::ZERO;
 
-        Limb::ct_conditional_swap(&mut a, &mut b, ConstChoice::FALSE);
+        Limb::ct_conditional_swap(&mut a, &mut b, Choice::FALSE);
         assert_eq!(a, Limb::MAX);
         assert_eq!(b, Limb::ZERO);
 
-        Limb::ct_conditional_swap(&mut a, &mut b, ConstChoice::TRUE);
+        Limb::ct_conditional_swap(&mut a, &mut b, Choice::TRUE);
         assert_eq!(a, Limb::ZERO);
         assert_eq!(b, Limb::MAX);
     }

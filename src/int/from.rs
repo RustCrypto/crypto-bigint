@@ -1,6 +1,6 @@
 //! `From`-like conversions for [`Int`].
 
-use crate::{ConstCtOption, I64, I128, Int, Limb, Uint, Word};
+use crate::{CtOption, I64, I128, Int, Limb, Uint, Word};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Create a [`Int`] from an `i8` (const-friendly)
@@ -56,8 +56,8 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Convert a `CtOption<Uint<LIMBS>>` to a `CtOption<Int<LIMBS>>`
     // TODO(tarcieri): replace with `const impl From<CtOption<Uint>>` when stable
     #[inline]
-    pub(super) const fn from_uint_opt(opt: ConstCtOption<Uint<LIMBS>>) -> ConstCtOption<Self> {
-        ConstCtOption::new(*opt.as_inner_unchecked().as_int(), opt.is_some())
+    pub(super) const fn from_uint_opt(opt: CtOption<Uint<LIMBS>>) -> CtOption<Self> {
+        CtOption::new(*opt.as_inner_unchecked().as_int(), opt.is_some())
     }
 }
 

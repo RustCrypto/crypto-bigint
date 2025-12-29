@@ -6,7 +6,7 @@ mod common;
 
 use common::to_biguint;
 use crypto_bigint::{
-    BitOps, BoxedUint, CheckedAdd, ConstChoice, Gcd, Integer, Limb, NonZero, Odd, Resize,
+    BitOps, BoxedUint, CheckedAdd, Choice, Gcd, Integer, Limb, NonZero, Odd, Resize,
 };
 use num_bigint::BigUint;
 use num_integer::Integer as _;
@@ -139,7 +139,7 @@ proptest! {
 
     #[test]
     fn invert_mod2k(mut a in uint(), k in any::<u32>()) {
-        a.set_bit(0, ConstChoice::TRUE); // make odd
+        a.set_bit(0, Choice::TRUE); // make odd
         let k = k % (a.bits() + 1);
         let a_bi = to_biguint(&a);
         let m_bi = BigUint::one() << k as usize;

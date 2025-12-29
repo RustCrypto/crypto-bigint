@@ -18,7 +18,7 @@ use super::{
     mul::mul_montgomery_form,
     reduction::montgomery_retrieve,
 };
-use crate::{ConstChoice, Limb, Monty, Odd, U64, Uint, Word};
+use crate::{Choice, Limb, Monty, Odd, U64, Uint, Word};
 use mul::DynMontyMultiplier;
 
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
@@ -53,7 +53,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
         let mod_inv = U64::from_u64(modulus.as_uint_ref().invert_mod_u64());
 
         let mod_leading_zeros = modulus.as_ref().leading_zeros();
-        let mod_leading_zeros = ConstChoice::from_u32_lt(mod_leading_zeros, Word::BITS - 1)
+        let mod_leading_zeros = Choice::from_u32_lt(mod_leading_zeros, Word::BITS - 1)
             .select_u32(Word::BITS - 1, mod_leading_zeros);
 
         Self {

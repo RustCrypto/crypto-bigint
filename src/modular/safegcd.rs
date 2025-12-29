@@ -14,7 +14,7 @@ pub(crate) mod boxed;
 
 use core::fmt;
 
-use crate::{ConstChoice, ConstCtOption, I64, Int, Limb, Odd, U64, Uint, primitives::u32_min};
+use crate::{Choice, CtOption, I64, Int, Limb, Odd, U64, Uint, primitives::u32_min};
 
 const GCD_BATCH_SIZE: u32 = 62;
 
@@ -83,7 +83,7 @@ impl<const LIMBS: usize> SafeGcdInverter<LIMBS> {
 
     /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
-    pub const fn invert(&self, value: &Uint<LIMBS>) -> ConstCtOption<Uint<LIMBS>> {
+    pub const fn invert(&self, value: &Uint<LIMBS>) -> CtOption<Uint<LIMBS>> {
         invert_odd_mod_precomp::<LIMBS, false>(value, &self.modulus, self.inverse, &self.adjuster)
     }
 
@@ -91,7 +91,7 @@ impl<const LIMBS: usize> SafeGcdInverter<LIMBS> {
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
     ///
     /// This version is variable-time with respect to `value`.
-    pub const fn invert_vartime(&self, value: &Uint<LIMBS>) -> ConstCtOption<Uint<LIMBS>> {
+    pub const fn invert_vartime(&self, value: &Uint<LIMBS>) -> CtOption<Uint<LIMBS>> {
         invert_odd_mod_precomp::<LIMBS, true>(value, &self.modulus, self.inverse, &self.adjuster)
     }
 }
@@ -100,7 +100,7 @@ impl<const LIMBS: usize> SafeGcdInverter<LIMBS> {
 pub const fn invert_odd_mod<const LIMBS: usize, const VARTIME: bool>(
     a: &Uint<LIMBS>,
     m: &Odd<Uint<LIMBS>>,
-) -> ConstCtOption<Uint<LIMBS>> {
+) -> CtOption<Uint<LIMBS>> {
     let mi = m.as_uint_ref().invert_mod_u64();
     invert_odd_mod_precomp::<LIMBS, VARTIME>(a, m, mi, &Uint::ONE)
 }
@@ -111,7 +111,7 @@ const fn invert_odd_mod_precomp<const LIMBS: usize, const VARTIME: bool>(
     m: &Odd<Uint<LIMBS>>,
     mi: u64,
     e: &Uint<LIMBS>,
-) -> ConstCtOption<Uint<LIMBS>> {
+) -> CtOption<Uint<LIMBS>> {
     let a_nonzero = a.is_nonzero();
     let (mut f, mut g) = (SignedInt::from_uint(*m.as_ref()), SignedInt::from_uint(*a));
     let (mut d, mut e) = (SignedInt::<LIMBS>::ZERO, SignedInt::from_uint(*e));
@@ -131,7 +131,7 @@ const fn invert_odd_mod_precomp<const LIMBS: usize, const VARTIME: bool>(
     }
 
     let d = d.norm(f.is_negative(), m.as_ref());
-    ConstCtOption::new(d, Uint::eq(&f.magnitude, &Uint::ONE).and(a_nonzero))
+    CtOption::new(d, Uint::eq(&f.magnitude, &Uint::ONE).and(a_nonzero))
 }
 
 /// Calculate the greatest common denominator of odd `f`, and `g`.
@@ -188,8 +188,8 @@ const fn jump_step(
     mut delta: i64,
     mut t: Matrix,
 ) -> (i64, i64, i64, Matrix) {
-    let d_gtz = ConstChoice::from_u64_nz((delta & !(delta >> 63)) as u64);
-    let g_odd = ConstChoice::from_u64_lsb((g & 1) as u64);
+    let d_gtz = Choice::from_u64_nz((delta & !(delta >> 63)) as u64);
+    let g_odd = Choice::from_u64_lsb((g & 1) as u64);
     let g_adj = g_odd.select_i64(0, f);
     let swap = d_gtz.and(g_odd);
     delta = swap.select_i64(2i64.wrapping_add(delta), 2i64.wrapping_sub(delta));
@@ -308,7 +308,7 @@ const fn update_de<const LIMBS: usize>(
 const fn conditional_negate_in_place_wide<const L: usize, const H: usize>(
     lo: &mut Uint<L>,
     hi: &mut Uint<H>,
-    flag: ConstChoice,
+    flag: Choice,
 ) {
     let (neg, carry) = lo.carrying_neg();
     let hi_neg = hi
@@ -351,7 +351,7 @@ const fn iterations(bits: u32) -> u32 {
 /// A `Uint` which carries a separate sign in order to maintain the same range.
 #[derive(Clone, Copy)]
 struct SignedInt<const LIMBS: usize> {
-    sign: ConstChoice,
+    sign: Choice,
     magnitude: Uint<LIMBS>,
 }
 
@@ -361,13 +361,13 @@ impl<const LIMBS: usize> SignedInt<LIMBS> {
     /// Construct a new `SignedInt` from a `Uint`.
     pub const fn from_uint(uint: Uint<LIMBS>) -> Self {
         Self {
-            sign: ConstChoice::FALSE,
+            sign: Choice::FALSE,
             magnitude: uint,
         }
     }
 
     /// Construct a new `SignedInt` from a `Uint` and a sign flag.
-    pub const fn from_uint_sign(magnitude: Uint<LIMBS>, sign: ConstChoice) -> Self {
+    pub const fn from_uint_sign(magnitude: Uint<LIMBS>, sign: Choice) -> Self {
         Self { sign, magnitude }
     }
 
@@ -377,7 +377,7 @@ impl<const LIMBS: usize> SignedInt<LIMBS> {
     }
 
     /// Determine if the `SignedInt` is non-zero.
-    pub const fn is_nonzero(&self) -> ConstChoice {
+    pub const fn is_nonzero(&self) -> Choice {
         self.magnitude.is_nonzero()
     }
 
@@ -389,7 +389,7 @@ impl<const LIMBS: usize> SignedInt<LIMBS> {
     /// Determine if the `SignedInt` is negative.
     /// Note: `-0` is representable in this type, so it may be necessary
     /// to check `self.is_nonzero()` as well.
-    pub const fn is_negative(&self) -> ConstChoice {
+    pub const fn is_negative(&self) -> Choice {
         self.sign
     }
 
@@ -406,7 +406,7 @@ impl<const LIMBS: usize> SignedInt<LIMBS> {
         b: &SignedInt<LIMBS>,
         c: &Int<RHS>,
         d: &Int<RHS>,
-    ) -> (Uint<LIMBS>, Uint<RHS>, ConstChoice) {
+    ) -> (Uint<LIMBS>, Uint<RHS>, Choice) {
         let (c, c_sign) = c.abs_sign();
         let (d, d_sign) = d.abs_sign();
         // Each SignedInt • abs(Int) product leaves an empty upper bit.
@@ -493,13 +493,13 @@ impl<const LIMBS: usize> SignedInt<LIMBS> {
     }
 
     /// Normalize the value to a `Uint` in the range `[0, m)`.
-    const fn norm(&self, f_sign: ConstChoice, m: &Uint<LIMBS>) -> Uint<LIMBS> {
+    const fn norm(&self, f_sign: Choice, m: &Uint<LIMBS>) -> Uint<LIMBS> {
         let swap = f_sign.xor(self.sign).and(self.is_nonzero());
         Uint::select(&self.magnitude, &m.wrapping_sub(&self.magnitude), swap)
     }
 
     /// Compare two `SignedInt` in constant time.
-    pub const fn eq(a: &Self, b: &Self) -> ConstChoice {
+    pub const fn eq(a: &Self, b: &Self) -> Choice {
         Uint::eq(&a.magnitude, &b.magnitude).and(a.sign.eq(b.sign).or(a.is_nonzero().not()))
     }
 }

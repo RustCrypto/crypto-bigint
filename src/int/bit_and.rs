@@ -2,7 +2,7 @@
 
 use core::ops::{BitAnd, BitAndAssign};
 
-use crate::{ConstCtOption, Int, Limb, Uint, Wrapping};
+use crate::{CtOption, Int, Limb, Uint, Wrapping};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Computes bitwise `a & b`.
@@ -25,9 +25,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
         self.bitand(rhs)
     }
 
-    /// Perform checked bitwise `AND`, returning a [`ConstCtOption`] which `is_some` always
-    pub const fn checked_and(&self, rhs: &Self) -> ConstCtOption<Self> {
-        ConstCtOption::some(self.bitand(rhs))
+    /// Perform checked bitwise `AND`, returning a [`CtOption`] which `is_some` always
+    pub const fn checked_and(&self, rhs: &Self) -> CtOption<Self> {
+        CtOption::some(self.bitand(rhs))
     }
 }
 

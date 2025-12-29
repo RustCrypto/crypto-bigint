@@ -1,7 +1,7 @@
 //! [`BoxedUint`] division operations.
 
 use crate::{
-    BoxedUint, CheckedDiv, ConstCtOption, CtSelect, Div, DivAssign, DivRemLimb, DivVartime, Limb,
+    BoxedUint, CheckedDiv, CtOption, CtSelect, Div, DivAssign, DivRemLimb, DivVartime, Limb,
     NonZero, Reciprocal, Rem, RemAssign, RemLimb, RemMixed, UintRef, Wrapping,
 };
 
@@ -113,20 +113,20 @@ impl BoxedUint {
         self.div_rem_vartime(rhs).0
     }
 
-    /// Perform checked division, returning a [`ConstCtOption`] which `is_some`
+    /// Perform checked division, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
-    pub fn checked_div(&self, rhs: &Self) -> ConstCtOption<Self> {
+    pub fn checked_div(&self, rhs: &Self) -> CtOption<Self> {
         let mut quo = self.clone();
         let is_nz = rhs.is_nonzero();
         let mut rem = Self::one_with_precision(self.bits_precision());
         rem.ct_assign(rhs, is_nz);
         quo.as_mut_uint_ref().div_rem(rem.as_mut_uint_ref());
-        ConstCtOption::new(quo, is_nz)
+        CtOption::new(quo, is_nz)
     }
 }
 
 impl CheckedDiv for BoxedUint {
-    fn checked_div(&self, rhs: &BoxedUint) -> ConstCtOption<Self> {
+    fn checked_div(&self, rhs: &BoxedUint) -> CtOption<Self> {
         self.checked_div(rhs)
     }
 }

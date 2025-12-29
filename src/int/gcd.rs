@@ -4,9 +4,7 @@
 
 use crate::primitives::u32_min;
 use crate::uint::gcd::{OddUintXgcdOutput, impl_gcd_uint_lhs, impl_gcd_uint_rhs};
-use crate::{
-    ConstChoice, Gcd, Int, NonZero, NonZeroInt, NonZeroUint, Odd, OddInt, OddUint, Uint, Xgcd,
-};
+use crate::{Choice, Gcd, Int, NonZero, NonZeroInt, NonZeroUint, Odd, OddInt, OddUint, Uint, Xgcd};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute the greatest common divisor of `self` and `rhs`.
@@ -102,7 +100,7 @@ impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
 
         // Note: at this point, either lhs or rhs is odd (or both).
         // Swap to make sure lhs is odd.
-        let swap = ConstChoice::from_u32_lt(j, i);
+        let swap = Choice::from_u32_lt(j, i);
         Int::conditional_swap(&mut lhs, &mut rhs, swap);
         let lhs = lhs.to_odd().expect_copied("odd by construction");
         let rhs = rhs.to_nz().expect_copied("non-zero by construction");

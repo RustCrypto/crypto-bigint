@@ -1,8 +1,8 @@
 //! Stack-allocated big signed integers.
 
 use crate::{
-    Bounded, ConstChoice, ConstCtOption, ConstOne, ConstZero, Constants, CtEq, FixedInteger,
-    Integer, Limb, NonZero, Odd, One, Signed, Uint, Word, Zero,
+    Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, FixedInteger, Integer, Limb,
+    NonZero, Odd, One, Signed, Uint, Word, Zero,
 };
 use core::fmt;
 
@@ -143,15 +143,15 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Convert to a [`NonZero<Int<LIMBS>>`].
     ///
     /// Returns some if the original value is non-zero, and false otherwise.
-    pub const fn to_nz(self) -> ConstCtOption<NonZero<Self>> {
-        ConstCtOption::new(NonZero(self), self.0.is_nonzero())
+    pub const fn to_nz(self) -> CtOption<NonZero<Self>> {
+        CtOption::new(NonZero(self), self.0.is_nonzero())
     }
 
     /// Convert to a [`Odd<Int<LIMBS>>`].
     ///
     /// Returns some if the original value is odd, and false otherwise.
-    pub const fn to_odd(self) -> ConstCtOption<Odd<Self>> {
-        ConstCtOption::new(Odd(self), self.0.is_odd())
+    pub const fn to_odd(self) -> CtOption<Odd<Self>> {
+        CtOption::new(Odd(self), self.0.is_odd())
     }
 
     /// Interpret the data in this object as a [`Uint`] instead.
@@ -168,22 +168,22 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Note: this is a checked conversion operation. See
     /// - [`Self::as_uint`] for the unchecked equivalent, and
     /// - [`Self::abs`] to obtain the absolute value of `self`.
-    pub const fn try_into_uint(self) -> ConstCtOption<Uint<LIMBS>> {
-        ConstCtOption::new(self.0, self.is_negative().not())
+    pub const fn try_into_uint(self) -> CtOption<Uint<LIMBS>> {
+        CtOption::new(self.0, self.is_negative().not())
     }
 
     /// Whether this [`Int`] is equal to `Self::MIN`.
-    pub const fn is_min(&self) -> ConstChoice {
+    pub const fn is_min(&self) -> Choice {
         Self::eq(self, &Self::MIN)
     }
 
     /// Whether this [`Int`] is equal to `Self::MAX`.
-    pub const fn is_max(&self) -> ConstChoice {
+    pub const fn is_max(&self) -> Choice {
         Self::eq(self, &Self::MAX)
     }
 
     /// Is this [`Int`] equal to zero?
-    pub const fn is_zero(&self) -> ConstChoice {
+    pub const fn is_zero(&self) -> Choice {
         self.0.is_zero()
     }
 
@@ -253,15 +253,15 @@ impl<const LIMBS: usize> Integer for Int<LIMBS> {
 impl<const LIMBS: usize> Signed for Int<LIMBS> {
     type Unsigned = Uint<LIMBS>;
 
-    fn abs_sign(&self) -> (Uint<LIMBS>, ConstChoice) {
+    fn abs_sign(&self) -> (Uint<LIMBS>, Choice) {
         self.abs_sign()
     }
 
-    fn is_negative(&self) -> ConstChoice {
+    fn is_negative(&self) -> Choice {
         self.is_negative()
     }
 
-    fn is_positive(&self) -> ConstChoice {
+    fn is_positive(&self) -> Choice {
         self.is_positive()
     }
 }
@@ -371,7 +371,7 @@ where
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use crate::{ConstChoice, I128, U128};
+    use crate::{Choice, I128, U128};
 
     #[cfg(target_pointer_width = "64")]
     #[test]
@@ -450,19 +450,19 @@ mod tests {
     #[test]
     fn is_minimal() {
         let min = I128::from_be_hex("80000000000000000000000000000000");
-        assert_eq!(min.is_min(), ConstChoice::TRUE);
+        assert_eq!(min.is_min(), Choice::TRUE);
 
         let random = I128::from_be_hex("11113333555577779999BBBBDDDDFFFF");
-        assert_eq!(random.is_min(), ConstChoice::FALSE);
+        assert_eq!(random.is_min(), Choice::FALSE);
     }
 
     #[test]
     fn is_maximal() {
         let max = I128::from_be_hex("7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
-        assert_eq!(max.is_max(), ConstChoice::TRUE);
+        assert_eq!(max.is_max(), Choice::TRUE);
 
         let random = I128::from_be_hex("11113333555577779999BBBBDDDDFFFF");
-        assert_eq!(random.is_max(), ConstChoice::FALSE);
+        assert_eq!(random.is_max(), Choice::FALSE);
     }
 
     #[test]

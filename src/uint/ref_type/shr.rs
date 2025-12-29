@@ -1,7 +1,7 @@
 //! [`UintRef`] bitwise right shift operations.
 
 use super::UintRef;
-use crate::{ConstChoice, Limb, NonZero};
+use crate::{Choice, Limb, NonZero};
 
 #[cfg(feature = "alloc")]
 use crate::word;
@@ -9,13 +9,13 @@ use crate::word;
 impl UintRef {
     /// Right-shifts by `shift` bits in constant-time.
     ///
-    /// Produces zero and returns truthy `ConstChoice` if `shift >= self.bits_precision()`,
-    /// or the result and a falsy `ConstChoice` otherwise.
+    /// Produces zero and returns truthy `Choice` if `shift >= self.bits_precision()`,
+    /// or the result and a falsy `Choice` otherwise.
     #[cfg(feature = "alloc")]
     #[inline(always)]
-    pub fn overflowing_shr_assign(&mut self, shift: u32) -> ConstChoice {
+    pub fn overflowing_shr_assign(&mut self, shift: u32) -> Choice {
         let bits = self.bits_precision();
-        let overflow = ConstChoice::from_u32_le(bits, shift);
+        let overflow = Choice::from_u32_le(bits, shift);
         self.bounded_wrapping_shr_assign(shift % bits, bits);
         self.conditional_set_zero(overflow);
         overflow
@@ -23,17 +23,17 @@ impl UintRef {
 
     /// Right-shifts by `shift` bits in variable-time.
     ///
-    /// Produces zero and returns truthy `ConstChoice` if `shift >= self.bits_precision()`,
-    /// or the result and a falsy `ConstChoice` otherwise.
+    /// Produces zero and returns truthy `Choice` if `shift >= self.bits_precision()`,
+    /// or the result and a falsy `Choice` otherwise.
     ///
     /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[cfg(feature = "alloc")]
     #[inline(always)]
-    pub fn overflowing_shr_assign_vartime(&mut self, shift: u32) -> ConstChoice {
+    pub fn overflowing_shr_assign_vartime(&mut self, shift: u32) -> Choice {
         let bits = self.bits_precision();
-        let overflow = ConstChoice::from_u32_le(bits, shift);
+        let overflow = Choice::from_u32_le(bits, shift);
         self.wrapping_shr_assign_vartime(shift);
         overflow
     }
@@ -55,12 +55,12 @@ impl UintRef {
         };
         let mut i = 0;
         while i < limb_bits {
-            let bit = ConstChoice::from_u32_lsb((shift >> i) & 1);
+            let bit = Choice::from_u32_lsb((shift >> i) & 1);
             self.conditional_shr_assign_limb_nonzero(NonZero(1 << i), bit);
             i += 1;
         }
         while i < shift_bits {
-            let bit = ConstChoice::from_u32_lsb((shift >> i) & 1);
+            let bit = Choice::from_u32_lsb((shift >> i) & 1);
             self.conditional_shr_assign_by_limbs_vartime(1 << (i - Limb::LOG2_BITS), bit);
             i += 1;
         }
@@ -73,11 +73,7 @@ impl UintRef {
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
-    pub(crate) const fn conditional_shr_assign_by_limbs_vartime(
-        &mut self,
-        shift: u32,
-        c: ConstChoice,
-    ) {
+    pub(crate) const fn conditional_shr_assign_by_limbs_vartime(&mut self, shift: u32, c: Choice) {
         let shift = shift as usize;
         let mut i = 0;
         while i < self.nlimbs().saturating_sub(shift) {
@@ -95,11 +91,11 @@ impl UintRef {
     #[inline(always)]
     pub(crate) const fn wrapping_shr_assign_by_limbs(&mut self, shift: u32) {
         let nlimbs = self.nlimbs() as u32;
-        let overflow = ConstChoice::from_u32_le(nlimbs, shift);
+        let overflow = Choice::from_u32_le(nlimbs, shift);
         let shift_limbs = u32::BITS - (nlimbs - 1).leading_zeros();
         let mut i = 0;
         while i < shift_limbs {
-            let bit = ConstChoice::from_u32_lsb((shift >> i) & 1);
+            let bit = Choice::from_u32_lsb((shift >> i) & 1);
             self.conditional_shr_assign_by_limbs_vartime(1 << i, bit);
             i += 1;
         }
@@ -153,11 +149,11 @@ impl UintRef {
         }
     }
 
-    /// Right-shifts by a single bit in constant-time, returning [`ConstChoice::TRUE`]
-    /// if the least significant bit was set, and [`ConstChoice::FALSE`] otherwise.
+    /// Right-shifts by a single bit in constant-time, returning [`Choice::TRUE`]
+    /// if the least significant bit was set, and [`Choice::FALSE`] otherwise.
     #[cfg(feature = "alloc")]
     #[inline(always)]
-    pub const fn shr1_assign(&mut self) -> ConstChoice {
+    pub const fn shr1_assign(&mut self) -> Choice {
         let mut carry = Limb::ZERO;
         let mut i = self.nlimbs();
         while i > 0 {
@@ -177,7 +173,7 @@ impl UintRef {
     pub(crate) const fn conditional_shr_assign_limb_nonzero(
         &mut self,
         shift: NonZero<u32>,
-        choice: ConstChoice,
+        choice: Choice,
     ) -> Limb {
         assert!(shift.0 < Limb::BITS);
 
@@ -202,7 +198,7 @@ impl UintRef {
     /// Panics if `shift >= Limb::BITS`.
     #[inline(always)]
     pub const fn shr_assign_limb(&mut self, shift: u32) -> Limb {
-        let nz = ConstChoice::from_u32_nz(shift);
+        let nz = Choice::from_u32_nz(shift);
         self.conditional_shr_assign_limb_nonzero(NonZero(nz.select_u32(1, shift)), nz)
     }
 
@@ -238,7 +234,7 @@ impl UintRef {
 mod tests {
     use crate::Uint;
     #[cfg(feature = "alloc")]
-    use crate::{ConstChoice, Limb, U256};
+    use crate::{Choice, Limb, U256};
 
     #[cfg(feature = "alloc")]
     const N: U256 =
@@ -254,17 +250,17 @@ mod tests {
         let mut n = N;
         let carry = n.as_mut_uint_ref().shr1_assign();
         assert_eq!(n, N_2);
-        assert_eq!(carry, ConstChoice::TRUE);
+        assert_eq!(carry, Choice::TRUE);
 
         let mut m = U256::MAX;
         let carry = m.as_mut_uint_ref().shr1_assign();
         assert_eq!(m, U256::MAX.shr_vartime(1));
-        assert_eq!(carry, ConstChoice::TRUE);
+        assert_eq!(carry, Choice::TRUE);
 
         let mut z = U256::ZERO;
         let carry = z.as_mut_uint_ref().shr1_assign();
         assert_eq!(z, U256::ZERO);
-        assert_eq!(carry, ConstChoice::FALSE);
+        assert_eq!(carry, Choice::FALSE);
     }
 
     #[cfg(feature = "alloc")]

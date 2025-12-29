@@ -1,7 +1,7 @@
 //! Operations related to dividing an [`Int`] by a [`Uint`].
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 
-use crate::{ConstChoice, Int, NonZero, Uint, Wrapping};
+use crate::{Choice, Int, NonZero, Uint, Wrapping};
 
 /// Checked division operations.
 impl<const LIMBS: usize> Int<LIMBS> {
@@ -12,7 +12,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     const fn div_rem_base_uint<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
-    ) -> (Uint<LIMBS>, Uint<RHS_LIMBS>, ConstChoice) {
+    ) -> (Uint<LIMBS>, Uint<RHS_LIMBS>, Choice) {
         let (lhs_mag, lhs_sgn) = self.abs_sign();
         let (quotient, remainder) = lhs_mag.div_rem(rhs);
         (quotient, remainder, lhs_sgn)
@@ -71,7 +71,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     const fn div_rem_base_uint_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
-    ) -> (Uint<LIMBS>, Uint<RHS_LIMBS>, ConstChoice) {
+    ) -> (Uint<LIMBS>, Uint<RHS_LIMBS>, Choice) {
         let (lhs_mag, lhs_sgn) = self.abs_sign();
         let (quotient, remainder) = lhs_mag.div_rem_vartime(rhs);
         (quotient, remainder, lhs_sgn)

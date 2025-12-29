@@ -1,5 +1,5 @@
 use super::UintRef;
-use crate::{ConstChoice, Limb};
+use crate::{Choice, Limb};
 
 impl UintRef {
     /// Perform an in-place carrying add of a limb, returning the carried limb value.
@@ -44,7 +44,7 @@ impl UintRef {
         &mut self,
         rhs: &Self,
         carry: Limb,
-        choice: ConstChoice,
+        choice: Choice,
     ) -> Limb {
         self.conditional_add_assign_slice(rhs.as_slice(), carry, choice)
     }
@@ -56,7 +56,7 @@ impl UintRef {
         &mut self,
         rhs: &[Limb],
         mut carry: Limb,
-        choice: ConstChoice,
+        choice: Choice,
     ) -> Limb {
         assert!(
             self.0.len() == rhs.len(),

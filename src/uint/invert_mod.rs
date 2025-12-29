@@ -1,7 +1,6 @@
 use super::Uint;
 use crate::{
-    ConstChoice, ConstCtOption, InvertMod, Limb, NonZero, Odd, U64, UintRef, modular::safegcd,
-    mul::karatsuba,
+    Choice, CtOption, InvertMod, Limb, NonZero, Odd, U64, UintRef, modular::safegcd, mul::karatsuba,
 };
 
 /// Perform a modified recursive Hensel quadratic modular inversion to calculate
@@ -92,10 +91,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// This method is constant-time w.r.t. `self` but not `k`.
     ///
     /// If the inverse does not exist (`k > 0` and `self` is even),
-    /// returns `ConstChoice::FALSE` as the second element of the tuple,
-    /// otherwise returns `ConstChoice::TRUE`.
+    /// returns `Choice::FALSE` as the second element of the tuple,
+    /// otherwise returns `Choice::TRUE`.
     #[deprecated(since = "0.7.0", note = "please use `invert_mod2k_vartime` instead")]
-    pub const fn inv_mod2k_vartime(&self, k: u32) -> ConstCtOption<Self> {
+    pub const fn inv_mod2k_vartime(&self, k: u32) -> CtOption<Self> {
         self.invert_mod2k_vartime(k)
     }
 
@@ -103,52 +102,52 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// This method is constant-time w.r.t. `self` but not `k`.
     ///
     /// If the inverse does not exist (`k > 0` and `self` is even, or `k > Self::BITS`),
-    /// returns `ConstCtOption::none`, otherwise returns `ConstCtOption::some`.
-    pub const fn invert_mod2k_vartime(&self, k: u32) -> ConstCtOption<Self> {
+    /// returns `CtOption::none`, otherwise returns `CtOption::some`.
+    pub const fn invert_mod2k_vartime(&self, k: u32) -> CtOption<Self> {
         if k == 0 {
-            ConstCtOption::some(Self::ZERO)
+            CtOption::some(Self::ZERO)
         } else if k > Self::BITS {
-            ConstCtOption::new(Self::ZERO, ConstChoice::FALSE)
+            CtOption::new(Self::ZERO, Choice::FALSE)
         } else {
             let is_some = self.is_odd();
             let inv = Odd(Uint::select(&Uint::ONE, self, is_some)).invert_mod2k_vartime(k);
-            ConstCtOption::new(inv, is_some)
+            CtOption::new(inv, is_some)
         }
     }
 
     /// Computes 1/`self` mod `2^k`.
     ///
     /// If the inverse does not exist (`k > 0` and `self` is even, `k > Self::BITS`),
-    /// returns `ConstCtOption::none`, otherwise returns `ConstCtOption::some`.
+    /// returns `CtOption::none`, otherwise returns `CtOption::some`.
     #[deprecated(since = "0.7.0", note = "please use `invert_mod2k` instead")]
-    pub const fn inv_mod2k(&self, k: u32) -> ConstCtOption<Self> {
+    pub const fn inv_mod2k(&self, k: u32) -> CtOption<Self> {
         self.invert_mod2k(k)
     }
 
     /// Computes 1/`self` mod `2^k`.
     ///
     /// If the inverse does not exist (`k > 0` and `self` is even, or `k > Self::BITS`),
-    /// returns `ConstCtOption::none`, otherwise returns `ConstCtOption::some`.
-    pub const fn invert_mod2k(&self, k: u32) -> ConstCtOption<Self> {
-        let is_some = ConstChoice::from_u32_le(k, Self::BITS)
-            .and(ConstChoice::from_u32_nz(k).not().or(self.is_odd()));
+    /// returns `CtOption::none`, otherwise returns `CtOption::some`.
+    pub const fn invert_mod2k(&self, k: u32) -> CtOption<Self> {
+        let is_some =
+            Choice::from_u32_le(k, Self::BITS).and(Choice::from_u32_nz(k).not().or(self.is_odd()));
         let inv = Odd(Uint::select(&Uint::ONE, self, is_some)).invert_mod_precision();
-        ConstCtOption::new(inv.restrict_bits(k), is_some)
+        CtOption::new(inv.restrict_bits(k), is_some)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     #[deprecated(since = "0.7.0", note = "please use `invert_odd_mod` instead")]
-    pub const fn inv_odd_mod(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
+    pub const fn inv_odd_mod(&self, modulus: &Odd<Self>) -> CtOption<Self> {
         self.invert_odd_mod(modulus)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
-    pub const fn invert_odd_mod(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
+    pub const fn invert_odd_mod(&self, modulus: &Odd<Self>) -> CtOption<Self> {
         safegcd::invert_odd_mod::<LIMBS, false>(self, modulus)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
-    pub const fn invert_odd_mod_vartime(&self, modulus: &Odd<Self>) -> ConstCtOption<Self> {
+    pub const fn invert_odd_mod_vartime(&self, modulus: &Odd<Self>) -> CtOption<Self> {
         safegcd::invert_odd_mod::<LIMBS, true>(self, modulus)
     }
 
@@ -156,7 +155,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Returns some if an inverse exists, otherwise none.
     #[deprecated(since = "0.7.0", note = "please use `invert_mod` instead")]
-    pub const fn inv_mod(&self, modulus: &Self) -> ConstCtOption<Self> {
+    pub const fn inv_mod(&self, modulus: &Self) -> CtOption<Self> {
         let is_nz = modulus.is_nonzero();
         let m = NonZero(Uint::select(&Uint::ONE, modulus, is_nz));
         self.invert_mod(&m).filter_by(is_nz)
@@ -165,7 +164,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes the multiplicative inverse of `self` mod `modulus`.
     ///
     /// Returns some if an inverse exists, otherwise none.
-    pub const fn invert_mod(&self, modulus: &NonZero<Self>) -> ConstCtOption<Self> {
+    pub const fn invert_mod(&self, modulus: &NonZero<Self>) -> CtOption<Self> {
         // Decompose `modulus = s * 2^k` where `s` is odd
         let k = modulus.as_ref().trailing_zeros();
         let s = Odd(modulus.as_ref().shr(k));
@@ -177,8 +176,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let maybe_b = self.invert_mod2k(k);
         let is_some = maybe_a.is_some().and(maybe_b.is_some());
 
-        // Extract inner values to avoid mapping through ConstCtOptions.
-        // if `a` or `b` don't exist, the returned ConstCtOption will be None anyway.
+        // Extract inner values to avoid mapping through CtOptions.
+        // if `a` or `b` don't exist, the returned CtOption will be None anyway.
         let a = maybe_a.to_inner_unchecked();
         let b = maybe_b.to_inner_unchecked();
 
@@ -196,7 +195,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // Will not overflow since `a <= s - 1`, `t <= 2^k - 1`,
         // so `a + s * t <= s * 2^k - 1 == modulus - 1`.
         let result = a.wrapping_add(&s.as_ref().wrapping_mul(&t));
-        ConstCtOption::new(result, is_some)
+        CtOption::new(result, is_some)
     }
 }
 
@@ -243,7 +242,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 impl<const LIMBS: usize> InvertMod for Uint<LIMBS> {
     type Output = Self;
 
-    fn invert_mod(&self, modulus: &NonZero<Self>) -> ConstCtOption<Self> {
+    fn invert_mod(&self, modulus: &NonZero<Self>) -> CtOption<Self> {
         self.invert_mod(modulus)
     }
 }

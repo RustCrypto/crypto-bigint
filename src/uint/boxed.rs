@@ -28,8 +28,8 @@ mod sub_mod;
 mod rand;
 
 use crate::{
-    ConstChoice, ConstCtOption, CtEq, CtSelect, Integer, Limb, NonZero, Odd, One, Resize, UintRef,
-    Unsigned, Word, Zero, modular::BoxedMontyForm,
+    Choice, CtEq, CtOption, CtSelect, Integer, Limb, NonZero, Odd, One, Resize, UintRef, Unsigned,
+    Word, Zero, modular::BoxedMontyForm,
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{fmt, iter::repeat, ops::IndexMut};
@@ -90,20 +90,20 @@ impl BoxedUint {
     }
 
     /// Is this [`BoxedUint`] equal to zero?
-    pub fn is_zero(&self) -> ConstChoice {
+    pub fn is_zero(&self) -> Choice {
         self.limbs
             .iter()
-            .fold(ConstChoice::TRUE, |acc, limb| acc & limb.is_zero())
+            .fold(Choice::TRUE, |acc, limb| acc & limb.is_zero())
     }
 
     /// Is this [`BoxedUint`] *NOT* equal to zero?
     #[inline]
-    pub fn is_nonzero(&self) -> ConstChoice {
+    pub fn is_nonzero(&self) -> Choice {
         !self.is_zero()
     }
 
     /// Is this [`BoxedUint`] equal to one?
-    pub fn is_one(&self) -> ConstChoice {
+    pub fn is_one(&self) -> Choice {
         let mut iter = self.limbs.iter();
         let choice = iter.next().copied().unwrap_or(Limb::ZERO).ct_eq(&Limb::ONE);
         iter.fold(choice, |acc, limb| acc & limb.is_zero())
@@ -223,37 +223,37 @@ impl BoxedUint {
     /// Convert to a [`NonZero<BoxedUint>`].
     ///
     /// Returns some if the original value is non-zero, and false otherwise.
-    pub fn to_nz(&self) -> ConstCtOption<NonZero<Self>> {
+    pub fn to_nz(&self) -> CtOption<NonZero<Self>> {
         self.clone().into_nz()
     }
 
     /// Convert to an [`Odd<BoxedUint>`].
     ///
     /// Returns some if the original value is odd, and false otherwise.
-    pub fn to_odd(&self) -> ConstCtOption<Odd<Self>> {
+    pub fn to_odd(&self) -> CtOption<Odd<Self>> {
         self.clone().into_odd()
     }
 
     /// Convert to a [`NonZero<BoxedUint>`].
     ///
     /// Returns some if the original value is non-zero, and false otherwise.
-    pub fn into_nz(mut self) -> ConstCtOption<NonZero<Self>> {
+    pub fn into_nz(mut self) -> CtOption<NonZero<Self>> {
         let is_nz = self.is_nonzero();
 
         // Ensure the `NonZero` we construct is actually non-zero, even if the `CtOption` is none
         self.limbs[0].ct_assign(&Limb::ONE, !is_nz);
-        ConstCtOption::new(NonZero(self), is_nz)
+        CtOption::new(NonZero(self), is_nz)
     }
 
     /// Convert to an [`Odd<BoxedUint>`].
     ///
     /// Returns some if the original value is odd, and false otherwise.
-    pub fn into_odd(mut self) -> ConstCtOption<Odd<Self>> {
+    pub fn into_odd(mut self) -> CtOption<Odd<Self>> {
         let is_odd = self.is_odd();
 
         // Ensure the `Odd` we construct is actually odd, even if the `CtOption` is none
         self.limbs[0].ct_assign(&Limb::ONE, !is_odd);
-        ConstCtOption::new(Odd(self.clone()), is_odd)
+        CtOption::new(Odd(self.clone()), is_odd)
     }
 
     /// Widen this type's precision to the given number of bits.
@@ -469,7 +469,7 @@ impl Zero for BoxedUint {
         Self::zero()
     }
 
-    fn is_zero(&self) -> ConstChoice {
+    fn is_zero(&self) -> Choice {
         self.is_zero()
     }
 
@@ -489,7 +489,7 @@ impl One for BoxedUint {
         ret
     }
 
-    fn is_one(&self) -> ConstChoice {
+    fn is_one(&self) -> Choice {
         self.is_one()
     }
 

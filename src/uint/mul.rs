@@ -1,8 +1,8 @@
 //! [`Uint`] multiplication operations.
 
 use crate::{
-    Checked, CheckedMul, Concat, ConcatMixed, ConcatenatingMul, ConstChoice, ConstCtOption, Limb,
-    Mul, MulAssign, Uint, UintRef, Wrapping, WrappingMul,
+    Checked, CheckedMul, Choice, Concat, ConcatMixed, ConcatenatingMul, CtOption, Limb, Mul,
+    MulAssign, Uint, UintRef, Wrapping, WrappingMul,
 };
 
 pub(crate) mod karatsuba;
@@ -55,11 +55,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn checked_mul<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
-    ) -> ConstCtOption<Uint<LIMBS>> {
+    ) -> CtOption<Uint<LIMBS>> {
         let (lo, carry) = karatsuba::wrapping_mul_fixed(self.as_uint_ref(), rhs.as_uint_ref());
         let overflow =
             wrapping_mul_overflow(self.as_uint_ref(), rhs.as_uint_ref(), carry.is_nonzero());
-        ConstCtOption::new(lo, overflow.not())
+        CtOption::new(lo, overflow.not())
     }
 }
 
@@ -81,11 +81,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Square self, checking that the result fits in the original [`Uint`] size.
-    pub const fn checked_square(&self) -> ConstCtOption<Uint<LIMBS>> {
+    pub const fn checked_square(&self) -> CtOption<Uint<LIMBS>> {
         let (lo, carry) = karatsuba::wrapping_square_fixed(self.as_uint_ref());
         let overflow =
             wrapping_mul_overflow(self.as_uint_ref(), self.as_uint_ref(), carry.is_nonzero());
-        ConstCtOption::new(lo, overflow.not())
+        CtOption::new(lo, overflow.not())
     }
 
     /// Perform wrapping square, discarding overflow.
@@ -111,7 +111,7 @@ where
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Uint<RHS_LIMBS>> for Uint<LIMBS> {
-    fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> ConstCtOption<Self> {
+    fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
         self.checked_mul(rhs)
     }
 }
@@ -225,8 +225,8 @@ impl<const LIMBS: usize> WrappingMul for Uint<LIMBS> {
 pub(crate) const fn wrapping_mul_overflow(
     lhs: &UintRef,
     rhs: &UintRef,
-    mut overflow: ConstChoice,
-) -> ConstChoice {
+    mut overflow: Choice,
+) -> Choice {
     let mut rhs_tail = Limb::ZERO;
     let mut i = 0;
     let mut j = lhs.nlimbs();
@@ -248,7 +248,7 @@ pub(crate) const fn wrapping_mul_overflow(
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, U64, U128, U192, U256, Uint};
+    use crate::{Choice, U64, U128, U192, U256, Uint};
 
     #[test]
     fn widening_mul_zero_and_one() {
@@ -362,13 +362,13 @@ mod tests {
     fn checked_square() {
         let n = U256::from_u64(u64::MAX).wrapping_add(&U256::ONE);
         let n2 = n.checked_square();
-        assert_eq!(n2.is_some(), ConstChoice::TRUE);
+        assert_eq!(n2.is_some(), Choice::TRUE);
         let n4 = n2.unwrap().checked_square();
-        assert_eq!(n4.is_none(), ConstChoice::TRUE);
+        assert_eq!(n4.is_none(), Choice::TRUE);
         let z = U256::ZERO.checked_square();
-        assert_eq!(z.is_some(), ConstChoice::TRUE);
+        assert_eq!(z.is_some(), Choice::TRUE);
         let m = U256::MAX.checked_square();
-        assert_eq!(m.is_none(), ConstChoice::TRUE);
+        assert_eq!(m.is_none(), Choice::TRUE);
     }
 
     #[test]

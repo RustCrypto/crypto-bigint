@@ -1,6 +1,6 @@
 //! [`BoxedUint`] negation operations.
 
-use crate::{BoxedUint, ConstChoice, CtNeg, CtSelect, Limb, WideWord, Word, WrappingNeg};
+use crate::{BoxedUint, Choice, CtNeg, CtSelect, Limb, WideWord, Word, WrappingNeg};
 
 impl BoxedUint {
     /// Perform wrapping negation.
@@ -19,7 +19,7 @@ impl BoxedUint {
 
     /// Perform in-place wrapping subtraction, returning the truthy value as the second element of
     /// the tuple if an underflow has occurred.
-    pub(crate) fn conditional_wrapping_neg_assign(&mut self, choice: ConstChoice) {
+    pub(crate) fn conditional_wrapping_neg_assign(&mut self, choice: Choice) {
         let mut carry = 1;
 
         for i in 0..self.nlimbs() {
@@ -31,12 +31,12 @@ impl BoxedUint {
 }
 
 impl CtNeg for BoxedUint {
-    fn ct_neg(&self, choice: ConstChoice) -> Self {
+    fn ct_neg(&self, choice: Choice) -> Self {
         let self_neg = self.wrapping_neg();
         self.ct_select(&self_neg, choice)
     }
 
-    fn ct_neg_assign(&mut self, choice: ConstChoice) {
+    fn ct_neg_assign(&mut self, choice: Choice) {
         let self_neg = self.wrapping_neg();
         self.ct_assign(&self_neg, choice)
     }
@@ -58,13 +58,13 @@ impl subtle::ConditionallyNegatable for BoxedUint {
 
 #[cfg(test)]
 mod tests {
-    use crate::{BoxedUint, ConstChoice, CtNeg};
+    use crate::{BoxedUint, Choice, CtNeg};
 
     #[test]
     fn ct_neg() {
         let a = BoxedUint::from(123u64);
-        assert_eq!(a.ct_neg(ConstChoice::FALSE), a);
-        assert_eq!(a.ct_neg(ConstChoice::TRUE), a.wrapping_neg());
+        assert_eq!(a.ct_neg(Choice::FALSE), a);
+        assert_eq!(a.ct_neg(Choice::TRUE), a.wrapping_neg());
     }
 
     #[test]
@@ -72,10 +72,10 @@ mod tests {
         let mut a = BoxedUint::from(123u64);
         let control = a.clone();
 
-        a.ct_neg_assign(ConstChoice::FALSE);
+        a.ct_neg_assign(Choice::FALSE);
         assert_eq!(a, control);
 
-        a.ct_neg_assign(ConstChoice::TRUE);
+        a.ct_neg_assign(Choice::TRUE);
         assert_ne!(a, control);
         assert_eq!(a, control.wrapping_neg());
     }
@@ -87,10 +87,10 @@ mod tests {
         let mut a = BoxedUint::from(123u64);
         let control = a.clone();
 
-        a.conditional_negate(ConstChoice::FALSE.into());
+        a.conditional_negate(Choice::FALSE.into());
         assert_eq!(a, control);
 
-        a.conditional_negate(ConstChoice::TRUE.into());
+        a.conditional_negate(Choice::TRUE.into());
         assert_ne!(a, control);
         assert_eq!(a, control.wrapping_neg());
     }

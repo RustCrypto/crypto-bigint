@@ -1,7 +1,7 @@
 //! Const-friendly decoding operations for [`BoxedUint`].
 
 use super::BoxedUint;
-use crate::{ConstCtOption, CtEq, DecodeError, Encoding, Limb, Word, uint::encoding};
+use crate::{CtEq, CtOption, DecodeError, Encoding, Limb, Word, uint::encoding};
 use alloc::{boxed::Box, string::String, vec::Vec};
 
 #[cfg(feature = "serde")]
@@ -156,7 +156,7 @@ impl BoxedUint {
     }
 
     /// Create a new [`BoxedUint`] from the provided big endian hex string.
-    pub fn from_be_hex(hex: &str, bits_precision: u32) -> ConstCtOption<Self> {
+    pub fn from_be_hex(hex: &str, bits_precision: u32) -> CtOption<Self> {
         let nlimbs = (bits_precision / Limb::BITS) as usize;
         let bytes = hex.as_bytes();
 
@@ -183,7 +183,7 @@ impl BoxedUint {
             i += 1;
         }
 
-        ConstCtOption::new(Self { limbs: res.into() }, err.ct_eq(&0))
+        CtOption::new(Self { limbs: res.into() }, err.ct_eq(&0))
     }
 
     /// Create a new [`BoxedUint`] from a big-endian string in a given base.

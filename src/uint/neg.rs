@@ -1,4 +1,4 @@
-use crate::{ConstChoice, Limb, Uint, WideWord, Word, WrappingNeg, word};
+use crate::{Choice, Limb, Uint, WideWord, Word, WrappingNeg, word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform wrapping negation.
@@ -10,7 +10,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Additionally return whether the carry flag is set on the addition.
     ///
     /// Note: the carry is set if and only if `self == Self::ZERO`.
-    pub const fn carrying_neg(&self) -> (Self, ConstChoice) {
+    pub const fn carrying_neg(&self) -> (Self, Choice) {
         let mut ret = [Limb::ZERO; LIMBS];
         let mut carry = 1;
         let mut i = 0;
@@ -24,7 +24,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform wrapping negation, if `negate` is truthy. Otherwise, return `self`.
-    pub const fn wrapping_neg_if(&self, negate: ConstChoice) -> Self {
+    pub const fn wrapping_neg_if(&self, negate: Choice) -> Self {
         Uint::select(self, &self.wrapping_neg(), negate)
     }
 }
@@ -38,7 +38,7 @@ impl<const LIMBS: usize> WrappingNeg for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, U256};
+    use crate::{Choice, U256};
 
     #[test]
     fn wrapping_neg() {
@@ -56,19 +56,19 @@ mod tests {
 
     #[test]
     fn carrying_neg() {
-        assert_eq!(U256::ZERO.carrying_neg(), (U256::ZERO, ConstChoice::TRUE));
-        assert_eq!(U256::ONE.carrying_neg(), (U256::MAX, ConstChoice::FALSE));
-        assert_eq!(U256::MAX.carrying_neg(), (U256::ONE, ConstChoice::FALSE));
+        assert_eq!(U256::ZERO.carrying_neg(), (U256::ZERO, Choice::TRUE));
+        assert_eq!(U256::ONE.carrying_neg(), (U256::MAX, Choice::FALSE));
+        assert_eq!(U256::MAX.carrying_neg(), (U256::ONE, Choice::FALSE));
     }
 
     #[test]
     fn wrapping_neg_if() {
-        let negate = ConstChoice::TRUE;
+        let negate = Choice::TRUE;
         assert_eq!(U256::ZERO.wrapping_neg_if(negate), U256::ZERO);
         assert_eq!(U256::ONE.wrapping_neg_if(negate), U256::MAX);
         assert_eq!(U256::MAX.wrapping_neg_if(negate), U256::ONE);
 
-        let do_not_negate = ConstChoice::FALSE;
+        let do_not_negate = Choice::FALSE;
         assert_eq!(U256::ZERO.wrapping_neg_if(do_not_negate), U256::ZERO);
         assert_eq!(U256::ONE.wrapping_neg_if(do_not_negate), U256::ONE);
         assert_eq!(U256::MAX.wrapping_neg_if(do_not_negate), U256::MAX);

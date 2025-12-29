@@ -1,6 +1,6 @@
 //! [`Int`] bitwise left shift operations.
 
-use crate::{ConstCtOption, Int, ShlVartime, Uint, WrappingShl};
+use crate::{CtOption, Int, ShlVartime, Uint, WrappingShl};
 use core::ops::{Shl, ShlAssign};
 
 impl<const LIMBS: usize> Int<LIMBS> {
@@ -21,7 +21,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Computes `self << shift`.
     ///
     /// Returns `None` if `shift >= Self::BITS`.
-    pub const fn overflowing_shl(&self, shift: u32) -> ConstCtOption<Self> {
+    pub const fn overflowing_shl(&self, shift: u32) -> CtOption<Self> {
         Self::from_uint_opt(self.0.overflowing_shl(shift))
     }
 
@@ -34,7 +34,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
     #[inline(always)]
-    pub const fn overflowing_shl_vartime(&self, shift: u32) -> ConstCtOption<Self> {
+    pub const fn overflowing_shl_vartime(&self, shift: u32) -> CtOption<Self> {
         Self::from_uint_opt(self.0.overflowing_shl_vartime(shift))
     }
 
@@ -90,7 +90,7 @@ impl<const LIMBS: usize> WrappingShl for Int<LIMBS> {
 }
 
 impl<const LIMBS: usize> ShlVartime for Int<LIMBS> {
-    fn overflowing_shl_vartime(&self, shift: u32) -> ConstCtOption<Self> {
+    fn overflowing_shl_vartime(&self, shift: u32) -> CtOption<Self> {
         self.overflowing_shl(shift)
     }
     fn wrapping_shl_vartime(&self, shift: u32) -> Self {

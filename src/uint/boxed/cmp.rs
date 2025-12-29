@@ -5,7 +5,7 @@
 pub(super) use core::cmp::{Ordering, max};
 
 use super::BoxedUint;
-use crate::{ConstChoice, CtEq, CtGt, CtLt, CtSelect, Limb, Uint, word};
+use crate::{Choice, CtEq, CtGt, CtLt, CtSelect, Limb, Uint, word};
 
 impl BoxedUint {
     /// Returns the Ordering between `self` and `rhs` in variable time.
@@ -38,9 +38,9 @@ impl BoxedUint {
 
 impl CtEq for BoxedUint {
     #[inline]
-    fn ct_eq(&self, other: &Self) -> ConstChoice {
+    fn ct_eq(&self, other: &Self) -> Choice {
         let limbs = max(self.nlimbs(), other.nlimbs());
-        let mut ret = ConstChoice::TRUE;
+        let mut ret = Choice::TRUE;
 
         for i in 0..limbs {
             let a = self.limbs.get(i).unwrap_or(&Limb::ZERO);
@@ -54,7 +54,7 @@ impl CtEq for BoxedUint {
 
 impl CtGt for BoxedUint {
     #[inline]
-    fn ct_gt(&self, other: &Self) -> ConstChoice {
+    fn ct_gt(&self, other: &Self) -> Choice {
         let (_, borrow) = other.borrowing_sub(self, Limb::ZERO);
         word::choice_from_mask(borrow.0)
     }
@@ -62,7 +62,7 @@ impl CtGt for BoxedUint {
 
 impl CtLt for BoxedUint {
     #[inline]
-    fn ct_lt(&self, other: &Self) -> ConstChoice {
+    fn ct_lt(&self, other: &Self) -> Choice {
         let (_, borrow) = self.borrowing_sub(other, Limb::ZERO);
         word::choice_from_mask(borrow.0)
     }

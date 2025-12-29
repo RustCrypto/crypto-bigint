@@ -1,8 +1,6 @@
 //! [`Uint`] bitwise left shift operations.
 
-use crate::{
-    ConstChoice, ConstCtOption, Limb, NonZero, Shl, ShlAssign, ShlVartime, Uint, WrappingShl,
-};
+use crate::{Choice, CtOption, Limb, NonZero, Shl, ShlAssign, ShlVartime, Uint, WrappingShl};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self << shift`.
@@ -25,10 +23,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Returns `None` if `shift >= Self::BITS`.
     #[inline]
-    pub const fn overflowing_shl(&self, shift: u32) -> ConstCtOption<Self> {
-        let overflow = ConstChoice::from_u32_lt(shift, Self::BITS).not();
+    pub const fn overflowing_shl(&self, shift: u32) -> CtOption<Self> {
+        let overflow = Choice::from_u32_lt(shift, Self::BITS).not();
         let result = self.bounded_wrapping_shl(shift % Self::BITS, Self::BITS);
-        ConstCtOption::new(Uint::select(&result, &Self::ZERO, overflow), overflow.not())
+        CtOption::new(Uint::select(&result, &Self::ZERO, overflow), overflow.not())
     }
 
     /// Computes `self << shift` where `shift < `shift_upper_bound`, returning zero
@@ -47,12 +45,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut result = *self;
         let mut i = 0;
         while i < limb_bits {
-            let bit = ConstChoice::from_u32_lsb((shift >> i) & 1);
+            let bit = Choice::from_u32_lsb((shift >> i) & 1);
             result = result.conditional_shl_limb_nonzero(NonZero(1 << i), bit).0;
             i += 1;
         }
         while i < shift_bits {
-            let bit = ConstChoice::from_u32_lsb((shift >> i) & 1);
+            let bit = Choice::from_u32_lsb((shift >> i) & 1);
             result = Uint::select(
                 &result,
                 &result.wrapping_shl_by_limbs_vartime(1 << (i - Limb::LOG2_BITS)),
@@ -86,9 +84,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
     #[inline(always)]
-    pub const fn overflowing_shl_vartime(&self, shift: u32) -> ConstCtOption<Self> {
+    pub const fn overflowing_shl_vartime(&self, shift: u32) -> CtOption<Self> {
         if shift >= Self::BITS {
-            return ConstCtOption::new(Self::ZERO, ConstChoice::FALSE);
+            return CtOption::new(Self::ZERO, Choice::FALSE);
         }
 
         let shift_num = shift / Limb::BITS;
@@ -108,7 +106,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             }
         }
 
-        ConstCtOption::some(res)
+        CtOption::some(res)
     }
 
     /// Computes a left shift on a wide input as `(lo, hi)`.
@@ -123,15 +121,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn overflowing_shl_vartime_wide(
         lower_upper: (Self, Self),
         shift: u32,
-    ) -> ConstCtOption<(Self, Self)> {
+    ) -> CtOption<(Self, Self)> {
         let (lower, upper) = lower_upper;
         if shift >= 2 * Self::BITS {
-            ConstCtOption::new((Self::ZERO, Self::ZERO), ConstChoice::FALSE)
+            CtOption::new((Self::ZERO, Self::ZERO), Choice::FALSE)
         } else if shift >= Self::BITS {
             let upper = lower
                 .overflowing_shl_vartime(shift - Self::BITS)
                 .expect_copied("shift within range");
-            ConstCtOption::some((Self::ZERO, upper))
+            CtOption::some((Self::ZERO, upper))
         } else {
             let new_lower = lower
                 .overflowing_shl_vartime(shift)
@@ -142,7 +140,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let upper_hi = upper
                 .overflowing_shl_vartime(shift)
                 .expect_copied("shift within range");
-            ConstCtOption::some((new_lower, upper_lo.bitor(&upper_hi)))
+            CtOption::some((new_lower, upper_lo.bitor(&upper_hi)))
         }
     }
 
@@ -170,7 +168,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub(crate) const fn conditional_shl_limb_nonzero(
         &self,
         shift: NonZero<u32>,
-        choice: ConstChoice,
+        choice: Choice,
     ) -> (Self, Limb) {
         assert!(shift.0 < Limb::BITS);
 
@@ -200,12 +198,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Panics if `shift >= Limb::BITS`.
     pub(crate) const fn shl_limb(&self, shift: u32) -> (Self, Limb) {
-        let nz = ConstChoice::from_u32_nz(shift);
+        let nz = Choice::from_u32_nz(shift);
         self.conditional_shl_limb_nonzero(NonZero(nz.select_u32(1, shift)), nz)
     }
 
-    /// Computes `self << 1` in constant-time, returning [`ConstChoice::TRUE`]
-    /// if the most significant bit was set, and [`ConstChoice::FALSE`] otherwise.
+    /// Computes `self << 1` in constant-time, returning [`Choice::TRUE`]
+    /// if the most significant bit was set, and [`Choice::FALSE`] otherwise.
     #[inline(always)]
     pub(crate) const fn overflowing_shl1(&self) -> (Self, Limb) {
         self.carrying_shl1(Limb::ZERO)
@@ -264,7 +262,7 @@ impl<const LIMBS: usize> WrappingShl for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> ShlVartime for Uint<LIMBS> {
-    fn overflowing_shl_vartime(&self, shift: u32) -> ConstCtOption<Self> {
+    fn overflowing_shl_vartime(&self, shift: u32) -> CtOption<Self> {
         self.overflowing_shl(shift)
     }
 
