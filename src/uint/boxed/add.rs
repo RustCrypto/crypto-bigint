@@ -62,7 +62,7 @@ impl BoxedUint {
             carry = c;
         }
 
-        Choice::new((carry.0 & 1) as u8)
+        carry.lsb_to_choice()
     }
 }
 

@@ -17,7 +17,7 @@ edition = "2024"
 rust-version = "1.85"
 
 [dependencies]
-ctutils = "0.2.2"
+ctutils = "0.2.3"
 num-traits = { version = "0.2.19", default-features = false }
 
 # optional dependencies

@@ -89,6 +89,11 @@ impl Limb {
         let nz_word = word::select(1, self.0, is_nz);
         CtOption::new(NonZero(Self(nz_word)), is_nz)
     }
+
+    /// Convert the least significant bit of this [`Limb`] to a [`Choice`].
+    pub const fn lsb_to_choice(self) -> Choice {
+        word::choice_from_lsb(self.0)
+    }
 }
 
 impl Bounded for Limb {
