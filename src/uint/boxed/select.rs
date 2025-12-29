@@ -1,8 +1,7 @@
-//! Constant-time helper functions.
+//! Constant-time selection support.
 
 use super::BoxedUint;
 use crate::{ConstChoice, CtSelect, Limb};
-use subtle::{Choice, ConditionallyNegatable};
 
 impl CtSelect for BoxedUint {
     #[inline]
@@ -36,38 +35,16 @@ impl CtSelect for BoxedUint {
     }
 }
 
-impl ConditionallyNegatable for BoxedUint {
-    #[inline]
-    fn conditional_negate(&mut self, choice: Choice) {
-        let self_neg = self.wrapping_neg();
-        self.ct_assign(&self_neg, choice.into())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::{BoxedUint, ConstChoice, CtSelect};
-    use subtle::ConditionallyNegatable;
 
     #[test]
-    fn conditional_select() {
+    fn ct_select() {
         let a = BoxedUint::zero_with_precision(128);
         let b = BoxedUint::max(128);
 
         assert_eq!(a, BoxedUint::ct_select(&a, &b, ConstChoice::FALSE));
         assert_eq!(b, BoxedUint::ct_select(&a, &b, ConstChoice::TRUE));
-    }
-
-    #[test]
-    fn conditional_negate() {
-        let mut a = BoxedUint::from(123u64);
-        let control = a.clone();
-
-        a.conditional_negate(ConstChoice::FALSE.into());
-        assert_eq!(a, control);
-
-        a.conditional_negate(ConstChoice::TRUE.into());
-        assert_ne!(a, control);
-        assert_eq!(a, control.wrapping_neg());
     }
 }

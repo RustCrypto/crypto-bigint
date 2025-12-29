@@ -6,12 +6,6 @@ use crate::{ConstChoice, CtEq, CtGt, CtLt, Int, Uint};
 use core::cmp::Ordering;
 
 impl<const LIMBS: usize> Int<LIMBS> {
-    /// Return `b` if `c` is truthy, otherwise return `a`.
-    #[inline]
-    pub(crate) const fn select(a: &Self, b: &Self, c: ConstChoice) -> Self {
-        Self(Uint::select(&a.0, &b.0, c))
-    }
-
     /// Swap `a` and `b` if `c` is truthy, otherwise, do nothing.
     #[inline]
     pub(crate) const fn conditional_swap(a: &mut Self, b: &mut Self, c: ConstChoice) {
@@ -127,9 +121,7 @@ impl<const LIMBS: usize> PartialEq for Int<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use subtle::{ConstantTimeGreater, ConstantTimeLess};
-
-    use crate::I128;
+    use crate::{CtGt, CtLt, I128};
 
     #[test]
     fn test_is_nonzero() {

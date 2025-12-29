@@ -159,7 +159,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// ### Usage:
     /// ```
-    /// use crypto_bigint::{U448, NonZero, subtle::{CtOption, Choice}};
+    /// use crypto_bigint::{U448, NonZero};
     ///
     /// let a = U448::from(8_u64);
     /// let result = NonZero::new(U448::from(4_u64))
@@ -170,7 +170,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// // Check division by zero
     /// let zero = U448::from(0_u64);
-    /// assert!(bool::from(a.checked_div(&zero).is_none()), "Should be None for division by zero");
+    /// assert!(a.checked_div(&zero).is_none().to_bool(), "should be None for division by zero");
     /// ```
     pub fn checked_div<const RHS_LIMBS: usize>(
         &self,
@@ -205,7 +205,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// ### Usage:
     /// ```
-    /// use crypto_bigint::{U448, NonZero, subtle::{Choice,CtOption}};
+    /// use crypto_bigint::{U448, NonZero};
     ///
     /// let a = U448::from(10_u64);
     /// let remainder_option = NonZero::new(U448::from(3_u64))
@@ -216,7 +216,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// // Check reduction by zero
     /// let zero = U448::from(0_u64);
     ///
-    /// assert!(bool::from(a.checked_rem(&zero).is_none()), "Should be None for reduction by zero");
+    /// assert!(a.checked_rem(&zero).is_none().to_bool(), "should be None for reduction by zero");
     /// ```
     pub fn checked_rem<const RHS_LIMBS: usize>(
         &self,

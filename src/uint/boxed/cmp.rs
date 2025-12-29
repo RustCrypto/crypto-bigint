@@ -132,18 +132,18 @@ impl<const LIMBS: usize> PartialOrd<Uint<LIMBS>> for BoxedUint {
 #[cfg(test)]
 mod tests {
     use super::BoxedUint;
+    use crate::{CtEq, CtGt, CtLt};
     use core::cmp::Ordering;
-    use subtle::{ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
     #[test]
     fn ct_eq() {
         let a = BoxedUint::zero();
         let b = BoxedUint::one();
 
-        assert!(bool::from(a.ct_eq(&a)));
-        assert!(!bool::from(a.ct_eq(&b)));
-        assert!(!bool::from(b.ct_eq(&a)));
-        assert!(bool::from(b.ct_eq(&b)));
+        assert!(a.ct_eq(&a).to_bool());
+        assert!(!a.ct_eq(&b).to_bool());
+        assert!(!b.ct_eq(&a).to_bool());
+        assert!(b.ct_eq(&b).to_bool());
     }
 
     #[test]
@@ -152,17 +152,17 @@ mod tests {
         let b = BoxedUint::one();
         let c = BoxedUint::max(64);
 
-        assert!(bool::from(b.ct_gt(&a)));
-        assert!(bool::from(c.ct_gt(&a)));
-        assert!(bool::from(c.ct_gt(&b)));
+        assert!(b.ct_gt(&a).to_bool());
+        assert!(c.ct_gt(&a).to_bool());
+        assert!(c.ct_gt(&b).to_bool());
 
-        assert!(!bool::from(a.ct_gt(&a)));
-        assert!(!bool::from(b.ct_gt(&b)));
-        assert!(!bool::from(c.ct_gt(&c)));
+        assert!(!a.ct_gt(&a).to_bool());
+        assert!(!b.ct_gt(&b).to_bool());
+        assert!(!c.ct_gt(&c).to_bool());
 
-        assert!(!bool::from(a.ct_gt(&b)));
-        assert!(!bool::from(a.ct_gt(&c)));
-        assert!(!bool::from(b.ct_gt(&c)));
+        assert!(!a.ct_gt(&b).to_bool());
+        assert!(!a.ct_gt(&c).to_bool());
+        assert!(!b.ct_gt(&c).to_bool());
     }
 
     #[test]
@@ -171,17 +171,17 @@ mod tests {
         let b = BoxedUint::one();
         let c = BoxedUint::max(64);
 
-        assert!(bool::from(a.ct_lt(&b)));
-        assert!(bool::from(a.ct_lt(&c)));
-        assert!(bool::from(b.ct_lt(&c)));
+        assert!(a.ct_lt(&b).to_bool());
+        assert!(a.ct_lt(&c).to_bool());
+        assert!(b.ct_lt(&c).to_bool());
 
-        assert!(!bool::from(a.ct_lt(&a)));
-        assert!(!bool::from(b.ct_lt(&b)));
-        assert!(!bool::from(c.ct_lt(&c)));
+        assert!(!a.ct_lt(&a).to_bool());
+        assert!(!b.ct_lt(&b).to_bool());
+        assert!(!c.ct_lt(&c).to_bool());
 
-        assert!(!bool::from(b.ct_lt(&a)));
-        assert!(!bool::from(c.ct_lt(&a)));
-        assert!(!bool::from(c.ct_lt(&b)));
+        assert!(!b.ct_lt(&a).to_bool());
+        assert!(!c.ct_lt(&a).to_bool());
+        assert!(!c.ct_lt(&b).to_bool());
     }
 
     #[test]

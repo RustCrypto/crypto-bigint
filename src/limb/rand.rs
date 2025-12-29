@@ -1,9 +1,8 @@
 //! Random number generator support
 
 use super::Limb;
-use crate::{Encoding, NonZero, Random, RandomMod};
+use crate::{CtLt, Encoding, NonZero, Random, RandomMod};
 use rand_core::TryRngCore;
-use subtle::ConstantTimeLess;
 
 impl Random for Limb {
     fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {

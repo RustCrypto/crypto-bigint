@@ -1,6 +1,5 @@
-use crate::ConstChoice;
+use crate::{ConstChoice, CtEq};
 use core::ops::Neg;
-use subtle::{Choice, ConstantTimeEq};
 
 /// Possible return values for Jacobi symbol calculations.
 #[derive(Debug, Copy, Clone)]
@@ -54,9 +53,15 @@ impl JacobiSymbol {
     }
 }
 
-impl ConstantTimeEq for JacobiSymbol {
-    fn ct_eq(&self, other: &Self) -> Choice {
+impl CtEq for JacobiSymbol {
+    fn ct_eq(&self, other: &Self) -> ConstChoice {
         (*self as i8).ct_eq(&(*other as i8))
+    }
+}
+
+impl subtle::ConstantTimeEq for JacobiSymbol {
+    fn ct_eq(&self, other: &Self) -> subtle::Choice {
+        CtEq::ct_eq(self, other).into()
     }
 }
 

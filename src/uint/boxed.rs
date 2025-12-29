@@ -8,7 +8,6 @@ mod bit_or;
 mod bit_xor;
 mod bits;
 mod cmp;
-mod ct;
 pub(crate) mod div;
 pub(crate) mod encoding;
 mod from;
@@ -18,6 +17,7 @@ mod mul;
 mod mul_mod;
 mod neg;
 mod neg_mod;
+mod select;
 mod shl;
 mod shr;
 mod sqrt;
@@ -28,12 +28,11 @@ mod sub_mod;
 mod rand;
 
 use crate::{
-    ConstChoice, CtEq, Integer, Limb, NonZero, Odd, One, Resize, UintRef, Unsigned, Word, Zero,
-    modular::BoxedMontyForm,
+    ConstChoice, ConstCtOption, CtEq, CtSelect, Integer, Limb, NonZero, Odd, One, Resize, UintRef,
+    Unsigned, Word, Zero, modular::BoxedMontyForm,
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{fmt, iter::repeat, ops::IndexMut};
-use subtle::CtOption;
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -224,17 +223,37 @@ impl BoxedUint {
     /// Convert to a [`NonZero<BoxedUint>`].
     ///
     /// Returns some if the original value is non-zero, and false otherwise.
-    pub fn to_nz(self) -> CtOption<NonZero<Self>> {
-        let is_nz = self.is_nonzero();
-        CtOption::new(NonZero(self), is_nz.into())
+    pub fn to_nz(&self) -> ConstCtOption<NonZero<Self>> {
+        self.clone().into_nz()
     }
 
     /// Convert to an [`Odd<BoxedUint>`].
     ///
     /// Returns some if the original value is odd, and false otherwise.
-    pub fn to_odd(&self) -> CtOption<Odd<Self>> {
+    pub fn to_odd(&self) -> ConstCtOption<Odd<Self>> {
+        self.clone().into_odd()
+    }
+
+    /// Convert to a [`NonZero<BoxedUint>`].
+    ///
+    /// Returns some if the original value is non-zero, and false otherwise.
+    pub fn into_nz(mut self) -> ConstCtOption<NonZero<Self>> {
+        let is_nz = self.is_nonzero();
+
+        // Ensure the `NonZero` we construct is actually non-zero, even if the `CtOption` is none
+        self.limbs[0].ct_assign(&Limb::ONE, !is_nz);
+        ConstCtOption::new(NonZero(self), is_nz)
+    }
+
+    /// Convert to an [`Odd<BoxedUint>`].
+    ///
+    /// Returns some if the original value is odd, and false otherwise.
+    pub fn into_odd(mut self) -> ConstCtOption<Odd<Self>> {
         let is_odd = self.is_odd();
-        CtOption::new(Odd(self.clone()), is_odd.into())
+
+        // Ensure the `Odd` we construct is actually odd, even if the `CtOption` is none
+        self.limbs[0].ct_assign(&Limb::ONE, !is_odd);
+        ConstCtOption::new(Odd(self.clone()), is_odd)
     }
 
     /// Widen this type's precision to the given number of bits.

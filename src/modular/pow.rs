@@ -1,10 +1,9 @@
 use super::mul::{mul_montgomery_form, square_montgomery_form};
-use crate::{AmmMultiplier, Limb, Monty, Odd, Uint, Unsigned, Word, word};
+use crate::{AmmMultiplier, CtEq, Limb, Monty, Odd, Uint, Unsigned, Word, word};
+use core::{array, mem};
 
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
-use core::{array, mem};
-use subtle::ConstantTimeEq;
 
 const WINDOW: u32 = 4;
 const WINDOW_MASK: Word = (1 << WINDOW) - 1;
@@ -114,7 +113,7 @@ where
             // Constant-time lookup in the array of powers
             power.as_mut_limbs().copy_from_slice(powers[0].as_limbs());
             for i in 1..(1 << WINDOW) {
-                power.ct_assign(&powers[i], (i as Word).ct_eq(&idx).into());
+                power.ct_assign(&powers[i], (i as Word).ct_eq(&idx));
             }
 
             multiplier.mul_amm_assign(&mut z, &power);

@@ -14,9 +14,8 @@ use super::{
     MontyParams, Retrieve, div_by_2::div_by_2, mul::mul_montgomery_form,
     reduction::montgomery_retrieve,
 };
-use crate::{ConstChoice, ConstOne, ConstZero, CtEq, Odd, One, Uint, Zero};
+use crate::{ConstOne, ConstZero, CtEq, Odd, One, Uint, Zero};
 use core::{fmt::Debug, marker::PhantomData};
-use subtle::{Choice, ConditionallySelectable};
 
 #[cfg(feature = "rand_core")]
 use crate::{Random, RandomMod, rand_core::TryRngCore};
@@ -31,6 +30,8 @@ use {
 /// Macros to remove the boilerplate code when dealing with constant moduli.
 #[macro_use]
 mod macros;
+mod cmp;
+mod select;
 
 /// Trait representing a modulus and its associated constants for converting in and out of
 /// Montgomery form.
@@ -132,35 +133,6 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
             montgomery_form: div_by_2(&self.montgomery_form, &MOD::PARAMS.modulus),
             phantom: PhantomData,
         }
-    }
-}
-
-impl<MOD: ConstMontyParams<LIMBS> + Copy, const LIMBS: usize> ConditionallySelectable
-    for ConstMontyForm<MOD, LIMBS>
-{
-    fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
-        ConstMontyForm {
-            montgomery_form: Uint::conditional_select(
-                &a.montgomery_form,
-                &b.montgomery_form,
-                choice,
-            ),
-            phantom: PhantomData,
-        }
-    }
-}
-
-impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> CtEq for ConstMontyForm<MOD, LIMBS> {
-    fn ct_eq(&self, other: &Self) -> ConstChoice {
-        CtEq::ct_eq(&self.montgomery_form, &other.montgomery_form)
-    }
-}
-
-impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> subtle::ConstantTimeEq
-    for ConstMontyForm<MOD, LIMBS>
-{
-    fn ct_eq(&self, other: &Self) -> Choice {
-        CtEq::ct_eq(&self.montgomery_form, &other.montgomery_form).into()
     }
 }
 

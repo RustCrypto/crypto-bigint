@@ -17,8 +17,8 @@ pub struct Checked<T>(pub ConstCtOption<T>);
 
 impl<T> Checked<T> {
     /// Create a new checked arithmetic wrapper for the given value.
-    pub fn new(val: T) -> Self {
-        Self(ConstCtOption::new(val, ConstChoice::TRUE))
+    pub const fn new(val: T) -> Self {
+        Self(ConstCtOption::some(val))
     }
 }
 

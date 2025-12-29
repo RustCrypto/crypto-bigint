@@ -2,27 +2,23 @@
 
 #![allow(clippy::needless_range_loop, clippy::many_single_char_names)]
 
-use core::fmt;
-use ctutils::CtSelect;
-use subtle::ConstantTimeEq;
-
-#[cfg(feature = "serde")]
-use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
-#[cfg(feature = "zeroize")]
-use zeroize::DefaultIsZeroes;
-
 #[cfg(feature = "extra-sizes")]
 pub use extra_sizes::*;
 
 pub(crate) use ref_type::UintRef;
 
 use crate::{
-    Bounded, ConstChoice, ConstCtOption, ConstOne, ConstZero, Constants, FixedInteger, Int,
+    Bounded, ConstChoice, ConstCtOption, ConstOne, ConstZero, Constants, CtEq, FixedInteger, Int,
     Integer, Limb, NonZero, Odd, One, Unsigned, Word, Zero, modular::MontyForm,
 };
+use core::fmt;
 
 #[cfg(feature = "serde")]
 use crate::Encoding;
+#[cfg(feature = "serde")]
+use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
+#[cfg(feature = "zeroize")]
+use zeroize::DefaultIsZeroes;
 
 #[macro_use]
 mod macros;
@@ -45,10 +41,13 @@ mod invert_mod;
 pub(crate) mod lcm;
 mod mod_symbol;
 pub(crate) mod mul;
+mod mul_int;
 mod mul_mod;
 mod neg;
 mod neg_mod;
+mod ref_type;
 mod resize;
+mod select;
 mod shl;
 mod shr;
 mod split;
@@ -60,6 +59,8 @@ mod sub_mod;
 mod array;
 #[cfg(feature = "alloc")]
 pub(crate) mod boxed;
+#[cfg(feature = "extra-sizes")]
+mod extra_sizes;
 #[cfg(feature = "rand_core")]
 mod rand;
 
@@ -219,8 +220,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Convert to a [`Odd<Uint<LIMBS>>`].
     ///
     /// Returns some if the original value is odd, and false otherwise.
-    pub const fn to_odd(self) -> ConstCtOption<Odd<Self>> {
-        ConstCtOption::new(Odd(self), self.is_odd())
+    pub const fn to_odd(&self) -> ConstCtOption<Odd<Self>> {
+        let is_odd = self.is_odd();
+
+        // Use `1` as a placeholder in the event this value is even
+        let ret = Self::select(&Self::ONE, self, is_odd);
+        ConstCtOption::new(Odd(ret), is_odd)
     }
 
     /// Interpret this object as an [`Int`] instead.
@@ -287,22 +292,6 @@ impl<const LIMBS: usize> AsRef<UintRef> for Uint<LIMBS> {
 impl<const LIMBS: usize> AsMut<UintRef> for Uint<LIMBS> {
     fn as_mut(&mut self) -> &mut UintRef {
         self.as_mut_uint_ref()
-    }
-}
-
-impl<const LIMBS: usize> subtle::ConditionallySelectable for Uint<LIMBS> {
-    #[inline]
-    fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
-        a.ct_select(b, choice.into())
-    }
-}
-
-impl<const LIMBS: usize> CtSelect for Uint<LIMBS> {
-    #[inline]
-    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
-        Self {
-            limbs: self.limbs.ct_select(&other.limbs, choice),
-        }
     }
 }
 
@@ -557,16 +546,10 @@ impl_uint_concat_split_mixed! {
     (U1024, [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15]),
 }
 
-#[cfg(feature = "extra-sizes")]
-mod extra_sizes;
-mod mul_int;
-mod ref_type;
-
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
     use crate::{Encoding, I128, Int, U128};
-    use subtle::ConditionallySelectable;
 
     #[cfg(feature = "alloc")]
     use alloc::format;
@@ -692,18 +675,6 @@ mod tests {
         let a_from_le = U128::from_le_bytes(le_bytes);
         assert_eq!(a_from_be, a_from_le);
         assert_eq!(a_from_be, a);
-    }
-
-    #[test]
-    fn conditional_select() {
-        let a = U128::from_be_hex("00002222444466668888AAAACCCCEEEE");
-        let b = U128::from_be_hex("11113333555577779999BBBBDDDDFFFF");
-
-        let select_0 = U128::conditional_select(&a, &b, 0.into());
-        assert_eq!(a, select_0);
-
-        let select_1 = U128::conditional_select(&a, &b, 1.into());
-        assert_eq!(b, select_1);
     }
 
     #[test]

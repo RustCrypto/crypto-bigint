@@ -4,8 +4,8 @@ mod common;
 
 use common::to_biguint;
 use crypto_bigint::{
-    Bounded, Constants, EncodedUint, Encoding, Integer, Invert, Monty, NonZero, Odd, U128, U256,
-    U512, U1024, U2048, U4096, Unsigned,
+    Bounded, ConstCtOption, Constants, EncodedUint, Encoding, Integer, Invert, Monty, NonZero, Odd,
+    U128, U256, U512, U1024, U2048, U4096, Unsigned,
     modular::{MontyForm, MontyParams},
 };
 use num_bigint::BigUint;
@@ -13,7 +13,6 @@ use num_modular::ModularUnaryOps;
 use num_traits::FromBytes;
 use prop::test_runner::TestRng;
 use proptest::prelude::*;
-use subtle::CtOption;
 
 type MontyForm256 = MontyForm<{ U256::LIMBS }>;
 type MontyParams256 = MontyParams<{ U256::LIMBS }>;
@@ -51,7 +50,7 @@ fn random_invertible_uint<T>(
 ) -> Result<(T, <T as Unsigned>::Monty, <T as Unsigned>::Monty, BigUint), TestCaseError>
 where
     T: Unsigned + Bounded + Encoding,
-    <T as Unsigned>::Monty: Invert<Output = CtOption<T::Monty>>,
+    <T as Unsigned>::Monty: Invert<Output = ConstCtOption<T::Monty>>,
 {
     let r = T::from_be_bytes(bytes.clone());
     let rm = <T as Unsigned>::Monty::new(r.clone(), monty_params);

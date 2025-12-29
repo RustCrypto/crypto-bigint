@@ -2,7 +2,6 @@
 
 use super::{MontyForm, MontyParams};
 use crate::{ConstCtOption, modular::SafeGcdInverter, traits::Invert};
-use subtle::CtOption;
 
 impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Computes `self^-1` representing the multiplicative inverse of `self`.
@@ -67,14 +66,14 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
 }
 
 impl<const LIMBS: usize> Invert for MontyForm<LIMBS> {
-    type Output = CtOption<Self>;
+    type Output = ConstCtOption<Self>;
 
     fn invert(&self) -> Self::Output {
-        self.invert().into()
+        self.invert()
     }
 
     fn invert_vartime(&self) -> Self::Output {
-        self.invert_vartime().into()
+        self.invert_vartime()
     }
 }
 

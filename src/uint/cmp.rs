@@ -7,38 +7,6 @@ use crate::{ConstChoice, CtEq, CtGt, CtLt, Limb, word};
 use core::cmp::Ordering;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Return `b` if `c` is truthy, otherwise return `a`.
-    #[inline]
-    pub(crate) const fn select(a: &Self, b: &Self, c: ConstChoice) -> Self {
-        let mut limbs = [Limb::ZERO; LIMBS];
-
-        let mut i = 0;
-        while i < LIMBS {
-            limbs[i] = Limb::select(a.limbs[i], b.limbs[i], c);
-            i += 1;
-        }
-
-        Uint { limbs }
-    }
-
-    /// Swap `a` and `b` if `c` is truthy, otherwise, do nothing.
-    #[inline]
-    pub(crate) const fn conditional_swap(a: &mut Self, b: &mut Self, c: ConstChoice) {
-        let mut i = 0;
-        let a = a.as_mut_limbs();
-        let b = b.as_mut_limbs();
-        while i < LIMBS {
-            Limb::ct_conditional_swap(&mut a[i], &mut b[i], c);
-            i += 1;
-        }
-    }
-
-    /// Swap `a` and `b`
-    #[inline]
-    pub(crate) const fn swap(a: &mut Self, b: &mut Self) {
-        Self::conditional_swap(a, b, ConstChoice::TRUE)
-    }
-
     /// Returns the truthy value if `self`!=0 or the falsy value otherwise.
     #[inline]
     pub(crate) const fn is_nonzero(&self) -> ConstChoice {
@@ -222,9 +190,8 @@ impl<const LIMBS: usize> PartialEq for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, Integer, U128, Uint};
+    use crate::{ConstChoice, CtEq, CtGt, CtLt, Integer, U128, Uint};
     use core::cmp::Ordering;
-    use subtle::{ConstantTimeEq, ConstantTimeGreater, ConstantTimeLess};
 
     #[test]
     fn is_zero() {

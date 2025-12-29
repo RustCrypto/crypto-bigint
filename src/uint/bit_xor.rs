@@ -1,9 +1,7 @@
 //! [`Uint`] bitwise XOR operations.
 
 use super::Uint;
-use crate::{Limb, Wrapping};
-use core::ops::{BitXor, BitXorAssign};
-use subtle::{Choice, CtOption};
+use crate::{BitXor, BitXorAssign, ConstCtOption, Limb, Wrapping};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes bitwise `a ^ b`.
@@ -28,10 +26,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         self.bitxor(rhs)
     }
 
-    /// Perform checked bitwise `XOR`, returning a [`CtOption`] which `is_some` always
-    pub fn checked_xor(&self, rhs: &Self) -> CtOption<Self> {
-        let result = self.bitxor(rhs);
-        CtOption::new(result, Choice::from(1))
+    /// Perform checked bitwise `XOR`, returning a [`ConstCtOption`] which `is_some` always
+    pub const fn checked_xor(&self, rhs: &Self) -> ConstCtOption<Self> {
+        ConstCtOption::some(self.bitxor(rhs))
     }
 }
 

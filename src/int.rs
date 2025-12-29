@@ -1,8 +1,8 @@
 //! Stack-allocated big signed integers.
 
 use crate::{
-    Bounded, ConstChoice, ConstCtOption, ConstOne, ConstZero, Constants, CtEq, CtSelect,
-    FixedInteger, Integer, Limb, NonZero, Odd, One, Signed, Uint, Word, Zero,
+    Bounded, ConstChoice, ConstCtOption, ConstOne, ConstZero, Constants, CtEq, FixedInteger,
+    Integer, Limb, NonZero, Odd, One, Signed, Uint, Word, Zero,
 };
 use core::fmt;
 
@@ -28,6 +28,7 @@ mod mul;
 mod mul_uint;
 mod neg;
 mod resize;
+mod select;
 mod shl;
 mod shr;
 mod sign;
@@ -216,20 +217,6 @@ impl<const LIMBS: usize> AsMut<[Limb]> for Int<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> subtle::ConditionallySelectable for Int<LIMBS> {
-    #[inline]
-    fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
-        a.ct_select(b, choice.into())
-    }
-}
-
-impl<const LIMBS: usize> CtSelect for Int<LIMBS> {
-    #[inline]
-    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
-        Self(self.0.ct_select(&other.0, choice))
-    }
-}
-
 impl<const LIMBS: usize> Bounded for Int<LIMBS> {
     const BITS: u32 = Self::BITS;
     const BYTES: usize = Self::BYTES;
@@ -384,8 +371,6 @@ where
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use subtle::ConditionallySelectable;
-
     use crate::{ConstChoice, I128, U128};
 
     #[cfg(target_pointer_width = "64")]
@@ -460,18 +445,6 @@ mod tests {
             format!("{n:#b}"),
             "0b10101010101010101010101010101010101110111011101110111011101110111100110011001100110011001100110011011101110111011101110111011101"
         );
-    }
-
-    #[test]
-    fn conditional_select() {
-        let a = I128::from_be_hex("00002222444466668888AAAACCCCEEEE");
-        let b = I128::from_be_hex("11113333555577779999BBBBDDDDFFFF");
-
-        let select_0 = I128::conditional_select(&a, &b, 0.into());
-        assert_eq!(a, select_0);
-
-        let select_1 = I128::conditional_select(&a, &b, 1.into());
-        assert_eq!(b, select_1);
     }
 
     #[test]
