@@ -86,7 +86,7 @@ pub(crate) const fn choice_from_gt(x: Word, y: Word) -> Choice {
 /// Returns the truthy value if `value == 1`, and the falsy value if `value == 0`.
 #[inline]
 pub(crate) const fn choice_from_lsb(value: Word) -> Choice {
-    Choice::new((value & 1) as u8)
+    Choice::from_u8_lsb((value & 1) as u8)
 }
 
 /// Returns the truthy value if `value == Word::MAX`, and the falsy value if `value == 0`.

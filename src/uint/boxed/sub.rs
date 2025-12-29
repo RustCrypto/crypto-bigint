@@ -66,7 +66,7 @@ impl BoxedUint {
             borrow = b;
         }
 
-        Choice::new((borrow.0 & 1) as u8)
+        borrow.lsb_to_choice()
     }
 }
 
