@@ -3,13 +3,13 @@
 //! By default, these are all constant-time.
 
 use super::Uint;
-use crate::{ConstChoice, CtEq, CtGt, CtLt, Limb, word};
+use crate::{Choice, CtEq, CtGt, CtLt, Limb, word};
 use core::cmp::Ordering;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Returns the truthy value if `self`!=0 or the falsy value otherwise.
     #[inline]
-    pub(crate) const fn is_nonzero(&self) -> ConstChoice {
+    pub(crate) const fn is_nonzero(&self) -> Choice {
         let mut b = 0;
         let mut i = 0;
         while i < LIMBS {
@@ -33,13 +33,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Returns the truthy value if `self` is odd or the falsy value otherwise.
-    pub(crate) const fn is_odd(&self) -> ConstChoice {
+    pub(crate) const fn is_odd(&self) -> Choice {
         word::choice_from_lsb(self.limbs[0].0 & 1)
     }
 
     /// Returns the truthy value if `self == rhs` or the falsy value otherwise.
     #[inline]
-    pub(crate) const fn eq(lhs: &Self, rhs: &Self) -> ConstChoice {
+    pub(crate) const fn eq(lhs: &Self, rhs: &Self) -> Choice {
         let mut acc = 0;
         let mut i = 0;
 
@@ -54,7 +54,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Returns the truthy value if `self < rhs` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn lt(lhs: &Self, rhs: &Self) -> ConstChoice {
+    pub(crate) const fn lt(lhs: &Self, rhs: &Self) -> Choice {
         // We could use the same approach as in Limb::ct_lt(),
         // but since we have to use Uint::wrapping_sub(), which calls `borrowing_sub()`,
         // there are no savings compared to just calling `borrowing_sub()` directly.
@@ -64,13 +64,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Returns the truthy value if `self <= rhs` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn lte(lhs: &Self, rhs: &Self) -> ConstChoice {
+    pub(crate) const fn lte(lhs: &Self, rhs: &Self) -> Choice {
         Self::gt(lhs, rhs).not()
     }
 
     /// Returns the truthy value if `self > rhs` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn gt(lhs: &Self, rhs: &Self) -> ConstChoice {
+    pub(crate) const fn gt(lhs: &Self, rhs: &Self) -> Choice {
         let (_res, borrow) = rhs.borrowing_sub(lhs, Limb::ZERO);
         word::choice_from_mask(borrow.0)
     }
@@ -118,21 +118,21 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
 impl<const LIMBS: usize> CtEq for Uint<LIMBS> {
     #[inline]
-    fn ct_eq(&self, other: &Self) -> ConstChoice {
+    fn ct_eq(&self, other: &Self) -> Choice {
         self.limbs.ct_eq(&other.limbs)
     }
 }
 
 impl<const LIMBS: usize> CtGt for Uint<LIMBS> {
     #[inline]
-    fn ct_gt(&self, other: &Self) -> ConstChoice {
+    fn ct_gt(&self, other: &Self) -> Choice {
         Self::gt(self, other)
     }
 }
 
 impl<const LIMBS: usize> CtLt for Uint<LIMBS> {
     #[inline]
-    fn ct_lt(&self, other: &Self) -> ConstChoice {
+    fn ct_lt(&self, other: &Self) -> Choice {
         Self::lt(self, other)
     }
 }
@@ -193,7 +193,7 @@ impl<const LIMBS: usize> subtle::ConstantTimeLess for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, CtEq, CtGt, CtLt, Integer, U128, Uint};
+    use crate::{Choice, CtEq, CtGt, CtLt, Integer, U128, Uint};
     use core::cmp::Ordering;
 
     #[test]
@@ -327,11 +327,11 @@ mod tests {
         let mut a = U128::ZERO;
         let mut b = U128::MAX;
 
-        Uint::conditional_swap(&mut a, &mut b, ConstChoice::FALSE);
+        Uint::conditional_swap(&mut a, &mut b, Choice::FALSE);
         assert_eq!(a, Uint::ZERO);
         assert_eq!(b, Uint::MAX);
 
-        Uint::conditional_swap(&mut a, &mut b, ConstChoice::TRUE);
+        Uint::conditional_swap(&mut a, &mut b, Choice::TRUE);
         assert_eq!(a, Uint::MAX);
         assert_eq!(b, Uint::ZERO);
     }

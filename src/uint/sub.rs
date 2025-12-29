@@ -1,9 +1,7 @@
 //! [`Uint`] subtraction operations.
 
 use super::Uint;
-use crate::{
-    Checked, CheckedSub, ConstCtOption, Limb, Sub, SubAssign, Wrapping, WrappingSub, word,
-};
+use crate::{Checked, CheckedSub, CtOption, Limb, Sub, SubAssign, Wrapping, WrappingSub, word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
@@ -42,9 +40,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> CheckedSub for Uint<LIMBS> {
-    fn checked_sub(&self, rhs: &Self) -> ConstCtOption<Self> {
+    fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
         let (result, underflow) = self.borrowing_sub(rhs, Limb::ZERO);
-        ConstCtOption::new(result, underflow.is_zero())
+        CtOption::new(result, underflow.is_zero())
     }
 }
 

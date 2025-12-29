@@ -2,8 +2,8 @@
 
 use super::div_limb::Reciprocal;
 use crate::{
-    CheckedDiv, ConstCtOption, Div, DivAssign, DivRemLimb, DivVartime, Limb, NonZero, Rem,
-    RemAssign, RemLimb, Uint, UintRef, Wrapping,
+    CheckedDiv, CtOption, Div, DivAssign, DivRemLimb, DivVartime, Limb, NonZero, Rem, RemAssign,
+    RemLimb, Uint, UintRef, Wrapping,
 };
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -154,7 +154,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         self.div_rem_vartime(rhs).0
     }
 
-    /// Perform checked division, returning a [`ConstCtOption`] which `is_some`
+    /// Perform checked division, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0.
     ///
     /// ### Usage:
@@ -172,10 +172,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// let zero = U448::from(0_u64);
     /// assert!(a.checked_div(&zero).is_none().to_bool(), "should be None for division by zero");
     /// ```
-    pub fn checked_div<const RHS_LIMBS: usize>(
-        &self,
-        rhs: &Uint<RHS_LIMBS>,
-    ) -> ConstCtOption<Self> {
+    pub fn checked_div<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
         NonZero::new(*rhs).map(|rhs| {
             let (q, _r) = self.div_rem(&rhs);
             q
@@ -200,7 +197,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         self.rem_vartime(&nz_rhs)
     }
 
-    /// Perform checked reduction, returning a [`ConstCtOption`] which `is_some`
+    /// Perform checked reduction, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
     ///
     /// ### Usage:
@@ -221,10 +218,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub fn checked_rem<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
-    ) -> ConstCtOption<Uint<RHS_LIMBS>> {
+    ) -> CtOption<Uint<RHS_LIMBS>> {
         // TODO(tarcieri): proper constant-time operation
         if rhs.is_zero().to_bool() {
-            return ConstCtOption::none();
+            return CtOption::none();
         }
 
         NonZero::new(*rhs).map(|rhs| self.rem(&rhs))
@@ -418,7 +415,7 @@ impl<const LIMBS: usize> RemAssign<&NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
 //
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedDiv<Uint<RHS_LIMBS>> for Uint<LIMBS> {
-    fn checked_div(&self, rhs: &Uint<RHS_LIMBS>) -> ConstCtOption<Self> {
+    fn checked_div(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
         self.checked_div(rhs)
     }
 }

@@ -1,8 +1,8 @@
 //! Wrapper type for non-zero integers.
 
 use crate::{
-    Bounded, ConstChoice, ConstCtOption, ConstOne, CtEq, CtSelect, Int, Integer, Limb, Mul,
-    NonZero, One, Uint, UintRef,
+    Bounded, Choice, ConstOne, CtEq, CtOption, CtSelect, Int, Integer, Limb, Mul, NonZero, One,
+    Uint, UintRef,
 };
 use core::{cmp::Ordering, fmt, ops::Deref};
 
@@ -43,7 +43,7 @@ pub struct Odd<T: ?Sized>(pub(crate) T);
 impl<T> Odd<T> {
     /// Create a new odd integer.
     #[inline]
-    pub fn new(mut n: T) -> ConstCtOption<Self>
+    pub fn new(mut n: T) -> CtOption<Self>
     where
         T: Integer,
     {
@@ -53,7 +53,7 @@ impl<T> Odd<T> {
         // operate on `NonZero` values really can expect the value to never be zero, even in the
         // case `CtOption::is_some` is false.
         n.ct_assign(&T::one_like(&n), !is_odd);
-        ConstCtOption::new(Self(n), is_odd)
+        CtOption::new(Self(n), is_odd)
     }
 
     /// Returns the inner value.
@@ -127,7 +127,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
 impl<const LIMBS: usize> Odd<Int<LIMBS>> {
     /// The sign and magnitude of this [`Odd<Int<{LIMBS}>>`].
-    pub const fn abs_sign(&self) -> (Odd<Uint<LIMBS>>, ConstChoice) {
+    pub const fn abs_sign(&self) -> (Odd<Uint<LIMBS>>, Choice) {
         // Absolute value of an odd value is odd
         let (abs, sgn) = Int::abs_sign(self.as_ref());
         (Odd(abs), sgn)
@@ -165,7 +165,7 @@ where
     T: CtEq + ?Sized,
 {
     #[inline]
-    fn ct_eq(&self, other: &Self) -> ConstChoice {
+    fn ct_eq(&self, other: &Self) -> Choice {
         CtEq::ct_eq(&self.0, &other.0)
     }
 }
@@ -175,7 +175,7 @@ where
     T: CtSelect,
 {
     #[inline]
-    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
+    fn ct_select(&self, other: &Self, choice: Choice) -> Self {
         Self(self.0.ct_select(&other.0, choice))
     }
 }

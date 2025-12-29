@@ -1,4 +1,4 @@
-use crate::{ConstChoice, WideWord, Word};
+use crate::{Choice, WideWord, Word};
 
 /// Adds wide numbers represented by pairs of (least significant word, most significant word)
 /// and returns the result in the same format `(lo, hi)`.
@@ -73,13 +73,13 @@ pub(crate) const fn carrying_mul_add(
 /// `const fn` equivalent of `u32::max(a, b)`.
 #[inline]
 pub(crate) const fn u32_max(a: u32, b: u32) -> u32 {
-    ConstChoice::from_u32_lt(a, b).select_u32(a, b)
+    Choice::from_u32_lt(a, b).select_u32(a, b)
 }
 
 /// `const` equivalent of `u32::min(a, b)`.
 #[inline]
 pub(crate) const fn u32_min(a: u32, b: u32) -> u32 {
-    ConstChoice::from_u32_lt(a, b).select_u32(b, a)
+    Choice::from_u32_lt(a, b).select_u32(b, a)
 }
 
 #[cfg(test)]

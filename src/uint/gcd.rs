@@ -3,7 +3,7 @@
 use crate::modular::bingcd::xgcd::PatternXgcdOutput;
 use crate::modular::safegcd;
 use crate::primitives::u32_min;
-use crate::{ConstChoice, Gcd, Int, NonZero, NonZeroUint, Odd, OddUint, Uint, Xgcd};
+use crate::{Choice, Gcd, Int, NonZero, NonZeroUint, Odd, OddUint, Uint, Xgcd};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute the greatest common divisor of `self` and `rhs`.
@@ -122,7 +122,7 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
         rhs = rhs.shr(k);
 
         // At this point, either lhs or rhs is odd (or both); swap to make sure lhs is odd.
-        let swap = ConstChoice::from_u32_lt(j, i);
+        let swap = Choice::from_u32_lt(j, i);
         Uint::conditional_swap(&mut lhs, &mut rhs, swap);
         let lhs = lhs.to_odd().expect_copied("odd by construction");
         let rhs = rhs.to_nz().expect_copied("non-zero by construction");
@@ -262,11 +262,7 @@ impl<const LIMBS: usize> OddUintXgcdOutput<LIMBS> {
         }
     }
 
-    pub(crate) const fn to_nz_output(
-        self,
-        k: u32,
-        swap: ConstChoice,
-    ) -> NonZeroUintXgcdOutput<LIMBS> {
+    pub(crate) const fn to_nz_output(self, k: u32, swap: Choice) -> NonZeroUintXgcdOutput<LIMBS> {
         let Self {
             ref gcd,
             mut x,

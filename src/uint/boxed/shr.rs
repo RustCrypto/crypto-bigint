@@ -1,6 +1,6 @@
 //! [`BoxedUint`] bitwise right shift operations.
 
-use crate::{BoxedUint, ConstChoice, ConstCtOption, Limb, Shr, ShrAssign, ShrVartime, WrappingShr};
+use crate::{BoxedUint, Choice, CtOption, Limb, Shr, ShrAssign, ShrVartime, WrappingShr};
 
 impl BoxedUint {
     /// Computes `self >> shift`.
@@ -30,7 +30,7 @@ impl BoxedUint {
     ///
     /// Returns a zero and a truthy `Choice` if `shift >= self.bits_precision()`,
     /// or the result and a falsy `Choice` otherwise.
-    pub fn overflowing_shr(&self, shift: u32) -> (Self, ConstChoice) {
+    pub fn overflowing_shr(&self, shift: u32) -> (Self, Choice) {
         let mut result = self.clone();
         let overflow = result.overflowing_shr_assign(shift);
         (result, overflow)
@@ -40,7 +40,7 @@ impl BoxedUint {
     ///
     /// Returns a zero and a truthy `Choice` if `shift >= self.bits_precision()`,
     /// or the result and a falsy `Choice` otherwise.
-    pub fn overflowing_shr_vartime(&self, shift: u32) -> (Self, ConstChoice) {
+    pub fn overflowing_shr_vartime(&self, shift: u32) -> (Self, Choice) {
         let mut result = self.clone();
         let overflow = result.overflowing_shr_assign_vartime(shift);
         (result, overflow)
@@ -49,14 +49,14 @@ impl BoxedUint {
     /// Computes `self >>= shift`.
     ///
     /// Returns a truthy `Choice` if `shift >= self.bits_precision()` or a falsy `Choice` otherwise.
-    pub fn overflowing_shr_assign(&mut self, shift: u32) -> ConstChoice {
+    pub fn overflowing_shr_assign(&mut self, shift: u32) -> Choice {
         self.as_mut_uint_ref().overflowing_shr_assign(shift)
     }
 
     /// Computes `self >>= shift` in variable-time.
     ///
     /// Returns a truthy `Choice` if `shift >= self.bits_precision()` or a falsy `Choice` otherwise.
-    pub fn overflowing_shr_assign_vartime(&mut self, shift: u32) -> ConstChoice {
+    pub fn overflowing_shr_assign_vartime(&mut self, shift: u32) -> Choice {
         self.as_mut_uint_ref().overflowing_shr_assign_vartime(shift)
     }
 
@@ -120,7 +120,7 @@ impl BoxedUint {
     }
 
     /// Computes `self >>= 1` in-place in constant-time.
-    pub(crate) fn shr1_assign(&mut self) -> ConstChoice {
+    pub(crate) fn shr1_assign(&mut self) -> Choice {
         self.as_mut_uint_ref().shr1_assign()
     }
 }
@@ -164,9 +164,9 @@ impl WrappingShr for BoxedUint {
 }
 
 impl ShrVartime for BoxedUint {
-    fn overflowing_shr_vartime(&self, shift: u32) -> ConstCtOption<Self> {
+    fn overflowing_shr_vartime(&self, shift: u32) -> CtOption<Self> {
         let (result, overflow) = self.overflowing_shr(shift);
-        ConstCtOption::new(result, !overflow)
+        CtOption::new(result, !overflow)
     }
     fn wrapping_shr_vartime(&self, shift: u32) -> Self {
         self.wrapping_shr(shift)

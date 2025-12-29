@@ -1,6 +1,6 @@
 //! [`BoxedUint`] bitwise OR operations.
 
-use crate::{BitOr, BitOrAssign, BoxedUint, ConstCtOption, Wrapping};
+use crate::{BitOr, BitOrAssign, BoxedUint, CtOption, Wrapping};
 
 impl BoxedUint {
     /// Computes bitwise `a & b`.
@@ -17,9 +17,9 @@ impl BoxedUint {
         self.bitor(rhs)
     }
 
-    /// Perform checked bitwise `OR`, returning a [`ConstCtOption`] which `is_some` always
-    pub fn checked_or(&self, rhs: &Self) -> ConstCtOption<Self> {
-        ConstCtOption::some(self.bitor(rhs))
+    /// Perform checked bitwise `OR`, returning a [`CtOption`] which `is_some` always
+    pub fn checked_or(&self, rhs: &Self) -> CtOption<Self> {
+        CtOption::some(self.bitor(rhs))
     }
 }
 

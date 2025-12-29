@@ -1,11 +1,11 @@
 //! Constant-time selection support.
 
 use super::BoxedUint;
-use crate::{ConstChoice, CtSelect, Limb};
+use crate::{Choice, CtSelect, Limb};
 
 impl CtSelect for BoxedUint {
     #[inline]
-    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
+    fn ct_select(&self, other: &Self, choice: Choice) -> Self {
         debug_assert_eq!(self.bits_precision(), other.bits_precision());
         let mut limbs = vec![Limb::ZERO; self.nlimbs()].into_boxed_slice();
 
@@ -17,7 +17,7 @@ impl CtSelect for BoxedUint {
     }
 
     #[inline]
-    fn ct_assign(&mut self, other: &Self, choice: ConstChoice) {
+    fn ct_assign(&mut self, other: &Self, choice: Choice) {
         debug_assert_eq!(self.bits_precision(), other.bits_precision());
 
         for i in 0..self.nlimbs() {
@@ -26,7 +26,7 @@ impl CtSelect for BoxedUint {
     }
 
     #[inline]
-    fn ct_swap(&mut self, other: &mut Self, choice: ConstChoice) {
+    fn ct_swap(&mut self, other: &mut Self, choice: Choice) {
         debug_assert_eq!(self.bits_precision(), other.bits_precision());
 
         for i in 0..self.nlimbs() {
@@ -37,14 +37,14 @@ impl CtSelect for BoxedUint {
 
 #[cfg(test)]
 mod tests {
-    use crate::{BoxedUint, ConstChoice, CtSelect};
+    use crate::{BoxedUint, Choice, CtSelect};
 
     #[test]
     fn ct_select() {
         let a = BoxedUint::zero_with_precision(128);
         let b = BoxedUint::max(128);
 
-        assert_eq!(a, BoxedUint::ct_select(&a, &b, ConstChoice::FALSE));
-        assert_eq!(b, BoxedUint::ct_select(&a, &b, ConstChoice::TRUE));
+        assert_eq!(a, BoxedUint::ct_select(&a, &b, Choice::FALSE));
+        assert_eq!(b, BoxedUint::ct_select(&a, &b, Choice::TRUE));
     }
 }

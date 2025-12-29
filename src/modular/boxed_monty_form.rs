@@ -11,7 +11,7 @@ mod select;
 mod sub;
 
 use super::{MontyParams, Retrieve, div_by_2, reduction::montgomery_retrieve_inner};
-use crate::{BoxedUint, ConstChoice, Limb, Monty, Odd, U64, Word};
+use crate::{BoxedUint, Choice, Limb, Monty, Odd, U64, Word};
 use alloc::sync::Arc;
 use mul::BoxedMontyMultiplier;
 
@@ -217,7 +217,7 @@ impl BoxedMontyForm {
     /// # Returns
     ///
     /// If zero, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
-    pub fn is_zero(&self) -> ConstChoice {
+    pub fn is_zero(&self) -> Choice {
         self.montgomery_form.is_zero()
     }
 
@@ -227,7 +227,7 @@ impl BoxedMontyForm {
     ///
     /// If zero, returns `Choice(0)`. Otherwise, returns `Choice(1)`.
     #[inline]
-    pub fn is_nonzero(&self) -> ConstChoice {
+    pub fn is_nonzero(&self) -> Choice {
         !self.is_zero()
     }
 

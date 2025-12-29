@@ -5,8 +5,7 @@
 
 use super::{GCD_BATCH_SIZE, Matrix, iterations, jump};
 use crate::{
-    BoxedUint, ConstChoice, ConstCtOption, CtSelect, I64, Int, Limb, NonZero, Odd, Resize, U64,
-    Uint,
+    BoxedUint, Choice, CtOption, CtSelect, I64, Int, Limb, NonZero, Odd, Resize, U64, Uint,
     primitives::{u32_max, u32_min},
 };
 use core::fmt;
@@ -53,7 +52,7 @@ impl BoxedSafeGcdInverter {
     }
 
     /// Perform constant-time modular inversion.
-    pub(crate) fn invert(&self, value: &BoxedUint) -> ConstCtOption<BoxedUint> {
+    pub(crate) fn invert(&self, value: &BoxedUint) -> CtOption<BoxedUint> {
         invert_odd_mod_precomp::<false>(
             value,
             &self.modulus,
@@ -63,7 +62,7 @@ impl BoxedSafeGcdInverter {
     }
 
     /// Perform variable-time modular inversion.
-    pub(crate) fn invert_vartime(&self, value: &BoxedUint) -> ConstCtOption<BoxedUint> {
+    pub(crate) fn invert_vartime(&self, value: &BoxedUint) -> CtOption<BoxedUint> {
         invert_odd_mod_precomp::<true>(
             value,
             &self.modulus,
@@ -77,7 +76,7 @@ impl BoxedSafeGcdInverter {
 pub fn invert_odd_mod<const VARTIME: bool>(
     a: &BoxedUint,
     m: &Odd<BoxedUint>,
-) -> ConstCtOption<BoxedUint> {
+) -> CtOption<BoxedUint> {
     let mi = m.as_uint_ref().invert_mod_u64();
     invert_odd_mod_precomp::<VARTIME>(a, m, mi, None)
 }
@@ -89,7 +88,7 @@ fn invert_odd_mod_precomp<const VARTIME: bool>(
     m: &Odd<BoxedUint>,
     mi: u64,
     e: Option<BoxedUint>,
-) -> ConstCtOption<BoxedUint> {
+) -> CtOption<BoxedUint> {
     let a_nonzero = a.is_nonzero();
     let bits_precision = u32_max(a.bits_precision(), m.as_ref().bits_precision());
     let m = m.as_ref().resize(bits_precision);
@@ -123,7 +122,7 @@ fn invert_odd_mod_precomp<const VARTIME: bool>(
         .norm(f.is_negative(), &m)
         .resize_unchecked(a.bits_precision());
 
-    ConstCtOption::new(d, f.magnitude().is_one() & a_nonzero)
+    CtOption::new(d, f.magnitude().is_one() & a_nonzero)
 }
 
 /// Calculate the greatest common denominator of `f` and `g`.
@@ -250,7 +249,7 @@ fn update_de(
 /// A `Uint` which carries a separate sign in order to maintain the same range.
 #[derive(Clone)]
 struct SignedBoxedInt {
-    sign: ConstChoice,
+    sign: Choice,
     magnitude: BoxedUint,
 }
 
@@ -262,7 +261,7 @@ impl SignedBoxedInt {
     /// Construct a new `SignedInt` from a `Uint`.
     pub const fn from_uint(uint: BoxedUint) -> Self {
         Self {
-            sign: ConstChoice::FALSE,
+            sign: Choice::FALSE,
             magnitude: uint,
         }
     }
@@ -270,13 +269,13 @@ impl SignedBoxedInt {
     /// Construct a new `SignedInt` from a `Uint`.
     pub fn from_uint_with_precision(uint: &BoxedUint, bits_precision: u32) -> Self {
         Self {
-            sign: ConstChoice::FALSE,
+            sign: Choice::FALSE,
             magnitude: uint.resize(bits_precision),
         }
     }
 
     /// Construct a new `SignedInt` from a `Uint` and a sign flag.
-    pub const fn from_uint_sign(magnitude: BoxedUint, sign: ConstChoice) -> Self {
+    pub const fn from_uint_sign(magnitude: BoxedUint, sign: Choice) -> Self {
         Self { sign, magnitude }
     }
 
@@ -286,7 +285,7 @@ impl SignedBoxedInt {
     }
 
     /// Determine if the `SignedInt` is non-zero.
-    pub fn is_nonzero(&self) -> ConstChoice {
+    pub fn is_nonzero(&self) -> Choice {
         self.magnitude.is_nonzero()
     }
 
@@ -298,7 +297,7 @@ impl SignedBoxedInt {
     /// Determine if the `SignedInt` is negative.
     /// Note: `-0` is representable in this type, so it may be necessary
     /// to check `self.is_nonzero()` as well.
-    pub const fn is_negative(&self) -> ConstChoice {
+    pub const fn is_negative(&self) -> Choice {
         self.sign
     }
 
@@ -409,7 +408,7 @@ impl SignedBoxedInt {
     }
 
     /// Normalize the value to a `BoxedUint` in the range `[0, m)`.
-    fn norm(&self, f_sign: ConstChoice, m: &BoxedUint) -> BoxedUint {
+    fn norm(&self, f_sign: Choice, m: &BoxedUint) -> BoxedUint {
         let swap = f_sign.xor(self.sign) & self.is_nonzero();
         BoxedUint::ct_select(&self.magnitude, &m.wrapping_sub(&self.magnitude), swap)
     }

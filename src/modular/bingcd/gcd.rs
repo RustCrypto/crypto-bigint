@@ -1,5 +1,5 @@
 use crate::{
-    ConstChoice, Limb, Odd, U64, U128, Uint, Word,
+    Choice, Limb, Odd, U64, U128, Uint, Word,
     primitives::{u32_max, u32_min},
     word,
 };
@@ -22,7 +22,7 @@ use crate::{
 pub(super) const fn bingcd_step<const LIMBS: usize>(
     a: &mut Uint<LIMBS>,
     b: &mut Uint<LIMBS>,
-) -> (ConstChoice, ConstChoice, Word) {
+) -> (Choice, Choice, Word) {
     let a_b_mod_4 = (a.limbs[0].0 & b.limbs[0].0) & 3;
 
     let a_odd = a.is_odd();
@@ -172,7 +172,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let (.., matrix, j_neg) = a_
                 .to_odd()
                 .expect_copied("a_ is always odd")
-                .partial_binxgcd::<LIMBS_K>(&b_, batch, ConstChoice::FALSE);
+                .partial_binxgcd::<LIMBS_K>(&b_, batch, Choice::FALSE);
             jacobi_neg ^= j_neg;
 
             // Update `a` and `b` using the update matrix.
@@ -234,7 +234,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let (.., matrix, j_neg) = a_
                 .to_odd()
                 .expect_copied("a_ is always odd")
-                .partial_binxgcd::<LIMBS_K>(&b_, batch_max, ConstChoice::FALSE);
+                .partial_binxgcd::<LIMBS_K>(&b_, batch_max, Choice::FALSE);
             jacobi_neg ^= j_neg;
 
             // Update `a` and `b` using the update matrix.

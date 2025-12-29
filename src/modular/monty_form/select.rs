@@ -1,9 +1,9 @@
 use super::MontyParams;
 use crate::modular::MontyForm;
-use crate::{ConstChoice, CtSelect, Odd, U64, Uint};
+use crate::{Choice, CtSelect, Odd, U64, Uint};
 
 impl<const LIMBS: usize> CtSelect for MontyForm<LIMBS> {
-    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
+    fn ct_select(&self, other: &Self, choice: Choice) -> Self {
         Self {
             montgomery_form: Uint::ct_select(&self.montgomery_form, &other.montgomery_form, choice),
             params: MontyParams::ct_select(&self.params, &other.params, choice),
@@ -12,7 +12,7 @@ impl<const LIMBS: usize> CtSelect for MontyForm<LIMBS> {
 }
 
 impl<const LIMBS: usize> CtSelect for MontyParams<LIMBS> {
-    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
+    fn ct_select(&self, other: &Self, choice: Choice) -> Self {
         Self {
             modulus: Odd::ct_select(&self.modulus, &other.modulus, choice),
             one: Uint::ct_select(&self.one, &other.one, choice),

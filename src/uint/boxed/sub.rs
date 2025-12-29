@@ -1,8 +1,8 @@
 //! [`BoxedUint`] subtraction operations.
 
 use crate::{
-    BoxedUint, CheckedSub, ConstChoice, ConstCtOption, CtSelect, Limb, Sub, SubAssign, U64, U128,
-    Uint, Wrapping, WrappingSub,
+    BoxedUint, CheckedSub, Choice, CtOption, CtSelect, Limb, Sub, SubAssign, U64, U128, Uint,
+    Wrapping, WrappingSub,
 };
 
 impl BoxedUint {
@@ -53,8 +53,8 @@ impl BoxedUint {
     pub(crate) fn conditional_borrowing_sub_assign(
         &mut self,
         rhs: &Self,
-        choice: ConstChoice,
-    ) -> ConstChoice {
+        choice: Choice,
+    ) -> Choice {
         debug_assert!(self.bits_precision() <= rhs.bits_precision());
         let mask = Limb::ct_select(&Limb::ZERO, &Limb::MAX, choice);
         let mut borrow = Limb::ZERO;
@@ -66,14 +66,14 @@ impl BoxedUint {
             borrow = b;
         }
 
-        ConstChoice::new((borrow.0 & 1) as u8)
+        Choice::new((borrow.0 & 1) as u8)
     }
 }
 
 impl CheckedSub for BoxedUint {
-    fn checked_sub(&self, rhs: &Self) -> ConstCtOption<Self> {
+    fn checked_sub(&self, rhs: &Self) -> CtOption<Self> {
         let (result, carry) = self.borrowing_sub(rhs, Limb::ZERO);
-        ConstCtOption::new(result, carry.is_zero())
+        CtOption::new(result, carry.is_zero())
     }
 }
 

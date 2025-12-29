@@ -1,4 +1,4 @@
-use crate::{ConcatMixed, ConstChoice, ConstCtOption, Int, Uint};
+use crate::{Choice, ConcatMixed, CtOption, Int, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute "wide" multiplication between an [`Uint`] and [`Int`] as 3-tuple `(lo, hi, negate)`.
@@ -10,7 +10,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn widening_mul_int<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
-    ) -> (Uint<LIMBS>, Uint<RHS_LIMBS>, ConstChoice) {
+    ) -> (Uint<LIMBS>, Uint<RHS_LIMBS>, Choice) {
         let (rhs_abs, rhs_sgn) = rhs.abs_sign();
         let (lo, hi) = self.widening_mul(&rhs_abs);
         (lo, hi, rhs_sgn)
@@ -35,7 +35,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub fn checked_mul_int<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
-    ) -> ConstCtOption<Int<LIMBS>> {
+    ) -> CtOption<Int<LIMBS>> {
         let (abs_rhs, rhs_sgn) = rhs.abs_sign();
         let maybe_res = self.checked_mul(&abs_rhs);
         Int::new_from_abs_opt_sign(maybe_res, rhs_sgn)
@@ -44,7 +44,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, I64, I128, I256, U64, U128};
+    use crate::{Choice, I64, I128, I256, U64, U128};
 
     #[test]
     fn widening_mul_int() {
@@ -53,7 +53,7 @@ mod tests {
             (
                 U128::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC9"),
                 U64::from_u64(54),
-                ConstChoice::TRUE
+                Choice::TRUE
             )
         )
     }

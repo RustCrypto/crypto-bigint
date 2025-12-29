@@ -8,8 +8,8 @@ pub use extra_sizes::*;
 pub(crate) use ref_type::UintRef;
 
 use crate::{
-    Bounded, ConstChoice, ConstCtOption, ConstOne, ConstZero, Constants, CtEq, FixedInteger, Int,
-    Integer, Limb, NonZero, Odd, One, Unsigned, Word, Zero, modular::MontyForm,
+    Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, FixedInteger, Int, Integer,
+    Limb, NonZero, Odd, One, Unsigned, Word, Zero, modular::MontyForm,
 };
 use core::fmt;
 
@@ -209,23 +209,23 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Convert to a [`NonZero<Uint<LIMBS>>`].
     ///
     /// Returns some if the original value is non-zero, and false otherwise.
-    pub const fn to_nz(&self) -> ConstCtOption<NonZero<Self>> {
+    pub const fn to_nz(&self) -> CtOption<NonZero<Self>> {
         let is_nz = self.is_nonzero();
 
         // Use `1` as a placeholder in the event this value is `0`
         let ret = Self::select(&Self::ONE, self, is_nz);
-        ConstCtOption::new(NonZero(ret), is_nz)
+        CtOption::new(NonZero(ret), is_nz)
     }
 
     /// Convert to a [`Odd<Uint<LIMBS>>`].
     ///
     /// Returns some if the original value is odd, and false otherwise.
-    pub const fn to_odd(&self) -> ConstCtOption<Odd<Self>> {
+    pub const fn to_odd(&self) -> CtOption<Odd<Self>> {
         let is_odd = self.is_odd();
 
         // Use `1` as a placeholder in the event this value is even
         let ret = Self::select(&Self::ONE, self, is_odd);
-        ConstCtOption::new(Odd(ret), is_odd)
+        CtOption::new(Odd(ret), is_odd)
     }
 
     /// Interpret this object as an [`Int`] instead.
@@ -241,13 +241,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Convert this type into an [`Int`]; returns `None` if this value is greater than [`Int::MAX`].
     ///
     /// Note: this is the conversion operation. See [`Self::as_int`] for the unchecked equivalent.
-    pub const fn try_into_int(self) -> ConstCtOption<Int<LIMBS>> {
-        Int::new_from_abs_sign(self, ConstChoice::FALSE)
+    pub const fn try_into_int(self) -> CtOption<Int<LIMBS>> {
+        Int::new_from_abs_sign(self, Choice::FALSE)
     }
 
     /// Is this [`Uint`] equal to [`Uint::ZERO`]?
-    pub const fn is_zero(&self) -> ConstChoice {
-        let mut ret = ConstChoice::TRUE;
+    pub const fn is_zero(&self) -> Choice {
+        let mut ret = Choice::TRUE;
         let mut n = 0;
 
         while n < LIMBS {

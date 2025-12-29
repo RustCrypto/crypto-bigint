@@ -1,8 +1,7 @@
 //! [`Int`] multiplication operations.
 
 use crate::{
-    Checked, CheckedMul, ConcatMixed, ConstChoice, ConstCtOption, Int, Mul, MulAssign, Uint,
-    WrappingMul,
+    Checked, CheckedMul, Choice, ConcatMixed, CtOption, Int, Mul, MulAssign, Uint, WrappingMul,
 };
 
 impl<const LIMBS: usize> Int<LIMBS> {
@@ -16,7 +15,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub const fn split_mul<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
-    ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, ConstChoice) {
+    ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, Choice) {
         self.widening_mul(rhs)
     }
 
@@ -29,7 +28,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub const fn widening_mul<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
-    ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, ConstChoice) {
+    ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, Choice) {
         // Step 1: split operands into their signs and magnitudes.
         let (lhs_abs, lhs_sgn) = self.abs_sign();
         let (rhs_abs, rhs_sgn) = rhs.abs_sign();
@@ -63,12 +62,12 @@ impl<const LIMBS: usize> Int<LIMBS> {
         Int::from_bits(product_abs.wrapping_neg_if(product_sign))
     }
 
-    /// Multiply `self` by `rhs`, returning a `ConstCtOption` which is `is_some` only if
+    /// Multiply `self` by `rhs`, returning a `CtOption` which is `is_some` only if
     /// overflow did not occur.
     pub const fn checked_mul<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
-    ) -> ConstCtOption<Self> {
+    ) -> CtOption<Self> {
         let (abs_lhs, lhs_sgn) = self.abs_sign();
         let (abs_rhs, rhs_sgn) = rhs.abs_sign();
         let maybe_res = abs_lhs.checked_mul(&abs_rhs);
@@ -112,7 +111,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Square self, checking that the result fits in the original [`Uint`] size.
-    pub fn checked_square(&self) -> ConstCtOption<Uint<LIMBS>> {
+    pub fn checked_square(&self) -> CtOption<Uint<LIMBS>> {
         self.abs().checked_square()
     }
 
@@ -129,7 +128,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Int<RHS_LIMBS>> for Int<LIMBS> {
     #[inline]
-    fn checked_mul(&self, rhs: &Int<RHS_LIMBS>) -> ConstCtOption<Self> {
+    fn checked_mul(&self, rhs: &Int<RHS_LIMBS>) -> CtOption<Self> {
         self.checked_mul(rhs)
     }
 }
@@ -199,7 +198,7 @@ impl<const LIMBS: usize> MulAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, I64, I128, I256, Int, U64, U128, U256};
+    use crate::{Choice, I64, I128, I256, Int, U64, U128, U256};
 
     #[test]
     #[allow(clippy::init_numbered_fields)]
@@ -523,7 +522,7 @@ mod tests {
     #[test]
     fn test_checked_square() {
         let res = I128::from_i64(i64::MIN).checked_square();
-        assert_eq!(res.is_some(), ConstChoice::TRUE);
+        assert_eq!(res.is_some(), Choice::TRUE);
         assert_eq!(
             res.unwrap(),
             U128::from_be_hex("40000000000000000000000000000000")
@@ -531,7 +530,7 @@ mod tests {
 
         let x: I128 = I128::MINUS_ONE << 64;
         let res = x.checked_square();
-        assert_eq!(res.is_none(), ConstChoice::TRUE)
+        assert_eq!(res.is_none(), Choice::TRUE)
     }
 
     #[test]

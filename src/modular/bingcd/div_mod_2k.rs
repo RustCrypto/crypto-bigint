@@ -1,6 +1,6 @@
 //! Compute `x / 2^k mod q` for some prime `q`.
 
-use crate::{ConstChoice, Limb, Odd, OddUint, Uint, primitives::u32_min, word};
+use crate::{Choice, Limb, Odd, OddUint, Uint, primitives::u32_min, word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute `self / 2^k mod q`.
@@ -75,7 +75,7 @@ impl Limb {
         let mut factor = Limb::ZERO;
         let mut i = 0;
         while i < k_upper_bound {
-            let execute = ConstChoice::from_u32_lt(i, k);
+            let execute = Choice::from_u32_lt(i, k);
 
             let (shifted, carry) = self.shr1();
             self = Self::select(self, shifted, execute);

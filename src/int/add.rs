@@ -1,18 +1,16 @@
 //! [`Int`] addition operations.
 
-use crate::{
-    Add, AddAssign, Checked, CheckedAdd, ConstChoice, ConstCtOption, Int, Wrapping, WrappingAdd,
-};
+use crate::{Add, AddAssign, Checked, CheckedAdd, Choice, CtOption, Int, Wrapping, WrappingAdd};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Perform checked addition. Returns `none` when the addition overflowed.
-    pub const fn checked_add(&self, rhs: &Self) -> ConstCtOption<Self> {
+    pub const fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
         let (value, overflow) = self.overflowing_add(rhs);
-        ConstCtOption::new(value, overflow.not())
+        CtOption::new(value, overflow.not())
     }
 
     /// Perform addition, raising the `overflow` flag on overflow.
-    pub const fn overflowing_add(&self, rhs: &Self) -> (Self, ConstChoice) {
+    pub const fn overflowing_add(&self, rhs: &Self) -> (Self, Choice) {
         // Step 1. add operands
         let res = Self(self.0.wrapping_add(&rhs.0));
 
@@ -91,7 +89,7 @@ impl<const LIMBS: usize> AddAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
 }
 
 impl<const LIMBS: usize> CheckedAdd for Int<LIMBS> {
-    fn checked_add(&self, rhs: &Self) -> ConstCtOption<Self> {
+    fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
         self.checked_add(rhs)
     }
 }
@@ -104,7 +102,7 @@ impl<const LIMBS: usize> WrappingAdd for Int<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, I128, U128};
+    use crate::{Choice, I128, U128};
 
     #[test]
     fn checked_add() {
@@ -219,105 +217,105 @@ mod tests {
         // lhs = MIN
 
         let (_val, overflow) = I128::MIN.overflowing_add(&I128::MIN);
-        assert_eq!(overflow, ConstChoice::TRUE);
+        assert_eq!(overflow, Choice::TRUE);
 
         let (_val, overflow) = I128::MIN.overflowing_add(&I128::MINUS_ONE);
-        assert_eq!(overflow, ConstChoice::TRUE);
+        assert_eq!(overflow, Choice::TRUE);
 
         let (val, overflow) = I128::MIN.overflowing_add(&I128::ZERO);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
         assert_eq!(val, I128::MIN);
 
         let (val, overflow) = I128::MIN.overflowing_add(&I128::ONE);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
         assert_eq!(val, min_plus_one);
 
         let (val, overflow) = I128::MIN.overflowing_add(&I128::MAX);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
         assert_eq!(val, I128::MINUS_ONE);
 
         // lhs = -1
 
         let (_val, overflow) = I128::MINUS_ONE.overflowing_add(&I128::MIN);
-        assert_eq!(overflow, ConstChoice::TRUE);
+        assert_eq!(overflow, Choice::TRUE);
 
         let (val, overflow) = I128::MINUS_ONE.overflowing_add(&I128::MINUS_ONE);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
         assert_eq!(val, two.wrapping_neg());
 
         let (val, overflow) = I128::MINUS_ONE.overflowing_add(&I128::ZERO);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
         assert_eq!(val, I128::MINUS_ONE);
 
         let (val, overflow) = I128::MINUS_ONE.overflowing_add(&I128::ONE);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
         assert_eq!(val, I128::ZERO);
 
         let (val, overflow) = I128::MINUS_ONE.overflowing_add(&I128::MAX);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
         assert_eq!(val, max_minus_one);
 
         // lhs = 0
 
         let (val, overflow) = I128::ZERO.overflowing_add(&I128::MIN);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
         assert_eq!(val, I128::MIN);
 
         let (val, overflow) = I128::ZERO.overflowing_add(&I128::MINUS_ONE);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
         assert_eq!(val, I128::MINUS_ONE);
 
         let (val, overflow) = I128::ZERO.overflowing_add(&I128::ZERO);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
         assert_eq!(val, I128::ZERO);
 
         let (val, overflow) = I128::ZERO.overflowing_add(&I128::ONE);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
         assert_eq!(val, I128::ONE);
 
         let (val, overflow) = I128::ZERO.overflowing_add(&I128::MAX);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
         assert_eq!(val, I128::MAX);
 
         // lhs = 1
 
         let (val, overflow) = I128::ONE.overflowing_add(&I128::MIN);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
         assert_eq!(val, min_plus_one);
 
         let (val, overflow) = I128::ONE.overflowing_add(&I128::MINUS_ONE);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
         assert_eq!(val, I128::ZERO);
 
         let (val, overflow) = I128::ONE.overflowing_add(&I128::ZERO);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
         assert_eq!(val, I128::ONE);
 
         let (val, overflow) = I128::ONE.overflowing_add(&I128::ONE);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
         assert_eq!(val, two);
 
         let (_val, overflow) = I128::ONE.overflowing_add(&I128::MAX);
-        assert_eq!(overflow, ConstChoice::TRUE);
+        assert_eq!(overflow, Choice::TRUE);
 
         // lhs = MAX
 
         let (val, overflow) = I128::MAX.overflowing_add(&I128::MIN);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
         assert_eq!(val, I128::MINUS_ONE);
 
         let (val, overflow) = I128::MAX.overflowing_add(&I128::MINUS_ONE);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
         assert_eq!(val, max_minus_one);
 
         let (val, overflow) = I128::MAX.overflowing_add(&I128::ZERO);
-        assert_eq!(overflow, ConstChoice::FALSE);
+        assert_eq!(overflow, Choice::FALSE);
         assert_eq!(val, I128::MAX);
 
         let (_val, overflow) = I128::MAX.overflowing_add(&I128::ONE);
-        assert_eq!(overflow, ConstChoice::TRUE);
+        assert_eq!(overflow, Choice::TRUE);
 
         let (_val, overflow) = I128::MAX.overflowing_add(&I128::MAX);
-        assert_eq!(overflow, ConstChoice::TRUE);
+        assert_eq!(overflow, Choice::TRUE);
     }
 }

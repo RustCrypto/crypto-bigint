@@ -1,6 +1,6 @@
 //! [`Int`] bitwise right shift operations.
 
-use crate::{ConstChoice, ConstCtOption, Int, Limb, ShrVartime, Uint, WrappingShr};
+use crate::{Choice, CtOption, Int, Limb, ShrVartime, Uint, WrappingShr};
 use core::ops::{Shr, ShrAssign};
 
 impl<const LIMBS: usize> Int<LIMBS> {
@@ -32,16 +32,16 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// the most significant bit.
     ///
     /// Returns `None` if `shift >= Self::BITS`.
-    pub const fn overflowing_shr(&self, shift: u32) -> ConstCtOption<Self> {
+    pub const fn overflowing_shr(&self, shift: u32) -> CtOption<Self> {
         // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
         // (which lies in range `0 <= shift < BITS`).
         let shift_bits = u32::BITS - (Self::BITS - 1).leading_zeros();
-        let overflow = ConstChoice::from_u32_lt(shift, Self::BITS).not();
+        let overflow = Choice::from_u32_lt(shift, Self::BITS).not();
         let shift = shift % Self::BITS;
         let mut result = *self;
         let mut i = 0;
         while i < shift_bits {
-            let bit = ConstChoice::from_u32_lsb((shift >> i) & 1);
+            let bit = Choice::from_u32_lsb((shift >> i) & 1);
             result = Int::select(
                 &result,
                 &result
@@ -52,7 +52,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
             i += 1;
         }
 
-        ConstCtOption::new(result, overflow.not())
+        CtOption::new(result, overflow.not())
     }
 
     /// Computes `self >> shift`.
@@ -67,13 +67,13 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
     #[inline(always)]
-    pub const fn overflowing_shr_vartime(&self, shift: u32) -> ConstCtOption<Self> {
+    pub const fn overflowing_shr_vartime(&self, shift: u32) -> CtOption<Self> {
         let is_negative = self.is_negative();
 
         if shift >= Self::BITS {
-            return ConstCtOption::new(
+            return CtOption::new(
                 Self::select(&Self::ZERO, &Self::MINUS_ONE, is_negative),
-                ConstChoice::FALSE,
+                Choice::FALSE,
             );
         }
 
@@ -91,7 +91,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         }
 
         if rem == 0 {
-            return ConstCtOption::some(Self(Uint::new(limbs)));
+            return CtOption::some(Self(Uint::new(limbs)));
         }
 
         // construct the carry s.t. the `rem`-most significant bits of `carry` are 1 when self
@@ -107,7 +107,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
             carry = new_carry;
         }
 
-        ConstCtOption::some(Self(Uint::new(limbs)))
+        CtOption::some(Self(Uint::new(limbs)))
     }
 
     /// Computes `self >> shift` in a panic-free manner.
@@ -170,7 +170,7 @@ impl<const LIMBS: usize> WrappingShr for Int<LIMBS> {
 }
 
 impl<const LIMBS: usize> ShrVartime for Int<LIMBS> {
-    fn overflowing_shr_vartime(&self, shift: u32) -> ConstCtOption<Self> {
+    fn overflowing_shr_vartime(&self, shift: u32) -> CtOption<Self> {
         self.overflowing_shr(shift)
     }
     fn wrapping_shr_vartime(&self, shift: u32) -> Self {

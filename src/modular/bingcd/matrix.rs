@@ -1,5 +1,5 @@
 use crate::modular::bingcd::extension::ExtendedInt;
-use crate::{ConstChoice, Uint};
+use crate::{Choice, Uint};
 
 pub trait Unit: Sized {
     /// The unit matrix.
@@ -38,13 +38,13 @@ impl<const LIMBS: usize> Unit for IntMatrix<LIMBS> {
 
 impl<const LIMBS: usize> IntMatrix<LIMBS> {
     /// Negate the top row of this matrix if `negate`; otherwise do nothing.
-    pub(super) const fn conditional_negate_top_row(&mut self, negate: ConstChoice) {
+    pub(super) const fn conditional_negate_top_row(&mut self, negate: Choice) {
         self.m00 = self.m00.wrapping_neg_if(negate);
         self.m01 = self.m01.wrapping_neg_if(negate);
     }
 
     /// Negate the bottom row of this matrix if `negate`; otherwise do nothing.
-    pub(super) const fn conditional_negate_bottom_row(&mut self, negate: ConstChoice) {
+    pub(super) const fn conditional_negate_bottom_row(&mut self, negate: Choice) {
         self.m10 = self.m10.wrapping_neg_if(negate);
         self.m11 = self.m11.wrapping_neg_if(negate);
     }
@@ -96,7 +96,7 @@ pub(crate) struct PatternMatrix<const LIMBS: usize> {
     pub m01: Uint<LIMBS>,
     pub m10: Uint<LIMBS>,
     pub m11: Uint<LIMBS>,
-    pub pattern: ConstChoice,
+    pub pattern: Choice,
 }
 
 impl<const LIMBS: usize> PatternMatrix<LIMBS> {
@@ -105,7 +105,7 @@ impl<const LIMBS: usize> PatternMatrix<LIMBS> {
         m01: Uint::ZERO,
         m10: Uint::ZERO,
         m11: Uint::ONE,
-        pattern: ConstChoice::TRUE,
+        pattern: Choice::TRUE,
     };
 
     /// Apply this matrix to a vector of [Uint]s, returning the result as a vector of
@@ -153,7 +153,7 @@ impl<const LIMBS: usize> PatternMatrix<LIMBS> {
 
     /// Swap the rows of this matrix if `swap` is truthy. Otherwise, do nothing.
     #[inline]
-    pub(crate) const fn conditional_swap_rows(&mut self, swap: ConstChoice) {
+    pub(crate) const fn conditional_swap_rows(&mut self, swap: Choice) {
         Uint::conditional_swap(&mut self.m00, &mut self.m10, swap);
         Uint::conditional_swap(&mut self.m01, &mut self.m11, swap);
         self.pattern = self.pattern.xor(swap);
@@ -161,7 +161,7 @@ impl<const LIMBS: usize> PatternMatrix<LIMBS> {
 
     /// Subtract the bottom row from the top if `subtract` is truthy. Otherwise, do nothing.
     #[inline]
-    pub(crate) const fn conditional_subtract_bottom_row_from_top(&mut self, subtract: ConstChoice) {
+    pub(crate) const fn conditional_subtract_bottom_row_from_top(&mut self, subtract: Choice) {
         // Note: because the signs of the internal representation are stored in `pattern`,
         // subtracting one row from another involves _adding_ these rows instead.
         self.m00 = Uint::select(&self.m00, &self.m00.wrapping_add(&self.m10), subtract);
@@ -170,10 +170,7 @@ impl<const LIMBS: usize> PatternMatrix<LIMBS> {
 
     /// Subtract the right column from the left if `subtract` is truthy. Otherwise, do nothing.
     #[inline]
-    pub(crate) const fn conditional_subtract_right_column_from_left(
-        &mut self,
-        subtract: ConstChoice,
-    ) {
+    pub(crate) const fn conditional_subtract_right_column_from_left(&mut self, subtract: Choice) {
         // Note: because the signs of the internal representation are stored in `pattern`,
         // subtracting one column from another involves _adding_ these columns instead.
         self.m00 = Uint::select(&self.m00, &self.m00.wrapping_add(&self.m01), subtract);
@@ -182,7 +179,7 @@ impl<const LIMBS: usize> PatternMatrix<LIMBS> {
 
     /// If `add` is truthy, add the right column to the left. Otherwise, do nothing.
     #[inline]
-    pub(crate) const fn conditional_add_right_column_to_left(&mut self, add: ConstChoice) {
+    pub(crate) const fn conditional_add_right_column_to_left(&mut self, add: Choice) {
         // Note: because the signs of the internal representation are stored in `pattern`,
         // subtracting one column from another involves _adding_ these columns instead.
         self.m00 = Uint::select(&self.m00, &self.m01.wrapping_sub(&self.m00), add);
@@ -191,14 +188,14 @@ impl<const LIMBS: usize> PatternMatrix<LIMBS> {
 
     /// Double the bottom row of this matrix if `double` is truthy. Otherwise, do nothing.
     #[inline]
-    pub(crate) const fn conditional_double_bottom_row(&mut self, double: ConstChoice) {
+    pub(crate) const fn conditional_double_bottom_row(&mut self, double: Choice) {
         self.m10 = Uint::select(&self.m10, &self.m10.overflowing_shl1().0, double);
         self.m11 = Uint::select(&self.m11, &self.m11.overflowing_shl1().0, double);
     }
 
     /// Negate the elements in this matrix if `negate` is truthy. Otherwise, do nothing.
     #[inline]
-    pub(crate) const fn conditional_negate(&mut self, negate: ConstChoice) {
+    pub(crate) const fn conditional_negate(&mut self, negate: Choice) {
         self.pattern = self.pattern.xor(negate);
     }
 }
@@ -290,26 +287,26 @@ impl<const LIMBS: usize> DividedPatternMatrix<LIMBS> {
 
     /// Swap the rows of this matrix if `swap` is truthy. Otherwise, do nothing.
     #[inline]
-    pub const fn conditional_swap_rows(&mut self, swap: ConstChoice) {
+    pub const fn conditional_swap_rows(&mut self, swap: Choice) {
         self.inner.conditional_swap_rows(swap);
     }
 
     /// Swap the rows of this matrix.
     #[inline]
     pub const fn swap_rows(&mut self) {
-        self.conditional_swap_rows(ConstChoice::TRUE);
+        self.conditional_swap_rows(Choice::TRUE);
     }
 
     /// Subtract the bottom row from the top if `subtract` is truthy. Otherwise, do nothing.
     #[inline]
-    pub const fn conditional_subtract_bottom_row_from_top(&mut self, subtract: ConstChoice) {
+    pub const fn conditional_subtract_bottom_row_from_top(&mut self, subtract: Choice) {
         self.inner
             .conditional_subtract_bottom_row_from_top(subtract);
     }
 
     /// Double the bottom row of this matrix if `double` is truthy. Otherwise, do nothing.
     #[inline]
-    pub const fn conditional_double_bottom_row(&mut self, double: ConstChoice) {
+    pub const fn conditional_double_bottom_row(&mut self, double: Choice) {
         self.inner.conditional_double_bottom_row(double);
         self.k = double.select_u32(self.k, self.k + 1);
         self.k_upper_bound += 1;
@@ -320,12 +317,12 @@ pub(crate) type DividedIntMatrix<const LIMBS: usize> = DividedMatrix<LIMBS, IntM
 
 impl<const LIMBS: usize> DividedIntMatrix<LIMBS> {
     /// Negate the top row of this matrix if `negate`; otherwise do nothing.
-    pub(super) const fn conditional_negate_top_row(&mut self, negate: ConstChoice) {
+    pub(super) const fn conditional_negate_top_row(&mut self, negate: Choice) {
         self.inner.conditional_negate_top_row(negate);
     }
 
     /// Negate the bottom row of this matrix if `negate`; otherwise do nothing.
-    pub(super) const fn conditional_negate_bottom_row(&mut self, negate: ConstChoice) {
+    pub(super) const fn conditional_negate_bottom_row(&mut self, negate: Choice) {
         self.inner.conditional_negate_bottom_row(negate);
     }
 
@@ -341,10 +338,10 @@ impl<const LIMBS: usize> DividedIntMatrix<LIMBS> {
 #[cfg(test)]
 mod tests {
     use crate::modular::bingcd::matrix::{DividedPatternMatrix, PatternMatrix};
-    use crate::{ConstChoice, U64, U256, Uint};
+    use crate::{Choice, U64, U256, Uint};
 
     impl<const LIMBS: usize> PatternMatrix<LIMBS> {
-        pub(crate) const fn new_u64(matrix: (u64, u64, u64, u64), pattern: ConstChoice) -> Self {
+        pub(crate) const fn new_u64(matrix: (u64, u64, u64, u64), pattern: Choice) -> Self {
             Self {
                 m00: Uint::from_u64(matrix.0),
                 m01: Uint::from_u64(matrix.1),
@@ -358,7 +355,7 @@ mod tests {
     impl<const LIMBS: usize> DividedPatternMatrix<LIMBS> {
         pub(crate) const fn new_u64(
             matrix: (u64, u64, u64, u64),
-            pattern: ConstChoice,
+            pattern: Choice,
             k: u32,
             k_upper_bound: u32,
         ) -> Self {
@@ -371,7 +368,7 @@ mod tests {
     }
 
     const X: DividedPatternMatrix<{ U256::LIMBS }> =
-        DividedPatternMatrix::new_u64((1u64, 7u64, 23u64, 53u64), ConstChoice::TRUE, 6, 8);
+        DividedPatternMatrix::new_u64((1u64, 7u64, 23u64, 53u64), Choice::TRUE, 6, 8);
 
     #[test]
     fn test_wrapping_apply_to() {
@@ -379,7 +376,7 @@ mod tests {
         let b = U64::from_be_hex("AE693BF7BE8E5566");
         let matrix = DividedPatternMatrix::<{ U64::LIMBS }>::new_u64(
             (288, 208, 310, 679),
-            ConstChoice::TRUE,
+            Choice::TRUE,
             17,
             17,
         );
@@ -399,62 +396,61 @@ mod tests {
     fn test_swap() {
         let mut y = X;
         y.swap_rows();
-        let target = DividedPatternMatrix::new_u64((23, 53, 1, 7), ConstChoice::FALSE, 6, 8);
+        let target = DividedPatternMatrix::new_u64((23, 53, 1, 7), Choice::FALSE, 6, 8);
         assert_eq!(y, target);
     }
 
     #[test]
     fn test_conditional_swap() {
         let mut y = X;
-        y.conditional_swap_rows(ConstChoice::FALSE);
+        y.conditional_swap_rows(Choice::FALSE);
         assert_eq!(y, X);
-        y.conditional_swap_rows(ConstChoice::TRUE);
-        let target = DividedPatternMatrix::new_u64((23, 53, 1, 7), ConstChoice::FALSE, 6, 8);
+        y.conditional_swap_rows(Choice::TRUE);
+        let target = DividedPatternMatrix::new_u64((23, 53, 1, 7), Choice::FALSE, 6, 8);
         assert_eq!(y, target);
     }
 
     #[test]
     fn test_conditional_subtract_bottom_row_from_top() {
         let mut y = X;
-        y.conditional_subtract_bottom_row_from_top(ConstChoice::FALSE);
+        y.conditional_subtract_bottom_row_from_top(Choice::FALSE);
         assert_eq!(y, X);
-        y.conditional_subtract_bottom_row_from_top(ConstChoice::TRUE);
+        y.conditional_subtract_bottom_row_from_top(Choice::TRUE);
         let target =
-            DividedPatternMatrix::new_u64((24u64, 60u64, 23u64, 53u64), ConstChoice::TRUE, 6, 8);
+            DividedPatternMatrix::new_u64((24u64, 60u64, 23u64, 53u64), Choice::TRUE, 6, 8);
         assert_eq!(y, target);
     }
 
     #[test]
     fn test_conditional_double() {
         let mut y = X;
-        y.conditional_double_bottom_row(ConstChoice::FALSE);
-        let target =
-            DividedPatternMatrix::new_u64((1u64, 7u64, 23u64, 53u64), ConstChoice::TRUE, 6, 9);
+        y.conditional_double_bottom_row(Choice::FALSE);
+        let target = DividedPatternMatrix::new_u64((1u64, 7u64, 23u64, 53u64), Choice::TRUE, 6, 9);
         assert_eq!(y, target);
-        y.conditional_double_bottom_row(ConstChoice::TRUE);
+        y.conditional_double_bottom_row(Choice::TRUE);
         let target =
-            DividedPatternMatrix::new_u64((1u64, 7u64, 46u64, 106u64), ConstChoice::TRUE, 7, 10);
+            DividedPatternMatrix::new_u64((1u64, 7u64, 46u64, 106u64), Choice::TRUE, 7, 10);
         assert_eq!(y, target);
     }
 
     #[test]
     fn test_conditional_add_right_column_to_left() {
         let mut y = X.inner;
-        y.conditional_add_right_column_to_left(ConstChoice::FALSE);
+        y.conditional_add_right_column_to_left(Choice::FALSE);
         assert_eq!(y, X.inner);
-        y.conditional_add_right_column_to_left(ConstChoice::TRUE);
+        y.conditional_add_right_column_to_left(Choice::TRUE);
 
-        let target = PatternMatrix::new_u64((6u64, 7u64, 30u64, 53u64), ConstChoice::TRUE);
+        let target = PatternMatrix::new_u64((6u64, 7u64, 30u64, 53u64), Choice::TRUE);
         assert_eq!(y, target);
     }
 
     #[test]
     fn test_conditional_subtract_right_column_from_left() {
         let mut y = X.inner;
-        y.conditional_subtract_right_column_from_left(ConstChoice::FALSE);
+        y.conditional_subtract_right_column_from_left(Choice::FALSE);
         assert_eq!(y, X.inner);
-        y.conditional_subtract_right_column_from_left(ConstChoice::TRUE);
-        let target = PatternMatrix::new_u64((8u64, 7u64, 76u64, 53u64), ConstChoice::TRUE);
+        y.conditional_subtract_right_column_from_left(Choice::TRUE);
+        let target = PatternMatrix::new_u64((8u64, 7u64, 76u64, 53u64), Choice::TRUE);
         assert_eq!(y, target);
     }
 }

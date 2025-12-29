@@ -5,7 +5,7 @@
 
 use super::UintRef;
 use crate::{
-    ConstChoice, Limb, NonZero,
+    Choice, Limb, NonZero,
     div_limb::{Reciprocal, div2by1, div3by2},
     primitives::u32_min,
     word,
@@ -181,7 +181,7 @@ impl UintRef {
             y,
             ysize as u32,
             reciprocal,
-            ConstChoice::TRUE,
+            Choice::TRUE,
         );
 
         // Copy the remainder to the divisor
@@ -208,10 +208,10 @@ impl UintRef {
         debug_assert!(reciprocal.shift() == 0);
 
         // Perform the core division algorithm
-        x_hi = Self::div_rem_large_shifted(x, x_hi, y, ywords, reciprocal, ConstChoice::FALSE);
+        x_hi = Self::div_rem_large_shifted(x, x_hi, y, ywords, reciprocal, Choice::FALSE);
 
         // Calculate quotient and remainder for the case where the divisor is a single word.
-        let limb_div = ConstChoice::from_u32_eq(1, ywords);
+        let limb_div = Choice::from_u32_eq(1, ywords);
         // Note that `div2by1()` will panic if `x_hi >= reciprocal.divisor_normalized`,
         // but this can only be the case if `limb_div` is falsy, in which case we discard
         // the result anyway, so we conditionally set `x_hi` to zero for this branch.
@@ -234,16 +234,12 @@ impl UintRef {
         let hi_pos = u32_min(x.nlimbs() as u32, ywords - 1);
         let mut i = 1;
         while i < min {
-            y.0[i] = Limb::select(
-                Limb::ZERO,
-                x.0[i],
-                ConstChoice::from_u32_lt(i as u32, ywords),
-            );
-            y.0[i] = Limb::select(y.0[i], x_hi, ConstChoice::from_u32_eq(i as u32, hi_pos));
+            y.0[i] = Limb::select(Limb::ZERO, x.0[i], Choice::from_u32_lt(i as u32, ywords));
+            y.0[i] = Limb::select(y.0[i], x_hi, Choice::from_u32_eq(i as u32, hi_pos));
             i += 1;
         }
         while i < y.nlimbs() {
-            y.0[i] = Limb::select(Limb::ZERO, x_hi, ConstChoice::from_u32_eq(i as u32, hi_pos));
+            y.0[i] = Limb::select(Limb::ZERO, x_hi, Choice::from_u32_eq(i as u32, hi_pos));
             i += 1;
         }
     }
@@ -263,7 +259,7 @@ impl UintRef {
         y: &Self,
         ywords: u32,
         reciprocal: Reciprocal,
-        vartime: ConstChoice,
+        vartime: Choice,
     ) -> Limb {
         let x = self;
         let xsize = x.nlimbs();
@@ -279,7 +275,7 @@ impl UintRef {
             let mut quo = div3by2(x_hi.0, x_xi.0, x.0[xi - 1].0, &reciprocal, y.0[ysize - 2].0);
 
             // This loop is a no-op once xi is smaller than the number of words in the divisor
-            let done = ConstChoice::from_u32_lt(xi as u32, ywords - 1);
+            let done = Choice::from_u32_lt(xi as u32, ywords - 1);
             if vartime.and(done).to_bool_vartime() {
                 break;
             }
@@ -347,7 +343,7 @@ impl UintRef {
         let reciprocal = Reciprocal::new(y.0[ysize - 1].to_nz().expect_copied("zero divisor"));
 
         // Perform the core division algorithm
-        x_hi = Self::div_rem_large_shifted(x, x_hi, y, ysize as u32, reciprocal, ConstChoice::TRUE);
+        x_hi = Self::div_rem_large_shifted(x, x_hi, y, ysize as u32, reciprocal, Choice::TRUE);
 
         // Copy the remainder to divisor
         y.leading_mut(ysize - 1).copy_from(x.leading(ysize - 1));
@@ -380,17 +376,10 @@ impl UintRef {
         debug_assert!(reciprocal.shift() == 0);
 
         // Perform the core division algorithm
-        x_hi = Self::rem_wide_large_shifted(
-            (x_lo, x),
-            x_hi,
-            y,
-            ywords,
-            reciprocal,
-            ConstChoice::FALSE,
-        );
+        x_hi = Self::rem_wide_large_shifted((x_lo, x), x_hi, y, ywords, reciprocal, Choice::FALSE);
 
         // Calculate remainder for the case where the divisor is a single word.
-        let limb_div = ConstChoice::from_u32_eq(1, ywords);
+        let limb_div = Choice::from_u32_eq(1, ywords);
         // Note that `div2by1()` will panic if `x_hi >= reciprocal.divisor_normalized`,
         // but this can only be the case if `limb_div` is falsy, in which case we discard
         // the result anyway, so we conditionally set `x_hi` to zero for this branch.
@@ -403,12 +392,8 @@ impl UintRef {
         // Copy the remainder to divisor
         let mut i = 1;
         while i < ysize {
-            y.0[i] = Limb::select(
-                Limb::ZERO,
-                x.0[i],
-                ConstChoice::from_u32_lt(i as u32, ywords),
-            );
-            y.0[i] = Limb::select(y.0[i], x_hi, ConstChoice::from_u32_eq(i as u32, ywords - 1));
+            y.0[i] = Limb::select(Limb::ZERO, x.0[i], Choice::from_u32_lt(i as u32, ywords));
+            y.0[i] = Limb::select(y.0[i], x_hi, Choice::from_u32_eq(i as u32, ywords - 1));
             i += 1;
         }
     }
@@ -427,7 +412,7 @@ impl UintRef {
         y: &Self,
         ywords: u32,
         reciprocal: Reciprocal,
-        vartime: ConstChoice,
+        vartime: Choice,
     ) -> Limb {
         assert!(
             y.nlimbs() <= x.1.nlimbs(),
@@ -452,7 +437,7 @@ impl UintRef {
             let mut quo = div3by2(x_hi.0, x_xi.0, x.0[xi - 1].0, &reciprocal, y.0[ysize - 2].0);
 
             // This loop is a no-op once xi is smaller than the number of words in the divisor
-            let done = ConstChoice::from_u32_lt(xi as u32, ywords - 1);
+            let done = Choice::from_u32_lt(xi as u32, ywords - 1);
             if vartime.and(done).to_bool_vartime() {
                 break;
             }
@@ -558,7 +543,7 @@ impl UintRef {
             return carry;
         }
         let lshift = reciprocal.shift();
-        let nz = ConstChoice::from_u32_nz(lshift);
+        let nz = Choice::from_u32_nz(lshift);
         let rshift = nz.select_u32(0, Limb::BITS - lshift);
         let mut hi = (carry.0 << lshift) | word::select(0, self.0[nlimbs - 1].0 >> rshift, nz);
         let mut lo;

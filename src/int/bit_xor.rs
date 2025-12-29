@@ -2,7 +2,7 @@
 
 use core::ops::{BitXor, BitXorAssign};
 
-use crate::{ConstCtOption, Uint, Wrapping};
+use crate::{CtOption, Uint, Wrapping};
 
 use super::Int;
 
@@ -21,9 +21,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
         self.bitxor(rhs)
     }
 
-    /// Perform checked bitwise `XOR`, returning a [`ConstCtOption`] which `is_some` always
-    pub fn checked_xor(&self, rhs: &Self) -> ConstCtOption<Self> {
-        ConstCtOption::some(self.bitxor(rhs))
+    /// Perform checked bitwise `XOR`, returning a [`CtOption`] which `is_some` always
+    pub fn checked_xor(&self, rhs: &Self) -> CtOption<Self> {
+        CtOption::some(self.bitxor(rhs))
     }
 }
 

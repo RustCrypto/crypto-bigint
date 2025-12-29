@@ -1,7 +1,7 @@
 //! [`BoxedUint`] bitwise AND operations.
 
 use super::BoxedUint;
-use crate::{BitAnd, BitAndAssign, ConstCtOption, Limb, Wrapping};
+use crate::{BitAnd, BitAndAssign, CtOption, Limb, Wrapping};
 
 impl BoxedUint {
     /// Computes bitwise `a & b`.
@@ -26,9 +26,9 @@ impl BoxedUint {
         self.bitand(rhs)
     }
 
-    /// Perform checked bitwise `AND`, returning a [`ConstCtOption`] which `is_some` always
-    pub fn checked_and(&self, rhs: &Self) -> ConstCtOption<Self> {
-        ConstCtOption::some(self.bitand(rhs))
+    /// Perform checked bitwise `AND`, returning a [`CtOption`] which `is_some` always
+    pub fn checked_and(&self, rhs: &Self) -> CtOption<Self> {
+        CtOption::some(self.bitand(rhs))
     }
 }
 

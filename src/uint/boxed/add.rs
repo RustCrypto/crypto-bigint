@@ -1,8 +1,8 @@
 //! [`BoxedUint`] addition operations.
 
 use crate::{
-    Add, AddAssign, BoxedUint, CheckedAdd, ConstChoice, ConstCtOption, CtSelect, Limb, U64, U128,
-    Uint, Wrapping, WrappingAdd,
+    Add, AddAssign, BoxedUint, CheckedAdd, Choice, CtOption, CtSelect, Limb, U64, U128, Uint,
+    Wrapping, WrappingAdd,
 };
 
 impl BoxedUint {
@@ -50,11 +50,7 @@ impl BoxedUint {
 
     /// Perform in-place wrapping addition, returning the truthy value as the second element of the
     /// tuple if an overflow has occurred.
-    pub(crate) fn conditional_carrying_add_assign(
-        &mut self,
-        rhs: &Self,
-        choice: ConstChoice,
-    ) -> ConstChoice {
+    pub(crate) fn conditional_carrying_add_assign(&mut self, rhs: &Self, choice: Choice) -> Choice {
         debug_assert!(self.bits_precision() <= rhs.bits_precision());
         let mask = Limb::ZERO.ct_select(&Limb::MAX, choice);
         let mut carry = Limb::ZERO;
@@ -66,7 +62,7 @@ impl BoxedUint {
             carry = c;
         }
 
-        ConstChoice::new((carry.0 & 1) as u8)
+        Choice::new((carry.0 & 1) as u8)
     }
 }
 
@@ -175,9 +171,9 @@ impl AddAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
 }
 
 impl CheckedAdd for BoxedUint {
-    fn checked_add(&self, rhs: &Self) -> ConstCtOption<Self> {
+    fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
         let (result, carry) = self.carrying_add(rhs, Limb::ZERO);
-        ConstCtOption::new(result, carry.is_zero())
+        CtOption::new(result, carry.is_zero())
     }
 }
 

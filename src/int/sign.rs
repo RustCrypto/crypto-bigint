@@ -1,4 +1,4 @@
-use crate::{ConstChoice, ConstCtOption, ConstZero, Int, Uint, Word, word};
+use crate::{Choice, ConstZero, CtOption, Int, Uint, Word, word};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Returns the word of most significant [`Limb`].
@@ -19,10 +19,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// Returns `None` when the result exceeds the bounds of an [`Int<LIMBS>`].
     #[inline]
-    pub const fn new_from_abs_sign(
-        abs: Uint<LIMBS>,
-        is_negative: ConstChoice,
-    ) -> ConstCtOption<Self> {
+    pub const fn new_from_abs_sign(abs: Uint<LIMBS>, is_negative: Choice) -> CtOption<Self> {
         let abs_int = abs.as_int();
         let abs_msb = abs_int.is_negative();
         let signed = abs_int.wrapping_neg_if(is_negative);
@@ -33,32 +30,32 @@ impl<const LIMBS: usize> Int<LIMBS> {
         // the MSB, so we check if the sign is negative (wrapping negation is performed) and
         // the sign of the wrapping negation is also negative.
         let fits = abs_msb.not().or(is_negative.and(signed.is_negative()));
-        ConstCtOption::new(signed, fits)
+        CtOption::new(signed, fits)
     }
 
-    /// Construct a new [`Int`] from an [`ConstCtOption`] of an absolute value and sign.
+    /// Construct a new [`Int`] from an [`CtOption`] of an absolute value and sign.
     #[inline]
     pub(crate) const fn new_from_abs_opt_sign(
-        maybe_abs: ConstCtOption<Uint<LIMBS>>,
-        is_negative: ConstChoice,
-    ) -> ConstCtOption<Self> {
+        maybe_abs: CtOption<Uint<LIMBS>>,
+        is_negative: Choice,
+    ) -> CtOption<Self> {
         Self::new_from_abs_sign(maybe_abs.to_inner_unchecked(), is_negative)
             .filter_by(maybe_abs.is_some())
     }
 
-    /// Whether this [`Int`] is negative, as a `ConstChoice`.
+    /// Whether this [`Int`] is negative, as a `Choice`.
     #[inline(always)]
-    pub const fn is_negative(&self) -> ConstChoice {
+    pub const fn is_negative(&self) -> Choice {
         word::choice_from_msb(self.most_significant_word())
     }
 
-    /// Whether this [`Int`] is positive, as a `ConstChoice`.
-    pub const fn is_positive(&self) -> ConstChoice {
+    /// Whether this [`Int`] is positive, as a `Choice`.
+    pub const fn is_positive(&self) -> Choice {
         self.is_negative().not().and(self.is_nonzero())
     }
 
     /// The sign and magnitude of this [`Int`].
-    pub const fn abs_sign(&self) -> (Uint<LIMBS>, ConstChoice) {
+    pub const fn abs_sign(&self) -> (Uint<LIMBS>, Choice) {
         let sign = self.is_negative();
         // Note: this negate_if is safe to use, since we are negating based on self.is_negative()
         let abs = self.wrapping_neg_if(sign);
@@ -79,62 +76,62 @@ mod tests {
     #[test]
     fn new_from_abs_sign() {
         assert_eq!(
-            I128::new_from_abs_sign(U128::ZERO, ConstChoice::FALSE).is_some(),
-            ConstChoice::TRUE
+            I128::new_from_abs_sign(U128::ZERO, Choice::FALSE).is_some(),
+            Choice::TRUE
         );
         assert_eq!(
-            I128::new_from_abs_sign(U128::ZERO, ConstChoice::TRUE).is_some(),
-            ConstChoice::TRUE
+            I128::new_from_abs_sign(U128::ZERO, Choice::TRUE).is_some(),
+            Choice::TRUE
         );
         assert_eq!(
-            I128::new_from_abs_sign(I128::MIN.abs(), ConstChoice::FALSE).is_some(),
-            ConstChoice::FALSE
+            I128::new_from_abs_sign(I128::MIN.abs(), Choice::FALSE).is_some(),
+            Choice::FALSE
         );
         assert_eq!(
-            I128::new_from_abs_sign(I128::MIN.abs(), ConstChoice::TRUE).is_some(),
-            ConstChoice::TRUE
+            I128::new_from_abs_sign(I128::MIN.abs(), Choice::TRUE).is_some(),
+            Choice::TRUE
         );
         assert_eq!(
-            I128::new_from_abs_sign(I128::MAX.abs(), ConstChoice::FALSE).is_some(),
-            ConstChoice::TRUE
+            I128::new_from_abs_sign(I128::MAX.abs(), Choice::FALSE).is_some(),
+            Choice::TRUE
         );
         assert_eq!(
-            I128::new_from_abs_sign(I128::MAX.abs(), ConstChoice::TRUE).is_some(),
-            ConstChoice::TRUE
+            I128::new_from_abs_sign(I128::MAX.abs(), Choice::TRUE).is_some(),
+            Choice::TRUE
         );
         assert_eq!(
-            I128::new_from_abs_sign(U128::MAX, ConstChoice::TRUE).is_some(),
-            ConstChoice::FALSE
+            I128::new_from_abs_sign(U128::MAX, Choice::TRUE).is_some(),
+            Choice::FALSE
         );
     }
 
     #[test]
     fn is_negative() {
-        assert_eq!(I128::MIN.is_negative(), ConstChoice::TRUE);
-        assert_eq!(I128::MINUS_ONE.is_negative(), ConstChoice::TRUE);
-        assert_eq!(I128::ZERO.is_negative(), ConstChoice::FALSE);
-        assert_eq!(I128::ONE.is_negative(), ConstChoice::FALSE);
-        assert_eq!(I128::MAX.is_negative(), ConstChoice::FALSE);
+        assert_eq!(I128::MIN.is_negative(), Choice::TRUE);
+        assert_eq!(I128::MINUS_ONE.is_negative(), Choice::TRUE);
+        assert_eq!(I128::ZERO.is_negative(), Choice::FALSE);
+        assert_eq!(I128::ONE.is_negative(), Choice::FALSE);
+        assert_eq!(I128::MAX.is_negative(), Choice::FALSE);
 
         let random_negative = I128::from_be_hex("91113333555577779999BBBBDDDDFFFF");
-        assert_eq!(random_negative.is_negative(), ConstChoice::TRUE);
+        assert_eq!(random_negative.is_negative(), Choice::TRUE);
 
         let random_positive = I128::from_be_hex("71113333555577779999BBBBDDDDFFFF");
-        assert_eq!(random_positive.is_negative(), ConstChoice::FALSE);
+        assert_eq!(random_positive.is_negative(), Choice::FALSE);
     }
 
     #[test]
     fn is_positive() {
-        assert_eq!(I128::MIN.is_positive(), ConstChoice::FALSE);
-        assert_eq!(I128::MINUS_ONE.is_positive(), ConstChoice::FALSE);
-        assert_eq!(I128::ZERO.is_positive(), ConstChoice::FALSE);
-        assert_eq!(I128::ONE.is_positive(), ConstChoice::TRUE);
-        assert_eq!(I128::MAX.is_positive(), ConstChoice::TRUE);
+        assert_eq!(I128::MIN.is_positive(), Choice::FALSE);
+        assert_eq!(I128::MINUS_ONE.is_positive(), Choice::FALSE);
+        assert_eq!(I128::ZERO.is_positive(), Choice::FALSE);
+        assert_eq!(I128::ONE.is_positive(), Choice::TRUE);
+        assert_eq!(I128::MAX.is_positive(), Choice::TRUE);
 
         let random_negative = I128::from_be_hex("deadbeefcafebabedeadbeefcafebabe");
-        assert_eq!(random_negative.is_positive(), ConstChoice::FALSE);
+        assert_eq!(random_negative.is_positive(), Choice::FALSE);
 
         let random_positive = I128::from_be_hex("0badc0dedeadc0decafebabedeadcafe");
-        assert_eq!(random_positive.is_positive(), ConstChoice::TRUE);
+        assert_eq!(random_positive.is_positive(), Choice::TRUE);
     }
 }

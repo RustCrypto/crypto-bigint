@@ -1,7 +1,7 @@
 //! [`BoxedUint`] bitwise XOR operations.
 
 use super::BoxedUint;
-use crate::{BitXor, BitXorAssign, ConstCtOption, Wrapping};
+use crate::{BitXor, BitXorAssign, CtOption, Wrapping};
 
 impl BoxedUint {
     /// Computes bitwise `a ^ b`.
@@ -18,9 +18,9 @@ impl BoxedUint {
         self.bitxor(rhs)
     }
 
-    /// Perform checked bitwise `XOR`, returning a [`ConstCtOption`] which `is_some` always
-    pub fn checked_xor(&self, rhs: &Self) -> ConstCtOption<Self> {
-        ConstCtOption::some(self.bitxor(rhs))
+    /// Perform checked bitwise `XOR`, returning a [`CtOption`] which `is_some` always
+    pub fn checked_xor(&self, rhs: &Self) -> CtOption<Self> {
+        CtOption::some(self.bitxor(rhs))
     }
 }
 

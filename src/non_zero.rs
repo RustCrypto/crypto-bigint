@@ -1,8 +1,8 @@
 //! Wrapper type for non-zero integers.
 
 use crate::{
-    Bounded, ConstChoice, ConstCtOption, ConstOne, Constants, CtEq, CtSelect, Encoding, Int, Limb,
-    Mul, Odd, One, Uint, Zero,
+    Bounded, Choice, ConstOne, Constants, CtEq, CtOption, CtSelect, Encoding, Int, Limb, Mul, Odd,
+    One, Uint, Zero,
 };
 use core::{
     fmt,
@@ -43,7 +43,7 @@ pub struct NonZero<T: ?Sized>(pub(crate) T);
 impl<T> NonZero<T> {
     /// Create a new non-zero integer.
     #[inline]
-    pub fn new(mut n: T) -> ConstCtOption<Self>
+    pub fn new(mut n: T) -> CtOption<Self>
     where
         T: Zero + One + CtSelect,
     {
@@ -53,7 +53,7 @@ impl<T> NonZero<T> {
         // `NonZero` values really can expect the value to never be zero, even in the case
         // `CtOption::is_some` is false.
         n.ct_assign(&T::one_like(&n), is_zero);
-        ConstCtOption::new(Self(n), !is_zero)
+        CtOption::new(Self(n), !is_zero)
     }
 
     /// Returns the inner value.
@@ -97,12 +97,12 @@ where
     T: Zero + One + CtSelect + Encoding,
 {
     /// Decode from big endian bytes.
-    pub fn from_be_bytes(bytes: T::Repr) -> ConstCtOption<Self> {
+    pub fn from_be_bytes(bytes: T::Repr) -> CtOption<Self> {
         Self::new(T::from_be_bytes(bytes))
     }
 
     /// Decode from little endian bytes.
-    pub fn from_le_bytes(bytes: T::Repr) -> ConstCtOption<Self> {
+    pub fn from_le_bytes(bytes: T::Repr) -> CtOption<Self> {
         Self::new(T::from_le_bytes(bytes))
     }
 }
@@ -266,7 +266,7 @@ impl<const LIMBS: usize> NonZeroInt<LIMBS> {
     }
 
     /// The sign and magnitude of this [`NonZeroInt`].
-    pub const fn abs_sign(&self) -> (NonZero<Uint<LIMBS>>, ConstChoice) {
+    pub const fn abs_sign(&self) -> (NonZero<Uint<LIMBS>>, Choice) {
         let (abs, sign) = self.0.abs_sign();
         // Absolute value of a non-zero value is non-zero
         (NonZero(abs), sign)
@@ -284,12 +284,12 @@ where
     T: ArrayEncoding + Zero + One + CtSelect,
 {
     /// Decode a non-zero integer from big endian bytes.
-    pub fn from_be_byte_array(bytes: ByteArray<T>) -> ConstCtOption<Self> {
+    pub fn from_be_byte_array(bytes: ByteArray<T>) -> CtOption<Self> {
         Self::new(T::from_be_byte_array(bytes))
     }
 
     /// Decode a non-zero integer from big endian bytes.
-    pub fn from_le_byte_array(bytes: ByteArray<T>) -> ConstCtOption<Self> {
+    pub fn from_le_byte_array(bytes: ByteArray<T>) -> CtOption<Self> {
         Self::new(T::from_be_byte_array(bytes))
     }
 }
@@ -305,7 +305,7 @@ where
     T: CtEq + ?Sized,
 {
     #[inline]
-    fn ct_eq(&self, other: &Self) -> ConstChoice {
+    fn ct_eq(&self, other: &Self) -> Choice {
         CtEq::ct_eq(&self.0, &other.0)
     }
 }
@@ -315,7 +315,7 @@ where
     T: CtSelect,
 {
     #[inline]
-    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
+    fn ct_select(&self, other: &Self, choice: Choice) -> Self {
         Self(self.0.ct_select(&other.0, choice))
     }
 }
@@ -524,13 +524,13 @@ impl<T: zeroize::Zeroize + Zero> zeroize::Zeroize for NonZero<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, I128, U128};
+    use crate::{Choice, I128, U128};
 
     #[test]
     fn int_abs_sign() {
         let x = I128::from(-55).to_nz().unwrap();
         let (abs, sgn) = x.abs_sign();
         assert_eq!(abs, U128::from(55u32).to_nz().unwrap());
-        assert_eq!(sgn, ConstChoice::TRUE);
+        assert_eq!(sgn, Choice::TRUE);
     }
 }

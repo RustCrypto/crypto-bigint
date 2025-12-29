@@ -1,9 +1,9 @@
 use super::{BoxedMontyForm, BoxedMontyParams, BoxedMontyParamsInner};
-use crate::{ConstChoice, CtSelect};
+use crate::{Choice, CtSelect};
 use alloc::sync::Arc;
 
 impl CtSelect for BoxedMontyForm {
-    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
+    fn ct_select(&self, other: &Self, choice: Choice) -> Self {
         Self {
             montgomery_form: self
                 .montgomery_form
@@ -14,13 +14,13 @@ impl CtSelect for BoxedMontyForm {
 }
 
 impl CtSelect for BoxedMontyParams {
-    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
+    fn ct_select(&self, other: &Self, choice: Choice) -> Self {
         Self(Arc::new(self.0.ct_select(&other.0, choice)))
     }
 }
 
 impl CtSelect for BoxedMontyParamsInner {
-    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
+    fn ct_select(&self, other: &Self, choice: Choice) -> Self {
         Self {
             modulus: self.modulus.ct_select(&other.modulus, choice),
             one: self.one.ct_select(&other.one, choice),

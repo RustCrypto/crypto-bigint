@@ -1,8 +1,8 @@
 //! Wrapping arithmetic.
 
 use crate::{
-    ConstChoice, CtEq, CtSelect, One, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl,
-    WrappingShr, WrappingSub, Zero,
+    Choice, CtEq, CtSelect, One, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr,
+    WrappingSub, Zero,
 };
 use core::{
     fmt,
@@ -189,7 +189,7 @@ where
     T: CtEq,
 {
     #[inline]
-    fn ct_eq(&self, other: &Self) -> ConstChoice {
+    fn ct_eq(&self, other: &Self) -> Choice {
         CtEq::ct_eq(&self.0, &other.0)
     }
 }
@@ -199,7 +199,7 @@ where
     T: CtSelect,
 {
     #[inline]
-    fn ct_select(&self, other: &Self, choice: ConstChoice) -> Self {
+    fn ct_select(&self, other: &Self, choice: Choice) -> Self {
         Self(self.0.ct_select(&other.0, choice))
     }
 }

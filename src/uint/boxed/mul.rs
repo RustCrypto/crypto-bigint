@@ -1,7 +1,7 @@
 //! [`BoxedUint`] multiplication operations.
 
 use crate::{
-    BoxedUint, CheckedMul, ConcatenatingMul, ConstCtOption, Limb, Mul, MulAssign, Uint, UintRef,
+    BoxedUint, CheckedMul, ConcatenatingMul, CtOption, Limb, Mul, MulAssign, Uint, UintRef,
     Wrapping, WrappingMul,
     uint::mul::{karatsuba, wrapping_mul_overflow},
 };
@@ -30,11 +30,11 @@ impl BoxedUint {
 
     /// Multiply `self` by `rhs`, wrapping to the width of `self`.
     /// Returns `CtOption::None` if the result overflowed the precision of `self`.
-    pub fn checked_mul(&self, rhs: &Self) -> ConstCtOption<Self> {
+    pub fn checked_mul(&self, rhs: &Self) -> CtOption<Self> {
         let (res, carry) = self.wrapping_mul_carry(rhs.as_limbs(), self.nlimbs());
         let overflow =
             wrapping_mul_overflow(self.as_uint_ref(), self.as_uint_ref(), carry.is_nonzero());
-        ConstCtOption::new(res, overflow.not())
+        CtOption::new(res, overflow.not())
     }
 
     /// Perform saturating multiplication, returning `MAX` on overflow.
@@ -70,11 +70,11 @@ impl BoxedUint {
 
     /// Multiply `self` by itself, wrapping to the width of `self`.
     /// Returns `CtOption::None` if the result overflowed the precision of `self`.
-    pub fn checked_square(&self) -> ConstCtOption<Self> {
+    pub fn checked_square(&self) -> CtOption<Self> {
         let (res, carry) = self.wrapping_square_carry(self.nlimbs());
         let overflow =
             wrapping_mul_overflow(self.as_uint_ref(), self.as_uint_ref(), carry.is_nonzero());
-        ConstCtOption::new(res, overflow.not())
+        CtOption::new(res, overflow.not())
     }
 
     /// Perform saturating squaring, returning `MAX` on overflow.
@@ -98,7 +98,7 @@ impl BoxedUint {
 }
 
 impl CheckedMul for BoxedUint {
-    fn checked_mul(&self, rhs: &BoxedUint) -> ConstCtOption<Self> {
+    fn checked_mul(&self, rhs: &BoxedUint) -> CtOption<Self> {
         self.checked_mul(rhs)
     }
 }

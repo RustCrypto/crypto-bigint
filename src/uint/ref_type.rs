@@ -1,6 +1,6 @@
 //! Unsigned integer reference type.
 
-use crate::{ConstChoice, Limb, Uint};
+use crate::{Choice, Limb, Uint};
 use core::{
     fmt,
     ops::{Index, IndexMut},
@@ -110,7 +110,7 @@ impl UintRef {
 
     /// Conditionally assign all of the limbs to zero.
     #[inline(always)]
-    pub const fn conditional_set_zero(&mut self, choice: ConstChoice) {
+    pub const fn conditional_set_zero(&mut self, choice: Choice) {
         let mut i = 0;
         while i < self.nlimbs() {
             self.0[i] = Limb::select(self.0[i], Limb::ZERO, choice);
@@ -121,7 +121,7 @@ impl UintRef {
     /// Conditionally assign all of the limbs to the maximum.
     #[cfg(feature = "alloc")]
     #[inline]
-    pub const fn conditional_set_max(&mut self, choice: ConstChoice) {
+    pub const fn conditional_set_max(&mut self, choice: Choice) {
         let mut i = 0;
         while i < self.nlimbs() {
             self.0[i] = Limb::select(self.0[i], Limb::MAX, choice);

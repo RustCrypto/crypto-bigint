@@ -1,5 +1,5 @@
 use super::UintRef;
-use crate::{ConstChoice, Limb, traits::BitOps, word};
+use crate::{Choice, Limb, traits::BitOps, word};
 
 impl UintRef {
     /// Get the precision of this number in bits.
@@ -7,10 +7,10 @@ impl UintRef {
         self.0.len() as u32 * Limb::BITS
     }
 
-    /// Get the value of the bit at position `index`, as a truthy or falsy [`ConstChoice`].
+    /// Get the value of the bit at position `index`, as a truthy or falsy [`Choice`].
     /// Returns the falsy value for indices out of range.
     #[inline(always)]
-    pub const fn bit(&self, index: u32) -> ConstChoice {
+    pub const fn bit(&self, index: u32) -> Choice {
         let limb_num = index / Limb::BITS;
         let index_in_limb = index % Limb::BITS;
         let index_mask = 1 << index_in_limb;
@@ -19,7 +19,7 @@ impl UintRef {
         let mut i = 0;
         while i < self.0.len() {
             let bit = self.0[i].0 & index_mask;
-            let is_right_limb = ConstChoice::from_u32_eq(i as u32, limb_num);
+            let is_right_limb = Choice::from_u32_eq(i as u32, limb_num);
             result |= word::select(0, bit, is_right_limb);
             i += 1;
         }
@@ -67,14 +67,14 @@ impl UintRef {
 
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
     #[inline(always)]
-    pub const fn set_bit(&mut self, index: u32, bit_value: ConstChoice) {
+    pub const fn set_bit(&mut self, index: u32, bit_value: Choice) {
         let limb_num = index / Limb::BITS;
         let index_in_limb = index % Limb::BITS;
         let index_mask = 1 << index_in_limb;
 
         let mut i = 0;
         while i < self.0.len() {
-            let is_right_limb = ConstChoice::from_u32_eq(i as u32, limb_num);
+            let is_right_limb = Choice::from_u32_eq(i as u32, limb_num);
             let old_limb = self.0[i].0;
             let new_limb = word::select(old_limb & !index_mask, old_limb | index_mask, bit_value);
             self.0[i] = Limb(word::select(old_limb, new_limb, is_right_limb));
@@ -99,7 +99,7 @@ impl UintRef {
     pub const fn leading_zeros(&self) -> u32 {
         let mut count = 0;
         let mut i = self.0.len();
-        let mut nonzero_limb_not_encountered = ConstChoice::TRUE;
+        let mut nonzero_limb_not_encountered = Choice::TRUE;
         while i > 0 {
             i -= 1;
             let l = self.0[i];
@@ -117,7 +117,7 @@ impl UintRef {
     pub const fn trailing_zeros(&self) -> u32 {
         let mut count = 0;
         let mut i = 0;
-        let mut nonzero_limb_not_encountered = ConstChoice::TRUE;
+        let mut nonzero_limb_not_encountered = Choice::TRUE;
         while i < self.0.len() {
             let l = self.0[i];
             let z = l.trailing_zeros();
@@ -154,7 +154,7 @@ impl UintRef {
     pub const fn trailing_ones(&self) -> u32 {
         let mut count = 0;
         let mut i = 0;
-        let mut nonmax_limb_not_encountered = ConstChoice::TRUE;
+        let mut nonmax_limb_not_encountered = Choice::TRUE;
         while i < self.0.len() {
             let l = self.0[i];
             let z = l.trailing_ones();
@@ -191,9 +191,9 @@ impl UintRef {
         let limb = len / Limb::BITS;
         let limb_mask = Limb((1 << (len % Limb::BITS)) - 1);
         let mut i = 0;
-        let mut clear = ConstChoice::FALSE;
+        let mut clear = Choice::FALSE;
         while i < self.nlimbs() {
-            let apply = ConstChoice::from_u32_eq(i as u32, limb);
+            let apply = Choice::from_u32_eq(i as u32, limb);
             self.0[i] = self.0[i].bitand(Limb::select(
                 Limb(word::choice_to_mask(clear.not())),
                 limb_mask,
@@ -220,11 +220,11 @@ impl BitOps for UintRef {
         self.leading_zeros()
     }
 
-    fn bit(&self, index: u32) -> ConstChoice {
+    fn bit(&self, index: u32) -> Choice {
         self.bit(index)
     }
 
-    fn set_bit(&mut self, index: u32, bit_value: ConstChoice) {
+    fn set_bit(&mut self, index: u32, bit_value: Choice) {
         self.set_bit(index, bit_value);
     }
 

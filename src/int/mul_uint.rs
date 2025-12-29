@@ -1,4 +1,4 @@
-use crate::{CheckedMul, ConcatMixed, ConstChoice, ConstCtOption, Int, Uint};
+use crate::{CheckedMul, Choice, ConcatMixed, CtOption, Int, Uint};
 use core::ops::Mul;
 
 impl<const LIMBS: usize> Int<LIMBS> {
@@ -12,7 +12,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub const fn split_mul_uint<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
-    ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, ConstChoice) {
+    ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, Choice) {
         self.widening_mul_uint(rhs)
     }
 
@@ -25,7 +25,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub const fn widening_mul_uint<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
-    ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, ConstChoice) {
+    ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, Choice) {
         // Step 1. split self into its sign and magnitude.
         let (lhs_abs, lhs_sgn) = self.abs_sign();
 
@@ -46,7 +46,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub const fn split_mul_uint_right<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
-    ) -> (Uint<{ RHS_LIMBS }>, Uint<{ LIMBS }>, ConstChoice) {
+    ) -> (Uint<{ RHS_LIMBS }>, Uint<{ LIMBS }>, Choice) {
         rhs.widening_mul_int(self)
     }
 
@@ -60,7 +60,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub const fn widening_mul_uint_right<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
-    ) -> (Uint<{ RHS_LIMBS }>, Uint<{ LIMBS }>, ConstChoice) {
+    ) -> (Uint<{ RHS_LIMBS }>, Uint<{ LIMBS }>, Choice) {
         rhs.widening_mul_int(self)
     }
 
@@ -85,7 +85,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub fn checked_mul_uint_right<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
-    ) -> ConstCtOption<Int<RHS_LIMBS>> {
+    ) -> CtOption<Int<RHS_LIMBS>> {
         rhs.checked_mul_int(self)
     }
 
@@ -93,7 +93,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub fn checked_mul_uint<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
-    ) -> ConstCtOption<Int<LIMBS>> {
+    ) -> CtOption<Int<LIMBS>> {
         let (abs_lhs, lhs_sgn) = self.abs_sign();
         Self::new_from_abs_opt_sign(abs_lhs.checked_mul(rhs), lhs_sgn)
     }
@@ -101,7 +101,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Uint<RHS_LIMBS>> for Int<LIMBS> {
     #[inline]
-    fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> ConstCtOption<Self> {
+    fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
         self.checked_mul_uint(rhs)
     }
 }

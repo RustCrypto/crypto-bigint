@@ -1,4 +1,4 @@
-use crate::{ConstChoice, CtEq};
+use crate::{Choice, CtEq};
 use core::ops::Neg;
 
 /// Possible return values for Jacobi symbol calculations.
@@ -20,18 +20,18 @@ pub enum JacobiSymbol {
 
 impl JacobiSymbol {
     /// Determine if the symbol is zero.
-    pub const fn is_zero(&self) -> ConstChoice {
-        ConstChoice::from_i64_eq(*self as i8 as i64, 0)
+    pub const fn is_zero(&self) -> Choice {
+        Choice::from_i64_eq(*self as i8 as i64, 0)
     }
 
     /// Determine if the symbol is one.
-    pub const fn is_one(&self) -> ConstChoice {
-        ConstChoice::from_i64_eq(*self as i8 as i64, 1)
+    pub const fn is_one(&self) -> Choice {
+        Choice::from_i64_eq(*self as i8 as i64, 1)
     }
 
     /// Determine if the symbol is minus one.
-    pub const fn is_minus_one(&self) -> ConstChoice {
-        ConstChoice::from_i64_eq(*self as i8 as i64, -1)
+    pub const fn is_minus_one(&self) -> Choice {
+        Choice::from_i64_eq(*self as i8 as i64, -1)
     }
 
     /// Negate the symbol.
@@ -54,7 +54,7 @@ impl JacobiSymbol {
 }
 
 impl CtEq for JacobiSymbol {
-    fn ct_eq(&self, other: &Self) -> ConstChoice {
+    fn ct_eq(&self, other: &Self) -> Choice {
         (*self as i8).ct_eq(&(*other as i8))
     }
 }

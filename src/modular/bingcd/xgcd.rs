@@ -2,7 +2,7 @@
 use super::gcd::bingcd_step;
 use crate::modular::bingcd::matrix::{DividedIntMatrix, DividedPatternMatrix, PatternMatrix, Unit};
 use crate::primitives::u32_max;
-use crate::{ConstChoice, Int, Limb, NonZeroUint, Odd, OddUint, U64, U128, Uint, Word};
+use crate::{Choice, Int, Limb, NonZeroUint, Odd, OddUint, U64, U128, Uint, Word};
 
 /// Binary XGCD update step.
 ///
@@ -33,7 +33,7 @@ const fn binxgcd_step<const LIMBS: usize, const MATRIX_LIMBS: usize>(
     a: &mut Uint<LIMBS>,
     b: &mut Uint<LIMBS>,
     matrix: &mut DividedPatternMatrix<MATRIX_LIMBS>,
-    halt_at_zero: ConstChoice,
+    halt_at_zero: Choice,
 ) -> Word {
     let (a_odd, swap, j) = bingcd_step(a, b);
 
@@ -209,11 +209,8 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
     /// <https://eprint.iacr.org/2020/972.pdf>.
     pub(crate) const fn classic_binxgcd(&self, rhs: &Self) -> DividedPatternXgcdOutput<LIMBS> {
-        let (gcd, _, matrix, _) = self.partial_binxgcd::<LIMBS>(
-            rhs.as_ref(),
-            Self::MIN_BINXGCD_ITERATIONS,
-            ConstChoice::TRUE,
-        );
+        let (gcd, _, matrix, _) =
+            self.partial_binxgcd::<LIMBS>(rhs.as_ref(), Self::MIN_BINXGCD_ITERATIONS, Choice::TRUE);
         DividedPatternXgcdOutput { gcd, matrix }
     }
 
@@ -278,7 +275,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
             let compact_a = a.compact::<K, LIMBS_2K>(n);
             let compact_b = b.compact::<K, LIMBS_2K>(n);
             let b_eq_compact_b =
-                ConstChoice::from_u32_le(b_bits, K - 1).or(ConstChoice::from_u32_eq(n, 2 * K));
+                Choice::from_u32_le(b_bits, K - 1).or(Choice::from_u32_eq(n, 2 * K));
 
             // Compute the K-1 iteration update matrix from a_ and b_
             let (.., update_matrix, _) = compact_a
@@ -324,7 +321,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
         &self,
         rhs: &Uint<LIMBS>,
         iterations: u32,
-        halt_at_zero: ConstChoice,
+        halt_at_zero: Choice,
     ) -> (Self, Uint<LIMBS>, DividedPatternMatrix<UPDATE_LIMBS>, Word) {
         let (mut a, mut b) = (*self.as_ref(), *rhs);
         // This matrix corresponds with (f0, g0, f1, g1) in the paper.
@@ -358,7 +355,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute the absolute difference between `self` and `rhs`.
     /// In addition to the result, also returns whether `rhs > self`.
-    const fn abs_diff(&self, rhs: &Self) -> (Self, ConstChoice) {
+    const fn abs_diff(&self, rhs: &Self) -> (Self, Choice) {
         let (diff, borrow) = self.borrowing_sub(rhs, Limb::ZERO);
         let rhs_gt_self = borrow.is_nonzero();
         let abs_diff = diff.wrapping_neg_if(rhs_gt_self);
@@ -375,7 +372,7 @@ mod tests {
     mod test_extract_quotients {
         use crate::modular::bingcd::matrix::DividedPatternMatrix;
         use crate::modular::bingcd::xgcd::{DividedPatternXgcdOutput, RawXgcdOutput};
-        use crate::{ConstChoice, U64, Uint};
+        use crate::{Choice, U64, Uint};
 
         fn raw_binxgcdoutput_setup<const LIMBS: usize>(
             matrix: DividedPatternMatrix<LIMBS>,
@@ -399,7 +396,7 @@ mod tests {
         fn test_extract_quotients_basic() {
             let output = raw_binxgcdoutput_setup(DividedPatternMatrix::<{ U64::LIMBS }>::new_u64(
                 (0, 0, 5, 7),
-                ConstChoice::FALSE,
+                Choice::FALSE,
                 0,
                 0,
             ))
@@ -410,7 +407,7 @@ mod tests {
 
             let output = raw_binxgcdoutput_setup(DividedPatternMatrix::<{ U64::LIMBS }>::new_u64(
                 (0, 0, 7u64, 5u64),
-                ConstChoice::TRUE,
+                Choice::TRUE,
                 0,
                 0,
             ))
@@ -424,7 +421,7 @@ mod tests {
     mod test_derive_bezout_coefficients {
         use crate::modular::bingcd::matrix::DividedPatternMatrix;
         use crate::modular::bingcd::xgcd::RawXgcdOutput;
-        use crate::{ConstChoice, Int, U64, Uint};
+        use crate::{Choice, Int, U64, Uint};
 
         #[test]
         fn test_derive_bezout_coefficients_unit() {
@@ -442,12 +439,7 @@ mod tests {
         fn test_derive_bezout_coefficients_basic() {
             let output = RawXgcdOutput {
                 gcd: U64::ONE.to_odd().unwrap(),
-                matrix: DividedPatternMatrix::new_u64(
-                    (2u64, 3u64, 5u64, 5u64),
-                    ConstChoice::TRUE,
-                    0,
-                    0,
-                ),
+                matrix: DividedPatternMatrix::new_u64((2u64, 3u64, 5u64, 5u64), Choice::TRUE, 0, 0),
             }
             .divide();
             let (x, y) = output.bezout_coefficients();
@@ -458,7 +450,7 @@ mod tests {
                 gcd: U64::ONE.to_odd().unwrap(),
                 matrix: DividedPatternMatrix::new_u64(
                     (2u64, 3u64, 3u64, 5u64),
-                    ConstChoice::FALSE,
+                    Choice::FALSE,
                     0,
                     1,
                 ),
@@ -473,12 +465,7 @@ mod tests {
         fn test_derive_bezout_coefficients_removes_doublings_easy() {
             let output = RawXgcdOutput {
                 gcd: U64::ONE.to_odd().unwrap(),
-                matrix: DividedPatternMatrix::new_u64(
-                    (2u64, 6u64, 3u64, 5u64),
-                    ConstChoice::TRUE,
-                    1,
-                    1,
-                ),
+                matrix: DividedPatternMatrix::new_u64((2u64, 6u64, 3u64, 5u64), Choice::TRUE, 1, 1),
             }
             .divide();
             let (x, y) = output.bezout_coefficients();
@@ -489,7 +476,7 @@ mod tests {
                 gcd: U64::ONE.to_odd().unwrap(),
                 matrix: DividedPatternMatrix::new_u64(
                     (120u64, 64u64, 7u64, 5u64),
-                    ConstChoice::FALSE,
+                    Choice::FALSE,
                     5,
                     6,
                 ),
@@ -506,7 +493,7 @@ mod tests {
                 gcd: U64::ONE.to_odd().unwrap(),
                 matrix: DividedPatternMatrix::new_u64(
                     (2u64, 6u64, 7u64, 5u64),
-                    ConstChoice::FALSE,
+                    Choice::FALSE,
                     3,
                     7,
                 ),
@@ -520,18 +507,18 @@ mod tests {
 
     mod test_partial_binxgcd {
         use crate::modular::bingcd::matrix::DividedPatternMatrix;
-        use crate::{ConstChoice, Gcd, Odd, U64};
+        use crate::{Choice, Gcd, Odd, U64};
 
         const A: Odd<U64> = Odd::from_be_hex("CA048AFA63CD6A1F");
         const B: U64 = U64::from_be_hex("AE693BF7BE8E5566");
 
         #[test]
         fn test_partial_binxgcd() {
-            let (.., matrix, _) = A.partial_binxgcd::<{ U64::LIMBS }>(&B, 5, ConstChoice::TRUE);
+            let (.., matrix, _) = A.partial_binxgcd::<{ U64::LIMBS }>(&B, 5, Choice::TRUE);
             assert_eq!(matrix.k, 5);
             assert_eq!(
                 matrix,
-                DividedPatternMatrix::new_u64((8u64, 4u64, 2u64, 5u64), ConstChoice::TRUE, 5, 5)
+                DividedPatternMatrix::new_u64((8u64, 4u64, 2u64, 5u64), Choice::TRUE, 5, 5)
             );
         }
 
@@ -541,7 +528,7 @@ mod tests {
             let target_b = U64::from_be_hex("0EA028AF0F8966B6");
 
             let (new_a, new_b, matrix, _) =
-                A.partial_binxgcd::<{ U64::LIMBS }>(&B, 5, ConstChoice::TRUE);
+                A.partial_binxgcd::<{ U64::LIMBS }>(&B, 5, Choice::TRUE);
 
             assert_eq!(new_a, target_a);
             assert_eq!(new_b, target_b);
@@ -561,7 +548,7 @@ mod tests {
         #[test]
         fn test_partial_binxgcd_halts() {
             let (gcd, _, matrix, _) =
-                SMALL_A.partial_binxgcd::<{ U64::LIMBS }>(&SMALL_B, 60, ConstChoice::TRUE);
+                SMALL_A.partial_binxgcd::<{ U64::LIMBS }>(&SMALL_B, 60, Choice::TRUE);
             assert_eq!(matrix.k, 35);
             assert_eq!(matrix.k_upper_bound, 60);
             assert_eq!(gcd.get(), SMALL_A.gcd(&SMALL_B));
@@ -570,7 +557,7 @@ mod tests {
         #[test]
         fn test_partial_binxgcd_does_not_halt() {
             let (gcd, .., matrix, _) =
-                SMALL_A.partial_binxgcd::<{ U64::LIMBS }>(&SMALL_B, 60, ConstChoice::FALSE);
+                SMALL_A.partial_binxgcd::<{ U64::LIMBS }>(&SMALL_B, 60, Choice::FALSE);
             assert_eq!(matrix.k, 60);
             assert_eq!(matrix.k_upper_bound, 60);
             assert_eq!(gcd.get(), SMALL_A.gcd(&SMALL_B));

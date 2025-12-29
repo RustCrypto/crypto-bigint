@@ -1,17 +1,17 @@
 //! [`Uint`] bitwise left shift operations.
 
 use super::UintRef;
-use crate::{ConstChoice, Limb, NonZero, word};
+use crate::{Choice, Limb, NonZero, word};
 
 impl UintRef {
     /// Left-shifts by `shift` bits in constant-time.
     ///
-    /// Produces zero and returns truthy `ConstChoice` if `shift >= self.bits_precision()`,
-    /// or the result and a falsy `ConstChoice` otherwise.
+    /// Produces zero and returns truthy `Choice` if `shift >= self.bits_precision()`,
+    /// or the result and a falsy `Choice` otherwise.
     #[inline(always)]
-    pub const fn overflowing_shl_assign(&mut self, shift: u32) -> ConstChoice {
+    pub const fn overflowing_shl_assign(&mut self, shift: u32) -> Choice {
         let bits = self.bits_precision();
-        let overflow = ConstChoice::from_u32_le(bits, shift);
+        let overflow = Choice::from_u32_le(bits, shift);
         self.bounded_wrapping_shl_assign(shift % bits, bits);
         self.conditional_set_zero(overflow);
         overflow
@@ -19,17 +19,17 @@ impl UintRef {
 
     /// Left-shifts by `shift` bits in variable-time.
     ///
-    /// Produces zero and returns truthy `ConstChoice` if `shift >= self.bits_precision()`,
-    /// or the result and a falsy `ConstChoice` otherwise.
+    /// Produces zero and returns truthy `Choice` if `shift >= self.bits_precision()`,
+    /// or the result and a falsy `Choice` otherwise.
     ///
     /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[cfg(feature = "alloc")]
     #[inline(always)]
-    pub const fn overflowing_shl_assign_vartime(&mut self, shift: u32) -> ConstChoice {
+    pub const fn overflowing_shl_assign_vartime(&mut self, shift: u32) -> Choice {
         let bits = self.bits_precision();
-        let overflow = ConstChoice::from_u32_le(bits, shift);
+        let overflow = Choice::from_u32_le(bits, shift);
         self.wrapping_shl_assign_vartime(shift);
         overflow
     }
@@ -56,12 +56,12 @@ impl UintRef {
         };
         let mut i = 0;
         while i < limb_bits {
-            let bit = ConstChoice::from_u32_lsb((shift >> i) & 1);
+            let bit = Choice::from_u32_lsb((shift >> i) & 1);
             self.conditional_shl_assign_limb_nonzero(NonZero(1 << i), bit);
             i += 1;
         }
         while i < shift_bits {
-            let bit = ConstChoice::from_u32_lsb((shift >> i) & 1);
+            let bit = Choice::from_u32_lsb((shift >> i) & 1);
             self.conditional_shl_assign_by_limbs_vartime(1 << (i - Limb::LOG2_BITS), bit);
             i += 1;
         }
@@ -74,11 +74,7 @@ impl UintRef {
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
-    pub(crate) const fn conditional_shl_assign_by_limbs_vartime(
-        &mut self,
-        shift: u32,
-        c: ConstChoice,
-    ) {
+    pub(crate) const fn conditional_shl_assign_by_limbs_vartime(&mut self, shift: u32, c: Choice) {
         let shift = shift as usize;
         let mut i = self.nlimbs();
         while i > shift {
@@ -139,10 +135,10 @@ impl UintRef {
         }
     }
 
-    /// Left-shifts by a single bit in constant-time, returning [`ConstChoice::TRUE`]
-    /// if the least significant bit was set, and [`ConstChoice::FALSE`] otherwise.
+    /// Left-shifts by a single bit in constant-time, returning [`Choice::TRUE`]
+    /// if the least significant bit was set, and [`Choice::FALSE`] otherwise.
     #[inline(always)]
-    pub const fn shl1_assign(&mut self) -> ConstChoice {
+    pub const fn shl1_assign(&mut self) -> Choice {
         let mut carry = Limb::ZERO;
         let mut i = 0;
         while i < self.nlimbs() {
@@ -162,7 +158,7 @@ impl UintRef {
     pub(crate) const fn conditional_shl_assign_limb_nonzero(
         &mut self,
         shift: NonZero<u32>,
-        choice: ConstChoice,
+        choice: Choice,
     ) -> Limb {
         assert!(shift.0 < Limb::BITS);
 
@@ -187,7 +183,7 @@ impl UintRef {
     /// Panics if `shift >= Limb::BITS`.
     #[inline(always)]
     pub const fn shl_assign_limb(&mut self, shift: u32) -> Limb {
-        let nz = ConstChoice::from_u32_nz(shift);
+        let nz = Choice::from_u32_nz(shift);
         self.conditional_shl_assign_limb_nonzero(NonZero(nz.select_u32(1, shift)), nz)
     }
 
@@ -221,7 +217,7 @@ impl UintRef {
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, U256};
+    use crate::{Choice, U256};
     #[cfg(feature = "alloc")]
     use crate::{Limb, Uint};
 
@@ -236,17 +232,17 @@ mod tests {
         let mut n = N;
         let carry = n.as_mut_uint_ref().shl1_assign();
         assert_eq!(n, TWO_N);
-        assert_eq!(carry, ConstChoice::TRUE);
+        assert_eq!(carry, Choice::TRUE);
 
         let mut m = U256::MAX;
         let carry = m.as_mut_uint_ref().shl1_assign();
         assert_eq!(m, U256::MAX.shl_vartime(1));
-        assert_eq!(carry, ConstChoice::TRUE);
+        assert_eq!(carry, Choice::TRUE);
 
         let mut z = U256::ZERO;
         let carry = z.as_mut_uint_ref().shl1_assign();
         assert_eq!(z, U256::ZERO);
-        assert_eq!(carry, ConstChoice::FALSE);
+        assert_eq!(carry, Choice::FALSE);
     }
 
     #[cfg(feature = "alloc")]

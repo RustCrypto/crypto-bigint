@@ -2,7 +2,7 @@
 
 use core::ops::{BitOr, BitOrAssign};
 
-use crate::{ConstCtOption, Uint, Wrapping};
+use crate::{CtOption, Uint, Wrapping};
 
 use super::Int;
 
@@ -21,9 +21,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
         self.bitor(rhs)
     }
 
-    /// Perform checked bitwise `OR`, returning a [`ConstCtOption`] which `is_some` always
-    pub const fn checked_or(&self, rhs: &Self) -> ConstCtOption<Self> {
-        ConstCtOption::some(self.bitor(rhs))
+    /// Perform checked bitwise `OR`, returning a [`CtOption`] which `is_some` always
+    pub const fn checked_or(&self, rhs: &Self) -> CtOption<Self> {
+        CtOption::some(self.bitor(rhs))
     }
 }
 

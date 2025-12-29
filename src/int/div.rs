@@ -1,6 +1,6 @@
 //! [`Int`] division operations.
 
-use crate::{CheckedDiv, ConstChoice, ConstCtOption, DivVartime, Int, NonZero, Uint, Wrapping};
+use crate::{CheckedDiv, Choice, CtOption, DivVartime, Int, NonZero, Uint, Wrapping};
 use core::ops::{Div, DivAssign, Rem, RemAssign};
 
 /// Checked division operations.
@@ -13,7 +13,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     const fn div_rem_base<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Int<RHS_LIMBS>>,
-    ) -> (Uint<LIMBS>, Uint<RHS_LIMBS>, ConstChoice, ConstChoice) {
+    ) -> (Uint<LIMBS>, Uint<RHS_LIMBS>, Choice, Choice) {
         // Step 1: split operands into signs and magnitudes.
         let (lhs_mag, lhs_sgn) = self.abs_sign();
         let (rhs_mag, rhs_sgn) = rhs.abs_sign();
@@ -52,7 +52,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub const fn checked_div_rem<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Int<RHS_LIMBS>>,
-    ) -> (ConstCtOption<Self>, Int<RHS_LIMBS>) {
+    ) -> (CtOption<Self>, Int<RHS_LIMBS>) {
         let (quotient, remainder, lhs_sgn, rhs_sgn) = self.div_rem_base(rhs);
         let opposing_signs = lhs_sgn.ne(rhs_sgn);
         (
@@ -61,12 +61,12 @@ impl<const LIMBS: usize> Int<LIMBS> {
         )
     }
 
-    /// Perform checked division, returning a [`ConstCtOption`] which `is_some` if
+    /// Perform checked division, returning a [`CtOption`] which `is_some` if
     /// - the `rhs != 0`, and
     /// - `self != MIN` or `rhs != MINUS_ONE`.
     ///
     /// Note: this operation rounds towards zero, truncating any fractional part of the exact result.
-    pub fn checked_div<const RHS_LIMBS: usize>(&self, rhs: &Int<RHS_LIMBS>) -> ConstCtOption<Self> {
+    pub fn checked_div<const RHS_LIMBS: usize>(&self, rhs: &Int<RHS_LIMBS>) -> CtOption<Self> {
         NonZero::new(*rhs).and_then(|rhs| self.checked_div_rem(&rhs).0)
     }
 
@@ -91,7 +91,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     const fn div_rem_base_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Int<RHS_LIMBS>>,
-    ) -> (Uint<LIMBS>, Uint<RHS_LIMBS>, ConstChoice, ConstChoice) {
+    ) -> (Uint<LIMBS>, Uint<RHS_LIMBS>, Choice, Choice) {
         // Step 1: split operands into signs and magnitudes.
         let (lhs_mag, lhs_sgn) = self.abs_sign();
         let (rhs_mag, rhs_sgn) = rhs.abs_sign();
@@ -112,7 +112,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub const fn checked_div_rem_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Int<RHS_LIMBS>>,
-    ) -> (ConstCtOption<Self>, Int<RHS_LIMBS>) {
+    ) -> (CtOption<Self>, Int<RHS_LIMBS>) {
         let (quotient, remainder, lhs_sgn, rhs_sgn) = self.div_rem_base_vartime(rhs);
         let opposing_signs = lhs_sgn.ne(rhs_sgn);
         (
@@ -130,7 +130,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub fn checked_div_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
-    ) -> ConstCtOption<Self> {
+    ) -> CtOption<Self> {
         NonZero::new(*rhs).and_then(|rhs| self.checked_div_rem_vartime(&rhs).0)
     }
 
@@ -159,7 +159,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub const fn checked_div_rem_floor_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Int<RHS_LIMBS>>,
-    ) -> (ConstCtOption<Self>, Int<RHS_LIMBS>) {
+    ) -> (CtOption<Self>, Int<RHS_LIMBS>) {
         let (lhs_mag, lhs_sgn) = self.abs_sign();
         let (rhs_mag, rhs_sgn) = rhs.abs_sign();
         let (quotient, remainder) = lhs_mag.div_rem_vartime(&rhs_mag);
@@ -193,14 +193,14 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub fn checked_div_floor_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
-    ) -> ConstCtOption<Self> {
+    ) -> CtOption<Self> {
         NonZero::new(*rhs).and_then(|rhs| self.checked_div_rem_floor_vartime(&rhs).0)
     }
 }
 
 /// Checked div-floor operations.
 impl<const LIMBS: usize> Int<LIMBS> {
-    /// Perform checked floored division, returning a [`ConstCtOption`] which `is_some` only if
+    /// Perform checked floored division, returning a [`CtOption`] which `is_some` only if
     /// - the `rhs != 0`, and
     /// - `self != MIN` or `rhs != MINUS_ONE`.
     ///
@@ -229,13 +229,13 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub fn checked_div_floor<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
-    ) -> ConstCtOption<Self> {
+    ) -> CtOption<Self> {
         NonZero::new(*rhs).and_then(|rhs| self.checked_div_rem_floor(&rhs).0)
     }
 
     /// Perform checked division and mod, returning the quotient and remainder.
     ///
-    /// The quotient is a [`ConstCtOption`] which `is_some` only if
+    /// The quotient is a [`CtOption`] which `is_some` only if
     /// - the `rhs != 0`, and
     /// - `self != MIN` or `rhs != MINUS_ONE`.
     ///
@@ -266,7 +266,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub const fn checked_div_rem_floor<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Int<RHS_LIMBS>>,
-    ) -> (ConstCtOption<Self>, Int<RHS_LIMBS>) {
+    ) -> (CtOption<Self>, Int<RHS_LIMBS>) {
         let (lhs_mag, lhs_sgn) = self.abs_sign();
         let (rhs_mag, rhs_sgn) = rhs.abs_sign();
         let (quotient, remainder) = lhs_mag.div_rem(&rhs_mag);
@@ -293,13 +293,13 @@ impl<const LIMBS: usize> Int<LIMBS> {
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedDiv<Int<RHS_LIMBS>> for Int<LIMBS> {
-    fn checked_div(&self, rhs: &Int<RHS_LIMBS>) -> ConstCtOption<Self> {
+    fn checked_div(&self, rhs: &Int<RHS_LIMBS>) -> CtOption<Self> {
         self.checked_div(rhs)
     }
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Int<RHS_LIMBS>>> for &Int<LIMBS> {
-    type Output = ConstCtOption<Int<LIMBS>>;
+    type Output = CtOption<Int<LIMBS>>;
 
     fn div(self, rhs: &NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         *self / *rhs
@@ -307,7 +307,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Int<RHS_LIMBS>>> f
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Int<RHS_LIMBS>>> for Int<LIMBS> {
-    type Output = ConstCtOption<Int<LIMBS>>;
+    type Output = CtOption<Int<LIMBS>>;
 
     fn div(self, rhs: &NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         self / *rhs
@@ -315,7 +315,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Int<RHS_LIMBS>>> f
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Int<RHS_LIMBS>>> for &Int<LIMBS> {
-    type Output = ConstCtOption<Int<LIMBS>>;
+    type Output = CtOption<Int<LIMBS>>;
 
     fn div(self, rhs: NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         *self / rhs
@@ -323,7 +323,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Int<RHS_LIMBS>>> fo
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Int<RHS_LIMBS>>> for Int<LIMBS> {
-    type Output = ConstCtOption<Int<LIMBS>>;
+    type Output = CtOption<Int<LIMBS>>;
 
     fn div(self, rhs: NonZero<Int<RHS_LIMBS>>) -> Self::Output {
         self.checked_div(&rhs)
@@ -503,7 +503,7 @@ impl<const LIMBS: usize> RemAssign<&NonZero<Int<LIMBS>>> for Wrapping<Int<LIMBS>
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConstChoice, CtSelect, DivVartime, I128, Int, NonZero, One, Zero};
+    use crate::{Choice, CtSelect, DivVartime, I128, Int, NonZero, One, Zero};
 
     #[test]
     #[allow(clippy::init_numbered_fields)]
@@ -622,7 +622,7 @@ mod tests {
     fn test_checked_div_mod_floor() {
         let (quotient, remainder) =
             I128::MIN.checked_div_rem_floor(&I128::MINUS_ONE.to_nz().unwrap());
-        assert_eq!(quotient.is_some(), ConstChoice::FALSE);
+        assert_eq!(quotient.is_some(), Choice::FALSE);
         assert_eq!(remainder, I128::ZERO);
     }
 
