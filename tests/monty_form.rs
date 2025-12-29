@@ -52,7 +52,7 @@ where
     T: Unsigned + Bounded + Encoding,
     <T as Unsigned>::Monty: Invert<Output = CtOption<T::Monty>>,
 {
-    let r = T::from_be_bytes(bytes.clone());
+    let r = T::from_be_bytes(bytes);
     let rm = <T as Unsigned>::Monty::new(r.clone(), monty_params);
     let rm_inv = rm.invert();
     prop_assume!(bool::from(rm_inv.is_some()), "r={:?} is not invertible", r);
