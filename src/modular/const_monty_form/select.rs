@@ -14,6 +14,7 @@ where
     }
 }
 
+#[cfg(feature = "subtle")]
 impl<MOD, const LIMBS: usize> subtle::ConditionallySelectable for ConstMontyForm<MOD, LIMBS>
 where
     MOD: ConstMontyParams<LIMBS> + Copy,

@@ -17,12 +17,14 @@ impl<const LIMBS: usize> CtEq for MontyParams<LIMBS> {
     }
 }
 
+#[cfg(feature = "subtle")]
 impl<const LIMBS: usize> subtle::ConstantTimeEq for MontyForm<LIMBS> {
     fn ct_eq(&self, other: &Self) -> subtle::Choice {
         CtEq::ct_eq(self, other).into()
     }
 }
 
+#[cfg(feature = "subtle")]
 impl<const LIMBS: usize> subtle::ConstantTimeEq for MontyParams<LIMBS> {
     fn ct_eq(&self, other: &Self) -> subtle::Choice {
         CtEq::ct_eq(self, other).into()

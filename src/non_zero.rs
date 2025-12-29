@@ -300,27 +300,6 @@ impl<T: ?Sized> AsRef<T> for NonZero<T> {
     }
 }
 
-impl<T> subtle::ConditionallySelectable for NonZero<T>
-where
-    T: Copy,
-    Self: CtSelect,
-{
-    fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
-        CtSelect::ct_select(a, b, choice.into())
-    }
-}
-
-impl<T> subtle::ConstantTimeEq for NonZero<T>
-where
-    T: ?Sized,
-    Self: CtEq,
-{
-    #[inline]
-    fn ct_eq(&self, other: &Self) -> subtle::Choice {
-        CtEq::ct_eq(self, other).into()
-    }
-}
-
 impl<T> CtEq for NonZero<T>
 where
     T: CtEq + ?Sized,
@@ -510,6 +489,29 @@ impl<T: Serialize + Zero> Serialize for NonZero<T> {
         S: Serializer,
     {
         self.0.serialize(serializer)
+    }
+}
+
+#[cfg(feature = "subtle")]
+impl<T> subtle::ConditionallySelectable for NonZero<T>
+where
+    T: Copy,
+    Self: CtSelect,
+{
+    fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
+        CtSelect::ct_select(a, b, choice.into())
+    }
+}
+
+#[cfg(feature = "subtle")]
+impl<T> subtle::ConstantTimeEq for NonZero<T>
+where
+    T: ?Sized,
+    Self: CtEq,
+{
+    #[inline]
+    fn ct_eq(&self, other: &Self) -> subtle::Choice {
+        CtEq::ct_eq(self, other).into()
     }
 }
 

@@ -278,27 +278,6 @@ where
     }
 }
 
-impl<T> subtle::ConditionallySelectable for Checked<T>
-where
-    T: Copy,
-    Self: CtSelect,
-{
-    #[inline]
-    fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
-        a.ct_select(b, choice.into())
-    }
-}
-
-impl<T> subtle::ConstantTimeEq for Checked<T>
-where
-    Self: CtEq,
-{
-    #[inline]
-    fn ct_eq(&self, rhs: &Self) -> subtle::Choice {
-        CtEq::ct_eq(self, rhs).into()
-    }
-}
-
 impl<T> CtEq for Checked<T>
 where
     T: CtEq,
@@ -365,5 +344,28 @@ impl<T: Copy + Serialize> Serialize for Checked<T> {
         S: Serializer,
     {
         self.0.into_option().serialize(serializer)
+    }
+}
+
+#[cfg(feature = "subtle")]
+impl<T> subtle::ConditionallySelectable for Checked<T>
+where
+    T: Copy,
+    Self: CtSelect,
+{
+    #[inline]
+    fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
+        a.ct_select(b, choice.into())
+    }
+}
+
+#[cfg(feature = "subtle")]
+impl<T> subtle::ConstantTimeEq for Checked<T>
+where
+    Self: CtEq,
+{
+    #[inline]
+    fn ct_eq(&self, rhs: &Self) -> subtle::Choice {
+        CtEq::ct_eq(self, rhs).into()
     }
 }

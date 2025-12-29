@@ -184,27 +184,6 @@ impl<T: WrappingShr> Shr<u32> for &Wrapping<T> {
     }
 }
 
-impl<T> subtle::ConditionallySelectable for Wrapping<T>
-where
-    T: Copy,
-    Self: CtSelect,
-{
-    #[inline]
-    fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
-        a.ct_select(b, choice.into())
-    }
-}
-
-impl<T> subtle::ConstantTimeEq for Wrapping<T>
-where
-    Self: CtEq,
-{
-    #[inline]
-    fn ct_eq(&self, other: &Self) -> subtle::Choice {
-        CtEq::ct_eq(self, other).into()
-    }
-}
-
 impl<T> CtEq for Wrapping<T>
 where
     T: CtEq,
@@ -317,5 +296,28 @@ impl<T: Serialize> Serialize for Wrapping<T> {
         S: Serializer,
     {
         self.0.serialize(serializer)
+    }
+}
+
+#[cfg(feature = "subtle")]
+impl<T> subtle::ConditionallySelectable for Wrapping<T>
+where
+    T: Copy,
+    Self: CtSelect,
+{
+    #[inline]
+    fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
+        a.ct_select(b, choice.into())
+    }
+}
+
+#[cfg(feature = "subtle")]
+impl<T> subtle::ConstantTimeEq for Wrapping<T>
+where
+    Self: CtEq,
+{
+    #[inline]
+    fn ct_eq(&self, other: &Self) -> subtle::Choice {
+        CtEq::ct_eq(self, other).into()
     }
 }

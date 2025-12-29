@@ -160,26 +160,6 @@ impl<T: ?Sized> AsRef<NonZero<T>> for Odd<T> {
     }
 }
 
-impl<T> subtle::ConditionallySelectable for Odd<T>
-where
-    T: Copy,
-    Self: CtSelect,
-{
-    fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
-        a.ct_select(b, choice.into())
-    }
-}
-
-impl<T> subtle::ConstantTimeEq for Odd<T>
-where
-    T: ?Sized,
-    Self: CtEq,
-{
-    fn ct_eq(&self, other: &Self) -> subtle::Choice {
-        CtEq::ct_eq(self, other).into()
-    }
-}
-
 impl<T> CtEq for Odd<T>
 where
     T: CtEq + ?Sized,
@@ -412,6 +392,29 @@ impl<T: Serialize + Zero> Serialize for Odd<T> {
         self.0.serialize(serializer)
     }
 }
+
+#[cfg(feature = "subtle")]
+impl<T> subtle::ConditionallySelectable for Odd<T>
+where
+    T: Copy,
+    Self: CtSelect,
+{
+    fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
+        a.ct_select(b, choice.into())
+    }
+}
+
+#[cfg(feature = "subtle")]
+impl<T> subtle::ConstantTimeEq for Odd<T>
+where
+    T: ?Sized,
+    Self: CtEq,
+{
+    fn ct_eq(&self, other: &Self) -> subtle::Choice {
+        CtEq::ct_eq(self, other).into()
+    }
+}
+
 #[cfg(feature = "zeroize")]
 impl<T: zeroize::Zeroize> zeroize::Zeroize for Odd<T> {
     fn zeroize(&mut self) {

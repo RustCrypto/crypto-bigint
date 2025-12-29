@@ -45,6 +45,7 @@ impl<const LIMBS: usize> CtSelect for Uint<LIMBS> {
     }
 }
 
+#[cfg(feature = "subtle")]
 impl<const LIMBS: usize> subtle::ConditionallySelectable for Uint<LIMBS> {
     #[inline]
     fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {

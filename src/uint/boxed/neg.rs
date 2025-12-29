@@ -42,16 +42,17 @@ impl CtNeg for BoxedUint {
     }
 }
 
+impl WrappingNeg for BoxedUint {
+    fn wrapping_neg(&self) -> Self {
+        self.wrapping_neg()
+    }
+}
+
+#[cfg(feature = "subtle")]
 impl subtle::ConditionallyNegatable for BoxedUint {
     #[inline]
     fn conditional_negate(&mut self, choice: subtle::Choice) {
         self.ct_neg_assign(choice.into())
-    }
-}
-
-impl WrappingNeg for BoxedUint {
-    fn wrapping_neg(&self) -> Self {
-        self.wrapping_neg()
     }
 }
 
@@ -79,6 +80,7 @@ mod tests {
         assert_eq!(a, control.wrapping_neg());
     }
 
+    #[cfg(feature = "subtle")]
     #[test]
     fn subtle_conditional_negate() {
         use subtle::ConditionallyNegatable;
