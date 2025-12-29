@@ -371,7 +371,7 @@ where
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use crate::{Choice, I128, U128};
+    use crate::{I128, U128};
 
     #[cfg(target_pointer_width = "64")]
     #[test]
@@ -450,19 +450,19 @@ mod tests {
     #[test]
     fn is_minimal() {
         let min = I128::from_be_hex("80000000000000000000000000000000");
-        assert_eq!(min.is_min(), Choice::TRUE);
+        assert!(min.is_min().to_bool());
 
         let random = I128::from_be_hex("11113333555577779999BBBBDDDDFFFF");
-        assert_eq!(random.is_min(), Choice::FALSE);
+        assert!(!random.is_min().to_bool());
     }
 
     #[test]
     fn is_maximal() {
         let max = I128::from_be_hex("7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF");
-        assert_eq!(max.is_max(), Choice::TRUE);
+        assert!(max.is_max().to_bool());
 
         let random = I128::from_be_hex("11113333555577779999BBBBDDDDFFFF");
-        assert_eq!(random.is_max(), Choice::FALSE);
+        assert!(!random.is_max().to_bool());
     }
 
     #[test]

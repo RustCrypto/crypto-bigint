@@ -198,7 +198,7 @@ impl<const LIMBS: usize> MulAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
 
 #[cfg(test)]
 mod tests {
-    use crate::{Choice, I64, I128, I256, Int, U64, U128, U256};
+    use crate::{I64, I128, I256, Int, U64, U128, U256};
 
     #[test]
     #[allow(clippy::init_numbered_fields)]
@@ -522,7 +522,7 @@ mod tests {
     #[test]
     fn test_checked_square() {
         let res = I128::from_i64(i64::MIN).checked_square();
-        assert_eq!(res.is_some(), Choice::TRUE);
+        assert!(res.is_some().to_bool());
         assert_eq!(
             res.unwrap(),
             U128::from_be_hex("40000000000000000000000000000000")
@@ -530,7 +530,7 @@ mod tests {
 
         let x: I128 = I128::MINUS_ONE << 64;
         let res = x.checked_square();
-        assert_eq!(res.is_none(), Choice::TRUE)
+        assert!(res.is_none().to_bool());
     }
 
     #[test]

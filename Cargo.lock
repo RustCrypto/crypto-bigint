@@ -247,9 +247,9 @@ dependencies = [
 
 [[package]]
 name = "ctutils"
-version = "0.2.3"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d0d4ebbcf0ee8b260dd060b79b7449973fffccdbaa5c871c9867c7b44445e75"
+checksum = "130ffe18bdf7a4926e57ed19d404995244e6c8d6a97abf4eddde1f892bf1ce0c"
 dependencies = [
  "cmov",
  "subtle",

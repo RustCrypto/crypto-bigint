@@ -44,18 +44,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Choice, I64, I128, I256, U64, U128};
+    use crate::{I64, I128, I256, U64, U128};
 
     #[test]
     fn widening_mul_int() {
-        assert_eq!(
-            U128::MAX.widening_mul_int(&I64::from_i64(-55)),
-            (
-                U128::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC9"),
-                U64::from_u64(54),
-                Choice::TRUE
-            )
-        )
+        let (lo, hi, rhs_sgn) = U128::MAX.widening_mul_int(&I64::from_i64(-55));
+        assert_eq!(lo, U128::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC9"));
+        assert_eq!(hi, U64::from_u64(54));
+        assert!(rhs_sgn.to_bool());
     }
 
     #[test]

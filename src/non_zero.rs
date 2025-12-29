@@ -524,13 +524,13 @@ impl<T: zeroize::Zeroize + Zero> zeroize::Zeroize for NonZero<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Choice, I128, U128};
+    use crate::{I128, U128};
 
     #[test]
     fn int_abs_sign() {
         let x = I128::from(-55).to_nz().unwrap();
         let (abs, sgn) = x.abs_sign();
         assert_eq!(abs, U128::from(55u32).to_nz().unwrap());
-        assert_eq!(sgn, Choice::TRUE);
+        assert!(sgn.to_bool());
     }
 }

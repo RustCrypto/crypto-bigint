@@ -56,9 +56,17 @@ mod tests {
 
     #[test]
     fn carrying_neg() {
-        assert_eq!(U256::ZERO.carrying_neg(), (U256::ZERO, Choice::TRUE));
-        assert_eq!(U256::ONE.carrying_neg(), (U256::MAX, Choice::FALSE));
-        assert_eq!(U256::MAX.carrying_neg(), (U256::ONE, Choice::FALSE));
+        let (ret, carry) = U256::ZERO.carrying_neg();
+        assert_eq!(ret, U256::ZERO);
+        assert!(carry.to_bool());
+
+        let (ret, carry) = U256::ONE.carrying_neg();
+        assert_eq!(ret, U256::MAX);
+        assert!(!carry.to_bool());
+
+        let (ret, carry) = U256::MAX.carrying_neg();
+        assert_eq!(ret, U256::ONE);
+        assert!(!carry.to_bool());
     }
 
     #[test]

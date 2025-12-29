@@ -58,23 +58,23 @@ mod tests {
 
         let (res, overflow) = I128::MIN.overflowing_neg();
         assert_eq!(res, I128::MIN);
-        assert_eq!(overflow, Choice::TRUE);
+        assert!(overflow.to_bool());
 
         let (res, overflow) = I128::MINUS_ONE.overflowing_neg();
         assert_eq!(res, I128::ONE);
-        assert_eq!(overflow, Choice::FALSE);
+        assert!(!overflow.to_bool());
 
         let (res, overflow) = I128::ZERO.overflowing_neg();
         assert_eq!(res, I128::ZERO);
-        assert_eq!(overflow, Choice::FALSE);
+        assert!(!overflow.to_bool());
 
         let (res, overflow) = I128::ONE.overflowing_neg();
         assert_eq!(res, I128::MINUS_ONE);
-        assert_eq!(overflow, Choice::FALSE);
+        assert!(!overflow.to_bool());
 
         let (res, overflow) = I128::MAX.overflowing_neg();
         assert_eq!(res, min_plus_one);
-        assert_eq!(overflow, Choice::FALSE);
+        assert!(!overflow.to_bool());
     }
 
     #[test]
@@ -103,7 +103,7 @@ mod tests {
 
     #[test]
     fn checked_neg() {
-        assert_eq!(I128::MIN.checked_neg().is_none(), Choice::TRUE);
+        assert!(I128::MIN.checked_neg().is_none().to_bool());
         assert_eq!(I128::MINUS_ONE.checked_neg().unwrap(), I128::ONE);
         assert_eq!(I128::ZERO.checked_neg().unwrap(), I128::ZERO);
         assert_eq!(I128::ONE.checked_neg().unwrap(), I128::MINUS_ONE);
