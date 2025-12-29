@@ -75,63 +75,70 @@ mod tests {
 
     #[test]
     fn new_from_abs_sign() {
-        assert_eq!(
-            I128::new_from_abs_sign(U128::ZERO, Choice::FALSE).is_some(),
-            Choice::TRUE
+        assert!(
+            I128::new_from_abs_sign(U128::ZERO, Choice::FALSE)
+                .is_some()
+                .to_bool()
         );
-        assert_eq!(
-            I128::new_from_abs_sign(U128::ZERO, Choice::TRUE).is_some(),
-            Choice::TRUE
+        assert!(
+            I128::new_from_abs_sign(U128::ZERO, Choice::TRUE)
+                .is_some()
+                .to_bool()
         );
-        assert_eq!(
-            I128::new_from_abs_sign(I128::MIN.abs(), Choice::FALSE).is_some(),
-            Choice::FALSE
+        assert!(
+            I128::new_from_abs_sign(I128::MIN.abs(), Choice::FALSE)
+                .is_none()
+                .to_bool()
         );
-        assert_eq!(
-            I128::new_from_abs_sign(I128::MIN.abs(), Choice::TRUE).is_some(),
-            Choice::TRUE
+        assert!(
+            I128::new_from_abs_sign(I128::MIN.abs(), Choice::TRUE)
+                .is_some()
+                .to_bool()
         );
-        assert_eq!(
-            I128::new_from_abs_sign(I128::MAX.abs(), Choice::FALSE).is_some(),
-            Choice::TRUE
+        assert!(
+            I128::new_from_abs_sign(I128::MAX.abs(), Choice::FALSE)
+                .is_some()
+                .to_bool()
         );
-        assert_eq!(
-            I128::new_from_abs_sign(I128::MAX.abs(), Choice::TRUE).is_some(),
-            Choice::TRUE
+        assert!(
+            I128::new_from_abs_sign(I128::MAX.abs(), Choice::TRUE)
+                .is_some()
+                .to_bool()
         );
-        assert_eq!(
-            I128::new_from_abs_sign(U128::MAX, Choice::TRUE).is_some(),
-            Choice::FALSE
+        assert!(
+            I128::new_from_abs_sign(U128::MAX, Choice::TRUE)
+                .is_none()
+                .to_bool()
         );
     }
 
     #[test]
     fn is_negative() {
-        assert_eq!(I128::MIN.is_negative(), Choice::TRUE);
-        assert_eq!(I128::MINUS_ONE.is_negative(), Choice::TRUE);
-        assert_eq!(I128::ZERO.is_negative(), Choice::FALSE);
-        assert_eq!(I128::ONE.is_negative(), Choice::FALSE);
-        assert_eq!(I128::MAX.is_negative(), Choice::FALSE);
+        assert!(I128::MIN.is_negative().to_bool());
+        assert!(I128::MINUS_ONE.is_negative().to_bool());
+        assert!(!I128::ZERO.is_negative().to_bool());
+        assert!(!I128::ONE.is_negative().to_bool());
+        assert!(!I128::MAX.is_negative().to_bool());
 
         let random_negative = I128::from_be_hex("91113333555577779999BBBBDDDDFFFF");
-        assert_eq!(random_negative.is_negative(), Choice::TRUE);
+        assert!(random_negative.is_negative().to_bool());
 
         let random_positive = I128::from_be_hex("71113333555577779999BBBBDDDDFFFF");
-        assert_eq!(random_positive.is_negative(), Choice::FALSE);
+        assert!(!random_positive.is_negative().to_bool());
     }
 
     #[test]
     fn is_positive() {
-        assert_eq!(I128::MIN.is_positive(), Choice::FALSE);
-        assert_eq!(I128::MINUS_ONE.is_positive(), Choice::FALSE);
-        assert_eq!(I128::ZERO.is_positive(), Choice::FALSE);
-        assert_eq!(I128::ONE.is_positive(), Choice::TRUE);
-        assert_eq!(I128::MAX.is_positive(), Choice::TRUE);
+        assert!(!I128::MIN.is_positive().to_bool());
+        assert!(!I128::MINUS_ONE.is_positive().to_bool());
+        assert!(!I128::ZERO.is_positive().to_bool());
+        assert!(I128::ONE.is_positive().to_bool());
+        assert!(I128::MAX.is_positive().to_bool());
 
         let random_negative = I128::from_be_hex("deadbeefcafebabedeadbeefcafebabe");
-        assert_eq!(random_negative.is_positive(), Choice::FALSE);
+        assert!(!random_negative.is_positive().to_bool());
 
         let random_positive = I128::from_be_hex("0badc0dedeadc0decafebabedeadcafe");
-        assert_eq!(random_positive.is_positive(), Choice::TRUE);
+        assert!(random_positive.is_positive().to_bool());
     }
 }

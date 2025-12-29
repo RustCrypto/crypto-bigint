@@ -146,23 +146,23 @@ mod tests {
 
     #[test]
     fn choice_from_lt() {
-        assert_eq!(super::choice_from_lt(4, 5), Choice::TRUE);
-        assert_eq!(super::choice_from_lt(5, 5), Choice::FALSE);
-        assert_eq!(super::choice_from_lt(6, 5), Choice::FALSE);
+        assert!(super::choice_from_lt(4, 5).to_bool());
+        assert!(!super::choice_from_lt(5, 5).to_bool());
+        assert!(!super::choice_from_lt(6, 5).to_bool());
     }
 
     #[test]
     fn choice_from_gt() {
-        assert_eq!(super::choice_from_gt(4, 5), Choice::FALSE);
-        assert_eq!(super::choice_from_gt(5, 5), Choice::FALSE);
-        assert_eq!(super::choice_from_gt(6, 5), Choice::TRUE);
+        assert!(!super::choice_from_gt(4, 5).to_bool());
+        assert!(!super::choice_from_gt(5, 5).to_bool());
+        assert!(super::choice_from_gt(6, 5).to_bool());
     }
 
     #[test]
     fn choice_from_wide_le() {
-        assert_eq!(super::choice_from_wide_le(4, 5), Choice::TRUE);
-        assert_eq!(super::choice_from_wide_le(5, 5), Choice::TRUE);
-        assert_eq!(super::choice_from_wide_le(6, 5), Choice::FALSE);
+        assert!(super::choice_from_wide_le(4, 5).to_bool());
+        assert!(super::choice_from_wide_le(5, 5).to_bool());
+        assert!(!super::choice_from_wide_le(6, 5).to_bool());
     }
 
     #[test]

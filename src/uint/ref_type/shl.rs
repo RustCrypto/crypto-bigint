@@ -217,7 +217,7 @@ impl UintRef {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Choice, U256};
+    use crate::U256;
     #[cfg(feature = "alloc")]
     use crate::{Limb, Uint};
 
@@ -232,17 +232,17 @@ mod tests {
         let mut n = N;
         let carry = n.as_mut_uint_ref().shl1_assign();
         assert_eq!(n, TWO_N);
-        assert_eq!(carry, Choice::TRUE);
+        assert!(carry.to_bool());
 
         let mut m = U256::MAX;
         let carry = m.as_mut_uint_ref().shl1_assign();
         assert_eq!(m, U256::MAX.shl_vartime(1));
-        assert_eq!(carry, Choice::TRUE);
+        assert!(carry.to_bool());
 
         let mut z = U256::ZERO;
         let carry = z.as_mut_uint_ref().shl1_assign();
         assert_eq!(z, U256::ZERO);
-        assert_eq!(carry, Choice::FALSE);
+        assert!(!carry.to_bool());
     }
 
     #[cfg(feature = "alloc")]

@@ -1,5 +1,6 @@
 use crate::modular::bingcd::extension::ExtendedInt;
 use crate::{Choice, Uint};
+use ctutils::CtEq;
 
 pub trait Unit: Sized {
     /// The unit matrix.
@@ -90,7 +91,7 @@ impl<const LIMBS: usize> IntMatrix<LIMBS> {
 /// [ -m10  m11 ]   or    [  m10 -m11 ]
 /// ```
 /// depending on whether `pattern` is respectively truthy or not.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy)]
 pub(crate) struct PatternMatrix<const LIMBS: usize> {
     pub m00: Uint<LIMBS>,
     pub m01: Uint<LIMBS>,
@@ -197,6 +198,17 @@ impl<const LIMBS: usize> PatternMatrix<LIMBS> {
     #[inline]
     pub(crate) const fn conditional_negate(&mut self, negate: Choice) {
         self.pattern = self.pattern.xor(negate);
+    }
+}
+
+impl<const LIMBS: usize> PartialEq for PatternMatrix<LIMBS> {
+    fn eq(&self, other: &Self) -> bool {
+        (self.m00.ct_eq(&other.m00)
+            & self.m01.ct_eq(&other.m01)
+            & self.m10.ct_eq(&other.m10)
+            & self.m11.ct_eq(&other.m11)
+            & self.pattern.ct_eq(&other.pattern))
+        .into()
     }
 }
 

@@ -220,7 +220,7 @@ impl<const LIMBS: usize> WrappingMul for Uint<LIMBS> {
 /// We determine whether an overflow would occur by comparing limbs in
 /// `lhs[i=0..n]` and `rhs[j=0..m]`. Any combination where the sum of indexes
 /// `i + j >= n`, `lhs[i] != 0`, and `rhs[j] != 0` would cause an overflow.
-/// For efficiency we OR all limbs in `rhs` that would apply to each limb in
+/// For efficiency, we OR all limbs in `rhs` that would apply to each limb in
 /// `lhs` in turn.
 pub(crate) const fn wrapping_mul_overflow(
     lhs: &UintRef,
@@ -248,7 +248,7 @@ pub(crate) const fn wrapping_mul_overflow(
 
 #[cfg(test)]
 mod tests {
-    use crate::{Choice, U64, U128, U192, U256, Uint};
+    use crate::{U64, U128, U192, U256, Uint};
 
     #[test]
     fn widening_mul_zero_and_one() {
@@ -362,13 +362,13 @@ mod tests {
     fn checked_square() {
         let n = U256::from_u64(u64::MAX).wrapping_add(&U256::ONE);
         let n2 = n.checked_square();
-        assert_eq!(n2.is_some(), Choice::TRUE);
+        assert!(n2.is_some().to_bool());
         let n4 = n2.unwrap().checked_square();
-        assert_eq!(n4.is_none(), Choice::TRUE);
+        assert!(n4.is_none().to_bool());
         let z = U256::ZERO.checked_square();
-        assert_eq!(z.is_some(), Choice::TRUE);
+        assert!(z.is_some().to_bool());
         let m = U256::MAX.checked_square();
-        assert_eq!(m.is_none(), Choice::TRUE);
+        assert!(m.is_none().to_bool());
     }
 
     #[test]
@@ -419,7 +419,7 @@ mod tests {
                 let res = a.widening_mul(&b);
                 let res_overflow = res.1.is_nonzero();
                 let checked = a.checked_mul(&b);
-                assert_eq!(checked.is_some(), res_overflow.not());
+                assert_eq!(checked.is_some().to_bool(), res_overflow.not().to_bool());
                 assert_eq!(
                     checked.as_inner_unchecked(),
                     &res.0,
@@ -440,7 +440,7 @@ mod tests {
             let res = a.square_wide();
             let res_overflow = res.1.is_nonzero();
             let checked = a.checked_square();
-            assert_eq!(checked.is_some(), res_overflow.not());
+            assert_eq!(checked.is_some().to_bool(), res_overflow.not().to_bool());
             assert_eq!(checked.as_inner_unchecked(), &res.0, "a = 2**{n}");
         }
     }

@@ -503,7 +503,7 @@ impl<const LIMBS: usize> RemAssign<&NonZero<Int<LIMBS>>> for Wrapping<Int<LIMBS>
 
 #[cfg(test)]
 mod tests {
-    use crate::{Choice, CtSelect, DivVartime, I128, Int, NonZero, One, Zero};
+    use crate::{CtSelect, DivVartime, I128, Int, NonZero, One, Zero};
 
     #[test]
     #[allow(clippy::init_numbered_fields)]
@@ -622,7 +622,7 @@ mod tests {
     fn test_checked_div_mod_floor() {
         let (quotient, remainder) =
             I128::MIN.checked_div_rem_floor(&I128::MINUS_ONE.to_nz().unwrap());
-        assert_eq!(quotient.is_some(), Choice::FALSE);
+        assert!(!quotient.is_some().to_bool());
         assert_eq!(remainder, I128::ZERO);
     }
 
