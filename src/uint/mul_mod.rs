@@ -99,7 +99,7 @@ const fn mac_by_limb<const LIMBS: usize>(
     (a, carry)
 }
 
-#[cfg(all(test, feature = "rand"))]
+#[cfg(all(test, feature = "rand_core"))]
 mod tests {
     use crate::{Limb, NonZero, Random, RandomMod, Uint};
     use rand_core::SeedableRng;

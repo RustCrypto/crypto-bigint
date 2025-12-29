@@ -1130,7 +1130,7 @@ mod tests {
         assert_eq!(&out, hex);
     }
 
-    #[cfg(all(feature = "rand", feature = "alloc"))]
+    #[cfg(all(feature = "rand_core", feature = "alloc"))]
     #[test]
     fn encode_radix_round_trip() {
         use crate::{Random, U256};

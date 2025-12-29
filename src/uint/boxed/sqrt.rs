@@ -133,7 +133,7 @@ impl SquareRoot for BoxedUint {
 mod tests {
     use crate::{BoxedUint, Limb};
 
-    #[cfg(feature = "rand")]
+    #[cfg(feature = "rand_core")]
     use {
         crate::RandomBits,
         chacha20::ChaCha8Rng,
@@ -284,7 +284,7 @@ mod tests {
         assert_eq!(BoxedUint::from(10u8).sqrt_vartime(), BoxedUint::from(3u8));
     }
 
-    #[cfg(feature = "rand")]
+    #[cfg(feature = "rand_core")]
     #[test]
     fn fuzz() {
         let mut rng = ChaCha8Rng::from_seed([7u8; 32]);

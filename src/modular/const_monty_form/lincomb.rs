@@ -22,7 +22,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
 #[cfg(test)]
 mod tests {
 
-    #[cfg(feature = "rand")]
+    #[cfg(feature = "rand_core")]
     #[test]
     fn lincomb_expected() {
         use super::{ConstMontyForm, ConstMontyParams};
