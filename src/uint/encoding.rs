@@ -236,6 +236,16 @@ const fn cast_slice_mut(limbs: &mut [Word]) -> &mut [u8] {
 }
 
 impl<const LIMBS: usize> EncodedUint<LIMBS> {
+    /// Extracts a byte slice containing the entire contents.
+    pub const fn as_slice(&self) -> &[u8] {
+        cast_slice(&self.0)
+    }
+
+    /// Extracts a mutable byte slice containing the entire contents.
+    pub const fn as_mut_slice(&mut self) -> &mut [u8] {
+        cast_slice_mut(&mut self.0)
+    }
+
     const fn new_le(value: &Uint<LIMBS>) -> Self {
         let mut buffer = [0; LIMBS];
         let mut i = 0;
@@ -291,13 +301,13 @@ impl<const LIMBS: usize> Default for EncodedUint<LIMBS> {
 
 impl<const LIMBS: usize> AsRef<[u8]> for EncodedUint<LIMBS> {
     fn as_ref(&self) -> &[u8] {
-        cast_slice(&self.0)
+        self.as_slice()
     }
 }
 
 impl<const LIMBS: usize> AsMut<[u8]> for EncodedUint<LIMBS> {
     fn as_mut(&mut self) -> &mut [u8] {
-        cast_slice_mut(&mut self.0)
+        self.as_mut_slice()
     }
 }
 
