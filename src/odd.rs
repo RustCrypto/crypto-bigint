@@ -307,8 +307,8 @@ impl Resize for &Odd<BoxedUint> {
 #[cfg(feature = "rand_core")]
 impl<const LIMBS: usize> Random for Odd<Uint<LIMBS>> {
     /// Generate a random `Odd<Uint<T>>`.
-    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
-        let mut ret = Uint::try_random(rng)?;
+    fn try_random_from_rng<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+        let mut ret = Uint::try_random_from_rng(rng)?;
         ret.limbs[0] |= Limb::ONE;
         Ok(Odd(ret))
     }

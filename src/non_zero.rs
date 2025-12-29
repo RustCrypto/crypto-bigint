@@ -348,9 +348,9 @@ where
     /// As a result, it runs in variable time. If the generator `rng` is
     /// cryptographically secure (for example, it implements `CryptoRng`),
     /// then this is guaranteed not to leak anything about the output value.
-    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+    fn try_random_from_rng<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
         loop {
-            if let Some(result) = Self::new(T::try_random(rng)?).into() {
+            if let Some(result) = Self::new(T::try_random_from_rng(rng)?).into() {
                 break Ok(result);
             }
         }

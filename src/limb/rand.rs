@@ -5,7 +5,7 @@ use crate::{CtLt, Encoding, NonZero, Random, RandomMod};
 use rand_core::TryRngCore;
 
 impl Random for Limb {
-    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+    fn try_random_from_rng<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
         #[cfg(target_pointer_width = "32")]
         let val = rng.try_next_u32()?;
         #[cfg(target_pointer_width = "64")]

@@ -282,15 +282,39 @@ pub trait Random: Sized {
     /// Generate a random value.
     ///
     /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
-    fn random<R: RngCore + ?Sized>(rng: &mut R) -> Self {
-        let Ok(out) = Self::try_random(rng);
-        out
-    }
+    fn try_random_from_rng<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error>;
 
     /// Generate a random value.
     ///
     /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
-    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error>;
+    fn random_from_rng<R: RngCore + ?Sized>(rng: &mut R) -> Self {
+        let Ok(out) = Self::try_random_from_rng(rng);
+        out
+    }
+
+    /// Randomly generate a value of this type using the system's ambient cryptographically secure
+    /// random number generator.
+    ///
+    /// # Errors
+    /// Returns [`getrandom::Error`] in the event the system's ambient RNG experiences an internal
+    /// failure.
+    #[cfg(feature = "getrandom")]
+    fn try_random() -> Result<Self, getrandom::Error> {
+        Self::try_random_from_rng(&mut getrandom::SysRng)
+    }
+
+    /// Randomly generate a value of this type using the system's ambient cryptographically secure
+    /// random number generator.
+    ///
+    /// # Panics
+    /// This method will panic in the event the system's ambient RNG experiences an internal
+    /// failure.
+    ///
+    /// This shouldn't happen on most modern operating systems.
+    #[cfg(feature = "getrandom")]
+    fn random() -> Self {
+        Self::try_random().expect("RNG failure")
+    }
 }
 
 /// Possible errors of the methods in [`RandomBits`] trait.

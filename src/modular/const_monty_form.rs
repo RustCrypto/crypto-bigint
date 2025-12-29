@@ -194,7 +194,7 @@ where
     MOD: ConstMontyParams<LIMBS>,
 {
     #[inline]
-    fn try_random<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+    fn try_random_from_rng<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
         Ok(Self::new(&Uint::try_random_mod_vartime(
             rng,
             MOD::PARAMS.modulus.as_nz_ref(),
