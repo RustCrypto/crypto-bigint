@@ -121,7 +121,7 @@ impl<const LIMBS: usize> SquareRoot for Uint<LIMBS> {
 mod tests {
     use crate::{Limb, U192, U256};
 
-    #[cfg(feature = "rand")]
+    #[cfg(feature = "rand_core")]
     use {
         crate::{Random, U512},
         chacha20::ChaCha8Rng,
@@ -226,7 +226,7 @@ mod tests {
         assert_eq!(U256::from(10u8).sqrt_vartime(), U256::from(3u8));
     }
 
-    #[cfg(feature = "rand")]
+    #[cfg(feature = "rand_core")]
     #[test]
     fn fuzz() {
         let mut rng = ChaCha8Rng::from_seed([7u8; 32]);

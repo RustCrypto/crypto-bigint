@@ -29,7 +29,7 @@ impl BoxedMontyForm {
 #[cfg(test)]
 mod tests {
 
-    #[cfg(feature = "rand")]
+    #[cfg(feature = "rand_core")]
     #[test]
     fn lincomb_expected() {
         use crate::modular::{BoxedMontyForm, BoxedMontyParams};

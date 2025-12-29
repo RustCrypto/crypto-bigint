@@ -117,7 +117,7 @@
 //! using any RNG by using the [`Random`] trait:
 //!
 //! ```
-//! # #[cfg(feature = "rand")]
+//! # #[cfg(feature = "rand_core")]
 //! # {
 //! # use chacha20::ChaCha8Rng;
 //! # use rand_core::SeedableRng;
@@ -136,7 +136,7 @@
 //! distribution around a given [`NonZero`] modulus.
 //!
 //! ```
-//! # #[cfg(feature = "rand")]
+//! # #[cfg(feature = "rand_core")]
 //! # {
 //! # use chacha20::ChaCha8Rng;
 //! # use rand_core::SeedableRng;

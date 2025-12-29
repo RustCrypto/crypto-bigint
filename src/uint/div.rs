@@ -678,7 +678,7 @@ mod tests {
         Uint, Word, Zero,
     };
 
-    #[cfg(feature = "rand")]
+    #[cfg(feature = "rand_core")]
     use {crate::Random, chacha20::ChaCha8Rng, rand_core::RngCore, rand_core::SeedableRng};
 
     #[test]
@@ -706,7 +706,7 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "rand")]
+    #[cfg(feature = "rand_core")]
     #[test]
     fn div() {
         let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
@@ -914,7 +914,7 @@ mod tests {
         assert_eq!(r, a);
     }
 
-    #[cfg(feature = "rand")]
+    #[cfg(feature = "rand_core")]
     #[test]
     fn rem2krand() {
         let mut rng = ChaCha8Rng::from_seed([7u8; 32]);

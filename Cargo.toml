@@ -41,12 +41,12 @@ proptest = "1.9"
 rand_core = "0.10.0-rc-3"
 
 [features]
-default = ["rand"]
+default = ["rand_core"]
 alloc = ["serdect?/alloc"]
 
 extra-sizes = []
-getrandom = ["dep:getrandom", "rand"]
-rand = ["rand_core"]
+getrandom = ["dep:getrandom", "rand_core"]
+rand_core = ["dep:rand_core"]
 serde = ["dep:serdect"]
 subtle = ["dep:subtle", "ctutils/subtle", "hybrid-array?/subtle"]
 

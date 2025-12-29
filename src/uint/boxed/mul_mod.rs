@@ -90,7 +90,7 @@ fn mac_by_limb(a: &BoxedUint, b: &BoxedUint, c: Limb, carry: Limb) -> (BoxedUint
     (a, carry)
 }
 
-#[cfg(all(test, feature = "rand"))]
+#[cfg(all(test, feature = "rand_core"))]
 mod tests {
     use crate::{Limb, NonZero, Random, RandomMod, Uint};
     use rand_core::SeedableRng;

@@ -45,7 +45,7 @@ impl<const LIMBS: usize> AddMod for Uint<LIMBS> {
     }
 }
 
-#[cfg(all(test, feature = "rand"))]
+#[cfg(all(test, feature = "rand_core"))]
 mod tests {
     use crate::{Limb, NonZero, Random, RandomMod, U256, Uint};
     use rand_core::SeedableRng;
