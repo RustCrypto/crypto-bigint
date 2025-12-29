@@ -45,8 +45,7 @@ use zeroize::Zeroize;
 /// Unlike many other heap-allocated big integer libraries, this type is not
 /// arbitrary precision and will wrap at its fixed-precision rather than
 /// automatically growing.
-#[allow(clippy::derived_hash_with_manual_eq)]
-#[derive(Clone, Hash)]
+#[derive(Clone)]
 pub struct BoxedUint {
     /// Boxed slice containing limbs.
     ///
