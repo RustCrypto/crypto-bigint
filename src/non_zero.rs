@@ -322,11 +322,11 @@ where
 
 impl<T> Default for NonZero<T>
 where
-    T: Constants,
+    T: One,
 {
     #[inline]
     fn default() -> Self {
-        Self(T::ONE)
+        Self(T::one())
     }
 }
 
@@ -524,7 +524,13 @@ impl<T: zeroize::Zeroize + Zero> zeroize::Zeroize for NonZero<T> {
 
 #[cfg(test)]
 mod tests {
+    use super::NonZero;
     use crate::{I128, U128};
+
+    #[test]
+    fn default() {
+        assert!(!NonZero::<U128>::default().is_zero().to_bool());
+    }
 
     #[test]
     fn int_abs_sign() {
