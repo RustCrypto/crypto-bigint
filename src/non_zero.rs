@@ -61,6 +61,18 @@ impl<T> NonZero<T> {
     pub fn get(self) -> T {
         self.0
     }
+
+    /// Returns a copy of the inner value for `Copy` types.
+    ///
+    /// This allows the function to be `const fn`, since `Copy` is implicitly `!Drop`, which avoids
+    /// problems around `const fn` destructors.
+    #[inline]
+    pub const fn get_copy(self) -> T
+    where
+        T: Copy,
+    {
+        self.0
+    }
 }
 
 impl<T: ?Sized> NonZero<T> {
