@@ -4,7 +4,7 @@ mod common;
 
 use common::to_biguint;
 use crypto_bigint::{
-    Encoding, Gcd, Limb, NonZero, Odd, U256, U512, U4096, U8192, Uint, Word,
+    Encoding, Limb, NonZero, Odd, U256, U512, U4096, U8192, Uint, Word,
     modular::{MontyForm, MontyParams},
 };
 use num_bigint::BigUint;

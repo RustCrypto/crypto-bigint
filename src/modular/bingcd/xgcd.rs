@@ -366,7 +366,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 #[cfg(all(test, not(miri)))]
 mod tests {
     use crate::modular::bingcd::xgcd::PatternXgcdOutput;
-    use crate::{ConcatMixed, Gcd, Uint};
+    use crate::{ConcatMixed, Uint};
     use core::ops::Div;
 
     mod test_extract_quotients {

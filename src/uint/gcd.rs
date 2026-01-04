@@ -1,13 +1,14 @@
 //! This module implements Binary (Extended) GCD for [`Uint`].
 
-use crate::modular::bingcd::xgcd::PatternXgcdOutput;
-use crate::modular::safegcd;
-use crate::primitives::u32_min;
-use crate::{Choice, Gcd, Int, NonZero, NonZeroUint, Odd, OddUint, Uint, Xgcd};
+use crate::{
+    Choice, Gcd, Int, NonZero, NonZeroUint, Odd, OddUint, Uint, Xgcd,
+    modular::{bingcd::xgcd::PatternXgcdOutput, safegcd},
+    primitives::u32_min,
+};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute the greatest common divisor of `self` and `rhs`.
-    pub const fn gcd_uint(&self, rhs: &Self) -> Self {
+    pub const fn gcd(&self, rhs: &Self) -> Self {
         let self_is_nz = self.is_nonzero();
         // Note: is non-zero by construction
         let self_nz = NonZero(Uint::select(&Uint::ONE, self, self_is_nz));
@@ -17,7 +18,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute the greatest common divisor of `self` and `rhs`.
     ///
     /// Executes in variable time w.r.t. all input parameters.
-    pub const fn gcd_uint_vartime(&self, rhs: &Self) -> Self {
+    pub const fn gcd_vartime(&self, rhs: &Self) -> Self {
         if self.is_zero_vartime() {
             return *rhs;
         }
@@ -290,6 +291,29 @@ impl<const LIMBS: usize> OddUintXgcdOutput<LIMBS> {
     }
 }
 
+macro_rules! impl_gcd {
+    ($slf:ty, [$($rhs:ty),+]) => {
+        $(
+            impl_gcd!($slf, $rhs, $rhs);
+        )+
+    };
+    ($slf:ty, $rhs:ty, $out:ty) => {
+        impl<const LIMBS: usize> Gcd<$rhs> for $slf {
+            type Output = $out;
+
+            #[inline]
+            fn gcd(&self, rhs: &$rhs) -> Self::Output {
+                rhs.gcd(self)
+            }
+
+            #[inline]
+            fn gcd_vartime(&self, rhs: &$rhs) -> Self::Output {
+                rhs.gcd_vartime(self)
+            }
+        }
+    };
+}
+
 macro_rules! impl_gcd_uint_lhs {
     ($slf:ty, [$($rhs:ty),+]) => {
         $(
@@ -339,7 +363,7 @@ macro_rules! impl_gcd_uint_rhs {
 pub(crate) use impl_gcd_uint_lhs;
 pub(crate) use impl_gcd_uint_rhs;
 
-impl_gcd_uint_rhs!(
+impl_gcd!(
     Uint<LIMBS>,
     [Uint<LIMBS>, NonZeroUint<LIMBS>, OddUint<LIMBS>]
 );
@@ -392,7 +416,7 @@ impl<const LIMBS: usize> Xgcd for OddUint<LIMBS> {
 #[cfg(all(test, not(miri)))]
 mod tests {
     mod gcd {
-        use crate::{Gcd, U64, U128, U256, U512, U1024, U2048, U4096, Uint};
+        use crate::{U64, U128, U256, U512, U1024, U2048, U4096, Uint};
 
         fn test<const LIMBS: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>, target: Uint<LIMBS>) {
             assert_eq!(lhs.gcd(&rhs), target);
@@ -424,9 +448,7 @@ mod tests {
     }
 
     mod xgcd {
-        use crate::{
-            Concat, Gcd, Int, U64, U128, U256, U512, U1024, U2048, U4096, U8192, U16384, Uint,
-        };
+        use crate::{Concat, Int, U64, U128, U256, U512, U1024, U2048, U4096, U8192, U16384, Uint};
         use core::ops::Div;
 
         fn test<const LIMBS: usize, const DOUBLE: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)

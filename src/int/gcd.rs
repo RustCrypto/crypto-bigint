@@ -9,14 +9,14 @@ use crate::{Choice, Gcd, Int, NonZero, NonZeroInt, NonZeroUint, Odd, OddInt, Odd
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute the greatest common divisor of `self` and `rhs`.
     pub const fn gcd_uint(&self, rhs: &Uint<LIMBS>) -> Uint<LIMBS> {
-        self.abs().gcd_uint(rhs)
+        self.abs().gcd(rhs)
     }
 
     /// Compute the greatest common divisor of `self` and `rhs`.
     ///
     /// Executes in variable time w.r.t. all input parameters.
     pub const fn gcd_uint_vartime(&self, rhs: &Uint<LIMBS>) -> Uint<LIMBS> {
-        self.abs().gcd_uint_vartime(rhs)
+        self.abs().gcd_vartime(rhs)
     }
 
     /// Executes the Extended GCD algorithm.
