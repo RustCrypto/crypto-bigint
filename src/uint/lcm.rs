@@ -11,7 +11,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let self_is_nz = self.is_nonzero();
         let rhs_is_nz = rhs.is_nonzero();
 
-        let gcd_nz = NonZero(self.gcd_uint(&Uint::select(&Uint::ONE, rhs, rhs_is_nz)));
+        let gcd_nz = NonZero(self.gcd(&Uint::select(&Uint::ONE, rhs, rhs_is_nz)));
 
         let lcm = self.wrapping_div(&gcd_nz).concatenating_mul(rhs);
 

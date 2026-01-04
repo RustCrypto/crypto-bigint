@@ -4,7 +4,7 @@ use criterion::{
     BatchSize, BenchmarkGroup, BenchmarkId, Criterion, criterion_group, criterion_main,
 };
 use crypto_bigint::{
-    Gcd, Limb, NonZero, Odd, OddUint, Random, RandomBits, RandomMod, Reciprocal, U128, U256, U512,
+    Limb, NonZero, Odd, OddUint, Random, RandomBits, RandomMod, Reciprocal, U128, U256, U512,
     U1024, U2048, U4096, U8192, Uint,
 };
 use rand_core::{RngCore, SeedableRng};
