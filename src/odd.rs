@@ -36,7 +36,7 @@ pub type OddBoxedUint = Odd<BoxedUint>;
 /// Wrapper type for odd integers.
 ///
 /// These are frequently used in cryptography, e.g. as a modulus.
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 #[repr(transparent)]
 pub struct Odd<T: ?Sized>(pub(crate) T);
 
@@ -177,6 +177,16 @@ where
     #[inline]
     fn ct_select(&self, other: &Self, choice: Choice) -> Self {
         Self(self.0.ct_select(&other.0, choice))
+    }
+}
+
+impl<T> Default for Odd<T>
+where
+    T: One,
+{
+    #[inline]
+    fn default() -> Self {
+        Odd(T::one())
     }
 }
 
@@ -427,6 +437,12 @@ mod tests {
     #[cfg(feature = "alloc")]
     use super::BoxedUint;
     use super::{Odd, Uint};
+    use crate::U128;
+
+    #[test]
+    fn default() {
+        assert!(Odd::<U128>::default().is_odd().to_bool());
+    }
 
     #[test]
     fn not_odd_numbers() {
