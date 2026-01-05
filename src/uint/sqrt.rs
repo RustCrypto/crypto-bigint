@@ -1,51 +1,24 @@
 //! [`Uint`] square root operations.
 
-use crate::{Choice, CtEq, CtOption, Limb, SquareRoot, Uint};
+use crate::{CtEq, CtOption, Limb, NonZero, SquareRoot, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes √(`self`) in constant time.
     ///
     /// Callers can check if `self` is a square by squaring the result
     pub const fn sqrt(&self) -> Self {
-        // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13.
-        //
-        // See Hast, "Note on computation of integer square roots"
-        // for the proof of the sufficiency of the bound on iterations.
-        // https://github.com/RustCrypto/crypto-bigint/files/12600669/ct_sqrt.pdf
-
-        let rt_bits = self.bits().div_ceil(2);
-        let self_is_nz = Choice::from_u32_nz(rt_bits);
-        let self_nz = Self::select(&Self::ONE, self, self_is_nz);
-
-        // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < 2^b`.
-        // Will not overflow since `b <= BITS`.
-        let mut x = Self::ZERO.set_bit_vartime(rt_bits, true);
-        // Compute `self_nz / x_0` by shifting.
-        let mut q = self_nz.shr(rt_bits);
-        // The first division has been performed.
-        let mut i = 1;
-
-        loop {
-            // Calculate `x_{i+1} = floor((x_i + self_nz / x_i) / 2)`, leaving `x` unmodified
-            // if it would increase.
-            x = Self::select(&x.wrapping_add(&q).shr1(), &x, Uint::lt(&x, &q));
-
-            // We repeat enough times to guarantee the result has stabilized.
-            // TODO (#378): the tests indicate that just `Self::LOG2_BITS` may be enough.
-            i += 1;
-            if i >= Self::LOG2_BITS + 2 {
-                break;
-            }
-
-            (q, _) = self_nz.div_rem(x.to_nz().expect_ref("ensured non-zero"));
-        }
-
-        Self::select(&Self::ZERO, &x, self_is_nz)
+        let self_is_nz = self.is_nonzero();
+        let root_nz = NonZero(Self::select(&Self::ONE, self, self_is_nz))
+            .sqrt()
+            .get_copy();
+        Self::select(&Self::ZERO, &root_nz, self_is_nz)
     }
 
     /// Computes √(`self`)
     ///
-    /// Callers can check if `self` is a square by squaring the result
+    /// Callers can check if `self` is a square by squaring the result.
+    ///
+    /// Variable time with respect to `self`.
     pub const fn sqrt_vartime(&self) -> Self {
         // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13
 
@@ -104,6 +77,43 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 }
 
+impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
+    /// Computes √(`self`) in constant time.
+    ///
+    /// Callers can check if `self` is a square by squaring the result
+    pub const fn sqrt(&self) -> Self {
+        // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13.
+        //
+        // See Hast, "Note on computation of integer square roots"
+        // for the proof of the sufficiency of the bound on iterations.
+        // https://github.com/RustCrypto/crypto-bigint/files/12600669/ct_sqrt.pdf
+
+        let rt_bits = self.0.bits().div_ceil(2);
+        // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < 2^b`.
+        // Will not overflow since `b <= BITS`.
+        let mut x = Uint::<LIMBS>::ZERO.set_bit_vartime(rt_bits, true);
+        // Compute `self.0 / x_0` by shifting.
+        let mut q = self.0.shr(rt_bits);
+        // The first division has been performed.
+        let mut i = 1;
+
+        loop {
+            // Calculate `x_{i+1} = floor((x_i + self_nz / x_i) / 2)`, leaving `x` unmodified
+            // if it would increase.
+            x = Uint::select(&x.wrapping_add(&q).shr1(), &x, Uint::lt(&x, &q));
+
+            // We repeat enough times to guarantee the result has stabilized.
+            // TODO (#378): the tests indicate that just `Self::LOG2_BITS` may be enough.
+            i += 1;
+            if i >= Uint::<LIMBS>::LOG2_BITS + 2 {
+                return x.to_nz().expect_copied("ensured non-zero");
+            }
+
+            (q, _) = self.0.div_rem(x.to_nz().expect_ref("ensured non-zero"));
+        }
+    }
+}
+
 impl<const LIMBS: usize> SquareRoot for Uint<LIMBS> {
     fn sqrt(&self) -> Self {
         self.sqrt()
@@ -111,6 +121,19 @@ impl<const LIMBS: usize> SquareRoot for Uint<LIMBS> {
 
     fn sqrt_vartime(&self) -> Self {
         self.sqrt_vartime()
+    }
+}
+
+impl<const LIMBS: usize> SquareRoot for NonZero<Uint<LIMBS>> {
+    fn sqrt(&self) -> Self {
+        self.sqrt()
+    }
+
+    fn sqrt_vartime(&self) -> Self {
+        self.0
+            .sqrt_vartime()
+            .to_nz()
+            .expect_copied("ensured non-zero")
     }
 }
 
