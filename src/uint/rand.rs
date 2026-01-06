@@ -1,7 +1,7 @@
 //! Random number generator support
 
-use super::{Uint, Word};
-use crate::{CtLt, Encoding, Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod, Zero};
+use super::Uint;
+use crate::{CtLt, Encoding, Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod};
 use rand_core::{RngCore, TryRngCore};
 
 impl<const LIMBS: usize> Random for Uint<LIMBS> {
@@ -25,45 +25,26 @@ impl<const LIMBS: usize> Random for Uint<LIMBS> {
 /// `rng.fill_bytes(&mut bytes[..i]); rng.fill_bytes(&mut bytes[i..])` constructs the same `bytes`,
 /// as long as `i` is a multiple of `X`.
 /// Note that the `TryRngCore` trait does _not_ require this behaviour from `rng`.
-pub(crate) fn random_bits_core<R: TryRngCore + ?Sized>(
+pub(crate) fn random_bits_core<T, R: TryRngCore + ?Sized>(
     rng: &mut R,
-    zeroed_limbs: &mut [Limb],
-    bit_length: u32,
-) -> Result<(), RandomBitsError<R::Error>> {
-    if bit_length == 0 {
+    x: &mut T,
+    n_bits: u32,
+) -> Result<(), R::Error>
+where
+    T: Encoding,
+{
+    if n_bits == 0 {
         return Ok(());
     }
 
-    let buffer: Word = 0;
-    let mut buffer = buffer.to_be_bytes();
+    let n_bytes = n_bits.div_ceil(u8::BITS) as usize;
+    let hi_mask = u8::MAX >> ((u8::BITS - (n_bits % u8::BITS)) % u8::BITS);
 
-    let nonzero_limbs = bit_length.div_ceil(Limb::BITS) as usize;
-    let partial_limb = bit_length % Limb::BITS;
-    let mask = Word::MAX >> ((Word::BITS - partial_limb) % Word::BITS);
-
-    for i in 0..nonzero_limbs - 1 {
-        rng.try_fill_bytes(&mut buffer)
-            .map_err(RandomBitsError::RandCore)?;
-        zeroed_limbs[i] = Limb(Word::from_le_bytes(buffer));
-    }
-
-    // This algorithm should sample the same number of random bytes, regardless of the pointer width
-    // of the target platform. To this end, special attention has to be paid to the case where
-    // bit_length - 1 < 32 mod 64. Bit strings of that size can be represented using `2X+1` 32-bit
-    // words or `X+1` 64-bit words. Note that 64*(X+1) - 32*(2X+1) = 32. Hence, if we sample full
-    // words only, a 64-bit platform will sample 32 bits more than a 32-bit platform. We prevent
-    // this by forcing both platforms to only sample 4 bytes for the last word in this case.
-    let slice = if partial_limb > 0 && partial_limb <= 32 {
-        // Note: we do not have to zeroize the second half of the buffer, as the mask will take
-        // care of this in the end.
-        &mut buffer[0..4]
-    } else {
-        buffer.as_mut_slice()
-    };
-
-    rng.try_fill_bytes(slice)
-        .map_err(RandomBitsError::RandCore)?;
-    zeroed_limbs[nonzero_limbs - 1] = Limb(Word::from_le_bytes(buffer) & mask);
+    let mut buffer = x.to_le_bytes();
+    let slice = buffer.as_mut();
+    rng.try_fill_bytes(&mut slice[..n_bytes])?;
+    slice[n_bytes - 1] &= hi_mask;
+    *x = T::from_le_bytes(buffer);
 
     Ok(())
 }
@@ -93,72 +74,46 @@ impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
                 bits_precision,
             });
         }
-        let mut limbs = [Limb::ZERO; LIMBS];
-        random_bits_core(rng, &mut limbs, bit_length)?;
-        Ok(Self::from(limbs))
+        let mut x = Self::ZERO;
+        random_bits_core(rng, &mut x, bit_length).map_err(RandomBitsError::RandCore)?;
+        Ok(x)
     }
 }
 
 impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
-    fn random_mod<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
-        let mut n = Self::ZERO;
-        let Ok(()) = random_mod_core(rng, &mut n, modulus, modulus.bits_vartime());
-        n
+    fn random_mod_vartime<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
+        let mut x = Self::ZERO;
+        let Ok(()) = random_mod_vartime_core(rng, &mut x, modulus, modulus.bits_vartime());
+        x
     }
 
     fn try_random_mod_vartime<R: TryRngCore + ?Sized>(
         rng: &mut R,
         modulus: &NonZero<Self>,
     ) -> Result<Self, R::Error> {
-        let mut n = Self::ZERO;
-        random_mod_core(rng, &mut n, modulus, modulus.bits_vartime())?;
-        Ok(n)
+        let mut x = Self::ZERO;
+        random_mod_vartime_core(rng, &mut x, modulus, modulus.bits_vartime())?;
+        Ok(x)
     }
 }
 
-/// Generic implementation of `random_mod` which can be shared with `BoxedUint`.
+/// Generic implementation of `random_mod_vartime` which can be shared with `BoxedUint`.
 // TODO(tarcieri): obtain `n_bits` via a trait like `Integer`
-pub(super) fn random_mod_core<T, R: TryRngCore + ?Sized>(
+pub(super) fn random_mod_vartime_core<T, R: TryRngCore + ?Sized>(
     rng: &mut R,
-    n: &mut T,
+    x: &mut T,
     modulus: &NonZero<T>,
     n_bits: u32,
 ) -> Result<(), R::Error>
 where
-    T: AsMut<[Limb]> + AsRef<[Limb]> + CtLt + Zero,
+    T: Encoding + CtLt,
 {
-    #[cfg(target_pointer_width = "64")]
-    let mut next_word = || rng.try_next_u64();
-    #[cfg(target_pointer_width = "32")]
-    let mut next_word = || rng.try_next_u32();
-
-    let n_limbs = n_bits.div_ceil(Limb::BITS) as usize;
-
-    let hi_word_modulus = modulus.as_ref().as_ref()[n_limbs - 1].0;
-    let mask = !0 >> hi_word_modulus.leading_zeros();
-    let mut hi_word = next_word()? & mask;
-
     loop {
-        while hi_word > hi_word_modulus {
-            hi_word = next_word()? & mask;
+        random_bits_core(rng, x, n_bits)?;
+        if x.ct_lt(modulus).into() {
+            return Ok(());
         }
-        // Set high limb
-        n.as_mut()[n_limbs - 1] = Limb::from_le_bytes(hi_word.to_le_bytes());
-        // Set low limbs
-        for i in 0..n_limbs - 1 {
-            // Need to deserialize from little-endian to make sure that two 32-bit limbs
-            // deserialized sequentially are equal to one 64-bit limb produced from the same
-            // byte stream.
-            n.as_mut()[i] = Limb::from_le_bytes(next_word()?.to_le_bytes());
-        }
-        // If the high limb is equal to the modulus' high limb, it's still possible
-        // that the full uint is too big so we check and repeat if it is.
-        if n.ct_lt(modulus).into() {
-            break;
-        }
-        hi_word = next_word()? & mask;
     }
-    Ok(())
 }
 
 #[cfg(test)]
@@ -268,7 +223,7 @@ mod tests {
 
         let bit_length = 989;
         let mut val = U1024::ZERO;
-        random_bits_core(&mut rng, val.as_mut_limbs(), bit_length).expect("safe");
+        random_bits_core(&mut rng, &mut val, bit_length).expect("safe");
 
         assert_eq!(
             val,
@@ -287,6 +242,41 @@ mod tests {
         );
     }
 
+    /// Make sure random_mod_vartime output is consistent across platforms
+    #[test]
+    fn random_mod_vartime_platform_independence() {
+        let mut rng = get_four_sequential_rng();
+
+        let modulus = NonZero::new(U256::from_u32(8192)).unwrap();
+        let mut vals = [U256::ZERO; 5];
+        for val in &mut vals {
+            *val = U256::random_mod_vartime(&mut rng, &modulus);
+        }
+        let expected = [55, 3378, 2172, 1657, 5323];
+        for (want, got) in expected.into_iter().zip(vals.into_iter()) {
+            // assert_eq!(got.as_words()[0], want);
+            assert_eq!(got, U256::from_u32(want));
+        }
+
+        let modulus =
+            NonZero::new(U256::ZERO.wrapping_sub(&U256::from_u64(rng.next_u64()))).unwrap();
+        let val = U256::random_mod_vartime(&mut rng, &modulus);
+        assert_eq!(
+            val,
+            U256::from_be_hex("E17653A37F1BCC44277FA208E6B31E08CDC4A23A7E88E660EF781C7DD2D368BA")
+        );
+
+        let mut state = [0u8; 16];
+        rng.fill_bytes(&mut state);
+
+        assert_eq!(
+            state,
+            [
+                105, 47, 30, 235, 242, 2, 67, 197, 163, 64, 75, 125, 34, 120, 40, 134,
+            ],
+        );
+    }
+
     /// Test that random bytes are sampled consecutively.
     #[test]
     fn random_bits_4_bytes_sequential() {
@@ -297,9 +287,8 @@ mod tests {
             let mut rng = get_four_sequential_rng();
             let mut first = U1024::ZERO;
             let mut second = U1024::ZERO;
-            random_bits_core(&mut rng, first.as_mut_limbs(), bit_length).expect("safe");
-            random_bits_core(&mut rng, second.as_mut_limbs(), U1024::BITS - bit_length)
-                .expect("safe");
+            random_bits_core(&mut rng, &mut first, bit_length).expect("safe");
+            random_bits_core(&mut rng, &mut second, U1024::BITS - bit_length).expect("safe");
             assert_eq!(second.shl(bit_length).bitor(&first), RANDOM_OUTPUT);
         }
     }
