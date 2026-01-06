@@ -169,7 +169,7 @@ pub trait Unsigned:
     + MulMod<Output = Self>
     + NegMod<Output = Self>
     + RemLimb
-    + SquareRoot
+    + SquareRoot<Output = Self>
     + SquareMod<Output = Self>
     + SubMod<Output = Self>
 {
@@ -703,13 +703,29 @@ pub trait SquareAssign {
     fn square_assign(&mut self);
 }
 
-/// Support for calucaling square roots.
-pub trait SquareRoot {
-    /// Computes `floor(sqrt(self))`.
-    fn sqrt(&self) -> Self;
+/// Support for calculating checked square roots.
+pub trait CheckedSquareRoot: Sized {
+    /// Output of the square root operation.
+    type Output;
 
-    /// Computes `floor(sqrt(self))`, variable time in `self`.
-    fn sqrt_vartime(&self) -> Self;
+    /// Computes `sqrt(self)`, returning `none` if no root exists.
+    fn checked_sqrt(&self) -> CtOption<Self::Output>;
+
+    /// Computes `sqrt(self)`, returning `none` if no root exists.
+    ///
+    /// Variable time with respect to `self`.
+    fn checked_sqrt_vartime(&self) -> Option<Self::Output>;
+}
+
+/// Support for calculating floored square roots.
+pub trait SquareRoot: CheckedSquareRoot {
+    /// Computes `floor(sqrt(self))`.
+    fn sqrt(&self) -> Self::Output;
+
+    /// Computes `floor(sqrt(self))`.
+    ///
+    /// Variable time with respect to `self`.
+    fn sqrt_vartime(&self) -> Self::Output;
 }
 
 /// Support for optimized division by a single limb.
