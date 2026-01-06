@@ -55,10 +55,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// only if the square root is exact.
     ///
     /// Variable time with respect to `self`.
-    pub fn checked_sqrt_vartime(&self) -> CtOption<Self> {
+    pub fn checked_sqrt_vartime(&self) -> Option<Self> {
         let r = self.sqrt_vartime();
         let s = r.wrapping_square();
-        CtOption::new(r, self.ct_eq(&s))
+        if self.cmp_vartime(&s).is_eq() {
+            Some(r)
+        } else {
+            None
+        }
     }
 }
 
@@ -144,10 +148,26 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
 
     /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
     /// only if the square root is exact.
-    pub fn checked_sqrt_vartime(&self) -> CtOption<Self> {
+    pub fn checked_sqrt_vartime(&self) -> Option<Self> {
         let r = self.sqrt_vartime();
         let s = r.wrapping_square();
-        CtOption::new(r, self.0.ct_eq(&s))
+        if self.0.cmp_vartime(&s).is_eq() {
+            Some(r)
+        } else {
+            None
+        }
+    }
+}
+
+impl<const LIMBS: usize> CheckedSquareRoot for Uint<LIMBS> {
+    type Output = Self;
+
+    fn checked_sqrt(&self) -> CtOption<Self> {
+        self.checked_sqrt()
+    }
+
+    fn checked_sqrt_vartime(&self) -> Option<Self> {
+        self.checked_sqrt_vartime()
     }
 }
 
@@ -158,6 +178,18 @@ impl<const LIMBS: usize> SquareRoot for Uint<LIMBS> {
 
     fn sqrt_vartime(&self) -> Self {
         self.sqrt_vartime()
+    }
+}
+
+impl<const LIMBS: usize> CheckedSquareRoot for NonZero<Uint<LIMBS>> {
+    type Output = Self;
+
+    fn checked_sqrt(&self) -> CtOption<Self> {
+        self.checked_sqrt()
+    }
+
+    fn checked_sqrt_vartime(&self) -> Option<Self> {
+        self.checked_sqrt_vartime()
     }
 }
 
@@ -253,7 +285,7 @@ mod tests {
             assert_eq!(l.sqrt(), r);
             assert_eq!(l.sqrt_vartime(), r);
             assert!(l.checked_sqrt().is_some().to_bool());
-            assert!(l.checked_sqrt_vartime().is_some().to_bool());
+            assert!(l.checked_sqrt_vartime().is_some());
         }
     }
 
@@ -273,9 +305,9 @@ mod tests {
     #[test]
     fn nonsquares_vartime() {
         assert_eq!(U256::from(2u8).sqrt_vartime(), U256::from(1u8));
-        assert!(!U256::from(2u8).checked_sqrt_vartime().is_some().to_bool());
+        assert!(U256::from(2u8).checked_sqrt_vartime().is_none());
         assert_eq!(U256::from(3u8).sqrt_vartime(), U256::from(1u8));
-        assert!(!U256::from(3u8).checked_sqrt_vartime().is_some().to_bool());
+        assert!(U256::from(3u8).checked_sqrt_vartime().is_none());
         assert_eq!(U256::from(5u8).sqrt_vartime(), U256::from(2u8));
         assert_eq!(U256::from(6u8).sqrt_vartime(), U256::from(2u8));
         assert_eq!(U256::from(7u8).sqrt_vartime(), U256::from(2u8));
@@ -294,7 +326,7 @@ mod tests {
             assert_eq!(s2.sqrt(), s);
             assert_eq!(s2.sqrt_vartime(), s);
             assert!(s2.checked_sqrt().is_some().to_bool());
-            assert!(s2.checked_sqrt_vartime().is_some().to_bool());
+            assert!(s2.checked_sqrt_vartime().is_some());
         }
 
         for _ in 0..50 {
