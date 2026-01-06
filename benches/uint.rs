@@ -872,9 +872,25 @@ fn bench_sqrt(c: &mut Criterion) {
         )
     });
 
+    group.bench_function("sqrt, U512", |b| {
+        b.iter_batched(
+            || U512::random_from_rng(&mut rng),
+            |x| x.sqrt(),
+            BatchSize::SmallInput,
+        )
+    });
+
     group.bench_function("sqrt_vartime, U256", |b| {
         b.iter_batched(
             || U256::random_from_rng(&mut rng),
+            |x| x.sqrt_vartime(),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("sqrt_vartime, U256 one Limb", |b| {
+        b.iter_batched(
+            || U256::from_word(Limb::random_from_rng(&mut rng).0),
             |x| x.sqrt_vartime(),
             BatchSize::SmallInput,
         )
