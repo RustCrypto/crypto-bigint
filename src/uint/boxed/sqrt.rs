@@ -301,6 +301,8 @@ mod tests {
     #[cfg(feature = "rand_core")]
     #[test]
     fn fuzz() {
+        use crate::CheckedSquareRoot;
+
         let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
         for _ in 0..50 {
             let t = rng.next_u32() as u64;
@@ -308,8 +310,8 @@ mod tests {
             let s2 = s.checked_mul(&s).unwrap();
             assert_eq!(s2.sqrt(), s);
             assert_eq!(s2.sqrt_vartime(), s);
-            assert!(s2.checked_sqrt().is_some().to_bool());
-            assert!(s2.checked_sqrt_vartime().is_some());
+            assert!(CheckedSquareRoot::checked_sqrt(&s2).is_some().to_bool());
+            assert!(CheckedSquareRoot::checked_sqrt_vartime(&s2).is_some());
         }
 
         for _ in 0..50 {

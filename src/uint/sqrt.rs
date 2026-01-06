@@ -46,22 +46,21 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
     /// only if the square root is exact.
     pub fn checked_sqrt(&self) -> CtOption<Self> {
-        let r = self.sqrt();
-        let s = r.wrapping_square();
-        CtOption::new(r, self.ct_eq(&s))
+        let self_is_nz = self.is_nonzero();
+        NonZero(Self::select(&Self::ONE, self, self_is_nz))
+            .checked_sqrt()
+            .map(|nz| Self::select(&Self::ZERO, nz.as_ref(), self_is_nz))
     }
 
-    /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
+    /// Perform checked sqrt, returning an [`Option`] which `is_some`
     /// only if the square root is exact.
     ///
     /// Variable time with respect to `self`.
     pub fn checked_sqrt_vartime(&self) -> Option<Self> {
-        let r = self.sqrt_vartime();
-        let s = r.wrapping_square();
-        if self.cmp_vartime(&s).is_eq() {
-            Some(r)
+        if self.is_zero_vartime() {
+            Some(Self::ZERO)
         } else {
-            None
+            NonZero(*self).checked_sqrt_vartime().map(|nz| nz.get())
         }
     }
 }
@@ -146,7 +145,7 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
         CtOption::new(r, self.0.ct_eq(&s))
     }
 
-    /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
+    /// Perform checked sqrt, returning an [`Option`] which `is_some`
     /// only if the square root is exact.
     pub fn checked_sqrt_vartime(&self) -> Option<Self> {
         let r = self.sqrt_vartime();
@@ -199,10 +198,7 @@ impl<const LIMBS: usize> SquareRoot for NonZero<Uint<LIMBS>> {
     }
 
     fn sqrt_vartime(&self) -> Self {
-        self.0
-            .sqrt_vartime()
-            .to_nz()
-            .expect_copied("ensured non-zero")
+        self.sqrt_vartime()
     }
 }
 
@@ -318,15 +314,24 @@ mod tests {
     #[cfg(feature = "rand_core")]
     #[test]
     fn fuzz() {
+        use crate::{CheckedSquareRoot, SquareRoot};
+
         let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
         for _ in 0..50 {
             let t = rng.next_u32() as u64;
             let s = U256::from(t);
-            let s2 = s.checked_mul(&s).unwrap();
-            assert_eq!(s2.sqrt(), s);
-            assert_eq!(s2.sqrt_vartime(), s);
-            assert!(s2.checked_sqrt().is_some().to_bool());
-            assert!(s2.checked_sqrt_vartime().is_some());
+            let s2 = s.checked_square().unwrap();
+            assert_eq!(SquareRoot::sqrt(&s2), s);
+            assert_eq!(SquareRoot::sqrt_vartime(&s2), s);
+            assert!(CheckedSquareRoot::checked_sqrt(&s2).is_some().to_bool());
+            assert!(CheckedSquareRoot::checked_sqrt_vartime(&s2).is_some());
+
+            if let Some(nz) = s2.to_nz().into_option() {
+                assert_eq!(SquareRoot::sqrt(&nz).get(), s);
+                assert_eq!(SquareRoot::sqrt_vartime(&nz).get(), s);
+                assert!(CheckedSquareRoot::checked_sqrt(&nz).is_some().to_bool());
+                assert!(CheckedSquareRoot::checked_sqrt_vartime(&nz).is_some());
+            }
         }
 
         for _ in 0..50 {

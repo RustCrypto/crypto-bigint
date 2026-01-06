@@ -42,7 +42,7 @@ impl<const LIMBS: usize> CheckedSquareRoot for Int<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::I256;
+    use crate::{CheckedSquareRoot, I256};
 
     #[test]
     fn square_root_expected() {
@@ -53,8 +53,8 @@ mod tests {
             (I256::from_i8(4), Some(I256::from_i8(2))),
         ];
         for (case, expect) in tests {
-            assert_eq!(case.checked_sqrt().into_option(), expect);
-            assert_eq!(case.checked_sqrt_vartime(), expect);
+            assert_eq!(CheckedSquareRoot::checked_sqrt(&case).into_option(), expect);
+            assert_eq!(CheckedSquareRoot::checked_sqrt_vartime(&case), expect);
         }
     }
 }
