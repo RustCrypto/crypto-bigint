@@ -32,6 +32,7 @@ mod select;
 mod shl;
 mod shr;
 mod sign;
+mod sqrt;
 mod sub;
 pub(crate) mod types;
 
