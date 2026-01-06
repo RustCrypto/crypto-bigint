@@ -1,11 +1,13 @@
 //! [`BoxedUint`] square root operations.
 
-use crate::{BitOps, BoxedUint, CtEq, CtGt, CtOption, CtSelect, Limb, SquareRoot};
+use crate::{
+    BitOps, BoxedUint, CheckedSquareRoot, CtEq, CtGt, CtOption, CtSelect, Limb, SquareRoot,
+};
 
 impl BoxedUint {
     /// Computes √(`self`) in constant time.
     ///
-    /// Callers can check if `self` is a square by squaring the result
+    /// Callers can check if `self` is a square by squaring the result.
     pub fn sqrt(&self) -> Self {
         // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13.
         //
@@ -46,9 +48,11 @@ impl BoxedUint {
         x
     }
 
-    /// Computes √(`self`)
+    /// Computes √(`self`).
     ///
-    /// Callers can check if `self` is a square by squaring the result
+    /// Callers can check if `self` is a square by squaring the result.
+    ///
+    /// Variable time with respect to `self`.
     pub fn sqrt_vartime(&self) -> Self {
         // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13
 
@@ -98,24 +102,44 @@ impl BoxedUint {
     /// Wrapped sqrt is just normal √(`self`)
     /// There’s no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations.
+    ///
+    /// Variable time with respect to `self`.
     pub fn wrapping_sqrt_vartime(&self) -> Self {
         self.sqrt_vartime()
     }
 
     /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
-    /// only if the √(`self`)² == self
+    /// only if the square root is exact.
     pub fn checked_sqrt(&self) -> CtOption<Self> {
         let r = self.sqrt();
-        let s = r.wrapping_mul(&r);
+        let s = r.wrapping_square();
         CtOption::new(r, self.ct_eq(&s))
     }
 
-    /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
-    /// only if the √(`self`)² == self
-    pub fn checked_sqrt_vartime(&self) -> CtOption<Self> {
+    /// Perform checked sqrt, returning an [`Option`] which `is_some`
+    /// only if the square root is exact.
+    ///
+    /// Variable time with respect to `self`.
+    pub fn checked_sqrt_vartime(&self) -> Option<Self> {
         let r = self.sqrt_vartime();
-        let s = r.wrapping_mul(&r);
-        CtOption::new(r, self.ct_eq(&s))
+        let s = r.wrapping_square();
+        if self.cmp_vartime(&s).is_eq() {
+            Some(r)
+        } else {
+            None
+        }
+    }
+}
+
+impl CheckedSquareRoot for BoxedUint {
+    type Output = Self;
+
+    fn checked_sqrt(&self) -> CtOption<Self::Output> {
+        self.checked_sqrt()
+    }
+
+    fn checked_sqrt_vartime(&self) -> Option<Self::Output> {
+        self.checked_sqrt_vartime()
     }
 }
 
@@ -244,7 +268,7 @@ mod tests {
             assert_eq!(l.sqrt(), r);
             assert_eq!(l.sqrt_vartime(), r);
             assert!(l.checked_sqrt().is_some().to_bool());
-            assert!(l.checked_sqrt_vartime().is_some().to_bool());
+            assert!(l.checked_sqrt_vartime().is_some());
         }
     }
 
@@ -264,19 +288,9 @@ mod tests {
     #[test]
     fn nonsquares_vartime() {
         assert_eq!(BoxedUint::from(2u8).sqrt_vartime(), BoxedUint::from(1u8));
-        assert!(
-            !BoxedUint::from(2u8)
-                .checked_sqrt_vartime()
-                .is_some()
-                .to_bool()
-        );
+        assert!(BoxedUint::from(2u8).checked_sqrt_vartime().is_none());
         assert_eq!(BoxedUint::from(3u8).sqrt_vartime(), BoxedUint::from(1u8));
-        assert!(
-            !BoxedUint::from(3u8)
-                .checked_sqrt_vartime()
-                .is_some()
-                .to_bool()
-        );
+        assert!(BoxedUint::from(3u8).checked_sqrt_vartime().is_none());
         assert_eq!(BoxedUint::from(5u8).sqrt_vartime(), BoxedUint::from(2u8));
         assert_eq!(BoxedUint::from(6u8).sqrt_vartime(), BoxedUint::from(2u8));
         assert_eq!(BoxedUint::from(7u8).sqrt_vartime(), BoxedUint::from(2u8));
@@ -295,7 +309,7 @@ mod tests {
             assert_eq!(s2.sqrt(), s);
             assert_eq!(s2.sqrt_vartime(), s);
             assert!(s2.checked_sqrt().is_some().to_bool());
-            assert!(s2.checked_sqrt_vartime().is_some().to_bool());
+            assert!(s2.checked_sqrt_vartime().is_some());
         }
 
         for _ in 0..50 {
