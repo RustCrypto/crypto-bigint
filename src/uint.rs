@@ -45,6 +45,7 @@ mod mul_int;
 mod mul_mod;
 mod neg;
 mod neg_mod;
+mod pow;
 mod ref_type;
 mod resize;
 mod select;
