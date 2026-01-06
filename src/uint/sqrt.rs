@@ -1,11 +1,11 @@
 //! [`Uint`] square root operations.
 
-use crate::{CtEq, CtOption, Limb, NonZero, SquareRoot, Uint};
+use crate::{CheckedSquareRoot, CtEq, CtOption, Limb, NonZero, SquareRoot, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes √(`self`) in constant time.
     ///
-    /// Callers can check if `self` is a square by squaring the result
+    /// Callers can check if `self` is a square by squaring the result.
     pub const fn sqrt(&self) -> Self {
         let self_is_nz = self.is_nonzero();
         let root_nz = NonZero(Self::select(&Self::ONE, self, self_is_nz))
@@ -14,54 +14,37 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Self::select(&Self::ZERO, &root_nz, self_is_nz)
     }
 
-    /// Computes √(`self`)
+    /// Computes √(`self`).
     ///
     /// Callers can check if `self` is a square by squaring the result.
     ///
     /// Variable time with respect to `self`.
     pub const fn sqrt_vartime(&self) -> Self {
-        // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13
-
-        let bits = self.bits_vartime();
-        if bits <= Limb::BITS {
-            let rt = self.limbs[0].0.isqrt();
-            return Self::from_word(rt);
-        }
-        let rt_bits = bits.div_ceil(2);
-
-        // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < b`.
-        // Will not overflow since `b <= BITS`.
-        let mut x = Self::ZERO.set_bit_vartime(rt_bits, true);
-        // Compute `self / x_0` by shifting.
-        let mut q = self.shr_vartime(rt_bits);
-
-        loop {
-            // Terminate if `x_{i+1}` >= `x`.
-            if q.cmp_vartime(&x).is_ge() {
-                return x;
-            }
-            // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
-            x = x.wrapping_add(&q).shr_vartime(1);
-            q = self.wrapping_div_vartime(x.to_nz().expect_ref("ensured non-zero"));
+        if self.is_zero_vartime() {
+            Self::ZERO
+        } else {
+            NonZero(*self).sqrt_vartime().get_copy()
         }
     }
 
-    /// Wrapped sqrt is just normal √(`self`)
+    /// Wrapped sqrt is just normal √(`self`).
     /// There’s no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations.
     pub const fn wrapping_sqrt(&self) -> Self {
         self.sqrt()
     }
 
-    /// Wrapped sqrt is just normal √(`self`)
+    /// Wrapped sqrt is just normal √(`self`).
     /// There’s no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations.
+    ///
+    /// Variable time with respect to `self`.
     pub const fn wrapping_sqrt_vartime(&self) -> Self {
         self.sqrt_vartime()
     }
 
     /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
-    /// only if the √(`self`)² == self
+    /// only if the square root is exact.
     pub fn checked_sqrt(&self) -> CtOption<Self> {
         let r = self.sqrt();
         let s = r.wrapping_square();
@@ -69,7 +52,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
-    /// only if the √(`self`)² == self
+    /// only if the square root is exact.
+    ///
+    /// Variable time with respect to `self`.
     pub fn checked_sqrt_vartime(&self) -> CtOption<Self> {
         let r = self.sqrt_vartime();
         let s = r.wrapping_square();
@@ -80,7 +65,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     /// Computes √(`self`) in constant time.
     ///
-    /// Callers can check if `self` is a square by squaring the result
+    /// Callers can check if `self` is a square by squaring the result.
     pub const fn sqrt(&self) -> Self {
         // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13.
         //
@@ -111,6 +96,58 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
 
             (q, _) = self.0.div_rem(x.to_nz().expect_ref("ensured non-zero"));
         }
+    }
+
+    /// Computes √(`self`).
+    ///
+    /// Callers can check if `self` is a square by squaring the result.
+    ///
+    /// Variable time with respect to `self`.
+    pub const fn sqrt_vartime(&self) -> Self {
+        // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13
+
+        let bits = self.0.bits_vartime();
+        if bits <= Limb::BITS {
+            let rt = self.0.limbs[0].0.isqrt();
+            return Uint::from_word(rt)
+                .to_nz()
+                .expect_copied("ensured non-zero");
+        }
+        let rt_bits = bits.div_ceil(2);
+
+        // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < b`.
+        // Will not overflow since `b <= BITS`.
+        let mut x = Uint::ZERO.set_bit_vartime(rt_bits, true);
+        // Compute `self / x_0` by shifting.
+        let mut q = self.0.shr_vartime(rt_bits);
+
+        loop {
+            // Terminate if `x_{i+1}` >= `x`.
+            if q.cmp_vartime(&x).is_ge() {
+                return x.to_nz().expect_copied("ensured non-zero");
+            }
+            // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
+            x = x.wrapping_add(&q).shr_vartime(1);
+            q = self
+                .0
+                .wrapping_div_vartime(x.to_nz().expect_ref("ensured non-zero"));
+        }
+    }
+
+    /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
+    /// only if the square root is exact.
+    pub fn checked_sqrt(&self) -> CtOption<Self> {
+        let r = self.sqrt();
+        let s = r.wrapping_square();
+        CtOption::new(r, self.0.ct_eq(&s))
+    }
+
+    /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
+    /// only if the square root is exact.
+    pub fn checked_sqrt_vartime(&self) -> CtOption<Self> {
+        let r = self.sqrt_vartime();
+        let s = r.wrapping_square();
+        CtOption::new(r, self.0.ct_eq(&s))
     }
 }
 
