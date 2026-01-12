@@ -17,6 +17,7 @@ mod mul;
 mod mul_mod;
 mod neg;
 mod neg_mod;
+mod pow_mod;
 mod select;
 mod shl;
 mod shr;

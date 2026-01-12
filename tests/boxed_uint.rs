@@ -198,6 +198,19 @@ proptest! {
     }
 
     #[test]
+    fn pow_mod(a in uint(), b in uint(), n in modulus()) {
+        let a = reduce(&a, n.as_nz_ref());
+
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+        let n_bi = to_biguint(&n);
+
+        let expected = to_uint(a_bi.modpow(&b_bi, &n_bi));
+        let actual = a.pow_mod(&b, &n);
+        prop_assert_eq!(expected, actual);
+    }
+
+    #[test]
     fn widening_mul(a in uint(), b in uint()) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
