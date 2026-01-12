@@ -100,7 +100,7 @@ pub const fn widening_mul_fixed<const LHS: usize, const RHS: usize>(
 
         (
             concat_wide(&z0.0, &s0),
-            concat_wide(&s1, &z2.1.overflowing_add_limb(carry).0),
+            concat_wide(&s1, &z2.1.wrapping_add_limb(carry)),
         )
     }
 
@@ -260,7 +260,7 @@ pub const fn widening_square_fixed<const LIMBS: usize>(
 
         (
             concat_wide(&z0.0, &z1.0),
-            concat_wide(&z1.1, &z2.1.overflowing_add_limb(carry).0),
+            concat_wide(&z1.1, &z2.1.wrapping_add_limb(carry)),
         )
     }
 

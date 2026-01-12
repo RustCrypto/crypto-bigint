@@ -48,6 +48,7 @@ mod neg_mod;
 mod pow;
 mod ref_type;
 mod resize;
+mod root;
 mod select;
 mod shl;
 mod shr;

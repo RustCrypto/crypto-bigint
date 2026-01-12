@@ -9,6 +9,7 @@ use crypto_bigint::{
 };
 use rand_core::{RngCore, SeedableRng};
 use std::hint::black_box;
+use std::num::NonZeroU32;
 
 fn make_rng() -> ChaCha8Rng {
     ChaCha8Rng::from_seed(*b"01234567890123456789012345678901")
@@ -913,6 +914,47 @@ fn bench_sqrt(c: &mut Criterion) {
     });
 }
 
+fn bench_root(c: &mut Criterion) {
+    let mut rng = make_rng();
+    let mut group = c.benchmark_group("root");
+
+    group.bench_function("floor_root_vartime(3), U256", |b| {
+        let exp = NonZeroU32::new(3).unwrap();
+        b.iter_batched(
+            || U256::random_from_rng(&mut rng),
+            |x| x.floor_root_vartime(black_box(exp)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("floor_root_vartime(4), U256", |b| {
+        let exp = NonZeroU32::new(4).unwrap();
+        b.iter_batched(
+            || U256::random_from_rng(&mut rng),
+            |x| x.floor_root_vartime(black_box(exp)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("checked_root_vartime(3), U256", |b| {
+        let exp = NonZeroU32::new(3).unwrap();
+        b.iter_batched(
+            || U256::random_from_rng(&mut rng),
+            |x| x.checked_root_vartime(black_box(exp)),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("checked_root_vartime(4), U256", |b| {
+        let exp = NonZeroU32::new(4).unwrap();
+        b.iter_batched(
+            || U256::random_from_rng(&mut rng),
+            |x| x.checked_root_vartime(black_box(exp)),
+            BatchSize::SmallInput,
+        )
+    });
+}
+
 criterion_group!(
     benches,
     bench_random,
@@ -925,7 +967,8 @@ criterion_group!(
     bench_shl,
     bench_shr,
     bench_invert_mod,
-    bench_sqrt
+    bench_sqrt,
+    bench_root,
 );
 
 criterion_main!(benches);

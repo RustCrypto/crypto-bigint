@@ -50,6 +50,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
         (Self { limbs }, carry)
     }
+
+    /// Computes `self + rhs`, discarding overflow.
+    pub(crate) const fn wrapping_add_limb(&self, rhs: Limb) -> Self {
+        self.overflowing_add_limb(rhs).0
+    }
 }
 
 impl<const LIMBS: usize> Add for Uint<LIMBS> {
@@ -166,5 +171,22 @@ mod tests {
     fn checked_add_overflow() {
         let result = U128::MAX.checked_add(&U128::ONE);
         assert!(!bool::from(result.is_some()));
+    }
+
+    #[test]
+    fn overflowing_add_limb() {
+        let result = U128::ZERO.overflowing_add_limb(Limb::ZERO);
+        assert_eq!(result, (U128::ZERO, Limb::ZERO));
+        let result = U128::ZERO.overflowing_add_limb(Limb::ONE);
+        assert_eq!(result, (U128::ONE, Limb::ZERO));
+        let result = U128::MAX.overflowing_add_limb(Limb::ZERO);
+        assert_eq!(result, (U128::MAX, Limb::ZERO));
+        let result = U128::MAX.overflowing_add_limb(Limb::ONE);
+        assert_eq!(result, (U128::ZERO, Limb::ONE));
+
+        assert_eq!(U128::ZERO.wrapping_add_limb(Limb::ZERO), U128::ZERO);
+        assert_eq!(U128::ZERO.wrapping_add_limb(Limb::ONE), U128::ONE);
+        assert_eq!(U128::MAX.wrapping_add_limb(Limb::ZERO), U128::MAX);
+        assert_eq!(U128::MAX.wrapping_add_limb(Limb::ONE), U128::ZERO);
     }
 }
