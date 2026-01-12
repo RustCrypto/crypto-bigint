@@ -464,6 +464,8 @@ mod tests {
 
     #[test]
     fn overflowing_mul_limb() {
+        let (max_lo, max_hi) = U128::MAX.widening_mul(&U128::from(Limb::MAX));
+
         let result = U128::ZERO.overflowing_mul_limb(Limb::ZERO);
         assert_eq!(result, (U128::ZERO, Limb::ZERO));
         let result = U128::ZERO.overflowing_mul_limb(Limb::ONE);
@@ -473,21 +475,12 @@ mod tests {
         let result = U128::MAX.overflowing_mul_limb(Limb::ONE);
         assert_eq!(result, (U128::MAX, Limb::ZERO));
         let result = U128::MAX.overflowing_mul_limb(Limb::MAX);
-        assert_eq!(
-            result,
-            (
-                U128::from_be_hex("FFFFFFFFFFFFFFFF0000000000000001"),
-                Limb::MAX - Limb::ONE
-            )
-        );
+        assert_eq!(result, (max_lo, max_hi.limbs[0]));
 
         assert_eq!(U128::ZERO.wrapping_mul_limb(Limb::ZERO), U128::ZERO);
         assert_eq!(U128::ZERO.wrapping_mul_limb(Limb::ONE), U128::ZERO);
         assert_eq!(U128::MAX.wrapping_mul_limb(Limb::ZERO), U128::ZERO);
         assert_eq!(U128::MAX.wrapping_mul_limb(Limb::ONE), U128::MAX);
-        assert_eq!(
-            U128::MAX.wrapping_mul_limb(Limb::MAX),
-            U128::from_be_hex("FFFFFFFFFFFFFFFF0000000000000001"),
-        );
+        assert_eq!(U128::MAX.wrapping_mul_limb(Limb::MAX), max_lo);
     }
 }
