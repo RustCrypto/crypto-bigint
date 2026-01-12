@@ -105,6 +105,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Create a new [`Odd<Uint<LIMBS>>`] from the provided big endian hex string.
     ///
     /// Panics if the hex is malformed or not zero-padded accordingly for the size, or if the value is even.
+    #[track_caller]
     pub const fn from_be_hex(hex: &str) -> Self {
         let uint = Uint::<LIMBS>::from_be_hex(hex);
         assert!(uint.is_odd().to_bool_vartime(), "number must be odd");
@@ -114,8 +115,9 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Create a new [`Odd<Uint<LIMBS>>`] from the provided little endian hex string.
     ///
     /// Panics if the hex is malformed or not zero-padded accordingly for the size, or if the value is even.
+    #[track_caller]
     pub const fn from_le_hex(hex: &str) -> Self {
-        let uint = Uint::<LIMBS>::from_be_hex(hex);
+        let uint = Uint::<LIMBS>::from_le_hex(hex);
         assert!(uint.is_odd().to_bool_vartime(), "number must be odd");
         Odd(uint)
     }
@@ -446,14 +448,43 @@ impl<T: zeroize::Zeroize> zeroize::Zeroize for Odd<T> {
 
 #[cfg(test)]
 mod tests {
+    use super::Odd;
+    use crate::{ConstOne, U128, Uint};
+
     #[cfg(feature = "alloc")]
-    use super::BoxedUint;
-    use super::{Odd, Uint};
-    use crate::U128;
+    use crate::BoxedUint;
 
     #[test]
     fn default() {
         assert!(Odd::<U128>::default().is_odd().to_bool());
+    }
+
+    #[test]
+    fn from_be_hex_when_odd() {
+        assert_eq!(
+            Odd::<U128>::from_be_hex("00000000000000000000000000000001"),
+            Odd::<U128>::ONE
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn from_be_hex_when_even() {
+        Odd::<U128>::from_be_hex("00000000000000000000000000000002");
+    }
+
+    #[test]
+    fn from_le_hex_when_odd() {
+        assert_eq!(
+            Odd::<U128>::from_le_hex("01000000000000000000000000000000"),
+            Odd::<U128>::ONE
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn from_le_hex_when_even() {
+        Odd::<U128>::from_le_hex("20000000000000000000000000000000");
     }
 
     #[test]
