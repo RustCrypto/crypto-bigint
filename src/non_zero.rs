@@ -170,6 +170,7 @@ impl NonZero<Limb> {
     /// In future versions of Rust it should be possible to replace this with
     /// `NonZero::new(…).unwrap()`
     // TODO: Remove when `Self::new` and `CtOption::unwrap` support `const fn`
+    #[inline]
     #[track_caller]
     pub const fn new_unwrap(n: Limb) -> Self {
         assert!(n.is_nonzero().to_bool_vartime(), "invalid value: zero");
@@ -211,6 +212,7 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
     /// # Panics
     /// - if the value is zero.
     // TODO: Remove when `Self::new` and `CtOption::unwrap` support `const fn`
+    #[inline]
     #[track_caller]
     pub const fn new_unwrap(n: Uint<LIMBS>) -> Self {
         assert!(n.is_nonzero().to_bool_vartime(), "invalid value: zero");
@@ -221,6 +223,7 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
     ///
     /// # Panics
     /// - if the hex is zero, malformed, or not zero-padded accordingly for the size.
+    #[track_caller]
     pub const fn from_be_hex(hex: &str) -> Self {
         Self::new_unwrap(Uint::from_be_hex(hex))
     }
@@ -229,6 +232,7 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
     ///
     /// # Panics
     /// - if the hex is zero, malformed, or not zero-padded accordingly for the size.
+    #[track_caller]
     pub const fn from_le_hex(hex: &str) -> Self {
         Self::new_unwrap(Uint::from_le_hex(hex))
     }
@@ -272,6 +276,7 @@ impl<const LIMBS: usize> NonZeroInt<LIMBS> {
     /// `NonZero::new(…).unwrap()`
     // TODO: Remove when `Self::new` and `CtOption::unwrap` support `const fn`
     #[inline]
+    #[track_caller]
     pub const fn new_unwrap(n: Int<LIMBS>) -> Self {
         assert!(n.is_nonzero().to_bool_vartime(), "invalid value: zero");
         Self(n)
@@ -537,11 +542,70 @@ impl<T: zeroize::Zeroize + Zero> zeroize::Zeroize for NonZero<T> {
 #[cfg(test)]
 mod tests {
     use super::NonZero;
-    use crate::{I128, U128};
+    use crate::{I128, One, U128};
+    use hex_literal::hex;
 
     #[test]
     fn default() {
         assert!(!NonZero::<U128>::default().is_zero().to_bool());
+    }
+
+    #[test]
+    fn from_be_bytes() {
+        assert_eq!(
+            NonZero::<U128>::from_be_bytes(hex!("00000000000000000000000000000001").into())
+                .unwrap(),
+            NonZero::<U128>::ONE
+        );
+
+        assert_eq!(
+            NonZero::<U128>::from_be_bytes(hex!("00000000000000000000000000000000").into())
+                .into_option(),
+            None
+        );
+    }
+
+    #[test]
+    fn from_le_bytes() {
+        assert_eq!(
+            NonZero::<U128>::from_le_bytes(hex!("01000000000000000000000000000000").into())
+                .unwrap(),
+            NonZero::<U128>::ONE
+        );
+
+        assert_eq!(
+            NonZero::<U128>::from_le_bytes(hex!("00000000000000000000000000000000").into())
+                .into_option(),
+            None
+        );
+    }
+
+    #[test]
+    fn from_be_hex_when_nonzero() {
+        assert_eq!(
+            NonZero::<U128>::from_be_hex("00000000000000000000000000000001"),
+            NonZero::<U128>::ONE
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn from_be_hex_when_zero() {
+        NonZero::<U128>::from_be_hex("00000000000000000000000000000000");
+    }
+
+    #[test]
+    fn from_le_hex_when_nonzero() {
+        assert_eq!(
+            NonZero::<U128>::from_le_hex("01000000000000000000000000000000"),
+            NonZero::<U128>::ONE
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn from_le_hex_when_zero() {
+        NonZero::<U128>::from_le_hex("00000000000000000000000000000000");
     }
 
     #[test]
@@ -550,5 +614,14 @@ mod tests {
         let (abs, sgn) = x.abs_sign();
         assert_eq!(abs, U128::from(55u32).to_nz().unwrap());
         assert!(sgn.to_bool());
+    }
+
+    #[test]
+    fn one() {
+        assert_eq!(
+            NonZero::<U128>::from_le_bytes(hex!("01000000000000000000000000000000").into())
+                .unwrap(),
+            NonZero::<U128>::one()
+        );
     }
 }
