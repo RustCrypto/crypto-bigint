@@ -319,9 +319,9 @@ impl SignedBoxedInt {
         let (c, c_sign) = c.abs_sign();
         let (d, d_sign) = d.abs_sign();
         // Each SignedBoxedInt • abs(Int) product leaves an empty upper bit.
-        let mut x = a.magnitude.mul_uint(&c);
+        let mut x = a.magnitude.mul_unsigned(&c);
         let x_neg = a.sign.xor(c_sign);
-        let mut y = b.magnitude.mul_uint(&d);
+        let mut y = b.magnitude.mul_unsigned(&d);
         let y_neg = b.sign.xor(d_sign);
         let odd_neg = x_neg.xor(y_neg);
 
@@ -385,7 +385,7 @@ impl SignedBoxedInt {
         xs.limbs.copy_from_slice(&x.limbs[..S]);
         let mut mf = xs.wrapping_mul(&mi);
         mf = mf.bitand(&Uint::MAX.shr_vartime(Uint::<S>::BITS - shift));
-        let xa = m.mul_uint(&mf);
+        let xa = m.mul_unsigned(&mf);
 
         // Subtract the adjustment from x potentially producing a borrow.
         let borrow = x.borrowing_sub_assign(&xa, Limb::ZERO);
