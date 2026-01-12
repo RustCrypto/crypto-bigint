@@ -96,6 +96,17 @@ proptest! {
     }
 
     #[test]
+    fn concatenating_add(a in uint(), b in uint()) {
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+
+        let expected = a_bi + b_bi;
+        let actual = a.concatenating_add(&b);
+
+        prop_assert_eq!(expected, to_biguint(&actual));
+    }
+
+    #[test]
     fn div_rem(a in uint(), mut b in uint()) {
         if b.is_zero().into() {
             b = b.wrapping_add(&BoxedUint::one());

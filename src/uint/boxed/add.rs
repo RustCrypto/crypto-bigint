@@ -1,9 +1,10 @@
 //! [`BoxedUint`] addition operations.
 
 use crate::{
-    Add, AddAssign, BoxedUint, CheckedAdd, Choice, CtOption, CtSelect, Limb, U64, U128, Uint,
-    Wrapping, WrappingAdd,
+    Add, AddAssign, BoxedUint, CheckedAdd, Choice, CtOption, CtSelect, Limb, Resize, U64, U128,
+    Uint, Wrapping, WrappingAdd,
 };
+use core::cmp;
 
 impl BoxedUint {
     /// Computes `self + rhs + carry`, returning the result along with the new carry.
@@ -41,6 +42,19 @@ impl BoxedUint {
         }
 
         carry
+    }
+
+    /// Computes `a + b`, returning a result which is concatenated with the overflow limb which
+    /// would be returned if `carrying_add` were called with the same operands.
+    pub fn concatenating_add(&self, rhs: &Self) -> Self {
+        // Create a copy of `self` widened to one limb larger than the largest of `self` and `rhs`
+        let nlimbs = cmp::max(self.nlimbs(), rhs.nlimbs()) + 1;
+        let mut ret = self.resize(nlimbs as u32 * Limb::BITS);
+
+        // Overflow should always be zero here because we added a zero limb to `self` in `ret`
+        let _overflow = ret.carrying_add_assign(rhs, Limb::ZERO);
+        debug_assert_eq!(_overflow, Limb::ZERO);
+        ret
     }
 
     /// Perform wrapping addition, discarding overflow.
@@ -246,6 +260,12 @@ mod tests {
     use crate::Resize;
 
     #[test]
+    fn add_assign() {
+        let mut h = BoxedUint::one().resize(1024);
+        h += BoxedUint::one();
+    }
+
+    #[test]
     fn carrying_add_no_carry() {
         let (res, carry) = BoxedUint::zero().carrying_add(&BoxedUint::one(), Limb::ZERO);
         assert_eq!(res, BoxedUint::one());
@@ -257,6 +277,12 @@ mod tests {
         let (res, carry) = BoxedUint::max(Limb::BITS).carrying_add(&BoxedUint::one(), Limb::ZERO);
         assert_eq!(res, BoxedUint::zero());
         assert_eq!(carry, Limb::ONE);
+    }
+
+    #[test]
+    fn concatenating_add() {
+        let result = BoxedUint::max(Limb::BITS).concatenating_add(&BoxedUint::one());
+        assert_eq!(result.as_limbs(), &[Limb::ZERO, Limb::ONE]);
     }
 
     #[test]
@@ -276,12 +302,5 @@ mod tests {
     fn checked_add_overflow() {
         let result = BoxedUint::max(Limb::BITS).checked_add(&BoxedUint::one());
         assert!(!bool::from(result.is_some()));
-    }
-
-    #[test]
-    fn add_assign() {
-        let mut h = BoxedUint::one().resize(1024);
-
-        h += BoxedUint::one();
     }
 }
