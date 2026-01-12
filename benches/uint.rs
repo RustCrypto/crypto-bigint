@@ -864,34 +864,50 @@ fn bench_sqrt(c: &mut Criterion) {
     let mut rng = make_rng();
     let mut group = c.benchmark_group("sqrt");
 
-    group.bench_function("sqrt, U256", |b| {
+    group.bench_function("floor_sqrt, U256", |b| {
         b.iter_batched(
             || U256::random_from_rng(&mut rng),
-            |x| x.sqrt(),
+            |x| x.floor_sqrt(),
             BatchSize::SmallInput,
         )
     });
 
-    group.bench_function("sqrt, U512", |b| {
+    group.bench_function("floor_sqrt, U512", |b| {
         b.iter_batched(
             || U512::random_from_rng(&mut rng),
-            |x| x.sqrt(),
+            |x| x.floor_sqrt(),
             BatchSize::SmallInput,
         )
     });
 
-    group.bench_function("sqrt_vartime, U256", |b| {
+    group.bench_function("floor_sqrt_vartime, U256", |b| {
         b.iter_batched(
             || U256::random_from_rng(&mut rng),
-            |x| x.sqrt_vartime(),
+            |x| x.floor_sqrt_vartime(),
             BatchSize::SmallInput,
         )
     });
 
-    group.bench_function("sqrt_vartime, U256 one Limb", |b| {
+    group.bench_function("floor_sqrt_vartime, U256 one Limb", |b| {
         b.iter_batched(
             || U256::from_word(Limb::random_from_rng(&mut rng).0),
-            |x| x.sqrt_vartime(),
+            |x| x.floor_sqrt_vartime(),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("checked_sqrt, U256", |b| {
+        b.iter_batched(
+            || U256::random_from_rng(&mut rng),
+            |x| x.checked_sqrt(),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("checked_sqrt_vartime, U256", |b| {
+        b.iter_batched(
+            || U256::random_from_rng(&mut rng),
+            |x| x.checked_sqrt_vartime(),
             BatchSize::SmallInput,
         )
     });
