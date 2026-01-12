@@ -51,8 +51,8 @@ mod tests {
             256,
         )
         .expect("error creating boxeduint");
-        let x_mod = BoxedMontyForm::new(x, params.clone());
 
+        let x_mod = BoxedMontyForm::new(x, &params);
         assert!(bool::from((x_mod.neg() + x_mod).is_zero()));
     }
 }

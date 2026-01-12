@@ -100,7 +100,7 @@ mod tests {
         let params = params();
         let x =
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
-        let x_monty = MontyForm::new(&x, params);
+        let x_monty = MontyForm::new(&x, &params);
 
         let inv = x_monty.invert().unwrap();
         let res = x_monty * inv;

@@ -41,7 +41,7 @@ mod tests {
     fn jacobi_quad_residue() {
         let x =
             U256::from_be_hex("14BFAE46F4026E97C7A3FCD889B379A5F025719911C994A594FC6C5092AC58B1");
-        let x_mod = MontyForm::new(&x, PARAMS);
+        let x_mod = MontyForm::new(&x, &PARAMS);
 
         let jac = x_mod.jacobi_symbol();
         let jac_vartime = x_mod.jacobi_symbol_vartime();
@@ -53,7 +53,7 @@ mod tests {
     fn jacobi_quad_nonresidue() {
         let x =
             U256::from_be_hex("1D2EFB21D283A2DDE77004B9DE9A9624F7B15CEEF055CD02E9EF1A9F1B76F253");
-        let x_mod = MontyForm::new(&x, PARAMS);
+        let x_mod = MontyForm::new(&x, &PARAMS);
 
         let jac = x_mod.jacobi_symbol();
         let jac_vartime = x_mod.jacobi_symbol_vartime();

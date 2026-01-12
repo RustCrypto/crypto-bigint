@@ -168,14 +168,14 @@ pub struct BoxedMontyForm {
 
 impl BoxedMontyForm {
     /// Instantiates a new [`BoxedMontyForm`] that represents an integer modulo the provided params.
-    pub fn new(mut integer: BoxedUint, params: BoxedMontyParams) -> Self {
+    pub fn new(mut integer: BoxedUint, params: &BoxedMontyParams) -> Self {
         debug_assert_eq!(integer.bits_precision(), params.bits_precision());
-        convert_to_montgomery(&mut integer, &params);
+        convert_to_montgomery(&mut integer, params);
 
         #[allow(clippy::useless_conversion)]
         Self {
             montgomery_form: integer,
-            params,
+            params: params.clone(),
         }
     }
 
@@ -293,7 +293,7 @@ impl Monty for BoxedMontyForm {
         BoxedMontyParams::new_vartime(modulus)
     }
 
-    fn new(value: Self::Integer, params: Self::Params) -> Self {
+    fn new(value: Self::Integer, params: &Self::Params) -> Self {
         BoxedMontyForm::new(value, params)
     }
 

@@ -329,7 +329,7 @@ mod tests {
 
         let boxed_modulus = BoxedUint::from(modulus);
         let boxed_params = BoxedMontyParams::new(boxed_modulus.to_odd().unwrap());
-        let boxed_monty = BoxedMontyForm::new(BoxedUint::from(x), boxed_params);
+        let boxed_monty = BoxedMontyForm::new(BoxedUint::from(x), &boxed_params);
         let boxed_square = boxed_monty.square();
 
         // TODO(tarcieri): test for correct output

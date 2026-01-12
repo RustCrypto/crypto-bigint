@@ -140,12 +140,12 @@ pub struct MontyForm<const LIMBS: usize> {
 
 impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Instantiates a new `MontyForm` that represents this `integer` mod `MOD`.
-    pub const fn new(integer: &Uint<LIMBS>, params: MontyParams<LIMBS>) -> Self {
+    pub const fn new(integer: &Uint<LIMBS>, params: &MontyParams<LIMBS>) -> Self {
         let montgomery_form =
             mul_montgomery_form(integer, &params.r2, &params.modulus, params.mod_neg_inv());
         Self {
             montgomery_form,
-            params,
+            params: *params,
         }
     }
 
@@ -227,7 +227,7 @@ impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
         MontyParams::new_vartime(modulus)
     }
 
-    fn new(value: Self::Integer, params: Self::Params) -> Self {
+    fn new(value: Self::Integer, params: &Self::Params) -> Self {
         MontyForm::new(&value, params)
     }
 

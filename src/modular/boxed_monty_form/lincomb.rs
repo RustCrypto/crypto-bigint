@@ -56,16 +56,16 @@ mod tests {
 
             let lincomb = BoxedMontyForm::lincomb_vartime(&[
                 (
-                    &BoxedMontyForm::new(a, params.clone()),
-                    &BoxedMontyForm::new(b, params.clone()),
+                    &BoxedMontyForm::new(a, &params),
+                    &BoxedMontyForm::new(b, &params),
                 ),
                 (
-                    &BoxedMontyForm::new(c, params.clone()),
-                    &BoxedMontyForm::new(d, params.clone()),
+                    &BoxedMontyForm::new(c, &params),
+                    &BoxedMontyForm::new(d, &params),
                 ),
                 (
-                    &BoxedMontyForm::new(e, params.clone()),
-                    &BoxedMontyForm::new(f, params.clone()),
+                    &BoxedMontyForm::new(e, &params),
+                    &BoxedMontyForm::new(f, &params),
                 ),
             ]);
 
