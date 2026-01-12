@@ -5,6 +5,7 @@ use crate::{
     Uint, Wrapping, WrappingAdd,
 };
 use core::cmp;
+use ctutils::CtEq;
 
 impl BoxedUint {
     /// Computes `self + rhs + carry`, returning the result along with the new carry.
@@ -19,7 +20,7 @@ impl BoxedUint {
         Self::fold_limbs(self, rhs, carry, |a, b, c| a.carrying_add(b, c))
     }
 
-    /// Computes `a + b + carry` in-place, returning the new carry.
+    /// Computes `self + rhs + carry` in-place, returning the new carry.
     ///
     /// Panics if `rhs` has a larger precision than `self`.
     #[deprecated(since = "0.7.0", note = "please use `carrying_add_assign` instead")]
@@ -27,7 +28,7 @@ impl BoxedUint {
         self.carrying_add_assign(rhs, carry)
     }
 
-    /// Computes `a + b + carry` in-place, returning the new carry.
+    /// Computes `self + rhs + carry` in-place, returning the new carry.
     ///
     /// Panics if `rhs` has a larger precision than `self`.
     #[inline]
@@ -44,7 +45,7 @@ impl BoxedUint {
         carry
     }
 
-    /// Computes `a + b`, returning a result which is concatenated with the overflow limb which
+    /// Computes `self + rhs`, returning a result which is concatenated with the overflow limb which
     /// would be returned if `carrying_add` were called with the same operands.
     pub fn concatenating_add(&self, rhs: &Self) -> Self {
         // Create a copy of `self` widened to one limb larger than the largest of `self` and `rhs`
@@ -55,6 +56,15 @@ impl BoxedUint {
         let _overflow = ret.carrying_add_assign(rhs, Limb::ZERO);
         debug_assert_eq!(_overflow, Limb::ZERO);
         ret
+    }
+
+    /// Computes `self + rhs`, returning a tuple of the sum along with a [`Choice`] which indicates
+    /// whether an overflow occurred.
+    ///
+    /// If an overflow occurred, then the wrapped value is returned.
+    pub fn overflowing_add(&self, rhs: &Self) -> (Self, Choice) {
+        let (ret, overflow) = self.carrying_add(rhs, Limb::ZERO);
+        (ret, overflow.ct_ne(&Limb::ZERO))
     }
 
     /// Perform wrapping addition, discarding overflow.
@@ -266,6 +276,13 @@ mod tests {
     }
 
     #[test]
+    fn add_with_u32_rhs() {
+        let a = BoxedUint::from(1u64);
+        let b = a + u32::MAX;
+        assert_eq!(b, BoxedUint::from(0x100000000u64));
+    }
+
+    #[test]
     fn carrying_add_no_carry() {
         let (res, carry) = BoxedUint::zero().carrying_add(&BoxedUint::one(), Limb::ZERO);
         assert_eq!(res, BoxedUint::one());
@@ -280,19 +297,6 @@ mod tests {
     }
 
     #[test]
-    fn concatenating_add() {
-        let result = BoxedUint::max(Limb::BITS).concatenating_add(&BoxedUint::one());
-        assert_eq!(result.as_limbs(), &[Limb::ZERO, Limb::ONE]);
-    }
-
-    #[test]
-    fn add_with_u32_rhs() {
-        let a = BoxedUint::from(1u64);
-        let b = a + u32::MAX;
-        assert_eq!(b, BoxedUint::from(0x100000000u64));
-    }
-
-    #[test]
     fn checked_add_ok() {
         let result = BoxedUint::zero().checked_add(&BoxedUint::one());
         assert_eq!(result.unwrap(), BoxedUint::one());
@@ -302,5 +306,23 @@ mod tests {
     fn checked_add_overflow() {
         let result = BoxedUint::max(Limb::BITS).checked_add(&BoxedUint::one());
         assert!(!bool::from(result.is_some()));
+    }
+
+    #[test]
+    fn concatenating_add() {
+        let result = BoxedUint::max(Limb::BITS).concatenating_add(&BoxedUint::one());
+        assert_eq!(result.as_limbs(), &[Limb::ZERO, Limb::ONE]);
+    }
+
+    #[test]
+    fn overflowing_add() {
+        let one = BoxedUint::one();
+        let (ret, overflow) = one.overflowing_add(&one);
+        assert_eq!(ret, &one + &one);
+        assert!(!overflow.to_bool());
+
+        let (ret, overflow) = BoxedUint::max(Limb::BITS).overflowing_add(&one);
+        assert!(ret.is_zero().to_bool());
+        assert!(overflow.to_bool());
     }
 }
