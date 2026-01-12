@@ -206,18 +206,34 @@ fn bench_boxed_sqrt(c: &mut Criterion) {
     let mut group = c.benchmark_group("boxed_sqrt");
     let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
 
-    group.bench_function("boxed_sqrt, 4096", |b| {
+    group.bench_function("floor_sqrt, 4096", |b| {
         b.iter_batched(
             || BoxedUint::random_bits(&mut rng, UINT_BITS),
-            |x| black_box(x.sqrt()),
+            |x| black_box(x.floor_sqrt()),
             BatchSize::SmallInput,
         )
     });
 
-    group.bench_function("boxed_sqrt_vartime, 4096", |b| {
+    group.bench_function("floor_sqrt_vartime, 4096", |b| {
         b.iter_batched(
             || BoxedUint::random_bits(&mut rng, UINT_BITS),
-            |x| black_box(x.sqrt_vartime()),
+            |x| black_box(x.floor_sqrt_vartime()),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("checked_sqrt, 4096", |b| {
+        b.iter_batched(
+            || BoxedUint::random_bits(&mut rng, UINT_BITS),
+            |x| black_box(x.checked_sqrt()),
+            BatchSize::SmallInput,
+        )
+    });
+
+    group.bench_function("checked_sqrt_vartime, 4096", |b| {
+        b.iter_batched(
+            || BoxedUint::random_bits(&mut rng, UINT_BITS),
+            |x| black_box(x.checked_sqrt_vartime()),
             BatchSize::SmallInput,
         )
     });
