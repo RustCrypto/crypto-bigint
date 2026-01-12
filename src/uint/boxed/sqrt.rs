@@ -1,14 +1,14 @@
 //! [`BoxedUint`] square root operations.
 
 use crate::{
-    BitOps, BoxedUint, CheckedSquareRoot, CtEq, CtGt, CtOption, CtSelect, Limb, SquareRoot,
+    BitOps, BoxedUint, CheckedSquareRoot, CtEq, CtGt, CtOption, CtSelect, FloorSquareRoot, Limb,
 };
 
 impl BoxedUint {
     /// Computes √(`self`) in constant time.
     ///
     /// Callers can check if `self` is a square by squaring the result.
-    pub fn sqrt(&self) -> Self {
+    pub fn floor_sqrt(&self) -> Self {
         // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13.
         //
         // See Hast, "Note on computation of integer square roots"
@@ -53,7 +53,7 @@ impl BoxedUint {
     /// Callers can check if `self` is a square by squaring the result.
     ///
     /// Variable time with respect to `self`.
-    pub fn sqrt_vartime(&self) -> Self {
+    pub fn floor_sqrt_vartime(&self) -> Self {
         // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13
 
         if self.is_zero_vartime() {
@@ -96,7 +96,7 @@ impl BoxedUint {
     /// There’s no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations.
     pub fn wrapping_sqrt(&self) -> Self {
-        self.sqrt()
+        self.floor_sqrt()
     }
 
     /// Wrapped sqrt is just normal √(`self`)
@@ -105,13 +105,13 @@ impl BoxedUint {
     ///
     /// Variable time with respect to `self`.
     pub fn wrapping_sqrt_vartime(&self) -> Self {
-        self.sqrt_vartime()
+        self.floor_sqrt_vartime()
     }
 
     /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
     /// only if the square root is exact.
     pub fn checked_sqrt(&self) -> CtOption<Self> {
-        let r = self.sqrt();
+        let r = self.floor_sqrt();
         let s = r.wrapping_square();
         CtOption::new(r, self.ct_eq(&s))
     }
@@ -121,7 +121,7 @@ impl BoxedUint {
     ///
     /// Variable time with respect to `self`.
     pub fn checked_sqrt_vartime(&self) -> Option<Self> {
-        let r = self.sqrt_vartime();
+        let r = self.floor_sqrt_vartime();
         let s = r.wrapping_square();
         if self.cmp_vartime(&s).is_eq() {
             Some(r)
@@ -143,13 +143,13 @@ impl CheckedSquareRoot for BoxedUint {
     }
 }
 
-impl SquareRoot for BoxedUint {
-    fn sqrt(&self) -> Self {
-        self.sqrt()
+impl FloorSquareRoot for BoxedUint {
+    fn floor_sqrt(&self) -> Self {
+        self.floor_sqrt()
     }
 
-    fn sqrt_vartime(&self) -> Self {
-        self.sqrt_vartime()
+    fn floor_sqrt_vartime(&self) -> Self {
+        self.floor_sqrt_vartime()
     }
 }
 
@@ -167,11 +167,11 @@ mod tests {
     #[test]
     fn edge() {
         assert_eq!(
-            BoxedUint::zero_with_precision(256).sqrt(),
+            BoxedUint::zero_with_precision(256).floor_sqrt(),
             BoxedUint::zero_with_precision(256)
         );
         assert_eq!(
-            BoxedUint::one_with_precision(256).sqrt(),
+            BoxedUint::one_with_precision(256).floor_sqrt(),
             BoxedUint::one_with_precision(256)
         );
         let mut half = BoxedUint::zero_with_precision(256);
@@ -179,7 +179,7 @@ mod tests {
             half.limbs[i] = Limb::MAX;
         }
         let u256_max = !BoxedUint::zero_with_precision(256);
-        assert_eq!(u256_max.sqrt(), half);
+        assert_eq!(u256_max.floor_sqrt(), half);
 
         // Test edge cases that use up the maximum number of iterations.
 
@@ -187,14 +187,14 @@ mod tests {
         assert_eq!(
             BoxedUint::from_be_hex("055fa39422bd9f281762946e056535badbf8a6864d45fa3d", 192)
                 .unwrap()
-                .sqrt(),
+                .floor_sqrt(),
             BoxedUint::from_be_hex("0000000000000000000000002516f0832a538b2d98869e21", 192)
                 .unwrap(),
         );
         assert_eq!(
             BoxedUint::from_be_hex("055fa39422bd9f281762946e056535badbf8a6864d45fa3d", 192)
                 .unwrap()
-                .sqrt_vartime(),
+                .floor_sqrt_vartime(),
             BoxedUint::from_be_hex("0000000000000000000000002516f0832a538b2d98869e21", 192)
                 .unwrap()
         );
@@ -206,7 +206,7 @@ mod tests {
                 256
             )
             .unwrap()
-            .sqrt(),
+            .floor_sqrt(),
             BoxedUint::from_be_hex(
                 "000000000000000000000000000000008b3956339e8315cff66eb6107b610075",
                 256
@@ -219,7 +219,7 @@ mod tests {
                 256
             )
             .unwrap()
-            .sqrt_vartime(),
+            .floor_sqrt_vartime(),
             BoxedUint::from_be_hex(
                 "000000000000000000000000000000008b3956339e8315cff66eb6107b610075",
                 256
@@ -231,11 +231,11 @@ mod tests {
     #[test]
     fn edge_vartime() {
         assert_eq!(
-            BoxedUint::zero_with_precision(256).sqrt_vartime(),
+            BoxedUint::zero_with_precision(256).floor_sqrt_vartime(),
             BoxedUint::zero_with_precision(256)
         );
         assert_eq!(
-            BoxedUint::one_with_precision(256).sqrt_vartime(),
+            BoxedUint::one_with_precision(256).floor_sqrt_vartime(),
             BoxedUint::one_with_precision(256)
         );
         let mut half = BoxedUint::zero_with_precision(256);
@@ -243,7 +243,7 @@ mod tests {
             half.limbs[i] = Limb::MAX;
         }
         let u256_max = !BoxedUint::zero_with_precision(256);
-        assert_eq!(u256_max.sqrt_vartime(), half);
+        assert_eq!(u256_max.floor_sqrt_vartime(), half);
     }
 
     #[test]
@@ -265,8 +265,8 @@ mod tests {
         for (a, e) in &tests {
             let l = BoxedUint::from(*a);
             let r = BoxedUint::from(*e);
-            assert_eq!(l.sqrt(), r);
-            assert_eq!(l.sqrt_vartime(), r);
+            assert_eq!(l.floor_sqrt(), r);
+            assert_eq!(l.floor_sqrt_vartime(), r);
             assert!(l.checked_sqrt().is_some().to_bool());
             assert!(l.checked_sqrt_vartime().is_some());
         }
@@ -274,28 +274,49 @@ mod tests {
 
     #[test]
     fn nonsquares() {
-        assert_eq!(BoxedUint::from(2u8).sqrt(), BoxedUint::from(1u8));
+        assert_eq!(BoxedUint::from(2u8).floor_sqrt(), BoxedUint::from(1u8));
         assert!(!BoxedUint::from(2u8).checked_sqrt().is_some().to_bool());
-        assert_eq!(BoxedUint::from(3u8).sqrt(), BoxedUint::from(1u8));
+        assert_eq!(BoxedUint::from(3u8).floor_sqrt(), BoxedUint::from(1u8));
         assert!(!BoxedUint::from(3u8).checked_sqrt().is_some().to_bool());
-        assert_eq!(BoxedUint::from(5u8).sqrt(), BoxedUint::from(2u8));
-        assert_eq!(BoxedUint::from(6u8).sqrt(), BoxedUint::from(2u8));
-        assert_eq!(BoxedUint::from(7u8).sqrt(), BoxedUint::from(2u8));
-        assert_eq!(BoxedUint::from(8u8).sqrt(), BoxedUint::from(2u8));
-        assert_eq!(BoxedUint::from(10u8).sqrt(), BoxedUint::from(3u8));
+        assert_eq!(BoxedUint::from(5u8).floor_sqrt(), BoxedUint::from(2u8));
+        assert_eq!(BoxedUint::from(6u8).floor_sqrt(), BoxedUint::from(2u8));
+        assert_eq!(BoxedUint::from(7u8).floor_sqrt(), BoxedUint::from(2u8));
+        assert_eq!(BoxedUint::from(8u8).floor_sqrt(), BoxedUint::from(2u8));
+        assert_eq!(BoxedUint::from(10u8).floor_sqrt(), BoxedUint::from(3u8));
     }
 
     #[test]
     fn nonsquares_vartime() {
-        assert_eq!(BoxedUint::from(2u8).sqrt_vartime(), BoxedUint::from(1u8));
+        assert_eq!(
+            BoxedUint::from(2u8).floor_sqrt_vartime(),
+            BoxedUint::from(1u8)
+        );
         assert!(BoxedUint::from(2u8).checked_sqrt_vartime().is_none());
-        assert_eq!(BoxedUint::from(3u8).sqrt_vartime(), BoxedUint::from(1u8));
+        assert_eq!(
+            BoxedUint::from(3u8).floor_sqrt_vartime(),
+            BoxedUint::from(1u8)
+        );
         assert!(BoxedUint::from(3u8).checked_sqrt_vartime().is_none());
-        assert_eq!(BoxedUint::from(5u8).sqrt_vartime(), BoxedUint::from(2u8));
-        assert_eq!(BoxedUint::from(6u8).sqrt_vartime(), BoxedUint::from(2u8));
-        assert_eq!(BoxedUint::from(7u8).sqrt_vartime(), BoxedUint::from(2u8));
-        assert_eq!(BoxedUint::from(8u8).sqrt_vartime(), BoxedUint::from(2u8));
-        assert_eq!(BoxedUint::from(10u8).sqrt_vartime(), BoxedUint::from(3u8));
+        assert_eq!(
+            BoxedUint::from(5u8).floor_sqrt_vartime(),
+            BoxedUint::from(2u8)
+        );
+        assert_eq!(
+            BoxedUint::from(6u8).floor_sqrt_vartime(),
+            BoxedUint::from(2u8)
+        );
+        assert_eq!(
+            BoxedUint::from(7u8).floor_sqrt_vartime(),
+            BoxedUint::from(2u8)
+        );
+        assert_eq!(
+            BoxedUint::from(8u8).floor_sqrt_vartime(),
+            BoxedUint::from(2u8)
+        );
+        assert_eq!(
+            BoxedUint::from(10u8).floor_sqrt_vartime(),
+            BoxedUint::from(3u8)
+        );
     }
 
     #[cfg(feature = "rand_core")]
@@ -308,8 +329,8 @@ mod tests {
             let t = rng.next_u32() as u64;
             let s = BoxedUint::from(t);
             let s2 = s.checked_mul(&s).unwrap();
-            assert_eq!(s2.sqrt(), s);
-            assert_eq!(s2.sqrt_vartime(), s);
+            assert_eq!(s2.floor_sqrt(), s);
+            assert_eq!(s2.floor_sqrt_vartime(), s);
             assert!(CheckedSquareRoot::checked_sqrt(&s2).is_some().to_bool());
             assert!(CheckedSquareRoot::checked_sqrt_vartime(&s2).is_some());
         }
@@ -318,8 +339,8 @@ mod tests {
             let s = BoxedUint::random_bits(&mut rng, 512);
             let mut s2 = BoxedUint::zero_with_precision(512);
             s2.limbs[..s.limbs.len()].copy_from_slice(&s.limbs);
-            assert_eq!(s.square().sqrt(), s2);
-            assert_eq!(s.square().sqrt_vartime(), s2);
+            assert_eq!(s.square().floor_sqrt(), s2);
+            assert_eq!(s.square().floor_sqrt_vartime(), s2);
         }
     }
 }

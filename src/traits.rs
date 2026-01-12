@@ -49,6 +49,7 @@ pub trait Integer:
     + CheckedSub
     + CheckedMul
     + CheckedDiv
+    + CheckedSquareRoot<Output = Self>
     + Clone
     + CtEq
     + CtGt
@@ -160,6 +161,7 @@ pub trait Unsigned:
     + Div<NonZero<Self>, Output = Self>
     + for<'a> Div<&'a NonZero<Self>, Output = Self>
     + DivRemLimb
+    + FloorSquareRoot<Output = Self>
     + From<u8>
     + From<u16>
     + From<u32>
@@ -169,7 +171,6 @@ pub trait Unsigned:
     + MulMod<Output = Self>
     + NegMod<Output = Self>
     + RemLimb
-    + SquareRoot<Output = Self>
     + SquareMod<Output = Self>
     + SubMod<Output = Self>
 {
@@ -718,14 +719,14 @@ pub trait CheckedSquareRoot: Sized {
 }
 
 /// Support for calculating floored square roots.
-pub trait SquareRoot: CheckedSquareRoot {
+pub trait FloorSquareRoot: CheckedSquareRoot {
     /// Computes `floor(sqrt(self))`.
-    fn sqrt(&self) -> Self::Output;
+    fn floor_sqrt(&self) -> Self::Output;
 
     /// Computes `floor(sqrt(self))`.
     ///
     /// Variable time with respect to `self`.
-    fn sqrt_vartime(&self) -> Self::Output;
+    fn floor_sqrt_vartime(&self) -> Self::Output;
 }
 
 /// Support for optimized division by a single limb.

@@ -1,46 +1,46 @@
 //! [`Uint`] square root operations.
 
-use crate::{CheckedSquareRoot, CtEq, CtOption, Limb, NonZero, SquareRoot, Uint};
+use crate::{CheckedSquareRoot, CtEq, CtOption, FloorSquareRoot, Limb, NonZero, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Computes √(`self`) in constant time.
+    /// Computes `floor(√(self))` in constant time.
     ///
     /// Callers can check if `self` is a square by squaring the result.
-    pub const fn sqrt(&self) -> Self {
+    pub const fn floor_sqrt(&self) -> Self {
         let self_is_nz = self.is_nonzero();
         let root_nz = NonZero(Self::select(&Self::ONE, self, self_is_nz))
-            .sqrt()
+            .floor_sqrt()
             .get_copy();
         Self::select(&Self::ZERO, &root_nz, self_is_nz)
     }
 
-    /// Computes √(`self`).
+    /// Computes `floor(√(self))`.
     ///
     /// Callers can check if `self` is a square by squaring the result.
     ///
     /// Variable time with respect to `self`.
-    pub const fn sqrt_vartime(&self) -> Self {
+    pub const fn floor_sqrt_vartime(&self) -> Self {
         if self.is_zero_vartime() {
             Self::ZERO
         } else {
-            NonZero(*self).sqrt_vartime().get_copy()
+            NonZero(*self).floor_sqrt_vartime().get_copy()
         }
     }
 
-    /// Wrapped sqrt is just normal √(`self`).
+    /// Wrapped sqrt is just `floor(√(self))`.
     /// There’s no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations.
     pub const fn wrapping_sqrt(&self) -> Self {
-        self.sqrt()
+        self.floor_sqrt()
     }
 
-    /// Wrapped sqrt is just normal √(`self`).
+    /// Wrapped sqrt is just normal `floor(√(self))`.
     /// There’s no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations.
     ///
     /// Variable time with respect to `self`.
     pub const fn wrapping_sqrt_vartime(&self) -> Self {
-        self.sqrt_vartime()
+        self.floor_sqrt_vartime()
     }
 
     /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
@@ -66,10 +66,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
-    /// Computes √(`self`) in constant time.
+    /// Computes `floor(√(self))` in constant time.
     ///
     /// Callers can check if `self` is a square by squaring the result.
-    pub const fn sqrt(&self) -> Self {
+    pub const fn floor_sqrt(&self) -> Self {
         // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13.
         //
         // See Hast, "Note on computation of integer square roots"
@@ -101,12 +101,12 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
         }
     }
 
-    /// Computes √(`self`).
+    /// Computes `floor(√(self))`.
     ///
     /// Callers can check if `self` is a square by squaring the result.
     ///
     /// Variable time with respect to `self`.
-    pub const fn sqrt_vartime(&self) -> Self {
+    pub const fn floor_sqrt_vartime(&self) -> Self {
         // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13
 
         let bits = self.0.bits_vartime();
@@ -140,7 +140,7 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
     /// only if the square root is exact.
     pub fn checked_sqrt(&self) -> CtOption<Self> {
-        let r = self.sqrt();
+        let r = self.floor_sqrt();
         let s = r.wrapping_square();
         CtOption::new(r, self.0.ct_eq(&s))
     }
@@ -148,7 +148,7 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     /// Perform checked sqrt, returning an [`Option`] which `is_some`
     /// only if the square root is exact.
     pub fn checked_sqrt_vartime(&self) -> Option<Self> {
-        let r = self.sqrt_vartime();
+        let r = self.floor_sqrt_vartime();
         let s = r.wrapping_square();
         if self.0.cmp_vartime(&s).is_eq() {
             Some(r)
@@ -170,13 +170,13 @@ impl<const LIMBS: usize> CheckedSquareRoot for Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> SquareRoot for Uint<LIMBS> {
-    fn sqrt(&self) -> Self {
-        self.sqrt()
+impl<const LIMBS: usize> FloorSquareRoot for Uint<LIMBS> {
+    fn floor_sqrt(&self) -> Self {
+        self.floor_sqrt()
     }
 
-    fn sqrt_vartime(&self) -> Self {
-        self.sqrt_vartime()
+    fn floor_sqrt_vartime(&self) -> Self {
+        self.floor_sqrt_vartime()
     }
 }
 
@@ -192,13 +192,13 @@ impl<const LIMBS: usize> CheckedSquareRoot for NonZero<Uint<LIMBS>> {
     }
 }
 
-impl<const LIMBS: usize> SquareRoot for NonZero<Uint<LIMBS>> {
-    fn sqrt(&self) -> Self {
-        self.sqrt()
+impl<const LIMBS: usize> FloorSquareRoot for NonZero<Uint<LIMBS>> {
+    fn floor_sqrt(&self) -> Self {
+        self.floor_sqrt()
     }
 
-    fn sqrt_vartime(&self) -> Self {
-        self.sqrt_vartime()
+    fn floor_sqrt_vartime(&self) -> Self {
+        self.floor_sqrt_vartime()
     }
 }
 
@@ -215,48 +215,49 @@ mod tests {
 
     #[test]
     fn edge() {
-        assert_eq!(U256::ZERO.sqrt(), U256::ZERO);
-        assert_eq!(U256::ONE.sqrt(), U256::ONE);
+        assert_eq!(U256::ZERO.floor_sqrt(), U256::ZERO);
+        assert_eq!(U256::ONE.floor_sqrt(), U256::ONE);
         let mut half = U256::ZERO;
         for i in 0..half.limbs.len() / 2 {
             half.limbs[i] = Limb::MAX;
         }
-        assert_eq!(U256::MAX.sqrt(), half);
+        assert_eq!(U256::MAX.floor_sqrt(), half);
 
         // Test edge cases that use up the maximum number of iterations.
 
         // `x = (r + 1)^2 - 583`, where `r` is the expected square root.
         assert_eq!(
-            U192::from_be_hex("055fa39422bd9f281762946e056535badbf8a6864d45fa3d").sqrt(),
+            U192::from_be_hex("055fa39422bd9f281762946e056535badbf8a6864d45fa3d").floor_sqrt(),
             U192::from_be_hex("0000000000000000000000002516f0832a538b2d98869e21")
         );
         assert_eq!(
-            U192::from_be_hex("055fa39422bd9f281762946e056535badbf8a6864d45fa3d").sqrt_vartime(),
+            U192::from_be_hex("055fa39422bd9f281762946e056535badbf8a6864d45fa3d")
+                .floor_sqrt_vartime(),
             U192::from_be_hex("0000000000000000000000002516f0832a538b2d98869e21")
         );
 
         // `x = (r + 1)^2 - 205`, where `r` is the expected square root.
         assert_eq!(
             U256::from_be_hex("4bb750738e25a8f82940737d94a48a91f8cd918a3679ff90c1a631f2bd6c3597")
-                .sqrt(),
+                .floor_sqrt(),
             U256::from_be_hex("000000000000000000000000000000008b3956339e8315cff66eb6107b610075")
         );
         assert_eq!(
             U256::from_be_hex("4bb750738e25a8f82940737d94a48a91f8cd918a3679ff90c1a631f2bd6c3597")
-                .sqrt_vartime(),
+                .floor_sqrt_vartime(),
             U256::from_be_hex("000000000000000000000000000000008b3956339e8315cff66eb6107b610075")
         );
     }
 
     #[test]
     fn edge_vartime() {
-        assert_eq!(U256::ZERO.sqrt_vartime(), U256::ZERO);
-        assert_eq!(U256::ONE.sqrt_vartime(), U256::ONE);
+        assert_eq!(U256::ZERO.floor_sqrt_vartime(), U256::ZERO);
+        assert_eq!(U256::ONE.floor_sqrt_vartime(), U256::ONE);
         let mut half = U256::ZERO;
         for i in 0..half.limbs.len() / 2 {
             half.limbs[i] = Limb::MAX;
         }
-        assert_eq!(U256::MAX.sqrt_vartime(), half);
+        assert_eq!(U256::MAX.floor_sqrt_vartime(), half);
     }
 
     #[test]
@@ -278,8 +279,8 @@ mod tests {
         for (a, e) in &tests {
             let l = U256::from(*a);
             let r = U256::from(*e);
-            assert_eq!(l.sqrt(), r);
-            assert_eq!(l.sqrt_vartime(), r);
+            assert_eq!(l.floor_sqrt(), r);
+            assert_eq!(l.floor_sqrt_vartime(), r);
             assert!(l.checked_sqrt().is_some().to_bool());
             assert!(l.checked_sqrt_vartime().is_some());
         }
@@ -287,48 +288,48 @@ mod tests {
 
     #[test]
     fn nonsquares() {
-        assert_eq!(U256::from(2u8).sqrt(), U256::from(1u8));
+        assert_eq!(U256::from(2u8).floor_sqrt(), U256::from(1u8));
         assert!(!U256::from(2u8).checked_sqrt().is_some().to_bool());
-        assert_eq!(U256::from(3u8).sqrt(), U256::from(1u8));
+        assert_eq!(U256::from(3u8).floor_sqrt(), U256::from(1u8));
         assert!(!U256::from(3u8).checked_sqrt().is_some().to_bool());
-        assert_eq!(U256::from(5u8).sqrt(), U256::from(2u8));
-        assert_eq!(U256::from(6u8).sqrt(), U256::from(2u8));
-        assert_eq!(U256::from(7u8).sqrt(), U256::from(2u8));
-        assert_eq!(U256::from(8u8).sqrt(), U256::from(2u8));
-        assert_eq!(U256::from(10u8).sqrt(), U256::from(3u8));
+        assert_eq!(U256::from(5u8).floor_sqrt(), U256::from(2u8));
+        assert_eq!(U256::from(6u8).floor_sqrt(), U256::from(2u8));
+        assert_eq!(U256::from(7u8).floor_sqrt(), U256::from(2u8));
+        assert_eq!(U256::from(8u8).floor_sqrt(), U256::from(2u8));
+        assert_eq!(U256::from(10u8).floor_sqrt(), U256::from(3u8));
     }
 
     #[test]
     fn nonsquares_vartime() {
-        assert_eq!(U256::from(2u8).sqrt_vartime(), U256::from(1u8));
+        assert_eq!(U256::from(2u8).floor_sqrt_vartime(), U256::from(1u8));
         assert!(U256::from(2u8).checked_sqrt_vartime().is_none());
-        assert_eq!(U256::from(3u8).sqrt_vartime(), U256::from(1u8));
+        assert_eq!(U256::from(3u8).floor_sqrt_vartime(), U256::from(1u8));
         assert!(U256::from(3u8).checked_sqrt_vartime().is_none());
-        assert_eq!(U256::from(5u8).sqrt_vartime(), U256::from(2u8));
-        assert_eq!(U256::from(6u8).sqrt_vartime(), U256::from(2u8));
-        assert_eq!(U256::from(7u8).sqrt_vartime(), U256::from(2u8));
-        assert_eq!(U256::from(8u8).sqrt_vartime(), U256::from(2u8));
-        assert_eq!(U256::from(10u8).sqrt_vartime(), U256::from(3u8));
+        assert_eq!(U256::from(5u8).floor_sqrt_vartime(), U256::from(2u8));
+        assert_eq!(U256::from(6u8).floor_sqrt_vartime(), U256::from(2u8));
+        assert_eq!(U256::from(7u8).floor_sqrt_vartime(), U256::from(2u8));
+        assert_eq!(U256::from(8u8).floor_sqrt_vartime(), U256::from(2u8));
+        assert_eq!(U256::from(10u8).floor_sqrt_vartime(), U256::from(3u8));
     }
 
     #[cfg(feature = "rand_core")]
     #[test]
     fn fuzz() {
-        use crate::{CheckedSquareRoot, SquareRoot};
+        use crate::{CheckedSquareRoot, FloorSquareRoot};
 
         let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
         for _ in 0..50 {
             let t = rng.next_u32() as u64;
             let s = U256::from(t);
             let s2 = s.checked_square().unwrap();
-            assert_eq!(SquareRoot::sqrt(&s2), s);
-            assert_eq!(SquareRoot::sqrt_vartime(&s2), s);
+            assert_eq!(FloorSquareRoot::floor_sqrt(&s2), s);
+            assert_eq!(FloorSquareRoot::floor_sqrt_vartime(&s2), s);
             assert!(CheckedSquareRoot::checked_sqrt(&s2).is_some().to_bool());
             assert!(CheckedSquareRoot::checked_sqrt_vartime(&s2).is_some());
 
             if let Some(nz) = s2.to_nz().into_option() {
-                assert_eq!(SquareRoot::sqrt(&nz).get(), s);
-                assert_eq!(SquareRoot::sqrt_vartime(&nz).get(), s);
+                assert_eq!(FloorSquareRoot::floor_sqrt(&nz).get(), s);
+                assert_eq!(FloorSquareRoot::floor_sqrt_vartime(&nz).get(), s);
                 assert!(CheckedSquareRoot::checked_sqrt(&nz).is_some().to_bool());
                 assert!(CheckedSquareRoot::checked_sqrt_vartime(&nz).is_some());
             }
@@ -338,8 +339,8 @@ mod tests {
             let s = U256::random_from_rng(&mut rng);
             let mut s2 = U512::ZERO;
             s2.limbs[..s.limbs.len()].copy_from_slice(&s.limbs);
-            assert_eq!(s.square().sqrt(), s2);
-            assert_eq!(s.square().sqrt_vartime(), s2);
+            assert_eq!(s.square().floor_sqrt(), s2);
+            assert_eq!(s.square().floor_sqrt_vartime(), s2);
         }
     }
 }
