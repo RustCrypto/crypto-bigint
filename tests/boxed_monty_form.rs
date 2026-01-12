@@ -20,8 +20,7 @@ fn retrieve_biguint(monty_form: &BoxedMontyForm) -> BigUint {
 
 fn reduce(n: &BoxedUint, p: BoxedMontyParams) -> BoxedMontyForm {
     let n_reduced = n.rem_vartime(p.modulus().as_nz_ref());
-
-    BoxedMontyForm::new(n_reduced, p)
+    BoxedMontyForm::new(n_reduced, &p)
 }
 
 prop_compose! {

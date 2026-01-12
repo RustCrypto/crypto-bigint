@@ -23,7 +23,7 @@ fn retrieve_biguint(monty_form: &MontyForm256) -> BigUint {
 
 fn reduce(n: &U256, p: MontyParams256) -> MontyForm256 {
     let n_reduced = n.rem_vartime(p.modulus().as_nz_ref());
-    MontyForm256::new(&n_reduced, p)
+    MontyForm256::new(&n_reduced, &p)
 }
 
 prop_compose! {
@@ -53,7 +53,7 @@ where
     <T as Unsigned>::Monty: Invert<Output = CtOption<T::Monty>>,
 {
     let r = T::from_be_bytes(bytes.clone());
-    let rm = <T as Unsigned>::Monty::new(r.clone(), monty_params);
+    let rm = <T as Unsigned>::Monty::new(r.clone(), &monty_params);
     let rm_inv = rm.invert();
     prop_assume!(bool::from(rm_inv.is_some()), "r={:?} is not invertible", r);
     let num_modular_modulus = BigUint::from_be_bytes(modulus.to_be_bytes().as_ref());

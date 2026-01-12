@@ -34,7 +34,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
     group.bench_function("MontyForm::new", |b| {
         b.iter_batched(
             || U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref()),
-            |x| black_box(MontyForm::new(&x, params)),
+            |x| black_box(MontyForm::new(&x, &params)),
             BatchSize::SmallInput,
         )
     });
@@ -45,7 +45,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
             || {
                 MontyForm::new(
                     &U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref()),
-                    params,
+                    &params,
                 )
             },
             |x| black_box(x.retrieve()),
@@ -63,11 +63,11 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             || {
                 let a = MontyForm::new(
                     &U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref()),
-                    params,
+                    &params,
                 );
                 let b = MontyForm::new(
                     &U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref()),
-                    params,
+                    &params,
                 );
                 (a, b)
             },
@@ -81,7 +81,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             || {
                 MontyForm::new(
                     &U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref()),
-                    params,
+                    &params,
                 )
             },
             |a| black_box(a).double(),
@@ -94,11 +94,11 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             || {
                 let a = MontyForm::new(
                     &U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref()),
-                    params,
+                    &params,
                 );
                 let b = MontyForm::new(
                     &U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref()),
-                    params,
+                    &params,
                 );
                 (a, b)
             },
@@ -112,7 +112,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             || {
                 MontyForm::new(
                     &U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref()),
-                    params,
+                    &params,
                 )
             },
             |a| black_box(a).neg(),
@@ -125,7 +125,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             || {
                 MontyForm::new(
                     &U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref()),
-                    params,
+                    &params,
                 )
             },
             |x| black_box(x).invert(),
@@ -138,11 +138,11 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             || {
                 let x = MontyForm::new(
                     &U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref()),
-                    params,
+                    &params,
                 );
                 let y = MontyForm::new(
                     &U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref()),
-                    params,
+                    &params,
                 );
                 (x, y)
             },
@@ -156,7 +156,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             || {
                 MontyForm::new(
                     &U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref()),
-                    params,
+                    &params,
                 )
             },
             |x| x.square(),
@@ -168,7 +168,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         b.iter_batched(
             || {
                 let x = U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref());
-                let x_m = MontyForm::new(&x, params);
+                let x_m = MontyForm::new(&x, &params);
                 let p = U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref())
                     | (U256::ONE << (U256::BITS - 1));
                 (x_m, p)
@@ -182,7 +182,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         b.iter_batched(
             || {
                 let x = U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref());
-                MontyForm::new(&x, params)
+                MontyForm::new(&x, &params)
             },
             |x| black_box(x.div_by_2()),
             BatchSize::SmallInput,
@@ -202,7 +202,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                                     &mut rng,
                                     params.modulus().as_nz_ref(),
                                 );
-                                let x_m = MontyForm::new(&x, params);
+                                let x_m = MontyForm::new(&x, &params);
                                 let p = U256::random_mod_vartime(
                                     &mut rng,
                                     params.modulus().as_nz_ref(),

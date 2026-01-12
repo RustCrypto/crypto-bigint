@@ -87,7 +87,7 @@ mod tests {
             256,
         )
         .unwrap();
-        let x_mod = BoxedMontyForm::new(x, params);
+        let x_mod = BoxedMontyForm::new(x, &params);
 
         let inv = x_mod.invert().unwrap();
         let res = x_mod * inv;
