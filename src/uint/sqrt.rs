@@ -6,12 +6,30 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `floor(√(self))` in constant time.
     ///
     /// Callers can check if `self` is a square by squaring the result.
+    #[deprecated(since = "0.7.0", note = "please use `floor_sqrt` instead")]
+    pub const fn sqrt(&self) -> Self {
+        self.floor_sqrt()
+    }
+
+    /// Computes `floor(√(self))` in constant time.
+    ///
+    /// Callers can check if `self` is a square by squaring the result.
     pub const fn floor_sqrt(&self) -> Self {
         let self_is_nz = self.is_nonzero();
         let root_nz = NonZero(Self::select(&Self::ONE, self, self_is_nz))
             .floor_sqrt()
             .get_copy();
         Self::select(&Self::ZERO, &root_nz, self_is_nz)
+    }
+
+    /// Computes `floor(√(self))`.
+    ///
+    /// Callers can check if `self` is a square by squaring the result.
+    ///
+    /// Variable time with respect to `self`.
+    #[deprecated(since = "0.7.0", note = "please use `floor_sqrt_vartime` instead")]
+    pub const fn sqrt_vartime(&self) -> Self {
+        self.floor_sqrt_vartime()
     }
 
     /// Computes `floor(√(self))`.
@@ -34,7 +52,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         self.floor_sqrt()
     }
 
-    /// Wrapped sqrt is just normal `floor(√(self))`.
+    /// Wrapped sqrt is just `floor(√(self))`.
     /// There’s no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations.
     ///

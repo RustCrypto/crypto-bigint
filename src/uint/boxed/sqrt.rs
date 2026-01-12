@@ -5,6 +5,14 @@ use crate::{
 };
 
 impl BoxedUint {
+    /// Computes `floor(√(self))` in constant time.
+    ///
+    /// Callers can check if `self` is a square by squaring the result.
+    #[deprecated(since = "0.7.0", note = "please use `floor_sqrt` instead")]
+    pub fn sqrt(&self) -> Self {
+        self.floor_sqrt()
+    }
+
     /// Computes √(`self`) in constant time.
     ///
     /// Callers can check if `self` is a square by squaring the result.
@@ -46,6 +54,16 @@ impl BoxedUint {
         // Thus, according to Hast, `sqrt(self) = min(x_n, x_{n+1})`.
         x.ct_assign(&nz_x, x.ct_gt(&nz_x));
         x
+    }
+
+    /// Computes `floor(√(self))`.
+    ///
+    /// Callers can check if `self` is a square by squaring the result.
+    ///
+    /// Variable time with respect to `self`.
+    #[deprecated(since = "0.7.0", note = "please use `floor_sqrt_vartime` instead")]
+    pub fn sqrt_vartime(&self) -> Self {
+        self.floor_sqrt_vartime()
     }
 
     /// Computes √(`self`).
@@ -92,14 +110,14 @@ impl BoxedUint {
         x
     }
 
-    /// Wrapped sqrt is just normal √(`self`)
+    /// Wrapped sqrt is just `floor(√(self))`.
     /// There’s no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations.
     pub fn wrapping_sqrt(&self) -> Self {
         self.floor_sqrt()
     }
 
-    /// Wrapped sqrt is just normal √(`self`)
+    /// Wrapped sqrt is just `floor(√(self))`.
     /// There’s no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations.
     ///
