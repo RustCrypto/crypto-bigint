@@ -6,13 +6,6 @@ use crate::{
 };
 
 impl Limb {
-    /// Computes `self + rhs`, returning the result along with the carry.
-    #[inline(always)]
-    pub const fn overflowing_add(self, rhs: Limb) -> (Limb, Limb) {
-        let (res, carry) = overflowing_add(self.0, rhs.0);
-        (Limb(res), Limb(carry))
-    }
-
     /// Computes `self + rhs + carry`, returning the result along with the new carry.
     #[deprecated(since = "0.7.0", note = "please use `carrying_add` instead")]
     pub const fn adc(self, rhs: Limb, carry: Limb) -> (Limb, Limb) {
@@ -23,6 +16,13 @@ impl Limb {
     #[inline(always)]
     pub const fn carrying_add(self, rhs: Limb, carry: Limb) -> (Limb, Limb) {
         let (res, carry) = carrying_add(self.0, rhs.0, carry.0);
+        (Limb(res), Limb(carry))
+    }
+
+    /// Computes `self + rhs`, returning the result along with the carry.
+    #[inline(always)]
+    pub const fn overflowing_add(self, rhs: Limb) -> (Limb, Limb) {
+        let (res, carry) = overflowing_add(self.0, rhs.0);
         (Limb(res), Limb(carry))
     }
 
@@ -97,17 +97,70 @@ mod tests {
     use crate::{CheckedAdd, Limb};
 
     #[test]
+    fn add_no_overflow() {
+        assert_eq!(Limb::ZERO + Limb::ONE, Limb::ONE);
+    }
+
+    #[test]
+    #[should_panic]
+    fn add_with_overflow() {
+        let _ = Limb::MAX + Limb::ONE;
+    }
+
+    #[test]
     fn carrying_add_no_carry() {
+        let (res, carry) = Limb::ZERO.carrying_add(Limb::ONE, Limb::ZERO);
+        assert_eq!(res, Limb::ONE);
+        assert_eq!(carry, Limb::ZERO);
+
+        // TODO(tarcieri): `adc` is deprecated: remove these when the method is removed
+        #[allow(deprecated)]
+        {
+            let (res, carry) = Limb::ZERO.adc(Limb::ONE, Limb::ZERO);
+            assert_eq!(res, Limb::ONE);
+            assert_eq!(carry, Limb::ZERO);
+        }
+    }
+
+    #[test]
+    fn carrying_add_with_carry() {
+        let (res, carry) = Limb::MAX.carrying_add(Limb::ZERO, Limb::ONE);
+        assert_eq!(res, Limb::ZERO);
+        assert_eq!(carry, Limb::ONE);
+
+        // TODO(tarcieri): `adc` is deprecated: remove these when the method is removed
+        #[allow(deprecated)]
+        {
+            let (res, carry) = Limb::MAX.adc(Limb::ZERO, Limb::ONE);
+            assert_eq!(res, Limb::ZERO);
+            assert_eq!(carry, Limb::ONE);
+        }
+    }
+
+    #[test]
+    fn checked_add() {
+        assert_eq!(Limb::ZERO.checked_add(&Limb::ONE).unwrap(), Limb::ONE);
+        assert_eq!(Limb::MAX.checked_add(&Limb::ONE).into_option(), None);
+    }
+
+    #[test]
+    fn overflowing_add_no_carry() {
         let (res, carry) = Limb::ZERO.overflowing_add(Limb::ONE);
         assert_eq!(res, Limb::ONE);
         assert_eq!(carry, Limb::ZERO);
     }
 
     #[test]
-    fn carrying_add_with_carry() {
+    fn overflowing_add_with_carry() {
         let (res, carry) = Limb::MAX.overflowing_add(Limb::ONE);
         assert_eq!(res, Limb::ZERO);
         assert_eq!(carry, Limb::ONE);
+    }
+
+    #[test]
+    fn saturating_add() {
+        assert_eq!(Limb::ZERO.saturating_add(Limb::ONE), Limb::ONE);
+        assert_eq!(Limb::MAX.saturating_add(Limb::ONE), Limb::MAX);
     }
 
     #[test]

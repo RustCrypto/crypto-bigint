@@ -24,3 +24,33 @@ impl BitXorAssign for Limb {
         self.0 ^= rhs.0;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::Limb;
+
+    #[test]
+    fn bitxor() {
+        assert_eq!(Limb::ZERO ^ Limb::ZERO, Limb::ZERO);
+        assert_eq!(Limb::ZERO ^ Limb::ONE, Limb::ONE);
+        assert_eq!(Limb::ONE ^ Limb::ZERO, Limb::ONE);
+        assert_eq!(Limb::ONE ^ Limb::ONE, Limb::ZERO);
+    }
+
+    #[test]
+    fn bitxor_assign() {
+        let mut n = Limb::ZERO;
+
+        n ^= Limb::ZERO;
+        assert_eq!(n, Limb::ZERO);
+
+        n ^= Limb::ONE;
+        assert_eq!(n, Limb::ONE);
+
+        n ^= Limb::ZERO;
+        assert_eq!(n, Limb::ONE);
+
+        n ^= Limb::ONE;
+        assert_eq!(n, Limb::ZERO);
+    }
+}
