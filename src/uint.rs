@@ -209,13 +209,24 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Convert to a [`NonZero<Uint<LIMBS>>`].
     ///
-    /// Returns some if the original value is non-zero, and false otherwise.
+    /// Returns some if the original value is non-zero, and none otherwise.
     pub const fn to_nz(&self) -> CtOption<NonZero<Self>> {
         let is_nz = self.is_nonzero();
 
         // Use `1` as a placeholder in the event this value is `0`
         let ret = Self::select(&Self::ONE, self, is_nz);
         CtOption::new(NonZero(ret), is_nz)
+    }
+
+    /// Convert to a [`NonZero<Uint<LIMBS>>`].
+    ///
+    /// Returns Some if the original value is non-zero, and None otherwise.
+    pub const fn to_nz_vartime(&self) -> Option<NonZero<Self>> {
+        if !self.is_zero_vartime() {
+            Some(NonZero(*self))
+        } else {
+            None
+        }
     }
 
     /// Convert to a [`Odd<Uint<LIMBS>>`].
@@ -248,15 +259,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Is this [`Uint`] equal to [`Uint::ZERO`]?
     pub const fn is_zero(&self) -> Choice {
-        let mut ret = Choice::TRUE;
-        let mut n = 0;
-
-        while n < LIMBS {
-            ret = ret.and(self.limbs[n].is_zero());
-            n += 1;
-        }
-
-        ret
+        self.is_nonzero().not()
     }
 }
 
