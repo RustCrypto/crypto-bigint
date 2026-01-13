@@ -275,7 +275,7 @@ impl<const LIMBS: usize> ShlVartime for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, U128, U256, Uint};
+    use crate::{Limb, ShlVartime, U128, U256, Uint};
 
     const N: U256 =
         U256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
@@ -307,6 +307,8 @@ mod tests {
     fn shl1() {
         assert_eq!(N << 1, TWO_N);
         assert_eq!(N.overflowing_shl1(), (TWO_N, Limb::ONE));
+        assert_eq!(ShlVartime::overflowing_shl_vartime(&N, 1), Some(TWO_N));
+        assert_eq!(ShlVartime::wrapping_shl_vartime(&N, 1), TWO_N);
     }
 
     #[test]
@@ -328,6 +330,7 @@ mod tests {
     fn shl256_const() {
         assert!(N.overflowing_shl(256).is_none().to_bool_vartime());
         assert!(N.overflowing_shl_vartime(256).is_none());
+        assert_eq!(N.wrapping_shl_vartime(256), Uint::ZERO);
     }
 
     #[test]

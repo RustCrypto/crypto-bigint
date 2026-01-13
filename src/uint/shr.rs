@@ -290,7 +290,7 @@ impl<const LIMBS: usize> ShrVartime for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, U128, U256, Uint};
+    use crate::{Limb, ShrVartime, U128, U256, Uint};
 
     const N: U256 =
         U256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
@@ -302,6 +302,8 @@ mod tests {
     fn shr1() {
         assert_eq!(N.shr1(), N_2);
         assert_eq!(N >> 1, N_2);
+        assert_eq!(ShrVartime::overflowing_shr_vartime(&N, 1), Some(N_2));
+        assert_eq!(ShrVartime::wrapping_shr_vartime(&N, 1), N_2);
     }
 
     #[test]

@@ -150,7 +150,7 @@ impl<const LIMBS: usize> ShrVartime for Int<LIMBS> {
 mod tests {
     use core::ops::Div;
 
-    use crate::I256;
+    use crate::{I256, ShrVartime};
 
     const N: I256 =
         I256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
@@ -167,6 +167,8 @@ mod tests {
     #[test]
     fn shr1() {
         assert_eq!(N >> 1, N_2);
+        assert_eq!(ShrVartime::overflowing_shr_vartime(&N, 1), Some(N_2));
+        assert_eq!(ShrVartime::wrapping_shr_vartime(&N, 1), N_2);
     }
 
     #[test]
@@ -196,7 +198,7 @@ mod tests {
     #[test]
     fn shr256_const() {
         assert!(N.overflowing_shr(256).is_none().to_bool_vartime());
-        assert!(N.overflowing_shr_vartime(256).is_none());
+        assert!(ShrVartime::overflowing_shr_vartime(&N, 256).is_none());
     }
 
     #[test]
@@ -209,5 +211,13 @@ mod tests {
     fn wrapping_shr() {
         assert_eq!(I256::MAX.wrapping_shr(257), I256::ZERO);
         assert_eq!(I256::MIN.wrapping_shr(257), I256::MINUS_ONE);
+        assert_eq!(
+            ShrVartime::wrapping_shr_vartime(&I256::MAX, 257),
+            I256::ZERO
+        );
+        assert_eq!(
+            ShrVartime::wrapping_shr_vartime(&I256::MIN, 257),
+            I256::MINUS_ONE
+        );
     }
 }

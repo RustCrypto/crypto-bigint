@@ -105,7 +105,7 @@ impl<const LIMBS: usize> ShlVartime for Int<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::I256;
+    use crate::{I256, ShlVartime};
 
     const N: I256 =
         I256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
@@ -136,6 +136,8 @@ mod tests {
     #[test]
     fn shl1() {
         assert_eq!(N << 1, TWO_N);
+        assert_eq!(ShlVartime::overflowing_shl_vartime(&N, 1), Some(TWO_N));
+        assert_eq!(ShlVartime::wrapping_shl_vartime(&N, 1), TWO_N);
     }
 
     #[test]
@@ -156,7 +158,7 @@ mod tests {
     #[test]
     fn shl256_const() {
         assert!(N.overflowing_shl(256).is_none().to_bool_vartime());
-        assert!(N.overflowing_shl_vartime(256).is_none());
+        assert!(ShlVartime::overflowing_shl_vartime(&N, 256).is_none());
     }
 
     #[test]
@@ -168,5 +170,19 @@ mod tests {
     #[test]
     fn shl64() {
         assert_eq!(N << 64, SIXTY_FOUR);
+    }
+
+    #[test]
+    fn wrapping_shl() {
+        assert_eq!(I256::MAX.wrapping_shl(257), I256::ZERO);
+        assert_eq!(I256::MIN.wrapping_shl(257), I256::ZERO);
+        assert_eq!(
+            ShlVartime::wrapping_shl_vartime(&I256::MAX, 257),
+            I256::ZERO
+        );
+        assert_eq!(
+            ShlVartime::wrapping_shl_vartime(&I256::MIN, 257),
+            I256::ZERO
+        );
     }
 }
