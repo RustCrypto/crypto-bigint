@@ -1,6 +1,6 @@
 [package]
 name = "crypto-bigint"
-version = "0.7.0-rc.16"
+version = "0.7.0-rc.17"
 description = """
 Pure Rust implementation of a big integer library which has been designed from
 the ground-up for use in cryptographic applications. Provides constant-time,
@@ -15,6 +15,7 @@ readme = "README.md"
 resolver = "2"
 edition = "2024"
 rust-version = "1.85"
+exclude = [".codecov.yml", ".github", ".gitignore"]
 
 [dependencies]
 ctutils = "0.3"
