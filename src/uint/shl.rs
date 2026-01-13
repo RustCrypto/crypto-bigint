@@ -14,9 +14,36 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self << shift` in variable time.
     ///
     /// Panics if `shift >= Self::BITS`.
+    ///
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
+    ///
+    /// When used with a fixed `shift`, this function is constant-time with respect
+    /// to `self`.
+    #[inline(always)]
     pub const fn shl_vartime(&self, shift: u32) -> Self {
-        self.overflowing_shl_vartime(shift)
-            .expect_copied("`shift` within the bit size of the integer")
+        assert!(
+            shift < Self::BITS,
+            "`shift` within the bit size of the integer"
+        );
+
+        let shift_num = shift / Limb::BITS;
+        let mut res = self.wrapping_shl_by_limbs_vartime(shift_num);
+        let rem = shift % Limb::BITS;
+
+        if rem != 0 {
+            let mut carry = Limb::ZERO;
+
+            let mut i = shift_num as usize;
+            while i < LIMBS {
+                (res.limbs[i], carry) = (
+                    res.limbs[i].shl(rem).bitor(carry),
+                    res.limbs[i].shr(Limb::BITS - rem),
+                );
+                i += 1;
+            }
+        }
+
+        res
     }
 
     /// Computes `self << shift`.
@@ -33,7 +60,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// if the shift exceeds the precision. The runtime is determined by `shift_upper_bound`
     /// which may be smaller than `Self::BITS`.
     pub(crate) const fn bounded_wrapping_shl(&self, shift: u32, shift_upper_bound: u32) -> Self {
-        assert!(shift < shift_upper_bound);
+        assert!(shift < shift_upper_bound, "exceeded shift upper bound");
         // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
         // (which lies in range `0 <= shift < BITS`).
         let shift_bits = u32::BITS - (shift_upper_bound - 1).leading_zeros();
@@ -84,29 +111,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
     #[inline(always)]
-    pub const fn overflowing_shl_vartime(&self, shift: u32) -> CtOption<Self> {
-        if shift >= Self::BITS {
-            return CtOption::new(Self::ZERO, Choice::FALSE);
+    pub const fn overflowing_shl_vartime(&self, shift: u32) -> Option<Self> {
+        if shift < Self::BITS {
+            Some(self.shl_vartime(shift))
+        } else {
+            None
         }
-
-        let shift_num = shift / Limb::BITS;
-        let mut res = self.wrapping_shl_by_limbs_vartime(shift_num);
-        let rem = shift % Limb::BITS;
-
-        if rem != 0 {
-            let mut carry = Limb::ZERO;
-
-            let mut i = shift_num as usize;
-            while i < LIMBS {
-                (res.limbs[i], carry) = (
-                    res.limbs[i].shl(rem).bitor(carry),
-                    res.limbs[i].shr(Limb::BITS - rem),
-                );
-                i += 1;
-            }
-        }
-
-        CtOption::some(res)
     }
 
     /// Computes a left shift on a wide input as `(lo, hi)`.
@@ -121,26 +131,18 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn overflowing_shl_vartime_wide(
         lower_upper: (Self, Self),
         shift: u32,
-    ) -> CtOption<(Self, Self)> {
+    ) -> Option<(Self, Self)> {
         let (lower, upper) = lower_upper;
         if shift >= 2 * Self::BITS {
-            CtOption::new((Self::ZERO, Self::ZERO), Choice::FALSE)
+            None
         } else if shift >= Self::BITS {
-            let upper = lower
-                .overflowing_shl_vartime(shift - Self::BITS)
-                .expect_copied("shift within range");
-            CtOption::some((Self::ZERO, upper))
+            let upper = lower.shl_vartime(shift - Self::BITS);
+            Some((Self::ZERO, upper))
         } else {
-            let new_lower = lower
-                .overflowing_shl_vartime(shift)
-                .expect_copied("shift within range");
-            let upper_lo = lower
-                .overflowing_shr_vartime(Self::BITS - shift)
-                .expect_copied("shift within range");
-            let upper_hi = upper
-                .overflowing_shl_vartime(shift)
-                .expect_copied("shift within range");
-            CtOption::some((new_lower, upper_lo.bitor(&upper_hi)))
+            let new_lower = lower.shl_vartime(shift);
+            let upper_lo = lower.shr_vartime(Self::BITS - shift);
+            let upper_hi = upper.shl_vartime(shift);
+            Some((new_lower, upper_lo.bitor(&upper_hi)))
         }
     }
 
@@ -153,11 +155,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self << shift` in variable-time in a panic-free manner, returning zero if the
     /// shift exceeds the precision.
     pub const fn wrapping_shl_vartime(&self, shift: u32) -> Self {
-        ctutils::unwrap_or!(
-            self.overflowing_shl_vartime(shift),
-            Self::ZERO,
-            Self::select
-        )
+        if let Some(ret) = self.overflowing_shl_vartime(shift) {
+            ret
+        } else {
+            Self::ZERO
+        }
     }
 
     /// Conditionally computes `self << shift` where `0 <= shift < Limb::BITS`,
@@ -262,12 +264,12 @@ impl<const LIMBS: usize> WrappingShl for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> ShlVartime for Uint<LIMBS> {
-    fn overflowing_shl_vartime(&self, shift: u32) -> CtOption<Self> {
-        self.overflowing_shl(shift)
+    fn overflowing_shl_vartime(&self, shift: u32) -> Option<Self> {
+        self.overflowing_shl_vartime(shift)
     }
 
     fn wrapping_shl_vartime(&self, shift: u32) -> Self {
-        self.wrapping_shl(shift)
+        self.wrapping_shl_vartime(shift)
     }
 }
 
@@ -325,7 +327,7 @@ mod tests {
     #[test]
     fn shl256_const() {
         assert!(N.overflowing_shl(256).is_none().to_bool_vartime());
-        assert!(N.overflowing_shl_vartime(256).is_none().to_bool_vartime());
+        assert!(N.overflowing_shl_vartime(256).is_none());
     }
 
     #[test]
@@ -361,11 +363,7 @@ mod tests {
 
     #[test]
     fn shl_wide_max_max_256() {
-        assert!(
-            Uint::overflowing_shl_vartime_wide((U128::MAX, U128::MAX), 256)
-                .is_none()
-                .to_bool_vartime(),
-        );
+        assert!(Uint::overflowing_shl_vartime_wide((U128::MAX, U128::MAX), 256).is_none());
     }
 
     #[test]

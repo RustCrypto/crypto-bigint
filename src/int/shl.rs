@@ -34,8 +34,12 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
     #[inline(always)]
-    pub const fn overflowing_shl_vartime(&self, shift: u32) -> CtOption<Self> {
-        Self::from_uint_opt(self.0.overflowing_shl_vartime(shift))
+    pub const fn overflowing_shl_vartime(&self, shift: u32) -> Option<Self> {
+        if let Some(uint) = self.0.overflowing_shl_vartime(shift) {
+            Some(*uint.as_int())
+        } else {
+            None
+        }
     }
 
     /// Computes `self << shift` in a panic-free manner, returning zero if the shift exceeds the
@@ -90,11 +94,12 @@ impl<const LIMBS: usize> WrappingShl for Int<LIMBS> {
 }
 
 impl<const LIMBS: usize> ShlVartime for Int<LIMBS> {
-    fn overflowing_shl_vartime(&self, shift: u32) -> CtOption<Self> {
-        self.overflowing_shl(shift)
+    fn overflowing_shl_vartime(&self, shift: u32) -> Option<Self> {
+        self.overflowing_shl_vartime(shift)
     }
+
     fn wrapping_shl_vartime(&self, shift: u32) -> Self {
-        self.wrapping_shl(shift)
+        self.wrapping_shl_vartime(shift)
     }
 }
 
@@ -151,7 +156,7 @@ mod tests {
     #[test]
     fn shl256_const() {
         assert!(N.overflowing_shl(256).is_none().to_bool_vartime());
-        assert!(N.overflowing_shl_vartime(256).is_none().to_bool_vartime());
+        assert!(N.overflowing_shl_vartime(256).is_none());
     }
 
     #[test]

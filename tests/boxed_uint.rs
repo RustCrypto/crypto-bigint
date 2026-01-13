@@ -299,13 +299,9 @@ proptest! {
         let shift = u32::from(shift) % (a.bits_precision() * 2);
 
         let expected = to_uint((a_bi << shift as usize) & ((BigUint::one() << a.bits_precision() as usize) - BigUint::one()));
-        let (actual, overflow) = a.overflowing_shl(shift);
+        let actual = a.wrapping_shl(shift);
 
         prop_assert_eq!(&expected, &actual);
-        if shift >= a.bits_precision() {
-            prop_assert_eq!(actual, BoxedUint::zero());
-            prop_assert!(bool::from(overflow));
-        }
     }
 
     #[test]
@@ -334,13 +330,9 @@ proptest! {
         let shift = u32::from(shift) % (a.bits_precision() * 2);
 
         let expected = to_uint(a_bi >> shift as usize);
-        let (actual, overflow) = a.overflowing_shr(shift);
+        let actual = a.wrapping_shr(shift);
 
         prop_assert_eq!(&expected, &actual);
-        if shift >= a.bits_precision() {
-            prop_assert_eq!(actual, BoxedUint::zero());
-            prop_assert!(bool::from(overflow));
-        }
     }
 
     #[test]

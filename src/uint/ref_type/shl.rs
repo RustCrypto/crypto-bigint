@@ -6,46 +6,30 @@ use crate::{Choice, Limb, NonZero, word};
 impl UintRef {
     /// Left-shifts by `shift` bits in constant-time.
     ///
-    /// Produces zero and returns truthy `Choice` if `shift >= self.bits_precision()`,
-    /// or the result and a falsy `Choice` otherwise.
+    /// Returns truthy `Choice` and leaves `self` unmodified if `shift >= self.bits_precision()`,
+    /// otherwise returns a falsy `Choice` and shifts `self` in place.
     #[inline(always)]
     pub const fn overflowing_shl_assign(&mut self, shift: u32) -> Choice {
         let bits = self.bits_precision();
         let overflow = Choice::from_u32_le(bits, shift);
-        self.bounded_wrapping_shl_assign(shift % bits, bits);
-        self.conditional_set_zero(overflow);
-        overflow
-    }
-
-    /// Left-shifts by `shift` bits in variable-time.
-    ///
-    /// Produces zero and returns truthy `Choice` if `shift >= self.bits_precision()`,
-    /// or the result and a falsy `Choice` otherwise.
-    ///
-    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
-    ///
-    /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
-    #[cfg(feature = "alloc")]
-    #[inline(always)]
-    pub const fn overflowing_shl_assign_vartime(&mut self, shift: u32) -> Choice {
-        let bits = self.bits_precision();
-        let overflow = Choice::from_u32_le(bits, shift);
-        self.wrapping_shl_assign_vartime(shift);
+        let shift = overflow.select_u32(shift, 0);
+        self.bounded_wrapping_shl_assign(shift, bits);
         overflow
     }
 
     /// Left-shifts by `shift` bits, producing zero if the shift exceeds the precision.
     #[inline(always)]
     pub(crate) const fn wrapping_shl_assign(&mut self, shift: u32) {
-        self.overflowing_shl_assign(shift);
+        let overflow = self.overflowing_shl_assign(shift);
+        self.conditional_set_zero(overflow);
     }
 
-    /// Left-shifts by `shift` bits where `shift < `shift_upper_bound`, producing zero if
+    /// Left-shifts by `shift` bits where `shift < `shift_upper_bound`, panicking if
     /// the shift exceeds the precision. The runtime is determined by `shift_upper_bound`
     /// which may be smaller than `self.bits_precision()`.
     #[inline(always)]
     pub(crate) const fn bounded_wrapping_shl_assign(&mut self, shift: u32, shift_upper_bound: u32) {
-        assert!(shift < shift_upper_bound);
+        assert!(shift < shift_upper_bound, "exceeded shift upper bound");
         // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
         // (which lies in range `0 <= shift < BITS`).
         let shift_bits = u32::BITS - (shift_upper_bound - 1).leading_zeros();
@@ -56,12 +40,12 @@ impl UintRef {
         };
         let mut i = 0;
         while i < limb_bits {
-            let bit = Choice::from_u32_lsb((shift >> i) & 1);
+            let bit = Choice::from_u32_lsb(shift >> i);
             self.conditional_shl_assign_limb_nonzero(NonZero(1 << i), bit);
             i += 1;
         }
         while i < shift_bits {
-            let bit = Choice::from_u32_lsb((shift >> i) & 1);
+            let bit = Choice::from_u32_lsb(shift >> i);
             self.conditional_shl_assign_by_limbs_vartime(1 << (i - Limb::LOG2_BITS), bit);
             i += 1;
         }
@@ -250,9 +234,6 @@ mod tests {
     fn shl256() {
         let mut n = N;
         assert!(bool::from(n.as_mut_uint_ref().overflowing_shl_assign(256)));
-        assert!(bool::from(
-            n.as_mut_uint_ref().overflowing_shl_assign_vartime(256)
-        ));
     }
 
     #[cfg(feature = "alloc")]
