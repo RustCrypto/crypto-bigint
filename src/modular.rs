@@ -5,11 +5,12 @@
 //!
 //! # Constant moduli
 //!
-//! The [`ConstMontyForm`] and [`ConstMontyParams`] types implement support for modular arithmetic where the
-//! modulus is fixed at compile-time.
+//! The [`ConstMontyForm`] and [`ConstMontyParams`] types implement support for modular arithmetic
+//! where the modulus is fixed at compile-time.
 //!
-//! The [`impl_modulus!`][`crate::impl_modulus`] macro can be used to define a compile-time modulus,
-//! whereas the [`const_monty_form!`][`crate::const_monty_form`] macro can define a [`ConstMontyForm`] constant.
+//! The [`const_monty_params!`][`crate::const_monty_params`] macro can be used to define Montgomery
+//! parameters at compile-time from a modulus, whereas the [`const_monty_form!`][`crate::const_monty_form`]
+//! macro can define a [`ConstMontyForm`] constant.
 //!
 //! # Dynamic moduli chosen at runtime
 //!
