@@ -12,7 +12,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let self_is_nz = self.is_nonzero();
         // Note: is non-zero by construction
         let self_nz = NonZero(Uint::select(&Uint::ONE, self, self_is_nz));
-        Uint::select(rhs, self_nz.gcd_uint(rhs).as_ref(), self_is_nz)
+        Uint::select(rhs, self_nz.gcd_unsigned(rhs).as_ref(), self_is_nz)
     }
 
     /// Compute the greatest common divisor of `self` and `rhs`.
@@ -22,7 +22,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         if self.is_zero_vartime() {
             return *rhs;
         }
-        NonZero(*self).gcd_uint_vartime(rhs).0
+        NonZero(*self).gcd_unsigned_vartime(rhs).0
     }
 
     /// Executes the Extended GCD algorithm.
@@ -72,7 +72,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
 impl<const LIMBS: usize> NonZeroUint<LIMBS> {
     /// Compute the greatest common divisor of `self` and `rhs`.
-    pub const fn gcd_uint(&self, rhs: &Uint<LIMBS>) -> Self {
+    pub const fn gcd_unsigned(&self, rhs: &Uint<LIMBS>) -> Self {
         let lhs = self.as_ref();
 
         // Note the following two GCD identity rules:
@@ -90,14 +90,14 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
         let k = u32_min(i, j);
 
         let odd_lhs = Odd(lhs.shr(i));
-        let gcd_div_2k = odd_lhs.gcd_uint(rhs);
+        let gcd_div_2k = odd_lhs.gcd_unsigned(rhs);
         NonZero(gcd_div_2k.as_ref().shl(k))
     }
 
     /// Compute the greatest common divisor of `self` and `rhs`.
     ///
     /// Executes in variable time w.r.t. all input parameters.
-    pub const fn gcd_uint_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
+    pub const fn gcd_unsigned_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
         let lhs = self.as_ref();
 
         let i = lhs.trailing_zeros_vartime();
@@ -105,7 +105,7 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
         let k = u32_min(i, j);
 
         let odd_lhs = Odd(lhs.shr_vartime(i));
-        let gcd_div_2k = odd_lhs.gcd_uint_vartime(rhs);
+        let gcd_div_2k = odd_lhs.gcd_unsigned_vartime(rhs);
         NonZero(gcd_div_2k.as_ref().shl_vartime(k))
     }
 
@@ -136,7 +136,7 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
 impl<const LIMBS: usize> OddUint<LIMBS> {
     /// Compute the greatest common divisor of `self` and `rhs`.
     #[inline(always)]
-    pub const fn gcd_uint(&self, rhs: &Uint<LIMBS>) -> Self {
+    pub const fn gcd_unsigned(&self, rhs: &Uint<LIMBS>) -> Self {
         if LIMBS == 1 {
             Self::classic_bingcd(self, rhs)
         } else {
@@ -148,7 +148,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
     ///
     /// Executes in variable time w.r.t. all input parameters.
     #[inline(always)]
-    pub const fn gcd_uint_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
+    pub const fn gcd_unsigned_vartime(&self, rhs: &Uint<LIMBS>) -> Self {
         if LIMBS == 1 {
             Self::classic_bingcd_vartime(self, rhs)
         } else {
@@ -314,10 +314,10 @@ macro_rules! impl_gcd {
     };
 }
 
-macro_rules! impl_gcd_uint_lhs {
+macro_rules! impl_gcd_unsigned_lhs {
     ($slf:ty, [$($rhs:ty),+]) => {
         $(
-            impl_gcd_uint_lhs!($slf, $rhs, $slf);
+            impl_gcd_unsigned_lhs!($slf, $rhs, $slf);
         )+
     };
     ($slf:ty, $rhs:ty, $out:ty) => {
@@ -326,21 +326,21 @@ macro_rules! impl_gcd_uint_lhs {
 
             #[inline]
             fn gcd(&self, rhs: &$rhs) -> Self::Output {
-                self.gcd_uint(&rhs)
+                self.gcd_unsigned(&rhs)
             }
 
             #[inline]
             fn gcd_vartime(&self, rhs: &$rhs) -> Self::Output {
-                self.gcd_uint_vartime(&rhs)
+                self.gcd_unsigned_vartime(&rhs)
             }
         }
     };
 }
 
-macro_rules! impl_gcd_uint_rhs {
+macro_rules! impl_gcd_unsigned_rhs {
     ($slf:ty, [$($rhs:ty),+]) => {
         $(
-            impl_gcd_uint_rhs!($slf, $rhs, $rhs);
+            impl_gcd_unsigned_rhs!($slf, $rhs, $rhs);
         )+
     };
     ($slf:ty, $rhs:ty, $out:ty) => {
@@ -349,30 +349,30 @@ macro_rules! impl_gcd_uint_rhs {
 
             #[inline]
             fn gcd(&self, rhs: &$rhs) -> Self::Output {
-                rhs.gcd_uint(self)
+                rhs.gcd_unsigned(self)
             }
 
             #[inline]
             fn gcd_vartime(&self, rhs: &$rhs) -> Self::Output {
-                rhs.gcd_uint_vartime(self)
+                rhs.gcd_unsigned_vartime(self)
             }
         }
     };
 }
 
-pub(crate) use impl_gcd_uint_lhs;
-pub(crate) use impl_gcd_uint_rhs;
+pub(crate) use impl_gcd_unsigned_lhs;
+pub(crate) use impl_gcd_unsigned_rhs;
 
 impl_gcd!(
     Uint<LIMBS>,
     [Uint<LIMBS>, NonZeroUint<LIMBS>, OddUint<LIMBS>]
 );
-impl_gcd_uint_lhs!(NonZeroUint<LIMBS>, [Uint<LIMBS>]);
-impl_gcd_uint_rhs!(
+impl_gcd_unsigned_lhs!(NonZeroUint<LIMBS>, [Uint<LIMBS>]);
+impl_gcd_unsigned_rhs!(
     NonZeroUint<LIMBS>,
     [NonZeroUint<LIMBS>, OddUint<LIMBS>]
 );
-impl_gcd_uint_lhs!(OddUint<LIMBS>, [Uint<LIMBS>, NonZeroUint<LIMBS>, OddUint<LIMBS>]);
+impl_gcd_unsigned_lhs!(OddUint<LIMBS>, [Uint<LIMBS>, NonZeroUint<LIMBS>, OddUint<LIMBS>]);
 
 impl<const LIMBS: usize> Xgcd for Uint<LIMBS> {
     type Output = UintXgcdOutput<LIMBS>;
@@ -465,7 +465,7 @@ mod tests {
 
             let (x, y) = output.bezout_coefficients();
             assert_eq!(
-                x.concatenating_mul_uint(&lhs) + y.concatenating_mul_uint(&rhs),
+                x.concatenating_mul_unsigned(&lhs) + y.concatenating_mul_unsigned(&rhs),
                 *output.gcd.resize().as_int()
             );
         }
@@ -583,7 +583,7 @@ mod tests {
         }
 
         #[test]
-        fn gcd_uint_int() {
+        fn gcd_unsigned_int() {
             // Two numbers with a shared factor of 61
             let f = U256::from(61u32 * 71);
             let g = I256::from(59i32 * 61);

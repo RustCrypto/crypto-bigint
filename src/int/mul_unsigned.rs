@@ -8,12 +8,12 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// negated when converted from [`Uint`] to [`Int`].
     ///
     /// Note: even if `negate` is truthy, the magnitude might be zero!
-    #[deprecated(since = "0.7.0", note = "please use `widening_mul_uint` instead")]
-    pub const fn split_mul_uint<const RHS_LIMBS: usize>(
+    #[deprecated(since = "0.7.0", note = "please use `widening_mul_unsigned` instead")]
+    pub const fn split_mul_unsigned<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, Choice) {
-        self.widening_mul_uint(rhs)
+        self.widening_mul_unsigned(rhs)
     }
 
     /// Compute "wide" multiplication between an [`Int`] and [`Uint`] as 3-tuple `(lo, hi, negate)`.
@@ -22,7 +22,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// negated when converted from [`Uint`] to [`Int`].
     ///
     /// Note: even if `negate` is truthy, the magnitude might be zero!
-    pub const fn widening_mul_uint<const RHS_LIMBS: usize>(
+    pub const fn widening_mul_unsigned<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> (Uint<{ LIMBS }>, Uint<{ RHS_LIMBS }>, Choice) {
@@ -42,12 +42,15 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// the result should be negated when converted from [`Uint`] to [`Int`].
     ///
     /// Note: even if `negate` is truthy, the magnitude might be zero!
-    #[deprecated(since = "0.7.0", note = "please use `Uint::widening_mul_int` instead")]
-    pub const fn split_mul_uint_right<const RHS_LIMBS: usize>(
+    #[deprecated(
+        since = "0.7.0",
+        note = "please use `Uint::widening_mul_signed` instead"
+    )]
+    pub const fn split_mul_unsigned_right<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> (Uint<{ RHS_LIMBS }>, Uint<{ LIMBS }>, Choice) {
-        rhs.widening_mul_int(self)
+        rhs.widening_mul_signed(self)
     }
 
     /// Compute "wide" multiplication between an [`Int`] and [`Uint`] as 3-tuple `(lo, hi, negate)`.
@@ -56,16 +59,19 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// the result should be negated when converted from [`Uint`] to [`Int`].
     ///
     /// Note: even if `negate` is truthy, the magnitude might be zero!
-    #[deprecated(since = "0.7.0", note = "please use `Uint::widening_mul_int` instead")]
-    pub const fn widening_mul_uint_right<const RHS_LIMBS: usize>(
+    #[deprecated(
+        since = "0.7.0",
+        note = "please use `Uint::widening_mul_signed` instead"
+    )]
+    pub const fn widening_mul_unsigned_right<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> (Uint<{ RHS_LIMBS }>, Uint<{ LIMBS }>, Choice) {
-        rhs.widening_mul_int(self)
+        rhs.widening_mul_signed(self)
     }
 
     /// Multiply `self` by [`Uint`] `rhs`, returning a concatenated "wide" result.
-    pub const fn concatenating_mul_uint<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
+    pub const fn concatenating_mul_unsigned<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> Int<WIDE_LIMBS>
@@ -82,15 +88,15 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Checked multiplication of self with an [`Uint<RHS_LIMBS>`], where the result is to be stored
     /// in an [`Int<RHS_LIMBS>`].
     #[deprecated(since = "0.7.0", note = "please use `Uint::checked_mul(_int)` instead")]
-    pub fn checked_mul_uint_right<const RHS_LIMBS: usize>(
+    pub fn checked_mul_unsigned_right<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> CtOption<Int<RHS_LIMBS>> {
-        rhs.checked_mul_int(self)
+        rhs.checked_mul_signed(self)
     }
 
     /// Checked multiplication with a [`Uint`].
-    pub fn checked_mul_uint<const RHS_LIMBS: usize>(
+    pub fn checked_mul_unsigned<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> CtOption<Int<LIMBS>> {
@@ -102,7 +108,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedMul<Uint<RHS_LIMBS>> for Int<LIMBS> {
     #[inline]
     fn checked_mul(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
-        self.checked_mul_uint(rhs)
+        self.checked_mul_unsigned(rhs)
     }
 }
 
@@ -134,7 +140,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Uint<RHS_LIMBS>> for &Int<
     type Output = Int<LIMBS>;
 
     fn mul(self, rhs: &Uint<RHS_LIMBS>) -> Self::Output {
-        self.checked_mul_uint(rhs)
+        self.checked_mul_unsigned(rhs)
             .expect("attempted to multiply with overflow")
     }
 }
@@ -144,143 +150,161 @@ mod tests {
     use crate::{I128, I256, U128, U256};
 
     #[test]
-    fn test_checked_mul_uint() {
+    fn test_checked_mul_unsigned() {
         // lhs = min
 
-        let result = I128::MIN.checked_mul_uint(&U128::ZERO);
+        let result = I128::MIN.checked_mul_unsigned(&U128::ZERO);
         assert_eq!(result.unwrap(), I128::ZERO);
 
-        let result = I128::MIN.checked_mul_uint(&U128::ONE);
+        let result = I128::MIN.checked_mul_unsigned(&U128::ONE);
         assert_eq!(result.unwrap(), I128::MIN);
 
-        let result = I128::MIN.checked_mul_uint(&U128::MAX);
+        let result = I128::MIN.checked_mul_unsigned(&U128::MAX);
         assert!(bool::from(result.is_none()));
 
         // lhs = -1
 
-        let result = I128::MINUS_ONE.checked_mul_uint(&U128::ZERO);
+        let result = I128::MINUS_ONE.checked_mul_unsigned(&U128::ZERO);
         assert_eq!(result.unwrap(), I128::ZERO);
 
-        let result = I128::MINUS_ONE.checked_mul_uint(&U128::ONE);
+        let result = I128::MINUS_ONE.checked_mul_unsigned(&U128::ONE);
         assert_eq!(result.unwrap(), I128::MINUS_ONE);
 
-        let result = I128::MINUS_ONE.checked_mul_uint(&U128::MAX);
+        let result = I128::MINUS_ONE.checked_mul_unsigned(&U128::MAX);
         assert!(bool::from(result.is_none()));
 
         // lhs = 0
 
-        let result = I128::ZERO.checked_mul_uint(&U128::ZERO);
+        let result = I128::ZERO.checked_mul_unsigned(&U128::ZERO);
         assert_eq!(result.unwrap(), I128::ZERO);
 
-        let result = I128::ZERO.checked_mul_uint(&U128::ONE);
+        let result = I128::ZERO.checked_mul_unsigned(&U128::ONE);
         assert_eq!(result.unwrap(), I128::ZERO);
 
-        let result = I128::ZERO.checked_mul_uint(&U128::MAX);
+        let result = I128::ZERO.checked_mul_unsigned(&U128::MAX);
         assert_eq!(result.unwrap(), I128::ZERO);
 
         // lhs = 1
 
-        let result = I128::ONE.checked_mul_uint(&U128::ZERO);
+        let result = I128::ONE.checked_mul_unsigned(&U128::ZERO);
         assert_eq!(result.unwrap(), I128::ZERO);
 
-        let result = I128::ONE.checked_mul_uint(&U128::ONE);
+        let result = I128::ONE.checked_mul_unsigned(&U128::ONE);
         assert_eq!(result.unwrap(), I128::ONE);
 
-        let result = I128::ONE.checked_mul_uint(&U128::MAX);
+        let result = I128::ONE.checked_mul_unsigned(&U128::MAX);
         assert!(bool::from(result.is_none()));
 
         // lhs = max
 
-        let result = I128::MAX.checked_mul_uint(&U128::ZERO);
+        let result = I128::MAX.checked_mul_unsigned(&U128::ZERO);
         assert_eq!(result.unwrap(), I128::ZERO);
 
-        let result = I128::MAX.checked_mul_uint(&U128::ONE);
+        let result = I128::MAX.checked_mul_unsigned(&U128::ONE);
         assert_eq!(result.unwrap(), I128::MAX);
 
-        let result = I128::MAX.checked_mul_uint(&U128::MAX);
+        let result = I128::MAX.checked_mul_unsigned(&U128::MAX);
         assert!(bool::from(result.is_none()));
     }
 
     #[test]
     #[allow(deprecated)]
-    fn test_checked_mul_uint_right() {
+    fn test_checked_mul_unsigned_right() {
         // rhs = 0
-        let result = I256::MIN.checked_mul_uint_right(&U128::ZERO);
+        let result = I256::MIN.checked_mul_unsigned_right(&U128::ZERO);
         assert!(bool::from(result.is_some()));
         assert_eq!(result.unwrap(), I128::ZERO);
 
-        let result = I128::MIN.checked_mul_uint_right(&U256::ZERO);
+        let result = I128::MIN.checked_mul_unsigned_right(&U256::ZERO);
         assert!(bool::from(result.is_some()));
         assert_eq!(result.unwrap(), I256::ZERO);
 
         // rhs = 1
-        let result = I256::MIN.checked_mul_uint_right(&U128::ONE);
+        let result = I256::MIN.checked_mul_unsigned_right(&U128::ONE);
         assert!(bool::from(result.is_none()));
 
-        let result = I128::MIN.checked_mul_uint_right(&U256::ONE);
+        let result = I128::MIN.checked_mul_unsigned_right(&U256::ONE);
         assert!(bool::from(result.is_some()));
         assert_eq!(result.unwrap(), I128::MIN.resize());
 
         // rhs > 1
-        let result = I256::ONE.checked_mul_uint_right(I128::MAX.as_uint());
+        let result = I256::ONE.checked_mul_unsigned_right(I128::MAX.as_uint());
         assert!(bool::from(result.is_some()));
         assert_eq!(result.unwrap(), I128::MAX.resize());
 
-        let result = I128::ONE.checked_mul_uint_right(I256::MAX.as_uint());
+        let result = I128::ONE.checked_mul_unsigned_right(I256::MAX.as_uint());
         assert!(bool::from(result.is_some()));
         assert_eq!(result.unwrap(), I256::MAX);
 
         // rhs = MAX
-        let result = I256::ONE.checked_mul_uint_right(&U128::MAX);
+        let result = I256::ONE.checked_mul_unsigned_right(&U128::MAX);
         assert!(bool::from(result.is_none()));
 
-        let result = I128::MIN.checked_mul_uint_right(&U256::MAX);
+        let result = I128::MIN.checked_mul_unsigned_right(&U256::MAX);
         assert!(bool::from(result.is_none()));
     }
 
     #[test]
-    fn test_concatenating_mul_uint() {
-        assert_eq!(I128::MIN.concatenating_mul_uint(&U128::ZERO), I256::ZERO);
+    fn test_concatenating_mul_unsigned() {
         assert_eq!(
-            I128::MIN.concatenating_mul_uint(&U128::ONE),
+            I128::MIN.concatenating_mul_unsigned(&U128::ZERO),
+            I256::ZERO
+        );
+        assert_eq!(
+            I128::MIN.concatenating_mul_unsigned(&U128::ONE),
             I256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF80000000000000000000000000000000")
         );
         assert_eq!(
-            I128::MIN.concatenating_mul_uint(&U128::MAX),
+            I128::MIN.concatenating_mul_unsigned(&U128::MAX),
             I256::from_be_hex("8000000000000000000000000000000080000000000000000000000000000000")
         );
 
         assert_eq!(
-            I128::MINUS_ONE.concatenating_mul_uint(&U128::ZERO),
+            I128::MINUS_ONE.concatenating_mul_unsigned(&U128::ZERO),
             I256::ZERO
         );
         assert_eq!(
-            I128::MINUS_ONE.concatenating_mul_uint(&U128::ONE),
+            I128::MINUS_ONE.concatenating_mul_unsigned(&U128::ONE),
             I256::MINUS_ONE
         );
         assert_eq!(
-            I128::MINUS_ONE.concatenating_mul_uint(&U128::MAX),
+            I128::MINUS_ONE.concatenating_mul_unsigned(&U128::MAX),
             I256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000000000000000000000000001")
         );
 
-        assert_eq!(I128::ZERO.concatenating_mul_uint(&U128::ZERO), I256::ZERO);
-        assert_eq!(I128::ZERO.concatenating_mul_uint(&U128::ONE), I256::ZERO);
-        assert_eq!(I128::ZERO.concatenating_mul_uint(&U128::MAX), I256::ZERO);
-
-        assert_eq!(I128::ONE.concatenating_mul_uint(&U128::ZERO), I256::ZERO);
-        assert_eq!(I128::ONE.concatenating_mul_uint(&U128::ONE), I256::ONE);
         assert_eq!(
-            I128::ONE.concatenating_mul_uint(&U128::MAX),
+            I128::ZERO.concatenating_mul_unsigned(&U128::ZERO),
+            I256::ZERO
+        );
+        assert_eq!(
+            I128::ZERO.concatenating_mul_unsigned(&U128::ONE),
+            I256::ZERO
+        );
+        assert_eq!(
+            I128::ZERO.concatenating_mul_unsigned(&U128::MAX),
+            I256::ZERO
+        );
+
+        assert_eq!(
+            I128::ONE.concatenating_mul_unsigned(&U128::ZERO),
+            I256::ZERO
+        );
+        assert_eq!(I128::ONE.concatenating_mul_unsigned(&U128::ONE), I256::ONE);
+        assert_eq!(
+            I128::ONE.concatenating_mul_unsigned(&U128::MAX),
             I256::from_be_hex("00000000000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
         );
 
-        assert_eq!(I128::MAX.concatenating_mul_uint(&U128::ZERO), I256::ZERO);
         assert_eq!(
-            I128::MAX.concatenating_mul_uint(&U128::ONE),
+            I128::MAX.concatenating_mul_unsigned(&U128::ZERO),
+            I256::ZERO
+        );
+        assert_eq!(
+            I128::MAX.concatenating_mul_unsigned(&U128::ONE),
             I256::from_be_hex("000000000000000000000000000000007FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
         );
         assert_eq!(
-            I128::MAX.concatenating_mul_uint(&U128::MAX),
+            I128::MAX.concatenating_mul_unsigned(&U128::MAX),
             I256::from_be_hex("7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFE80000000000000000000000000000001")
         );
     }

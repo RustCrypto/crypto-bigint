@@ -9,7 +9,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Base div_rem operation on dividing an [`Int`] by a [`Uint`].
     /// Computes the quotient and remainder of `self / rhs`.
     /// Furthermore, returns the sign of `self`.
-    const fn div_rem_base_uint<const RHS_LIMBS: usize>(
+    const fn div_rem_base_unsigned<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
     ) -> (Uint<LIMBS>, Uint<RHS_LIMBS>, Choice) {
@@ -24,19 +24,19 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// ```
     /// use crypto_bigint::{I128, NonZero, U128};
     ///
-    /// let (quotient, remainder) = I128::from(8).div_rem_uint(&U128::from(3u32).to_nz().unwrap());
+    /// let (quotient, remainder) = I128::from(8).div_rem_unsigned(&U128::from(3u32).to_nz().unwrap());
     /// assert_eq!(quotient, I128::from(2));
     /// assert_eq!(remainder, I128::from(2));
     ///
-    /// let (quotient, remainder) = I128::from(-8).div_rem_uint(&U128::from(3u32).to_nz().unwrap());
+    /// let (quotient, remainder) = I128::from(-8).div_rem_unsigned(&U128::from(3u32).to_nz().unwrap());
     /// assert_eq!(quotient, I128::from(-2));
     /// assert_eq!(remainder, I128::from(-2));
     /// ```
-    pub const fn div_rem_uint<const RHS_LIMBS: usize>(
+    pub const fn div_rem_unsigned<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
     ) -> (Self, Int<RHS_LIMBS>) {
-        let (quotient, remainder, lhs_sgn) = self.div_rem_base_uint(rhs);
+        let (quotient, remainder, lhs_sgn) = self.div_rem_base_unsigned(rhs);
         (
             Self(quotient).wrapping_neg_if(lhs_sgn),
             Int::new_from_abs_sign(remainder, lhs_sgn).expect_copied("no overflow; always fits"),
@@ -45,30 +45,33 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Perform division.
     /// Note: this operation rounds towards zero, truncating any fractional part of the exact result.
-    pub const fn div_uint<const RHS_LIMBS: usize>(&self, rhs: &NonZero<Uint<RHS_LIMBS>>) -> Self {
-        self.div_rem_uint(rhs).0
+    pub const fn div_unsigned<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &NonZero<Uint<RHS_LIMBS>>,
+    ) -> Self {
+        self.div_rem_unsigned(rhs).0
     }
 
     /// Compute the remainder.
     /// The remainder will have the same sign as `self` (or be zero).
-    pub const fn rem_uint<const RHS_LIMBS: usize>(
+    pub const fn rem_unsigned<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
     ) -> Int<RHS_LIMBS> {
-        self.div_rem_uint(rhs).1
+        self.div_rem_unsigned(rhs).1
     }
 }
 
 /// Vartime checked division operations.
 impl<const LIMBS: usize> Int<LIMBS> {
     #[inline]
-    /// Variable time equivalent of [`Self::div_rem_base_uint`].
+    /// Variable time equivalent of [`Self::div_rem_base_unsigned`].
     ///
     /// This is variable only with respect to `rhs`.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    const fn div_rem_base_uint_vartime<const RHS_LIMBS: usize>(
+    const fn div_rem_base_unsigned_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
     ) -> (Uint<LIMBS>, Uint<RHS_LIMBS>, Choice) {
@@ -77,47 +80,47 @@ impl<const LIMBS: usize> Int<LIMBS> {
         (quotient, remainder, lhs_sgn)
     }
 
-    /// Variable time equivalent of [`Self::div_rem_uint`].
+    /// Variable time equivalent of [`Self::div_rem_unsigned`].
     ///
     /// This is variable only with respect to `rhs`.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub const fn div_rem_uint_vartime<const RHS_LIMBS: usize>(
+    pub const fn div_rem_unsigned_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
     ) -> (Self, Int<RHS_LIMBS>) {
-        let (quotient, remainder, lhs_sgn) = self.div_rem_base_uint_vartime(rhs);
+        let (quotient, remainder, lhs_sgn) = self.div_rem_base_unsigned_vartime(rhs);
         (
             Self(quotient).wrapping_neg_if(lhs_sgn),
             remainder.as_int().wrapping_neg_if(lhs_sgn),
         )
     }
 
-    /// Variable time equivalent of [`Self::div_uint`].
+    /// Variable time equivalent of [`Self::div_unsigned`].
     ///
     /// This is variable only with respect to `rhs`.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub const fn div_uint_vartime<const RHS_LIMBS: usize>(
+    pub const fn div_unsigned_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
     ) -> Self {
-        self.div_rem_uint_vartime(rhs).0
+        self.div_rem_unsigned_vartime(rhs).0
     }
 
-    /// Variable time equivalent of [`Self::rem_uint`].
+    /// Variable time equivalent of [`Self::rem_unsigned`].
     ///
     /// This is variable only with respect to `rhs`.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub const fn rem_uint_vartime<const RHS_LIMBS: usize>(
+    pub const fn rem_unsigned_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
     ) -> Int<RHS_LIMBS> {
-        self.div_rem_uint_vartime(rhs).1
+        self.div_rem_unsigned_vartime(rhs).1
     }
 }
 
@@ -133,19 +136,19 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// let three = U128::from(3u32).to_nz().unwrap();
     /// assert_eq!(
-    ///     I128::from(8).div_rem_floor_uint(&three),
+    ///     I128::from(8).div_rem_floor_unsigned(&three),
     ///     (I128::from(2), U128::from(2u32))
     /// );
     /// assert_eq!(
-    ///     I128::from(-8).div_rem_floor_uint(&three),
+    ///     I128::from(-8).div_rem_floor_unsigned(&three),
     ///     (I128::from(-3), U128::ONE)
     /// );
     /// ```
-    pub fn div_rem_floor_uint<const RHS_LIMBS: usize>(
+    pub fn div_rem_floor_unsigned<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
     ) -> (Self, Uint<RHS_LIMBS>) {
-        let (quotient, remainder, lhs_sgn) = self.div_rem_base_uint(rhs);
+        let (quotient, remainder, lhs_sgn) = self.div_rem_base_unsigned(rhs);
 
         // Increase the quotient by one when self is negative and there is a non-zero remainder.
         let modify = remainder.is_nonzero().and(lhs_sgn);
@@ -167,16 +170,19 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// ```
     /// use crypto_bigint::{I128, U128};
     /// assert_eq!(
-    ///     I128::from(8).div_floor_uint(&U128::from(3u32).to_nz().unwrap()),
+    ///     I128::from(8).div_floor_unsigned(&U128::from(3u32).to_nz().unwrap()),
     ///     I128::from(2)
     /// );
     /// assert_eq!(
-    ///     I128::from(-8).div_floor_uint(&U128::from(3u32).to_nz().unwrap()),
+    ///     I128::from(-8).div_floor_unsigned(&U128::from(3u32).to_nz().unwrap()),
     ///     I128::from(-3)
     /// );
     /// ```
-    pub fn div_floor_uint<const RHS_LIMBS: usize>(&self, rhs: &NonZero<Uint<RHS_LIMBS>>) -> Self {
-        let (q, _) = self.div_rem_floor_uint(rhs);
+    pub fn div_floor_unsigned<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &NonZero<Uint<RHS_LIMBS>>,
+    ) -> Self {
+        let (q, _) = self.div_rem_floor_unsigned(rhs);
         q
     }
 
@@ -198,24 +204,24 @@ impl<const LIMBS: usize> Int<LIMBS> {
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
     ) -> Uint<RHS_LIMBS> {
-        let (_, r) = self.div_rem_floor_uint(rhs);
+        let (_, r) = self.div_rem_floor_unsigned(rhs);
         r
     }
 }
 
 /// Vartime checked div-floor operations
 impl<const LIMBS: usize> Int<LIMBS> {
-    /// Variable time equivalent of [`Self::div_rem_floor_uint`].
+    /// Variable time equivalent of [`Self::div_rem_floor_unsigned`].
     ///
     /// This is variable only with respect to `rhs`.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub fn div_rem_floor_uint_vartime<const RHS_LIMBS: usize>(
+    pub fn div_rem_floor_unsigned_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
     ) -> (Self, Uint<RHS_LIMBS>) {
-        let (quotient, remainder, lhs_sgn) = self.div_rem_base_uint_vartime(rhs);
+        let (quotient, remainder, lhs_sgn) = self.div_rem_base_unsigned_vartime(rhs);
 
         // Increase the quotient by one when self is negative and there is a non-zero remainder.
         let modify = remainder.is_nonzero().and(lhs_sgn);
@@ -230,17 +236,17 @@ impl<const LIMBS: usize> Int<LIMBS> {
         (quotient, remainder)
     }
 
-    /// Variable time equivalent of [`Self::div_floor_uint`].
+    /// Variable time equivalent of [`Self::div_floor_unsigned`].
     ///
     /// This is variable only with respect to `rhs`.
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
-    pub fn div_floor_uint_vartime<const RHS_LIMBS: usize>(
+    pub fn div_floor_unsigned_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
     ) -> Self {
-        let (q, _) = self.div_rem_floor_uint_vartime(rhs);
+        let (q, _) = self.div_rem_floor_unsigned_vartime(rhs);
         q
     }
 
@@ -254,7 +260,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
     ) -> Uint<RHS_LIMBS> {
-        let (_, r) = self.div_rem_floor_uint_vartime(rhs);
+        let (_, r) = self.div_rem_floor_unsigned_vartime(rhs);
         r
     }
 }
@@ -287,7 +293,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Uint<RHS_LIMBS>>> f
     type Output = Int<LIMBS>;
 
     fn div(self, rhs: NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
-        self.div_uint(&rhs)
+        self.div_unsigned(&rhs)
     }
 }
 
@@ -383,7 +389,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<NonZero<Uint<RHS_LIMBS>>> f
     type Output = Int<RHS_LIMBS>;
 
     fn rem(self, rhs: NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
-        Self::rem_uint(&self, &rhs)
+        Self::rem_unsigned(&self, &rhs)
     }
 }
 
@@ -463,7 +469,7 @@ mod tests {
     use crate::{I128, U128};
 
     #[test]
-    fn test_div_uint() {
+    fn test_div_unsigned() {
         // lhs = min
         assert_eq!(I128::MIN / U128::ONE.to_nz().unwrap(), I128::MIN);
         assert_eq!(I128::MIN / U128::MAX.to_nz().unwrap(), I128::ZERO);
@@ -499,19 +505,19 @@ mod tests {
                 .to_nz()
                 .unwrap();
 
-            assert_eq!(num.div_uint(&denom), num.div_uint_vartime(&denom))
+            assert_eq!(num.div_unsigned(&denom), num.div_unsigned_vartime(&denom))
         }
     }
 
     #[test]
-    fn test_div_rem_floor_uint() {
+    fn test_div_rem_floor_unsigned() {
         // lhs = min
         assert_eq!(
-            I128::MIN.div_rem_floor_uint(&U128::ONE.to_nz().unwrap()),
+            I128::MIN.div_rem_floor_unsigned(&U128::ONE.to_nz().unwrap()),
             (I128::MIN, U128::ZERO)
         );
         assert_eq!(
-            I128::MIN.div_rem_floor_uint(&U128::MAX.to_nz().unwrap()),
+            I128::MIN.div_rem_floor_unsigned(&U128::MAX.to_nz().unwrap()),
             (
                 I128::MINUS_ONE,
                 I128::MIN.as_uint().wrapping_sub(&U128::ONE)
@@ -520,41 +526,41 @@ mod tests {
 
         // lhs = -1
         assert_eq!(
-            I128::MINUS_ONE.div_rem_floor_uint(&U128::ONE.to_nz().unwrap()),
+            I128::MINUS_ONE.div_rem_floor_unsigned(&U128::ONE.to_nz().unwrap()),
             (I128::MINUS_ONE, U128::ZERO)
         );
         assert_eq!(
-            I128::MINUS_ONE.div_rem_floor_uint(&U128::MAX.to_nz().unwrap()),
+            I128::MINUS_ONE.div_rem_floor_unsigned(&U128::MAX.to_nz().unwrap()),
             (I128::MINUS_ONE, U128::MAX.wrapping_sub(&U128::ONE))
         );
 
         // lhs = 0
         assert_eq!(
-            I128::ZERO.div_rem_floor_uint(&U128::ONE.to_nz().unwrap()),
+            I128::ZERO.div_rem_floor_unsigned(&U128::ONE.to_nz().unwrap()),
             (I128::ZERO, U128::ZERO)
         );
         assert_eq!(
-            I128::ZERO.div_rem_floor_uint(&U128::MAX.to_nz().unwrap()),
+            I128::ZERO.div_rem_floor_unsigned(&U128::MAX.to_nz().unwrap()),
             (I128::ZERO, U128::ZERO)
         );
 
         // lhs = 1
         assert_eq!(
-            I128::ONE.div_rem_floor_uint(&U128::ONE.to_nz().unwrap()),
+            I128::ONE.div_rem_floor_unsigned(&U128::ONE.to_nz().unwrap()),
             (I128::ONE, U128::ZERO)
         );
         assert_eq!(
-            I128::ONE.div_rem_floor_uint(&U128::MAX.to_nz().unwrap()),
+            I128::ONE.div_rem_floor_unsigned(&U128::MAX.to_nz().unwrap()),
             (I128::ZERO, U128::ONE)
         );
 
         // lhs = max
         assert_eq!(
-            I128::MAX.div_rem_floor_uint(&U128::ONE.to_nz().unwrap()),
+            I128::MAX.div_rem_floor_unsigned(&U128::ONE.to_nz().unwrap()),
             (I128::MAX, U128::ZERO)
         );
         assert_eq!(
-            I128::MAX.div_rem_floor_uint(&U128::MAX.to_nz().unwrap()),
+            I128::MAX.div_rem_floor_unsigned(&U128::MAX.to_nz().unwrap()),
             (I128::ZERO, *I128::MAX.as_uint())
         );
     }
@@ -571,8 +577,8 @@ mod tests {
                 .unwrap();
 
             assert_eq!(
-                num.div_floor_uint(&denom),
-                num.div_floor_uint_vartime(&denom)
+                num.div_floor_unsigned(&denom),
+                num.div_floor_unsigned_vartime(&denom)
             )
         }
     }

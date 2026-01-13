@@ -3,19 +3,19 @@
 //! Ref: <https://eprint.iacr.org/2020/972.pdf>
 
 use crate::primitives::u32_min;
-use crate::uint::gcd::{OddUintXgcdOutput, impl_gcd_uint_lhs, impl_gcd_uint_rhs};
+use crate::uint::gcd::{OddUintXgcdOutput, impl_gcd_unsigned_lhs, impl_gcd_unsigned_rhs};
 use crate::{Choice, Gcd, Int, NonZero, NonZeroInt, NonZeroUint, Odd, OddInt, OddUint, Uint, Xgcd};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute the greatest common divisor of `self` and `rhs`.
-    pub const fn gcd_uint(&self, rhs: &Uint<LIMBS>) -> Uint<LIMBS> {
+    pub const fn gcd_unsigned(&self, rhs: &Uint<LIMBS>) -> Uint<LIMBS> {
         self.abs().gcd(rhs)
     }
 
     /// Compute the greatest common divisor of `self` and `rhs`.
     ///
     /// Executes in variable time w.r.t. all input parameters.
-    pub const fn gcd_uint_vartime(&self, rhs: &Uint<LIMBS>) -> Uint<LIMBS> {
+    pub const fn gcd_unsigned_vartime(&self, rhs: &Uint<LIMBS>) -> Uint<LIMBS> {
         self.abs().gcd_vartime(rhs)
     }
 
@@ -74,15 +74,15 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
 impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
     /// Compute the greatest common divisor of `self` and `rhs`.
-    pub const fn gcd_uint(&self, rhs: &Uint<LIMBS>) -> NonZero<Uint<LIMBS>> {
-        self.abs().gcd_uint(rhs)
+    pub const fn gcd_unsigned(&self, rhs: &Uint<LIMBS>) -> NonZero<Uint<LIMBS>> {
+        self.abs().gcd_unsigned(rhs)
     }
 
     /// Compute the greatest common divisor of `self` and `rhs`.
     ///
     /// Executes in variable time w.r.t. all input parameters.
-    pub const fn gcd_uint_vartime(&self, rhs: &Uint<LIMBS>) -> NonZeroUint<LIMBS> {
-        self.abs().gcd_uint_vartime(rhs)
+    pub const fn gcd_unsigned_vartime(&self, rhs: &Uint<LIMBS>) -> NonZeroUint<LIMBS> {
+        self.abs().gcd_unsigned_vartime(rhs)
     }
 
     /// Execute the Extended GCD algorithm.
@@ -136,15 +136,15 @@ impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
 
 impl<const LIMBS: usize> Odd<Int<LIMBS>> {
     /// Compute the greatest common divisor of `self` and `rhs`.
-    pub const fn gcd_uint(&self, rhs: &Uint<LIMBS>) -> Odd<Uint<LIMBS>> {
-        self.abs().gcd_uint(rhs)
+    pub const fn gcd_unsigned(&self, rhs: &Uint<LIMBS>) -> Odd<Uint<LIMBS>> {
+        self.abs().gcd_unsigned(rhs)
     }
 
     /// Compute the greatest common divisor of `self` and `rhs`.
     ///
     /// Executes in variable time w.r.t. all input parameters.
-    pub const fn gcd_uint_vartime(&self, rhs: &Uint<LIMBS>) -> OddUint<LIMBS> {
-        self.abs().gcd_uint_vartime(rhs)
+    pub const fn gcd_unsigned_vartime(&self, rhs: &Uint<LIMBS>) -> OddUint<LIMBS> {
+        self.abs().gcd_unsigned_vartime(rhs)
     }
 
     /// Execute the Extended GCD algorithm.
@@ -226,12 +226,12 @@ macro_rules! impl_int_gcd_abs_lhs {
 
             #[inline]
             fn gcd(&self, rhs: &$rhs) -> Self::Output {
-                rhs.gcd_uint(&self.abs())
+                rhs.gcd_unsigned(&self.abs())
             }
 
             #[inline]
             fn gcd_vartime(&self, rhs: &$rhs) -> Self::Output {
-                rhs.gcd_uint_vartime(&self.abs())
+                rhs.gcd_unsigned_vartime(&self.abs())
             }
         }
     };
@@ -249,24 +249,24 @@ macro_rules! impl_int_gcd_abs_rhs {
 
             #[inline]
             fn gcd(&self, rhs: &$rhs) -> Self::Output {
-                self.gcd_uint(&rhs.abs())
+                self.gcd_unsigned(&rhs.abs())
             }
 
             #[inline]
             fn gcd_vartime(&self, rhs: &$rhs) -> Self::Output {
-                self.gcd_uint_vartime(&rhs.abs())
+                self.gcd_unsigned_vartime(&rhs.abs())
             }
         }
     }
 }
 
 // avoiding (NonZero|Odd)•(NonZero|Odd) combinations except for Self•Self to limit compilation time
-impl_gcd_uint_lhs!(Int<LIMBS>, Uint<LIMBS>, Uint<LIMBS>);
-impl_gcd_uint_lhs!(NonZeroInt<LIMBS>, Uint<LIMBS>, NonZeroUint<LIMBS>);
-impl_gcd_uint_lhs!(OddInt<LIMBS>, Uint<LIMBS>, OddUint<LIMBS>);
-impl_gcd_uint_rhs!(Uint<LIMBS>, Int<LIMBS>, Uint<LIMBS>);
-impl_gcd_uint_rhs!(Uint<LIMBS>, NonZeroInt<LIMBS>, NonZeroUint<LIMBS>);
-impl_gcd_uint_rhs!(Uint<LIMBS>, OddInt<LIMBS>, OddUint<LIMBS>);
+impl_gcd_unsigned_lhs!(Int<LIMBS>, Uint<LIMBS>, Uint<LIMBS>);
+impl_gcd_unsigned_lhs!(NonZeroInt<LIMBS>, Uint<LIMBS>, NonZeroUint<LIMBS>);
+impl_gcd_unsigned_lhs!(OddInt<LIMBS>, Uint<LIMBS>, OddUint<LIMBS>);
+impl_gcd_unsigned_rhs!(Uint<LIMBS>, Int<LIMBS>, Uint<LIMBS>);
+impl_gcd_unsigned_rhs!(Uint<LIMBS>, NonZeroInt<LIMBS>, NonZeroUint<LIMBS>);
+impl_gcd_unsigned_rhs!(Uint<LIMBS>, OddInt<LIMBS>, OddUint<LIMBS>);
 impl_int_gcd_abs_lhs!(Int<LIMBS>, Int<LIMBS>, Uint<LIMBS>);
 impl_int_gcd_abs_lhs!(Int<LIMBS>, [NonZeroUint<LIMBS>, OddUint<LIMBS>]);
 impl_int_gcd_abs_rhs!(NonZeroInt<LIMBS>, [Int<LIMBS>, NonZeroInt<LIMBS>], NonZeroUint<LIMBS>);
@@ -422,8 +422,8 @@ mod tests {
             assert_eq!(lhs_on_gcd, Int::ZERO);
             assert_eq!(rhs_on_gcd, Int::ZERO);
         } else {
-            assert_eq!(lhs_on_gcd, lhs.div_uint(&gcd.to_nz().unwrap()));
-            assert_eq!(rhs_on_gcd, rhs.div_uint(&gcd.to_nz().unwrap()));
+            assert_eq!(lhs_on_gcd, lhs.div_unsigned(&gcd.to_nz().unwrap()));
+            assert_eq!(rhs_on_gcd, rhs.div_unsigned(&gcd.to_nz().unwrap()));
         }
 
         // Test the Bezout coefficients on minimality
