@@ -1,14 +1,13 @@
 //! Implements heap-allocated `BoxedMontyForm`s, supporting modular arithmetic with a modulus set at runtime.
 
 mod add;
-mod cmp;
+mod ct;
 mod from;
 mod invert;
 mod lincomb;
 mod mul;
 mod neg;
 mod pow;
-mod select;
 mod sub;
 
 use super::{Retrieve, div_by_2, reduction::montgomery_retrieve_inner};

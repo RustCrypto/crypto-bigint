@@ -3,7 +3,7 @@
 //! By default, these are all constant-time.
 
 use super::Uint;
-use crate::{Choice, CtEq, CtGt, CtLt, Limb, word};
+use crate::{Choice, CtEq, Limb, word};
 use core::cmp::Ordering;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -116,27 +116,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> CtEq for Uint<LIMBS> {
-    #[inline]
-    fn ct_eq(&self, other: &Self) -> Choice {
-        self.limbs.ct_eq(&other.limbs)
-    }
-}
-
-impl<const LIMBS: usize> CtGt for Uint<LIMBS> {
-    #[inline]
-    fn ct_gt(&self, other: &Self) -> Choice {
-        Self::gt(self, other)
-    }
-}
-
-impl<const LIMBS: usize> CtLt for Uint<LIMBS> {
-    #[inline]
-    fn ct_lt(&self, other: &Self) -> Choice {
-        Self::lt(self, other)
-    }
-}
-
 impl<const LIMBS: usize> Eq for Uint<LIMBS> {}
 
 impl<const LIMBS: usize> Ord for Uint<LIMBS> {
@@ -162,107 +141,29 @@ impl<const LIMBS: usize> PartialEq for Uint<LIMBS> {
     }
 }
 
-#[cfg(feature = "subtle")]
-impl<const LIMBS: usize> subtle::ConstantTimeEq for Uint<LIMBS> {
-    #[inline]
-    fn ct_eq(&self, other: &Self) -> subtle::Choice {
-        CtEq::ct_eq(self, other).into()
-    }
-
-    #[inline]
-    fn ct_ne(&self, other: &Self) -> subtle::Choice {
-        CtEq::ct_ne(self, other).into()
-    }
-}
-
-#[cfg(feature = "subtle")]
-impl<const LIMBS: usize> subtle::ConstantTimeGreater for Uint<LIMBS> {
-    #[inline]
-    fn ct_gt(&self, other: &Self) -> subtle::Choice {
-        CtGt::ct_gt(self, other).into()
-    }
-}
-
-#[cfg(feature = "subtle")]
-impl<const LIMBS: usize> subtle::ConstantTimeLess for Uint<LIMBS> {
-    #[inline]
-    fn ct_lt(&self, other: &Self) -> subtle::Choice {
-        Uint::lt(self, other).into()
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::{Choice, CtEq, CtGt, CtLt, Integer, U128, Uint};
+    use crate::{Choice, Integer, U128, Uint};
     use core::cmp::Ordering;
 
     #[test]
     fn is_zero() {
-        assert!(bool::from(U128::ZERO.is_zero()));
-        assert!(!bool::from(U128::ONE.is_zero()));
-        assert!(!bool::from(U128::MAX.is_zero()));
+        assert!(U128::ZERO.is_zero().to_bool());
+        assert!(!U128::ONE.is_zero().to_bool());
+        assert!(!U128::MAX.is_zero().to_bool());
     }
 
     #[test]
     fn is_odd() {
         // inherent methods
-        assert!(!bool::from(U128::ZERO.is_odd()));
-        assert!(bool::from(U128::ONE.is_odd()));
-        assert!(bool::from(U128::MAX.is_odd()));
+        assert!(!U128::ZERO.is_odd().to_bool());
+        assert!(U128::ONE.is_odd().to_bool());
+        assert!(U128::MAX.is_odd().to_bool());
 
         // `Integer` methods
-        assert!(!bool::from(<U128 as Integer>::is_odd(&U128::ZERO)));
-        assert!(bool::from(<U128 as Integer>::is_odd(&U128::ONE)));
-        assert!(bool::from(<U128 as Integer>::is_odd(&U128::MAX)));
-    }
-
-    #[test]
-    fn ct_eq() {
-        let a = U128::ZERO;
-        let b = U128::MAX;
-
-        assert!(bool::from(a.ct_eq(&a)));
-        assert!(!bool::from(a.ct_eq(&b)));
-        assert!(!bool::from(b.ct_eq(&a)));
-        assert!(bool::from(b.ct_eq(&b)));
-    }
-
-    #[test]
-    fn ct_gt() {
-        let a = U128::ZERO;
-        let b = U128::ONE;
-        let c = U128::MAX;
-
-        assert!(bool::from(b.ct_gt(&a)));
-        assert!(bool::from(c.ct_gt(&a)));
-        assert!(bool::from(c.ct_gt(&b)));
-
-        assert!(!bool::from(a.ct_gt(&a)));
-        assert!(!bool::from(b.ct_gt(&b)));
-        assert!(!bool::from(c.ct_gt(&c)));
-
-        assert!(!bool::from(a.ct_gt(&b)));
-        assert!(!bool::from(a.ct_gt(&c)));
-        assert!(!bool::from(b.ct_gt(&c)));
-    }
-
-    #[test]
-    fn ct_lt() {
-        let a = U128::ZERO;
-        let b = U128::ONE;
-        let c = U128::MAX;
-
-        assert!(bool::from(a.ct_lt(&b)));
-        assert!(bool::from(a.ct_lt(&c)));
-        assert!(bool::from(b.ct_lt(&c)));
-
-        assert!(!bool::from(a.ct_lt(&a)));
-        assert!(!bool::from(b.ct_lt(&b)));
-        assert!(!bool::from(c.ct_lt(&c)));
-
-        assert!(!bool::from(b.ct_lt(&a)));
-        assert!(!bool::from(c.ct_lt(&a)));
-        assert!(!bool::from(c.ct_lt(&b)));
+        assert!(!<U128 as Integer>::is_odd(&U128::ZERO).to_bool());
+        assert!(<U128 as Integer>::is_odd(&U128::ONE).to_bool());
+        assert!(<U128 as Integer>::is_odd(&U128::MAX).to_bool());
     }
 
     #[test]
@@ -271,17 +172,17 @@ mod tests {
         let b = U128::ONE;
         let c = U128::MAX;
 
-        assert!(bool::from(Uint::lte(&a, &b)));
-        assert!(bool::from(Uint::lte(&a, &c)));
-        assert!(bool::from(Uint::lte(&b, &c)));
+        assert!(Uint::lte(&a, &b).to_bool());
+        assert!(Uint::lte(&a, &c).to_bool());
+        assert!(Uint::lte(&b, &c).to_bool());
 
-        assert!(bool::from(Uint::lte(&a, &a)));
-        assert!(bool::from(Uint::lte(&b, &b)));
-        assert!(bool::from(Uint::lte(&c, &c)));
+        assert!(Uint::lte(&a, &a).to_bool());
+        assert!(Uint::lte(&b, &b).to_bool());
+        assert!(Uint::lte(&c, &c).to_bool());
 
-        assert!(!bool::from(Uint::lte(&b, &a)));
-        assert!(!bool::from(Uint::lte(&c, &a)));
-        assert!(!bool::from(Uint::lte(&c, &b)));
+        assert!(!Uint::lte(&b, &a).to_bool());
+        assert!(!Uint::lte(&c, &a).to_bool());
+        assert!(!Uint::lte(&c, &b).to_bool());
     }
 
     #[test]

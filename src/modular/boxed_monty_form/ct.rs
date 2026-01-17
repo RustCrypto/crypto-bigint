@@ -1,6 +1,23 @@
+//! Constant-time support: impls of `Ct*` traits.
+
 use super::{BoxedMontyForm, BoxedMontyParams, BoxedMontyParamsInner};
-use crate::{Choice, CtSelect};
+use crate::{Choice, CtEq, CtSelect};
 use alloc::sync::Arc;
+
+impl CtEq for BoxedMontyForm {
+    fn ct_eq(&self, other: &Self) -> Choice {
+        self.montgomery_form.ct_eq(&other.montgomery_form) & self.params.ct_eq(&other.params)
+    }
+}
+
+impl CtEq for BoxedMontyParams {
+    fn ct_eq(&self, other: &Self) -> Choice {
+        self.modulus().ct_eq(other.modulus())
+            & self.one().ct_eq(other.one())
+            & self.r2().ct_eq(other.r2())
+            & self.mod_inv().ct_eq(&other.mod_inv())
+    }
+}
 
 impl CtSelect for BoxedMontyForm {
     fn ct_select(&self, other: &Self, choice: Choice) -> Self {

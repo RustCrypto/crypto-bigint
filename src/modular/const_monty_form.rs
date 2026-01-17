@@ -30,8 +30,7 @@ use {
 /// Macros to remove the boilerplate code when dealing with constant moduli.
 #[macro_use]
 mod macros;
-mod cmp;
-mod select;
+mod ct;
 
 /// Trait representing a modulus and its associated constants for converting in and out of
 /// Montgomery form.

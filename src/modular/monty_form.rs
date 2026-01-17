@@ -1,14 +1,13 @@
 //! Implements `MontyForm`s, supporting modular arithmetic with a modulus set at runtime.
 
 mod add;
-mod cmp;
+mod ct;
 pub(super) mod invert;
 mod lincomb;
 mod mod_symbol;
 mod mul;
 mod neg;
 mod pow;
-mod select;
 mod sub;
 
 use super::{

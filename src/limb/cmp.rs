@@ -30,32 +30,6 @@ impl Limb {
     }
 }
 
-impl CtEq for Limb {
-    #[inline]
-    fn ct_eq(&self, other: &Self) -> Choice {
-        CtEq::ct_eq(&self.0, &other.0)
-    }
-
-    #[inline]
-    fn ct_ne(&self, other: &Self) -> Choice {
-        CtEq::ct_ne(&self.0, &other.0)
-    }
-}
-
-impl CtGt for Limb {
-    #[inline]
-    fn ct_gt(&self, other: &Self) -> Choice {
-        word::choice_from_gt(self.0, other.0)
-    }
-}
-
-impl CtLt for Limb {
-    #[inline]
-    fn ct_lt(&self, other: &Self) -> Choice {
-        word::choice_from_lt(self.0, other.0)
-    }
-}
-
 impl Eq for Limb {}
 
 impl Ord for Limb {
@@ -82,38 +56,9 @@ impl PartialEq for Limb {
     }
 }
 
-#[cfg(feature = "subtle")]
-impl subtle::ConstantTimeEq for Limb {
-    #[inline]
-    fn ct_eq(&self, other: &Self) -> subtle::Choice {
-        CtEq::ct_eq(self, other).into()
-    }
-
-    #[inline]
-    fn ct_ne(&self, other: &Self) -> subtle::Choice {
-        CtEq::ct_ne(self, other).into()
-    }
-}
-
-#[cfg(feature = "subtle")]
-impl subtle::ConstantTimeGreater for Limb {
-    #[inline]
-    fn ct_gt(&self, other: &Self) -> subtle::Choice {
-        CtGt::ct_gt(self, other).into()
-    }
-}
-
-#[cfg(feature = "subtle")]
-impl subtle::ConstantTimeLess for Limb {
-    #[inline]
-    fn ct_lt(&self, other: &Self) -> subtle::Choice {
-        CtLt::ct_lt(self, other).into()
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::{Choice, CtEq, CtGt, CtLt, Limb};
+    use crate::{Choice, Limb};
     use core::cmp::Ordering;
 
     #[test]
@@ -128,55 +73,6 @@ mod tests {
         assert!(!bool::from(Limb::ZERO.is_odd()));
         assert!(bool::from(Limb::ONE.is_odd()));
         assert!(bool::from(Limb::MAX.is_odd()));
-    }
-
-    #[test]
-    fn ct_eq() {
-        let a = Limb::ZERO;
-        let b = Limb::MAX;
-
-        assert!(bool::from(a.ct_eq(&a)));
-        assert!(!bool::from(a.ct_eq(&b)));
-        assert!(!bool::from(b.ct_eq(&a)));
-        assert!(bool::from(b.ct_eq(&b)));
-    }
-
-    #[test]
-    fn ct_gt() {
-        let a = Limb::ZERO;
-        let b = Limb::ONE;
-        let c = Limb::MAX;
-
-        assert!(bool::from(b.ct_gt(&a)));
-        assert!(bool::from(c.ct_gt(&a)));
-        assert!(bool::from(c.ct_gt(&b)));
-
-        assert!(!bool::from(a.ct_gt(&a)));
-        assert!(!bool::from(b.ct_gt(&b)));
-        assert!(!bool::from(c.ct_gt(&c)));
-
-        assert!(!bool::from(a.ct_gt(&b)));
-        assert!(!bool::from(a.ct_gt(&c)));
-        assert!(!bool::from(b.ct_gt(&c)));
-    }
-
-    #[test]
-    fn ct_lt() {
-        let a = Limb::ZERO;
-        let b = Limb::ONE;
-        let c = Limb::MAX;
-
-        assert!(bool::from(a.ct_lt(&b)));
-        assert!(bool::from(a.ct_lt(&c)));
-        assert!(bool::from(b.ct_lt(&c)));
-
-        assert!(!bool::from(a.ct_lt(&a)));
-        assert!(!bool::from(b.ct_lt(&b)));
-        assert!(!bool::from(c.ct_lt(&c)));
-
-        assert!(!bool::from(b.ct_lt(&a)));
-        assert!(!bool::from(c.ct_lt(&a)));
-        assert!(!bool::from(c.ct_lt(&b)));
     }
 
     #[test]

@@ -1,6 +1,6 @@
 //! [`BoxedUint`] negation operations.
 
-use crate::{BoxedUint, Choice, CtNeg, CtSelect, Limb, WideWord, Word, WrappingNeg};
+use crate::{BoxedUint, Choice, CtSelect, Limb, WideWord, Word, WrappingNeg};
 
 impl BoxedUint {
     /// Perform wrapping negation.
@@ -30,29 +30,9 @@ impl BoxedUint {
     }
 }
 
-impl CtNeg for BoxedUint {
-    fn ct_neg(&self, choice: Choice) -> Self {
-        let self_neg = self.wrapping_neg();
-        self.ct_select(&self_neg, choice)
-    }
-
-    fn ct_neg_assign(&mut self, choice: Choice) {
-        let self_neg = self.wrapping_neg();
-        self.ct_assign(&self_neg, choice)
-    }
-}
-
 impl WrappingNeg for BoxedUint {
     fn wrapping_neg(&self) -> Self {
         self.wrapping_neg()
-    }
-}
-
-#[cfg(feature = "subtle")]
-impl subtle::ConditionallyNegatable for BoxedUint {
-    #[inline]
-    fn conditional_negate(&mut self, choice: subtle::Choice) {
-        self.ct_neg_assign(choice.into())
     }
 }
 
