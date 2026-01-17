@@ -71,22 +71,14 @@ impl UintRef {
     #[cfg(feature = "alloc")]
     #[inline]
     pub const fn as_words(&self) -> &[Word] {
-        // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
-        #[allow(trivial_casts, unsafe_code)]
-        unsafe {
-            &*((&self.0 as *const [Limb]) as *const [Word])
-        }
+        Limb::slice_as_words(&self.0)
     }
 
     /// Borrow the inner limbs as a mutable slice of [`Word`]s.
     #[cfg(feature = "alloc")]
     #[inline]
     pub const fn as_mut_words(&mut self) -> &mut [Word] {
-        // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
-        #[allow(trivial_casts, unsafe_code)]
-        unsafe {
-            &mut *((&mut self.0 as *mut [Limb]) as *mut [Word])
-        }
+        Limb::slice_as_mut_words(&mut self.0)
     }
 
     /// Get an iterator over the inner limbs.

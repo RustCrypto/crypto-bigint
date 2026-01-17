@@ -152,20 +152,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Borrow the inner limbs as an array of [`Word`]s.
     pub const fn as_words(&self) -> &[Word; LIMBS] {
-        // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
-        #[allow(unsafe_code)]
-        unsafe {
-            &*self.limbs.as_ptr().cast()
-        }
+        Limb::array_as_words(&self.limbs)
     }
 
     /// Borrow the inner limbs as a mutable array of [`Word`]s.
     pub const fn as_mut_words(&mut self) -> &mut [Word; LIMBS] {
-        // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
-        #[allow(unsafe_code)]
-        unsafe {
-            &mut *self.limbs.as_mut_ptr().cast()
-        }
+        Limb::array_as_mut_words(&mut self.limbs)
     }
 
     /// Borrow the inner limbs as a mutable slice of [`Word`]s.
@@ -233,6 +225,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Note: this is a casting operation. See [`Self::try_into_int`] for the checked equivalent.
     pub const fn as_int(&self) -> &Int<LIMBS> {
+        // SAFETY: `Int` is a `repr(transparent)` newtype for `Uint`, and this operation is intended
+        // to be a reinterpreting cast between the two types.
         #[allow(trivial_casts, unsafe_code)]
         unsafe {
             &*(self as *const Uint<LIMBS> as *const Int<LIMBS>)
