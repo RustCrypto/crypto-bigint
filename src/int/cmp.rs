@@ -2,7 +2,7 @@
 //!
 //! By default, these are all constant-time.
 
-use crate::{Choice, CtEq, CtGt, CtLt, Int, Uint};
+use crate::{Choice, CtEq, Int, Uint};
 use core::cmp::Ordering;
 
 impl<const LIMBS: usize> Int<LIMBS> {
@@ -52,27 +52,6 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> CtEq for Int<LIMBS> {
-    #[inline]
-    fn ct_eq(&self, other: &Self) -> Choice {
-        CtEq::ct_eq(&self.0, &other.0)
-    }
-}
-
-impl<const LIMBS: usize> CtGt for Int<LIMBS> {
-    #[inline]
-    fn ct_gt(&self, other: &Self) -> Choice {
-        Int::gt(self, other)
-    }
-}
-
-impl<const LIMBS: usize> CtLt for Int<LIMBS> {
-    #[inline]
-    fn ct_lt(&self, other: &Self) -> Choice {
-        Int::lt(self, other)
-    }
-}
-
 impl<const LIMBS: usize> Eq for Int<LIMBS> {}
 
 impl<const LIMBS: usize> Ord for Int<LIMBS> {
@@ -98,33 +77,9 @@ impl<const LIMBS: usize> PartialEq for Int<LIMBS> {
     }
 }
 
-#[cfg(feature = "subtle")]
-impl<const LIMBS: usize> subtle::ConstantTimeEq for Int<LIMBS> {
-    #[inline]
-    fn ct_eq(&self, other: &Self) -> subtle::Choice {
-        CtEq::ct_eq(self, other).into()
-    }
-}
-
-#[cfg(feature = "subtle")]
-impl<const LIMBS: usize> subtle::ConstantTimeGreater for Int<LIMBS> {
-    #[inline]
-    fn ct_gt(&self, other: &Self) -> subtle::Choice {
-        CtGt::ct_gt(self, other).into()
-    }
-}
-
-#[cfg(feature = "subtle")]
-impl<const LIMBS: usize> subtle::ConstantTimeLess for Int<LIMBS> {
-    #[inline]
-    fn ct_lt(&self, other: &Self) -> subtle::Choice {
-        Int::lt(self, other).into()
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::{CtGt, CtLt, I128};
+    use crate::I128;
 
     #[test]
     fn test_is_nonzero() {
@@ -176,43 +131,5 @@ mod tests {
         assert_ne!(true, I128::ZERO < I128::ZERO);
         assert_ne!(true, I128::MINUS_ONE < I128::MINUS_ONE);
         assert_ne!(true, I128::MIN < I128::MIN);
-    }
-
-    #[test]
-    fn ct_gt() {
-        let a = I128::MIN;
-        let b = I128::ZERO;
-        let c = I128::MAX;
-
-        assert!(bool::from(b.ct_gt(&a)));
-        assert!(bool::from(c.ct_gt(&a)));
-        assert!(bool::from(c.ct_gt(&b)));
-
-        assert!(!bool::from(a.ct_gt(&a)));
-        assert!(!bool::from(b.ct_gt(&b)));
-        assert!(!bool::from(c.ct_gt(&c)));
-
-        assert!(!bool::from(a.ct_gt(&b)));
-        assert!(!bool::from(a.ct_gt(&c)));
-        assert!(!bool::from(b.ct_gt(&c)));
-    }
-
-    #[test]
-    fn ct_lt() {
-        let a = I128::ZERO;
-        let b = I128::ONE;
-        let c = I128::MAX;
-
-        assert!(bool::from(a.ct_lt(&b)));
-        assert!(bool::from(a.ct_lt(&c)));
-        assert!(bool::from(b.ct_lt(&c)));
-
-        assert!(!bool::from(a.ct_lt(&a)));
-        assert!(!bool::from(b.ct_lt(&b)));
-        assert!(!bool::from(c.ct_lt(&c)));
-
-        assert!(!bool::from(b.ct_lt(&a)));
-        assert!(!bool::from(c.ct_lt(&a)));
-        assert!(!bool::from(c.ct_lt(&b)));
     }
 }
