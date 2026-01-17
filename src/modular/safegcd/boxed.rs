@@ -5,7 +5,8 @@
 
 use super::{GCD_BATCH_SIZE, Matrix, iterations, jump};
 use crate::{
-    BoxedUint, Choice, CtOption, CtSelect, I64, Int, Limb, NonZero, Odd, Resize, U64, Uint,
+    BoxedUint, Choice, CtAssign, CtOption, CtSelect, I64, Int, Limb, NonZero, Odd, Resize, U64,
+    Uint,
     primitives::{u32_max, u32_min},
 };
 use core::fmt;

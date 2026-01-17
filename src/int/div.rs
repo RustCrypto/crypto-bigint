@@ -503,7 +503,7 @@ impl<const LIMBS: usize> RemAssign<&NonZero<Int<LIMBS>>> for Wrapping<Int<LIMBS>
 
 #[cfg(test)]
 mod tests {
-    use crate::{CtSelect, DivVartime, I128, Int, NonZero, One, Zero};
+    use crate::{CtAssign, DivVartime, I128, Int, NonZero, One, Zero};
 
     #[test]
     #[allow(clippy::init_numbered_fields)]
@@ -628,7 +628,7 @@ mod tests {
 
     #[test]
     fn div_vartime_through_trait() {
-        fn myfn<T: DivVartime + Zero + One + CtSelect>(x: T, y: T) -> T {
+        fn myfn<T: DivVartime + Zero + One + CtAssign>(x: T, y: T) -> T {
             x.div_vartime(&NonZero::new(y).unwrap())
         }
         assert_eq!(myfn(I128::from(8), I128::from(3)), I128::from(2));

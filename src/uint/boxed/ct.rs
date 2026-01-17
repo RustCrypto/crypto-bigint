@@ -1,8 +1,16 @@
 //! Constant-time support: impls of `Ct*` traits.
 
 use super::BoxedUint;
-use crate::{Choice, CtEq, CtGt, CtLt, CtNeg, CtSelect, Limb, word};
+use crate::{Choice, CtAssign, CtEq, CtGt, CtLt, CtNeg, CtSelect, Limb, word};
 use core::cmp::max;
+
+impl CtAssign for BoxedUint {
+    #[inline]
+    fn ct_assign(&mut self, other: &Self, choice: Choice) {
+        debug_assert_eq!(self.bits_precision(), other.bits_precision());
+        self.as_mut_words().ct_assign(other.as_words(), choice);
+    }
+}
 
 impl CtEq for BoxedUint {
     #[inline]
@@ -59,15 +67,6 @@ impl CtSelect for BoxedUint {
         }
 
         Self { limbs }
-    }
-
-    #[inline]
-    fn ct_assign(&mut self, other: &Self, choice: Choice) {
-        debug_assert_eq!(self.bits_precision(), other.bits_precision());
-
-        for i in 0..self.nlimbs() {
-            self.limbs[i].ct_assign(&other.limbs[i], choice);
-        }
     }
 
     #[inline]

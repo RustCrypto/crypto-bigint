@@ -1,8 +1,8 @@
 //! Wrapper type for non-zero integers.
 
 use crate::{
-    Bounded, Choice, ConstOne, Constants, CtEq, CtOption, CtSelect, Encoding, Int, Limb, Mul, Odd,
-    One, Uint, Zero,
+    Bounded, Choice, ConstOne, Constants, CtAssign, CtEq, CtOption, CtSelect, Encoding, Int, Limb,
+    Mul, Odd, One, Uint, Zero,
 };
 use core::{
     fmt,
@@ -45,7 +45,7 @@ impl<T> NonZero<T> {
     #[inline]
     pub fn new(mut n: T) -> CtOption<Self>
     where
-        T: Zero + One + CtSelect,
+        T: Zero + One + CtAssign,
     {
         let is_zero = n.is_zero();
 
@@ -106,7 +106,7 @@ where
 
 impl<T> NonZero<T>
 where
-    T: Zero + One + CtSelect + Encoding,
+    T: Zero + One + CtAssign + Encoding,
 {
     /// Decode from big endian bytes.
     pub fn from_be_bytes(bytes: T::Repr) -> CtOption<Self> {
@@ -298,7 +298,7 @@ impl<const LIMBS: usize> NonZeroInt<LIMBS> {
 #[cfg(feature = "hybrid-array")]
 impl<T> NonZero<T>
 where
-    T: ArrayEncoding + Zero + One + CtSelect,
+    T: ArrayEncoding + Zero + One + CtAssign,
 {
     /// Decode a non-zero integer from big endian bytes.
     pub fn from_be_byte_array(bytes: ByteArray<T>) -> CtOption<Self> {
@@ -358,7 +358,7 @@ impl<T: ?Sized> Deref for NonZero<T> {
 #[cfg(feature = "rand_core")]
 impl<T> Random for NonZero<T>
 where
-    T: Random + Zero + One + CtSelect,
+    T: Random + Zero + One + CtAssign,
 {
     /// This uses rejection sampling to avoid zero.
     ///

@@ -1,6 +1,6 @@
 //! [`BoxedUint`] negation operations.
 
-use crate::{BoxedUint, Choice, CtSelect, Limb, WideWord, Word, WrappingNeg};
+use crate::{BoxedUint, Choice, CtAssign, Limb, WideWord, Word, WrappingNeg};
 
 impl BoxedUint {
     /// Perform wrapping negation.

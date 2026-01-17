@@ -1,12 +1,19 @@
 //! Constant-time support: impls of `Ct*` traits and constant-time `const fn` operations.
 
-use crate::{Choice, CtEq, CtGt, CtLt, CtSelect, Int, Uint};
+use crate::{Choice, CtAssign, CtEq, CtGt, CtLt, CtSelect, Int, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Return `b` if `c` is truthy, otherwise return `a`.
     #[inline]
     pub(crate) const fn select(a: &Self, b: &Self, c: Choice) -> Self {
         Self(Uint::select(&a.0, &b.0, c))
+    }
+}
+
+impl<const LIMBS: usize> CtAssign for Int<LIMBS> {
+    #[inline]
+    fn ct_assign(&mut self, other: &Self, choice: Choice) {
+        self.0.ct_assign(&other.0, choice);
     }
 }
 

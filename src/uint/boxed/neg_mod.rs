@@ -1,6 +1,6 @@
 //! [`BoxedUint`] modular negation operations.
 
-use crate::{BoxedUint, CtSelect, Limb, NegMod, NonZero};
+use crate::{BoxedUint, CtAssign, Limb, NegMod, NonZero};
 
 impl BoxedUint {
     /// Computes `-a mod p`.
