@@ -5,6 +5,7 @@ use crate::{Limb, NegMod, NonZero, Uint, word};
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `-a mod p`.
     /// Assumes `self` is in `[0, p)`.
+    #[must_use]
     pub const fn neg_mod(&self, p: &NonZero<Self>) -> Self {
         let z = self.is_nonzero();
         let mut ret = p.as_ref().borrowing_sub(self, Limb::ZERO).0;
@@ -20,6 +21,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes `-a mod p` for the special modulus
     /// `p = MAX+1-c` where `c` is small enough to fit in a single [`Limb`].
+    #[must_use]
     pub const fn neg_mod_special(&self, c: Limb) -> Self {
         Self::ZERO.sub_mod_special(self, c)
     }

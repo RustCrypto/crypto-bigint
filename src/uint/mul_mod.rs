@@ -4,12 +4,14 @@ use crate::{Limb, MulMod, NonZero, SquareMod, Uint, WideWord, Word, div_limb::mu
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self * rhs mod p`.
+    #[must_use]
     pub fn mul_mod(&self, rhs: &Uint<LIMBS>, p: &NonZero<Uint<LIMBS>>) -> Uint<LIMBS> {
         let lo_hi = self.widening_mul(rhs);
         Self::rem_wide(lo_hi, p)
     }
 
     /// Computes `self * rhs mod p` in variable time with respect to `p`.
+    #[must_use]
     pub fn mul_mod_vartime(&self, rhs: &Uint<LIMBS>, p: &NonZero<Uint<LIMBS>>) -> Uint<LIMBS> {
         let lo_hi = self.widening_mul(rhs);
         Self::rem_wide_vartime(lo_hi, p)
@@ -21,6 +23,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// For the modulus reduction, this function implements Algorithm 14.47 from
     /// the "Handbook of Applied Cryptography", by A. Menezes, P. van Oorschot,
     /// and S. Vanstone, CRC Press, 1996.
+    #[must_use]
     pub const fn mul_mod_special(&self, rhs: &Self, c: Limb) -> Self {
         // We implicitly assume `LIMBS > 0`, because `Uint<0>` doesn't compile.
         // Still the case `LIMBS == 1` needs special handling.
@@ -52,12 +55,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes `self * self mod p`.
+    #[must_use]
     pub const fn square_mod(&self, p: &NonZero<Uint<LIMBS>>) -> Self {
         let lo_hi = self.square_wide();
         Self::rem_wide(lo_hi, p)
     }
 
     /// Computes `self * self mod p` in variable time with respect to `p`.
+    #[must_use]
     pub const fn square_mod_vartime(&self, p: &NonZero<Uint<LIMBS>>) -> Self {
         let lo_hi = self.square_wide();
         Self::rem_wide_vartime(lo_hi, p)

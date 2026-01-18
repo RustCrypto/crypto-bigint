@@ -5,6 +5,7 @@ use crate::{Checked, CheckedSub, Choice, CtOption, Int, Sub, SubAssign, Wrapping
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Perform subtraction, returning the result along with a [`Choice`] which `is_true`
     /// only if the operation underflowed.
+    #[must_use]
     pub const fn underflowing_sub(&self, rhs: &Self) -> (Self, Choice) {
         // Step 1. subtract operands
         let res = Self(self.0.wrapping_sub(&rhs.0));
@@ -26,6 +27,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Perform wrapping subtraction, discarding underflow and wrapping around the boundary of the
     /// type.
+    #[must_use]
     pub const fn wrapping_sub(&self, rhs: &Self) -> Self {
         self.underflowing_sub(rhs).0
     }
@@ -57,13 +59,13 @@ impl<const LIMBS: usize> Sub<&Int<LIMBS>> for Int<LIMBS> {
 
 impl<const LIMBS: usize> SubAssign<Int<LIMBS>> for Int<LIMBS> {
     fn sub_assign(&mut self, rhs: Int<LIMBS>) {
-        *self = self.sub(&rhs)
+        *self = self.sub(&rhs);
     }
 }
 
 impl<const LIMBS: usize> SubAssign<&Int<LIMBS>> for Int<LIMBS> {
     fn sub_assign(&mut self, rhs: &Int<LIMBS>) {
-        *self = self.sub(rhs)
+        *self = self.sub(rhs);
     }
 }
 

@@ -6,12 +6,14 @@ use crate::{Checked, CheckedSub, CtOption, Limb, Sub, SubAssign, Wrapping, Wrapp
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
     #[deprecated(since = "0.7.0", note = "please use `borrowing_sub` instead")]
+    #[must_use]
     pub const fn sbb(&self, rhs: &Self, borrow: Limb) -> (Self, Limb) {
         self.borrowing_sub(rhs, borrow)
     }
 
     /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
     #[inline(always)]
+    #[must_use]
     pub const fn borrowing_sub(&self, rhs: &Self, mut borrow: Limb) -> (Self, Limb) {
         let mut limbs = [Limb::ZERO; LIMBS];
         let mut i = 0;
@@ -27,6 +29,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform saturating subtraction, returning `ZERO` on underflow.
+    #[must_use]
     pub const fn saturating_sub(&self, rhs: &Self) -> Self {
         let (res, underflow) = self.borrowing_sub(rhs, Limb::ZERO);
         Self::select(&res, &Self::ZERO, word::choice_from_mask(underflow.0))
@@ -34,6 +37,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Perform wrapping subtraction, discarding underflow and wrapping around
     /// the boundary of the type.
+    #[must_use]
     pub const fn wrapping_sub(&self, rhs: &Self) -> Self {
         self.borrowing_sub(rhs, Limb::ZERO).0
     }
@@ -65,13 +69,13 @@ impl<const LIMBS: usize> Sub<&Uint<LIMBS>> for Uint<LIMBS> {
 
 impl<const LIMBS: usize> SubAssign<Uint<LIMBS>> for Uint<LIMBS> {
     fn sub_assign(&mut self, rhs: Uint<LIMBS>) {
-        *self = self.sub(&rhs)
+        *self = self.sub(&rhs);
     }
 }
 
 impl<const LIMBS: usize> SubAssign<&Uint<LIMBS>> for Uint<LIMBS> {
     fn sub_assign(&mut self, rhs: &Uint<LIMBS>) {
-        *self = self.sub(rhs)
+        *self = self.sub(rhs);
     }
 }
 

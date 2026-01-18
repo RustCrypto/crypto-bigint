@@ -110,7 +110,7 @@ impl<const LIMBS: usize> PatternMatrix<LIMBS> {
     };
 
     /// Apply this matrix to a vector of [Uint]s, returning the result as a vector of
-    /// [ExtendedInt]s.
+    /// [`ExtendedInt`]s.
     #[inline]
     pub(crate) const fn extended_apply_to<const VEC_LIMBS: usize>(
         &self,
@@ -259,7 +259,7 @@ impl<const LIMBS: usize> DividedPatternMatrix<LIMBS> {
     };
 
     /// Apply this matrix to a vector of [Uint]s, returning the result as a vector of
-    /// [ExtendedInt]s.
+    /// [`ExtendedInt`]s.
     #[inline]
     #[allow(unused)] // save for optimized xgcd
     pub const fn extended_apply_to<const VEC_LIMBS: usize, const UPPER_BOUND: u32>(
@@ -274,7 +274,7 @@ impl<const LIMBS: usize> DividedPatternMatrix<LIMBS> {
     }
 
     /// Apply this matrix to a vector of [Uint]s, returning the result as a vector of
-    /// [ExtendedInt]s.
+    /// [`ExtendedInt`]s.
     #[inline]
     pub const fn extended_apply_to_vartime<const VEC_LIMBS: usize>(
         &self,

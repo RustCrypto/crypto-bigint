@@ -12,6 +12,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// Note: even if `negate` is truthy, the magnitude might be zero!
     #[deprecated(since = "0.7.0", note = "please use `widening_mul` instead")]
+    #[must_use]
     pub const fn split_mul<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
@@ -25,6 +26,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// negated when converted from [`Uint`] to [`Int`].
     ///
     /// Note: even if `negate` is truthy, the magnitude might be zero!
+    #[must_use]
     pub const fn widening_mul<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
@@ -46,6 +48,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
+    #[must_use]
     pub const fn concatenating_mul<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
@@ -64,6 +67,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Multiply `self` by `rhs`, returning a `CtOption` which is `is_some` only if
     /// overflow did not occur.
+    #[must_use]
     pub const fn checked_mul<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
@@ -75,6 +79,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Multiply `self` by `rhs`, saturating at the numeric bounds instead of overflowing.
+    #[must_use]
     pub const fn saturating_mul<const RHS_LIMBS: usize>(&self, rhs: &Int<RHS_LIMBS>) -> Self {
         let (abs_lhs, lhs_sgn) = self.abs_sign();
         let (abs_rhs, rhs_sgn) = rhs.abs_sign();
@@ -90,6 +95,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Multiply `self` by `rhs`, wrapping the result in case of overflow.
     /// This is equivalent to `(self * rhs) % (Uint::<LIMBS>::MAX + 1)`.
+    #[must_use]
     pub const fn wrapping_mul<const RHS_LIMBS: usize>(&self, rhs: &Int<RHS_LIMBS>) -> Self {
         if RHS_LIMBS >= LIMBS {
             Self(self.0.wrapping_mul(&rhs.0))
@@ -103,6 +109,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 /// Squaring operations.
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Square self, returning a concatenated "wide" result.
+    #[must_use]
     pub fn widening_square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS>
     where
         Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
@@ -111,16 +118,19 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Square self, checking that the result fits in the original [`Uint`] size.
+    #[must_use]
     pub fn checked_square(&self) -> CtOption<Uint<LIMBS>> {
         self.abs().checked_square()
     }
 
     /// Perform wrapping square, discarding overflow.
+    #[must_use]
     pub const fn wrapping_square(&self) -> Uint<LIMBS> {
         self.abs().wrapping_square()
     }
 
     /// Perform saturating squaring, returning `MAX` on overflow.
+    #[must_use]
     pub const fn saturating_square(&self) -> Uint<LIMBS> {
         self.abs().saturating_square()
     }
@@ -174,13 +184,13 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Int<RHS_LIMBS>> for &Int<L
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> MulAssign<Int<RHS_LIMBS>> for Int<LIMBS> {
     fn mul_assign(&mut self, rhs: Int<RHS_LIMBS>) {
-        *self = self.mul(&rhs)
+        *self = self.mul(&rhs);
     }
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> MulAssign<&Int<RHS_LIMBS>> for Int<LIMBS> {
     fn mul_assign(&mut self, rhs: &Int<RHS_LIMBS>) {
-        *self = self.mul(rhs)
+        *self = self.mul(rhs);
     }
 }
 
@@ -516,7 +526,7 @@ mod tests {
         assert_eq!(
             res,
             U256::from_be_hex("0000000000000000000000000000000100000000000000000000000000000000")
-        )
+        );
     }
 
     #[test]
@@ -544,7 +554,7 @@ mod tests {
 
         let x: I128 = I128::from_i64(i64::MAX);
         let res = x.wrapping_square();
-        assert_eq!(res, U128::from_be_hex("3FFFFFFFFFFFFFFF0000000000000001"))
+        assert_eq!(res, U128::from_be_hex("3FFFFFFFFFFFFFFF0000000000000001"));
     }
 
     #[test]

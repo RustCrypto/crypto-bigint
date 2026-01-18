@@ -6,7 +6,7 @@ use crate::{Choice, Int, NonZero, Uint, Wrapping};
 /// Checked division operations.
 impl<const LIMBS: usize> Int<LIMBS> {
     #[inline]
-    /// Base div_rem operation on dividing an [`Int`] by a [`Uint`].
+    /// Base `div_rem` operation on dividing an [`Int`] by a [`Uint`].
     /// Computes the quotient and remainder of `self / rhs`.
     /// Furthermore, returns the sign of `self`.
     const fn div_rem_base_unsigned<const RHS_LIMBS: usize>(
@@ -32,6 +32,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// assert_eq!(quotient, I128::from(-2));
     /// assert_eq!(remainder, I128::from(-2));
     /// ```
+    #[must_use]
     pub const fn div_rem_unsigned<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
@@ -45,6 +46,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Perform division.
     /// Note: this operation rounds towards zero, truncating any fractional part of the exact result.
+    #[must_use]
     pub const fn div_unsigned<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
@@ -54,6 +56,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Compute the remainder.
     /// The remainder will have the same sign as `self` (or be zero).
+    #[must_use]
     pub const fn rem_unsigned<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
@@ -86,6 +89,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
+    #[must_use]
     pub const fn div_rem_unsigned_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
@@ -103,6 +107,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
+    #[must_use]
     pub const fn div_unsigned_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
@@ -116,6 +121,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
+    #[must_use]
     pub const fn rem_unsigned_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
@@ -144,6 +150,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///     (I128::from(-3), U128::ONE)
     /// );
     /// ```
+    #[must_use]
     pub fn div_rem_floor_unsigned<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
@@ -178,6 +185,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///     I128::from(-3)
     /// );
     /// ```
+    #[must_use]
     pub fn div_floor_unsigned<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
@@ -200,6 +208,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///     U128::ONE
     /// );
     /// ```
+    #[must_use]
     pub fn normalized_rem<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
@@ -217,6 +226,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
+    #[must_use]
     pub fn div_rem_floor_unsigned_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
@@ -242,6 +252,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
+    #[must_use]
     pub fn div_floor_unsigned_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
@@ -256,6 +267,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
+    #[must_use]
     pub fn normalized_rem_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
@@ -299,7 +311,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Uint<RHS_LIMBS>>> f
 
 impl<const LIMBS: usize> DivAssign<&NonZero<Uint<LIMBS>>> for Int<LIMBS> {
     fn div_assign(&mut self, rhs: &NonZero<Uint<LIMBS>>) {
-        *self /= *rhs
+        *self /= *rhs;
     }
 }
 
@@ -395,7 +407,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<NonZero<Uint<RHS_LIMBS>>> f
 
 impl<const LIMBS: usize> RemAssign<&NonZero<Uint<LIMBS>>> for Int<LIMBS> {
     fn rem_assign(&mut self, rhs: &NonZero<Uint<LIMBS>>) {
-        *self %= *rhs
+        *self %= *rhs;
     }
 }
 
@@ -453,7 +465,7 @@ impl<const LIMBS: usize> RemAssign<NonZero<Uint<LIMBS>>> for Wrapping<Int<LIMBS>
 
 impl<const LIMBS: usize> RemAssign<&NonZero<Uint<LIMBS>>> for Wrapping<Int<LIMBS>> {
     fn rem_assign(&mut self, rhs: &NonZero<Uint<LIMBS>>) {
-        *self = Wrapping(self.0 % rhs)
+        *self = Wrapping(self.0 % rhs);
     }
 }
 
@@ -505,7 +517,7 @@ mod tests {
                 .to_nz()
                 .unwrap();
 
-            assert_eq!(num.div_unsigned(&denom), num.div_unsigned_vartime(&denom))
+            assert_eq!(num.div_unsigned(&denom), num.div_unsigned_vartime(&denom));
         }
     }
 
@@ -579,7 +591,7 @@ mod tests {
             assert_eq!(
                 num.div_floor_unsigned(&denom),
                 num.div_floor_unsigned_vartime(&denom)
-            )
+            );
         }
     }
 }

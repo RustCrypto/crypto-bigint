@@ -47,6 +47,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Returns the Ordering between `self` and `rhs` in variable time.
+    #[must_use]
     pub const fn cmp_vartime(&self, rhs: &Self) -> Ordering {
         self.invert_msb().0.cmp_vartime(&rhs.invert_msb().0)
     }

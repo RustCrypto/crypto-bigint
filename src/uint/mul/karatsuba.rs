@@ -347,7 +347,7 @@ pub const fn wrapping_mul(lhs: &UintRef, rhs: &UintRef, out: &mut UintRef, add: 
             // Add `x0y` if necessary.
             if !x0.is_empty() {
                 let c = wrapping_mul(x0, y, out, true);
-                carry = carry.wrapping_add(c)
+                carry = carry.wrapping_add(c);
             }
             carry
         }

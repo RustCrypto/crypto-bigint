@@ -220,11 +220,11 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
     /// **Warning**: `self` and `rhs` must be contained in an [U128] or larger.
     ///
     /// Note: this algorithm becomes more efficient than the classical algorithm for [Uint]s with
-    /// relatively many `LIMBS`. A best-effort threshold is presented in [Self::binxgcd_].
+    /// relatively many `LIMBS`. A best-effort threshold is presented in [`Self::binxgcd`_].
     ///
     /// Note: the full algorithm has an additional parameter; this function selects the best-effort
     /// value for this parameter. You might be able to further tune your performance by calling the
-    /// [Self::optimized_bingcd_] function directly.
+    /// [`Self::optimized_bingcd`_] function directly.
     ///
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 2.
     /// <https://eprint.iacr.org/2020/972.pdf>.

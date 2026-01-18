@@ -4,12 +4,14 @@ use crate::{Add, AddAssign, Checked, CheckedAdd, Choice, CtOption, Int, Wrapping
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Perform checked addition. Returns `none` when the addition overflowed.
+    #[must_use]
     pub const fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
         let (value, overflow) = self.overflowing_add(rhs);
         CtOption::new(value, overflow.not())
     }
 
     /// Perform addition, raising the `overflow` flag on overflow.
+    #[must_use]
     pub const fn overflowing_add(&self, rhs: &Self) -> (Self, Choice) {
         // Step 1. add operands
         let res = Self(self.0.wrapping_add(&rhs.0));
@@ -30,6 +32,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Perform wrapping addition, discarding overflow.
+    #[must_use]
     pub const fn wrapping_add(&self, rhs: &Self) -> Self {
         Self(self.0.wrapping_add(&rhs.0))
     }

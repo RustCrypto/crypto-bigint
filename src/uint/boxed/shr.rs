@@ -5,7 +5,9 @@ use crate::{BoxedUint, Choice, Limb, Shr, ShrAssign, ShrVartime, WrappingShr};
 impl BoxedUint {
     /// Computes `self >> shift`.
     ///
-    /// Panics if `shift >= Self::BITS`.
+    /// # Panics
+    /// - if `shift >= Self::BITS`.
+    #[must_use]
     pub fn shr(&self, shift: u32) -> BoxedUint {
         let (result, overflow) = self.overflowing_shr(shift);
         assert!(
@@ -17,7 +19,8 @@ impl BoxedUint {
 
     /// Computes `self >>= shift`.
     ///
-    /// Panics if `shift >= Self::BITS`.
+    /// # Panics
+    /// - if `shift >= Self::BITS`.
     pub fn shr_assign(&mut self, shift: u32) {
         let overflow = self.overflowing_shr_assign(shift);
         assert!(
@@ -30,6 +33,7 @@ impl BoxedUint {
     ///
     /// Returns `self` and a truthy `Choice` if `shift >= self.bits_precision()`,
     /// or the result and a falsy `Choice` otherwise.
+    #[must_use]
     pub fn overflowing_shr(&self, shift: u32) -> (Self, Choice) {
         let mut result = self.clone();
         let overflow = result.overflowing_shr_assign(shift);
@@ -39,6 +43,7 @@ impl BoxedUint {
     /// Computes `self >> shift` in variable-time.
     ///
     /// Returns `None` if `shift >= self.bits_precision()`, otherwise the shifted result.
+    #[must_use]
     pub fn overflowing_shr_vartime(&self, shift: u32) -> Option<Self> {
         if shift < self.bits_precision() {
             let mut result = self.clone();
@@ -71,6 +76,7 @@ impl BoxedUint {
 
     /// Computes `self >> shift` in a panic-free manner, masking off bits of `shift` which would cause the shift to
     /// exceed the type's width.
+    #[must_use]
     pub fn wrapping_shr(&self, shift: u32) -> Self {
         let mut result = self.clone();
         result.wrapping_shr_assign(shift);
@@ -86,6 +92,7 @@ impl BoxedUint {
 
     /// Computes `self >> shift` in variable-time in a panic-free manner, masking off bits of `shift` which would cause
     /// the shift to exceed the type's width.
+    #[must_use]
     pub fn wrapping_shr_vartime(&self, shift: u32) -> Self {
         let mut result = self.clone();
         result.wrapping_shr_assign_vartime(shift);
@@ -104,6 +111,7 @@ impl BoxedUint {
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
+    #[must_use]
     pub fn shr_vartime(&self, shift: u32) -> Option<Self> {
         // This could use `UintRef::wrapping_shr_assign_vartime`, but it is faster to operate
         // on a zero'ed clone and let the compiler reuse the memory allocation when possible.

@@ -168,7 +168,7 @@ proptest! {
             BigUint::from_be_bytes(normal_form_inv.to_be_bytes().as_ref()),
             r_num_modular_inv,
             "num_modular ≠ crypto_bigint"
-        )
+        );
     }
 
     #[test]
@@ -207,7 +207,7 @@ proptest! {
             BigUint::from_be_bytes(normal_form_inv.to_be_bytes().as_ref()),
             r_num_modular_inv,
             "num_modular ≠ crypto_bigint"
-        )
+        );
     }
 
     #[test]
@@ -246,7 +246,7 @@ proptest! {
             BigUint::from_be_bytes(normal_form_inv.to_be_bytes().as_ref()),
             r_num_modular_inv,
             "num_modular ≠ crypto_bigint"
-        )
+        );
     }
 
     #[test]
@@ -285,7 +285,7 @@ proptest! {
             BigUint::from_be_bytes(normal_form_inv.to_be_bytes().as_ref()),
             r_num_modular_inv,
             "num_modular ≠ crypto_bigint"
-        )
+        );
     }
 
     #[test]

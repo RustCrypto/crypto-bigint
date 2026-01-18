@@ -7,10 +7,14 @@ impl BoxedMontyForm {
     /// Calculate the sum of products of pairs `(a, b)` in `products`.
     ///
     /// This method is variable time only with the value of the modulus.
+    ///
     /// For a modulus with leading zeros, this method is more efficient than a naive sum of products.
     ///
-    /// This method will panic if `products` is empty. All terms must be associated
-    /// with equivalent `MontyParams`.
+    /// All terms must be associated with equivalent `MontyParams`.
+    ///
+    /// # Panics
+    /// - if `products` is empty.
+    #[must_use]
     pub fn lincomb_vartime(products: &[(&Self, &Self)]) -> Self {
         assert!(!products.is_empty(), "empty products");
         let params = &products[0].0.params;

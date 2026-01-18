@@ -8,6 +8,7 @@ use crate::{Choice, Gcd, Int, NonZero, NonZeroInt, NonZeroUint, Odd, OddInt, Odd
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute the greatest common divisor of `self` and `rhs`.
+    #[must_use]
     pub const fn gcd_unsigned(&self, rhs: &Uint<LIMBS>) -> Uint<LIMBS> {
         self.abs().gcd(rhs)
     }
@@ -15,6 +16,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Compute the greatest common divisor of `self` and `rhs`.
     ///
     /// Executes in variable time w.r.t. all input parameters.
+    #[must_use]
     pub const fn gcd_unsigned_vartime(&self, rhs: &Uint<LIMBS>) -> Uint<LIMBS> {
         self.abs().gcd_vartime(rhs)
     }
@@ -22,6 +24,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Executes the Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)`, s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
+    #[must_use]
     pub const fn xgcd(&self, rhs: &Self) -> IntXgcdOutput<LIMBS> {
         // Make sure `self` and `rhs` are nonzero.
         let self_is_zero = self.is_nonzero().not();
@@ -74,6 +77,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
 impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
     /// Compute the greatest common divisor of `self` and `rhs`.
+    #[must_use]
     pub const fn gcd_unsigned(&self, rhs: &Uint<LIMBS>) -> NonZero<Uint<LIMBS>> {
         self.abs().gcd_unsigned(rhs)
     }
@@ -81,6 +85,7 @@ impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
     /// Compute the greatest common divisor of `self` and `rhs`.
     ///
     /// Executes in variable time w.r.t. all input parameters.
+    #[must_use]
     pub const fn gcd_unsigned_vartime(&self, rhs: &Uint<LIMBS>) -> NonZeroUint<LIMBS> {
         self.abs().gcd_unsigned_vartime(rhs)
     }
@@ -88,6 +93,7 @@ impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
     /// Execute the Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
+    #[must_use]
     pub const fn xgcd(&self, rhs: &Self) -> NonZeroIntXgcdOutput<LIMBS> {
         let (mut lhs, mut rhs) = (*self.as_ref(), *rhs.as_ref());
 
@@ -136,6 +142,7 @@ impl<const LIMBS: usize> NonZero<Int<LIMBS>> {
 
 impl<const LIMBS: usize> Odd<Int<LIMBS>> {
     /// Compute the greatest common divisor of `self` and `rhs`.
+    #[must_use]
     pub const fn gcd_unsigned(&self, rhs: &Uint<LIMBS>) -> Odd<Uint<LIMBS>> {
         self.abs().gcd_unsigned(rhs)
     }
@@ -143,6 +150,7 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
     /// Compute the greatest common divisor of `self` and `rhs`.
     ///
     /// Executes in variable time w.r.t. all input parameters.
+    #[must_use]
     pub const fn gcd_unsigned_vartime(&self, rhs: &Uint<LIMBS>) -> OddUint<LIMBS> {
         self.abs().gcd_unsigned_vartime(rhs)
     }
@@ -150,6 +158,7 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
     /// Execute the Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
+    #[must_use]
     pub const fn xgcd(&self, rhs: &NonZero<Int<LIMBS>>) -> OddIntXgcdOutput<LIMBS> {
         let (abs_lhs, sgn_lhs) = self.abs_sign();
         let (abs_rhs, sgn_rhs) = rhs.abs_sign();
@@ -455,7 +464,7 @@ mod tests {
             Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
             Int<LIMBS>: Gcd<Output = Uint<LIMBS>>,
         {
-            xgcd_test(lhs, rhs, lhs.xgcd(&rhs))
+            xgcd_test(lhs, rhs, lhs.xgcd(&rhs));
         }
 
         fn run_tests<const LIMBS: usize, const DOUBLE: usize>()

@@ -24,7 +24,7 @@ use crate::{
     Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, NonZero, One, WideWord, Word,
     Zero, word,
 };
-use core::fmt;
+use core::{fmt, ptr};
 
 #[cfg(feature = "serde")]
 use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -75,6 +75,7 @@ impl Limb {
     pub const LOG2_BITS: u32 = u32::BITS - (Self::BITS - 1).leading_zeros();
 
     /// Is this limb equal to [`Limb::ZERO`]?
+    #[must_use]
     pub const fn is_zero(&self) -> Choice {
         word::choice_from_nz(self.0).not()
     }
@@ -82,6 +83,7 @@ impl Limb {
     /// Convert to a [`NonZero<Limb>`].
     ///
     /// Returns some if the original value is non-zero, and false otherwise.
+    #[must_use]
     pub const fn to_nz(self) -> CtOption<NonZero<Self>> {
         let is_nz = self.is_nonzero();
 
@@ -91,6 +93,7 @@ impl Limb {
     }
 
     /// Convert the least significant bit of this [`Limb`] to a [`Choice`].
+    #[must_use]
     pub const fn lsb_to_choice(self) -> Choice {
         word::choice_from_lsb(self.0)
     }
@@ -98,6 +101,7 @@ impl Limb {
     /// Convert a shared reference to an array of [`Limb`]s into a shared reference to their inner
     /// [`Word`]s for each limb.
     #[inline]
+    #[must_use]
     pub const fn array_as_words<const N: usize>(array: &[Self; N]) -> &[Word; N] {
         // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
         #[allow(unsafe_code)]
@@ -120,11 +124,12 @@ impl Limb {
     /// Convert a shared reference to an array of [`Limb`]s into a shared reference to their inner
     /// [`Word`]s for each limb.
     #[inline]
+    #[must_use]
     pub const fn slice_as_words(slice: &[Self]) -> &[Word] {
         // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
-        #[allow(trivial_casts, unsafe_code)]
+        #[allow(unsafe_code)]
         unsafe {
-            &*((slice as *const [Limb]) as *const [Word])
+            &*(ptr::from_ref(slice) as *const [Word])
         }
     }
 
@@ -133,9 +138,9 @@ impl Limb {
     #[inline]
     pub const fn slice_as_mut_words(slice: &mut [Self]) -> &mut [Word] {
         // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
-        #[allow(trivial_casts, unsafe_code)]
+        #[allow(unsafe_code)]
         unsafe {
-            &mut *((slice as *mut [Limb]) as *mut [Word])
+            &mut *(ptr::from_mut(slice) as *mut [Word])
         }
     }
 }

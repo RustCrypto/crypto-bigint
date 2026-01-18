@@ -9,7 +9,7 @@ impl<const LIMBS: usize> Random for Uint<LIMBS> {
         let mut limbs = [Limb::ZERO; LIMBS];
 
         for limb in &mut limbs {
-            *limb = Limb::try_random_from_rng(rng)?
+            *limb = Limb::try_random_from_rng(rng)?;
         }
 
         Ok(limbs.into())
@@ -216,7 +216,7 @@ mod tests {
         }
     }
 
-    /// Make sure the random_bits output is consistent across platforms
+    /// Make sure the `random_bits` output is consistent across platforms
     #[test]
     fn random_bits_platform_independence() {
         let mut rng = get_four_sequential_rng();
@@ -242,7 +242,7 @@ mod tests {
         );
     }
 
-    /// Make sure random_mod_vartime output is consistent across platforms
+    /// Make sure `random_mod_vartime` output is consistent across platforms
     #[test]
     fn random_mod_vartime_platform_independence() {
         let mut rng = get_four_sequential_rng();

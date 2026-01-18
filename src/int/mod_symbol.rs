@@ -7,6 +7,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// For prime `rhs`, this corresponds to the Legendre symbol and
     /// indicates whether `self` is quadratic residue modulo `rhs`.
+    #[must_use]
     pub const fn jacobi_symbol(&self, rhs: &Odd<Uint<LIMBS>>) -> JacobiSymbol {
         let (abs, sign) = self.abs_sign();
         let jacobi = abs.jacobi_symbol(rhs) as i64;
@@ -21,6 +22,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// indicates whether `self` is quadratic residue modulo `rhs`.
     ///
     /// This method executes in variable-time for the value of `self`.
+    #[must_use]
     pub const fn jacobi_symbol_vartime(&self, rhs: &Odd<Uint<LIMBS>>) -> JacobiSymbol {
         let (abs, sign) = self.abs_sign();
         let jacobi = abs.jacobi_symbol_vartime(rhs);

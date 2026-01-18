@@ -97,12 +97,15 @@ pub trait Integer:
     + Zero
 {
     /// Borrow the raw limbs used to represent this integer.
+    #[must_use]
     fn as_limbs(&self) -> &[Limb];
 
     /// Mutably borrow the raw limbs used to represent this integer.
+    #[must_use]
     fn as_mut_limbs(&mut self) -> &mut [Limb];
 
     /// Number of limbs in this integer.
+    #[must_use]
     fn nlimbs(&self) -> usize;
 
     /// Is this integer value an odd number?
@@ -110,11 +113,12 @@ pub trait Integer:
     /// # Returns
     ///
     /// If odd, returns `Choice::FALSE`. Otherwise, returns `Choice::TRUE`.
+    #[must_use]
     fn is_odd(&self) -> Choice {
         self.as_ref()
             .first()
-            .map(|limb| limb.is_odd())
-            .unwrap_or(Choice::FALSE)
+            .copied()
+            .map_or(Choice::FALSE, Limb::is_odd)
     }
 
     /// Is this integer value an even number?
@@ -122,6 +126,7 @@ pub trait Integer:
     /// # Returns
     ///
     /// If even, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
+    #[must_use]
     fn is_even(&self) -> Choice {
         !self.is_odd()
     }
@@ -141,17 +146,21 @@ pub trait Signed:
     type Unsigned: Unsigned;
 
     /// The sign and magnitude of this [`Signed`].
+    #[must_use]
     fn abs_sign(&self) -> (Self::Unsigned, Choice);
 
     /// The magnitude of this [`Signed`].
+    #[must_use]
     fn abs(&self) -> Self::Unsigned {
         self.abs_sign().0
     }
 
     /// Whether this [`Signed`] is negative (and non-zero), as a [`Choice`].
+    #[must_use]
     fn is_negative(&self) -> Choice;
 
     /// Whether this [`Signed`] is positive (and non-zero), as a [`Choice`].
+    #[must_use]
     fn is_positive(&self) -> Choice;
 }
 
@@ -180,12 +189,14 @@ pub trait Unsigned:
     type Monty: Monty<Integer = Self>;
 
     /// Returns an integer with the first limb set to `limb`, and the same precision as `other`.
+    #[must_use]
     fn from_limb_like(limb: Limb, other: &Self) -> Self;
 }
 
 /// Zero values: additive identity element for `Self`.
 pub trait Zero: CtEq + Sized {
     /// Returns the additive identity element of `Self`, `0`.
+    #[must_use]
     fn zero() -> Self;
 
     /// Determine if this value is equal to `0`.
@@ -194,6 +205,7 @@ pub trait Zero: CtEq + Sized {
     ///
     /// If zero, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
     #[inline]
+    #[must_use]
     fn is_zero(&self) -> Choice {
         self.ct_eq(&Self::zero())
     }
@@ -205,6 +217,7 @@ pub trait Zero: CtEq + Sized {
     }
 
     /// Return the value `0` with the same precision as `other`.
+    #[must_use]
     fn zero_like(other: &Self) -> Self
     where
         Self: Clone,
@@ -218,6 +231,7 @@ pub trait Zero: CtEq + Sized {
 /// One values: multiplicative identity element for `Self`.
 pub trait One: CtEq + Sized {
     /// Returns the multiplicative identity element of `Self`, `1`.
+    #[must_use]
     fn one() -> Self;
 
     /// Determine if this value is equal to `1`.
@@ -226,6 +240,7 @@ pub trait One: CtEq + Sized {
     ///
     /// If one, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
     #[inline]
+    #[must_use]
     fn is_one(&self) -> Choice {
         self.ct_eq(&Self::one())
     }
@@ -237,6 +252,7 @@ pub trait One: CtEq + Sized {
     }
 
     /// Return the value `0` with the same precision as `other`.
+    #[must_use]
     fn one_like(_other: &Self) -> Self {
         One::one()
     }
@@ -260,9 +276,11 @@ pub trait Gcd<Rhs = Self>: Sized {
     type Output;
 
     /// Compute the greatest common divisor of `self` and `rhs`.
+    #[must_use]
     fn gcd(&self, rhs: &Rhs) -> Self::Output;
 
     /// Compute the greatest common divisor of `self` and `rhs` in variable time.
+    #[must_use]
     fn gcd_vartime(&self, rhs: &Rhs) -> Self::Output;
 }
 
@@ -272,9 +290,11 @@ pub trait Xgcd<Rhs = Self>: Sized {
     type Output;
 
     /// Compute the extended greatest common divisor of `self` and `rhs`.
+    #[must_use]
     fn xgcd(&self, rhs: &Rhs) -> Self::Output;
 
     /// Compute the extended greatest common divisor of `self` and `rhs` in variable time.
+    #[must_use]
     fn xgcd_vartime(&self, rhs: &Rhs) -> Self::Output;
 }
 
@@ -284,11 +304,15 @@ pub trait Random: Sized {
     /// Generate a random value.
     ///
     /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
+    ///
+    /// # Errors
+    /// - Returns `R::Error` in the event the RNG experienced an internal failure.
     fn try_random_from_rng<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error>;
 
     /// Generate a random value.
     ///
     /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
+    #[must_use]
     fn random_from_rng<R: RngCore + ?Sized>(rng: &mut R) -> Self {
         let Ok(out) = Self::try_random_from_rng(rng);
         out
@@ -314,6 +338,7 @@ pub trait Random: Sized {
     ///
     /// This shouldn't happen on most modern operating systems.
     #[cfg(feature = "getrandom")]
+    #[must_use]
     fn random() -> Self {
         Self::try_random().expect("RNG failure")
     }
@@ -381,6 +406,7 @@ pub trait RandomBits: Sized {
     /// Generate a random value in range `[0, 2^bit_length)`.
     ///
     /// A wrapper for [`RandomBits::try_random_bits`] that panics on error.
+    #[must_use]
     fn random_bits<R: TryRngCore + ?Sized>(rng: &mut R, bit_length: u32) -> Self {
         Self::try_random_bits(rng, bit_length).expect("try_random_bits() failed")
     }
@@ -390,6 +416,9 @@ pub trait RandomBits: Sized {
     /// This method is variable time wrt `bit_length`.
     ///
     /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
+    ///
+    /// # Errors
+    /// - Returns `R::Error` in the event the RNG experienced an internal failure.
     fn try_random_bits<R: TryRngCore + ?Sized>(
         rng: &mut R,
         bit_length: u32,
@@ -400,6 +429,8 @@ pub trait RandomBits: Sized {
     /// (if the implementing type supports runtime sizing).
     ///
     /// A wrapper for [`RandomBits::try_random_bits_with_precision`] that panics on error.
+    #[must_use]
+    #[track_caller]
     fn random_bits_with_precision<R: TryRngCore + ?Sized>(
         rng: &mut R,
         bit_length: u32,
@@ -416,6 +447,9 @@ pub trait RandomBits: Sized {
     /// This method is variable time wrt `bit_length`.
     ///
     /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
+    ///
+    /// # Errors
+    /// - Returns `R::Error` in the event the RNG experienced an internal failure.
     fn try_random_bits_with_precision<R: TryRngCore + ?Sized>(
         rng: &mut R,
         bit_length: u32,
@@ -435,6 +469,7 @@ pub trait RandomMod: Sized + Zero {
     /// example, it implements `CryptoRng`), then this is guaranteed not to
     /// leak anything about the output value aside from it being less than
     /// `modulus`.
+    #[must_use]
     fn random_mod_vartime<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
         let Ok(out) = Self::try_random_mod_vartime(rng, modulus);
         out
@@ -449,6 +484,9 @@ pub trait RandomMod: Sized + Zero {
     /// example, it implements `CryptoRng`), then this is guaranteed not to
     /// leak anything about the output value aside from it being less than
     /// `modulus`.
+    ///
+    /// # Errors
+    /// - Returns `R::Error` in the event the RNG experienced an internal failure.
     fn try_random_mod_vartime<R: TryRngCore + ?Sized>(
         rng: &mut R,
         modulus: &NonZero<Self>,
@@ -464,6 +502,7 @@ pub trait RandomMod: Sized + Zero {
     /// leak anything about the output value aside from it being less than
     /// `modulus`.
     #[deprecated(since = "0.7.0", note = "please use `random_mod_vartime` instead")]
+    #[must_use]
     fn random_mod<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
         Self::random_mod_vartime(rng, modulus)
     }
@@ -477,6 +516,9 @@ pub trait RandomMod: Sized + Zero {
     /// example, it implements `CryptoRng`), then this is guaranteed not to
     /// leak anything about the output value aside from it being less than
     /// `modulus`.
+    ///
+    /// # Errors
+    /// - Returns `R::Error` in the event the RNG experienced an internal failure.
     #[deprecated(since = "0.7.0", note = "please use `try_random_mod_vartime` instead")]
     fn try_random_mod<R: TryRngCore + ?Sized>(
         rng: &mut R,
@@ -494,6 +536,7 @@ pub trait AddMod<Rhs = Self, Mod = NonZero<Self>> {
     /// Compute `self + rhs mod p`.
     ///
     /// Assumes `self` and `rhs` are `< p`.
+    #[must_use]
     fn add_mod(&self, rhs: &Rhs, p: &Mod) -> Self::Output;
 }
 
@@ -505,6 +548,7 @@ pub trait SubMod<Rhs = Self, Mod = NonZero<Self>> {
     /// Compute `self - rhs mod p`.
     ///
     /// Assumes `self` and `rhs` are `< p`.
+    #[must_use]
     fn sub_mod(&self, rhs: &Rhs, p: &Mod) -> Self::Output;
 }
 
@@ -524,6 +568,7 @@ pub trait MulMod<Rhs = Self, Mod = NonZero<Self>> {
     type Output;
 
     /// Compute `self * rhs mod p`.
+    #[must_use]
     fn mul_mod(&self, rhs: &Rhs, p: &Mod) -> Self::Output;
 }
 
@@ -533,6 +578,7 @@ pub trait SquareMod<Mod = NonZero<Self>> {
     type Output;
 
     /// Compute `self * self mod p`.
+    #[must_use]
     fn square_mod(&self, p: &Mod) -> Self::Output;
 }
 
@@ -543,6 +589,7 @@ pub trait InvMod<Rhs = Self>: Sized {
     type Output;
 
     /// Compute `1 / self mod p`.
+    #[must_use]
     fn inv_mod(&self, p: &Rhs) -> CtOption<Self::Output>;
 }
 
@@ -564,6 +611,7 @@ pub trait InvertMod<Mod = NonZero<Self>>: Sized {
     type Output;
 
     /// Compute `1 / self mod p`.
+    #[must_use]
     fn invert_mod(&self, p: &Mod) -> CtOption<Self::Output>;
 }
 
@@ -571,6 +619,7 @@ pub trait InvertMod<Mod = NonZero<Self>>: Sized {
 pub trait CheckedAdd<Rhs = Self>: Sized {
     /// Perform checked addition, returning a [`CtOption`] which `is_some` only if the operation
     /// did not overflow.
+    #[must_use]
     fn checked_add(&self, rhs: &Rhs) -> CtOption<Self>;
 }
 
@@ -578,6 +627,7 @@ pub trait CheckedAdd<Rhs = Self>: Sized {
 pub trait CheckedDiv<Rhs = Self>: Sized {
     /// Perform checked division, returning a [`CtOption`] which `is_some` only if the divisor is
     /// non-zero.
+    #[must_use]
     fn checked_div(&self, rhs: &Rhs) -> CtOption<Self>;
 }
 
@@ -585,6 +635,7 @@ pub trait CheckedDiv<Rhs = Self>: Sized {
 pub trait CheckedMul<Rhs = Self>: Sized {
     /// Perform checked multiplication, returning a [`CtOption`] which `is_some`
     /// only if the operation did not overflow.
+    #[must_use]
     fn checked_mul(&self, rhs: &Rhs) -> CtOption<Self>;
 }
 
@@ -592,6 +643,7 @@ pub trait CheckedMul<Rhs = Self>: Sized {
 pub trait CheckedSub<Rhs = Self>: Sized {
     /// Perform checked subtraction, returning a [`CtOption`] which `is_some`
     /// only if the operation did not underflow.
+    #[must_use]
     fn checked_sub(&self, rhs: &Rhs) -> CtOption<Self>;
 }
 
@@ -602,6 +654,7 @@ pub trait Concat: ConcatMixed<Self, MixedOutput = Self::Output> {
     type Output: Integer;
 
     /// Concatenate the two halves, with `self` as least significant and `hi` as the most significant.
+    #[must_use]
     fn concat(&self, hi: &Self) -> Self::Output {
         self.concat_mixed(hi)
     }
@@ -615,6 +668,7 @@ pub trait ConcatMixed<Hi: ?Sized = Self> {
 
     /// Concatenate the two values, with `self` as least significant and `hi` as the most
     /// significant.
+    #[must_use]
     fn concat_mixed(&self, hi: &Hi) -> Self::MixedOutput;
 }
 
@@ -624,6 +678,7 @@ pub trait Split: SplitMixed<Self::Output, Self::Output> {
     type Output;
 
     /// Split this number in half, returning its low and high components respectively.
+    #[must_use]
     fn split(&self) -> (Self::Output, Self::Output) {
         self.split_mixed()
     }
@@ -633,6 +688,7 @@ pub trait Split: SplitMixed<Self::Output, Self::Output> {
 /// significant.
 pub trait SplitMixed<Lo, Hi> {
     /// Split this number into parts, returning its low and high components respectively.
+    #[must_use]
     fn split_mixed(&self) -> (Lo, Hi);
 }
 
@@ -646,15 +702,19 @@ pub trait Encoding: Sized {
         + for<'a> TryFrom<&'a [u8], Error: core::error::Error>;
 
     /// Decode from big endian bytes.
+    #[must_use]
     fn from_be_bytes(bytes: Self::Repr) -> Self;
 
     /// Decode from little endian bytes.
+    #[must_use]
     fn from_le_bytes(bytes: Self::Repr) -> Self;
 
     /// Encode to big endian bytes.
+    #[must_use]
     fn to_be_bytes(&self) -> Self::Repr;
 
     /// Encode to little endian bytes.
+    #[must_use]
     fn to_le_bytes(&self) -> Self::Repr;
 }
 
@@ -695,6 +755,7 @@ impl core::error::Error for DecodeError {}
 /// Support for optimized squaring
 pub trait Square {
     /// Computes the same as `self * self`, but may be more efficient.
+    #[must_use]
     fn square(&self) -> Self;
 }
 
@@ -711,22 +772,26 @@ pub trait CheckedSquareRoot: Sized {
     type Output;
 
     /// Computes `sqrt(self)`, returning `none` if no root exists.
+    #[must_use]
     fn checked_sqrt(&self) -> CtOption<Self::Output>;
 
     /// Computes `sqrt(self)`, returning `none` if no root exists.
     ///
     /// Variable time with respect to `self`.
+    #[must_use]
     fn checked_sqrt_vartime(&self) -> Option<Self::Output>;
 }
 
 /// Support for calculating floored square roots.
 pub trait FloorSquareRoot: CheckedSquareRoot {
     /// Computes `floor(sqrt(self))`.
+    #[must_use]
     fn floor_sqrt(&self) -> Self::Output;
 
     /// Computes `floor(sqrt(self))`.
     ///
     /// Variable time with respect to `self`.
+    #[must_use]
     fn floor_sqrt_vartime(&self) -> Self::Output;
 }
 
@@ -734,17 +799,20 @@ pub trait FloorSquareRoot: CheckedSquareRoot {
 pub trait DivRemLimb: Sized {
     /// Computes `self / rhs` using a pre-made reciprocal,
     /// returns the quotient (q) and remainder (r).
+    #[must_use]
     fn div_rem_limb(&self, rhs: NonZero<Limb>) -> (Self, Limb) {
         self.div_rem_limb_with_reciprocal(&Reciprocal::new(rhs))
     }
 
     /// Computes `self / rhs`, returns the quotient (q) and remainder (r).
+    #[must_use]
     fn div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb);
 }
 
 /// Support for calculating the remainder of two differently sized integers.
 pub trait RemMixed<Reductor>: Sized {
     /// Calculate the remainder of `self` by the `reductor`.
+    #[must_use]
     fn rem_mixed(&self, reductor: &NonZero<Reductor>) -> Reductor;
 }
 
@@ -756,68 +824,82 @@ pub trait RemMixed<Reductor>: Sized {
 /// For modular reduction with a variable modulus, use [`Rem`].
 pub trait Reduce<T>: Sized {
     /// Reduces `self` modulo `Modulus`.
+    #[must_use]
     fn reduce(value: &T) -> Self;
 }
 
 /// Division in variable time.
 pub trait DivVartime: Sized {
     /// Computes `self / rhs` in variable time.
+    #[must_use]
     fn div_vartime(&self, rhs: &NonZero<Self>) -> Self;
 }
 
 /// Support for optimized division by a single limb.
 pub trait RemLimb: Sized {
     /// Computes `self % rhs` using a pre-made reciprocal.
+    #[must_use]
     fn rem_limb(&self, rhs: NonZero<Limb>) -> Limb {
         self.rem_limb_with_reciprocal(&Reciprocal::new(rhs))
     }
 
     /// Computes `self % rhs`.
+    #[must_use]
     fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb;
 }
 
 /// Bit counting and bit operations.
 pub trait BitOps {
     /// Precision of this integer in bits.
+    #[must_use]
     fn bits_precision(&self) -> u32;
 
     /// `floor(log2(self.bits_precision()))`.
+    #[must_use]
     fn log2_bits(&self) -> u32 {
         u32::BITS - self.bits_precision().leading_zeros() - 1
     }
 
     /// Precision of this integer in bytes.
+    #[must_use]
     fn bytes_precision(&self) -> usize;
 
     /// Get the value of the bit at position `index`, as a truthy or falsy `Choice`.
     /// Returns the falsy value for indices out of range.
+    #[must_use]
     fn bit(&self, index: u32) -> Choice;
 
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
     fn set_bit(&mut self, index: u32, bit_value: Choice);
 
     /// Calculate the number of bits required to represent a given number.
+    #[must_use]
     fn bits(&self) -> u32 {
         self.bits_precision() - self.leading_zeros()
     }
 
     /// Calculate the number of trailing zeros in the binary representation of this number.
+    #[must_use]
     fn trailing_zeros(&self) -> u32;
 
     /// Calculate the number of trailing ones in the binary representation of this number.
+    #[must_use]
     fn trailing_ones(&self) -> u32;
 
     /// Calculate the number of leading zeros in the binary representation of this number.
+    #[must_use]
     fn leading_zeros(&self) -> u32;
 
     /// Returns `true` if the bit at position `index` is set, `false` otherwise.
     ///
     /// # Remarks
     /// This operation is variable time with respect to `index` only.
+    #[must_use]
     fn bit_vartime(&self, index: u32) -> bool;
 
     /// Calculate the number of bits required to represent a given number in variable-time with
     /// respect to `self`.
+    #[must_use]
     fn bits_vartime(&self) -> u32;
 
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`,
@@ -825,22 +907,26 @@ pub trait BitOps {
     fn set_bit_vartime(&mut self, index: u32, bit_value: bool);
 
     /// Calculate the number of leading zeros in the binary representation of this number.
+    #[must_use]
     fn leading_zeros_vartime(&self) -> u32 {
         self.bits_precision() - self.bits_vartime()
     }
 
     /// Calculate the number of trailing zeros in the binary representation of this number in
     /// variable-time with respect to `self`.
+    #[must_use]
     fn trailing_zeros_vartime(&self) -> u32;
 
     /// Calculate the number of trailing ones in the binary representation of this number,
     /// variable time in `self`.
+    #[must_use]
     fn trailing_ones_vartime(&self) -> u32;
 }
 
 /// Constant-time exponentiation.
 pub trait Pow<Exponent> {
     /// Raises to the `exponent` power.
+    #[must_use]
     fn pow(&self, exponent: &Exponent) -> Self;
 }
 
@@ -857,6 +943,7 @@ pub trait PowBoundedExp<Exponent> {
     /// to take into account for the exponent.
     ///
     /// NOTE: `exponent_bits` may be leaked in the time pattern.
+    #[must_use]
     fn pow_bounded_exp(&self, exponent: &Exponent, exponent_bits: u32) -> Self;
 }
 
@@ -868,6 +955,7 @@ where
     BasesAndExponents: AsRef<[(Self, Exponent)]> + ?Sized,
 {
     /// Calculates `x1 ^ k1 * ... * xn ^ kn`.
+    #[must_use]
     fn multi_exponentiate(bases_and_exponents: &BasesAndExponents) -> Self;
 }
 
@@ -893,6 +981,7 @@ where
     BasesAndExponents: AsRef<[(Self, Exponent)]> + ?Sized,
 {
     /// Calculates `x1 ^ k1 * ... * xn ^ kn`.
+    #[must_use]
     fn multi_exponentiate_bounded_exp(
         bases_and_exponents: &BasesAndExponents,
         exponent_bits: u32,
@@ -914,12 +1003,23 @@ pub trait Invert {
 }
 
 /// Widening multiply: returns a value with a number of limbs equal to the sum of the inputs.
+pub trait ConcatenatingMul<Rhs = Self>: Sized {
+    /// Output of the widening multiplication.
+    type Output: Integer;
+
+    /// Perform widening multiplication.
+    #[must_use]
+    fn concatenating_mul(&self, rhs: Rhs) -> Self::Output;
+}
+
+/// Widening multiply: returns a value with a number of limbs equal to the sum of the inputs.
 #[deprecated(since = "0.7.0", note = "please use `ConcatenatingMul` instead")]
 pub trait WideningMul<Rhs = Self>: Sized {
     /// Output of the widening multiplication.
     type Output: Integer;
 
     /// Perform widening multiplication.
+    #[must_use]
     fn widening_mul(&self, rhs: Rhs) -> Self::Output;
 }
 
@@ -935,15 +1035,6 @@ where
     }
 }
 
-/// Widening multiply: returns a value with a number of limbs equal to the sum of the inputs.
-pub trait ConcatenatingMul<Rhs = Self>: Sized {
-    /// Output of the widening multiplication.
-    type Output: Integer;
-
-    /// Perform widening multiplication.
-    fn concatenating_mul(&self, rhs: Rhs) -> Self::Output;
-}
-
 /// Left shifts, variable time in `shift`.
 pub trait ShlVartime: Sized {
     /// Computes `self << shift`.
@@ -953,6 +1044,7 @@ pub trait ShlVartime: Sized {
 
     /// Computes `self << shift` in a panic-free manner, masking off bits of `shift`
     /// which would cause the shift to exceed the type's width.
+    #[must_use]
     fn wrapping_shl_vartime(&self, shift: u32) -> Self;
 }
 
@@ -965,6 +1057,7 @@ pub trait ShrVartime: Sized {
 
     /// Computes `self >> shift` in a panic-free manner, masking off bits of `shift`
     /// which would cause the shift to exceed the type's width.
+    #[must_use]
     fn wrapping_shr_vartime(&self, shift: u32) -> Self;
 }
 
@@ -977,6 +1070,7 @@ pub trait Resize: Sized {
     /// without checking if the bit size of `self` is larger than `at_least_bits_precision`.
     ///
     /// Variable-time w.r.t. `at_least_bits_precision`.
+    #[must_use]
     fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output;
 
     /// Resizes to the minimum storage that fits `at_least_bits_precision`
@@ -989,6 +1083,8 @@ pub trait Resize: Sized {
     /// panicking if the bit size of `self` is larger than `at_least_bits_precision`.
     ///
     /// Variable-time w.r.t. `at_least_bits_precision`.
+    #[must_use]
+    #[track_caller]
     fn resize(self, at_least_bits_precision: u32) -> Self::Output {
         self.try_resize(at_least_bits_precision).unwrap_or_else(|| {
             panic!("The bit size of `self` is larger than `at_least_bits_precision`")
@@ -1036,21 +1132,27 @@ pub trait Monty:
 
     /// Create the precomputed data for Montgomery representation of integers modulo `modulus`,
     /// variable time in `modulus`.
+    #[must_use]
     fn new_params_vartime(modulus: Odd<Self::Integer>) -> Self::Params;
 
     /// Convert the value into the representation using precomputed data.
+    #[must_use]
     fn new(value: Self::Integer, params: &Self::Params) -> Self;
 
     /// Returns zero in this representation.
+    #[must_use]
     fn zero(params: Self::Params) -> Self;
 
     /// Returns one in this representation.
+    #[must_use]
     fn one(params: Self::Params) -> Self;
 
     /// Returns the parameter struct used to initialize this object.
+    #[must_use]
     fn params(&self) -> &Self::Params;
 
     /// Access the value in Montgomery form.
+    #[must_use]
     fn as_montgomery(&self) -> &Self::Integer;
 
     /// Copy the Montgomery representation from `other` into `self`.
@@ -1058,15 +1160,17 @@ pub trait Monty:
     fn copy_montgomery_from(&mut self, other: &Self);
 
     /// Performs doubling, returning `self + self`.
+    #[must_use]
     fn double(&self) -> Self;
 
     /// Performs division by 2, that is returns `x` such that `x + x = self`.
+    #[must_use]
     fn div_by_2(&self) -> Self;
 
     /// Performs division by 2 inplace, that is finds `x` such that `x + x = self`
     /// and writes it into `self`.
     fn div_by_2_assign(&mut self) {
-        *self = self.div_by_2()
+        *self = self.div_by_2();
     }
 
     /// Calculate the sum of products of pairs `(a, b)` in `products`.
@@ -1076,6 +1180,7 @@ pub trait Monty:
     ///
     /// This method will panic if `products` is empty. All terms must be associated with equivalent
     /// Montgomery parameters.
+    #[must_use]
     fn lincomb_vartime(products: &[(&Self, &Self)]) -> Self;
 }
 

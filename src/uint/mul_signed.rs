@@ -7,6 +7,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// negated when converted from [`Uint`] to [`Int`].
     ///
     /// Note: even if `negate` is truthy, the magnitude might be zero!
+    #[must_use]
     pub const fn widening_mul_signed<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
@@ -17,6 +18,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Multiply `self` by [`Int`] `rhs`, returning a concatenated "wide" result.
+    #[must_use]
     pub const fn concatenating_mul_signed<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
@@ -32,6 +34,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Checked multiplication of `self` with [`Int`] `rhs`.
+    #[must_use]
     pub fn checked_mul_signed<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,

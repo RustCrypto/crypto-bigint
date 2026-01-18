@@ -60,6 +60,7 @@ impl BoxedUint {
     }
 
     /// Get the value `0` represented as succinctly as possible.
+    #[must_use]
     pub fn zero() -> Self {
         Self {
             limbs: vec![Limb::ZERO; 1].into(),
@@ -69,11 +70,13 @@ impl BoxedUint {
     /// Get the value `0` with the given number of bits of precision.
     ///
     /// `at_least_bits_precision` is rounded up to a multiple of [`Limb::BITS`].
+    #[must_use]
     pub fn zero_with_precision(at_least_bits_precision: u32) -> Self {
         vec![Limb::ZERO; Self::limbs_for_precision(at_least_bits_precision)].into()
     }
 
     /// Get the value `1`, represented as succinctly as possible.
+    #[must_use]
     pub fn one() -> Self {
         Self {
             limbs: vec![Limb::ONE; 1].into(),
@@ -83,6 +86,7 @@ impl BoxedUint {
     /// Get the value `1` with the given number of bits of precision.
     ///
     /// `at_least_bits_precision` is rounded up to a multiple of [`Limb::BITS`].
+    #[must_use]
     pub fn one_with_precision(at_least_bits_precision: u32) -> Self {
         let mut ret = Self::zero_with_precision(at_least_bits_precision);
         ret.limbs[0] = Limb::ONE;
@@ -90,6 +94,7 @@ impl BoxedUint {
     }
 
     /// Is this [`BoxedUint`] equal to zero?
+    #[must_use]
     pub fn is_zero(&self) -> Choice {
         self.limbs
             .iter()
@@ -98,11 +103,13 @@ impl BoxedUint {
 
     /// Is this [`BoxedUint`] *NOT* equal to zero?
     #[inline]
+    #[must_use]
     pub fn is_nonzero(&self) -> Choice {
         !self.is_zero()
     }
 
     /// Is this [`BoxedUint`] equal to one?
+    #[must_use]
     pub fn is_one(&self) -> Choice {
         let mut iter = self.limbs.iter();
         let choice = iter.next().copied().unwrap_or(Limb::ZERO).ct_eq(&Limb::ONE);
@@ -113,6 +120,7 @@ impl BoxedUint {
     /// precision bits requested.
     ///
     /// That is, returns the value `2^self.bits_precision() - 1`.
+    #[must_use]
     pub fn max(at_least_bits_precision: u32) -> Self {
         vec![Limb::MAX; Self::limbs_for_precision(at_least_bits_precision)].into()
     }
@@ -153,6 +161,7 @@ impl BoxedUint {
     }
 
     /// Borrow the inner limbs as a slice of [`Word`]s.
+    #[must_use]
     pub fn as_words(&self) -> &[Word] {
         self.as_uint_ref().as_words()
     }
@@ -169,6 +178,7 @@ impl BoxedUint {
     }
 
     /// Borrow the limbs of this [`BoxedUint`].
+    #[must_use]
     pub fn as_limbs(&self) -> &[Limb] {
         self.limbs.as_ref()
     }
@@ -185,11 +195,13 @@ impl BoxedUint {
     }
 
     /// Convert this [`BoxedUint`] into its inner limbs.
+    #[must_use]
     pub fn to_limbs(&self) -> Box<[Limb]> {
         self.limbs.clone()
     }
 
     /// Convert this [`BoxedUint`] into its inner limbs.
+    #[must_use]
     pub fn into_limbs(self) -> Box<[Limb]> {
         self.limbs
     }
@@ -216,6 +228,7 @@ impl BoxedUint {
     }
 
     /// Get the number of limbs in this [`BoxedUint`].
+    #[must_use]
     pub fn nlimbs(&self) -> usize {
         self.limbs.len()
     }
@@ -223,6 +236,7 @@ impl BoxedUint {
     /// Convert to a [`NonZero<BoxedUint>`].
     ///
     /// Returns some if the original value is non-zero, and false otherwise.
+    #[must_use]
     pub fn to_nz(&self) -> CtOption<NonZero<Self>> {
         self.clone().into_nz()
     }
@@ -230,6 +244,7 @@ impl BoxedUint {
     /// Convert to an [`Odd<BoxedUint>`].
     ///
     /// Returns some if the original value is odd, and false otherwise.
+    #[must_use]
     pub fn to_odd(&self) -> CtOption<Odd<Self>> {
         self.clone().into_odd()
     }
@@ -237,6 +252,7 @@ impl BoxedUint {
     /// Convert to a [`NonZero<BoxedUint>`].
     ///
     /// Returns some if the original value is non-zero, and false otherwise.
+    #[must_use]
     pub fn into_nz(mut self) -> CtOption<NonZero<Self>> {
         let is_nz = self.is_nonzero();
 
@@ -248,6 +264,7 @@ impl BoxedUint {
     /// Convert to an [`Odd<BoxedUint>`].
     ///
     /// Returns some if the original value is odd, and false otherwise.
+    #[must_use]
     pub fn into_odd(mut self) -> CtOption<Odd<Self>> {
         let is_odd = self.is_odd();
 
@@ -258,7 +275,8 @@ impl BoxedUint {
 
     /// Widen this type's precision to the given number of bits.
     ///
-    /// Panics if `at_least_bits_precision` is smaller than the current precision.
+    /// # Panics
+    /// - if `at_least_bits_precision` is smaller than the current precision.
     #[must_use]
     #[deprecated(since = "0.7.0", note = "please use `resize` instead")]
     pub fn widen(&self, at_least_bits_precision: u32) -> BoxedUint {
@@ -271,7 +289,8 @@ impl BoxedUint {
 
     /// Shortens this type's precision to the given number of bits.
     ///
-    /// Panics if `at_least_bits_precision` is larger than the current precision.
+    /// # Panics
+    /// - if `at_least_bits_precision` is larger than the current precision.
     #[must_use]
     #[deprecated(since = "0.7.0", note = "please use `resize` instead")]
     pub fn shorten(&self, at_least_bits_precision: u32) -> BoxedUint {
@@ -474,7 +493,7 @@ impl Zero for BoxedUint {
     }
 
     fn set_zero(&mut self) {
-        self.limbs.as_mut().fill(Limb::ZERO)
+        self.limbs.as_mut().fill(Limb::ZERO);
     }
 }
 
@@ -509,7 +528,7 @@ impl num_traits::Zero for BoxedUint {
     }
 
     fn set_zero(&mut self) {
-        Zero::set_zero(self)
+        Zero::set_zero(self);
     }
 }
 
@@ -523,7 +542,7 @@ impl num_traits::One for BoxedUint {
     }
 
     fn set_one(&mut self) {
-        One::set_one(self)
+        One::set_one(self);
     }
 }
 

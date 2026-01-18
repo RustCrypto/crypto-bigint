@@ -56,7 +56,7 @@ impl CtNeg for BoxedUint {
 
     fn ct_neg_assign(&mut self, choice: Choice) {
         let self_neg = self.wrapping_neg();
-        self.ct_assign(&self_neg, choice)
+        self.ct_assign(&self_neg, choice);
     }
 }
 
@@ -87,7 +87,7 @@ impl CtSelect for BoxedUint {
 impl subtle::ConditionallyNegatable for BoxedUint {
     #[inline]
     fn conditional_negate(&mut self, choice: subtle::Choice) {
-        self.ct_neg_assign(choice.into())
+        self.ct_neg_assign(choice.into());
     }
 }
 

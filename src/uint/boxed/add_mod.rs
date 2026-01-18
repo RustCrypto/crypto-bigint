@@ -6,6 +6,7 @@ impl BoxedUint {
     /// Computes `self + rhs mod p`.
     ///
     /// Assumes `self + rhs` as unbounded integer is `< 2p`.
+    #[must_use]
     pub fn add_mod(&self, rhs: &Self, p: &NonZero<Self>) -> Self {
         let mut result = self.clone();
         result.add_mod_assign(rhs, p);
@@ -28,6 +29,7 @@ impl BoxedUint {
     /// Computes `self + self mod p`.
     ///
     /// Assumes `self` as unbounded integer is `< p`.
+    #[must_use]
     pub fn double_mod(&self, p: &NonZero<Self>) -> Self {
         let (mut w, carry) = self.shl1();
         w.sub_assign_mod_with_carry(carry, p, p);

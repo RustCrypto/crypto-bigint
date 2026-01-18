@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use chacha20::ChaCha8Rng;
 use criterion::measurement::WallTime;
 use criterion::{
@@ -161,7 +163,7 @@ fn bench_mul(c: &mut Criterion) {
             },
             |(x, y)| black_box(x.widening_mul(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("widening_mul, U4096xU4096", |b| {
@@ -174,7 +176,7 @@ fn bench_mul(c: &mut Criterion) {
             },
             |(x, y)| black_box(x.widening_mul(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("widening_mul, U8192xU4096", |b| {
@@ -187,7 +189,7 @@ fn bench_mul(c: &mut Criterion) {
             },
             |(x, y)| black_box(x.widening_mul(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("wrapping_mul, U256xU256", |b| {
@@ -200,7 +202,7 @@ fn bench_mul(c: &mut Criterion) {
             },
             |(x, y)| black_box(x.wrapping_mul(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("wrapping_mul, U4096xU4096", |b| {
@@ -213,7 +215,7 @@ fn bench_mul(c: &mut Criterion) {
             },
             |(x, y)| black_box(x.wrapping_mul(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("wrapping_mul, U8192xU4096", |b| {
@@ -226,7 +228,7 @@ fn bench_mul(c: &mut Criterion) {
             },
             |(x, y)| black_box(x.wrapping_mul(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("checked_mul, U256xU256", |b| {
@@ -239,7 +241,7 @@ fn bench_mul(c: &mut Criterion) {
             },
             |(x, y)| black_box(x.checked_mul(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("checked_mul, U4096xU4096", |b| {
@@ -252,7 +254,7 @@ fn bench_mul(c: &mut Criterion) {
             },
             |(x, y)| black_box(x.checked_mul(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("square_wide, U256", |b| {
@@ -260,7 +262,7 @@ fn bench_mul(c: &mut Criterion) {
             || U256::random_from_rng(&mut rng),
             |x| black_box(x.square_wide()),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("square_wide, U4096", |b| {
@@ -268,7 +270,7 @@ fn bench_mul(c: &mut Criterion) {
             || U4096::random_from_rng(&mut rng),
             |x| black_box(x.square_wide()),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("wrapping_square, U256xU256", |b| {
@@ -276,7 +278,7 @@ fn bench_mul(c: &mut Criterion) {
             || U256::random_from_rng(&mut rng),
             |x| x.wrapping_square(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("wrapping_square, U4096xU4096", |b| {
@@ -284,7 +286,7 @@ fn bench_mul(c: &mut Criterion) {
             || U4096::random_from_rng(&mut rng),
             |x| x.wrapping_square(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("mul_mod, U256", |b| {
@@ -296,7 +298,7 @@ fn bench_mul(c: &mut Criterion) {
             },
             |(m, x)| black_box(x).mul_mod(black_box(&x), &m),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("mul_mod_vartime, U256", |b| {
@@ -308,7 +310,7 @@ fn bench_mul(c: &mut Criterion) {
             },
             |(m, x)| black_box(x).mul_mod_vartime(black_box(&x), &m),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("mul_mod_special, U256", |b| {
@@ -320,7 +322,7 @@ fn bench_mul(c: &mut Criterion) {
             },
             |(m, x)| black_box(x).mul_mod_special(black_box(&x), m),
             BatchSize::SmallInput,
-        )
+        );
     });
 }
 
@@ -338,7 +340,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x, y)| x.div_rem(&y),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("div/rem, U256/U128 (in U256)", |b| {
@@ -351,7 +353,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x, y)| x.div_rem(&y),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("div/rem, U256/U128 (in U512)", |b| {
@@ -363,7 +365,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x, y)| x.div_rem(&y),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("div/rem_vartime, U256/U128, full size", |b| {
@@ -375,7 +377,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x, y)| x.div_rem_vartime(&y),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("rem, U256/U128", |b| {
@@ -388,7 +390,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x, y)| x.rem(&y),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("rem, U256/U128 (in U256)", |b| {
@@ -400,7 +402,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x, y)| x.rem(&y),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("rem, U256/U128 (in U512)", |b| {
@@ -412,7 +414,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x, y)| x.rem(&y),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("rem_vartime, U256/U128, full size", |b| {
@@ -424,7 +426,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x, y)| x.rem_vartime(&y),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("rem_wide, U256", |b| {
@@ -439,7 +441,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x_lo, x_hi, y)| Uint::rem_wide((x_lo, x_hi), &y),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("rem_wide_vartime, U256", |b| {
@@ -454,7 +456,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x_lo, x_hi, y)| Uint::rem_wide_vartime((x_lo, x_hi), &y),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("div/rem, U256/Limb, full size", |b| {
@@ -467,7 +469,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x, y)| x.div_rem(&y),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("div/rem_vartime, U256/Limb, full size", |b| {
@@ -480,7 +482,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x, y)| x.div_rem_vartime(&y),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("div/rem, U256/Limb, single limb", |b| {
@@ -493,7 +495,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x, y)| black_box(x).div_rem_limb(black_box(y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("div/rem, U256/Limb, single limb with reciprocal", |b| {
@@ -506,7 +508,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x, r)| black_box(x).div_rem_limb_with_reciprocal(black_box(&r)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("rem, U256/Limb, single limb", |b| {
@@ -519,7 +521,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x, r)| black_box(x).rem_limb(black_box(r)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("rem, U256/Limb, single limb with reciprocal", |b| {
@@ -532,7 +534,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x, r)| black_box(x).rem_limb_with_reciprocal(black_box(&r)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.finish();
@@ -551,7 +553,7 @@ fn gcd_bench<const LIMBS: usize>(g: &mut BenchmarkGroup<WallTime>, _x: Uint<LIMB
             },
             |(f, g)| black_box(Uint::gcd(&f, &g)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     g.bench_function(BenchmarkId::new("gcd_vartime", LIMBS), |b| {
@@ -564,7 +566,7 @@ fn gcd_bench<const LIMBS: usize>(g: &mut BenchmarkGroup<WallTime>, _x: Uint<LIMB
             },
             |(f, g)| black_box(Uint::gcd_vartime(&f, &g)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     g.bench_function(BenchmarkId::new("bingcd", LIMBS), |b| {
@@ -577,7 +579,7 @@ fn gcd_bench<const LIMBS: usize>(g: &mut BenchmarkGroup<WallTime>, _x: Uint<LIMB
             },
             |(f, g)| black_box(f.bingcd(&g)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     g.bench_function(BenchmarkId::new("bingcd_vartime", LIMBS), |b| {
@@ -590,7 +592,7 @@ fn gcd_bench<const LIMBS: usize>(g: &mut BenchmarkGroup<WallTime>, _x: Uint<LIMB
             },
             |(f, g)| black_box(f.bingcd_vartime(&g)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     g.bench_function(BenchmarkId::new("safegcd", LIMBS), |b| {
@@ -603,7 +605,7 @@ fn gcd_bench<const LIMBS: usize>(g: &mut BenchmarkGroup<WallTime>, _x: Uint<LIMB
             },
             |(f, g)| black_box(f.safegcd(&g)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     g.bench_function(BenchmarkId::new("safegcd_vartime", LIMBS), |b| {
@@ -616,7 +618,7 @@ fn gcd_bench<const LIMBS: usize>(g: &mut BenchmarkGroup<WallTime>, _x: Uint<LIMB
             },
             |(f, g)| black_box(f.safegcd_vartime(&g)),
             BatchSize::SmallInput,
-        )
+        );
     });
 }
 
@@ -646,7 +648,7 @@ fn xgcd_bench<const LIMBS: usize>(g: &mut BenchmarkGroup<WallTime>, _x: Uint<LIM
             },
             |(f, g)| black_box(Uint::xgcd(&f, &g)),
             BatchSize::SmallInput,
-        )
+        );
     });
 }
 
@@ -683,7 +685,7 @@ fn mod_symbols_bench<const LIMBS: usize>(g: &mut BenchmarkGroup<WallTime>, _x: U
             },
             |(f, g)| black_box(g.jacobi_symbol(&f)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     g.bench_function(BenchmarkId::new("jacobi_symbol_vartime", LIMBS), |b| {
@@ -696,7 +698,7 @@ fn mod_symbols_bench<const LIMBS: usize>(g: &mut BenchmarkGroup<WallTime>, _x: U
             },
             |(f, g)| black_box(g.jacobi_symbol_vartime(&f)),
             BatchSize::SmallInput,
-        )
+        );
     });
 }
 
@@ -714,7 +716,7 @@ fn bench_shl(c: &mut Criterion) {
     let mut group = c.benchmark_group("left shift");
 
     group.bench_function("shl_vartime, small, U2048", |b| {
-        b.iter_batched(|| U2048::ONE, |x| x.shl_vartime(10), BatchSize::SmallInput)
+        b.iter_batched(|| U2048::ONE, |x| x.shl_vartime(10), BatchSize::SmallInput);
     });
 
     group.bench_function("shl_vartime, large, U2048", |b| {
@@ -722,7 +724,7 @@ fn bench_shl(c: &mut Criterion) {
             || U2048::ONE,
             |x| x.shl_vartime(1024 + 10),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("shl_vartime_wide, large, U2048", |b| {
@@ -730,11 +732,11 @@ fn bench_shl(c: &mut Criterion) {
             || (U2048::ONE, U2048::ONE),
             |x| Uint::overflowing_shl_vartime_wide(x, 1024 + 10),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("shl, U2048", |b| {
-        b.iter_batched(|| U2048::ONE, |x| x.shl(1024 + 10), BatchSize::SmallInput)
+        b.iter_batched(|| U2048::ONE, |x| x.shl(1024 + 10), BatchSize::SmallInput);
     });
 
     group.finish();
@@ -744,7 +746,7 @@ fn bench_shr(c: &mut Criterion) {
     let mut group = c.benchmark_group("right shift");
 
     group.bench_function("shr_vartime, small, U2048", |b| {
-        b.iter_batched(|| U2048::ONE, |x| x.shr_vartime(10), BatchSize::SmallInput)
+        b.iter_batched(|| U2048::ONE, |x| x.shr_vartime(10), BatchSize::SmallInput);
     });
 
     group.bench_function("shr_vartime, large, U2048", |b| {
@@ -752,7 +754,7 @@ fn bench_shr(c: &mut Criterion) {
             || U2048::ONE,
             |x| x.shr_vartime(1024 + 10),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("shr_vartime_wide, large, U2048", |b| {
@@ -760,11 +762,11 @@ fn bench_shr(c: &mut Criterion) {
             || (U2048::ONE, U2048::ONE),
             |x| Uint::overflowing_shr_vartime_wide(x, 1024 + 10),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("shr, U2048", |b| {
-        b.iter_batched(|| U2048::ONE, |x| x.shr(1024 + 10), BatchSize::SmallInput)
+        b.iter_batched(|| U2048::ONE, |x| x.shr(1024 + 10), BatchSize::SmallInput);
     });
 
     group.finish();
@@ -788,7 +790,7 @@ fn bench_invert_mod(c: &mut Criterion) {
             },
             |(x, m)| black_box(x.invert_odd_mod(&m)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("invert_odd_mod_vartime, U256", |b| {
@@ -805,7 +807,7 @@ fn bench_invert_mod(c: &mut Criterion) {
             },
             |(x, m)| black_box(x.invert_odd_mod_vartime(&m)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("invert_mod, U256, odd modulus", |b| {
@@ -822,7 +824,7 @@ fn bench_invert_mod(c: &mut Criterion) {
             },
             |(x, m)| black_box(x.invert_mod(m.as_nz_ref())),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("invert_mod, U256", |b| {
@@ -839,7 +841,7 @@ fn bench_invert_mod(c: &mut Criterion) {
             },
             |(x, m)| black_box(x.invert_mod(&m)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("invert_mod2k, U256", |b| {
@@ -847,7 +849,7 @@ fn bench_invert_mod(c: &mut Criterion) {
             || U256::random_from_rng(&mut rng),
             |x| x.invert_mod2k(black_box(1)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("invert_mod2k_vartime, U256", |b| {
@@ -855,7 +857,7 @@ fn bench_invert_mod(c: &mut Criterion) {
             || U256::random_from_rng(&mut rng),
             |x| x.invert_mod2k_vartime(black_box(1)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.finish();
@@ -870,7 +872,7 @@ fn bench_sqrt(c: &mut Criterion) {
             || U256::random_from_rng(&mut rng),
             |x| x.floor_sqrt(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("floor_sqrt, U512", |b| {
@@ -878,7 +880,7 @@ fn bench_sqrt(c: &mut Criterion) {
             || U512::random_from_rng(&mut rng),
             |x| x.floor_sqrt(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("floor_sqrt_vartime, U256", |b| {
@@ -886,7 +888,7 @@ fn bench_sqrt(c: &mut Criterion) {
             || U256::random_from_rng(&mut rng),
             |x| x.floor_sqrt_vartime(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("floor_sqrt_vartime, U256 one Limb", |b| {
@@ -894,7 +896,7 @@ fn bench_sqrt(c: &mut Criterion) {
             || U256::from_word(Limb::random_from_rng(&mut rng).0),
             |x| x.floor_sqrt_vartime(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("checked_sqrt, U256", |b| {
@@ -902,7 +904,7 @@ fn bench_sqrt(c: &mut Criterion) {
             || U256::random_from_rng(&mut rng),
             |x| x.checked_sqrt(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("checked_sqrt_vartime, U256", |b| {
@@ -910,7 +912,7 @@ fn bench_sqrt(c: &mut Criterion) {
             || U256::random_from_rng(&mut rng),
             |x| x.checked_sqrt_vartime(),
             BatchSize::SmallInput,
-        )
+        );
     });
 }
 
@@ -924,7 +926,7 @@ fn bench_root(c: &mut Criterion) {
             || U256::random_from_rng(&mut rng),
             |x| x.floor_root_vartime(black_box(exp)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("floor_root_vartime(4), U256", |b| {
@@ -933,7 +935,7 @@ fn bench_root(c: &mut Criterion) {
             || U256::random_from_rng(&mut rng),
             |x| x.floor_root_vartime(black_box(exp)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("checked_root_vartime(3), U256", |b| {
@@ -942,7 +944,7 @@ fn bench_root(c: &mut Criterion) {
             || U256::random_from_rng(&mut rng),
             |x| x.checked_root_vartime(black_box(exp)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("checked_root_vartime(4), U256", |b| {
@@ -951,7 +953,7 @@ fn bench_root(c: &mut Criterion) {
             || U256::random_from_rng(&mut rng),
             |x| x.checked_root_vartime(black_box(exp)),
             BatchSize::SmallInput,
-        )
+        );
     });
 }
 

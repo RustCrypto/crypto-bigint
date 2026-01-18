@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use chacha20::ChaCha8Rng;
 use criterion::{
     BatchSize, BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::Measurement,
@@ -24,7 +26,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
             || U256::random_mod_vartime(&mut rng, Modulus::PARAMS.modulus().as_nz_ref()),
             |x| black_box(ConstMontyForm::new(&x)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("ConstMontyForm retrieve", |b| {
@@ -32,7 +34,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
             || ConstMontyForm::random_from_rng(&mut rng),
             |x| black_box(x.retrieve()),
             BatchSize::SmallInput,
-        )
+        );
     });
 }
 
@@ -48,7 +50,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |(a, b)| black_box(a).add(&black_box(b)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("double, U256", |b| {
@@ -56,7 +58,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             || ConstMontyForm::random_from_rng(&mut rng),
             |a| black_box(a).double(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("sub, U256", |b| {
@@ -68,7 +70,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |(a, b)| black_box(a).sub(&black_box(b)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("neg, U256", |b| {
@@ -76,7 +78,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             || ConstMontyForm::random_from_rng(&mut rng),
             |a| black_box(a).neg(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("invert, U256", |b| {
@@ -84,7 +86,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             || ConstMontyForm::random_from_rng(&mut rng),
             |x| black_box(x).invert(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("multiplication, U256*U256", |b| {
@@ -96,7 +98,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |(x, y)| black_box(x).mul(&black_box(y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("squaring, U256*U256", |b| {
@@ -104,7 +106,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             || ConstMontyForm::random_from_rng(&mut rng),
             |x| black_box(x).square(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("modpow, U256^U256", |b| {
@@ -116,7 +118,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |(x, p)| black_box(x.pow(&p)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("jacobi_symbol", |b| {
@@ -124,7 +126,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             || ConstMontyForm::random_from_rng(&mut rng),
             |a| a.jacobi_symbol(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("jacobi_symbol_vartime", |b| {
@@ -132,7 +134,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             || ConstMontyForm::random_from_rng(&mut rng),
             |a| a.jacobi_symbol_vartime(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("lincomb, U256*U256+U256*U256", |b| {
@@ -145,7 +147,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                 ])
             },
             BatchSize::SmallInput,
-        )
+        );
     });
 
     #[cfg(feature = "alloc")]
@@ -172,7 +174,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                         ))
                     },
                     BatchSize::SmallInput,
-                )
+                );
             },
         );
     }

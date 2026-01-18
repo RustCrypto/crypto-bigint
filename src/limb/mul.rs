@@ -11,12 +11,14 @@ impl Limb {
         since = "0.7.0",
         note = "please use `carrying_mul_add` instead (ordering of arguments changes)"
     )]
+    #[must_use]
     pub const fn mac(self, b: Limb, c: Limb, carry: Limb) -> (Limb, Limb) {
         b.carrying_mul_add(c, self, carry)
     }
 
     /// Computes `(self * rhs) + addend + carry`, returning the result along with the new carry.
     #[inline(always)]
+    #[must_use]
     pub const fn carrying_mul_add(self, rhs: Limb, addend: Limb, carry: Limb) -> (Limb, Limb) {
         let (res, carry) = carrying_mul_add(self.0, rhs.0, addend.0, carry.0);
         (Limb(res), Limb(carry))
@@ -24,18 +26,20 @@ impl Limb {
 
     /// Perform saturating multiplication.
     #[inline(always)]
-    pub const fn saturating_mul(&self, rhs: Self) -> Self {
+    #[must_use]
+    pub const fn saturating_mul(self, rhs: Self) -> Self {
         Limb(self.0.saturating_mul(rhs.0))
     }
 
     /// Perform wrapping multiplication, discarding overflow.
     #[inline(always)]
-    pub const fn wrapping_mul(&self, rhs: Self) -> Self {
+    #[must_use]
+    pub const fn wrapping_mul(self, rhs: Self) -> Self {
         Limb(self.0.wrapping_mul(rhs.0))
     }
 
     /// Compute "wide" multiplication, with a product twice the size of the input.
-    pub(crate) const fn widening_mul(&self, rhs: Self) -> (Self, Self) {
+    pub(crate) const fn widening_mul(self, rhs: Self) -> (Self, Self) {
         let (lo, hi) = widening_mul(self.0, rhs.0);
         (Limb(lo), Limb(hi))
     }
@@ -117,7 +121,7 @@ impl MulAssign<&Checked<Limb>> for Checked<Limb> {
 impl WrappingMul for Limb {
     #[inline]
     fn wrapping_mul(&self, v: &Self) -> Self {
-        self.wrapping_mul(*v)
+        Self::wrapping_mul(*self, *v)
     }
 }
 

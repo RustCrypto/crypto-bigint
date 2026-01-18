@@ -5,6 +5,7 @@ use crate::{BoxedUint, CtAssign, Limb, NegMod, NonZero};
 impl BoxedUint {
     /// Computes `-a mod p`.
     /// Assumes `self` is in `[0, p)`.
+    #[must_use]
     pub fn neg_mod(&self, p: &NonZero<Self>) -> Self {
         debug_assert_eq!(self.bits_precision(), p.bits_precision());
         let is_zero = self.is_zero();
@@ -21,6 +22,7 @@ impl BoxedUint {
 
     /// Computes `-a mod p` for the special modulus
     /// `p = MAX+1-c` where `c` is small enough to fit in a single [`Limb`].
+    #[must_use]
     pub fn neg_mod_special(&self, c: Limb) -> Self {
         Self::zero_with_precision(self.bits_precision()).sub_mod_special(self, c)
     }

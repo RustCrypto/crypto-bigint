@@ -6,6 +6,7 @@ use crate::{BitXor, BitXorAssign, CtOption, Limb, Wrapping};
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes bitwise `a ^ b`.
     #[inline(always)]
+    #[must_use]
     pub const fn bitxor(&self, rhs: &Self) -> Self {
         let mut limbs = [Limb::ZERO; LIMBS];
         let mut i = 0;
@@ -22,11 +23,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// There's no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations
+    #[must_use]
     pub const fn wrapping_xor(&self, rhs: &Self) -> Self {
         self.bitxor(rhs)
     }
 
     /// Perform checked bitwise `XOR`, returning a [`CtOption`] which `is_some` always
+    #[must_use]
     pub const fn checked_xor(&self, rhs: &Self) -> CtOption<Self> {
         CtOption::some(self.bitxor(rhs))
     }

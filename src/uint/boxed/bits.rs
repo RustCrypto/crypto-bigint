@@ -5,6 +5,7 @@ use crate::{BitOps, BoxedUint, Choice, Limb};
 impl BoxedUint {
     /// Get the value of the bit at position `index`, as a truthy or falsy `Choice`.
     /// Returns the falsy value for indices out of range.
+    #[must_use]
     pub fn bit(&self, index: u32) -> Choice {
         self.as_uint_ref().bit(index)
     }
@@ -14,6 +15,7 @@ impl BoxedUint {
     /// # Remarks
     /// This operation is variable time with respect to `index` only.
     #[inline(always)]
+    #[must_use]
     pub const fn bit_vartime(&self, index: u32) -> bool {
         self.as_uint_ref().bit_vartime(index)
     }
@@ -22,56 +24,64 @@ impl BoxedUint {
     /// set bit.
     ///
     /// Use [`BoxedUint::bits_precision`] to get the total capacity of this integer.
+    #[must_use]
     pub fn bits(&self) -> u32 {
         self.bits_precision() - self.leading_zeros()
     }
 
     /// Calculate the number of bits needed to represent this number in variable-time with respect
     /// to `self`.
+    #[must_use]
     pub fn bits_vartime(&self) -> u32 {
         self.as_uint_ref().bits_vartime()
     }
 
     /// Calculate the number of leading zeros in the binary representation of this number.
+    #[must_use]
     pub const fn leading_zeros(&self) -> u32 {
         self.as_uint_ref().leading_zeros()
     }
 
     /// Get the precision of this [`BoxedUint`] in bits.
     #[inline(always)]
+    #[must_use]
     pub fn bits_precision(&self) -> u32 {
         self.limbs.len() as u32 * Limb::BITS
     }
 
     /// Calculate the number of trailing zeros in the binary representation of this number.
+    #[must_use]
     pub fn trailing_zeros(&self) -> u32 {
         self.as_uint_ref().trailing_zeros()
     }
 
     /// Calculate the number of trailing ones in the binary representation of this number.
+    #[must_use]
     pub fn trailing_ones(&self) -> u32 {
         self.as_uint_ref().trailing_ones()
     }
 
     /// Calculate the number of trailing zeros in the binary representation of this number in
     /// variable-time with respect to `self`.
+    #[must_use]
     pub fn trailing_zeros_vartime(&self) -> u32 {
         self.as_uint_ref().trailing_zeros_vartime()
     }
 
     /// Calculate the number of trailing ones in the binary representation of this number,
     /// variable time in `self`.
+    #[must_use]
     pub fn trailing_ones_vartime(&self) -> u32 {
         self.as_uint_ref().trailing_ones_vartime()
     }
 
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
     pub(crate) fn set_bit(&mut self, index: u32, bit_value: Choice) {
-        self.as_mut_uint_ref().set_bit(index, bit_value)
+        self.as_mut_uint_ref().set_bit(index, bit_value);
     }
 
     pub(crate) fn set_bit_vartime(&mut self, index: u32, bit_value: bool) {
-        self.as_mut_uint_ref().set_bit_vartime(index, bit_value)
+        self.as_mut_uint_ref().set_bit_vartime(index, bit_value);
     }
 
     /// Clear any bits at or above a given bit position.
@@ -102,7 +112,7 @@ impl BitOps for BoxedUint {
     }
 
     fn set_bit(&mut self, index: u32, bit_value: Choice) {
-        self.set_bit(index, bit_value)
+        self.set_bit(index, bit_value);
     }
 
     fn trailing_zeros(&self) -> u32 {
@@ -122,7 +132,7 @@ impl BitOps for BoxedUint {
     }
 
     fn set_bit_vartime(&mut self, index: u32, bit_value: bool) {
-        self.set_bit_vartime(index, bit_value)
+        self.set_bit_vartime(index, bit_value);
     }
 
     fn trailing_zeros_vartime(&self) -> u32 {

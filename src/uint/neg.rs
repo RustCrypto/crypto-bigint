@@ -2,6 +2,7 @@ use crate::{Choice, Limb, Uint, WideWord, Word, WrappingNeg, word};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform wrapping negation.
+    #[must_use]
     pub const fn wrapping_neg(&self) -> Self {
         self.carrying_neg().0
     }
@@ -10,6 +11,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Additionally return whether the carry flag is set on the addition.
     ///
     /// Note: the carry is set if and only if `self == Self::ZERO`.
+    #[must_use]
     pub const fn carrying_neg(&self) -> (Self, Choice) {
         let mut ret = [Limb::ZERO; LIMBS];
         let mut carry = 1;
@@ -24,6 +26,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform wrapping negation, if `negate` is truthy. Otherwise, return `self`.
+    #[must_use]
     pub const fn wrapping_neg_if(&self, negate: Choice) -> Self {
         Uint::select(self, &self.wrapping_neg(), negate)
     }

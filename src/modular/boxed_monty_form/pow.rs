@@ -5,6 +5,7 @@ use crate::{BoxedUint, PowBoundedExp, modular::pow::pow_montgomery_form_amm};
 
 impl BoxedMontyForm {
     /// Raises to the `exponent` power.
+    #[must_use]
     pub fn pow(&self, exponent: &BoxedUint) -> Self {
         self.pow_bounded_exp(exponent, exponent.bits_precision())
     }
@@ -14,6 +15,7 @@ impl BoxedMontyForm {
     /// to take into account for the exponent.
     ///
     /// NOTE: `exponent_bits` may be leaked in the time pattern.
+    #[must_use]
     pub fn pow_bounded_exp(&self, exponent: &BoxedUint, exponent_bits: u32) -> Self {
         let z =
             pow_montgomery_form_amm(&self.montgomery_form, exponent, exponent_bits, &self.params);

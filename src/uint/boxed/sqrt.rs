@@ -9,6 +9,7 @@ impl BoxedUint {
     ///
     /// Callers can check if `self` is a square by squaring the result.
     #[deprecated(since = "0.7.0", note = "please use `floor_sqrt` instead")]
+    #[must_use]
     pub fn sqrt(&self) -> Self {
         self.floor_sqrt()
     }
@@ -16,6 +17,7 @@ impl BoxedUint {
     /// Computes √(`self`) in constant time.
     ///
     /// Callers can check if `self` is a square by squaring the result.
+    #[must_use]
     pub fn floor_sqrt(&self) -> Self {
         // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13.
         //
@@ -62,6 +64,7 @@ impl BoxedUint {
     ///
     /// Variable time with respect to `self`.
     #[deprecated(since = "0.7.0", note = "please use `floor_sqrt_vartime` instead")]
+    #[must_use]
     pub fn sqrt_vartime(&self) -> Self {
         self.floor_sqrt_vartime()
     }
@@ -71,6 +74,7 @@ impl BoxedUint {
     /// Callers can check if `self` is a square by squaring the result.
     ///
     /// Variable time with respect to `self`.
+    #[must_use]
     pub fn floor_sqrt_vartime(&self) -> Self {
         // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13
 
@@ -113,6 +117,7 @@ impl BoxedUint {
     /// Wrapped sqrt is just `floor(√(self))`.
     /// There’s no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations.
+    #[must_use]
     pub fn wrapping_sqrt(&self) -> Self {
         self.floor_sqrt()
     }
@@ -122,12 +127,14 @@ impl BoxedUint {
     /// This function exists so that all operations are accounted for in the wrapping operations.
     ///
     /// Variable time with respect to `self`.
+    #[must_use]
     pub fn wrapping_sqrt_vartime(&self) -> Self {
         self.floor_sqrt_vartime()
     }
 
     /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
     /// only if the square root is exact.
+    #[must_use]
     pub fn checked_sqrt(&self) -> CtOption<Self> {
         let r = self.floor_sqrt();
         let s = r.wrapping_square();
@@ -138,6 +145,7 @@ impl BoxedUint {
     /// only if the square root is exact.
     ///
     /// Variable time with respect to `self`.
+    #[must_use]
     pub fn checked_sqrt_vartime(&self) -> Option<Self> {
         let r = self.floor_sqrt_vartime();
         let s = r.wrapping_square();

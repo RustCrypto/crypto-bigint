@@ -10,6 +10,7 @@ impl BoxedUint {
     /// Multiply `self` by `rhs`.
     ///
     /// Returns a widened output with a limb count equal to the sums of the input limb counts.
+    #[must_use]
     pub fn mul(&self, rhs: &Self) -> Self {
         self.wrapping_mul_carry(rhs.as_limbs(), self.nlimbs() + rhs.nlimbs())
             .0
@@ -24,12 +25,14 @@ impl BoxedUint {
     }
 
     /// Perform wrapping multiplication, wrapping to the width of `self`.
+    #[must_use]
     pub fn wrapping_mul(&self, rhs: &Self) -> Self {
         self.wrapping_mul_carry(rhs.as_limbs(), self.nlimbs()).0
     }
 
     /// Multiply `self` by `rhs`, wrapping to the width of `self`.
     /// Returns `CtOption::None` if the result overflowed the precision of `self`.
+    #[must_use]
     pub fn checked_mul(&self, rhs: &Self) -> CtOption<Self> {
         let (res, carry) = self.wrapping_mul_carry(rhs.as_limbs(), self.nlimbs());
         let overflow =
@@ -38,6 +41,7 @@ impl BoxedUint {
     }
 
     /// Perform saturating multiplication, returning `MAX` on overflow.
+    #[must_use]
     pub fn saturating_mul(&self, rhs: &BoxedUint) -> Self {
         let (mut res, carry) = self.wrapping_mul_carry(rhs.as_limbs(), self.nlimbs());
         let overflow =
@@ -59,17 +63,20 @@ impl BoxedUint {
     }
 
     /// Multiply `self` by itself.
+    #[must_use]
     pub fn square(&self) -> Self {
         self.wrapping_square_carry(self.nlimbs() * 2).0
     }
 
     /// Multiply `self` by itself, wrapping to the width of `self`.
+    #[must_use]
     pub fn wrapping_square(&self) -> Self {
         self.wrapping_square_carry(self.nlimbs()).0
     }
 
     /// Multiply `self` by itself, wrapping to the width of `self`.
     /// Returns `CtOption::None` if the result overflowed the precision of `self`.
+    #[must_use]
     pub fn checked_square(&self) -> CtOption<Self> {
         let (res, carry) = self.wrapping_square_carry(self.nlimbs());
         let overflow =
@@ -78,6 +85,7 @@ impl BoxedUint {
     }
 
     /// Perform saturating squaring, returning `MAX` on overflow.
+    #[must_use]
     pub fn saturating_square(&self) -> Self {
         let (mut res, carry) = self.wrapping_square_carry(self.nlimbs());
         let overflow =
@@ -138,13 +146,13 @@ impl Mul<&BoxedUint> for &BoxedUint {
 
 impl MulAssign<BoxedUint> for BoxedUint {
     fn mul_assign(&mut self, rhs: BoxedUint) {
-        self.mul_assign(&rhs)
+        self.mul_assign(&rhs);
     }
 }
 
 impl MulAssign<&BoxedUint> for BoxedUint {
     fn mul_assign(&mut self, rhs: &BoxedUint) {
-        *self = self.clone().mul(rhs)
+        *self = self.clone().mul(rhs);
     }
 }
 

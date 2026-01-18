@@ -12,13 +12,15 @@ impl BoxedUint {
     ///
     /// The `bits_precision` argument represents the precision of the resulting integer, which is
     /// fixed as this type is not arbitrary-precision.
+    ///
     /// The new [`BoxedUint`] will be created with `bits_precision`
     /// rounded up to a multiple of [`Limb::BITS`].
     ///
-    /// If the length of `bytes` is larger than `bits_precision` (rounded up to a multiple of 8)
-    /// this function will return [`DecodeError::InputSize`].
-    /// If the size of the decoded integer is larger than `bits_precision`,
-    /// this function will return [`DecodeError::Precision`].
+    /// # Errors
+    /// - Returns [`DecodeError::InputSize`] if the length of `bytes` is larger than
+    ///   `bits_precision` (rounded up to a multiple of 8).
+    /// - Returns [`DecodeError::Precision`] if the size of the decoded integer is larger than
+    ///   `bits_precision`.
     pub fn from_be_slice(bytes: &[u8], bits_precision: u32) -> Result<Self, DecodeError> {
         if bytes.is_empty() && bits_precision == 0 {
             return Ok(Self::zero());
@@ -48,6 +50,8 @@ impl BoxedUint {
     /// limb count based on the input size, and is therefore only suitable for public inputs.
     ///
     /// When working with secret values, use [`BoxedUint::from_be_slice`].
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn from_be_slice_vartime(bytes: &[u8]) -> Self {
         let bits_precision = (bytes.len() as u32).saturating_mul(8);
 
@@ -59,13 +63,15 @@ impl BoxedUint {
     ///
     /// The `bits_precision` argument represents the precision of the resulting integer, which is
     /// fixed as this type is not arbitrary-precision.
+    ///
     /// The new [`BoxedUint`] will be created with `bits_precision`
     /// rounded up to a multiple of [`Limb::BITS`].
     ///
-    /// If the length of `bytes` is larger than `bits_precision` (rounded up to a multiple of 8)
-    /// this function will return [`DecodeError::InputSize`].
-    /// If the size of the decoded integer is larger than `bits_precision`,
-    /// this function will return [`DecodeError::Precision`].
+    /// # Errors
+    /// - Returns [`DecodeError::InputSize`] if the length of `bytes` is larger than
+    ///   `bits_precision` (rounded up to a multiple of 8).
+    /// - Returns [`DecodeError::Precision`] if the size of the decoded integer is larger than
+    ///   `bits_precision`.
     pub fn from_le_slice(bytes: &[u8], bits_precision: u32) -> Result<Self, DecodeError> {
         if bytes.is_empty() && bits_precision == 0 {
             return Ok(Self::zero());
@@ -95,6 +101,8 @@ impl BoxedUint {
     /// limb count based on the input size, and is therefore only suitable for public inputs.
     ///
     /// When working with secret values, use [`BoxedUint::from_le_slice`].
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)]
     pub fn from_le_slice_vartime(bytes: &[u8]) -> Self {
         let bits_precision = (bytes.len() as u32).saturating_mul(8);
 
@@ -104,6 +112,7 @@ impl BoxedUint {
 
     /// Serialize this [`BoxedUint`] as big-endian.
     #[inline]
+    #[must_use]
     pub fn to_be_bytes(&self) -> Box<[u8]> {
         let mut out = vec![0u8; self.limbs.len() * Limb::BYTES];
 
@@ -122,6 +131,7 @@ impl BoxedUint {
 
     /// Serialize this [`BoxedUint`] as big-endian without leading zeroes.
     #[inline]
+    #[must_use]
     pub fn to_be_bytes_trimmed_vartime(&self) -> Box<[u8]> {
         let zeroes = self.leading_zeros() as usize / 8;
 
@@ -130,6 +140,7 @@ impl BoxedUint {
 
     /// Serialize this [`BoxedUint`] as little-endian.
     #[inline]
+    #[must_use]
     pub fn to_le_bytes(&self) -> Box<[u8]> {
         let mut out = vec![0u8; self.limbs.len() * Limb::BYTES];
 
@@ -147,6 +158,7 @@ impl BoxedUint {
 
     /// Serialize this [`BoxedUint`] as little-endian without trailing zeroes.
     #[inline]
+    #[must_use]
     pub fn to_le_bytes_trimmed_vartime(&self) -> Box<[u8]> {
         let zeroes = self.leading_zeros() as usize / 8;
 
@@ -156,12 +168,17 @@ impl BoxedUint {
     }
 
     /// Create a new [`BoxedUint`] from the provided big endian hex string.
+    ///
+    /// # Panics
+    /// - if hex string is not the expected size
+    #[must_use]
     pub fn from_be_hex(hex: &str, bits_precision: u32) -> CtOption<Self> {
         let nlimbs = (bits_precision / Limb::BITS) as usize;
         let bytes = hex.as_bytes();
 
-        assert!(
-            bytes.len() == Limb::BYTES * nlimbs * 2,
+        assert_eq!(
+            bytes.len(),
+            Limb::BYTES * nlimbs * 2,
             "hex string is not the expected size"
         );
         let mut res = vec![Limb::ZERO; nlimbs];
@@ -191,9 +208,12 @@ impl BoxedUint {
     /// The string may begin with a `+` character, and may use underscore
     /// characters to separate digits.
     ///
-    /// If the input value contains non-digit characters or digits outside of the range `0..radix`
-    /// this function will return [`DecodeError::InvalidDigit`].
-    /// Panics if `radix` is not in the range from 2 to 36.
+    /// # Errors
+    /// - Returns [`DecodeError::InvalidDigit`] if the input value contains non-digit characters or
+    ///   digits outside of the range `0..radix`.
+    ///
+    /// # Panics
+    /// - if `radix` is not in the range from 2 to 36.
     pub fn from_str_radix_vartime(src: &str, radix: u32) -> Result<Self, DecodeError> {
         let mut dec = VecDecodeByLimb::default();
         encoding::radix_decode_str(src, radix, &mut dec)?;
@@ -210,16 +230,20 @@ impl BoxedUint {
     ///
     /// The `bits_precision` argument represents the precision of the resulting integer, which is
     /// fixed as this type is not arbitrary-precision.
+    ///
     /// The new [`BoxedUint`] will be created with `bits_precision` rounded up to a multiple
     /// of [`Limb::BITS`].
     ///
-    /// If the input value contains non-digit characters or digits outside of the range `0..radix`
-    /// this function will return [`DecodeError::InvalidDigit`].
-    /// If the length of `bytes` is larger than `bits_precision` (rounded up to a multiple of 8)
-    /// this function will return [`DecodeError::InputSize`].
-    /// If the size of the decoded integer is larger than `bits_precision`,
-    /// this function will return [`DecodeError::Precision`].
-    /// Panics if `radix` is not in the range from 2 to 36.
+    /// # Errors
+    /// - Returns [`DecodeError::InputSize`] if the length of `bytes` is larger than
+    ///   `bits_precision` (rounded up to a multiple of 8).
+    /// - Returns [`DecodeError::InvalidDigit`] if the input value contains non-digit characters or
+    ///   digits are outside the range `0..radix`.
+    /// - Returns [`DecodeError::Precision`] if the size of the decoded integer is larger than
+    ///   `bits_precision`.
+    ///
+    /// # Panics
+    /// - if `radix` is not in the range from 2 to 36.
     pub fn from_str_radix_with_precision_vartime(
         src: &str,
         radix: u32,
@@ -239,7 +263,9 @@ impl BoxedUint {
 
     /// Format a [`BoxedUint`] as a string in a given base.
     ///
-    /// Panics if `radix` is not in the range from 2 to 36.
+    /// # Panics
+    /// - if `radix` is not in the range from 2 to 36.
+    #[must_use]
     pub fn to_string_radix_vartime(&self, radix: u32) -> String {
         encoding::radix_encode_limbs_to_string(radix, &self.limbs)
     }

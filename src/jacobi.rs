@@ -20,21 +20,25 @@ pub enum JacobiSymbol {
 
 impl JacobiSymbol {
     /// Determine if the symbol is zero.
+    #[must_use]
     pub const fn is_zero(&self) -> Choice {
         Choice::from_i64_eq(*self as i8 as i64, 0)
     }
 
     /// Determine if the symbol is one.
+    #[must_use]
     pub const fn is_one(&self) -> Choice {
         Choice::from_i64_eq(*self as i8 as i64, 1)
     }
 
     /// Determine if the symbol is minus one.
+    #[must_use]
     pub const fn is_minus_one(&self) -> Choice {
         Choice::from_i64_eq(*self as i8 as i64, -1)
     }
 
     /// Negate the symbol.
+    #[must_use]
     pub const fn neg(self) -> Self {
         match self {
             Self::Zero => Self::Zero,

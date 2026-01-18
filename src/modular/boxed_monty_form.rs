@@ -30,6 +30,7 @@ impl BoxedMontyParams {
     /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`.
     ///
     /// TODO(tarcieri): DRY out with `MontyParams::new`?
+    #[must_use]
     pub fn new(modulus: Odd<BoxedUint>) -> Self {
         let bits_precision = modulus.bits_precision();
 
@@ -63,6 +64,7 @@ impl BoxedMontyParams {
     /// This version operates in variable-time with respect to the modulus.
     ///
     /// TODO(tarcieri): DRY out with `MontyParams::new`?
+    #[must_use]
     pub fn new_vartime(modulus: Odd<BoxedUint>) -> Self {
         let bits_precision = modulus.bits_precision();
 
@@ -93,11 +95,13 @@ impl BoxedMontyParams {
     }
 
     /// Modulus value.
+    #[must_use]
     pub fn modulus(&self) -> &Odd<BoxedUint> {
         &self.0.modulus
     }
 
     /// Bits of precision in the modulus.
+    #[must_use]
     pub fn bits_precision(&self) -> u32 {
         self.0.modulus.bits_precision()
     }
@@ -141,6 +145,7 @@ pub struct BoxedMontyForm {
 
 impl BoxedMontyForm {
     /// Instantiates a new [`BoxedMontyForm`] that represents an integer modulo the provided params.
+    #[must_use]
     pub fn new(mut integer: BoxedUint, params: &BoxedMontyParams) -> Self {
         debug_assert_eq!(integer.bits_precision(), params.bits_precision());
         convert_to_montgomery(&mut integer, params);
@@ -153,11 +158,13 @@ impl BoxedMontyForm {
     }
 
     /// Bits of precision in the modulus.
+    #[must_use]
     pub fn bits_precision(&self) -> u32 {
         self.params.bits_precision()
     }
 
     /// Retrieves the integer currently encoded in this [`BoxedMontyForm`], guaranteed to be reduced.
+    #[must_use]
     pub fn retrieve(&self) -> BoxedUint {
         let mut out = BoxedUint::zero_with_precision(self.bits_precision());
         montgomery_retrieve_inner(
@@ -170,6 +177,7 @@ impl BoxedMontyForm {
     }
 
     /// Instantiates a new `ConstMontyForm` that represents zero.
+    #[must_use]
     pub fn zero(params: BoxedMontyParams) -> Self {
         Self {
             montgomery_form: BoxedUint::zero_with_precision(params.bits_precision()),
@@ -178,6 +186,7 @@ impl BoxedMontyForm {
     }
 
     /// Instantiates a new `ConstMontyForm` that represents 1.
+    #[must_use]
     pub fn one(params: BoxedMontyParams) -> Self {
         Self {
             montgomery_form: params.one().clone(),
@@ -190,6 +199,7 @@ impl BoxedMontyForm {
     /// # Returns
     ///
     /// If zero, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
+    #[must_use]
     pub fn is_zero(&self) -> Choice {
         self.montgomery_form.is_zero()
     }
@@ -200,16 +210,19 @@ impl BoxedMontyForm {
     ///
     /// If zero, returns `Choice(0)`. Otherwise, returns `Choice(1)`.
     #[inline]
+    #[must_use]
     pub fn is_nonzero(&self) -> Choice {
         !self.is_zero()
     }
 
     /// Returns the parameter struct used to initialize this object.
+    #[must_use]
     pub fn params(&self) -> &BoxedMontyParams {
         &self.params
     }
 
     /// Access the [`BoxedMontyForm`] value in Montgomery form.
+    #[must_use]
     pub fn as_montgomery(&self) -> &BoxedUint {
         debug_assert!(&self.montgomery_form < self.params.modulus());
         &self.montgomery_form
@@ -221,6 +234,7 @@ impl BoxedMontyForm {
     }
 
     /// Create a [`BoxedMontyForm`] from a value in Montgomery form.
+    #[must_use]
     pub fn from_montgomery(integer: BoxedUint, params: BoxedMontyParams) -> Self {
         debug_assert_eq!(integer.bits_precision(), params.bits_precision());
         Self {
@@ -230,12 +244,14 @@ impl BoxedMontyForm {
     }
 
     /// Extract the value from the [`BoxedMontyForm`] in Montgomery form.
+    #[must_use]
     pub fn to_montgomery(&self) -> BoxedUint {
         debug_assert!(&self.montgomery_form < self.params.modulus());
         self.montgomery_form.clone()
     }
 
     /// Performs division by 2, that is returns `x` such that `x + x = self`.
+    #[must_use]
     pub fn div_by_2(&self) -> Self {
         Self {
             montgomery_form: div_by_2::div_by_2_boxed(&self.montgomery_form, self.params.modulus()),
@@ -246,7 +262,7 @@ impl BoxedMontyForm {
     /// Performs division by 2 inplace, that is finds `x` such that `x + x = self`
     /// and writes it into `self`.
     pub fn div_by_2_assign(&mut self) {
-        div_by_2::div_by_2_boxed_assign(&mut self.montgomery_form, self.params.modulus())
+        div_by_2::div_by_2_boxed_assign(&mut self.montgomery_form, self.params.modulus());
     }
 }
 
@@ -306,7 +322,7 @@ impl Monty for BoxedMontyForm {
     }
 
     fn div_by_2_assign(&mut self) {
-        BoxedMontyForm::div_by_2_assign(self)
+        BoxedMontyForm::div_by_2_assign(self);
     }
 
     fn lincomb_vartime(products: &[(&Self, &Self)]) -> Self {

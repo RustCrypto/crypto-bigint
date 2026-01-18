@@ -71,7 +71,7 @@ impl From<Vec<Word>> for BoxedUint {
         // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
         #[allow(unsafe_code)]
         unsafe {
-            let ptr = words.as_mut_ptr() as *mut Limb;
+            let ptr = words.as_mut_ptr().cast::<Limb>();
             let len = words.len();
             let capacity = words.capacity();
             mem::forget(words);

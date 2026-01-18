@@ -5,6 +5,7 @@ use core::ops::Neg;
 
 impl BoxedMontyForm {
     /// Negates the number.
+    #[must_use]
     pub fn neg(&self) -> Self {
         Self {
             montgomery_form: self

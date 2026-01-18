@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use chacha20::ChaCha8Rng;
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use crypto_bigint::{BoxedUint, Gcd, Integer, Limb, NonZero, RandomBits};
@@ -17,7 +19,7 @@ fn bench_shifts(c: &mut Criterion) {
             || BoxedUint::random_bits(&mut rng, UINT_BITS),
             |x| black_box(x.shl_vartime(UINT_BITS / 2 + 10)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("shl", |b| {
@@ -25,7 +27,7 @@ fn bench_shifts(c: &mut Criterion) {
             || BoxedUint::random_bits(&mut rng, UINT_BITS),
             |x| black_box(x.overflowing_shl(UINT_BITS / 2 + 10)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("shr_vartime", |b| {
@@ -33,7 +35,7 @@ fn bench_shifts(c: &mut Criterion) {
             || BoxedUint::random_bits(&mut rng, UINT_BITS),
             |x| black_box(x.shr_vartime(UINT_BITS / 2 + 10)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("shr", |b| {
@@ -41,7 +43,7 @@ fn bench_shifts(c: &mut Criterion) {
             || BoxedUint::random_bits(&mut rng, UINT_BITS),
             |x| black_box(x.overflowing_shr(UINT_BITS / 2 + 10)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.finish();
@@ -61,7 +63,7 @@ fn bench_mul(c: &mut Criterion) {
             },
             |(x, y)| black_box(x.mul(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("boxed_wrapping_mul", |b| {
@@ -74,7 +76,7 @@ fn bench_mul(c: &mut Criterion) {
             },
             |(x, y)| black_box(x.wrapping_mul(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("boxed_checked_mul", |b| {
@@ -87,7 +89,7 @@ fn bench_mul(c: &mut Criterion) {
             },
             |(x, y)| black_box(x.checked_mul(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("boxed_square", |b| {
@@ -95,7 +97,7 @@ fn bench_mul(c: &mut Criterion) {
             || BoxedUint::random_bits(&mut rng, UINT_BITS),
             |x| black_box(x.square()),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("boxed_wrapping_square", |b| {
@@ -103,7 +105,7 @@ fn bench_mul(c: &mut Criterion) {
             || BoxedUint::random_bits(&mut rng, UINT_BITS),
             |x| black_box(x.wrapping_square()),
             BatchSize::SmallInput,
-        )
+        );
     });
 }
 
@@ -126,7 +128,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x, y)| black_box(x.div_rem(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("boxed_div_rem_vartime", |b| {
@@ -144,7 +146,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x, y)| black_box(x.div_rem_vartime(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("boxed_div_rem_limb", |b| {
@@ -152,7 +154,7 @@ fn bench_division(c: &mut Criterion) {
             || (BoxedUint::max(UINT_BITS), NonZero::new(Limb::ONE).unwrap()),
             |(x, y)| black_box(x.div_rem_limb(y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("boxed_rem", |b| {
@@ -170,7 +172,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x, y)| black_box(x.rem(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("boxed_rem_vartime", |b| {
@@ -188,7 +190,7 @@ fn bench_division(c: &mut Criterion) {
             },
             |(x, y)| black_box(x.rem_vartime(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("boxed_rem_limb", |b| {
@@ -196,7 +198,7 @@ fn bench_division(c: &mut Criterion) {
             || (BoxedUint::max(UINT_BITS), NonZero::new(Limb::ONE).unwrap()),
             |(x, y)| black_box(x.rem_limb(y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.finish();
@@ -211,7 +213,7 @@ fn bench_boxed_sqrt(c: &mut Criterion) {
             || BoxedUint::random_bits(&mut rng, UINT_BITS),
             |x| black_box(x.floor_sqrt()),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("floor_sqrt_vartime, 4096", |b| {
@@ -219,7 +221,7 @@ fn bench_boxed_sqrt(c: &mut Criterion) {
             || BoxedUint::random_bits(&mut rng, UINT_BITS),
             |x| black_box(x.floor_sqrt_vartime()),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("checked_sqrt, 4096", |b| {
@@ -227,7 +229,7 @@ fn bench_boxed_sqrt(c: &mut Criterion) {
             || BoxedUint::random_bits(&mut rng, UINT_BITS),
             |x| black_box(x.checked_sqrt()),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("checked_sqrt_vartime, 4096", |b| {
@@ -235,7 +237,7 @@ fn bench_boxed_sqrt(c: &mut Criterion) {
             || BoxedUint::random_bits(&mut rng, UINT_BITS),
             |x| black_box(x.checked_sqrt_vartime()),
             BatchSize::SmallInput,
-        )
+        );
     });
 }
 
@@ -253,7 +255,7 @@ fn bench_radix_encoding(c: &mut Criterion) {
                     ))
                 },
                 BatchSize::SmallInput,
-            )
+            );
         });
 
         group.bench_function(format!("parse_bytes, {radix} (num-bigint-dig)"), |b| {
@@ -261,7 +263,7 @@ fn bench_radix_encoding(c: &mut Criterion) {
                 || BoxedUint::random_bits(&mut rng, UINT_BITS).to_string_radix_vartime(10),
                 |x| black_box(BigUint::parse_bytes(x.as_bytes(), radix)),
                 BatchSize::SmallInput,
-            )
+            );
         });
 
         group.bench_function(format!("to_str_radix_vartime, {radix}"), |b| {
@@ -269,7 +271,7 @@ fn bench_radix_encoding(c: &mut Criterion) {
                 || BoxedUint::random_bits(&mut rng, UINT_BITS),
                 |x| black_box(x.to_string_radix_vartime(radix)),
                 BatchSize::SmallInput,
-            )
+            );
         });
 
         group.bench_function(format!("to_str_radix, {radix} (num-bigint-dig)"), |b| {
@@ -280,7 +282,7 @@ fn bench_radix_encoding(c: &mut Criterion) {
                 },
                 |x| black_box(x.to_str_radix(radix)),
                 BatchSize::SmallInput,
-            )
+            );
         });
     }
 }
@@ -299,7 +301,7 @@ fn bench_gcd(c: &mut Criterion) {
             },
             |(x, y)| black_box(x.gcd(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("gcd_vartime", |b| {
@@ -312,7 +314,7 @@ fn bench_gcd(c: &mut Criterion) {
             },
             |(x, y)| black_box(x.gcd_vartime(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 }
 
@@ -334,7 +336,7 @@ fn bench_invert(c: &mut Criterion) {
             },
             |(x, y)| black_box(x.invert_odd_mod(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("invert_mod", |b| {
@@ -351,7 +353,7 @@ fn bench_invert(c: &mut Criterion) {
             },
             |(x, y)| black_box(x.invert_mod(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("invert_mod2k", |b| {
@@ -359,7 +361,7 @@ fn bench_invert(c: &mut Criterion) {
             || BoxedUint::random_bits(&mut rng, UINT_BITS),
             |x| x.invert_mod2k(black_box(1)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("invert_mod2k_vartime", |b| {
@@ -367,7 +369,7 @@ fn bench_invert(c: &mut Criterion) {
             || BoxedUint::random_bits(&mut rng, UINT_BITS),
             |x| x.invert_mod2k_vartime(black_box(1)),
             BatchSize::SmallInput,
-        )
+        );
     });
 }
 

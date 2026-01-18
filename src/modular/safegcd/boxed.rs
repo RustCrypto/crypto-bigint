@@ -105,10 +105,10 @@ fn invert_odd_mod_precomp<const VARTIME: bool>(
     );
     let (mut d, mut e) = (
         SignedBoxedInt::zero_with_precision(bits_precision),
-        SignedBoxedInt::from_uint(
-            e.map(|e| e.resize(bits_precision))
-                .unwrap_or_else(|| BoxedUint::one_with_precision(bits_precision)),
-        ),
+        SignedBoxedInt::from_uint(e.map_or_else(
+            || BoxedUint::one_with_precision(bits_precision),
+            |e| e.resize(bits_precision),
+        )),
     );
     let mut steps = iterations(bits_precision);
     let mut delta = 1;

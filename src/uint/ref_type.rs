@@ -14,6 +14,7 @@ use crate::{Choice, Limb, Uint};
 use core::{
     fmt,
     ops::{Index, IndexMut},
+    ptr,
 };
 
 #[cfg(feature = "alloc")]
@@ -32,9 +33,9 @@ impl UintRef {
     #[inline]
     pub const fn new(limbs: &[Limb]) -> &Self {
         // SAFETY: `UintRef` is a `repr(transparent)` newtype for `[Limb]`.
-        #[allow(trivial_casts, unsafe_code)]
+        #[allow(unsafe_code)]
         unsafe {
-            &*(limbs as *const [Limb] as *const UintRef)
+            &*(ptr::from_ref(limbs) as *const UintRef)
         }
     }
 
@@ -42,9 +43,9 @@ impl UintRef {
     #[inline]
     pub const fn new_mut(limbs: &mut [Limb]) -> &mut Self {
         // SAFETY: `UintRef` is a `repr(transparent)` newtype for `[Limb]`.
-        #[allow(trivial_casts, unsafe_code)]
+        #[allow(unsafe_code)]
         unsafe {
-            &mut *(limbs as *mut [Limb] as *mut UintRef)
+            &mut *(ptr::from_mut(limbs) as *mut UintRef)
         }
     }
 

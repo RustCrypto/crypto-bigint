@@ -6,12 +6,14 @@ use crate::{BitAnd, BitAndAssign, CtOption, Limb, Wrapping};
 impl BoxedUint {
     /// Computes bitwise `a & b`.
     #[inline(always)]
+    #[must_use]
     pub fn bitand(&self, rhs: &Self) -> Self {
-        Self::map_limbs(self, rhs, |a, b| a.bitand(b))
+        Self::map_limbs(self, rhs, Limb::bitand)
     }
 
     /// Perform bitwise `AND` between `self` and the given [`Limb`], performing the `AND` operation
     /// on every limb of `self`.
+    #[must_use]
     pub fn bitand_limb(&self, rhs: Limb) -> Self {
         Self {
             limbs: self.limbs.iter().map(|limb| limb.bitand(rhs)).collect(),
@@ -22,11 +24,13 @@ impl BoxedUint {
     ///
     /// There's no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations
+    #[must_use]
     pub fn wrapping_and(&self, rhs: &Self) -> Self {
         self.bitand(rhs)
     }
 
     /// Perform checked bitwise `AND`, returning a [`CtOption`] which `is_some` always
+    #[must_use]
     pub fn checked_and(&self, rhs: &Self) -> CtOption<Self> {
         CtOption::some(self.bitand(rhs))
     }
@@ -114,14 +118,14 @@ impl BitAnd<&Wrapping<BoxedUint>> for &Wrapping<BoxedUint> {
 impl BitAndAssign for Wrapping<BoxedUint> {
     #[allow(clippy::assign_op_pattern)]
     fn bitand_assign(&mut self, other: Self) {
-        *self = Wrapping(BoxedUint::bitand(&self.0, &other.0))
+        *self = Wrapping(BoxedUint::bitand(&self.0, &other.0));
     }
 }
 
 impl BitAndAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     #[allow(clippy::assign_op_pattern)]
     fn bitand_assign(&mut self, other: &Self) {
-        *self = Wrapping(BoxedUint::bitand(&self.0, &other.0))
+        *self = Wrapping(BoxedUint::bitand(&self.0, &other.0));
     }
 }
 

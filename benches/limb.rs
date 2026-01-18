@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use chacha20::ChaCha8Rng;
 use criterion::{
     BatchSize, BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::Measurement,
@@ -17,7 +19,7 @@ fn bench_cmp<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |(x, y)| black_box(x.ct_lt(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("ct_eq", |b| {
@@ -29,7 +31,7 @@ fn bench_cmp<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |(x, y)| black_box(x.ct_eq(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("ct_gt", |b| {
@@ -41,7 +43,7 @@ fn bench_cmp<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |(x, y)| black_box(x.ct_gt(&y)),
             BatchSize::SmallInput,
-        )
+        );
     });
 }
 

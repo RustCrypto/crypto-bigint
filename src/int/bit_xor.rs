@@ -9,6 +9,7 @@ use super::Int;
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Computes bitwise `a ^ b`.
     #[inline(always)]
+    #[must_use]
     pub const fn bitxor(&self, rhs: &Self) -> Self {
         Self(Uint::bitxor(&self.0, &rhs.0))
     }
@@ -17,11 +18,13 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// There's no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations
+    #[must_use]
     pub const fn wrapping_xor(&self, rhs: &Self) -> Self {
         self.bitxor(rhs)
     }
 
     /// Perform checked bitwise `XOR`, returning a [`CtOption`] which `is_some` always
+    #[must_use]
     pub fn checked_xor(&self, rhs: &Self) -> CtOption<Self> {
         CtOption::some(self.bitxor(rhs))
     }

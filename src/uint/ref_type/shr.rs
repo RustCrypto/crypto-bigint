@@ -29,9 +29,11 @@ impl UintRef {
         self.conditional_set_zero(overflow);
     }
 
-    /// Right-shifts by `shift` bits where `shift < `shift_upper_bound`, producing zero if
-    /// the shift exceeds the precision. The runtime is determined by `shift_upper_bound`
-    /// which may be smaller than `self.bits_precision()`.
+    /// Right-shifts by `shift` bits where `shift < shift_upper_bound`, producing zero if
+    /// the shift exceeds the precision.
+    ///
+    /// The runtime is determined by `shift_upper_bound` which may be smaller than
+    /// `self.bits_precision()`.
     #[cfg(feature = "alloc")]
     #[inline(always)]
     pub(crate) const fn bounded_wrapping_shr_assign(&mut self, shift: u32, shift_upper_bound: u32) {
@@ -159,7 +161,8 @@ impl UintRef {
     /// Conditionally right-shifts by `shift` bits where `0 < shift < Limb::BITS`, returning
     /// the carry.
     ///
-    /// Panics if `shift >= Limb::BITS`.
+    /// # Panics
+    /// - if `shift >= Limb::BITS`.
     #[inline(always)]
     pub(crate) const fn conditional_shr_assign_limb_nonzero(
         &mut self,
@@ -186,7 +189,8 @@ impl UintRef {
 
     /// Right-shifts by `shift` bits where `0 < shift < Limb::BITS`, returning the carry.
     ///
-    /// Panics if `shift >= Limb::BITS`.
+    /// # Panics
+    /// - if `shift >= Limb::BITS`.
     #[inline(always)]
     pub const fn shr_assign_limb(&mut self, shift: u32) -> Limb {
         let nz = Choice::from_u32_nz(shift);

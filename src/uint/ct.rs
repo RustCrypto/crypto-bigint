@@ -33,7 +33,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Swap `a` and `b`
     #[inline]
     pub(crate) const fn swap(a: &mut Self, b: &mut Self) {
-        Self::conditional_swap(a, b, Choice::TRUE)
+        Self::conditional_swap(a, b, Choice::TRUE);
     }
 }
 

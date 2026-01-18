@@ -2,28 +2,39 @@
 
 use crate::{CtOption, I64, I128, Int, Limb, Uint, Word};
 
+macro_rules! check_limbs {
+    ($limbs:expr) => {
+        const {
+            assert!($limbs >= 1, "number of limbs must be greater than zero");
+        }
+    };
+}
+
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Create a [`Int`] from an `i8` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<i8>` when stable
     #[inline]
+    #[must_use]
     pub const fn from_i8(n: i8) -> Self {
-        assert!(LIMBS >= 1, "number of limbs must be greater than zero");
+        check_limbs!(LIMBS);
         Uint::new([Limb(n as Word)]).as_int().resize()
     }
 
     /// Create a [`Int`] from an `i16` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<i16>` when stable
     #[inline]
+    #[must_use]
     pub const fn from_i16(n: i16) -> Self {
-        assert!(LIMBS >= 1, "number of limbs must be greater than zero");
+        check_limbs!(LIMBS);
         Uint::new([Limb(n as Word)]).as_int().resize()
     }
 
     /// Create a [`Int`] from an `i32` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<i32>` when stable
     #[inline]
+    #[must_use]
     pub const fn from_i32(n: i32) -> Self {
-        assert!(LIMBS >= 1, "number of limbs must be greater than zero");
+        check_limbs!(LIMBS);
         Uint::new([Limb(n as Word)]).as_int().resize()
     }
 
@@ -32,6 +43,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     #[cfg(target_pointer_width = "32")]
     #[inline]
     pub const fn from_i64(n: i64) -> Self {
+        check_limbs!(LIMBS);
         Uint::<{ I64::LIMBS }>::from_u64(n as u64).as_int().resize()
     }
 
@@ -39,14 +51,16 @@ impl<const LIMBS: usize> Int<LIMBS> {
     // TODO(tarcieri): replace with `const impl From<i64>` when stable
     #[cfg(target_pointer_width = "64")]
     #[inline]
+    #[must_use]
     pub const fn from_i64(n: i64) -> Self {
-        assert!(LIMBS >= 1, "number of limbs must be greater than zero");
+        check_limbs!(LIMBS);
         Uint::new([Limb(n as Word)]).as_int().resize()
     }
 
     /// Create a [`Int`] from an `i128` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<i128>` when stable
     #[inline]
+    #[must_use]
     pub const fn from_i128(n: i128) -> Self {
         Uint::<{ I128::LIMBS }>::from_u128(n as u128)
             .as_int()

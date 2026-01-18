@@ -51,12 +51,35 @@ rand_core = ["dep:rand_core"]
 serde = ["dep:serdect"]
 subtle = ["dep:subtle", "ctutils/subtle", "hybrid-array?/subtle"]
 
-[package.metadata.docs.rs]
-all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
+[lints.clippy]
+borrow_as_ptr = "warn"
+checked_conversions = "warn"
+doc_markdown = "warn"
+from_iter_instead_of_collect = "warn"
+manual_assert = "warn"
+map_unwrap_or = "warn"
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"
+mod_module_files = "warn"
+must_use_candidate = "warn"
+implicit_saturating_sub = "warn"
+panic_in_result_fn = "warn"
+ptr_as_ptr = "warn"
+redundant_closure_for_method-calls = "warn"
+ref_as_ptr = "warn"
+return_self_not_must_use = "warn"
+semicolon_if_nothing_returned = "warn"
+trivially_copy_pass_by_ref = "warn"
 
-[package.metadata.typos.default]
-extend-ignore-re = ["([0-9A-Fa-f]{16,})"]
+[lints.rust]
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+missing_copy_implementations = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+unsafe_code = "deny"
+unused_lifetimes = "warn"
+unused_qualifications = "warn"
 
 [[bench]]
 name = "boxed_monty"
@@ -90,3 +113,10 @@ harness = false
 
 [profile.dev]
 opt-level = 2
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[package.metadata.typos.default]
+extend-ignore-re = ["([0-9A-Fa-f]{16,})"]
