@@ -105,7 +105,7 @@ proptest! {
         let actual = a.overflowing_shl_vartime(shift);
 
         if shift >= U256::BITS {
-            prop_assert!(bool::from(actual.is_none()));
+            prop_assert!(actual.is_none());
         }
         else {
             prop_assert_eq!(expected, actual.unwrap());
@@ -141,7 +141,7 @@ proptest! {
         let actual = a.overflowing_shr_vartime(shift);
 
         if shift >= U256::BITS {
-            prop_assert!(bool::from(actual.is_none()));
+            prop_assert!(actual.is_none());
         }
         else {
             prop_assert_eq!(expected, actual.unwrap());

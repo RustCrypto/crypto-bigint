@@ -237,13 +237,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let mut i = 0;
         while i < shift_bits {
             let bit = Choice::from_u32_lsb((shift >> i) & 1);
-            result = Uint::select(
-                &result,
-                &result
-                    .overflowing_shr_vartime(1 << i)
-                    .expect_copied("shift within range"),
-                bit,
-            );
+            result = Uint::select(&result, &result.shr_vartime(1 << i), bit);
             i += 1;
         }
 

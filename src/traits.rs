@@ -949,7 +949,7 @@ pub trait ShlVartime: Sized {
     /// Computes `self << shift`.
     ///
     /// Returns `None` if `shift >= self.bits_precision()`.
-    fn overflowing_shl_vartime(&self, shift: u32) -> CtOption<Self>;
+    fn overflowing_shl_vartime(&self, shift: u32) -> Option<Self>;
 
     /// Computes `self << shift` in a panic-free manner, masking off bits of `shift`
     /// which would cause the shift to exceed the type's width.
@@ -961,7 +961,7 @@ pub trait ShrVartime: Sized {
     /// Computes `self >> shift`.
     ///
     /// Returns `None` if `shift >= self.bits_precision()`.
-    fn overflowing_shr_vartime(&self, shift: u32) -> CtOption<Self>;
+    fn overflowing_shr_vartime(&self, shift: u32) -> Option<Self>;
 
     /// Computes `self >> shift` in a panic-free manner, masking off bits of `shift`
     /// which would cause the shift to exceed the type's width.
