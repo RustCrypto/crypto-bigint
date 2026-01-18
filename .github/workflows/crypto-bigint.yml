@@ -129,22 +129,21 @@ jobs:
     strategy:
       matrix:
         include:
-          # PPC32 (big endian)
-          - target: powerpc-unknown-linux-gnu
-            rust: stable
+          - target: armv7-unknown-linux-gnueabi # ARM32
+          - target: powerpc-unknown-linux-gnu   # PPC32 (big endian)
 
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - run: ${{ matrix.deps }}
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: ${{ matrix.rust }}
+          toolchain: stable
           targets: ${{ matrix.target }}
       - run: cargo install cross
-      - run: cross test --target ${{ matrix.target }} --release --no-default-features
-      - run: cross test --target ${{ matrix.target }} --release
-      - run: cross test --target ${{ matrix.target }} --release --all-features
+      - run: cross test --target ${{ matrix.target }} --no-default-features
+      - run: cross test --target ${{ matrix.target }}
+      - run: cross test --target ${{ matrix.target }} --all-features
+      - run: cross test --target ${{ matrix.target }} --all-features --release
 
   # Test using `cargo miri`
   test-miri:
