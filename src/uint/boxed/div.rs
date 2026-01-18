@@ -8,6 +8,7 @@ use crate::{
 impl BoxedUint {
     /// Computes `self / rhs` using a pre-made reciprocal,
     /// returns the quotient (q) and remainder (r).
+    #[must_use]
     pub fn div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb) {
         let mut quo = self.clone();
         let rem = quo
@@ -17,6 +18,7 @@ impl BoxedUint {
     }
 
     /// Computes `self / rhs`, returns the quotient (q) and remainder (r).
+    #[must_use]
     pub fn div_rem_limb(&self, rhs: NonZero<Limb>) -> (Self, Limb) {
         let mut quo = self.clone();
         let rem = quo.as_mut_uint_ref().div_rem_limb(rhs);
@@ -25,6 +27,7 @@ impl BoxedUint {
 
     /// Computes `self % rhs` using a pre-made reciprocal.
     #[inline(always)]
+    #[must_use]
     pub fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb {
         self.as_uint_ref()
             .rem_limb_with_reciprocal(reciprocal, Limb::ZERO)
@@ -32,11 +35,13 @@ impl BoxedUint {
 
     /// Computes `self % rhs`.
     #[inline(always)]
+    #[must_use]
     pub fn rem_limb(&self, rhs: NonZero<Limb>) -> Limb {
         self.as_uint_ref().rem_limb(rhs)
     }
 
     /// Computes self / rhs, returns the quotient, remainder.
+    #[must_use]
     pub fn div_rem(&self, rhs: &NonZero<Self>) -> (Self, Self) {
         let (mut quo, mut rem) = (self.clone(), rhs.as_ref().clone());
         quo.as_mut_uint_ref().div_rem(rem.as_mut_uint_ref());
@@ -44,6 +49,7 @@ impl BoxedUint {
     }
 
     /// Computes self % rhs, returns the remainder.
+    #[must_use]
     pub fn rem(&self, rhs: &NonZero<Self>) -> Self {
         let xc = self.limbs.len();
         let yc = rhs.0.limbs.len();
@@ -56,6 +62,7 @@ impl BoxedUint {
     /// Computes self / rhs, returns the quotient and remainder.
     ///
     /// Variable-time with respect to `rhs`
+    #[must_use]
     pub fn div_rem_vartime(&self, rhs: &NonZero<Self>) -> (Self, Self) {
         let (mut quo, mut rem) = (self.clone(), rhs.as_ref().clone());
         quo.as_mut_uint_ref().div_rem_vartime(rem.as_mut_uint_ref());
@@ -65,17 +72,16 @@ impl BoxedUint {
     /// Computes self % rhs, returns the remainder.
     ///
     /// Variable-time with respect to `rhs`.
+    #[must_use]
     pub fn rem_vartime(&self, rhs: &NonZero<Self>) -> Self {
         let xc = self.limbs.len();
         let yc = rhs.0.bits_vartime().div_ceil(Limb::BITS) as usize;
 
         match yc {
-            0 => panic!("zero divisor"),
+            0 => unreachable!("zero divisor"),
             1 => {
                 // Perform limb division
-                let rem_limb = self
-                    .as_uint_ref()
-                    .rem_limb(rhs.0.limbs[0].to_nz().expect("zero divisor"));
+                let rem_limb = self.as_uint_ref().rem_limb(rhs.lower_limb());
                 let mut rem = Self::zero_with_precision(rhs.bits_precision());
                 rem.limbs[0] = rem_limb;
                 rem
@@ -100,7 +106,9 @@ impl BoxedUint {
     ///
     /// This function exists, so that all operations are accounted for in the wrapping operations.
     ///
-    /// Panics if `rhs == 0`.
+    /// # Panics
+    /// - if `rhs == 0`.
+    #[must_use]
     pub fn wrapping_div(&self, rhs: &NonZero<Self>) -> Self {
         self.div_rem(rhs).0
     }
@@ -109,12 +117,14 @@ impl BoxedUint {
     ///
     /// There’s no way wrapping could ever happen.
     /// This function exists, so that all operations are accounted for in the wrapping operations
+    #[must_use]
     pub fn wrapping_div_vartime(&self, rhs: &NonZero<Self>) -> Self {
         self.div_rem_vartime(rhs).0
     }
 
     /// Perform checked division, returning a [`CtOption`] which `is_some`
     /// only if the rhs != 0
+    #[must_use]
     pub fn checked_div(&self, rhs: &Self) -> CtOption<Self> {
         let mut quo = self.clone();
         let is_nz = rhs.is_nonzero();
@@ -263,13 +273,13 @@ impl Rem<NonZero<BoxedUint>> for BoxedUint {
 
 impl RemAssign<&NonZero<BoxedUint>> for BoxedUint {
     fn rem_assign(&mut self, rhs: &NonZero<BoxedUint>) {
-        *self = Self::rem(self, rhs)
+        *self = Self::rem(self, rhs);
     }
 }
 
 impl RemAssign<NonZero<BoxedUint>> for BoxedUint {
     fn rem_assign(&mut self, rhs: NonZero<BoxedUint>) {
-        *self = Self::rem(self, &rhs)
+        *self = Self::rem(self, &rhs);
     }
 }
 

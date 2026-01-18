@@ -6,7 +6,7 @@ use core::ops::{Div, DivAssign, Rem, RemAssign};
 /// Checked division operations.
 impl<const LIMBS: usize> Int<LIMBS> {
     #[inline]
-    /// Base div_rem operation on dividing [`Int`]s.
+    /// Base `div_rem` operation on dividing [`Int`]s.
     ///
     /// Computes the quotient and remainder of `self / rhs`.
     /// Furthermore, returns the signs of `self` and `rhs`.
@@ -49,6 +49,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// assert_eq!(quotient.unwrap(), I128::from(2));
     /// assert_eq!(remainder, I128::from(-2));
     /// ```
+    #[must_use]
     pub const fn checked_div_rem<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Int<RHS_LIMBS>>,
@@ -66,11 +67,13 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// - `self != MIN` or `rhs != MINUS_ONE`.
     ///
     /// Note: this operation rounds towards zero, truncating any fractional part of the exact result.
+    #[must_use]
     pub fn checked_div<const RHS_LIMBS: usize>(&self, rhs: &Int<RHS_LIMBS>) -> CtOption<Self> {
         NonZero::new(*rhs).and_then(|rhs| self.checked_div_rem(&rhs).0)
     }
 
     /// Computes `self` % `rhs`, returns the remainder.
+    #[must_use]
     pub const fn rem<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Int<RHS_LIMBS>>,
@@ -109,6 +112,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
+    #[must_use]
     pub const fn checked_div_rem_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Int<RHS_LIMBS>>,
@@ -127,6 +131,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
+    #[must_use]
     pub fn checked_div_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
@@ -140,6 +145,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
+    #[must_use]
     pub const fn rem_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Int<RHS_LIMBS>>,
@@ -156,6 +162,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
+    #[must_use]
     pub const fn checked_div_rem_floor_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Int<RHS_LIMBS>>,
@@ -190,6 +197,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
+    #[must_use]
     pub fn checked_div_floor_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
@@ -226,6 +234,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///     I128::from(2)
     /// )
     /// ```
+    #[must_use]
     pub fn checked_div_floor<const RHS_LIMBS: usize>(
         &self,
         rhs: &Int<RHS_LIMBS>,
@@ -263,6 +272,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// assert_eq!(quotient.unwrap(), I128::from(2));
     /// assert_eq!(remainder, I128::from(2));
     /// ```
+    #[must_use]
     pub const fn checked_div_rem_floor<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Int<RHS_LIMBS>>,
@@ -332,7 +342,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Int<RHS_LIMBS>>> fo
 
 impl<const LIMBS: usize> DivAssign<&NonZero<Int<LIMBS>>> for Int<LIMBS> {
     fn div_assign(&mut self, rhs: &NonZero<Int<LIMBS>>) {
-        *self /= *rhs
+        *self /= *rhs;
     }
 }
 
@@ -439,7 +449,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<NonZero<Int<RHS_LIMBS>>> fo
 
 impl<const LIMBS: usize> RemAssign<&NonZero<Int<LIMBS>>> for Int<LIMBS> {
     fn rem_assign(&mut self, rhs: &NonZero<Int<LIMBS>>) {
-        *self %= *rhs
+        *self %= *rhs;
     }
 }
 
@@ -497,7 +507,7 @@ impl<const LIMBS: usize> RemAssign<NonZero<Int<LIMBS>>> for Wrapping<Int<LIMBS>>
 
 impl<const LIMBS: usize> RemAssign<&NonZero<Int<LIMBS>>> for Wrapping<Int<LIMBS>> {
     fn rem_assign(&mut self, rhs: &NonZero<Int<LIMBS>>) {
-        *self = Wrapping(self.0 % rhs)
+        *self = Wrapping(self.0 % rhs);
     }
 }
 

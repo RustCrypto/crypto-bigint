@@ -2,6 +2,7 @@ use crate::{Limb, Split, SplitMixed, Uint};
 
 impl<const I: usize> Uint<I> {
     /// Split this number in half into low and high components.
+    #[must_use]
     pub const fn split<const O: usize>(&self) -> (Uint<O>, Uint<O>)
     where
         Self: Split<Output = Uint<O>>,
@@ -11,6 +12,7 @@ impl<const I: usize> Uint<I> {
 
     /// Split this number into low and high components respectively.
     #[inline]
+    #[must_use]
     pub const fn split_mixed<const L: usize, const H: usize>(&self) -> (Uint<L>, Uint<H>)
     where
         Self: SplitMixed<Uint<L>, Uint<H>>,

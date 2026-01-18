@@ -6,6 +6,7 @@ impl BoxedUint {
     /// Computes `self - rhs mod p`.
     ///
     /// Assumes `self - rhs` as unbounded signed integer is in `[-p, p)`.
+    #[must_use]
     pub fn sub_mod(&self, rhs: &Self, p: &NonZero<Self>) -> Self {
         debug_assert_eq!(self.bits_precision(), p.bits_precision());
         debug_assert_eq!(rhs.bits_precision(), p.bits_precision());
@@ -40,6 +41,7 @@ impl BoxedUint {
     /// `p = MAX+1-c` where `c` is small enough to fit in a single [`Limb`].
     ///
     /// Assumes `self - rhs` as unbounded signed integer is in `[-p, p)`.
+    #[must_use]
     pub fn sub_mod_special(&self, rhs: &Self, c: Limb) -> Self {
         let (out, borrow) = self.borrowing_sub(rhs, Limb::ZERO);
 

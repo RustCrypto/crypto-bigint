@@ -26,6 +26,9 @@ use serdect::serde::{
     de::{Error, Unexpected},
 };
 
+/// Non-zero limb.
+pub type NonZeroLimb = NonZero<Limb>;
+
 /// Non-zero unsigned integer.
 pub type NonZeroUint<const LIMBS: usize> = NonZero<Uint<LIMBS>>;
 
@@ -166,12 +169,16 @@ where
 
 impl NonZero<Limb> {
     /// Creates a new non-zero limb in a const context.
-    /// Panics if the value is zero.
     ///
+    /// # Panics
+    /// - if the value is zero.
+    ///
+    /// # Note
     /// In future versions of Rust it should be possible to replace this with
     /// `NonZero::new(…).unwrap()`
     // TODO: Remove when `Self::new` and `CtOption::unwrap` support `const fn`
     #[inline]
+    #[must_use]
     #[track_caller]
     pub const fn new_unwrap(n: Limb) -> Self {
         assert!(n.is_nonzero().to_bool_vartime(), "invalid value: zero");
@@ -180,18 +187,21 @@ impl NonZero<Limb> {
 
     /// Create a [`NonZero<Limb>`] from a [`NonZeroU8`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU8>` when stable
+    #[must_use]
     pub const fn from_u8(n: NonZeroU8) -> Self {
         Self(Limb::from_u8(n.get()))
     }
 
     /// Create a [`NonZero<Limb>`] from a [`NonZeroU16`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU16>` when stable
+    #[must_use]
     pub const fn from_u16(n: NonZeroU16) -> Self {
         Self(Limb::from_u16(n.get()))
     }
 
     /// Create a [`NonZero<Limb>`] from a [`NonZeroU32`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU32>` when stable
+    #[must_use]
     pub const fn from_u32(n: NonZeroU32) -> Self {
         Self(Limb::from_u32(n.get()))
     }
@@ -199,6 +209,7 @@ impl NonZero<Limb> {
     /// Create a [`NonZero<Limb>`] from a [`NonZeroU64`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU64>` when stable
     #[cfg(target_pointer_width = "64")]
+    #[must_use]
     pub const fn from_u64(n: NonZeroU64) -> Self {
         Self(Limb::from_u64(n.get()))
     }
@@ -215,6 +226,7 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
     // TODO: Remove when `Self::new` and `CtOption::unwrap` support `const fn`
     #[inline]
     #[track_caller]
+    #[must_use]
     pub const fn new_unwrap(n: Uint<LIMBS>) -> Self {
         assert!(n.is_nonzero().to_bool_vartime(), "invalid value: zero");
         Self(n)
@@ -225,6 +237,7 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
     /// # Panics
     /// - if the hex is zero, malformed, or not zero-padded accordingly for the size.
     #[track_caller]
+    #[must_use]
     pub const fn from_be_hex(hex: &str) -> Self {
         Self::new_unwrap(Uint::from_be_hex(hex))
     }
@@ -234,36 +247,42 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
     /// # Panics
     /// - if the hex is zero, malformed, or not zero-padded accordingly for the size.
     #[track_caller]
+    #[must_use]
     pub const fn from_le_hex(hex: &str) -> Self {
         Self::new_unwrap(Uint::from_le_hex(hex))
     }
 
     /// Create a [`NonZeroUint`] from a [`NonZeroU8`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU8>` when stable
+    #[must_use]
     pub const fn from_u8(n: NonZeroU8) -> Self {
         Self(Uint::from_u8(n.get()))
     }
 
     /// Create a [`NonZeroUint`] from a [`NonZeroU16`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU16>` when stable
+    #[must_use]
     pub const fn from_u16(n: NonZeroU16) -> Self {
         Self(Uint::from_u16(n.get()))
     }
 
     /// Create a [`NonZeroUint`] from a [`NonZeroU32`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU32>` when stable
+    #[must_use]
     pub const fn from_u32(n: NonZeroU32) -> Self {
         Self(Uint::from_u32(n.get()))
     }
 
     /// Create a [`NonZeroUint`] from a [`NonZeroU64`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU64>` when stable
+    #[must_use]
     pub const fn from_u64(n: NonZeroU64) -> Self {
         Self(Uint::from_u64(n.get()))
     }
 
     /// Create a [`NonZeroUint`] from a [`NonZeroU128`] (const-friendly)
     // TODO(tarcieri): replace with `const impl From<NonZeroU128>` when stable
+    #[must_use]
     pub const fn from_u128(n: NonZeroU128) -> Self {
         Self(Uint::from_u128(n.get()))
     }
@@ -271,12 +290,16 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
 
 impl<const LIMBS: usize> NonZeroInt<LIMBS> {
     /// Creates a new non-zero integer in a const context.
-    /// Panics if the value is zero.
     ///
+    /// # Panics
+    /// - if the value is zero.
+    ///
+    /// # Note
     /// In future versions of Rust it should be possible to replace this with
     /// `NonZero::new(…).unwrap()`
     // TODO: Remove when `Self::new` and `CtOption::unwrap` support `const fn`
     #[inline]
+    #[must_use]
     #[track_caller]
     pub const fn new_unwrap(n: Int<LIMBS>) -> Self {
         assert!(n.is_nonzero().to_bool_vartime(), "invalid value: zero");
@@ -284,6 +307,7 @@ impl<const LIMBS: usize> NonZeroInt<LIMBS> {
     }
 
     /// The sign and magnitude of this [`NonZeroInt`].
+    #[must_use]
     pub const fn abs_sign(&self) -> (NonZero<Uint<LIMBS>>, Choice) {
         let (abs, sign) = self.0.abs_sign();
         // Absolute value of a non-zero value is non-zero
@@ -291,8 +315,17 @@ impl<const LIMBS: usize> NonZeroInt<LIMBS> {
     }
 
     /// The magnitude of this [`NonZeroInt`].
+    #[must_use]
     pub const fn abs(&self) -> NonZero<Uint<LIMBS>> {
         self.abs_sign().0
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl NonZeroBoxedUint {
+    /// Get the least significant limb as a [`NonZeroLimb`].
+    pub(crate) const fn lower_limb(&self) -> NonZeroLimb {
+        NonZero(self.0.limbs[0])
     }
 }
 
@@ -604,7 +637,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn from_be_hex_when_zero() {
-        NonZero::<U128>::from_be_hex("00000000000000000000000000000000");
+        let _ = NonZero::<U128>::from_be_hex("00000000000000000000000000000000");
     }
 
     #[test]
@@ -618,7 +651,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn from_le_hex_when_zero() {
-        NonZero::<U128>::from_le_hex("00000000000000000000000000000000");
+        let _ = NonZero::<U128>::from_le_hex("00000000000000000000000000000000");
     }
 
     #[test]

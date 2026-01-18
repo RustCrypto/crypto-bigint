@@ -11,6 +11,7 @@ impl Odd<UintRef> {
     ///
     /// Variable time with respect to the number of words in `value`, however that number will be
     /// fixed for a given integer size.
+    #[must_use]
     pub const fn invert_mod_u64(&self) -> u64 {
         let value = self.as_ref().lowest_u64();
         let x = value.wrapping_mul(3) ^ 2;

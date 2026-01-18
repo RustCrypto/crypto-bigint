@@ -6,6 +6,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self + rhs mod p`.
     ///
     /// Assumes `self + rhs` as unbounded integer is `< 2p`.
+    #[must_use]
     pub const fn add_mod(&self, rhs: &Self, p: &NonZero<Self>) -> Self {
         let (w, carry) = self.carrying_add(rhs, Limb::ZERO);
         w.sub_mod_with_carry(carry, p.as_ref(), p.as_ref())
@@ -15,6 +16,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// `p = MAX+1-c` where `c` is small enough to fit in a single [`Limb`].
     ///
     /// Assumes `self + rhs` as unbounded integer is `< 2p`.
+    #[must_use]
     pub const fn add_mod_special(&self, rhs: &Self, c: Limb) -> Self {
         // `Uint::carrying_add` also works with a carry greater than 1.
         let (out, carry) = self.carrying_add(rhs, c);
@@ -29,6 +31,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self + self mod p`.
     ///
     /// Assumes `self` as unbounded integer is `< p`.
+    #[must_use]
     pub const fn double_mod(&self, p: &NonZero<Self>) -> Self {
         let (w, carry) = self.overflowing_shl1();
         w.sub_mod_with_carry(carry, p.as_ref(), p.as_ref())

@@ -9,6 +9,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     ///
     /// For a prime modulus, this corresponds to the Legendre symbol and indicates
     /// whether `self` is quadratic residue.
+    #[must_use]
     pub const fn jacobi_symbol(&self) -> JacobiSymbol {
         self.retrieve().jacobi_symbol(MOD::PARAMS.modulus())
     }
@@ -19,6 +20,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     /// whether `self` is quadratic residue.
     ///
     /// This method is variable-time with respect to the value of `self`.
+    #[must_use]
     pub const fn jacobi_symbol_vartime(&self) -> JacobiSymbol {
         self.retrieve().jacobi_symbol_vartime(MOD::PARAMS.modulus())
     }

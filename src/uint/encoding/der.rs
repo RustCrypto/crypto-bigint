@@ -76,11 +76,9 @@ pub(crate) fn count_der_be_bytes(limbs: &[Limb]) -> u32 {
         .saturating_sub(leading_zero_bytes as usize / Limb::BYTES);
 
     // Limb bytes encoded as big-endian
-    let first_nonzero_byte = limbs
-        .get(limb_index)
-        .cloned()
-        .map(|limb| limb.to_be_bytes()[leading_zero_bytes as usize % Limb::BYTES])
-        .unwrap_or(0x00);
+    let first_nonzero_byte = limbs.get(limb_index).cloned().map_or(0x00, |limb| {
+        limb.to_be_bytes()[leading_zero_bytes as usize % Limb::BYTES]
+    });
 
     // Does the given integer need a leading zero?
     let needs_leading_zero = first_nonzero_byte >= 0x80;
@@ -142,6 +140,7 @@ pub mod test {
     use crate::{ArrayEncoding, BoxedUint, U128, Uint};
     use der::{DecodeValue, EncodeValue, Header, Tag};
 
+    #[allow(clippy::panic_in_result_fn)]
     fn assert_valid_uint_value_len<const LIMBS: usize>(n: &Uint<LIMBS>) -> der::Result<()>
     where
         Uint<LIMBS>: ArrayEncoding,
@@ -171,6 +170,7 @@ pub mod test {
     }
 
     #[cfg(feature = "alloc")]
+    #[allow(clippy::panic_in_result_fn)]
     fn assert_valid_boxeduint_value_len(n: &BoxedUint) -> der::Result<()> {
         let mut buf = [0u8; 128];
         let encoded_value = {

@@ -5,6 +5,7 @@ use core::ops::Neg;
 
 impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
     /// Negates the number.
+    #[must_use]
     pub const fn neg(&self) -> Self {
         Self {
             montgomery_form: self

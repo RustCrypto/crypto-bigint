@@ -6,14 +6,18 @@ use core::ops::{Shl, ShlAssign};
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Computes `self << shift`.
     ///
-    /// Panics if `shift >= Self::BITS`.
+    /// # Panics
+    /// - if `shift >= Self::BITS`.
+    #[must_use]
     pub const fn shl(&self, shift: u32) -> Self {
         Self(Uint::shl(&self.0, shift))
     }
 
     /// Computes `self << shift` in variable time.
     ///
-    /// Panics if `shift >= Self::BITS`.
+    /// # Panics
+    /// - if `shift >= Self::BITS`.
+    #[must_use]
     pub const fn shl_vartime(&self, shift: u32) -> Self {
         Self(Uint::shl_vartime(&self.0, shift))
     }
@@ -21,6 +25,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Computes `self << shift`.
     ///
     /// Returns `None` if `shift >= Self::BITS`.
+    #[must_use]
     pub const fn overflowing_shl(&self, shift: u32) -> CtOption<Self> {
         Self::from_uint_opt(self.0.overflowing_shl(shift))
     }
@@ -34,6 +39,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
     #[inline(always)]
+    #[must_use]
     pub const fn overflowing_shl_vartime(&self, shift: u32) -> Option<Self> {
         if let Some(uint) = self.0.overflowing_shl_vartime(shift) {
             Some(*uint.as_int())
@@ -44,12 +50,14 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Computes `self << shift` in a panic-free manner, returning zero if the shift exceeds the
     /// precision.
+    #[must_use]
     pub const fn wrapping_shl(&self, shift: u32) -> Self {
         Self(self.0.wrapping_shl(shift))
     }
 
     /// Computes `self << shift` in variable-time in a panic-free manner, returning zero if the
     /// shift exceeds the precision.
+    #[must_use]
     pub const fn wrapping_shl_vartime(&self, shift: u32) -> Self {
         Self(self.0.wrapping_shl_vartime(shift))
     }

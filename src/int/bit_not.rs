@@ -9,6 +9,7 @@ use super::Int;
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Computes bitwise `!a`.
     #[inline(always)]
+    #[must_use]
     pub const fn not(&self) -> Self {
         Self(Uint::not(&self.0))
     }

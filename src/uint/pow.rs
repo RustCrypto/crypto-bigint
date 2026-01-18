@@ -7,6 +7,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self^exp`, returning a `CtOption` which is none in the case of overflow.
     ///
     /// This method is variable time in the exponent `exp`.
+    #[must_use]
     pub fn checked_pow_vartime(&self, exp: u32) -> CtOption<Self> {
         if exp == 0 {
             return CtOption::some(Self::ONE);
@@ -27,6 +28,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self^exp`.
     ///
     /// This method is variable time in the exponent `exp`.
+    #[must_use]
     pub const fn wrapping_pow_vartime(&self, exp: u32) -> Self {
         if exp == 0 {
             return Self::ONE;

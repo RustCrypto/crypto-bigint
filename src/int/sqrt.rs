@@ -6,6 +6,7 @@ use crate::{CheckedSquareRoot, CtOption};
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
     /// only if the integer is non-negative and the square root is exact.
+    #[must_use]
     pub fn checked_sqrt(&self) -> CtOption<Self> {
         self.as_uint()
             .checked_sqrt()
@@ -17,6 +18,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// only if the integer is non-negative and the square root is exact.
     ///
     /// Variable time with respect to `self`.
+    #[must_use]
     pub fn checked_sqrt_vartime(&self) -> Option<Self> {
         if self.is_negative().not().to_bool_vartime() {
             self.as_uint()

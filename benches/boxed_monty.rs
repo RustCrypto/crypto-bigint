@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use chacha20::ChaCha8Rng;
 use criterion::{
     BatchSize, BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::Measurement,
@@ -36,7 +38,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |(a, b)| black_box(a).add(&black_box(b)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function(format!("double, {UINT_BITS}-bit"), |b| {
@@ -49,7 +51,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |a| black_box(a).double(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function(format!("sub, {UINT_BITS}-bit"), |b| {
@@ -67,7 +69,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |(a, b)| black_box(a).sub(&black_box(b)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function(format!("neg, {UINT_BITS}-bit"), |b| {
@@ -80,7 +82,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |a| black_box(a).neg(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function(format!("invert, {UINT_BITS}-bit"), |b| {
@@ -93,7 +95,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |x| black_box(x).invert(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function(format!("invert_vartime, {UINT_BITS}-bit"), |b| {
@@ -106,7 +108,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |x| black_box(x).invert_vartime(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("multiplication, BoxedUint*BoxedUint", |b| {
@@ -124,7 +126,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |(x, y)| black_box(x * y),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     let modulus = to_biguint(params.modulus());
@@ -137,7 +139,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |(x, y)| x * y % &modulus,
             BatchSize::SmallInput,
-        )
+        );
     });
 
     let m = Odd::<BoxedUint>::random(&mut rng, UINT_BITS);
@@ -153,7 +155,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |(x, p)| black_box(x.pow(&p)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("modpow, BigUint^BigUint (num-bigint-dig)", |b| {
@@ -169,7 +171,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |(x, p)| black_box(x.modpow(&p, &modulus)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function(
@@ -189,7 +191,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                     ])
                 },
                 BatchSize::SmallInput,
-            )
+            );
         },
     );
 }
@@ -201,7 +203,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
             || Odd::<BoxedUint>::random(&mut rng, UINT_BITS),
             |modulus| black_box(BoxedMontyParams::new(modulus)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("BoxedMontyParams::new_vartime", |b| {
@@ -209,7 +211,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
             || Odd::<BoxedUint>::random(&mut rng, UINT_BITS),
             |modulus| black_box(BoxedMontyParams::new_vartime(modulus)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     let params = BoxedMontyParams::new(Odd::<BoxedUint>::random(&mut rng, UINT_BITS));
@@ -218,7 +220,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
             || BoxedUint::random_bits(&mut rng, UINT_BITS),
             |x| black_box(BoxedMontyForm::new(x, &params)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     let params = BoxedMontyParams::new(Odd::<BoxedUint>::random(&mut rng, UINT_BITS));
@@ -227,7 +229,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
             || BoxedMontyForm::new(BoxedUint::random_bits(&mut rng, UINT_BITS), &params),
             |x| black_box(x.retrieve()),
             BatchSize::SmallInput,
-        )
+        );
     });
 }
 

@@ -8,12 +8,14 @@ use crate::{
 impl Limb {
     /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
     #[deprecated(since = "0.7.0", note = "please use `borrowing_sub` instead")]
+    #[must_use]
     pub const fn sbb(self, rhs: Limb, borrow: Limb) -> (Limb, Limb) {
         self.borrowing_sub(rhs, borrow)
     }
 
     /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
     #[inline(always)]
+    #[must_use]
     pub const fn borrowing_sub(self, rhs: Limb, borrow: Limb) -> (Limb, Limb) {
         let (res, borrow) = borrowing_sub(self.0, rhs.0, borrow.0);
         (Limb(res), Limb(borrow))
@@ -21,6 +23,7 @@ impl Limb {
 
     /// Perform saturating subtraction.
     #[inline]
+    #[must_use]
     pub const fn saturating_sub(&self, rhs: Self) -> Self {
         Limb(self.0.saturating_sub(rhs.0))
     }
@@ -28,6 +31,7 @@ impl Limb {
     /// Perform wrapping subtraction, discarding underflow and wrapping around
     /// the boundary of the type.
     #[inline(always)]
+    #[must_use]
     pub const fn wrapping_sub(&self, rhs: Self) -> Self {
         Limb(self.0.wrapping_sub(rhs.0))
     }

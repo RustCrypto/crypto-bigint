@@ -10,6 +10,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Callers can check if `self` is an exact power of `exp` by exponentiating the result.
     ///
     /// This method is variable time in `self` and in the exponent.
+    #[must_use]
     pub const fn floor_root_vartime(&self, exp: NonZeroU32) -> Self {
         if self.is_zero_vartime() {
             Self::ZERO
@@ -26,7 +27,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         if self.is_zero_vartime() {
             Some(Self::ZERO)
         } else {
-            NonZero(*self).checked_root_vartime(exp).map(|nz| nz.get())
+            NonZero(*self).checked_root_vartime(exp).map(NonZero::get)
         }
     }
 }
@@ -37,6 +38,7 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     /// Callers can check if `self` is an exact power of `exp` by exponentiating the result.
     ///
     /// This method is variable time in self and in the exponent.
+    #[must_use]
     pub const fn floor_root_vartime(&self, exp: NonZeroU32) -> Self {
         // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.14.
 
@@ -81,6 +83,7 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     /// only if the root is exact.
     ///
     /// This method is variable time in `self` and in the exponent.
+    #[must_use]
     pub fn checked_root_vartime(&self, exp: NonZeroU32) -> Option<Self> {
         let r = self.floor_root_vartime(exp);
         let s = r.wrapping_pow_vartime(exp.get());
@@ -143,7 +146,7 @@ mod tests {
                 let rt_p1 = root.wrapping_add_limb(Limb::ONE);
                 let s3 = rt_p1.checked_pow_vartime(exp.get()).into_option();
                 assert!(
-                    s3.map(|s3| s3 > s2).unwrap_or(true),
+                    s3.is_none_or(|s3| s3 > s2),
                     "underflow, {s} exp={exp}, root={root}"
                 );
             }

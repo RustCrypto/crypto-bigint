@@ -219,6 +219,6 @@ mod tests {
         let (hi, carry) = qf_hi.carrying_add(&Uint::ZERO, carry);
         assert_eq!(res, lo);
         assert_eq!(mac_carry, hi.limbs[0]);
-        assert_eq!(carry, Limb::ZERO)
+        assert_eq!(carry, Limb::ZERO);
     }
 }

@@ -6,6 +6,7 @@ use core::ops::Not;
 
 impl BoxedUint {
     /// Computes bitwise `!a`.
+    #[must_use]
     pub fn not(&self) -> Self {
         let mut limbs = vec![Limb::ZERO; self.nlimbs()];
 

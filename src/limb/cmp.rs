@@ -6,7 +6,8 @@ use core::cmp::Ordering;
 impl Limb {
     /// Is this limb an odd number?
     #[inline]
-    pub fn is_odd(&self) -> Choice {
+    #[must_use]
+    pub fn is_odd(self) -> Choice {
         word::choice_from_lsb(self.0 & 1)
     }
 
@@ -14,18 +15,20 @@ impl Limb {
     ///
     /// Note that the [`PartialOrd`] and [`Ord`] impls wrap constant-time
     /// comparisons using the `subtle` crate.
-    pub fn cmp_vartime(&self, other: &Self) -> Ordering {
+    #[must_use]
+    pub fn cmp_vartime(self, other: Self) -> Ordering {
         self.0.cmp(&other.0)
     }
 
     /// Performs an equality check in variable-time.
-    pub const fn eq_vartime(&self, other: &Self) -> bool {
+    #[must_use]
+    pub const fn eq_vartime(self, other: Self) -> bool {
         self.0 == other.0
     }
 
     /// Returns the truthy value if `self != 0` and the falsy value otherwise.
     #[inline]
-    pub(crate) const fn is_nonzero(&self) -> Choice {
+    pub(crate) const fn is_nonzero(self) -> Choice {
         word::choice_from_nz(self.0)
     }
 }

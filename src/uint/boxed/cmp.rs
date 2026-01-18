@@ -9,6 +9,7 @@ use crate::{CtAssign, CtEq, CtGt, CtLt, Limb, Uint};
 
 impl BoxedUint {
     /// Returns the Ordering between `self` and `rhs` in variable time.
+    #[must_use]
     pub fn cmp_vartime(&self, rhs: &Self) -> Ordering {
         debug_assert_eq!(self.limbs.len(), rhs.limbs.len());
         let mut i = self.limbs.len() - 1;

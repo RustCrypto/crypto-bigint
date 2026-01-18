@@ -10,6 +10,7 @@ pub(crate) mod schoolbook;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
+    #[must_use]
     pub const fn concatenating_mul<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
@@ -24,6 +25,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute "wide" multiplication as a 2-tuple containing the `(lo, hi)` components of the product, whose sizes
     /// correspond to the sizes of the operands.
     #[deprecated(since = "0.7.0", note = "please use `widening_mul` instead")]
+    #[must_use]
     pub const fn split_mul<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
@@ -34,6 +36,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute "wide" multiplication as a 2-tuple containing the `(lo, hi)` components of the product, whose sizes
     /// correspond to the sizes of the operands.
     #[inline(always)]
+    #[must_use]
     pub const fn widening_mul<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
@@ -42,16 +45,19 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform wrapping multiplication, discarding overflow.
+    #[must_use]
     pub const fn wrapping_mul<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> Self {
         karatsuba::wrapping_mul_fixed::<LIMBS>(self.as_uint_ref(), rhs.as_uint_ref()).0
     }
 
     /// Perform saturating multiplication, returning `MAX` on overflow.
+    #[must_use]
     pub const fn saturating_mul<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> Self {
         ctutils::unwrap_or!(self.checked_mul(rhs), Uint::MAX, Self::select)
     }
 
     /// Perform wrapping multiplication, checking that the result fits in the original [`Uint`] size.
+    #[must_use]
     pub const fn checked_mul<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
@@ -84,11 +90,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Square self, returning a "wide" result in two parts as (lo, hi).
     #[inline(always)]
+    #[must_use]
     pub const fn square_wide(&self) -> (Self, Self) {
         karatsuba::widening_square_fixed(self.as_uint_ref())
     }
 
     /// Square self, returning a concatenated "wide" result.
+    #[must_use]
     pub const fn widening_square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS>
     where
         Self: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
@@ -98,6 +106,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Square self, checking that the result fits in the original [`Uint`] size.
+    #[must_use]
     pub const fn checked_square(&self) -> CtOption<Uint<LIMBS>> {
         let (lo, carry) = karatsuba::wrapping_square_fixed(self.as_uint_ref());
         let overflow =
@@ -106,11 +115,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform wrapping square, discarding overflow.
+    #[must_use]
     pub const fn wrapping_square(&self) -> Uint<LIMBS> {
         karatsuba::wrapping_square_fixed(self.as_uint_ref()).0
     }
 
     /// Perform saturating squaring, returning `MAX` on overflow.
+    #[must_use]
     pub const fn saturating_square(&self) -> Self {
         ctutils::unwrap_or!(self.checked_square(), Self::MAX, Self::select)
     }
@@ -121,6 +132,7 @@ where
     Self: Concat<Output = Uint<WIDE_LIMBS>>,
 {
     /// Square self, returning a concatenated "wide" result.
+    #[must_use]
     pub const fn square(&self) -> Uint<WIDE_LIMBS> {
         let (lo, hi) = self.square_wide();
         lo.concat(&hi)
@@ -168,13 +180,13 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Mul<&Uint<RHS_LIMBS>> for &Uint
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> MulAssign<Uint<RHS_LIMBS>> for Uint<LIMBS> {
     fn mul_assign(&mut self, rhs: Uint<RHS_LIMBS>) {
-        *self = self.mul(&rhs)
+        *self = self.mul(&rhs);
     }
 }
 
 impl<const LIMBS: usize, const RHS_LIMBS: usize> MulAssign<&Uint<RHS_LIMBS>> for Uint<LIMBS> {
     fn mul_assign(&mut self, rhs: &Uint<RHS_LIMBS>) {
-        *self = self.mul(rhs)
+        *self = self.mul(rhs);
     }
 }
 

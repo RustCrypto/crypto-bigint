@@ -9,6 +9,7 @@ use crate::{
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self / rhs` using a pre-made reciprocal, returning the quotient
     /// and remainder.
+    #[must_use]
     pub const fn div_rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> (Self, Limb) {
         let mut quo = *self;
         let rem = quo
@@ -18,6 +19,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes `self / rhs`, returning the quotient and remainder.
+    #[must_use]
     pub const fn div_rem_limb(&self, rhs: NonZero<Limb>) -> (Self, Limb) {
         let mut quo = *self;
         let rem = quo.as_mut_uint_ref().div_rem_limb(rhs);
@@ -25,12 +27,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes `self % rhs` using a pre-made reciprocal.
+    #[must_use]
     pub const fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb {
         self.as_uint_ref()
             .rem_limb_with_reciprocal(reciprocal, Limb::ZERO)
     }
 
     /// Computes `self % rhs` for a `Limb`-sized divisor.
+    #[must_use]
     pub const fn rem_limb(&self, rhs: NonZero<Limb>) -> Limb {
         self.as_uint_ref().rem_limb(rhs)
     }
@@ -38,6 +42,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self` / `rhs`, returning the quotient and the remainder.
     ///
     /// This function is constant-time with respect to both `self` and `rhs`.
+    #[must_use]
     pub const fn div_rem<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
@@ -54,6 +59,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
     #[inline]
+    #[must_use]
     pub const fn div_rem_vartime<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
@@ -64,6 +70,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes `self` % `rhs`.
+    #[must_use]
     pub const fn rem<const RHS_LIMBS: usize>(
         &self,
         rhs: &NonZero<Uint<RHS_LIMBS>>,
@@ -78,6 +85,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
     #[inline]
+    #[must_use]
     pub const fn rem_vartime(&self, rhs: &NonZero<Self>) -> Self {
         let (mut x, mut y) = (*self, *rhs.as_ref());
         UintRef::rem_wide_vartime(
@@ -89,6 +97,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes `self` % `rhs` for a double-width `Uint`.
     #[inline]
+    #[must_use]
     pub const fn rem_wide(mut lower_upper: (Self, Self), rhs: &NonZero<Self>) -> Self {
         let mut y = *rhs.as_ref();
         UintRef::rem_wide(
@@ -108,6 +117,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// When used with a fixed `rhs`, this function is constant-time with respect
     /// to `self`.
     #[inline]
+    #[must_use]
     pub const fn rem_wide_vartime(mut lower_upper: (Self, Self), rhs: &NonZero<Self>) -> Self {
         let mut y = *rhs.as_ref();
         UintRef::rem_wide_vartime(
@@ -134,6 +144,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// // As 10 % 8 = 2
     /// assert_eq!(remainder, U448::from(2_u64));
     /// ```
+    #[must_use]
     pub const fn rem2k_vartime(&self, k: u32) -> Self {
         self.restrict_bits(k)
     }
@@ -142,6 +153,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// There’s no way wrapping could ever happen.
     /// This function exists, so that all operations are accounted for in the wrapping operations.
+    #[must_use]
     pub const fn wrapping_div(&self, rhs: &NonZero<Self>) -> Self {
         self.div_rem(rhs).0
     }
@@ -150,6 +162,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// There’s no way wrapping could ever happen.
     /// This function exists, so that all operations are accounted for in the wrapping operations.
+    #[must_use]
     pub const fn wrapping_div_vartime<const RHS: usize>(&self, rhs: &NonZero<Uint<RHS>>) -> Self {
         self.div_rem_vartime(rhs).0
     }
@@ -172,6 +185,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// let zero = U448::from(0_u64);
     /// assert!(a.checked_div(&zero).is_none().to_bool(), "should be None for division by zero");
     /// ```
+    #[must_use]
     pub fn checked_div<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
         NonZero::new(*rhs).map(|rhs| {
             let (q, _r) = self.div_rem(&rhs);
@@ -180,7 +194,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// This function exists, so that all operations are accounted for in the wrapping operations.
-    /// Panics if `rhs == 0`.
+    ///
+    /// # Panics
+    /// - if `rhs == 0`.
     ///
     /// ### Usage:
     /// ```
@@ -192,6 +208,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// assert_eq!(remainder, U448::from(1_u64));
     /// ```
+    #[must_use]
     pub const fn wrapping_rem_vartime(&self, rhs: &Self) -> Self {
         let nz_rhs = rhs.to_nz().expect_copied("non-zero divisor");
         self.rem_vartime(&nz_rhs)
@@ -215,6 +232,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// assert!(a.checked_rem(&zero).is_none().to_bool(), "should be None for reduction by zero");
     /// ```
+    #[must_use]
     pub fn checked_rem<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
@@ -311,7 +329,7 @@ impl<const LIMBS: usize> Div<&NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
 
 impl<const LIMBS: usize> DivAssign<&NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
     fn div_assign(&mut self, rhs: &NonZero<Limb>) {
-        *self = Wrapping(self.0 / rhs)
+        *self = Wrapping(self.0 / rhs);
     }
 }
 
@@ -406,7 +424,7 @@ impl<const LIMBS: usize> RemAssign<NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
 
 impl<const LIMBS: usize> RemAssign<&NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
     fn rem_assign(&mut self, rhs: &NonZero<Limb>) {
-        *self = Wrapping((self.0 % rhs).into())
+        *self = Wrapping((self.0 % rhs).into());
     }
 }
 
@@ -455,7 +473,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Uint<RHS_LIMBS>>> f
 
 impl<const LIMBS: usize> DivAssign<&NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
     fn div_assign(&mut self, rhs: &NonZero<Uint<LIMBS>>) {
-        *self /= *rhs
+        *self /= *rhs;
     }
 }
 
@@ -597,7 +615,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<Uint<RHS_LIMBS>> for Uint<L
 
 impl<const LIMBS: usize> RemAssign<&NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
     fn rem_assign(&mut self, rhs: &NonZero<Uint<LIMBS>>) {
-        *self %= *rhs
+        *self %= *rhs;
     }
 }
 
@@ -655,7 +673,7 @@ impl<const LIMBS: usize> RemAssign<NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS
 
 impl<const LIMBS: usize> RemAssign<&NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
     fn rem_assign(&mut self, rhs: &NonZero<Uint<LIMBS>>) {
-        *self = Wrapping(self.0 % rhs)
+        *self = Wrapping(self.0 % rhs);
     }
 }
 

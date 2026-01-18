@@ -5,19 +5,22 @@ use crate::{BitOr, BitOrAssign, BoxedUint, CtOption, Wrapping};
 impl BoxedUint {
     /// Computes bitwise `a & b`.
     #[inline(always)]
+    #[must_use]
     pub fn bitor(&self, rhs: &Self) -> Self {
-        Self::map_limbs(self, rhs, |a, b| a.bitor(b))
+        Self::map_limbs(self, rhs, crate::limb::Limb::bitor)
     }
 
     /// Perform wrapping bitwise `OR`.
     ///
     /// There's no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations
+    #[must_use]
     pub fn wrapping_or(&self, rhs: &Self) -> Self {
         self.bitor(rhs)
     }
 
     /// Perform checked bitwise `OR`, returning a [`CtOption`] which `is_some` always
+    #[must_use]
     pub fn checked_or(&self, rhs: &Self) -> CtOption<Self> {
         CtOption::some(self.bitor(rhs))
     }
@@ -58,7 +61,7 @@ impl BitOr<&BoxedUint> for &BoxedUint {
 
 impl BitOrAssign for BoxedUint {
     fn bitor_assign(&mut self, other: Self) {
-        Self::bitor_assign(self, &other)
+        Self::bitor_assign(self, &other);
     }
 }
 
@@ -104,12 +107,12 @@ impl BitOr<&Wrapping<BoxedUint>> for &Wrapping<BoxedUint> {
 
 impl BitOrAssign for Wrapping<BoxedUint> {
     fn bitor_assign(&mut self, other: Self) {
-        self.0.bitor_assign(&other.0)
+        self.0.bitor_assign(&other.0);
     }
 }
 
 impl BitOrAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
     fn bitor_assign(&mut self, other: &Self) {
-        self.0.bitor_assign(&other.0)
+        self.0.bitor_assign(&other.0);
     }
 }

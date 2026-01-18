@@ -4,6 +4,7 @@ use crate::{BoxedUint, Limb, MulMod, NonZero, SquareMod, WideWord, Word, div_lim
 
 impl BoxedUint {
     /// Computes `self * rhs mod p` for non-zero `p`.
+    #[must_use]
     pub fn mul_mod(&self, rhs: &BoxedUint, p: &NonZero<BoxedUint>) -> BoxedUint {
         self.mul(rhs).rem(p)
     }
@@ -14,6 +15,7 @@ impl BoxedUint {
     /// For the modulus reduction, this function implements Algorithm 14.47 from
     /// the "Handbook of Applied Cryptography", by A. Menezes, P. van Oorschot,
     /// and S. Vanstone, CRC Press, 1996.
+    #[must_use]
     pub fn mul_mod_special(&self, rhs: &Self, c: Limb) -> Self {
         debug_assert_eq!(self.bits_precision(), rhs.bits_precision());
 
@@ -50,11 +52,13 @@ impl BoxedUint {
     }
 
     /// Computes `self * self mod p`.
+    #[must_use]
     pub fn square_mod(&self, p: &NonZero<BoxedUint>) -> Self {
         self.square().rem(p)
     }
 
     /// Computes `self * self mod p` in variable time with respect to `p`.
+    #[must_use]
     pub fn square_mod_vartime(&self, p: &NonZero<BoxedUint>) -> Self {
         self.square().rem_vartime(p)
     }

@@ -8,19 +8,22 @@ use crate::{
 impl BoxedUint {
     /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
     #[deprecated(since = "0.7.0", note = "please use `borrowing_sub` instead")]
+    #[must_use]
     pub fn sbb(&self, rhs: &Self, borrow: Limb) -> (Self, Limb) {
         self.borrowing_sub(rhs, borrow)
     }
 
     /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
     #[inline(always)]
+    #[must_use]
     pub fn borrowing_sub(&self, rhs: &Self, borrow: Limb) -> (Self, Limb) {
-        Self::fold_limbs(self, rhs, borrow, |a, b, c| a.borrowing_sub(b, c))
+        Self::fold_limbs(self, rhs, borrow, Limb::borrowing_sub)
     }
 
     /// Computes `a - (b + borrow)` in-place, returning the new borrow.
     ///
-    /// Panics if `rhs` has a larger precision than `self`.
+    /// # Panics
+    /// - if `rhs` has a larger precision than `self`.
     #[deprecated(since = "0.7.0", note = "please use `borrowing_sub_assign` instead")]
     pub fn sbb_assign(&mut self, rhs: impl AsRef<[Limb]>, borrow: Limb) -> Limb {
         self.borrowing_sub_assign(rhs, borrow)
@@ -28,7 +31,8 @@ impl BoxedUint {
 
     /// Computes `a - (b + borrow)` in-place, returning the new borrow.
     ///
-    /// Panics if `rhs` has a larger precision than `self`.
+    /// # Panics
+    /// - if `rhs` has a larger precision than `self`.
     #[inline(always)]
     pub fn borrowing_sub_assign(&mut self, rhs: impl AsRef<[Limb]>, mut borrow: Limb) -> Limb {
         debug_assert!(self.bits_precision() >= (rhs.as_ref().len() as u32 * Limb::BITS));
@@ -44,6 +48,7 @@ impl BoxedUint {
     }
 
     /// Perform wrapping subtraction, discarding overflow.
+    #[must_use]
     pub fn wrapping_sub(&self, rhs: &Self) -> Self {
         self.borrowing_sub(rhs, Limb::ZERO).0
     }
@@ -112,7 +117,7 @@ impl Sub<&BoxedUint> for &BoxedUint {
 
 impl SubAssign<BoxedUint> for BoxedUint {
     fn sub_assign(&mut self, rhs: BoxedUint) {
-        self.sub_assign(&rhs)
+        self.sub_assign(&rhs);
     }
 }
 

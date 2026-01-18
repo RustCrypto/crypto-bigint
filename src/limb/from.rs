@@ -5,18 +5,21 @@ use super::{Limb, WideWord, Word};
 impl Limb {
     /// Create a [`Limb`] from a `u8` integer (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u8>` when stable
+    #[must_use]
     pub const fn from_u8(n: u8) -> Self {
         Limb(n as Word)
     }
 
     /// Create a [`Limb`] from a `u16` integer (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u16>` when stable
+    #[must_use]
     pub const fn from_u16(n: u16) -> Self {
         Limb(n as Word)
     }
 
     /// Create a [`Limb`] from a `u32` integer (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u32>` when stable
+    #[must_use]
     pub const fn from_u32(n: u32) -> Self {
         #[allow(trivial_numeric_casts)]
         Limb(n as Word)
@@ -25,6 +28,7 @@ impl Limb {
     /// Create a [`Limb`] from a `u64` integer (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u64>` when stable
     #[cfg(target_pointer_width = "64")]
+    #[must_use]
     pub const fn from_u64(n: u64) -> Self {
         Limb(n)
     }

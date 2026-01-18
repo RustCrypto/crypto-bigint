@@ -27,6 +27,10 @@ const RADIX_ENCODING_MAX: u32 = 36;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a new [`Uint`] from the provided big endian bytes.
+    ///
+    /// # Panics
+    /// - If the supplied byte slice is the incorrect size
+    #[must_use]
     pub const fn from_be_slice(bytes: &[u8]) -> Self {
         assert!(
             bytes.len() == Limb::BYTES * LIMBS,
@@ -54,6 +58,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// # Panics
     /// - if the hex is malformed or not zero-padded accordingly for the size.
+    #[must_use]
     pub const fn from_be_hex(hex: &str) -> Self {
         let bytes = hex.as_bytes();
 
@@ -86,6 +91,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Create a new [`Uint`] from the provided little endian bytes.
+    ///
+    /// # Panics
+    /// - If the supplied byte slice is the incorrect size
+    #[must_use]
     pub const fn from_le_slice(bytes: &[u8]) -> Self {
         assert!(
             bytes.len() == Limb::BYTES * LIMBS,
@@ -113,6 +122,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// # Panics
     /// - if the hex is malformed or not zero-padded accordingly for the size.
+    #[must_use]
     pub const fn from_le_hex(hex: &str) -> Self {
         let bytes = hex.as_bytes();
 
@@ -184,11 +194,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// The string may begin with a `+` character, and may use
     /// underscore characters to separate digits.
     ///
-    /// If the input value contains non-digit characters or digits outside of the range `0..radix`
-    /// this function will return [`DecodeError::InvalidDigit`].
-    /// If the size of the decoded integer is larger than this type can represent,
-    /// this function will return [`DecodeError::InputSize`].
-    /// Panics if `radix` is not in the range from 2 to 36.
+    /// # Errors
+    /// - Returns [`DecodeError::InputSize`] if the size of the decoded integer is larger than this
+    ///   type can represent
+    /// - Returns [`DecodeError::InvalidDigit`] if the input value contains non-digit characters or
+    ///   digits outside of the range `0..radix`.
+    ///
+    /// # Panics
+    /// - if `radix` is not in the range from 2 to 36.
     pub fn from_str_radix_vartime(src: &str, radix: u32) -> Result<Self, DecodeError> {
         let mut slf = Self::ZERO;
         radix_decode_str(src, radix, &mut SliceDecodeByLimb::new(&mut slf.limbs))?;
@@ -197,19 +210,23 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Format a [`Uint`] as a string in a given base.
     ///
-    /// Panics if `radix` is not in the range from 2 to 36.
+    /// # Panics
+    /// - if `radix` is not in the range from 2 to 36.
     #[cfg(feature = "alloc")]
+    #[must_use]
     pub fn to_string_radix_vartime(&self, radix: u32) -> String {
         let mut buf = *self;
         radix_encode_limbs_mut_to_string(radix, buf.as_mut_uint_ref())
     }
 
     /// Serialize as big endian bytes.
+    #[must_use]
     pub const fn to_be_bytes(&self) -> EncodedUint<LIMBS> {
         EncodedUint::new_be(self)
     }
 
     /// Serialize as little endian bytes.
+    #[must_use]
     pub const fn to_le_bytes(&self) -> EncodedUint<LIMBS> {
         EncodedUint::new_le(self)
     }
@@ -232,11 +249,12 @@ const fn cast_slice(limbs: &[Word]) -> &[u8] {
 #[allow(unsafe_code)]
 const fn cast_slice_mut(limbs: &mut [Word]) -> &mut [u8] {
     let new_len = size_of_val(limbs);
-    unsafe { core::slice::from_raw_parts_mut(limbs.as_mut_ptr() as *mut u8, new_len) }
+    unsafe { core::slice::from_raw_parts_mut(limbs.as_mut_ptr().cast::<u8>(), new_len) }
 }
 
 impl<const LIMBS: usize> EncodedUint<LIMBS> {
     /// Extracts a byte slice containing the entire contents.
+    #[must_use]
     pub const fn as_slice(&self) -> &[u8] {
         cast_slice(&self.0)
     }
@@ -408,7 +426,7 @@ pub(crate) trait DecodeByLimb {
     fn push_limb(&mut self, limb: Limb) -> bool;
 }
 
-/// Wrap a `Limb`` slice as a target for decoding
+/// Wrap a `Limb` slice as a target for decoding
 pub(crate) struct SliceDecodeByLimb<'de> {
     limbs: &'de mut [Limb],
     len: usize,
@@ -439,18 +457,23 @@ impl DecodeByLimb for SliceDecodeByLimb<'_> {
     }
 }
 
-/// Decode an ascii string in base `radix`, writing the result
-/// to the `DecodeByLimb` instance `out`.
-/// The input must be a non-empty ascii string, may begin with a `+`
-/// character, and may use `_` as a separator between digits.
+/// Decode an ascii string in base `radix`, writing the result to the `DecodeByLimb` instance `out`.
+///
+/// The input must be a non-empty ascii string, may begin with a `+` character, and may use `_` as a
+/// separator between digits.
+///
+/// # Panics
+/// - if `radix` is not within `RADIX_ENCODING_MIN..=RADIX_ENCODING_MAX`.
+#[allow(clippy::panic_in_result_fn)]
 pub(crate) fn radix_decode_str<D: DecodeByLimb>(
     src: &str,
     radix: u32,
     out: &mut D,
 ) -> Result<(), DecodeError> {
-    if !(RADIX_ENCODING_MIN..=RADIX_ENCODING_MAX).contains(&radix) {
-        panic!("unsupported radix");
-    }
+    assert!(
+        (RADIX_ENCODING_MIN..=RADIX_ENCODING_MAX).contains(&radix),
+        "unsupported radix"
+    );
     if radix == 2 || radix == 4 || radix == 16 {
         radix_decode_str_aligned_digits(src, radix as u8, out)
     } else {
@@ -612,7 +635,9 @@ fn radix_decode_str_aligned_digits<D: DecodeByLimb>(
 
 /// Encode a slice of limbs to a string in base `radix`. The result will have no leading
 /// zeros unless the value itself is zero.
-/// Panics if `radix` is not in the range from 2 to 36.
+///
+/// # Panics
+/// - if `radix` is not in the range from 2 to 36.
 #[cfg(feature = "alloc")]
 pub(crate) fn radix_encode_limbs_to_string(radix: u32, limbs: &[Limb]) -> String {
     let mut array_buf = [Limb::ZERO; 128];
@@ -631,12 +656,15 @@ pub(crate) fn radix_encode_limbs_to_string(radix: u32, limbs: &[Limb]) -> String
 /// Encode a slice of limbs to a string in base `radix`. The contents of the slice
 /// will be used as a working buffer. The result will have no leading zeros unless
 /// the value itself is zero.
-/// Panics if `radix` is not in the range from 2 to 36.
+///
+/// # Panics
+/// - if `radix` is not in the range from 2 to 36.
 #[cfg(feature = "alloc")]
 pub(crate) fn radix_encode_limbs_mut_to_string(radix: u32, limbs: &mut UintRef) -> String {
-    if !(RADIX_ENCODING_MIN..=RADIX_ENCODING_MAX).contains(&radix) {
-        panic!("unsupported radix");
-    }
+    assert!(
+        (RADIX_ENCODING_MIN..=RADIX_ENCODING_MAX).contains(&radix),
+        "unsupported radix"
+    );
 
     let mut out;
     if radix.is_power_of_two() {
@@ -760,13 +788,12 @@ impl RadixDivisionParams {
 
     #[allow(trivial_numeric_casts)]
     pub const fn for_radix(radix: u32) -> Self {
-        if radix < RADIX_ENCODING_MIN || radix > RADIX_ENCODING_MAX {
-            panic!("invalid radix for division");
-        }
+        assert!(
+            !(radix < RADIX_ENCODING_MIN || radix > RADIX_ENCODING_MAX),
+            "invalid radix for division"
+        );
         let ret = Self::ALL[(radix + radix.leading_zeros() - 33) as usize];
-        if ret.radix != radix {
-            panic!("radix lookup failure");
-        }
+        assert!(ret.radix == radix, "radix lookup failure");
         ret
     }
 

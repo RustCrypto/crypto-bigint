@@ -9,6 +9,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Returns the negation, as well as whether the operation overflowed.
     /// The operation overflows when attempting to negate [`Int::MIN`]; the positive counterpart
     /// of this value cannot be represented.
+    #[must_use]
     pub const fn overflowing_neg(&self) -> (Self, Choice) {
         Self(self.0.bitxor(&Uint::MAX)).overflowing_add(&Int::ONE)
     }
@@ -17,6 +18,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// Warning: this operation maps [`Int::MIN`] to itself, since the positive counterpart of this
     /// value cannot be represented.
+    #[must_use]
     pub const fn wrapping_neg(&self) -> Self {
         self.overflowing_neg().0
     }
@@ -25,6 +27,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// Warning: this operation maps [`Int::MIN`] to itself, since the positive counterpart of this
     /// value cannot be represented.
+    #[must_use]
     pub const fn wrapping_neg_if(&self, negate: Choice) -> Int<LIMBS> {
         Self(self.0.wrapping_neg_if(negate))
     }
@@ -33,6 +36,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// Yields `None` when `self == Self::MIN`, since the positive counterpart of this value cannot
     /// be represented.
+    #[must_use]
     pub const fn checked_neg(&self) -> CtOption<Self> {
         let (value, overflow) = self.overflowing_neg();
         CtOption::new(value, overflow.not())

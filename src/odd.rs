@@ -4,7 +4,7 @@ use crate::{
     Bounded, Choice, ConstOne, CtAssign, CtEq, CtOption, CtSelect, Int, Integer, Limb, Mul,
     NonZero, One, Uint, UintRef,
 };
-use core::{cmp::Ordering, fmt, ops::Deref};
+use core::{cmp::Ordering, fmt, ops::Deref, ptr};
 use ctutils::{CtAssignSlice, CtEqSlice};
 
 #[cfg(feature = "alloc")]
@@ -84,9 +84,9 @@ impl<T: ?Sized> Odd<T> {
 
     /// All odd integers are definitionally non-zero, so we can also obtain a reference to [`NonZero`].
     pub const fn as_nz_ref(&self) -> &NonZero<T> {
-        #[allow(trivial_casts, unsafe_code)]
+        #[allow(unsafe_code)]
         unsafe {
-            &*(&self.0 as *const T as *const NonZero<T>)
+            &*(&raw const self.0 as *const NonZero<T>)
         }
     }
 }
@@ -105,7 +105,10 @@ where
 impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Create a new [`Odd<Uint<LIMBS>>`] from the provided big endian hex string.
     ///
-    /// Panics if the hex is malformed or not zero-padded accordingly for the size, or if the value is even.
+    /// # Panics
+    /// - if the hex is malformed or not zero-padded accordingly for the size.
+    /// - if the value is even.
+    #[must_use]
     #[track_caller]
     pub const fn from_be_hex(hex: &str) -> Self {
         let uint = Uint::<LIMBS>::from_be_hex(hex);
@@ -115,7 +118,10 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
     /// Create a new [`Odd<Uint<LIMBS>>`] from the provided little endian hex string.
     ///
-    /// Panics if the hex is malformed or not zero-padded accordingly for the size, or if the value is even.
+    /// # Panics
+    /// - if the hex is malformed or not zero-padded accordingly for the size.
+    /// - if the value is even.
+    #[must_use]
     #[track_caller]
     pub const fn from_le_hex(hex: &str) -> Self {
         let uint = Uint::<LIMBS>::from_le_hex(hex);
@@ -126,15 +132,16 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Borrow the limbs of this [`Odd<Uint>`] as a [`Odd<UintRef>`].
     pub(crate) const fn as_uint_ref(&self) -> &Odd<UintRef> {
         // SAFETY: `Odd` is a `repr(transparent)` newtype.
-        #[allow(trivial_casts, unsafe_code)]
+        #[allow(unsafe_code)]
         unsafe {
-            &*(self.0.as_uint_ref() as *const UintRef as *const Odd<UintRef>)
+            &*(ptr::from_ref(self.0.as_uint_ref()) as *const Odd<UintRef>)
         }
     }
 
     /// Construct an [`Odd<Uint<T>>`] from the unsigned integer value,
     /// truncating the upper bits if the value is too large to be
     /// represented.
+    #[must_use]
     pub const fn resize<const T: usize>(&self) -> Odd<Uint<T>> {
         Odd(self.0.resize())
     }
@@ -142,6 +149,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
 impl<const LIMBS: usize> Odd<Int<LIMBS>> {
     /// The sign and magnitude of this [`Odd<Int<{LIMBS}>>`].
+    #[must_use]
     pub const fn abs_sign(&self) -> (Odd<Uint<LIMBS>>, Choice) {
         // Absolute value of an odd value is odd
         let (abs, sgn) = Int::abs_sign(self.as_ref());
@@ -149,6 +157,7 @@ impl<const LIMBS: usize> Odd<Int<LIMBS>> {
     }
 
     /// The magnitude of this [`Odd<Int<{LIMBS}>>`].
+    #[must_use]
     pub const fn abs(&self) -> Odd<Uint<LIMBS>> {
         self.abs_sign().0
     }
@@ -284,6 +293,7 @@ impl Odd<UintRef> {
     /// Construct an [`Odd<Uint<T>>`] from the unsigned integer value,
     /// truncating the upper bits if the value is too large to be
     /// represented.
+    #[must_use]
     pub const fn to_uint_resize<const T: usize>(&self) -> Odd<Uint<T>> {
         Odd(self.0.to_uint_resize())
     }
@@ -294,9 +304,9 @@ impl Odd<BoxedUint> {
     /// Borrow the limbs of this [`Odd<BoxedUint>`] as a [`Odd<UintRef>`].
     pub(crate) const fn as_uint_ref(&self) -> &Odd<UintRef> {
         // SAFETY: `Odd` is a `repr(transparent)` newtype.
-        #[allow(trivial_casts, unsafe_code)]
+        #[allow(unsafe_code)]
         unsafe {
-            &*(self.0.as_uint_ref() as *const UintRef as *const Odd<UintRef>)
+            &*(ptr::from_ref(self.0.as_uint_ref()) as *const Odd<UintRef>)
         }
     }
 }
@@ -483,7 +493,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn from_be_hex_when_even() {
-        Odd::<U128>::from_be_hex("00000000000000000000000000000002");
+        let _ = Odd::<U128>::from_be_hex("00000000000000000000000000000002");
     }
 
     #[test]
@@ -497,7 +507,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn from_le_hex_when_even() {
-        Odd::<U128>::from_le_hex("20000000000000000000000000000000");
+        let _ = Odd::<U128>::from_le_hex("20000000000000000000000000000000");
     }
 
     #[test]

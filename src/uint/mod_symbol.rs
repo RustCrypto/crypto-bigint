@@ -7,6 +7,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// For prime `rhs`, this corresponds to the Legendre symbol and
     /// indicates whether `self` is quadratic residue modulo `rhs`.
+    #[must_use]
     pub const fn jacobi_symbol(&self, rhs: &Odd<Uint<LIMBS>>) -> JacobiSymbol {
         let (gcd, jacobi_neg) = if LIMBS < 4 {
             rhs.classic_bingcd_(self)
@@ -28,6 +29,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// indicates whether `self` is quadratic residue modulo `rhs`.
     ///
     /// This method executes in variable-time for both inputs.
+    #[must_use]
     pub const fn jacobi_symbol_vartime(&self, rhs: &Odd<Uint<LIMBS>>) -> JacobiSymbol {
         let (gcd, jacobi_neg) = if LIMBS < 4 {
             rhs.classic_bingcd_vartime_(self)

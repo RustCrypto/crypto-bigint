@@ -9,7 +9,10 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Note, this is _signed_ shift right, i.e., the value shifted in on the left is equal to
     /// the most significant bit.
     ///
-    /// Panics if `shift >= Self::BITS`.
+    /// # Panics
+    /// - if `shift >= Self::BITS`.
+    #[must_use]
+    #[track_caller]
     pub const fn shr(&self, shift: u32) -> Self {
         self.overflowing_shr(shift)
             .expect_copied("`shift` within the bit size of the integer")
@@ -20,7 +23,10 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Note, this is _signed_ shift right, i.e., the value shifted in on the left is equal to
     /// the most significant bit.
     ///
-    /// Panics if `shift >= Self::BITS`.
+    /// # Panics
+    /// - if `shift >= Self::BITS`.
+    #[must_use]
+    #[track_caller]
     pub const fn shr_vartime(&self, shift: u32) -> Self {
         self.overflowing_shr_vartime(shift)
             .expect("`shift` within the bit size of the integer")
@@ -32,6 +38,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// the most significant bit.
     ///
     /// Returns `None` if `shift >= Self::BITS`.
+    #[must_use]
     pub const fn overflowing_shr(&self, shift: u32) -> CtOption<Self> {
         // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
         // (which lies in range `0 <= shift < BITS`).
@@ -61,6 +68,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
     #[inline(always)]
+    #[must_use]
     pub const fn overflowing_shr_vartime(&self, shift: u32) -> Option<Self> {
         if let Some(ret) = self.0.overflowing_shr_vartime(shift) {
             let neg_upper = Uint::select(
@@ -79,6 +87,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// If the shift exceeds the precision, returns
     /// - `0` when `self` is non-negative, and
     /// - `-1` when `self` is negative.
+    #[must_use]
     pub const fn wrapping_shr(&self, shift: u32) -> Self {
         let default = Self::select(&Self::ZERO, &Self::MINUS_ONE, self.is_negative());
         ctutils::unwrap_or!(self.overflowing_shr(shift), default, Self::select)
@@ -89,6 +98,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// If the shift exceeds the precision, returns
     /// - `0` when `self` is non-negative, and
     /// - `-1` when `self` is negative.
+    #[must_use]
     pub const fn wrapping_shr_vartime(&self, shift: u32) -> Self {
         if let Some(ret) = self.overflowing_shr_vartime(shift) {
             ret

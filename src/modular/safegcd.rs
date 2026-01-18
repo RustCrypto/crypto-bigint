@@ -205,7 +205,7 @@ const fn jump<const VARTIME: bool>(
 
 /// Perform one step of the gcd reduction in constant time.
 /// This follows the half-delta variant of safegcd-bounds which reduces the round count.
-/// https://github.com/sipa/safegcd-bounds
+/// <https://github.com/sipa/safegcd-bounds>
 #[inline(always)]
 const fn jump_step(
     mut f: i64,
@@ -367,7 +367,7 @@ const fn shr_in_place_wide<const L: usize, const H: usize>(
 }
 
 /// Calculate the maximum number of iterations required according to
-/// safegcd-bounds: https://github.com/sipa/safegcd-bounds
+/// safegcd-bounds: <https://github.com/sipa/safegcd-bounds>
 #[inline]
 const fn iterations(bits: u32) -> u32 {
     (45907 * bits + 30179) / 19929

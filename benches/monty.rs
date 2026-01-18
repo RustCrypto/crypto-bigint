@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use chacha20::ChaCha8Rng;
 use criterion::{
     BatchSize, BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::Measurement,
@@ -19,7 +21,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
             || Odd::<U256>::random_from_rng(&mut rng),
             |modulus| black_box(MontyParams::new(modulus)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("MontyParams::new_vartime", |b| {
@@ -27,7 +29,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
             || Odd::<U256>::random_from_rng(&mut rng),
             |modulus| black_box(MontyParams::new_vartime(modulus)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     let params = MontyParams::new_vartime(Odd::<U256>::random_from_rng(&mut rng));
@@ -36,7 +38,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
             || U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref()),
             |x| black_box(MontyForm::new(&x, &params)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     let params = MontyParams::new_vartime(Odd::<U256>::random_from_rng(&mut rng));
@@ -50,7 +52,7 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
             },
             |x| black_box(x.retrieve()),
             BatchSize::SmallInput,
-        )
+        );
     });
 }
 
@@ -73,7 +75,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |(a, b)| black_box(a).add(&black_box(b)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("double, U256", |b| {
@@ -86,7 +88,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |a| black_box(a).double(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("sub, U256", |b| {
@@ -104,7 +106,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |(a, b)| black_box(a).sub(&black_box(b)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("neg, U256", |b| {
@@ -117,7 +119,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |a| black_box(a).neg(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("invert, U256", |b| {
@@ -130,7 +132,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |x| black_box(x).invert(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("multiplication, U256*U256", |b| {
@@ -148,7 +150,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |(x, y)| black_box(x * y),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("square, U256", |b| {
@@ -161,7 +163,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |x| x.square(),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("modpow, U256^U256", |b| {
@@ -175,7 +177,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |(x, p)| black_box(x.pow(&p)),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     group.bench_function("div_by_2, U256", |b| {
@@ -186,7 +188,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
             },
             |x| black_box(x.div_by_2()),
             BatchSize::SmallInput,
-        )
+        );
     });
 
     #[cfg(feature = "alloc")]
@@ -219,7 +221,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                         ))
                     },
                     BatchSize::SmallInput,
-                )
+                );
             },
         );
     }

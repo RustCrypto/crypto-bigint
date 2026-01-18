@@ -22,6 +22,7 @@ use mul::DynMontyMultiplier;
 
 impl<const LIMBS: usize> MontyParams<LIMBS> {
     /// Instantiates a new set of `MontyParams` representing the given odd `modulus`.
+    #[must_use]
     pub const fn new(modulus: Odd<Uint<LIMBS>>) -> Self {
         // `R mod modulus` where `R = 2^BITS`.
         // Represents 1 in Montgomery form.
@@ -51,6 +52,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
 
 impl<const LIMBS: usize> MontyParams<LIMBS> {
     /// Instantiates a new set of `MontyParams` representing the given odd `modulus`.
+    #[must_use]
     pub const fn new_vartime(modulus: Odd<Uint<LIMBS>>) -> Self {
         // `R mod modulus` where `R = 2^BITS`.
         // Represents 1 in Montgomery form.
@@ -91,6 +93,7 @@ pub struct MontyForm<const LIMBS: usize> {
 
 impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Instantiates a new `MontyForm` that represents this `integer` mod `MOD`.
+    #[must_use]
     pub const fn new(integer: &Uint<LIMBS>, params: &MontyParams<LIMBS>) -> Self {
         let montgomery_form =
             mul_montgomery_form(integer, &params.r2, &params.modulus, params.mod_neg_inv());
@@ -101,6 +104,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     }
 
     /// Retrieves the integer currently encoded in this `MontyForm`, guaranteed to be reduced.
+    #[must_use]
     pub const fn retrieve(&self) -> Uint<LIMBS> {
         montgomery_retrieve(
             &self.montgomery_form,
@@ -110,6 +114,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     }
 
     /// Instantiates a new `MontyForm` that represents zero.
+    #[must_use]
     pub const fn zero(params: MontyParams<LIMBS>) -> Self {
         Self {
             montgomery_form: Uint::<LIMBS>::ZERO,
@@ -118,6 +123,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     }
 
     /// Instantiates a new `MontyForm` that represents 1.
+    #[must_use]
     pub const fn one(params: MontyParams<LIMBS>) -> Self {
         Self {
             montgomery_form: params.one,
@@ -126,11 +132,13 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     }
 
     /// Returns the parameter struct used to initialize this object.
+    #[must_use]
     pub const fn params(&self) -> &MontyParams<LIMBS> {
         &self.params
     }
 
     /// Access the `MontyForm` value in Montgomery form.
+    #[must_use]
     pub const fn as_montgomery(&self) -> &Uint<LIMBS> {
         &self.montgomery_form
     }
@@ -141,6 +149,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     }
 
     /// Create a `MontyForm` from a value in Montgomery form.
+    #[must_use]
     pub const fn from_montgomery(integer: Uint<LIMBS>, params: MontyParams<LIMBS>) -> Self {
         Self {
             montgomery_form: integer,
@@ -149,11 +158,13 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     }
 
     /// Extract the value from the `MontyForm` in Montgomery form.
+    #[must_use]
     pub const fn to_montgomery(&self) -> Uint<LIMBS> {
         self.montgomery_form
     }
 
     /// Performs division by 2, that is returns `x` such that `x + x = self`.
+    #[must_use]
     pub const fn div_by_2(&self) -> Self {
         Self {
             montgomery_form: div_by_2(&self.montgomery_form, &self.params.modulus),

@@ -10,6 +10,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
     #[deprecated(since = "0.7.0", note = "please use `invert` instead")]
+    #[must_use]
     pub const fn inv(&self) -> CtOption<Self> {
         self.invert()
     }
@@ -19,6 +20,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     ///
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
+    #[must_use]
     pub const fn invert(&self) -> CtOption<Self> {
         let inverter = self.params.inverter();
         let maybe_inverse = inverter.invert(&self.montgomery_form);
@@ -40,6 +42,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// This version is variable-time with respect to the value of `self`, but constant-time with
     /// respect to `self`'s `params`.
     #[deprecated(since = "0.7.0", note = "please use `invert_vartime` instead")]
+    #[must_use]
     pub const fn inv_vartime(&self) -> Option<Self> {
         self.invert_vartime()
     }
@@ -52,6 +55,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     ///
     /// This version is variable-time with respect to the value of `self`, but constant-time with
     /// respect to `self`'s `params`.
+    #[must_use]
     pub const fn invert_vartime(&self) -> Option<Self> {
         let inverter = self.params.inverter();
         if let Some(inv) = inverter.invert_vartime(&self.montgomery_form) {

@@ -9,6 +9,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// Note: even if `negate` is truthy, the magnitude might be zero!
     #[deprecated(since = "0.7.0", note = "please use `widening_mul_unsigned` instead")]
+    #[must_use]
     pub const fn split_mul_unsigned<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
@@ -22,6 +23,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// negated when converted from [`Uint`] to [`Int`].
     ///
     /// Note: even if `negate` is truthy, the magnitude might be zero!
+    #[must_use]
     pub const fn widening_mul_unsigned<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
@@ -46,6 +48,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         since = "0.7.0",
         note = "please use `Uint::widening_mul_signed` instead"
     )]
+    #[must_use]
     pub const fn split_mul_unsigned_right<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
@@ -63,6 +66,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         since = "0.7.0",
         note = "please use `Uint::widening_mul_signed` instead"
     )]
+    #[must_use]
     pub const fn widening_mul_unsigned_right<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
@@ -71,6 +75,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Multiply `self` by [`Uint`] `rhs`, returning a concatenated "wide" result.
+    #[must_use]
     pub const fn concatenating_mul_unsigned<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
@@ -88,6 +93,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Checked multiplication of self with an [`Uint<RHS_LIMBS>`], where the result is to be stored
     /// in an [`Int<RHS_LIMBS>`].
     #[deprecated(since = "0.7.0", note = "please use `Uint::checked_mul(_int)` instead")]
+    #[must_use]
     pub fn checked_mul_unsigned_right<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,
@@ -96,6 +102,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Checked multiplication with a [`Uint`].
+    #[must_use]
     pub fn checked_mul_unsigned<const RHS_LIMBS: usize>(
         &self,
         rhs: &Uint<RHS_LIMBS>,

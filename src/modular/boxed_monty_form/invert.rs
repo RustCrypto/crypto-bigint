@@ -6,6 +6,7 @@ use crate::{CtOption, Invert, modular::safegcd::boxed::BoxedSafeGcdInverter};
 impl BoxedMontyForm {
     /// Computes `self^-1` representing the multiplicative inverse of `self`,
     /// i.e. `self * self^-1 = 1`.
+    #[must_use]
     pub fn invert(&self) -> CtOption<Self> {
         let montgomery_form = self.params.inverter().invert(&self.montgomery_form);
         let is_some = montgomery_form.is_some();
@@ -23,6 +24,7 @@ impl BoxedMontyForm {
     ///
     /// This version is variable-time with respect to the self of `self`, but constant-time with
     /// respect to `self`'s `params`.
+    #[must_use]
     pub fn invert_vartime(&self) -> Option<Self> {
         self.params
             .inverter()

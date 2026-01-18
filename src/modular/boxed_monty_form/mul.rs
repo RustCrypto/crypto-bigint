@@ -16,6 +16,7 @@ use zeroize::Zeroize;
 
 impl BoxedMontyForm {
     /// Multiplies by `rhs`.
+    #[must_use]
     pub fn mul(&self, rhs: &Self) -> Self {
         debug_assert_eq!(&self.params, &rhs.params);
         let mut out = BoxedUint::zero_with_precision(self.bits_precision());
@@ -33,6 +34,7 @@ impl BoxedMontyForm {
     }
 
     /// Computes the (reduced) square.
+    #[must_use]
     pub fn square(&self) -> Self {
         let mut out = BoxedUint::zero_with_precision(self.bits_precision());
         montgomery_mul(
@@ -107,7 +109,7 @@ impl Mul<BoxedMontyForm> for BoxedMontyForm {
 
 impl MulAssign<BoxedMontyForm> for BoxedMontyForm {
     fn mul_assign(&mut self, rhs: BoxedMontyForm) {
-        Self::mul_assign(self, &rhs)
+        Self::mul_assign(self, &rhs);
     }
 }
 

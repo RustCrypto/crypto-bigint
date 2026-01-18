@@ -5,17 +5,6 @@
     html_logo_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/RustCrypto/meta/master/logo.svg"
 )]
-#![deny(unsafe_code)]
-#![warn(
-    clippy::mod_module_files,
-    missing_docs,
-    missing_debug_implementations,
-    missing_copy_implementations,
-    rust_2018_idioms,
-    trivial_casts,
-    trivial_numeric_casts,
-    unused_qualifications
-)]
 #![cfg_attr(not(test), warn(clippy::unwrap_used))]
 
 //! ## Usage

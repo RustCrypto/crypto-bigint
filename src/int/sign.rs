@@ -19,6 +19,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// Returns `None` when the result exceeds the bounds of an [`Int<LIMBS>`].
     #[inline]
+    #[must_use]
     pub const fn new_from_abs_sign(abs: Uint<LIMBS>, is_negative: Choice) -> CtOption<Self> {
         let abs_int = abs.as_int();
         let abs_msb = abs_int.is_negative();
@@ -45,16 +46,19 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Whether this [`Int`] is negative, as a `Choice`.
     #[inline(always)]
+    #[must_use]
     pub const fn is_negative(&self) -> Choice {
         word::choice_from_msb(self.most_significant_word())
     }
 
     /// Whether this [`Int`] is positive, as a `Choice`.
+    #[must_use]
     pub const fn is_positive(&self) -> Choice {
         self.is_negative().not().and(self.is_nonzero())
     }
 
     /// The sign and magnitude of this [`Int`].
+    #[must_use]
     pub const fn abs_sign(&self) -> (Uint<LIMBS>, Choice) {
         let sign = self.is_negative();
         // Note: this negate_if is safe to use, since we are negating based on self.is_negative()
@@ -63,6 +67,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// The magnitude of this [`Int`].
+    #[must_use]
     pub const fn abs(&self) -> Uint<LIMBS> {
         self.abs_sign().0
     }

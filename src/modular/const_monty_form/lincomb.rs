@@ -7,6 +7,7 @@ use crate::modular::lincomb::lincomb_const_monty_form;
 
 impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
     /// Calculate the sum of products of pairs `(a, b)` in `products`.
+    #[must_use]
     pub const fn lincomb(products: &[(Self, Self)]) -> Self {
         Self {
             montgomery_form: lincomb_const_monty_form(
@@ -55,7 +56,7 @@ mod tests {
                 ])
                 .retrieve(),
                 "n={n}"
-            )
+            );
         }
     }
 }

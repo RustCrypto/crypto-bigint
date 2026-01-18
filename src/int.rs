@@ -77,6 +77,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub const LIMBS: usize = LIMBS;
 
     /// Const-friendly [`Int`] constructor.
+    #[must_use]
     pub const fn new(limbs: [Limb; LIMBS]) -> Self {
         Self(Uint::new(limbs))
     }
@@ -93,6 +94,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Create an [`Int`] from an array of [`Word`]s (i.e. word-sized unsigned
     /// integers).
     #[inline]
+    #[must_use]
     pub const fn from_words(arr: [Word; LIMBS]) -> Self {
         Self(Uint::from_words(arr))
     }
@@ -100,11 +102,13 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Create an array of [`Word`]s (i.e. word-sized unsigned integers) from
     /// an [`Int`].
     #[inline]
+    #[must_use]
     pub const fn to_words(self) -> [Word; LIMBS] {
         self.0.to_words()
     }
 
     /// Borrow the inner limbs as an array of [`Word`]s.
+    #[must_use]
     pub const fn as_words(&self) -> &[Word; LIMBS] {
         self.0.as_words()
     }
@@ -121,6 +125,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Borrow the limbs of this [`Int`].
+    #[must_use]
     pub const fn as_limbs(&self) -> &[Limb; LIMBS] {
         self.0.as_limbs()
     }
@@ -137,6 +142,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Convert this [`Int`] into its inner limbs.
+    #[must_use]
     pub const fn to_limbs(self) -> [Limb; LIMBS] {
         self.0.to_limbs()
     }
@@ -144,6 +150,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Convert to a [`NonZero<Int<LIMBS>>`].
     ///
     /// Returns some if the original value is non-zero, and false otherwise.
+    #[must_use]
     pub const fn to_nz(self) -> CtOption<NonZero<Self>> {
         CtOption::new(NonZero(self), self.0.is_nonzero())
     }
@@ -151,6 +158,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Convert to a [`Odd<Int<LIMBS>>`].
     ///
     /// Returns some if the original value is odd, and false otherwise.
+    #[must_use]
     pub const fn to_odd(self) -> CtOption<Odd<Self>> {
         CtOption::new(Odd(self), self.0.is_odd())
     }
@@ -160,6 +168,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Note: this is a casting operation. See
     /// - [`Self::try_into_uint`] for the checked equivalent, and
     /// - [`Self::abs`] to obtain the absolute value of `self`.
+    #[must_use]
     pub const fn as_uint(&self) -> &Uint<LIMBS> {
         &self.0
     }
@@ -169,21 +178,25 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Note: this is a checked conversion operation. See
     /// - [`Self::as_uint`] for the unchecked equivalent, and
     /// - [`Self::abs`] to obtain the absolute value of `self`.
+    #[must_use]
     pub const fn try_into_uint(self) -> CtOption<Uint<LIMBS>> {
         CtOption::new(self.0, self.is_negative().not())
     }
 
     /// Whether this [`Int`] is equal to `Self::MIN`.
+    #[must_use]
     pub const fn is_min(&self) -> Choice {
         Self::eq(self, &Self::MIN)
     }
 
     /// Whether this [`Int`] is equal to `Self::MAX`.
+    #[must_use]
     pub const fn is_max(&self) -> Choice {
         Self::eq(self, &Self::MAX)
     }
 
     /// Is this [`Int`] equal to zero?
+    #[must_use]
     pub const fn is_zero(&self) -> Choice {
         self.0.is_zero()
     }

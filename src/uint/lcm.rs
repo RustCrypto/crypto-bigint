@@ -4,6 +4,7 @@ use crate::{ConcatMixed, NonZero, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute the least common multiple of `self` and `rhs`.
+    #[must_use]
     pub const fn lcm<const WIDE_LIMBS: usize>(&self, rhs: &Self) -> Uint<WIDE_LIMBS>
     where
         Self: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,

@@ -6,19 +6,22 @@ use crate::{BitXor, BitXorAssign, CtOption, Wrapping};
 impl BoxedUint {
     /// Computes bitwise `a ^ b`.
     #[inline(always)]
+    #[must_use]
     pub fn bitxor(&self, rhs: &Self) -> Self {
-        Self::map_limbs(self, rhs, |a, b| a.bitxor(b))
+        Self::map_limbs(self, rhs, crate::limb::Limb::bitxor)
     }
 
-    /// Perform wrapping bitwise `XOR``.
+    /// Perform wrapping bitwise `XOR`.
     ///
     /// There's no way wrapping could ever happen.
     /// This function exists so that all operations are accounted for in the wrapping operations
+    #[must_use]
     pub fn wrapping_xor(&self, rhs: &Self) -> Self {
         self.bitxor(rhs)
     }
 
     /// Perform checked bitwise `XOR`, returning a [`CtOption`] which `is_some` always
+    #[must_use]
     pub fn checked_xor(&self, rhs: &Self) -> CtOption<Self> {
         CtOption::some(self.bitxor(rhs))
     }

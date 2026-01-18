@@ -2,12 +2,24 @@
 
 use crate::{ConcatMixed, Limb, SplitMixed, U64, U128, Uint, WideWord, Word};
 
+macro_rules! check_limbs {
+    ($limbs:expr) => {
+        check_limbs!($limbs, 1)
+    };
+    ($limbs:expr, $min:expr) => {
+        const {
+            assert!($limbs >= 1, "number of limbs too small of supplied type");
+        }
+    };
+}
+
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a [`Uint`] from a `u8` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u8>` when stable
     #[inline]
+    #[must_use]
     pub const fn from_u8(n: u8) -> Self {
-        assert!(LIMBS >= 1, "number of limbs must be greater than zero");
+        check_limbs!(LIMBS);
         let mut limbs = [Limb::ZERO; LIMBS];
         limbs[0].0 = n as Word;
         Self { limbs }
@@ -16,8 +28,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a [`Uint`] from a `u16` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u16>` when stable
     #[inline]
+    #[must_use]
     pub const fn from_u16(n: u16) -> Self {
-        assert!(LIMBS >= 1, "number of limbs must be greater than zero");
+        check_limbs!(LIMBS);
         let mut limbs = [Limb::ZERO; LIMBS];
         limbs[0].0 = n as Word;
         Self { limbs }
@@ -27,8 +40,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     // TODO(tarcieri): replace with `const impl From<u32>` when stable
     #[allow(trivial_numeric_casts)]
     #[inline]
+    #[must_use]
     pub const fn from_u32(n: u32) -> Self {
-        assert!(LIMBS >= 1, "number of limbs must be greater than zero");
+        check_limbs!(LIMBS);
         let mut limbs = [Limb::ZERO; LIMBS];
         limbs[0].0 = n as Word;
         Self { limbs }
@@ -39,7 +53,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[cfg(target_pointer_width = "32")]
     #[inline]
     pub const fn from_u64(n: u64) -> Self {
-        assert!(LIMBS >= 2, "number of limbs must be two or greater");
+        check_limbs!(LIMBS, 2);
         let mut limbs = [Limb::ZERO; LIMBS];
         limbs[0].0 = (n & 0xFFFFFFFF) as u32;
         limbs[1].0 = (n >> 32) as u32;
@@ -50,8 +64,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     // TODO(tarcieri): replace with `const impl From<u64>` when stable
     #[cfg(target_pointer_width = "64")]
     #[inline]
+    #[must_use]
     pub const fn from_u64(n: u64) -> Self {
-        assert!(LIMBS >= 1, "number of limbs must be greater than zero");
+        check_limbs!(LIMBS);
         let mut limbs = [Limb::ZERO; LIMBS];
         limbs[0].0 = n;
         Self { limbs }
@@ -60,12 +75,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a [`Uint`] from a `u128` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<u128>` when stable
     #[inline]
+    #[must_use]
     pub const fn from_u128(n: u128) -> Self {
-        assert!(
-            LIMBS >= 16 / Limb::BYTES,
-            "number of limbs must be greater than zero"
-        );
-
+        check_limbs!(LIMBS, 16 / Limb::BYTES);
         let lo = U64::from_u64((n & 0xffff_ffff_ffff_ffff) as u64);
         let hi = U64::from_u64((n >> 64) as u64);
 
@@ -89,8 +101,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a [`Uint`] from a `Word` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<Word>` when stable
     #[inline]
+    #[must_use]
     pub const fn from_word(n: Word) -> Self {
-        assert!(LIMBS >= 1, "number of limbs must be greater than zero");
+        check_limbs!(LIMBS);
         let mut limbs = [Limb::ZERO; LIMBS];
         limbs[0].0 = n;
         Self { limbs }
@@ -99,8 +112,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a [`Uint`] from a `WideWord` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<WideWord>` when stable
     #[inline]
+    #[must_use]
     pub const fn from_wide_word(n: WideWord) -> Self {
-        assert!(LIMBS >= 2, "number of limbs must be two or greater");
+        check_limbs!(LIMBS, 2);
         let mut limbs = [Limb::ZERO; LIMBS];
         limbs[0].0 = n as Word;
         limbs[1].0 = (n >> Limb::BITS) as Word;
@@ -111,8 +125,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 impl<const LIMBS: usize> From<u8> for Uint<LIMBS> {
     #[inline]
     fn from(n: u8) -> Self {
-        // TODO(tarcieri): const where clause when possible
-        debug_assert!(LIMBS > 0, "limbs must be non-zero");
+        check_limbs!(LIMBS);
         Self::from_u8(n)
     }
 }
@@ -120,8 +133,7 @@ impl<const LIMBS: usize> From<u8> for Uint<LIMBS> {
 impl<const LIMBS: usize> From<u16> for Uint<LIMBS> {
     #[inline]
     fn from(n: u16) -> Self {
-        // TODO(tarcieri): const where clause when possible
-        debug_assert!(LIMBS > 0, "limbs must be non-zero");
+        check_limbs!(LIMBS);
         Self::from_u16(n)
     }
 }
@@ -129,8 +141,7 @@ impl<const LIMBS: usize> From<u16> for Uint<LIMBS> {
 impl<const LIMBS: usize> From<u32> for Uint<LIMBS> {
     #[inline]
     fn from(n: u32) -> Self {
-        // TODO(tarcieri): const where clause when possible
-        debug_assert!(LIMBS > 0, "limbs must be non-zero");
+        check_limbs!(LIMBS);
         Self::from_u32(n)
     }
 }
@@ -138,8 +149,7 @@ impl<const LIMBS: usize> From<u32> for Uint<LIMBS> {
 impl<const LIMBS: usize> From<u64> for Uint<LIMBS> {
     #[inline]
     fn from(n: u64) -> Self {
-        // TODO(tarcieri): const where clause when possible
-        debug_assert!(LIMBS >= 8 / Limb::BYTES, "not enough limbs");
+        check_limbs!(LIMBS, 8 / Limb::BYTES);
         Self::from_u64(n)
     }
 }
@@ -147,8 +157,7 @@ impl<const LIMBS: usize> From<u64> for Uint<LIMBS> {
 impl<const LIMBS: usize> From<u128> for Uint<LIMBS> {
     #[inline]
     fn from(n: u128) -> Self {
-        // TODO(tarcieri): const where clause when possible
-        debug_assert!(LIMBS >= 16 / Limb::BYTES, "not enough limbs");
+        check_limbs!(LIMBS, 16 / Limb::BYTES);
         Self::from_u128(n)
     }
 }

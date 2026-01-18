@@ -4,6 +4,7 @@ use crate::{CtOption, Int, InvertMod, NonZero, Odd, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
+    #[must_use]
     pub fn invert_odd_mod(&self, modulus: &Odd<Uint<LIMBS>>) -> CtOption<Uint<LIMBS>> {
         let (abs, sgn) = self.abs_sign();
         let maybe_inv = abs.invert_odd_mod(modulus);
@@ -20,6 +21,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Computes the multiplicative inverse of `self` mod `modulus`.
     ///
     /// Returns some if an inverse exists, otherwise none.
+    #[must_use]
     pub const fn invert_mod(&self, modulus: &NonZero<Uint<LIMBS>>) -> CtOption<Uint<LIMBS>> {
         let (abs, sgn) = self.abs_sign();
         let maybe_inv = abs.invert_mod(modulus);

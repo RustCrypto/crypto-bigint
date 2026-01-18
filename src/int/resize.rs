@@ -4,6 +4,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Resize the representation of `self` to an [`Int<T>`].
     /// Warning: this operation may lead to loss of information.
     #[inline(always)]
+    #[must_use]
     pub const fn resize<const T: usize>(&self) -> Int<T> {
         let mut limbs = [Limb::select(Limb::ZERO, Limb::MAX, self.is_negative()); T];
         let mut i = 0;

@@ -7,12 +7,14 @@ use crate::{
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self + rhs + carry`, returning the result along with the new carry.
     #[deprecated(since = "0.7.0", note = "please use `carrying_add` instead")]
+    #[must_use]
     pub const fn adc(&self, rhs: &Self, carry: Limb) -> (Self, Limb) {
         self.carrying_add(rhs, carry)
     }
 
     /// Computes `self + rhs + carry`, returning the result along with the new carry.
     #[inline(always)]
+    #[must_use]
     pub const fn carrying_add(&self, rhs: &Self, mut carry: Limb) -> (Self, Limb) {
         let mut limbs = [Limb::ZERO; LIMBS];
         let mut i = 0;
@@ -28,12 +30,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform saturating addition, returning `MAX` on overflow.
+    #[must_use]
     pub const fn saturating_add(&self, rhs: &Self) -> Self {
         let (res, overflow) = self.carrying_add(rhs, Limb::ZERO);
         Self::select(&res, &Self::MAX, word::choice_from_lsb(overflow.0))
     }
 
     /// Perform wrapping addition, discarding overflow.
+    #[must_use]
     pub const fn wrapping_add(&self, rhs: &Self) -> Self {
         self.carrying_add(rhs, Limb::ZERO).0
     }

@@ -63,7 +63,8 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
 
     /// Shift `self` right by `shift` bits.
     ///
-    /// Panics if `shift ≥ UPPER_BOUND`.
+    /// # Panics
+    /// - if `shift ≥ UPPER_BOUND`.
     #[inline]
     pub const fn bounded_shr<const UPPER_BOUND: u32>(&self, shift: u32) -> Self {
         debug_assert!(shift <= UPPER_BOUND);
@@ -94,7 +95,8 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
 
     /// Shift `self` right by `shift` bits.
     ///
-    /// Panics if `shift ≥ Uint::<EXTRA>::BITS`.
+    /// # Panics
+    /// - if `shift ≥ Uint::<EXTRA>::BITS`.
     #[inline]
     pub const fn shr_vartime(&self, shift: u32) -> Self {
         debug_assert!(shift <= Uint::<EXTRA>::BITS);
@@ -200,7 +202,8 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
 
     /// Divide self by `2^k`, rounding towards zero.
     ///
-    /// Panics if `k ≥ UPPER_BOUND`.
+    /// # Panics
+    /// - if `k ≥ UPPER_BOUND`.
     #[inline]
     pub const fn bounded_div_2k<const UPPER_BOUND: u32>(&self, k: u32) -> Self {
         let (abs, sgn) = self.abs_sign();
@@ -221,11 +224,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self >> shift`.
     ///
     /// Returns `None` if `shift >= UPPER_BOUND`; panics if `UPPER_BOUND > Self::BITS`.
+    #[must_use]
     pub const fn bounded_overflowing_shr<const UPPER_BOUND: u32>(
         &self,
         shift: u32,
     ) -> CtOption<Self> {
-        assert!(UPPER_BOUND <= Self::BITS);
+        const { assert!(UPPER_BOUND <= Self::BITS) };
 
         // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
         // (which lies in range `0 <= shift < BITS`).
@@ -300,7 +304,7 @@ mod tests {
                     .as_extended_uint()
                     .as_elements(),
                 (U64::from(12115270817252704455u64), U64::from(419837u64))
-            )
+            );
         }
     }
 

@@ -5,7 +5,9 @@ use crate::{Choice, CtOption, Limb, NonZero, Shr, ShrAssign, ShrVartime, Uint, W
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self >> shift`.
     ///
-    /// Panics if `shift >= Self::BITS`.
+    /// # Panics
+    /// - if `shift >= Self::BITS`.
+    #[must_use]
     pub const fn shr(&self, shift: u32) -> Self {
         self.overflowing_shr(shift)
             .expect_copied("`shift` within the bit size of the integer")
@@ -13,8 +15,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes `self >> shift` in variable time.
     ///
-    /// Panics if `shift >= Self::BITS`.
+    /// # Panics
+    /// - if `shift >= Self::BITS`.
     #[inline(always)]
+    #[must_use]
     pub const fn shr_vartime(&self, shift: u32) -> Self {
         assert!(
             shift < Self::BITS,
@@ -44,13 +48,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Returns `None` if `shift >= Self::BITS`.
     #[inline]
+    #[must_use]
     pub const fn overflowing_shr(&self, shift: u32) -> CtOption<Self> {
         let overflow = Choice::from_u32_lt(shift, Self::BITS).not();
         let result = self.bounded_wrapping_shr(shift % Self::BITS, Self::BITS);
         CtOption::new(Uint::select(&result, &Self::ZERO, overflow), overflow.not())
     }
 
-    /// Computes `self >> shift` where `shift < `shift_upper_bound`, returning zero
+    /// Computes `self >> shift` where `shift < shift_upper_bound`, returning zero
     /// if the shift exceeds the precision. The runtime is determined by `shift_upper_bound`
     /// which may be smaller than `Self::BITS`.
     pub(crate) const fn bounded_wrapping_shr(&self, shift: u32, shift_upper_bound: u32) -> Self {
@@ -124,6 +129,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
+    #[must_use]
     pub const fn overflowing_shr_vartime(&self, shift: u32) -> Option<Self> {
         if shift < Self::BITS {
             Some(self.shr_vartime(shift))
@@ -141,6 +147,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// When used with a fixed `shift`, this function is constant-time with respect
     /// to `self`.
     #[inline(always)]
+    #[must_use]
     pub const fn overflowing_shr_vartime_wide(
         lower_upper: (Self, Self),
         shift: u32,
@@ -161,12 +168,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes `self >> shift` in a panic-free manner, returning zero if the shift exceeds the
     /// precision.
+    #[must_use]
     pub const fn wrapping_shr(&self, shift: u32) -> Self {
         ctutils::unwrap_or!(self.overflowing_shr(shift), Self::ZERO, Self::select)
     }
 
     /// Computes `self >> shift` in variable-time in a panic-free manner, returning zero if the
     /// shift exceeds the precision.
+    #[must_use]
     pub const fn wrapping_shr_vartime(&self, shift: u32) -> Self {
         if let Some(ret) = self.overflowing_shr_vartime(shift) {
             ret
@@ -200,7 +209,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Conditionally right-shifts by `shift` bits where `0 < shift < Limb::BITS`, returning
     /// the carry.
     ///
-    /// Panics if `shift >= Limb::BITS`.
+    /// # Panics
+    /// - if `shift >= Limb::BITS`.
     #[inline(always)]
     pub(crate) const fn conditional_shr_limb_nonzero(
         &self,
@@ -233,7 +243,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self >> shift` where `0 <= shift < Limb::BITS`,
     /// returning the result and the carry.
     ///
-    /// Panics if `shift >= Limb::BITS`.
+    /// # Panics
+    /// - if `shift >= Limb::BITS`.
     pub(crate) const fn shr_limb(&self, shift: u32) -> (Self, Limb) {
         let nz = Choice::from_u32_nz(shift);
         self.conditional_shr_limb_nonzero(NonZero(nz.select_u32(1, shift)), nz)

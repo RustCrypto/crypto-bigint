@@ -8,16 +8,19 @@ use crate::{
 impl BoxedUint {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     #[deprecated(since = "0.7.0", note = "please use `invert_odd_mod` instead")]
+    #[must_use]
     pub fn inv_odd_mod(&self, modulus: &Odd<Self>) -> CtOption<Self> {
         self.invert_odd_mod(modulus)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
+    #[must_use]
     pub fn invert_odd_mod(&self, modulus: &Odd<Self>) -> CtOption<Self> {
         safegcd::boxed::invert_odd_mod(self, modulus)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
+    #[must_use]
     pub fn invert_odd_mod_vartime(&self, modulus: &Odd<Self>) -> Option<Self> {
         safegcd::boxed::invert_odd_mod_vartime(self, modulus)
     }
@@ -28,6 +31,7 @@ impl BoxedUint {
     /// If the inverse does not exist (`k > 0` and `self` is even, or `k > bits_precision()`),
     /// returns `Choice::FALSE` as the second element of the tuple, otherwise returns `Choice::TRUE`.
     #[deprecated(since = "0.7.0", note = "please use `invert_mod2k_vartime` instead")]
+    #[must_use]
     pub fn inv_mod2k_vartime(&self, k: u32) -> (Self, Choice) {
         self.invert_mod2k_vartime(k)
     }
@@ -37,6 +41,7 @@ impl BoxedUint {
     ///
     /// If the inverse does not exist (`k > 0` and `self` is even, or `k > bits_precision()`),
     /// returns `Choice::FALSE` as the second element of the tuple, otherwise returns `Choice::TRUE`.
+    #[must_use]
     pub fn invert_mod2k_vartime(&self, k: u32) -> (Self, Choice) {
         let bits = self.bits_precision();
 
@@ -61,6 +66,7 @@ impl BoxedUint {
     /// If the inverse does not exist (`k > 0` and `self` is even, or `k > bits_precision()`),
     /// returns `Choice::FALSE` as the second element of the tuple, otherwise returns `Choice::TRUE`.
     #[deprecated(since = "0.7.0", note = "please use `invert_mod2k` instead")]
+    #[must_use]
     pub fn inv_mod2k(&self, k: u32) -> (Self, Choice) {
         self.invert_mod2k(k)
     }
@@ -69,6 +75,7 @@ impl BoxedUint {
     ///
     /// If the inverse does not exist (`k > 0` and `self` is even, or `k > bits_precision()`),
     /// returns `Choice::FALSE` as the second element of the tuple, otherwise returns `Choice::TRUE`.
+    #[must_use]
     pub fn invert_mod2k(&self, k: u32) -> (Self, Choice) {
         let bits = self.bits_precision();
         let is_some = k.ct_lt(&(bits + 1)) & (k.ct_eq(&0) | self.is_odd());
@@ -88,6 +95,7 @@ impl BoxedUint {
     ///
     /// TODO: maybe some better documentation is needed
     #[deprecated(since = "0.7.0", note = "please use `invert_mod` instead")]
+    #[must_use]
     pub fn inv_mod(&self, modulus: &Self) -> CtOption<Self> {
         let is_nz = modulus.is_nonzero();
         let m = NonZero(Self::ct_select(
@@ -107,6 +115,7 @@ impl BoxedUint {
     /// `self` and `modulus` must have the same number of limbs, or the function will panic
     ///
     /// TODO: maybe some better documentation is needed
+    #[must_use]
     pub fn invert_mod(&self, modulus: &NonZero<Self>) -> CtOption<Self> {
         debug_assert_eq!(self.bits_precision(), modulus.bits_precision());
         let k = modulus.trailing_zeros();

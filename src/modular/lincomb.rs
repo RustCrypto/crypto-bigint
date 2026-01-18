@@ -9,7 +9,7 @@ use crate::BoxedUint;
 
 /// Implement the coarse interleaved sum of products (Algorithm 2 for B=1) from
 /// Efficient Algorithms for Large Prime Characteristic Fields and Their Application
-/// to Bilinear Pairings by Patrick Longa. https://eprint.iacr.org/2022/367
+/// to Bilinear Pairings by Patrick Longa. <https://eprint.iacr.org/2022/367>
 ///
 /// For correct results, the un-reduced sum of products must not exceed `p•R`  where `p`
 /// is the modulus. Given a list of pairs `(a_1, b_1)..(a_k, b_k)` in Montgomery form,

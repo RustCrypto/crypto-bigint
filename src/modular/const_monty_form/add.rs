@@ -6,6 +6,7 @@ use core::ops::{Add, AddAssign};
 
 impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
     /// Adds `rhs`.
+    #[must_use]
     pub const fn add(&self, rhs: &ConstMontyForm<MOD, LIMBS>) -> Self {
         Self {
             montgomery_form: add_montgomery_form(
@@ -18,6 +19,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     }
 
     /// Double `self`.
+    #[must_use]
     pub const fn double(&self) -> Self {
         Self {
             montgomery_form: double_montgomery_form(&self.montgomery_form, &MOD::PARAMS.modulus),
