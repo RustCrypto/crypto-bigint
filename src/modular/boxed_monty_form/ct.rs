@@ -1,6 +1,6 @@
 //! Constant-time support: impls of `Ct*` traits.
 
-use super::{BoxedMontyForm, BoxedMontyParams, BoxedMontyParamsInner};
+use super::{BoxedMontyForm, BoxedMontyParams};
 use crate::{Choice, CtAssign, CtEq, CtSelect};
 use alloc::sync::Arc;
 use ctutils::{CtAssignSlice, CtEqSlice, CtSelectUsingCtAssign};
@@ -45,15 +45,3 @@ impl CtSelect for BoxedMontyParams {
         Self(Arc::new(self.0.ct_select(&other.0, choice)))
     }
 }
-
-impl CtAssign for BoxedMontyParamsInner {
-    fn ct_assign(&mut self, other: &Self, choice: Choice) {
-        self.modulus.ct_assign(&other.modulus, choice);
-        self.one.ct_assign(&other.one, choice);
-        self.r2.ct_assign(&other.r2, choice);
-        self.mod_inv.ct_assign(&other.mod_inv, choice);
-        self.mod_leading_zeros
-            .ct_assign(&other.mod_leading_zeros, choice);
-    }
-}
-impl CtSelectUsingCtAssign for BoxedMontyParamsInner {}
