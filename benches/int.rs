@@ -1,13 +1,15 @@
+//! `Int` benchmarks
 #![allow(missing_docs)]
 
 use chacha20::ChaCha8Rng;
+use core::hint::black_box;
+use core::ops::Div;
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use rand_core::SeedableRng;
-use std::hint::black_box;
-use std::ops::Div;
 
 use crypto_bigint::{I128, I256, I512, I1024, I2048, I4096, NonZero, Random};
 
+/// Benchmark `Int` multiplication.
 fn bench_mul(c: &mut Criterion) {
     let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
     let mut group = c.benchmark_group("wrapping ops");

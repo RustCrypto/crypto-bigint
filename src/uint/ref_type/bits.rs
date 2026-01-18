@@ -3,6 +3,7 @@ use crate::{Choice, Limb, traits::BitOps, word};
 
 impl UintRef {
     /// Get the precision of this number in bits.
+    #[allow(clippy::cast_possible_truncation)]
     pub const fn bits_precision(&self) -> u32 {
         self.0.len() as u32 * Limb::BITS
     }
@@ -10,6 +11,7 @@ impl UintRef {
     /// Get the value of the bit at position `index`, as a truthy or falsy [`Choice`].
     /// Returns the falsy value for indices out of range.
     #[inline(always)]
+    #[allow(clippy::cast_possible_truncation)]
     pub const fn bit(&self, index: u32) -> Choice {
         let limb_num = index / Limb::BITS;
         let index_in_limb = index % Limb::BITS;
@@ -55,6 +57,7 @@ impl UintRef {
     /// Calculate the number of bits needed to represent this number in variable-time with respect
     /// to `self`.
     #[inline(always)]
+    #[allow(clippy::cast_possible_truncation)]
     pub const fn bits_vartime(&self) -> u32 {
         let mut i = self.0.len() - 1;
         while i > 0 && self.0[i].0 == 0 {
@@ -67,6 +70,7 @@ impl UintRef {
 
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
     #[inline(always)]
+    #[allow(clippy::cast_possible_truncation)]
     pub const fn set_bit(&mut self, index: u32, bit_value: Choice) {
         let limb_num = index / Limb::BITS;
         let index_in_limb = index % Limb::BITS;
@@ -187,6 +191,7 @@ impl UintRef {
     }
 
     /// Clear all bits at or above a given bit position.
+    #[allow(clippy::cast_possible_truncation)]
     pub const fn restrict_bits(&mut self, len: u32) {
         let limb = len / Limb::BITS;
         let limb_mask = Limb((1 << (len % Limb::BITS)) - 1);

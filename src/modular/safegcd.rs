@@ -207,6 +207,7 @@ const fn jump<const VARTIME: bool>(
 /// This follows the half-delta variant of safegcd-bounds which reduces the round count.
 /// <https://github.com/sipa/safegcd-bounds>
 #[inline(always)]
+#[allow(clippy::cast_sign_loss)]
 const fn jump_step(
     mut f: i64,
     mut g: i64,
@@ -418,7 +419,8 @@ impl<const LIMBS: usize> SignedInt<LIMBS> {
         self.sign
     }
 
-    // Extract the lowest 63 bits and convert to its signed representation.
+    /// Extract the lowest 63 bits and convert to its signed representation.
+    #[allow(clippy::cast_possible_wrap)]
     pub const fn lowest(&self) -> i64 {
         let mag = (self.magnitude.as_uint_ref().lowest_u64() & (u64::MAX >> 1)) as i64;
         self.sign.select_i64(mag, mag.wrapping_neg())

@@ -12,6 +12,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Note: the carry is set if and only if `self == Self::ZERO`.
     #[must_use]
+    #[allow(clippy::cast_possible_truncation)]
     pub const fn carrying_neg(&self) -> (Self, Choice) {
         let mut ret = [Limb::ZERO; LIMBS];
         let mut carry = 1;

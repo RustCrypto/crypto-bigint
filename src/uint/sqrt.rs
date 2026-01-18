@@ -348,7 +348,7 @@ mod tests {
 
         let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
         for _ in 0..50 {
-            let t = rng.next_u32() as u64;
+            let t = u64::from(rng.next_u32());
             let s = U256::from(t);
             let s2 = s.checked_square().unwrap();
             assert_eq!(FloorSquareRoot::floor_sqrt(&s2), s);

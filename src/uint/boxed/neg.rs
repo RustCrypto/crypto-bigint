@@ -5,12 +5,13 @@ use crate::{BoxedUint, Choice, CtAssign, Limb, WideWord, Word, WrappingNeg};
 impl BoxedUint {
     /// Perform wrapping negation.
     #[must_use]
+    #[allow(clippy::cast_possible_truncation)]
     pub fn wrapping_neg(&self) -> Self {
         let mut ret = vec![Limb::ZERO; self.nlimbs()];
         let mut carry = 1;
 
         for i in 0..self.nlimbs() {
-            let r = (!self.limbs[i].0 as WideWord) + carry;
+            let r = WideWord::from(!self.limbs[i].0) + carry;
             ret[i] = Limb(r as Word);
             carry = r >> Limb::BITS;
         }
@@ -20,11 +21,12 @@ impl BoxedUint {
 
     /// Perform in-place wrapping subtraction, returning the truthy value as the second element of
     /// the tuple if an underflow has occurred.
+    #[allow(clippy::cast_possible_truncation)]
     pub(crate) fn conditional_wrapping_neg_assign(&mut self, choice: Choice) {
         let mut carry = 1;
 
         for i in 0..self.nlimbs() {
-            let r = (!self.limbs[i].0 as WideWord) + carry;
+            let r = WideWord::from(!self.limbs[i].0) + carry;
             self.limbs[i].ct_assign(&Limb(r as Word), choice);
             carry = r >> Limb::BITS;
         }

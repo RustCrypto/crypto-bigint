@@ -81,6 +81,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///   0 is Equal
     ///   1 is Greater
     #[inline]
+    #[allow(clippy::cast_possible_wrap)]
     pub(crate) const fn cmp(lhs: &Self, rhs: &Self) -> i8 {
         let mut i = 0;
         let mut borrow = Limb::ZERO;

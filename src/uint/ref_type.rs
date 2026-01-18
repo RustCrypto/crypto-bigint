@@ -51,10 +51,17 @@ impl UintRef {
 
     /// Create a new mutable [`UintRef`] reference type from a slice of [`Limb`] arrays.
     pub const fn new_flattened_mut<const N: usize>(slice: &mut [[Limb; N]]) -> &mut Self {
-        // This is a temporary shim for `[[T;N]]::as_flattened_mut` which is only const-stable as of Rust 1.87.
+        // This is a temporary shim for `[[T;N]]::as_flattened_mut` which is only const-stable as of
+        // Rust 1.87.
         let len = slice.len() * N;
+
+        // SAFETY: we are converting a slice of limb arrays to a slice of limbs, and `len` has been
+        // calculated to be the total number of limbs. The pointer has the lifetime of `slice` and
+        // is for `Word`, so we're requesting a slice of words the size of the total number of words
+        // in the original slice, and giving it a valid pointer to the first word.
         #[allow(unsafe_code)]
-        Self::new_mut(unsafe { core::slice::from_raw_parts_mut(slice.as_mut_ptr().cast(), len) })
+        let slice = unsafe { core::slice::from_raw_parts_mut(slice.as_mut_ptr().cast(), len) };
+        Self::new_mut(slice)
     }
 
     /// Borrow the inner `&[Limb]` slice.

@@ -1,13 +1,15 @@
+//! `Limb` benchmarks
 #![allow(missing_docs)]
 
 use chacha20::ChaCha8Rng;
+use core::hint::black_box;
 use criterion::{
     BatchSize, BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::Measurement,
 };
 use crypto_bigint::{CtEq, CtGt, CtLt, Limb, Random};
 use rand_core::SeedableRng;
-use std::hint::black_box;
 
+/// Benchmark constant-time comparisons.
 fn bench_cmp<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
     group.bench_function("ct_lt", |b| {
@@ -47,6 +49,7 @@ fn bench_cmp<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     });
 }
 
+/// Benchmark `Limb` operations.
 fn bench_ops(c: &mut Criterion) {
     let mut group = c.benchmark_group("ops");
     bench_cmp(&mut group);

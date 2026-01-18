@@ -8,9 +8,12 @@ impl<'de> Deserialize<'de> for BoxedUint {
         D: Deserializer<'de>,
     {
         let slice = serdect::slice::deserialize_hex_or_bin_vec(deserializer)?;
+
+        #[allow(clippy::cast_possible_truncation)]
         let bit_precision = (slice.len() as u32).checked_mul(8).ok_or(Error::custom(
             "Deserialized value overflows u32 bit precision!",
         ))?;
+
         Self::from_le_slice(&slice, bit_precision).map_err(Error::custom)
     }
 }

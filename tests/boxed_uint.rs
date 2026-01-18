@@ -14,6 +14,7 @@ use num_modular::ModularUnaryOps;
 use num_traits::identities::One;
 use proptest::prelude::*;
 
+#[allow(clippy::cast_possible_truncation)]
 fn to_uint(big_uint: BigUint) -> BoxedUint {
     let bytes = big_uint.to_bytes_be();
     let pad_count = Limb::BYTES - (bytes.len() % Limb::BYTES);
@@ -32,6 +33,7 @@ prop_compose! {
         let extra = bytes.len() % Limb::BYTES;
         let bytes_precision = bytes.len() - extra;
         bytes.truncate(bytes_precision);
+        #[allow(clippy::cast_possible_truncation)]
         BoxedUint::from_be_slice(&bytes, bytes_precision as u32 * 8).unwrap()
     }
 }
@@ -61,6 +63,7 @@ proptest! {
 
     #[test]
     fn bits(a in uint()) {
+        #[allow(clippy::cast_possible_truncation)]
         let expected = to_biguint(&a).bits() as u32;
         prop_assert_eq!(expected, a.bits());
         prop_assert_eq!(expected, a.bits_vartime());

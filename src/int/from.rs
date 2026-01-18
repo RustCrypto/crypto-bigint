@@ -10,6 +10,7 @@ macro_rules! check_limbs {
     };
 }
 
+#[allow(clippy::cast_sign_loss)]
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Create a [`Int`] from an `i8` (const-friendly)
     // TODO(tarcieri): replace with `const impl From<i8>` when stable
@@ -78,8 +79,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
 impl<const LIMBS: usize> From<i8> for Int<LIMBS> {
     #[inline]
     fn from(n: i8) -> Self {
-        // TODO(tarcieri): const where clause when possible
-        debug_assert!(LIMBS > 0, "limbs must be non-zero");
+        const {
+            debug_assert!(LIMBS > 0, "limbs must be non-zero");
+        }
         Self::from_i8(n)
     }
 }
@@ -87,8 +89,9 @@ impl<const LIMBS: usize> From<i8> for Int<LIMBS> {
 impl<const LIMBS: usize> From<i16> for Int<LIMBS> {
     #[inline]
     fn from(n: i16) -> Self {
-        // TODO(tarcieri): const where clause when possible
-        debug_assert!(LIMBS > 0, "limbs must be non-zero");
+        const {
+            debug_assert!(LIMBS > 0, "limbs must be non-zero");
+        }
         Self::from_i16(n)
     }
 }
@@ -96,8 +99,9 @@ impl<const LIMBS: usize> From<i16> for Int<LIMBS> {
 impl<const LIMBS: usize> From<i32> for Int<LIMBS> {
     #[inline]
     fn from(n: i32) -> Self {
-        // TODO(tarcieri): const where clause when possible
-        debug_assert!(LIMBS > 0, "limbs must be non-zero");
+        const {
+            debug_assert!(LIMBS > 0, "limbs must be non-zero");
+        }
         Self::from_i32(n)
     }
 }
@@ -105,8 +109,9 @@ impl<const LIMBS: usize> From<i32> for Int<LIMBS> {
 impl<const LIMBS: usize> From<i64> for Int<LIMBS> {
     #[inline]
     fn from(n: i64) -> Self {
-        // TODO(tarcieri): const where clause when possible
-        debug_assert!(LIMBS >= 8 / Limb::BYTES, "not enough limbs");
+        const {
+            debug_assert!(LIMBS >= 8 / Limb::BYTES, "not enough limbs");
+        }
         Self::from_i64(n)
     }
 }
@@ -122,6 +127,7 @@ impl<const LIMBS: usize> From<i128> for Int<LIMBS> {
 
 impl From<I64> for i64 {
     #[inline]
+    #[allow(clippy::cast_possible_wrap)]
     fn from(n: I64) -> i64 {
         u64::from(n.0) as i64
     }
@@ -129,6 +135,7 @@ impl From<I64> for i64 {
 
 impl From<I128> for i128 {
     #[inline]
+    #[allow(clippy::cast_possible_wrap)]
     fn from(n: I128) -> i128 {
         u128::from(n.0) as i128
     }

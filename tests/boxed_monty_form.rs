@@ -29,6 +29,7 @@ prop_compose! {
         let extra = bytes.len() % Limb::BYTES;
         let bytes_precision = bytes.len() - extra;
         bytes.truncate(bytes_precision);
+        #[allow(clippy::cast_possible_truncation)]
         BoxedUint::from_be_slice(&bytes, bytes_precision as u32 * 8).unwrap()
     }
 }

@@ -82,8 +82,12 @@ impl<T: ?Sized> Odd<T> {
         &self.0
     }
 
-    /// All odd integers are definitionally non-zero, so we can also obtain a reference to [`NonZero`].
+    /// All odd integers are definitionally non-zero, so we can also obtain a reference to
+    /// the equivalent [`NonZero`] type.
     pub const fn as_nz_ref(&self) -> &NonZero<T> {
+        // SAFETY: `NonZero` and `Odd` are both `repr(transparent)` newtypes of `T` and therefore
+        // have the same layout. All `Odd` numbers are definitionally non-zero because zero is an
+        // even number
         #[allow(unsafe_code)]
         unsafe {
             &*(&raw const self.0 as *const NonZero<T>)

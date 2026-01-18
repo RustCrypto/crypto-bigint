@@ -51,7 +51,7 @@ impl BoxedUint {
     ///
     /// When working with secret values, use [`BoxedUint::from_be_slice`].
     #[must_use]
-    #[allow(clippy::missing_panics_doc)]
+    #[allow(clippy::cast_possible_truncation, clippy::missing_panics_doc)]
     pub fn from_be_slice_vartime(bytes: &[u8]) -> Self {
         let bits_precision = (bytes.len() as u32).saturating_mul(8);
 
@@ -102,7 +102,7 @@ impl BoxedUint {
     ///
     /// When working with secret values, use [`BoxedUint::from_le_slice`].
     #[must_use]
-    #[allow(clippy::missing_panics_doc)]
+    #[allow(clippy::cast_possible_truncation, clippy::missing_panics_doc)]
     pub fn from_le_slice_vartime(bytes: &[u8]) -> Self {
         let bits_precision = (bytes.len() as u32).saturating_mul(8);
 

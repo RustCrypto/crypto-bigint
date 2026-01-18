@@ -308,7 +308,8 @@ impl SignedBoxedInt {
         self.sign
     }
 
-    // Extract the lowest 63 bits and convert to its signed representation.
+    /// Extract the lowest 63 bits and convert to its signed representation.
+    #[allow(clippy::cast_possible_wrap)]
     pub fn lowest(&self) -> i64 {
         let mag = (self.magnitude.as_uint_ref().lowest_u64() & (u64::MAX >> 1)) as i64;
         self.sign.select_i64(mag, mag.wrapping_neg())

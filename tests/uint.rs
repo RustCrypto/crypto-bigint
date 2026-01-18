@@ -3,6 +3,7 @@
 mod common;
 
 use common::to_biguint;
+use core::mem;
 use crypto_bigint::{
     Encoding, Limb, NonZero, Odd, U256, U512, U4096, U8192, Uint, Word,
     modular::{MontyForm, MontyParams},
@@ -12,7 +13,6 @@ use num_integer::Integer as _;
 use num_modular::ModularSymbols;
 use num_traits::identities::{One, Zero};
 use proptest::prelude::*;
-use std::mem;
 
 /// Example prime number (NIST P-256 curve order)
 const P: Odd<U256> =
@@ -88,6 +88,7 @@ proptest! {
     }
 
     #[test]
+    #[allow(clippy::cast_possible_truncation)]
     fn bits(a in uint()) {
         let expected = to_biguint(&a).bits() as u32;
         prop_assert_eq!(expected, a.bits());
@@ -574,7 +575,7 @@ proptest! {
 
     #[test]
     fn monty_form_pow_bounded_exp(a in uint_mod_p(P), b in uint(), exponent_bits in any::<u8>()) {
-        let b_masked = b & (U256::ONE << exponent_bits as u32).wrapping_sub(&U256::ONE);
+        let b_masked = b & (U256::ONE << u32::from(exponent_bits)).wrapping_sub(&U256::ONE);
 
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b_masked);

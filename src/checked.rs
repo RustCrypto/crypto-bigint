@@ -330,7 +330,7 @@ impl<'de, T: Default + Deserialize<'de>> Deserialize<'de> for Checked<T> {
         D: Deserializer<'de>,
     {
         let value = Option::<T>::deserialize(deserializer)?;
-        let choice = Choice::from_u8_lsb(value.is_some() as u8);
+        let choice = Choice::from_u8_lsb(value.is_some().into());
         Ok(Self(CtOption::new(value.unwrap_or_default(), choice)))
     }
 }

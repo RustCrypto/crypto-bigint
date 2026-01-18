@@ -45,6 +45,7 @@ impl BoxedUint {
     /// Get the precision of this [`BoxedUint`] in bits.
     #[inline(always)]
     #[must_use]
+    #[allow(clippy::cast_possible_truncation)]
     pub fn bits_precision(&self) -> u32 {
         self.limbs.len() as u32 * Limb::BITS
     }

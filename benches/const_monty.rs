@@ -1,12 +1,13 @@
+//! `ConstMontyForm` benchmarks
 #![allow(missing_docs)]
 
 use chacha20::ChaCha8Rng;
+use core::hint::black_box;
 use criterion::{
     BatchSize, BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::Measurement,
 };
 use crypto_bigint::{Random, RandomMod, U256, const_monty_params, modular::ConstMontyParams};
 use rand_core::SeedableRng;
-use std::hint::black_box;
 
 #[cfg(feature = "alloc")]
 use crypto_bigint::MultiExponentiate;

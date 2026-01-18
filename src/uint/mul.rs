@@ -294,7 +294,7 @@ mod tests {
         for &a_int in primes {
             for &b_int in primes {
                 let (lo, hi) = U64::from_u32(a_int).widening_mul(&U64::from_u32(b_int));
-                let expected = U64::from_u64(a_int as u64 * b_int as u64);
+                let expected = U64::from_u64(u64::from(a_int) * u64::from(b_int));
                 assert_eq!(lo, expected);
                 assert!(bool::from(hi.is_zero()));
                 assert_eq!(lo, U64::from_u32(a_int).wrapping_mul(&U64::from_u32(b_int)));
