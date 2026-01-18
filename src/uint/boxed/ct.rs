@@ -3,15 +3,18 @@
 use super::BoxedUint;
 use crate::{Choice, CtAssign, CtEq, CtGt, CtLt, CtNeg, CtSelect, Limb, word};
 use core::cmp::max;
+use ctutils::{CtAssignSlice, CtEqSlice};
 
 impl CtAssign for BoxedUint {
     #[inline]
     fn ct_assign(&mut self, other: &Self, choice: Choice) {
         debug_assert_eq!(self.bits_precision(), other.bits_precision());
-        self.as_mut_words().ct_assign(other.as_words(), choice);
+        self.limbs.ct_assign(&other.limbs, choice);
     }
 }
+impl CtAssignSlice for BoxedUint {}
 
+// Note: special impl with implicit widening
 impl CtEq for BoxedUint {
     #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
@@ -27,6 +30,7 @@ impl CtEq for BoxedUint {
         ret
     }
 }
+impl CtEqSlice for BoxedUint {}
 
 impl CtGt for BoxedUint {
     #[inline]

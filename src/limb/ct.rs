@@ -1,6 +1,7 @@
 //! Constant-time support: impls of `Ct*` traits and constant-time `const fn` operations.
 
 use crate::{Choice, CtAssign, CtEq, CtGt, CtLt, CtSelect, Limb, word};
+use ctutils::{CtAssignSlice, CtEqSlice};
 
 impl Limb {
     /// Return `b` if `c` is truthy, otherwise return `a`.
@@ -25,6 +26,12 @@ impl CtAssign for Limb {
     }
 }
 
+impl CtAssignSlice for Limb {
+    fn ct_assign_slice(dst: &mut [Self], src: &[Self], choice: Choice) {
+        Self::slice_as_mut_words(dst).ct_assign(Self::slice_as_words(src), choice);
+    }
+}
+
 impl CtEq for Limb {
     #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
@@ -34,6 +41,12 @@ impl CtEq for Limb {
     #[inline]
     fn ct_ne(&self, other: &Self) -> Choice {
         CtEq::ct_ne(&self.0, &other.0)
+    }
+}
+
+impl CtEqSlice for Limb {
+    fn ct_eq_slice(a: &[Self], b: &[Self]) -> Choice {
+        Self::slice_as_words(a).ct_eq(Self::slice_as_words(b))
     }
 }
 

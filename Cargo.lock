@@ -145,9 +145,9 @@ checksum = "c3e64b0cc0439b12df2fa678eae89a1c56a529fd067a9115f7827f1fffd22b32"
 
 [[package]]
 name = "cmov"
-version = "0.5.0-pre.2"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "008db54a740b5bc7242282d859316f5d56119d3ff8a80fc0f39e8a0f99039780"
+checksum = "03968eed9162993de84b238cfc28851352572714ecadb2599638636bab90aa49"
 
 [[package]]
 name = "cpufeatures"
@@ -247,9 +247,9 @@ dependencies = [
 
 [[package]]
 name = "ctutils"
-version = "0.4.0-pre.2"
+version = "0.4.0-pre.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e111d31fd98cc9d8f15996e5e2890291d8a7b887478a28c96b99e0d13702e748"
+checksum = "fbb255642521ef4deccf330e4681da91dbe3e563a05539eeaa9623809e26ce45"
 dependencies = [
  "cmov",
  "subtle",

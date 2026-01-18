@@ -1,11 +1,5 @@
 //! Unsigned integer reference type.
 
-use crate::{Choice, Limb, Uint, Word};
-use core::{
-    fmt,
-    ops::{Index, IndexMut},
-};
-
 mod add;
 mod bits;
 mod ct;
@@ -15,6 +9,15 @@ mod shl;
 mod shr;
 mod slice;
 mod sub;
+
+use crate::{Choice, Limb, Uint};
+use core::{
+    fmt,
+    ops::{Index, IndexMut},
+};
+
+#[cfg(feature = "alloc")]
+use crate::Word;
 
 /// Unsigned integer reference type.
 ///
@@ -67,12 +70,14 @@ impl UintRef {
 
     /// Borrow the inner limbs as a slice of [`Word`]s.
     #[inline]
+    #[cfg(feature = "alloc")]
     pub const fn as_words(&self) -> &[Word] {
         Limb::slice_as_words(&self.0)
     }
 
     /// Borrow the inner limbs as a mutable slice of [`Word`]s.
     #[inline]
+    #[cfg(feature = "alloc")]
     pub const fn as_mut_words(&mut self) -> &mut [Word] {
         Limb::slice_as_mut_words(&mut self.0)
     }
