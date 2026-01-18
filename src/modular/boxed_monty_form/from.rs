@@ -1,6 +1,6 @@
 //! `From`-like conversions for [`BoxedMontyForm`] and [`BoxedMontyParams`].
 
-use super::{BoxedMontyForm, BoxedMontyParams, BoxedMontyParamsInner};
+use super::{BoxedMontyForm, BoxedMontyParams, GenericMontyParams};
 use crate::modular::{ConstMontyForm, ConstMontyParams, MontyForm, MontyParams};
 
 impl<const LIMBS: usize, Params> From<ConstMontyForm<Params, LIMBS>> for BoxedMontyForm
@@ -42,7 +42,7 @@ impl<const LIMBS: usize> From<&MontyForm<LIMBS>> for BoxedMontyForm {
 impl<const LIMBS: usize> From<&MontyParams<LIMBS>> for BoxedMontyParams {
     fn from(params: &MontyParams<LIMBS>) -> Self {
         Self(
-            BoxedMontyParamsInner {
+            GenericMontyParams {
                 modulus: params.modulus.into(),
                 one: params.one.into(),
                 r2: params.r2.into(),

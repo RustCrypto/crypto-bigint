@@ -24,9 +24,7 @@ use zeroize::Zeroize;
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus whose size and value
 /// are both chosen at runtime.
 #[derive(Clone, Eq, PartialEq)]
-pub struct BoxedMontyParams(Arc<BoxedMontyParamsInner>);
-
-type BoxedMontyParamsInner = GenericMontyParams<BoxedUint>;
+pub struct BoxedMontyParams(Arc<GenericMontyParams<BoxedUint>>);
 
 impl BoxedMontyParams {
     /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`.
@@ -50,7 +48,7 @@ impl BoxedMontyParams {
         let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
 
         Self(
-            BoxedMontyParamsInner {
+            GenericMontyParams {
                 modulus,
                 one,
                 r2,
@@ -83,7 +81,7 @@ impl BoxedMontyParams {
         let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
 
         Self(
-            BoxedMontyParamsInner {
+            GenericMontyParams {
                 modulus,
                 one,
                 r2,
