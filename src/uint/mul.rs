@@ -61,6 +61,23 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             wrapping_mul_overflow(self.as_uint_ref(), rhs.as_uint_ref(), carry.is_nonzero());
         CtOption::new(lo, overflow.not())
     }
+
+    /// Perform multiplication by a Limb, returning the wrapped result and a Limb overflow.
+    pub(crate) const fn overflowing_mul_limb(&self, rhs: Limb) -> (Self, Limb) {
+        let mut ret = [Limb::ZERO; LIMBS];
+        let mut i = 0;
+        let mut carry = Limb::ZERO;
+        while i < LIMBS {
+            (ret[i], carry) = self.limbs[i].carrying_mul_add(rhs, Limb::ZERO, carry);
+            i += 1;
+        }
+        (Uint::new(ret), carry)
+    }
+
+    /// Perform wrapping multiplication by a Limb, discarding overflow.
+    pub(crate) const fn wrapping_mul_limb(&self, rhs: Limb) -> Self {
+        self.overflowing_mul_limb(rhs).0
+    }
 }
 
 /// Squaring operations
@@ -248,7 +265,7 @@ pub(crate) const fn wrapping_mul_overflow(
 
 #[cfg(test)]
 mod tests {
-    use crate::{U64, U128, U192, U256, Uint};
+    use crate::{Limb, U64, U128, U192, U256, Uint};
 
     #[test]
     fn widening_mul_zero_and_one() {
@@ -443,5 +460,27 @@ mod tests {
             assert_eq!(checked.is_some().to_bool(), res_overflow.not().to_bool());
             assert_eq!(checked.as_inner_unchecked(), &res.0, "a = 2**{n}");
         }
+    }
+
+    #[test]
+    fn overflowing_mul_limb() {
+        let (max_lo, max_hi) = U128::MAX.widening_mul(&U128::from(Limb::MAX));
+
+        let result = U128::ZERO.overflowing_mul_limb(Limb::ZERO);
+        assert_eq!(result, (U128::ZERO, Limb::ZERO));
+        let result = U128::ZERO.overflowing_mul_limb(Limb::ONE);
+        assert_eq!(result, (U128::ZERO, Limb::ZERO));
+        let result = U128::MAX.overflowing_mul_limb(Limb::ZERO);
+        assert_eq!(result, (U128::ZERO, Limb::ZERO));
+        let result = U128::MAX.overflowing_mul_limb(Limb::ONE);
+        assert_eq!(result, (U128::MAX, Limb::ZERO));
+        let result = U128::MAX.overflowing_mul_limb(Limb::MAX);
+        assert_eq!(result, (max_lo, max_hi.limbs[0]));
+
+        assert_eq!(U128::ZERO.wrapping_mul_limb(Limb::ZERO), U128::ZERO);
+        assert_eq!(U128::ZERO.wrapping_mul_limb(Limb::ONE), U128::ZERO);
+        assert_eq!(U128::MAX.wrapping_mul_limb(Limb::ZERO), U128::ZERO);
+        assert_eq!(U128::MAX.wrapping_mul_limb(Limb::ONE), U128::MAX);
+        assert_eq!(U128::MAX.wrapping_mul_limb(Limb::MAX), max_lo);
     }
 }
