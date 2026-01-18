@@ -14,7 +14,7 @@ pub(crate) mod boxed;
 
 use core::fmt;
 
-use crate::{Choice, CtOption, I64, Int, Limb, Odd, U64, Uint, primitives::u32_min};
+use crate::{Choice, CtOption, I64, Int, Limb, NonZero, Odd, U64, Uint, primitives::u32_min};
 
 const GCD_BATCH_SIZE: u32 = 62;
 
@@ -84,36 +84,61 @@ impl<const LIMBS: usize> SafeGcdInverter<LIMBS> {
     /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
     pub const fn invert(&self, value: &Uint<LIMBS>) -> CtOption<Uint<LIMBS>> {
-        invert_odd_mod_precomp::<LIMBS, false>(value, &self.modulus, self.inverse, &self.adjuster)
+        let is_nz = value.is_nonzero();
+        let nz = NonZero(Uint::select(&Uint::ONE, value, is_nz));
+        invert_odd_mod_precomp::<LIMBS, false>(&nz, &self.modulus, self.inverse, &self.adjuster)
+            .filter_by(is_nz)
     }
 
     /// Returns either the adjusted modular multiplicative inverse for the argument or `None`
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
     ///
     /// This version is variable-time with respect to `value`.
-    pub const fn invert_vartime(&self, value: &Uint<LIMBS>) -> CtOption<Uint<LIMBS>> {
-        invert_odd_mod_precomp::<LIMBS, true>(value, &self.modulus, self.inverse, &self.adjuster)
+    pub const fn invert_vartime(&self, value: &Uint<LIMBS>) -> Option<Uint<LIMBS>> {
+        if let Some(nz) = value.to_nz_vartime() {
+            invert_odd_mod_precomp::<LIMBS, true>(&nz, &self.modulus, self.inverse, &self.adjuster)
+                .into_option_copied()
+        } else {
+            None
+        }
     }
 }
 
 #[inline]
-pub const fn invert_odd_mod<const LIMBS: usize, const VARTIME: bool>(
+pub const fn invert_odd_mod<const LIMBS: usize>(
     a: &Uint<LIMBS>,
     m: &Odd<Uint<LIMBS>>,
 ) -> CtOption<Uint<LIMBS>> {
+    let is_nz = a.is_nonzero();
+    let nz = NonZero(Uint::select(&Uint::ONE, a, is_nz));
     let mi = m.as_uint_ref().invert_mod_u64();
-    invert_odd_mod_precomp::<LIMBS, VARTIME>(a, m, mi, &Uint::ONE)
+    invert_odd_mod_precomp::<LIMBS, false>(&nz, m, mi, &Uint::ONE).filter_by(is_nz)
+}
+
+#[inline]
+pub const fn invert_odd_mod_vartime<const LIMBS: usize>(
+    a: &Uint<LIMBS>,
+    m: &Odd<Uint<LIMBS>>,
+) -> Option<Uint<LIMBS>> {
+    if let Some(nz) = a.to_nz_vartime() {
+        let mi = m.as_uint_ref().invert_mod_u64();
+        invert_odd_mod_precomp::<LIMBS, true>(&nz, m, mi, &Uint::ONE).into_option_copied()
+    } else {
+        None
+    }
 }
 
 /// Calculate the multiplicative inverse of `a` modulo `m`.
 const fn invert_odd_mod_precomp<const LIMBS: usize, const VARTIME: bool>(
-    a: &Uint<LIMBS>,
+    a: &NonZero<Uint<LIMBS>>,
     m: &Odd<Uint<LIMBS>>,
     mi: u64,
     e: &Uint<LIMBS>,
 ) -> CtOption<Uint<LIMBS>> {
-    let a_nonzero = a.is_nonzero();
-    let (mut f, mut g) = (SignedInt::from_uint(*m.as_ref()), SignedInt::from_uint(*a));
+    let (mut f, mut g) = (
+        SignedInt::from_uint(m.get_copy()),
+        SignedInt::from_uint(a.get_copy()),
+    );
     let (mut d, mut e) = (SignedInt::<LIMBS>::ZERO, SignedInt::from_uint(*e));
     let mut steps = iterations(Uint::<LIMBS>::BITS);
     let mut delta = 1;
@@ -131,7 +156,7 @@ const fn invert_odd_mod_precomp<const LIMBS: usize, const VARTIME: bool>(
     }
 
     let d = d.norm(f.is_negative(), m.as_ref());
-    CtOption::new(d, Uint::eq(&f.magnitude, &Uint::ONE).and(a_nonzero))
+    CtOption::new(d, Uint::eq(&f.magnitude, &Uint::ONE))
 }
 
 /// Calculate the greatest common denominator of odd `f`, and `g`.

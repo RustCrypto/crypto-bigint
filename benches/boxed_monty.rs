@@ -96,6 +96,19 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         )
     });
 
+    group.bench_function(format!("invert_vartime, {UINT_BITS}-bit"), |b| {
+        b.iter_batched(
+            || {
+                BoxedMontyForm::new(
+                    BoxedUint::random_mod_vartime(&mut rng, params.modulus().as_nz_ref()),
+                    &params,
+                )
+            },
+            |x| black_box(x).invert_vartime(),
+            BatchSize::SmallInput,
+        )
+    });
+
     group.bench_function("multiplication, BoxedUint*BoxedUint", |b| {
         b.iter_batched(
             || {

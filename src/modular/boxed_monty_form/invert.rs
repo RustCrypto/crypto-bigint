@@ -23,39 +23,33 @@ impl BoxedMontyForm {
     ///
     /// This version is variable-time with respect to the self of `self`, but constant-time with
     /// respect to `self`'s `params`.
-    pub fn invert_vartime(&self) -> CtOption<Self> {
-        let montgomery_form = self.params.inverter().invert_vartime(&self.montgomery_form);
-        let is_some = montgomery_form.is_some();
-        let montgomery_form2 = self.montgomery_form.clone();
-        let ret = BoxedMontyForm {
-            montgomery_form: Option::from(montgomery_form).unwrap_or(montgomery_form2),
-            params: self.params.clone(),
-        };
-
-        CtOption::new(ret, is_some)
+    pub fn invert_vartime(&self) -> Option<Self> {
+        self.params
+            .inverter()
+            .invert_vartime(&self.montgomery_form)
+            .map(|inv| BoxedMontyForm {
+                montgomery_form: inv,
+                params: self.params.clone(),
+            })
     }
 }
 
 impl Invert for BoxedMontyForm {
-    type Output = CtOption<Self>;
+    type Output = Self;
 
-    fn invert(&self) -> Self::Output {
+    fn invert(&self) -> CtOption<Self::Output> {
         self.invert()
     }
 
-    fn invert_vartime(&self) -> Self::Output {
+    fn invert_vartime(&self) -> Option<Self::Output> {
         self.invert_vartime()
     }
 }
 
 impl BoxedMontyParams {
     /// Compute the inverter for these params.
-    fn inverter(&self) -> BoxedSafeGcdInverter {
-        BoxedSafeGcdInverter::new_with_inverse(
-            self.modulus().clone(),
-            self.mod_inv(),
-            self.r2().clone(),
-        )
+    fn inverter(&self) -> BoxedSafeGcdInverter<'_> {
+        BoxedSafeGcdInverter::new_with_inverse(self.modulus(), self.mod_inv(), Some(self.r2()))
     }
 }
 

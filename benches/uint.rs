@@ -797,7 +797,7 @@ fn bench_invert_mod(c: &mut Criterion) {
                 loop {
                     let x = U256::random_from_rng(&mut rng);
                     let inv_x = x.invert_odd_mod_vartime(&m);
-                    if inv_x.is_some().into() {
+                    if inv_x.is_some() {
                         break (x, m);
                     }
                 }
