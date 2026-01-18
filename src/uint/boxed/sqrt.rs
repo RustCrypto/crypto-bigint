@@ -1,7 +1,7 @@
 //! [`BoxedUint`] square root operations.
 
 use crate::{
-    BitOps, BoxedUint, CheckedSquareRoot, CtEq, CtGt, CtOption, CtSelect, FloorSquareRoot, Limb,
+    BitOps, BoxedUint, CheckedSquareRoot, CtAssign, CtEq, CtGt, CtOption, FloorSquareRoot, Limb,
 };
 
 impl BoxedUint {

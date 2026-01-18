@@ -4,8 +4,8 @@ mod common;
 
 use common::to_biguint;
 use crypto_bigint::{
-    Bounded, Constants, CtOption, EncodedUint, Encoding, Integer, Invert, Monty, NonZero, Odd,
-    U128, U256, U512, U1024, U2048, U4096, Unsigned,
+    Bounded, Constants, EncodedUint, Encoding, Integer, Invert, Monty, NonZero, Odd, U128, U256,
+    U512, U1024, U2048, U4096, Unsigned,
     modular::{MontyForm, MontyParams},
 };
 use num_bigint::BigUint;
@@ -50,7 +50,7 @@ fn random_invertible_uint<T>(
 ) -> Result<(T, <T as Unsigned>::Monty, <T as Unsigned>::Monty, BigUint), TestCaseError>
 where
     T: Unsigned + Bounded + Encoding,
-    <T as Unsigned>::Monty: Invert<Output = CtOption<T::Monty>>,
+    <T as Unsigned>::Monty: Invert<Output = T::Monty>,
 {
     let r = T::from_be_bytes(bytes.clone());
     let rm = <T as Unsigned>::Monty::new(r.clone(), &monty_params);

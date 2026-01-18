@@ -583,7 +583,7 @@ mod tests {
         // Test the Bezout coefficients for correctness
         let (x, y) = output.bezout_coefficients();
         assert_eq!(
-            x.concatenating_mul_uint(&lhs) + y.concatenating_mul_uint(&rhs),
+            x.concatenating_mul_unsigned(&lhs) + y.concatenating_mul_unsigned(&rhs),
             *output.gcd.resize().as_int(),
         );
 

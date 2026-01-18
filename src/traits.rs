@@ -4,7 +4,7 @@ pub use core::ops::{
     Add, AddAssign, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Div, DivAssign,
     Mul, MulAssign, Neg, Not, Rem, RemAssign, Shl, ShlAssign, Shr, ShrAssign, Sub, SubAssign,
 };
-pub use ctutils::{CtEq, CtGt, CtLt, CtNeg, CtSelect};
+pub use ctutils::{CtAssign, CtEq, CtGt, CtLt, CtNeg, CtSelect};
 pub use num_traits::{
     ConstOne, ConstZero, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr,
     WrappingSub,
@@ -51,6 +51,7 @@ pub trait Integer:
     + CheckedDiv
     + CheckedSquareRoot<Output = Self>
     + Clone
+    + CtAssign
     + CtEq
     + CtGt
     + CtLt
@@ -904,11 +905,11 @@ pub trait Invert {
     type Output;
 
     /// Computes the inverse.
-    fn invert(&self) -> Self::Output;
+    fn invert(&self) -> CtOption<Self::Output>;
 
     /// Computes the inverse in variable-time.
-    fn invert_vartime(&self) -> Self::Output {
-        self.invert()
+    fn invert_vartime(&self) -> Option<Self::Output> {
+        self.invert().into_option()
     }
 }
 
@@ -948,7 +949,7 @@ pub trait ShlVartime: Sized {
     /// Computes `self << shift`.
     ///
     /// Returns `None` if `shift >= self.bits_precision()`.
-    fn overflowing_shl_vartime(&self, shift: u32) -> CtOption<Self>;
+    fn overflowing_shl_vartime(&self, shift: u32) -> Option<Self>;
 
     /// Computes `self << shift` in a panic-free manner, masking off bits of `shift`
     /// which would cause the shift to exceed the type's width.
@@ -960,7 +961,7 @@ pub trait ShrVartime: Sized {
     /// Computes `self >> shift`.
     ///
     /// Returns `None` if `shift >= self.bits_precision()`.
-    fn overflowing_shr_vartime(&self, shift: u32) -> CtOption<Self>;
+    fn overflowing_shr_vartime(&self, shift: u32) -> Option<Self>;
 
     /// Computes `self >> shift` in a panic-free manner, masking off bits of `shift`
     /// which would cause the shift to exceed the type's width.

@@ -18,7 +18,7 @@ impl BoxedUint {
     /// Multiply `self` by `rhs`.
     ///
     /// Returns a widened output with a limb count equal to the sums of the input limb counts.
-    pub(crate) fn mul_uint<const LIMBS: usize>(&self, rhs: &Uint<LIMBS>) -> Self {
+    pub(crate) fn mul_unsigned<const LIMBS: usize>(&self, rhs: &Uint<LIMBS>) -> Self {
         self.wrapping_mul_carry(rhs.as_limbs(), self.nlimbs() + LIMBS)
             .0
     }

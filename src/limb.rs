@@ -8,11 +8,11 @@ mod bit_or;
 mod bit_xor;
 mod bits;
 mod cmp;
+mod ct;
 mod encoding;
 mod from;
 mod mul;
 mod neg;
-mod select;
 mod shl;
 mod shr;
 mod sub;
@@ -93,6 +93,50 @@ impl Limb {
     /// Convert the least significant bit of this [`Limb`] to a [`Choice`].
     pub const fn lsb_to_choice(self) -> Choice {
         word::choice_from_lsb(self.0)
+    }
+
+    /// Convert a shared reference to an array of [`Limb`]s into a shared reference to their inner
+    /// [`Word`]s for each limb.
+    #[inline]
+    pub const fn array_as_words<const N: usize>(array: &[Self; N]) -> &[Word; N] {
+        // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
+        #[allow(unsafe_code)]
+        unsafe {
+            &*array.as_ptr().cast()
+        }
+    }
+
+    /// Convert a mutable reference to an array of [`Limb`]s into a mutable reference to their inner
+    /// [`Word`]s for each limb.
+    #[inline]
+    pub const fn array_as_mut_words<const N: usize>(array: &mut [Self; N]) -> &mut [Word; N] {
+        // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
+        #[allow(unsafe_code)]
+        unsafe {
+            &mut *array.as_mut_ptr().cast()
+        }
+    }
+
+    /// Convert a shared reference to an array of [`Limb`]s into a shared reference to their inner
+    /// [`Word`]s for each limb.
+    #[inline]
+    pub const fn slice_as_words(slice: &[Self]) -> &[Word] {
+        // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
+        #[allow(trivial_casts, unsafe_code)]
+        unsafe {
+            &*((slice as *const [Limb]) as *const [Word])
+        }
+    }
+
+    /// Convert a mutable reference to an array of [`Limb`]s into a mutable reference to their inner
+    /// [`Word`]s for each limb.
+    #[inline]
+    pub const fn slice_as_mut_words(slice: &mut [Self]) -> &mut [Word] {
+        // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
+        #[allow(trivial_casts, unsafe_code)]
+        unsafe {
+            &mut *((slice as *mut [Limb]) as *mut [Word])
+        }
     }
 }
 

@@ -1,9 +1,11 @@
 //! [`BoxedUint`] addition operations.
 
 use crate::{
-    Add, AddAssign, BoxedUint, CheckedAdd, Choice, CtOption, CtSelect, Limb, U64, U128, Uint,
-    Wrapping, WrappingAdd,
+    Add, AddAssign, BoxedUint, CheckedAdd, Choice, CtOption, CtSelect, Limb, Resize, U64, U128,
+    Uint, Wrapping, WrappingAdd,
 };
+use core::cmp;
+use ctutils::CtEq;
 
 impl BoxedUint {
     /// Computes `self + rhs + carry`, returning the result along with the new carry.
@@ -18,7 +20,7 @@ impl BoxedUint {
         Self::fold_limbs(self, rhs, carry, |a, b, c| a.carrying_add(b, c))
     }
 
-    /// Computes `a + b + carry` in-place, returning the new carry.
+    /// Computes `self + rhs + carry` in-place, returning the new carry.
     ///
     /// Panics if `rhs` has a larger precision than `self`.
     #[deprecated(since = "0.7.0", note = "please use `carrying_add_assign` instead")]
@@ -26,7 +28,7 @@ impl BoxedUint {
         self.carrying_add_assign(rhs, carry)
     }
 
-    /// Computes `a + b + carry` in-place, returning the new carry.
+    /// Computes `self + rhs + carry` in-place, returning the new carry.
     ///
     /// Panics if `rhs` has a larger precision than `self`.
     #[inline]
@@ -41,6 +43,28 @@ impl BoxedUint {
         }
 
         carry
+    }
+
+    /// Computes `self + rhs`, returning a result which is concatenated with the overflow limb which
+    /// would be returned if `carrying_add` were called with the same operands.
+    pub fn concatenating_add(&self, rhs: &Self) -> Self {
+        // Create a copy of `self` widened to one limb larger than the largest of `self` and `rhs`
+        let nlimbs = cmp::max(self.nlimbs(), rhs.nlimbs()) + 1;
+        let mut ret = self.resize(nlimbs as u32 * Limb::BITS);
+
+        // Overflow should always be zero here because we added a zero limb to `self` in `ret`
+        let _overflow = ret.carrying_add_assign(rhs, Limb::ZERO);
+        debug_assert_eq!(_overflow, Limb::ZERO);
+        ret
+    }
+
+    /// Computes `self + rhs`, returning a tuple of the sum along with a [`Choice`] which indicates
+    /// whether an overflow occurred.
+    ///
+    /// If an overflow occurred, then the wrapped value is returned.
+    pub fn overflowing_add(&self, rhs: &Self) -> (Self, Choice) {
+        let (ret, overflow) = self.carrying_add(rhs, Limb::ZERO);
+        (ret, overflow.ct_ne(&Limb::ZERO))
     }
 
     /// Perform wrapping addition, discarding overflow.
@@ -246,6 +270,19 @@ mod tests {
     use crate::Resize;
 
     #[test]
+    fn add_assign() {
+        let mut h = BoxedUint::one().resize(1024);
+        h += BoxedUint::one();
+    }
+
+    #[test]
+    fn add_with_u32_rhs() {
+        let a = BoxedUint::from(1u64);
+        let b = a + u32::MAX;
+        assert_eq!(b, BoxedUint::from(0x100000000u64));
+    }
+
+    #[test]
     fn carrying_add_no_carry() {
         let (res, carry) = BoxedUint::zero().carrying_add(&BoxedUint::one(), Limb::ZERO);
         assert_eq!(res, BoxedUint::one());
@@ -257,13 +294,6 @@ mod tests {
         let (res, carry) = BoxedUint::max(Limb::BITS).carrying_add(&BoxedUint::one(), Limb::ZERO);
         assert_eq!(res, BoxedUint::zero());
         assert_eq!(carry, Limb::ONE);
-    }
-
-    #[test]
-    fn add_with_u32_rhs() {
-        let a = BoxedUint::from(1u64);
-        let b = a + u32::MAX;
-        assert_eq!(b, BoxedUint::from(0x100000000u64));
     }
 
     #[test]
@@ -279,9 +309,20 @@ mod tests {
     }
 
     #[test]
-    fn add_assign() {
-        let mut h = BoxedUint::one().resize(1024);
+    fn concatenating_add() {
+        let result = BoxedUint::max(Limb::BITS).concatenating_add(&BoxedUint::one());
+        assert_eq!(result.as_limbs(), &[Limb::ZERO, Limb::ONE]);
+    }
 
-        h += BoxedUint::one();
+    #[test]
+    fn overflowing_add() {
+        let one = BoxedUint::one();
+        let (ret, overflow) = one.overflowing_add(&one);
+        assert_eq!(ret, &one + &one);
+        assert!(!overflow.to_bool());
+
+        let (ret, overflow) = BoxedUint::max(Limb::BITS).overflowing_add(&one);
+        assert!(ret.is_zero().to_bool());
+        assert!(overflow.to_bool());
     }
 }

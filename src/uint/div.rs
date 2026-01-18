@@ -674,7 +674,7 @@ impl<const LIMBS: usize> RemLimb for Uint<LIMBS> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        CtSelect, DivVartime, Limb, NonZero, One, RemMixed, U64, U128, U256, U512, U896, U1024,
+        CtAssign, DivVartime, Limb, NonZero, One, RemMixed, U64, U128, U256, U512, U896, U1024,
         Uint, Word, Zero,
     };
 
@@ -997,7 +997,7 @@ mod tests {
         impl<T, U> A<T, U>
         where
             T: RemMixed<U>,
-            U: Clone + Zero + One + CtSelect,
+            U: Clone + Zero + One + CtAssign,
         {
             fn reduce_t_by_u(&self) -> U {
                 let rhs = &NonZero::new(self.u.clone()).unwrap();
@@ -1020,7 +1020,7 @@ mod tests {
         }
         impl<T> A<T>
         where
-            T: DivVartime + Clone + Zero + One + CtSelect,
+            T: DivVartime + Clone + Zero + One + CtAssign,
         {
             fn divide_x_by_y(&self) -> T {
                 let rhs = &NonZero::new(self.y.clone()).unwrap();

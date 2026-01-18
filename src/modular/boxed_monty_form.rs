@@ -1,16 +1,16 @@
 //! Implements heap-allocated `BoxedMontyForm`s, supporting modular arithmetic with a modulus set at runtime.
 
 mod add;
-mod cmp;
+mod ct;
+mod from;
 mod invert;
 mod lincomb;
 mod mul;
 mod neg;
 mod pow;
-mod select;
 mod sub;
 
-use super::{MontyParams, Retrieve, div_by_2, reduction::montgomery_retrieve_inner};
+use super::{Retrieve, div_by_2, reduction::montgomery_retrieve_inner};
 use crate::{BoxedUint, Choice, Limb, Monty, Odd, U64, Word};
 use alloc::sync::Arc;
 use mul::BoxedMontyMultiplier;
@@ -132,27 +132,6 @@ impl BoxedMontyParams {
 
     pub(crate) fn mod_leading_zeros(&self) -> u32 {
         self.0.mod_leading_zeros
-    }
-}
-
-impl<const LIMBS: usize> From<&MontyParams<LIMBS>> for BoxedMontyParams {
-    fn from(params: &MontyParams<LIMBS>) -> Self {
-        Self(
-            BoxedMontyParamsInner {
-                modulus: params.modulus.into(),
-                one: params.one.into(),
-                r2: params.r2.into(),
-                mod_inv: params.mod_inv,
-                mod_leading_zeros: params.mod_leading_zeros,
-            }
-            .into(),
-        )
-    }
-}
-
-impl<const LIMBS: usize> From<MontyParams<LIMBS>> for BoxedMontyParams {
-    fn from(params: MontyParams<LIMBS>) -> Self {
-        BoxedMontyParams::from(&params)
     }
 }
 

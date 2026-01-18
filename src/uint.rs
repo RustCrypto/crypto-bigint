@@ -32,6 +32,7 @@ mod bit_xor;
 mod bits;
 mod cmp;
 mod concat;
+mod ct;
 mod div;
 pub(crate) mod div_limb;
 pub(crate) mod encoding;
@@ -41,8 +42,8 @@ mod invert_mod;
 pub(crate) mod lcm;
 mod mod_symbol;
 pub(crate) mod mul;
-mod mul_int;
 mod mul_mod;
+mod mul_signed;
 mod neg;
 mod neg_mod;
 mod pow;
@@ -153,20 +154,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Borrow the inner limbs as an array of [`Word`]s.
     pub const fn as_words(&self) -> &[Word; LIMBS] {
-        // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
-        #[allow(unsafe_code)]
-        unsafe {
-            &*self.limbs.as_ptr().cast()
-        }
+        Limb::array_as_words(&self.limbs)
     }
 
     /// Borrow the inner limbs as a mutable array of [`Word`]s.
     pub const fn as_mut_words(&mut self) -> &mut [Word; LIMBS] {
-        // SAFETY: `Limb` is a `repr(transparent)` newtype for `Word`
-        #[allow(unsafe_code)]
-        unsafe {
-            &mut *self.limbs.as_mut_ptr().cast()
-        }
+        Limb::array_as_mut_words(&mut self.limbs)
     }
 
     /// Borrow the inner limbs as a mutable slice of [`Word`]s.
@@ -210,13 +203,24 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Convert to a [`NonZero<Uint<LIMBS>>`].
     ///
-    /// Returns some if the original value is non-zero, and false otherwise.
+    /// Returns some if the original value is non-zero, and none otherwise.
     pub const fn to_nz(&self) -> CtOption<NonZero<Self>> {
         let is_nz = self.is_nonzero();
 
         // Use `1` as a placeholder in the event this value is `0`
         let ret = Self::select(&Self::ONE, self, is_nz);
         CtOption::new(NonZero(ret), is_nz)
+    }
+
+    /// Convert to a [`NonZero<Uint<LIMBS>>`].
+    ///
+    /// Returns Some if the original value is non-zero, and None otherwise.
+    pub const fn to_nz_vartime(&self) -> Option<NonZero<Self>> {
+        if !self.is_zero_vartime() {
+            Some(NonZero(*self))
+        } else {
+            None
+        }
     }
 
     /// Convert to a [`Odd<Uint<LIMBS>>`].
@@ -234,6 +238,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Note: this is a casting operation. See [`Self::try_into_int`] for the checked equivalent.
     pub const fn as_int(&self) -> &Int<LIMBS> {
+        // SAFETY: `Int` is a `repr(transparent)` newtype for `Uint`, and this operation is intended
+        // to be a reinterpreting cast between the two types.
         #[allow(trivial_casts, unsafe_code)]
         unsafe {
             &*(self as *const Uint<LIMBS> as *const Int<LIMBS>)
@@ -249,15 +255,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Is this [`Uint`] equal to [`Uint::ZERO`]?
     pub const fn is_zero(&self) -> Choice {
-        let mut ret = Choice::TRUE;
-        let mut n = 0;
-
-        while n < LIMBS {
-            ret = ret.and(self.limbs[n].is_zero());
-            n += 1;
-        }
-
-        ret
+        self.is_nonzero().not()
     }
 }
 

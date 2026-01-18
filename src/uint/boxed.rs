@@ -8,6 +8,7 @@ mod bit_or;
 mod bit_xor;
 mod bits;
 mod cmp;
+mod ct;
 pub(crate) mod div;
 pub(crate) mod encoding;
 mod from;
@@ -18,7 +19,6 @@ mod mul_mod;
 mod neg;
 mod neg_mod;
 mod pow_mod;
-mod select;
 mod shl;
 mod shr;
 mod sqrt;
@@ -29,7 +29,7 @@ mod sub_mod;
 mod rand;
 
 use crate::{
-    Choice, CtEq, CtOption, CtSelect, Integer, Limb, NonZero, Odd, One, Resize, UintRef, Unsigned,
+    Choice, CtAssign, CtEq, CtOption, Integer, Limb, NonZero, Odd, One, Resize, UintRef, Unsigned,
     Word, Zero, modular::BoxedMontyForm,
 };
 use alloc::{boxed::Box, vec, vec::Vec};

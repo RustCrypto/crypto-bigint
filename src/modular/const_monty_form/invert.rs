@@ -46,7 +46,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     /// This version is variable-time with respect to the value of `self`, but constant-time with
     /// respect to `MOD`.
     #[deprecated(since = "0.7.0", note = "please use `invert_vartime` instead")]
-    pub const fn inv_vartime(&self) -> CtOption<Self> {
+    pub const fn inv_vartime(&self) -> Option<Self> {
         self.invert_vartime()
     }
 
@@ -58,32 +58,31 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     ///
     /// This version is variable-time with respect to the value of `self`, but constant-time with
     /// respect to `MOD`.
-    pub const fn invert_vartime(&self) -> CtOption<Self> {
+    pub const fn invert_vartime(&self) -> Option<Self> {
         let inverter = SafeGcdInverter::new_with_inverse(
             &MOD::PARAMS.modulus,
             MOD::PARAMS.mod_inv,
             &MOD::PARAMS.r2,
         );
-
-        let maybe_inverse = inverter.invert_vartime(&self.montgomery_form);
-
-        let ret = Self {
-            montgomery_form: maybe_inverse.to_inner_unchecked(),
-            phantom: PhantomData,
-        };
-
-        CtOption::new(ret, maybe_inverse.is_some())
+        if let Some(inv) = inverter.invert_vartime(&self.montgomery_form) {
+            Some(Self {
+                montgomery_form: inv,
+                phantom: PhantomData,
+            })
+        } else {
+            None
+        }
     }
 }
 
 impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Invert for ConstMontyForm<MOD, LIMBS> {
-    type Output = CtOption<Self>;
+    type Output = Self;
 
-    fn invert(&self) -> Self::Output {
+    fn invert(&self) -> CtOption<Self::Output> {
         self.invert()
     }
 
-    fn invert_vartime(&self) -> Self::Output {
+    fn invert_vartime(&self) -> Option<Self::Output> {
         self.invert_vartime()
     }
 }
