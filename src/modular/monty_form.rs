@@ -11,30 +11,14 @@ mod pow;
 mod sub;
 
 use super::{
-    Retrieve,
+    MontyParams, Retrieve,
     const_monty_form::{ConstMontyForm, ConstMontyParams},
     div_by_2::div_by_2,
     mul::mul_montgomery_form,
     reduction::montgomery_retrieve,
 };
-use crate::{Choice, Limb, Monty, Odd, U64, Uint, Word};
+use crate::{Choice, Monty, Odd, U64, Uint, Word};
 use mul::DynMontyMultiplier;
-
-/// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct MontyParams<const LIMBS: usize> {
-    /// The constant modulus
-    pub(super) modulus: Odd<Uint<LIMBS>>,
-    /// 1 in Montgomery form (a.k.a. `R`)
-    pub(super) one: Uint<LIMBS>,
-    /// `R^2 mod modulus`, used to move into Montgomery form
-    pub(super) r2: Uint<LIMBS>,
-    /// The lowest limbs of MODULUS^-1 mod 2**64
-    /// This value is used in Montgomery reduction and modular inversion
-    pub(super) mod_inv: U64,
-    /// Leading zeros in the modulus, used to choose optimized algorithms
-    pub(super) mod_leading_zeros: u32,
-}
 
 impl<const LIMBS: usize> MontyParams<LIMBS> {
     /// Instantiates a new set of `MontyParams` representing the given odd `modulus`.
@@ -94,38 +78,6 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
             mod_inv,
             mod_leading_zeros,
         }
-    }
-
-    /// Returns the modulus which was used to initialize these parameters.
-    pub const fn modulus(&self) -> &Odd<Uint<LIMBS>> {
-        &self.modulus
-    }
-
-    /// 1 in Montgomery form (a.k.a. `R`).
-    pub const fn one(&self) -> &Uint<LIMBS> {
-        &self.one
-    }
-
-    /// `R^2 mod modulus`, used to move into Montgomery form.
-    pub const fn r2(&self) -> &Uint<LIMBS> {
-        &self.r2
-    }
-
-    /// Returns the modulus which was used to initialize these parameters.
-    #[inline(always)]
-    pub(crate) const fn mod_neg_inv(&self) -> Limb {
-        self.mod_inv.limbs[0].wrapping_neg()
-    }
-}
-
-#[cfg(feature = "zeroize")]
-impl<const LIMBS: usize> zeroize::Zeroize for MontyParams<LIMBS> {
-    fn zeroize(&mut self) {
-        self.modulus.zeroize();
-        self.one.zeroize();
-        self.r2.zeroize();
-        self.mod_inv.zeroize();
-        self.mod_leading_zeros.zeroize();
     }
 }
 

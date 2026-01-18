@@ -25,6 +25,7 @@ mod reduction;
 mod add;
 pub(crate) mod bingcd;
 mod div_by_2;
+mod monty_params;
 mod mul;
 mod pow;
 pub(crate) mod safegcd;
@@ -35,7 +36,8 @@ pub(crate) mod boxed_monty_form;
 
 pub use self::{
     const_monty_form::{ConstMontyForm, ConstMontyParams},
-    monty_form::{MontyForm, MontyParams},
+    monty_form::MontyForm,
+    monty_params::{GenericMontyParams, MontyParams},
 };
 
 pub(crate) use self::safegcd::SafeGcdInverter;

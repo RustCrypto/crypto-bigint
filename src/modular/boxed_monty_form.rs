@@ -10,9 +10,12 @@ mod neg;
 mod pow;
 mod sub;
 
-use super::{Retrieve, div_by_2, reduction::montgomery_retrieve_inner};
+use super::{
+    Retrieve, div_by_2, monty_params::GenericMontyParams, reduction::montgomery_retrieve_inner,
+};
 use crate::{BoxedUint, Choice, Limb, Monty, Odd, U64, Word};
 use alloc::sync::Arc;
+use core::fmt::{self, Debug};
 use mul::BoxedMontyMultiplier;
 
 #[cfg(feature = "zeroize")]
@@ -20,23 +23,10 @@ use zeroize::Zeroize;
 
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus whose size and value
 /// are both chosen at runtime.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct BoxedMontyParams(Arc<BoxedMontyParamsInner>);
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct BoxedMontyParamsInner {
-    /// The constant modulus
-    modulus: Odd<BoxedUint>,
-    /// Parameter used in Montgomery reduction
-    one: BoxedUint,
-    /// R^2, used to move into Montgomery form
-    r2: BoxedUint,
-    /// The lowest limbs of MODULUS^-1 mod 2**64
-    /// This value is used in Montgomery reduction and modular inversion
-    mod_inv: U64,
-    /// Leading zeros in the modulus, used to choose optimized algorithms
-    mod_leading_zeros: u32,
-}
+type BoxedMontyParamsInner = GenericMontyParams<BoxedUint>;
 
 impl BoxedMontyParams {
     /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`.
@@ -132,6 +122,12 @@ impl BoxedMontyParams {
 
     pub(crate) fn mod_leading_zeros(&self) -> u32 {
         self.0.mod_leading_zeros
+    }
+}
+
+impl Debug for BoxedMontyParams {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.0.debug_struct(f.debug_struct("BoxedMontyParams"))
     }
 }
 
