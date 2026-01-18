@@ -1,6 +1,6 @@
 //! Constant-time support: impls of `Ct*` traits and constant-time `const fn` operations.
 
-use crate::{Choice, CtEq, CtGt, CtLt, CtSelect, Limb, word};
+use crate::{Choice, CtAssign, CtEq, CtGt, CtLt, CtSelect, Limb, word};
 
 impl Limb {
     /// Return `b` if `c` is truthy, otherwise return `a`.
@@ -16,6 +16,12 @@ impl Limb {
             Self(word::select(a.0, b.0, c)),
             Self(word::select(b.0, a.0, c)),
         )
+    }
+}
+
+impl CtAssign for Limb {
+    fn ct_assign(&mut self, other: &Self, choice: Choice) {
+        self.0.ct_assign(&other.0, choice);
     }
 }
 

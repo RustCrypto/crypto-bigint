@@ -5,7 +5,7 @@
 pub(super) use core::cmp::{Ordering, max};
 
 use super::BoxedUint;
-use crate::{CtEq, CtGt, CtLt, CtSelect, Limb, Uint};
+use crate::{CtAssign, CtEq, CtGt, CtLt, Limb, Uint};
 
 impl BoxedUint {
     /// Returns the Ordering between `self` and `rhs` in variable time.

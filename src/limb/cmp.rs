@@ -1,6 +1,6 @@
 //! Limb comparisons
 
-use crate::{Choice, CtEq, CtGt, CtLt, CtSelect, Limb, word};
+use crate::{Choice, CtAssign, CtEq, CtGt, CtLt, Limb, word};
 use core::cmp::Ordering;
 
 impl Limb {

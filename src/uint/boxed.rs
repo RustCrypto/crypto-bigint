@@ -29,7 +29,7 @@ mod sub_mod;
 mod rand;
 
 use crate::{
-    Choice, CtEq, CtOption, CtSelect, Integer, Limb, NonZero, Odd, One, Resize, UintRef, Unsigned,
+    Choice, CtAssign, CtEq, CtOption, Integer, Limb, NonZero, Odd, One, Resize, UintRef, Unsigned,
     Word, Zero, modular::BoxedMontyForm,
 };
 use alloc::{boxed::Box, vec, vec::Vec};

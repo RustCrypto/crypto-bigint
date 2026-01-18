@@ -72,7 +72,6 @@ impl UintRef {
     }
 
     /// Borrow the inner limbs as a mutable slice of [`Word`]s.
-    #[cfg(feature = "alloc")]
     #[inline]
     pub const fn as_mut_words(&mut self) -> &mut [Word] {
         Limb::slice_as_mut_words(&mut self.0)

@@ -1,7 +1,7 @@
 //! [`BoxedUint`] division operations.
 
 use crate::{
-    BoxedUint, CheckedDiv, CtOption, CtSelect, Div, DivAssign, DivRemLimb, DivVartime, Limb,
+    BoxedUint, CheckedDiv, CtAssign, CtOption, Div, DivAssign, DivRemLimb, DivVartime, Limb,
     NonZero, Reciprocal, Rem, RemAssign, RemLimb, RemMixed, UintRef, Wrapping,
 };
 
@@ -294,7 +294,7 @@ impl RemMixed<BoxedUint> for BoxedUint {
 #[cfg(test)]
 mod tests {
     use super::{BoxedUint, Limb, NonZero};
-    use crate::{CtSelect, DivVartime, One, Resize, Zero};
+    use crate::{CtAssign, DivVartime, One, Resize, Zero};
 
     #[test]
     fn rem() {
@@ -383,7 +383,7 @@ mod tests {
             x: T,
             y: T,
         }
-        impl<T: DivVartime + Clone + Zero + One + CtSelect> A<T> {
+        impl<T: DivVartime + Clone + Zero + One + CtAssign> A<T> {
             fn divide_x_by_y(&self) -> T {
                 let rhs = &NonZero::new(self.y.clone()).unwrap();
                 self.x.div_vartime(rhs)
