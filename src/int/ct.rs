@@ -1,6 +1,7 @@
 //! Constant-time support: impls of `Ct*` traits and constant-time `const fn` operations.
 
 use crate::{Choice, CtAssign, CtEq, CtGt, CtLt, CtSelect, Int, Uint};
+use ctutils::{CtAssignSlice, CtEqSlice};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Return `b` if `c` is truthy, otherwise return `a`.
@@ -16,6 +17,7 @@ impl<const LIMBS: usize> CtAssign for Int<LIMBS> {
         self.0.ct_assign(&other.0, choice);
     }
 }
+impl<const LIMBS: usize> CtAssignSlice for Int<LIMBS> {}
 
 impl<const LIMBS: usize> CtEq for Int<LIMBS> {
     #[inline]
@@ -23,6 +25,7 @@ impl<const LIMBS: usize> CtEq for Int<LIMBS> {
         CtEq::ct_eq(&self.0, &other.0)
     }
 }
+impl<const LIMBS: usize> CtEqSlice for Int<LIMBS> {}
 
 impl<const LIMBS: usize> CtGt for Int<LIMBS> {
     #[inline]

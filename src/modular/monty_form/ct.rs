@@ -1,11 +1,37 @@
 //! Constant-time support: impls of `Ct*` traits and constant-time `const fn` operations.
 
 use super::MontyParams;
-use crate::{Choice, CtEq, CtSelect, Odd, U64, Uint, modular::MontyForm};
+use crate::{Choice, CtAssign, CtEq, modular::MontyForm};
+use ctutils::{CtAssignSlice, CtEqSlice, CtSelectUsingCtAssign};
+
+#[cfg(feature = "subtle")]
+use crate::CtSelect;
+
+impl<const LIMBS: usize> CtAssign for MontyForm<LIMBS> {
+    fn ct_assign(&mut self, other: &Self, choice: Choice) {
+        self.montgomery_form
+            .ct_assign(&other.montgomery_form, choice);
+        self.params.ct_assign(&other.params, choice);
+    }
+}
+impl<const LIMBS: usize> CtAssignSlice for MontyForm<LIMBS> {}
+impl<const LIMBS: usize> CtSelectUsingCtAssign for MontyForm<LIMBS> {}
 
 impl<const LIMBS: usize> CtEq for MontyForm<LIMBS> {
     fn ct_eq(&self, other: &Self) -> Choice {
         self.montgomery_form.ct_eq(&other.montgomery_form) & self.params.ct_eq(&other.params)
+    }
+}
+impl<const LIMBS: usize> CtEqSlice for MontyForm<LIMBS> {}
+
+impl<const LIMBS: usize> CtAssign for MontyParams<LIMBS> {
+    fn ct_assign(&mut self, other: &Self, choice: Choice) {
+        self.modulus.ct_assign(&other.modulus, choice);
+        self.one.ct_assign(&other.one, choice);
+        self.r2.ct_assign(&other.r2, choice);
+        self.mod_inv.ct_assign(&other.mod_inv, choice);
+        self.mod_leading_zeros
+            .ct_assign(&other.mod_leading_zeros, choice);
     }
 }
 
@@ -18,6 +44,8 @@ impl<const LIMBS: usize> CtEq for MontyParams<LIMBS> {
     }
 }
 
+impl<const LIMBS: usize> CtSelectUsingCtAssign for MontyParams<LIMBS> {}
+
 #[cfg(feature = "subtle")]
 impl<const LIMBS: usize> subtle::ConstantTimeEq for MontyForm<LIMBS> {
     fn ct_eq(&self, other: &Self) -> subtle::Choice {
@@ -29,31 +57,6 @@ impl<const LIMBS: usize> subtle::ConstantTimeEq for MontyForm<LIMBS> {
 impl<const LIMBS: usize> subtle::ConstantTimeEq for MontyParams<LIMBS> {
     fn ct_eq(&self, other: &Self) -> subtle::Choice {
         CtEq::ct_eq(self, other).into()
-    }
-}
-
-impl<const LIMBS: usize> CtSelect for MontyForm<LIMBS> {
-    fn ct_select(&self, other: &Self, choice: Choice) -> Self {
-        Self {
-            montgomery_form: Uint::ct_select(&self.montgomery_form, &other.montgomery_form, choice),
-            params: MontyParams::ct_select(&self.params, &other.params, choice),
-        }
-    }
-}
-
-impl<const LIMBS: usize> CtSelect for MontyParams<LIMBS> {
-    fn ct_select(&self, other: &Self, choice: Choice) -> Self {
-        Self {
-            modulus: Odd::ct_select(&self.modulus, &other.modulus, choice),
-            one: Uint::ct_select(&self.one, &other.one, choice),
-            r2: Uint::ct_select(&self.r2, &other.r2, choice),
-            mod_inv: U64::ct_select(&self.mod_inv, &other.mod_inv, choice),
-            mod_leading_zeros: u32::ct_select(
-                &self.mod_leading_zeros,
-                &other.mod_leading_zeros,
-                choice,
-            ),
-        }
     }
 }
 

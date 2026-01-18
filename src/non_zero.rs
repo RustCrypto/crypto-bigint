@@ -9,6 +9,7 @@ use core::{
     num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128},
     ops::Deref,
 };
+use ctutils::{CtAssignSlice, CtEqSlice};
 
 #[cfg(feature = "alloc")]
 use crate::BoxedUint;
@@ -317,6 +318,17 @@ impl<T: ?Sized> AsRef<T> for NonZero<T> {
     }
 }
 
+impl<T> CtAssign for NonZero<T>
+where
+    T: CtAssign,
+{
+    #[inline]
+    fn ct_assign(&mut self, other: &Self, choice: Choice) {
+        self.0.ct_assign(&other.0, choice);
+    }
+}
+impl<T> CtAssignSlice for NonZero<T> where T: CtAssign {}
+
 impl<T> CtEq for NonZero<T>
 where
     T: CtEq + ?Sized,
@@ -326,6 +338,7 @@ where
         CtEq::ct_eq(&self.0, &other.0)
     }
 }
+impl<T> CtEqSlice for NonZero<T> where T: CtEq {}
 
 impl<T> CtSelect for NonZero<T>
 where

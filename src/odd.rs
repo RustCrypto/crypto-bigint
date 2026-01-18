@@ -1,10 +1,11 @@
 //! Wrapper type for non-zero integers.
 
 use crate::{
-    Bounded, Choice, ConstOne, CtEq, CtOption, CtSelect, Int, Integer, Limb, Mul, NonZero, One,
-    Uint, UintRef,
+    Bounded, Choice, ConstOne, CtAssign, CtEq, CtOption, CtSelect, Int, Integer, Limb, Mul,
+    NonZero, One, Uint, UintRef,
 };
 use core::{cmp::Ordering, fmt, ops::Deref};
+use ctutils::{CtAssignSlice, CtEqSlice};
 
 #[cfg(feature = "alloc")]
 use crate::{BoxedUint, Resize};
@@ -174,6 +175,17 @@ impl<T: ?Sized> AsRef<NonZero<T>> for Odd<T> {
     }
 }
 
+impl<T> CtAssign for Odd<T>
+where
+    T: CtAssign,
+{
+    #[inline]
+    fn ct_assign(&mut self, other: &Self, choice: Choice) {
+        self.0.ct_assign(&other.0, choice);
+    }
+}
+impl<T> CtAssignSlice for Odd<T> where T: CtAssignSlice {}
+
 impl<T> CtEq for Odd<T>
 where
     T: CtEq + ?Sized,
@@ -183,6 +195,7 @@ where
         CtEq::ct_eq(&self.0, &other.0)
     }
 }
+impl<T> CtEqSlice for Odd<T> where T: CtEq {}
 
 impl<T> CtSelect for Odd<T>
 where

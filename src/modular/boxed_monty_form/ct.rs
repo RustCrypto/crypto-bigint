@@ -1,12 +1,32 @@
 //! Constant-time support: impls of `Ct*` traits.
 
 use super::{BoxedMontyForm, BoxedMontyParams, BoxedMontyParamsInner};
-use crate::{Choice, CtEq, CtSelect};
+use crate::{Choice, CtAssign, CtEq, CtSelect};
 use alloc::sync::Arc;
+use ctutils::{CtAssignSlice, CtEqSlice, CtSelectUsingCtAssign};
+
+impl CtAssign for BoxedMontyForm {
+    #[inline]
+    fn ct_assign(&mut self, other: &Self, choice: Choice) {
+        self.montgomery_form
+            .ct_assign(&other.montgomery_form, choice);
+        self.params.ct_assign(&other.params, choice);
+    }
+}
+impl CtAssignSlice for BoxedMontyForm {}
 
 impl CtEq for BoxedMontyForm {
     fn ct_eq(&self, other: &Self) -> Choice {
         self.montgomery_form.ct_eq(&other.montgomery_form) & self.params.ct_eq(&other.params)
+    }
+}
+impl CtEqSlice for BoxedMontyForm {}
+
+impl CtSelectUsingCtAssign for BoxedMontyForm {}
+
+impl CtAssign for BoxedMontyParams {
+    fn ct_assign(&mut self, other: &Self, choice: Choice) {
+        *self = self.ct_select(other, choice);
     }
 }
 
@@ -18,17 +38,7 @@ impl CtEq for BoxedMontyParams {
             & self.mod_inv().ct_eq(&other.mod_inv())
     }
 }
-
-impl CtSelect for BoxedMontyForm {
-    fn ct_select(&self, other: &Self, choice: Choice) -> Self {
-        Self {
-            montgomery_form: self
-                .montgomery_form
-                .ct_select(&other.montgomery_form, choice),
-            params: self.params.ct_select(&other.params, choice),
-        }
-    }
-}
+impl CtEqSlice for BoxedMontyParams {}
 
 impl CtSelect for BoxedMontyParams {
     fn ct_select(&self, other: &Self, choice: Choice) -> Self {
@@ -36,16 +46,14 @@ impl CtSelect for BoxedMontyParams {
     }
 }
 
-impl CtSelect for BoxedMontyParamsInner {
-    fn ct_select(&self, other: &Self, choice: Choice) -> Self {
-        Self {
-            modulus: self.modulus.ct_select(&other.modulus, choice),
-            one: self.one.ct_select(&other.one, choice),
-            r2: self.r2.ct_select(&other.r2, choice),
-            mod_inv: self.mod_inv.ct_select(&other.mod_inv, choice),
-            mod_leading_zeros: self
-                .mod_leading_zeros
-                .ct_select(&other.mod_leading_zeros, choice),
-        }
+impl CtAssign for BoxedMontyParamsInner {
+    fn ct_assign(&mut self, other: &Self, choice: Choice) {
+        self.modulus.ct_assign(&other.modulus, choice);
+        self.one.ct_assign(&other.one, choice);
+        self.r2.ct_assign(&other.r2, choice);
+        self.mod_inv.ct_assign(&other.mod_inv, choice);
+        self.mod_leading_zeros
+            .ct_assign(&other.mod_leading_zeros, choice);
     }
 }
+impl CtSelectUsingCtAssign for BoxedMontyParamsInner {}
