@@ -37,7 +37,7 @@ hex-literal = "1"
 num-bigint = "0.4"
 num-integer = "0.1"
 num-modular = { version = "0.6", features = ["num-bigint", "num-integer", "num-traits"] }
-rand_core = "0.10.0-rc-3"
+rand_core = "0.10.0-rc-4"
 
 [target.'cfg(any(unix, windows))'.dev-dependencies]
 criterion = { version = "0.7", features = ["html_reports"] }
@@ -132,3 +132,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [package.metadata.typos.default]
 extend-ignore-re = ["([0-9A-Fa-f]{16,})"]
+
+[patch.crates-io.chacha20]
+git = "https://github.com/nstilt1/stream-ciphers-rng"
+branch = "stream_id_updates"
