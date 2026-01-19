@@ -995,11 +995,11 @@ pub trait Invert {
     type Output;
 
     /// Computes the inverse.
-    fn invert(&self) -> CtOption<Self::Output>;
+    fn invert(&self) -> Self::Output;
 
     /// Computes the inverse in variable-time.
-    fn invert_vartime(&self) -> Option<Self::Output> {
-        self.invert().into_option()
+    fn invert_vartime(&self) -> Self::Output {
+        self.invert()
     }
 }
 

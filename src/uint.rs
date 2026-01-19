@@ -20,6 +20,9 @@ use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 #[cfg(feature = "zeroize")]
 use zeroize::DefaultIsZeroes;
 
+#[cfg(doc)]
+use crate::{NonZeroUint, OddUint};
+
 #[macro_use]
 mod macros;
 
@@ -209,7 +212,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         UintRef::new_mut(&mut self.limbs)
     }
 
-    /// Convert to a [`NonZero<Uint<LIMBS>>`].
+    /// Convert to a [`NonZeroUint<LIMBS>`].
     ///
     /// Returns some if the original value is non-zero, and none otherwise.
     #[must_use]
@@ -221,9 +224,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         CtOption::new(NonZero(ret), is_nz)
     }
 
-    /// Convert to a [`NonZero<Uint<LIMBS>>`].
+    /// Convert to a [`NonZeroUint<LIMBS>`].
     ///
-    /// Returns Some if the original value is non-zero, and None otherwise.
+    /// Returns Some if the original value is non-zero, and none otherwise.
     #[must_use]
     pub const fn to_nz_vartime(&self) -> Option<NonZero<Self>> {
         if !self.is_zero_vartime() {
@@ -233,7 +236,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
     }
 
-    /// Convert to a [`Odd<Uint<LIMBS>>`].
+    /// Convert to a [`OddUint<LIMBS>`].
     ///
     /// Returns some if the original value is odd, and false otherwise.
     #[must_use]
@@ -269,7 +272,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Is this [`Uint`] equal to [`Uint::ZERO`]?
     #[must_use]
     pub const fn is_zero(&self) -> Choice {
-        self.is_nonzero().not()
+        let mut ret = Choice::TRUE;
+        let mut n = 0;
+
+        while n < LIMBS {
+            ret = ret.and(self.limbs[n].is_zero());
+            n += 1;
+        }
+
+        ret
     }
 }
 

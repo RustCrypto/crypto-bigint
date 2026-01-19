@@ -16,13 +16,13 @@ impl BoxedUint {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     #[must_use]
     pub fn invert_odd_mod(&self, modulus: &Odd<Self>) -> CtOption<Self> {
-        safegcd::boxed::invert_odd_mod(self, modulus)
+        safegcd::boxed::invert_odd_mod::<false>(self, modulus)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     #[must_use]
-    pub fn invert_odd_mod_vartime(&self, modulus: &Odd<Self>) -> Option<Self> {
-        safegcd::boxed::invert_odd_mod_vartime(self, modulus)
+    pub fn invert_odd_mod_vartime(&self, modulus: &Odd<Self>) -> CtOption<Self> {
+        safegcd::boxed::invert_odd_mod::<true>(self, modulus)
     }
 
     /// Computes 1/`self` mod `2^k`.
