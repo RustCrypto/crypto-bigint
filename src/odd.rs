@@ -4,7 +4,7 @@ use crate::{
     Bounded, Choice, ConstOne, CtAssign, CtEq, CtOption, CtSelect, Int, Integer, Limb, Mul,
     NonZero, One, Uint, UintRef,
 };
-use core::{cmp::Ordering, fmt, ops::Deref, ptr};
+use core::{cmp::Ordering, fmt, ops::Deref};
 use ctutils::{CtAssignSlice, CtEqSlice};
 
 #[cfg(feature = "alloc")]
@@ -24,13 +24,16 @@ use serdect::serde::{
     de::{Error, Unexpected},
 };
 
-/// Non-zero unsigned integer.
+/// Odd unsigned integer.
 pub type OddUint<const LIMBS: usize> = Odd<Uint<LIMBS>>;
 
-/// Non-zero signed integer.
+/// Odd unsigned integer reference.
+pub type OddUintRef = Odd<UintRef>;
+
+/// Odd signed integer.
 pub type OddInt<const LIMBS: usize> = Odd<Int<LIMBS>>;
 
-/// Non-zero boxed unsigned integer.
+/// Odd boxed unsigned integer.
 #[cfg(feature = "alloc")]
 pub type OddBoxedUint = Odd<BoxedUint>;
 
@@ -106,8 +109,8 @@ where
     pub const BYTES: usize = T::BYTES;
 }
 
-impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
-    /// Create a new [`Odd<Uint<LIMBS>>`] from the provided big endian hex string.
+impl<const LIMBS: usize> OddUint<LIMBS> {
+    /// Create a new [`OddUint`] from the provided big endian hex string.
     ///
     /// # Panics
     /// - if the hex is malformed or not zero-padded accordingly for the size.
@@ -133,13 +136,18 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         Odd(uint)
     }
 
-    /// Borrow the limbs of this [`Odd<Uint>`] as a [`Odd<UintRef>`].
-    pub(crate) const fn as_uint_ref(&self) -> &Odd<UintRef> {
-        // SAFETY: `Odd` is a `repr(transparent)` newtype.
-        #[allow(unsafe_code)]
-        unsafe {
-            &*(ptr::from_ref(self.0.as_uint_ref()) as *const Odd<UintRef>)
-        }
+    /// Borrow this `OddUint` as a `&OddUintRef`.
+    #[inline]
+    #[must_use]
+    pub const fn as_uint_ref(&self) -> &OddUintRef {
+        self.0.as_uint_ref().as_odd_unchecked()
+    }
+
+    /// Mutably borrow this `OddUint` as a `&mut OddUintRef`.
+    #[inline]
+    #[must_use]
+    pub const fn as_mut_uint_ref(&mut self) -> &mut OddUintRef {
+        self.0.as_mut_uint_ref().as_mut_odd_unchecked()
     }
 
     /// Construct an [`Odd<Uint<T>>`] from the unsigned integer value,
@@ -148,6 +156,18 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     #[must_use]
     pub const fn resize<const T: usize>(&self) -> Odd<Uint<T>> {
         Odd(self.0.resize())
+    }
+}
+
+impl<const LIMBS: usize> AsRef<OddUintRef> for OddUint<LIMBS> {
+    fn as_ref(&self) -> &OddUintRef {
+        self.as_uint_ref()
+    }
+}
+
+impl<const LIMBS: usize> AsMut<OddUintRef> for OddUint<LIMBS> {
+    fn as_mut(&mut self) -> &mut OddUintRef {
+        self.as_mut_uint_ref()
     }
 }
 
@@ -293,7 +313,7 @@ impl<const LIMBS: usize> PartialOrd<Odd<Uint<LIMBS>>> for Uint<LIMBS> {
     }
 }
 
-impl Odd<UintRef> {
+impl OddUintRef {
     /// Construct an [`Odd<Uint<T>>`] from the unsigned integer value,
     /// truncating the upper bits if the value is too large to be
     /// represented.
@@ -304,33 +324,60 @@ impl Odd<UintRef> {
 }
 
 #[cfg(feature = "alloc")]
-impl Odd<BoxedUint> {
-    /// Borrow the limbs of this [`Odd<BoxedUint>`] as a [`Odd<UintRef>`].
-    pub(crate) const fn as_uint_ref(&self) -> &Odd<UintRef> {
-        // SAFETY: `Odd` is a `repr(transparent)` newtype.
-        #[allow(unsafe_code)]
-        unsafe {
-            &*(ptr::from_ref(self.0.as_uint_ref()) as *const Odd<UintRef>)
-        }
+impl OddBoxedUint {
+    /// Borrow this `OddBoxedUint` as a `&OddUintRef`.
+    #[inline]
+    #[must_use]
+    pub const fn as_uint_ref(&self) -> &OddUintRef {
+        self.0.as_uint_ref().as_odd_unchecked()
+    }
+
+    /// Mutably borrow this `OddUBoxedint` as a `&mut OddUintRef`.
+    #[inline]
+    #[must_use]
+    pub const fn as_mut_uint_ref(&mut self) -> &mut OddUintRef {
+        self.0.as_mut_uint_ref().as_mut_odd_unchecked()
+    }
+
+    /// Generate a random `Odd<Uint<T>>`.
+    #[cfg(feature = "rand_core")]
+    pub fn random<R: TryRngCore + ?Sized>(rng: &mut R, bit_length: u32) -> Self {
+        let mut ret = BoxedUint::random_bits(rng, bit_length);
+        ret.limbs[0] |= Limb::ONE;
+        Odd(ret)
     }
 }
 
 #[cfg(feature = "alloc")]
-impl PartialEq<Odd<BoxedUint>> for BoxedUint {
-    fn eq(&self, other: &Odd<BoxedUint>) -> bool {
+impl AsRef<OddUintRef> for OddBoxedUint {
+    fn as_ref(&self) -> &OddUintRef {
+        self.as_uint_ref()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl AsMut<OddUintRef> for OddBoxedUint {
+    fn as_mut(&mut self) -> &mut OddUintRef {
+        self.as_mut_uint_ref()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl PartialEq<OddBoxedUint> for BoxedUint {
+    fn eq(&self, other: &OddBoxedUint) -> bool {
         self.eq(&other.0)
     }
 }
 
 #[cfg(feature = "alloc")]
-impl PartialOrd<Odd<BoxedUint>> for BoxedUint {
-    fn partial_cmp(&self, other: &Odd<BoxedUint>) -> Option<Ordering> {
+impl PartialOrd<OddBoxedUint> for BoxedUint {
+    fn partial_cmp(&self, other: &OddBoxedUint) -> Option<Ordering> {
         Some(self.cmp(&other.0))
     }
 }
 
 #[cfg(feature = "alloc")]
-impl Resize for Odd<BoxedUint> {
+impl Resize for OddBoxedUint {
     type Output = Self;
 
     fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output {
@@ -343,8 +390,8 @@ impl Resize for Odd<BoxedUint> {
 }
 
 #[cfg(feature = "alloc")]
-impl Resize for &Odd<BoxedUint> {
-    type Output = Odd<BoxedUint>;
+impl Resize for &OddBoxedUint {
+    type Output = OddBoxedUint;
 
     fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output {
         Odd((&self.0).resize_unchecked(at_least_bits_precision))
@@ -362,16 +409,6 @@ impl<const LIMBS: usize> Random for Odd<Uint<LIMBS>> {
         let mut ret = Uint::try_random_from_rng(rng)?;
         ret.limbs[0] |= Limb::ONE;
         Ok(Odd(ret))
-    }
-}
-
-#[cfg(all(feature = "alloc", feature = "rand_core"))]
-impl Odd<BoxedUint> {
-    /// Generate a random `Odd<Uint<T>>`.
-    pub fn random<R: TryRngCore + ?Sized>(rng: &mut R, bit_length: u32) -> Self {
-        let mut ret = BoxedUint::random_bits(rng, bit_length);
-        ret.limbs[0] |= Limb::ONE;
-        Odd(ret)
     }
 }
 

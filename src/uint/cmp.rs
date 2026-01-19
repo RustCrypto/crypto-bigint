@@ -9,19 +9,23 @@ use core::cmp::Ordering;
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Returns [`Choice::TRUE`] if `self` != `0` or [`Choice::FALSE`] otherwise.
     #[inline]
-    pub(crate) const fn is_nonzero(&self) -> Choice {
+    #[must_use]
+    pub const fn is_nonzero(&self) -> Choice {
         self.as_uint_ref().is_nonzero()
     }
 
     /// Determine in variable time whether the `self` is zero.
     #[inline]
-    pub(crate) const fn is_zero_vartime(&self) -> bool {
+    #[must_use]
+    pub const fn is_zero_vartime(&self) -> bool {
         self.as_uint_ref().is_zero_vartime()
     }
 
     /// Returns the truthy value if `self` is odd or the falsy value otherwise.
-    pub(crate) const fn is_odd(&self) -> Choice {
-        word::choice_from_lsb(self.limbs[0].0 & 1)
+    #[inline]
+    #[must_use]
+    pub const fn is_odd(&self) -> Choice {
+        self.as_uint_ref().is_odd()
     }
 
     /// Returns the truthy value if `self == rhs` or the falsy value otherwise.
