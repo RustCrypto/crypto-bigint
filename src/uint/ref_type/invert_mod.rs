@@ -23,28 +23,6 @@ impl Odd<UintRef> {
     }
 }
 
-impl UintRef {
-    #[inline(always)]
-    pub const fn lowest_u64(&self) -> u64 {
-        #[cfg(target_pointer_width = "32")]
-        {
-            debug_assert!(self.nlimbs() >= 1);
-            let mut ret = self.0[0].0 as u64;
-
-            if self.nlimbs() >= 2 {
-                ret |= (self.0[1].0 as u64) << 32;
-            }
-
-            ret
-        }
-
-        #[cfg(target_pointer_width = "64")]
-        {
-            self.0[0].0
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::U128;

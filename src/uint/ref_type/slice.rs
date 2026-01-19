@@ -35,6 +35,7 @@ impl UintRef {
     /// Split the limb slice at a fixed position, producing head and tail slices.
     #[inline]
     #[track_caller]
+    #[must_use]
     pub const fn split_at(&self, mid: usize) -> (&Self, &Self) {
         let (a, b) = self.0.split_at(mid);
         (UintRef::new(a), UintRef::new(b))
@@ -51,6 +52,7 @@ impl UintRef {
     /// Access a limb slice up to a number of elements `len`.
     #[inline]
     #[track_caller]
+    #[must_use]
     pub const fn leading(&self, len: usize) -> &Self {
         Self::new(self.0.split_at(len).0)
     }
@@ -71,6 +73,7 @@ impl UintRef {
 
     /// Determine if the slice has zero limbs.
     #[inline]
+    #[must_use]
     pub const fn is_empty(&self) -> bool {
         self.0.is_empty()
     }

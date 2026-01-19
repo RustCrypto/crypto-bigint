@@ -22,6 +22,9 @@ impl UintRef {
     }
 
     /// Perform an in-place carrying add of another limb slice, returning the carried limb value.
+    ///
+    /// # Panics
+    /// If `self` and `rhs` have different lengths.
     #[inline]
     #[track_caller]
     pub const fn carrying_add_assign_slice(&mut self, rhs: &[Limb], mut carry: Limb) -> Limb {
@@ -50,6 +53,9 @@ impl UintRef {
     }
 
     /// Perform an in-place carrying add of another limb slice, returning the carried limb value.
+    ///
+    /// # Panics
+    /// If `self` and `rhs` have different lengths.
     #[inline]
     #[track_caller]
     pub const fn conditional_add_assign_slice(

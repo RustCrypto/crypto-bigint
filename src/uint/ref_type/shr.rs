@@ -204,6 +204,9 @@ impl UintRef {
     /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
+    ///
+    /// # Panics
+    /// If the shift size is equal to or larger than the width of the integer.
     #[inline(always)]
     pub const fn shr_assign_limb_vartime(&mut self, shift: u32) -> Limb {
         assert!(shift < Limb::BITS);

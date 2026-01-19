@@ -10,7 +10,7 @@ pub use num_traits::{
     WrappingSub,
 };
 
-use crate::{Choice, CtOption, Limb, NonZero, Odd, Reciprocal, modular::Retrieve};
+use crate::{Choice, CtOption, Limb, NonZero, Odd, Reciprocal, UintRef, modular::Retrieve};
 use core::fmt::{self, Debug};
 
 #[cfg(feature = "rand_core")]
@@ -166,7 +166,8 @@ pub trait Signed:
 
 /// Unsigned [`Integer`]s.
 pub trait Unsigned:
-    AddMod<Output = Self>
+    AsRef<UintRef>
+    + AddMod<Output = Self>
     + BitOps
     + Div<NonZero<Self>, Output = Self>
     + for<'a> Div<&'a NonZero<Self>, Output = Self>

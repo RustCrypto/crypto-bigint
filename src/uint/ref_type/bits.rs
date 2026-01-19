@@ -4,6 +4,7 @@ use crate::{Choice, Limb, traits::BitOps, word};
 impl UintRef {
     /// Get the precision of this number in bits.
     #[allow(clippy::cast_possible_truncation)]
+    #[must_use]
     pub const fn bits_precision(&self) -> u32 {
         self.0.len() as u32 * Limb::BITS
     }
@@ -12,6 +13,7 @@ impl UintRef {
     /// Returns the falsy value for indices out of range.
     #[inline(always)]
     #[allow(clippy::cast_possible_truncation)]
+    #[must_use]
     pub const fn bit(&self, index: u32) -> Choice {
         let limb_num = index / Limb::BITS;
         let index_in_limb = index % Limb::BITS;
@@ -35,6 +37,7 @@ impl UintRef {
     /// # Remarks
     /// This operation is variable time with respect to `index` only.
     #[inline(always)]
+    #[must_use]
     pub const fn bit_vartime(&self, index: u32) -> bool {
         let limb_num = (index / Limb::BITS) as usize;
         let index_in_limb = index % Limb::BITS;
@@ -50,6 +53,7 @@ impl UintRef {
     ///
     /// Use [`UintRef::bits_precision`] to get the total capacity of this integer.
     #[inline(always)]
+    #[must_use]
     pub const fn bits(&self) -> u32 {
         self.bits_precision() - self.leading_zeros()
     }
@@ -58,6 +62,7 @@ impl UintRef {
     /// to `self`.
     #[inline(always)]
     #[allow(clippy::cast_possible_truncation)]
+    #[must_use]
     pub const fn bits_vartime(&self) -> u32 {
         let mut i = self.0.len() - 1;
         while i > 0 && self.0[i].0 == 0 {
@@ -100,6 +105,7 @@ impl UintRef {
     }
 
     /// Calculate the number of leading zeros in the binary representation of this number.
+    #[must_use]
     pub const fn leading_zeros(&self) -> u32 {
         let mut count = 0;
         let mut i = self.0.len();
@@ -118,6 +124,7 @@ impl UintRef {
 
     /// Calculate the number of trailing zeros in the binary representation of this number.
     #[inline(always)]
+    #[must_use]
     pub const fn trailing_zeros(&self) -> u32 {
         let mut count = 0;
         let mut i = 0;
@@ -137,6 +144,7 @@ impl UintRef {
     /// Calculate the number of trailing zeros in the binary representation of this number, in
     /// variable-time with respect to `self`.
     #[inline(always)]
+    #[must_use]
     pub const fn trailing_zeros_vartime(&self) -> u32 {
         let mut count = 0;
         let mut i = 0;
@@ -155,6 +163,7 @@ impl UintRef {
 
     /// Calculate the number of trailing ones in the binary representation of this number.
     #[inline(always)]
+    #[must_use]
     pub const fn trailing_ones(&self) -> u32 {
         let mut count = 0;
         let mut i = 0;
@@ -174,6 +183,7 @@ impl UintRef {
     /// Calculate the number of trailing ones in the binary representation of this number, in
     /// variable-time with respect to `self`.
     #[inline(always)]
+    #[must_use]
     pub const fn trailing_ones_vartime(&self) -> u32 {
         let mut count = 0;
         let mut i = 0;

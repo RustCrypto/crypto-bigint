@@ -47,7 +47,7 @@ mod mul_signed;
 mod neg;
 mod neg_mod;
 mod pow;
-mod ref_type;
+pub(crate) mod ref_type;
 mod resize;
 mod root;
 mod shl;
@@ -196,14 +196,16 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Borrow the limbs of this [`Uint`] as a [`UintRef`].
-    #[inline(always)]
-    pub(crate) const fn as_uint_ref(&self) -> &UintRef {
+    #[inline]
+    #[must_use]
+    pub const fn as_uint_ref(&self) -> &UintRef {
         UintRef::new(&self.limbs)
     }
 
     /// Mutably borrow the limbs of this [`Uint`] as a [`UintRef`].
-    #[inline(always)]
-    pub(crate) const fn as_mut_uint_ref(&mut self) -> &mut UintRef {
+    #[inline]
+    #[must_use]
+    pub const fn as_mut_uint_ref(&mut self) -> &mut UintRef {
         UintRef::new_mut(&mut self.limbs)
     }
 

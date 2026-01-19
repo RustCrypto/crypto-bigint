@@ -14,7 +14,8 @@ use crate::{
 impl UintRef {
     /// Computes `self` / `rhs`, returning the quotient in `self` and the remainder in `rhs`.
     ///
-    /// This function will panic if the divisor is zero.
+    /// # Panics
+    /// If the divisor is zero.
     #[inline(always)]
     pub const fn div_rem(&mut self, rhs: &mut Self) {
         let (x, y) = (self, rhs);
@@ -47,7 +48,10 @@ impl UintRef {
     /// Computes `self` / `rhs`, returning the quotient in `self` and the remainder in `rhs`.
     ///
     /// This function operates in variable-time with respect to `rhs`. For a fixed divisor,
-    /// it operates in constant-time. It will panic if the divisor is zero.
+    /// it operates in constant-time
+    ///
+    /// # Panics
+    /// If the divisor is zero.
     #[allow(clippy::cast_possible_truncation)]
     pub const fn div_rem_vartime(&mut self, rhs: &mut Self) {
         let (x, y) = (self, rhs);
@@ -87,10 +91,11 @@ impl UintRef {
 
     /// Computes `x_lower_upper` % `rhs`, returning the remainder in `rhs`.
     ///
-    /// This function will panic if the divisor is zero.
-    ///
     /// The `x_lower_upper` tuple represents a wide integer. The size of `x_lower_upper.1` must be
     /// at least as large as `rhs`. `x_lower_upper` is left in an indeterminate state.
+    ///
+    /// # Panics
+    /// If the divisor is zero.
     #[inline(always)]
     pub const fn rem_wide(x_lower_upper: (&mut Self, &mut Self), rhs: &mut Self) {
         let (x_lo, x) = x_lower_upper;
@@ -129,10 +134,13 @@ impl UintRef {
     /// Computes `x_lower_upper` % `rhs`, returning the remainder in `rhs`.
     ///
     /// This function operates in variable-time with respect to `rhs`. For a fixed divisor,
-    /// it operates in constant-time. It will panic if the divisor is zero.
+    /// it operates in constant-time.
     ///
     /// The `x_lower_upper` tuple represents a wide integer. The size of `x_lower_upper.1`
     /// must be at least as large as `rhs`. `x_lower_upper` is left in an indeterminate state.
+    ///
+    /// # Panics
+    /// If the divisor is zero.
     #[inline(always)]
     #[allow(clippy::cast_possible_truncation)]
     pub const fn rem_wide_vartime(x_lower_upper: (&mut Self, &mut Self), rhs: &mut Self) {
