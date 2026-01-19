@@ -1,35 +1,22 @@
-//! [`Uint`] comparisons.
+//! [`Uint`] comparison operations.
 //!
-//! By default, these are all constant-time.
+//! Constant-time unless explicitly noted otherwise.
 
 use super::Uint;
 use crate::{Choice, CtEq, Limb, word};
 use core::cmp::Ordering;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Returns the truthy value if `self`!=0 or the falsy value otherwise.
+    /// Returns [`Choice::TRUE`] if `self` != `0` or [`Choice::FALSE`] otherwise.
     #[inline]
     pub(crate) const fn is_nonzero(&self) -> Choice {
-        let mut b = 0;
-        let mut i = 0;
-        while i < LIMBS {
-            b |= self.limbs[i].0;
-            i += 1;
-        }
-        Limb(b).is_nonzero()
+        self.as_uint_ref().is_nonzero()
     }
 
     /// Determine in variable time whether the `self` is zero.
     #[inline]
     pub(crate) const fn is_zero_vartime(&self) -> bool {
-        let mut i = 0;
-        while i < LIMBS {
-            if self.limbs[i].0 != 0 {
-                return false;
-            }
-            i += 1;
-        }
-        true
+        self.as_uint_ref().is_zero_vartime()
     }
 
     /// Returns the truthy value if `self` is odd or the falsy value otherwise.
