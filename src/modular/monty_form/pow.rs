@@ -146,6 +146,18 @@ mod tests {
     );
 
     #[test]
+    fn test_powmod_zero() {
+        let base = U256::from(105u64);
+        let base_mod = MontyForm::new(&base, &PARAMS);
+
+        let res = base_mod.pow(&U256::ZERO);
+        let res_vartime = base_mod.pow_vartime(&U256::ZERO);
+
+        assert_eq!(res.retrieve(), U256::ONE);
+        assert_eq!(res_vartime.retrieve(), U256::ONE);
+    }
+
+    #[test]
     fn test_powmod_small_base() {
         let base = U256::from(105u64);
         let base_mod = MontyForm::new(&base, &PARAMS);
