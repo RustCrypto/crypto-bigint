@@ -10,15 +10,15 @@ mod shr;
 mod slice;
 mod sub;
 
-use crate::{Choice, Limb, Uint};
+use crate::{Choice, Limb, Uint, Word};
 use core::{
     fmt,
     ops::{Index, IndexMut},
     ptr,
 };
 
-#[cfg(feature = "alloc")]
-use crate::Word;
+#[cfg(all(doc, feature = "alloc"))]
+use crate::BoxedUint;
 
 /// Unsigned integer reference type.
 ///
@@ -26,11 +26,12 @@ use crate::Word;
 /// thus provides an abstraction for writing shared implementations.
 #[repr(transparent)]
 #[derive(PartialEq, Eq)]
-pub(crate) struct UintRef(pub [Limb]);
+pub struct UintRef(pub(crate) [Limb]);
 
 impl UintRef {
     /// Create a [`UintRef`] reference type from a [`Limb`] slice.
     #[inline]
+    #[must_use]
     pub const fn new(limbs: &[Limb]) -> &Self {
         // SAFETY: `UintRef` is a `repr(transparent)` newtype for `[Limb]`.
         #[allow(unsafe_code)]
@@ -66,6 +67,7 @@ impl UintRef {
 
     /// Borrow the inner `&[Limb]` slice.
     #[inline]
+    #[must_use]
     pub const fn as_slice(&self) -> &[Limb] {
         &self.0
     }
@@ -78,20 +80,20 @@ impl UintRef {
 
     /// Borrow the inner limbs as a slice of [`Word`]s.
     #[inline]
-    #[cfg(feature = "alloc")]
+    #[must_use]
     pub const fn as_words(&self) -> &[Word] {
         Limb::slice_as_words(&self.0)
     }
 
     /// Borrow the inner limbs as a mutable slice of [`Word`]s.
     #[inline]
-    #[cfg(feature = "alloc")]
     pub const fn as_mut_words(&mut self) -> &mut [Word] {
         Limb::slice_as_mut_words(&mut self.0)
     }
 
     /// Get an iterator over the inner limbs.
     #[inline]
+    #[must_use]
     pub fn iter(&self) -> impl DoubleEndedIterator<Item = &Limb> {
         self.0.iter()
     }
@@ -105,6 +107,7 @@ impl UintRef {
 
     /// Access the number of limbs.
     #[inline]
+    #[must_use]
     pub const fn nlimbs(&self) -> usize {
         self.0.len()
     }
@@ -131,6 +134,7 @@ impl UintRef {
     }
 
     /// Extract up to `LIMBS` limbs into a new `Uint`.
+    #[must_use]
     pub const fn to_uint_resize<const LIMBS: usize>(&self) -> Uint<LIMBS> {
         let mut out = Uint::ZERO;
         let len = if self.nlimbs() > LIMBS {
@@ -144,6 +148,27 @@ impl UintRef {
             i += 1;
         }
         out
+    }
+
+    /// Get the least significant 64-bits.
+    #[inline(always)]
+    pub(crate) const fn lowest_u64(&self) -> u64 {
+        #[cfg(target_pointer_width = "32")]
+        {
+            debug_assert!(self.nlimbs() >= 1);
+            let mut ret = self.0[0].0 as u64;
+
+            if self.nlimbs() >= 2 {
+                ret |= (self.0[1].0 as u64) << 32;
+            }
+
+            ret
+        }
+
+        #[cfg(target_pointer_width = "64")]
+        {
+            self.0[0].0
+        }
     }
 }
 

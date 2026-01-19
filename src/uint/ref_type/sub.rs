@@ -2,13 +2,18 @@ use super::UintRef;
 use crate::Limb;
 
 impl UintRef {
-    /// Perform an in-place borrowing subtraction of another [`UintRef`], returning the carried limb value.
+    /// Perform an in-place borrowing subtraction of another [`UintRef`], returning the carried limb
+    /// value.
     #[inline]
     pub const fn borrowing_sub_assign(&mut self, rhs: &Self, borrow: Limb) -> Limb {
         self.borrowing_sub_assign_slice(&rhs.0, borrow)
     }
 
-    /// Perform an in-place borrowing subtraction of another limb slice, returning the borrowed limb value.
+    /// Perform an in-place borrowing subtraction of another limb slice, returning the borrowed limb
+    /// value.
+    ///
+    /// # Panics
+    /// If `self` and `rhs` have different lengths.
     #[inline]
     pub const fn borrowing_sub_assign_slice(&mut self, rhs: &[Limb], mut borrow: Limb) -> Limb {
         assert!(self.0.len() == rhs.len(), "length mismatch");
