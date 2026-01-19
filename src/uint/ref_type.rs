@@ -164,34 +164,61 @@ impl UintRef {
     /// If `self.nlimbs()` is zero.
     #[inline]
     #[must_use]
-    pub const fn to_nz(&mut self) -> CtOption<NonZero<&mut Self>> {
+    pub const fn to_mut_nz_ref(&mut self) -> CtOption<&mut NonZero<Self>> {
         assert!(!self.0.is_empty(), "cannot be used with empty slices");
         let is_nz = self.is_nonzero();
 
         // If `self` is zero, set the first limb to `1` to make it non-zero.
         self.0[0] = Limb::select(Limb::ONE, self.0[0], is_nz);
-        CtOption::new(NonZero(self), is_nz)
+
+        CtOption::new(self.as_mut_nz_unchecked(), is_nz)
     }
 
     /// Construct a [`NonZero`] reference, returning [`None`] in the event `self` is `0`.
     #[inline]
     #[must_use]
-    pub const fn to_nz_vartime(&self) -> Option<NonZero<&Self>> {
-        if !self.is_empty() && self.is_nonzero().to_bool_vartime() {
-            Some(NonZero(self))
-        } else {
-            None
+    pub const fn as_nz_vartime(&self) -> Option<&NonZero<Self>> {
+        if self.is_zero_vartime() {
+            return None;
         }
+
+        Some(self.as_nz_unchecked())
     }
 
     /// Construct a mutable [`NonZero`] reference, returning [`None`] in the event `self` is `0`.
     #[must_use]
-    pub const fn to_mut_nz_vartime(&mut self) -> Option<NonZero<&mut Self>> {
-        if !self.is_empty() && self.is_nonzero().to_bool_vartime() {
-            Some(NonZero(self))
-        } else {
-            None
+    pub const fn as_mut_nz_vartime(&mut self) -> Option<&mut NonZero<Self>> {
+        if self.is_zero_vartime() {
+            return None;
         }
+
+        Some(self.as_mut_nz_unchecked())
+    }
+
+    /// Perform an unsafe pointer cast to [`NonZero`] without first checking that the contained
+    /// value is non-zero.
+    ///
+    /// # Safety
+    /// The caller must ensure `self` is non-zero.
+    #[inline]
+    #[must_use]
+    #[allow(unsafe_code)]
+    pub(crate) const fn as_nz_unchecked(&self) -> &NonZero<Self> {
+        // SAFETY: `NonZero` is a `repr(transparent)` newtype
+        unsafe { &*(ptr::from_ref(self) as *const NonZero<Self>) }
+    }
+
+    /// Perform an unsafe pointer cast to [`NonZero`] without first checking that the contained
+    /// value is non-zero.
+    ///
+    /// # Safety
+    /// The caller must ensure `self` is non-zero.
+    #[inline]
+    #[must_use]
+    #[allow(unsafe_code)]
+    pub(crate) const fn as_mut_nz_unchecked(&mut self) -> &mut NonZero<Self> {
+        // SAFETY: `NonZero` is a `repr(transparent)` newtype
+        unsafe { &mut *(ptr::from_mut(self) as *mut NonZero<Self>) }
     }
 
     /// Get the least significant 64-bits.
