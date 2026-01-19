@@ -571,8 +571,10 @@ proptest! {
         let params = MontyParams::new_vartime(P);
         let a_m = MontyForm::new(&a, &params);
         let actual = a_m.pow(&b).retrieve();
+        let actual_vartime = a_m.pow_vartime(&b).retrieve();
 
         prop_assert_eq!(expected, actual);
+        prop_assert_eq!(expected, actual_vartime);
     }
 
     #[test]

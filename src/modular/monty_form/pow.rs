@@ -31,13 +31,30 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
         exponent_bits: u32,
     ) -> Self {
         Self {
-            montgomery_form: pow_montgomery_form(
+            montgomery_form: pow_montgomery_form::<_, _, false>(
                 &self.montgomery_form,
                 exponent,
                 exponent_bits,
-                &self.params.modulus,
-                &self.params.one,
-                self.params.mod_neg_inv(),
+                &self.params,
+            ),
+            params: self.params,
+        }
+    }
+
+    /// Raises to the `exponent` power.
+    ///
+    /// This method is variable time in `exponent`.
+    pub const fn pow_vartime<const RHS_LIMBS: usize>(
+        &self,
+        exponent: &Uint<RHS_LIMBS>,
+    ) -> MontyForm<LIMBS> {
+        let exponent_bits = exponent.bits_vartime();
+        Self {
+            montgomery_form: pow_montgomery_form::<_, _, true>(
+                &self.montgomery_form,
+                exponent,
+                exponent_bits,
+                &self.params,
             ),
             params: self.params,
         }
@@ -74,12 +91,10 @@ impl<const N: usize, const LIMBS: usize, const RHS_LIMBS: usize>
         }
 
         Self {
-            montgomery_form: multi_exponentiate_montgomery_form_array(
+            montgomery_form: multi_exponentiate_montgomery_form_array::<_, _, _, false>(
                 &bases_and_exponents_montgomery_form,
                 exponent_bits,
-                &params.modulus,
-                &params.one,
-                params.mod_neg_inv(),
+                &params,
             ),
             params,
         }
@@ -105,14 +120,136 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize>
             .map(|(base, exp)| (base.montgomery_form, *exp))
             .collect();
         Self {
-            montgomery_form: multi_exponentiate_montgomery_form_slice(
+            montgomery_form: multi_exponentiate_montgomery_form_slice::<_, _, false>(
                 &bases_and_exponents,
                 exponent_bits,
-                &params.modulus,
-                &params.one,
-                params.mod_neg_inv(),
+                &params,
             ),
             params,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::traits::MultiExponentiate;
+    use crate::{
+        U256,
+        modular::{MontyForm, MontyParams},
+    };
+
+    const PARAMS: MontyParams<{ U256::LIMBS }> = MontyParams::new_vartime(
+        U256::from_be_hex("9CC24C5DF431A864188AB905AC751B727C9447A8E99E6366E1AD78A21E8D882B")
+            .to_odd()
+            .expect_copied("ensured odd"),
+    );
+
+    #[test]
+    fn test_powmod_small_base() {
+        let base = U256::from(105u64);
+        let base_mod = MontyForm::new(&base, &PARAMS);
+
+        let exponent =
+            U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
+
+        let res = base_mod.pow(&exponent);
+        let res_vartime = base_mod.pow_vartime(&exponent);
+
+        let expected =
+            U256::from_be_hex("7B2CD7BDDD96C271E6F232F2F415BB03FE2A90BD6CCCEA5E94F1BFD064993766");
+        assert_eq!(res.retrieve(), expected);
+        assert_eq!(res_vartime.retrieve(), expected);
+    }
+
+    #[test]
+    fn test_powmod_small_exponent() {
+        let base =
+            U256::from_be_hex("3435D18AA8313EBBE4D20002922225B53F75DC4453BB3EEC0378646F79B524A4");
+        let base_mod = MontyForm::new(&base, &PARAMS);
+
+        let exponent = U256::from(105u64);
+
+        let res = base_mod.pow(&exponent);
+        let res_vartime = base_mod.pow_vartime(&exponent);
+
+        let expected =
+            U256::from_be_hex("89E2A4E99F649A5AE2C18068148C355CA927B34A3245C938178ED00D6EF218AA");
+        assert_eq!(res.retrieve(), expected);
+        assert_eq!(res_vartime.retrieve(), expected);
+    }
+
+    #[test]
+    fn test_powmod() {
+        let base =
+            U256::from_be_hex("3435D18AA8313EBBE4D20002922225B53F75DC4453BB3EEC0378646F79B524A4");
+        let base_mod = MontyForm::new(&base, &PARAMS);
+
+        let exponent =
+            U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
+
+        let res = base_mod.pow(&exponent);
+        let res_vartime = base_mod.pow(&exponent);
+
+        let expected =
+            U256::from_be_hex("3681BC0FEA2E5D394EB178155A127B0FD2EF405486D354251C385BDD51B9D421");
+        assert_eq!(res.retrieve(), expected);
+        assert_eq!(res_vartime.retrieve(), expected);
+    }
+
+    #[test]
+    fn test_multi_exp_array() {
+        let base = U256::from(2u8);
+        let base_mod = MontyForm::new(&base, &PARAMS);
+
+        let exponent = U256::from(33u8);
+        let bases_and_exponents = [(base_mod, exponent)];
+        let res = MontyForm::<{ U256::LIMBS }>::multi_exponentiate(&bases_and_exponents);
+
+        let expected =
+            U256::from_be_hex("0000000000000000000000000000000000000000000000000000000200000000");
+
+        assert_eq!(res.retrieve(), expected);
+
+        let base2 =
+            U256::from_be_hex("3435D18AA8313EBBE4D20002922225B53F75DC4453BB3EEC0378646F79B524A4");
+        let base2_mod = MontyForm::new(&base2, &PARAMS);
+
+        let exponent2 =
+            U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
+
+        let expected = base_mod.pow(&exponent) * base2_mod.pow(&exponent2);
+        let bases_and_exponents = [(base_mod, exponent), (base2_mod, exponent2)];
+        let res = MontyForm::<{ U256::LIMBS }>::multi_exponentiate(&bases_and_exponents);
+
+        assert_eq!(res, expected);
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn test_multi_exp_slice() {
+        let base = U256::from(2u8);
+        let base_mod = MontyForm::new(&base, &PARAMS);
+
+        let exponent = U256::from(33u8);
+        let bases_and_exponents = vec![(base_mod, exponent)];
+        let res = MontyForm::<{ U256::LIMBS }>::multi_exponentiate(bases_and_exponents.as_slice());
+
+        let expected =
+            U256::from_be_hex("0000000000000000000000000000000000000000000000000000000200000000");
+
+        assert_eq!(res.retrieve(), expected);
+
+        let base2 =
+            U256::from_be_hex("3435D18AA8313EBBE4D20002922225B53F75DC4453BB3EEC0378646F79B524A4");
+        let base2_mod = MontyForm::new(&base2, &PARAMS);
+
+        let exponent2 =
+            U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
+
+        let expected = base_mod.pow(&exponent) * base2_mod.pow(&exponent2);
+        let bases_and_exponents = vec![(base_mod, exponent), (base2_mod, exponent2)];
+        let res = MontyForm::<{ U256::LIMBS }>::multi_exponentiate(bases_and_exponents.as_slice());
+
+        assert_eq!(res, expected);
     }
 }
