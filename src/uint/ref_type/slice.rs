@@ -3,6 +3,9 @@ use crate::Limb;
 
 impl UintRef {
     /// Copy the contents from a [`UintRef`].
+    ///
+    /// # Panics
+    /// If `self.nlimbs() != rhs.nlimbs()`
     #[inline(always)]
     #[track_caller]
     pub const fn copy_from(&mut self, rhs: &UintRef) {
@@ -10,6 +13,9 @@ impl UintRef {
     }
 
     /// Copy the contents from a limb slice.
+    ///
+    /// # Panics
+    /// If `self.nlimbs() != limbs.len()`
     #[inline(always)]
     #[track_caller]
     pub const fn copy_from_slice(&mut self, limbs: &[Limb]) {
