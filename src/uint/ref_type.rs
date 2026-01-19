@@ -124,7 +124,6 @@ impl UintRef {
     }
 
     /// Conditionally assign all of the limbs to the maximum.
-    #[cfg(feature = "alloc")]
     #[inline]
     pub const fn conditional_set_max(&mut self, choice: Choice) {
         let mut i = 0;

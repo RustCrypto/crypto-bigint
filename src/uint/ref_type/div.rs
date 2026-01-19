@@ -11,13 +11,14 @@ use crate::{
     word,
 };
 
+// TODO(tarcieri): make `rhs` into `NonZeroUintRef` then make currently panicking functions `pub`
 impl UintRef {
     /// Computes `self` / `rhs`, returning the quotient in `self` and the remainder in `rhs`.
     ///
     /// # Panics
     /// If the divisor is zero.
     #[inline(always)]
-    pub const fn div_rem(&mut self, rhs: &mut Self) {
+    pub(crate) const fn div_rem(&mut self, rhs: &mut Self) {
         let (x, y) = (self, rhs);
 
         // Short circuit for single-word divisor
@@ -53,7 +54,7 @@ impl UintRef {
     /// # Panics
     /// If the divisor is zero.
     #[allow(clippy::cast_possible_truncation)]
-    pub const fn div_rem_vartime(&mut self, rhs: &mut Self) {
+    pub(crate) const fn div_rem_vartime(&mut self, rhs: &mut Self) {
         let (x, y) = (self, rhs);
         let xsize = x.nlimbs();
         let ywords = y.bits_vartime().div_ceil(Limb::BITS) as usize;
@@ -97,7 +98,7 @@ impl UintRef {
     /// # Panics
     /// If the divisor is zero.
     #[inline(always)]
-    pub const fn rem_wide(x_lower_upper: (&mut Self, &mut Self), rhs: &mut Self) {
+    pub(crate) const fn rem_wide(x_lower_upper: (&mut Self, &mut Self), rhs: &mut Self) {
         let (x_lo, x) = x_lower_upper;
         let y = rhs;
 
@@ -143,7 +144,7 @@ impl UintRef {
     /// If the divisor is zero.
     #[inline(always)]
     #[allow(clippy::cast_possible_truncation)]
-    pub const fn rem_wide_vartime(x_lower_upper: (&mut Self, &mut Self), rhs: &mut Self) {
+    pub(crate) const fn rem_wide_vartime(x_lower_upper: (&mut Self, &mut Self), rhs: &mut Self) {
         let (x_lo, x) = x_lower_upper;
         let xsize = x.nlimbs();
         let ysize = rhs.bits_vartime().div_ceil(Limb::BITS) as usize;
@@ -211,7 +212,7 @@ impl UintRef {
     /// additional correction. This is left to the caller for performance reasons.
     #[inline(always)]
     #[allow(clippy::cast_possible_truncation)]
-    pub const fn div_rem_shifted(&mut self, mut x_hi: Limb, y: &mut Self, ywords: u32) {
+    pub(crate) const fn div_rem_shifted(&mut self, mut x_hi: Limb, y: &mut Self, ywords: u32) {
         let x = self;
 
         // Calculate a reciprocal from the highest word of the divisor
@@ -255,7 +256,7 @@ impl UintRef {
         }
     }
 
-    /// Computes `self` / `y` for a 'large' divisor (>1 limbs), returning the quotient and
+    /// Computes `self` / `y` for a "large" divisor (>1 limbs), returning the quotient and
     /// the remainder in `self`.
     ///
     /// While the divisor may only be a single limb, additional corrections to the result are
@@ -265,7 +266,7 @@ impl UintRef {
     /// is set, and `x_hi` holds the top bits of the dividend.
     #[inline(always)]
     #[allow(clippy::cast_possible_truncation)]
-    pub const fn div_rem_large_shifted(
+    pub(crate) const fn div_rem_large_shifted(
         &mut self,
         mut x_hi: Limb,
         y: &Self,
@@ -335,7 +336,7 @@ impl UintRef {
         x_hi
     }
 
-    /// Perform in-place variable-time division for a 'large' divisor (>1 limbs). The
+    /// Perform in-place variable-time division for a "large" divisor (>1 limbs). The
     /// quotient is returned in `self` and the remainder in `rhs`.
     #[inline(always)]
     #[allow(clippy::cast_possible_truncation)]
@@ -412,7 +413,7 @@ impl UintRef {
         }
     }
 
-    /// Computes `x` % `y` for a 'large' divisor (>1 limbs), returning the remainder in `x.1`.
+    /// Computes `x % y` for a "large" divisor (>1 limbs), returning the remainder in `x.1`.
     ///
     /// While the divisor may only be a single limb, additional corrections to the result are
     /// required in this case.
