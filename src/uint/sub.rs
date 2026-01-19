@@ -1,7 +1,9 @@
 //! [`Uint`] subtraction operations.
 
 use super::Uint;
-use crate::{Checked, CheckedSub, CtOption, Limb, Sub, SubAssign, Wrapping, WrappingSub, word};
+use crate::{
+    Checked, CheckedSub, Choice, CtOption, Limb, Sub, SubAssign, Wrapping, WrappingSub, word,
+};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
@@ -26,6 +28,27 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         (Self { limbs }, borrow)
+    }
+
+    /// Perform wrapping subtraction, returning the truthy value as the second element of
+    /// the tuple if an underflow has occurred.
+    pub(crate) const fn conditional_borrowing_sub(
+        &self,
+        rhs: &Self,
+        choice: Choice,
+    ) -> (Self, Choice) {
+        let mut limbs = [Limb::ZERO; LIMBS];
+        let mask = Limb::select(Limb::ZERO, Limb::MAX, choice);
+        let mut borrow = Limb::ZERO;
+
+        let mut i = 0;
+        while i < LIMBS {
+            let masked_rhs = rhs.limbs[i].bitand(mask);
+            (limbs[i], borrow) = self.limbs[i].borrowing_sub(masked_rhs, borrow);
+            i += 1;
+        }
+
+        (Self { limbs }, borrow.lsb_to_choice())
     }
 
     /// Perform saturating subtraction, returning `ZERO` on underflow.
@@ -111,6 +134,8 @@ impl<const LIMBS: usize> WrappingSub for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
+    use ctutils::Choice;
+
     use crate::{CheckedSub, Limb, U128};
 
     #[test]
@@ -126,6 +151,27 @@ mod tests {
 
         assert_eq!(res, U128::MAX);
         assert_eq!(borrow, Limb::MAX);
+    }
+
+    #[test]
+    fn conditional_borrowing_sub_no_sub() {
+        let (res, borrow) = U128::ONE.conditional_borrowing_sub(&U128::ONE, Choice::FALSE);
+        assert_eq!(res, U128::ONE);
+        assert!(!borrow.to_bool_vartime());
+    }
+
+    #[test]
+    fn conditional_borrowing_sub_no_borrow() {
+        let (res, borrow) = U128::ONE.conditional_borrowing_sub(&U128::ZERO, Choice::TRUE);
+        assert_eq!(res, U128::ONE);
+        assert!(!borrow.to_bool_vartime());
+    }
+
+    #[test]
+    fn conditional_borrowing_sub_borrow() {
+        let (res, borrow) = U128::ZERO.conditional_borrowing_sub(&U128::ONE, Choice::TRUE);
+        assert_eq!(res, U128::MAX);
+        assert!(borrow.to_bool_vartime());
     }
 
     #[test]

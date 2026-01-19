@@ -106,3 +106,51 @@ pub(crate) const fn square_montgomery_form<const LIMBS: usize>(
     );
     out.sub_mod_with_carry(carry, modulus.as_ref(), modulus.as_ref())
 }
+
+/// Computes a repeated Montgomery squaring of `a` modulo `modulus` where
+/// `a` is in Montgomery form.
+///
+/// This method is variable time in `n`.
+#[inline(always)]
+pub(crate) const fn square_repeat_montgomery_form<const LIMBS: usize>(
+    a: &Uint<LIMBS>,
+    n: u32,
+    modulus: &Odd<Uint<LIMBS>>,
+    mod_neg_inv: Limb,
+) -> Uint<LIMBS> {
+    if n == 0 {
+        return *a;
+    }
+    if n == 1 {
+        return square_montgomery_form(a, modulus, mod_neg_inv);
+    }
+
+    let mut i = 0;
+    let mut out = *a;
+    let mut base;
+    let mut carry;
+
+    loop {
+        (base, out) = (out, Uint::ZERO);
+        carry = montgomery_multiply_inner(
+            &base.limbs,
+            &base.limbs,
+            &mut out.limbs,
+            &modulus.0.limbs,
+            mod_neg_inv,
+        );
+        i += 1;
+        if i == n {
+            break;
+        }
+        // intermediate results are in "Almost Montgomery form", which is <= Uint::MAX
+        // but may require the modulus to be subtracted twice.
+        out = out
+            .conditional_borrowing_sub(modulus.as_ref(), carry.is_nonzero())
+            .0;
+    }
+
+    // correct for "Almost Montygomery form"
+    out = out.sub_mod_with_carry(carry, modulus.as_ref(), modulus.as_ref());
+    out.sub_mod_with_carry(Limb::ZERO, modulus.as_ref(), modulus.as_ref())
+}
