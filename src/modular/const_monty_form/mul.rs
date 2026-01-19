@@ -164,6 +164,12 @@ mod tests {
 
     #[test]
     fn test_square_repeat() {
+        let res = N_MOD.square_repeat_vartime(0);
+        assert_eq!(res, N_MOD);
+
+        let res = N_MOD.square_repeat_vartime(1);
+        assert_eq!(res, N_MOD.square());
+
         let res = N_MOD.square_repeat_vartime(5);
         let expected = N_MOD.square().square().square().square().square();
         assert_eq!(res, expected);
