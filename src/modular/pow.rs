@@ -23,7 +23,7 @@ pub const fn pow_montgomery_form<
     exponent_bits: u32,
     params: &MontyParams<LIMBS>,
 ) -> Uint<LIMBS> {
-    multi_exponentiate_montgomery_form_array::<_, _, _, VARTIME>(
+    multi_exponentiate_montgomery_form_array::<LIMBS, RHS_LIMBS, 1, VARTIME>(
         &[(*x, *exponent)],
         exponent_bits,
         params,

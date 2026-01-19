@@ -31,7 +31,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
         exponent_bits: u32,
     ) -> Self {
         Self {
-            montgomery_form: pow_montgomery_form::<_, _, false>(
+            montgomery_form: pow_montgomery_form::<LIMBS, RHS_LIMBS, false>(
                 &self.montgomery_form,
                 exponent,
                 exponent_bits,
@@ -44,13 +44,14 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// Raises to the `exponent` power.
     ///
     /// This method is variable time in `exponent`.
+    #[must_use]
     pub const fn pow_vartime<const RHS_LIMBS: usize>(
         &self,
         exponent: &Uint<RHS_LIMBS>,
     ) -> MontyForm<LIMBS> {
         let exponent_bits = exponent.bits_vartime();
         Self {
-            montgomery_form: pow_montgomery_form::<_, _, true>(
+            montgomery_form: pow_montgomery_form::<LIMBS, RHS_LIMBS, true>(
                 &self.montgomery_form,
                 exponent,
                 exponent_bits,
@@ -91,7 +92,7 @@ impl<const N: usize, const LIMBS: usize, const RHS_LIMBS: usize>
         }
 
         Self {
-            montgomery_form: multi_exponentiate_montgomery_form_array::<_, _, _, false>(
+            montgomery_form: multi_exponentiate_montgomery_form_array::<LIMBS, RHS_LIMBS, N, false>(
                 &bases_and_exponents_montgomery_form,
                 exponent_bits,
                 &params,
@@ -120,7 +121,7 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize>
             .map(|(base, exp)| (base.montgomery_form, *exp))
             .collect();
         Self {
-            montgomery_form: multi_exponentiate_montgomery_form_slice::<_, _, false>(
+            montgomery_form: multi_exponentiate_montgomery_form_slice::<LIMBS, RHS_LIMBS, false>(
                 &bases_and_exponents,
                 exponent_bits,
                 &params,
