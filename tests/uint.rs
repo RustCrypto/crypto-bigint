@@ -1,5 +1,7 @@
 //! Equivalence tests between `crypto_bigint::Uint` and `num_bigint::BigUint`.
 
+#![cfg(any(unix, windows))]
+
 mod common;
 
 use common::to_biguint;

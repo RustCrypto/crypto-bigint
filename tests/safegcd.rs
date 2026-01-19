@@ -1,5 +1,7 @@
 //! Equivalence tests for Bernstein-Yang inversions.
 
+#![cfg(any(unix, windows))]
+
 mod common;
 
 use common::to_biguint;

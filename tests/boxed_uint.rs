@@ -1,6 +1,6 @@
 //! Equivalence tests between `crypto_bigint::BoxedUint` and `num_bigint::BigUint`.
 
-#![cfg(feature = "alloc")]
+#![cfg(all(any(unix, windows), feature = "alloc"))]
 
 mod common;
 
