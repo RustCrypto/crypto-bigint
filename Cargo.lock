@@ -83,12 +83,11 @@ checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 [[package]]
 name = "chacha20"
 version = "0.10.0-rc.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f895fb33c1ad22da4bc79d37c0bddff8aee2ba4575705345eb73b8ffbc386074"
+source = "git+https://github.com/nstilt1/stream-ciphers-rng?branch=stream_id_updates#dab112c307d461e72136e65b08fe14c9b5e29b5c"
 dependencies = [
  "cfg-if",
  "cpufeatures",
- "rand_core 0.10.0-rc-3",
+ "rand_core 0.10.0-rc-4",
 ]
 
 [[package]]
@@ -238,7 +237,7 @@ dependencies = [
  "num-modular",
  "num-traits",
  "proptest",
- "rand_core 0.10.0-rc-3",
+ "rand_core 0.10.0-rc-4",
  "rlp",
  "serdect",
  "subtle",
@@ -310,7 +309,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "r-efi",
- "rand_core 0.10.0-rc-3",
+ "rand_core 0.10.0-rc-4",
  "wasip2",
 ]
 
@@ -552,9 +551,9 @@ dependencies = [
 
 [[package]]
 name = "rand_core"
-version = "0.10.0-rc-3"
+version = "0.10.0-rc-4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f66ee92bc15280519ef199a274fe0cafff4245d31bc39aaa31c011ad56cb1f05"
+checksum = "43bb1e3655c24705492d72208c9bacdefe07c30c14b8f7664c556a3e1953b72c"
 
 [[package]]
 name = "rand_xorshift"
