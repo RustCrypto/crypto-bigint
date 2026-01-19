@@ -209,6 +209,7 @@ const fn compute_powers<const LIMBS: usize>(
     powers
 }
 
+#[allow(clippy::cast_possible_truncation)]
 const fn multi_exponentiate_montgomery_form_internal<const LIMBS: usize, const RHS_LIMBS: usize>(
     powers_and_exponents: &[([Uint<LIMBS>; 1 << WINDOW], Uint<RHS_LIMBS>)],
     exponent_bits: u32,

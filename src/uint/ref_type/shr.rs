@@ -82,6 +82,7 @@ impl UintRef {
     /// Right-shifts by `shift` limbs in a panic-free manner, producing zero if the shift
     /// exceeds the precision.
     #[inline(always)]
+    #[allow(clippy::cast_possible_truncation)]
     pub(crate) const fn wrapping_shr_assign_by_limbs(&mut self, shift: u32) {
         let nlimbs = self.nlimbs() as u32;
         let overflow = Choice::from_u32_le(nlimbs, shift);

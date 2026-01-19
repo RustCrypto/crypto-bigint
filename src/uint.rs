@@ -104,6 +104,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     };
 
     /// Total size of the represented integer in bits.
+    #[allow(clippy::cast_possible_truncation)]
     pub const BITS: u32 = LIMBS as u32 * Limb::BITS;
 
     /// `floor(log2(Self::BITS))`.

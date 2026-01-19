@@ -48,6 +48,7 @@ impl UintRef {
     ///
     /// This function operates in variable-time with respect to `rhs`. For a fixed divisor,
     /// it operates in constant-time. It will panic if the divisor is zero.
+    #[allow(clippy::cast_possible_truncation)]
     pub const fn div_rem_vartime(&mut self, rhs: &mut Self) {
         let (x, y) = (self, rhs);
         let xsize = x.nlimbs();
@@ -133,6 +134,7 @@ impl UintRef {
     /// The `x_lower_upper` tuple represents a wide integer. The size of `x_lower_upper.1`
     /// must be at least as large as `rhs`. `x_lower_upper` is left in an indeterminate state.
     #[inline(always)]
+    #[allow(clippy::cast_possible_truncation)]
     pub const fn rem_wide_vartime(x_lower_upper: (&mut Self, &mut Self), rhs: &mut Self) {
         let (x_lo, x) = x_lower_upper;
         let xsize = x.nlimbs();
@@ -200,6 +202,7 @@ impl UintRef {
     /// The quotient is returned in `self` and the remainder in `y`, but these values require
     /// additional correction. This is left to the caller for performance reasons.
     #[inline(always)]
+    #[allow(clippy::cast_possible_truncation)]
     pub const fn div_rem_shifted(&mut self, mut x_hi: Limb, y: &mut Self, ywords: u32) {
         let x = self;
 
@@ -253,6 +256,7 @@ impl UintRef {
     /// The dividend and divisor must be left-shifted such that the high bit of the divisor
     /// is set, and `x_hi` holds the top bits of the dividend.
     #[inline(always)]
+    #[allow(clippy::cast_possible_truncation)]
     pub const fn div_rem_large_shifted(
         &mut self,
         mut x_hi: Limb,
@@ -326,6 +330,7 @@ impl UintRef {
     /// Perform in-place variable-time division for a 'large' divisor (>1 limbs). The
     /// quotient is returned in `self` and the remainder in `rhs`.
     #[inline(always)]
+    #[allow(clippy::cast_possible_truncation)]
     const fn div_rem_large_vartime(&mut self, rhs: &mut Self) {
         let (x, y) = (self, rhs);
         let ysize = y.nlimbs();
@@ -362,6 +367,7 @@ impl UintRef {
     /// The shifted remainder is returned in `y`, and must be unshifted by the caller.
     /// `x` is left in an indeterminate state.
     #[inline(always)]
+    #[allow(clippy::cast_possible_truncation)]
     const fn rem_wide_shifted(
         x: (&mut Self, &mut Self),
         mut x_hi: Limb,
@@ -406,6 +412,7 @@ impl UintRef {
     /// The dividend and divisor must be left-shifted such that the high bit of the divisor
     /// is set, and `x_hi` holds the top bits of the dividend.
     #[inline(always)]
+    #[allow(clippy::cast_possible_truncation)]
     const fn rem_wide_large_shifted(
         x: (&Self, &mut Self),
         mut x_hi: Limb,

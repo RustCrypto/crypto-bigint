@@ -36,6 +36,7 @@ pub const MIN_STARTING_LIMBS: usize = 16;
 /// limb counts are implemented explicitly and used as a basis for general multiplication.
 ///
 /// The limb counts of `lhs` and `rhs` must be `LHS` and `RHS` respectively.
+#[allow(clippy::cast_possible_truncation)]
 pub const fn widening_mul_fixed<const LHS: usize, const RHS: usize>(
     lhs: &UintRef,
     rhs: &UintRef,

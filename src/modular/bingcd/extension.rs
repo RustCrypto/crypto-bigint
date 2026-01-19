@@ -66,6 +66,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
     /// # Panics
     /// - if `shift ≥ UPPER_BOUND`.
     #[inline]
+    #[allow(clippy::cast_possible_truncation)]
     pub const fn bounded_shr<const UPPER_BOUND: u32>(&self, shift: u32) -> Self {
         debug_assert!(shift <= UPPER_BOUND);
 
@@ -98,6 +99,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
     /// # Panics
     /// - if `shift ≥ Uint::<EXTRA>::BITS`.
     #[inline]
+    #[allow(clippy::cast_possible_truncation)]
     pub const fn shr_vartime(&self, shift: u32) -> Self {
         debug_assert!(shift <= Uint::<EXTRA>::BITS);
 

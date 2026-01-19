@@ -1,6 +1,9 @@
+//! `Uint` benchmarks
 #![allow(missing_docs)]
 
 use chacha20::ChaCha8Rng;
+use core::hint::black_box;
+use core::num::NonZeroU32;
 use criterion::measurement::WallTime;
 use criterion::{
     BatchSize, BenchmarkGroup, BenchmarkId, Criterion, criterion_group, criterion_main,
@@ -10,8 +13,6 @@ use crypto_bigint::{
     U1024, U2048, U4096, U8192, Uint,
 };
 use rand_core::{RngCore, SeedableRng};
-use std::hint::black_box;
-use std::num::NonZeroU32;
 
 fn make_rng() -> ChaCha8Rng {
     ChaCha8Rng::from_seed(*b"01234567890123456789012345678901")

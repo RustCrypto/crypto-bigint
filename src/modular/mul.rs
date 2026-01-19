@@ -16,6 +16,7 @@ use crate::{Limb, Odd, Uint, WideWord, Word};
 /// cases this may be deferred, as demonstrated by the `almost_montgomery_mul` method used
 /// in `BoxedMontyMultiplier`.
 #[inline(always)]
+#[allow(clippy::cast_possible_truncation)]
 pub const fn montgomery_multiply_inner(
     x: &[Limb],
     y: &[Limb],

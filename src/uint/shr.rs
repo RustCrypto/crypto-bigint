@@ -108,6 +108,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self >> (shift * Limb::BITS)` in a panic-free manner, returning zero if the
     /// shift exceeds the precision.
     #[inline(always)]
+    #[allow(clippy::cast_possible_truncation)]
     pub(crate) const fn wrapping_shr_by_limbs(&self, shift: u32) -> Self {
         let overflow = Choice::from_u32_le(LIMBS as u32, shift);
         let shift_limbs = u32::BITS - (LIMBS as u32 - 1).leading_zeros();

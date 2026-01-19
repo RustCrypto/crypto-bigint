@@ -212,6 +212,7 @@ mod tests {
         assert_eq!(expected_bytes, actual_bytes);
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     mod encoded_uint {
         const LIMBS: usize = 4;
         const BYTES: usize = crate::Limb::BYTES * LIMBS;

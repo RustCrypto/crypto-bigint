@@ -207,6 +207,7 @@ impl<const LIMBS: usize> MulAssign<&Checked<Int<LIMBS>>> for Checked<Int<LIMBS>>
 }
 
 #[cfg(test)]
+#[allow(clippy::cast_possible_wrap)]
 mod tests {
     use crate::{I64, I128, I256, Int, U64, U128, U256};
 
@@ -319,7 +320,7 @@ mod tests {
         let c = -12345i64;
         assert_eq!(
             I128::from_i128(a).wrapping_mul(&I128::from_i64(c)),
-            I128::from_i128(a.wrapping_mul(c as i128))
+            I128::from_i128(a.wrapping_mul(i128::from(c)))
         );
 
         // overflow into MSB
@@ -405,7 +406,7 @@ mod tests {
         let c = -12345i64;
         assert_eq!(
             I128::from_i128(a).saturating_mul(&I128::from_i64(c)),
-            I128::from_i128(a.saturating_mul(c as i128))
+            I128::from_i128(a.saturating_mul(i128::from(c)))
         );
 
         // core case

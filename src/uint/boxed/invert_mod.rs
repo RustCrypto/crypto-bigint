@@ -162,7 +162,9 @@ impl Odd<BoxedUint> {
             inv.as_mut_uint_ref().trailing_mut(k_limbs).fill(Limb::ZERO);
         } else {
             // expand to k_limbs
+            #[allow(clippy::cast_possible_truncation)]
             let mut scratch = BoxedUint::zero_with_precision(k_limbs as u32 * 2 * Limb::BITS);
+
             expand_invert_mod2k(
                 self.as_uint_ref(),
                 inv.as_mut_uint_ref().leading_mut(k_limbs),

@@ -36,6 +36,7 @@ impl BoxedUint {
     /// # Panics
     /// - if `rhs` has a larger precision than `self`.
     #[inline]
+    #[allow(clippy::cast_possible_truncation)]
     pub fn carrying_add_assign(&mut self, rhs: impl AsRef<[Limb]>, mut carry: Limb) -> Limb {
         debug_assert!(self.bits_precision() >= (rhs.as_ref().len() as u32 * Limb::BITS));
 
@@ -52,6 +53,7 @@ impl BoxedUint {
     /// Computes `self + rhs`, returning a result which is concatenated with the overflow limb which
     /// would be returned if `carrying_add` were called with the same operands.
     #[must_use]
+    #[allow(clippy::cast_possible_truncation)]
     pub fn concatenating_add(&self, rhs: &Self) -> Self {
         // Create a copy of `self` widened to one limb larger than the largest of `self` and `rhs`
         let nlimbs = cmp::max(self.nlimbs(), rhs.nlimbs()) + 1;

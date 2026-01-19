@@ -2,20 +2,17 @@
 
 #[cfg(all(feature = "der", feature = "hybrid-array"))]
 mod der;
-
 #[cfg(feature = "rlp")]
 mod rlp;
 
+use super::Uint;
+use crate::{DecodeError, Encoding, Limb, Word};
 use core::{fmt, ops::Deref};
 
 #[cfg(feature = "alloc")]
-use alloc::{string::String, vec::Vec};
-
-use super::Uint;
-use crate::{DecodeError, Encoding, Limb, Word};
-
-#[cfg(feature = "alloc")]
 use crate::{Choice, NonZero, Reciprocal, UintRef, WideWord};
+#[cfg(feature = "alloc")]
+use alloc::{string::String, vec::Vec};
 
 #[cfg(feature = "alloc")]
 const RADIX_ENCODING_LIMBS_LARGE: usize = 16;
@@ -243,12 +240,22 @@ pub struct EncodedUint<const LIMBS: usize>([Word; LIMBS]);
 #[allow(unsafe_code)]
 const fn cast_slice(limbs: &[Word]) -> &[u8] {
     let new_len = size_of_val(limbs);
+
+    // SAFETY:
+    // - `size_of_val` returns the size of `limbs` in bytes
+    // - We are creating a new slice of the same size, but casting word to bytes, so we don't need
+    //   to worry about alignment because bytes are always aligned
     unsafe { core::slice::from_raw_parts(limbs.as_ptr() as *mut u8, new_len) }
 }
 
 #[allow(unsafe_code)]
 const fn cast_slice_mut(limbs: &mut [Word]) -> &mut [u8] {
     let new_len = size_of_val(limbs);
+
+    // SAFETY:
+    // - `size_of_val` returns the size of `limbs` in bytes
+    // - We are creating a new slice of the same size, but casting word to bytes, so we don't need
+    //   to worry about alignment because bytes are always aligned
     unsafe { core::slice::from_raw_parts_mut(limbs.as_mut_ptr().cast::<u8>(), new_len) }
 }
 
@@ -387,6 +394,7 @@ impl<const LIMBS: usize> Encoding for Uint<LIMBS> {
 
 /// Decode a single nibble of upper or lower hex
 #[inline(always)]
+#[allow(clippy::cast_sign_loss)]
 const fn decode_nibble(src: u8) -> u16 {
     let byte = src as i16;
     let mut ret: i16 = -1;
@@ -408,6 +416,7 @@ const fn decode_nibble(src: u8) -> u16 {
 /// Second element of the tuple is non-zero if the `bytes` values are not in the valid range
 /// (0-9, a-z, A-Z).
 #[inline(always)]
+#[allow(clippy::cast_possible_truncation)]
 pub(crate) const fn decode_hex_byte(bytes: [u8; 2]) -> (u8, u16) {
     let hi = decode_nibble(bytes[0]);
     let lo = decode_nibble(bytes[1]);
@@ -464,7 +473,7 @@ impl DecodeByLimb for SliceDecodeByLimb<'_> {
 ///
 /// # Panics
 /// - if `radix` is not within `RADIX_ENCODING_MIN..=RADIX_ENCODING_MAX`.
-#[allow(clippy::panic_in_result_fn)]
+#[allow(clippy::cast_possible_truncation, clippy::panic_in_result_fn)]
 pub(crate) fn radix_decode_str<D: DecodeByLimb>(
     src: &str,
     radix: u32,
@@ -507,6 +516,7 @@ fn radix_preprocess_str(src: &str) -> Result<&[u8], DecodeError> {
 }
 
 /// Decode a string of digits in base `radix`
+#[allow(clippy::cast_possible_truncation)]
 fn radix_decode_str_digits<D: DecodeByLimb>(
     src: &str,
     radix: u8,
@@ -514,8 +524,8 @@ fn radix_decode_str_digits<D: DecodeByLimb>(
 ) -> Result<(), DecodeError> {
     let digits = radix_preprocess_str(src)?;
     let mut buf = [0u8; Limb::BITS as _];
-    let mut limb_digits = Word::MAX.ilog(radix as _) as usize;
-    let mut limb_max = Limb(Word::pow(radix as _, limb_digits as _));
+    let mut limb_digits = Word::MAX.ilog(radix.into()) as usize;
+    let mut limb_max = Limb(Word::pow(radix.into(), limb_digits as _));
     let mut digits_pos = 0;
     let mut buf_pos = 0;
 
@@ -547,13 +557,13 @@ fn radix_decode_str_digits<D: DecodeByLimb>(
         // On the final loop, there may be fewer digits to process
         if buf_pos < limb_digits {
             limb_digits = buf_pos;
-            limb_max = Limb(Word::pow(radix as _, limb_digits as _));
+            limb_max = Limb(Word::pow(radix.into(), limb_digits as _));
         }
 
         // Combine the digit bytes into a limb
         let mut carry = Limb::ZERO;
         for c in buf[..limb_digits].iter().copied() {
-            carry = Limb(carry.0 * (radix as Word) + (c as Word));
+            carry = Limb(carry.0 * Word::from(radix) + Word::from(c));
         }
         // Multiply the existing limbs by `radix` ^ `limb_digits`,
         // and add the new least-significant limb
@@ -618,7 +628,7 @@ fn radix_decode_str_aligned_digits<D: DecodeByLimb>(
             // Combine the digit bytes into a limb
             let mut w: Word = 0;
             for c in buf[..buf_pos].iter().rev().copied() {
-                w = (w << shift) | (c as Word);
+                w = (w << shift) | Word::from(c);
             }
             // Append the new most-significant limb
             if !out.push_limb(Limb(w)) {
@@ -695,6 +705,7 @@ pub(crate) fn radix_encode_limbs_mut_to_string(radix: u32, limbs: &mut UintRef) 
 /// fill `out`. The slice `limbs` is used as a working buffer. Output will be truncated
 /// if the provided buffer is too small.
 #[cfg(feature = "alloc")]
+#[allow(clippy::cast_possible_truncation)]
 fn radix_encode_limbs_by_shifting(radix: u32, limbs: &UintRef, out: &mut [u8]) {
     debug_assert!(radix.is_power_of_two());
     debug_assert!(!out.is_empty());
@@ -708,7 +719,7 @@ fn radix_encode_limbs_by_shifting(radix: u32, limbs: &UintRef, out: &mut [u8]) {
 
     for limb in limbs.iter().chain([&Limb::ZERO]) {
         digits_bits += Limb::BITS;
-        digits |= (limb.0 as WideWord) << (digits_bits % Limb::BITS);
+        digits |= WideWord::from(limb.0) << (digits_bits % Limb::BITS);
         for _ in 0..((digits_bits / radix_bits) as usize).min(out_idx) {
             out_idx -= 1;
             (digit, digits) = ((digits as u8) & mask, digits >> radix_bits);
@@ -806,6 +817,7 @@ impl RadixDivisionParams {
     /// Encode the mutable limb slice to the output buffer as ASCII characters in base
     /// `radix`. Leading zeros are added to fill `out`. The slice `limbs` is used as a
     /// working buffer. Output will be truncated if the provided buffer is too small.
+    #[allow(clippy::cast_possible_truncation)]
     pub fn encode_limbs(&self, mut limbs: &mut UintRef, out: &mut [u8]) {
         let mut out_idx = out.len();
         let mut remain = Uint::<RADIX_ENCODING_LIMBS_LARGE>::ZERO;
@@ -847,11 +859,11 @@ impl RadixDivisionParams {
         }
     }
 
-    #[allow(trivial_numeric_casts)]
+    #[allow(trivial_numeric_casts, clippy::cast_possible_truncation)]
     fn encode_limbs_small(&self, mut limbs: &mut UintRef, out: &mut [u8]) {
         const DIGITS: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 
-        let radix = self.radix as Word;
+        let radix = Word::from(self.radix);
         let mut out_idx = out.len();
         let mut bits_acc = 0;
         let (mut digit, mut digits_word);

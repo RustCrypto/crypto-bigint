@@ -34,6 +34,7 @@ impl BoxedUint {
     /// # Panics
     /// - if `rhs` has a larger precision than `self`.
     #[inline(always)]
+    #[allow(clippy::cast_possible_truncation)]
     pub fn borrowing_sub_assign(&mut self, rhs: impl AsRef<[Limb]>, mut borrow: Limb) -> Limb {
         debug_assert!(self.bits_precision() >= (rhs.as_ref().len() as u32 * Limb::BITS));
 

@@ -39,7 +39,7 @@ impl BoxedUint {
         let (lo, carry) = mac_by_limb(&lo, &hi, c, Limb::ZERO);
 
         let (lo, carry) = {
-            let rhs = (carry.0 + 1) as WideWord * c.0 as WideWord;
+            let rhs = WideWord::from(carry.0 + 1) * WideWord::from(c.0);
             lo.carrying_add(&Self::from(rhs), Limb::ZERO)
         };
 

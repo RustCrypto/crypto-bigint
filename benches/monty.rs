@@ -1,6 +1,8 @@
+//! `MontyForm` benchmarks
 #![allow(missing_docs)]
 
 use chacha20::ChaCha8Rng;
+use core::hint::black_box;
 use criterion::{
     BatchSize, BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::Measurement,
 };
@@ -9,11 +11,11 @@ use crypto_bigint::{
     modular::{MontyForm, MontyParams},
 };
 use rand_core::SeedableRng;
-use std::hint::black_box;
 
 #[cfg(feature = "alloc")]
 use crypto_bigint::MultiExponentiate;
 
+/// Benchmark `MontyForm` conversions.
 fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
     group.bench_function("MontyParams::new", |b| {
@@ -227,6 +229,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     }
 }
 
+/// Benchmark `MontyForm`.
 fn bench_montgomery(c: &mut Criterion) {
     let mut group = c.benchmark_group("Dynamic Montgomery arithmetic");
     bench_montgomery_conversion(&mut group);

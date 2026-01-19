@@ -1,6 +1,8 @@
+//! `BoxedMontyForm` benchmarks
 #![allow(missing_docs)]
 
 use chacha20::ChaCha8Rng;
+use core::hint::black_box;
 use criterion::{
     BatchSize, BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::Measurement,
 };
@@ -10,7 +12,6 @@ use crypto_bigint::{
 };
 use num_bigint::BigUint;
 use rand_core::SeedableRng;
-use std::hint::black_box;
 
 /// Size of `BoxedUint` to use in benchmark.
 const UINT_BITS: u32 = 4096;

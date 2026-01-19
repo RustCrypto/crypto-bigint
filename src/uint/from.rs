@@ -113,6 +113,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     // TODO(tarcieri): replace with `const impl From<WideWord>` when stable
     #[inline]
     #[must_use]
+    #[allow(clippy::cast_possible_truncation)]
     pub const fn from_wide_word(n: WideWord) -> Self {
         check_limbs!(LIMBS, 2);
         let mut limbs = [Limb::ZERO; LIMBS];
@@ -182,10 +183,10 @@ impl From<U128> for u128 {
     #[inline]
     fn from(n: U128) -> u128 {
         let mut i = U128::LIMBS - 1;
-        let mut res = n.limbs[i].0 as u128;
+        let mut res = u128::from(n.limbs[i].0);
         while i > 0 {
             i -= 1;
-            res = (res << Limb::BITS) | (n.limbs[i].0 as u128);
+            res = (res << Limb::BITS) | u128::from(n.limbs[i].0);
         }
         res
     }
