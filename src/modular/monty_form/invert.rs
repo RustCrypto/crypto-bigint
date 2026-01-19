@@ -43,7 +43,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// respect to `self`'s `params`.
     #[deprecated(since = "0.7.0", note = "please use `invert_vartime` instead")]
     #[must_use]
-    pub const fn inv_vartime(&self) -> Option<Self> {
+    pub const fn inv_vartime(&self) -> CtOption<Self> {
         self.invert_vartime()
     }
 
@@ -56,27 +56,27 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     /// This version is variable-time with respect to the value of `self`, but constant-time with
     /// respect to `self`'s `params`.
     #[must_use]
-    pub const fn invert_vartime(&self) -> Option<Self> {
+    pub const fn invert_vartime(&self) -> CtOption<Self> {
         let inverter = self.params.inverter();
-        if let Some(inv) = inverter.invert_vartime(&self.montgomery_form) {
-            Some(Self {
-                montgomery_form: inv,
-                params: self.params,
-            })
-        } else {
-            None
-        }
+        let maybe_inverse = inverter.invert_vartime(&self.montgomery_form);
+
+        let ret = Self {
+            montgomery_form: maybe_inverse.to_inner_unchecked(),
+            params: self.params,
+        };
+
+        CtOption::new(ret, maybe_inverse.is_some())
     }
 }
 
 impl<const LIMBS: usize> Invert for MontyForm<LIMBS> {
-    type Output = Self;
+    type Output = CtOption<Self>;
 
-    fn invert(&self) -> CtOption<Self::Output> {
+    fn invert(&self) -> Self::Output {
         self.invert()
     }
 
-    fn invert_vartime(&self) -> Option<Self::Output> {
+    fn invert_vartime(&self) -> Self::Output {
         self.invert_vartime()
     }
 }
