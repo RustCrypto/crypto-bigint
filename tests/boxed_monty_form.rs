@@ -1,6 +1,6 @@
 //! Equivalence tests between `crypto_bigint::BoxedMontyForm` and `num-bigint`.
 
-#![cfg(feature = "alloc")]
+#![cfg(all(any(unix, windows), feature = "alloc"))]
 
 mod common;
 

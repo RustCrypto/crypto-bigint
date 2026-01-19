@@ -111,6 +111,7 @@ jobs:
           targets: ${{ matrix.target }}
       - run: ${{ matrix.deps }}
         if: ${{ matrix.deps != '' }}
+      - run: cargo check --target ${{ matrix.target }} --all-features # ensure it builds with all features
       - run: cargo test --target ${{ matrix.target }} --no-default-features ${{ matrix.args }}
       - run: cargo test --target ${{ matrix.target }}  ${{ matrix.args }}
       - run: cargo test --target ${{ matrix.target }} --all-features ${{ matrix.args }}
@@ -160,6 +161,23 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
       - run: rustup component add miri && cargo miri setup
       - run: cargo miri test --target ${{ matrix.target }} --no-default-features --lib
+
+  # Test WASM using `wasmtime`
+  test-wasm:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TARGET_WASM32_WASIP1_RUNNER: "wasmtime"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: bytecodealliance/actions/wasmtime/setup@v1
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          targets: wasm32-wasip1
+      - run: cargo test --target wasm32-wasip1 --no-default-features
+      - run: cargo test --target wasm32-wasip1
+      - run: cargo test --target wasm32-wasip1 --all-features
+      - run: cargo test --target wasm32-wasip1 --all-features --release
 
   # Generate code coverage and report to codecov.io
   coverage:

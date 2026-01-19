@@ -1,5 +1,7 @@
 //! Equivalence tests between `crypto_bigint::MontyForm` and `num-bigint`.
 
+#![cfg(any(unix, windows))]
+
 mod common;
 
 use common::to_biguint;

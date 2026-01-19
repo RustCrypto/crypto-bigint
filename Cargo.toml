@@ -33,13 +33,15 @@ zeroize = { version = "1", optional = true, default-features = false }
 
 [dev-dependencies]
 chacha20 = { version = "0.10.0-rc.6", default-features = false, features = ["rng"] }
-criterion = { version = "0.7", features = ["html_reports"] }
 hex-literal = "1"
 num-bigint = "0.4"
 num-integer = "0.1"
 num-modular = { version = "0.6", features = ["num-bigint", "num-integer", "num-traits"] }
-proptest = "1.9"
 rand_core = "0.10.0-rc-3"
+
+[target.'cfg(any(unix, windows))'.dev-dependencies]
+criterion = { version = "0.7", features = ["html_reports"] }
+proptest = "1.9"
 
 [features]
 default = ["rand_core"]
