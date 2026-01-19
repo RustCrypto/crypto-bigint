@@ -2,7 +2,7 @@
 
 use crate::{
     Bounded, Choice, ConstOne, Constants, CtAssign, CtEq, CtOption, CtSelect, Encoding, Int, Limb,
-    Mul, Odd, One, Uint, Zero,
+    Mul, Odd, One, Uint, UintRef, Zero,
 };
 use core::{
     fmt,
@@ -286,6 +286,20 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
     pub const fn from_u128(n: NonZeroU128) -> Self {
         Self(Uint::from_u128(n.get()))
     }
+
+    /// Borrow this `NonZero<Uint>` as a `&NonZero<UintRef>`.
+    #[inline]
+    #[must_use]
+    pub const fn as_uint_ref(&self) -> &NonZero<UintRef> {
+        self.0.as_uint_ref().as_nz_unchecked()
+    }
+
+    /// Mutably borrow this `NonZero<Uint>` as a `&mut NonZero<UintRef>`.
+    #[inline]
+    #[must_use]
+    pub const fn as_mut_uint_ref(&mut self) -> &mut NonZero<UintRef> {
+        self.0.as_mut_uint_ref().as_mut_nz_unchecked()
+    }
 }
 
 impl<const LIMBS: usize> NonZeroInt<LIMBS> {
@@ -323,6 +337,20 @@ impl<const LIMBS: usize> NonZeroInt<LIMBS> {
 
 #[cfg(feature = "alloc")]
 impl NonZeroBoxedUint {
+    /// Borrow this `NonZero<BoxedUint>` as a `&NonZero<UintRef>`.
+    #[inline]
+    #[must_use]
+    pub fn as_uint_ref(&self) -> &NonZero<UintRef> {
+        self.0.as_uint_ref().as_nz_unchecked()
+    }
+
+    /// Mutably borrow this `NonZero<BoxedUint>` as a `&mut NonZero<UintRef>`.
+    #[inline]
+    #[must_use]
+    pub fn as_mut_uint_ref(&mut self) -> &mut NonZero<UintRef> {
+        self.0.as_mut_uint_ref().as_mut_nz_unchecked()
+    }
+
     /// Get the least significant limb as a [`NonZeroLimb`].
     pub(crate) const fn lower_limb(&self) -> NonZeroLimb {
         NonZero(self.0.limbs[0])
