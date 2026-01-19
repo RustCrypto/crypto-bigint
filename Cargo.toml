@@ -1,6 +1,6 @@
 [package]
 name = "crypto-bigint"
-version = "0.7.0-rc.18"
+version = "0.7.0-rc.19"
 description = """
 Pure Rust implementation of a big integer library which has been designed from
 the ground-up for use in cryptographic applications. Provides constant-time,
@@ -25,14 +25,14 @@ num-traits = { version = "0.2.19", default-features = false }
 der = { version = "0.8.0-rc.10", optional = true, default-features = false }
 hybrid-array = { version = "0.4.5", optional = true }
 getrandom = { version = "0.4.0-rc.0", optional = true, features = ["sys_rng"] }
-rand_core = { version = "0.10.0-rc-3", optional = true, default-features = false }
+rand_core = { version = "0.10.0-rc-4", optional = true, default-features = false }
 rlp = { version = "0.6", optional = true, default-features = false }
 serdect = { version = "0.4", optional = true, default-features = false }
 subtle = { version = "2.6", optional = true, default-features = false }
 zeroize = { version = "1", optional = true, default-features = false }
 
 [dev-dependencies]
-chacha20 = { version = "0.10.0-rc.6", default-features = false, features = ["rng"] }
+chacha20 = { version = "0.10.0-rc.7", default-features = false, features = ["rng"] }
 hex-literal = "1"
 num-bigint = "0.4"
 num-integer = "0.1"
@@ -132,7 +132,3 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [package.metadata.typos.default]
 extend-ignore-re = ["([0-9A-Fa-f]{16,})"]
-
-[patch.crates-io.chacha20]
-git = "https://github.com/nstilt1/stream-ciphers-rng"
-branch = "stream_id_updates"
