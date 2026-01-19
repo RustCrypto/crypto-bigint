@@ -2,6 +2,7 @@
 
 mod add;
 mod bits;
+mod cmp;
 mod ct;
 mod div;
 mod invert_mod;
@@ -10,7 +11,7 @@ mod shr;
 mod slice;
 mod sub;
 
-use crate::{Choice, Limb, Uint, Word};
+use crate::{Choice, CtOption, Limb, NonZero, Uint, Word};
 use core::{
     fmt,
     ops::{Index, IndexMut},
@@ -148,6 +149,49 @@ impl UintRef {
             i += 1;
         }
         out
+    }
+
+    /// Conditionally construct a [`NonZero`] from this reference.
+    ///
+    /// To ensure constant-time operation, we need a placeholder value which is used in the event
+    /// we return the [`CtOption`] equivalent of `None` which is identical in length to `self`.
+    /// And since we're working with reference types, there's only one place to get that: `self`.
+    ///
+    /// So, this function requires a mutable reference so in the event the provided value is zero
+    /// it can change it to be non-zero.
+    ///
+    /// # Panics
+    /// If `self.nlimbs()` is zero.
+    #[inline]
+    #[must_use]
+    pub const fn to_nz(&mut self) -> CtOption<NonZero<&mut Self>> {
+        assert!(!self.0.is_empty(), "cannot be used with empty slices");
+        let is_nz = self.is_nonzero();
+
+        // If `self` is zero, set the first limb to `1` to make it non-zero.
+        self.0[0] = Limb::select(Limb::ONE, self.0[0], is_nz);
+        CtOption::new(NonZero(self), is_nz)
+    }
+
+    /// Construct a [`NonZero`] reference, returning [`None`] in the event `self` is `0`.
+    #[inline]
+    #[must_use]
+    pub const fn to_nz_vartime(&self) -> Option<NonZero<&Self>> {
+        if !self.is_empty() && self.is_nonzero().to_bool_vartime() {
+            Some(NonZero(self))
+        } else {
+            None
+        }
+    }
+
+    /// Construct a mutable [`NonZero`] reference, returning [`None`] in the event `self` is `0`.
+    #[must_use]
+    pub const fn to_mut_nz_vartime(&mut self) -> Option<NonZero<&mut Self>> {
+        if !self.is_empty() && self.is_nonzero().to_bool_vartime() {
+            Some(NonZero(self))
+        } else {
+            None
+        }
     }
 
     /// Get the least significant 64-bits.
