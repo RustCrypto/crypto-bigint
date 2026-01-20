@@ -33,7 +33,12 @@ use crate::{
     Word, Zero, modular::BoxedMontyForm,
 };
 use alloc::{boxed::Box, vec, vec::Vec};
-use core::{fmt, iter::repeat, ops::IndexMut};
+use core::{
+    borrow::{Borrow, BorrowMut},
+    fmt,
+    iter::repeat,
+    ops::IndexMut,
+};
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -451,6 +456,18 @@ impl AsRef<UintRef> for BoxedUint {
 
 impl AsMut<UintRef> for BoxedUint {
     fn as_mut(&mut self) -> &mut UintRef {
+        self.as_mut_uint_ref()
+    }
+}
+
+impl Borrow<UintRef> for BoxedUint {
+    fn borrow(&self) -> &UintRef {
+        self.as_uint_ref()
+    }
+}
+
+impl BorrowMut<UintRef> for BoxedUint {
+    fn borrow_mut(&mut self) -> &mut UintRef {
         self.as_mut_uint_ref()
     }
 }
