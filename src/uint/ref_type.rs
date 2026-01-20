@@ -18,8 +18,8 @@ use core::{
     ptr,
 };
 
-#[cfg(all(doc, feature = "alloc"))]
-use crate::BoxedUint;
+#[cfg(feature = "alloc")]
+use {crate::BoxedUint, alloc::borrow::ToOwned};
 
 /// Unsigned integer reference type.
 ///
@@ -69,13 +69,13 @@ impl UintRef {
     /// Borrow the inner `&[Limb]` slice.
     #[inline]
     #[must_use]
-    pub const fn as_slice(&self) -> &[Limb] {
+    pub const fn as_limbs(&self) -> &[Limb] {
         &self.0
     }
 
     /// Mutably borrow the inner `&mut [Limb]` slice.
     #[inline]
-    pub const fn as_mut_slice(&mut self) -> &mut [Limb] {
+    pub const fn as_mut_limbs(&mut self) -> &mut [Limb] {
         &mut self.0
     }
 
@@ -315,14 +315,14 @@ impl UintRef {
 impl AsRef<[Limb]> for UintRef {
     #[inline]
     fn as_ref(&self) -> &[Limb] {
-        self.as_slice()
+        self.as_limbs()
     }
 }
 
 impl AsMut<[Limb]> for UintRef {
     #[inline]
     fn as_mut(&mut self) -> &mut [Limb] {
-        self.as_mut_slice()
+        self.as_mut_limbs()
     }
 }
 
@@ -339,6 +339,15 @@ impl IndexMut<usize> for UintRef {
     #[inline]
     fn index_mut(&mut self, index: usize) -> &mut Limb {
         self.0.index_mut(index)
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl ToOwned for UintRef {
+    type Owned = BoxedUint;
+
+    fn to_owned(&self) -> BoxedUint {
+        BoxedUint::from(self)
     }
 }
 
