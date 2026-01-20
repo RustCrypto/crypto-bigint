@@ -15,23 +15,23 @@ use core::fmt;
 ///
 /// See [`super::SafeGcdInverter`] for more information.
 #[derive(Clone, Debug)]
-pub(crate) struct BoxedSafeGcdInverter<'a> {
+pub(crate) struct BoxedSafeGcdInverter {
     /// Modulus
-    pub(crate) modulus: &'a Odd<BoxedUint>,
+    pub(crate) modulus: Odd<BoxedUint>,
 
     /// Multiplicative inverse of the modulus modulo 2^62
     inverse: u64,
 
     /// Adjusting parameter (see toplevel documentation).
-    adjuster: Option<&'a BoxedUint>,
+    adjuster: BoxedUint,
 }
 
-impl<'a> BoxedSafeGcdInverter<'a> {
+impl BoxedSafeGcdInverter {
     /// Creates the inverter for specified modulus and adjusting parameter.
     ///
     /// Modulus must be odd. Returns `None` if it is not.
     #[cfg(test)]
-    pub fn new(modulus: &'a Odd<BoxedUint>, adjuster: Option<&'a BoxedUint>) -> Self {
+    pub fn new(modulus: Odd<BoxedUint>, adjuster: BoxedUint) -> Self {
         let inverse = U64::from_u64(modulus.as_uint_ref().invert_mod_u64());
         Self::new_with_inverse(modulus, inverse, adjuster)
     }
@@ -40,10 +40,11 @@ impl<'a> BoxedSafeGcdInverter<'a> {
     ///
     /// Modulus must be odd. Returns `None` if it is not.
     pub(crate) fn new_with_inverse(
-        modulus: &'a Odd<BoxedUint>,
+        modulus: Odd<BoxedUint>,
         inverse: U64,
-        adjuster: Option<&'a BoxedUint>,
+        mut adjuster: BoxedUint,
     ) -> Self {
+        adjuster = adjuster.resize(modulus.bits_precision());
         Self {
             modulus,
             inverse: inverse.as_uint_ref().lowest_u64(),
@@ -53,40 +54,32 @@ impl<'a> BoxedSafeGcdInverter<'a> {
 
     /// Perform constant-time modular inversion.
     pub(crate) fn invert(&self, value: &BoxedUint) -> CtOption<BoxedUint> {
-        invert_odd_mod_precomp::<false>(value, self.modulus, self.inverse, self.adjuster.cloned())
-            .filter_by(value.is_nonzero())
+        invert_odd_mod_precomp::<false>(
+            value,
+            &self.modulus,
+            self.inverse,
+            Some(self.adjuster.clone()),
+        )
     }
 
     /// Perform variable-time modular inversion.
-    pub(crate) fn invert_vartime(&self, value: &BoxedUint) -> Option<BoxedUint> {
-        if value.is_zero_vartime() {
-            None
-        } else {
-            invert_odd_mod_precomp::<true>(
-                value,
-                self.modulus,
-                self.inverse,
-                self.adjuster.cloned(),
-            )
-            .into_option()
-        }
+    pub(crate) fn invert_vartime(&self, value: &BoxedUint) -> CtOption<BoxedUint> {
+        invert_odd_mod_precomp::<true>(
+            value,
+            &self.modulus,
+            self.inverse,
+            Some(self.adjuster.clone()),
+        )
     }
 }
 
 #[inline]
-pub fn invert_odd_mod(a: &BoxedUint, m: &Odd<BoxedUint>) -> CtOption<BoxedUint> {
+pub fn invert_odd_mod<const VARTIME: bool>(
+    a: &BoxedUint,
+    m: &Odd<BoxedUint>,
+) -> CtOption<BoxedUint> {
     let mi = m.as_uint_ref().invert_mod_u64();
-    invert_odd_mod_precomp::<false>(a, m, mi, None).filter_by(a.is_nonzero())
-}
-
-#[inline]
-pub fn invert_odd_mod_vartime(a: &BoxedUint, m: &Odd<BoxedUint>) -> Option<BoxedUint> {
-    if a.is_zero_vartime() {
-        None
-    } else {
-        let mi = m.as_uint_ref().invert_mod_u64();
-        invert_odd_mod_precomp::<true>(a, m, mi, None).into_option()
-    }
+    invert_odd_mod_precomp::<VARTIME>(a, m, mi, None)
 }
 
 /// Calculate the multiplicative inverse of `a` modulo `m`.
@@ -97,6 +90,7 @@ fn invert_odd_mod_precomp<const VARTIME: bool>(
     mi: u64,
     e: Option<BoxedUint>,
 ) -> CtOption<BoxedUint> {
+    let a_nonzero = a.is_nonzero();
     let bits_precision = u32_max(a.bits_precision(), m.as_ref().bits_precision());
     let m = m.as_ref().resize(bits_precision);
     let (mut f, mut g) = (
@@ -129,7 +123,7 @@ fn invert_odd_mod_precomp<const VARTIME: bool>(
         .norm(f.is_negative(), &m)
         .resize_unchecked(a.bits_precision());
 
-    CtOption::new(d, f.magnitude().is_one())
+    CtOption::new(d, f.magnitude().is_one() & a_nonzero)
 }
 
 /// Calculate the greatest common denominator of `f` and `g`.
@@ -455,8 +449,7 @@ mod tests {
         .unwrap()
         .to_odd()
         .unwrap();
-        let one = BoxedUint::one();
-        let inverter = BoxedSafeGcdInverter::new(&modulus, Some(&one));
+        let inverter = BoxedSafeGcdInverter::new(modulus, BoxedUint::one());
         let result = inverter.invert(&g).unwrap();
         assert_eq!(
             BoxedUint::from_be_hex(

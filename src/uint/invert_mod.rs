@@ -149,15 +149,15 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     #[must_use]
     pub const fn invert_odd_mod(&self, modulus: &Odd<Self>) -> CtOption<Self> {
-        safegcd::invert_odd_mod::<LIMBS>(self, modulus)
+        safegcd::invert_odd_mod::<LIMBS, false>(self, modulus)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     ///
     /// This method is variable-time with respect to `self`.
     #[must_use]
-    pub const fn invert_odd_mod_vartime(&self, modulus: &Odd<Self>) -> Option<Self> {
-        safegcd::invert_odd_mod_vartime::<LIMBS>(self, modulus)
+    pub const fn invert_odd_mod_vartime(&self, modulus: &Odd<Self>) -> CtOption<Self> {
+        safegcd::invert_odd_mod::<LIMBS, true>(self, modulus)
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`.

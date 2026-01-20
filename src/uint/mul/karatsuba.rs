@@ -109,8 +109,8 @@ pub const fn widening_mul_fixed<const LHS: usize, const RHS: usize>(
     if LHS < MIN_STARTING_LIMBS || RHS < MIN_STARTING_LIMBS {
         let (mut lo, mut hi) = (Uint::ZERO, Uint::ZERO);
         schoolbook::mul_wide(
-            lhs.as_slice(),
-            rhs.as_slice(),
+            lhs.as_limbs(),
+            rhs.as_limbs(),
             lo.as_mut_limbs(),
             hi.as_mut_limbs(),
         );
@@ -200,7 +200,7 @@ pub const fn wrapping_mul_fixed<const LHS: usize>(
     // Handle smaller integer sizes
     if LHS < MIN_STARTING_LIMBS || rhs.nlimbs() < MIN_STARTING_LIMBS {
         let mut lo = Uint::ZERO;
-        let carry = schoolbook::wrapping_mul_add(lhs.as_slice(), rhs.as_slice(), lo.as_mut_limbs());
+        let carry = schoolbook::wrapping_mul_add(lhs.as_limbs(), rhs.as_limbs(), lo.as_mut_limbs());
         return (lo, carry);
     }
     // Because only matching limbs are considered, any LHS <= RHS is treated as a fixed-size
@@ -268,7 +268,7 @@ pub const fn widening_square_fixed<const LIMBS: usize>(
     // Handle smaller integer sizes
     if LIMBS < MIN_STARTING_LIMBS {
         let (mut lo, mut hi) = (Uint::ZERO, Uint::ZERO);
-        schoolbook::square_wide(uint.as_slice(), lo.as_mut_limbs(), hi.as_mut_limbs());
+        schoolbook::square_wide(uint.as_limbs(), lo.as_mut_limbs(), hi.as_mut_limbs());
         (lo, hi)
     }
     // Forward to optimized implementations or the dynamic implementation. This choice should
@@ -414,7 +414,7 @@ pub const fn wrapping_mul(lhs: &UintRef, rhs: &UintRef, out: &mut UintRef, add: 
 
     // Handle smaller sized integers
     if split < MIN_STARTING_LIMBS {
-        return schoolbook::wrapping_mul_add(lhs.as_slice(), rhs.as_slice(), out.as_mut_slice());
+        return schoolbook::wrapping_mul_add(lhs.as_limbs(), rhs.as_limbs(), out.as_mut_limbs());
     }
 
     // Select an optimized implementation for a fixed number of limbs
@@ -491,7 +491,7 @@ pub(crate) const fn wrapping_square(uint: &UintRef, out: &mut UintRef) -> Limb {
 
     // Handle smaller integer sizes
     if x.nlimbs() <= MIN_STARTING_LIMBS {
-        return schoolbook::wrapping_square(x.as_slice(), out.as_mut_slice());
+        return schoolbook::wrapping_square(x.as_limbs(), out.as_mut_limbs());
     }
 
     // Select an optimized 'split' such that a wide multiplication will not

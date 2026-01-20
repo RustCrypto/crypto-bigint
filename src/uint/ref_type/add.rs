@@ -49,7 +49,7 @@ impl UintRef {
         carry: Limb,
         choice: Choice,
     ) -> Limb {
-        self.conditional_add_assign_slice(rhs.as_slice(), carry, choice)
+        self.conditional_add_assign_slice(rhs.as_limbs(), carry, choice)
     }
 
     /// Perform an in-place carrying add of another limb slice, returning the carried limb value.

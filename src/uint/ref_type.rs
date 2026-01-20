@@ -11,15 +11,15 @@ mod shr;
 mod slice;
 mod sub;
 
-use crate::{Choice, CtOption, Limb, NonZero, Uint, Word};
+use crate::{Choice, CtOption, Limb, NonZero, Odd, Uint, Word};
 use core::{
     fmt,
     ops::{Index, IndexMut},
     ptr,
 };
 
-#[cfg(all(doc, feature = "alloc"))]
-use crate::BoxedUint;
+#[cfg(feature = "alloc")]
+use {crate::BoxedUint, alloc::borrow::ToOwned};
 
 /// Unsigned integer reference type.
 ///
@@ -69,13 +69,13 @@ impl UintRef {
     /// Borrow the inner `&[Limb]` slice.
     #[inline]
     #[must_use]
-    pub const fn as_slice(&self) -> &[Limb] {
+    pub const fn as_limbs(&self) -> &[Limb] {
         &self.0
     }
 
     /// Mutably borrow the inner `&mut [Limb]` slice.
     #[inline]
-    pub const fn as_mut_slice(&mut self) -> &mut [Limb] {
+    pub const fn as_mut_limbs(&mut self) -> &mut [Limb] {
         &mut self.0
     }
 
@@ -124,7 +124,6 @@ impl UintRef {
     }
 
     /// Conditionally assign all of the limbs to the maximum.
-    #[cfg(feature = "alloc")]
     #[inline]
     pub const fn conditional_set_max(&mut self, choice: Choice) {
         let mut i = 0;
@@ -164,34 +163,131 @@ impl UintRef {
     /// If `self.nlimbs()` is zero.
     #[inline]
     #[must_use]
-    pub const fn to_nz(&mut self) -> CtOption<NonZero<&mut Self>> {
+    pub const fn to_mut_nz_ref(&mut self) -> CtOption<&mut NonZero<Self>> {
         assert!(!self.0.is_empty(), "cannot be used with empty slices");
         let is_nz = self.is_nonzero();
 
         // If `self` is zero, set the first limb to `1` to make it non-zero.
         self.0[0] = Limb::select(Limb::ONE, self.0[0], is_nz);
-        CtOption::new(NonZero(self), is_nz)
+
+        CtOption::new(self.as_mut_nz_unchecked(), is_nz)
     }
 
     /// Construct a [`NonZero`] reference, returning [`None`] in the event `self` is `0`.
     #[inline]
     #[must_use]
-    pub const fn to_nz_vartime(&self) -> Option<NonZero<&Self>> {
-        if !self.is_empty() && self.is_nonzero().to_bool_vartime() {
-            Some(NonZero(self))
-        } else {
-            None
+    pub const fn as_nz_vartime(&self) -> Option<&NonZero<Self>> {
+        if self.is_zero_vartime() {
+            return None;
         }
+        Some(self.as_nz_unchecked())
     }
 
     /// Construct a mutable [`NonZero`] reference, returning [`None`] in the event `self` is `0`.
     #[must_use]
-    pub const fn to_mut_nz_vartime(&mut self) -> Option<NonZero<&mut Self>> {
-        if !self.is_empty() && self.is_nonzero().to_bool_vartime() {
-            Some(NonZero(self))
-        } else {
-            None
+    pub const fn as_mut_nz_vartime(&mut self) -> Option<&mut NonZero<Self>> {
+        if self.is_zero_vartime() {
+            return None;
         }
+        Some(self.as_mut_nz_unchecked())
+    }
+
+    /// Cast to [`NonZero`] without first checking that the contained value is non-zero.
+    ///
+    /// # Panics
+    /// We don't explicitly flag this function as `unsafe` because it doesn't have a memory safety
+    /// impact, however functions called with `NonZero` arguments assume this value is non-zero
+    /// and may panic if given a zero value.
+    #[inline]
+    #[must_use]
+    #[allow(unsafe_code)]
+    pub(crate) const fn as_nz_unchecked(&self) -> &NonZero<Self> {
+        // SAFETY: `NonZero` is a `repr(transparent)` newtype
+        unsafe { &*(ptr::from_ref(self) as *const NonZero<Self>) }
+    }
+
+    /// Cast to [`NonZero`] without first checking that the contained value is non-zero.
+    ///
+    /// # Panics
+    /// We don't explicitly flag this function as `unsafe` because it doesn't have a memory safety
+    /// impact, however functions called with `NonZero` arguments assume this value is non-zero
+    /// and may panic if given a zero value.
+    #[inline]
+    #[must_use]
+    #[allow(unsafe_code)]
+    pub(crate) const fn as_mut_nz_unchecked(&mut self) -> &mut NonZero<Self> {
+        // SAFETY: `NonZero` is a `repr(transparent)` newtype
+        unsafe { &mut *(ptr::from_mut(self) as *mut NonZero<Self>) }
+    }
+
+    /// Conditionally construct a [`Odd`] from this reference.
+    ///
+    /// To ensure constant-time operation, we need a placeholder value which is used in the event
+    /// we return the [`CtOption`] equivalent of `None` which is identical in length to `self`.
+    /// And since we're working with reference types, there's only one place to get that: `self`.
+    ///
+    /// So, this function requires a mutable reference so in the event the provided value is even
+    /// it can change it to be odd.
+    ///
+    /// # Panics
+    /// If `self.nlimbs()` is zero.
+    #[inline]
+    #[must_use]
+    pub const fn to_mut_odd_ref(&mut self) -> CtOption<&mut Odd<Self>> {
+        assert!(!self.0.is_empty(), "cannot be used with empty slices");
+        let is_odd = self.is_odd();
+
+        // If `self` is even, set the first limb to `1` to make it odd.
+        self.0[0] = Limb::select(Limb::ONE, self.0[0], is_odd);
+
+        CtOption::new(self.as_mut_odd_unchecked(), is_odd)
+    }
+
+    /// Construct a [`Odd`] reference, returning [`None`] in the event `self` is `0`.
+    #[inline]
+    #[must_use]
+    pub const fn as_odd_vartime(&self) -> Option<&Odd<Self>> {
+        if self.is_zero_vartime() {
+            return None;
+        }
+        Some(self.as_odd_unchecked())
+    }
+
+    /// Construct a mutable [`Odd`] reference, returning [`None`] in the event `self` is `0`.
+    #[must_use]
+    pub const fn as_mut_odd_vartime(&mut self) -> Option<&mut Odd<Self>> {
+        if self.is_zero_vartime() {
+            return None;
+        }
+        Some(self.as_mut_odd_unchecked())
+    }
+
+    /// Cast to [`Odd`] without first checking that the contained value is actually odd.
+    ///
+    /// # Panics
+    /// We don't explicitly flag this function as `unsafe` because it doesn't have a memory safety
+    /// impact, however functions called with `Odd` arguments assume this value is actually odd
+    /// and may panic if given a zero value.
+    #[inline]
+    #[must_use]
+    #[allow(unsafe_code)]
+    pub(crate) const fn as_odd_unchecked(&self) -> &Odd<Self> {
+        // SAFETY: `Odd` is a `repr(transparent)` newtype
+        unsafe { &*(ptr::from_ref(self) as *const Odd<Self>) }
+    }
+
+    /// Cast to [`Odd`] without first checking that the contained value is actually odd.
+    ///
+    /// # Panics
+    /// We don't explicitly flag this function as `unsafe` because it doesn't have a memory safety
+    /// impact, however functions called with `Odd` arguments assume this value is non-zero
+    /// and may panic if given a zero value.
+    #[inline]
+    #[must_use]
+    #[allow(unsafe_code)]
+    pub(crate) const fn as_mut_odd_unchecked(&mut self) -> &mut Odd<Self> {
+        // SAFETY: `Odd` is a `repr(transparent)` newtype
+        unsafe { &mut *(ptr::from_mut(self) as *mut Odd<Self>) }
     }
 
     /// Get the least significant 64-bits.
@@ -219,14 +315,14 @@ impl UintRef {
 impl AsRef<[Limb]> for UintRef {
     #[inline]
     fn as_ref(&self) -> &[Limb] {
-        self.as_slice()
+        self.as_limbs()
     }
 }
 
 impl AsMut<[Limb]> for UintRef {
     #[inline]
     fn as_mut(&mut self) -> &mut [Limb] {
-        self.as_mut_slice()
+        self.as_mut_limbs()
     }
 }
 
@@ -243,6 +339,15 @@ impl IndexMut<usize> for UintRef {
     #[inline]
     fn index_mut(&mut self, index: usize) -> &mut Limb {
         self.0.index_mut(index)
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl ToOwned for UintRef {
+    type Owned = BoxedUint;
+
+    fn to_owned(&self) -> BoxedUint {
+        BoxedUint::from(self)
     }
 }
 

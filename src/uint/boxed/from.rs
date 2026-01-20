@@ -1,6 +1,6 @@
 //! `From`-like conversions for [`BoxedUint`].
 
-use crate::{BoxedUint, Limb, Odd, U64, U128, Uint, Word};
+use crate::{BoxedUint, Limb, Odd, U64, U128, Uint, UintRef, Word};
 use alloc::{boxed::Box, vec::Vec};
 use core::mem;
 
@@ -120,5 +120,14 @@ impl<const LIMBS: usize> From<&Odd<Uint<LIMBS>>> for Odd<BoxedUint> {
     #[inline]
     fn from(uint: &Odd<Uint<LIMBS>>) -> Odd<BoxedUint> {
         Odd(BoxedUint::from(&uint.0))
+    }
+}
+
+impl From<&UintRef> for BoxedUint {
+    fn from(uint_ref: &UintRef) -> BoxedUint {
+        debug_assert!(uint_ref.nlimbs() >= 1, "empty `UintRef`");
+        BoxedUint {
+            limbs: uint_ref.as_limbs().into(),
+        }
     }
 }

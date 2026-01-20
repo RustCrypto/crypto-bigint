@@ -2,7 +2,7 @@
 
 use crate::{
     Bounded, Choice, ConstOne, Constants, CtAssign, CtEq, CtOption, CtSelect, Encoding, Int, Limb,
-    Mul, Odd, One, Uint, Zero,
+    Mul, Odd, One, Uint, UintRef, Zero,
 };
 use core::{
     fmt,
@@ -31,6 +31,9 @@ pub type NonZeroLimb = NonZero<Limb>;
 
 /// Non-zero unsigned integer.
 pub type NonZeroUint<const LIMBS: usize> = NonZero<Uint<LIMBS>>;
+
+/// Non-zero unsigned integer reference.
+pub type NonZeroUintRef = NonZero<UintRef>;
 
 /// Non-zero signed integer.
 pub type NonZeroInt<const LIMBS: usize> = NonZero<Int<LIMBS>>;
@@ -286,6 +289,32 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
     pub const fn from_u128(n: NonZeroU128) -> Self {
         Self(Uint::from_u128(n.get()))
     }
+
+    /// Borrow this `NonZero<Uint>` as a `&NonZeroUintRef`.
+    #[inline]
+    #[must_use]
+    pub const fn as_uint_ref(&self) -> &NonZeroUintRef {
+        self.0.as_uint_ref().as_nz_unchecked()
+    }
+
+    /// Mutably borrow this `NonZero<Uint>` as a `&mut NonZeroUintRef`.
+    #[inline]
+    #[must_use]
+    pub const fn as_mut_uint_ref(&mut self) -> &mut NonZeroUintRef {
+        self.0.as_mut_uint_ref().as_mut_nz_unchecked()
+    }
+}
+
+impl<const LIMBS: usize> AsRef<NonZeroUintRef> for NonZeroUint<LIMBS> {
+    fn as_ref(&self) -> &NonZeroUintRef {
+        self.as_uint_ref()
+    }
+}
+
+impl<const LIMBS: usize> AsMut<NonZeroUintRef> for NonZeroUint<LIMBS> {
+    fn as_mut(&mut self) -> &mut NonZeroUintRef {
+        self.as_mut_uint_ref()
+    }
 }
 
 impl<const LIMBS: usize> NonZeroInt<LIMBS> {
@@ -323,9 +352,37 @@ impl<const LIMBS: usize> NonZeroInt<LIMBS> {
 
 #[cfg(feature = "alloc")]
 impl NonZeroBoxedUint {
+    /// Borrow this `NonZeroBoxedUint` as a `&NonZeroUintRef`.
+    #[inline]
+    #[must_use]
+    pub fn as_uint_ref(&self) -> &NonZeroUintRef {
+        self.0.as_uint_ref().as_nz_unchecked()
+    }
+
+    /// Mutably borrow this `NonZeroBoxedUint` as a `&mut NonZeroUintRef`.
+    #[inline]
+    #[must_use]
+    pub fn as_mut_uint_ref(&mut self) -> &mut NonZeroUintRef {
+        self.0.as_mut_uint_ref().as_mut_nz_unchecked()
+    }
+
     /// Get the least significant limb as a [`NonZeroLimb`].
     pub(crate) const fn lower_limb(&self) -> NonZeroLimb {
         NonZero(self.0.limbs[0])
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl AsRef<NonZeroUintRef> for NonZeroBoxedUint {
+    fn as_ref(&self) -> &NonZeroUintRef {
+        self.as_uint_ref()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl AsMut<NonZeroUintRef> for NonZeroBoxedUint {
+    fn as_mut(&mut self) -> &mut NonZeroUintRef {
+        self.as_mut_uint_ref()
     }
 }
 
