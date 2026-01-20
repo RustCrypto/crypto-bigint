@@ -15,18 +15,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         out.wrapping_add(&p.as_ref().bitand_limb(mask))
     }
 
-    /// Returns `(self..., carry) - (rhs...) mod (p...)`, where `carry <= 1`.
-    /// Assumes `-(p...) <= (self..., carry) - (rhs...) < (p...)`.
+    /// Tries to subtract `rhs` from `(self..., carry)`, where `carry <= 1`, without wrapping.
+    /// Returns the result of the subtraction and the new carry.
     #[inline(always)]
-    pub(crate) const fn sub_mod_with_carry(&self, carry: Limb, rhs: &Self, p: &Self) -> Self {
-        debug_assert!(carry.0 <= 1);
-
+    pub(crate) const fn try_sub_with_carry(&self, mut carry: Limb, rhs: &Self) -> (Self, Limb) {
         let (out, borrow) = self.borrowing_sub(rhs, Limb::ZERO);
-        let (_, mask) = carry.borrowing_sub(Limb::ZERO, borrow);
-
-        // If underflow occurred on the final limb, borrow = 0xfff...fff, otherwise
-        // borrow = 0x000...000. Thus, we use it as a mask to conditionally add the modulus.
-        out.wrapping_add(&p.bitand_limb(mask))
+        let revert = borrow.lsb_to_choice().and(carry.is_zero());
+        (_, carry) = carry.borrowing_sub(Limb::ZERO, Limb::select(borrow, Limb::ZERO, revert));
+        (Uint::select(&out, self, revert), carry)
     }
 
     /// Computes `self - rhs mod p` for the special modulus

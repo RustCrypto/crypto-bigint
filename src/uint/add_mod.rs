@@ -9,7 +9,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[must_use]
     pub const fn add_mod(&self, rhs: &Self, p: &NonZero<Self>) -> Self {
         let (w, carry) = self.carrying_add(rhs, Limb::ZERO);
-        w.sub_mod_with_carry(carry, p.as_ref(), p.as_ref())
+        w.try_sub_with_carry(carry, p.as_ref()).0
     }
 
     /// Computes `self + rhs mod p` for the special modulus
@@ -34,7 +34,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[must_use]
     pub const fn double_mod(&self, p: &NonZero<Self>) -> Self {
         let (w, carry) = self.overflowing_shl1();
-        w.sub_mod_with_carry(carry, p.as_ref(), p.as_ref())
+        w.try_sub_with_carry(carry, p.as_ref()).0
     }
 }
 
