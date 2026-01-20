@@ -82,9 +82,9 @@ checksum = "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801"
 
 [[package]]
 name = "chacha20"
-version = "0.10.0-rc.7"
+version = "0.10.0-rc.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26f659b53b7f4e776e0cb370508f21d62a22349009195b1089de5f9b24afba2f"
+checksum = "31cd65b2ca03198c223cd9a8fa1152c4ec251cd79049f6dc584152ad3fb5ba9d"
 dependencies = [
  "cfg-if",
  "cpufeatures",
@@ -224,7 +224,7 @@ checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 
 [[package]]
 name = "crypto-bigint"
-version = "0.7.0-rc.20"
+version = "0.7.0-rc.21"
 dependencies = [
  "chacha20",
  "criterion",
