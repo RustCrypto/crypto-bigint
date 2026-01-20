@@ -37,8 +37,6 @@ pub const fn pow_montgomery_form<
 /// `exponent_bits` represents the length of the exponent in bits.
 ///
 /// NOTE: `exponent_bits` is leaked in the time pattern.
-// NOTE: this function is intended to work without alloc, so we `allow(dead_code)` to ensure such
-#[cfg_attr(not(feature = "alloc"), allow(dead_code))] // TODO(tarcieri): use w\ `MontyForm`
 pub fn pow_montgomery_form_amm<'a, U>(
     x: &U,
     exponent: &U,

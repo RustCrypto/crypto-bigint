@@ -7,8 +7,8 @@
 
 use super::{BoxedMontyForm, BoxedMontyParams};
 use crate::{
-    AmmMultiplier, BoxedUint, Limb, MontyMultiplier, Mul, MulAssign, Square, SquareAssign,
-    modular::mul::montgomery_multiply_inner, word,
+    AmmMultiplier, BoxedUint, Limb, MontyMultiplier, Mul, MulAssign, Square, SquareAssign, Zero,
+    modular::mul::{almost_montgomery_mul, montgomery_multiply_inner},
 };
 
 #[cfg(feature = "zeroize")]
@@ -163,7 +163,7 @@ impl<'a> BoxedMontyMultiplier<'a> {
         debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
         debug_assert_eq!(b.bits_precision(), self.modulus.bits_precision());
 
-        self.clear_product();
+        self.product.set_zero();
         montgomery_mul(a, b, &mut self.product, self.modulus, self.mod_neg_inv);
         a.limbs.copy_from_slice(&self.product.limbs);
         debug_assert!(&*a < self.modulus);
@@ -173,7 +173,7 @@ impl<'a> BoxedMontyMultiplier<'a> {
     pub(super) fn square_assign(&mut self, a: &mut BoxedUint) {
         debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
 
-        self.clear_product();
+        self.product.set_zero();
         montgomery_mul(a, a, &mut self.product, self.modulus, self.mod_neg_inv);
         a.limbs.copy_from_slice(&self.product.limbs);
 
@@ -189,8 +189,14 @@ impl<'a> BoxedMontyMultiplier<'a> {
         debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
         debug_assert_eq!(b.bits_precision(), self.modulus.bits_precision());
 
-        self.clear_product();
-        almost_montgomery_mul(a, b, &mut self.product, self.modulus, self.mod_neg_inv);
+        self.product.set_zero();
+        almost_montgomery_mul(
+            a.as_uint_ref(),
+            b.as_uint_ref(),
+            self.product.as_mut_uint_ref(),
+            self.modulus.as_uint_ref(),
+            self.mod_neg_inv,
+        );
         a.limbs.copy_from_slice(&self.product.limbs);
     }
 
@@ -203,17 +209,15 @@ impl<'a> BoxedMontyMultiplier<'a> {
         debug_assert_eq!(a.bits_precision(), self.modulus.bits_precision());
 
         // TODO(tarcieri): optimized implementation
-        self.clear_product();
-        almost_montgomery_mul(a, a, &mut self.product, self.modulus, self.mod_neg_inv);
+        self.product.set_zero();
+        almost_montgomery_mul(
+            a.as_uint_ref(),
+            a.as_uint_ref(),
+            self.product.as_mut_uint_ref(),
+            self.modulus.as_uint_ref(),
+            self.mod_neg_inv,
+        );
         a.limbs.copy_from_slice(&self.product.limbs);
-    }
-
-    /// Clear the internal product buffer.
-    fn clear_product(&mut self) {
-        self.product
-            .limbs
-            .iter_mut()
-            .for_each(|limb| *limb = Limb::ZERO);
     }
 }
 
@@ -245,51 +249,6 @@ pub(crate) fn montgomery_mul(
         mod_neg_inv,
     );
     out.sub_assign_mod_with_carry(carry, modulus, modulus);
-}
-
-/// Computes an 'almost' Montgomery multiplication of `x` and `y` into `out`, that is
-/// `out = x * y * 2^(-n*W) mod m + am` assuming `k = -1/m mod 2^W`,
-/// where `W` is the bit size of the limb, and `n * W` is the full bit size of the integer.
-///
-/// NOTE: `out` is assumed to be pre-zeroized.
-///
-/// Unlike the standard Montgomery multiplication, we are reducing the final result only if
-/// it overflows `2^(n*W)`, not when it overflows `m`.
-///
-/// This means that this function does not assume `x` and `y` are reduced `mod m`,
-/// and the result will be correct `mod m`, but potentially greater than `m`,
-/// and smaller than `2^(n * W) + m`.
-/// See "Efficient Software Implementations of Modular Exponentiation" by S. Gueron for details
-/// (<https://eprint.iacr.org/2011/239.pdf>).
-///
-/// This function exhibits certain properties which were discovered via randomized tests,
-/// but (to my knowledge at this moment) have not been proven formally.
-/// Hereinafter we denote `f(x) = floor(x / m)`, that is `f` is the number of subtractions
-/// of the modulus required to fully reduce `x`.
-///
-/// 1. In general, if `f(x) = k` and `f(y) = n`, then `f(AMM(x, y)) <= min(k, n) + 1`.
-///    That is the "reduction error" grows with every operation,
-///    but is determined by the argument with the lower error.
-/// 2. To retrieve the number from Montgomery form we MM it by 1. In this case `f(AMM(x, 1)) = 0`,
-///    that is the result is always fully reduced regardless of `f(x)`.
-/// 3. `f(AMM(x, x)) <= 1` regardless of `f(x)`. That is, squaring resets the error to at most 1.
-#[inline]
-pub(crate) fn almost_montgomery_mul(
-    x: &BoxedUint,
-    y: &BoxedUint,
-    out: &mut BoxedUint,
-    modulus: &BoxedUint,
-    mod_neg_inv: Limb,
-) {
-    let overflow = montgomery_multiply_inner(
-        x.as_limbs(),
-        y.as_limbs(),
-        out.as_mut_limbs(),
-        modulus.as_limbs(),
-        mod_neg_inv,
-    );
-    let overflow = word::choice_from_lsb(overflow.0);
-    out.conditional_borrowing_sub_assign(modulus, overflow);
 }
 
 #[cfg(test)]
