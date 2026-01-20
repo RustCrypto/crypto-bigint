@@ -70,7 +70,7 @@ macro_rules! const_prime_monty_params {
             $name,
             $uint_type,
             $value,
-            "Modulus which impls `ConstMontyParams`"
+            "Modulus which impls `ConstPrimeMontyParams`"
         );
     };
     ($name:ident, $uint_type:ty, $value:expr, $doc:expr) => {
@@ -78,7 +78,7 @@ macro_rules! const_prime_monty_params {
             $name,
             $uint_type,
             $value,
-            "Modulus which impls `ConstMontyParams`"
+            "Modulus which impls `ConstPrimeMontyParams`"
         );
 
         impl $crate::modular::ConstPrimeMontyParams<{ <$uint_type>::LIMBS }> for $name {
