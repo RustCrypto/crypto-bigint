@@ -1,6 +1,6 @@
 use crate::{
     Choice, CtOption, Uint,
-    modular::{MontyForm, MontyParams, prime_params::PrimeParams},
+    modular::{FixedMontyForm, FixedMontyParams, prime_params::PrimeParams},
 };
 
 /// Compute a modular square root (if it exists) given [`MontyParams`]
@@ -8,10 +8,10 @@ use crate::{
 #[must_use]
 pub const fn sqrt_montgomery_form<const LIMBS: usize>(
     monty_value: &Uint<LIMBS>,
-    monty_params: &MontyParams<LIMBS>,
+    monty_params: &FixedMontyParams<LIMBS>,
     prime_params: &PrimeParams<LIMBS>,
 ) -> CtOption<Uint<LIMBS>> {
-    let value = MontyForm::from_montgomery(*monty_value, *monty_params);
+    let value = FixedMontyForm::from_montgomery(*monty_value, monty_params);
     let b = value.pow_vartime(&prime_params.sqrt_exp);
 
     // Constant-time versions of modular square root algorithms based on:
@@ -25,7 +25,7 @@ pub const fn sqrt_montgomery_form<const LIMBS: usize>(
         }
         2 => {
             // Algorithm 3: p = 5 mod 8 (Atkins variant)
-            let ru = MontyForm::from_montgomery(prime_params.monty_root_unity, *monty_params);
+            let ru = FixedMontyForm::from_montgomery(prime_params.monty_root_unity, monty_params);
             let cb = value.mul(&b);
             let zeta = cb.mul(&b);
             let is_one = Uint::eq(zeta.as_montgomery(), monty_params.one());
@@ -33,15 +33,16 @@ pub const fn sqrt_montgomery_form<const LIMBS: usize>(
         }
         3 => {
             // Algorithm 4: p = 9 mod 16
-            let ru = MontyForm::from_montgomery(prime_params.monty_root_unity, *monty_params);
-            let ru_2 = MontyForm::from_montgomery(prime_params.monty_root_unity_p2, *monty_params);
+            let ru = FixedMontyForm::from_montgomery(prime_params.monty_root_unity, monty_params);
+            let ru_2 =
+                FixedMontyForm::from_montgomery(prime_params.monty_root_unity_p2, monty_params);
             let ru_3 = ru.mul(&ru_2);
             let cb = value.mul(&b);
             let zeta = cb.mul(&b);
 
             let mut m = monty_select(
                 &ru,
-                &MontyForm::one(*ru.params()),
+                &FixedMontyForm::one(ru.params()),
                 Uint::eq(zeta.as_montgomery(), monty_params.one()),
             );
             // m = ru^2 if zeta = -1
@@ -57,8 +58,9 @@ pub const fn sqrt_montgomery_form<const LIMBS: usize>(
         }
         4 => {
             // Algorithm 5: p = 17 mod 32
-            let ru = MontyForm::from_montgomery(prime_params.monty_root_unity, *monty_params);
-            let ru_2 = MontyForm::from_montgomery(prime_params.monty_root_unity_p2, *monty_params);
+            let ru = FixedMontyForm::from_montgomery(prime_params.monty_root_unity, monty_params);
+            let ru_2 =
+                FixedMontyForm::from_montgomery(prime_params.monty_root_unity_p2, monty_params);
             let ru_4 = ru_2.square();
             let ru_6 = ru_2.mul(&ru_4);
             let cb = value.mul(&b);
@@ -71,7 +73,7 @@ pub const fn sqrt_montgomery_form<const LIMBS: usize>(
 
             // m = B if -zeta in (B, C), else 1
             let mut m = monty_select(
-                &MontyForm::one(*ru.params()),
+                &FixedMontyForm::one(ru.params()),
                 &ru_2,
                 neg_zeta_b.or(monty_eq(&neg_zeta, &ru_4)),
             );
@@ -99,7 +101,8 @@ pub const fn sqrt_montgomery_form<const LIMBS: usize>(
             // Tonelli-Shanks
             let mut x = value.mul(&b);
             let mut d = x.mul(&b);
-            let mut z = MontyForm::from_montgomery(prime_params.monty_root_unity, *monty_params);
+            let mut z =
+                FixedMontyForm::from_montgomery(prime_params.monty_root_unity, monty_params);
             let mut v = prime_params.s.get();
             let mut max_v = v;
 
@@ -134,18 +137,21 @@ pub const fn sqrt_montgomery_form<const LIMBS: usize>(
     CtOption::new(x.to_montgomery(), monty_eq(&x.square(), &value))
 }
 
-const fn monty_eq<const LIMBS: usize>(a: &MontyForm<LIMBS>, b: &MontyForm<LIMBS>) -> Choice {
+const fn monty_eq<const LIMBS: usize>(
+    a: &FixedMontyForm<LIMBS>,
+    b: &FixedMontyForm<LIMBS>,
+) -> Choice {
     Uint::eq(a.as_montgomery(), b.as_montgomery())
 }
 
 const fn monty_select<const LIMBS: usize>(
-    a: &MontyForm<LIMBS>,
-    b: &MontyForm<LIMBS>,
+    a: &FixedMontyForm<LIMBS>,
+    b: &FixedMontyForm<LIMBS>,
     c: Choice,
-) -> MontyForm<LIMBS> {
-    MontyForm::from_montgomery(
+) -> FixedMontyForm<LIMBS> {
+    FixedMontyForm::from_montgomery(
         Uint::select(a.as_montgomery(), b.as_montgomery(), c),
-        *a.params(),
+        a.params(),
     )
 }
 
@@ -154,29 +160,29 @@ mod tests {
     use super::sqrt_montgomery_form;
     use crate::{
         Odd, U256, U576, Uint,
-        modular::{MontyForm, MontyParams, PrimeParams},
+        modular::{FixedMontyForm, FixedMontyParams, PrimeParams},
     };
 
     fn root_of_unity<const LIMBS: usize>(
-        monty_params: &MontyParams<LIMBS>,
+        monty_params: &FixedMontyParams<LIMBS>,
         prime_params: &PrimeParams<LIMBS>,
     ) -> Uint<LIMBS> {
-        MontyForm::from_montgomery(prime_params.monty_root_unity, *monty_params).retrieve()
+        FixedMontyForm::from_montgomery(prime_params.monty_root_unity, monty_params).retrieve()
     }
 
     fn test_monty_sqrt<const LIMBS: usize>(
-        monty_params: MontyParams<LIMBS>,
+        monty_params: FixedMontyParams<LIMBS>,
         prime_params: PrimeParams<LIMBS>,
     ) {
         let modulus = monty_params.modulus.get();
         let rounds = if cfg!(miri) { 1..=2 } else { 0..=256 };
         for i in rounds {
             let s = i * i;
-            let s_monty = MontyForm::new(&Uint::from_u32(s), &monty_params);
+            let s_monty = FixedMontyForm::new(&Uint::from_u32(s), &monty_params);
             let rt_monty =
                 sqrt_montgomery_form(s_monty.as_montgomery(), &monty_params, &prime_params)
                     .expect("no sqrt found");
-            let rt = MontyForm::from_montgomery(rt_monty, monty_params).retrieve();
+            let rt = FixedMontyForm::from_montgomery(rt_monty, &monty_params).retrieve();
             let i = Uint::from_u32(i);
             assert!(
                 Uint::eq(&rt, &i)
@@ -187,7 +193,7 @@ mod tests {
 
         // generator must be non-residue
         let generator = Uint::from_u32(prime_params.generator.get());
-        let gen_monty = MontyForm::new(&generator, &monty_params);
+        let gen_monty = FixedMontyForm::new(&generator, &monty_params);
         assert!(
             sqrt_montgomery_form(gen_monty.as_montgomery(), &monty_params, &prime_params)
                 .is_none()
@@ -199,7 +205,7 @@ mod tests {
     fn mod_sqrt_s_1() {
         // p = 3 mod 4, s = 1
         // P-256 field modulus
-        let monty_params = MontyParams::new_vartime(Odd::<U256>::from_be_hex(
+        let monty_params = FixedMontyParams::new_vartime(Odd::<U256>::from_be_hex(
             "ffffffff00000001000000000000000000000000ffffffffffffffffffffffff",
         ));
         let prime_params = PrimeParams::new_vartime(&monty_params).expect("failed creating params");
@@ -217,7 +223,7 @@ mod tests {
     fn mod_sqrt_s_2() {
         // p = 5 mod 8, s = 2
         // ed25519 base field
-        let monty_params = MontyParams::new_vartime(Odd::<U256>::from_be_hex(
+        let monty_params = FixedMontyParams::new_vartime(Odd::<U256>::from_be_hex(
             "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed",
         ));
         let prime_params = PrimeParams::new_vartime(&monty_params).expect("failed creating params");
@@ -235,7 +241,7 @@ mod tests {
     fn mod_sqrt_s_3() {
         // p = 9 mod 16, s = 3
         // brainpoolP384 scalar field
-        let monty_params = MontyParams::new_vartime(Odd::<U576>::from_be_hex(
+        let monty_params = FixedMontyParams::new_vartime(Odd::<U576>::from_be_hex(
             "00000000000001fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa51868783bf2f966b7fcc0148f709a5d03bb5c9b8899c47aebb6fb71e91386409",
         ));
         let prime_params = PrimeParams::new_vartime(&monty_params).expect("failed creating params");
@@ -255,7 +261,7 @@ mod tests {
     fn mod_sqrt_s_4() {
         // p = 17 mod 32, s = 4
         // P-256 scalar field
-        let monty_params = MontyParams::new_vartime(Odd::<U256>::from_be_hex(
+        let monty_params = FixedMontyParams::new_vartime(Odd::<U256>::from_be_hex(
             "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551",
         ));
         let prime_params = PrimeParams::new_vartime(&monty_params).expect("failed creating params");
@@ -273,7 +279,7 @@ mod tests {
     fn mod_sqrt_s_6() {
         // s = 6
         // K-256 scalar field
-        let monty_params = MontyParams::new_vartime(Odd::<U256>::from_be_hex(
+        let monty_params = FixedMontyParams::new_vartime(Odd::<U256>::from_be_hex(
             "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141",
         ));
         let prime_params = PrimeParams::new_vartime(&monty_params).expect("failed creating params");
