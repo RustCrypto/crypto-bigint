@@ -356,6 +356,14 @@ impl<const LIMBS: usize> Integer for Uint<LIMBS> {
 impl<const LIMBS: usize> Unsigned for Uint<LIMBS> {
     type Monty = MontyForm<LIMBS>;
 
+    fn as_uint_ref(&self) -> &UintRef {
+        self.as_uint_ref()
+    }
+
+    fn as_mut_uint_ref(&mut self) -> &mut UintRef {
+        self.as_mut_uint_ref()
+    }
+
     fn from_limb_like(limb: Limb, _other: &Self) -> Self {
         Self::from(limb)
     }
