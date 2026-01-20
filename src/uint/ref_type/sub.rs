@@ -6,7 +6,7 @@ impl UintRef {
     /// value.
     #[inline]
     pub const fn borrowing_sub_assign(&mut self, rhs: &Self, borrow: Limb) -> Limb {
-        self.borrowing_sub_assign_slice(&rhs.0, borrow)
+        self.borrowing_sub_assign_slice(&rhs.limbs, borrow)
     }
 
     /// Perform an in-place borrowing subtraction of another limb slice, returning the borrowed limb
@@ -16,10 +16,10 @@ impl UintRef {
     /// If `self` and `rhs` have different lengths.
     #[inline]
     pub const fn borrowing_sub_assign_slice(&mut self, rhs: &[Limb], mut borrow: Limb) -> Limb {
-        assert!(self.0.len() == rhs.len(), "length mismatch");
+        assert!(self.limbs.len() == rhs.len(), "length mismatch");
         let mut i = 0;
-        while i < self.0.len() {
-            (self.0[i], borrow) = self.0[i].borrowing_sub(rhs[i], borrow);
+        while i < self.limbs.len() {
+            (self.limbs[i], borrow) = self.limbs[i].borrowing_sub(rhs[i], borrow);
             i += 1;
         }
         borrow

@@ -845,7 +845,7 @@ impl RadixDivisionParams {
                 remain_mut
                     .leading_mut(RADIX_ENCODING_LIMBS_LARGE - 1)
                     .copy_from(limbs_rem);
-                remain_mut.0[RADIX_ENCODING_LIMBS_LARGE - 1] = rem_high;
+                remain_mut.limbs[RADIX_ENCODING_LIMBS_LARGE - 1] = rem_high;
                 remain_mut.shr_assign_limb_vartime(self.shift_large);
 
                 (remain_mut, out_idx.saturating_sub(self.digits_large))

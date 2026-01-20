@@ -261,14 +261,14 @@ pub(crate) const fn wrapping_mul_overflow(
     let mut j = lhs.nlimbs();
     let mut k = rhs.nlimbs().saturating_sub(1);
     while k > j {
-        rhs_tail = rhs_tail.bitor(rhs.0[k]);
+        rhs_tail = rhs_tail.bitor(rhs.limbs[k]);
         k -= 1;
     }
     while i < lhs.nlimbs() {
         j = lhs.nlimbs() - i;
         if j < rhs.nlimbs() {
-            rhs_tail = rhs_tail.bitor(rhs.0[j]);
-            overflow = overflow.or(lhs.0[i].is_nonzero().and(rhs_tail.is_nonzero()));
+            rhs_tail = rhs_tail.bitor(rhs.limbs[j]);
+            overflow = overflow.or(lhs.limbs[i].is_nonzero().and(rhs_tail.is_nonzero()));
         }
         i += 1;
     }

@@ -27,7 +27,11 @@ use {crate::BoxedUint, alloc::borrow::ToOwned};
 /// thus provides an abstraction for writing shared implementations.
 #[repr(transparent)]
 #[derive(PartialEq, Eq)]
-pub struct UintRef(pub(crate) [Limb]);
+pub struct UintRef {
+    /// Inner limb array. Stored from least significant to most significant.
+    // TODO(tarcieri): maintain an invariant of at least one limb?
+    pub(crate) limbs: [Limb],
+}
 
 impl UintRef {
     /// Create a [`UintRef`] reference type from a [`Limb`] slice.
@@ -70,47 +74,47 @@ impl UintRef {
     #[inline]
     #[must_use]
     pub const fn as_limbs(&self) -> &[Limb] {
-        &self.0
+        &self.limbs
     }
 
     /// Mutably borrow the inner `&mut [Limb]` slice.
     #[inline]
     pub const fn as_mut_limbs(&mut self) -> &mut [Limb] {
-        &mut self.0
+        &mut self.limbs
     }
 
     /// Borrow the inner limbs as a slice of [`Word`]s.
     #[inline]
     #[must_use]
     pub const fn as_words(&self) -> &[Word] {
-        Limb::slice_as_words(&self.0)
+        Limb::slice_as_words(&self.limbs)
     }
 
     /// Borrow the inner limbs as a mutable slice of [`Word`]s.
     #[inline]
     pub const fn as_mut_words(&mut self) -> &mut [Word] {
-        Limb::slice_as_mut_words(&mut self.0)
+        Limb::slice_as_mut_words(&mut self.limbs)
     }
 
     /// Get an iterator over the inner limbs.
     #[inline]
     #[must_use]
     pub fn iter(&self) -> impl DoubleEndedIterator<Item = &Limb> {
-        self.0.iter()
+        self.limbs.iter()
     }
 
     /// Get a mutable iterator over the inner limbs.
     #[inline]
     #[allow(dead_code)] // TODO(tarcieri): use this
     pub fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut Limb> {
-        self.0.iter_mut()
+        self.limbs.iter_mut()
     }
 
     /// Access the number of limbs.
     #[inline]
     #[must_use]
     pub const fn nlimbs(&self) -> usize {
-        self.0.len()
+        self.limbs.len()
     }
 
     /// Conditionally assign all of the limbs to zero.
@@ -118,7 +122,7 @@ impl UintRef {
     pub const fn conditional_set_zero(&mut self, choice: Choice) {
         let mut i = 0;
         while i < self.nlimbs() {
-            self.0[i] = Limb::select(self.0[i], Limb::ZERO, choice);
+            self.limbs[i] = Limb::select(self.limbs[i], Limb::ZERO, choice);
             i += 1;
         }
     }
@@ -128,7 +132,7 @@ impl UintRef {
     pub const fn conditional_set_max(&mut self, choice: Choice) {
         let mut i = 0;
         while i < self.nlimbs() {
-            self.0[i] = Limb::select(self.0[i], Limb::MAX, choice);
+            self.limbs[i] = Limb::select(self.limbs[i], Limb::MAX, choice);
             i += 1;
         }
     }
@@ -144,7 +148,7 @@ impl UintRef {
         };
         let mut i = 0;
         while i < len {
-            out.limbs[i] = self.0[i];
+            out.limbs[i] = self.limbs[i];
             i += 1;
         }
         out
@@ -164,11 +168,11 @@ impl UintRef {
     #[inline]
     #[must_use]
     pub const fn to_mut_nz_ref(&mut self) -> CtOption<&mut NonZero<Self>> {
-        assert!(!self.0.is_empty(), "cannot be used with empty slices");
+        assert!(!self.limbs.is_empty(), "cannot be used with empty slices");
         let is_nz = self.is_nonzero();
 
         // If `self` is zero, set the first limb to `1` to make it non-zero.
-        self.0[0] = Limb::select(Limb::ONE, self.0[0], is_nz);
+        self.limbs[0] = Limb::select(Limb::ONE, self.limbs[0], is_nz);
 
         CtOption::new(self.as_mut_nz_unchecked(), is_nz)
     }
@@ -234,11 +238,11 @@ impl UintRef {
     #[inline]
     #[must_use]
     pub const fn to_mut_odd_ref(&mut self) -> CtOption<&mut Odd<Self>> {
-        assert!(!self.0.is_empty(), "cannot be used with empty slices");
+        assert!(!self.limbs.is_empty(), "cannot be used with empty slices");
         let is_odd = self.is_odd();
 
         // If `self` is even, set the first limb to `1` to make it odd.
-        self.0[0] = Limb::select(Limb::ONE, self.0[0], is_odd);
+        self.limbs[0] = Limb::select(Limb::ONE, self.limbs[0], is_odd);
 
         CtOption::new(self.as_mut_odd_unchecked(), is_odd)
     }
@@ -296,10 +300,10 @@ impl UintRef {
         #[cfg(target_pointer_width = "32")]
         {
             debug_assert!(self.nlimbs() >= 1);
-            let mut ret = self.0[0].0 as u64;
+            let mut ret = self.limbs[0].0 as u64;
 
             if self.nlimbs() >= 2 {
-                ret |= (self.0[1].0 as u64) << 32;
+                ret |= (self.limbs[1].0 as u64) << 32;
             }
 
             ret
@@ -307,7 +311,7 @@ impl UintRef {
 
         #[cfg(target_pointer_width = "64")]
         {
-            self.0[0].0
+            self.limbs[0].0
         }
     }
 }
@@ -331,14 +335,14 @@ impl Index<usize> for UintRef {
 
     #[inline]
     fn index(&self, index: usize) -> &Limb {
-        self.0.index(index)
+        self.limbs.index(index)
     }
 }
 
 impl IndexMut<usize> for UintRef {
     #[inline]
     fn index_mut(&mut self, index: usize) -> &mut Limb {
-        self.0.index_mut(index)
+        self.limbs.index_mut(index)
     }
 }
 
