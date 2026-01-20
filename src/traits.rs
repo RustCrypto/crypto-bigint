@@ -10,7 +10,10 @@ pub use num_traits::{
     WrappingSub,
 };
 
-use crate::{Choice, CtOption, Limb, NonZero, Odd, Reciprocal, UintRef, modular::Retrieve};
+use crate::{
+    Choice, CtOption, Limb, NonZero, Odd, Reciprocal, UintRef,
+    modular::{GenericMontyParams, Retrieve},
+};
 use core::fmt::{self, Debug};
 
 #[cfg(feature = "rand_core")]
@@ -1137,7 +1140,14 @@ pub trait Monty:
     type Multiplier<'a>: Debug + Clone + MontyMultiplier<'a, Monty = Self>;
 
     /// The precomputed data needed for this representation.
-    type Params: 'static + Clone + Debug + Eq + Sized + Send + Sync;
+    type Params: 'static
+        + AsRef<GenericMontyParams<Self::Integer>>
+        + Clone
+        + Debug
+        + Eq
+        + Sized
+        + Send
+        + Sync;
 
     /// Create the precomputed data for Montgomery representation of integers modulo `modulus`,
     /// variable time in `modulus`.

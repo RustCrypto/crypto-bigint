@@ -17,10 +17,15 @@ impl BoxedMontyForm {
     /// NOTE: `exponent_bits` may be leaked in the time pattern.
     #[must_use]
     pub fn pow_bounded_exp(&self, exponent: &BoxedUint, exponent_bits: u32) -> Self {
-        let z =
-            pow_montgomery_form_amm(&self.montgomery_form, exponent, exponent_bits, &self.params);
-
-        Self::from_amm(z, self.params.clone())
+        Self {
+            montgomery_form: pow_montgomery_form_amm(
+                &self.montgomery_form,
+                exponent,
+                exponent_bits,
+                &self.params,
+            ),
+            params: self.params.clone(),
+        }
     }
 }
 
