@@ -6,6 +6,9 @@ use ctutils::{CtAssignSlice, CtEqSlice, CtSelectUsingCtAssign};
 use super::{FixedMontyForm, FixedMontyParams};
 use crate::{Choice, CtAssign, CtEq, Odd, Uint};
 
+#[cfg(feature = "subtle")]
+use crate::CtSelect;
+
 /// Parameters for supporting efficient computations on integers in Montgomery form
 /// with a prime modulus.
 #[derive(Debug, Copy, Clone)]
@@ -101,31 +104,20 @@ impl<const LIMBS: usize> CtEq for PrimeParams<LIMBS> {
 impl<const LIMBS: usize> CtEqSlice for PrimeParams<LIMBS> {}
 
 #[cfg(feature = "subtle")]
-impl<U: Unsigned> subtle::ConstantTimeEq for GenericMontyParams<U> {
+impl<const LIMBS: usize> subtle::ConstantTimeEq for PrimeParams<LIMBS> {
     fn ct_eq(&self, other: &Self) -> subtle::Choice {
         CtEq::ct_eq(self, other).into()
     }
 }
 
 #[cfg(feature = "subtle")]
-impl<U: Unsigned + Copy> subtle::ConditionallySelectable for GenericMontyParams<U> {
+impl<const LIMBS: usize> subtle::ConditionallySelectable for PrimeParams<LIMBS> {
     fn conditional_assign(&mut self, src: &Self, choice: subtle::Choice) {
         self.ct_assign(src, choice.into());
     }
 
     fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
         a.ct_select(b, choice.into())
-    }
-}
-
-#[cfg(feature = "zeroize")]
-impl<U: Unsigned + Zeroize> Zeroize for GenericMontyParams<U> {
-    fn zeroize(&mut self) {
-        self.modulus.zeroize();
-        self.one.zeroize();
-        self.r2.zeroize();
-        self.mod_inv.zeroize();
-        self.mod_leading_zeros.zeroize();
     }
 }
 
