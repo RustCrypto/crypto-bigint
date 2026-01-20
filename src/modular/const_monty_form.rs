@@ -11,7 +11,7 @@ mod reduce;
 mod sub;
 
 use super::{
-    FixedMontyParams, Retrieve, div_by_2::div_by_2, mul::mul_montgomery_form,
+    FixedMontyParams, PrimeParams, Retrieve, div_by_2::div_by_2, mul::mul_montgomery_form,
     reduction::montgomery_retrieve,
 };
 use crate::{ConstOne, ConstZero, CtEq, Odd, One, Uint, Zero};
@@ -45,6 +45,16 @@ pub trait ConstMontyParams<const LIMBS: usize>:
 
     /// Montgomery parameters constant.
     const PARAMS: FixedMontyParams<LIMBS>;
+}
+
+/// Trait representing a prime modulus and its associated constants for converting in
+/// and out of Montgomery form.
+///
+/// To define a type which impls this trait, use the
+/// [`const_prime_monty_params!`][`crate::const_prime_monty_params`] macro.
+pub trait ConstPrimeMontyParams<const LIMBS: usize>: ConstMontyParams<LIMBS> {
+    /// Prime parameters constant.
+    const PRIME_PARAMS: PrimeParams<LIMBS>;
 }
 
 /// An integer in Montgomery form modulo `MOD`, represented using `LIMBS` limbs.
