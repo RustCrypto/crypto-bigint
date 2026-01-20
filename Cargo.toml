@@ -18,7 +18,7 @@ rust-version = "1.85"
 exclude = [".codecov.yml", ".github", ".gitignore"]
 
 [dependencies]
-ctutils = "0.4.0-pre.5"
+ctutils = "0.4"
 num-traits = { version = "0.2.19", default-features = false }
 
 # optional dependencies
