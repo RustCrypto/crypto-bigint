@@ -167,6 +167,7 @@ pub trait Signed:
 /// Unsigned [`Integer`]s.
 pub trait Unsigned:
     AsRef<UintRef>
+    + AsMut<UintRef>
     + AddMod<Output = Self>
     + BitOps
     + Div<NonZero<Self>, Output = Self>
@@ -188,6 +189,13 @@ pub trait Unsigned:
     /// The corresponding Montgomery representation,
     /// optimized for the performance of modular operations at the price of a conversion overhead.
     type Monty: Monty<Integer = Self>;
+
+    /// Borrow the limbs of this unsigned integer as a [`UintRef`].
+    #[must_use]
+    fn as_uint_ref(&self) -> &UintRef;
+
+    /// Mutably borrow the limbs of this unsigned integer as a [`UintRef`].
+    fn as_mut_uint_ref(&mut self) -> &mut UintRef;
 
     /// Returns an integer with the first limb set to `limb`, and the same precision as `other`.
     #[must_use]

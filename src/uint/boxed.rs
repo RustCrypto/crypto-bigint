@@ -495,6 +495,14 @@ impl Integer for BoxedUint {
 impl Unsigned for BoxedUint {
     type Monty = BoxedMontyForm;
 
+    fn as_uint_ref(&self) -> &UintRef {
+        self.as_uint_ref()
+    }
+
+    fn as_mut_uint_ref(&mut self) -> &mut UintRef {
+        self.as_mut_uint_ref()
+    }
+
     fn from_limb_like(limb: Limb, other: &Self) -> Self {
         let mut ret = Self::zero_with_precision(other.bits_precision());
         ret.limbs[0] = limb;
