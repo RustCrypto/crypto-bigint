@@ -127,9 +127,21 @@ impl BoxedMontyParams {
     }
 }
 
+impl AsRef<GenericMontyParams<BoxedUint>> for BoxedMontyParams {
+    fn as_ref(&self) -> &GenericMontyParams<BoxedUint> {
+        &self.0
+    }
+}
+
 impl Debug for BoxedMontyParams {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.debug_struct(f.debug_struct("BoxedMontyParams"))
+    }
+}
+
+impl From<GenericMontyParams<BoxedUint>> for BoxedMontyParams {
+    fn from(params: GenericMontyParams<BoxedUint>) -> Self {
+        Self(params.into())
     }
 }
 
@@ -294,8 +306,8 @@ impl Monty for BoxedMontyForm {
         BoxedMontyForm::one(params)
     }
 
-    fn params(&self) -> &Self::Params {
-        &self.params
+    fn params(&self) -> &GenericMontyParams<BoxedUint> {
+        self.params.as_ref()
     }
 
     fn as_montgomery(&self) -> &Self::Integer {
