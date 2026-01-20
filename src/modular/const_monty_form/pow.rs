@@ -31,13 +31,31 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
         exponent_bits: u32,
     ) -> ConstMontyForm<MOD, LIMBS> {
         Self {
-            montgomery_form: pow_montgomery_form(
+            montgomery_form: pow_montgomery_form::<LIMBS, RHS_LIMBS, false>(
                 &self.montgomery_form,
                 exponent,
                 exponent_bits,
-                &MOD::PARAMS.modulus,
-                &MOD::PARAMS.one,
-                MOD::PARAMS.mod_neg_inv(),
+                &MOD::PARAMS,
+            ),
+            phantom: core::marker::PhantomData,
+        }
+    }
+
+    /// Raises to the `exponent` power.
+    ///
+    /// This method is variable time in `exponent`.
+    #[must_use]
+    pub const fn pow_vartime<const RHS_LIMBS: usize>(
+        &self,
+        exponent: &Uint<RHS_LIMBS>,
+    ) -> ConstMontyForm<MOD, LIMBS> {
+        let exponent_bits = exponent.bits_vartime();
+        Self {
+            montgomery_form: pow_montgomery_form::<LIMBS, RHS_LIMBS, true>(
+                &self.montgomery_form,
+                exponent,
+                exponent_bits,
+                &MOD::PARAMS,
             ),
             phantom: core::marker::PhantomData,
         }
@@ -71,12 +89,10 @@ impl<const N: usize, MOD: ConstMontyParams<LIMBS>, const LIMBS: usize, const RHS
         }
 
         Self {
-            montgomery_form: multi_exponentiate_montgomery_form_array(
+            montgomery_form: multi_exponentiate_montgomery_form_array::<LIMBS, RHS_LIMBS, N, false>(
                 &bases_and_exponents_montgomery_form,
                 exponent_bits,
-                &MOD::PARAMS.modulus,
-                &MOD::PARAMS.one,
-                MOD::PARAMS.mod_neg_inv(),
+                &MOD::PARAMS,
             ),
             phantom: core::marker::PhantomData,
         }
@@ -97,12 +113,10 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize, const RHS_LIMBS: usize>
             .map(|(base, exp)| (base.montgomery_form, *exp))
             .collect();
         Self {
-            montgomery_form: multi_exponentiate_montgomery_form_slice(
+            montgomery_form: multi_exponentiate_montgomery_form_slice::<LIMBS, RHS_LIMBS, false>(
                 &bases_and_exponents,
                 exponent_bits,
-                &MOD::PARAMS.modulus,
-                &MOD::PARAMS.one,
-                MOD::PARAMS.mod_neg_inv(),
+                &MOD::PARAMS,
             ),
             phantom: core::marker::PhantomData,
         }
@@ -125,6 +139,18 @@ mod tests {
     const_monty_form!(Fe, Modulus);
 
     #[test]
+    fn test_powmod_zero() {
+        let base = U256::from(105u64);
+        let base_mod = Fe::new(&base);
+
+        let res = base_mod.pow(&U256::ZERO);
+        let res_vartime = base_mod.pow_vartime(&U256::ZERO);
+
+        assert_eq!(res.retrieve(), U256::ONE);
+        assert_eq!(res_vartime.retrieve(), U256::ONE);
+    }
+
+    #[test]
     fn test_powmod_small_base() {
         let base = U256::from(105u64);
         let base_mod = Fe::new(&base);
@@ -133,10 +159,12 @@ mod tests {
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
 
         let res = base_mod.pow(&exponent);
+        let res_vartime = base_mod.pow_vartime(&exponent);
 
         let expected =
             U256::from_be_hex("7B2CD7BDDD96C271E6F232F2F415BB03FE2A90BD6CCCEA5E94F1BFD064993766");
         assert_eq!(res.retrieve(), expected);
+        assert_eq!(res_vartime.retrieve(), expected);
     }
 
     #[test]
@@ -148,10 +176,12 @@ mod tests {
         let exponent = U256::from(105u64);
 
         let res = base_mod.pow(&exponent);
+        let res_vartime = base_mod.pow_vartime(&exponent);
 
         let expected =
             U256::from_be_hex("89E2A4E99F649A5AE2C18068148C355CA927B34A3245C938178ED00D6EF218AA");
         assert_eq!(res.retrieve(), expected);
+        assert_eq!(res_vartime.retrieve(), expected);
     }
 
     #[test]
@@ -164,10 +194,12 @@ mod tests {
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
 
         let res = base_mod.pow(&exponent);
+        let res_vartime = base_mod.pow(&exponent);
 
         let expected =
             U256::from_be_hex("3681BC0FEA2E5D394EB178155A127B0FD2EF405486D354251C385BDD51B9D421");
         assert_eq!(res.retrieve(), expected);
+        assert_eq!(res_vartime.retrieve(), expected);
     }
 
     #[test]

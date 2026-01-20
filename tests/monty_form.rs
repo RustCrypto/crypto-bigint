@@ -390,13 +390,15 @@ proptest! {
     fn pow(x in uint(), y in uint(), n in modulus()) {
         let x = reduce(&x, n);
         let actual = x.pow(&y);
+        let actual_vartime = x.pow(&y);
 
         let x_bi = retrieve_biguint(&x);
         let y_bi = to_biguint(&y);
         let n_bi = to_biguint(n.modulus());
         let expected = x_bi.modpow(&y_bi, &n_bi);
 
-        prop_assert_eq!(retrieve_biguint(&actual), expected);
+        prop_assert_eq!(&retrieve_biguint(&actual), &expected);
+        prop_assert_eq!(retrieve_biguint(&actual_vartime), expected);
     }
 
     #[test]
