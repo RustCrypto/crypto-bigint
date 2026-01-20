@@ -88,7 +88,7 @@ checksum = "26f659b53b7f4e776e0cb370508f21d62a22349009195b1089de5f9b24afba2f"
 dependencies = [
  "cfg-if",
  "cpufeatures",
- "rand_core 0.10.0-rc-4",
+ "rand_core 0.10.0-rc-5",
 ]
 
 [[package]]
@@ -238,7 +238,7 @@ dependencies = [
  "num-modular",
  "num-traits",
  "proptest",
- "rand_core 0.10.0-rc-4",
+ "rand_core 0.10.0-rc-5",
  "rlp",
  "serdect",
  "subtle",
@@ -310,7 +310,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "r-efi",
- "rand_core 0.10.0-rc-4",
+ "rand_core 0.10.0-rc-5",
  "wasip2",
 ]
 
@@ -552,9 +552,9 @@ dependencies = [
 
 [[package]]
 name = "rand_core"
-version = "0.10.0-rc-4"
+version = "0.10.0-rc-5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43bb1e3655c24705492d72208c9bacdefe07c30c14b8f7664c556a3e1953b72c"
+checksum = "05a06e03bd1f2ae861ab9e7498b6c64ed3dadb9ce175c0464a2522a5f23c0045"
 
 [[package]]
 name = "rand_xorshift"
