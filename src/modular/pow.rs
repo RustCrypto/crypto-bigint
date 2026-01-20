@@ -1,5 +1,5 @@
 use super::MontyParams;
-use super::mul::{almost_montgomery_reduce, mul_montgomery_form, square_montgomery_form};
+use super::mul::{almost_montgomery_reduce, mul_montgomery_form, square_repeat_montgomery_form};
 use crate::{AmmMultiplier, CtEq, Limb, Monty, Uint, Unsigned, Word, word};
 use core::{array, mem};
 
@@ -229,11 +229,12 @@ const fn multi_exponentiate_montgomery_form_internal<
             window_num -= 1;
 
             if limb_num != starting_limb || window_num != starting_window {
-                let mut i = 0;
-                while i < WINDOW {
-                    i += 1;
-                    z = square_montgomery_form(&z, params.modulus(), params.mod_neg_inv());
-                }
+                z = square_repeat_montgomery_form(
+                    &z,
+                    WINDOW,
+                    params.modulus(),
+                    params.mod_neg_inv(),
+                );
             }
 
             let mut i = 0;
