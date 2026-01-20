@@ -1,8 +1,9 @@
 //! Multiplications between integers in Montgomery form with a modulus set at runtime.
 
 use super::MontyForm;
+use crate::prelude::AmmMultiplier;
 use crate::{
-    MontyMultiplier, Square, SquareAssign,
+    MontyMultiplier, Square, SquareAssign, Uint,
     modular::{
         MontyParams,
         mul::{mul_montgomery_form, square_montgomery_form, square_repeat_montgomery_form},
@@ -138,6 +139,18 @@ impl<'a, const LIMBS: usize> MontyMultiplier<'a> for DynMontyMultiplier<'a, LIMB
         let product =
             square_montgomery_form(&lhs.montgomery_form, &self.0.modulus, self.0.mod_neg_inv());
         lhs.montgomery_form = product;
+    }
+}
+
+impl<'a, const LIMBS: usize> AmmMultiplier<'a> for DynMontyMultiplier<'a, LIMBS> {
+    #[inline]
+    fn mul_amm_assign(&mut self, a: &mut Uint<LIMBS>, b: &Uint<LIMBS>) {
+        todo!()
+    }
+
+    #[inline]
+    fn square_amm_assign(&mut self, a: &mut Uint<LIMBS>) {
+        todo!()
     }
 }
 

@@ -3,7 +3,9 @@
 use super::{ConstMontyForm, ConstMontyParams};
 use crate::{
     MultiExponentiateBoundedExp, PowBoundedExp, Uint,
-    modular::pow::{multi_exponentiate_montgomery_form_array, pow_montgomery_form},
+    modular::pow::{
+        multi_exponentiate_montgomery_form_array, pow_montgomery_form, pow_montgomery_form_amm,
+    },
 };
 
 #[cfg(feature = "alloc")]
@@ -41,6 +43,20 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
             ),
             phantom: core::marker::PhantomData,
         }
+    }
+
+    /// Raises to the `exponent` power using the Almost Montgomery Multiplication (AMM) algorithm
+    /// with `exponent_bits` representing the number of (least significant) bits
+    /// to take into account for the exponent.
+    ///
+    /// NOTE: `exponent_bits` may be leaked in the time pattern.
+    #[must_use]
+    pub fn pow_amm_bounded_exp(&self, exponent: &Uint<LIMBS>, exponent_bits: u32) -> Self {
+        let z =
+            pow_montgomery_form_amm(&self.montgomery_form, exponent, exponent_bits, &MOD::PARAMS);
+
+        todo!("z: {:?}", z);
+        //Self::from_amm(z, self.params.clone())
     }
 }
 
