@@ -1,8 +1,10 @@
 //! Multiplications between integers in Montgomery form with a modulus set at runtime.
 
 use super::MontyForm;
+use crate::modular::mul::almost_montgomery_mul;
+use crate::prelude::AmmMultiplier;
 use crate::{
-    MontyMultiplier, Square, SquareAssign,
+    MontyMultiplier, Square, SquareAssign, Uint,
     modular::{
         MontyParams,
         mul::{mul_montgomery_form, square_montgomery_form, square_repeat_montgomery_form},
@@ -138,6 +140,42 @@ impl<'a, const LIMBS: usize> MontyMultiplier<'a> for DynMontyMultiplier<'a, LIMB
         let product =
             square_montgomery_form(&lhs.montgomery_form, &self.0.modulus, self.0.mod_neg_inv());
         lhs.montgomery_form = product;
+    }
+}
+
+impl<'a, const LIMBS: usize> AmmMultiplier<'a> for DynMontyMultiplier<'a, LIMBS> {
+    /// Perform an "Almost Montgomery Multiplication", assigning the product to `a`.
+    ///
+    /// NOTE: the resulting output will be reduced to the *bit length* of the modulus, but not fully reduced and may
+    /// exceed the modulus. A final reduction is required to ensure AMM results are fully reduced, and should not be
+    /// exposed outside the internals of this crate.
+    fn mul_amm_assign(&mut self, a: &mut Uint<LIMBS>, b: &Uint<LIMBS>) {
+        let mut product = Uint::<LIMBS>::ZERO;
+        almost_montgomery_mul(
+            a.as_uint_ref(),
+            b.as_uint_ref(),
+            product.as_mut_uint_ref(),
+            self.0.modulus().as_uint_ref(),
+            self.0.mod_neg_inv(),
+        );
+        a.limbs.copy_from_slice(&product.limbs);
+    }
+
+    /// Perform a squaring using "Almost Montgomery Multiplication", assigning the result to `a`.
+    ///
+    /// NOTE: the resulting output will be reduced to the *bit length* of the modulus, but not fully reduced and may
+    /// exceed the modulus. A final reduction is required to ensure AMM results are fully reduced, and should not be
+    /// exposed outside the internals of this crate.
+    fn square_amm_assign(&mut self, a: &mut Uint<LIMBS>) {
+        let mut product = Uint::<LIMBS>::ZERO;
+        almost_montgomery_mul(
+            a.as_uint_ref(),
+            a.as_uint_ref(),
+            product.as_mut_uint_ref(),
+            self.0.modulus().as_uint_ref(),
+            self.0.mod_neg_inv(),
+        );
+        a.limbs.copy_from_slice(&product.limbs);
     }
 }
 

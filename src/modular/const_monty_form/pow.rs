@@ -3,7 +3,9 @@
 use super::{ConstMontyForm, ConstMontyParams};
 use crate::{
     MultiExponentiateBoundedExp, PowBoundedExp, Uint,
-    modular::pow::{multi_exponentiate_montgomery_form_array, pow_montgomery_form},
+    modular::pow::{
+        multi_exponentiate_montgomery_form_array, pow_montgomery_form, pow_montgomery_form_amm,
+    },
 };
 
 #[cfg(feature = "alloc")]
@@ -12,10 +14,7 @@ use {crate::modular::pow::multi_exponentiate_montgomery_form_slice, alloc::vec::
 impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS> {
     /// Raises to the `exponent` power.
     #[must_use]
-    pub const fn pow<const RHS_LIMBS: usize>(
-        &self,
-        exponent: &Uint<RHS_LIMBS>,
-    ) -> ConstMontyForm<MOD, LIMBS> {
+    pub const fn pow<const RHS_LIMBS: usize>(&self, exponent: &Uint<RHS_LIMBS>) -> Self {
         self.pow_bounded_exp(exponent, Uint::<RHS_LIMBS>::BITS)
     }
 
@@ -29,7 +28,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
         &self,
         exponent: &Uint<RHS_LIMBS>,
         exponent_bits: u32,
-    ) -> ConstMontyForm<MOD, LIMBS> {
+    ) -> Self {
         Self {
             montgomery_form: pow_montgomery_form::<LIMBS, RHS_LIMBS, false>(
                 &self.montgomery_form,
@@ -45,13 +44,34 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     ///
     /// This method is variable time in `exponent`.
     #[must_use]
-    pub const fn pow_vartime<const RHS_LIMBS: usize>(
-        &self,
-        exponent: &Uint<RHS_LIMBS>,
-    ) -> ConstMontyForm<MOD, LIMBS> {
+    pub const fn pow_vartime<const RHS_LIMBS: usize>(&self, exponent: &Uint<RHS_LIMBS>) -> Self {
         let exponent_bits = exponent.bits_vartime();
         Self {
             montgomery_form: pow_montgomery_form::<LIMBS, RHS_LIMBS, true>(
+                &self.montgomery_form,
+                exponent,
+                exponent_bits,
+                &MOD::PARAMS,
+            ),
+            phantom: core::marker::PhantomData,
+        }
+    }
+
+    /// Raises to the `exponent` power using Almost Montgomery Multiplication (AMM).
+    #[must_use]
+    pub fn pow_amm(&self, exponent: &Uint<LIMBS>) -> Self {
+        self.pow_amm_bounded_exp(exponent, Uint::<LIMBS>::BITS)
+    }
+
+    /// Raises to the `exponent` power using Almost Montgomery Multiplication (AMM)
+    /// with `exponent_bits` representing the number of (least significant) bits
+    /// to take into account for the exponent.
+    ///
+    /// NOTE: `exponent_bits` may be leaked in the time pattern.
+    #[must_use]
+    pub fn pow_amm_bounded_exp(&self, exponent: &Uint<LIMBS>, exponent_bits: u32) -> Self {
+        Self {
+            montgomery_form: pow_montgomery_form_amm(
                 &self.montgomery_form,
                 exponent,
                 exponent_bits,

@@ -1,5 +1,50 @@
 use super::reduction::montgomery_reduction;
-use crate::{CtLt, Limb, Odd, Uint, UintRef, WideWord, Word};
+use crate::{CtLt, Limb, Odd, Uint, UintRef, WideWord, Word, word};
+
+/// Computes an "almost" Montgomery multiplication of `x` and `y` into `out`, that is
+/// `out = x * y * 2^(-n*W) mod m + am` assuming `k = -1/m mod 2^W`,
+/// where `W` is the bit size of the limb, and `n * W` is the full bit size of the integer.
+///
+/// NOTE: `out` is assumed to be pre-zeroized.
+///
+/// Unlike the standard Montgomery multiplication, we are reducing the final result only if
+/// it overflows `2^(n*W)`, not when it overflows `m`.
+///
+/// This means that this function does not assume `x` and `y` are reduced `mod m`,
+/// and the result will be correct `mod m`, but potentially greater than `m`,
+/// and smaller than `2^(n * W) + m`.
+/// See "Efficient Software Implementations of Modular Exponentiation" by S. Gueron for details
+/// (<https://eprint.iacr.org/2011/239.pdf>).
+///
+/// This function exhibits certain properties which were discovered via randomized tests,
+/// but (to my knowledge at this moment) have not been proven formally.
+/// Hereinafter we denote `f(x) = floor(x / m)`, that is `f` is the number of subtractions
+/// of the modulus required to fully reduce `x`.
+///
+/// 1. In general, if `f(x) = k` and `f(y) = n`, then `f(AMM(x, y)) <= min(k, n) + 1`.
+///    That is the "reduction error" grows with every operation,
+///    but is determined by the argument with the lower error.
+/// 2. To retrieve the number from Montgomery form we MM it by 1. In this case `f(AMM(x, 1)) = 0`,
+///    that is the result is always fully reduced regardless of `f(x)`.
+/// 3. `f(AMM(x, x)) <= 1` regardless of `f(x)`. That is, squaring resets the error to at most 1.
+#[inline]
+pub(crate) fn almost_montgomery_mul(
+    x: &UintRef,
+    y: &UintRef,
+    out: &mut UintRef,
+    modulus: &UintRef,
+    mod_neg_inv: Limb,
+) {
+    let overflow = montgomery_multiply_inner(
+        x.as_limbs(),
+        y.as_limbs(),
+        out.as_mut_limbs(),
+        modulus.as_limbs(),
+        mod_neg_inv,
+    );
+    let overflow = word::choice_from_lsb(overflow.0);
+    out.conditional_borrowing_sub_assign(modulus, overflow);
+}
 
 /// Ensure the output of an "almost" Montgomery multiplication is properly reduced.
 ///
@@ -31,8 +76,7 @@ pub(crate) fn almost_montgomery_reduce(z: &mut UintRef, modulus: &UintRef) {
 ///
 /// The final conditional subtraction of the modulus to produce a result in the range
 /// `[0, modulus)` is not performed here, and must be performed by the caller. In some
-/// cases this may be deferred, as demonstrated by the `almost_montgomery_mul` method used
-/// in `BoxedMontyMultiplier`.
+/// cases this may be deferred, as demonstrated by the `almost_montgomery_mul` method.
 #[inline(always)]
 #[allow(clippy::cast_possible_truncation)]
 pub const fn montgomery_multiply_inner(

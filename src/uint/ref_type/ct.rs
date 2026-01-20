@@ -1,7 +1,8 @@
 //! Constant-time support: impls of `Ct*` traits and constant-time `const fn` operations.
 
 use super::UintRef;
-use crate::{Choice, CtAssign, CtEq, CtLt};
+use crate::{Choice, CtAssign, CtEq};
+use ctutils::CtLt;
 
 impl CtAssign for UintRef {
     #[inline]

@@ -1,5 +1,6 @@
 use super::UintRef;
-use crate::{Choice, Limb};
+use crate::Limb;
+use ctutils::Choice;
 
 impl UintRef {
     /// Perform an in-place borrowing subtraction of another [`UintRef`], returning the carried limb

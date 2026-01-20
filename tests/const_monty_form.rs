@@ -52,4 +52,30 @@ proptest! {
             (_, _) => panic!("disagreement on if modular inverse exists")
         }
     }
+
+    #[test]
+    fn pow(a in uint(), b in uint()) {
+        let a = reduce(&a);
+        let actual = a.pow(&b);
+
+        let a_bi = retrieve_biguint(&a);
+        let b_bi = to_biguint(&b);
+        let n_bi = to_biguint(Modulus::PARAMS.modulus());
+        let expected = a_bi.modpow(&b_bi, &n_bi);
+
+        prop_assert_eq!(retrieve_biguint(&actual), expected);
+    }
+
+    #[test]
+    fn pow_amm(a in uint(), b in uint()) {
+        let a = reduce(&a);
+        let actual = a.pow_amm(&b);
+
+        let a_bi = retrieve_biguint(&a);
+        let b_bi = to_biguint(&b);
+        let n_bi = to_biguint(Modulus::PARAMS.modulus());
+        let expected = a_bi.modpow(&b_bi, &n_bi);
+
+        prop_assert_eq!(retrieve_biguint(&actual), expected);
+    }
 }

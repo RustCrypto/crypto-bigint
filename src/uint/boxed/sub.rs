@@ -1,8 +1,7 @@
 //! [`BoxedUint`] subtraction operations.
 
 use crate::{
-    BoxedUint, CheckedSub, Choice, CtOption, Limb, Sub, SubAssign, U64, U128, Uint, Wrapping,
-    WrappingSub,
+    BoxedUint, CheckedSub, CtOption, Limb, Sub, SubAssign, U64, U128, Uint, Wrapping, WrappingSub,
 };
 
 impl BoxedUint {
@@ -52,17 +51,6 @@ impl BoxedUint {
     #[must_use]
     pub fn wrapping_sub(&self, rhs: &Self) -> Self {
         self.borrowing_sub(rhs, Limb::ZERO).0
-    }
-
-    /// Perform in-place wrapping subtraction, returning the truthy value as the second element of
-    /// the tuple if an underflow has occurred.
-    pub(crate) fn conditional_borrowing_sub_assign(
-        &mut self,
-        rhs: &Self,
-        choice: Choice,
-    ) -> Choice {
-        self.as_mut_uint_ref()
-            .conditional_borrowing_sub_assign(rhs.as_uint_ref(), choice)
     }
 }
 
