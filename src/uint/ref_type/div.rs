@@ -23,7 +23,7 @@ impl UintRef {
 
         // Short circuit for single-word divisor
         if y.nlimbs() == 1 {
-            y.0[0] = x.div_rem_limb(y.0[0].to_nz().expect_copied("zero divisor"));
+            y.limbs[0] = x.div_rem_limb(y.limbs[0].to_nz().expect_copied("zero divisor"));
             return;
         }
 
@@ -68,9 +68,9 @@ impl UintRef {
             }
             (_, 1) => {
                 // Perform limb division
-                let rem_limb = x.div_rem_limb(y.0[0].to_nz().expect_copied("zero divisor"));
+                let rem_limb = x.div_rem_limb(y.limbs[0].to_nz().expect_copied("zero divisor"));
                 y.fill(Limb::ZERO);
-                y.0[0] = rem_limb;
+                y.limbs[0] = rem_limb;
                 return;
             }
             _ if ywords > xsize => {
@@ -104,9 +104,9 @@ impl UintRef {
 
         // Short circuit for single-word divisor
         if y.nlimbs() == 1 {
-            let reciprocal = Reciprocal::new(y.0[0].to_nz().expect_copied("zero divisor"));
+            let reciprocal = Reciprocal::new(y.limbs[0].to_nz().expect_copied("zero divisor"));
             let carry = x.rem_limb_with_reciprocal(&reciprocal, Limb::ZERO);
-            y.0[0] = x_lo.rem_limb_with_reciprocal(&reciprocal, carry);
+            y.limbs[0] = x_lo.rem_limb_with_reciprocal(&reciprocal, carry);
             return;
         }
 
@@ -123,7 +123,7 @@ impl UintRef {
         let lshift = yz % Limb::BITS;
         let x_lo_carry = x_lo.shl_assign_limb(lshift);
         let x_hi = x.shl_assign_limb(lshift);
-        x.0[0] = x.0[0].bitor(x_lo_carry);
+        x.limbs[0] = x.limbs[0].bitor(x_lo_carry);
 
         // Perform the core division algorithm
         Self::rem_wide_shifted((x_lo, x), x_hi, y, ywords);
@@ -159,10 +159,10 @@ impl UintRef {
             }
             (_, 1) => {
                 // Short circuit for single-word divisor
-                let reciprocal = Reciprocal::new(y.0[0].to_nz().expect_copied("zero divisor"));
+                let reciprocal = Reciprocal::new(y.limbs[0].to_nz().expect_copied("zero divisor"));
                 y.fill(Limb::ZERO);
                 let carry = x.rem_limb_with_reciprocal(&reciprocal, Limb::ZERO);
-                y.0[0] = x_lo.rem_limb_with_reciprocal(&reciprocal, carry);
+                y.limbs[0] = x_lo.rem_limb_with_reciprocal(&reciprocal, carry);
                 return;
             }
             _ if ysize > xsize => {
@@ -171,7 +171,7 @@ impl UintRef {
             _ => (),
         }
 
-        let lshift = y.0[ysize - 1].leading_zeros();
+        let lshift = y.limbs[ysize - 1].leading_zeros();
 
         // Shift divisor such that it has no leading zeros
         // This means that div2by1 requires no extra shifts, and ensures that the high word >= b/2
@@ -180,10 +180,10 @@ impl UintRef {
         // Shift the dividend to align the words
         let x_lo_carry = x_lo.shl_assign_limb_vartime(lshift);
         let mut x_hi = x.shl_assign_limb_vartime(lshift);
-        x.0[0] = x.0[0].bitor(x_lo_carry);
+        x.limbs[0] = x.limbs[0].bitor(x_lo_carry);
 
         // Calculate a reciprocal from the highest word of the divisor
-        let reciprocal = Reciprocal::new(y.0[ysize - 1].to_nz().expect_copied("zero divisor"));
+        let reciprocal = Reciprocal::new(y.limbs[ysize - 1].to_nz().expect_copied("zero divisor"));
 
         // Perform the core division algorithm
         x_hi = Self::rem_wide_large_shifted(
@@ -197,7 +197,7 @@ impl UintRef {
 
         // Copy the remainder to the divisor
         y.leading_mut(ysize - 1).copy_from(x.leading(ysize - 1));
-        y.0[ysize - 1] = x_hi;
+        y.limbs[ysize - 1] = x_hi;
 
         // Unshift the remainder from the earlier adjustment
         y.shr_assign_limb_vartime(lshift);
@@ -216,7 +216,11 @@ impl UintRef {
         let x = self;
 
         // Calculate a reciprocal from the highest word of the divisor
-        let reciprocal = Reciprocal::new(y.0[y.nlimbs() - 1].to_nz().expect_copied("zero divisor"));
+        let reciprocal = Reciprocal::new(
+            y.limbs[y.nlimbs() - 1]
+                .to_nz()
+                .expect_copied("zero divisor"),
+        );
         debug_assert!(reciprocal.shift() == 0);
 
         // Perform the core division algorithm
@@ -228,12 +232,12 @@ impl UintRef {
         // but this can only be the case if `limb_div` is falsy, in which case we discard
         // the result anyway, so we conditionally set `x_hi` to zero for this branch.
         let x_hi_adjusted = Limb::select(Limb::ZERO, x_hi, limb_div);
-        let (quo2, rem2) = div2by1(x_hi_adjusted.0, x.0[0].0, &reciprocal);
+        let (quo2, rem2) = div2by1(x_hi_adjusted.0, x.limbs[0].0, &reciprocal);
 
         // Adjust the quotient for single limb division
-        x.0[0] = Limb::select(x.0[0], Limb(quo2), limb_div);
+        x.limbs[0] = Limb::select(x.limbs[0], Limb(quo2), limb_div);
         // Copy out the low limb of the remainder
-        y.0[0] = Limb::select(x.0[0], Limb(rem2), limb_div);
+        y.limbs[0] = Limb::select(x.limbs[0], Limb(rem2), limb_div);
 
         // Adjust the remainder, copying `x_hi` to the appropriate position and clearing
         // any extra limbs.
@@ -246,12 +250,16 @@ impl UintRef {
         let hi_pos = u32_min(x.nlimbs() as u32, ywords - 1);
         let mut i = 1;
         while i < min {
-            y.0[i] = Limb::select(Limb::ZERO, x.0[i], Choice::from_u32_lt(i as u32, ywords));
-            y.0[i] = Limb::select(y.0[i], x_hi, Choice::from_u32_eq(i as u32, hi_pos));
+            y.limbs[i] = Limb::select(
+                Limb::ZERO,
+                x.limbs[i],
+                Choice::from_u32_lt(i as u32, ywords),
+            );
+            y.limbs[i] = Limb::select(y.limbs[i], x_hi, Choice::from_u32_eq(i as u32, hi_pos));
             i += 1;
         }
         while i < y.nlimbs() {
-            y.0[i] = Limb::select(Limb::ZERO, x_hi, Choice::from_u32_eq(i as u32, hi_pos));
+            y.limbs[i] = Limb::select(Limb::ZERO, x_hi, Choice::from_u32_eq(i as u32, hi_pos));
             i += 1;
         }
     }
@@ -279,13 +287,19 @@ impl UintRef {
         let ysize = y.nlimbs();
 
         let mut xi = xsize - 1;
-        let mut x_xi = x.0[xi];
+        let mut x_xi = x.limbs[xi];
         let mut i;
         let mut carry;
 
         while xi > 0 {
             // Divide high dividend words by the high divisor word to estimate the quotient word
-            let mut quo = div3by2(x_hi.0, x_xi.0, x.0[xi - 1].0, &reciprocal, y.0[ysize - 2].0);
+            let mut quo = div3by2(
+                x_hi.0,
+                x_xi.0,
+                x.limbs[xi - 1].0,
+                &reciprocal,
+                y.limbs[ysize - 2].0,
+            );
 
             // This loop is a no-op once xi is smaller than the number of words in the divisor
             let done = Choice::from_u32_lt(xi as u32, ywords - 1);
@@ -302,8 +316,8 @@ impl UintRef {
                 i = (xi + 1).saturating_sub(ysize);
                 while i <= xi {
                     (tmp, carry) =
-                        y.0[ysize + i - xi - 1].carrying_mul_add(Limb(quo), carry, Limb::ZERO);
-                    (x.0[i], borrow) = x.0[i].borrowing_sub(tmp, borrow);
+                        y.limbs[ysize + i - xi - 1].carrying_mul_add(Limb(quo), carry, Limb::ZERO);
+                    (x.limbs[i], borrow) = x.limbs[i].borrowing_sub(tmp, borrow);
                     i += 1;
                 }
                 (_, borrow) = x_hi.borrowing_sub(carry, borrow);
@@ -317,8 +331,8 @@ impl UintRef {
                 carry = Limb::ZERO;
                 i = (xi + 1).saturating_sub(ysize);
                 while i <= xi {
-                    (x.0[i], carry) = x.0[i].carrying_add(
-                        Limb::select(Limb::ZERO, y.0[ysize + i - xi - 1], ct_borrow),
+                    (x.limbs[i], carry) = x.limbs[i].carrying_add(
+                        Limb::select(Limb::ZERO, y.limbs[ysize + i - xi - 1], ct_borrow),
                         carry,
                     );
                     i += 1;
@@ -327,9 +341,9 @@ impl UintRef {
             };
 
             // Store the quotient within dividend and set x_hi to the current highest word
-            x_hi = Limb::select(x.0[xi], x_hi, done);
-            x.0[xi] = Limb::select(Limb(quo), x.0[xi], done);
-            x_xi = Limb::select(x.0[xi - 1], x_xi, done);
+            x_hi = Limb::select(x.limbs[xi], x_hi, done);
+            x.limbs[xi] = Limb::select(Limb(quo), x.limbs[xi], done);
+            x_xi = Limb::select(x.limbs[xi - 1], x_xi, done);
             xi -= 1;
         }
 
@@ -344,7 +358,7 @@ impl UintRef {
         let (x, y) = (self, rhs);
         let ysize = y.nlimbs();
         debug_assert!(ysize > 1);
-        let lshift = y.0[ysize - 1].leading_zeros();
+        let lshift = y.limbs[ysize - 1].leading_zeros();
 
         // Shift divisor such that it has no leading zeros
         // This means that div2by1 requires no extra shifts, and ensures that the high word >= b/2
@@ -354,14 +368,14 @@ impl UintRef {
         let mut x_hi = x.shl_assign_limb_vartime(lshift);
 
         // Calculate a reciprocal from the highest word of the divisor
-        let reciprocal = Reciprocal::new(y.0[ysize - 1].to_nz().expect_copied("zero divisor"));
+        let reciprocal = Reciprocal::new(y.limbs[ysize - 1].to_nz().expect_copied("zero divisor"));
 
         // Perform the core division algorithm
         x_hi = Self::div_rem_large_shifted(x, x_hi, y, ysize as u32, reciprocal, Choice::TRUE);
 
         // Copy the remainder to divisor
         y.leading_mut(ysize - 1).copy_from(x.leading(ysize - 1));
-        y.0[ysize - 1] = x_hi;
+        y.limbs[ysize - 1] = x_hi;
 
         // Unshift the remainder from the earlier adjustment
         y.shr_assign_limb_vartime(lshift);
@@ -387,7 +401,7 @@ impl UintRef {
         let ysize = y.nlimbs();
 
         // Calculate a reciprocal from the highest word of the divisor
-        let reciprocal = Reciprocal::new(y.0[ysize - 1].to_nz().expect_copied("zero divisor"));
+        let reciprocal = Reciprocal::new(y.limbs[ysize - 1].to_nz().expect_copied("zero divisor"));
         debug_assert!(reciprocal.shift() == 0);
 
         // Perform the core division algorithm
@@ -399,16 +413,20 @@ impl UintRef {
         // but this can only be the case if `limb_div` is falsy, in which case we discard
         // the result anyway, so we conditionally set `x_hi` to zero for this branch.
         let x_hi_adjusted = Limb::select(Limb::ZERO, x_hi, limb_div);
-        let (_, rem2) = div2by1(x_hi_adjusted.0, x.0[0].0, &reciprocal);
+        let (_, rem2) = div2by1(x_hi_adjusted.0, x.limbs[0].0, &reciprocal);
 
         // Copy out the low limb of the remainder
-        y.0[0] = Limb::select(x.0[0], Limb(rem2), limb_div);
+        y.limbs[0] = Limb::select(x.limbs[0], Limb(rem2), limb_div);
 
         // Copy the remainder to divisor
         let mut i = 1;
         while i < ysize {
-            y.0[i] = Limb::select(Limb::ZERO, x.0[i], Choice::from_u32_lt(i as u32, ywords));
-            y.0[i] = Limb::select(y.0[i], x_hi, Choice::from_u32_eq(i as u32, ywords - 1));
+            y.limbs[i] = Limb::select(
+                Limb::ZERO,
+                x.limbs[i],
+                Choice::from_u32_lt(i as u32, ywords),
+            );
+            y.limbs[i] = Limb::select(y.limbs[i], x_hi, Choice::from_u32_eq(i as u32, ywords - 1));
             i += 1;
         }
     }
@@ -441,7 +459,7 @@ impl UintRef {
         let mut extra_limbs = x_lo.nlimbs();
 
         let mut xi = xsize - 1;
-        let mut x_xi = x.0[xi];
+        let mut x_xi = x.limbs[xi];
         let mut i;
         let mut carry;
 
@@ -450,7 +468,13 @@ impl UintRef {
 
         while xi > 0 {
             // Divide high dividend words by the high divisor word to estimate the quotient word
-            let mut quo = div3by2(x_hi.0, x_xi.0, x.0[xi - 1].0, &reciprocal, y.0[ysize - 2].0);
+            let mut quo = div3by2(
+                x_hi.0,
+                x_xi.0,
+                x.limbs[xi - 1].0,
+                &reciprocal,
+                y.limbs[ysize - 2].0,
+            );
 
             // This loop is a no-op once xi is smaller than the number of words in the divisor
             let done = Choice::from_u32_lt(xi as u32, ywords - 1);
@@ -467,8 +491,8 @@ impl UintRef {
                 i = (xi + 1).saturating_sub(ysize);
                 while i <= xi {
                     (tmp, carry) =
-                        y.0[ysize + i - xi - 1].carrying_mul_add(Limb(quo), carry, Limb::ZERO);
-                    (x.0[i], borrow) = x.0[i].borrowing_sub(tmp, borrow);
+                        y.limbs[ysize + i - xi - 1].carrying_mul_add(Limb(quo), carry, Limb::ZERO);
+                    (x.limbs[i], borrow) = x.limbs[i].borrowing_sub(tmp, borrow);
                     i += 1;
                 }
                 (_, borrow) = x_hi.borrowing_sub(carry, borrow);
@@ -482,8 +506,8 @@ impl UintRef {
                 carry = Limb::ZERO;
                 i = (xi + 1).saturating_sub(ysize);
                 while i <= xi {
-                    (x.0[i], carry) = x.0[i].carrying_add(
-                        Limb::select(Limb::ZERO, y.0[ysize + i - xi - 1], ct_borrow),
+                    (x.limbs[i], carry) = x.limbs[i].carrying_add(
+                        Limb::select(Limb::ZERO, y.limbs[ysize + i - xi - 1], ct_borrow),
                         carry,
                     );
                     i += 1;
@@ -492,18 +516,18 @@ impl UintRef {
 
             // If we have lower limbs remaining, shift the dividend words one word left
             if extra_limbs > 0 {
-                x_hi = x.0[xi];
-                x_xi = x.0[xi - 1];
+                x_hi = x.limbs[xi];
+                x_xi = x.limbs[xi - 1];
                 extra_limbs -= 1;
                 i = xi;
                 while i > 0 {
-                    x.0[i] = x.0[i - 1];
+                    x.limbs[i] = x.limbs[i - 1];
                     i -= 1;
                 }
-                x.0[0] = x_lo.0[extra_limbs];
+                x.limbs[0] = x_lo.limbs[extra_limbs];
             } else {
-                x_hi = Limb::select(x.0[xi], x_hi, done);
-                x_xi = Limb::select(x.0[xi - 1], x_xi, done);
+                x_hi = Limb::select(x.limbs[xi], x_hi, done);
+                x_xi = Limb::select(x.limbs[xi - 1], x_xi, done);
                 xi -= 1;
             }
         }
@@ -534,10 +558,10 @@ impl UintRef {
         mut hi: Limb,
         reciprocal: &Reciprocal,
     ) -> Limb {
-        let mut j = self.0.len();
+        let mut j = self.limbs.len();
         while j > 0 {
             j -= 1;
-            (self.0[j].0, hi.0) = div2by1(hi.0, self.0[j].0, reciprocal);
+            (self.limbs[j].0, hi.0) = div2by1(hi.0, self.limbs[j].0, reciprocal);
         }
         hi.shr(reciprocal.shift())
     }
@@ -561,16 +585,16 @@ impl UintRef {
         let lshift = reciprocal.shift();
         let nz = Choice::from_u32_nz(lshift);
         let rshift = nz.select_u32(0, Limb::BITS - lshift);
-        let mut hi = (carry.0 << lshift) | word::select(0, self.0[nlimbs - 1].0 >> rshift, nz);
+        let mut hi = (carry.0 << lshift) | word::select(0, self.limbs[nlimbs - 1].0 >> rshift, nz);
         let mut lo;
         let mut j = nlimbs;
         while j > 1 {
             j -= 1;
-            lo = self.0[j].0 << lshift;
-            lo |= word::select(0, self.0[j - 1].0 >> rshift, nz);
+            lo = self.limbs[j].0 << lshift;
+            lo |= word::select(0, self.limbs[j - 1].0 >> rshift, nz);
             (_, hi) = div2by1(hi, lo, reciprocal);
         }
-        (_, hi) = div2by1(hi, self.0[0].0 << lshift, reciprocal);
+        (_, hi) = div2by1(hi, self.limbs[0].0 << lshift, reciprocal);
         Limb(hi >> lshift)
     }
 }

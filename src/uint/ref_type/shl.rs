@@ -67,11 +67,11 @@ impl UintRef {
         let mut i = self.nlimbs();
         while i > shift {
             i -= 1;
-            self.0[i] = Limb::select(self.0[i], self.0[i - shift], c);
+            self.limbs[i] = Limb::select(self.limbs[i], self.limbs[i - shift], c);
         }
         while i > 0 {
             i -= 1;
-            self.0[i] = Limb::select(self.0[i], Limb::ZERO, c);
+            self.limbs[i] = Limb::select(self.limbs[i], Limb::ZERO, c);
         }
     }
 
@@ -88,11 +88,11 @@ impl UintRef {
         let mut i = self.nlimbs();
         while i > shift {
             i -= 1;
-            self.0[i] = self.0[i - shift];
+            self.limbs[i] = self.limbs[i - shift];
         }
         while i > 0 {
             i -= 1;
-            self.0[i] = Limb::ZERO;
+            self.limbs[i] = Limb::ZERO;
         }
     }
 
@@ -114,9 +114,9 @@ impl UintRef {
             let mut carry = Limb::ZERO;
             let mut i = shift_limbs as usize;
             while i < self.nlimbs() {
-                (self.0[i], carry) = (
-                    self.0[i].shl(rem).bitor(carry),
-                    self.0[i].shr(Limb::BITS - rem),
+                (self.limbs[i], carry) = (
+                    self.limbs[i].shl(rem).bitor(carry),
+                    self.limbs[i].shr(Limb::BITS - rem),
                 );
                 i += 1;
             }
@@ -130,8 +130,8 @@ impl UintRef {
         let mut carry = Limb::ZERO;
         let mut i = 0;
         while i < self.nlimbs() {
-            let (limb, new_carry) = self.0[i].shl1();
-            self.0[i] = limb.bitor(carry);
+            let (limb, new_carry) = self.limbs[i].shl1();
+            self.limbs[i] = limb.bitor(carry);
             carry = new_carry;
             i += 1;
         }
@@ -157,9 +157,13 @@ impl UintRef {
 
         let mut i = 0;
         while i < self.nlimbs() {
-            (self.0[i], carry) = (
-                Limb::select(self.0[i], self.0[i].shl(lshift).bitor(carry), choice),
-                self.0[i].shr(rshift),
+            (self.limbs[i], carry) = (
+                Limb::select(
+                    self.limbs[i],
+                    self.limbs[i].shl(lshift).bitor(carry),
+                    choice,
+                ),
+                self.limbs[i].shr(rshift),
             );
             i += 1;
         }
@@ -199,7 +203,10 @@ impl UintRef {
 
         let mut i = 0;
         while i < self.nlimbs() {
-            (self.0[i], carry) = (self.0[i].shl(lshift).bitor(carry), self.0[i].shr(rshift));
+            (self.limbs[i], carry) = (
+                self.limbs[i].shl(lshift).bitor(carry),
+                self.limbs[i].shr(rshift),
+            );
             i += 1;
         }
 

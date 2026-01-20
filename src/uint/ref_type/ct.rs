@@ -7,13 +7,13 @@ impl CtAssign for UintRef {
     #[inline]
     fn ct_assign(&mut self, other: &Self, choice: Choice) {
         debug_assert_eq!(self.bits_precision(), other.bits_precision());
-        self.0.ct_assign(&other.0, choice);
+        self.limbs.ct_assign(&other.limbs, choice);
     }
 }
 
 impl CtEq for UintRef {
     #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
-        self.0.ct_eq(&other.0)
+        self.limbs.ct_eq(&other.limbs)
     }
 }

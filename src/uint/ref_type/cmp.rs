@@ -12,7 +12,7 @@ impl UintRef {
     #[must_use]
     pub const fn is_odd(&self) -> Choice {
         debug_assert!(self.nlimbs() >= 1, "should have limbs");
-        word::choice_from_lsb(self.0[0].0 & 1)
+        word::choice_from_lsb(self.limbs[0].0 & 1)
     }
 
     /// Returns [`Choice::TRUE`] if `self` != `0` or [`Choice::FALSE`] otherwise.
@@ -22,7 +22,7 @@ impl UintRef {
         let mut b = 0;
         let mut i = 0;
         while i < self.nlimbs() {
-            b |= self.0[i].0;
+            b |= self.limbs[i].0;
             i += 1;
         }
         Limb(b).is_nonzero()
@@ -40,7 +40,7 @@ impl UintRef {
     pub(crate) const fn is_zero_vartime(&self) -> bool {
         let mut i = 0;
         while i < self.nlimbs() {
-            if self.0[i].0 != 0 {
+            if self.limbs[i].0 != 0 {
                 return false;
             }
             i += 1;

@@ -64,8 +64,8 @@ pub const fn widening_mul_fixed<const LHS: usize, const RHS: usize>(
         let (mut l0c, mut l1c) = (Limb::ZERO, Limb::ZERO);
         let mut i = 0;
         while i < HALF {
-            (l0.limbs[i], l0c) = x0.0[i].carrying_add(x1.0[i], l0c);
-            (l1.limbs[i], l1c) = y0.0[i].carrying_add(y1.0[i], l1c);
+            (l0.limbs[i], l0c) = x0.limbs[i].carrying_add(x1.limbs[i], l0c);
+            (l1.limbs[i], l1c) = y0.limbs[i].carrying_add(y1.limbs[i], l1c);
             i += 1;
         }
         let z1 = widening_mul_fixed(l0.as_uint_ref(), l1.as_uint_ref());
@@ -456,7 +456,7 @@ pub(crate) const fn wrapping_square(uint: &UintRef, out: &mut UintRef) -> Limb {
             if tail.is_empty() {
                 Limb::ZERO
             } else {
-                tail.0[0]
+                tail.limbs[0]
             }
         } else {
             let (z01, z2) = hi.split_at_mut(LIMBS);

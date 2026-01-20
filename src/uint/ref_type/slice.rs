@@ -9,7 +9,7 @@ impl UintRef {
     #[inline(always)]
     #[track_caller]
     pub const fn copy_from(&mut self, rhs: &UintRef) {
-        self.copy_from_slice(&rhs.0);
+        self.copy_from_slice(&rhs.limbs);
     }
 
     /// Copy the contents from a limb slice.
@@ -20,10 +20,10 @@ impl UintRef {
     #[track_caller]
     pub const fn copy_from_slice(&mut self, limbs: &[Limb]) {
         // TODO core::slice::copy_from_slice should eventually be const
-        debug_assert!(self.0.len() == limbs.len(), "length mismatch");
+        debug_assert!(self.limbs.len() == limbs.len(), "length mismatch");
         let mut i = 0;
-        while i < self.0.len() {
-            self.0[i] = limbs[i];
+        while i < self.limbs.len() {
+            self.limbs[i] = limbs[i];
             i += 1;
         }
     }
@@ -32,8 +32,8 @@ impl UintRef {
     #[inline(always)]
     pub const fn fill(&mut self, limb: Limb) {
         let mut i = 0;
-        while i < self.0.len() {
-            self.0[i] = limb;
+        while i < self.limbs.len() {
+            self.limbs[i] = limb;
             i += 1;
         }
     }
@@ -43,7 +43,7 @@ impl UintRef {
     #[track_caller]
     #[must_use]
     pub const fn split_at(&self, mid: usize) -> (&Self, &Self) {
-        let (a, b) = self.0.split_at(mid);
+        let (a, b) = self.limbs.split_at(mid);
         (UintRef::new(a), UintRef::new(b))
     }
 
@@ -51,7 +51,7 @@ impl UintRef {
     #[inline]
     #[track_caller]
     pub const fn split_at_mut(&mut self, mid: usize) -> (&mut Self, &mut Self) {
-        let (a, b) = self.0.split_at_mut(mid);
+        let (a, b) = self.limbs.split_at_mut(mid);
         (UintRef::new_mut(a), UintRef::new_mut(b))
     }
 
@@ -60,27 +60,27 @@ impl UintRef {
     #[track_caller]
     #[must_use]
     pub const fn leading(&self, len: usize) -> &Self {
-        Self::new(self.0.split_at(len).0)
+        Self::new(self.limbs.split_at(len).0)
     }
 
     /// Access a mutable limb slice up to a number of elements `len`.
     #[inline]
     #[track_caller]
     pub const fn leading_mut(&mut self, len: usize) -> &mut Self {
-        Self::new_mut(self.0.split_at_mut(len).0)
+        Self::new_mut(self.limbs.split_at_mut(len).0)
     }
 
     /// Access a mutable limb slice starting from the index `start`.
     #[inline]
     #[track_caller]
     pub const fn trailing_mut(&mut self, start: usize) -> &mut Self {
-        Self::new_mut(self.0.split_at_mut(start).1)
+        Self::new_mut(self.limbs.split_at_mut(start).1)
     }
 
     /// Determine if the slice has zero limbs.
     #[inline]
     #[must_use]
     pub const fn is_empty(&self) -> bool {
-        self.0.is_empty()
+        self.limbs.is_empty()
     }
 }

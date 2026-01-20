@@ -6,7 +6,7 @@ impl UintRef {
     #[allow(clippy::cast_possible_truncation)]
     #[must_use]
     pub const fn bits_precision(&self) -> u32 {
-        self.0.len() as u32 * Limb::BITS
+        self.limbs.len() as u32 * Limb::BITS
     }
 
     /// Get the value of the bit at position `index`, as a truthy or falsy [`Choice`].
@@ -21,8 +21,8 @@ impl UintRef {
 
         let mut result = 0;
         let mut i = 0;
-        while i < self.0.len() {
-            let bit = self.0[i].0 & index_mask;
+        while i < self.limbs.len() {
+            let bit = self.limbs[i].0 & index_mask;
             let is_right_limb = Choice::from_u32_eq(i as u32, limb_num);
             result |= word::select(0, bit, is_right_limb);
             i += 1;
@@ -41,10 +41,10 @@ impl UintRef {
     pub const fn bit_vartime(&self, index: u32) -> bool {
         let limb_num = (index / Limb::BITS) as usize;
         let index_in_limb = index % Limb::BITS;
-        if limb_num >= self.0.len() {
+        if limb_num >= self.limbs.len() {
             false
         } else {
-            (self.0[limb_num].0 >> index_in_limb) & 1 == 1
+            (self.limbs[limb_num].0 >> index_in_limb) & 1 == 1
         }
     }
 
@@ -64,12 +64,12 @@ impl UintRef {
     #[allow(clippy::cast_possible_truncation)]
     #[must_use]
     pub const fn bits_vartime(&self) -> u32 {
-        let mut i = self.0.len() - 1;
-        while i > 0 && self.0[i].0 == 0 {
+        let mut i = self.limbs.len() - 1;
+        while i > 0 && self.limbs[i].0 == 0 {
             i -= 1;
         }
 
-        let limb = self.0[i];
+        let limb = self.limbs[i];
         Limb::BITS * (i as u32 + 1) - limb.leading_zeros()
     }
 
@@ -82,11 +82,11 @@ impl UintRef {
         let index_mask = 1 << index_in_limb;
 
         let mut i = 0;
-        while i < self.0.len() {
+        while i < self.limbs.len() {
             let is_right_limb = Choice::from_u32_eq(i as u32, limb_num);
-            let old_limb = self.0[i].0;
+            let old_limb = self.limbs[i].0;
             let new_limb = word::select(old_limb & !index_mask, old_limb | index_mask, bit_value);
-            self.0[i] = Limb(word::select(old_limb, new_limb, is_right_limb));
+            self.limbs[i] = Limb(word::select(old_limb, new_limb, is_right_limb));
             i += 1;
         }
     }
@@ -98,9 +98,9 @@ impl UintRef {
         let limb_num = (index / Limb::BITS) as usize;
         let index_in_limb = index % Limb::BITS;
         if bit_value {
-            self.0[limb_num].0 |= 1 << index_in_limb;
+            self.limbs[limb_num].0 |= 1 << index_in_limb;
         } else {
-            self.0[limb_num].0 &= !(1 << index_in_limb);
+            self.limbs[limb_num].0 &= !(1 << index_in_limb);
         }
     }
 
@@ -108,11 +108,11 @@ impl UintRef {
     #[must_use]
     pub const fn leading_zeros(&self) -> u32 {
         let mut count = 0;
-        let mut i = self.0.len();
+        let mut i = self.limbs.len();
         let mut nonzero_limb_not_encountered = Choice::TRUE;
         while i > 0 {
             i -= 1;
-            let l = self.0[i];
+            let l = self.limbs[i];
             let z = l.leading_zeros();
             count += nonzero_limb_not_encountered.select_u32(0, z);
             nonzero_limb_not_encountered =
@@ -129,8 +129,8 @@ impl UintRef {
         let mut count = 0;
         let mut i = 0;
         let mut nonzero_limb_not_encountered = Choice::TRUE;
-        while i < self.0.len() {
-            let l = self.0[i];
+        while i < self.limbs.len() {
+            let l = self.limbs[i];
             let z = l.trailing_zeros();
             count += nonzero_limb_not_encountered.select_u32(0, z);
             nonzero_limb_not_encountered =
@@ -148,8 +148,8 @@ impl UintRef {
     pub const fn trailing_zeros_vartime(&self) -> u32 {
         let mut count = 0;
         let mut i = 0;
-        while i < self.0.len() {
-            let l = self.0[i];
+        while i < self.limbs.len() {
+            let l = self.limbs[i];
             let z = l.trailing_zeros();
             count += z;
             if z != Limb::BITS {
@@ -168,8 +168,8 @@ impl UintRef {
         let mut count = 0;
         let mut i = 0;
         let mut nonmax_limb_not_encountered = Choice::TRUE;
-        while i < self.0.len() {
-            let l = self.0[i];
+        while i < self.limbs.len() {
+            let l = self.limbs[i];
             let z = l.trailing_ones();
             count += nonmax_limb_not_encountered.select_u32(0, z);
             nonmax_limb_not_encountered =
@@ -187,8 +187,8 @@ impl UintRef {
     pub const fn trailing_ones_vartime(&self) -> u32 {
         let mut count = 0;
         let mut i = 0;
-        while i < self.0.len() {
-            let l = self.0[i];
+        while i < self.limbs.len() {
+            let l = self.limbs[i];
             let z = l.trailing_ones();
             count += z;
             if z != Limb::BITS {
@@ -209,7 +209,7 @@ impl UintRef {
         let mut clear = Choice::FALSE;
         while i < self.nlimbs() {
             let apply = Choice::from_u32_eq(i as u32, limb);
-            self.0[i] = self.0[i].bitand(Limb::select(
+            self.limbs[i] = self.limbs[i].bitand(Limb::select(
                 Limb(word::choice_to_mask(clear.not())),
                 limb_mask,
                 apply,
@@ -228,7 +228,7 @@ impl BitOps for UintRef {
 
     #[inline(always)]
     fn bytes_precision(&self) -> usize {
-        self.0.len()
+        self.limbs.len()
     }
 
     fn leading_zeros(&self) -> u32 {

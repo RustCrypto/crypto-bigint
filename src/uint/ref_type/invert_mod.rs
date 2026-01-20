@@ -7,7 +7,7 @@ impl Odd<UintRef> {
     ///
     /// For better understanding the implementation, the following paper is recommended:
     /// J. Hurchalla, "An Improved Integer Multiplicative Inverse (modulo 2^w)",
-    /// <https://arxiv.org/pdf/2204.04342.pdf>
+    /// <https://arxiv.org/pdf/2204.limbs4342.pdf>
     ///
     /// Variable time with respect to the number of words in `value`, however that number will be
     /// fixed for a given integer size.
