@@ -45,6 +45,52 @@ macro_rules! const_monty_params {
     };
 }
 
+/// Create a type representing a prime modulus which impls the [`ConstPrimeMontyParams`]
+/// trait with the given name, type, value (in big endian hex), and optional documentation
+/// string.
+///
+/// # Usage
+///
+/// ```
+/// use crypto_bigint::{U256, const_prime_monty_params};
+///
+/// const_prime_monty_params!(
+///     MyModulus,
+///     U256,
+///     "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001",
+///     "Docs for my modulus"
+/// );
+/// ```
+///
+/// The modulus _must_ be odd and prime, or this will panic.
+#[macro_export]
+macro_rules! const_prime_monty_params {
+    ($name:ident, $uint_type:ty, $value:expr) => {
+        $crate::const_prime_monty_params!(
+            $name,
+            $uint_type,
+            $value,
+            "Modulus which impls `ConstMontyParams`"
+        );
+    };
+    ($name:ident, $uint_type:ty, $value:expr, $doc:expr) => {
+        $crate::const_monty_params!(
+            $name,
+            $uint_type,
+            $value,
+            "Modulus which impls `ConstMontyParams`"
+        );
+
+        impl $crate::modular::ConstPrimeMontyParams<{ <$uint_type>::LIMBS }> for $name {
+            const PRIME_PARAMS: $crate::modular::PrimeParams<{ <$uint_type>::LIMBS }> =
+                $crate::modular::PrimeParams::new_vartime(
+                    &<$name as $crate::modular::ConstMontyParams<{ <$uint_type>::LIMBS }>>::PARAMS,
+                )
+                .expect("cannot derive prime parameters");
+        }
+    };
+}
+
 /// Creates a type alias to [`ConstMontyForm`] with the given [`ConstMontyParams`].
 ///
 /// # Usage
