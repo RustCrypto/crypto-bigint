@@ -221,7 +221,7 @@ mod tests {
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
 
         let res = base_mod.pow(&exponent);
-        let res_vartime = base_mod.pow(&exponent);
+        let res_vartime = base_mod.pow_vartime(&exponent);
 
         let expected =
             U256::from_be_hex("3681BC0FEA2E5D394EB178155A127B0FD2EF405486D354251C385BDD51B9D421");
