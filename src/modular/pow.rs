@@ -1,5 +1,5 @@
 use super::MontyParams;
-use super::mul::{mul_montgomery_form, square_montgomery_form};
+use super::mul::{almost_montgomery_reduce, mul_montgomery_form, square_montgomery_form};
 use crate::{AmmMultiplier, CtEq, Limb, Monty, Uint, Unsigned, Word, word};
 use core::{array, mem};
 
@@ -32,11 +32,7 @@ pub const fn pow_montgomery_form<
 
 /// Performs modular exponentiation using "Almost Montgomery Multiplication".
 ///
-/// NOTE: the resulting output will be reduced to the *bit length* of the modulus, but not fully
-/// reduced and may exceed the modulus.
-///
-/// A final reduction is required to ensure AMM results are fully reduced, and should not be exposed
-/// outside the internals of this crate.
+/// Returns a result which has been fully reduced by the modulus specified in `params`.
 ///
 /// `exponent_bits` represents the length of the exponent in bits.
 ///
@@ -121,6 +117,7 @@ where
         }
     }
 
+    almost_montgomery_reduce(z.as_mut(), params.as_ref().modulus().as_uint_ref());
     z
 }
 

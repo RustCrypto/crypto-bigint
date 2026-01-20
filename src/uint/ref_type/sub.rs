@@ -1,5 +1,5 @@
 use super::UintRef;
-use crate::Limb;
+use crate::{Choice, Limb};
 
 impl UintRef {
     /// Perform an in-place borrowing subtraction of another [`UintRef`], returning the carried limb
@@ -23,5 +23,26 @@ impl UintRef {
             i += 1;
         }
         borrow
+    }
+
+    /// Perform in-place wrapping subtraction, returning the truthy value as the second element of
+    /// the tuple if an underflow has occurred.
+    pub(crate) fn conditional_borrowing_sub_assign(
+        &mut self,
+        rhs: &Self,
+        choice: Choice,
+    ) -> Choice {
+        debug_assert!(self.bits_precision() <= rhs.bits_precision());
+        let mask = Limb::select(Limb::ZERO, Limb::MAX, choice);
+        let mut borrow = Limb::ZERO;
+
+        for i in 0..self.nlimbs() {
+            let masked_rhs = *rhs.limbs.get(i).unwrap_or(&Limb::ZERO) & mask;
+            let (limb, b) = self.limbs[i].borrowing_sub(masked_rhs, borrow);
+            self.limbs[i] = limb;
+            borrow = b;
+        }
+
+        borrow.lsb_to_choice()
     }
 }

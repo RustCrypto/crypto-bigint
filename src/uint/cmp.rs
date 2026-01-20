@@ -3,7 +3,7 @@
 //! Constant-time unless explicitly noted otherwise.
 
 use super::Uint;
-use crate::{Choice, CtEq, Limb, word};
+use crate::{Choice, CtEq, Limb, UintRef, word};
 use core::cmp::Ordering;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -46,11 +46,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Returns the truthy value if `self < rhs` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn lt(lhs: &Self, rhs: &Self) -> Choice {
-        // We could use the same approach as in Limb::ct_lt(),
-        // but since we have to use Uint::wrapping_sub(), which calls `borrowing_sub()`,
-        // there are no savings compared to just calling `borrowing_sub()` directly.
-        let (_res, borrow) = lhs.borrowing_sub(rhs, Limb::ZERO);
-        word::choice_from_mask(borrow.0)
+        UintRef::lt(lhs.as_uint_ref(), rhs.as_uint_ref())
     }
 
     /// Returns the truthy value if `self <= rhs` and the falsy value otherwise.

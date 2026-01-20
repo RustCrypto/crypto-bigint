@@ -1,7 +1,7 @@
 //! Constant-time support: impls of `Ct*` traits and constant-time `const fn` operations.
 
 use super::UintRef;
-use crate::{Choice, CtAssign, CtEq};
+use crate::{Choice, CtAssign, CtEq, CtLt};
 
 impl CtAssign for UintRef {
     #[inline]
@@ -15,5 +15,12 @@ impl CtEq for UintRef {
     #[inline]
     fn ct_eq(&self, other: &Self) -> Choice {
         self.limbs.ct_eq(&other.limbs)
+    }
+}
+
+impl CtLt for UintRef {
+    #[inline]
+    fn ct_lt(&self, other: &Self) -> Choice {
+        Self::lt(self, other)
     }
 }

@@ -1,5 +1,23 @@
 use super::reduction::montgomery_reduction;
-use crate::{Limb, Odd, Uint, WideWord, Word};
+use crate::{CtLt, Limb, Odd, Uint, UintRef, WideWord, Word};
+
+/// Ensure the output of an "almost" Montgomery multiplication is properly reduced.
+///
+/// Using the properties of `almost_montgomery_mul()` (see its documentation):
+/// - We have an incoming `x` which is fully reduced (`floor(x / modulus) = 0`).
+/// - We build an array of `powers` which are produced by multiplying the previous power by
+///   `x`, so for each power `floor(power / modulus) <= 1`.
+/// - Then we take turns squaring the accumulator `z` (bringing `floor(z / modulus)` to 1
+///   regardless of the previous reduction level) and multiplying by a power of `x`
+///   (bringing `floor(z / modulus)` to at most 2).
+/// - Then we either exit the loop, or square again, which brings `floor(z / modulus)` back
+///   to 1.
+///
+/// We now need to reduce `z` at most twice to bring it within `[0, modulus)`.
+pub(crate) fn almost_montgomery_reduce(z: &mut UintRef, modulus: &UintRef) {
+    z.conditional_borrowing_sub_assign(modulus, !z.ct_lt(modulus));
+    z.conditional_borrowing_sub_assign(modulus, !z.ct_lt(modulus));
+}
 
 /// Based on Algorithm 14.36 in Handbook of Applied Cryptography
 /// <https://cacr.uwaterloo.ca/hac/about/chap14.pdf>

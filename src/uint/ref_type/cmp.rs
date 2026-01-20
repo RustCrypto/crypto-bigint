@@ -47,4 +47,41 @@ impl UintRef {
         }
         true
     }
+
+    /// Returns the truthy value if `self < rhs` and the falsy value otherwise.
+    ///
+    /// # Panics
+    /// If `lhs` and `rhs` are not the same size
+    #[inline]
+    pub(crate) const fn lt(lhs: &Self, rhs: &Self) -> Choice {
+        // TODO(tarcieri): support for differently sized inputs?
+        debug_assert!(
+            lhs.bits_precision() == rhs.bits_precision(),
+            "lhs and rhs sizes differ"
+        );
+
+        // NOTE: this is effectively a `borrowing_sub` that only computes the borrow
+        let mut i = 0;
+        let mut borrow = Limb::ZERO;
+
+        while i < lhs.nlimbs() {
+            borrow = lhs.limbs[i].borrowing_sub(rhs.limbs[i], borrow).1;
+            i += 1;
+        }
+
+        borrow.lsb_to_choice()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::UintRef;
+    use crate::Limb;
+
+    #[test]
+    fn lt() {
+        let lesser = UintRef::new(&[Limb::ZERO, Limb::ZERO, Limb::ZERO]);
+        let greater = UintRef::new(&[Limb::ZERO, Limb::ONE, Limb::ZERO]);
+        assert!(UintRef::lt(lesser, greater).to_bool());
+    }
 }

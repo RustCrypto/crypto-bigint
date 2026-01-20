@@ -70,6 +70,12 @@ impl<U: Unsigned> GenericMontyParams<U> {
     }
 }
 
+impl<U: Unsigned> AsRef<Self> for GenericMontyParams<U> {
+    fn as_ref(&self) -> &Self {
+        self
+    }
+}
+
 impl<U: Unsigned> CtAssign for GenericMontyParams<U> {
     fn ct_assign(&mut self, other: &Self, choice: Choice) {
         self.modulus.ct_assign(&other.modulus, choice);
