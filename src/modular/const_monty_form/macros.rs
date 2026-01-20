@@ -1,7 +1,7 @@
 //! [`ConstMontyForm`]/[`ConstMontyParams`] support macros.
 
 #[cfg(doc)]
-use crate::modular::{ConstMontyForm, ConstMontyParams};
+use crate::modular::{ConstMontyForm, ConstMontyParams, ConstPrimeMontyParams};
 
 /// Create a type representing a modulus which impls the [`ConstMontyParams`] trait with the given
 /// name, type, value (in big endian hex), and optional documentation string.
