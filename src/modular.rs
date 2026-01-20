@@ -30,6 +30,7 @@ mod mul;
 mod pow;
 mod prime_params;
 pub(crate) mod safegcd;
+mod sqrt;
 mod sub;
 
 #[cfg(feature = "alloc")]
