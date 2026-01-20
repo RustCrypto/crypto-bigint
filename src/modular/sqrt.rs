@@ -169,7 +169,8 @@ mod tests {
         prime_params: PrimeParams<LIMBS>,
     ) {
         let modulus = monty_params.modulus.get();
-        for i in 0..256 {
+        let rounds = if cfg!(miri) { 1..=2 } else { 0..=256 };
+        for i in rounds {
             let s = i * i;
             let s_monty = MontyForm::new(&Uint::from_u32(s), &monty_params);
             let rt_monty =
