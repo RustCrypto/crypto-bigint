@@ -8,6 +8,7 @@ mod mul;
 mod neg;
 mod pow;
 mod reduce;
+mod sqrt;
 mod sub;
 
 use super::{
