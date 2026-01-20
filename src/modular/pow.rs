@@ -39,7 +39,6 @@ pub const fn pow_montgomery_form<
 /// NOTE: `exponent_bits` is leaked in the time pattern.
 // NOTE: this function is intended to work without alloc, so we `allow(dead_code)` to ensure such
 #[cfg_attr(not(feature = "alloc"), allow(dead_code))] // TODO(tarcieri): use w\ `MontyForm`
-#[allow(clippy::needless_range_loop)]
 pub fn pow_montgomery_form_amm<'a, U>(
     x: &U,
     exponent: &U,

@@ -1,7 +1,5 @@
 //! Stack-allocated big unsigned integers.
 
-#![allow(clippy::needless_range_loop, clippy::many_single_char_names)]
-
 #[cfg(feature = "extra-sizes")]
 pub use extra_sizes::*;
 
