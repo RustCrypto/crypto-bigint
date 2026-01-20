@@ -27,11 +27,12 @@ pub struct PrimeParams<const LIMBS: usize> {
 
 impl<const LIMBS: usize> PrimeParams<LIMBS> {
     /// Instantiates a new set of [`PrimeParams`] given [`FixedMontyParams`] for a prime modulus.
+    ///
+    /// This method will return `None` if the modulus is determined to be non-prime, however
+    /// this is not an exhaustive check and non-prime values can be accepted.
     #[must_use]
     #[allow(clippy::unwrap_in_result, clippy::missing_panics_doc)]
     pub const fn new_vartime(params: &FixedMontyParams<LIMBS>) -> Option<Self> {
-        // A primitive root exists if and only if n is 1, 2, 4, p^k or 2p^k, k > 0, p is an odd prime
-
         let p = params.modulus();
         let p_minus_one = p.as_ref().set_bit_vartime(0, false);
         let s = NonZeroU32::new(p_minus_one.trailing_zeros_vartime()).expect("ensured non-zero");
@@ -53,6 +54,11 @@ impl<const LIMBS: usize> PrimeParams<LIMBS> {
             let exp = t.shr_vartime(1);
             // the s'th root of unity is calculated as `generator^t`
             let root = FixedMontyForm::new(&gen_uint, params).pow_vartime(&t);
+            // root^(2^(s-1)) must be equal to -1
+            let check = root.square_repeat_vartime(s.get() - 1);
+            if !Uint::eq(&check.retrieve(), &p_minus_one).to_bool_vartime() {
+                return None;
+            }
             (exp, root)
         };
 
@@ -125,6 +131,7 @@ impl<const LIMBS: usize> subtle::ConditionallySelectable for PrimeParams<LIMBS> 
 const fn find_primitive_root<const LIMBS: usize>(
     p: &Odd<Uint<LIMBS>>,
 ) -> Option<(NonZeroU32, Uint<LIMBS>)> {
+    // A primitive root exists iff p is 1, 2, 4, q^k or 2q^k, k > 0, q is an odd prime.
     // Find a quadratic non-residue (primitive roots are non-residue for powers of a prime)
     let mut g = NonZeroU32::new(2u32).expect("ensured non-zero");
     loop {
@@ -146,5 +153,57 @@ const fn find_primitive_root<const LIMBS: usize>(
                 g = g2;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::PrimeParams;
+    use crate::{Choice, CtEq, CtSelect, Odd, U128, modular::MontyParams};
+
+    #[test]
+    fn check_expected() {
+        let monty_params =
+            MontyParams::new_vartime(Odd::<U128>::from_be_hex("e38af050d74b8567f73c8713cbc7bc47"));
+        let prime_params = PrimeParams::new_vartime(&monty_params).expect("failed creating params");
+        assert_eq!(prime_params.s.get(), 1);
+        assert_eq!(prime_params.generator.get(), 5);
+    }
+
+    #[test]
+    fn check_non_prime() {
+        let monty_params =
+            MontyParams::new_vartime(Odd::<U128>::from_be_hex("e38af050d74b8567f73c8713cbc7bc01"));
+        assert!(PrimeParams::new_vartime(&monty_params).is_none());
+    }
+
+    #[test]
+    fn check_equality() {
+        let monty_params_1 =
+            MontyParams::new_vartime(Odd::<U128>::from_be_hex("e38af050d74b8567f73c8713cbc7bc47"));
+        let prime_params_1 =
+            PrimeParams::new_vartime(&monty_params_1).expect("failed creating params");
+
+        let monty_params_2 =
+            MontyParams::new_vartime(Odd::<U128>::from_be_hex("f2799d643ab7ff983437c3a86cdb1beb"));
+        let prime_params_2 =
+            PrimeParams::new_vartime(&monty_params_2).expect("failed creating params");
+
+        assert!(CtEq::ct_eq(&prime_params_1, &prime_params_1).to_bool_vartime());
+        assert!(CtEq::ct_ne(&prime_params_1, &prime_params_2).to_bool_vartime());
+        assert!(
+            CtEq::ct_eq(
+                &CtSelect::ct_select(&prime_params_1, &prime_params_2, Choice::FALSE),
+                &prime_params_1,
+            )
+            .to_bool_vartime()
+        );
+        assert!(
+            CtEq::ct_eq(
+                &CtSelect::ct_select(&prime_params_1, &prime_params_2, Choice::TRUE),
+                &prime_params_2,
+            )
+            .to_bool_vartime()
+        );
     }
 }
