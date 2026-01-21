@@ -37,10 +37,10 @@ macro_rules! const_monty_params {
         pub struct $name;
         impl $crate::modular::ConstMontyParams<{ <$uint_type>::LIMBS }> for $name {
             const LIMBS: usize = <$uint_type>::LIMBS;
-            const PARAMS: $crate::modular::MontyParams<{ <$uint_type>::LIMBS }> =
-                $crate::modular::MontyParams::new_vartime($crate::Odd::<$uint_type>::from_be_hex(
-                    $value,
-                ));
+            const PARAMS: $crate::modular::FixedMontyParams<{ <$uint_type>::LIMBS }> =
+                $crate::modular::FixedMontyParams::new_vartime(
+                    $crate::Odd::<$uint_type>::from_be_hex($value),
+                );
         }
     };
 }

@@ -1,6 +1,6 @@
-use super::MontyParams;
+use super::FixedMontyParams;
 use super::mul::{almost_montgomery_reduce, mul_montgomery_form, square_repeat_montgomery_form};
-use crate::{AmmMultiplier, CtEq, Limb, Monty, Uint, Unsigned, Word, word};
+use crate::{AmmMultiplier, CtEq, Limb, MontyForm, Uint, Unsigned, Word, word};
 use core::{array, mem};
 
 #[cfg(feature = "alloc")]
@@ -21,7 +21,7 @@ pub const fn pow_montgomery_form<
     x: &Uint<LIMBS>,
     exponent: &Uint<RHS_LIMBS>,
     exponent_bits: u32,
-    params: &MontyParams<LIMBS>,
+    params: &FixedMontyParams<LIMBS>,
 ) -> Uint<LIMBS> {
     multi_exponentiate_montgomery_form_array::<LIMBS, RHS_LIMBS, 1, VARTIME>(
         &[(*x, *exponent)],
@@ -41,11 +41,11 @@ pub fn pow_montgomery_form_amm<'a, U>(
     x: &U,
     exponent: &U,
     exponent_bits: u32,
-    params: &'a <U::Monty as Monty>::Params,
+    params: &'a <U::Monty as MontyForm>::Params,
 ) -> U
 where
     U: Unsigned,
-    <U::Monty as Monty>::Multiplier<'a>: AmmMultiplier<'a>,
+    <U::Monty as MontyForm>::Multiplier<'a>: AmmMultiplier<'a>,
 {
     let one = params.as_ref().one().clone();
 
@@ -56,7 +56,7 @@ where
     const WINDOW: u32 = 4;
     const WINDOW_MASK: Word = (1 << WINDOW) - 1;
 
-    let mut multiplier = <U::Monty as Monty>::Multiplier::from(params);
+    let mut multiplier = <U::Monty as MontyForm>::Multiplier::from(params);
     let mut power = x.clone();
 
     // powers[i] contains x^i
@@ -126,7 +126,7 @@ pub const fn multi_exponentiate_montgomery_form_array<
 >(
     bases_and_exponents: &[(Uint<LIMBS>, Uint<RHS_LIMBS>); N],
     exponent_bits: u32,
-    params: &MontyParams<LIMBS>,
+    params: &FixedMontyParams<LIMBS>,
 ) -> Uint<LIMBS> {
     if exponent_bits == 0 {
         return *params.one(); // 1 in Montgomery form
@@ -163,7 +163,7 @@ pub fn multi_exponentiate_montgomery_form_slice<
 >(
     bases_and_exponents: &[(Uint<LIMBS>, Uint<RHS_LIMBS>)],
     exponent_bits: u32,
-    params: &MontyParams<LIMBS>,
+    params: &FixedMontyParams<LIMBS>,
 ) -> Uint<LIMBS> {
     if exponent_bits == 0 {
         return *params.one(); // 1 in Montgomery form
@@ -184,7 +184,7 @@ pub fn multi_exponentiate_montgomery_form_slice<
 
 const fn compute_powers<const LIMBS: usize>(
     x: &Uint<LIMBS>,
-    params: &MontyParams<LIMBS>,
+    params: &FixedMontyParams<LIMBS>,
 ) -> [Uint<LIMBS>; 1 << WINDOW] {
     // powers[i] contains x^i
     let mut powers = [*params.one(); 1 << WINDOW];
@@ -207,7 +207,7 @@ const fn multi_exponentiate_montgomery_form_internal<
 >(
     powers_and_exponents: &[([Uint<LIMBS>; 1 << WINDOW], Uint<RHS_LIMBS>)],
     exponent_bits: u32,
-    params: &MontyParams<LIMBS>,
+    params: &FixedMontyParams<LIMBS>,
 ) -> Uint<LIMBS> {
     let starting_limb = ((exponent_bits - 1) / Limb::BITS) as usize;
     let starting_bit_in_limb = (exponent_bits - 1) % Limb::BITS;

@@ -1,18 +1,18 @@
 //! Multiplications between integers in Montgomery form with a modulus set at runtime.
 
-use super::MontyForm;
+use super::FixedMontyForm;
 use crate::modular::mul::almost_montgomery_mul;
 use crate::prelude::AmmMultiplier;
 use crate::{
     MontyMultiplier, Square, SquareAssign, Uint,
     modular::{
-        MontyParams,
+        FixedMontyParams,
         mul::{mul_montgomery_form, square_montgomery_form, square_repeat_montgomery_form},
     },
 };
 use core::ops::{Mul, MulAssign};
 
-impl<const LIMBS: usize> MontyForm<LIMBS> {
+impl<const LIMBS: usize> FixedMontyForm<LIMBS> {
     /// Multiplies by `rhs`.
     #[must_use]
     pub const fn mul(&self, rhs: &Self) -> Self {
@@ -57,72 +57,72 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Mul<&MontyForm<LIMBS>> for &MontyForm<LIMBS> {
-    type Output = MontyForm<LIMBS>;
-    fn mul(self, rhs: &MontyForm<LIMBS>) -> MontyForm<LIMBS> {
+impl<const LIMBS: usize> Mul<&FixedMontyForm<LIMBS>> for &FixedMontyForm<LIMBS> {
+    type Output = FixedMontyForm<LIMBS>;
+    fn mul(self, rhs: &FixedMontyForm<LIMBS>) -> FixedMontyForm<LIMBS> {
         debug_assert_eq!(self.params, rhs.params);
         self.mul(rhs)
     }
 }
 
-impl<const LIMBS: usize> Mul<MontyForm<LIMBS>> for &MontyForm<LIMBS> {
-    type Output = MontyForm<LIMBS>;
+impl<const LIMBS: usize> Mul<FixedMontyForm<LIMBS>> for &FixedMontyForm<LIMBS> {
+    type Output = FixedMontyForm<LIMBS>;
     #[allow(clippy::op_ref)]
-    fn mul(self, rhs: MontyForm<LIMBS>) -> MontyForm<LIMBS> {
+    fn mul(self, rhs: FixedMontyForm<LIMBS>) -> FixedMontyForm<LIMBS> {
         self * &rhs
     }
 }
 
-impl<const LIMBS: usize> Mul<&MontyForm<LIMBS>> for MontyForm<LIMBS> {
-    type Output = MontyForm<LIMBS>;
+impl<const LIMBS: usize> Mul<&FixedMontyForm<LIMBS>> for FixedMontyForm<LIMBS> {
+    type Output = FixedMontyForm<LIMBS>;
     #[allow(clippy::op_ref)]
-    fn mul(self, rhs: &MontyForm<LIMBS>) -> MontyForm<LIMBS> {
+    fn mul(self, rhs: &FixedMontyForm<LIMBS>) -> FixedMontyForm<LIMBS> {
         &self * rhs
     }
 }
 
-impl<const LIMBS: usize> Mul<MontyForm<LIMBS>> for MontyForm<LIMBS> {
-    type Output = MontyForm<LIMBS>;
-    fn mul(self, rhs: MontyForm<LIMBS>) -> MontyForm<LIMBS> {
+impl<const LIMBS: usize> Mul<FixedMontyForm<LIMBS>> for FixedMontyForm<LIMBS> {
+    type Output = FixedMontyForm<LIMBS>;
+    fn mul(self, rhs: FixedMontyForm<LIMBS>) -> FixedMontyForm<LIMBS> {
         &self * &rhs
     }
 }
 
-impl<const LIMBS: usize> MulAssign<&MontyForm<LIMBS>> for MontyForm<LIMBS> {
-    fn mul_assign(&mut self, rhs: &MontyForm<LIMBS>) {
+impl<const LIMBS: usize> MulAssign<&FixedMontyForm<LIMBS>> for FixedMontyForm<LIMBS> {
+    fn mul_assign(&mut self, rhs: &FixedMontyForm<LIMBS>) {
         *self = *self * rhs;
     }
 }
 
-impl<const LIMBS: usize> MulAssign<MontyForm<LIMBS>> for MontyForm<LIMBS> {
-    fn mul_assign(&mut self, rhs: MontyForm<LIMBS>) {
+impl<const LIMBS: usize> MulAssign<FixedMontyForm<LIMBS>> for FixedMontyForm<LIMBS> {
+    fn mul_assign(&mut self, rhs: FixedMontyForm<LIMBS>) {
         *self *= &rhs;
     }
 }
 
-impl<const LIMBS: usize> Square for MontyForm<LIMBS> {
+impl<const LIMBS: usize> Square for FixedMontyForm<LIMBS> {
     fn square(&self) -> Self {
-        MontyForm::square(self)
+        FixedMontyForm::square(self)
     }
 }
 
-impl<const LIMBS: usize> SquareAssign for MontyForm<LIMBS> {
+impl<const LIMBS: usize> SquareAssign for FixedMontyForm<LIMBS> {
     fn square_assign(&mut self) {
         *self = self.square();
     }
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct DynMontyMultiplier<'a, const LIMBS: usize>(&'a MontyParams<LIMBS>);
+pub struct FixedMontyMultiplier<'a, const LIMBS: usize>(&'a FixedMontyParams<LIMBS>);
 
-impl<'a, const LIMBS: usize> From<&'a MontyParams<LIMBS>> for DynMontyMultiplier<'a, LIMBS> {
-    fn from(source: &'a MontyParams<LIMBS>) -> Self {
+impl<'a, const LIMBS: usize> From<&'a FixedMontyParams<LIMBS>> for FixedMontyMultiplier<'a, LIMBS> {
+    fn from(source: &'a FixedMontyParams<LIMBS>) -> Self {
         Self(source)
     }
 }
 
-impl<'a, const LIMBS: usize> MontyMultiplier<'a> for DynMontyMultiplier<'a, LIMBS> {
-    type Monty = MontyForm<LIMBS>;
+impl<'a, const LIMBS: usize> MontyMultiplier<'a> for FixedMontyMultiplier<'a, LIMBS> {
+    type Monty = FixedMontyForm<LIMBS>;
 
     /// Performs a Montgomery multiplication, assigning a fully reduced result to `lhs`.
     fn mul_assign(&mut self, lhs: &mut Self::Monty, rhs: &Self::Monty) {
@@ -143,7 +143,7 @@ impl<'a, const LIMBS: usize> MontyMultiplier<'a> for DynMontyMultiplier<'a, LIMB
     }
 }
 
-impl<'a, const LIMBS: usize> AmmMultiplier<'a> for DynMontyMultiplier<'a, LIMBS> {
+impl<'a, const LIMBS: usize> AmmMultiplier<'a> for FixedMontyMultiplier<'a, LIMBS> {
     /// Perform an "Almost Montgomery Multiplication", assigning the product to `a`.
     ///
     /// NOTE: the resulting output will be reduced to the *bit length* of the modulus, but not fully reduced and may
@@ -183,33 +183,33 @@ impl<'a, const LIMBS: usize> AmmMultiplier<'a> for DynMontyMultiplier<'a, LIMBS>
 mod tests {
     use crate::{
         Odd, U256,
-        modular::{MontyForm, MontyParams},
+        modular::{FixedMontyForm, FixedMontyParams},
     };
 
-    const PARAMS: MontyParams<{ U256::LIMBS }> =
-        MontyParams::new_vartime(Odd::<U256>::from_be_hex(
+    const PARAMS: FixedMontyParams<{ U256::LIMBS }> =
+        FixedMontyParams::new_vartime(Odd::<U256>::from_be_hex(
             "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551",
         ));
     const N: U256 =
         U256::from_be_hex("14117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
-    const N_MOD: MontyForm<{ U256::LIMBS }> = MontyForm::new(&N, &PARAMS);
+    const N_MOD: FixedMontyForm<{ U256::LIMBS }> = FixedMontyForm::new(&N, &PARAMS);
 
     #[test]
     fn test_mul_zero() {
-        let res = N_MOD.mul(&MontyForm::zero(&PARAMS));
+        let res = N_MOD.mul(&FixedMontyForm::zero(&PARAMS));
         let expected = U256::ZERO;
         assert_eq!(res.retrieve(), expected);
     }
 
     #[test]
     fn test_mul_one() {
-        let res = N_MOD.mul(&MontyForm::one(&PARAMS));
+        let res = N_MOD.mul(&FixedMontyForm::one(&PARAMS));
         assert_eq!(res.retrieve(), N);
     }
 
     #[test]
     fn test_mul_eq_add() {
-        let res = N_MOD.mul(&MontyForm::new(&U256::from(2u8), &PARAMS));
+        let res = N_MOD.mul(&FixedMontyForm::new(&U256::from(2u8), &PARAMS));
         assert_eq!(res, N_MOD.add(&N_MOD));
     }
 

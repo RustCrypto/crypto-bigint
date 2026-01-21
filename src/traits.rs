@@ -12,7 +12,7 @@ pub use num_traits::{
 
 use crate::{
     Choice, CtOption, Limb, NonZero, Odd, Reciprocal, UintRef,
-    modular::{GenericMontyParams, Retrieve},
+    modular::{MontyParams, Retrieve},
 };
 use core::fmt::{self, Debug};
 
@@ -191,7 +191,7 @@ pub trait Unsigned:
 {
     /// The corresponding Montgomery representation,
     /// optimized for the performance of modular operations at the price of a conversion overhead.
-    type Monty: Monty<Integer = Self>;
+    type Monty: MontyForm<Integer = Self>;
 
     /// Borrow the limbs of this unsigned integer as a [`UintRef`].
     #[must_use]
@@ -1111,7 +1111,7 @@ pub trait Resize: Sized {
 }
 
 /// A representation of an integer optimized for the performance of modular operations.
-pub trait Monty:
+pub trait MontyForm:
     'static
     + Clone
     + CtEq
@@ -1147,8 +1147,8 @@ pub trait Monty:
 
     /// The precomputed data needed for this representation.
     type Params: 'static
-        + AsRef<GenericMontyParams<Self::Integer>>
-        + From<GenericMontyParams<Self::Integer>>
+        + AsRef<MontyParams<Self::Integer>>
+        + From<MontyParams<Self::Integer>>
         + Clone
         + Debug
         + Eq
@@ -1221,9 +1221,9 @@ pub trait Monty:
 ///
 /// NOTE: You will be operating with Montgomery representations directly,
 /// make sure they all correspond to the same set of parameters.
-pub trait MontyMultiplier<'a>: From<&'a <Self::Monty as Monty>::Params> {
+pub trait MontyMultiplier<'a>: From<&'a <Self::Monty as MontyForm>::Params> {
     /// The associated Montgomery-representation integer.
-    type Monty: Monty;
+    type Monty: MontyForm;
 
     /// Performs a Montgomery multiplication, assigning a fully reduced result to `lhs`.
     fn mul_assign(&mut self, lhs: &mut Self::Monty, rhs: &Self::Monty);
@@ -1242,10 +1242,10 @@ pub(crate) trait AmmMultiplier<'a>: MontyMultiplier<'a> {
     /// Perform an "Almost Montgomery Multiplication", assigning the product to `a`.
     fn mul_amm_assign(
         &mut self,
-        a: &mut <Self::Monty as Monty>::Integer,
-        b: &<Self::Monty as Monty>::Integer,
+        a: &mut <Self::Monty as MontyForm>::Integer,
+        b: &<Self::Monty as MontyForm>::Integer,
     );
 
     /// Perform a squaring using "Almost Montgomery Multiplication", assigning the result to `a`.
-    fn square_amm_assign(&mut self, a: &mut <Self::Monty as Monty>::Integer);
+    fn square_amm_assign(&mut self, a: &mut <Self::Monty as MontyForm>::Integer);
 }

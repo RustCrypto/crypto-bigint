@@ -1,9 +1,9 @@
 //! Linear combinations of integers in Montgomery form with a modulus set at runtime.
 
-use super::MontyForm;
+use super::FixedMontyForm;
 use crate::modular::lincomb::lincomb_monty_form;
 
-impl<const LIMBS: usize> MontyForm<LIMBS> {
+impl<const LIMBS: usize> FixedMontyForm<LIMBS> {
     /// Calculate the sum of products of pairs `(a, b)` in `products`.
     ///
     /// This method is variable time only with the value of the modulus.
@@ -39,14 +39,14 @@ mod tests {
         use crate::U256;
         use crate::{
             Odd, Random, RandomMod,
-            modular::{MontyForm, MontyParams},
+            modular::{FixedMontyForm, FixedMontyParams},
         };
         use rand_core::SeedableRng;
 
         let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
         for n in 0..1500 {
             let modulus = Odd::<U256>::random_from_rng(&mut rng);
-            let params = MontyParams::new_vartime(modulus);
+            let params = FixedMontyParams::new_vartime(modulus);
             let m = modulus.as_nz_ref();
             let a = U256::random_mod_vartime(&mut rng, m);
             let b = U256::random_mod_vartime(&mut rng, m);
@@ -55,9 +55,15 @@ mod tests {
 
             assert_eq!(
                 a.mul_mod(&b, m).add_mod(&c.mul_mod(&d, m), m),
-                MontyForm::lincomb_vartime(&[
-                    (&MontyForm::new(&a, &params), &MontyForm::new(&b, &params)),
-                    (&MontyForm::new(&c, &params), &MontyForm::new(&d, &params)),
+                FixedMontyForm::lincomb_vartime(&[
+                    (
+                        &FixedMontyForm::new(&a, &params),
+                        &FixedMontyForm::new(&b, &params)
+                    ),
+                    (
+                        &FixedMontyForm::new(&c, &params),
+                        &FixedMontyForm::new(&d, &params)
+                    ),
                 ])
                 .retrieve(),
                 "n={n}, a={a}, b={b}, c={c}, d={d}"

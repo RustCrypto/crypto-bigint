@@ -1,9 +1,9 @@
 //! `From`-like conversions for [`BoxedMontyForm`] and [`BoxedMontyParams`].
 
-use super::{BoxedMontyForm, BoxedMontyParams, GenericMontyParams};
+use super::{BoxedMontyForm, BoxedMontyParams, MontyParams};
 use crate::{
     BoxedUint,
-    modular::{ConstMontyForm, ConstMontyParams, MontyForm, MontyParams},
+    modular::{ConstMontyForm, ConstMontyParams, FixedMontyForm, FixedMontyParams},
 };
 
 impl<const LIMBS: usize, Params> From<ConstMontyForm<Params, LIMBS>> for BoxedMontyForm
@@ -27,14 +27,14 @@ where
     }
 }
 
-impl<const LIMBS: usize> From<MontyForm<LIMBS>> for BoxedMontyForm {
-    fn from(input: MontyForm<LIMBS>) -> Self {
+impl<const LIMBS: usize> From<FixedMontyForm<LIMBS>> for BoxedMontyForm {
+    fn from(input: FixedMontyForm<LIMBS>) -> Self {
         Self::from(&input)
     }
 }
 
-impl<const LIMBS: usize> From<&MontyForm<LIMBS>> for BoxedMontyForm {
-    fn from(input: &MontyForm<LIMBS>) -> Self {
+impl<const LIMBS: usize> From<&FixedMontyForm<LIMBS>> for BoxedMontyForm {
+    fn from(input: &FixedMontyForm<LIMBS>) -> Self {
         BoxedMontyForm {
             montgomery_form: input.as_montgomery().into(),
             params: input.params().into(),
@@ -42,9 +42,9 @@ impl<const LIMBS: usize> From<&MontyForm<LIMBS>> for BoxedMontyForm {
     }
 }
 
-impl<const LIMBS: usize> From<&MontyParams<LIMBS>> for BoxedMontyParams {
-    fn from(params: &MontyParams<LIMBS>) -> Self {
-        GenericMontyParams::<BoxedUint> {
+impl<const LIMBS: usize> From<&FixedMontyParams<LIMBS>> for BoxedMontyParams {
+    fn from(params: &FixedMontyParams<LIMBS>) -> Self {
+        MontyParams::<BoxedUint> {
             modulus: params.modulus.into(),
             one: params.one.into(),
             r2: params.r2.into(),
@@ -55,8 +55,8 @@ impl<const LIMBS: usize> From<&MontyParams<LIMBS>> for BoxedMontyParams {
     }
 }
 
-impl<const LIMBS: usize> From<MontyParams<LIMBS>> for BoxedMontyParams {
-    fn from(params: MontyParams<LIMBS>) -> Self {
+impl<const LIMBS: usize> From<FixedMontyParams<LIMBS>> for BoxedMontyParams {
+    fn from(params: FixedMontyParams<LIMBS>) -> Self {
         BoxedMontyParams::from(&params)
     }
 }

@@ -8,7 +8,7 @@ use common::to_biguint;
 use core::mem;
 use crypto_bigint::{
     Encoding, Limb, NonZero, Odd, U256, U512, U4096, U8192, Uint, Word,
-    modular::{MontyForm, MontyParams},
+    modular::{FixedMontyForm, FixedMontyParams},
 };
 use num_bigint::BigUint;
 use num_integer::Integer as _;
@@ -583,8 +583,8 @@ proptest! {
         let p_bi = to_biguint(&P);
 
         let expected = to_uint(a_bi.modpow(&b_bi, &p_bi));
-        let params = MontyParams::new_vartime(P);
-        let a_m = MontyForm::new(&a, &params);
+        let params = FixedMontyParams::new_vartime(P);
+        let a_m = FixedMontyForm::new(&a, &params);
         let actual = a_m.pow(&b).retrieve();
         let actual_vartime = a_m.pow_vartime(&b).retrieve();
 
@@ -602,8 +602,8 @@ proptest! {
 
         let expected = to_uint(a_bi.modpow(&b_bi, &p_bi));
 
-        let params = MontyParams::new_vartime(P);
-        let a_m = MontyForm::new(&a, &params);
+        let params = FixedMontyParams::new_vartime(P);
+        let a_m = FixedMontyForm::new(&a, &params);
         let actual = a_m.pow_bounded_exp(&b, exponent_bits.into()).retrieve();
 
         prop_assert_eq!(expected, actual);
@@ -623,8 +623,8 @@ proptest! {
         };
         let expected = to_uint(expected);
 
-        let params = MontyParams::new_vartime(P);
-        let a_m = MontyForm::new(&a, &params);
+        let params = FixedMontyParams::new_vartime(P);
+        let a_m = FixedMontyForm::new(&a, &params);
         let actual = a_m.div_by_2().retrieve();
 
         prop_assert_eq!(expected, actual);

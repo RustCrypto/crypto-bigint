@@ -1,9 +1,9 @@
 //! Multiplicative inverses of integers in Montgomery form with a modulus set at runtime.
 
-use super::{MontyForm, MontyParams};
+use super::{FixedMontyForm, FixedMontyParams};
 use crate::{CtOption, modular::SafeGcdInverter, traits::Invert};
 
-impl<const LIMBS: usize> MontyForm<LIMBS> {
+impl<const LIMBS: usize> FixedMontyForm<LIMBS> {
     /// Computes `self^-1` representing the multiplicative inverse of `self`.
     /// i.e. `self * self^-1 = 1`.
     ///
@@ -69,7 +69,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Invert for MontyForm<LIMBS> {
+impl<const LIMBS: usize> Invert for FixedMontyForm<LIMBS> {
     type Output = CtOption<Self>;
 
     fn invert(&self) -> Self::Output {
@@ -81,7 +81,7 @@ impl<const LIMBS: usize> Invert for MontyForm<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> MontyParams<LIMBS> {
+impl<const LIMBS: usize> FixedMontyParams<LIMBS> {
     /// Create a modular inverter for the modulus of these params.
     const fn inverter(&self) -> SafeGcdInverter<LIMBS> {
         SafeGcdInverter::new_with_inverse(&self.modulus, self.mod_inv, &self.r2)
@@ -90,11 +90,11 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use super::{MontyForm, MontyParams};
+    use super::{FixedMontyForm, FixedMontyParams};
     use crate::{Odd, U256};
 
-    fn params() -> MontyParams<{ U256::LIMBS }> {
-        MontyParams::new_vartime(Odd::<U256>::from_be_hex(
+    fn params() -> FixedMontyParams<{ U256::LIMBS }> {
+        FixedMontyParams::new_vartime(Odd::<U256>::from_be_hex(
             "15477BCCEFE197328255BFA79A1217899016D927EF460F4FF404029D24FA4409",
         ))
     }
@@ -104,7 +104,7 @@ mod tests {
         let params = params();
         let x =
             U256::from_be_hex("77117F1273373C26C700D076B3F780074D03339F56DD0EFB60E7F58441FD3685");
-        let x_monty = MontyForm::new(&x, &params);
+        let x_monty = FixedMontyForm::new(&x, &params);
 
         let inv = x_monty.invert().unwrap();
         let res = x_monty * inv;

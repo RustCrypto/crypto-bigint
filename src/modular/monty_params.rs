@@ -13,7 +13,7 @@ use zeroize::Zeroize;
 ///
 /// This version is generic over the underlying unsigned integer type.
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub struct GenericMontyParams<U: Unsigned> {
+pub struct MontyParams<U: Unsigned> {
     /// The constant modulus.
     pub(super) modulus: Odd<U>,
 
@@ -32,7 +32,7 @@ pub struct GenericMontyParams<U: Unsigned> {
     pub(super) mod_leading_zeros: u32,
 }
 
-impl<U: Unsigned> GenericMontyParams<U> {
+impl<U: Unsigned> MontyParams<U> {
     /// Returns the modulus which was used to initialize these parameters.
     pub const fn modulus(&self) -> &Odd<U> {
         &self.modulus
@@ -67,13 +67,13 @@ impl<U: Unsigned> GenericMontyParams<U> {
     }
 }
 
-impl<U: Unsigned> AsRef<Self> for GenericMontyParams<U> {
+impl<U: Unsigned> AsRef<Self> for MontyParams<U> {
     fn as_ref(&self) -> &Self {
         self
     }
 }
 
-impl<U: Unsigned> CtAssign for GenericMontyParams<U> {
+impl<U: Unsigned> CtAssign for MontyParams<U> {
     fn ct_assign(&mut self, other: &Self, choice: Choice) {
         self.modulus.ct_assign(&other.modulus, choice);
         self.one.ct_assign(&other.one, choice);
@@ -83,10 +83,10 @@ impl<U: Unsigned> CtAssign for GenericMontyParams<U> {
             .ct_assign(&other.mod_leading_zeros, choice);
     }
 }
-impl<U: Unsigned> CtAssignSlice for GenericMontyParams<U> {}
-impl<U: Unsigned> CtSelectUsingCtAssign for GenericMontyParams<U> {}
+impl<U: Unsigned> CtAssignSlice for MontyParams<U> {}
+impl<U: Unsigned> CtSelectUsingCtAssign for MontyParams<U> {}
 
-impl<U: Unsigned> CtEq for GenericMontyParams<U> {
+impl<U: Unsigned> CtEq for MontyParams<U> {
     fn ct_eq(&self, other: &Self) -> Choice {
         self.modulus.ct_eq(&other.modulus)
             & self.one.ct_eq(&other.one)
@@ -94,23 +94,23 @@ impl<U: Unsigned> CtEq for GenericMontyParams<U> {
             & self.mod_inv.ct_eq(&other.mod_inv)
     }
 }
-impl<U: Unsigned> CtEqSlice for GenericMontyParams<U> {}
+impl<U: Unsigned> CtEqSlice for MontyParams<U> {}
 
-impl<const LIMBS: usize> Debug for MontyParams<LIMBS> {
+impl<const LIMBS: usize> Debug for FixedMontyParams<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.debug_struct(f.debug_struct("MontyParams"))
     }
 }
 
 #[cfg(feature = "subtle")]
-impl<U: Unsigned> subtle::ConstantTimeEq for GenericMontyParams<U> {
+impl<U: Unsigned> subtle::ConstantTimeEq for MontyParams<U> {
     fn ct_eq(&self, other: &Self) -> subtle::Choice {
         CtEq::ct_eq(self, other).into()
     }
 }
 
 #[cfg(feature = "subtle")]
-impl<U: Unsigned + Copy> subtle::ConditionallySelectable for GenericMontyParams<U> {
+impl<U: Unsigned + Copy> subtle::ConditionallySelectable for MontyParams<U> {
     fn conditional_assign(&mut self, src: &Self, choice: subtle::Choice) {
         self.ct_assign(src, choice.into());
     }
@@ -121,7 +121,7 @@ impl<U: Unsigned + Copy> subtle::ConditionallySelectable for GenericMontyParams<
 }
 
 #[cfg(feature = "zeroize")]
-impl<U: Unsigned + Zeroize> Zeroize for GenericMontyParams<U> {
+impl<U: Unsigned + Zeroize> Zeroize for MontyParams<U> {
     fn zeroize(&mut self) {
         self.modulus.zeroize();
         self.one.zeroize();
@@ -132,9 +132,9 @@ impl<U: Unsigned + Zeroize> Zeroize for GenericMontyParams<U> {
 }
 
 /// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
-pub type MontyParams<const LIMBS: usize> = GenericMontyParams<Uint<LIMBS>>;
+pub type FixedMontyParams<const LIMBS: usize> = MontyParams<Uint<LIMBS>>;
 
-impl<const LIMBS: usize> MontyParams<LIMBS> {
+impl<const LIMBS: usize> FixedMontyParams<LIMBS> {
     /// Instantiates a new set of `MontyParams` representing the given odd `modulus`.
     #[must_use]
     pub const fn new(modulus: Odd<Uint<LIMBS>>) -> Self {
@@ -164,7 +164,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> MontyParams<LIMBS> {
+impl<const LIMBS: usize> FixedMontyParams<LIMBS> {
     /// Instantiates a new set of `MontyParams` representing the given odd `modulus`.
     #[must_use]
     pub const fn new_vartime(modulus: Odd<Uint<LIMBS>>) -> Self {
@@ -199,7 +199,7 @@ impl<const LIMBS: usize> MontyParams<LIMBS> {
 
 #[cfg(feature = "alloc")]
 pub(crate) mod boxed {
-    use super::GenericMontyParams;
+    use super::MontyParams;
     use crate::{Limb, Odd, U64, Word};
     use alloc::sync::Arc;
     use core::fmt::{self, Debug};
@@ -207,7 +207,7 @@ pub(crate) mod boxed {
     /// Parameters to efficiently go to/from the Montgomery form for an odd modulus whose size and value
     /// are both chosen at runtime.
     #[derive(Clone, Eq, PartialEq)]
-    pub struct BoxedMontyParams(Arc<GenericMontyParams<crate::uint::boxed::BoxedUint>>);
+    pub struct BoxedMontyParams(Arc<MontyParams<crate::uint::boxed::BoxedUint>>);
 
     impl BoxedMontyParams {
         /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`.
@@ -232,7 +232,7 @@ pub(crate) mod boxed {
             let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
 
             Self(
-                GenericMontyParams {
+                MontyParams {
                     modulus,
                     one,
                     r2,
@@ -266,7 +266,7 @@ pub(crate) mod boxed {
             let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
 
             Self(
-                GenericMontyParams {
+                MontyParams {
                     modulus,
                     one,
                     r2,
@@ -310,8 +310,8 @@ pub(crate) mod boxed {
         }
     }
 
-    impl AsRef<GenericMontyParams<crate::uint::boxed::BoxedUint>> for BoxedMontyParams {
-        fn as_ref(&self) -> &GenericMontyParams<crate::uint::boxed::BoxedUint> {
+    impl AsRef<MontyParams<crate::uint::boxed::BoxedUint>> for BoxedMontyParams {
+        fn as_ref(&self) -> &MontyParams<crate::uint::boxed::BoxedUint> {
             &self.0
         }
     }
@@ -322,8 +322,8 @@ pub(crate) mod boxed {
         }
     }
 
-    impl From<GenericMontyParams<crate::uint::boxed::BoxedUint>> for BoxedMontyParams {
-        fn from(params: GenericMontyParams<crate::uint::boxed::BoxedUint>) -> Self {
+    impl From<MontyParams<crate::uint::boxed::BoxedUint>> for BoxedMontyParams {
+        fn from(params: MontyParams<crate::uint::boxed::BoxedUint>) -> Self {
             Self(params.into())
         }
     }
