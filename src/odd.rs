@@ -143,13 +143,6 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
         self.0.as_uint_ref().as_odd_unchecked()
     }
 
-    /// Mutably borrow this `OddUint` as a `&mut OddUintRef`.
-    #[inline]
-    #[must_use]
-    pub const fn as_mut_uint_ref(&mut self) -> &mut OddUintRef {
-        self.0.as_mut_uint_ref().as_mut_odd_unchecked()
-    }
-
     /// Construct an [`Odd<Uint<T>>`] from the unsigned integer value,
     /// truncating the upper bits if the value is too large to be
     /// represented.
@@ -162,12 +155,6 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
 impl<const LIMBS: usize> AsRef<OddUintRef> for OddUint<LIMBS> {
     fn as_ref(&self) -> &OddUintRef {
         self.as_uint_ref()
-    }
-}
-
-impl<const LIMBS: usize> AsMut<OddUintRef> for OddUint<LIMBS> {
-    fn as_mut(&mut self) -> &mut OddUintRef {
-        self.as_mut_uint_ref()
     }
 }
 
@@ -332,13 +319,6 @@ impl OddBoxedUint {
         self.0.as_uint_ref().as_odd_unchecked()
     }
 
-    /// Mutably borrow this `OddUBoxedint` as a `&mut OddUintRef`.
-    #[inline]
-    #[must_use]
-    pub const fn as_mut_uint_ref(&mut self) -> &mut OddUintRef {
-        self.0.as_mut_uint_ref().as_mut_odd_unchecked()
-    }
-
     /// Generate a random `Odd<Uint<T>>`.
     #[cfg(feature = "rand_core")]
     pub fn random<R: TryRngCore + ?Sized>(rng: &mut R, bit_length: u32) -> Self {
@@ -352,13 +332,6 @@ impl OddBoxedUint {
 impl AsRef<OddUintRef> for OddBoxedUint {
     fn as_ref(&self) -> &OddUintRef {
         self.as_uint_ref()
-    }
-}
-
-#[cfg(feature = "alloc")]
-impl AsMut<OddUintRef> for OddBoxedUint {
-    fn as_mut(&mut self) -> &mut OddUintRef {
-        self.as_mut_uint_ref()
     }
 }
 
