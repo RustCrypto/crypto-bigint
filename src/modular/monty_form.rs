@@ -17,71 +17,8 @@ use super::{
     mul::mul_montgomery_form,
     reduction::montgomery_retrieve,
 };
-use crate::{Choice, Monty, Odd, U64, Uint, Word};
+use crate::{Monty, Odd, Uint};
 use mul::DynMontyMultiplier;
-
-impl<const LIMBS: usize> MontyParams<LIMBS> {
-    /// Instantiates a new set of `MontyParams` representing the given odd `modulus`.
-    #[must_use]
-    pub const fn new(modulus: Odd<Uint<LIMBS>>) -> Self {
-        // `R mod modulus` where `R = 2^BITS`.
-        // Represents 1 in Montgomery form.
-        let one = Uint::<LIMBS>::MAX
-            .rem(modulus.as_nz_ref())
-            .wrapping_add(&Uint::ONE);
-
-        // `R^2 mod modulus`, used to convert integers to Montgomery form.
-        let r2 = one.square_mod(modulus.as_nz_ref());
-
-        // The inverse of the modulus modulo 2**64
-        let mod_inv = U64::from_u64(modulus.as_uint_ref().invert_mod_u64());
-
-        let mod_leading_zeros = modulus.as_ref().leading_zeros();
-        let mod_leading_zeros = Choice::from_u32_lt(mod_leading_zeros, Word::BITS - 1)
-            .select_u32(Word::BITS - 1, mod_leading_zeros);
-
-        Self {
-            modulus,
-            one,
-            r2,
-            mod_inv,
-            mod_leading_zeros,
-        }
-    }
-}
-
-impl<const LIMBS: usize> MontyParams<LIMBS> {
-    /// Instantiates a new set of `MontyParams` representing the given odd `modulus`.
-    #[must_use]
-    pub const fn new_vartime(modulus: Odd<Uint<LIMBS>>) -> Self {
-        // `R mod modulus` where `R = 2^BITS`.
-        // Represents 1 in Montgomery form.
-        let one = Uint::MAX
-            .rem_vartime(modulus.as_nz_ref())
-            .wrapping_add(&Uint::ONE);
-
-        // `R^2 mod modulus`, used to convert integers to Montgomery form.
-        let r2 = one.square_mod_vartime(modulus.as_nz_ref());
-
-        // The inverse of the modulus modulo 2**64
-        let mod_inv = U64::from_u64(modulus.as_uint_ref().invert_mod_u64());
-
-        let mod_leading_zeros = modulus.as_ref().leading_zeros_vartime();
-        let mod_leading_zeros = if mod_leading_zeros < Word::BITS - 1 {
-            mod_leading_zeros
-        } else {
-            Word::BITS - 1
-        };
-
-        Self {
-            modulus,
-            one,
-            r2,
-            mod_inv,
-            mod_leading_zeros,
-        }
-    }
-}
 
 /// An integer in Montgomery form represented using `LIMBS` limbs.
 /// The odd modulus is set at runtime.

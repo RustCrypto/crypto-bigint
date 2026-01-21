@@ -2,7 +2,6 @@
 
 use super::{BoxedMontyForm, BoxedMontyParams};
 use crate::{Choice, CtAssign, CtEq, CtSelect};
-use alloc::sync::Arc;
 use ctutils::{CtAssignSlice, CtEqSlice, CtSelectUsingCtAssign};
 
 impl CtAssign for BoxedMontyForm {
@@ -42,6 +41,6 @@ impl CtEqSlice for BoxedMontyParams {}
 
 impl CtSelect for BoxedMontyParams {
     fn ct_select(&self, other: &Self, choice: Choice) -> Self {
-        Self(Arc::new(self.0.ct_select(&other.0, choice)))
+        self.as_ref().ct_select(other.as_ref(), choice).into()
     }
 }

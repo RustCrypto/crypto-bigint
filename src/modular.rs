@@ -43,7 +43,7 @@ pub use self::{
 pub(crate) use self::safegcd::SafeGcdInverter;
 
 #[cfg(feature = "alloc")]
-pub use self::boxed_monty_form::{BoxedMontyForm, BoxedMontyParams};
+pub use self::{boxed_monty_form::BoxedMontyForm, monty_params::boxed::BoxedMontyParams};
 
 /// A generalization for numbers kept in optimized representations (e.g. Montgomery)
 /// that can be converted back to the original form.
