@@ -64,19 +64,19 @@ impl BoxedMontyForm {
 
     /// Instantiates a new `ConstMontyForm` that represents zero.
     #[must_use]
-    pub fn zero(params: BoxedMontyParams) -> Self {
+    pub fn zero(params: &BoxedMontyParams) -> Self {
         Self {
             montgomery_form: BoxedUint::zero_with_precision(params.bits_precision()),
-            params,
+            params: params.clone(),
         }
     }
 
     /// Instantiates a new `ConstMontyForm` that represents 1.
     #[must_use]
-    pub fn one(params: BoxedMontyParams) -> Self {
+    pub fn one(params: &BoxedMontyParams) -> Self {
         Self {
             montgomery_form: params.one().clone(),
-            params,
+            params: params.clone(),
         }
     }
 
@@ -121,11 +121,11 @@ impl BoxedMontyForm {
 
     /// Create a [`BoxedMontyForm`] from a value in Montgomery form.
     #[must_use]
-    pub fn from_montgomery(integer: BoxedUint, params: BoxedMontyParams) -> Self {
+    pub fn from_montgomery(integer: BoxedUint, params: &BoxedMontyParams) -> Self {
         debug_assert_eq!(integer.bits_precision(), params.bits_precision());
         Self {
             montgomery_form: integer,
-            params,
+            params: params.clone(),
         }
     }
 
@@ -172,11 +172,11 @@ impl Monty for BoxedMontyForm {
         BoxedMontyForm::new(value, params)
     }
 
-    fn zero(params: Self::Params) -> Self {
+    fn zero(params: &Self::Params) -> Self {
         BoxedMontyForm::zero(params)
     }
 
-    fn one(params: Self::Params) -> Self {
+    fn one(params: &Self::Params) -> Self {
         BoxedMontyForm::one(params)
     }
 
@@ -197,6 +197,10 @@ impl Monty for BoxedMontyForm {
         self.montgomery_form
             .limbs
             .copy_from_slice(&other.montgomery_form.limbs);
+    }
+
+    fn into_montgomery(self) -> Self::Integer {
+        self.montgomery_form
     }
 
     fn double(&self) -> Self {
@@ -248,8 +252,8 @@ mod tests {
     fn div_by_2() {
         let modulus = Odd::new(BoxedUint::from(9u8)).unwrap();
         let params = BoxedMontyParams::new(modulus);
-        let zero = BoxedMontyForm::zero(params.clone());
-        let one = BoxedMontyForm::one(params.clone());
+        let zero = BoxedMontyForm::zero(&params);
+        let one = BoxedMontyForm::one(&params);
         let two = one.add(&one);
 
         assert_eq!(zero.div_by_2(), zero);
@@ -260,7 +264,7 @@ mod tests {
     fn as_montgomery_mut() {
         let modulus = Odd::new(BoxedUint::from(9u8)).unwrap();
         let params = BoxedMontyParams::new(modulus);
-        let one = BoxedMontyForm::one(params.clone());
+        let one = BoxedMontyForm::one(&params);
         let two = one.add(&one);
         let four = two.mul(&two);
         let mut x = two.clone();

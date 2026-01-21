@@ -196,14 +196,14 @@ mod tests {
 
     #[test]
     fn test_mul_zero() {
-        let res = N_MOD.mul(&MontyForm::zero(PARAMS));
+        let res = N_MOD.mul(&MontyForm::zero(&PARAMS));
         let expected = U256::ZERO;
         assert_eq!(res.retrieve(), expected);
     }
 
     #[test]
     fn test_mul_one() {
-        let res = N_MOD.mul(&MontyForm::one(PARAMS));
+        let res = N_MOD.mul(&MontyForm::one(&PARAMS));
         assert_eq!(res.retrieve(), N);
     }
 

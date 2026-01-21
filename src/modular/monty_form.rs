@@ -52,19 +52,19 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
 
     /// Instantiates a new `MontyForm` that represents zero.
     #[must_use]
-    pub const fn zero(params: MontyParams<LIMBS>) -> Self {
+    pub const fn zero(params: &MontyParams<LIMBS>) -> Self {
         Self {
             montgomery_form: Uint::<LIMBS>::ZERO,
-            params,
+            params: *params,
         }
     }
 
     /// Instantiates a new `MontyForm` that represents 1.
     #[must_use]
-    pub const fn one(params: MontyParams<LIMBS>) -> Self {
+    pub const fn one(params: &MontyParams<LIMBS>) -> Self {
         Self {
             montgomery_form: params.one,
-            params,
+            params: *params,
         }
     }
 
@@ -87,10 +87,10 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
 
     /// Create a `MontyForm` from a value in Montgomery form.
     #[must_use]
-    pub const fn from_montgomery(integer: Uint<LIMBS>, params: MontyParams<LIMBS>) -> Self {
+    pub const fn from_montgomery(integer: Uint<LIMBS>, params: &MontyParams<LIMBS>) -> Self {
         Self {
             montgomery_form: integer,
-            params,
+            params: *params,
         }
     }
 
@@ -130,11 +130,11 @@ impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
         MontyForm::new(&value, params)
     }
 
-    fn zero(params: Self::Params) -> Self {
+    fn zero(params: &Self::Params) -> Self {
         MontyForm::zero(params)
     }
 
-    fn one(params: Self::Params) -> Self {
+    fn one(params: &Self::Params) -> Self {
         MontyForm::one(params)
     }
 
@@ -144,6 +144,10 @@ impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
 
     fn as_montgomery(&self) -> &Self::Integer {
         &self.montgomery_form
+    }
+
+    fn into_montgomery(self) -> Self::Integer {
+        self.montgomery_form
     }
 
     fn copy_montgomery_from(&mut self, other: &Self) {

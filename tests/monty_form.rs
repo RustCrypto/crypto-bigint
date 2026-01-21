@@ -144,7 +144,7 @@ proptest! {
         // Inversion works in monty form
         assert_eq!(
             one_monty,
-            MontyForm::one(*monty_params),
+            MontyForm::one(monty_params),
             "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:0128b}",
             monty_params.modulus()
         );
@@ -183,7 +183,7 @@ proptest! {
         // Inversion works in monty form
         assert_eq!(
             one_monty,
-            MontyForm::one(*monty_params),
+            MontyForm::one(monty_params),
             "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:0256b}",
             monty_params.modulus()
         );
@@ -222,7 +222,7 @@ proptest! {
         // Inversion works in monty form
         assert_eq!(
             one_monty,
-            MontyForm::one(*monty_params),
+            MontyForm::one(monty_params),
             "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:01024b}",
             monty_params.modulus()
         );
@@ -261,7 +261,7 @@ proptest! {
         // Inversion works in monty form
         assert_eq!(
             one_monty,
-            MontyForm::one(*monty_params),
+            MontyForm::one(monty_params),
             "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:02048b}",
             monty_params.modulus()
         );
