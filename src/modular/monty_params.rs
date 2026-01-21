@@ -1,6 +1,6 @@
 //! Modulus-specific Montgomery form parameters.
 
-use crate::{Choice, CtAssign, CtEq, Limb, Odd, U64, Uint, Unsigned};
+use crate::{Choice, CtAssign, CtEq, Limb, Odd, U64, Uint, Unsigned, Word};
 use core::fmt::{self, Debug};
 use ctutils::{CtAssignSlice, CtEqSlice, CtSelectUsingCtAssign};
 
@@ -31,9 +31,6 @@ pub struct GenericMontyParams<U: Unsigned> {
     /// Leading zeros in the modulus, used to choose optimized algorithms
     pub(super) mod_leading_zeros: u32,
 }
-
-/// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
-pub type MontyParams<const LIMBS: usize> = GenericMontyParams<Uint<LIMBS>>;
 
 impl<U: Unsigned> GenericMontyParams<U> {
     /// Returns the modulus which was used to initialize these parameters.
@@ -131,5 +128,203 @@ impl<U: Unsigned + Zeroize> Zeroize for GenericMontyParams<U> {
         self.r2.zeroize();
         self.mod_inv.zeroize();
         self.mod_leading_zeros.zeroize();
+    }
+}
+
+/// Parameters to efficiently go to/from the Montgomery form for an odd modulus provided at runtime.
+pub type MontyParams<const LIMBS: usize> = GenericMontyParams<Uint<LIMBS>>;
+
+impl<const LIMBS: usize> MontyParams<LIMBS> {
+    /// Instantiates a new set of `MontyParams` representing the given odd `modulus`.
+    #[must_use]
+    pub const fn new(modulus: Odd<Uint<LIMBS>>) -> Self {
+        // `R mod modulus` where `R = 2^BITS`.
+        // Represents 1 in Montgomery form.
+        let one = Uint::<LIMBS>::MAX
+            .rem(modulus.as_nz_ref())
+            .wrapping_add(&Uint::ONE);
+
+        // `R^2 mod modulus`, used to convert integers to Montgomery form.
+        let r2 = one.square_mod(modulus.as_nz_ref());
+
+        // The inverse of the modulus modulo 2**64
+        let mod_inv = U64::from_u64(modulus.as_uint_ref().invert_mod_u64());
+
+        let mod_leading_zeros = modulus.as_ref().leading_zeros();
+        let mod_leading_zeros = Choice::from_u32_lt(mod_leading_zeros, Word::BITS - 1)
+            .select_u32(Word::BITS - 1, mod_leading_zeros);
+
+        Self {
+            modulus,
+            one,
+            r2,
+            mod_inv,
+            mod_leading_zeros,
+        }
+    }
+}
+
+impl<const LIMBS: usize> MontyParams<LIMBS> {
+    /// Instantiates a new set of `MontyParams` representing the given odd `modulus`.
+    #[must_use]
+    pub const fn new_vartime(modulus: Odd<Uint<LIMBS>>) -> Self {
+        // `R mod modulus` where `R = 2^BITS`.
+        // Represents 1 in Montgomery form.
+        let one = Uint::MAX
+            .rem_vartime(modulus.as_nz_ref())
+            .wrapping_add(&Uint::ONE);
+
+        // `R^2 mod modulus`, used to convert integers to Montgomery form.
+        let r2 = one.square_mod_vartime(modulus.as_nz_ref());
+
+        // The inverse of the modulus modulo 2**64
+        let mod_inv = U64::from_u64(modulus.as_uint_ref().invert_mod_u64());
+
+        let mod_leading_zeros = modulus.as_ref().leading_zeros_vartime();
+        let mod_leading_zeros = if mod_leading_zeros < Word::BITS - 1 {
+            mod_leading_zeros
+        } else {
+            Word::BITS - 1
+        };
+
+        Self {
+            modulus,
+            one,
+            r2,
+            mod_inv,
+            mod_leading_zeros,
+        }
+    }
+}
+
+#[cfg(feature = "alloc")]
+pub(crate) mod boxed {
+    use super::GenericMontyParams;
+    use crate::{Limb, Odd, U64, Word};
+    use alloc::sync::Arc;
+    use core::fmt::{self, Debug};
+
+    /// Parameters to efficiently go to/from the Montgomery form for an odd modulus whose size and value
+    /// are both chosen at runtime.
+    #[derive(Clone, Eq, PartialEq)]
+    pub struct BoxedMontyParams(Arc<GenericMontyParams<crate::uint::boxed::BoxedUint>>);
+
+    impl BoxedMontyParams {
+        /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`.
+        ///
+        /// TODO(tarcieri): DRY out with `MontyParams::new`?
+        #[must_use]
+        pub fn new(modulus: Odd<crate::uint::boxed::BoxedUint>) -> Self {
+            let bits_precision = modulus.bits_precision();
+
+            // `R mod modulus` where `R = 2^BITS`.
+            // Represents 1 in Montgomery form.
+            let one = crate::uint::boxed::BoxedUint::max(bits_precision)
+                .rem(modulus.as_nz_ref())
+                .wrapping_add(&crate::uint::boxed::BoxedUint::one());
+
+            // `R^2 mod modulus`, used to convert integers to Montgomery form.
+            let r2 = one.square_mod(modulus.as_nz_ref());
+
+            // The inverse of the modulus modulo 2**64
+            let mod_inv = U64::from_u64(modulus.as_uint_ref().invert_mod_u64());
+
+            let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
+
+            Self(
+                GenericMontyParams {
+                    modulus,
+                    one,
+                    r2,
+                    mod_inv,
+                    mod_leading_zeros,
+                }
+                .into(),
+            )
+        }
+
+        /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`.
+        /// This version operates in variable-time with respect to the modulus.
+        ///
+        /// TODO(tarcieri): DRY out with `MontyParams::new_vartime`?
+        #[must_use]
+        pub fn new_vartime(modulus: Odd<crate::uint::boxed::BoxedUint>) -> Self {
+            let bits_precision = modulus.bits_precision();
+
+            // `R mod modulus` where `R = 2^BITS`.
+            // Represents 1 in Montgomery form.
+            let one = crate::uint::boxed::BoxedUint::max(bits_precision)
+                .rem_vartime(modulus.as_nz_ref())
+                .wrapping_add(&crate::uint::boxed::BoxedUint::one());
+
+            // `R^2 mod modulus`, used to convert integers to Montgomery form.
+            let r2 = one.square_mod_vartime(modulus.as_nz_ref());
+
+            // The inverse of the modulus modulo 2**64
+            let mod_inv = U64::from_u64(modulus.as_uint_ref().invert_mod_u64());
+
+            let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
+
+            Self(
+                GenericMontyParams {
+                    modulus,
+                    one,
+                    r2,
+                    mod_inv,
+                    mod_leading_zeros,
+                }
+                .into(),
+            )
+        }
+
+        /// Modulus value.
+        #[must_use]
+        pub fn modulus(&self) -> &Odd<crate::uint::boxed::BoxedUint> {
+            &self.0.modulus
+        }
+
+        /// Bits of precision in the modulus.
+        #[must_use]
+        pub fn bits_precision(&self) -> u32 {
+            self.0.modulus.bits_precision()
+        }
+
+        pub(crate) fn r2(&self) -> &crate::uint::boxed::BoxedUint {
+            &self.0.r2
+        }
+
+        pub(crate) fn one(&self) -> &crate::uint::boxed::BoxedUint {
+            &self.0.one
+        }
+
+        pub(crate) fn mod_inv(&self) -> U64 {
+            self.0.mod_inv
+        }
+
+        pub(crate) fn mod_neg_inv(&self) -> Limb {
+            self.0.mod_inv.limbs[0].wrapping_neg()
+        }
+
+        pub(crate) fn mod_leading_zeros(&self) -> u32 {
+            self.0.mod_leading_zeros
+        }
+    }
+
+    impl AsRef<GenericMontyParams<crate::uint::boxed::BoxedUint>> for BoxedMontyParams {
+        fn as_ref(&self) -> &GenericMontyParams<crate::uint::boxed::BoxedUint> {
+            &self.0
+        }
+    }
+
+    impl Debug for BoxedMontyParams {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            self.0.debug_struct(f.debug_struct("BoxedMontyParams"))
+        }
+    }
+
+    impl From<GenericMontyParams<crate::uint::boxed::BoxedUint>> for BoxedMontyParams {
+        fn from(params: GenericMontyParams<crate::uint::boxed::BoxedUint>) -> Self {
+            Self(params.into())
+        }
     }
 }
