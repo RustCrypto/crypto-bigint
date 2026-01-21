@@ -562,6 +562,21 @@ proptest! {
     }
 
     #[test]
+    fn wrapping_pow_bounded_exp(a in uint(), b in uint(), exponent_bits in any::<u8>()) {
+        let b_masked = b & (U256::ONE << u32::from(exponent_bits)).wrapping_sub(&U256::ONE);
+
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b_masked);
+        let p_bi = to_biguint(&U256::MAX) + 1u32;
+
+        let expected = to_uint(a_bi.modpow(&b_bi, &p_bi));
+
+        let actual = a.wrapping_pow_bounded_exp(&b, exponent_bits.into());
+
+        prop_assert_eq!(expected, actual);
+    }
+
+    #[test]
     fn monty_form_pow(a in uint_mod_p(P), b in uint()) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);

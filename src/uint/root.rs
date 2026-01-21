@@ -2,7 +2,7 @@
 
 use core::num::NonZeroU32;
 
-use crate::{Limb, NonZero, Reciprocal, Uint};
+use crate::{Limb, NonZero, Reciprocal, U64, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `floor(self^(1/exp))`.
@@ -72,7 +72,7 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
             x = x2;
 
             (q, _) = self.0.div_rem_vartime(
-                x.wrapping_pow_vartime(exp_m1)
+                x.wrapping_pow_vartime(&U64::from_u32(exp_m1))
                     .to_nz()
                     .expect_ref("ensured non-zero"),
             );
@@ -86,7 +86,7 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     #[must_use]
     pub fn checked_root_vartime(&self, exp: NonZeroU32) -> Option<Self> {
         let r = self.floor_root_vartime(exp);
-        let s = r.wrapping_pow_vartime(exp.get());
+        let s = r.wrapping_pow_vartime(&U64::from_u32(exp.get()));
         if self.cmp_vartime(&s).is_eq() {
             Some(r)
         } else {
@@ -125,6 +125,7 @@ mod tests {
     #[cfg(feature = "rand_core")]
     #[test]
     fn fuzz() {
+        use crate::U64;
         use core::num::NonZeroU32;
 
         let mut rng: ChaCha8Rng = ChaCha8Rng::from_seed([7u8; 32]);
@@ -136,15 +137,16 @@ mod tests {
             };
             for exp in 1..10 {
                 let exp = NonZeroU32::new(exp).unwrap();
+                let exp_uint = U64::from_u32(exp.get());
                 let root = s.floor_root_vartime(exp);
 
                 // root is correct if rt^exp <= s and (rt+1)^exp > s
                 let s2 = root
-                    .checked_pow_vartime(exp.get())
+                    .checked_pow_vartime(&exp_uint)
                     .expect("overflow, {s} exp={exp}, root={rt}");
                 assert!(s2 <= s.get(), "overflow, {s} exp={exp}, root={root}");
                 let rt_p1 = root.wrapping_add_limb(Limb::ONE);
-                let s3 = rt_p1.checked_pow_vartime(exp.get()).into_option();
+                let s3 = rt_p1.checked_pow_vartime(&exp_uint).into_option();
                 assert!(
                     s3.is_none_or(|s3| s3 > s2),
                     "underflow, {s} exp={exp}, root={root}"
