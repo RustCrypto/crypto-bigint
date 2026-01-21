@@ -63,7 +63,7 @@ impl BoxedMontyParams {
     /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`.
     /// This version operates in variable-time with respect to the modulus.
     ///
-    /// TODO(tarcieri): DRY out with `MontyParams::new`?
+    /// TODO(tarcieri): DRY out with `MontyParams::new_vartime`?
     #[must_use]
     pub fn new_vartime(modulus: Odd<BoxedUint>) -> Self {
         let bits_precision = modulus.bits_precision();
@@ -136,6 +136,12 @@ impl AsRef<GenericMontyParams<BoxedUint>> for BoxedMontyParams {
 impl Debug for BoxedMontyParams {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.0.debug_struct(f.debug_struct("BoxedMontyParams"))
+    }
+}
+
+impl From<GenericMontyParams<BoxedUint>> for BoxedMontyParams {
+    fn from(params: GenericMontyParams<BoxedUint>) -> Self {
+        Self(params.into())
     }
 }
 
