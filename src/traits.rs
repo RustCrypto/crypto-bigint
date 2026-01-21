@@ -1142,6 +1142,7 @@ pub trait Monty:
     /// The precomputed data needed for this representation.
     type Params: 'static
         + AsRef<GenericMontyParams<Self::Integer>>
+        + From<GenericMontyParams<Self::Integer>>
         + Clone
         + Debug
         + Eq
