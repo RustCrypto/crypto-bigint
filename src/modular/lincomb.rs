@@ -82,7 +82,7 @@ pub const fn lincomb_const_monty_form<MOD: ConstMontyParams<LIMBS>, const LIMBS:
     if remain <= max_accum {
         let carry =
             impl_longa_monty_lincomb!(products, ret.limbs, modulus.0.limbs, mod_neg_inv, LIMBS);
-        ret.sub_mod_with_carry(carry, &modulus.0, &modulus.0)
+        ret.try_sub_with_carry(carry, &modulus.0).0
     } else {
         let mut window;
         while remain > 0 {
@@ -94,7 +94,7 @@ pub const fn lincomb_const_monty_form<MOD: ConstMontyParams<LIMBS>, const LIMBS:
             (window, products) = products.split_at(count);
             let carry =
                 impl_longa_monty_lincomb!(window, buf.limbs, modulus.0.limbs, mod_neg_inv, LIMBS);
-            buf = buf.sub_mod_with_carry(carry, &modulus.0, &modulus.0);
+            buf = buf.try_sub_with_carry(carry, &modulus.0).0;
             ret = ret.add_mod(&buf, modulus.as_nz_ref());
             remain -= count;
         }
@@ -114,7 +114,7 @@ pub const fn lincomb_monty_form<const LIMBS: usize>(
     if remain <= max_accum {
         let carry =
             impl_longa_monty_lincomb!(products, ret.limbs, modulus.0.limbs, mod_neg_inv, LIMBS);
-        ret.sub_mod_with_carry(carry, &modulus.0, &modulus.0)
+        ret.try_sub_with_carry(carry, &modulus.0).0
     } else {
         let mut window;
         while remain > 0 {
@@ -126,7 +126,7 @@ pub const fn lincomb_monty_form<const LIMBS: usize>(
             let mut buf = Uint::ZERO;
             let carry =
                 impl_longa_monty_lincomb!(window, buf.limbs, modulus.0.limbs, mod_neg_inv, LIMBS);
-            buf = buf.sub_mod_with_carry(carry, &modulus.0, &modulus.0);
+            buf = buf.try_sub_with_carry(carry, &modulus.0).0;
             ret = ret.add_mod(&buf, modulus.as_nz_ref());
             remain -= count;
         }

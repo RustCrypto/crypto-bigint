@@ -110,14 +110,26 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         );
     });
 
-    group.bench_function("modpow, U256^U256", |b| {
+    group.bench_function("pow, U256^U256", |b| {
         b.iter_batched(
             || {
                 let x_m = ConstMontyForm::random_from_rng(&mut rng);
                 let p = U256::random_from_rng(&mut rng) | (U256::ONE << (U256::BITS - 1));
                 (x_m, p)
             },
-            |(x, p)| black_box(x.pow(&p)),
+            |(x, p)| x.pow(black_box(&p)),
+            BatchSize::SmallInput,
+        );
+    });
+
+    group.bench_function("pow_vartime, U256^U256", |b| {
+        b.iter_batched(
+            || {
+                let x_m = ConstMontyForm::random_from_rng(&mut rng);
+                let p = U256::random_from_rng(&mut rng) | (U256::ONE << (U256::BITS - 1));
+                (x_m, p)
+            },
+            |(x, p)| x.pow_vartime(black_box(&p)),
             BatchSize::SmallInput,
         );
     });

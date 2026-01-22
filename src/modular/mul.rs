@@ -142,7 +142,7 @@ pub(crate) const fn mul_montgomery_form<const LIMBS: usize>(
         &modulus.0.limbs,
         mod_neg_inv,
     );
-    out.sub_mod_with_carry(carry, modulus.as_ref(), modulus.as_ref())
+    out.try_sub_with_carry(carry, modulus.as_ref()).0
 }
 
 /// Computes the Montgomery squaring of `a` modulo `modulus` where
@@ -166,7 +166,7 @@ pub(crate) const fn square_montgomery_form<const LIMBS: usize>(
         &modulus.0.limbs,
         mod_neg_inv,
     );
-    out.sub_mod_with_carry(carry, modulus.as_ref(), modulus.as_ref())
+    out.try_sub_with_carry(carry, modulus.as_ref()).0
 }
 
 /// Computes a repeated Montgomery squaring of `a` modulo `modulus` where
@@ -213,6 +213,6 @@ pub(crate) const fn square_repeat_montgomery_form<const LIMBS: usize>(
     }
 
     // correct for "Almost Montygomery form"
-    out = out.sub_mod_with_carry(carry, modulus.as_ref(), modulus.as_ref());
-    out.sub_mod_with_carry(Limb::ZERO, modulus.as_ref(), modulus.as_ref())
+    (out, carry) = out.try_sub_with_carry(carry, modulus.as_ref());
+    out.try_sub_with_carry(carry, modulus.as_ref()).0
 }

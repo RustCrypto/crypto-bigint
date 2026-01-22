@@ -168,7 +168,7 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         );
     });
 
-    group.bench_function("modpow, U256^U256", |b| {
+    group.bench_function("pow, U256^U256", |b| {
         b.iter_batched(
             || {
                 let x = U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref());
@@ -177,7 +177,21 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
                     | (U256::ONE << (U256::BITS - 1));
                 (x_m, p)
             },
-            |(x, p)| black_box(x.pow(&p)),
+            |(x, p)| x.pow(black_box(&p)),
+            BatchSize::SmallInput,
+        );
+    });
+
+    group.bench_function("pow_vartime, U256^U256", |b| {
+        b.iter_batched(
+            || {
+                let x = U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref());
+                let x_m = MontyForm::new(&x, &params);
+                let p = U256::random_mod_vartime(&mut rng, params.modulus().as_nz_ref())
+                    | (U256::ONE << (U256::BITS - 1));
+                (x_m, p)
+            },
+            |(x, p)| x.pow_vartime(black_box(&p)),
             BatchSize::SmallInput,
         );
     });

@@ -489,7 +489,7 @@ impl<const LIMBS: usize> SignedInt<LIMBS> {
 
         // The magnitude x is now in the range [0, 2m). We conditionally subtract
         // m in order to keep the output in (-m, m).
-        x = x.sub_mod_with_carry(x_hi.limbs[0], m, m);
+        x = x.try_sub_with_carry(x_hi.limbs[0], m).0;
 
         SignedInt::from_uint_sign(x, x_sign)
     }

@@ -62,7 +62,7 @@ pub(crate) const fn montgomery_reduction<const LIMBS: usize>(
     // Division is simply taking the upper half of the limbs
     // Final reduction (at this point, the value is at most 2 * modulus,
     // so `meta_carry` is either 0 or 1)
-    upper.sub_mod_with_carry(meta_carry, &modulus.0, &modulus.0)
+    upper.try_sub_with_carry(meta_carry, &modulus.0).0
 }
 
 /// This algorithm corresponds to a Montgomery reduction of the wide input `(x, 0)`,
