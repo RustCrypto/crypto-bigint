@@ -21,10 +21,10 @@ mod sub;
 mod rand;
 
 use crate::{
-    Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, NonZero, One, WideWord, Word,
-    Zero, word,
+    Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, NonZero, One, UintRef,
+    WideWord, Word, Zero, word,
 };
-use core::{fmt, ptr};
+use core::{fmt, ptr, slice};
 
 #[cfg(feature = "serde")]
 use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -142,6 +142,34 @@ impl Limb {
         unsafe {
             &mut *(ptr::from_mut(slice) as *mut [Word])
         }
+    }
+}
+
+impl AsRef<[Limb]> for Limb {
+    #[inline(always)]
+    fn as_ref(&self) -> &[Limb] {
+        slice::from_ref(self)
+    }
+}
+
+impl AsMut<[Limb]> for Limb {
+    #[inline(always)]
+    fn as_mut(&mut self) -> &mut [Limb] {
+        slice::from_mut(self)
+    }
+}
+
+impl AsRef<UintRef> for Limb {
+    #[inline(always)]
+    fn as_ref(&self) -> &UintRef {
+        UintRef::new(slice::from_ref(self))
+    }
+}
+
+impl AsMut<UintRef> for Limb {
+    #[inline(always)]
+    fn as_mut(&mut self) -> &mut UintRef {
+        UintRef::new_mut(slice::from_mut(self))
     }
 }
 
