@@ -22,13 +22,12 @@ impl UintRef {
         let mut result = 0;
         let mut i = 0;
         while i < self.limbs.len() {
-            let bit = self.limbs[i].0 & index_mask;
             let is_right_limb = Choice::from_u32_eq(i as u32, limb_num);
-            result |= word::select(0, bit, is_right_limb);
+            result |= word::select(0, self.limbs[i].0, is_right_limb);
             i += 1;
         }
 
-        word::choice_from_lsb(result >> index_in_limb)
+        word::choice_from_lsb((result & index_mask) >> index_in_limb)
     }
 
     /// Returns `true` if the bit at position `index` is set, `false` for an unset bit
@@ -94,6 +93,7 @@ impl UintRef {
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`, in variable-time
     /// with respect to `index`.
     #[inline(always)]
+    #[track_caller]
     pub const fn set_bit_vartime(&mut self, index: u32, bit_value: bool) {
         let limb_num = (index / Limb::BITS) as usize;
         let index_in_limb = index % Limb::BITS;
