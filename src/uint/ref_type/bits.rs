@@ -15,8 +15,8 @@ impl UintRef {
     #[allow(clippy::cast_possible_truncation)]
     #[must_use]
     pub const fn bit(&self, index: u32) -> Choice {
-        let limb_num = index / Limb::BITS;
-        let index_in_limb = index % Limb::BITS;
+        let limb_num = index >> Limb::LOG2_BITS;
+        let index_in_limb = index & (Limb::BITS - 1);
         let index_mask = 1 << index_in_limb;
 
         let mut result = 0;
@@ -76,8 +76,8 @@ impl UintRef {
     #[inline(always)]
     #[allow(clippy::cast_possible_truncation)]
     pub const fn set_bit(&mut self, index: u32, bit_value: Choice) {
-        let limb_num = index / Limb::BITS;
-        let index_in_limb = index % Limb::BITS;
+        let limb_num = index >> Limb::LOG2_BITS;
+        let index_in_limb = index & (Limb::BITS - 1);
         let index_mask = 1 << index_in_limb;
 
         let mut i = 0;
@@ -203,8 +203,8 @@ impl UintRef {
     /// Clear all bits at or above a given bit position.
     #[allow(clippy::cast_possible_truncation)]
     pub const fn restrict_bits(&mut self, len: u32) {
-        let limb = len / Limb::BITS;
-        let limb_mask = Limb((1 << (len % Limb::BITS)) - 1);
+        let limb = len >> Limb::LOG2_BITS;
+        let limb_mask = Limb((1 << (len & (Limb::BITS - 1))) - 1);
         let mut i = 0;
         let mut clear = Choice::FALSE;
         while i < self.nlimbs() {

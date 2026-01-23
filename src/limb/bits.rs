@@ -7,7 +7,7 @@ impl Limb {
     /// Returns the falsy value for indices out of range.
     #[must_use]
     pub const fn bit(self, index: u32) -> Choice {
-        let index_in_limb = index % Limb::BITS;
+        let index_in_limb = index & (Limb::BITS - 1);
         self.shr(index_in_limb)
             .lsb_to_choice()
             .and(Choice::from_u32_eq(index, index_in_limb))
