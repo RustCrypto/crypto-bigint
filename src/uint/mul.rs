@@ -53,7 +53,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform saturating multiplication, returning `MAX` on overflow.
     #[must_use]
     pub const fn saturating_mul<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> Self {
-        ctutils::unwrap_or!(self.checked_mul(rhs), Uint::MAX, Self::select)
+        let (lo, overflow) = self.overflowing_mul(rhs);
+        Self::select(&lo, &Self::MAX, overflow)
     }
 
     /// Perform wrapping multiplication, checking that the result fits in the original [`Uint`] size.
@@ -62,10 +63,22 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> CtOption<Uint<LIMBS>> {
+        let (lo, overflow) = self.overflowing_mul(rhs);
+        CtOption::new(lo, overflow.not())
+    }
+
+    /// Perform overflowing multiplication, returning the wrapped result and a `Choice`
+    /// indicating whether overflow occurred.
+    #[inline(always)]
+    #[must_use]
+    pub(crate) const fn overflowing_mul<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Uint<RHS_LIMBS>,
+    ) -> (Uint<LIMBS>, Choice) {
         let (lo, carry) = karatsuba::wrapping_mul_fixed(self.as_uint_ref(), rhs.as_uint_ref());
         let overflow =
             wrapping_mul_overflow(self.as_uint_ref(), rhs.as_uint_ref(), carry.is_nonzero());
-        CtOption::new(lo, overflow.not())
+        (lo, overflow)
     }
 
     /// Perform multiplication by a Limb, returning the wrapped result and a Limb overflow.
@@ -108,9 +121,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Square self, checking that the result fits in the original [`Uint`] size.
     #[must_use]
     pub const fn checked_square(&self) -> CtOption<Uint<LIMBS>> {
-        let (lo, carry) = karatsuba::wrapping_square_fixed(self.as_uint_ref());
-        let overflow =
-            wrapping_mul_overflow(self.as_uint_ref(), self.as_uint_ref(), carry.is_nonzero());
+        let (lo, overflow) = self.overflowing_square();
         CtOption::new(lo, overflow.not())
     }
 
@@ -123,7 +134,19 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Perform saturating squaring, returning `MAX` on overflow.
     #[must_use]
     pub const fn saturating_square(&self) -> Self {
-        ctutils::unwrap_or!(self.checked_square(), Self::MAX, Self::select)
+        let (lo, overflow) = self.overflowing_square();
+        Self::select(&lo, &Self::MAX, overflow)
+    }
+
+    /// Perform overflowing squaring, returning the wrapped result and a `Choice`
+    /// indicating whether overflow occurred.
+    #[inline(always)]
+    #[must_use]
+    pub(crate) const fn overflowing_square(&self) -> (Uint<LIMBS>, Choice) {
+        let (lo, carry) = karatsuba::wrapping_square_fixed(self.as_uint_ref());
+        let overflow =
+            wrapping_mul_overflow(self.as_uint_ref(), self.as_uint_ref(), carry.is_nonzero());
+        (lo, overflow)
     }
 }
 

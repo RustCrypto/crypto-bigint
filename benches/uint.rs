@@ -325,6 +325,30 @@ fn bench_mul(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
+
+    group.bench_function("saturating_pow, U256", |b| {
+        b.iter_batched(
+            || {
+                let x = U256::random_from_rng(&mut rng);
+                let y = U256::random_from_rng(&mut rng);
+                (x, y)
+            },
+            |(x, y)| black_box(x).saturating_pow(black_box(&y)),
+            BatchSize::SmallInput,
+        );
+    });
+
+    group.bench_function("wrapping_pow, U256", |b| {
+        b.iter_batched(
+            || {
+                let x = U256::random_from_rng(&mut rng);
+                let y = U256::random_from_rng(&mut rng);
+                (x, y)
+            },
+            |(x, y)| black_box(x).wrapping_pow(black_box(&y)),
+            BatchSize::SmallInput,
+        );
+    });
 }
 
 fn bench_division(c: &mut Criterion) {
