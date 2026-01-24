@@ -2,10 +2,10 @@
 
 use super::Limb;
 use crate::{CtLt, Encoding, NonZero, Random, RandomMod};
-use rand_core::TryRngCore;
+use rand_core::TryRng;
 
 impl Random for Limb {
-    fn try_random_from_rng<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+    fn try_random_from_rng<R: TryRng + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
         #[cfg(target_pointer_width = "32")]
         let val = rng.try_next_u32()?;
         #[cfg(target_pointer_width = "64")]
@@ -16,7 +16,7 @@ impl Random for Limb {
 }
 
 impl RandomMod for Limb {
-    fn try_random_mod_vartime<R: TryRngCore + ?Sized>(
+    fn try_random_mod_vartime<R: TryRng + ?Sized>(
         rng: &mut R,
         modulus: &NonZero<Self>,
     ) -> Result<Self, R::Error> {

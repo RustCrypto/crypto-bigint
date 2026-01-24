@@ -187,7 +187,7 @@ mod tests {
     use {
         crate::RandomBits,
         chacha20::ChaCha8Rng,
-        rand_core::{RngCore, SeedableRng},
+        rand_core::{Rng, SeedableRng},
     };
 
     #[test]

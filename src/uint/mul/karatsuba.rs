@@ -555,7 +555,7 @@ mod tests {
     use super::*;
     use crate::Random;
     use crate::{Limb, Uint};
-    use rand_core::{RngCore, SeedableRng};
+    use rand_core::{Rng, SeedableRng};
 
     #[test]
     fn wrapping_mul_sizes() {

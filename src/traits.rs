@@ -17,7 +17,7 @@ use crate::{
 use core::fmt::{self, Debug};
 
 #[cfg(feature = "rand_core")]
-use rand_core::{RngCore, TryRngCore};
+use rand_core::{Rng, TryRng};
 
 /// Integers whose representation takes a bounded amount of space.
 pub trait Bounded {
@@ -319,13 +319,13 @@ pub trait Random: Sized {
     ///
     /// # Errors
     /// - Returns `R::Error` in the event the RNG experienced an internal failure.
-    fn try_random_from_rng<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error>;
+    fn try_random_from_rng<R: TryRng + ?Sized>(rng: &mut R) -> Result<Self, R::Error>;
 
     /// Generate a random value.
     ///
     /// If `rng` is a CSRNG, the generation is cryptographically secure as well.
     #[must_use]
-    fn random_from_rng<R: RngCore + ?Sized>(rng: &mut R) -> Self {
+    fn random_from_rng<R: Rng + ?Sized>(rng: &mut R) -> Self {
         let Ok(out) = Self::try_random_from_rng(rng);
         out
     }
@@ -419,7 +419,7 @@ pub trait RandomBits: Sized {
     ///
     /// A wrapper for [`RandomBits::try_random_bits`] that panics on error.
     #[must_use]
-    fn random_bits<R: TryRngCore + ?Sized>(rng: &mut R, bit_length: u32) -> Self {
+    fn random_bits<R: TryRng + ?Sized>(rng: &mut R, bit_length: u32) -> Self {
         Self::try_random_bits(rng, bit_length).expect("try_random_bits() failed")
     }
 
@@ -431,7 +431,7 @@ pub trait RandomBits: Sized {
     ///
     /// # Errors
     /// - Returns `R::Error` in the event the RNG experienced an internal failure.
-    fn try_random_bits<R: TryRngCore + ?Sized>(
+    fn try_random_bits<R: TryRng + ?Sized>(
         rng: &mut R,
         bit_length: u32,
     ) -> Result<Self, RandomBitsError<R::Error>>;
@@ -443,7 +443,7 @@ pub trait RandomBits: Sized {
     /// A wrapper for [`RandomBits::try_random_bits_with_precision`] that panics on error.
     #[must_use]
     #[track_caller]
-    fn random_bits_with_precision<R: TryRngCore + ?Sized>(
+    fn random_bits_with_precision<R: TryRng + ?Sized>(
         rng: &mut R,
         bit_length: u32,
         bits_precision: u32,
@@ -462,7 +462,7 @@ pub trait RandomBits: Sized {
     ///
     /// # Errors
     /// - Returns `R::Error` in the event the RNG experienced an internal failure.
-    fn try_random_bits_with_precision<R: TryRngCore + ?Sized>(
+    fn try_random_bits_with_precision<R: TryRng + ?Sized>(
         rng: &mut R,
         bit_length: u32,
         bits_precision: u32,
@@ -482,7 +482,7 @@ pub trait RandomMod: Sized + Zero {
     /// leak anything about the output value aside from it being less than
     /// `modulus`.
     #[must_use]
-    fn random_mod_vartime<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
+    fn random_mod_vartime<R: Rng + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
         let Ok(out) = Self::try_random_mod_vartime(rng, modulus);
         out
     }
@@ -499,7 +499,7 @@ pub trait RandomMod: Sized + Zero {
     ///
     /// # Errors
     /// - Returns `R::Error` in the event the RNG experienced an internal failure.
-    fn try_random_mod_vartime<R: TryRngCore + ?Sized>(
+    fn try_random_mod_vartime<R: TryRng + ?Sized>(
         rng: &mut R,
         modulus: &NonZero<Self>,
     ) -> Result<Self, R::Error>;
@@ -515,7 +515,7 @@ pub trait RandomMod: Sized + Zero {
     /// `modulus`.
     #[deprecated(since = "0.7.0", note = "please use `random_mod_vartime` instead")]
     #[must_use]
-    fn random_mod<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
+    fn random_mod<R: Rng + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
         Self::random_mod_vartime(rng, modulus)
     }
 
@@ -532,7 +532,7 @@ pub trait RandomMod: Sized + Zero {
     /// # Errors
     /// - Returns `R::Error` in the event the RNG experienced an internal failure.
     #[deprecated(since = "0.7.0", note = "please use `try_random_mod_vartime` instead")]
-    fn try_random_mod<R: TryRngCore + ?Sized>(
+    fn try_random_mod<R: TryRng + ?Sized>(
         rng: &mut R,
         modulus: &NonZero<Self>,
     ) -> Result<Self, R::Error> {

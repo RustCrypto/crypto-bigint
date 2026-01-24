@@ -11,7 +11,7 @@ use ctutils::{CtAssignSlice, CtEqSlice};
 use crate::{BoxedUint, Resize};
 
 #[cfg(feature = "rand_core")]
-use crate::{Random, rand_core::TryRngCore};
+use crate::{Random, rand_core::TryRng};
 
 #[cfg(all(feature = "alloc", feature = "rand_core"))]
 use crate::RandomBits;
@@ -321,7 +321,7 @@ impl OddBoxedUint {
 
     /// Generate a random `Odd<Uint<T>>`.
     #[cfg(feature = "rand_core")]
-    pub fn random<R: TryRngCore + ?Sized>(rng: &mut R, bit_length: u32) -> Self {
+    pub fn random<R: TryRng + ?Sized>(rng: &mut R, bit_length: u32) -> Self {
         let mut ret = BoxedUint::random_bits(rng, bit_length);
         ret.limbs[0] |= Limb::ONE;
         Odd(ret)
@@ -378,7 +378,7 @@ impl Resize for &OddBoxedUint {
 #[cfg(feature = "rand_core")]
 impl<const LIMBS: usize> Random for Odd<Uint<LIMBS>> {
     /// Generate a random `Odd<Uint<T>>`.
-    fn try_random_from_rng<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+    fn try_random_from_rng<R: TryRng + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
         let mut ret = Uint::try_random_from_rng(rng)?;
         ret.limbs[0] |= Limb::ONE;
         Ok(Odd(ret))

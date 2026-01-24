@@ -239,7 +239,7 @@ mod tests {
     use {
         crate::{Random, U512},
         chacha20::ChaCha8Rng,
-        rand_core::{RngCore, SeedableRng},
+        rand_core::{Rng, SeedableRng},
     };
 
     #[test]

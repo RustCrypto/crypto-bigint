@@ -5,17 +5,17 @@ use crate::{
     NonZero, RandomBits, RandomBitsError, RandomMod,
     uint::rand::{random_bits_core, random_mod_vartime_core},
 };
-use rand_core::{RngCore, TryRngCore};
+use rand_core::{Rng, TryRng};
 
 impl RandomBits for BoxedUint {
-    fn try_random_bits<R: TryRngCore + ?Sized>(
+    fn try_random_bits<R: TryRng + ?Sized>(
         rng: &mut R,
         bit_length: u32,
     ) -> Result<Self, RandomBitsError<R::Error>> {
         Self::try_random_bits_with_precision(rng, bit_length, bit_length)
     }
 
-    fn try_random_bits_with_precision<R: TryRngCore + ?Sized>(
+    fn try_random_bits_with_precision<R: TryRng + ?Sized>(
         rng: &mut R,
         bit_length: u32,
         bits_precision: u32,
@@ -34,13 +34,13 @@ impl RandomBits for BoxedUint {
 }
 
 impl RandomMod for BoxedUint {
-    fn random_mod_vartime<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
+    fn random_mod_vartime<R: Rng + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
         let mut n = BoxedUint::zero_with_precision(modulus.bits_precision());
         let Ok(()) = random_mod_vartime_core(rng, &mut n, modulus, modulus.bits());
         n
     }
 
-    fn try_random_mod_vartime<R: TryRngCore + ?Sized>(
+    fn try_random_mod_vartime<R: TryRng + ?Sized>(
         rng: &mut R,
         modulus: &NonZero<Self>,
     ) -> Result<Self, R::Error> {

@@ -2,10 +2,10 @@
 
 use super::Uint;
 use crate::{CtLt, Encoding, Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod};
-use rand_core::{RngCore, TryRngCore};
+use rand_core::{Rng, TryRng};
 
 impl<const LIMBS: usize> Random for Uint<LIMBS> {
-    fn try_random_from_rng<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+    fn try_random_from_rng<R: TryRng + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
         let mut limbs = [Limb::ZERO; LIMBS];
 
         for limb in &mut limbs {
@@ -24,8 +24,8 @@ impl<const LIMBS: usize> Random for Uint<LIMBS> {
 /// platform-independent. We consider an RNG "`X`-byte sequential" whenever
 /// `rng.fill_bytes(&mut bytes[..i]); rng.fill_bytes(&mut bytes[i..])` constructs the same `bytes`,
 /// as long as `i` is a multiple of `X`.
-/// Note that the `TryRngCore` trait does _not_ require this behaviour from `rng`.
-pub(crate) fn random_bits_core<T, R: TryRngCore + ?Sized>(
+/// Note that the `TryRng` trait does _not_ require this behaviour from `rng`.
+pub(crate) fn random_bits_core<T, R: TryRng + ?Sized>(
     rng: &mut R,
     x: &mut T,
     n_bits: u32,
@@ -50,14 +50,14 @@ where
 }
 
 impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
-    fn try_random_bits<R: TryRngCore + ?Sized>(
+    fn try_random_bits<R: TryRng + ?Sized>(
         rng: &mut R,
         bit_length: u32,
     ) -> Result<Self, RandomBitsError<R::Error>> {
         Self::try_random_bits_with_precision(rng, bit_length, Self::BITS)
     }
 
-    fn try_random_bits_with_precision<R: TryRngCore + ?Sized>(
+    fn try_random_bits_with_precision<R: TryRng + ?Sized>(
         rng: &mut R,
         bit_length: u32,
         bits_precision: u32,
@@ -81,13 +81,13 @@ impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
 }
 
 impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
-    fn random_mod_vartime<R: RngCore + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
+    fn random_mod_vartime<R: Rng + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
         let mut x = Self::ZERO;
         let Ok(()) = random_mod_vartime_core(rng, &mut x, modulus, modulus.bits_vartime());
         x
     }
 
-    fn try_random_mod_vartime<R: TryRngCore + ?Sized>(
+    fn try_random_mod_vartime<R: TryRng + ?Sized>(
         rng: &mut R,
         modulus: &NonZero<Self>,
     ) -> Result<Self, R::Error> {
@@ -99,7 +99,7 @@ impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
 
 /// Generic implementation of `random_mod_vartime` which can be shared with `BoxedUint`.
 // TODO(tarcieri): obtain `n_bits` via a trait like `Integer`
-pub(super) fn random_mod_vartime_core<T, R: TryRngCore + ?Sized>(
+pub(super) fn random_mod_vartime_core<T, R: TryRng + ?Sized>(
     rng: &mut R,
     x: &mut T,
     modulus: &NonZero<T>,
@@ -121,7 +121,7 @@ mod tests {
     use crate::uint::rand::random_bits_core;
     use crate::{Limb, NonZero, Random, RandomBits, RandomMod, U256, U1024, Uint};
     use chacha20::ChaCha8Rng;
-    use rand_core::{RngCore, SeedableRng};
+    use rand_core::{Rng, SeedableRng};
 
     const RANDOM_OUTPUT: U1024 = Uint::from_be_hex(concat![
         "A484C4C693EECC47C3B919AE0D16DF2259CD1A8A9B8EA8E0862878227D4B40A3",

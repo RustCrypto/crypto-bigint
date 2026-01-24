@@ -18,7 +18,7 @@ use crate::{ConstOne, ConstZero, CtEq, Odd, One, Uint, Zero};
 use core::{fmt::Debug, marker::PhantomData};
 
 #[cfg(feature = "rand_core")]
-use crate::{Random, RandomMod, rand_core::TryRngCore};
+use crate::{Random, RandomMod, rand_core::TryRng};
 
 #[cfg(feature = "serde")]
 use {
@@ -199,7 +199,7 @@ where
     MOD: ConstMontyParams<LIMBS>,
 {
     #[inline]
-    fn try_random_from_rng<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+    fn try_random_from_rng<R: TryRng + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
         Ok(Self::new(&Uint::try_random_mod_vartime(
             rng,
             MOD::PARAMS.modulus.as_nz_ref(),

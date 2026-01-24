@@ -18,7 +18,7 @@ use crate::BoxedUint;
 use crate::{ArrayEncoding, ByteArray};
 
 #[cfg(feature = "rand_core")]
-use {crate::Random, rand_core::TryRngCore};
+use {crate::Random, rand_core::TryRng};
 
 #[cfg(feature = "serde")]
 use serdect::serde::{
@@ -441,7 +441,7 @@ where
     /// As a result, it runs in variable time. If the generator `rng` is
     /// cryptographically secure (for example, it implements `CryptoRng`),
     /// then this is guaranteed not to leak anything about the output value.
-    fn try_random_from_rng<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+    fn try_random_from_rng<R: TryRng + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
         loop {
             if let Some(result) = Self::new(T::try_random_from_rng(rng)?).into() {
                 break Ok(result);

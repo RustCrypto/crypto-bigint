@@ -25,19 +25,19 @@ num-traits = { version = "0.2.19", default-features = false }
 der = { version = "0.8.0-rc.10", optional = true, default-features = false }
 hybrid-array = { version = "0.4.5", optional = true }
 getrandom = { version = "0.4.0-rc.0", optional = true, features = ["sys_rng"] }
-rand_core = { version = "0.10.0-rc-5", optional = true, default-features = false }
+rand_core = { version = "0.10.0-rc-6", optional = true, default-features = false }
 rlp = { version = "0.6", optional = true, default-features = false }
 serdect = { version = "0.4", optional = true, default-features = false }
 subtle = { version = "2.6", optional = true, default-features = false }
 zeroize = { version = "1", optional = true, default-features = false }
 
 [dev-dependencies]
-chacha20 = { version = "0.10.0-rc.8", default-features = false, features = ["rng"] }
+chacha20 = { version = "0.10.0-rc.9", default-features = false, features = ["rng"] }
 hex-literal = "1"
 num-bigint = "0.4"
 num-integer = "0.1"
 num-modular = { version = "0.6", features = ["num-bigint", "num-integer", "num-traits"] }
-rand_core = "0.10.0-rc-5"
+rand_core = "0.10.0-rc-6"
 
 [target.'cfg(any(unix, windows))'.dev-dependencies]
 criterion = { version = "0.7", features = ["html_reports"] }
@@ -134,3 +134,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [package.metadata.typos.default]
 extend-ignore-re = ["([0-9A-Fa-f]{16,})"]
+
+[patch.crates-io.getrandom]
+git = "https://github.com/rust-random/getrandom"
+branch = "rand_core-v0.10.0-rc-6"

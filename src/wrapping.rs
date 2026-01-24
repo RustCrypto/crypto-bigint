@@ -10,7 +10,7 @@ use core::{
 };
 
 #[cfg(feature = "rand_core")]
-use {crate::Random, rand_core::TryRngCore};
+use {crate::Random, rand_core::TryRng};
 
 #[cfg(feature = "serde")]
 use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -274,7 +274,7 @@ impl<T: fmt::UpperHex> fmt::UpperHex for Wrapping<T> {
 
 #[cfg(feature = "rand_core")]
 impl<T: Random> Random for Wrapping<T> {
-    fn try_random_from_rng<R: TryRngCore + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
+    fn try_random_from_rng<R: TryRng + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
         Ok(Wrapping(Random::try_random_from_rng(rng)?))
     }
 }
