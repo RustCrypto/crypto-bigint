@@ -12,7 +12,7 @@ use crypto_bigint::{
     Limb, NonZero, Odd, OddUint, Random, RandomBits, RandomMod, Reciprocal, U128, U256, U512,
     U1024, U2048, U4096, U8192, Uint,
 };
-use rand_core::{RngCore, SeedableRng};
+use rand_core::{Rng, SeedableRng};
 
 fn make_rng() -> ChaCha8Rng {
     ChaCha8Rng::from_seed(*b"01234567890123456789012345678901")

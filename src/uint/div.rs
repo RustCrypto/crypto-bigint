@@ -697,7 +697,7 @@ mod tests {
     };
 
     #[cfg(feature = "rand_core")]
-    use {crate::Random, chacha20::ChaCha8Rng, rand_core::RngCore, rand_core::SeedableRng};
+    use {crate::Random, chacha20::ChaCha8Rng, rand_core::Rng, rand_core::SeedableRng};
 
     #[test]
     fn div_word() {
