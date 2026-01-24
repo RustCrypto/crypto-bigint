@@ -912,7 +912,9 @@ pub trait BitOps {
     /// Calculate the number of bits required to represent a given number in variable-time with
     /// respect to `self`.
     #[must_use]
-    fn bits_vartime(&self) -> u32;
+    fn bits_vartime(&self) -> u32 {
+        self.bits()
+    }
 
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`,
     /// variable time in `self`.
@@ -927,12 +929,16 @@ pub trait BitOps {
     /// Calculate the number of trailing zeros in the binary representation of this number in
     /// variable-time with respect to `self`.
     #[must_use]
-    fn trailing_zeros_vartime(&self) -> u32;
+    fn trailing_zeros_vartime(&self) -> u32 {
+        self.trailing_zeros()
+    }
 
     /// Calculate the number of trailing ones in the binary representation of this number,
     /// variable time in `self`.
     #[must_use]
-    fn trailing_ones_vartime(&self) -> u32;
+    fn trailing_ones_vartime(&self) -> u32 {
+        self.trailing_ones()
+    }
 }
 
 /// Constant-time exponentiation.

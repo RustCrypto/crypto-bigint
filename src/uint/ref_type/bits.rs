@@ -15,20 +15,19 @@ impl UintRef {
     #[allow(clippy::cast_possible_truncation)]
     #[must_use]
     pub const fn bit(&self, index: u32) -> Choice {
-        let limb_num = index / Limb::BITS;
-        let index_in_limb = index % Limb::BITS;
+        let limb_num = index >> Limb::LOG2_BITS;
+        let index_in_limb = index & (Limb::BITS - 1);
         let index_mask = 1 << index_in_limb;
 
         let mut result = 0;
         let mut i = 0;
         while i < self.limbs.len() {
-            let bit = self.limbs[i].0 & index_mask;
             let is_right_limb = Choice::from_u32_eq(i as u32, limb_num);
-            result |= word::select(0, bit, is_right_limb);
+            result |= word::select(0, self.limbs[i].0, is_right_limb);
             i += 1;
         }
 
-        word::choice_from_lsb(result >> index_in_limb)
+        word::choice_from_lsb((result & index_mask) >> index_in_limb)
     }
 
     /// Returns `true` if the bit at position `index` is set, `false` for an unset bit
@@ -77,8 +76,8 @@ impl UintRef {
     #[inline(always)]
     #[allow(clippy::cast_possible_truncation)]
     pub const fn set_bit(&mut self, index: u32, bit_value: Choice) {
-        let limb_num = index / Limb::BITS;
-        let index_in_limb = index % Limb::BITS;
+        let limb_num = index >> Limb::LOG2_BITS;
+        let index_in_limb = index & (Limb::BITS - 1);
         let index_mask = 1 << index_in_limb;
 
         let mut i = 0;
@@ -94,6 +93,7 @@ impl UintRef {
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`, in variable-time
     /// with respect to `index`.
     #[inline(always)]
+    #[track_caller]
     pub const fn set_bit_vartime(&mut self, index: u32, bit_value: bool) {
         let limb_num = (index / Limb::BITS) as usize;
         let index_in_limb = index % Limb::BITS;
@@ -203,8 +203,8 @@ impl UintRef {
     /// Clear all bits at or above a given bit position.
     #[allow(clippy::cast_possible_truncation)]
     pub const fn restrict_bits(&mut self, len: u32) {
-        let limb = len / Limb::BITS;
-        let limb_mask = Limb((1 << (len % Limb::BITS)) - 1);
+        let limb = len >> Limb::LOG2_BITS;
+        let limb_mask = Limb((1 << (len & (Limb::BITS - 1))) - 1);
         let mut i = 0;
         let mut clear = Choice::FALSE;
         while i < self.nlimbs() {
