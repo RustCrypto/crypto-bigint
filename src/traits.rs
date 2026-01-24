@@ -189,10 +189,6 @@ pub trait Unsigned:
     + SquareMod<Output = Self>
     + SubMod<Output = Self>
 {
-    /// The corresponding Montgomery representation,
-    /// optimized for the performance of modular operations at the price of a conversion overhead.
-    type Monty: MontyForm<Integer = Self>;
-
     /// Borrow the limbs of this unsigned integer as a [`UintRef`].
     #[must_use]
     fn as_uint_ref(&self) -> &UintRef;
@@ -203,6 +199,13 @@ pub trait Unsigned:
     /// Returns an integer with the first limb set to `limb`, and the same precision as `other`.
     #[must_use]
     fn from_limb_like(limb: Limb, other: &Self) -> Self;
+}
+
+/// [`Unsigned`] integers with an associated [`MontyForm`].
+pub trait UnsignedMontyForm: Unsigned {
+    /// The corresponding Montgomery representation,
+    /// optimized for the performance of modular operations at the price of a conversion overhead.
+    type MontyForm: MontyForm<Integer = Self>;
 }
 
 /// Zero values: additive identity element for `Self`.
@@ -1140,7 +1143,7 @@ pub trait MontyForm:
     + SquareAssign
 {
     /// The original integer type.
-    type Integer: Unsigned<Monty = Self>;
+    type Integer: UnsignedMontyForm<MontyForm = Self>;
 
     /// Prepared Montgomery multiplier for tight loops.
     type Multiplier<'a>: Debug + Clone + MontyMultiplier<'a, Monty = Self>;

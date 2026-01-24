@@ -1,6 +1,6 @@
 use super::FixedMontyParams;
 use super::mul::{almost_montgomery_reduce, mul_montgomery_form, square_repeat_montgomery_form};
-use crate::{AmmMultiplier, CtEq, Limb, MontyForm, Uint, Unsigned, Word, word};
+use crate::{AmmMultiplier, CtEq, Limb, MontyForm, Uint, UnsignedMontyForm, Word, word};
 use core::{array, mem};
 
 #[cfg(feature = "alloc")]
@@ -41,11 +41,11 @@ pub fn pow_montgomery_form_amm<'a, U>(
     x: &U,
     exponent: &U,
     exponent_bits: u32,
-    params: &'a <U::Monty as MontyForm>::Params,
+    params: &'a <U::MontyForm as MontyForm>::Params,
 ) -> U
 where
-    U: Unsigned,
-    <U::Monty as MontyForm>::Multiplier<'a>: AmmMultiplier<'a>,
+    U: UnsignedMontyForm,
+    <U::MontyForm as MontyForm>::Multiplier<'a>: AmmMultiplier<'a>,
 {
     let one = params.as_ref().one().clone();
 
@@ -56,7 +56,7 @@ where
     const WINDOW: u32 = 4;
     const WINDOW_MASK: Word = (1 << WINDOW) - 1;
 
-    let mut multiplier = <U::Monty as MontyForm>::Multiplier::from(params);
+    let mut multiplier = <U::MontyForm as MontyForm>::Multiplier::from(params);
     let mut power = x.clone();
 
     // powers[i] contains x^i

@@ -30,7 +30,7 @@ mod rand;
 
 use crate::{
     Choice, CtAssign, CtEq, CtOption, Integer, Limb, NonZero, Odd, One, Resize, UintRef, Unsigned,
-    Word, Zero, modular::BoxedMontyForm,
+    UnsignedMontyForm, Word, Zero, modular::BoxedMontyForm,
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{
@@ -493,8 +493,6 @@ impl Integer for BoxedUint {
 }
 
 impl Unsigned for BoxedUint {
-    type Monty = BoxedMontyForm;
-
     fn as_uint_ref(&self) -> &UintRef {
         self.as_uint_ref()
     }
@@ -508,6 +506,10 @@ impl Unsigned for BoxedUint {
         ret.limbs[0] = limb;
         ret
     }
+}
+
+impl UnsignedMontyForm for BoxedUint {
+    type MontyForm = BoxedMontyForm;
 }
 
 impl Zero for BoxedUint {
