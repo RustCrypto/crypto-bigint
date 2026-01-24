@@ -1,4 +1,4 @@
-use crate::{Limb, Odd, Uint, modular::MontyForm};
+use crate::{Limb, Odd, Uint, modular::FixedMontyForm};
 
 use super::{ConstMontyForm, ConstMontyParams};
 
@@ -103,7 +103,7 @@ pub const fn lincomb_const_monty_form<MOD: ConstMontyParams<LIMBS>, const LIMBS:
 }
 
 pub const fn lincomb_monty_form<const LIMBS: usize>(
-    mut products: &[(&MontyForm<LIMBS>, &MontyForm<LIMBS>)],
+    mut products: &[(&FixedMontyForm<LIMBS>, &FixedMontyForm<LIMBS>)],
     modulus: &Odd<Uint<LIMBS>>,
     mod_neg_inv: Limb,
     mod_leading_zeros: u32,

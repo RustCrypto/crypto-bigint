@@ -6,9 +6,9 @@ mod common;
 
 use common::to_biguint;
 use crypto_bigint::{
-    Bounded, Constants, CtOption, EncodedUint, Encoding, Integer, Invert, Monty, NonZero, Odd,
+    Bounded, Constants, CtOption, EncodedUint, Encoding, Integer, Invert, MontyForm, NonZero, Odd,
     U128, U256, U512, U1024, U2048, U4096, Unsigned,
-    modular::{MontyForm, MontyParams},
+    modular::{FixedMontyForm, FixedMontyParams},
 };
 use num_bigint::BigUint;
 use num_modular::ModularUnaryOps;
@@ -16,8 +16,8 @@ use num_traits::FromBytes;
 use prop::test_runner::TestRng;
 use proptest::prelude::*;
 
-type MontyForm256 = MontyForm<{ U256::LIMBS }>;
-type MontyParams256 = MontyParams<{ U256::LIMBS }>;
+type MontyForm256 = FixedMontyForm<{ U256::LIMBS }>;
+type MontyParams256 = FixedMontyParams<{ U256::LIMBS }>;
 
 fn retrieve_biguint(monty_form: &MontyForm256) -> BigUint {
     to_biguint(&monty_form.retrieve())
@@ -47,7 +47,7 @@ prop_compose! {
 // inverted montgomery form and the normal form inverse from the num_modular crate.
 fn random_invertible_uint<T>(
     bytes: T::Repr,
-    monty_params: <<T as Unsigned>::Monty as Monty>::Params,
+    monty_params: <<T as Unsigned>::Monty as MontyForm>::Params,
     modulus: T,
 ) -> Result<(T, <T as Unsigned>::Monty, <T as Unsigned>::Monty, BigUint), TestCaseError>
 where
@@ -72,7 +72,7 @@ where
 fn monty_params_from_edge<T>(
     edge_bytes: [u8; 2],
     rng: &mut TestRng,
-) -> <<T as Unsigned>::Monty as Monty>::Params
+) -> <<T as Unsigned>::Monty as MontyForm>::Params
 where
     T: Unsigned + Constants + Encoding,
 {
@@ -144,7 +144,7 @@ proptest! {
         // Inversion works in monty form
         assert_eq!(
             one_monty,
-            MontyForm::one(monty_params),
+            FixedMontyForm::one(monty_params),
             "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:0128b}",
             monty_params.modulus()
         );
@@ -183,7 +183,7 @@ proptest! {
         // Inversion works in monty form
         assert_eq!(
             one_monty,
-            MontyForm::one(monty_params),
+            FixedMontyForm::one(monty_params),
             "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:0256b}",
             monty_params.modulus()
         );
@@ -222,7 +222,7 @@ proptest! {
         // Inversion works in monty form
         assert_eq!(
             one_monty,
-            MontyForm::one(monty_params),
+            FixedMontyForm::one(monty_params),
             "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:01024b}",
             monty_params.modulus()
         );
@@ -261,7 +261,7 @@ proptest! {
         // Inversion works in monty form
         assert_eq!(
             one_monty,
-            MontyForm::one(monty_params),
+            FixedMontyForm::one(monty_params),
             "a*a⁻¹ ≠ 1 (monty form)\nmodulus: {:02048b}",
             monty_params.modulus()
         );

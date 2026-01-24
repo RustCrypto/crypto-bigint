@@ -11,7 +11,7 @@ mod reduce;
 mod sub;
 
 use super::{
-    MontyParams, Retrieve, div_by_2::div_by_2, mul::mul_montgomery_form,
+    FixedMontyParams, Retrieve, div_by_2::div_by_2, mul::mul_montgomery_form,
     reduction::montgomery_retrieve,
 };
 use crate::{ConstOne, ConstZero, CtEq, Odd, One, Uint, Zero};
@@ -44,7 +44,7 @@ pub trait ConstMontyParams<const LIMBS: usize>:
     const LIMBS: usize;
 
     /// Montgomery parameters constant.
-    const PARAMS: MontyParams<LIMBS>;
+    const PARAMS: FixedMontyParams<LIMBS>;
 }
 
 /// An integer in Montgomery form modulo `MOD`, represented using `LIMBS` limbs.

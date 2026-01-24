@@ -23,7 +23,7 @@
 //!
 //! - [`modular::ConstMontyForm`]: stack-allocated type-safe modular arithmetic using Montgomery
 //!   form suitable for cases where the modulus is known at compile-time.
-//! - [`modular::MontyForm`]: stack-allocated modular arithmetic using Montgomery form for cases
+//! - [`modular::FixedMontyForm`]: stack-allocated modular arithmetic using Montgomery form for cases
 //!   where the modulus is only known at runtime.
 //! - [`modular::BoxedMontyForm`]: heap-allocated modular arithmetic using Montgomery form.
 //!   Requires the `alloc` crate feature is enabled.

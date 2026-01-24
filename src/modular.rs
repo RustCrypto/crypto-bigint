@@ -14,12 +14,12 @@
 //!
 //! # Dynamic moduli chosen at runtime
 //!
-//! The [`MontyForm`] and [`MontyParams`] types implement support for modular arithmetic where
+//! The [`FixedMontyForm`] and [`FixedMontyParams`] types implement support for modular arithmetic where
 //! the modulus can vary at runtime.
 
 mod const_monty_form;
+mod fixed_monty_form;
 mod lincomb;
-mod monty_form;
 mod reduction;
 
 mod add;
@@ -36,8 +36,8 @@ pub(crate) mod boxed_monty_form;
 
 pub use self::{
     const_monty_form::{ConstMontyForm, ConstMontyParams},
-    monty_form::MontyForm,
-    monty_params::{GenericMontyParams, MontyParams},
+    fixed_monty_form::FixedMontyForm,
+    monty_params::{FixedMontyParams, MontyParams},
 };
 
 pub(crate) use self::safegcd::SafeGcdInverter;

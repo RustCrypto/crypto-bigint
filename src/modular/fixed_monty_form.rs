@@ -11,27 +11,27 @@ mod pow;
 mod sub;
 
 use super::{
-    MontyParams, Retrieve,
+    FixedMontyParams, Retrieve,
     const_monty_form::{ConstMontyForm, ConstMontyParams},
     div_by_2::div_by_2,
     mul::mul_montgomery_form,
     reduction::montgomery_retrieve,
 };
-use crate::{Monty, Odd, Uint};
-use mul::DynMontyMultiplier;
+use crate::{MontyForm, Odd, Uint};
+use mul::FixedMontyMultiplier;
 
 /// An integer in Montgomery form represented using `LIMBS` limbs.
 /// The odd modulus is set at runtime.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct MontyForm<const LIMBS: usize> {
+pub struct FixedMontyForm<const LIMBS: usize> {
     montgomery_form: Uint<LIMBS>,
-    params: MontyParams<LIMBS>,
+    params: FixedMontyParams<LIMBS>,
 }
 
-impl<const LIMBS: usize> MontyForm<LIMBS> {
+impl<const LIMBS: usize> FixedMontyForm<LIMBS> {
     /// Instantiates a new `MontyForm` that represents this `integer` mod `MOD`.
     #[must_use]
-    pub const fn new(integer: &Uint<LIMBS>, params: &MontyParams<LIMBS>) -> Self {
+    pub const fn new(integer: &Uint<LIMBS>, params: &FixedMontyParams<LIMBS>) -> Self {
         let montgomery_form =
             mul_montgomery_form(integer, &params.r2, &params.modulus, params.mod_neg_inv());
         Self {
@@ -52,7 +52,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
 
     /// Instantiates a new `MontyForm` that represents zero.
     #[must_use]
-    pub const fn zero(params: &MontyParams<LIMBS>) -> Self {
+    pub const fn zero(params: &FixedMontyParams<LIMBS>) -> Self {
         Self {
             montgomery_form: Uint::<LIMBS>::ZERO,
             params: *params,
@@ -61,7 +61,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
 
     /// Instantiates a new `MontyForm` that represents 1.
     #[must_use]
-    pub const fn one(params: &MontyParams<LIMBS>) -> Self {
+    pub const fn one(params: &FixedMontyParams<LIMBS>) -> Self {
         Self {
             montgomery_form: params.one,
             params: *params,
@@ -70,7 +70,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
 
     /// Returns the parameter struct used to initialize this object.
     #[must_use]
-    pub const fn params(&self) -> &MontyParams<LIMBS> {
+    pub const fn params(&self) -> &FixedMontyParams<LIMBS> {
         &self.params
     }
 
@@ -87,7 +87,7 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
 
     /// Create a `MontyForm` from a value in Montgomery form.
     #[must_use]
-    pub const fn from_montgomery(integer: Uint<LIMBS>, params: &MontyParams<LIMBS>) -> Self {
+    pub const fn from_montgomery(integer: Uint<LIMBS>, params: &FixedMontyParams<LIMBS>) -> Self {
         Self {
             montgomery_form: integer,
             params: *params,
@@ -110,32 +110,32 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Retrieve for MontyForm<LIMBS> {
+impl<const LIMBS: usize> Retrieve for FixedMontyForm<LIMBS> {
     type Output = Uint<LIMBS>;
     fn retrieve(&self) -> Self::Output {
         self.retrieve()
     }
 }
 
-impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
+impl<const LIMBS: usize> MontyForm for FixedMontyForm<LIMBS> {
     type Integer = Uint<LIMBS>;
-    type Params = MontyParams<LIMBS>;
-    type Multiplier<'a> = DynMontyMultiplier<'a, LIMBS>;
+    type Params = FixedMontyParams<LIMBS>;
+    type Multiplier<'a> = FixedMontyMultiplier<'a, LIMBS>;
 
     fn new_params_vartime(modulus: Odd<Self::Integer>) -> Self::Params {
-        MontyParams::new_vartime(modulus)
+        FixedMontyParams::new_vartime(modulus)
     }
 
     fn new(value: Self::Integer, params: &Self::Params) -> Self {
-        MontyForm::new(&value, params)
+        FixedMontyForm::new(&value, params)
     }
 
     fn zero(params: &Self::Params) -> Self {
-        MontyForm::zero(params)
+        FixedMontyForm::zero(params)
     }
 
     fn one(params: &Self::Params) -> Self {
-        MontyForm::one(params)
+        FixedMontyForm::one(params)
     }
 
     fn params(&self) -> &Self::Params {
@@ -156,20 +156,20 @@ impl<const LIMBS: usize> Monty for MontyForm<LIMBS> {
     }
 
     fn double(&self) -> Self {
-        MontyForm::double(self)
+        FixedMontyForm::double(self)
     }
 
     fn div_by_2(&self) -> Self {
-        MontyForm::div_by_2(self)
+        FixedMontyForm::div_by_2(self)
     }
 
     fn lincomb_vartime(products: &[(&Self, &Self)]) -> Self {
-        MontyForm::lincomb_vartime(products)
+        FixedMontyForm::lincomb_vartime(products)
     }
 }
 
 impl<const LIMBS: usize, P: ConstMontyParams<LIMBS>> From<&ConstMontyForm<P, LIMBS>>
-    for MontyForm<LIMBS>
+    for FixedMontyForm<LIMBS>
 {
     fn from(const_monty_form: &ConstMontyForm<P, LIMBS>) -> Self {
         Self {
@@ -180,7 +180,7 @@ impl<const LIMBS: usize, P: ConstMontyParams<LIMBS>> From<&ConstMontyForm<P, LIM
 }
 
 #[cfg(feature = "zeroize")]
-impl<const LIMBS: usize> zeroize::Zeroize for MontyForm<LIMBS> {
+impl<const LIMBS: usize> zeroize::Zeroize for FixedMontyForm<LIMBS> {
     fn zeroize(&mut self) {
         self.montgomery_form.zeroize();
         self.params.zeroize();
@@ -189,13 +189,13 @@ impl<const LIMBS: usize> zeroize::Zeroize for MontyForm<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use super::MontyParams;
+    use super::FixedMontyParams;
     use crate::{Limb, Odd, Uint};
 
     #[test]
     fn new_params_with_valid_modulus() {
         let modulus = Odd::new(Uint::from(3u8)).unwrap();
-        let params = MontyParams::<1>::new(modulus);
+        let params = FixedMontyParams::<1>::new(modulus);
 
         assert_eq!(params.mod_leading_zeros, Limb::BITS - 2);
     }

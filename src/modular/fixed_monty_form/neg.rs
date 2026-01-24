@@ -1,9 +1,9 @@
 //! Negations of integers in Montgomery form with a modulus set at runtime.
 
-use super::MontyForm;
+use super::FixedMontyForm;
 use core::ops::Neg;
 
-impl<const LIMBS: usize> MontyForm<LIMBS> {
+impl<const LIMBS: usize> FixedMontyForm<LIMBS> {
     /// Negates the number.
     #[must_use]
     pub const fn neg(&self) -> Self {
@@ -16,16 +16,16 @@ impl<const LIMBS: usize> MontyForm<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> Neg for MontyForm<LIMBS> {
+impl<const LIMBS: usize> Neg for FixedMontyForm<LIMBS> {
     type Output = Self;
     fn neg(self) -> Self {
-        MontyForm::neg(&self)
+        FixedMontyForm::neg(&self)
     }
 }
 
-impl<const LIMBS: usize> Neg for &MontyForm<LIMBS> {
-    type Output = MontyForm<LIMBS>;
-    fn neg(self) -> MontyForm<LIMBS> {
-        MontyForm::neg(self)
+impl<const LIMBS: usize> Neg for &FixedMontyForm<LIMBS> {
+    type Output = FixedMontyForm<LIMBS>;
+    fn neg(self) -> FixedMontyForm<LIMBS> {
+        FixedMontyForm::neg(self)
     }
 }

@@ -11,10 +11,10 @@ mod pow;
 mod sub;
 
 use super::{
-    BoxedMontyParams, Retrieve, div_by_2, monty_params::GenericMontyParams,
+    BoxedMontyParams, Retrieve, div_by_2, monty_params::MontyParams,
     reduction::montgomery_retrieve_inner,
 };
-use crate::{BoxedUint, Choice, Monty, Odd};
+use crate::{BoxedUint, Choice, MontyForm, Odd};
 use mul::BoxedMontyMultiplier;
 
 #[cfg(feature = "zeroize")]
@@ -159,7 +159,7 @@ impl Retrieve for BoxedMontyForm {
     }
 }
 
-impl Monty for BoxedMontyForm {
+impl MontyForm for BoxedMontyForm {
     type Integer = BoxedUint;
     type Params = BoxedMontyParams;
     type Multiplier<'a> = BoxedMontyMultiplier<'a>;
