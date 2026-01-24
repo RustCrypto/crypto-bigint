@@ -1167,11 +1167,11 @@ pub trait Monty:
 
     /// Returns zero in this representation.
     #[must_use]
-    fn zero(params: Self::Params) -> Self;
+    fn zero(params: &Self::Params) -> Self;
 
     /// Returns one in this representation.
     #[must_use]
-    fn one(params: Self::Params) -> Self;
+    fn one(params: &Self::Params) -> Self;
 
     /// Returns the parameter struct used to initialize this object.
     #[must_use]
@@ -1184,6 +1184,10 @@ pub trait Monty:
     /// Copy the Montgomery representation from `other` into `self`.
     /// NOTE: the parameters remain unchanged.
     fn copy_montgomery_from(&mut self, other: &Self);
+
+    /// Move the Montgomery form result out of `self` and return it.
+    #[must_use]
+    fn into_montgomery(self) -> Self::Integer;
 
     /// Performs doubling, returning `self + self`.
     #[must_use]

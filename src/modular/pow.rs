@@ -47,7 +47,7 @@ where
     U: Unsigned,
     <U::Monty as Monty>::Multiplier<'a>: AmmMultiplier<'a>,
 {
-    let one = U::Monty::one(params.clone()).as_montgomery().clone();
+    let one = params.as_ref().one().clone();
 
     if exponent_bits == 0 {
         return one; // 1 in Montgomery form
