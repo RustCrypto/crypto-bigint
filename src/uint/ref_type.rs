@@ -6,6 +6,7 @@ mod cmp;
 mod ct;
 mod div;
 mod invert_mod;
+mod mul;
 mod shl;
 mod shr;
 mod slice;
