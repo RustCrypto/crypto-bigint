@@ -1,10 +1,14 @@
 //! Multiplication support for [`UintRef`].
 
-use crate::{Choice, Limb, UintRef, uint::mul::karatsuba};
+use crate::{Choice, Limb, UintRef};
+
+#[cfg(feature = "alloc")]
+use crate::uint::mul::karatsuba;
 
 impl UintRef {
     /// Compute the wrapping product of `self` and `rhs`, placing the result into `out`
     /// and returning a `Choice` indicating whether overflow occurred.
+    #[cfg(feature = "alloc")]
     #[inline(always)]
     pub(crate) fn overflowing_mul(&self, rhs: &UintRef, out: &mut UintRef) -> Choice {
         let carry = self.wrapping_mul(rhs, out);
@@ -13,6 +17,7 @@ impl UintRef {
 
     /// Compute the wrapping squaring of `self`, placing the result into `out`
     /// and returning a `Choice` indicating whether overflow occurred.
+    #[cfg(feature = "alloc")]
     #[inline(always)]
     pub(crate) fn overflowing_square(&self, out: &mut UintRef) -> Choice {
         let carry = self.wrapping_square(out);
@@ -21,6 +26,7 @@ impl UintRef {
 
     /// Compute the wrapping product of `self` and `rhs`, placing the result into `out`
     /// and returning a carry Limb.
+    #[cfg(feature = "alloc")]
     #[inline(always)]
     pub(crate) fn wrapping_mul(&self, rhs: &UintRef, out: &mut UintRef) -> Limb {
         karatsuba::wrapping_mul(self, rhs, out, false)
@@ -28,6 +34,7 @@ impl UintRef {
 
     /// Compute the wrapping squaring of `self`, placing the result into `out` and returning
     /// a carry Limb.
+    #[cfg(feature = "alloc")]
     #[inline(always)]
     pub(crate) fn wrapping_square(&self, out: &mut UintRef) -> Limb {
         karatsuba::wrapping_square(self, out)
