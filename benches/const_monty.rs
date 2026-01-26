@@ -193,10 +193,94 @@ fn bench_montgomery_ops<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
     }
 }
 
+fn bench_montgomery_sqrt<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
+    use crypto_bigint::{U256, const_prime_monty_params, modular::ConstPrimeMontyParams};
+
+    {
+        // P-256 field modulus
+        // p = 3 mod 4, s = 1, uses Shanks algorithm
+        const_prime_monty_params!(
+            P256Field,
+            U256,
+            "ffffffff00000001000000000000000000000000ffffffffffffffffffffffff"
+        );
+        assert_eq!(P256Field::PRIME_PARAMS.s().get(), 1);
+        type ConstForm = crypto_bigint::modular::ConstMontyForm<P256Field, { U256::LIMBS }>;
+
+        let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
+        group.bench_function("sqrt, U256, s=1", |b| {
+            b.iter_batched(
+                || {
+                    let x =
+                        U256::random_mod_vartime(&mut rng, P256Field::PARAMS.modulus().as_nz_ref());
+                    ConstForm::new(&x)
+                },
+                |x| x.sqrt(),
+                BatchSize::SmallInput,
+            );
+        });
+    }
+
+    {
+        // P-256 scalar modulus
+        // p = 17 mod 32, s = 4
+        const_prime_monty_params!(
+            P256Scalar,
+            U256,
+            "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"
+        );
+        assert_eq!(P256Scalar::PRIME_PARAMS.s().get(), 4);
+        type ConstForm = crypto_bigint::modular::ConstMontyForm<P256Scalar, { U256::LIMBS }>;
+
+        let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
+        group.bench_function("sqrt, U256, s=4", |b| {
+            b.iter_batched(
+                || {
+                    let x = U256::random_mod_vartime(
+                        &mut rng,
+                        P256Scalar::PARAMS.modulus().as_nz_ref(),
+                    );
+                    ConstForm::new(&x)
+                },
+                |x| x.sqrt(),
+                BatchSize::SmallInput,
+            );
+        });
+    }
+
+    {
+        // K-256 scalar modulus
+        // s = 6, uses Tonelli-Shanks
+        const_prime_monty_params!(
+            K256Scalar,
+            U256,
+            "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141"
+        );
+        assert_eq!(K256Scalar::PRIME_PARAMS.s().get(), 6);
+        type ConstForm = crypto_bigint::modular::ConstMontyForm<K256Scalar, { U256::LIMBS }>;
+
+        let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
+        group.bench_function("sqrt, U256, s=6", |b| {
+            b.iter_batched(
+                || {
+                    let x = U256::random_mod_vartime(
+                        &mut rng,
+                        K256Scalar::PARAMS.modulus().as_nz_ref(),
+                    );
+                    ConstForm::new(&x)
+                },
+                |x| x.sqrt(),
+                BatchSize::SmallInput,
+            );
+        });
+    }
+}
+
 fn bench_montgomery(c: &mut Criterion) {
     let mut group = c.benchmark_group("Const Montgomery arithmetic");
     bench_montgomery_conversion(&mut group);
     bench_montgomery_ops(&mut group);
+    bench_montgomery_sqrt(&mut group);
     group.finish();
 }
 
