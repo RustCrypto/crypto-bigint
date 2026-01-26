@@ -21,7 +21,7 @@ impl UintRef {
     #[inline(always)]
     pub(crate) fn overflowing_square(&self, out: &mut UintRef) -> Choice {
         let carry = self.wrapping_square(out);
-        self.wrapping_square_overflow(carry.is_nonzero())
+        self.check_square_overflow(carry.is_nonzero())
     }
 
     /// Compute the wrapping product of `self` and `rhs`, placing the result into `out`
@@ -40,7 +40,7 @@ impl UintRef {
         karatsuba::wrapping_square(self, out)
     }
 
-    /// Determine whether an overflow would occur during multiplication.
+    /// Determine whether overflow occurs during wrapped multiplication.
     ///
     /// We determine this by comparing limbs in `self[i=0..n]` and `rhs[j=0..m]`.
     /// Any combination where the sum of indexes `i + j >= n`, having `self[i] != 0`
@@ -67,8 +67,9 @@ impl UintRef {
         carry
     }
 
-    /// Determine whether an overflow would occur during squaring.
-    pub(crate) const fn wrapping_square_overflow(&self, carry: Choice) -> Choice {
+    /// Determine whether overflow occurs during wrapped squaring.
+    #[inline(always)]
+    pub(crate) const fn check_square_overflow(&self, carry: Choice) -> Choice {
         self.check_mul_overflow(self, carry)
     }
 }

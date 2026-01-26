@@ -145,9 +145,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[must_use]
     pub(crate) const fn overflowing_square(&self) -> (Uint<LIMBS>, Choice) {
         let (lo, carry) = karatsuba::wrapping_square_fixed(self.as_uint_ref());
-        let overflow = self
-            .as_uint_ref()
-            .wrapping_square_overflow(carry.is_nonzero());
+        let overflow = self.as_uint_ref().check_square_overflow(carry.is_nonzero());
         (lo, overflow)
     }
 }
