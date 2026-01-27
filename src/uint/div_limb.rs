@@ -256,7 +256,7 @@ pub(crate) const fn rem_limb_with_reciprocal<const L: usize>(
     u: &Uint<L>,
     reciprocal: &Reciprocal,
 ) -> Limb {
-    let (u_shifted, u_hi) = u.shl_limb(reciprocal.shift);
+    let (u_shifted, u_hi) = u.shl_limb_with_carry(reciprocal.shift, Limb::ZERO);
     let mut r = u_hi.0;
 
     let mut j = L;
