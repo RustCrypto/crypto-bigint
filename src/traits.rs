@@ -13,6 +13,7 @@ pub use num_traits::{
 use crate::{
     Choice, CtOption, Limb, NonZero, Odd, Reciprocal, UintRef,
     modular::{MontyParams, Retrieve},
+    primitives::u32_bits,
 };
 use core::fmt::{self, Debug};
 
@@ -873,7 +874,7 @@ pub trait BitOps {
     /// `floor(log2(self.bits_precision()))`.
     #[must_use]
     fn log2_bits(&self) -> u32 {
-        u32::BITS - self.bits_precision().leading_zeros() - 1
+        u32_bits(self.bits_precision()) - 1
     }
 
     /// Precision of this integer in bytes.
@@ -1064,6 +1065,12 @@ pub trait ShlVartime: Sized {
     /// Returns `None` if `shift >= self.bits_precision()`.
     fn overflowing_shl_vartime(&self, shift: u32) -> Option<Self>;
 
+    /// Computes `self << shift`.
+    ///
+    /// Returns zero if `shift >= self.bits_precision()`.
+    #[must_use]
+    fn unbounded_shl_vartime(&self, shift: u32) -> Self;
+
     /// Computes `self << shift` in a panic-free manner, masking off bits of `shift`
     /// which would cause the shift to exceed the type's width.
     #[must_use]
@@ -1076,6 +1083,12 @@ pub trait ShrVartime: Sized {
     ///
     /// Returns `None` if `shift >= self.bits_precision()`.
     fn overflowing_shr_vartime(&self, shift: u32) -> Option<Self>;
+
+    /// Computes `self >> shift`.
+    ///
+    /// Returns zero if `shift >= self.bits_precision()`.
+    #[must_use]
+    fn unbounded_shr_vartime(&self, shift: u32) -> Self;
 
     /// Computes `self >> shift` in a panic-free manner, masking off bits of `shift`
     /// which would cause the shift to exceed the type's width.

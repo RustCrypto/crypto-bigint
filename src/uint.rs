@@ -8,7 +8,7 @@ pub(crate) use ref_type::UintRef;
 use crate::{
     Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, EncodedUint, FixedInteger,
     Int, Integer, Limb, NonZero, Odd, One, Unsigned, UnsignedMontyForm, Word, Zero,
-    modular::FixedMontyForm,
+    modular::FixedMontyForm, primitives::u32_bits,
 };
 use core::fmt;
 
@@ -111,7 +111,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// `floor(log2(Self::BITS))`.
     // Note: assumes the type of `BITS` is `u32`. Any way to assert that?
-    pub(crate) const LOG2_BITS: u32 = u32::BITS - Self::BITS.leading_zeros() - 1;
+    pub(crate) const LOG2_BITS: u32 = u32_bits(Self::BITS) - 1;
 
     /// Total size of the represented integer in bytes.
     pub const BYTES: usize = LIMBS * Limb::BYTES;

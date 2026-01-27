@@ -151,7 +151,7 @@ pub const fn widening_mul_fixed<const LHS: usize, const RHS: usize>(
             .copy_from(hi.as_uint_ref().leading(LHS - RHS));
         (
             lo,
-            hi.wrapping_shr_by_limbs_vartime((LHS - RHS) as u32)
+            hi.unbounded_shr_by_limbs_vartime((LHS - RHS) as u32)
                 .resize::<RHS>(),
         )
     }
@@ -252,8 +252,8 @@ pub const fn widening_square_fixed<const LIMBS: usize>(
 
         let (mut c, mut carry);
         // Double z1
-        (z1.0, c) = z1.0.overflowing_shl1();
-        (z1.1, carry) = z1.1.carrying_shl1(c);
+        (z1.0, c) = z1.0.shl1_with_carry(Limb::ZERO);
+        (z1.1, carry) = z1.1.shl1_with_carry(c);
         // Add z0.1, z2.0 to z1
         (z1.0, c) = z1.0.carrying_add(&z0.1, Limb::ZERO);
         (z1.1, c) = z1.1.carrying_add(&z2.0, c);
@@ -449,7 +449,7 @@ pub(crate) const fn wrapping_square(uint: &UintRef, out: &mut UintRef) -> Limb {
         // Add z1 = 2x0•x1•b
         if hi.nlimbs() <= LIMBS {
             let (z1, _carry) = wrapping_mul_fixed::<LIMBS>(x0, x1);
-            let z1 = z1.overflowing_shl1().0;
+            let z1 = z1.shl1();
             let z2 = z0.1.wrapping_add(&z1);
             let (z2, tail) = z2.as_uint_ref().split_at(hi.nlimbs());
             hi.copy_from(z2);
@@ -464,7 +464,7 @@ pub(crate) const fn wrapping_square(uint: &UintRef, out: &mut UintRef) -> Limb {
             wrapping_square(x1, z2);
             let mut dx0 = Uint::<LIMBS>::ZERO;
             dx0.as_mut_uint_ref().copy_from(x0);
-            let (dx0, dx0_hi) = dx0.overflowing_shl1();
+            let (dx0, dx0_hi) = dx0.shl1_with_carry(Limb::ZERO);
             let z2_len = if z2.nlimbs() < x1.nlimbs() {
                 z2.nlimbs()
             } else {
