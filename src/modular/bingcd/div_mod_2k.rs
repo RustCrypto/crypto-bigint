@@ -104,13 +104,10 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
     /// Compute `((self * b) + addend) / 2^k`
     const fn mul_add_div2k(&self, b: Limb, addend: &Uint<LIMBS>, k: u32) -> Uint<LIMBS> {
         // Compute `self * b + addend`
-        let (lo, mut hi) = self.as_ref().carrying_mul_add_limb(b, addend, Limb::ZERO);
-
+        let (lo, hi) = self.as_ref().carrying_mul_add_limb(b, addend, Limb::ZERO);
         // Divide by 2^k
-        hi = hi.shl((Limb::BITS - k) % Limb::BITS);
-        let (mut res, _) = lo.shr_limb(k);
-        res.limbs[LIMBS - 1] = res.limbs[LIMBS - 1].bitxor(hi);
-        res
+        lo.shr_limb_with_carry(k, hi.unbounded_shl(Limb::BITS - k))
+            .0
     }
 }
 

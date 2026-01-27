@@ -86,9 +86,26 @@ pub(crate) const fn u32_min(a: u32, b: u32) -> u32 {
     Choice::from_u32_lt(a, b).select_u32(b, a)
 }
 
+/// Remainder calculation, constant time for a given divisor `d`.
+/// Based on "Faster Remainder by Direct Computation: Applications to Compilers and Software Libraries"
+/// by Daniel Lemire, Owen Kaser, and Nathan Kurz., Fig. 1.
+#[inline(never)]
+#[allow(clippy::cast_possible_truncation)]
+pub(crate) const fn u32_rem(n: u32, d: u32) -> u32 {
+    assert!(d > 0, "divisor must be nonzero");
+    let c = u64::MAX / (d as u64) + 1;
+    ((((c.wrapping_mul(n as u64)) as u128) * d as u128) >> 64) as u32
+}
+
+/// Compute the number of bits needed to represent `n`.
+#[inline(always)]
+pub(crate) const fn u32_bits(n: u32) -> u32 {
+    u32::BITS - n.leading_zeros()
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{u32_max, u32_min};
+    use super::{u32_max, u32_min, u32_rem};
     use crate::Word;
 
     #[test]
@@ -116,5 +133,13 @@ mod tests {
         assert_eq!(u32_max(7, 0), 7);
         assert_eq!(u32_max(7, 5), 7);
         assert_eq!(u32_max(7, 7), 7);
+    }
+
+    #[test]
+    fn test_u32_const_rem() {
+        assert_eq!(u32_rem(0, 5), 0);
+        assert_eq!(u32_rem(4, 5), 4);
+        assert_eq!(u32_rem(7, 5), 2);
+        assert_eq!(u32_rem(101, 5), 1);
     }
 }
