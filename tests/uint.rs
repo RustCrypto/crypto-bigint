@@ -98,24 +98,6 @@ proptest! {
     }
 
     #[test]
-    fn shl_vartime(a in uint(), shift in any::<u8>()) {
-        let a_bi = to_biguint(&a);
-
-        // Add a 50% probability of overflow.
-        let shift = u32::from(shift) % (U256::BITS * 2);
-
-        let expected = to_uint(a_bi << shift as usize);
-        let actual = a.overflowing_shl_vartime(shift);
-
-        if shift >= U256::BITS {
-            prop_assert!(actual.is_none());
-        }
-        else {
-            prop_assert_eq!(expected, actual.unwrap());
-        }
-    }
-
-    #[test]
     fn shl(a in uint(), shift in any::<u16>()) {
         let a_bi = to_biguint(&a);
 
@@ -123,31 +105,16 @@ proptest! {
         let shift = u32::from(shift) % (U256::BITS * 2);
 
         let expected = to_uint(a_bi << shift as usize);
-        let actual = a.overflowing_shl(shift);
+        let actual_ct = a.overflowing_shl(shift);
+
+        let actual_vartime = a.overflowing_shl_vartime(shift);
+        prop_assert_eq!(actual_ct.into_option(), actual_vartime);
 
         if shift >= U256::BITS {
-            prop_assert!(bool::from(actual.is_none()));
+            prop_assert!(bool::from(actual_ct.is_none()));
         }
         else {
-            prop_assert_eq!(expected, actual.unwrap());
-        }
-    }
-
-    #[test]
-    fn shr_vartime(a in uint(), shift in any::<u16>()) {
-        let a_bi = to_biguint(&a);
-
-        // Add a 50% probability of overflow.
-        let shift = u32::from(shift) % (U256::BITS * 2);
-
-        let expected = to_uint(a_bi >> shift as usize);
-        let actual = a.overflowing_shr_vartime(shift);
-
-        if shift >= U256::BITS {
-            prop_assert!(actual.is_none());
-        }
-        else {
-            prop_assert_eq!(expected, actual.unwrap());
+            prop_assert_eq!(expected, actual_ct.unwrap());
         }
     }
 
@@ -159,13 +126,16 @@ proptest! {
         let shift = u32::from(shift) % (U256::BITS * 2);
 
         let expected = to_uint(a_bi >> shift as usize);
-        let actual = a.overflowing_shr(shift);
+        let actual_ct = a.overflowing_shr(shift);
+
+        let actual_vartime = a.overflowing_shr_vartime(shift);
+        prop_assert_eq!(actual_ct.into_option(), actual_vartime);
 
         if shift >= U256::BITS {
-            prop_assert!(bool::from(actual.is_none()));
+            prop_assert!(bool::from(actual_ct.is_none()));
         }
         else {
-            prop_assert_eq!(expected, actual.unwrap());
+            prop_assert_eq!(expected, actual_ct.unwrap());
         }
     }
 
@@ -516,7 +486,7 @@ proptest! {
     }
 
     #[test]
-    fn wrapping_shl(n in uint(), shift in any::<u32>()) {
+    fn unbounded_shl(n in uint(), shift in any::<u32>()) {
         let n_bi = to_biguint(&n);
 
         let expected = if shift < U256::BITS {
@@ -525,22 +495,22 @@ proptest! {
             U256::ZERO
         };
 
-        let actual_ct = n.wrapping_shl(shift);
+        let actual_ct = n.unbounded_shl(shift);
         prop_assert_eq!(expected, actual_ct);
 
-        let actual_vartime = n.wrapping_shl_vartime(shift);
+        let actual_vartime = n.unbounded_shl_vartime(shift);
         prop_assert_eq!(expected, actual_vartime);
     }
 
     #[test]
-    fn wrapping_shr(n in uint(), shift in any::<u32>()) {
+    fn unbounded_shr(n in uint(), shift in any::<u32>()) {
         let n_bi = to_biguint(&n);
         let expected = to_uint(n_bi >> shift);
 
-        let actual_ct = n.wrapping_shr(shift);
+        let actual_ct = n.unbounded_shr(shift);
         prop_assert_eq!(expected, actual_ct);
 
-        let actual_vartime = n.wrapping_shr_vartime(shift);
+        let actual_vartime = n.unbounded_shr_vartime(shift);
         prop_assert_eq!(expected, actual_vartime);
     }
 
