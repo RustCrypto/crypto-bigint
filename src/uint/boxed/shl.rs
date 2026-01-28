@@ -279,6 +279,11 @@ mod tests {
             ShlVartime::overflowing_shl_vartime(&BoxedUint::max(192), 192),
             None
         );
+        let mut boxed = BoxedUint::one();
+        assert!(!boxed.overflowing_shl_assign_vartime(2));
+        assert_eq!(boxed, BoxedUint::from(4u8));
+        let mut boxed = BoxedUint::max(192);
+        assert!(boxed.overflowing_shl_assign_vartime(192));
     }
 
     #[test]

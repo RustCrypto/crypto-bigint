@@ -285,6 +285,11 @@ mod tests {
             ShrVartime::overflowing_shr_vartime(&BoxedUint::one_with_precision(192), 192),
             None
         );
+        let mut boxed = BoxedUint::from(16u8);
+        assert!(!boxed.overflowing_shr_assign_vartime(2));
+        assert_eq!(boxed, BoxedUint::from(4u8));
+        let mut boxed = BoxedUint::one_with_precision(192);
+        assert!(boxed.overflowing_shr_assign_vartime(192));
     }
 
     #[test]
