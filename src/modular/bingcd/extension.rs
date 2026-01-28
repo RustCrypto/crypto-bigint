@@ -68,7 +68,7 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
     #[inline]
     #[allow(clippy::cast_possible_truncation)]
     pub const fn bounded_shr<const UPPER_BOUND: u32>(&self, shift: u32) -> Self {
-        assert!(shift < UPPER_BOUND && shift < Uint::<EXTRA>::BITS);
+        assert!(shift < UPPER_BOUND && UPPER_BOUND <= Uint::<EXTRA>::BITS);
 
         let hi = self.1.bounded_shr(shift, UPPER_BOUND);
         let carry = self.1.unbounded_shl(Uint::<EXTRA>::BITS - shift);

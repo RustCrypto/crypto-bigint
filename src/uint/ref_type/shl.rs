@@ -48,13 +48,14 @@ impl UintRef {
     /// - if the shift exceeds the upper bound.
     #[inline(always)]
     pub(crate) const fn bounded_shl_assign(&mut self, shift: u32, shift_upper_bound: u32) {
+        assert!(shift < shift_upper_bound, "`shift` exceeds upper bound");
+
         if shift_upper_bound <= Limb::BITS {
-            assert!(shift < shift_upper_bound, "`shift` exceeds upper bound");
             self.shl_assign_limb(shift);
         } else {
             self.bounded_shl_by_limbs_assign(
                 shift >> Limb::LOG2_BITS,
-                shift_upper_bound >> Limb::LOG2_BITS,
+                shift_upper_bound.div_ceil(Limb::BITS),
             );
             self.shl_assign_limb(shift & (Limb::BITS - 1));
         }
