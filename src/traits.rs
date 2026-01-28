@@ -1545,7 +1545,7 @@ pub(crate) mod tests {
         assert_eq!(one.clone().wrapping_mul(&max), max);
         assert_eq!(max.wrapping_mul(&zero), zero);
         assert_eq!(max.wrapping_mul(&one), max);
-        assert_eq!(max.wrapping_mul(&two), max.shl(1u32));
+        assert_eq!(max.wrapping_mul(&two), max.clone().shl(1u32));
 
         // Wrapping negation
         assert_eq!(zero.clone().wrapping_neg(), zero);
@@ -1553,5 +1553,13 @@ pub(crate) mod tests {
             assert_eq!(a.wrapping_add(&a.wrapping_neg()), zero);
             assert_eq!(zero.wrapping_sub(a), a.wrapping_neg());
         }
+
+        // Wrapping bit shifts
+        assert_eq!(zero.clone().wrapping_shr(1u32), zero);
+        assert_eq!(one.clone().wrapping_shr(1u32), zero);
+        assert_eq!(zero.clone().wrapping_shl(1u32), zero);
+        assert_eq!(one.clone().wrapping_shl(1u32), two);
+        assert_eq!(two.clone().wrapping_shr(1u32), one);
+        assert_ne!(max.clone().wrapping_shr(1u32), max);
     }
 }
