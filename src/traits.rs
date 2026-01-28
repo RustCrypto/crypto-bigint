@@ -1259,6 +1259,7 @@ pub(crate) mod tests {
     use super::Integer;
     use crate::{Choice, CtEq, CtSelect, NonZero};
 
+    /// Apply a suite of tests against a type implementing Integer.
     pub fn test_integer<T: Integer>(min: T, max: T) {
         let zero = T::zero_like(&min);
         let one = T::one_like(&min);
@@ -1515,12 +1516,12 @@ pub(crate) mod tests {
         assert_eq!(max.checked_div(&max).into_option(), Some(one.clone()));
 
         // Checked square root
-        assert_eq!(
-            zero.clone().checked_sqrt().into_option(),
-            Some(zero.clone())
-        );
-        assert_eq!(one.clone().checked_sqrt().into_option(), Some(one.clone()));
+        assert_eq!(zero.checked_sqrt().into_option(), Some(zero.clone()));
+        assert_eq!(zero.checked_sqrt_vartime(), Some(zero.clone()));
+        assert_eq!(one.checked_sqrt().into_option(), Some(one.clone()));
+        assert_eq!(one.checked_sqrt_vartime(), Some(one.clone()));
         assert_eq!(two.checked_sqrt().into_option(), None);
+        assert_eq!(two.checked_sqrt_vartime(), None);
 
         // Wrapping addition
         assert_eq!(zero.clone().wrapping_add(&zero), zero);
