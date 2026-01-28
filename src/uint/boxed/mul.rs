@@ -157,8 +157,7 @@ impl Mul<&BoxedUint> for &BoxedUint {
     type Output = BoxedUint;
 
     fn mul(self, rhs: &BoxedUint) -> Self::Output {
-        self.checked_mul(rhs)
-            .expect("attempted to multiply with overflow")
+        BoxedUint::mul(self, rhs)
     }
 }
 
@@ -212,7 +211,7 @@ impl WrappingMul for BoxedUint {
 
 #[cfg(test)]
 mod tests {
-    use crate::{BoxedUint, Resize};
+    use crate::{BoxedUint, CheckedMul, ConcatenatingMul, Resize, WrappingMul};
 
     #[test]
     fn mul_zero_and_one() {
@@ -248,26 +247,32 @@ mod tests {
         use rand_core::SeedableRng;
         let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
         let bits = if cfg!(miri) { 512 } else { 4096 };
+        let rounds = if cfg!(miri) { 10 } else { 50 };
 
-        for i in 0..50 {
+        for i in 0..rounds {
             let a = BoxedUint::random_bits(&mut rng, bits);
             assert_eq!(a.mul(&a), a.square(), "a={a}, i={i}");
             assert_eq!(a.wrapping_mul(&a), a.wrapping_square(), "a={a}, i={i}");
             assert_eq!(a.saturating_mul(&a), a.saturating_square(), "a={a}, i={i}");
         }
 
-        for i in 0..50 {
+        for i in 0..rounds {
             let a = BoxedUint::random_bits(&mut rng, bits);
             let b = BoxedUint::random_bits(&mut rng, bits + 64);
-            let expect = a.mul(&b);
-            assert_eq!(b.mul(&a), expect, "a={a}, b={b}, i={i}");
+            let expect = &a * &b;
+            assert_eq!(&b * a.clone(), expect, "a={a}, b={b}, i={i}");
             assert_eq!(
-                a.wrapping_mul(&b),
+                ConcatenatingMul::concatenating_mul(&b, &a),
+                expect,
+                "a={a}, b={b}, i={i}"
+            );
+            assert_eq!(
+                WrappingMul::wrapping_mul(&a, &b),
                 expect.clone().resize_unchecked(a.bits_precision()),
                 "a={a}, b={b}, i={i}"
             );
             assert_eq!(
-                b.wrapping_mul(&a),
+                WrappingMul::wrapping_mul(&b, &a),
                 expect.clone().resize_unchecked(b.bits_precision()),
                 "a={a}, b={b}, i={i}"
             );
@@ -275,17 +280,29 @@ mod tests {
     }
 
     #[test]
-    fn checked_square() {
+    fn checked_mul_cmp() {
         let n = BoxedUint::max(64)
             .resize_unchecked(256)
             .wrapping_add(&BoxedUint::one());
         let n2 = n.checked_square();
         assert!(n2.is_some().to_bool());
-        let n4 = n2.unwrap().checked_square();
+        let n2_c = CheckedMul::checked_mul(&n, &n);
+        assert_eq!(n2.clone().into_option(), n2_c.into_option());
+        let n2 = n2.unwrap();
+
+        let n4 = n2.checked_square();
         assert!(n4.is_none().to_bool());
-        let z = BoxedUint::zero_with_precision(256).checked_square();
-        assert!(z.is_some().to_bool());
-        let m = BoxedUint::max(256).checked_square();
-        assert!(m.is_none().to_bool());
+        let n4_c = CheckedMul::checked_mul(&n2, &n2);
+        assert!(n4_c.is_none().to_bool());
+
+        let z = BoxedUint::zero_with_precision(256);
+        let z2 = z.checked_square();
+        assert!(z2.is_some().to_bool());
+        let z2_c = CheckedMul::checked_mul(&z, &z);
+        assert_eq!(z2.into_option(), z2_c.into_option());
+
+        let m = BoxedUint::max(256);
+        assert!(m.checked_square().is_none().to_bool());
+        assert!(CheckedMul::checked_mul(&m, &m).is_none().to_bool());
     }
 }
