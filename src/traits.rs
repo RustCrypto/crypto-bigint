@@ -1256,10 +1256,8 @@ pub(crate) trait AmmMultiplier<'a>: MontyMultiplier<'a> {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use ctutils::{Choice, CtEq, CtSelect};
-
     use super::Integer;
-    use crate::NonZero;
+    use crate::{Choice, CtEq, CtSelect, NonZero};
 
     pub fn test_integer<T: Integer>(min: T, max: T) {
         let zero = T::zero_like(&min);
