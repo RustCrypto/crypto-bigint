@@ -12,6 +12,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// # Panics
     /// - if `shift >= Self::BITS`.
+    #[inline(always)]
     #[must_use]
     #[track_caller]
     pub const fn shl(&self, shift: u32) -> Self {
@@ -144,17 +145,17 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// # Panics
     /// - if the shift exceeds the upper bound.
-    #[inline(always)]
     #[must_use]
     #[track_caller]
     pub const fn bounded_shl(&self, shift: u32, shift_upper_bound: u32) -> Self {
+        assert!(shift < shift_upper_bound, "`shift` exceeds upper bound");
+
         if shift_upper_bound <= Limb::BITS {
-            assert!(shift < shift_upper_bound, "`shift` exceeds upper bound");
             self.shl_limb(shift)
         } else {
             self.bounded_shl_by_limbs(
                 shift >> Limb::LOG2_BITS,
-                shift_upper_bound >> Limb::LOG2_BITS,
+                shift_upper_bound.div_ceil(Limb::BITS),
             )
             .shl_limb(shift & (Limb::BITS - 1))
         }
@@ -167,7 +168,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// # Panics
     /// - if the shift exceeds the upper bound.
-    #[inline(always)]
     #[must_use]
     #[track_caller]
     pub(crate) const fn bounded_shl_by_limbs(&self, shift: u32, shift_upper_bound: u32) -> Self {
@@ -235,7 +235,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// # Panics
     /// - if `shift >= Limb::BITS`.
-    #[inline(always)]
     #[must_use]
     #[track_caller]
     pub(crate) const fn shl_limb_with_carry(&self, shift: u32, carry: Limb) -> (Self, Limb) {
@@ -250,11 +249,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         )
     }
 
-    /// Computes `self << shift` in constant-time, returning [`Choice::TRUE`]
-    /// if the least significant bit was set, and [`Choice::FALSE`] otherwise.
+    /// Computes `self << shift` where `0 < shift < Limb::BITS`,
+    /// returning the result and the carry.
     ///
     /// # Panics
     /// - if `shift >= Limb::BITS`.
+    #[inline(always)]
     #[must_use]
     #[track_caller]
     pub(crate) const fn shl_limb_nonzero_with_carry(
