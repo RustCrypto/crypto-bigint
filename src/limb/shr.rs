@@ -113,11 +113,7 @@ impl_shr!(i32, u32, usize);
 impl ShrVartime for Limb {
     #[inline]
     fn overflowing_shr_vartime(&self, shift: u32) -> Option<Self> {
-        if shift >= Limb::BITS {
-            None
-        } else {
-            Some(self.shr(shift))
-        }
+        (*self).overflowing_shr_vartime(shift)
     }
 
     #[inline]
