@@ -1,5 +1,5 @@
 use super::UintRef;
-use crate::Limb;
+use crate::{Choice, Limb};
 
 impl UintRef {
     /// Copy the contents from a [`UintRef`].
@@ -10,6 +10,16 @@ impl UintRef {
     #[track_caller]
     pub const fn copy_from(&mut self, rhs: &UintRef) {
         self.copy_from_slice(&rhs.limbs);
+    }
+
+    /// Conditionally copy the contents from a [`UintRef`].
+    ///
+    /// # Panics
+    /// If `self.nlimbs() != rhs.nlimbs()`
+    #[inline(always)]
+    #[track_caller]
+    pub const fn conditional_copy_from(&mut self, rhs: &UintRef, copy: Choice) {
+        self.conditional_copy_from_slice(&rhs.limbs, copy);
     }
 
     /// Copy the contents from a limb slice.
@@ -24,6 +34,21 @@ impl UintRef {
         let mut i = 0;
         while i < self.limbs.len() {
             self.limbs[i] = limbs[i];
+            i += 1;
+        }
+    }
+
+    /// Conditionally copy the contents from a limb slice.
+    ///
+    /// # Panics
+    /// If `self.nlimbs() != rhs.nlimbs()`
+    #[inline(always)]
+    #[track_caller]
+    pub const fn conditional_copy_from_slice(&mut self, limbs: &[Limb], copy: Choice) {
+        debug_assert!(self.limbs.len() == limbs.len(), "length mismatch");
+        let mut i = 0;
+        while i < self.limbs.len() {
+            self.limbs[i] = Limb::select(self.limbs[i], limbs[i], copy);
             i += 1;
         }
     }

@@ -212,6 +212,20 @@ proptest! {
     }
 
     #[test]
+    fn wrapping_pow(a in uint(), b in uint()) {
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+        let p_bi = to_biguint(&BoxedUint::max(a.bits_precision())) + 1u32;
+        println!("a: {a}, b: {b}, p: {p_bi}");
+
+        let expected = to_uint(a_bi.modpow(&b_bi, &p_bi));
+
+        let actual = a.wrapping_pow(&b);
+
+        prop_assert_eq!(expected, actual);
+    }
+
+    #[test]
     fn pow_mod(a in uint(), b in uint(), n in modulus()) {
         let a = reduce(&a, n.as_nz_ref());
 
