@@ -1283,6 +1283,7 @@ pub(crate) mod tests {
         ];
 
         // test formatting
+        #[cfg(feature = "alloc")]
         for a in inputs {
             let _ = format!("{a:?}");
             let _ = format!("{a:#?}");
