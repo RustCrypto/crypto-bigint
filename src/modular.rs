@@ -28,16 +28,19 @@ mod div_by_2;
 mod monty_params;
 mod mul;
 mod pow;
+mod prime_params;
 pub(crate) mod safegcd;
+mod sqrt;
 mod sub;
 
 #[cfg(feature = "alloc")]
 pub(crate) mod boxed_monty_form;
 
 pub use self::{
-    const_monty_form::{ConstMontyForm, ConstMontyParams},
+    const_monty_form::{ConstMontyForm, ConstMontyParams, ConstPrimeMontyParams},
     fixed_monty_form::FixedMontyForm,
     monty_params::{FixedMontyParams, MontyParams},
+    prime_params::PrimeParams,
 };
 
 pub(crate) use self::safegcd::SafeGcdInverter;
