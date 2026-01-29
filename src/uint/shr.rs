@@ -1,22 +1,19 @@
 //! [`Uint`] bitwise right shift operations.
 
-use core::num::NonZeroU32;
-
-use crate::{
-    Choice, CtOption, Limb, Shr, ShrAssign, ShrVartime, Uint, WrappingShr,
-    primitives::{u32_bits, u32_rem},
-};
+use crate::{CtOption, Limb, Shr, ShrAssign, ShrVartime, Uint, WrappingShr, primitives::u32_rem};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self >> shift`.
     ///
     /// # Panics
     /// - if `shift >= Self::BITS`.
-    #[inline(always)]
+    #[inline(never)]
     #[must_use]
     #[track_caller]
     pub const fn shr(&self, shift: u32) -> Self {
-        self.bounded_shr(shift, Self::BITS)
+        let mut res = *self;
+        res.as_mut_uint_ref().bounded_shr_assign(shift, Self::BITS);
+        res
     }
 
     /// Computes `self >> shift` in variable time.
@@ -33,12 +30,12 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self >> shift`.
     ///
     /// Returns `None` if `shift >= Self::BITS`.
-    #[inline(always)]
+    #[inline(never)]
     #[must_use]
     pub const fn overflowing_shr(&self, shift: u32) -> CtOption<Self> {
-        let in_range = Choice::from_u32_lt(shift, Self::BITS);
-        let adj_shift = in_range.select_u32(0, shift);
-        CtOption::new(self.shr(adj_shift), in_range)
+        let mut res = *self;
+        let overflow = res.as_mut_uint_ref().overflowing_shr_assign(shift);
+        CtOption::new(res, overflow.not())
     }
 
     /// Computes `self >> shift`.
@@ -93,20 +90,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// # Panics
     /// - if the shift exceeds the upper bound.
+    #[inline(never)]
     #[must_use]
     #[track_caller]
     pub const fn bounded_shr(&self, shift: u32, shift_upper_bound: u32) -> Self {
-        assert!(shift < shift_upper_bound, "`shift` exceeds upper bound");
-
-        if shift_upper_bound <= Limb::BITS {
-            self.shr_limb(shift)
-        } else {
-            self.bounded_shr_by_limbs(
-                shift >> Limb::LOG2_BITS,
-                shift_upper_bound.div_ceil(Limb::BITS),
-            )
-            .shr_limb(shift & (Limb::BITS - 1))
-        }
+        let mut res = *self;
+        res.as_mut_uint_ref()
+            .bounded_shr_assign(shift, shift_upper_bound);
+        res
     }
 
     /// Computes `self >> (shift * Limb::BITS)` where `shift < shift_upper_bound`.
@@ -119,25 +110,20 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[must_use]
     #[track_caller]
     pub(crate) const fn bounded_shr_by_limbs(&self, shift: u32, shift_upper_bound: u32) -> Self {
-        assert!(shift < shift_upper_bound, "`shift` exceeds upper bound");
-
-        let shift_bits = u32_bits(shift_upper_bound - 1);
-        let mut result = *self;
-        let mut i = 0;
-        while i < shift_bits {
-            let bit = Choice::from_u32_lsb(shift >> i);
-            result = Uint::select(&result, &result.unbounded_shr_by_limbs_vartime(1 << i), bit);
-            i += 1;
-        }
-        result
+        let mut res = *self;
+        res.as_mut_uint_ref()
+            .bounded_shr_by_limbs_assign(shift, shift_upper_bound);
+        res
     }
 
     /// Computes `self >> shift` in a panic-free manner, returning zero if the shift exceeds the
     /// precision.
-    #[inline(always)]
+    #[inline(never)]
     #[must_use]
     pub const fn unbounded_shr(&self, shift: u32) -> Self {
-        ctutils::unwrap_or!(self.overflowing_shr(shift), Self::ZERO, Self::select)
+        let mut res = *self;
+        res.as_mut_uint_ref().unbounded_shr_assign(shift);
+        res
     }
 
     /// Computes `self >> shift` in variable time in a panic-free manner, returning zero if the
@@ -150,12 +136,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[inline(always)]
     #[must_use]
     pub const fn unbounded_shr_vartime(&self, shift: u32) -> Self {
-        let res = self.unbounded_shr_by_limbs_vartime(shift / Limb::BITS);
-        if let Some(rem) = NonZeroU32::new(shift % Limb::BITS) {
-            res.shr_limb_nonzero_with_carry(rem, Limb::ZERO).0
-        } else {
-            res
-        }
+        let mut res = *self;
+        res.as_mut_uint_ref().unbounded_shr_assign_vartime(shift);
+        res
     }
 
     /// Computes `self >> (shift * Limb::BITS)` in a panic-free manner, returning zero if the
@@ -200,8 +183,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[inline(always)]
     #[must_use]
     pub(crate) const fn shr1(&self) -> Self {
-        self.shr_limb_nonzero_with_carry(NonZeroU32::MIN, Limb::ZERO)
-            .0
+        self.shr_limb_with_carry(1, Limb::ZERO).0
     }
 
     /// Computes `self >> shift` where `0 <= shift < Limb::BITS`,
@@ -210,60 +192,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// # Panics
     /// - if `shift >= Limb::BITS`.
     #[inline(always)]
-    #[must_use]
-    #[track_caller]
-    pub(crate) const fn shr_limb(&self, shift: u32) -> Self {
-        self.shr_limb_with_carry(shift, Limb::ZERO).0
-    }
-
-    /// Computes `self >> shift` where `0 <= shift < Limb::BITS`,
-    /// returning the result and the carry.
-    ///
-    /// # Panics
-    /// - if `shift >= Limb::BITS`.
     #[must_use]
     #[track_caller]
     pub(crate) const fn shr_limb_with_carry(&self, shift: u32, carry: Limb) -> (Self, Limb) {
-        let nz = Choice::from_u32_nz(shift);
-        let (res, carry) = self.shr_limb_nonzero_with_carry(
-            NonZeroU32::new(nz.select_u32(1, shift)).expect("ensured non-zero"),
-            carry,
-        );
-        (
-            Self::select(self, &res, nz),
-            Limb::select(Limb::ZERO, carry, nz),
-        )
-    }
-
-    /// Computes `self >> shift` where `0 < shift < Limb::BITS`,
-    /// returning the result and the carry.
-    ///
-    /// # Panics
-    /// - if `shift >= Limb::BITS`.
-    #[inline(always)]
-    #[must_use]
-    #[track_caller]
-    pub(crate) const fn shr_limb_nonzero_with_carry(
-        &self,
-        shift: NonZeroU32,
-        mut carry: Limb,
-    ) -> (Self, Limb) {
-        assert!(shift.get() < Limb::BITS, "`shift` exceeds upper bound");
-
-        let mut limbs = [Limb::ZERO; LIMBS];
-        let rshift = shift.get();
-        let lshift = Limb::BITS - rshift;
-
-        let mut i = LIMBS;
-        while i > 0 {
-            i -= 1;
-            (limbs[i], carry) = (
-                self.limbs[i].shr(rshift).bitor(carry),
-                self.limbs[i].shl(lshift),
-            );
-        }
-
-        (Self { limbs }, carry)
+        let mut res = *self;
+        let carry = res
+            .as_mut_uint_ref()
+            .shr_assign_limb_with_carry(shift, carry);
+        (res, carry)
     }
 }
 
@@ -331,6 +267,7 @@ mod tests {
     fn shr1() {
         assert_eq!(N.shr1(), N_2);
         assert_eq!(N >> 1, N_2);
+        assert_eq!(N.bounded_shr(1, 2), N_2);
         assert_eq!(ShrVartime::overflowing_shr_vartime(&N, 1), Some(N_2));
         assert_eq!(ShrVartime::wrapping_shr_vartime(&N, 1), N_2);
     }

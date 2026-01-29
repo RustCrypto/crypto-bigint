@@ -165,13 +165,8 @@ impl BoxedUint {
     /// Computes `self << 1` in constant-time.
     pub(crate) fn shl1(&self) -> (Self, Limb) {
         let mut ret = self.clone();
-        let carry = Limb::select(Limb::ZERO, Limb::ONE, ret.shl1_assign());
+        let carry = ret.as_mut_uint_ref().shl1_assign();
         (ret, carry)
-    }
-
-    /// Computes `self <<= 1` in constant-time.
-    pub(crate) fn shl1_assign(&mut self) -> Choice {
-        self.as_mut_uint_ref().shl1_assign()
     }
 }
 
@@ -246,10 +241,9 @@ mod tests {
 
     #[test]
     fn shl1_assign() {
-        let mut n = BoxedUint::from(0x3c442b21f19185fe433f0a65af902b8fu128);
+        let n = BoxedUint::from(0x3c442b21f19185fe433f0a65af902b8fu128);
         let n_shl1 = BoxedUint::from(0x78885643e3230bfc867e14cb5f20571eu128);
-        n.shl1_assign();
-        assert_eq!(n, n_shl1);
+        assert_eq!(n.shl1().0, n_shl1);
     }
 
     #[test]
