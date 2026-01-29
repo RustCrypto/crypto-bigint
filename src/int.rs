@@ -496,4 +496,9 @@ mod tests {
         assert_eq!(I128::ONE.try_into_uint().unwrap(), U128::ONE);
         assert_eq!(I128::MAX.try_into_uint().unwrap(), U128::MAX >> 1);
     }
+
+    #[test]
+    fn test_signed() {
+        crate::traits::tests::test_signed(I128::MIN, I128::MAX);
+    }
 }

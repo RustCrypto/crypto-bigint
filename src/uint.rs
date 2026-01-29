@@ -725,4 +725,9 @@ mod tests {
         assert_eq!(I128::MAX.as_uint().try_into_int().unwrap(), Int::MAX);
         assert!(bool::from(U128::MAX.try_into_int().is_none()));
     }
+
+    #[test]
+    fn test_unsigned() {
+        crate::traits::tests::test_unsigned(U128::ZERO, U128::MAX);
+    }
 }
