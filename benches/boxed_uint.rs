@@ -108,6 +108,32 @@ fn bench_mul(c: &mut Criterion) {
             BatchSize::SmallInput,
         );
     });
+
+    group.bench_function("boxed_wrapping_pow", |b| {
+        b.iter_batched(
+            || {
+                (
+                    BoxedUint::random_bits(&mut rng, UINT_BITS),
+                    BoxedUint::random_bits(&mut rng, UINT_BITS),
+                )
+            },
+            |(x, y)| black_box(x.wrapping_pow(&y)),
+            BatchSize::SmallInput,
+        );
+    });
+
+    group.bench_function("boxed_wrapping_pow_vartime", |b| {
+        b.iter_batched(
+            || {
+                (
+                    BoxedUint::random_bits(&mut rng, UINT_BITS),
+                    BoxedUint::random_bits(&mut rng, UINT_BITS),
+                )
+            },
+            |(x, y)| black_box(x.wrapping_pow_vartime(&y)),
+            BatchSize::SmallInput,
+        );
+    });
 }
 
 fn bench_division(c: &mut Criterion) {
