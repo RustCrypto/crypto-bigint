@@ -178,7 +178,7 @@ impl BoxedUint {
 
     /// Computes `self >>= 1` in-place in constant-time.
     pub(crate) fn shr1_assign(&mut self) -> Choice {
-        self.as_mut_uint_ref().shr1_assign()
+        self.as_mut_uint_ref().shr1_assign().lsb_to_choice()
     }
 }
 
