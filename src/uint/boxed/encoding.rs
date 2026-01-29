@@ -639,8 +639,10 @@ mod tests {
         use rand_core::SeedableRng;
         let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
 
-        for _ in 0..100 {
-            let uint = BoxedUint::random_bits(&mut rng, 4096);
+        let rounds = if cfg!(miri) { 10 } else { 100 };
+        let bits = if cfg!(miri) { 256 } else { 4096 };
+        for _ in 0..rounds {
+            let uint = BoxedUint::random_bits(&mut rng, bits);
             for radix in 2..=36 {
                 let enc = uint.to_string_radix_vartime(radix);
                 let res = BoxedUint::from_str_radix_vartime(&enc, radix).expect("decoding error");
