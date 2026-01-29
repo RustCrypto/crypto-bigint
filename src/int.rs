@@ -498,7 +498,7 @@ mod tests {
     }
 
     #[test]
-    fn test_integer() {
-        crate::traits::tests::test_integer(I128::MIN, I128::MAX);
+    fn test_signed() {
+        crate::traits::tests::test_signed(I128::MIN, I128::MAX);
     }
 }

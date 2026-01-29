@@ -1256,8 +1256,8 @@ pub(crate) trait AmmMultiplier<'a>: MontyMultiplier<'a> {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::Integer;
-    use crate::{Choice, CtEq, CtSelect, NonZero};
+    use super::{Integer, Signed, Unsigned};
+    use crate::{Choice, CtEq, CtSelect, Limb, NonZero, One, Zero};
 
     /// Apply a suite of tests against a type implementing Integer.
     pub fn test_integer<T: Integer>(min: T, max: T) {
@@ -1281,7 +1281,7 @@ pub(crate) mod tests {
             (max.clone(), max.clone()),
         ];
 
-        // test formatting
+        // Test formatting
         #[cfg(feature = "alloc")]
         for a in inputs {
             let _ = format!("{a:?}");
@@ -1301,7 +1301,7 @@ pub(crate) mod tests {
         assert_ne!(zero, max);
         assert_ne!(min, max);
 
-        // Even/odd
+        // Even/odd trait methods
         assert!(zero.is_even().to_bool());
         assert!(!zero.is_odd().to_bool());
         assert!(!one.is_even().to_bool());
@@ -1341,7 +1341,7 @@ pub(crate) mod tests {
             assert_eq!(&c, b);
         }
 
-        // Bitwise and
+        // BitAnd
         for a in inputs {
             assert_eq!(a.clone().bitand(zero.clone()), zero);
             assert_eq!(a.clone().bitand(&zero), zero);
@@ -1358,7 +1358,7 @@ pub(crate) mod tests {
             assert_eq!(a, &b);
         }
 
-        // Bitwise or
+        // BitOr
         for a in inputs {
             assert_eq!(&a.clone().bitor(zero.clone()), a);
             assert_eq!(&a.clone().bitor(&zero), a);
@@ -1374,7 +1374,7 @@ pub(crate) mod tests {
             assert_eq!(a, &b);
         }
 
-        // Bitwise xor
+        // BitXor
         for a in inputs {
             assert_eq!(&a.clone().bitxor(zero.clone()), a);
             assert_eq!(&a.clone().bitor(&zero), a);
@@ -1390,7 +1390,7 @@ pub(crate) mod tests {
             assert_eq!(T::zero(), b);
         }
 
-        // Bit shifts
+        // Shr/Shl
         assert_eq!(zero.clone().shr(1u32), zero);
         assert_eq!(one.clone().shr(1u32), zero);
         assert_eq!(zero.clone().shl(1u32), zero);
@@ -1403,7 +1403,7 @@ pub(crate) mod tests {
         expect.shr_assign(1);
         assert_eq!(expect, one);
 
-        // Non-carrying addition
+        // Non-carrying Add
         for a in inputs {
             assert_eq!(&a.clone().add(zero.clone()), a);
             assert_eq!(&a.clone().add(&zero), a);
@@ -1418,7 +1418,7 @@ pub(crate) mod tests {
             assert_eq!(a, &b);
         }
 
-        // Non-borrowing subtraction
+        // Non-borrowing Sub
         for a in inputs {
             assert_eq!(&a.clone().sub(zero.clone()), a);
             assert_eq!(&a.clone().sub(&zero), a);
@@ -1433,7 +1433,7 @@ pub(crate) mod tests {
             assert_eq!(zero, b);
         }
 
-        // Non-carrying multiplication
+        // Non-carrying Mul
         for a in inputs {
             assert_eq!(a.clone().mul(zero.clone()), zero);
             assert_eq!(a.clone().mul(&zero), zero);
@@ -1464,7 +1464,7 @@ pub(crate) mod tests {
         a %= nz_one.clone();
         assert_eq!(a, zero);
 
-        // Checked addition
+        // CheckedAdd
         assert_eq!(
             zero.clone().checked_add(&zero).into_option(),
             Some(zero.clone())
@@ -1480,7 +1480,7 @@ pub(crate) mod tests {
         assert_eq!(max.checked_add(&one).into_option(), None);
         assert_eq!(max.checked_add(&max).into_option(), None);
 
-        // Checked subtraction
+        // CheckedSub
         assert_eq!(
             zero.clone().checked_sub(&zero).into_option(),
             Some(zero.clone())
@@ -1491,7 +1491,7 @@ pub(crate) mod tests {
         assert_eq!(max.checked_sub(&zero).into_option(), Some(max.clone()));
         assert_eq!(max.checked_sub(&max).into_option(), Some(zero.clone()));
 
-        // Checked multiplication
+        // CheckedMul
         assert_eq!(
             zero.clone().checked_mul(&zero).into_option(),
             Some(zero.clone())
@@ -1506,7 +1506,7 @@ pub(crate) mod tests {
         );
         assert_eq!(max.checked_mul(&max).into_option(), None);
 
-        // Checked division
+        // CheckedDiv
         assert_eq!(zero.clone().checked_div(&zero).into_option(), None);
         assert_eq!(one.clone().checked_div(&zero).into_option(), None);
         assert_eq!(
@@ -1515,7 +1515,7 @@ pub(crate) mod tests {
         );
         assert_eq!(max.checked_div(&max).into_option(), Some(one.clone()));
 
-        // Checked square root
+        // CheckedSquareRoot
         assert_eq!(zero.checked_sqrt().into_option(), Some(zero.clone()));
         assert_eq!(zero.checked_sqrt_vartime(), Some(zero.clone()));
         assert_eq!(one.checked_sqrt().into_option(), Some(one.clone()));
@@ -1523,7 +1523,7 @@ pub(crate) mod tests {
         assert_eq!(two.checked_sqrt().into_option(), None);
         assert_eq!(two.checked_sqrt_vartime(), None);
 
-        // Wrapping addition
+        // WrappingAdd
         assert_eq!(zero.clone().wrapping_add(&zero), zero);
         assert_eq!(zero.clone().wrapping_add(&one), one);
         assert_eq!(one.clone().wrapping_add(&zero), one);
@@ -1531,14 +1531,14 @@ pub(crate) mod tests {
         assert_eq!(one.clone().wrapping_add(&max), min);
         assert_eq!(max.wrapping_add(&one), min);
 
-        // Wrapping subtraction
+        // WrappingSub
         assert_eq!(zero.clone().wrapping_sub(&zero), zero);
         assert_eq!(one.clone().wrapping_sub(&zero), one);
         assert_eq!(two.wrapping_sub(&one), one);
         assert_eq!(min.wrapping_sub(&one), max);
         assert_eq!(min.wrapping_sub(&min), zero);
 
-        // Wrapping multiplication
+        // WrappingMul
         assert_eq!(zero.clone().wrapping_mul(&zero), zero);
         assert_eq!(zero.clone().wrapping_mul(&one), zero);
         assert_eq!(one.clone().wrapping_mul(&zero), zero);
@@ -1548,19 +1548,244 @@ pub(crate) mod tests {
         assert_eq!(max.wrapping_mul(&one), max);
         assert_eq!(max.wrapping_mul(&two), max.clone().shl(1u32));
 
-        // Wrapping negation
+        // WrappingNeg
         assert_eq!(zero.clone().wrapping_neg(), zero);
         for a in inputs {
             assert_eq!(a.wrapping_add(&a.wrapping_neg()), zero);
             assert_eq!(zero.wrapping_sub(a), a.wrapping_neg());
         }
 
-        // Wrapping bit shifts
+        // WrappingShr/WrappingShl
         assert_eq!(zero.clone().wrapping_shr(1u32), zero);
         assert_eq!(one.clone().wrapping_shr(1u32), zero);
         assert_eq!(zero.clone().wrapping_shl(1u32), zero);
         assert_eq!(one.clone().wrapping_shl(1u32), two);
         assert_eq!(two.clone().wrapping_shr(1u32), one);
         assert_ne!(max.clone().wrapping_shr(1u32), max);
+    }
+
+    /// Apply a suite of tests against a type implementing Unsigned.
+    pub fn test_unsigned<T: Unsigned>(min: T, max: T) {
+        let zero = T::zero_like(&min);
+        let one = T::one_like(&min);
+        let two = one.clone() + &one;
+        let nz_one = NonZero::new(one.clone()).expect("must be non-zero");
+        let nz_two = NonZero::new(two.clone()).expect("must be non-zero");
+        let nz_limb_one = NonZero::new(Limb::ONE).expect("must be non-zero");
+        let nz_limb_two = NonZero::new(Limb::from(2u8)).expect("must be non-zero");
+        let inputs = &[zero.clone(), one.clone(), max.clone()];
+
+        // Test Integer trait
+        test_integer(min.clone(), max.clone());
+
+        // Trait methods
+        for a in inputs {
+            assert_eq!(a.as_uint_ref(), a.as_ref());
+            assert_eq!(a.clone().as_mut_uint_ref(), a.clone().as_mut());
+            assert_eq!(T::from_limb_like(Limb::ZERO, &one), zero);
+            assert_eq!(T::from_limb_like(Limb::ONE, &one), one);
+        }
+
+        // Zero trait
+        assert!(zero.is_zero().to_bool());
+        assert!(!one.is_zero().to_bool());
+        let mut a = one.clone();
+        a.set_zero();
+        assert_eq!(a, zero);
+
+        // One trait
+        assert!(!zero.is_one().to_bool());
+        assert!(one.is_one().to_bool());
+        let mut a = zero.clone();
+        a.set_one();
+        assert_eq!(a, one);
+
+        // From implementations
+        assert_eq!(T::from(0u8), T::zero());
+        assert_eq!(T::from(1u8), T::one());
+        assert_eq!(T::from(1u16), T::one());
+        assert_eq!(T::from(1u32), T::one());
+        assert_eq!(T::from(1u64), T::one());
+        assert_eq!(T::from(Limb::ONE), T::one());
+
+        // FloorSquareRoot
+        assert_eq!(zero.floor_sqrt(), zero);
+        assert_eq!(zero.floor_sqrt_vartime(), zero);
+        assert_eq!(one.floor_sqrt(), one);
+        assert_eq!(one.floor_sqrt_vartime(), one);
+        assert_eq!(two.floor_sqrt(), one);
+        assert_eq!(two.floor_sqrt_vartime(), one);
+
+        // Div by ref
+        assert_eq!(zero.clone().div(&nz_one), zero);
+        assert_eq!(zero.clone().div(&nz_two), zero);
+        assert_eq!(one.clone().div(&nz_one), one);
+        assert_eq!(one.clone().div(&nz_two), zero);
+        // Div by owned
+        assert_eq!(zero.clone().div(nz_one.clone()), zero);
+        assert_eq!(zero.clone().div(nz_two.clone()), zero);
+        assert_eq!(one.clone().div(nz_one.clone()), one);
+        assert_eq!(one.clone().div(nz_two.clone()), zero);
+
+        // DivRemLimb
+        assert_eq!(zero.div_rem_limb(nz_limb_one), (zero.clone(), Limb::ZERO));
+        assert_eq!(zero.div_rem_limb(nz_limb_two), (zero.clone(), Limb::ZERO));
+        assert_eq!(one.div_rem_limb(nz_limb_one), (one.clone(), Limb::ZERO));
+        assert_eq!(one.div_rem_limb(nz_limb_two), (zero.clone(), Limb::ONE));
+
+        // RemLimb
+        assert_eq!(zero.rem_limb(nz_limb_one), Limb::ZERO);
+        assert_eq!(zero.rem_limb(nz_limb_two), Limb::ZERO);
+        assert_eq!(one.rem_limb(nz_limb_one), Limb::ZERO);
+        assert_eq!(one.rem_limb(nz_limb_two), Limb::ONE);
+
+        // BitOps
+        assert_eq!(zero.bits(), 0);
+        assert_eq!(one.bits(), 1);
+        assert_eq!(one.bits_vartime(), 1);
+        assert_eq!(one.bits_precision() as usize, one.bytes_precision() * 8);
+        assert_eq!(one.bits_precision(), 1 << one.log2_bits());
+        // Leading/trailing zeros and ones
+        assert_eq!(zero.leading_zeros(), zero.bits_precision());
+        assert_eq!(zero.leading_zeros_vartime(), zero.bits_precision());
+        assert_eq!(zero.trailing_zeros(), zero.bits_precision());
+        assert_eq!(zero.trailing_zeros_vartime(), zero.bits_precision());
+        assert_eq!(zero.trailing_ones(), 0);
+        assert_eq!(zero.trailing_ones_vartime(), 0);
+        assert_eq!(one.leading_zeros(), one.bits_precision() - 1);
+        assert_eq!(one.leading_zeros_vartime(), one.bits_precision() - 1);
+        assert_eq!(one.trailing_zeros(), 0);
+        assert_eq!(one.trailing_zeros_vartime(), 0);
+        assert_eq!(one.trailing_ones(), 1);
+        assert_eq!(one.trailing_ones_vartime(), 1);
+        // Bit access
+        assert!(!zero.bit(0).to_bool());
+        assert!(!zero.bit_vartime(0));
+        assert!(one.bit(0).to_bool());
+        assert!(one.bit_vartime(0));
+        assert!(!one.bit(1).to_bool());
+        assert!(!one.bit_vartime(1));
+        // Bit assignment
+        let mut a = zero.clone();
+        a.set_bit(0, Choice::TRUE);
+        assert_eq!(a, one);
+        let mut a = zero.clone();
+        a.set_bit_vartime(0, true);
+        assert_eq!(a, one);
+        let mut a = one.clone();
+        a.set_bit(0, Choice::FALSE);
+        assert_eq!(a, zero);
+        let mut a = one.clone();
+        a.set_bit_vartime(0, false);
+        assert_eq!(a, zero);
+
+        // AddMod
+        assert_eq!(zero.add_mod(&zero, &nz_two), zero);
+        assert_eq!(zero.add_mod(&one, &nz_two), one);
+        assert_eq!(one.add_mod(&zero, &nz_two), one);
+        assert_eq!(one.add_mod(&one, &nz_two), zero);
+
+        // SubMod
+        assert_eq!(zero.sub_mod(&zero, &nz_two), zero);
+        assert_eq!(zero.sub_mod(&one, &nz_two), one);
+        assert_eq!(one.sub_mod(&zero, &nz_two), one);
+        assert_eq!(one.sub_mod(&one, &nz_two), zero);
+
+        // MulMod
+        assert_eq!(zero.mul_mod(&zero, &nz_two), zero);
+        assert_eq!(zero.mul_mod(&one, &nz_two), zero);
+        assert_eq!(one.mul_mod(&zero, &nz_two), zero);
+        assert_eq!(one.mul_mod(&one, &nz_two), one);
+
+        // SquareMod
+        assert_eq!(zero.square_mod(&nz_two), zero);
+        assert_eq!(one.square_mod(&nz_two), one);
+
+        // NegMod
+        assert_eq!(zero.neg_mod(&nz_two), zero);
+        assert_eq!(one.neg_mod(&nz_two), one);
+    }
+
+    pub fn test_signed<T: Signed>(min: T, max: T) {
+        let zero = T::zero_like(&min);
+        let one = T::one_like(&min);
+        let two = one.clone() + &one;
+        let zero_unsigned = T::Unsigned::zero();
+        let one_unsigned = T::Unsigned::one();
+        let minus_one = T::from(-1i8);
+        let nz_one = NonZero::new(one.clone()).expect("must be non-zero");
+        let nz_minus_one = NonZero::new(minus_one.clone()).expect("must be non-zero");
+        let nz_two = NonZero::new(two.clone()).expect("must be non-zero");
+
+        // Test Integer trait
+        test_integer(min.clone(), max.clone());
+
+        // Trait sign methods
+        assert!(!zero.is_positive().to_bool());
+        assert!(!zero.is_negative().to_bool());
+        assert!(one.is_positive().to_bool());
+        assert!(!one.is_negative().to_bool());
+        assert!(!minus_one.is_positive().to_bool());
+        assert!(minus_one.is_negative().to_bool());
+        // Trait abs methods
+        assert_eq!(zero.abs(), zero_unsigned);
+        assert_eq!(one.abs(), one_unsigned);
+        assert_eq!(minus_one.abs(), one_unsigned);
+        let (check, check_sign) = zero.abs_sign();
+        assert_eq!(
+            (check, check_sign.to_bool()),
+            (zero_unsigned.clone(), false)
+        );
+        let (check, check_sign) = one.abs_sign();
+        assert_eq!((check, check_sign.to_bool()), (one_unsigned.clone(), false));
+        let (check, check_sign) = minus_one.abs_sign();
+        assert_eq!((check, check_sign.to_bool()), (one_unsigned.clone(), true));
+
+        // From implementations
+        assert_eq!(T::from(0i8), T::zero());
+        assert_eq!(T::from(1i8), T::one());
+        assert_eq!(T::from(1i16), T::one());
+        assert_eq!(T::from(1i32), T::one());
+        assert_eq!(T::from(1i64), T::one());
+        assert_eq!(T::from(-1i64), T::zero() - T::one());
+
+        // Div by ref
+        assert_eq!(zero.clone().div(&nz_one).into_option(), Some(zero.clone()));
+        assert_eq!(
+            zero.clone().div(&nz_minus_one).into_option(),
+            Some(zero.clone())
+        );
+        assert_eq!(zero.clone().div(&nz_two).into_option(), Some(zero.clone()));
+        assert_eq!(one.clone().div(&nz_one).into_option(), Some(one.clone()));
+        assert_eq!(
+            one.clone().div(&nz_minus_one).into_option(),
+            Some(minus_one.clone())
+        );
+        assert_eq!(one.clone().div(&nz_two).into_option(), Some(zero.clone()));
+        // Div by owned
+        assert_eq!(
+            zero.clone().div(nz_one.clone()).into_option(),
+            Some(zero.clone())
+        );
+        assert_eq!(
+            zero.clone().div(nz_minus_one.clone()).into_option(),
+            Some(zero.clone())
+        );
+        assert_eq!(
+            zero.clone().div(nz_two.clone()).into_option(),
+            Some(zero.clone())
+        );
+        assert_eq!(
+            one.clone().div(nz_one.clone()).into_option(),
+            Some(one.clone())
+        );
+        assert_eq!(
+            one.clone().div(nz_minus_one.clone()).into_option(),
+            Some(minus_one.clone())
+        );
+        assert_eq!(
+            one.clone().div(nz_two.clone()).into_option(),
+            Some(zero.clone())
+        );
     }
 }

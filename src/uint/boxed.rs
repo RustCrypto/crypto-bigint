@@ -654,8 +654,8 @@ mod tests {
     }
 
     #[test]
-    fn test_integer() {
-        crate::traits::tests::test_integer(
+    fn test_unsigned() {
+        crate::traits::tests::test_unsigned(
             BoxedUint::zero_with_precision(128),
             BoxedUint::max(128),
         );

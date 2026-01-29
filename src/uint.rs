@@ -727,7 +727,7 @@ mod tests {
     }
 
     #[test]
-    fn test_integer() {
-        crate::traits::tests::test_integer(U128::ZERO, U128::MAX);
+    fn test_unsigned() {
+        crate::traits::tests::test_unsigned(U128::ZERO, U128::MAX);
     }
 }
