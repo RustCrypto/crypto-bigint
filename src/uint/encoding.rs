@@ -1186,7 +1186,8 @@ mod tests {
         use rand_core::SeedableRng;
         let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
 
-        for _ in 0..100 {
+        let rounds = if cfg!(miri) { 10 } else { 100 };
+        for _ in 0..rounds {
             let uint = U256::random_from_rng(&mut rng);
             for radix in 2..=36 {
                 let enc = uint.to_string_radix_vartime(radix);

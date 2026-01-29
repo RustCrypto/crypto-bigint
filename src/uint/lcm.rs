@@ -68,9 +68,11 @@ mod tests {
             run_tests::<{ U128::LIMBS }, { U256::LIMBS }>();
             run_tests::<{ U256::LIMBS }, { U512::LIMBS }>();
             run_tests::<{ U512::LIMBS }, { U1024::LIMBS }>();
-            run_tests::<{ U1024::LIMBS }, { U2048::LIMBS }>();
-            run_tests::<{ U2048::LIMBS }, { U4096::LIMBS }>();
-            run_tests::<{ U4096::LIMBS }, { U8192::LIMBS }>();
+            if cfg!(not(miri)) {
+                run_tests::<{ U1024::LIMBS }, { U2048::LIMBS }>();
+                run_tests::<{ U2048::LIMBS }, { U4096::LIMBS }>();
+                run_tests::<{ U4096::LIMBS }, { U8192::LIMBS }>();
+            }
         }
     }
 }

@@ -139,7 +139,8 @@ mod tests {
                         assert_eq!(*c, x, "{} * {} mod {} = {} != {}", a, b, p, x, c);
                     }
 
-                    for _i in 0..100 {
+                    let rounds = if cfg!(miri) { 10 } else { 100 };
+                    for _i in 0..rounds {
                         let a = Uint::<$size>::random_mod_vartime(&mut rng, p);
                         let b = Uint::<$size>::random_mod_vartime(&mut rng, p);
 

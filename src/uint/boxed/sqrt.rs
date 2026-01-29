@@ -351,7 +351,8 @@ mod tests {
         use crate::CheckedSquareRoot;
 
         let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
-        for _ in 0..50 {
+        let rounds = if cfg!(miri) { 10 } else { 50 };
+        for _ in 0..rounds {
             let t = u64::from(rng.next_u32());
             let s = BoxedUint::from(t);
             let s2 = s.checked_mul(&s).unwrap();
@@ -361,7 +362,7 @@ mod tests {
             assert!(CheckedSquareRoot::checked_sqrt_vartime(&s2).is_some());
         }
 
-        for _ in 0..50 {
+        for _ in 0..rounds {
             let s = BoxedUint::random_bits(&mut rng, 512);
             let mut s2 = BoxedUint::zero_with_precision(512);
             s2.limbs[..s.limbs.len()].copy_from_slice(&s.limbs);

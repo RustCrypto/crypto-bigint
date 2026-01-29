@@ -229,17 +229,18 @@ mod tests {
         use crate::{RandomBits, Resize};
         use rand_core::SeedableRng;
         let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
+        let bits = if cfg!(miri) { 512 } else { 4096 };
 
         for i in 0..50 {
-            let a = BoxedUint::random_bits(&mut rng, 4096);
+            let a = BoxedUint::random_bits(&mut rng, bits);
             assert_eq!(a.mul(&a), a.square(), "a={a}, i={i}");
             assert_eq!(a.wrapping_mul(&a), a.wrapping_square(), "a={a}, i={i}");
             assert_eq!(a.saturating_mul(&a), a.saturating_square(), "a={a}, i={i}");
         }
 
         for i in 0..50 {
-            let a = BoxedUint::random_bits(&mut rng, 4096);
-            let b = BoxedUint::random_bits(&mut rng, 5000);
+            let a = BoxedUint::random_bits(&mut rng, bits);
+            let b = BoxedUint::random_bits(&mut rng, bits + 64);
             let expect = a.mul(&b);
             assert_eq!(b.mul(&a), expect, "a={a}, b={b}, i={i}");
             assert_eq!(
