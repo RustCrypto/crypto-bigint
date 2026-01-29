@@ -9,6 +9,7 @@ mod bit_xor;
 mod bits;
 mod cmp;
 mod ct;
+mod div;
 mod encoding;
 mod from;
 mod mul;
