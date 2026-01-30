@@ -136,8 +136,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[inline(always)]
     #[must_use]
     pub const fn unbounded_shr_vartime(&self, shift: u32) -> Self {
-        let mut res = *self;
-        res.as_mut_uint_ref().unbounded_shr_assign_vartime(shift);
+        let mut res = Self::ZERO;
+        self.as_uint_ref()
+            .unbounded_shr_vartime(shift, res.as_mut_uint_ref());
         res
     }
 
@@ -150,14 +151,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[inline(always)]
     #[must_use]
     pub(crate) const fn unbounded_shr_by_limbs_vartime(&self, shift: u32) -> Self {
-        let shift = shift as usize;
-        let mut limbs = [Limb::ZERO; LIMBS];
-        let mut i = 0;
-        while i < LIMBS.saturating_sub(shift) {
-            limbs[i] = self.limbs[i + shift];
-            i += 1;
-        }
-        Self { limbs }
+        let mut res = *self;
+        res.as_mut_uint_ref()
+            .unbounded_shr_assign_by_limbs_vartime(shift);
+        res
     }
 
     /// Computes `self >> shift` in a panic-free manner, reducing shift modulo the type's width.
@@ -183,7 +180,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[inline(always)]
     #[must_use]
     pub(crate) const fn shr1(&self) -> Self {
-        self.shr_limb_with_carry(1, Limb::ZERO).0
+        let mut res = *self;
+        res.as_mut_uint_ref().shr1_assign();
+        res
     }
 
     /// Computes `self >> shift` where `0 <= shift < Limb::BITS`,
