@@ -110,8 +110,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[inline(always)]
     #[must_use]
     pub const fn unbounded_shl_vartime(&self, shift: u32) -> Self {
-        let mut res = *self;
-        res.as_mut_uint_ref().unbounded_shl_assign_vartime(shift);
+        let mut res = Self::ZERO;
+        self.as_uint_ref()
+            .unbounded_shl_vartime(shift, res.as_mut_uint_ref());
         res
     }
 
@@ -180,7 +181,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[inline(always)]
     #[must_use]
     pub(crate) const fn shl1_with_carry(&self, carry: Limb) -> (Self, Limb) {
-        self.shl_limb_with_carry(1, carry)
+        let mut res = *self;
+        let carry = res.as_mut_uint_ref().shl1_assign_with_carry(carry);
+        (res, carry)
     }
 
     /// Computes `self << shift` where `0 <= shift < Limb::BITS`,

@@ -40,9 +40,7 @@ impl BoxedUint {
     #[must_use]
     pub fn overflowing_shl_vartime(&self, shift: u32) -> Option<Self> {
         if shift < self.bits_precision() {
-            let mut result = self.clone();
-            result.as_mut_uint_ref().unbounded_shl_assign_vartime(shift);
-            Some(result)
+            Some(self.unbounded_shl_vartime(shift))
         } else {
             None
         }
@@ -87,8 +85,9 @@ impl BoxedUint {
     /// in the case of overflow.
     #[must_use]
     pub fn unbounded_shl_vartime(&self, shift: u32) -> Self {
-        let mut result = self.clone();
-        result.unbounded_shl_assign_vartime(shift);
+        let mut result = Self::zero_with_precision(self.bits_precision());
+        self.as_uint_ref()
+            .unbounded_shl_vartime(shift, result.as_mut_uint_ref());
         result
     }
 
@@ -117,9 +116,7 @@ impl BoxedUint {
     /// the shift to exceed the type's width.
     #[must_use]
     pub fn wrapping_shl_vartime(&self, shift: u32) -> Self {
-        let mut result = self.clone();
-        result.wrapping_shl_assign_vartime(shift);
-        result
+        self.unbounded_shl_vartime(shift % self.bits_precision())
     }
 
     /// Computes `self <<= shift` in variable-time in a panic-free manner, masking
@@ -137,29 +134,7 @@ impl BoxedUint {
     #[inline(always)]
     #[must_use]
     pub fn shl_vartime(&self, shift: u32) -> Option<Self> {
-        // This could use `UintRef::wrapping_shl_assign_vartime`, but it is faster to operate
-        // on a zero'ed clone and let the compiler reuse the memory allocation when possible.
-
-        let nbits = self.bits_precision();
-        if shift >= nbits {
-            return None;
-        }
-
-        let mut dest = Self::zero_with_precision(nbits);
-        let nlimbs = self.nlimbs();
-        let shift_limbs = (shift / Limb::BITS) as usize;
-        let rem = shift % Limb::BITS;
-
-        for i in shift_limbs..nlimbs {
-            dest.limbs[i] = self.limbs[i - shift_limbs];
-        }
-
-        if rem > 0 {
-            dest.as_mut_uint_ref_range(shift_limbs..nlimbs)
-                .shl_assign_limb(rem);
-        }
-
-        Some(dest)
+        self.overflowing_shl_vartime(shift)
     }
 
     /// Computes `self << 1` in constant-time.

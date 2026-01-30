@@ -1,10 +1,12 @@
 //! [`UintRef`] bitwise right shift operations.
 
-use super::UintRef;
-use crate::{Choice, Limb, NonZero, primitives::u32_bits};
+use core::num::NonZeroU32;
 
-#[cfg(feature = "alloc")]
-use crate::primitives::u32_rem;
+use super::UintRef;
+use crate::{
+    Choice, Limb,
+    primitives::{u32_bits, u32_rem},
+};
 
 impl UintRef {
     /// Right-shifts by `shift` bits.
@@ -12,8 +14,7 @@ impl UintRef {
     /// # Panics
     /// - if the shift exceeds the type's width.
     #[inline(always)]
-    #[cfg(feature = "alloc")]
-    pub(crate) const fn shr_assign(&mut self, shift: u32) {
+    pub const fn shr_assign(&mut self, shift: u32) {
         self.bounded_shr_assign(shift, self.bits_precision());
     }
 
@@ -32,7 +33,7 @@ impl UintRef {
 
     /// Right-shifts by `shift` bits, producing zero if the shift exceeds the precision.
     #[inline(always)]
-    pub(crate) const fn unbounded_shr_assign(&mut self, shift: u32) {
+    pub const fn unbounded_shr_assign(&mut self, shift: u32) {
         let overflow = self.overflowing_shr_assign(shift);
         self.conditional_set_zero(overflow);
     }
@@ -46,7 +47,7 @@ impl UintRef {
     /// # Panics
     /// - if the shift exceeds the upper bound.
     #[inline(always)]
-    pub(crate) const fn bounded_shr_assign(&mut self, shift: u32, shift_upper_bound: u32) {
+    pub const fn bounded_shr_assign(&mut self, shift: u32, shift_upper_bound: u32) {
         assert!(shift < shift_upper_bound, "`shift` exceeds upper bound");
 
         let bit_shift = if shift_upper_bound <= Limb::BITS {
@@ -133,6 +134,22 @@ impl UintRef {
         }
     }
 
+    /// Copies `self >> shift` into `out` in a panic-free manner, producing zero if the shift
+    /// exceeds the precision.
+    ///
+    /// `out` is assumed to be initialized with zeros.
+    ///
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
+    ///
+    /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
+    #[inline(always)]
+    pub(crate) const fn unbounded_shr_vartime(&self, shift: u32, out: &mut Self) {
+        let count = self.nlimbs().saturating_sub((shift / Limb::BITS) as usize);
+        let target = out.leading_mut(count);
+        target.copy_from(self.trailing(self.nlimbs() - count));
+        target.shr_assign_limb_vartime(shift % Limb::BITS);
+    }
+
     /// Right-shifts by `shift` bits in a panic-free manner, producing zero if the shift
     /// exceeds the precision.
     ///
@@ -150,24 +167,13 @@ impl UintRef {
         let rem = shift % Limb::BITS;
 
         self.unbounded_shr_assign_by_limbs_vartime(shift_limbs);
-
-        if rem > 0 {
-            let mut carry = Limb::ZERO;
-            let mut i = self.nlimbs().saturating_sub(shift_limbs as usize);
-            while i > 0 {
-                i -= 1;
-                (self.limbs[i], carry) = (
-                    self.limbs[i].shr(rem).bitor(carry),
-                    self.limbs[i].shl(Limb::BITS - rem),
-                );
-            }
-        }
+        let top = self.nlimbs().saturating_sub(shift_limbs as usize);
+        self.leading_mut(top).shr_assign_limb_vartime(rem);
     }
 
     /// Right-shifts by `shift` bits in a panic-free manner, reducing shift modulo the type's width.
     #[inline(always)]
-    #[cfg(feature = "alloc")]
-    pub(crate) const fn wrapping_shr_assign(&mut self, shift: u32) {
+    pub const fn wrapping_shr_assign(&mut self, shift: u32) {
         self.shr_assign(u32_rem(shift, self.bits_precision()));
     }
 
@@ -177,24 +183,23 @@ impl UintRef {
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
-    #[cfg(feature = "alloc")]
-    pub(crate) const fn wrapping_shr_assign_vartime(&mut self, shift: u32) {
+    pub const fn wrapping_shr_assign_vartime(&mut self, shift: u32) {
         self.unbounded_shr_assign_vartime(shift % self.bits_precision());
     }
 
-    /// Right-shifts by a single bit in constant-time, returning [`Choice::TRUE`]
-    /// if the least significant bit was set, and [`Choice::FALSE`] otherwise.
+    /// Right-shifts by a single bit in constant-time, returning `Limb::ONE << Limb::HI_BIT`
+    /// if the least significant bit was set, and [`Limb::ZERO`] otherwise.
     #[inline(always)]
     pub const fn shr1_assign(&mut self) -> Limb {
-        let mut carry = Limb::ZERO;
-        let mut i = self.nlimbs();
-        while i > 0 {
-            i -= 1;
-            let (limb, new_carry) = self.limbs[i].shr1();
-            self.limbs[i] = limb.bitor(carry);
-            carry = new_carry;
-        }
-        carry.shr(Limb::HI_BIT)
+        self.shr1_assign_with_carry(Limb::ZERO)
+    }
+
+    /// Right-shifts by a single bit in constant-time, returning `Limb::ONE << Limb::HI_BIT`
+    /// if the least significant bit was set, and [`Limb::ZERO`] otherwise.
+    #[inline(always)]
+    pub(crate) const fn shr1_assign_with_carry(&mut self, carry: Limb) -> Limb {
+        // NB: when used with a constant shift value, this method is constant time
+        self.shr_assign_limb_with_carry_vartime(1, carry)
     }
 
     /// Conditionally right-shifts by `shift` bits where `0 < shift < Limb::BITS`, returning
@@ -205,14 +210,14 @@ impl UintRef {
     #[inline(always)]
     pub(crate) const fn conditional_shr_assign_limb_nonzero(
         &mut self,
-        shift: NonZero<u32>,
+        shift: NonZeroU32,
         mut carry: Limb,
         choice: Choice,
     ) -> Limb {
-        assert!(shift.0 < Limb::BITS);
+        assert!(shift.get() < Limb::BITS);
 
-        let rshift = shift.0;
-        let lshift = Limb::BITS - shift.0;
+        let rshift = shift.get();
+        let lshift = Limb::BITS - rshift;
 
         let mut i = self.nlimbs();
         while i > 0 {
@@ -244,9 +249,13 @@ impl UintRef {
     /// # Panics
     /// - if `shift >= Limb::BITS`.
     #[inline(always)]
-    pub const fn shr_assign_limb_with_carry(&mut self, shift: u32, carry: Limb) -> Limb {
+    pub(crate) const fn shr_assign_limb_with_carry(&mut self, shift: u32, carry: Limb) -> Limb {
         let nz = Choice::from_u32_nz(shift);
-        self.conditional_shr_assign_limb_nonzero(NonZero(nz.select_u32(1, shift)), carry, nz)
+        self.conditional_shr_assign_limb_nonzero(
+            NonZeroU32::new(nz.select_u32(1, shift)).expect("ensured non-zero"),
+            carry,
+            nz,
+        )
     }
 
     /// Right-shifts by `shift` bits where `0 < shift < Limb::BITS`, returning
@@ -259,7 +268,25 @@ impl UintRef {
     /// # Panics
     /// If the shift size is equal to or larger than the width of the integer.
     #[inline(always)]
-    pub const fn shr_assign_limb_vartime(&mut self, shift: u32) -> Limb {
+    pub(crate) const fn shr_assign_limb_vartime(&mut self, shift: u32) -> Limb {
+        self.shr_assign_limb_with_carry_vartime(shift, Limb::ZERO)
+    }
+
+    /// Right-shifts by `shift` bits where `0 < shift < Limb::BITS`, returning
+    /// the carry.
+    ///
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
+    ///
+    /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
+    ///
+    /// # Panics
+    /// If the shift size is equal to or larger than the width of the integer.
+    #[inline(always)]
+    pub(crate) const fn shr_assign_limb_with_carry_vartime(
+        &mut self,
+        shift: u32,
+        mut carry: Limb,
+    ) -> Limb {
         assert!(shift < Limb::BITS);
 
         if shift == 0 {
@@ -268,7 +295,6 @@ impl UintRef {
 
         let rshift = shift;
         let lshift = Limb::BITS - shift;
-        let mut carry = Limb::ZERO;
 
         let mut i = self.nlimbs();
         while i > 0 {
@@ -290,27 +316,25 @@ mod tests {
     const N: U256 =
         U256::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
 
-    #[cfg(feature = "alloc")]
     const N_2: U256 =
         U256::from_be_hex("7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0");
 
-    #[cfg(feature = "alloc")]
     #[test]
     fn shr1_assign() {
         let mut n = N;
         let carry = n.as_mut_uint_ref().shr1_assign();
         assert_eq!(n, N_2);
-        assert_eq!(carry, Limb::ONE);
+        assert!(carry.is_nonzero().to_bool());
 
         let mut m = U256::MAX;
         let carry = m.as_mut_uint_ref().shr1_assign();
         assert_eq!(m, U256::MAX.shr_vartime(1));
-        assert_eq!(carry, Limb::ONE);
+        assert!(carry.is_nonzero().to_bool());
 
         let mut z = U256::ZERO;
         let carry = z.as_mut_uint_ref().shr1_assign();
         assert_eq!(z, U256::ZERO);
-        assert_eq!(carry, Limb::ZERO);
+        assert!(carry.is_zero().to_bool());
     }
 
     #[test]
@@ -366,7 +390,6 @@ mod tests {
         assert_eq!(val.as_words(), &[0, 0]);
     }
 
-    #[cfg(feature = "alloc")]
     #[test]
     fn compare_shr_assign() {
         for i in 0..256 {

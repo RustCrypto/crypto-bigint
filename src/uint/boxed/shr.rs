@@ -1,6 +1,6 @@
 //! [`BoxedUint`] bitwise right shift operations.
 
-use crate::{BoxedUint, Choice, CtOption, Limb, Shr, ShrAssign, ShrVartime, WrappingShr};
+use crate::{BoxedUint, Choice, CtOption, Shr, ShrAssign, ShrVartime, WrappingShr};
 
 impl BoxedUint {
     /// Computes `self >> shift`.
@@ -39,9 +39,7 @@ impl BoxedUint {
     #[must_use]
     pub fn overflowing_shr_vartime(&self, shift: u32) -> Option<Self> {
         if shift < self.bits_precision() {
-            let mut result = self.clone();
-            result.as_mut_uint_ref().unbounded_shr_assign_vartime(shift);
-            Some(result)
+            Some(self.unbounded_shr_vartime(shift))
         } else {
             None
         }
@@ -92,8 +90,9 @@ impl BoxedUint {
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[must_use]
     pub fn unbounded_shr_vartime(&self, shift: u32) -> Self {
-        let mut result = self.clone();
-        result.unbounded_shr_assign_vartime(shift);
+        let mut result = Self::zero_with_precision(self.bits_precision());
+        self.as_uint_ref()
+            .unbounded_shr_vartime(shift, result.as_mut_uint_ref());
         result
     }
 
@@ -127,9 +126,7 @@ impl BoxedUint {
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[must_use]
     pub fn wrapping_shr_vartime(&self, shift: u32) -> Self {
-        let mut result = self.clone();
-        result.wrapping_shr_assign_vartime(shift);
-        result
+        self.unbounded_shr_vartime(shift % self.bits_precision())
     }
 
     /// Computes `self >>= shift` in variable-time in a panic-free manner, reducing shift modulo
@@ -151,29 +148,7 @@ impl BoxedUint {
     #[inline(always)]
     #[must_use]
     pub fn shr_vartime(&self, shift: u32) -> Option<Self> {
-        // This could use `UintRef::wrapping_shr_assign_vartime`, but it is faster to operate
-        // on a zero'ed clone and let the compiler reuse the memory allocation when possible.
-
-        let nbits = self.bits_precision();
-        if shift >= nbits {
-            return None;
-        }
-
-        let mut dest = Self::zero_with_precision(nbits);
-        let nlimbs = self.nlimbs();
-        let shift_limbs = (shift / Limb::BITS) as usize;
-        let rem = shift % Limb::BITS;
-        let top = nlimbs - shift_limbs;
-
-        for i in 0..top {
-            dest.limbs[i] = self.limbs[i + shift_limbs];
-        }
-
-        if rem > 0 {
-            dest.as_mut_uint_ref_range(0..top).shr_assign_limb(rem);
-        }
-
-        Some(dest)
+        self.overflowing_shr_vartime(shift)
     }
 
     /// Computes `self >>= 1` in-place in constant-time.
