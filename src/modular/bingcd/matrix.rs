@@ -190,8 +190,8 @@ impl<const LIMBS: usize> PatternMatrix<LIMBS> {
     /// Double the bottom row of this matrix if `double` is truthy. Otherwise, do nothing.
     #[inline]
     pub(crate) const fn conditional_double_bottom_row(&mut self, double: Choice) {
-        self.m10 = Uint::select(&self.m10, &self.m10.overflowing_shl1().0, double);
-        self.m11 = Uint::select(&self.m11, &self.m11.overflowing_shl1().0, double);
+        self.m10 = Uint::select(&self.m10, &self.m10.shl1(), double);
+        self.m11 = Uint::select(&self.m11, &self.m11.shl1(), double);
     }
 
     /// Negate the elements in this matrix if `negate` is truthy. Otherwise, do nothing.
@@ -261,7 +261,6 @@ impl<const LIMBS: usize> DividedPatternMatrix<LIMBS> {
     /// Apply this matrix to a vector of [Uint]s, returning the result as a vector of
     /// [`ExtendedInt`]s.
     #[inline]
-    #[allow(unused)] // save for optimized xgcd
     pub const fn extended_apply_to<const VEC_LIMBS: usize, const UPPER_BOUND: u32>(
         &self,
         vec: Vector<Uint<VEC_LIMBS>>,

@@ -33,7 +33,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Assumes `self` as unbounded integer is `< p`.
     #[must_use]
     pub const fn double_mod(&self, p: &NonZero<Self>) -> Self {
-        let (w, carry) = self.overflowing_shl1();
+        let (w, carry) = self.shl1_with_carry(Limb::ZERO);
         w.try_sub_with_carry(carry, p.as_ref()).0
     }
 }

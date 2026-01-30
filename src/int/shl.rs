@@ -9,15 +9,22 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// # Panics
     /// - if `shift >= Self::BITS`.
     #[must_use]
+    #[track_caller]
     pub const fn shl(&self, shift: u32) -> Self {
         Self(Uint::shl(&self.0, shift))
     }
 
     /// Computes `self << shift` in variable time.
     ///
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
+    ///
+    /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
+    ///
     /// # Panics
     /// - if `shift >= Self::BITS`.
+    #[inline(always)]
     #[must_use]
+    #[track_caller]
     pub const fn shl_vartime(&self, shift: u32) -> Self {
         Self(Uint::shl_vartime(&self.0, shift))
     }
@@ -25,6 +32,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Computes `self << shift`.
     ///
     /// Returns `None` if `shift >= Self::BITS`.
+    #[inline(always)]
     #[must_use]
     pub const fn overflowing_shl(&self, shift: u32) -> CtOption<Self> {
         Self::from_uint_opt(self.0.overflowing_shl(shift))
@@ -50,13 +58,38 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Computes `self << shift` in a panic-free manner, returning zero if the shift exceeds the
     /// precision.
+    #[inline(always)]
+    #[must_use]
+    pub const fn unbounded_shl(&self, shift: u32) -> Self {
+        Self(self.0.unbounded_shl(shift))
+    }
+
+    /// Computes `self << shift` in variable-time in a panic-free manner, returning zero if the
+    /// shift exceeds the precision.
+    ///
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
+    ///
+    /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
+    #[inline(always)]
+    #[must_use]
+    pub const fn unbounded_shl_vartime(&self, shift: u32) -> Self {
+        Self(self.0.unbounded_shl_vartime(shift))
+    }
+
+    /// Computes `self << shift` in a panic-free manner, reducing shift modulo the type's width.
+    #[inline(always)]
     #[must_use]
     pub const fn wrapping_shl(&self, shift: u32) -> Self {
         Self(self.0.wrapping_shl(shift))
     }
 
-    /// Computes `self << shift` in variable-time in a panic-free manner, returning zero if the
-    /// shift exceeds the precision.
+    /// Computes `self << shift` in variable-time in a panic-free manner, reducing shift modulo
+    /// the type's width.
+    ///
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
+    ///
+    /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
+    #[inline(always)]
     #[must_use]
     pub const fn wrapping_shl_vartime(&self, shift: u32) -> Self {
         Self(self.0.wrapping_shl_vartime(shift))
@@ -104,6 +137,10 @@ impl<const LIMBS: usize> WrappingShl for Int<LIMBS> {
 impl<const LIMBS: usize> ShlVartime for Int<LIMBS> {
     fn overflowing_shl_vartime(&self, shift: u32) -> Option<Self> {
         self.overflowing_shl_vartime(shift)
+    }
+
+    fn unbounded_shl_vartime(&self, shift: u32) -> Self {
+        self.unbounded_shl_vartime(shift)
     }
 
     fn wrapping_shl_vartime(&self, shift: u32) -> Self {
@@ -170,8 +207,8 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "`shift` within the bit size of the integer")]
-    fn shl256() {
+    #[should_panic(expected = "`shift` exceeds upper bound")]
+    fn shl_bounds_panic() {
         let _ = N << 256;
     }
 
@@ -181,16 +218,30 @@ mod tests {
     }
 
     #[test]
-    fn wrapping_shl() {
-        assert_eq!(I256::MAX.wrapping_shl(257), I256::ZERO);
-        assert_eq!(I256::MIN.wrapping_shl(257), I256::ZERO);
+    fn unbounded_shl() {
+        assert_eq!(I256::MAX.unbounded_shl(257), I256::ZERO);
+        assert_eq!(I256::MIN.unbounded_shl(257), I256::ZERO);
         assert_eq!(
-            ShlVartime::wrapping_shl_vartime(&I256::MAX, 257),
+            ShlVartime::unbounded_shl_vartime(&I256::MAX, 257),
             I256::ZERO
         );
         assert_eq!(
-            ShlVartime::wrapping_shl_vartime(&I256::MIN, 257),
+            ShlVartime::unbounded_shl_vartime(&I256::MIN, 257),
             I256::ZERO
+        );
+    }
+
+    #[test]
+    fn wrapping_shl() {
+        assert_eq!(I256::MAX.wrapping_shl(257), I256::MAX.shl(1));
+        assert_eq!(I256::MIN.wrapping_shl(257), I256::MIN.shl(1));
+        assert_eq!(
+            ShlVartime::wrapping_shl_vartime(&I256::MAX, 257),
+            I256::MAX.shl(1)
+        );
+        assert_eq!(
+            ShlVartime::wrapping_shl_vartime(&I256::MIN, 257),
+            I256::MIN.shl(1)
         );
     }
 }

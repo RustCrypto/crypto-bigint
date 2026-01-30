@@ -740,6 +740,26 @@ fn bench_mod_symbols(c: &mut Criterion) {
 fn bench_shl(c: &mut Criterion) {
     let mut group = c.benchmark_group("left shift");
 
+    group.bench_function("shl, U256", |b| {
+        b.iter_batched(|| U256::ONE, |x| x.shl(30), BatchSize::SmallInput);
+    });
+
+    group.bench_function("unbounded_shl, U256", |b| {
+        b.iter_batched(|| U256::ONE, |x| x.unbounded_shl(30), BatchSize::SmallInput);
+    });
+
+    group.bench_function("shl, U2048", |b| {
+        b.iter_batched(|| U2048::ONE, |x| x.shl(1024 + 10), BatchSize::SmallInput);
+    });
+
+    group.bench_function("unbounded_shl, U2048", |b| {
+        b.iter_batched(
+            || U2048::ONE,
+            |x| x.unbounded_shl(1024 + 10),
+            BatchSize::SmallInput,
+        );
+    });
+
     group.bench_function("shl_vartime, small, U2048", |b| {
         b.iter_batched(|| U2048::ONE, |x| x.shl_vartime(10), BatchSize::SmallInput);
     });
@@ -760,15 +780,31 @@ fn bench_shl(c: &mut Criterion) {
         );
     });
 
-    group.bench_function("shl, U2048", |b| {
-        b.iter_batched(|| U2048::ONE, |x| x.shl(1024 + 10), BatchSize::SmallInput);
-    });
-
     group.finish();
 }
 
 fn bench_shr(c: &mut Criterion) {
     let mut group = c.benchmark_group("right shift");
+
+    group.bench_function("shr, U256", |b| {
+        b.iter_batched(|| U256::ONE, |x| x.shr(30), BatchSize::SmallInput);
+    });
+
+    group.bench_function("unbounded_shr, U256", |b| {
+        b.iter_batched(|| U256::ONE, |x| x.unbounded_shr(30), BatchSize::SmallInput);
+    });
+
+    group.bench_function("shr, U2048", |b| {
+        b.iter_batched(|| U2048::ONE, |x| x.shr(1024 + 10), BatchSize::SmallInput);
+    });
+
+    group.bench_function("unbounded_shr, U2048", |b| {
+        b.iter_batched(
+            || U2048::ONE,
+            |x| x.unbounded_shr(1024 + 10),
+            BatchSize::SmallInput,
+        );
+    });
 
     group.bench_function("shr_vartime, small, U2048", |b| {
         b.iter_batched(|| U2048::ONE, |x| x.shr_vartime(10), BatchSize::SmallInput);
@@ -788,10 +824,6 @@ fn bench_shr(c: &mut Criterion) {
             |x| Uint::overflowing_shr_vartime_wide(x, 1024 + 10),
             BatchSize::SmallInput,
         );
-    });
-
-    group.bench_function("shr, U2048", |b| {
-        b.iter_batched(|| U2048::ONE, |x| x.shr(1024 + 10), BatchSize::SmallInput);
     });
 
     group.finish();
