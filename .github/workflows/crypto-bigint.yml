@@ -21,32 +21,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-no-std:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        rust:
-          - 1.85.0 # MSRV
-          - stable
-        target:
-          - thumbv7em-none-eabi
-          - wasm32-unknown-unknown
     steps:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: ${{ matrix.rust }}
-          targets: ${{ matrix.target }}
-      - run: cargo build --target ${{ matrix.target }} --release --no-default-features
-      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features alloc
-      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features der
-      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features hybrid-array
-      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features rand_core
-      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features rlp
-      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features serde
-      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features subtle
-      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features zeroize
-      - run: cargo build --target ${{ matrix.target }} --release --no-default-features --features alloc,der,hybrid-array,rand_core,rlp,serde,subtle,zeroize
+          toolchain: stable
+          targets: thumbv7em-none-eabi
+      - run: cargo build --target thumbv7em-none-eabi --release --no-default-features
+      - run: cargo build --target thumbv7em-none-eabi --release --no-default-features --features alloc
+      - run: cargo build --target thumbv7em-none-eabi --release --no-default-features --features der
+      - run: cargo build --target thumbv7em-none-eabi --release --no-default-features --features hybrid-array
+      - run: cargo build --target thumbv7em-none-eabi --release --no-default-features --features rand_core
+      - run: cargo build --target thumbv7em-none-eabi --release --no-default-features --features rlp
+      - run: cargo build --target thumbv7em-none-eabi --release --no-default-features --features serde
+      - run: cargo build --target thumbv7em-none-eabi --release --no-default-features --features subtle
+      - run: cargo build --target thumbv7em-none-eabi --release --no-default-features --features zeroize
+      - run: cargo build --target thumbv7em-none-eabi --release --no-default-features --features alloc,der,hybrid-array,rand_core,rlp,serde,subtle,zeroize
 
   build-benchmarks:
     runs-on: ubuntu-latest
@@ -62,7 +54,7 @@ jobs:
     strategy:
       matrix:
         include:
-          # 32-bit Linux
+          # `x86` Linux
           - target: i686-unknown-linux-gnu
             rust: 1.85.0 # MSRV
             deps: sudo apt update && sudo apt install gcc-multilib
@@ -78,7 +70,7 @@ jobs:
             args: --release
             deps: sudo apt update && sudo apt install gcc-multilib
 
-          # 64-bit Linux
+          # `x86_64` Linux
           - target: x86_64-unknown-linux-gnu
             rust: 1.85.0 # MSRV
           - target: x86_64-unknown-linux-gnu
@@ -90,18 +82,37 @@ jobs:
             rust: stable
             args: --release
 
-          # 64-bit ARM Linux
+          # `aarch64` Linux
+          - target: aarch64-unknown-linux-gnu
+            rust: 1.85.0 # MSRV
+            runner: ubuntu-24.04-arm
+          - target: aarch64-unknown-linux-gnu
+            rust: 1.85.0 # MSRV
+            runner: ubuntu-24.04-arm
+            args: --release
           - target: aarch64-unknown-linux-gnu
             rust: stable
-            args: --release
             runner: ubuntu-24.04-arm
+          - target: aarch64-unknown-linux-gnu
+            rust: stable
+            runner: ubuntu-24.04-arm
+            args: --release
 
-          # 64-bit ARM Darwin
+          # `aarch64` macOS
+          - target: aarch64-apple-darwin
+            rust: 1.85.0 # MSRV
+            runner: macos-latest
+          - target: aarch64-apple-darwin
+            rust: 1.85.0 # MSRV
+            runner: macos-latest
+            args: --release
           - target: aarch64-apple-darwin
             rust: stable
-            args: --release
             runner: macos-latest
-
+          - target: aarch64-apple-darwin
+            rust: stable
+            runner: macos-latest
+            args: --release
     runs-on: ${{ matrix.runner != '' && matrix.runner || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v6
@@ -132,7 +143,6 @@ jobs:
         include:
           - target: armv7-unknown-linux-gnueabi # ARM32
           - target: powerpc-unknown-linux-gnu   # PPC32 (big endian)
-
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -207,7 +217,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: stable
-      - run: cargo +stable build --release --all-features
+      - uses: RustCrypto/actions/cargo-hack-install@master
+      - run: cargo hack check --release --feature-powerset --no-dev-deps
 
   clippy:
     runs-on: ubuntu-latest
@@ -215,7 +226,7 @@ jobs:
       - uses: actions/checkout@v6
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.88.0
+          toolchain: 1.93.0
           components: clippy
       - run: cargo clippy --all-targets --all-features -- -D warnings
 
