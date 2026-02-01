@@ -38,7 +38,6 @@ use core::{
     borrow::{Borrow, BorrowMut},
     fmt,
     iter::repeat,
-    ops::IndexMut,
 };
 
 #[cfg(feature = "zeroize")]
@@ -224,15 +223,6 @@ impl BoxedUint {
     #[must_use]
     pub const fn as_mut_uint_ref(&mut self) -> &mut UintRef {
         UintRef::new_mut(&mut self.limbs)
-    }
-
-    /// Mutably borrow a subset the limbs of this [`BoxedUint`] as a [`UintRef`].
-    #[inline]
-    pub(crate) fn as_mut_uint_ref_range<R>(&mut self, range: R) -> &mut UintRef
-    where
-        [Limb]: IndexMut<R, Output = [Limb]>,
-    {
-        UintRef::new_mut(&mut self.limbs[range])
     }
 
     /// Get the number of limbs in this [`BoxedUint`].

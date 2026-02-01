@@ -309,16 +309,33 @@ proptest! {
     }
 
     #[test]
-    fn shl(a in uint(), shift in any::<u16>()) {
+    fn unbounded_shl(a in uint(), shift in any::<u16>()) {
         let a_bi = to_biguint(&a);
 
         // Add a 50% probability of overflow.
         let shift = u32::from(shift) % (a.bits_precision() * 2);
 
         let expected = to_uint((a_bi << shift as usize) & ((BigUint::one() << a.bits_precision() as usize) - BigUint::one()));
-        let actual = a.wrapping_shl(shift);
+        let actual_ct = a.unbounded_shl(shift);
+        prop_assert_eq!(&expected, &actual_ct);
 
-        prop_assert_eq!(&expected, &actual);
+        let actual_vartime = a.unbounded_shl_vartime(shift);
+        prop_assert_eq!(&expected, &actual_vartime);
+    }
+
+    #[test]
+    fn unbounded_shr(a in uint(), shift in any::<u16>()) {
+        let a_bi = to_biguint(&a);
+
+        // Add a 50% probability of overflow.
+        let shift = u32::from(shift) % (a.bits_precision() * 2);
+
+        let expected = to_uint(a_bi >> shift as usize);
+        let actual_ct = a.unbounded_shr(shift);
+        prop_assert_eq!(&expected, &actual_ct);
+
+        let actual_vartime = a.unbounded_shr_vartime(shift);
+        prop_assert_eq!(&expected, &actual_vartime);
     }
 
     #[test]
@@ -337,19 +354,6 @@ proptest! {
         else {
             prop_assert_eq!(expected, actual.unwrap());
         }
-    }
-
-    #[test]
-    fn shr(a in uint(), shift in any::<u16>()) {
-        let a_bi = to_biguint(&a);
-
-        // Add a 50% probability of overflow.
-        let shift = u32::from(shift) % (a.bits_precision() * 2);
-
-        let expected = to_uint(a_bi >> shift as usize);
-        let actual = a.wrapping_shr(shift);
-
-        prop_assert_eq!(&expected, &actual);
     }
 
     #[test]

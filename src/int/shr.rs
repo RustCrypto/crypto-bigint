@@ -1,6 +1,6 @@
 //! [`Int`] bitwise right shift operations.
 
-use crate::{Choice, CtOption, Int, ShrVartime, Uint, WrappingShr};
+use crate::{Choice, CtOption, Int, ShrVartime, Uint, WrappingShr, primitives::u32_rem};
 use core::ops::{Shr, ShrAssign};
 
 impl<const LIMBS: usize> Int<LIMBS> {
@@ -11,11 +11,12 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// # Panics
     /// - if `shift >= Self::BITS`.
+    #[inline(always)]
     #[must_use]
-    #[track_caller]
     pub const fn shr(&self, shift: u32) -> Self {
-        self.overflowing_shr(shift)
-            .expect_copied("`shift` within the bit size of the integer")
+        let sign_bits = Self::select(&Self::ZERO, &Self::MINUS_ONE, self.is_negative());
+        let res = Uint::shr(&self.0, shift);
+        Self::from_bits(res.bitor(&sign_bits.0.unbounded_shl(Self::BITS - shift)))
     }
 
     /// Computes `self >> shift` in variable time.
@@ -23,8 +24,13 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Note, this is _signed_ shift right, i.e., the value shifted in on the left is equal to
     /// the most significant bit.
     ///
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
+    ///
+    /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
+    ///
     /// # Panics
     /// - if `shift >= Self::BITS`.
+    #[inline(always)]
     #[must_use]
     #[track_caller]
     pub const fn shr_vartime(&self, shift: u32) -> Self {
@@ -38,22 +44,12 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// the most significant bit.
     ///
     /// Returns `None` if `shift >= Self::BITS`.
+    #[inline(always)]
     #[must_use]
     pub const fn overflowing_shr(&self, shift: u32) -> CtOption<Self> {
-        // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
-        // (which lies in range `0 <= shift < BITS`).
-        let shift_bits = u32::BITS - (Self::BITS - 1).leading_zeros();
-        let overflow = Choice::from_u32_lt(shift, Self::BITS).not();
-        let shift = shift % Self::BITS;
-        let mut result = *self;
-        let mut i = 0;
-        while i < shift_bits {
-            let bit = Choice::from_u32_lsb(shift >> i);
-            result = Int::select(&result, &result.shr_vartime(1 << i), bit);
-            i += 1;
-        }
-
-        CtOption::new(result, overflow.not())
+        let in_range = Choice::from_u32_lt(shift, Self::BITS);
+        let adj_shift = in_range.select_u32(0, shift);
+        CtOption::new(self.shr(adj_shift), in_range)
     }
 
     /// Computes `self >> shift`.
@@ -65,18 +61,12 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
-    /// When used with a fixed `shift`, this function is constant-time with respect
-    /// to `self`.
+    /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
     #[must_use]
     pub const fn overflowing_shr_vartime(&self, shift: u32) -> Option<Self> {
-        if let Some(ret) = self.0.overflowing_shr_vartime(shift) {
-            let neg_upper = Uint::select(
-                &Uint::ZERO,
-                &Uint::MAX.restrict_bits(Self::BITS - shift).not(),
-                self.is_negative(),
-            );
-            Some(*ret.bitor(&neg_upper).as_int())
+        if shift < Self::BITS {
+            Some(self.unbounded_shr_vartime(shift))
         } else {
             None
         }
@@ -87,8 +77,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// If the shift exceeds the precision, returns
     /// - `0` when `self` is non-negative, and
     /// - `-1` when `self` is negative.
+    #[inline(always)]
     #[must_use]
-    pub const fn wrapping_shr(&self, shift: u32) -> Self {
+    pub const fn unbounded_shr(&self, shift: u32) -> Self {
         let default = Self::select(&Self::ZERO, &Self::MINUS_ONE, self.is_negative());
         ctutils::unwrap_or!(self.overflowing_shr(shift), default, Self::select)
     }
@@ -98,13 +89,43 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// If the shift exceeds the precision, returns
     /// - `0` when `self` is non-negative, and
     /// - `-1` when `self` is negative.
+    ///
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
+    ///
+    /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
+    #[inline(always)]
+    #[must_use]
+    pub const fn unbounded_shr_vartime(&self, shift: u32) -> Self {
+        let sign_bits = Self::select(&Self::ZERO, &Self::MINUS_ONE, self.is_negative());
+        if let Some(res) = self.0.overflowing_shr_vartime(shift) {
+            Self::from_bits(res.bitor(&sign_bits.0.shl(Self::BITS - shift)))
+        } else {
+            sign_bits
+        }
+    }
+
+    /// Computes `self >> shift` in a panic-free manner.
+    ///
+    /// If the shift exceeds the precision, returns
+    /// - `0` when `self` is non-negative, and
+    /// - `-1` when `self` is negative.
+    #[must_use]
+    pub const fn wrapping_shr(&self, shift: u32) -> Self {
+        self.shr(u32_rem(shift, Self::BITS))
+    }
+
+    /// Computes `self >> shift` in variable-time in a panic-free manner.
+    ///
+    /// If the shift exceeds the precision, returns
+    /// - `0` when `self` is non-negative, and
+    /// - `-1` when `self` is negative.
+    ///
+    /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
+    ///
+    /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[must_use]
     pub const fn wrapping_shr_vartime(&self, shift: u32) -> Self {
-        if let Some(ret) = self.overflowing_shr_vartime(shift) {
-            ret
-        } else {
-            Self::select(&Self::ZERO, &Self::MINUS_ONE, self.is_negative())
-        }
+        self.unbounded_shr_vartime(shift % Self::BITS)
     }
 }
 
@@ -149,6 +170,10 @@ impl<const LIMBS: usize> WrappingShr for Int<LIMBS> {
 impl<const LIMBS: usize> ShrVartime for Int<LIMBS> {
     fn overflowing_shr_vartime(&self, shift: u32) -> Option<Self> {
         self.overflowing_shr_vartime(shift)
+    }
+
+    fn unbounded_shr_vartime(&self, shift: u32) -> Self {
+        self.unbounded_shr_vartime(shift)
     }
 
     fn wrapping_shr_vartime(&self, shift: u32) -> Self {
@@ -212,22 +237,36 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "`shift` within the bit size of the integer")]
-    fn shr256() {
+    #[should_panic(expected = "`shift` exceeds upper bound")]
+    fn shr_bounds_panic() {
         let _ = N >> 256;
     }
 
     #[test]
-    fn wrapping_shr() {
-        assert_eq!(I256::MAX.wrapping_shr(257), I256::ZERO);
-        assert_eq!(I256::MIN.wrapping_shr(257), I256::MINUS_ONE);
+    fn unbounded_shr() {
+        assert_eq!(I256::MAX.unbounded_shr(257), I256::ZERO);
+        assert_eq!(I256::MIN.unbounded_shr(257), I256::MINUS_ONE);
         assert_eq!(
-            ShrVartime::wrapping_shr_vartime(&I256::MAX, 257),
+            ShrVartime::unbounded_shr_vartime(&I256::MAX, 257),
             I256::ZERO
         );
         assert_eq!(
-            ShrVartime::wrapping_shr_vartime(&I256::MIN, 257),
+            ShrVartime::unbounded_shr_vartime(&I256::MIN, 257),
             I256::MINUS_ONE
+        );
+    }
+
+    #[test]
+    fn wrapping_shr() {
+        assert_eq!(I256::MAX.wrapping_shr(257), I256::MAX.shr(1));
+        assert_eq!(I256::MIN.wrapping_shr(257), I256::MIN.shr(1));
+        assert_eq!(
+            ShrVartime::wrapping_shr_vartime(&I256::MAX, 257),
+            I256::MAX.shr(1)
+        );
+        assert_eq!(
+            ShrVartime::wrapping_shr_vartime(&I256::MIN, 257),
+            I256::MIN.shr(1)
         );
     }
 }

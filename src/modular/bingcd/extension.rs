@@ -68,27 +68,19 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
     #[inline]
     #[allow(clippy::cast_possible_truncation)]
     pub const fn bounded_shr<const UPPER_BOUND: u32>(&self, shift: u32) -> Self {
-        debug_assert!(shift <= UPPER_BOUND);
+        assert!(shift < UPPER_BOUND && UPPER_BOUND <= Uint::<EXTRA>::BITS);
 
-        let shift_is_zero = Choice::from_u32_eq(shift, 0);
-        let left_shift = shift_is_zero.select_u32(Uint::<EXTRA>::BITS - shift, 0);
-
-        let hi = self
-            .1
-            .bounded_overflowing_shr::<UPPER_BOUND>(shift)
-            .expect_copied("shift ≤ UPPER_BOUND");
-        // TODO: replace with carrying_shl
-        let carry = Uint::select(&self.1, &Uint::ZERO, shift_is_zero).shl(left_shift);
-        let mut lo = self
-            .0
-            .bounded_overflowing_shr::<UPPER_BOUND>(shift)
-            .expect_copied("shift ≤ UPPER_BOUND");
+        let hi = self.1.bounded_shr(shift, UPPER_BOUND);
+        let carry = self.1.unbounded_shl(Uint::<EXTRA>::BITS - shift);
+        let mut lo = self.0.bounded_shr(shift, UPPER_BOUND);
 
         // Apply carry
-        let limb_diff = LIMBS.wrapping_sub(EXTRA) as u32;
+        let limb_diff = LIMBS.saturating_sub(EXTRA) as u32;
         // safe to vartime; shr_vartime is variable in the value of shift only. Since this shift
         // is a public constant, the constant time property of this algorithm is not impacted.
-        let carry = carry.resize::<LIMBS>().shl_vartime(limb_diff * Limb::BITS);
+        let carry = carry
+            .resize::<LIMBS>()
+            .unbounded_shl_by_limbs_vartime(limb_diff);
         lo = lo.bitxor(&carry);
 
         Self(lo, hi)
@@ -103,19 +95,17 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
     pub const fn shr_vartime(&self, shift: u32) -> Self {
         debug_assert!(shift <= Uint::<EXTRA>::BITS);
 
-        let shift_is_zero = Choice::from_u32_eq(shift, 0);
-        let left_shift = shift_is_zero.select_u32(Uint::<EXTRA>::BITS - shift, 0);
-
         let hi = self.1.shr_vartime(shift);
-        // TODO: replace with carrying_shl
-        let carry = Uint::select(&self.1, &Uint::ZERO, shift_is_zero).shl_vartime(left_shift);
+        let carry = self.1.unbounded_shl_vartime(Uint::<EXTRA>::BITS - shift);
         let mut lo = self.0.shr_vartime(shift);
 
         // Apply carry
-        let limb_diff = LIMBS.wrapping_sub(EXTRA) as u32;
+        let limb_diff = LIMBS.saturating_sub(EXTRA) as u32;
         // safe to vartime; shr_vartime is variable in the value of shift only. Since this shift
         // is a public constant, the constant time property of this algorithm is not impacted.
-        let carry = carry.resize::<LIMBS>().shl_vartime(limb_diff * Limb::BITS);
+        let carry = carry
+            .resize::<LIMBS>()
+            .unbounded_shl_by_limbs_vartime(limb_diff);
         lo = lo.bitxor(&carry);
 
         Self(lo, hi)
@@ -222,39 +212,10 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
     }
 }
 
-impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Computes `self >> shift`.
-    ///
-    /// Returns `None` if `shift >= UPPER_BOUND`; panics if `UPPER_BOUND > Self::BITS`.
-    #[must_use]
-    pub const fn bounded_overflowing_shr<const UPPER_BOUND: u32>(
-        &self,
-        shift: u32,
-    ) -> CtOption<Self> {
-        const { assert!(UPPER_BOUND <= Self::BITS) };
-
-        // `floor(log2(BITS - 1))` is the number of bits in the representation of `shift`
-        // (which lies in range `0 <= shift < BITS`).
-        let shift_bits = u32::BITS - (UPPER_BOUND - 1).leading_zeros();
-        let overflow = Choice::from_u32_lt(shift, UPPER_BOUND).not();
-
-        let shift = shift % UPPER_BOUND;
-        let mut result = *self;
-        let mut i = 0;
-        while i < shift_bits {
-            let bit = Choice::from_u32_lsb((shift >> i) & 1);
-            result = Uint::select(&result, &result.shr_vartime(1 << i), bit);
-            i += 1;
-        }
-
-        CtOption::new(Uint::select(&result, &Self::ZERO, overflow), overflow.not())
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::Uint;
-    use crate::modular::bingcd::extension::ExtendedUint;
+    use super::ExtendedUint;
+    use crate::{U64, Uint};
 
     impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
         /// Decompose `self` into the bottom and top limbs.
@@ -263,56 +224,46 @@ mod tests {
             (self.0, self.1)
         }
     }
-    mod test_extended_uint {
-        use crate::U64;
-        use crate::modular::bingcd::extension::ExtendedUint;
 
-        const A: ExtendedUint<{ U64::LIMBS }, { U64::LIMBS }> = ExtendedUint::from_product(
-            U64::from_u64(68146184546341u64),
-            U64::from_u64(873817114763u64),
+    const A: ExtendedUint<{ U64::LIMBS }, { U64::LIMBS }> = ExtendedUint::from_product(
+        U64::from_u64(68146184546341u64),
+        U64::from_u64(873817114763u64),
+    );
+    const B: ExtendedUint<{ U64::LIMBS }, { U64::LIMBS }> = ExtendedUint::from_product(
+        U64::from_u64(7772181434148543u64),
+        U64::from_u64(6665138352u64),
+    );
+
+    #[test]
+    fn bounded_shr() {
+        let a = ExtendedUint::<4, 2>(Uint::ZERO, Uint::MAX);
+        let actual = a.bounded_shr::<32>(20);
+        assert_eq!(
+            actual.as_elements(),
+            (Uint::MAX.shl(Uint::<4>::BITS - 20), Uint::MAX.shr(20)),
         );
-        const B: ExtendedUint<{ U64::LIMBS }, { U64::LIMBS }> = ExtendedUint::from_product(
-            U64::from_u64(7772181434148543u64),
-            U64::from_u64(6665138352u64),
-        );
-
-        #[test]
-        fn bounded_overflowing_shr() {
-            let res = U64::MAX.bounded_overflowing_shr::<32>(20);
-            assert!(bool::from(res.is_some()));
-            assert_eq!(res.unwrap(), U64::MAX.overflowing_shr(20).unwrap());
-
-            let res = U64::MAX.bounded_overflowing_shr::<32>(32);
-            assert!(bool::from(res.is_none()));
-        }
-
-        #[test]
-        fn test_from_product() {
-            assert_eq!(
-                A.as_elements(),
-                (U64::from(13454091406951429143u64), U64::from(3228065u64))
-            );
-            assert_eq!(
-                B.as_elements(),
-                (U64::from(1338820589698724688u64), U64::from(2808228u64))
-            );
-        }
-
-        #[test]
-        fn test_wrapping_sub() {
-            assert_eq!(
-                A.as_extended_int()
-                    .wrapping_sub(&B.as_extended_int())
-                    .as_extended_uint()
-                    .as_elements(),
-                (U64::from(12115270817252704455u64), U64::from(419837u64))
-            );
-        }
     }
 
-    mod test_extended_int {
+    #[test]
+    fn test_from_product() {
+        assert_eq!(
+            A.as_elements(),
+            (U64::from(13454091406951429143u64), U64::from(3228065u64))
+        );
+        assert_eq!(
+            B.as_elements(),
+            (U64::from(1338820589698724688u64), U64::from(2808228u64))
+        );
+    }
 
-        #[test]
-        fn test_wrapping_sub() {}
+    #[test]
+    fn test_wrapping_sub() {
+        assert_eq!(
+            A.as_extended_int()
+                .wrapping_sub(&B.as_extended_int())
+                .as_extended_uint()
+                .as_elements(),
+            (U64::from(12115270817252704455u64), U64::from(419837u64))
+        );
     }
 }

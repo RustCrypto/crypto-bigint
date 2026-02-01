@@ -23,7 +23,7 @@ mod rand;
 
 use crate::{
     Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, NonZero, One, UintRef,
-    WideWord, Word, Zero, word,
+    WideWord, Word, Zero, primitives::u32_bits, word,
 };
 use core::{fmt, ptr, slice};
 
@@ -73,7 +73,7 @@ impl Limb {
     pub const BYTES: usize = 8;
 
     /// `floor(log2(Self::BITS))`.
-    pub const LOG2_BITS: u32 = u32::BITS - (Self::BITS - 1).leading_zeros();
+    pub const LOG2_BITS: u32 = u32_bits(Self::BITS - 1);
 
     /// Is this limb equal to [`Limb::ZERO`]?
     #[must_use]

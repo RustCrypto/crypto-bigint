@@ -34,7 +34,7 @@ impl UintRef {
 
         // Shift the entire divisor such that the high bit is set
         let yz = y.bits_precision() - ybits;
-        y.wrapping_shl_assign(yz);
+        y.unbounded_shl_assign(yz);
 
         // Shift the dividend to align the words
         let lshift = yz % Limb::BITS;
@@ -42,7 +42,7 @@ impl UintRef {
 
         Self::div_rem_shifted(x, x_hi, y, ywords);
 
-        x.wrapping_shr_assign_by_limbs(ywords - 1);
+        x.unbounded_shr_assign_by_limbs(ywords - 1);
         y.shr_assign_limb(lshift);
     }
 
@@ -87,7 +87,7 @@ impl UintRef {
         x.div_rem_large_vartime(y.leading_mut(ywords));
 
         // Shift the quotient to the low limbs within dividend
-        x.wrapping_shr_assign_by_limbs_vartime((ywords - 1) as u32);
+        x.unbounded_shr_assign_by_limbs_vartime((ywords - 1) as u32);
     }
 
     /// Computes `x_lower_upper` % `rhs`, returning the remainder in `rhs`.
@@ -117,7 +117,7 @@ impl UintRef {
 
         // Shift the entire divisor such that the high bit is set
         let yz = y.bits_precision() - ybits;
-        y.wrapping_shl_assign(yz);
+        y.unbounded_shl_assign(yz);
 
         // Shift the dividend to align the words
         let lshift = yz % Limb::BITS;

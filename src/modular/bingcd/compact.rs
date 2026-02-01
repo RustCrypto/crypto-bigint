@@ -8,6 +8,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Executes in time variable in `length` only.
     #[inline(always)]
+    #[allow(clippy::cast_possible_truncation)]
     pub(super) const fn section_vartime_length<const SECTION_LIMBS: usize>(
         &self,
         idx: u32,
@@ -16,20 +17,22 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         debug_assert!(length <= Uint::<SECTION_LIMBS>::BITS);
         debug_assert!(idx + length <= Self::BITS);
 
-        let mask = Uint::ONE.shl_vartime(length).wrapping_sub(&Uint::ONE);
         if LIMBS > SECTION_LIMBS {
-            let (shr_limbs, shr_bits) = (idx / Limb::BITS, idx % Limb::BITS);
+            let (shr_limbs, shr_bits) = (idx >> Limb::LOG2_BITS, idx & (Limb::BITS - 1));
             // shift into the lower SECTION_LIMBS+1 limbs
-            let buf = self.wrapping_shr_by_limbs(shr_limbs);
+            let buf = self.bounded_shr_by_limbs(shr_limbs, LIMBS as u32);
             // shift the lower SECTION_LIMBS limbs by the remaining bits and carry the high bits
-            let (mut lo, hi) = (
-                buf.resize::<SECTION_LIMBS>().shr_limb(shr_bits).0,
-                buf.limbs[SECTION_LIMBS],
-            );
-            lo.limbs[SECTION_LIMBS - 1] = lo.limbs[SECTION_LIMBS - 1].bitor(hi.shr(shr_bits));
-            lo.bitand(&mask)
+            buf.resize::<SECTION_LIMBS>()
+                .shr_limb_with_carry(
+                    shr_bits,
+                    buf.limbs[SECTION_LIMBS].unbounded_shl(Limb::BITS - shr_bits),
+                )
+                .0
+                .restrict_bits(length)
         } else {
-            self.shr(idx).resize::<SECTION_LIMBS>().bitand(&mask)
+            self.shr(idx)
+                .resize::<SECTION_LIMBS>()
+                .restrict_bits(length)
         }
     }
 
@@ -47,10 +50,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         debug_assert!(length <= Uint::<SECTION_LIMBS>::BITS);
         debug_assert!(idx + length <= Self::BITS);
 
-        let mask = Uint::ONE.shl_vartime(length).wrapping_sub(&Uint::ONE);
         self.shr_vartime(idx)
             .resize::<SECTION_LIMBS>()
-            .bitand(&mask)
+            .restrict_bits(length)
     }
 
     /// Compact `self` to a form containing the concatenation of its bit ranges `[0, K)`

@@ -28,7 +28,7 @@ impl BoxedUint {
         // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < b`.
         // Will not overflow since `b <= BITS`.
         let mut x = Self::one_with_precision(self.bits_precision());
-        x.overflowing_shl_assign((self.bits() + 1) >> 1); // ≥ √(`self`)
+        x.unbounded_shl_assign_vartime((self.bits() + 1) >> 1); // ≥ √(`self`)
 
         let mut nz_x = x.clone();
         let mut quo = Self::zero_with_precision(self.bits_precision());
@@ -86,7 +86,7 @@ impl BoxedUint {
         // Will not overflow since `b <= BITS`.
         // The initial value of `x` is always greater than zero.
         let mut x = Self::one_with_precision(self.bits_precision());
-        x.overflowing_shl_assign_vartime((self.bits() + 1) >> 1); // ≥ √(`self`)
+        x.unbounded_shl_assign_vartime((self.bits() + 1) >> 1); // ≥ √(`self`)
 
         let mut quo = Self::zero_with_precision(self.bits_precision());
         let mut rem = Self::zero_with_precision(self.bits_precision());
