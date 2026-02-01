@@ -214,8 +214,8 @@ impl<const LIMBS: usize, const EXTRA: usize> ExtendedInt<LIMBS, EXTRA> {
 
 #[cfg(test)]
 mod tests {
-    use crate::Uint;
-    use crate::modular::bingcd::extension::ExtendedUint;
+    use super::ExtendedUint;
+    use crate::{U64, Uint};
 
     impl<const LIMBS: usize, const EXTRA: usize> ExtendedUint<LIMBS, EXTRA> {
         /// Decompose `self` into the bottom and top limbs.
@@ -224,56 +224,46 @@ mod tests {
             (self.0, self.1)
         }
     }
-    mod test_extended_uint {
-        use crate::U64;
-        use crate::modular::bingcd::extension::ExtendedUint;
 
-        const A: ExtendedUint<{ U64::LIMBS }, { U64::LIMBS }> = ExtendedUint::from_product(
-            U64::from_u64(68146184546341u64),
-            U64::from_u64(873817114763u64),
+    const A: ExtendedUint<{ U64::LIMBS }, { U64::LIMBS }> = ExtendedUint::from_product(
+        U64::from_u64(68146184546341u64),
+        U64::from_u64(873817114763u64),
+    );
+    const B: ExtendedUint<{ U64::LIMBS }, { U64::LIMBS }> = ExtendedUint::from_product(
+        U64::from_u64(7772181434148543u64),
+        U64::from_u64(6665138352u64),
+    );
+
+    #[test]
+    fn bounded_shr() {
+        let a = ExtendedUint::<4, 2>(Uint::ZERO, Uint::MAX);
+        let actual = a.bounded_shr::<32>(20);
+        assert_eq!(
+            actual.as_elements(),
+            (Uint::MAX.shl(Uint::<4>::BITS - 20), Uint::MAX.shr(20)),
         );
-        const B: ExtendedUint<{ U64::LIMBS }, { U64::LIMBS }> = ExtendedUint::from_product(
-            U64::from_u64(7772181434148543u64),
-            U64::from_u64(6665138352u64),
-        );
-
-        // #[test]
-        // fn bounded_overflowing_shr() {
-        //     let res = U64::MAX.bounded_overflowing_shr::<32>(20);
-        //     assert!(bool::from(res.is_some()));
-        //     assert_eq!(res.unwrap(), U64::MAX.overflowing_shr(20).unwrap());
-
-        //     let res = U64::MAX.bounded_overflowing_shr::<32>(32);
-        //     assert!(bool::from(res.is_none()));
-        // }
-
-        #[test]
-        fn test_from_product() {
-            assert_eq!(
-                A.as_elements(),
-                (U64::from(13454091406951429143u64), U64::from(3228065u64))
-            );
-            assert_eq!(
-                B.as_elements(),
-                (U64::from(1338820589698724688u64), U64::from(2808228u64))
-            );
-        }
-
-        #[test]
-        fn test_wrapping_sub() {
-            assert_eq!(
-                A.as_extended_int()
-                    .wrapping_sub(&B.as_extended_int())
-                    .as_extended_uint()
-                    .as_elements(),
-                (U64::from(12115270817252704455u64), U64::from(419837u64))
-            );
-        }
     }
 
-    mod test_extended_int {
+    #[test]
+    fn test_from_product() {
+        assert_eq!(
+            A.as_elements(),
+            (U64::from(13454091406951429143u64), U64::from(3228065u64))
+        );
+        assert_eq!(
+            B.as_elements(),
+            (U64::from(1338820589698724688u64), U64::from(2808228u64))
+        );
+    }
 
-        #[test]
-        fn test_wrapping_sub() {}
+    #[test]
+    fn test_wrapping_sub() {
+        assert_eq!(
+            A.as_extended_int()
+                .wrapping_sub(&B.as_extended_int())
+                .as_extended_uint()
+                .as_elements(),
+            (U64::from(12115270817252704455u64), U64::from(419837u64))
+        );
     }
 }
