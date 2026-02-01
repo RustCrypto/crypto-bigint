@@ -149,6 +149,7 @@ impl Odd<BoxedUint> {
     /// Compute a quadratic inversion, `self^-1 mod 2^k` where `k <= bits_precision()`.
     ///
     /// This method is variable-time in `k` only.
+    #[allow(clippy::integer_division_remainder_used, reason = "vartime")]
     pub(crate) fn invert_mod2k_vartime(&self, k: u32) -> BoxedUint {
         let bits = self.bits_precision();
         assert!(k <= bits);

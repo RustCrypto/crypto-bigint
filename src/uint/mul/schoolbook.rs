@@ -194,7 +194,8 @@ pub const fn wrapping_square(limbs: &[Limb], out: &mut [Limb]) -> Limb {
     while i < out.len() {
         (limb, hi_bit) = (out[i].shl(1).bitor(hi_bit), out[i].shr(Limb::HI_BIT));
         (out[i], carry) = if i & 1 == 0 {
-            limbs[i / 2].carrying_mul_add(limbs[i / 2], limb, carry)
+            let i_div_2 = i >> 1;
+            limbs[i_div_2].carrying_mul_add(limbs[i_div_2], limb, carry)
         } else {
             limb.overflowing_add(carry)
         };

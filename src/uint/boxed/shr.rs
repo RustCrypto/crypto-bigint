@@ -125,6 +125,7 @@ impl BoxedUint {
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[must_use]
+    #[allow(clippy::integer_division_remainder_used, reason = "vartime")]
     pub fn wrapping_shr_vartime(&self, shift: u32) -> Self {
         self.unbounded_shr_vartime(shift % self.bits_precision())
     }

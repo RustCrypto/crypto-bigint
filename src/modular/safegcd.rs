@@ -344,7 +344,10 @@ const fn shr_in_place_wide<const L: usize, const H: usize>(
 
 /// Calculate the maximum number of iterations required according to
 /// safegcd-bounds: <https://github.com/sipa/safegcd-bounds>
+// NOTE: the division is non-constant-time, but this is used to compute the number of iterations we
+// perform which is leaked in timing information
 #[inline]
+#[allow(clippy::integer_division_remainder_used, reason = "public parameter")]
 const fn iterations(bits: u32) -> u32 {
     (45907 * bits + 30179) / 19929
 }

@@ -232,6 +232,7 @@ impl<const LIMBS: usize> FloorSquareRoot for NonZero<Uint<LIMBS>> {
 }
 
 #[cfg(test)]
+#[allow(clippy::integer_division_remainder_used, reason = "test")]
 mod tests {
     use crate::{Limb, U192, U256};
 

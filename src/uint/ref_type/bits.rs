@@ -37,6 +37,7 @@ impl UintRef {
     /// This operation is variable time with respect to `index` only.
     #[inline(always)]
     #[must_use]
+    #[allow(clippy::integer_division_remainder_used, reason = "vartime")]
     pub const fn bit_vartime(&self, index: u32) -> bool {
         let limb_num = (index / Limb::BITS) as usize;
         let index_in_limb = index % Limb::BITS;
@@ -94,6 +95,7 @@ impl UintRef {
     /// with respect to `index`.
     #[inline(always)]
     #[track_caller]
+    #[allow(clippy::integer_division_remainder_used, reason = "vartime")]
     pub const fn set_bit_vartime(&mut self, index: u32, bit_value: bool) {
         let limb_num = (index / Limb::BITS) as usize;
         let index_in_limb = index % Limb::BITS;

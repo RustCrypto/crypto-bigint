@@ -172,6 +172,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
     #[must_use]
+    #[allow(clippy::integer_division_remainder_used, reason = "vartime")]
     pub const fn wrapping_shr_vartime(&self, shift: u32) -> Self {
         self.unbounded_shr_vartime(shift % Self::BITS)
     }

@@ -68,6 +68,7 @@ macro_rules! impl_uint_concat_split_mixed {
 
 macro_rules! impl_uint_concat_split_even {
     ($name:ident) => {
+        #[allow(clippy::integer_division_remainder_used, reason = "constant")]
         impl $crate::traits::ConcatMixed<Uint<{ <$name>::LIMBS / 2 }>> for Uint<{ <$name>::LIMBS / 2 }>
         {
             type MixedOutput = $name;
@@ -77,6 +78,7 @@ macro_rules! impl_uint_concat_split_even {
             }
         }
 
+        #[allow(clippy::integer_division_remainder_used, reason = "constant")]
         impl $crate::traits::SplitMixed<Uint<{ <$name>::LIMBS / 2 }>, Uint<{ <$name>::LIMBS / 2 }>> for $name
         {
             fn split_mixed(&self) -> (Uint<{ <$name>::LIMBS / 2 }>, Uint<{ <$name>::LIMBS / 2 }>) {
@@ -84,6 +86,7 @@ macro_rules! impl_uint_concat_split_even {
             }
         }
 
+        #[allow(clippy::integer_division_remainder_used, reason = "constant")]
         impl $crate::traits::RemMixed<Uint<{ <$name>::LIMBS / 2 }>> for $name
         {
             fn rem_mixed(&self, reductor: &NonZero<Uint<{ <$name>::LIMBS / 2 }>>) -> Uint<{ <$name>::LIMBS / 2 }> {
@@ -91,6 +94,7 @@ macro_rules! impl_uint_concat_split_even {
             }
         }
 
+        #[allow(clippy::integer_division_remainder_used, reason = "constant")]
         impl $crate::traits::Split for $name
         {
             type Output = Uint<{ <$name>::LIMBS / 2 }>;

@@ -1,5 +1,7 @@
 //! `BoxedUint` benchmarks
+
 #![allow(missing_docs)]
+#![allow(clippy::integer_division_remainder_used, reason = "benchmark")]
 
 use chacha20::ChaCha8Rng;
 use core::hint::black_box;

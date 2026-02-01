@@ -90,11 +90,12 @@ pub(crate) const fn u32_min(a: u32, b: u32) -> u32 {
 /// Based on "Faster Remainder by Direct Computation: Applications to Compilers and Software Libraries"
 /// by Daniel Lemire, Owen Kaser, and Nathan Kurz., Fig. 1.
 #[inline(never)]
-#[allow(clippy::cast_possible_truncation)]
+#[allow(clippy::cast_possible_truncation, reason = "needs triage")]
+#[allow(clippy::integer_division_remainder_used, reason = "needs triage")]
 pub(crate) const fn u32_rem(n: u32, d: u32) -> u32 {
     assert!(d > 0, "divisor must be nonzero");
     let c = u64::MAX / (d as u64) + 1;
-    ((((c.wrapping_mul(n as u64)) as u128) * d as u128) >> 64) as u32
+    (((c.wrapping_mul(n as u64) as u128) * d as u128) >> 64) as u32
 }
 
 /// Compute the number of bits needed to represent `n`.

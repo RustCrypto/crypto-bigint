@@ -46,6 +46,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Returns `None` if `shift >= Self::BITS`.
     #[inline(always)]
     #[must_use]
+    #[allow(clippy::integer_division_remainder_used, reason = "needs triage")]
     pub const fn overflowing_shr(&self, shift: u32) -> CtOption<Self> {
         let in_range = Choice::from_u32_lt(shift, Self::BITS);
         let adj_shift = in_range.select_u32(0, shift);
@@ -124,6 +125,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[must_use]
+    #[allow(clippy::integer_division_remainder_used, reason = "needs triage")]
     pub const fn wrapping_shr_vartime(&self, shift: u32) -> Self {
         self.unbounded_shr_vartime(shift % Self::BITS)
     }

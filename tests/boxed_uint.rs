@@ -1,6 +1,7 @@
 //! Equivalence tests between `crypto_bigint::BoxedUint` and `num_bigint::BigUint`.
 
 #![cfg(all(any(unix, windows), feature = "alloc"))]
+#![allow(clippy::integer_division_remainder_used, reason = "test")]
 
 mod common;
 

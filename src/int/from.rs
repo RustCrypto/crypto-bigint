@@ -109,6 +109,7 @@ impl<const LIMBS: usize> From<i32> for Int<LIMBS> {
 impl<const LIMBS: usize> From<i64> for Int<LIMBS> {
     #[inline]
     fn from(n: i64) -> Self {
+        #[allow(clippy::integer_division_remainder_used, reason = "const/debug")]
         const {
             debug_assert!(LIMBS >= 8 / Limb::BYTES, "not enough limbs");
         }
@@ -119,8 +120,10 @@ impl<const LIMBS: usize> From<i64> for Int<LIMBS> {
 impl<const LIMBS: usize> From<i128> for Int<LIMBS> {
     #[inline]
     fn from(n: i128) -> Self {
-        // TODO(tarcieri): const where clause when possible
-        debug_assert!(LIMBS >= 16 / Limb::BYTES, "not enough limbs");
+        #[allow(clippy::integer_division_remainder_used, reason = "const/debug")]
+        const {
+            debug_assert!(LIMBS >= 16 / Limb::BYTES, "not enough limbs");
+        }
         Self::from_i128(n)
     }
 }

@@ -25,6 +25,7 @@ impl<const LIMBS: usize> Random for Uint<LIMBS> {
 /// `rng.fill_bytes(&mut bytes[..i]); rng.fill_bytes(&mut bytes[i..])` constructs the same `bytes`,
 /// as long as `i` is a multiple of `X`.
 /// Note that the `TryRng` trait does _not_ require this behaviour from `rng`.
+#[allow(clippy::integer_division_remainder_used, reason = "public parameter")]
 pub(crate) fn random_bits_core<T, R: TryRng + ?Sized>(
     rng: &mut R,
     x: &mut T,

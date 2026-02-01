@@ -551,6 +551,7 @@ const fn previous_power_of_2(value: usize) -> usize {
 
 #[cfg(feature = "rand_core")]
 #[cfg(test)]
+#[allow(clippy::integer_division_remainder_used, reason = "test")]
 mod tests {
     use super::*;
     use crate::Random;
