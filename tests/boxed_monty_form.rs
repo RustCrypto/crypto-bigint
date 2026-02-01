@@ -1,6 +1,7 @@
 //! Equivalence tests between `crypto_bigint::BoxedMontyForm` and `num-bigint`.
 
 #![cfg(all(any(unix, windows), feature = "alloc"))]
+#![allow(clippy::integer_division_remainder_used, reason = "test")]
 
 mod common;
 

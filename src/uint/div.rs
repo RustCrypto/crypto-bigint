@@ -690,6 +690,7 @@ impl<const LIMBS: usize> RemLimb for Uint<LIMBS> {
 }
 
 #[cfg(test)]
+#[allow(clippy::integer_division_remainder_used, reason = "test")]
 mod tests {
     use crate::{
         CtAssign, DivVartime, Limb, NonZero, One, RemMixed, U64, U128, U256, U512, U896, U1024,

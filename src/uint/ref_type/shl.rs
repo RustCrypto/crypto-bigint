@@ -130,6 +130,7 @@ impl UintRef {
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
+    #[allow(clippy::integer_division_remainder_used, reason = "vartime")]
     pub(crate) const fn unbounded_shl_vartime(&self, shift: u32, out: &mut Self) {
         let count = self.nlimbs().saturating_sub((shift / Limb::BITS) as usize);
         let target = out.trailing_mut(self.nlimbs() - count);
@@ -144,6 +145,7 @@ impl UintRef {
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
+    #[allow(clippy::integer_division_remainder_used, reason = "vartime")]
     pub const fn unbounded_shl_assign_vartime(&mut self, shift: u32) {
         if shift >= self.bits_precision() {
             self.conditional_set_zero(Choice::TRUE);
@@ -171,6 +173,7 @@ impl UintRef {
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
     #[inline(always)]
+    #[allow(clippy::integer_division_remainder_used, reason = "vartime")]
     pub const fn wrapping_shl_assign_vartime(&mut self, shift: u32) {
         self.unbounded_shl_assign_vartime(shift % self.bits_precision());
     }

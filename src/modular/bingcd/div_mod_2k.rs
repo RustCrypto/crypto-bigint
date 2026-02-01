@@ -102,6 +102,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
     }
 
     /// Compute `((self * b) + addend) / 2^k`
+    #[allow(clippy::integer_division_remainder_used, reason = "needs triage")]
     const fn mul_add_div2k(&self, b: Limb, addend: &Uint<LIMBS>, k: u32) -> Uint<LIMBS> {
         // Compute `self * b + addend`
         let (lo, hi) = self.as_ref().carrying_mul_add_limb(b, addend, Limb::ZERO);

@@ -1,6 +1,7 @@
 //! Equivalence tests between `crypto_bigint::Uint` and `num_bigint::BigUint`.
 
 #![cfg(any(unix, windows))]
+#![allow(clippy::integer_division_remainder_used, reason = "test")]
 
 mod common;
 

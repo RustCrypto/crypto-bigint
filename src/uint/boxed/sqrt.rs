@@ -180,6 +180,7 @@ impl FloorSquareRoot for BoxedUint {
 }
 
 #[cfg(test)]
+#[allow(clippy::integer_division_remainder_used, reason = "test")]
 mod tests {
     use crate::{BoxedUint, Limb};
 

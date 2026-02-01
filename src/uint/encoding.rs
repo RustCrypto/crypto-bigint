@@ -584,6 +584,7 @@ fn radix_decode_str_digits<D: DecodeByLimb>(
 
 /// Decode digits for bases where an integer number of characters
 /// can represent a saturated Limb (specifically 2, 4, and 16).
+#[allow(clippy::integer_division_remainder_used, reason = "needs triage")]
 fn radix_decode_str_aligned_digits<D: DecodeByLimb>(
     src: &str,
     radix: u8,
@@ -705,7 +706,8 @@ pub(crate) fn radix_encode_limbs_mut_to_string(radix: u32, limbs: &mut UintRef) 
 /// fill `out`. The slice `limbs` is used as a working buffer. Output will be truncated
 /// if the provided buffer is too small.
 #[cfg(feature = "alloc")]
-#[allow(clippy::cast_possible_truncation)]
+#[allow(clippy::cast_possible_truncation, reason = "needs triage")]
+#[allow(clippy::integer_division_remainder_used, reason = "needs triage")]
 fn radix_encode_limbs_by_shifting(radix: u32, limbs: &UintRef, out: &mut [u8]) {
     debug_assert!(radix.is_power_of_two());
     debug_assert!(!out.is_empty());
@@ -859,7 +861,9 @@ impl RadixDivisionParams {
         }
     }
 
-    #[allow(trivial_numeric_casts, clippy::cast_possible_truncation)]
+    #[allow(trivial_numeric_casts, reason = "needs triage")]
+    #[allow(clippy::cast_possible_truncation, reason = "needs triage")]
+    #[allow(clippy::integer_division_remainder_used, reason = "needs triage")]
     fn encode_limbs_small(&self, mut limbs: &mut UintRef, out: &mut [u8]) {
         const DIGITS: &[u8; 36] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 

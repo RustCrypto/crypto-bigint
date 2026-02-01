@@ -18,6 +18,7 @@ impl UintRef {
     /// # Panics
     /// If the divisor is zero.
     #[inline(always)]
+    #[allow(clippy::integer_division_remainder_used, reason = "needs triage")]
     pub(crate) const fn div_rem(&mut self, rhs: &mut Self) {
         let (x, y) = (self, rhs);
 
@@ -98,6 +99,7 @@ impl UintRef {
     /// # Panics
     /// If the divisor is zero.
     #[inline(always)]
+    #[allow(clippy::integer_division_remainder_used, reason = "needs triage")]
     pub(crate) const fn rem_wide(x_lower_upper: (&mut Self, &mut Self), rhs: &mut Self) {
         let (x_lo, x) = x_lower_upper;
         let y = rhs;

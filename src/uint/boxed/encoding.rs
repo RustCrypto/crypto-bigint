@@ -132,9 +132,9 @@ impl BoxedUint {
     /// Serialize this [`BoxedUint`] as big-endian without leading zeroes.
     #[inline]
     #[must_use]
+    #[allow(clippy::integer_division_remainder_used, reason = "vartime")]
     pub fn to_be_bytes_trimmed_vartime(&self) -> Box<[u8]> {
         let zeroes = self.leading_zeros() as usize / 8;
-
         (&self.to_be_bytes()[zeroes..]).into()
     }
 
@@ -159,11 +159,10 @@ impl BoxedUint {
     /// Serialize this [`BoxedUint`] as little-endian without trailing zeroes.
     #[inline]
     #[must_use]
+    #[allow(clippy::integer_division_remainder_used, reason = "vartime")]
     pub fn to_le_bytes_trimmed_vartime(&self) -> Box<[u8]> {
         let zeroes = self.leading_zeros() as usize / 8;
-
         let bytes = self.to_le_bytes();
-
         (&bytes[..bytes.len() - zeroes]).into()
     }
 
@@ -172,6 +171,7 @@ impl BoxedUint {
     /// # Panics
     /// - if hex string is not the expected size
     #[must_use]
+    #[allow(clippy::integer_division_remainder_used, reason = "public parameter")]
     pub fn from_be_hex(hex: &str, bits_precision: u32) -> CtOption<Self> {
         let nlimbs = (bits_precision / Limb::BITS) as usize;
         let bytes = hex.as_bytes();

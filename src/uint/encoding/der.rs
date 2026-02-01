@@ -65,6 +65,7 @@ where
 
 /// Counts bytes in DER ASN.1 `INTEGER` big-endian encoding, without leading zero bytes.
 #[inline]
+#[allow(clippy::integer_division_remainder_used, reason = "needs triage")]
 pub(crate) fn count_der_be_bytes(limbs: &[Limb]) -> u32 {
     // Number of 0x00 bytes (also index of first non-zero byte)
     let leading_zero_bytes = UintRef::new(limbs).leading_zeros() / 8;

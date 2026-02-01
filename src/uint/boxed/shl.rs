@@ -115,6 +115,7 @@ impl BoxedUint {
     /// Computes `self << shift` in variable-time in a panic-free manner, masking off bits of `shift` which would cause
     /// the shift to exceed the type's width.
     #[must_use]
+    #[allow(clippy::integer_division_remainder_used, reason = "vartime")]
     pub fn wrapping_shl_vartime(&self, shift: u32) -> Self {
         self.unbounded_shl_vartime(shift % self.bits_precision())
     }

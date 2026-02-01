@@ -8,6 +8,8 @@ use alloc::vec::Vec;
 
 const WINDOW: u32 = 4;
 const WINDOW_MASK: Word = (1 << WINDOW) - 1;
+#[allow(clippy::integer_division_remainder_used, reason = "constant")]
+const BITS_PER_WINDOW: u32 = Limb::BITS / WINDOW;
 
 /// Performs modular exponentiation using Montgomery's ladder.
 /// `exponent_bits` represents the number of bits to take into account for the exponent.
@@ -53,9 +55,6 @@ where
         return one; // 1 in Montgomery form
     }
 
-    const WINDOW: u32 = 4;
-    const WINDOW_MASK: Word = (1 << WINDOW) - 1;
-
     let mut multiplier = <U::MontyForm as MontyForm>::Multiplier::from(params);
     let mut power = x.clone();
 
@@ -74,10 +73,7 @@ where
         }
     });
 
-    let starting_limb = ((exponent_bits - 1) / Limb::BITS) as usize;
-    let starting_bit_in_limb = (exponent_bits - 1) % Limb::BITS;
-    let starting_window = starting_bit_in_limb / WINDOW;
-    let starting_window_mask = (1 << (starting_bit_in_limb % WINDOW + 1)) - 1;
+    let (starting_limb, starting_window, starting_window_mask) = pow_init(exponent_bits);
 
     let mut z = one; // 1 in Montgomery form
     let mut power = powers[0].clone();
@@ -88,7 +84,7 @@ where
         let mut window_num = if limb_num == starting_limb {
             starting_window + 1
         } else {
-            Limb::BITS / WINDOW
+            BITS_PER_WINDOW
         };
 
         while window_num > 0 {
@@ -209,10 +205,7 @@ const fn multi_exponentiate_montgomery_form_internal<
     exponent_bits: u32,
     params: &FixedMontyParams<LIMBS>,
 ) -> Uint<LIMBS> {
-    let starting_limb = ((exponent_bits - 1) / Limb::BITS) as usize;
-    let starting_bit_in_limb = (exponent_bits - 1) % Limb::BITS;
-    let starting_window = starting_bit_in_limb / WINDOW;
-    let starting_window_mask = (1 << (starting_bit_in_limb % WINDOW + 1)) - 1;
+    let (starting_limb, starting_window, starting_window_mask) = pow_init(exponent_bits);
 
     let mut z = *params.one(); // 1 in Montgomery form
 
@@ -223,7 +216,7 @@ const fn multi_exponentiate_montgomery_form_internal<
         let mut window_num = if limb_num == starting_limb {
             starting_window + 1
         } else {
-            Limb::BITS / WINDOW
+            BITS_PER_WINDOW
         };
         while window_num > 0 {
             window_num -= 1;
@@ -274,4 +267,16 @@ const fn multi_exponentiate_montgomery_form_internal<
     }
 
     z
+}
+
+// Note: this performs non-constant-time operations but the rustdoc already notes that
+// `exponent_bits` is almost unavoidably leaked via timing already since it bounds the number
+// of computations we perform
+#[allow(clippy::integer_division_remainder_used, reason = "public parameter")]
+const fn pow_init(exponent_bits: u32) -> (usize, u32, Word) {
+    let starting_limb = ((exponent_bits - 1) / Limb::BITS) as usize;
+    let starting_bit_in_limb = (exponent_bits - 1) % Limb::BITS;
+    let starting_window = starting_bit_in_limb / WINDOW;
+    let starting_window_mask = (1 << (starting_bit_in_limb % WINDOW + 1)) - 1;
+    (starting_limb, starting_window, starting_window_mask)
 }

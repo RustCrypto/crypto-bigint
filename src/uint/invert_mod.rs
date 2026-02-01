@@ -63,11 +63,12 @@ const fn expand_invert_mod2k_step(
     scratch: (&mut UintRef, &mut UintRef),
 ) {
     let new_len = buf.nlimbs();
+
     assert!(
         scratch.0.nlimbs() >= new_len
             && scratch.1.nlimbs() >= new_len
             && buf_init_len < new_len
-            && buf_init_len >= new_len / 2
+            && buf_init_len >= (new_len >> 1)
     );
 
     // Calculate u0^2, wrapping at `new_len` words
@@ -220,6 +221,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Compute a quadratic inversion, `self^-1 mod 2^k` where `k <= Self::BITS`.
     ///
     /// This method is variable-time in `k` only.
+    #[allow(clippy::integer_division_remainder_used, reason = "vartime")]
     pub(crate) const fn invert_mod2k_vartime(&self, k: u32) -> Uint<LIMBS> {
         assert!(k <= Self::BITS);
 
