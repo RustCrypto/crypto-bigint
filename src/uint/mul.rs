@@ -2,7 +2,7 @@
 
 use crate::{
     Checked, CheckedMul, Choice, Concat, ConcatMixed, ConcatenatingMul, CtOption, Limb, Mul,
-    MulAssign, Uint, UintRef, Wrapping, WrappingMul,
+    MulAssign, Uint, Wrapping, WrappingMul,
 };
 
 pub(crate) mod karatsuba;
@@ -76,8 +76,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         rhs: &Uint<RHS_LIMBS>,
     ) -> (Uint<LIMBS>, Choice) {
         let (lo, carry) = karatsuba::wrapping_mul_fixed(self.as_uint_ref(), rhs.as_uint_ref());
-        let overflow =
-            wrapping_mul_overflow(self.as_uint_ref(), rhs.as_uint_ref(), carry.is_nonzero());
+        let overflow = self
+            .as_uint_ref()
+            .check_mul_overflow(rhs.as_uint_ref(), carry.is_nonzero());
         (lo, overflow)
     }
 
@@ -144,8 +145,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[must_use]
     pub(crate) const fn overflowing_square(&self) -> (Uint<LIMBS>, Choice) {
         let (lo, carry) = karatsuba::wrapping_square_fixed(self.as_uint_ref());
-        let overflow =
-            wrapping_mul_overflow(self.as_uint_ref(), self.as_uint_ref(), carry.is_nonzero());
+        let overflow = self.as_uint_ref().check_square_overflow(carry.is_nonzero());
         (lo, overflow)
     }
 }
@@ -267,35 +267,6 @@ impl<const LIMBS: usize> WrappingMul for Uint<LIMBS> {
     fn wrapping_mul(&self, v: &Self) -> Self {
         self.wrapping_mul(v)
     }
-}
-
-/// We determine whether an overflow would occur by comparing limbs in
-/// `lhs[i=0..n]` and `rhs[j=0..m]`. Any combination where the sum of indexes
-/// `i + j >= n`, `lhs[i] != 0`, and `rhs[j] != 0` would cause an overflow.
-/// For efficiency, we OR all limbs in `rhs` that would apply to each limb in
-/// `lhs` in turn.
-pub(crate) const fn wrapping_mul_overflow(
-    lhs: &UintRef,
-    rhs: &UintRef,
-    mut overflow: Choice,
-) -> Choice {
-    let mut rhs_tail = Limb::ZERO;
-    let mut i = 0;
-    let mut j = lhs.nlimbs();
-    let mut k = rhs.nlimbs().saturating_sub(1);
-    while k > j {
-        rhs_tail = rhs_tail.bitor(rhs.limbs[k]);
-        k -= 1;
-    }
-    while i < lhs.nlimbs() {
-        j = lhs.nlimbs() - i;
-        if j < rhs.nlimbs() {
-            rhs_tail = rhs_tail.bitor(rhs.limbs[j]);
-            overflow = overflow.or(lhs.limbs[i].is_nonzero().and(rhs_tail.is_nonzero()));
-        }
-        i += 1;
-    }
-    overflow
 }
 
 #[cfg(test)]

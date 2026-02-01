@@ -951,9 +951,9 @@ pub trait Pow<Exponent> {
     fn pow(&self, exponent: &Exponent) -> Self;
 }
 
-impl<T: PowBoundedExp<Exponent>, Exponent: Bounded> Pow<Exponent> for T {
+impl<T: PowBoundedExp<Exponent>, Exponent: Unsigned> Pow<Exponent> for T {
     fn pow(&self, exponent: &Exponent) -> Self {
-        self.pow_bounded_exp(exponent, Exponent::BITS)
+        self.pow_bounded_exp(exponent, exponent.bits_precision())
     }
 }
 
