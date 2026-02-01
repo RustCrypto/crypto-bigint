@@ -653,4 +653,12 @@ mod tests {
             "0b10101010101010101010101010101010101110111011101110111011101110111100110011001100110011001100110011011101110111011101110111011101"
         );
     }
+
+    #[test]
+    fn test_unsigned() {
+        crate::traits::tests::test_unsigned(
+            BoxedUint::zero_with_precision(128),
+            BoxedUint::max(128),
+        );
+    }
 }
