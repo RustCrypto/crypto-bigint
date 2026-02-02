@@ -25,12 +25,15 @@ impl Limb {
         Limb(n as Word)
     }
 
-    /// Create a [`Limb`] from a `u64` integer (const-friendly)
-    // TODO(tarcieri): replace with `const impl From<u64>` when stable
-    #[cfg(target_pointer_width = "64")]
-    #[must_use]
-    pub const fn from_u64(n: u64) -> Self {
-        Limb(n)
+    cpubits::cpubits! {
+        64 => {
+            /// Create a [`Limb`] from a `u64` integer (const-friendly)
+            // TODO(tarcieri): replace with `const impl From<u64>` when stable
+            #[must_use]
+            pub const fn from_u64(n: u64) -> Self {
+                Limb(n)
+            }
+        }
     }
 }
 
@@ -55,11 +58,14 @@ impl From<u32> for Limb {
     }
 }
 
-#[cfg(target_pointer_width = "64")]
-impl From<u64> for Limb {
-    #[inline]
-    fn from(n: u64) -> Limb {
-        Limb(n)
+cpubits::cpubits! {
+    64 => {
+        impl From<u64> for Limb {
+            #[inline]
+            fn from(n: u64) -> Limb {
+                Limb(n)
+            }
+        }
     }
 }
 

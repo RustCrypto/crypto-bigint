@@ -207,24 +207,27 @@ impl UintRef {
         unsafe { &*(ptr::from_ref(self) as *const Odd<Self>) }
     }
 
-    /// Get the least significant 64-bits.
-    #[inline(always)]
-    pub(crate) const fn lowest_u64(&self) -> u64 {
-        #[cfg(target_pointer_width = "32")]
-        {
-            debug_assert!(self.nlimbs() >= 1);
-            let mut ret = self.limbs[0].0 as u64;
+    cpubits::cpubits! {
+        32 => {
+            /// Get the least significant 64-bits.
+            #[inline(always)]
+            pub(crate) const fn lowest_u64(&self) -> u64 {
+                debug_assert!(self.nlimbs() >= 1);
+                let mut ret = self.limbs[0].0 as u64;
 
-            if self.nlimbs() >= 2 {
-                ret |= (self.limbs[1].0 as u64) << 32;
+                if self.nlimbs() >= 2 {
+                    ret |= (self.limbs[1].0 as u64) << 32;
+                }
+
+                ret
             }
-
-            ret
         }
-
-        #[cfg(target_pointer_width = "64")]
-        {
-            self.limbs[0].0
+        64 => {
+            /// Get the least significant 64-bits.
+            #[inline(always)]
+            pub(crate) const fn lowest_u64(&self) -> u64 {
+                self.limbs[0].0
+            }
         }
     }
 }

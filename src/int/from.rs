@@ -39,23 +39,26 @@ impl<const LIMBS: usize> Int<LIMBS> {
         Uint::new([Limb(n as Word)]).as_int().resize()
     }
 
-    /// Create a [`Int`] from an `i64` (const-friendly)
-    // TODO(tarcieri): replace with `const impl From<i64>` when stable
-    #[cfg(target_pointer_width = "32")]
-    #[inline]
-    pub const fn from_i64(n: i64) -> Self {
-        check_limbs!(LIMBS);
-        Uint::<{ I64::LIMBS }>::from_u64(n as u64).as_int().resize()
-    }
-
-    /// Create a [`Int`] from an `i64` (const-friendly)
-    // TODO(tarcieri): replace with `const impl From<i64>` when stable
-    #[cfg(target_pointer_width = "64")]
-    #[inline]
-    #[must_use]
-    pub const fn from_i64(n: i64) -> Self {
-        check_limbs!(LIMBS);
-        Uint::new([Limb(n as Word)]).as_int().resize()
+    cpubits::cpubits! {
+        32 => {
+            /// Create a [`Int`] from an `i64` (const-friendly)
+            // TODO(tarcieri): replace with `const impl From<i64>` when stable
+            #[inline]
+            pub const fn from_i64(n: i64) -> Self {
+                check_limbs!(LIMBS);
+                Uint::<{ I64::LIMBS }>::from_u64(n as u64).as_int().resize()
+            }
+        }
+        64 => {
+            /// Create a [`Int`] from an `i64` (const-friendly)
+            // TODO(tarcieri): replace with `const impl From<i64>` when stable
+            #[inline]
+            #[must_use]
+            pub const fn from_i64(n: i64) -> Self {
+                check_limbs!(LIMBS);
+                Uint::new([Limb(n as Word)]).as_int().resize()
+            }
+        }
     }
 
     /// Create a [`Int`] from an `i128` (const-friendly)
@@ -153,11 +156,12 @@ impl<const LIMBS: usize, const LIMBS2: usize> From<&Int<LIMBS>> for Int<LIMBS2> 
 
 #[cfg(test)]
 mod tests {
-    #[cfg(target_pointer_width = "32")]
-    use crate::I64 as IntEx;
-    #[cfg(target_pointer_width = "64")]
-    use crate::I128 as IntEx;
     use crate::{I128, Limb};
+
+    cpubits::cpubits! {
+        32 => { use crate::I64 as IntEx; }
+        64 => { use crate::I128 as IntEx; }
+    }
 
     #[test]
     fn from_i8() {

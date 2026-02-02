@@ -3,73 +3,59 @@
 
 use ctutils::Choice;
 
-#[cfg(not(any(target_pointer_width = "32", target_pointer_width = "64")))]
-compile_error!("this crate builds on 32-bit and 64-bit platforms only");
+cpubits::cpubits! {
+    16 => { compile_error!("this crate builds on 32-bit and 64-bit platforms only") }
+    32 => {
+        /// Inner integer type that the [`Limb`] newtype wraps.
+        pub type Word = u32;
 
-/// 32-bit definitions
-#[cfg(target_pointer_width = "32")]
-mod word32 {
-    use super::Choice;
+        /// Unsigned wide integer type: double the width of [`Word`].
+        pub type WideWord = u64;
 
-    /// Inner integer type that the [`Limb`] newtype wraps.
-    pub type Word = u32;
+        /// Returns the truthy value if `x <= y` and the falsy value otherwise.
+        #[inline]
+        pub(crate) const fn choice_from_le(x: Word, y: Word) -> Choice {
+            Choice::from_u32_le(x, y)
+        }
 
-    /// Unsigned wide integer type: double the width of [`Word`].
-    pub type WideWord = u64;
+        /// Returns the truthy value if `x < y`, and the falsy value otherwise.
+        #[inline]
+        pub(crate) const fn choice_from_lt(x: Word, y: Word) -> Choice {
+            Choice::from_u32_lt(x, y)
+        }
 
-    /// Returns the truthy value if `x <= y` and the falsy value otherwise.
-    #[inline]
-    pub(crate) const fn choice_from_le(x: Word, y: Word) -> Choice {
-        Choice::from_u32_le(x, y)
+        /// Returns the truthy value if `x <= y` and the falsy value otherwise.
+        #[inline]
+        pub(crate) const fn choice_from_wide_le(x: WideWord, y: WideWord) -> Choice {
+            Choice::from_u64_le(x, y)
+        }
     }
+    64 => {
+        /// Unsigned integer type that the [`Limb`][`crate::Limb`] newtype wraps.
+        pub type Word = u64;
 
-    /// Returns the truthy value if `x < y`, and the falsy value otherwise.
-    #[inline]
-    pub(crate) const fn choice_from_lt(x: Word, y: Word) -> Choice {
-        Choice::from_u32_lt(x, y)
-    }
+        /// Wide integer type: double the width of [`Word`].
+        pub type WideWord = u128;
 
-    /// Returns the truthy value if `x <= y` and the falsy value otherwise.
-    #[inline]
-    pub(crate) const fn choice_from_wide_le(x: WideWord, y: WideWord) -> Choice {
-        Choice::from_u64_le(x, y)
-    }
-}
+        /// Returns the truthy value if `x <= y` and the falsy value otherwise.
+        #[inline]
+        pub(crate) const fn choice_from_le(x: Word, y: Word) -> Choice {
+            Choice::from_u64_le(x, y)
+        }
 
-/// 64-bit definitions
-#[cfg(target_pointer_width = "64")]
-mod word64 {
-    use super::Choice;
+        /// Returns the truthy value if `x < y`, and the falsy value otherwise.
+        #[inline]
+        pub(crate) const fn choice_from_lt(x: Word, y: Word) -> Choice {
+            Choice::from_u64_lt(x, y)
+        }
 
-    /// Unsigned integer type that the [`Limb`][`crate::Limb`] newtype wraps.
-    pub type Word = u64;
-
-    /// Wide integer type: double the width of [`Word`].
-    pub type WideWord = u128;
-
-    /// Returns the truthy value if `x <= y` and the falsy value otherwise.
-    #[inline]
-    pub(crate) const fn choice_from_le(x: Word, y: Word) -> Choice {
-        Choice::from_u64_le(x, y)
-    }
-
-    /// Returns the truthy value if `x < y`, and the falsy value otherwise.
-    #[inline]
-    pub(crate) const fn choice_from_lt(x: Word, y: Word) -> Choice {
-        Choice::from_u64_lt(x, y)
-    }
-
-    /// Returns the truthy value if `x <= y` and the falsy value otherwise.
-    #[inline]
-    pub(crate) const fn choice_from_wide_le(x: WideWord, y: WideWord) -> Choice {
-        Choice::from_u128_le(x, y)
+        /// Returns the truthy value if `x <= y` and the falsy value otherwise.
+        #[inline]
+        pub(crate) const fn choice_from_wide_le(x: WideWord, y: WideWord) -> Choice {
+            Choice::from_u128_le(x, y)
+        }
     }
 }
-
-#[cfg(target_pointer_width = "32")]
-pub use word32::*;
-#[cfg(target_pointer_width = "64")]
-pub use word64::*;
 
 /// Returns the truthy value if `x == y`, and the falsy value otherwise.
 #[inline]

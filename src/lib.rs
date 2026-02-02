@@ -174,6 +174,7 @@ pub use crate::{
     wrapping::Wrapping,
 };
 
+pub use cpubits::cpubits;
 pub use ctutils;
 pub use ctutils::{Choice, CtOption};
 

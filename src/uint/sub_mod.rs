@@ -171,8 +171,9 @@ mod tests {
     }
 
     // Test requires 1-limb is capable of representing a 64-bit integer
-    #[cfg(target_pointer_width = "64")]
-    test_sub_mod!(1, sub1);
+    cpubits::cpubits! {
+        64 => { test_sub_mod!(1, sub1); }
+    }
 
     test_sub_mod!(2, sub2);
     test_sub_mod!(3, sub3);

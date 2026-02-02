@@ -318,61 +318,157 @@ mod tests {
     use crate::Limb;
     use hex_literal::hex;
 
-    #[test]
-    #[cfg(target_pointer_width = "32")]
-    fn from_be_slice_eq() {
-        let bytes = hex!("0011223344556677");
-        let n = BoxedUint::from_be_slice(&bytes, 64).unwrap();
-        assert_eq!(n.as_limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
-    }
+    cpubits::cpubits! {
+        32 => {
+            #[test]
+            fn from_be_slice_eq() {
+                let bytes = hex!("0011223344556677");
+                let n = BoxedUint::from_be_slice(&bytes, 64).unwrap();
+                assert_eq!(n.as_limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
+            }
 
-    #[test]
-    #[cfg(target_pointer_width = "64")]
-    fn from_be_slice_eq() {
-        let bytes = hex!("00112233445566778899aabbccddeeff");
-        let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
-        assert_eq!(
-            n.as_limbs(),
-            &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
-        );
-    }
+            #[test]
+            fn from_be_slice_short() {
+                let bytes = hex!("0011223344556677");
+                let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
+                assert_eq!(
+                    n.as_limbs(),
+                    &[Limb(0x44556677), Limb(0x00112233), Limb::ZERO, Limb::ZERO]
+                );
+            }
 
-    #[test]
-    #[cfg(target_pointer_width = "64")]
-    fn from_be_hex_eq() {
-        let hex = "00112233445566778899aabbccddeeff";
-        let n = BoxedUint::from_be_hex(hex, 128).unwrap();
-        assert_eq!(
-            n.as_limbs(),
-            &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
-        );
-    }
+            #[test]
+            fn from_be_slice_not_word_sized() {
+                let bytes = hex!("112233445566778899aabbccddeeff");
+                let n = BoxedUint::from_be_slice(&bytes, 127).unwrap();
+                assert_eq!(
+                    n.as_limbs(),
+                    &[
+                        Limb(0xccddeeff),
+                        Limb(0x8899aabb),
+                        Limb(0x44556677),
+                        Limb(0x00112233)
+                    ]
+                );
+                assert_eq!(n.bits_precision(), 128);
+            }
 
-    #[test]
-    #[cfg(target_pointer_width = "32")]
-    fn from_be_slice_short() {
-        let bytes = hex!("0011223344556677");
-        let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
-        assert_eq!(
-            n.as_limbs(),
-            &[Limb(0x44556677), Limb(0x00112233), Limb::ZERO, Limb::ZERO]
-        );
-    }
+            #[test]
+            fn from_le_slice_eq() {
+                let bytes = hex!("7766554433221100");
+                let n = BoxedUint::from_le_slice(&bytes, 64).unwrap();
+                assert_eq!(n.as_limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
+            }
 
-    #[test]
-    #[cfg(target_pointer_width = "64")]
-    fn from_be_slice_short() {
-        let bytes = hex!("00112233445566778899aabbccddeeff");
-        let n = BoxedUint::from_be_slice(&bytes, 256).unwrap();
-        assert_eq!(
-            n.as_limbs(),
-            &[
-                Limb(0x8899aabbccddeeff),
-                Limb(0x0011223344556677),
-                Limb::ZERO,
-                Limb::ZERO
-            ]
-        );
+            #[test]
+            fn from_le_slice_short() {
+                let bytes = hex!("7766554433221100");
+                let n = BoxedUint::from_le_slice(&bytes, 128).unwrap();
+                assert_eq!(
+                    n.as_limbs(),
+                    &[Limb(0x44556677), Limb(0x00112233), Limb::ZERO, Limb::ZERO]
+                );
+            }
+
+            #[test]
+            fn from_le_slice_not_word_sized() {
+                let bytes = hex!("ffeeddccbbaa998877665544332211");
+                let n = BoxedUint::from_le_slice(&bytes, 127).unwrap();
+                assert_eq!(
+                    n.as_limbs(),
+                    &[
+                        Limb(0xccddeeff),
+                        Limb(0x8899aabb),
+                        Limb(0x44556677),
+                        Limb(0x00112233)
+                    ]
+                );
+                assert_eq!(n.bits_precision(), 128);
+            }
+        }
+        64 => {
+            #[test]
+            fn from_be_slice_eq() {
+                let bytes = hex!("00112233445566778899aabbccddeeff");
+                let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
+                assert_eq!(
+                    n.as_limbs(),
+                    &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
+                );
+            }
+
+            #[test]
+            fn from_be_hex_eq() {
+                let hex = "00112233445566778899aabbccddeeff";
+                let n = BoxedUint::from_be_hex(hex, 128).unwrap();
+                assert_eq!(
+                    n.as_limbs(),
+                    &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
+                );
+            }
+
+            #[test]
+            fn from_be_slice_short() {
+                let bytes = hex!("00112233445566778899aabbccddeeff");
+                let n = BoxedUint::from_be_slice(&bytes, 256).unwrap();
+                assert_eq!(
+                    n.as_limbs(),
+                    &[
+                        Limb(0x8899aabbccddeeff),
+                        Limb(0x0011223344556677),
+                        Limb::ZERO,
+                        Limb::ZERO
+                    ]
+                );
+            }
+
+            #[test]
+            fn from_be_slice_not_word_sized() {
+                let bytes = hex!("112233445566778899aabbccddeeff");
+                let n = BoxedUint::from_be_slice(&bytes, 127).unwrap();
+                assert_eq!(
+                    n.as_limbs(),
+                    &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
+                );
+                assert_eq!(n.bits_precision(), 128);
+            }
+
+            #[test]
+            fn from_le_slice_eq() {
+                let bytes = hex!("ffeeddccbbaa99887766554433221100");
+                let n = BoxedUint::from_le_slice(&bytes, 128).unwrap();
+                assert_eq!(
+                    n.as_limbs(),
+                    &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
+                );
+            }
+
+            #[test]
+            fn from_le_slice_short() {
+                let bytes = hex!("ffeeddccbbaa99887766554433221100");
+                let n = BoxedUint::from_le_slice(&bytes, 256).unwrap();
+                assert_eq!(
+                    n.as_limbs(),
+                    &[
+                        Limb(0x8899aabbccddeeff),
+                        Limb(0x0011223344556677),
+                        Limb::ZERO,
+                        Limb::ZERO
+                    ]
+                );
+            }
+
+            #[test]
+            fn from_le_slice_not_word_sized() {
+                let bytes = hex!("ffeeddccbbaa998877665544332211");
+                let n = BoxedUint::from_le_slice(&bytes, 127).unwrap();
+                assert_eq!(
+                    n.as_limbs(),
+                    &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
+                );
+                assert_eq!(n.bits_precision(), 128);
+            }
+        }
     }
 
     #[test]
@@ -382,35 +478,6 @@ mod tests {
             BoxedUint::from_be_slice(&bytes, 64),
             Err(DecodeError::InputSize)
         );
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "32")]
-    fn from_be_slice_not_word_sized() {
-        let bytes = hex!("112233445566778899aabbccddeeff");
-        let n = BoxedUint::from_be_slice(&bytes, 127).unwrap();
-        assert_eq!(
-            n.as_limbs(),
-            &[
-                Limb(0xccddeeff),
-                Limb(0x8899aabb),
-                Limb(0x44556677),
-                Limb(0x00112233)
-            ]
-        );
-        assert_eq!(n.bits_precision(), 128);
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "64")]
-    fn from_be_slice_not_word_sized() {
-        let bytes = hex!("112233445566778899aabbccddeeff");
-        let n = BoxedUint::from_be_slice(&bytes, 127).unwrap();
-        assert_eq!(
-            n.as_limbs(),
-            &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
-        );
-        assert_eq!(n.bits_precision(), 128);
     }
 
     #[test]
@@ -432,87 +499,12 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_pointer_width = "32")]
-    fn from_le_slice_eq() {
-        let bytes = hex!("7766554433221100");
-        let n = BoxedUint::from_le_slice(&bytes, 64).unwrap();
-        assert_eq!(n.as_limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "64")]
-    fn from_le_slice_eq() {
-        let bytes = hex!("ffeeddccbbaa99887766554433221100");
-        let n = BoxedUint::from_le_slice(&bytes, 128).unwrap();
-        assert_eq!(
-            n.as_limbs(),
-            &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
-        );
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "32")]
-    fn from_le_slice_short() {
-        let bytes = hex!("7766554433221100");
-        let n = BoxedUint::from_le_slice(&bytes, 128).unwrap();
-        assert_eq!(
-            n.as_limbs(),
-            &[Limb(0x44556677), Limb(0x00112233), Limb::ZERO, Limb::ZERO]
-        );
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "64")]
-    fn from_le_slice_short() {
-        let bytes = hex!("ffeeddccbbaa99887766554433221100");
-        let n = BoxedUint::from_le_slice(&bytes, 256).unwrap();
-        assert_eq!(
-            n.as_limbs(),
-            &[
-                Limb(0x8899aabbccddeeff),
-                Limb(0x0011223344556677),
-                Limb::ZERO,
-                Limb::ZERO
-            ]
-        );
-    }
-
-    #[test]
     fn from_le_slice_too_long() {
         let bytes = hex!("ffeeddccbbaa99887766554433221100");
         assert_eq!(
             BoxedUint::from_be_slice(&bytes, 64),
             Err(DecodeError::InputSize)
         );
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "32")]
-    fn from_le_slice_not_word_sized() {
-        let bytes = hex!("ffeeddccbbaa998877665544332211");
-        let n = BoxedUint::from_le_slice(&bytes, 127).unwrap();
-        assert_eq!(
-            n.as_limbs(),
-            &[
-                Limb(0xccddeeff),
-                Limb(0x8899aabb),
-                Limb(0x44556677),
-                Limb(0x00112233)
-            ]
-        );
-        assert_eq!(n.bits_precision(), 128);
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "64")]
-    fn from_le_slice_not_word_sized() {
-        let bytes = hex!("ffeeddccbbaa998877665544332211");
-        let n = BoxedUint::from_le_slice(&bytes, 127).unwrap();
-        assert_eq!(
-            n.as_limbs(),
-            &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
-        );
-        assert_eq!(n.bits_precision(), 128);
     }
 
     #[test]

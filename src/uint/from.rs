@@ -48,28 +48,31 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Self { limbs }
     }
 
-    /// Create a [`Uint`] from a `u64` (const-friendly)
-    // TODO(tarcieri): replace with `const impl From<u64>` when stable
-    #[cfg(target_pointer_width = "32")]
-    #[inline]
-    pub const fn from_u64(n: u64) -> Self {
-        check_limbs!(LIMBS, 2);
-        let mut limbs = [Limb::ZERO; LIMBS];
-        limbs[0].0 = (n & 0xFFFFFFFF) as u32;
-        limbs[1].0 = (n >> 32) as u32;
-        Self { limbs }
-    }
-
-    /// Create a [`Uint`] from a `u64` (const-friendly)
-    // TODO(tarcieri): replace with `const impl From<u64>` when stable
-    #[cfg(target_pointer_width = "64")]
-    #[inline]
-    #[must_use]
-    pub const fn from_u64(n: u64) -> Self {
-        check_limbs!(LIMBS);
-        let mut limbs = [Limb::ZERO; LIMBS];
-        limbs[0].0 = n;
-        Self { limbs }
+    cpubits::cpubits! {
+        32 => {
+            /// Create a [`Uint`] from a `u64` (const-friendly)
+            // TODO(tarcieri): replace with `const impl From<u64>` when stable
+            #[inline]
+            pub const fn from_u64(n: u64) -> Self {
+                check_limbs!(LIMBS, 2);
+                let mut limbs = [Limb::ZERO; LIMBS];
+                limbs[0].0 = (n & 0xFFFFFFFF) as u32;
+                limbs[1].0 = (n >> 32) as u32;
+                Self { limbs }
+            }
+        }
+        64 => {
+            /// Create a [`Uint`] from a `u64` (const-friendly)
+            // TODO(tarcieri): replace with `const impl From<u64>` when stable
+            #[inline]
+            #[must_use]
+            pub const fn from_u64(n: u64) -> Self {
+                check_limbs!(LIMBS);
+                let mut limbs = [Limb::ZERO; LIMBS];
+                limbs[0].0 = n;
+                Self { limbs }
+            }
+        }
     }
 
     /// Create a [`Uint`] from a `u128` (const-friendly)
@@ -163,19 +166,22 @@ impl<const LIMBS: usize> From<u128> for Uint<LIMBS> {
     }
 }
 
-#[cfg(target_pointer_width = "32")]
-impl From<U64> for u64 {
-    #[inline]
-    fn from(n: U64) -> u64 {
-        (n.limbs[0].0 as u64) | ((n.limbs[1].0 as u64) << 32)
+cpubits::cpubits! {
+    32 => {
+        impl From<U64> for u64 {
+            #[inline]
+            fn from(n: U64) -> u64 {
+                (n.limbs[0].0 as u64) | ((n.limbs[1].0 as u64) << 32)
+            }
+        }
     }
-}
-
-#[cfg(target_pointer_width = "64")]
-impl From<U64> for u64 {
-    #[inline]
-    fn from(n: U64) -> u64 {
-        n.limbs[0].into()
+    64 => {
+        impl From<U64> for u64 {
+            #[inline]
+            fn from(n: U64) -> u64 {
+                n.limbs[0].into()
+            }
+        }
     }
 }
 
@@ -268,11 +274,10 @@ impl<const LIMBS: usize, const LIMBS2: usize> From<&Uint<LIMBS>> for Uint<LIMBS2
 mod tests {
     use crate::{Limb, U128, Word};
 
-    #[cfg(target_pointer_width = "32")]
-    use crate::U64 as UintEx;
-
-    #[cfg(target_pointer_width = "64")]
-    use crate::U128 as UintEx;
+    cpubits::cpubits! {
+        32 => { use crate::U64 as UintEx; }
+        64 => { use crate::U128 as UintEx; }
+    }
 
     #[test]
     fn from_u8() {

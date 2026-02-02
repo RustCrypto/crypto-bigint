@@ -8,67 +8,70 @@ use crate::{
     word,
 };
 
-/// Calculates the reciprocal of the given 32-bit divisor with the highmost bit set.
-#[cfg(target_pointer_width = "32")]
-pub const fn reciprocal(d: Word) -> Word {
-    debug_assert!(d >= (1 << (Word::BITS - 1)));
+cpubits::cpubits! {
+    32 => {
+        /// Calculates the reciprocal of the given 32-bit divisor with the highmost bit set.
+        pub const fn reciprocal(d: Word) -> Word {
+            debug_assert!(d >= (1 << (Word::BITS - 1)));
 
-    let d0 = d & 1;
-    let d10 = d >> 22;
-    let d21 = (d >> 11) + 1;
-    let d31 = (d >> 1) + d0;
-    let v0 = short_div((1 << 24) - (1 << 14) + (1 << 9), 24, d10, 10);
-    let (_lo, hi) = widening_mul(v0 * v0, d21);
-    let v1 = (v0 << 4) - hi - 1;
+            let d0 = d & 1;
+            let d10 = d >> 22;
+            let d21 = (d >> 11) + 1;
+            let d31 = (d >> 1) + d0;
+            let v0 = short_div((1 << 24) - (1 << 14) + (1 << 9), 24, d10, 10);
+            let (_lo, hi) = widening_mul(v0 * v0, d21);
+            let v1 = (v0 << 4) - hi - 1;
 
-    // Checks that the expression for `e` can be simplified in the way we did below.
-    debug_assert!(widening_mul(v1, d31).1 == (1 << 16) - 1);
-    let e = Word::MAX - v1.wrapping_mul(d31) + 1 + (v1 >> 1) * d0;
+            // Checks that the expression for `e` can be simplified in the way we did below.
+            debug_assert!(widening_mul(v1, d31).1 == (1 << 16) - 1);
+            let e = Word::MAX - v1.wrapping_mul(d31) + 1 + (v1 >> 1) * d0;
 
-    let (_lo, hi) = widening_mul(v1, e);
-    // Note: the paper does not mention a wrapping add here,
-    // but the 64-bit version has it at this stage, and the function panics without it
-    // when calculating a reciprocal for `Word::MAX`.
-    let v2 = (v1 << 15).wrapping_add(hi >> 1);
+            let (_lo, hi) = widening_mul(v1, e);
+            // Note: the paper does not mention a wrapping add here,
+            // but the 64-bit version has it at this stage, and the function panics without it
+            // when calculating a reciprocal for `Word::MAX`.
+            let v2 = (v1 << 15).wrapping_add(hi >> 1);
 
-    // The paper has `(v2 + 1) * d / 2^32` (there's another 2^32, but it's accounted for later).
-    // If `v2 == 2^32-1` this should give `d`, but we can't achieve this in our wrapping arithmetic.
-    // Hence the `ct_select()`.
-    let x = v2.wrapping_add(1);
-    let (_lo, hi) = widening_mul(x, d);
-    let hi = word::select(d, hi, Choice::from_u32_nz(x));
+            // The paper has `(v2 + 1) * d / 2^32` (there's another 2^32, but it's accounted for later).
+            // If `v2 == 2^32-1` this should give `d`, but we can't achieve this in our wrapping arithmetic.
+            // Hence the `ct_select()`.
+            let x = v2.wrapping_add(1);
+            let (_lo, hi) = widening_mul(x, d);
+            let hi = word::select(d, hi, Choice::from_u32_nz(x));
 
-    v2.wrapping_sub(hi).wrapping_sub(d)
-}
+            v2.wrapping_sub(hi).wrapping_sub(d)
+        }
+    }
+    64 => {
+        /// Calculates the reciprocal of the given 64-bit divisor with the highmost bit set.
+        pub const fn reciprocal(d: Word) -> Word {
+            debug_assert!(d >= (1 << (Word::BITS - 1)));
 
-/// Calculates the reciprocal of the given 64-bit divisor with the highmost bit set.
-#[cfg(target_pointer_width = "64")]
-pub const fn reciprocal(d: Word) -> Word {
-    debug_assert!(d >= (1 << (Word::BITS - 1)));
+            let d0 = d & 1;
+            let d9 = d >> 55;
+            let d40 = (d >> 24) + 1;
+            let d63 = (d >> 1) + d0;
+            let v0 = short_div((1 << 19) - 3 * (1 << 8), 19, d9 as u32, 9) as u64;
+            let v1 = (v0 << 11) - ((v0 * v0 * d40) >> 40) - 1;
+            let v2 = (v1 << 13) + ((v1 * ((1 << 60) - v1 * d40)) >> 47);
 
-    let d0 = d & 1;
-    let d9 = d >> 55;
-    let d40 = (d >> 24) + 1;
-    let d63 = (d >> 1) + d0;
-    let v0 = short_div((1 << 19) - 3 * (1 << 8), 19, d9 as u32, 9) as u64;
-    let v1 = (v0 << 11) - ((v0 * v0 * d40) >> 40) - 1;
-    let v2 = (v1 << 13) + ((v1 * ((1 << 60) - v1 * d40)) >> 47);
+            // Checks that the expression for `e` can be simplified in the way we did below.
+            debug_assert!(widening_mul(v2, d63).1 == (1 << 32) - 1);
+            let e = Word::MAX - v2.wrapping_mul(d63) + 1 + (v2 >> 1) * d0;
 
-    // Checks that the expression for `e` can be simplified in the way we did below.
-    debug_assert!(widening_mul(v2, d63).1 == (1 << 32) - 1);
-    let e = Word::MAX - v2.wrapping_mul(d63) + 1 + (v2 >> 1) * d0;
+            let (_lo, hi) = widening_mul(v2, e);
+            let v3 = (v2 << 31).wrapping_add(hi >> 1);
 
-    let (_lo, hi) = widening_mul(v2, e);
-    let v3 = (v2 << 31).wrapping_add(hi >> 1);
+            // The paper has `(v3 + 1) * d / 2^64` (there's another 2^64, but it's accounted for later).
+            // If `v3 == 2^64-1` this should give `d`, but we can't achieve this in our wrapping arithmetic.
+            // Hence the `ct_select()`.
+            let x = v3.wrapping_add(1);
+            let (_lo, hi) = widening_mul(x, d);
+            let hi = word::select(d, hi, word::choice_from_nz(x));
 
-    // The paper has `(v3 + 1) * d / 2^64` (there's another 2^64, but it's accounted for later).
-    // If `v3 == 2^64-1` this should give `d`, but we can't achieve this in our wrapping arithmetic.
-    // Hence the `ct_select()`.
-    let x = v3.wrapping_add(1);
-    let (_lo, hi) = widening_mul(x, d);
-    let hi = word::select(d, hi, word::choice_from_nz(x));
-
-    v3.wrapping_sub(hi).wrapping_sub(d)
+            v3.wrapping_sub(hi).wrapping_sub(d)
+        }
+    }
 }
 
 /// Calculates `dividend / divisor`, given `dividend` and `divisor`
