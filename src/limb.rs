@@ -30,6 +30,20 @@ use core::{fmt, ptr, slice};
 #[cfg(feature = "serde")]
 use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 
+/// Calculate the number of limbs required to represent the given number of bits.
+// TODO(tarcieri): replace with `generic_const_exprs` (rust-lang/rust#76560) when stable
+#[inline(always)]
+#[must_use]
+pub const fn nlimbs(bits: u32) -> usize {
+    if cfg!(target_pointer_width = "32") {
+        ((bits + 31) >> 5) as usize
+    } else if cfg!(target_pointer_width = "64") {
+        ((bits + 63) >> 6) as usize
+    } else {
+        unreachable!()
+    }
+}
+
 /// Big integers are represented as an array/vector of smaller CPU word-size integers called
 /// "limbs".
 ///
@@ -296,6 +310,31 @@ impl zeroize::DefaultIsZeroes for Limb {}
 mod tests {
     #[cfg(feature = "alloc")]
     use {super::Limb, alloc::format};
+
+    #[cfg(target_pointer_width = "32")]
+    #[test]
+    fn nlimbs_for_bits_macro() {
+        assert_eq!(super::nlimbs(64), 2);
+        assert_eq!(super::nlimbs(65), 3);
+        assert_eq!(super::nlimbs(128), 4);
+        assert_eq!(super::nlimbs(129), 5);
+        assert_eq!(super::nlimbs(192), 6);
+        assert_eq!(super::nlimbs(193), 7);
+        assert_eq!(super::nlimbs(256), 8);
+        assert_eq!(super::nlimbs(257), 9);
+    }
+
+    #[cfg(target_pointer_width = "64")]
+    #[test]
+    fn nlimbs_for_bits_macro() {
+        assert_eq!(super::nlimbs(64), 1);
+        assert_eq!(super::nlimbs(65), 2);
+        assert_eq!(super::nlimbs(128), 2);
+        assert_eq!(super::nlimbs(129), 3);
+        assert_eq!(super::nlimbs(192), 3);
+        assert_eq!(super::nlimbs(193), 4);
+        assert_eq!(super::nlimbs(256), 4);
+    }
 
     #[cfg(feature = "alloc")]
     #[test]
