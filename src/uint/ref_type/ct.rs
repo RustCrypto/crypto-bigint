@@ -12,10 +12,22 @@ impl CtAssign for UintRef {
     }
 }
 
-impl CtEq for UintRef {
+// Note: special impl with implicit widening
+impl<RHS: AsRef<UintRef>> CtEq<RHS> for UintRef {
     #[inline]
-    fn ct_eq(&self, other: &Self) -> Choice {
-        self.limbs.ct_eq(&other.limbs)
+    fn ct_eq(&self, other: &RHS) -> Choice {
+        let rhs = other.as_ref();
+        let overlap = if self.nlimbs() < rhs.nlimbs() {
+            self.nlimbs()
+        } else {
+            rhs.nlimbs()
+        };
+        let (lhs, lhs_over) = self.split_at(overlap);
+        let (rhs, rhs_over) = rhs.split_at(overlap);
+        lhs.limbs
+            .ct_eq(&rhs.limbs)
+            .and(lhs_over.is_zero())
+            .and(rhs_over.is_zero())
     }
 }
 
