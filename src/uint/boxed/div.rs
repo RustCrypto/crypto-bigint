@@ -42,20 +42,20 @@ impl BoxedUint {
 
     /// Computes self / rhs, returns the quotient, remainder.
     #[must_use]
-    pub fn div_rem(&self, rhs: &NonZero<Self>) -> (Self, Self) {
+    pub fn div_rem<RHS: AsMut<UintRef> + Clone>(&self, rhs: &NonZero<RHS>) -> (Self, RHS) {
         let (mut quo, mut rem) = (self.clone(), rhs.as_ref().clone());
-        quo.as_mut_uint_ref().div_rem(rem.as_mut_uint_ref());
+        quo.as_mut_uint_ref().div_rem(rem.as_mut());
         (quo, rem)
     }
 
     /// Computes self % rhs, returns the remainder.
     #[must_use]
-    pub fn rem(&self, rhs: &NonZero<Self>) -> Self {
-        let xc = self.limbs.len();
-        let yc = rhs.0.limbs.len();
+    pub fn rem<RHS: AsMut<UintRef> + Clone>(&self, rhs: &NonZero<RHS>) -> RHS {
         let (mut quo, mut rem) = (self.clone(), rhs.as_ref().clone());
+        let xc = self.nlimbs();
+        let yc = rem.as_mut().nlimbs();
         let x = quo.as_mut_uint_ref().split_at_mut(xc.saturating_sub(yc));
-        UintRef::rem_wide(x, rem.as_mut_uint_ref());
+        UintRef::rem_wide(x, rem.as_mut());
         rem
     }
 

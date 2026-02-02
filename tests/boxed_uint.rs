@@ -49,7 +49,7 @@ prop_compose! {
     /// Generate a random odd modulus.
     fn modulus()(n in uint()) -> Odd<BoxedUint> {
         if n.is_even().into() {
-            n.wrapping_add(&BoxedUint::one())
+            n.wrapping_add(Limb::ONE)
         } else {
             n
         }.to_odd().expect("odd by construction")
@@ -113,7 +113,7 @@ proptest! {
     #[test]
     fn div_rem(a in uint(), mut b in uint()) {
         if b.is_zero().into() {
-            b = b.wrapping_add(&BoxedUint::one());
+            b = b.wrapping_add(Limb::ONE);
         }
 
         let a_bi = to_biguint(&a);
@@ -129,7 +129,7 @@ proptest! {
     #[test]
     fn div_rem_vartime((a, mut b) in uint_pair()) {
         if b.is_zero().into() {
-            b = b.wrapping_add(&BoxedUint::one());
+            b = b.wrapping_add(Limb::ONE);
         }
 
         let a_bi = to_biguint(&a);
@@ -181,7 +181,7 @@ proptest! {
             a = BoxedUint::one_with_precision(a.bits_precision());
         }
         if b.is_even().into() {
-            b = b.wrapping_add(&BoxedUint::one());
+            b = b.wrapping_add(Limb::ONE);
         }
 
         let b = b.to_odd().unwrap();

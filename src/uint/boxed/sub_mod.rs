@@ -1,6 +1,6 @@
 //! [`BoxedUint`] modular subtraction operations.
 
-use crate::{BoxedUint, Limb, NonZero, SubMod};
+use crate::{BoxedUint, Limb, NonZero, SubMod, U64};
 
 impl BoxedUint {
     /// Computes `self - rhs mod p`.
@@ -49,7 +49,7 @@ impl BoxedUint {
         // the underflow. This cannot underflow due to the assumption
         // `self - rhs >= -p`.
         let l = borrow.0 & c.0;
-        out.wrapping_sub(&Self::from(l))
+        out.wrapping_sub(U64::from(l))
     }
 }
 

@@ -299,31 +299,6 @@ impl BoxedUint {
         ret
     }
 
-    /// Perform a carry chain-like operation over the limbs of the inputs,
-    /// constructing a result from the returned limbs and carry which is
-    /// widened to the same width as the widest input.
-    ///
-    /// If one of the two values has fewer limbs than the other, pads with
-    /// [`Limb::ZERO`] as the value for that limb.
-    #[inline]
-    fn fold_limbs<F>(lhs: &Self, rhs: &Self, mut carry: Limb, f: F) -> (Self, Limb)
-    where
-        F: Fn(Limb, Limb, Limb) -> (Limb, Limb),
-    {
-        let nlimbs = cmp::max(lhs.nlimbs(), rhs.nlimbs());
-        let mut limbs = Vec::with_capacity(nlimbs);
-
-        for i in 0..nlimbs {
-            let &a = lhs.limbs.get(i).unwrap_or(&Limb::ZERO);
-            let &b = rhs.limbs.get(i).unwrap_or(&Limb::ZERO);
-            let (limb, c) = f(a, b, carry);
-            limbs.push(limb);
-            carry = c;
-        }
-
-        (limbs.into(), carry)
-    }
-
     /// Iterate over the limbs of the inputs, applying the given function, and
     /// constructing a result from the returned values.
     #[inline]

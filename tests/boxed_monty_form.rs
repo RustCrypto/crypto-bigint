@@ -38,7 +38,7 @@ prop_compose! {
     /// Generate a random odd modulus.
     fn modulus()(mut n in uint()) -> BoxedMontyParams {
         if n.is_even().into() {
-            n = n.wrapping_add(&BoxedUint::one());
+            n = n.wrapping_add(Limb::ONE);
         }
 
         BoxedMontyParams::new(Odd::new(n).expect("modulus should be odd"))
@@ -61,7 +61,7 @@ proptest! {
     #[test]
     fn new(mut n in uint()) {
         if n.is_even().into() {
-            n = n.wrapping_add(&BoxedUint::one());
+            n = n.wrapping_add(Limb::ONE);
         }
 
         let n = Odd::new(n).expect("ensured odd");

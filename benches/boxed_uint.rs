@@ -359,7 +359,7 @@ fn bench_invert(c: &mut Criterion) {
                     BoxedUint::random_bits(&mut rng, UINT_BITS),
                 );
                 if y.is_even().into() {
-                    y = y.wrapping_add(&BoxedUint::one());
+                    y = y.wrapping_add(Limb::ONE);
                 }
                 (x, y.to_odd().unwrap())
             },

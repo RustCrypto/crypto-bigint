@@ -1,6 +1,6 @@
 //! [`BoxedUint`] modular multiplication operations.
 
-use crate::{BoxedUint, Limb, MulMod, NonZero, SquareMod, WideWord, Word, div_limb::mul_rem};
+use crate::{BoxedUint, Limb, MulMod, NonZero, SquareMod, U64, WideWord, Word, div_limb::mul_rem};
 
 impl BoxedUint {
     /// Computes `self * rhs mod p` for non-zero `p`.
@@ -40,12 +40,12 @@ impl BoxedUint {
 
         let (lo, carry) = {
             let rhs = WideWord::from(carry.0 + 1) * WideWord::from(c.0);
-            lo.carrying_add(&Self::from(rhs), Limb::ZERO)
+            lo.carrying_add(Self::from(rhs), Limb::ZERO)
         };
 
         let (lo, _) = {
             let rhs = carry.0.wrapping_sub(1) & c.0;
-            lo.borrowing_sub(&Self::from(rhs), Limb::ZERO)
+            lo.borrowing_sub(U64::from(rhs), Limb::ZERO)
         };
 
         lo

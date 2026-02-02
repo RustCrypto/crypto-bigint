@@ -221,7 +221,7 @@ pub(crate) mod boxed {
             // Represents 1 in Montgomery form.
             let one = crate::uint::boxed::BoxedUint::max(bits_precision)
                 .rem(modulus.as_nz_ref())
-                .wrapping_add(&crate::uint::boxed::BoxedUint::one());
+                .wrapping_add(Limb::ONE);
 
             // `R^2 mod modulus`, used to convert integers to Montgomery form.
             let r2 = one.square_mod(modulus.as_nz_ref());
@@ -255,7 +255,7 @@ pub(crate) mod boxed {
             // Represents 1 in Montgomery form.
             let one = crate::uint::boxed::BoxedUint::max(bits_precision)
                 .rem_vartime(modulus.as_nz_ref())
-                .wrapping_add(&crate::uint::boxed::BoxedUint::one());
+                .wrapping_add(Limb::ONE);
 
             // `R^2 mod modulus`, used to convert integers to Montgomery form.
             let r2 = one.square_mod_vartime(modulus.as_nz_ref());
