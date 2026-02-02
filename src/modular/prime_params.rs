@@ -190,7 +190,19 @@ mod tests {
             PrimeParams::new_vartime(&monty_params_2).expect("failed creating params");
 
         assert!(CtEq::ct_eq(&prime_params_1, &prime_params_1).to_bool_vartime());
+        #[cfg(feature = "subtle")]
+        assert!(bool::from(subtle::ConstantTimeEq::ct_eq(
+            &prime_params_1,
+            &prime_params_1
+        )));
+
         assert!(CtEq::ct_ne(&prime_params_1, &prime_params_2).to_bool_vartime());
+        #[cfg(feature = "subtle")]
+        assert!(bool::from(subtle::ConstantTimeEq::ct_ne(
+            &prime_params_1,
+            &prime_params_2
+        )));
+
         assert!(
             CtEq::ct_eq(
                 &CtSelect::ct_select(&prime_params_1, &prime_params_2, Choice::FALSE),
@@ -198,9 +210,34 @@ mod tests {
             )
             .to_bool_vartime()
         );
+        #[cfg(feature = "subtle")]
+        assert!(
+            CtEq::ct_eq(
+                &subtle::ConditionallySelectable::conditional_select(
+                    &prime_params_1,
+                    &prime_params_2,
+                    subtle::Choice::from(0u8)
+                ),
+                &prime_params_1,
+            )
+            .to_bool_vartime()
+        );
+
         assert!(
             CtEq::ct_eq(
                 &CtSelect::ct_select(&prime_params_1, &prime_params_2, Choice::TRUE),
+                &prime_params_2,
+            )
+            .to_bool_vartime()
+        );
+        #[cfg(feature = "subtle")]
+        assert!(
+            CtEq::ct_eq(
+                &subtle::ConditionallySelectable::conditional_select(
+                    &prime_params_1,
+                    &prime_params_2,
+                    subtle::Choice::from(1u8)
+                ),
                 &prime_params_2,
             )
             .to_bool_vartime()
