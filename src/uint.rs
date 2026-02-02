@@ -7,8 +7,8 @@ pub(crate) use ref_type::UintRef;
 
 use crate::{
     Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, EncodedUint, FixedInteger,
-    Int, Integer, Limb, NonZero, Odd, One, Unsigned, UnsignedMontyForm, Word, Zero,
-    modular::FixedMontyForm, nlimbs, primitives::u32_bits,
+    Int, Integer, Limb, NonZero, Odd, One, Unsigned, UnsignedMontyForm, Word, Zero, limb::nlimbs,
+    modular::FixedMontyForm, primitives::u32_bits,
 };
 use core::fmt;
 
