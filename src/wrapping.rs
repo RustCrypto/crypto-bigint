@@ -357,9 +357,9 @@ mod tests {
     fn wrapping_format() {
         for a in [Limb::ZERO, Limb::ONE, Limb::MAX] {
             assert_eq!(format!("{}", Wrapping(a)), format!("{}", a));
-            assert_eq!(format!("{:?}", Wrapping(a)), format!("{:?}", a));
-            assert_eq!(format!("{:#?}", Wrapping(a)), format!("{:#?}", a));
+            assert_eq!(format!("{:?}", Wrapping(a)), format!("Wrapping({:?})", a));
             assert_eq!(format!("{:b}", Wrapping(a)), format!("{:b}", a));
+            assert_eq!(format!("{:o}", Wrapping(a)), format!("{:o}", a));
             assert_eq!(format!("{:x}", Wrapping(a)), format!("{:x}", a));
             assert_eq!(format!("{:X}", Wrapping(a)), format!("{:X}", a));
         }
