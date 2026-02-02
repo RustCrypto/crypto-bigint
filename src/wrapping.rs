@@ -321,3 +321,148 @@ where
         CtEq::ct_eq(self, other).into()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Wrapping;
+    use crate::{
+        Choice, CtEq, CtSelect, Limb, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl,
+        WrappingShr, WrappingSub,
+    };
+
+    // FIXME Could use itertools combinations or an equivalent iterator
+    const INPUTS: &[(Limb, Limb)] = &[
+        (Limb::ZERO, Limb::ZERO),
+        (Limb::ZERO, Limb::ONE),
+        (Limb::ZERO, Limb::MAX),
+        (Limb::ONE, Limb::ZERO),
+        (Limb::ONE, Limb::ONE),
+        (Limb::ONE, Limb::MAX),
+        (Limb::MAX, Limb::ZERO),
+        (Limb::MAX, Limb::ONE),
+        (Limb::MAX, Limb::MAX),
+    ];
+
+    #[test]
+    fn wrapping_new() {
+        assert_eq!(Wrapping::<Limb>::default().0, Limb::default());
+        assert_eq!(<Wrapping<Limb> as crate::Zero>::zero().0, Limb::ZERO);
+        assert_eq!(<Wrapping<Limb> as crate::One>::one().0, Limb::ONE);
+        assert_eq!(<Wrapping<Limb> as num_traits::Zero>::zero().0, Limb::ZERO);
+        assert_eq!(<Wrapping<Limb> as num_traits::One>::one().0, Limb::ONE);
+    }
+
+    #[test]
+    #[cfg(feature = "alloc")]
+    fn wrapping_format() {
+        for a in [Limb::ZERO, Limb::ONE, Limb::MAX] {
+            assert_eq!(format!("{}", Wrapping(a)), format!("{}", a));
+            assert_eq!(format!("{:?}", Wrapping(a)), format!("{:?}", a));
+            assert_eq!(format!("{:#?}", Wrapping(a)), format!("{:#?}", a));
+            assert_eq!(format!("{:b}", Wrapping(a)), format!("{:b}", a));
+            assert_eq!(format!("{:x}", Wrapping(a)), format!("{:x}", a));
+            assert_eq!(format!("{:X}", Wrapping(a)), format!("{:X}", a));
+        }
+    }
+    #[test]
+    fn wrapping_eq_select() {
+        let pairs: &[(Limb, Limb, bool)] = &[
+            (Limb::ZERO, Limb::ZERO, true),
+            (Limb::ZERO, Limb::ONE, false),
+            (Limb::ONE, Limb::ZERO, false),
+            (Limb::ONE, Limb::ONE, true),
+        ];
+
+        for (a, b, eq) in pairs {
+            assert_eq!(a.ct_eq(b).to_bool(), *eq);
+            assert!(a.ct_select(b, Choice::FALSE).ct_eq(a).to_bool());
+            assert!(a.ct_select(b, Choice::TRUE).ct_eq(b).to_bool());
+            #[cfg(feature = "subtle")]
+            assert_eq!(bool::from(subtle::ConstantTimeEq::ct_eq(a, b)), *eq);
+            #[cfg(feature = "subtle")]
+            assert!(
+                subtle::ConditionallySelectable::conditional_select(
+                    a,
+                    b,
+                    subtle::Choice::from(0u8)
+                )
+                .ct_eq(a)
+                .to_bool()
+            );
+            #[cfg(feature = "subtle")]
+            assert!(
+                subtle::ConditionallySelectable::conditional_select(
+                    a,
+                    b,
+                    subtle::Choice::from(1u8)
+                )
+                .ct_eq(b)
+                .to_bool()
+            );
+        }
+    }
+
+    #[allow(clippy::op_ref)]
+    #[test]
+    fn wrapping_add() {
+        for (a, b) in INPUTS {
+            let expect = WrappingAdd::wrapping_add(a, b);
+            assert_eq!((Wrapping(*a) + Wrapping(*b)).0, expect);
+            assert_eq!((&Wrapping(*a) + Wrapping(*b)).0, expect);
+            assert_eq!((Wrapping(*a) + &Wrapping(*b)).0, expect);
+            assert_eq!((&Wrapping(*a) + &Wrapping(*b)).0, expect);
+        }
+    }
+
+    #[allow(clippy::op_ref)]
+    #[test]
+    fn wrapping_sub() {
+        for (a, b) in INPUTS {
+            let expect = WrappingSub::wrapping_sub(a, b);
+            assert_eq!((Wrapping(*a) - Wrapping(*b)).0, expect);
+            assert_eq!((&Wrapping(*a) - Wrapping(*b)).0, expect);
+            assert_eq!((Wrapping(*a) - &Wrapping(*b)).0, expect);
+            assert_eq!((&Wrapping(*a) - &Wrapping(*b)).0, expect);
+        }
+    }
+
+    #[allow(clippy::op_ref)]
+    #[test]
+    fn wrapping_mul() {
+        for (a, b) in INPUTS {
+            let expect = WrappingMul::wrapping_mul(a, b);
+            assert_eq!((Wrapping(*a) * Wrapping(*b)).0, expect);
+            assert_eq!((&Wrapping(*a) * Wrapping(*b)).0, expect);
+            assert_eq!((Wrapping(*a) * &Wrapping(*b)).0, expect);
+            assert_eq!((&Wrapping(*a) * &Wrapping(*b)).0, expect);
+        }
+    }
+
+    #[allow(clippy::op_ref)]
+    #[test]
+    fn wrapping_neg() {
+        assert_eq!(
+            (-Wrapping(Limb::ZERO)).0,
+            WrappingNeg::wrapping_neg(&Limb::ZERO)
+        );
+        assert_eq!(
+            (-&Wrapping(Limb::ONE)).0,
+            WrappingNeg::wrapping_neg(&Limb::ONE)
+        );
+        assert_eq!(
+            (-Wrapping(Limb::MAX)).0,
+            WrappingNeg::wrapping_neg(&Limb::MAX)
+        );
+    }
+
+    #[allow(clippy::op_ref)]
+    #[test]
+    fn wrapping_shift() {
+        for a in [Limb::ZERO, Limb::ONE, Limb::MAX] {
+            assert_eq!((Wrapping(a) << 1).0, WrappingShl::wrapping_shl(&a, 1));
+            assert_eq!((&Wrapping(a) << 2).0, WrappingShl::wrapping_shl(&a, 2));
+            assert_eq!((Wrapping(a) >> 1).0, WrappingShr::wrapping_shr(&a, 1));
+            assert_eq!((&Wrapping(a) >> 2).0, WrappingShr::wrapping_shr(&a, 2));
+        }
+    }
+}
