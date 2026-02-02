@@ -160,7 +160,7 @@ pub use crate::{
     checked::Checked,
     int::{types::*, *},
     jacobi::JacobiSymbol,
-    limb::Limb,
+    limb::{Limb, nlimbs},
     non_zero::*,
     odd::*,
     traits::*,
@@ -190,9 +190,6 @@ pub use {
     crate::array::{ArrayDecoding, ArrayEncoding, ByteArray},
     hybrid_array::{self, typenum::consts},
 };
-
-#[macro_use]
-mod macros;
 
 pub mod modular;
 
