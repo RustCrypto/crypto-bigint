@@ -204,7 +204,7 @@ impl SubAssign<u128> for BoxedUint {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use super::{BoxedUint, CheckedSub, Limb};
+    use super::{BoxedUint, CheckedSub, Limb, Wrapping};
     use crate::Resize;
 
     #[test]
@@ -248,5 +248,15 @@ mod tests {
     fn sub_assign() {
         let mut h = BoxedUint::one().resize(1024);
         h -= BoxedUint::one();
+    }
+
+    #[test]
+    fn wrapping_sub() {
+        let ret = BoxedUint::one().wrapping_sub(Limb::ONE);
+        assert!(ret.is_zero_vartime());
+
+        let mut ret = Wrapping(BoxedUint::zero_with_precision(2 * Limb::BITS));
+        ret -= Wrapping(Limb::ONE);
+        assert_eq!(ret.0, BoxedUint::max(2 * Limb::BITS));
     }
 }

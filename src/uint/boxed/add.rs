@@ -222,13 +222,14 @@ impl AddAssign<u128> for BoxedUint {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use super::{BoxedUint, CheckedAdd, Limb};
+    use super::{BoxedUint, CheckedAdd, Limb, Wrapping};
     use crate::Resize;
 
     #[test]
     fn add_assign() {
         let mut h = BoxedUint::one().resize(1024);
         h += BoxedUint::one();
+        assert_eq!(h, BoxedUint::from(2u8));
     }
 
     #[test]
@@ -277,8 +278,18 @@ mod tests {
         assert_eq!(ret, &one + &one);
         assert!(!overflow.to_bool());
 
-        let (ret, overflow) = BoxedUint::max(Limb::BITS).overflowing_add(&one);
+        let (ret, overflow) = BoxedUint::max(2 * Limb::BITS).overflowing_add(&one);
         assert!(ret.is_zero().to_bool());
         assert!(overflow.to_bool());
+    }
+
+    #[test]
+    fn wrapping_add() {
+        let ret = BoxedUint::one().wrapping_add(Limb::ONE);
+        assert_eq!(ret, BoxedUint::from(2u8));
+
+        let mut ret = Wrapping(BoxedUint::max(2 * Limb::BITS));
+        ret += Wrapping(Limb::ONE);
+        assert!(ret.0.is_zero_vartime());
     }
 }
