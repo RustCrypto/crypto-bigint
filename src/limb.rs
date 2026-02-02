@@ -42,6 +42,15 @@ pub const fn nlimbs(bits: u32) -> usize {
     }
 }
 
+/// DEPRECATED: use `const fn nlimbs` instead.
+#[deprecated(since = "0.7.0", note = "use `const fn nlimbs` instead")]
+#[macro_export]
+macro_rules! nlimbs {
+    ($bits:expr) => {
+        $crate::nlimbs($bits)
+    };
+}
+
 /// Big integers are represented as an array/vector of smaller CPU word-size integers called
 /// "limbs".
 ///
