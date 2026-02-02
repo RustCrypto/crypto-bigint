@@ -1,21 +1,15 @@
 //! [`Uint`] modular negation operations.
 
-use crate::{Limb, NegMod, NonZero, Uint, word};
+use crate::{Limb, NegMod, NonZero, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `-a mod p`.
     /// Assumes `self` is in `[0, p)`.
     #[must_use]
     pub const fn neg_mod(&self, p: &NonZero<Self>) -> Self {
-        let z = self.is_nonzero();
+        let z = self.is_zero();
         let mut ret = p.as_ref().borrowing_sub(self, Limb::ZERO).0;
-        let mut i = 0;
-        while i < LIMBS {
-            // Set ret to 0 if the original value was 0, in which
-            // case ret would be p.
-            ret.limbs[i].0 = word::select(0, ret.limbs[i].0, z);
-            i += 1;
-        }
+        ret.as_mut_uint_ref().conditional_set_zero(z);
         ret
     }
 

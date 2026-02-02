@@ -1,7 +1,8 @@
 //! Limb multiplication
 
 use crate::{
-    Checked, CheckedMul, CtOption, Limb, Mul, MulAssign, Wrapping, WrappingMul,
+    Checked, CheckedMul, CtOption, Limb, Mul, MulAssign, MulMod, NonZero, SquareMod, UintRef,
+    Wrapping, WrappingMul,
     primitives::{carrying_mul_add, widening_mul},
 };
 
@@ -42,6 +43,17 @@ impl Limb {
     pub(crate) const fn widening_mul(self, rhs: Self) -> (Self, Self) {
         let (lo, hi) = widening_mul(self.0, rhs.0);
         (Limb(lo), Limb(hi))
+    }
+
+    /// Compute "wide" squaring, with a product twice the size of the input.
+    pub(crate) const fn widening_square(self) -> (Self, Self) {
+        let (lo, hi) = widening_mul(self.0, self.0);
+        (Limb(lo), Limb(hi))
+    }
+
+    /// Compute "wide" squaring, with a product twice the size of the input.
+    pub(crate) const fn rem_wide(lo_hi: (Self, Self), p: NonZero<Self>) -> Self {
+        UintRef::new_mut(&mut [lo_hi.0, lo_hi.1]).div_rem_limb(p)
     }
 }
 
@@ -90,6 +102,20 @@ impl Mul<&Limb> for &Limb {
     }
 }
 
+impl MulAssign for Limb {
+    #[inline]
+    fn mul_assign(&mut self, other: Self) {
+        *self = *self * other;
+    }
+}
+
+impl MulAssign<&Limb> for Limb {
+    #[inline]
+    fn mul_assign(&mut self, other: &Self) {
+        *self = *self * *other;
+    }
+}
+
 impl MulAssign for Wrapping<Limb> {
     #[inline]
     fn mul_assign(&mut self, other: Self) {
@@ -122,6 +148,24 @@ impl WrappingMul for Limb {
     #[inline]
     fn wrapping_mul(&self, v: &Self) -> Self {
         Self::wrapping_mul(*self, *v)
+    }
+}
+
+impl MulMod for Limb {
+    type Output = Self;
+
+    fn mul_mod(&self, rhs: &Self, p: &NonZero<Self>) -> Self::Output {
+        let lo_hi = self.widening_mul(*rhs);
+        Self::rem_wide(lo_hi, *p)
+    }
+}
+
+impl SquareMod for Limb {
+    type Output = Self;
+
+    fn square_mod(&self, p: &NonZero<Self>) -> Self::Output {
+        let lo_hi = self.widening_square();
+        Self::rem_wide(lo_hi, *p)
     }
 }
 

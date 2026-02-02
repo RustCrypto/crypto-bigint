@@ -20,9 +20,23 @@ impl BitXor for Limb {
     }
 }
 
+impl BitXor<&Self> for Limb {
+    type Output = Limb;
+
+    fn bitxor(self, rhs: &Self) -> Self::Output {
+        self.bitxor(*rhs)
+    }
+}
+
 impl BitXorAssign for Limb {
     fn bitxor_assign(&mut self, rhs: Self) {
-        self.0 ^= rhs.0;
+        *self = self.bitxor(rhs);
+    }
+}
+
+impl BitXorAssign<&Limb> for Limb {
+    fn bitxor_assign(&mut self, rhs: &Self) {
+        *self = self.bitxor(*rhs);
     }
 }
 

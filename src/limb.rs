@@ -16,14 +16,15 @@ mod mul;
 mod neg;
 mod shl;
 mod shr;
+mod sqrt;
 mod sub;
 
 #[cfg(feature = "rand_core")]
 mod rand;
 
 use crate::{
-    Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, NonZero, One, UintRef,
-    WideWord, Word, Zero, primitives::u32_bits, word,
+    Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, Integer, NonZero, One,
+    UintRef, Unsigned, WideWord, Word, Zero, primitives::u32_bits, word,
 };
 use core::{fmt, ptr, slice};
 
@@ -243,6 +244,48 @@ impl num_traits::One for Limb {
     }
 }
 
+impl Integer for Limb {
+    #[inline]
+    fn as_limbs(&self) -> &[Limb] {
+        self.as_ref()
+    }
+
+    #[inline]
+    fn as_mut_limbs(&mut self) -> &mut [Limb] {
+        self.as_mut()
+    }
+
+    #[inline]
+    fn nlimbs(&self) -> usize {
+        1
+    }
+
+    fn is_even(&self) -> Choice {
+        (*self).is_odd().not()
+    }
+
+    fn is_odd(&self) -> Choice {
+        (*self).is_odd()
+    }
+}
+
+impl Unsigned for Limb {
+    #[inline]
+    fn as_uint_ref(&self) -> &UintRef {
+        self.as_ref()
+    }
+
+    #[inline]
+    fn as_mut_uint_ref(&mut self) -> &mut UintRef {
+        self.as_mut()
+    }
+
+    #[inline]
+    fn from_limb_like(limb: Limb, _other: &Self) -> Self {
+        limb
+    }
+}
+
 impl fmt::Debug for Limb {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Limb(0x{self:X})")
@@ -327,8 +370,9 @@ impl zeroize::DefaultIsZeroes for Limb {}
 
 #[cfg(test)]
 mod tests {
+    use super::Limb;
     #[cfg(feature = "alloc")]
-    use {super::Limb, alloc::format};
+    use alloc::format;
 
     cpubits::cpubits! {
         32 => {
@@ -437,5 +481,10 @@ mod tests {
                 assert_eq!(format!("{:#X}", Limb(42)), "0x000000000000002A");
             }
         }
+    }
+
+    #[test]
+    fn test_unsigned() {
+        crate::traits::tests::test_unsigned(Limb::ZERO, Limb::MAX);
     }
 }

@@ -20,6 +20,14 @@ impl BitOr for Limb {
     }
 }
 
+impl BitOr<&Self> for Limb {
+    type Output = Limb;
+
+    fn bitor(self, rhs: &Self) -> Self::Output {
+        self.bitor(*rhs)
+    }
+}
+
 impl BitOrAssign for Limb {
     fn bitor_assign(&mut self, other: Self) {
         *self = self.bitor(other);

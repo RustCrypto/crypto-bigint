@@ -271,15 +271,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Is this [`Uint`] equal to [`Uint::ZERO`]?
     #[must_use]
     pub const fn is_zero(&self) -> Choice {
-        let mut ret = Choice::TRUE;
-        let mut n = 0;
-
-        while n < LIMBS {
-            ret = ret.and(self.limbs[n].is_zero());
-            n += 1;
-        }
-
-        ret
+        self.is_nonzero().not()
     }
 }
 

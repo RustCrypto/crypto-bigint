@@ -4,7 +4,7 @@ use core::slice;
 
 use crate::{
     CheckedDiv, CtOption, Div, DivAssign, DivRemLimb, Limb, NonZero, Reciprocal, Rem, RemAssign,
-    UintRef,
+    RemLimb, UintRef,
 };
 
 impl Limb {
@@ -131,6 +131,17 @@ impl Div<&NonZero<Limb>> for &Limb {
     #[inline]
     fn div(self, rhs: &NonZero<Limb>) -> Limb {
         (*self) / (*rhs)
+    }
+}
+
+impl RemLimb for Limb {
+    #[inline]
+    fn rem_limb(&self, rhs: NonZero<Limb>) -> Limb {
+        self.div_rem(rhs).1
+    }
+
+    fn rem_limb_with_reciprocal(&self, rhs: &Reciprocal) -> Limb {
+        self.div_rem_with_reciprocal(rhs).1
     }
 }
 
