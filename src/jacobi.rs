@@ -81,11 +81,7 @@ impl Neg for JacobiSymbol {
     type Output = Self;
 
     fn neg(self) -> Self {
-        match self {
-            Self::Zero => Self::Zero,
-            Self::One => Self::MinusOne,
-            Self::MinusOne => Self::One,
-        }
+        Self::neg(self)
     }
 }
 
@@ -93,5 +89,49 @@ impl Neg for JacobiSymbol {
 impl subtle::ConstantTimeEq for JacobiSymbol {
     fn ct_eq(&self, other: &Self) -> subtle::Choice {
         CtEq::ct_eq(self, other).into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::JacobiSymbol;
+
+    #[test]
+    fn jacobi_eq() {
+        assert_eq!(JacobiSymbol::Zero, JacobiSymbol::Zero);
+        assert_ne!(JacobiSymbol::Zero, JacobiSymbol::One);
+        assert_ne!(JacobiSymbol::Zero, JacobiSymbol::MinusOne);
+        assert!(JacobiSymbol::Zero.is_zero().to_bool());
+        assert!(!JacobiSymbol::One.is_zero().to_bool());
+        assert!(JacobiSymbol::One.is_one().to_bool());
+        assert!(!JacobiSymbol::MinusOne.is_one().to_bool());
+        assert!(JacobiSymbol::MinusOne.is_minus_one().to_bool());
+        #[cfg(feature = "subtle")]
+        assert!(bool::from(subtle::ConstantTimeEq::ct_eq(
+            &JacobiSymbol::Zero,
+            &JacobiSymbol::Zero
+        )));
+        #[cfg(feature = "subtle")]
+        assert!(!bool::from(subtle::ConstantTimeEq::ct_eq(
+            &JacobiSymbol::Zero,
+            &JacobiSymbol::One
+        )));
+    }
+
+    #[test]
+    fn jacobi_from() {
+        assert_eq!(i8::from(JacobiSymbol::Zero), 0i8);
+        assert_eq!(i8::from(JacobiSymbol::One), 1i8);
+        assert_eq!(i8::from(JacobiSymbol::MinusOne), -1i8);
+        assert_eq!(JacobiSymbol::from_i8(0i8), JacobiSymbol::Zero);
+        assert_eq!(JacobiSymbol::from_i8(1i8), JacobiSymbol::One);
+        assert_eq!(JacobiSymbol::from_i8(-1i8), JacobiSymbol::MinusOne);
+    }
+
+    #[test]
+    fn jacobi_neg() {
+        assert_eq!(JacobiSymbol::Zero.neg(), JacobiSymbol::Zero);
+        assert_eq!(-JacobiSymbol::One, JacobiSymbol::MinusOne);
+        assert_eq!(-JacobiSymbol::MinusOne, JacobiSymbol::One);
     }
 }

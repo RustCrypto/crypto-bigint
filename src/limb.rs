@@ -249,6 +249,21 @@ impl fmt::Binary for Limb {
     }
 }
 
+impl fmt::Octal for Limb {
+    #[inline]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if f.alternate() {
+            write!(f, "0o")?;
+        }
+        write!(
+            f,
+            "{:0width$o}",
+            &self.0,
+            width = Self::BITS.div_ceil(3) as usize
+        )
+    }
+}
+
 impl fmt::LowerHex for Limb {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -305,5 +320,73 @@ mod tests {
 
         #[cfg(target_pointer_width = "64")]
         assert_eq!(format!("{:?}", Limb(42)), "Limb(0x000000000000002A)");
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn binary() {
+        #[cfg(target_pointer_width = "32")]
+        assert_eq!(
+            format!("{:b}", Limb(42)),
+            "00000000000000000000000000101010"
+        );
+        #[cfg(target_pointer_width = "32")]
+        assert_eq!(
+            format!("{:#b}", Limb(42)),
+            "0b00000000000000000000000000101010"
+        );
+
+        #[cfg(target_pointer_width = "64")]
+        assert_eq!(
+            format!("{:b}", Limb(42)),
+            "0000000000000000000000000000000000000000000000000000000000101010"
+        );
+        #[cfg(target_pointer_width = "64")]
+        assert_eq!(
+            format!("{:#b}", Limb(42)),
+            "0b0000000000000000000000000000000000000000000000000000000000101010"
+        );
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn octal() {
+        #[cfg(target_pointer_width = "32")]
+        assert_eq!(format!("{:o}", Limb(42)), "00000000052");
+        #[cfg(target_pointer_width = "32")]
+        assert_eq!(format!("{:#o}", Limb(42)), "0o00000000052");
+
+        #[cfg(target_pointer_width = "64")]
+        assert_eq!(format!("{:o}", Limb(42)), "0000000000000000000052");
+        #[cfg(target_pointer_width = "64")]
+        assert_eq!(format!("{:#o}", Limb(42)), "0o0000000000000000000052");
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn lower_hex() {
+        #[cfg(target_pointer_width = "32")]
+        assert_eq!(format!("{:x}", Limb(42)), "0000002a");
+        #[cfg(target_pointer_width = "32")]
+        assert_eq!(format!("{:#x}", Limb(42)), "0x0000002a");
+
+        #[cfg(target_pointer_width = "64")]
+        assert_eq!(format!("{:x}", Limb(42)), "000000000000002a");
+        #[cfg(target_pointer_width = "64")]
+        assert_eq!(format!("{:#x}", Limb(42)), "0x000000000000002a");
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn upper_hex() {
+        #[cfg(target_pointer_width = "32")]
+        assert_eq!(format!("{:X}", Limb(42)), "0000002A");
+        #[cfg(target_pointer_width = "32")]
+        assert_eq!(format!("{:#X}", Limb(42)), "0x0000002A");
+
+        #[cfg(target_pointer_width = "64")]
+        assert_eq!(format!("{:X}", Limb(42)), "000000000000002A");
+        #[cfg(target_pointer_width = "64")]
+        assert_eq!(format!("{:#X}", Limb(42)), "0x000000000000002A");
     }
 }
