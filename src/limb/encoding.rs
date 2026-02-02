@@ -4,10 +4,10 @@ use super::{Limb, Word};
 use crate::Encoding;
 
 impl Encoding for Limb {
-    #[cfg(target_pointer_width = "32")]
-    type Repr = [u8; 4];
-    #[cfg(target_pointer_width = "64")]
-    type Repr = [u8; 8];
+    cpubits::cpubits! {
+        32 => { type Repr = [u8; 4]; }
+        64 => { type Repr = [u8; 8]; }
+    }
 
     #[inline]
     fn from_be_bytes(bytes: Self::Repr) -> Self {
@@ -67,11 +67,10 @@ impl Limb {
 mod test {
     use super::*;
 
-    #[cfg(target_pointer_width = "32")]
-    const LIMB: Limb = Limb(0x7654_3210);
-
-    #[cfg(target_pointer_width = "64")]
-    const LIMB: Limb = Limb(0xFEDCBA9876543210);
+    cpubits::cpubits! {
+        32 => { const LIMB: Limb = Limb(0x7654_3210); }
+        64 => { const LIMB: Limb = Limb(0xFEDCBA9876543210); }
+    }
 
     #[test]
     fn roundtrip() {

@@ -18,6 +18,7 @@ rust-version = "1.85"
 exclude = [".clippy.toml", ".codecov.yml", ".github", ".gitignore"]
 
 [dependencies]
+cpubits = "0.1.0-rc.3"
 ctutils = "0.4"
 num-traits = { version = "0.2.19", default-features = false }
 
@@ -53,6 +54,20 @@ rand_core = ["dep:rand_core"]
 serde = ["dep:serdect"]
 subtle = ["dep:subtle", "ctutils/subtle", "hybrid-array?/subtle"]
 
+[lints.rust]
+missing_copy_implementations = "warn"
+missing_debug_implementations = "warn"
+missing_docs = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+unsafe_code = "deny"
+unused_lifetimes = "warn"
+unused_qualifications = "warn"
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+check-cfg = ['cfg(cpubits, values("16", "32", "64"))']
+
 [lints.clippy]
 borrow_as_ptr = "warn"
 cast_lossless = "warn"
@@ -85,16 +100,6 @@ std_instead_of_core = "warn"
 undocumented_unsafe_blocks = "warn"
 unnecessary_safety_comment = "warn"
 unwrap_in_result = "warn"
-
-[lints.rust]
-missing_copy_implementations = "warn"
-missing_debug_implementations = "warn"
-missing_docs = "warn"
-trivial_casts = "warn"
-trivial_numeric_casts = "warn"
-unsafe_code = "deny"
-unused_lifetimes = "warn"
-unused_qualifications = "warn"
 
 [[bench]]
 name = "boxed_monty"

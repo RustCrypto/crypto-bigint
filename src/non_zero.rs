@@ -209,12 +209,15 @@ impl NonZero<Limb> {
         Self(Limb::from_u32(n.get()))
     }
 
-    /// Create a [`NonZero<Limb>`] from a [`NonZeroU64`] (const-friendly)
-    // TODO(tarcieri): replace with `const impl From<NonZeroU64>` when stable
-    #[cfg(target_pointer_width = "64")]
-    #[must_use]
-    pub const fn from_u64(n: NonZeroU64) -> Self {
-        Self(Limb::from_u64(n.get()))
+    cpubits::cpubits! {
+        64 => {
+            /// Create a [`NonZero<Limb>`] from a [`NonZeroU64`] (const-friendly)
+            // TODO(tarcieri): replace with `const impl From<NonZeroU64>` when stable
+            #[must_use]
+            pub const fn from_u64(n: NonZeroU64) -> Self {
+                Self(Limb::from_u64(n.get()))
+            }
+        }
     }
 }
 
@@ -468,10 +471,13 @@ impl From<NonZeroU32> for NonZero<Limb> {
     }
 }
 
-#[cfg(target_pointer_width = "64")]
-impl From<NonZeroU64> for NonZero<Limb> {
-    fn from(integer: NonZeroU64) -> Self {
-        Self::from_u64(integer)
+cpubits::cpubits! {
+    64 => {
+        impl From<NonZeroU64> for NonZero<Limb> {
+            fn from(integer: NonZeroU64) -> Self {
+                Self::from_u64(integer)
+            }
+        }
     }
 }
 

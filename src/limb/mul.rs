@@ -129,21 +129,24 @@ impl WrappingMul for Limb {
 mod tests {
     use super::{CheckedMul, Limb};
 
-    #[test]
-    #[cfg(target_pointer_width = "32")]
-    fn checked_mul_ok() {
-        let n = Limb::from_u16(0xffff);
-        assert_eq!(n.checked_mul(&n).unwrap(), Limb::from_u32(0xfffe_0001));
-    }
-
-    #[test]
-    #[cfg(target_pointer_width = "64")]
-    fn checked_mul_ok() {
-        let n = Limb::from_u32(0xffff_ffff);
-        assert_eq!(
-            n.checked_mul(&n).unwrap(),
-            Limb::from_u64(0xffff_fffe_0000_0001)
-        );
+    cpubits::cpubits! {
+        32 => {
+            #[test]
+            fn checked_mul_ok() {
+                let n = Limb::from_u16(0xffff);
+                assert_eq!(n.checked_mul(&n).unwrap(), Limb::from_u32(0xfffe_0001));
+            }
+        }
+        64 => {
+            #[test]
+            fn checked_mul_ok() {
+                let n = Limb::from_u32(0xffff_ffff);
+                assert_eq!(
+                    n.checked_mul(&n).unwrap(),
+                    Limb::from_u64(0xffff_fffe_0000_0001)
+                );
+            }
+        }
     }
 
     #[test]

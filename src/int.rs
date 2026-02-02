@@ -387,18 +387,20 @@ where
 mod tests {
     use crate::{I128, U128};
 
-    #[cfg(target_pointer_width = "64")]
-    #[test]
-    fn as_words() {
-        let n = I128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
-        assert_eq!(n.as_words(), &[0xCCCCCCCCDDDDDDDD, 0xAAAAAAAABBBBBBBB]);
-    }
+    cpubits::cpubits! {
+        64 => {
+            #[test]
+            fn as_words() {
+                let n = I128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
+                assert_eq!(n.as_words(), &[0xCCCCCCCCDDDDDDDD, 0xAAAAAAAABBBBBBBB]);
+            }
 
-    #[cfg(target_pointer_width = "64")]
-    #[test]
-    fn as_words_mut() {
-        let mut n = I128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
-        assert_eq!(n.as_mut_words(), &[0xCCCCCCCCDDDDDDDD, 0xAAAAAAAABBBBBBBB]);
+            #[test]
+            fn as_words_mut() {
+                let mut n = I128::from_be_hex("AAAAAAAABBBBBBBBCCCCCCCCDDDDDDDD");
+                assert_eq!(n.as_mut_words(), &[0xCCCCCCCCDDDDDDDD, 0xAAAAAAAABBBBBBBB]);
+            }
+        }
     }
 
     #[cfg(feature = "alloc")]

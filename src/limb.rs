@@ -35,12 +35,10 @@ use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 #[inline(always)]
 #[must_use]
 pub const fn nlimbs(bits: u32) -> usize {
-    if cfg!(target_pointer_width = "32") {
-        ((bits + 31) >> 5) as usize
-    } else if cfg!(target_pointer_width = "64") {
-        ((bits + 63) >> 6) as usize
-    } else {
-        unreachable!()
+    match cpubits::CPUBITS {
+        32 => ((bits + 31) >> 5) as usize,
+        64 => ((bits + 63) >> 6) as usize,
+        _ => unreachable!(),
     }
 }
 
@@ -68,23 +66,20 @@ impl Limb {
     /// Highest bit in a [`Limb`].
     pub(crate) const HI_BIT: u32 = Limb::BITS - 1;
 
-    // 32-bit
-
-    /// Size of the inner integer in bits.
-    #[cfg(target_pointer_width = "32")]
-    pub const BITS: u32 = 32;
-    /// Size of the inner integer in bytes.
-    #[cfg(target_pointer_width = "32")]
-    pub const BYTES: usize = 4;
-
-    // 64-bit
-
-    /// Size of the inner integer in bits.
-    #[cfg(target_pointer_width = "64")]
-    pub const BITS: u32 = 64;
-    /// Size of the inner integer in bytes.
-    #[cfg(target_pointer_width = "64")]
-    pub const BYTES: usize = 8;
+    cpubits::cpubits! {
+        32 => {
+            /// Size of the inner integer in bits.
+            pub const BITS: u32 = 32;
+            /// Size of the inner integer in bytes.
+            pub const BYTES: usize = 4;
+        }
+        64 => {
+            /// Size of the inner integer in bits.
+            pub const BITS: u32 = 64;
+            /// Size of the inner integer in bytes.
+            pub const BYTES: usize = 8;
+        }
+    }
 
     /// `floor(log2(Self::BITS))`.
     pub const LOG2_BITS: u32 = u32_bits(Self::BITS - 1);
@@ -326,106 +321,112 @@ mod tests {
     #[cfg(feature = "alloc")]
     use {super::Limb, alloc::format};
 
-    #[cfg(target_pointer_width = "32")]
-    #[test]
-    fn nlimbs_for_bits_macro() {
-        assert_eq!(super::nlimbs(64), 2);
-        assert_eq!(super::nlimbs(65), 3);
-        assert_eq!(super::nlimbs(128), 4);
-        assert_eq!(super::nlimbs(129), 5);
-        assert_eq!(super::nlimbs(192), 6);
-        assert_eq!(super::nlimbs(193), 7);
-        assert_eq!(super::nlimbs(256), 8);
-        assert_eq!(super::nlimbs(257), 9);
-    }
-
-    #[cfg(target_pointer_width = "64")]
-    #[test]
-    fn nlimbs_for_bits_macro() {
-        assert_eq!(super::nlimbs(64), 1);
-        assert_eq!(super::nlimbs(65), 2);
-        assert_eq!(super::nlimbs(128), 2);
-        assert_eq!(super::nlimbs(129), 3);
-        assert_eq!(super::nlimbs(192), 3);
-        assert_eq!(super::nlimbs(193), 4);
-        assert_eq!(super::nlimbs(256), 4);
+    cpubits::cpubits! {
+        32 => {
+            #[test]
+            fn nlimbs_for_bits_macro() {
+                assert_eq!(super::nlimbs(64), 2);
+                assert_eq!(super::nlimbs(65), 3);
+                assert_eq!(super::nlimbs(128), 4);
+                assert_eq!(super::nlimbs(129), 5);
+                assert_eq!(super::nlimbs(192), 6);
+                assert_eq!(super::nlimbs(193), 7);
+                assert_eq!(super::nlimbs(256), 8);
+                assert_eq!(super::nlimbs(257), 9);
+            }
+        }
+        64 => {
+            #[test]
+            fn nlimbs_for_bits_macro() {
+                assert_eq!(super::nlimbs(64), 1);
+                assert_eq!(super::nlimbs(65), 2);
+                assert_eq!(super::nlimbs(128), 2);
+                assert_eq!(super::nlimbs(129), 3);
+                assert_eq!(super::nlimbs(192), 3);
+                assert_eq!(super::nlimbs(193), 4);
+                assert_eq!(super::nlimbs(256), 4);
+            }
+        }
     }
 
     #[cfg(feature = "alloc")]
     #[test]
     fn debug() {
-        #[cfg(target_pointer_width = "32")]
-        assert_eq!(format!("{:?}", Limb(42)), "Limb(0x0000002A)");
-
-        #[cfg(target_pointer_width = "64")]
-        assert_eq!(format!("{:?}", Limb(42)), "Limb(0x000000000000002A)");
+        cpubits::cpubits! {
+            32 => { assert_eq!(format!("{:?}", Limb(42)), "Limb(0x0000002A)"); }
+            64 => { assert_eq!(format!("{:?}", Limb(42)), "Limb(0x000000000000002A)"); }
+        }
     }
 
     #[cfg(feature = "alloc")]
     #[test]
     fn binary() {
-        #[cfg(target_pointer_width = "32")]
-        assert_eq!(
-            format!("{:b}", Limb(42)),
-            "00000000000000000000000000101010"
-        );
-        #[cfg(target_pointer_width = "32")]
-        assert_eq!(
-            format!("{:#b}", Limb(42)),
-            "0b00000000000000000000000000101010"
-        );
-
-        #[cfg(target_pointer_width = "64")]
-        assert_eq!(
-            format!("{:b}", Limb(42)),
-            "0000000000000000000000000000000000000000000000000000000000101010"
-        );
-        #[cfg(target_pointer_width = "64")]
-        assert_eq!(
-            format!("{:#b}", Limb(42)),
-            "0b0000000000000000000000000000000000000000000000000000000000101010"
-        );
+        cpubits::cpubits! {
+            32 => {
+                assert_eq!(
+                    format!("{:b}", Limb(42)),
+                    "00000000000000000000000000101010"
+                );
+                assert_eq!(
+                    format!("{:#b}", Limb(42)),
+                    "0b00000000000000000000000000101010"
+                );
+            }
+            64 => {
+                assert_eq!(
+                    format!("{:b}", Limb(42)),
+                    "0000000000000000000000000000000000000000000000000000000000101010"
+                );
+                assert_eq!(
+                    format!("{:#b}", Limb(42)),
+                    "0b0000000000000000000000000000000000000000000000000000000000101010"
+                );
+            }
+        }
     }
 
     #[cfg(feature = "alloc")]
     #[test]
     fn octal() {
-        #[cfg(target_pointer_width = "32")]
-        assert_eq!(format!("{:o}", Limb(42)), "00000000052");
-        #[cfg(target_pointer_width = "32")]
-        assert_eq!(format!("{:#o}", Limb(42)), "0o00000000052");
-
-        #[cfg(target_pointer_width = "64")]
-        assert_eq!(format!("{:o}", Limb(42)), "0000000000000000000052");
-        #[cfg(target_pointer_width = "64")]
-        assert_eq!(format!("{:#o}", Limb(42)), "0o0000000000000000000052");
+        cpubits::cpubits! {
+            32 => {
+                assert_eq!(format!("{:o}", Limb(42)), "00000000052");
+                assert_eq!(format!("{:#o}", Limb(42)), "0o00000000052");
+            }
+            64 => {
+                assert_eq!(format!("{:o}", Limb(42)), "0000000000000000000052");
+                assert_eq!(format!("{:#o}", Limb(42)), "0o0000000000000000000052");
+            }
+        }
     }
 
     #[cfg(feature = "alloc")]
     #[test]
     fn lower_hex() {
-        #[cfg(target_pointer_width = "32")]
-        assert_eq!(format!("{:x}", Limb(42)), "0000002a");
-        #[cfg(target_pointer_width = "32")]
-        assert_eq!(format!("{:#x}", Limb(42)), "0x0000002a");
-
-        #[cfg(target_pointer_width = "64")]
-        assert_eq!(format!("{:x}", Limb(42)), "000000000000002a");
-        #[cfg(target_pointer_width = "64")]
-        assert_eq!(format!("{:#x}", Limb(42)), "0x000000000000002a");
+        cpubits::cpubits! {
+            32 => {
+                assert_eq!(format!("{:x}", Limb(42)), "0000002a");
+                assert_eq!(format!("{:#x}", Limb(42)), "0x0000002a");
+            }
+            64 => {
+                assert_eq!(format!("{:x}", Limb(42)), "000000000000002a");
+                assert_eq!(format!("{:#x}", Limb(42)), "0x000000000000002a");
+            }
+        }
     }
 
     #[cfg(feature = "alloc")]
     #[test]
     fn upper_hex() {
-        #[cfg(target_pointer_width = "32")]
-        assert_eq!(format!("{:X}", Limb(42)), "0000002A");
-        #[cfg(target_pointer_width = "32")]
-        assert_eq!(format!("{:#X}", Limb(42)), "0x0000002A");
-
-        #[cfg(target_pointer_width = "64")]
-        assert_eq!(format!("{:X}", Limb(42)), "000000000000002A");
-        #[cfg(target_pointer_width = "64")]
-        assert_eq!(format!("{:#X}", Limb(42)), "0x000000000000002A");
+        cpubits::cpubits! {
+            32 => {
+                assert_eq!(format!("{:X}", Limb(42)), "0000002A");
+                assert_eq!(format!("{:#X}", Limb(42)), "0x0000002A");
+            }
+            64 => {
+                assert_eq!(format!("{:X}", Limb(42)), "000000000000002A");
+                assert_eq!(format!("{:#X}", Limb(42)), "0x000000000000002A");
+            }
+        }
     }
 }

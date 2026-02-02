@@ -6,12 +6,10 @@ use rand_core::TryRng;
 
 impl Random for Limb {
     fn try_random_from_rng<R: TryRng + ?Sized>(rng: &mut R) -> Result<Self, R::Error> {
-        #[cfg(target_pointer_width = "32")]
-        let val = rng.try_next_u32()?;
-        #[cfg(target_pointer_width = "64")]
-        let val = rng.try_next_u64()?;
-
-        Ok(Self(val))
+        cpubits::cpubits! {
+            32 => { rng.try_next_u32().map(Self) }
+            64 => { rng.try_next_u64().map(Self) }
+        }
     }
 }
 
