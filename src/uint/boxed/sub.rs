@@ -16,15 +16,13 @@ impl BoxedUint {
 
     /// Computes `self - (rhs + borrow)`, returning the result along with the new borrow.
     ///
-    /// # Panics
-    /// - if `rhs` has a larger precision than `self`.
+    /// The result is widened to the same width as the widest input.
     #[inline(always)]
     #[must_use]
     pub fn borrowing_sub(&self, rhs: impl AsRef<UintRef>, borrow: Limb) -> (Self, Limb) {
         let rhs = rhs.as_ref();
-        assert!(rhs.nlimbs() <= self.nlimbs());
-
-        let mut result = Self::zero_with_precision(self.bits_precision());
+        let precision = cmp::max(self.bits_precision(), rhs.bits_precision());
+        let mut result = Self::zero_with_precision(precision);
         let borrow = result.as_mut_uint_ref().fold_limbs(
             self.as_uint_ref(),
             rhs,
@@ -48,7 +46,8 @@ impl BoxedUint {
     /// # Panics
     /// - if `rhs` has a larger precision than `self`.
     #[inline(always)]
-    pub fn borrowing_sub_assign(&mut self, rhs: impl AsRef<UintRef>, borrow: Limb) -> Limb {
+    #[track_caller]
+    pub(crate) fn borrowing_sub_assign(&mut self, rhs: impl AsRef<UintRef>, borrow: Limb) -> Limb {
         let rhs = rhs.as_ref();
         assert!(rhs.nlimbs() <= self.nlimbs());
 

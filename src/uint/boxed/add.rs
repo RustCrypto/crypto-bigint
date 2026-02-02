@@ -16,15 +16,13 @@ impl BoxedUint {
 
     /// Computes `self + rhs + carry`, returning the result along with the new carry.
     ///
-    /// # Panics
-    /// - if `rhs` has a larger precision than `self`.
+    /// The result is widened to the same width as the widest input.
     #[inline(always)]
     #[must_use]
     pub fn carrying_add(&self, rhs: impl AsRef<UintRef>, carry: Limb) -> (Self, Limb) {
         let rhs = rhs.as_ref();
-        assert!(rhs.nlimbs() <= self.nlimbs());
-
-        let mut result = Self::zero_with_precision(self.bits_precision());
+        let precision = cmp::max(self.bits_precision(), rhs.bits_precision());
+        let mut result = Self::zero_with_precision(precision);
         let carry =
             result
                 .as_mut_uint_ref()
@@ -46,8 +44,8 @@ impl BoxedUint {
     /// # Panics
     /// - if `rhs` has a larger precision than `self`.
     #[inline(always)]
-    #[allow(clippy::cast_possible_truncation)]
-    pub fn carrying_add_assign(&mut self, rhs: impl AsRef<UintRef>, carry: Limb) -> Limb {
+    #[track_caller]
+    pub(crate) fn carrying_add_assign(&mut self, rhs: impl AsRef<UintRef>, carry: Limb) -> Limb {
         let rhs = rhs.as_ref();
         assert!(rhs.nlimbs() <= self.nlimbs());
 
@@ -58,7 +56,6 @@ impl BoxedUint {
     /// Computes `self + rhs`, returning a result which is concatenated with the overflow limb which
     /// would be returned if `carrying_add` were called with the same operands.
     #[must_use]
-    #[allow(clippy::cast_possible_truncation)]
     pub fn concatenating_add(&self, rhs: impl AsRef<UintRef>) -> Self {
         let rhs = rhs.as_ref();
         let bits = cmp::max(self.bits_precision(), rhs.bits_precision()) + 1;
@@ -113,8 +110,8 @@ impl BoxedUint {
         self.carrying_add_assign(rhs.leading(nlimbs), Limb::ZERO);
     }
 
-    /// Perform in-place wrapping addition, returning the truthy value as the second element of the
-    /// tuple if an overflow has occurred.
+    /// Perform a conditional in-place wrapping addition, returning the truthy value
+    /// if an overflow has occurred.
     pub(crate) fn conditional_carrying_add_assign(&mut self, rhs: &Self, choice: Choice) -> Choice {
         self.as_mut_uint_ref()
             .conditional_add_assign(rhs.as_uint_ref(), Limb::ZERO, choice)
