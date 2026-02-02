@@ -1,6 +1,8 @@
 //! [`BoxedUint`] modular multiplication operations.
 
-use crate::{BoxedUint, Limb, MulMod, NonZero, SquareMod, U64, WideWord, Word, div_limb::mul_rem};
+use crate::{
+    BoxedUint, Limb, MulMod, NonZero, SquareMod, U64, U128, WideWord, Word, div_limb::mul_rem,
+};
 
 impl BoxedUint {
     /// Computes `self * rhs mod p` for non-zero `p`.
@@ -40,7 +42,7 @@ impl BoxedUint {
 
         let (lo, carry) = {
             let rhs = WideWord::from(carry.0 + 1) * WideWord::from(c.0);
-            lo.carrying_add(Self::from(rhs), Limb::ZERO)
+            lo.carrying_add(U128::from(rhs), Limb::ZERO)
         };
 
         let (lo, _) = {
@@ -96,7 +98,7 @@ fn mac_by_limb(a: &BoxedUint, b: &BoxedUint, c: Limb, carry: Limb) -> (BoxedUint
 
 #[cfg(all(test, feature = "rand_core"))]
 mod tests {
-    use crate::{Limb, NonZero, Random, RandomMod, Uint};
+    use crate::{BoxedUint, Limb, NonZero, Random, RandomMod, U256};
     use rand_core::SeedableRng;
 
     macro_rules! test_mul_mod_special {
@@ -111,42 +113,37 @@ mod tests {
 
                 for special in &moduli {
                     let p =
-                        &NonZero::new(Uint::ZERO.wrapping_sub(&Uint::from(special.get()))).unwrap();
+                        &NonZero::new(U256::ZERO.wrapping_sub(&U256::from(special.get()))).unwrap();
 
-                    let minus_one = p.wrapping_sub(&Uint::ONE);
+                    let minus_one = p.wrapping_sub(&U256::ONE);
 
                     let base_cases = [
-                        (Uint::ZERO, Uint::ZERO, Uint::ZERO),
-                        (Uint::ONE, Uint::ZERO, Uint::ZERO),
-                        (Uint::ZERO, Uint::ONE, Uint::ZERO),
-                        (Uint::ONE, Uint::ONE, Uint::ONE),
-                        (minus_one, minus_one, Uint::ONE),
-                        (minus_one, Uint::ONE, minus_one),
-                        (Uint::ONE, minus_one, minus_one),
+                        (U256::ZERO, U256::ZERO, U256::ZERO),
+                        (U256::ONE, U256::ZERO, U256::ZERO),
+                        (U256::ZERO, U256::ONE, U256::ZERO),
+                        (U256::ONE, U256::ONE, U256::ONE),
+                        (minus_one, minus_one, U256::ONE),
+                        (minus_one, U256::ONE, minus_one),
+                        (U256::ONE, minus_one, minus_one),
                     ];
                     for (a, b, c) in &base_cases {
+                        let (a, b, c) =
+                            (BoxedUint::from(a), BoxedUint::from(b), BoxedUint::from(c));
                         let x = a.mul_mod_special(&b, *special.as_ref());
-                        assert_eq!(*c, x, "{} * {} mod {} = {} != {}", a, b, p, x, c);
+                        assert_eq!(x, c, "{} * {} mod {} = {} != {}", a, b, p, x, c);
                     }
 
+                    let p = NonZero::new(BoxedUint::from(p.get())).unwrap();
                     for _i in 0..100 {
-                        let a = Uint::<$size>::random_mod_vartime(&mut rng, p);
-                        let b = Uint::<$size>::random_mod_vartime(&mut rng, p);
+                        let a = BoxedUint::random_mod_vartime(&mut rng, &p);
+                        let b = BoxedUint::random_mod_vartime(&mut rng, &p);
 
                         let c = a.mul_mod_special(&b, *special.as_ref());
-                        assert!(c < **p, "not reduced: {} >= {} ", c, p);
+                        assert!(&c < p.as_ref(), "not reduced: {} >= {} ", c, p);
 
                         let expected = {
-                            let (lo, hi) = a.widening_mul(&b);
-                            let mut prod = Uint::<{ 2 * $size }>::ZERO;
-                            prod.limbs[..$size].clone_from_slice(&lo.limbs);
-                            prod.limbs[$size..].clone_from_slice(&hi.limbs);
-                            let mut modulus = Uint::ZERO;
-                            modulus.limbs[..$size].clone_from_slice(&p.as_ref().limbs);
-                            let reduced = prod.rem_vartime(&NonZero::new(modulus).unwrap());
-                            let mut expected = Uint::ZERO;
-                            expected.limbs[..].clone_from_slice(&reduced.limbs[..$size]);
-                            expected
+                            let prod = a.mul(&b);
+                            prod.rem_vartime(&p)
                         };
                         assert_eq!(c, expected, "incorrect result");
                     }
