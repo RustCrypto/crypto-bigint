@@ -166,7 +166,7 @@ impl<'a> BoxedMontyMultiplier<'a> {
         self.product.set_zero();
         montgomery_mul(a, b, &mut self.product, self.modulus, self.mod_neg_inv);
         a.limbs.copy_from_slice(&self.product.limbs);
-        debug_assert!(&*a < self.modulus);
+        debug_assert!(*a < self.modulus);
     }
 
     /// Perform a squaring using Montgomery multiplication, assigning a fully reduced result to `a`.
@@ -177,7 +177,7 @@ impl<'a> BoxedMontyMultiplier<'a> {
         montgomery_mul(a, a, &mut self.product, self.modulus, self.mod_neg_inv);
         a.limbs.copy_from_slice(&self.product.limbs);
 
-        debug_assert!(&*a < self.modulus);
+        debug_assert!(*a < self.modulus);
     }
 
     /// Perform an "Almost Montgomery Multiplication", assigning the product to `a`.
