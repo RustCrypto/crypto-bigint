@@ -1,7 +1,7 @@
 //! Limb addition
 
 use crate::{
-    Add, AddAssign, Checked, CheckedAdd, CtOption, Limb, Wrapping, WrappingAdd,
+    Add, AddAssign, AddMod, Checked, CheckedAdd, CtOption, Limb, Wrapping, WrappingAdd,
     primitives::{carrying_add, overflowing_add},
 };
 
@@ -54,6 +54,29 @@ impl Add for Limb {
     }
 }
 
+impl Add<&Self> for Limb {
+    type Output = Self;
+
+    #[inline]
+    fn add(self, rhs: &Self) -> Self {
+        self + *rhs
+    }
+}
+
+impl AddAssign for Limb {
+    #[inline]
+    fn add_assign(&mut self, other: Self) {
+        *self = *self + other;
+    }
+}
+
+impl AddAssign<&Limb> for Limb {
+    #[inline]
+    fn add_assign(&mut self, other: &Self) {
+        *self = *self + *other;
+    }
+}
+
 impl AddAssign for Wrapping<Limb> {
     #[inline]
     fn add_assign(&mut self, other: Self) {
@@ -94,6 +117,17 @@ impl WrappingAdd for Limb {
     #[inline]
     fn wrapping_add(&self, v: &Self) -> Self {
         self.wrapping_add(*v)
+    }
+}
+
+impl AddMod for Limb {
+    type Output = Self;
+
+    fn add_mod(&self, rhs: &Self, p: &crate::NonZero<Self>) -> Self::Output {
+        let (res, carry) = self.carrying_add(*rhs, Limb::ZERO);
+        let (out, borrow) = res.borrowing_sub(p.get(), Limb::ZERO);
+        let revert = borrow.lsb_to_choice().and(carry.is_zero());
+        Self::select(out, res, revert)
     }
 }
 

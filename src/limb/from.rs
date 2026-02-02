@@ -58,11 +58,16 @@ impl From<u32> for Limb {
     }
 }
 
-cpubits::cpubits! {
-    64 => {
-        impl From<u64> for Limb {
-            #[inline]
-            fn from(n: u64) -> Limb {
+impl From<u64> for Limb {
+    #[inline]
+    fn from(n: u64) -> Limb {
+        cpubits::cpubits! {
+            32 => {
+                let overflow = (n >> 32) as u32;
+                assert!(Limb(overflow).is_zero().to_bool());
+                Limb(n as u32)
+            }
+            64 => {
                 Limb(n)
             }
         }

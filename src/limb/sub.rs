@@ -1,7 +1,7 @@
 //! Limb subtraction
 
 use crate::{
-    Checked, CheckedSub, CtOption, Limb, Sub, SubAssign, Wrapping, WrappingSub,
+    Checked, CheckedSub, CtOption, Limb, Sub, SubAssign, SubMod, Wrapping, WrappingSub,
     primitives::borrowing_sub,
 };
 
@@ -64,6 +64,20 @@ impl Sub<&Self> for Limb {
     }
 }
 
+impl SubAssign for Limb {
+    #[inline]
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
+    }
+}
+
+impl SubAssign<&Self> for Limb {
+    #[inline]
+    fn sub_assign(&mut self, rhs: &Self) {
+        *self = *self - *rhs;
+    }
+}
+
 impl SubAssign for Wrapping<Limb> {
     #[inline]
     fn sub_assign(&mut self, other: Self) {
@@ -96,6 +110,15 @@ impl WrappingSub for Limb {
     #[inline]
     fn wrapping_sub(&self, v: &Self) -> Self {
         self.wrapping_sub(*v)
+    }
+}
+
+impl SubMod for Limb {
+    type Output = Self;
+
+    fn sub_mod(&self, rhs: &Self, p: &crate::NonZero<Self>) -> Self::Output {
+        let (res, borrow) = self.borrowing_sub(*rhs, Limb::ZERO);
+        Self::select(res, res.wrapping_add(p.get()), borrow.is_nonzero())
     }
 }
 
