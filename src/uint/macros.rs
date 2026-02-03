@@ -31,12 +31,6 @@ macro_rules! impl_uint_concat_split_mixed {
             type Output = Uint<{ <$name>::LIMBS - U64::LIMBS * $size }>;
         }
 
-        impl $crate::traits::RemMixed<Uint<{ U64::LIMBS * $size }>> for $name
-        {
-            fn rem_mixed(&self, reductor: &NonZero<Uint<{ U64::LIMBS * $size }>>) -> Uint<{ U64::LIMBS * $size }> {
-                self.div_rem_vartime(reductor).1
-            }
-        }
     };
     ($name:ident, [ $($size:literal),+ ]) => {
         $(
@@ -68,14 +62,6 @@ macro_rules! impl_uint_concat_split_even {
         impl $crate::traits::SplitEven for $name
         {
             type Output = Uint<{ <$name>::LIMBS / 2 }>;
-        }
-
-        #[allow(clippy::integer_division_remainder_used, reason = "constant")]
-        impl $crate::traits::RemMixed<Uint<{ <$name>::LIMBS / 2 }>> for $name
-        {
-            fn rem_mixed(&self, reductor: &NonZero<Uint<{ <$name>::LIMBS / 2 }>>) -> Uint<{ <$name>::LIMBS / 2 }> {
-                self.div_rem_vartime(reductor).1
-            }
         }
     };
     ($($name:ident,)+) => {
