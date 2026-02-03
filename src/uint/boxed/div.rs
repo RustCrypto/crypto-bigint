@@ -166,7 +166,7 @@ impl<Rhs: ToUnsigned + ?Sized> Div<&NonZero<Rhs>> for &BoxedUint {
     type Output = BoxedUint;
 
     fn div(self, rhs: &NonZero<Rhs>) -> Self::Output {
-        self.div_rem(rhs).0
+        self.wrapping_div(rhs)
     }
 }
 

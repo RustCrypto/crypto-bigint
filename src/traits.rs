@@ -1478,6 +1478,15 @@ pub(crate) mod tests {
             assert_eq!(a, &b);
         }
 
+        // DivAssign ref
+        let mut a = one.clone();
+        a /= &nz_one;
+        assert_eq!(a, one);
+        // DivAssign owned
+        let mut a = one.clone();
+        a /= nz_one.clone();
+        assert_eq!(a, one);
+
         // Rem
         assert_eq!(zero.clone().rem(&nz_one), zero);
         assert_eq!(zero.clone().rem(nz_one.clone()), zero);
