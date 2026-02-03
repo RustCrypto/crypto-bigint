@@ -119,39 +119,39 @@ impl BoxedUint {
     }
 }
 
-impl<RHS: AsRef<UintRef>> Add<RHS> for BoxedUint {
+impl<Rhs: AsRef<UintRef>> Add<Rhs> for BoxedUint {
     type Output = Self;
 
-    fn add(self, rhs: RHS) -> Self {
+    fn add(self, rhs: Rhs) -> Self {
         Add::add(&self, rhs)
     }
 }
 
-impl<RHS: AsRef<UintRef>> Add<RHS> for &BoxedUint {
+impl<Rhs: AsRef<UintRef>> Add<Rhs> for &BoxedUint {
     type Output = BoxedUint;
 
-    fn add(self, rhs: RHS) -> BoxedUint {
+    fn add(self, rhs: Rhs) -> BoxedUint {
         let (res, overflow) = self.overflowing_add(rhs);
         assert!(overflow.not().to_bool(), "attempted to add with overflow");
         res
     }
 }
 
-impl<RHS: AsRef<UintRef>> AddAssign<RHS> for BoxedUint {
-    fn add_assign(&mut self, rhs: RHS) {
+impl<Rhs: AsRef<UintRef>> AddAssign<Rhs> for BoxedUint {
+    fn add_assign(&mut self, rhs: Rhs) {
         let overflow = self.overflowing_add_assign(rhs);
         assert!(overflow.not().to_bool(), "attempted to add with overflow");
     }
 }
 
-impl<RHS: AsRef<UintRef>> AddAssign<RHS> for Wrapping<BoxedUint> {
-    fn add_assign(&mut self, other: RHS) {
+impl<Rhs: AsRef<UintRef>> AddAssign<Rhs> for Wrapping<BoxedUint> {
+    fn add_assign(&mut self, other: Rhs) {
         self.0.wrapping_add_assign(other);
     }
 }
 
-impl<RHS: AsRef<UintRef>> CheckedAdd<RHS> for BoxedUint {
-    fn checked_add(&self, rhs: &RHS) -> CtOption<Self> {
+impl<Rhs: AsRef<UintRef>> CheckedAdd<Rhs> for BoxedUint {
+    fn checked_add(&self, rhs: &Rhs) -> CtOption<Self> {
         let (result, overflow) = self.overflowing_add(rhs);
         CtOption::new(result, overflow.not())
     }
