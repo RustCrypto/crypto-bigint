@@ -18,7 +18,7 @@ rust-version = "1.85"
 exclude = [".clippy.toml", ".codecov.yml", ".github", ".gitignore"]
 
 [dependencies]
-cpubits = "0.1.0"
+cpubits = "0.1"
 ctutils = "0.4"
 num-traits = { version = "0.2.19", default-features = false }
 
