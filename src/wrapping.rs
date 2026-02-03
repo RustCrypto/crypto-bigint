@@ -1,8 +1,8 @@
 //! Wrapping arithmetic.
 
 use crate::{
-    Choice, CtEq, CtSelect, One, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl, WrappingShr,
-    WrappingSub, Zero,
+    Choice, CtEq, CtSelect, One, UintRef, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl,
+    WrappingShr, WrappingSub, Zero,
 };
 use core::{
     fmt,
@@ -21,6 +21,18 @@ use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 /// define trait impls for this type.
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq, PartialOrd, Ord)]
 pub struct Wrapping<T>(pub T);
+
+impl<T: AsRef<UintRef>> AsRef<UintRef> for Wrapping<T> {
+    fn as_ref(&self) -> &UintRef {
+        self.0.as_ref()
+    }
+}
+
+impl<T: AsMut<UintRef>> AsMut<UintRef> for Wrapping<T> {
+    fn as_mut(&mut self) -> &mut UintRef {
+        self.0.as_mut()
+    }
+}
 
 impl<T: WrappingAdd> Add<Self> for Wrapping<T> {
     type Output = Wrapping<T>;

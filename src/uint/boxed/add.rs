@@ -1,11 +1,10 @@
 //! [`BoxedUint`] addition operations.
 
 use crate::{
-    Add, AddAssign, BoxedUint, CheckedAdd, Choice, CtOption, CtSelect, Limb, Resize, U64, U128,
-    Uint, Wrapping, WrappingAdd,
+    Add, AddAssign, BoxedUint, CheckedAdd, Choice, CtOption, Limb, U64, U128, UintRef, Wrapping,
+    WrappingAdd,
 };
 use core::cmp;
-use ctutils::CtEq;
 
 impl BoxedUint {
     /// Computes `self + rhs + carry`, returning the result along with the new carry.
@@ -16,10 +15,19 @@ impl BoxedUint {
     }
 
     /// Computes `self + rhs + carry`, returning the result along with the new carry.
+    ///
+    /// The result is widened to the same width as the widest input.
     #[inline(always)]
     #[must_use]
-    pub fn carrying_add(&self, rhs: &Self, carry: Limb) -> (Self, Limb) {
-        Self::fold_limbs(self, rhs, carry, Limb::carrying_add)
+    pub fn carrying_add(&self, rhs: impl AsRef<UintRef>, carry: Limb) -> (Self, Limb) {
+        let rhs = rhs.as_ref();
+        let precision = cmp::max(self.bits_precision(), rhs.bits_precision());
+        let mut result = Self::zero_with_precision(precision);
+        let carry =
+            result
+                .as_mut_uint_ref()
+                .fold_limbs(self.as_uint_ref(), rhs, carry, Limb::carrying_add);
+        (result, carry)
     }
 
     /// Computes `self + rhs + carry` in-place, returning the new carry.
@@ -28,41 +36,39 @@ impl BoxedUint {
     /// - if `rhs` has a larger precision than `self`.
     #[deprecated(since = "0.7.0", note = "please use `carrying_add_assign` instead")]
     pub fn adc_assign(&mut self, rhs: impl AsRef<[Limb]>, carry: Limb) -> Limb {
-        self.carrying_add_assign(rhs, carry)
+        self.carrying_add_assign(UintRef::new(rhs.as_ref()), carry)
     }
 
     /// Computes `self + rhs + carry` in-place, returning the new carry.
     ///
     /// # Panics
     /// - if `rhs` has a larger precision than `self`.
-    #[inline]
-    #[allow(clippy::cast_possible_truncation)]
-    pub fn carrying_add_assign(&mut self, rhs: impl AsRef<[Limb]>, mut carry: Limb) -> Limb {
-        debug_assert!(self.bits_precision() >= (rhs.as_ref().len() as u32 * Limb::BITS));
+    #[inline(always)]
+    #[track_caller]
+    pub(crate) fn carrying_add_assign(&mut self, rhs: impl AsRef<UintRef>, carry: Limb) -> Limb {
+        let rhs = rhs.as_ref();
+        assert!(rhs.nlimbs() <= self.nlimbs());
 
-        for i in 0..self.nlimbs() {
-            let (limb, b) =
-                self.limbs[i].carrying_add(*rhs.as_ref().get(i).unwrap_or(&Limb::ZERO), carry);
-            self.limbs[i] = limb;
-            carry = b;
-        }
-
-        carry
+        self.as_mut_uint_ref()
+            .fold_limbs_assign(rhs, carry, Limb::carrying_add)
     }
 
     /// Computes `self + rhs`, returning a result which is concatenated with the overflow limb which
     /// would be returned if `carrying_add` were called with the same operands.
     #[must_use]
-    #[allow(clippy::cast_possible_truncation)]
-    pub fn concatenating_add(&self, rhs: &Self) -> Self {
-        // Create a copy of `self` widened to one limb larger than the largest of `self` and `rhs`
-        let nlimbs = cmp::max(self.nlimbs(), rhs.nlimbs()) + 1;
-        let mut ret = self.resize(nlimbs as u32 * Limb::BITS);
-
-        // Overflow should always be zero here because we added a zero limb to `self` in `ret`
-        let _overflow = ret.carrying_add_assign(rhs, Limb::ZERO);
-        debug_assert_eq!(_overflow, Limb::ZERO);
-        ret
+    pub fn concatenating_add(&self, rhs: impl AsRef<UintRef>) -> Self {
+        let rhs = rhs.as_ref();
+        let bits = cmp::max(self.bits_precision(), rhs.bits_precision()) + 1;
+        let mut result = Self::zero_with_precision(bits);
+        let overflow = result.as_mut_uint_ref().fold_limbs(
+            self.as_uint_ref(),
+            rhs,
+            Limb::ZERO,
+            Limb::carrying_add,
+        );
+        // Overflow should always be zero here because we added a zero limb to the result
+        debug_assert_eq!(overflow, Limb::ZERO);
+        result
     }
 
     /// Computes `self + rhs`, returning a tuple of the sum along with a [`Choice`] which indicates
@@ -70,143 +76,84 @@ impl BoxedUint {
     ///
     /// If an overflow occurred, then the wrapped value is returned.
     #[must_use]
-    pub fn overflowing_add(&self, rhs: &Self) -> (Self, Choice) {
-        let (ret, overflow) = self.carrying_add(rhs, Limb::ZERO);
-        (ret, overflow.ct_ne(&Limb::ZERO))
+    pub fn overflowing_add(&self, rhs: impl AsRef<UintRef>) -> (Self, Choice) {
+        let rhs = rhs.as_ref();
+        let nlimbs = cmp::min(self.nlimbs(), rhs.nlimbs());
+        let (rhs, rhs_over) = rhs.split_at(nlimbs);
+        let (ret, carry) = self.carrying_add(rhs, Limb::ZERO);
+        (ret, carry.is_nonzero().or(rhs_over.is_nonzero()))
+    }
+
+    /// Adds `rhs` to self, returning a [`Choice`] which indicates whether an overflow occurred.
+    ///
+    /// If an overflow occurred, then the wrapped value is returned.
+    pub fn overflowing_add_assign(&mut self, rhs: impl AsRef<UintRef>) -> Choice {
+        let rhs = rhs.as_ref();
+        let nlimbs = cmp::min(self.nlimbs(), rhs.nlimbs());
+        let (rhs, rhs_over) = rhs.split_at(nlimbs);
+        let carry = self.carrying_add_assign(rhs, Limb::ZERO);
+        carry.is_nonzero().or(rhs_over.is_nonzero())
     }
 
     /// Perform wrapping addition, discarding overflow.
     #[must_use]
-    pub fn wrapping_add(&self, rhs: &Self) -> Self {
-        self.carrying_add(rhs, Limb::ZERO).0
+    pub fn wrapping_add(&self, rhs: impl AsRef<UintRef>) -> Self {
+        let rhs = rhs.as_ref();
+        let nlimbs = cmp::min(self.nlimbs(), rhs.nlimbs());
+        self.carrying_add(rhs.leading(nlimbs), Limb::ZERO).0
     }
 
-    /// Perform in-place wrapping addition, returning the truthy value as the second element of the
-    /// tuple if an overflow has occurred.
+    /// Perform wrapping addition of `rhs` to `self`, discarding overflow.
+    pub fn wrapping_add_assign(&mut self, rhs: impl AsRef<UintRef>) {
+        let rhs = rhs.as_ref();
+        let nlimbs = cmp::min(self.nlimbs(), rhs.nlimbs());
+        self.carrying_add_assign(rhs.leading(nlimbs), Limb::ZERO);
+    }
+
+    /// Perform a conditional in-place wrapping addition, returning the truthy value
+    /// if an overflow has occurred.
     pub(crate) fn conditional_carrying_add_assign(&mut self, rhs: &Self, choice: Choice) -> Choice {
-        debug_assert!(self.bits_precision() <= rhs.bits_precision());
-        let mask = Limb::ZERO.ct_select(&Limb::MAX, choice);
-        let mut carry = Limb::ZERO;
-
-        for i in 0..self.nlimbs() {
-            let masked_rhs = *rhs.limbs.get(i).unwrap_or(&Limb::ZERO) & mask;
-            let (limb, c) = self.limbs[i].carrying_add(masked_rhs, carry);
-            self.limbs[i] = limb;
-            carry = c;
-        }
-
-        carry.lsb_to_choice()
+        self.as_mut_uint_ref()
+            .conditional_add_assign(rhs.as_uint_ref(), Limb::ZERO, choice)
+            .lsb_to_choice()
     }
 }
 
-impl Add for BoxedUint {
+impl<RHS: AsRef<UintRef>> Add<RHS> for BoxedUint {
     type Output = Self;
 
-    fn add(self, rhs: Self) -> Self {
-        self.add(&rhs)
-    }
-}
-
-impl Add<&BoxedUint> for BoxedUint {
-    type Output = Self;
-
-    fn add(self, rhs: &Self) -> Self {
+    fn add(self, rhs: RHS) -> Self {
         Add::add(&self, rhs)
     }
 }
 
-impl Add<BoxedUint> for &BoxedUint {
+impl<RHS: AsRef<UintRef>> Add<RHS> for &BoxedUint {
     type Output = BoxedUint;
 
-    fn add(self, rhs: BoxedUint) -> BoxedUint {
-        Add::add(self, &rhs)
+    fn add(self, rhs: RHS) -> BoxedUint {
+        let (res, overflow) = self.overflowing_add(rhs);
+        assert!(overflow.not().to_bool(), "attempted to add with overflow");
+        res
     }
 }
 
-impl Add<&BoxedUint> for &BoxedUint {
-    type Output = BoxedUint;
-
-    fn add(self, rhs: &BoxedUint) -> BoxedUint {
-        self.checked_add(rhs)
-            .expect("attempted to add with overflow")
+impl<RHS: AsRef<UintRef>> AddAssign<RHS> for BoxedUint {
+    fn add_assign(&mut self, rhs: RHS) {
+        let overflow = self.overflowing_add_assign(rhs);
+        assert!(overflow.not().to_bool(), "attempted to add with overflow");
     }
 }
 
-impl AddAssign<BoxedUint> for BoxedUint {
-    fn add_assign(&mut self, rhs: BoxedUint) {
-        self.add_assign(&rhs);
+impl<RHS: AsRef<UintRef>> AddAssign<RHS> for Wrapping<BoxedUint> {
+    fn add_assign(&mut self, other: RHS) {
+        self.0.wrapping_add_assign(other);
     }
 }
 
-impl AddAssign<&BoxedUint> for BoxedUint {
-    fn add_assign(&mut self, rhs: &BoxedUint) {
-        let carry = self.carrying_add_assign(rhs, Limb::ZERO);
-        assert!(carry.is_zero().to_bool(), "attempted to add with overflow");
-    }
-}
-
-impl<const LIMBS: usize> Add<Uint<LIMBS>> for BoxedUint {
-    type Output = BoxedUint;
-
-    fn add(self, rhs: Uint<LIMBS>) -> BoxedUint {
-        self.add(&rhs)
-    }
-}
-
-impl<const LIMBS: usize> Add<&Uint<LIMBS>> for BoxedUint {
-    type Output = BoxedUint;
-
-    fn add(mut self, rhs: &Uint<LIMBS>) -> BoxedUint {
-        self += rhs;
-        self
-    }
-}
-
-impl<const LIMBS: usize> Add<Uint<LIMBS>> for &BoxedUint {
-    type Output = BoxedUint;
-
-    fn add(self, rhs: Uint<LIMBS>) -> BoxedUint {
-        self.clone().add(rhs)
-    }
-}
-
-impl<const LIMBS: usize> Add<&Uint<LIMBS>> for &BoxedUint {
-    type Output = BoxedUint;
-
-    fn add(self, rhs: &Uint<LIMBS>) -> BoxedUint {
-        self.clone().add(rhs)
-    }
-}
-
-impl<const LIMBS: usize> AddAssign<Uint<LIMBS>> for BoxedUint {
-    fn add_assign(&mut self, rhs: Uint<LIMBS>) {
-        *self += &rhs;
-    }
-}
-
-impl<const LIMBS: usize> AddAssign<&Uint<LIMBS>> for BoxedUint {
-    fn add_assign(&mut self, rhs: &Uint<LIMBS>) {
-        let carry = self.carrying_add_assign(rhs.as_limbs(), Limb::ZERO);
-        assert_eq!(carry.0, 0, "attempted to add with overflow");
-    }
-}
-
-impl AddAssign<Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
-    fn add_assign(&mut self, other: Wrapping<BoxedUint>) {
-        self.0.carrying_add_assign(&other.0, Limb::ZERO);
-    }
-}
-
-impl AddAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
-    fn add_assign(&mut self, other: &Wrapping<BoxedUint>) {
-        self.0.carrying_add_assign(&other.0, Limb::ZERO);
-    }
-}
-
-impl CheckedAdd for BoxedUint {
-    fn checked_add(&self, rhs: &Self) -> CtOption<Self> {
-        let (result, carry) = self.carrying_add(rhs, Limb::ZERO);
-        CtOption::new(result, carry.is_zero())
+impl<RHS: AsRef<UintRef>> CheckedAdd<RHS> for BoxedUint {
+    fn checked_add(&self, rhs: &RHS) -> CtOption<Self> {
+        let (result, overflow) = self.overflowing_add(rhs);
+        CtOption::new(result, overflow.not())
     }
 }
 
@@ -220,20 +167,20 @@ macro_rules! impl_add_primitive {
     ($($primitive:ty),+) => {
         $(
             impl Add<$primitive> for BoxedUint {
-                type Output = BoxedUint;
+                type Output = <Self as Add<U64>>::Output;
 
                 #[inline]
-                fn add(self, rhs: $primitive) -> BoxedUint {
-                     self + U64::from(rhs)
+                fn add(self, rhs: $primitive) -> Self::Output {
+                    self + U64::from(rhs)
                 }
             }
 
             impl Add<$primitive> for &BoxedUint {
-                type Output = BoxedUint;
+                type Output = <Self as Add<U64>>::Output;
 
                 #[inline]
-                fn add(self, rhs: $primitive) -> BoxedUint {
-                     self + U64::from(rhs)
+                fn add(self, rhs: $primitive) -> Self::Output {
+                    self + U64::from(rhs)
                 }
             }
 
@@ -275,13 +222,14 @@ impl AddAssign<u128> for BoxedUint {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use super::{BoxedUint, CheckedAdd, Limb};
+    use super::{BoxedUint, CheckedAdd, Limb, Wrapping};
     use crate::Resize;
 
     #[test]
     fn add_assign() {
         let mut h = BoxedUint::one().resize(1024);
         h += BoxedUint::one();
+        assert_eq!(h, BoxedUint::from(2u8));
     }
 
     #[test]
@@ -293,14 +241,14 @@ mod tests {
 
     #[test]
     fn carrying_add_no_carry() {
-        let (res, carry) = BoxedUint::zero().carrying_add(&BoxedUint::one(), Limb::ZERO);
+        let (res, carry) = BoxedUint::zero().carrying_add(BoxedUint::one(), Limb::ZERO);
         assert_eq!(res, BoxedUint::one());
         assert_eq!(carry, Limb::ZERO);
     }
 
     #[test]
     fn carrying_add_with_carry() {
-        let (res, carry) = BoxedUint::max(Limb::BITS).carrying_add(&BoxedUint::one(), Limb::ZERO);
+        let (res, carry) = BoxedUint::max(Limb::BITS).carrying_add(BoxedUint::one(), Limb::ZERO);
         assert_eq!(res, BoxedUint::zero());
         assert_eq!(carry, Limb::ONE);
     }
@@ -319,7 +267,7 @@ mod tests {
 
     #[test]
     fn concatenating_add() {
-        let result = BoxedUint::max(Limb::BITS).concatenating_add(&BoxedUint::one());
+        let result = BoxedUint::max(Limb::BITS).concatenating_add(BoxedUint::one());
         assert_eq!(result.as_limbs(), &[Limb::ZERO, Limb::ONE]);
     }
 
@@ -330,8 +278,18 @@ mod tests {
         assert_eq!(ret, &one + &one);
         assert!(!overflow.to_bool());
 
-        let (ret, overflow) = BoxedUint::max(Limb::BITS).overflowing_add(&one);
+        let (ret, overflow) = BoxedUint::max(2 * Limb::BITS).overflowing_add(&one);
         assert!(ret.is_zero().to_bool());
         assert!(overflow.to_bool());
+    }
+
+    #[test]
+    fn wrapping_add() {
+        let ret = BoxedUint::one().wrapping_add(Limb::ONE);
+        assert_eq!(ret, BoxedUint::from(2u8));
+
+        let mut ret = Wrapping(BoxedUint::max(2 * Limb::BITS));
+        ret += Wrapping(Limb::ONE);
+        assert!(ret.0.is_zero_vartime());
     }
 }

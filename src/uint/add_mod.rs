@@ -48,9 +48,13 @@ impl<const LIMBS: usize> AddMod for Uint<LIMBS> {
     }
 }
 
-#[cfg(all(test, feature = "rand_core"))]
+#[cfg(test)]
 mod tests {
-    use crate::{Limb, NonZero, Random, RandomMod, U256, Uint};
+    use crate::U256;
+
+    #[cfg(feature = "rand_core")]
+    use crate::{Limb, NonZero, Random, RandomMod, Uint};
+    #[cfg(feature = "rand_core")]
     use rand_core::SeedableRng;
 
     #[test]
@@ -86,6 +90,7 @@ mod tests {
     macro_rules! test_add_mod_special {
         ($size:expr, $test_name:ident) => {
             #[test]
+            #[cfg(feature = "rand_core")]
             fn $test_name() {
                 let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
                 let moduli = [

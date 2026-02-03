@@ -133,7 +133,7 @@ impl BoxedUint {
             .wrapping_sub(&inv_mod_s)
             .wrapping_mul(&s_inverse_mod2k);
         t.restrict_bits(k);
-        let result = inv_mod_s.wrapping_add(&s.wrapping_mul(&t));
+        let result = inv_mod_s.wrapping_add(s.wrapping_mul(&t));
 
         CtOption::new(result, is_some)
     }

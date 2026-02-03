@@ -181,11 +181,11 @@ impl UintRef {
         unsafe { &*(ptr::from_ref(self) as *const NonZero<Self>) }
     }
 
-    /// Construct a [`Odd`] reference, returning [`None`] in the event `self` is `0`.
+    /// Construct a [`Odd`] reference, returning [`None`] in the event `self` is even.
     #[inline]
     #[must_use]
     pub const fn as_odd_vartime(&self) -> Option<&Odd<Self>> {
-        if self.is_zero_vartime() {
+        if !self.is_odd().to_bool_vartime() {
             return None;
         }
         Some(self.as_odd_unchecked())
@@ -230,6 +230,41 @@ impl UintRef {
             }
         }
     }
+
+    /// Perform a carry chain-like operation over the limbs of `lhs` and `rhs` inputs, virtually
+    /// padding each with `Limb::ZERO` as needed to match the width of `self` and assigning the
+    /// result to `self`.
+    #[cfg(feature = "alloc")]
+    #[inline(always)]
+    pub(crate) fn fold_limbs<F>(&mut self, lhs: &Self, rhs: &Self, mut carry: Limb, f: F) -> Limb
+    where
+        F: Fn(Limb, Limb, Limb) -> (Limb, Limb),
+    {
+        for i in 0..self.nlimbs() {
+            let &a = lhs.limbs.get(i).unwrap_or(&Limb::ZERO);
+            let &b = rhs.limbs.get(i).unwrap_or(&Limb::ZERO);
+            (self.limbs[i], carry) = f(a, b, carry);
+        }
+
+        carry
+    }
+
+    /// Perform a carry chain-like operation over the limbs of the inputs, virtually padding
+    /// `rhs` with `Limb::ZERO` as needed to match the width of `self` and assigning the result
+    /// to `self`.
+    #[cfg(feature = "alloc")]
+    #[inline(always)]
+    pub(crate) fn fold_limbs_assign<F>(&mut self, rhs: &UintRef, mut carry: Limb, f: F) -> Limb
+    where
+        F: Fn(Limb, Limb, Limb) -> (Limb, Limb),
+    {
+        for i in 0..self.nlimbs() {
+            let &b = rhs.limbs.get(i).unwrap_or(&Limb::ZERO);
+            (self.limbs[i], carry) = f(self.limbs[i], b, carry);
+        }
+
+        carry
+    }
 }
 
 impl AsRef<[Limb]> for UintRef {
@@ -239,10 +274,24 @@ impl AsRef<[Limb]> for UintRef {
     }
 }
 
+impl AsRef<UintRef> for UintRef {
+    #[inline]
+    fn as_ref(&self) -> &Self {
+        self
+    }
+}
+
 impl AsMut<[Limb]> for UintRef {
     #[inline]
     fn as_mut(&mut self) -> &mut [Limb] {
         self.as_mut_limbs()
+    }
+}
+
+impl AsMut<UintRef> for UintRef {
+    #[inline]
+    fn as_mut(&mut self) -> &mut Self {
+        self
     }
 }
 
