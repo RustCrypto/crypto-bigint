@@ -356,7 +356,7 @@ impl UintRef {
     /// quotient is returned in `self` and the remainder in `rhs`.
     #[inline(always)]
     #[allow(clippy::cast_possible_truncation)]
-    const fn div_rem_large_vartime(&mut self, rhs: &mut Self) {
+    pub(crate) const fn div_rem_large_vartime(&mut self, rhs: &mut Self) {
         let (x, y) = (self, rhs);
         let ysize = y.nlimbs();
         debug_assert!(ysize > 1);
