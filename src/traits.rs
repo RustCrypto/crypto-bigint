@@ -1278,7 +1278,7 @@ pub(crate) trait AmmMultiplier<'a>: MontyMultiplier<'a> {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::{Integer, Signed, Unsigned};
+    use super::{Integer, Signed, ToUnsigned, Unsigned};
     use crate::{Choice, CtEq, CtSelect, Limb, NonZero, One, Zero};
 
     /// Apply a suite of tests against a type implementing Integer.
@@ -1644,6 +1644,10 @@ pub(crate) mod tests {
         assert_eq!(T::from(1u32), T::one());
         assert_eq!(T::from(1u64), T::one());
         assert_eq!(T::from(Limb::ONE), T::one());
+
+        // ToUnsigned
+        assert_eq!(one.to_unsigned(), one);
+        assert_eq!(one.to_unsigned_zero(), zero);
 
         // FloorSquareRoot
         assert_eq!(zero.floor_sqrt(), zero);
