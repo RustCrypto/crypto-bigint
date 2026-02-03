@@ -222,7 +222,7 @@ impl AddAssign<u128> for BoxedUint {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use super::{BoxedUint, CheckedAdd, Limb, Wrapping};
+    use super::{BoxedUint, CheckedAdd, Limb, UintRef, Wrapping};
     use crate::Resize;
 
     #[test]
@@ -291,5 +291,15 @@ mod tests {
         let mut ret = Wrapping(BoxedUint::max(2 * Limb::BITS));
         ret += Wrapping(Limb::ONE);
         assert!(ret.0.is_zero_vartime());
+    }
+
+    #[test]
+    fn add_uintref() {
+        let a = BoxedUint::from(1234567890u64);
+        let b = UintRef::new(&[Limb(456), Limb(0)]);
+        assert_eq!(
+            a.carrying_add(b, Limb::ZERO).0,
+            BoxedUint::from(1234568346u64)
+        );
     }
 }
