@@ -209,8 +209,8 @@ impl BoxedUint {
     }
 }
 
-impl<RHS: AsRef<UintRef>> PowBoundedExp<RHS> for Checked<BoxedUint> {
-    fn pow_bounded_exp(&self, exponent: &RHS, exponent_bits: u32) -> Self {
+impl<Rhs: AsRef<UintRef>> PowBoundedExp<Rhs> for Checked<BoxedUint> {
+    fn pow_bounded_exp(&self, exponent: &Rhs, exponent_bits: u32) -> Self {
         let is_some = self.0.is_some();
         let pow = self
             .0
@@ -220,15 +220,15 @@ impl<RHS: AsRef<UintRef>> PowBoundedExp<RHS> for Checked<BoxedUint> {
     }
 }
 
-impl<RHS: AsRef<UintRef>> PowBoundedExp<RHS> for Wrapping<BoxedUint> {
-    fn pow_bounded_exp(&self, exponent: &RHS, exponent_bits: u32) -> Self {
+impl<Rhs: AsRef<UintRef>> PowBoundedExp<Rhs> for Wrapping<BoxedUint> {
+    fn pow_bounded_exp(&self, exponent: &Rhs, exponent_bits: u32) -> Self {
         Wrapping(self.0.wrapping_pow_bounded_exp(exponent, exponent_bits))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{BoxedUint, Checked, CtOption, Pow, U128, Wrapping};
+    use crate::{BoxedUint, Checked, CtOption, Limb, Pow, Resize, U128, UintRef, Wrapping};
 
     #[test]
     fn checked_pow_expected() {
@@ -327,6 +327,16 @@ mod tests {
             BoxedUint::from(U128::from_u8(3))
                 .wrapping_pow_vartime(U128::from_u128((1 << 64) + (1 << 63))),
             BoxedUint::from_be_hex("002b3854b3dc5d6e0000000000000001", 128).unwrap()
+        );
+    }
+
+    #[test]
+    fn pow_uintref() {
+        let a = BoxedUint::from(1234567890u64).resize_unchecked(128);
+        let b = UintRef::new(&[Limb(4), Limb(0)]);
+        assert_eq!(
+            a.wrapping_pow(b),
+            BoxedUint::from(2323057227982592441500937982514410000u128)
         );
     }
 }

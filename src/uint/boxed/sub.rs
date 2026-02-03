@@ -95,25 +95,25 @@ impl BoxedUint {
     }
 }
 
-impl<RHS: AsRef<UintRef>> CheckedSub<RHS> for BoxedUint {
-    fn checked_sub(&self, rhs: &RHS) -> CtOption<Self> {
+impl<Rhs: AsRef<UintRef>> CheckedSub<Rhs> for BoxedUint {
+    fn checked_sub(&self, rhs: &Rhs) -> CtOption<Self> {
         let (result, underflow) = self.underflowing_sub(rhs);
         CtOption::new(result, underflow.not())
     }
 }
 
-impl<RHS: AsRef<UintRef>> Sub<RHS> for BoxedUint {
+impl<Rhs: AsRef<UintRef>> Sub<Rhs> for BoxedUint {
     type Output = Self;
 
-    fn sub(self, rhs: RHS) -> Self {
+    fn sub(self, rhs: Rhs) -> Self {
         Sub::sub(&self, rhs)
     }
 }
 
-impl<RHS: AsRef<UintRef>> Sub<RHS> for &BoxedUint {
+impl<Rhs: AsRef<UintRef>> Sub<Rhs> for &BoxedUint {
     type Output = BoxedUint;
 
-    fn sub(self, rhs: RHS) -> BoxedUint {
+    fn sub(self, rhs: Rhs) -> BoxedUint {
         let (res, underflow) = self.underflowing_sub(rhs);
         assert!(
             underflow.not().to_bool(),
@@ -123,8 +123,8 @@ impl<RHS: AsRef<UintRef>> Sub<RHS> for &BoxedUint {
     }
 }
 
-impl<RHS: AsRef<UintRef>> SubAssign<RHS> for BoxedUint {
-    fn sub_assign(&mut self, rhs: RHS) {
+impl<Rhs: AsRef<UintRef>> SubAssign<Rhs> for BoxedUint {
+    fn sub_assign(&mut self, rhs: Rhs) {
         let underflow = self.underflowing_sub_assign(rhs);
         assert!(
             underflow.not().to_bool(),
@@ -133,8 +133,8 @@ impl<RHS: AsRef<UintRef>> SubAssign<RHS> for BoxedUint {
     }
 }
 
-impl<RHS: AsRef<UintRef>> SubAssign<RHS> for Wrapping<BoxedUint> {
-    fn sub_assign(&mut self, other: RHS) {
+impl<Rhs: AsRef<UintRef>> SubAssign<Rhs> for Wrapping<BoxedUint> {
+    fn sub_assign(&mut self, other: Rhs) {
         self.0.wrapping_sub_assign(other);
     }
 }
@@ -204,7 +204,7 @@ impl SubAssign<u128> for BoxedUint {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use super::{BoxedUint, CheckedSub, Limb, Wrapping};
+    use super::{BoxedUint, CheckedSub, Limb, UintRef, Wrapping};
     use crate::Resize;
 
     #[test]
@@ -258,5 +258,15 @@ mod tests {
         let mut ret = Wrapping(BoxedUint::zero_with_precision(2 * Limb::BITS));
         ret -= Wrapping(Limb::ONE);
         assert_eq!(ret.0, BoxedUint::max(2 * Limb::BITS));
+    }
+
+    #[test]
+    fn sub_uintref() {
+        let a = BoxedUint::from(1234567890u64);
+        let b = UintRef::new(&[Limb(456), Limb(0)]);
+        assert_eq!(
+            a.borrowing_sub(b, Limb::ZERO).0,
+            BoxedUint::from(1234567434u64)
+        );
     }
 }
