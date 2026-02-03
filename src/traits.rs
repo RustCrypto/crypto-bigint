@@ -210,6 +210,34 @@ pub trait UnsignedWithMontyForm: Unsigned {
     type MontyForm: MontyForm<Integer = Self>;
 }
 
+/// Support for upgrading `UintRef`-compatible references into `Unsigned`.
+pub trait ToUnsigned: AsRef<UintRef> + AsMut<UintRef> {
+    /// The corresponding owned `Unsigned` type.
+    type Unsigned: Unsigned;
+
+    /// Convert from a reference into an owned instance.
+    fn to_unsigned(&self) -> Self::Unsigned;
+
+    /// Convert from a reference into an owned instance representing zero.
+    fn to_unsigned_zero(&self) -> Self::Unsigned {
+        let mut res = self.to_unsigned();
+        res.set_zero();
+        res
+    }
+}
+
+impl<T: Unsigned> ToUnsigned for T {
+    type Unsigned = T;
+
+    fn to_unsigned(&self) -> Self::Unsigned {
+        self.clone()
+    }
+
+    fn to_unsigned_zero(&self) -> Self::Unsigned {
+        T::zero_like(self)
+    }
+}
+
 /// Zero values: additive identity element for `Self`.
 pub trait Zero: CtEq + Sized {
     /// Returns the additive identity element of `Self`, `0`.
