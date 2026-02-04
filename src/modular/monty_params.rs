@@ -55,7 +55,7 @@ impl<U: Unsigned> MontyParams<U> {
         &self.mod_inv
     }
 
-    /// Returns the modulus which was used to initialize these parameters.
+    /// Returns wrapping negation of first limb of `mod_inv`.
     #[inline(always)]
     pub const fn mod_neg_inv(&self) -> Limb {
         self.mod_inv.limbs[0].wrapping_neg()
