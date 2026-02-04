@@ -1,6 +1,6 @@
 //! [`BoxedUint`] modular subtraction operations.
 
-use crate::{BoxedUint, Limb, NonZero, SubMod, U64};
+use crate::{BoxedUint, Limb, NonZero, SubMod};
 
 impl BoxedUint {
     /// Computes `self - rhs mod p`.
@@ -43,13 +43,13 @@ impl BoxedUint {
     /// Assumes `self - rhs` as unbounded signed integer is in `[-p, p)`.
     #[must_use]
     pub fn sub_mod_special(&self, rhs: &Self, c: Limb) -> Self {
-        let (out, borrow) = self.borrowing_sub(rhs, Limb::ZERO);
+        let (mut out, borrow) = self.borrowing_sub(rhs, Limb::ZERO);
 
         // If underflow occurred, then we need to subtract `c` to account for
         // the underflow. This cannot underflow due to the assumption
         // `self - rhs >= -p`.
-        let l = borrow.0 & c.0;
-        out.wrapping_sub(U64::from(l))
+        out.wrapping_sub_assign(borrow & c);
+        out
     }
 }
 
@@ -67,7 +67,7 @@ mod tests {
     use hex_literal::hex;
 
     #[cfg(feature = "rand_core")]
-    use crate::{Limb, NonZero, Random, RandomMod, U256};
+    use crate::{Limb, NonZero, Random, RandomMod};
     #[cfg(feature = "rand_core")]
     use rand_core::SeedableRng;
 
@@ -101,63 +101,52 @@ mod tests {
         assert_eq!(expected, actual);
     }
 
-    macro_rules! test_sub_mod_special {
-        ($size:expr, $test_name:ident) => {
-            #[test]
-            #[cfg(feature = "rand_core")]
-            fn $test_name() {
-                let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
-                let moduli = [
-                    NonZero::<Limb>::random_from_rng(&mut rng),
-                    NonZero::<Limb>::random_from_rng(&mut rng),
+    #[test]
+    #[cfg(feature = "rand_core")]
+    fn sub_mod_special() {
+        let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
+        let moduli = [
+            NonZero::<Limb>::random_from_rng(&mut rng),
+            NonZero::<Limb>::random_from_rng(&mut rng),
+        ];
+        let sizes = if cfg!(miri) {
+            &[1, 2, 3][..]
+        } else {
+            &[1, 2, 3, 4, 8, 16][..]
+        };
+
+        for size in sizes.iter().copied() {
+            let bits = size * Limb::BITS;
+
+            for special in &moduli {
+                let zero = BoxedUint::zero_with_precision(bits);
+                let one = BoxedUint::one_with_precision(bits);
+                let p = NonZero::new(zero.wrapping_sub(special.get())).unwrap();
+                let minus_one = p.wrapping_sub(Limb::ONE);
+
+                let base_cases = [
+                    (&zero, &zero, &zero),
+                    (&one, &zero, &one),
+                    (&zero, &one, &minus_one),
+                    (&minus_one, &minus_one, &zero),
+                    (&zero, &minus_one, &one),
                 ];
+                for (a, b, c) in base_cases {
+                    let x = a.sub_mod_special(b, *special.as_ref());
+                    assert_eq!(&x, c, "{} - {} mod {} = {} != {}", a, b, p, x, c);
+                }
 
-                for special in &moduli {
-                    let p =
-                        &NonZero::new(U256::ZERO.wrapping_sub(&U256::from(special.get()))).unwrap();
+                for _i in 0..100 {
+                    let a = BoxedUint::random_mod_vartime(&mut rng, &p);
+                    let b = BoxedUint::random_mod_vartime(&mut rng, &p);
 
-                    let minus_one = p.wrapping_sub(&U256::ONE);
+                    let c = a.sub_mod_special(&b, *special.as_ref());
+                    assert!(c < *p, "not reduced: {} >= {} ", c, p);
 
-                    let base_cases = [
-                        (U256::ZERO, U256::ZERO, U256::ZERO),
-                        (U256::ONE, U256::ZERO, U256::ONE),
-                        (U256::ZERO, U256::ONE, minus_one),
-                        (minus_one, minus_one, U256::ZERO),
-                        (U256::ZERO, minus_one, U256::ONE),
-                    ];
-                    for (a, b, c) in &base_cases {
-                        let (a, b, c) =
-                            (BoxedUint::from(a), BoxedUint::from(b), BoxedUint::from(c));
-                        let x = a.sub_mod_special(&b, *special.as_ref());
-                        assert_eq!(c, x, "{} - {} mod {} = {} != {}", a, b, p, x, c);
-                    }
-
-                    let p = NonZero::new(BoxedUint::from(p.get())).unwrap();
-                    for _i in 0..100 {
-                        let a = BoxedUint::random_mod_vartime(&mut rng, &p);
-                        let b = BoxedUint::random_mod_vartime(&mut rng, &p);
-
-                        let c = a.sub_mod_special(&b, *special.as_ref());
-                        assert!(c < *p, "not reduced: {} >= {} ", c, p);
-
-                        let expected = a.sub_mod(&b, &p);
-                        assert_eq!(c, expected, "incorrect result");
-                    }
+                    let expected = a.sub_mod(&b, &p);
+                    assert_eq!(c, expected, "incorrect result");
                 }
             }
-        };
+        }
     }
-
-    test_sub_mod_special!(1, sub_mod_special_1);
-    test_sub_mod_special!(2, sub_mod_special_2);
-    test_sub_mod_special!(3, sub_mod_special_3);
-    test_sub_mod_special!(4, sub_mod_special_4);
-    test_sub_mod_special!(5, sub_mod_special_5);
-    test_sub_mod_special!(6, sub_mod_special_6);
-    test_sub_mod_special!(7, sub_mod_special_7);
-    test_sub_mod_special!(8, sub_mod_special_8);
-    test_sub_mod_special!(9, sub_mod_special_9);
-    test_sub_mod_special!(10, sub_mod_special_10);
-    test_sub_mod_special!(11, sub_mod_special_11);
-    test_sub_mod_special!(12, sub_mod_special_12);
 }
