@@ -78,131 +78,118 @@ mod tests {
         assert_eq!(expected, actual);
     }
 
-    macro_rules! test_sub_mod {
-        ($size:expr, $test_name:ident) => {
-            #[test]
-            #[cfg(feature = "rand_core")]
-            fn $test_name() {
-                let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
-                let moduli = [
-                    NonZero::<Uint<$size>>::random_from_rng(&mut rng),
-                    NonZero::<Uint<$size>>::random_from_rng(&mut rng),
+    #[test]
+    #[cfg(feature = "rand_core")]
+    fn sub_mod() {
+        fn test_size<const LIMBS: usize>() {
+            let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
+            let moduli = [
+                NonZero::<Uint<LIMBS>>::random_from_rng(&mut rng),
+                NonZero::<Uint<LIMBS>>::random_from_rng(&mut rng),
+            ];
+
+            for p in &moduli {
+                let base_cases = [
+                    (1u64, 0u64, 1u64.into()),
+                    (0, 1, p.wrapping_sub(&1u64.into())),
+                    (0, 0, 0u64.into()),
                 ];
+                for (a, b, c) in &base_cases {
+                    let a: Uint<LIMBS> = (*a).into();
+                    let b: Uint<LIMBS> = (*b).into();
 
-                for p in &moduli {
-                    let base_cases = [
-                        (1u64, 0u64, 1u64.into()),
-                        (0, 1, p.wrapping_sub(&1u64.into())),
-                        (0, 0, 0u64.into()),
-                    ];
-                    for (a, b, c) in &base_cases {
-                        let a: Uint<$size> = (*a).into();
-                        let b: Uint<$size> = (*b).into();
+                    let x = a.sub_mod(&b, p);
+                    assert_eq!(*c, x, "{} - {} mod {} = {} != {}", a, b, p, x, c);
+                }
 
-                        let x = a.sub_mod(&b, p);
-                        assert_eq!(*c, x, "{} - {} mod {} = {} != {}", a, b, p, x, c);
-                    }
-
-                    if $size > 1 {
-                        for _i in 0..100 {
-                            let a: Uint<$size> = Limb::random_from_rng(&mut rng).into();
-                            let b: Uint<$size> = Limb::random_from_rng(&mut rng).into();
-                            let (a, b) = if a < b { (b, a) } else { (a, b) };
-
-                            let c = a.sub_mod(&b, p);
-                            assert!(c < **p, "not reduced");
-                            assert_eq!(c, a.wrapping_sub(&b), "result incorrect");
-                        }
-                    }
-
+                if LIMBS > 1 {
                     for _i in 0..100 {
-                        let a = Uint::<$size>::random_mod_vartime(&mut rng, p);
-                        let b = Uint::<$size>::random_mod_vartime(&mut rng, p);
+                        let a: Uint<LIMBS> = Limb::random_from_rng(&mut rng).into();
+                        let b: Uint<LIMBS> = Limb::random_from_rng(&mut rng).into();
+                        let (a, b) = if a < b { (b, a) } else { (a, b) };
 
                         let c = a.sub_mod(&b, p);
-                        assert!(c < **p, "not reduced: {} >= {} ", c, p);
+                        assert!(c < **p, "not reduced");
+                        assert_eq!(c, a.wrapping_sub(&b), "result incorrect");
+                    }
+                }
 
-                        let x = a.wrapping_sub(&b);
-                        if a >= b && x < **p {
-                            assert_eq!(c, x, "incorrect result");
-                        }
+                for _i in 0..100 {
+                    let a = Uint::<LIMBS>::random_mod_vartime(&mut rng, p);
+                    let b = Uint::<LIMBS>::random_mod_vartime(&mut rng, p);
+
+                    let c = a.sub_mod(&b, p);
+                    assert!(c < **p, "not reduced: {} >= {} ", c, p);
+
+                    let x = a.wrapping_sub(&b);
+                    if a >= b && x < **p {
+                        assert_eq!(c, x, "incorrect result");
                     }
                 }
             }
-        };
+        }
+
+        // Test requires 1-limb is capable of representing a 64-bit integer
+        cpubits::cpubits! {
+            64 => { test_size::<1>(); }
+        }
+
+        test_size::<2>();
+        test_size::<3>();
+        if cfg!(not(miri)) {
+            test_size::<4>();
+            test_size::<8>();
+            test_size::<16>();
+        }
     }
 
-    macro_rules! test_sub_mod_special {
-        ($size:expr, $test_name:ident) => {
-            #[test]
-            #[cfg(feature = "rand_core")]
-            fn $test_name() {
-                let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
-                let moduli = [
-                    NonZero::<Limb>::random_from_rng(&mut rng),
-                    NonZero::<Limb>::random_from_rng(&mut rng),
+    #[cfg(feature = "rand_core")]
+    #[test]
+    fn sub_mod_special() {
+        fn test_size<const LIMBS: usize>() {
+            let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
+            let moduli = [
+                NonZero::<Limb>::random_from_rng(&mut rng),
+                NonZero::<Limb>::random_from_rng(&mut rng),
+            ];
+
+            for special in &moduli {
+                let p = &NonZero::new(Uint::ZERO.wrapping_sub(&Uint::from(special.get()))).unwrap();
+
+                let minus_one = p.wrapping_sub(&Uint::ONE);
+
+                let base_cases = [
+                    (Uint::ZERO, Uint::ZERO, Uint::ZERO),
+                    (Uint::ONE, Uint::ZERO, Uint::ONE),
+                    (Uint::ZERO, Uint::ONE, minus_one),
+                    (minus_one, minus_one, Uint::ZERO),
+                    (Uint::ZERO, minus_one, Uint::ONE),
                 ];
+                for (a, b, c) in &base_cases {
+                    let x = a.sub_mod_special(b, *special.as_ref());
+                    assert_eq!(*c, x, "{} - {} mod {} = {} != {}", a, b, p, x, c);
+                }
 
-                for special in &moduli {
-                    let p =
-                        &NonZero::new(Uint::ZERO.wrapping_sub(&Uint::from(special.get()))).unwrap();
+                for _i in 0..100 {
+                    let a = Uint::<LIMBS>::random_mod_vartime(&mut rng, p);
+                    let b = Uint::<LIMBS>::random_mod_vartime(&mut rng, p);
 
-                    let minus_one = p.wrapping_sub(&Uint::ONE);
+                    let c = a.sub_mod_special(&b, *special.as_ref());
+                    assert!(c < **p, "not reduced: {} >= {} ", c, p);
 
-                    let base_cases = [
-                        (Uint::ZERO, Uint::ZERO, Uint::ZERO),
-                        (Uint::ONE, Uint::ZERO, Uint::ONE),
-                        (Uint::ZERO, Uint::ONE, minus_one),
-                        (minus_one, minus_one, Uint::ZERO),
-                        (Uint::ZERO, minus_one, Uint::ONE),
-                    ];
-                    for (a, b, c) in &base_cases {
-                        let x = a.sub_mod_special(&b, *special.as_ref());
-                        assert_eq!(*c, x, "{} - {} mod {} = {} != {}", a, b, p, x, c);
-                    }
-
-                    for _i in 0..100 {
-                        let a = Uint::<$size>::random_mod_vartime(&mut rng, p);
-                        let b = Uint::<$size>::random_mod_vartime(&mut rng, p);
-
-                        let c = a.sub_mod_special(&b, *special.as_ref());
-                        assert!(c < **p, "not reduced: {} >= {} ", c, p);
-
-                        let expected = a.sub_mod(&b, p);
-                        assert_eq!(c, expected, "incorrect result");
-                    }
+                    let expected = a.sub_mod(&b, p);
+                    assert_eq!(c, expected, "incorrect result");
                 }
             }
-        };
+        }
+
+        test_size::<1>();
+        test_size::<2>();
+        test_size::<3>();
+        if cfg!(not(miri)) {
+            test_size::<4>();
+            test_size::<8>();
+            test_size::<16>();
+        }
     }
-
-    // Test requires 1-limb is capable of representing a 64-bit integer
-    cpubits::cpubits! {
-        64 => { test_sub_mod!(1, sub1); }
-    }
-
-    test_sub_mod!(2, sub2);
-    test_sub_mod!(3, sub3);
-    test_sub_mod!(4, sub4);
-    test_sub_mod!(5, sub5);
-    test_sub_mod!(6, sub6);
-    test_sub_mod!(7, sub7);
-    test_sub_mod!(8, sub8);
-    test_sub_mod!(9, sub9);
-    test_sub_mod!(10, sub10);
-    test_sub_mod!(11, sub11);
-    test_sub_mod!(12, sub12);
-
-    test_sub_mod_special!(1, sub_mod_special_1);
-    test_sub_mod_special!(2, sub_mod_special_2);
-    test_sub_mod_special!(3, sub_mod_special_3);
-    test_sub_mod_special!(4, sub_mod_special_4);
-    test_sub_mod_special!(5, sub_mod_special_5);
-    test_sub_mod_special!(6, sub_mod_special_6);
-    test_sub_mod_special!(7, sub_mod_special_7);
-    test_sub_mod_special!(8, sub_mod_special_8);
-    test_sub_mod_special!(9, sub_mod_special_9);
-    test_sub_mod_special!(10, sub_mod_special_10);
-    test_sub_mod_special!(11, sub_mod_special_11);
-    test_sub_mod_special!(12, sub_mod_special_12);
 }
