@@ -28,7 +28,7 @@ pub struct MontyParams<U: Unsigned> {
     /// This value is used in Montgomery reduction and modular inversion.
     pub(super) mod_inv: U64,
 
-    /// Leading zeros in the modulus, used to choose optimized algorithms
+    /// Leading zeros in the modulus, used to choose optimized algorithms.
     pub(super) mod_leading_zeros: u32,
 }
 
@@ -48,10 +48,22 @@ impl<U: Unsigned> MontyParams<U> {
         &self.r2
     }
 
+    /// Returns the lowest limbs of `MODULUS^-1 mod 2**64`.
+    ///
+    /// This value is used in Montgomery reduction and modular inversion.
+    pub const fn mod_inv(&self) -> &U64 {
+        &self.mod_inv
+    }
+
     /// Returns the modulus which was used to initialize these parameters.
     #[inline(always)]
-    pub(crate) const fn mod_neg_inv(&self) -> Limb {
+    pub const fn mod_neg_inv(&self) -> Limb {
         self.mod_inv.limbs[0].wrapping_neg()
+    }
+
+    /// Returns leading zeros in the modulus, used to choose optimized algorithms.
+    pub const fn mod_leading_zeros(&self) -> u32 {
+        self.mod_leading_zeros
     }
 
     /// Core implementation of the debug impl which lets us customize it for various types/type
