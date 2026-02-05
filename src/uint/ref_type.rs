@@ -20,7 +20,10 @@ use core::{
 };
 
 #[cfg(feature = "alloc")]
-use {crate::BoxedUint, alloc::borrow::ToOwned};
+use {
+    crate::{BoxedUint, ToUnsigned},
+    alloc::borrow::ToOwned,
+};
 
 /// Unsigned integer reference type.
 ///
@@ -317,6 +320,19 @@ impl ToOwned for UintRef {
 
     fn to_owned(&self) -> BoxedUint {
         BoxedUint::from(self)
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl ToUnsigned for UintRef {
+    type Unsigned = BoxedUint;
+
+    fn to_unsigned(&self) -> Self::Unsigned {
+        BoxedUint::from(self)
+    }
+
+    fn to_unsigned_zero(&self) -> Self::Unsigned {
+        BoxedUint::zero_with_precision(self.bits_precision())
     }
 }
 

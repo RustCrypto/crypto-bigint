@@ -116,45 +116,45 @@ impl BoxedUint {
     }
 }
 
-impl<RHS: AsRef<UintRef>> CheckedMul<RHS> for BoxedUint {
-    fn checked_mul(&self, rhs: &RHS) -> CtOption<Self> {
+impl<Rhs: AsRef<UintRef>> CheckedMul<Rhs> for BoxedUint {
+    fn checked_mul(&self, rhs: &Rhs) -> CtOption<Self> {
         self.checked_mul(rhs)
     }
 }
 
-impl<RHS: AsRef<UintRef>> Mul<RHS> for BoxedUint {
+impl<Rhs: AsRef<UintRef>> Mul<Rhs> for BoxedUint {
     type Output = BoxedUint;
 
-    fn mul(self, rhs: RHS) -> Self {
+    fn mul(self, rhs: Rhs) -> Self {
         BoxedUint::mul(&self, &rhs)
     }
 }
 
-impl<RHS: AsRef<UintRef>> Mul<RHS> for &BoxedUint {
+impl<Rhs: AsRef<UintRef>> Mul<Rhs> for &BoxedUint {
     type Output = BoxedUint;
 
-    fn mul(self, rhs: RHS) -> Self::Output {
+    fn mul(self, rhs: Rhs) -> Self::Output {
         BoxedUint::mul(self, rhs)
     }
 }
 
-impl<RHS: AsRef<UintRef>> MulAssign<RHS> for BoxedUint {
-    fn mul_assign(&mut self, rhs: RHS) {
+impl<Rhs: AsRef<UintRef>> MulAssign<Rhs> for BoxedUint {
+    fn mul_assign(&mut self, rhs: Rhs) {
         *self = BoxedUint::mul(self, rhs);
     }
 }
 
-impl<RHS: AsRef<UintRef>> MulAssign<RHS> for Wrapping<BoxedUint> {
-    fn mul_assign(&mut self, other: RHS) {
+impl<Rhs: AsRef<UintRef>> MulAssign<Rhs> for Wrapping<BoxedUint> {
+    fn mul_assign(&mut self, other: Rhs) {
         self.0 = self.0.wrapping_mul(other);
     }
 }
 
-impl<RHS: AsRef<UintRef>> ConcatenatingMul<RHS> for BoxedUint {
+impl<Rhs: AsRef<UintRef>> ConcatenatingMul<Rhs> for BoxedUint {
     type Output = Self;
 
     #[inline]
-    fn concatenating_mul(&self, rhs: RHS) -> Self {
+    fn concatenating_mul(&self, rhs: Rhs) -> Self {
         self.mul(&rhs)
     }
 }
@@ -167,7 +167,7 @@ impl WrappingMul for BoxedUint {
 
 #[cfg(test)]
 mod tests {
-    use crate::{BoxedUint, CheckedMul, ConcatenatingMul, Resize, WrappingMul};
+    use crate::{BoxedUint, CheckedMul, ConcatenatingMul, Limb, Resize, UintRef, WrappingMul};
 
     #[test]
     fn mul_zero_and_one() {
@@ -260,5 +260,12 @@ mod tests {
         let m = BoxedUint::max(256);
         assert!(m.checked_square().is_none().to_bool());
         assert!(CheckedMul::checked_mul(&m, &m).is_none().to_bool());
+    }
+
+    #[test]
+    fn mul_uintref() {
+        let a = BoxedUint::from(1234567890u64);
+        let b = UintRef::new(&[Limb(456), Limb(0)]);
+        assert_eq!(a * b, BoxedUint::from(562962957840u64));
     }
 }

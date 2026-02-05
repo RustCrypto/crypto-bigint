@@ -210,6 +210,34 @@ pub trait UnsignedMontyForm: Unsigned {
     type MontyForm: MontyForm<Integer = Self>;
 }
 
+/// Support for upgrading `UintRef`-compatible references into `Unsigned`.
+pub trait ToUnsigned: AsRef<UintRef> + AsMut<UintRef> {
+    /// The corresponding owned `Unsigned` type.
+    type Unsigned: Unsigned;
+
+    /// Convert from a reference into an owned instance.
+    fn to_unsigned(&self) -> Self::Unsigned;
+
+    /// Convert from a reference into an owned instance representing zero.
+    fn to_unsigned_zero(&self) -> Self::Unsigned {
+        let mut res = self.to_unsigned();
+        res.set_zero();
+        res
+    }
+}
+
+impl<T: Unsigned> ToUnsigned for T {
+    type Unsigned = T;
+
+    fn to_unsigned(&self) -> Self::Unsigned {
+        self.clone()
+    }
+
+    fn to_unsigned_zero(&self) -> Self::Unsigned {
+        T::zero_like(self)
+    }
+}
+
 /// Zero values: additive identity element for `Self`.
 pub trait Zero: CtEq + Sized {
     /// Returns the additive identity element of `Self`, `0`.
@@ -1269,7 +1297,7 @@ pub(crate) trait AmmMultiplier<'a>: MontyMultiplier<'a> {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::{Integer, Signed, Unsigned};
+    use super::{Integer, Signed, ToUnsigned, Unsigned};
     use crate::{Choice, CtEq, CtSelect, Limb, NonZero, One, Zero};
 
     /// Apply a suite of tests against a type implementing Integer.
@@ -1463,6 +1491,15 @@ pub(crate) mod tests {
             assert_eq!(a, &b);
         }
 
+        // DivAssign ref
+        let mut a = one.clone();
+        a /= &nz_one;
+        assert_eq!(a, one);
+        // DivAssign owned
+        let mut a = one.clone();
+        a /= nz_one.clone();
+        assert_eq!(a, one);
+
         // Rem
         assert_eq!(zero.clone().rem(&nz_one), zero);
         assert_eq!(zero.clone().rem(nz_one.clone()), zero);
@@ -1620,6 +1657,10 @@ pub(crate) mod tests {
         assert_eq!(T::from(1u32), T::one());
         assert_eq!(T::from(1u64), T::one());
         assert_eq!(T::from(Limb::ONE), T::one());
+
+        // ToUnsigned
+        assert_eq!(one.to_unsigned(), one);
+        assert_eq!(one.to_unsigned_zero(), zero);
 
         // FloorSquareRoot
         assert_eq!(zero.floor_sqrt(), zero);
