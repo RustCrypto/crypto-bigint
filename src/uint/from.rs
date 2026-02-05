@@ -282,7 +282,7 @@ impl<const LIMBS: usize, const LIMBS2: usize> From<&Uint<LIMBS>> for Uint<LIMBS2
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, U128, Word};
+    use crate::{Limb, U64, U128, Word};
 
     cpubits::cpubits! {
         32 => { use crate::U64 as UintEx; }
@@ -312,6 +312,24 @@ mod tests {
         let n = U128::from(42u128);
         assert_eq!(&n.as_limbs()[..2], &[Limb(42), Limb(0)]);
         assert_eq!(u128::from(n), 42u128);
+    }
+
+    #[test]
+    fn concat_mixed() {
+        let wide: U128 = (U64::ONE, U64::ZERO).into();
+        assert_eq!(wide, U128::ONE);
+
+        let wide: U128 = (&(U64::MAX, U64::MAX)).into();
+        assert_eq!(wide, U128::MAX);
+    }
+
+    #[test]
+    fn split_mixed() {
+        let lo_hi: (U64, _) = (&U128::ONE).into();
+        assert_eq!(lo_hi, (U64::ONE, U64::ZERO));
+
+        let lo_hi: (U64, _) = (&U128::MAX).into();
+        assert_eq!(lo_hi, (U64::MAX, U64::MAX));
     }
 
     #[test]
