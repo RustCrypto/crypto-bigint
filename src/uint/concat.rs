@@ -1,4 +1,4 @@
-use crate::{Concat, ConcatMixed, Limb, Uint};
+use crate::{ConcatSize, Limb, MatchSize, Uint};
 
 impl<const L: usize> Uint<L> {
     /// Concatenate the two values, with `self` as least significant and `hi` as the most
@@ -6,7 +6,7 @@ impl<const L: usize> Uint<L> {
     #[must_use]
     pub const fn concat<const O: usize>(&self, hi: &Self) -> Uint<O>
     where
-        Self: Concat<Output = Uint<O>>,
+        ConcatSize<L, L>: MatchSize<Target = Uint<O>>,
     {
         Uint::concat_mixed(self, hi)
     }
@@ -15,9 +15,9 @@ impl<const L: usize> Uint<L> {
     /// as the most significant.
     #[inline]
     #[must_use]
-    pub const fn concat_mixed<const H: usize, const O: usize>(lo: &Uint<L>, hi: &Uint<H>) -> Uint<O>
+    pub const fn concat_mixed<const H: usize, const O: usize>(&self, hi: &Uint<H>) -> Uint<O>
     where
-        Self: ConcatMixed<Uint<H>, MixedOutput = Uint<O>>,
+        ConcatSize<L, H>: MatchSize<Target = Uint<O>>,
     {
         let top = L + H;
         let top = if top < O { top } else { O };
@@ -26,7 +26,7 @@ impl<const L: usize> Uint<L> {
 
         while i < top {
             if i < L {
-                limbs[i] = lo.limbs[i];
+                limbs[i] = self.limbs[i];
             } else {
                 limbs[i] = hi.limbs[i - L];
             }
@@ -37,16 +37,9 @@ impl<const L: usize> Uint<L> {
     }
 }
 
-impl<T> Concat for T
-where
-    T: ConcatMixed<T>,
-{
-    type Output = Self::MixedOutput;
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::{ConcatMixed, U64, U128, U192};
+    use crate::{BitOps, U64, U128, U192, Uint};
 
     #[test]
     fn concat() {
@@ -79,5 +72,16 @@ mod tests {
 
         let res: U128 = U64::ONE.square_wide().into();
         assert_eq!(res, U128::ONE);
+    }
+
+    #[test]
+    fn infer_sizes() {
+        let wide = U64::ONE.concat(&Uint::ZERO);
+        assert_eq!(wide.bits_precision(), 128);
+        assert_eq!(wide, Uint::ONE);
+
+        let wide = U64::ONE.concat_mixed(&U128::ZERO);
+        assert_eq!(wide.bits_precision(), 192);
+        assert_eq!(wide, Uint::ONE);
     }
 }

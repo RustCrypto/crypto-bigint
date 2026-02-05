@@ -461,12 +461,15 @@ mod tests {
     }
 
     mod xgcd {
-        use crate::{Concat, Int, U64, U128, U256, U512, U1024, U2048, U4096, U8192, U16384, Uint};
+        use crate::{
+            ConcatSize, Int, MatchSize, U64, U128, U256, U512, U1024, U2048, U4096, U8192, U16384,
+            Uint,
+        };
         use core::ops::Div;
 
         fn test<const LIMBS: usize, const DOUBLE: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
         where
-            Uint<LIMBS>: Concat<Output = Uint<DOUBLE>>,
+            ConcatSize<LIMBS, LIMBS>: MatchSize<Target = Uint<DOUBLE>>,
         {
             let output = lhs.xgcd(&rhs);
             assert_eq!(output.gcd, lhs.gcd(&rhs));
@@ -485,7 +488,7 @@ mod tests {
 
         fn run_tests<const LIMBS: usize, const DOUBLE: usize>()
         where
-            Uint<LIMBS>: Concat<Output = Uint<DOUBLE>>,
+            ConcatSize<LIMBS, LIMBS>: MatchSize<Target = Uint<DOUBLE>>,
         {
             let min = Int::MIN.abs();
             test(Uint::ZERO, Uint::ZERO);

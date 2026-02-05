@@ -1,6 +1,6 @@
 //! `From`-like conversions for [`Uint`].
 
-use crate::{ConcatMixed, Limb, SplitMixed, U64, U128, Uint, WideWord, Word};
+use crate::{ConcatSize, Limb, MatchSize, SplitSize, U64, U128, Uint, WideWord, Word};
 
 macro_rules! check_limbs {
     ($limbs:expr) => {
@@ -235,7 +235,7 @@ impl<const LIMBS: usize> From<Limb> for Uint<LIMBS> {
 
 impl<const L: usize, const H: usize, const LIMBS: usize> From<(Uint<L>, Uint<H>)> for Uint<LIMBS>
 where
-    Uint<L>: ConcatMixed<Uint<H>, MixedOutput = Uint<LIMBS>>,
+    ConcatSize<L, H>: MatchSize<Target = Uint<LIMBS>>,
 {
     #[inline]
     fn from(nums: (Uint<L>, Uint<H>)) -> Uint<LIMBS> {
@@ -245,7 +245,7 @@ where
 
 impl<const L: usize, const H: usize, const LIMBS: usize> From<&(Uint<L>, Uint<H>)> for Uint<LIMBS>
 where
-    Uint<L>: ConcatMixed<Uint<H>, MixedOutput = Uint<LIMBS>>,
+    ConcatSize<L, H>: MatchSize<Target = Uint<LIMBS>>,
 {
     #[inline]
     fn from(nums: &(Uint<L>, Uint<H>)) -> Uint<LIMBS> {
@@ -255,10 +255,20 @@ where
 
 impl<const L: usize, const H: usize, const LIMBS: usize> From<Uint<LIMBS>> for (Uint<L>, Uint<H>)
 where
-    Uint<LIMBS>: SplitMixed<Uint<L>, Uint<H>>,
+    SplitSize<LIMBS, L>: MatchSize<Target = Uint<H>>,
 {
     #[inline]
     fn from(num: Uint<LIMBS>) -> (Uint<L>, Uint<H>) {
+        num.split_mixed()
+    }
+}
+
+impl<const L: usize, const H: usize, const LIMBS: usize> From<&Uint<LIMBS>> for (Uint<L>, Uint<H>)
+where
+    SplitSize<LIMBS, L>: MatchSize<Target = Uint<H>>,
+{
+    #[inline]
+    fn from(num: &Uint<LIMBS>) -> (Uint<L>, Uint<H>) {
         num.split_mixed()
     }
 }

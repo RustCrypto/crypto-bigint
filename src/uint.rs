@@ -6,9 +6,10 @@ pub use extra_sizes::*;
 pub(crate) use ref_type::UintRef;
 
 use crate::{
-    Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, EncodedUint, FixedInteger,
-    Int, Integer, Limb, NonZero, Odd, One, Unsigned, UnsignedMontyForm, Word, Zero, limb::nlimbs,
-    modular::FixedMontyForm, primitives::u32_bits,
+    Bounded, Choice, ConcatSize, ConstOne, ConstZero, Constants, CtEq, CtOption, EncodedSize,
+    EncodedUint, FixedInteger, Int, Integer, Limb, MatchSize, NonZero, Odd, One, SplitSize,
+    Unsigned, UnsignedMontyForm, Word, Zero, limb::nlimbs, modular::FixedMontyForm,
+    primitives::u32_bits,
 };
 use core::fmt;
 
@@ -54,6 +55,7 @@ mod resize;
 mod root;
 mod shl;
 mod shr;
+pub(crate) mod sizes;
 mod split;
 mod sqrt;
 mod sub;

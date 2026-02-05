@@ -6,7 +6,7 @@ mod der;
 mod rlp;
 
 use super::Uint;
-use crate::{DecodeError, Encoding, Limb, Word};
+use crate::{DecodeError, EncodedSize, Encoding, Limb, MatchSize, Word};
 use core::{fmt, ops::Deref};
 
 #[cfg(feature = "alloc")]
@@ -340,6 +340,50 @@ impl<const LIMBS: usize> Deref for EncodedUint<LIMBS> {
     type Target = [u8];
     fn deref(&self) -> &Self::Target {
         self.as_ref()
+    }
+}
+
+impl<const BYTES: usize, const LIMBS: usize> From<EncodedUint<LIMBS>> for [u8; BYTES]
+where
+    EncodedUint<LIMBS>: MatchSize<Target = EncodedSize<BYTES>>,
+{
+    #[inline]
+    fn from(input: EncodedUint<LIMBS>) -> Self {
+        Self::from(&input)
+    }
+}
+
+impl<const BYTES: usize, const LIMBS: usize> From<&EncodedUint<LIMBS>> for [u8; BYTES]
+where
+    EncodedUint<LIMBS>: MatchSize<Target = EncodedSize<BYTES>>,
+{
+    #[inline]
+    fn from(input: &EncodedUint<LIMBS>) -> Self {
+        let mut output = [0u8; BYTES];
+        output.as_mut_slice().copy_from_slice(input.as_ref());
+        output
+    }
+}
+
+impl<const BYTES: usize, const LIMBS: usize> From<[u8; BYTES]> for EncodedUint<LIMBS>
+where
+    EncodedSize<BYTES>: MatchSize<Target = EncodedUint<LIMBS>>,
+{
+    #[inline]
+    fn from(input: [u8; BYTES]) -> Self {
+        Self::from(&input)
+    }
+}
+
+impl<const BYTES: usize, const LIMBS: usize> From<&[u8; BYTES]> for EncodedUint<LIMBS>
+where
+    EncodedSize<BYTES>: MatchSize<Target = EncodedUint<LIMBS>>,
+{
+    #[inline]
+    fn from(input: &[u8; BYTES]) -> Self {
+        let mut output = Self::default();
+        output.as_mut().copy_from_slice(input.as_ref());
+        output
     }
 }
 
@@ -955,7 +999,7 @@ const fn radix_large_divisor(
 
 #[cfg(test)]
 mod tests {
-    use crate::{DecodeError, Limb, U64, U128};
+    use crate::{DecodeError, EncodedUint, Limb, U64, U128};
     use hex_literal::hex;
 
     #[cfg(feature = "alloc")]
@@ -1224,5 +1268,14 @@ mod tests {
                 assert_eq!(super::der::count_der_be_bytes(&n.limbs), 15);
             }
         }
+    }
+
+    #[test]
+    fn infer_sizes() {
+        let n = EncodedUint::from(b"0011223344556677");
+        assert_eq!(n.as_slice().len(), 16);
+
+        let n = EncodedUint::from(*b"0011223344556677");
+        assert_eq!(n.as_slice().len(), 16);
     }
 }
