@@ -1,34 +1,37 @@
 use crate::{ConcatSize, Limb, MatchSize, Uint};
 
-impl<const L: usize> Uint<L> {
-    /// Concatenate the two values, with `self` as least significant and `hi` as the most
-    /// significant.
+impl<const LIMBS: usize> Uint<LIMBS> {
+    /// Concatenate the limbs of two `Uint` instances of the same size, with `self` as least
+    /// significant and `hi` as the most significant.
     #[must_use]
-    pub const fn concat<const O: usize>(&self, hi: &Self) -> Uint<O>
+    pub const fn concat<const WIDE_LIMBS: usize>(&self, hi: &Self) -> Uint<WIDE_LIMBS>
     where
-        ConcatSize<L, L>: MatchSize<Target = Uint<O>>,
+        ConcatSize<LIMBS, LIMBS>: MatchSize<Target = Uint<WIDE_LIMBS>>,
     {
         Uint::concat_mixed(self, hi)
     }
 
-    /// Concatenate the two values, with `lo` as least significant and `hi`
-    /// as the most significant.
+    /// Concatenate the limbs of two `Uint` instances, with `self` as least significant and
+    /// `hi` as the most significant.
     #[inline]
     #[must_use]
-    pub const fn concat_mixed<const H: usize, const O: usize>(&self, hi: &Uint<H>) -> Uint<O>
+    pub const fn concat_mixed<const HI_LIMBS: usize, const WIDE_LIMBS: usize>(
+        &self,
+        hi: &Uint<HI_LIMBS>,
+    ) -> Uint<WIDE_LIMBS>
     where
-        ConcatSize<L, H>: MatchSize<Target = Uint<O>>,
+        ConcatSize<LIMBS, HI_LIMBS>: MatchSize<Target = Uint<WIDE_LIMBS>>,
     {
-        let top = L + H;
-        let top = if top < O { top } else { O };
-        let mut limbs = [Limb::ZERO; O];
+        let top = LIMBS + HI_LIMBS;
+        let top = if top < WIDE_LIMBS { top } else { WIDE_LIMBS };
+        let mut limbs = [Limb::ZERO; WIDE_LIMBS];
         let mut i = 0;
 
         while i < top {
-            if i < L {
+            if i < LIMBS {
                 limbs[i] = self.limbs[i];
             } else {
-                limbs[i] = hi.limbs[i - L];
+                limbs[i] = hi.limbs[i - LIMBS];
             }
             i += 1;
         }

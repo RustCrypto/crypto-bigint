@@ -1,33 +1,35 @@
 use crate::{Limb, MatchSize, SplitSize, Uint};
 
-impl<const I: usize> Uint<I> {
-    /// Split this number in half into low and high components.
+impl<const LIMBS: usize> Uint<LIMBS> {
+    /// Split the limbs of this `Uint` into low and high components of the same size.
     #[must_use]
-    pub const fn split<const O: usize>(&self) -> (Uint<O>, Uint<O>)
+    pub const fn split<const HALF_LIMBS: usize>(&self) -> (Uint<HALF_LIMBS>, Uint<HALF_LIMBS>)
     where
-        SplitSize<I, O>: MatchSize<Target = Uint<O>>,
+        SplitSize<LIMBS, HALF_LIMBS>: MatchSize<Target = Uint<HALF_LIMBS>>,
     {
         self.split_mixed()
     }
 
-    /// Split this number into low and high components respectively.
+    /// Split the limbs of this `Uint` into low and high components.
     #[inline]
     #[must_use]
-    pub const fn split_mixed<const L: usize, const H: usize>(&self) -> (Uint<L>, Uint<H>)
+    pub const fn split_mixed<const LO_LIMBS: usize, const HI_LIMBS: usize>(
+        &self,
+    ) -> (Uint<LO_LIMBS>, Uint<HI_LIMBS>)
     where
-        SplitSize<I, L>: MatchSize<Target = Uint<H>>,
+        SplitSize<LIMBS, LO_LIMBS>: MatchSize<Target = Uint<HI_LIMBS>>,
     {
-        let top = L + H;
-        let top = if top < I { top } else { I };
-        let mut lo = [Limb::ZERO; L];
-        let mut hi = [Limb::ZERO; H];
+        let top = LO_LIMBS + HI_LIMBS;
+        let top = if top < LIMBS { top } else { LIMBS };
+        let mut lo = [Limb::ZERO; LO_LIMBS];
+        let mut hi = [Limb::ZERO; HI_LIMBS];
         let mut i = 0;
 
         while i < top {
-            if i < L {
+            if i < LO_LIMBS {
                 lo[i] = self.limbs[i];
             } else {
-                hi[i - L] = self.limbs[i];
+                hi[i - LO_LIMBS] = self.limbs[i];
             }
             i += 1;
         }
