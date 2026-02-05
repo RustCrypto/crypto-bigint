@@ -1,7 +1,10 @@
-use crate::{Limb, MatchSize, SplitSize, Uint};
+//! Support for splitting the limbs of `Uint` instances.
+
+use crate::{MatchSize, SplitSize, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Split the limbs of this `Uint` into low and high components of the same size.
+    #[inline(always)]
     #[must_use]
     pub const fn split<const HALF_LIMBS: usize>(&self) -> (Uint<HALF_LIMBS>, Uint<HALF_LIMBS>)
     where
@@ -11,7 +14,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Split the limbs of this `Uint` into low and high components.
-    #[inline]
+    #[inline(always)]
     #[must_use]
     pub const fn split_mixed<const LO_LIMBS: usize, const HI_LIMBS: usize>(
         &self,
@@ -19,22 +22,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     where
         SplitSize<LIMBS, LO_LIMBS>: MatchSize<Target = Uint<HI_LIMBS>>,
     {
-        let top = LO_LIMBS + HI_LIMBS;
-        let top = if top < LIMBS { top } else { LIMBS };
-        let mut lo = [Limb::ZERO; LO_LIMBS];
-        let mut hi = [Limb::ZERO; HI_LIMBS];
-        let mut i = 0;
-
-        while i < top {
-            if i < LO_LIMBS {
-                lo[i] = self.limbs[i];
-            } else {
-                hi[i - LO_LIMBS] = self.limbs[i];
-            }
-            i += 1;
-        }
-
-        (Uint { limbs: lo }, Uint { limbs: hi })
+        let (src_lo, src_hi) = self.as_uint_ref().split_at(LO_LIMBS);
+        (src_lo.to_uint_resize(), src_hi.to_uint_resize())
     }
 }
 

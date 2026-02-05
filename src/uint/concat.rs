@@ -1,8 +1,11 @@
-use crate::{ConcatSize, Limb, MatchSize, Uint};
+//! Support for concatenating the limbs of `Uint` instances.
+
+use crate::{ConcatSize, MatchSize, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Concatenate the limbs of two `Uint` instances of the same size, with `self` as least
     /// significant and `hi` as the most significant.
+    #[inline(always)]
     #[must_use]
     pub const fn concat<const WIDE_LIMBS: usize>(&self, hi: &Self) -> Uint<WIDE_LIMBS>
     where
@@ -13,7 +16,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Concatenate the limbs of two `Uint` instances, with `self` as least significant and
     /// `hi` as the most significant.
-    #[inline]
+    #[inline(always)]
     #[must_use]
     pub const fn concat_mixed<const HI_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
@@ -22,21 +25,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     where
         ConcatSize<LIMBS, HI_LIMBS>: MatchSize<Target = Uint<WIDE_LIMBS>>,
     {
-        let top = LIMBS + HI_LIMBS;
-        let top = if top < WIDE_LIMBS { top } else { WIDE_LIMBS };
-        let mut limbs = [Limb::ZERO; WIDE_LIMBS];
-        let mut i = 0;
-
-        while i < top {
-            if i < LIMBS {
-                limbs[i] = self.limbs[i];
-            } else {
-                limbs[i] = hi.limbs[i - LIMBS];
-            }
-            i += 1;
-        }
-
-        Uint { limbs }
+        let mut res = Uint::ZERO;
+        let (res_lo, res_hi) = res.as_mut_uint_ref().split_at_mut(LIMBS);
+        res_lo.copy_from(self.as_uint_ref());
+        res_hi.copy_from(hi.as_uint_ref());
+        res
     }
 }
 
