@@ -42,7 +42,7 @@ rand_core = "0.10"
 
 [target.'cfg(any(unix, windows))'.dev-dependencies]
 criterion = { version = "0.7", features = ["html_reports"] }
-proptest = "1.9"
+proptest = "1.10"
 
 [features]
 default = ["rand_core"]
