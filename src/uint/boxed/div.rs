@@ -212,7 +212,7 @@ impl<Rhs: AsMut<UintRef>> DivAssign<NonZero<Rhs>> for BoxedUint {
 
 impl DivVartime for BoxedUint {
     fn div_vartime(&self, rhs: &NonZero<BoxedUint>) -> Self {
-        self.div_rem_vartime(rhs).0
+        self.wrapping_div_vartime(rhs)
     }
 }
 
@@ -329,13 +329,28 @@ impl<Rhs: Unsigned> RemMixed<Rhs> for BoxedUint {
 #[cfg(test)]
 mod tests {
     use super::{BoxedUint, Limb, NonZero};
-    use crate::{CtAssign, DivVartime, One, Resize, UintRef, Zero};
+    use crate::{CtAssign, DivVartime, One, Resize, UintRef, Wrapping, Zero};
 
     #[test]
-    fn rem() {
+    fn div_trait() {
         let n = BoxedUint::from(0xFFEECCBBAA99887766u128);
         let p = NonZero::new(BoxedUint::from(997u128)).unwrap();
-        assert_eq!(BoxedUint::from(648u128), n.rem(&p));
+        let res = BoxedUint::from(0x41b74857375c0f86u64);
+        assert_eq!(&n / &p, res);
+        assert_eq!(&n / p.clone(), res);
+        assert_eq!(n.clone() / &p, res);
+        assert_eq!(n / p, res);
+    }
+
+    #[test]
+    fn rem_trait() {
+        let n = BoxedUint::from(0xFFEECCBBAA99887766u128);
+        let p = NonZero::new(BoxedUint::from(997u128)).unwrap();
+        let res = BoxedUint::from(648u128);
+        assert_eq!(&n % &p, res);
+        assert_eq!(&n % p.clone(), res);
+        assert_eq!(n.clone() % &p, res);
+        assert_eq!(n % p, res);
     }
 
     #[test]
@@ -443,5 +458,23 @@ mod tests {
             a.checked_div(b.as_ref()).into_option(),
             Some(BoxedUint::from(2707385u64))
         );
+    }
+
+    #[test]
+    fn wrapping_div() {
+        let a = Wrapping(BoxedUint::from(1234567890u64));
+        let b = NonZero::new(BoxedUint::from(456u64)).expect("ensured non-zero");
+        let res = Wrapping(BoxedUint::from(2707385u64));
+        assert_eq!(&a / &b, res);
+        assert_eq!(&a / b.clone(), res);
+        assert_eq!(a.clone() / &b, res);
+        assert_eq!(a.clone() / b.clone(), res);
+
+        let mut c = a.clone();
+        c /= &b;
+        assert_eq!(c, res);
+        let mut c = a.clone();
+        c /= b;
+        assert_eq!(c, res);
     }
 }
