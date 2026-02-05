@@ -664,51 +664,6 @@ pub trait CheckedSub<Rhs = Self>: Sized {
     fn checked_sub(&self, rhs: &Rhs) -> CtOption<Self>;
 }
 
-/// Concatenate two numbers into a "wide" double-width value, using the `hi` value as the most
-/// significant portion of the resulting value.
-pub trait Concat: ConcatMixed<Self, MixedOutput = Self::Output> {
-    /// Concatenated output: twice the width of `Self`.
-    type Output: Integer;
-
-    /// Concatenate the two halves, with `self` as least significant and `hi` as the most significant.
-    #[must_use]
-    fn concat(&self, hi: &Self) -> Self::Output {
-        self.concat_mixed(hi)
-    }
-}
-
-/// Concatenate two numbers into a "wide" combined-width value, using the `hi` value as the most
-/// significant value.
-pub trait ConcatMixed<Hi: ?Sized = Self> {
-    /// Concatenated output: combination of `Self` and `Hi`.
-    type MixedOutput: Integer;
-
-    /// Concatenate the two values, with `self` as least significant and `hi` as the most
-    /// significant.
-    #[must_use]
-    fn concat_mixed(&self, hi: &Hi) -> Self::MixedOutput;
-}
-
-/// Split a number in half, returning the least significant half followed by the most significant.
-pub trait Split: SplitMixed<Self::Output, Self::Output> {
-    /// Split output: low/high components of the value.
-    type Output;
-
-    /// Split this number in half, returning its low and high components respectively.
-    #[must_use]
-    fn split(&self) -> (Self::Output, Self::Output) {
-        self.split_mixed()
-    }
-}
-
-/// Split a number into parts, returning the least significant part followed by the most
-/// significant.
-pub trait SplitMixed<Lo, Hi> {
-    /// Split this number into parts, returning its low and high components respectively.
-    #[must_use]
-    fn split_mixed(&self) -> (Lo, Hi);
-}
-
 /// Encoding support.
 pub trait Encoding: Sized {
     /// Byte array representation.
@@ -1265,6 +1220,12 @@ pub(crate) trait AmmMultiplier<'a>: MontyMultiplier<'a> {
 
     /// Perform a squaring using "Almost Montgomery Multiplication", assigning the result to `a`.
     fn square_amm_assign(&mut self, a: &mut <Self::Monty as MontyForm>::Integer);
+}
+
+/// Connect input sizes to output sizes for inferring value types.
+pub trait MatchSize {
+    /// The target type for an input size descriptor.
+    type Target;
 }
 
 #[cfg(test)]

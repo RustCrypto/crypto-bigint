@@ -1,4 +1,4 @@
-use crate::{CheckedMul, Choice, ConcatMixed, CtOption, Int, Uint};
+use crate::{CheckedMul, Choice, ConcatSize, CtOption, Int, MatchSize, Uint};
 use core::ops::Mul;
 
 impl<const LIMBS: usize> Int<LIMBS> {
@@ -81,7 +81,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         rhs: &Uint<RHS_LIMBS>,
     ) -> Int<WIDE_LIMBS>
     where
-        Uint<LIMBS>: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+        ConcatSize<LIMBS, RHS_LIMBS>: MatchSize<Target = Uint<WIDE_LIMBS>>,
     {
         let (lhs_abs, lhs_sign) = self.abs_sign();
         let product_abs = lhs_abs.concatenating_mul(rhs);

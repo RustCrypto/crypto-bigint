@@ -168,6 +168,7 @@ pub use crate::{
         div_limb::Reciprocal,
         encoding::{EncodedUint, TryFromSliceError},
         ref_type::UintRef,
+        sizes::{ConcatSize, EncodedSize, SplitSize},
         *,
     },
     word::{WideWord, Word},
