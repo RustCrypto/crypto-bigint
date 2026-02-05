@@ -951,17 +951,17 @@ impl RadixDivisionParams {
 /// largest power of `radix` that can fit within a limb.
 #[cfg(feature = "alloc")]
 #[allow(trivial_numeric_casts)]
-const fn radix_large_divisor(
+const fn radix_large_divisor<const LIMBS: usize>(
     radix: u32,
     div_limb: NonZero<Limb>,
     digits_limb: usize,
-) -> ([Limb; RADIX_ENCODING_LIMBS_LARGE], usize, u32) {
-    let mut out = [Limb::ZERO; RADIX_ENCODING_LIMBS_LARGE];
+) -> ([Limb; LIMBS], usize, u32) {
+    let mut out = [Limb::ZERO; LIMBS];
     let mut digits_large = digits_limb;
     let mut top = 1;
     out[0] = div_limb.0;
     // Calculate largest power of div_limb (itself a power of radix)
-    while top < RADIX_ENCODING_LIMBS_LARGE {
+    while top < LIMBS {
         let mut carry = Limb::ZERO;
         let mut j = 0;
         while j < top {
@@ -979,7 +979,7 @@ const fn radix_large_divisor(
     loop {
         let mut carry = Limb::ZERO;
         let mut j = 0;
-        while j < RADIX_ENCODING_LIMBS_LARGE {
+        while j < LIMBS {
             (out_test[j], carry) = out[j].carrying_mul_add(Limb(radix as Word), carry, Limb::ZERO);
             j += 1;
         }
@@ -1003,7 +1003,11 @@ mod tests {
     use hex_literal::hex;
 
     #[cfg(feature = "alloc")]
-    use {super::radix_encode_limbs_to_string, alloc::format};
+    use {
+        super::{radix_encode_limbs_to_string, radix_large_divisor},
+        crate::{NonZero, Uint, Word},
+        alloc::format,
+    };
 
     cpubits::cpubits! {
         32 => {
@@ -1280,10 +1284,28 @@ mod tests {
         let n = EncodedUint::from(*bytes);
         assert_eq!(n.as_slice(), bytes);
 
-        let n: [u8; _] = EncodedUint::from(bytes).into();
+        let n: [u8; 16] = EncodedUint::from(bytes).into();
         assert_eq!(n.as_slice(), bytes);
 
-        let n: [u8; _] = (&EncodedUint::from(bytes)).into();
+        let n: [u8; 16] = (&EncodedUint::from(bytes)).into();
         assert_eq!(n.as_slice(), bytes);
+    }
+
+    #[allow(clippy::cast_lossless)]
+    #[allow(trivial_numeric_casts)]
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn test_radix_large_divisor() {
+        let radix = 5u32;
+        let digits_limb = Word::MAX.ilog(radix as Word);
+        let div_limb = NonZero(Limb((radix as Word).pow(digits_limb)));
+        let (div_large, _digits_large, _shift_large) =
+            radix_large_divisor::<4>(radix, div_limb, digits_limb as usize);
+        assert!(
+            Uint::new(div_large)
+                .checked_mul(&Uint::<1>::from_u32(radix))
+                .is_none()
+                .to_bool()
+        );
     }
 }
