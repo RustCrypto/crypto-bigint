@@ -1272,10 +1272,18 @@ mod tests {
 
     #[test]
     fn infer_sizes() {
-        let n = EncodedUint::from(b"0011223344556677");
-        assert_eq!(n.as_slice().len(), 16);
+        let bytes = b"0011223344556677";
 
-        let n = EncodedUint::from(*b"0011223344556677");
-        assert_eq!(n.as_slice().len(), 16);
+        let n = EncodedUint::from(bytes);
+        assert_eq!(n.as_slice(), bytes);
+
+        let n = EncodedUint::from(*bytes);
+        assert_eq!(n.as_slice(), bytes);
+
+        let n: [u8; _] = EncodedUint::from(bytes).into();
+        assert_eq!(n.as_slice(), bytes);
+
+        let n: [u8; _] = (&EncodedUint::from(bytes)).into();
+        assert_eq!(n.as_slice(), bytes);
     }
 }
