@@ -109,73 +109,58 @@ mod tests {
     use crate::{Limb, NonZero, Random, RandomMod, Uint};
     use rand_core::SeedableRng;
 
-    macro_rules! test_mul_mod_special {
-        ($size:expr, $test_name:ident) => {
-            #[test]
-            fn $test_name() {
-                let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
-                let moduli = [
-                    NonZero::<Limb>::random_from_rng(&mut rng),
-                    NonZero::<Limb>::random_from_rng(&mut rng),
+    #[test]
+    fn mul_mod_special() {
+        fn test_size<const LIMBS: usize>() {
+            let mut rng = chacha20::ChaCha8Rng::seed_from_u64(1);
+            let moduli = [
+                NonZero::<Limb>::random_from_rng(&mut rng),
+                NonZero::<Limb>::random_from_rng(&mut rng),
+            ];
+
+            for special in &moduli {
+                let p = &NonZero::new(Uint::ZERO.wrapping_sub(&Uint::from(special.get()))).unwrap();
+
+                let minus_one = p.wrapping_sub(&Uint::ONE);
+
+                let base_cases = [
+                    (Uint::ZERO, Uint::ZERO, Uint::ZERO),
+                    (Uint::ONE, Uint::ZERO, Uint::ZERO),
+                    (Uint::ZERO, Uint::ONE, Uint::ZERO),
+                    (Uint::ONE, Uint::ONE, Uint::ONE),
+                    (minus_one, minus_one, Uint::ONE),
+                    (minus_one, Uint::ONE, minus_one),
+                    (Uint::ONE, minus_one, minus_one),
                 ];
+                for (a, b, c) in &base_cases {
+                    let x = a.mul_mod_special(b, *special.as_ref());
+                    assert_eq!(*c, x, "{} * {} mod {} = {} != {}", a, b, p, x, c);
+                }
 
-                for special in &moduli {
-                    let p =
-                        &NonZero::new(Uint::ZERO.wrapping_sub(&Uint::from(special.get()))).unwrap();
+                let rounds = if cfg!(miri) { 10 } else { 100 };
+                for _i in 0..rounds {
+                    let a = Uint::<LIMBS>::random_mod_vartime(&mut rng, p);
+                    let b = Uint::<LIMBS>::random_mod_vartime(&mut rng, p);
 
-                    let minus_one = p.wrapping_sub(&Uint::ONE);
+                    let c = a.mul_mod_special(&b, *special.as_ref());
+                    assert!(c < **p, "not reduced: {} >= {} ", c, p);
 
-                    let base_cases = [
-                        (Uint::ZERO, Uint::ZERO, Uint::ZERO),
-                        (Uint::ONE, Uint::ZERO, Uint::ZERO),
-                        (Uint::ZERO, Uint::ONE, Uint::ZERO),
-                        (Uint::ONE, Uint::ONE, Uint::ONE),
-                        (minus_one, minus_one, Uint::ONE),
-                        (minus_one, Uint::ONE, minus_one),
-                        (Uint::ONE, minus_one, minus_one),
-                    ];
-                    for (a, b, c) in &base_cases {
-                        let x = a.mul_mod_special(&b, *special.as_ref());
-                        assert_eq!(*c, x, "{} * {} mod {} = {} != {}", a, b, p, x, c);
-                    }
-
-                    let rounds = if cfg!(miri) { 10 } else { 100 };
-                    for _i in 0..rounds {
-                        let a = Uint::<$size>::random_mod_vartime(&mut rng, p);
-                        let b = Uint::<$size>::random_mod_vartime(&mut rng, p);
-
-                        let c = a.mul_mod_special(&b, *special.as_ref());
-                        assert!(c < **p, "not reduced: {} >= {} ", c, p);
-
-                        let expected = {
-                            let (lo, hi) = a.widening_mul(&b);
-                            let mut prod = Uint::<{ 2 * $size }>::ZERO;
-                            prod.limbs[..$size].clone_from_slice(&lo.limbs);
-                            prod.limbs[$size..].clone_from_slice(&hi.limbs);
-                            let mut modulus = Uint::ZERO;
-                            modulus.limbs[..$size].clone_from_slice(&p.as_ref().limbs);
-                            let reduced = prod.rem_vartime(&NonZero::new(modulus).unwrap());
-                            let mut expected = Uint::ZERO;
-                            expected.limbs[..].clone_from_slice(&reduced.limbs[..$size]);
-                            expected
-                        };
-                        assert_eq!(c, expected, "incorrect result");
-                    }
+                    let expected = {
+                        let prod = a.widening_mul(&b);
+                        Uint::rem_wide_vartime(prod, p)
+                    };
+                    assert_eq!(c, expected, "incorrect result");
                 }
             }
-        };
-    }
+        }
 
-    test_mul_mod_special!(1, mul_mod_special_1);
-    test_mul_mod_special!(2, mul_mod_special_2);
-    test_mul_mod_special!(3, mul_mod_special_3);
-    test_mul_mod_special!(4, mul_mod_special_4);
-    test_mul_mod_special!(5, mul_mod_special_5);
-    test_mul_mod_special!(6, mul_mod_special_6);
-    test_mul_mod_special!(7, mul_mod_special_7);
-    test_mul_mod_special!(8, mul_mod_special_8);
-    test_mul_mod_special!(9, mul_mod_special_9);
-    test_mul_mod_special!(10, mul_mod_special_10);
-    test_mul_mod_special!(11, mul_mod_special_11);
-    test_mul_mod_special!(12, mul_mod_special_12);
+        test_size::<1>();
+        test_size::<2>();
+        test_size::<3>();
+        if cfg!(not(miri)) {
+            test_size::<4>();
+            test_size::<8>();
+            test_size::<16>();
+        }
+    }
 }
