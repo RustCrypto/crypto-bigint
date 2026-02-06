@@ -7,8 +7,8 @@ pub(crate) use ref_type::UintRef;
 
 use crate::{
     Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, EncodedUint, FixedInteger,
-    Int, Integer, Limb, NonZero, Odd, One, Unsigned, UnsignedMontyForm, Word, Zero, limb::nlimbs,
-    modular::FixedMontyForm, primitives::u32_bits,
+    Int, Integer, Limb, NonZero, Odd, One, Unsigned, UnsignedWithMontyForm, Word, Zero,
+    limb::nlimbs, modular::FixedMontyForm, primitives::u32_bits,
 };
 use core::fmt;
 
@@ -358,7 +358,7 @@ impl<const LIMBS: usize> Unsigned for Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize> UnsignedMontyForm for Uint<LIMBS> {
+impl<const LIMBS: usize> UnsignedWithMontyForm for Uint<LIMBS> {
     type MontyForm = FixedMontyForm<LIMBS>;
 }
 

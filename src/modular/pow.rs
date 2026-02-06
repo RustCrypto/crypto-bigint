@@ -1,6 +1,6 @@
 use super::FixedMontyParams;
 use super::mul::{almost_montgomery_reduce, mul_montgomery_form, square_repeat_montgomery_form};
-use crate::{AmmMultiplier, CtEq, Limb, MontyForm, Uint, UnsignedMontyForm, Word, word};
+use crate::{AmmMultiplier, CtEq, Limb, MontyForm, Uint, UnsignedWithMontyForm, Word, word};
 use core::{array, mem};
 
 #[cfg(feature = "alloc")]
@@ -46,7 +46,7 @@ pub fn pow_montgomery_form_amm<'a, U>(
     params: &'a <U::MontyForm as MontyForm>::Params,
 ) -> U
 where
-    U: UnsignedMontyForm,
+    U: UnsignedWithMontyForm,
     <U::MontyForm as MontyForm>::Multiplier<'a>: AmmMultiplier<'a>,
 {
     let one = params.as_ref().one().clone();
