@@ -19,7 +19,7 @@ impl BoxedUint {
     pub fn add_mod_assign(&mut self, rhs: &Self, p: &NonZero<Self>) {
         debug_assert_eq!(self.bits_precision(), p.bits_precision());
         debug_assert_eq!(rhs.bits_precision(), p.bits_precision());
-        debug_assert!(&*self < p.as_ref());
+        debug_assert!(*self < p.as_ref());
         debug_assert!(rhs < p.as_ref());
 
         let carry = self.carrying_add_assign(rhs, Limb::ZERO);

@@ -42,7 +42,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///   0 is Equal
     ///   1 is Greater
     #[inline]
-    pub(crate) const fn cmp(lhs: &Self, rhs: &Self) -> i8 {
+    pub(crate) const fn cmp(lhs: &Self, rhs: &Self) -> Ordering {
         Uint::cmp(&lhs.invert_msb().0, &rhs.invert_msb().0)
     }
 
@@ -57,12 +57,7 @@ impl<const LIMBS: usize> Eq for Int<LIMBS> {}
 
 impl<const LIMBS: usize> Ord for Int<LIMBS> {
     fn cmp(&self, other: &Self) -> Ordering {
-        let c = Self::cmp(self, other);
-        match c {
-            -1 => Ordering::Less,
-            0 => Ordering::Equal,
-            _ => Ordering::Greater,
-        }
+        Self::cmp(self, other)
     }
 }
 

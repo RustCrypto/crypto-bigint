@@ -2,9 +2,10 @@
 //!
 //! Constant-time unless explicitly noted otherwise.
 
-use super::Uint;
-use crate::{Choice, CtEq, Limb, UintRef, word};
 use core::cmp::Ordering;
+
+use super::Uint;
+use crate::{Choice, CtEq, Limb, UintRef};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Returns [`Choice::TRUE`] if `self` != `0` or [`Choice::FALSE`] otherwise.
@@ -58,50 +59,19 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Returns the truthy value if `self > rhs` and the falsy value otherwise.
     #[inline]
     pub(crate) const fn gt(lhs: &Self, rhs: &Self) -> Choice {
-        let (_res, borrow) = rhs.borrowing_sub(lhs, Limb::ZERO);
-        word::choice_from_mask(borrow.0)
+        UintRef::lt(rhs.as_uint_ref(), lhs.as_uint_ref())
     }
 
-    /// Returns the ordering between `self` and `rhs` as an i8.
-    /// Values correspond to the Ordering enum:
-    ///   -1 is Less
-    ///   0 is Equal
-    ///   1 is Greater
+    /// Returns the Ordering between `self` and `rhs`.
     #[inline]
-    #[allow(clippy::cast_possible_wrap)]
-    pub(crate) const fn cmp(lhs: &Self, rhs: &Self) -> i8 {
-        let mut i = 0;
-        let mut borrow = Limb::ZERO;
-        let mut diff = Limb::ZERO;
-
-        while i < LIMBS {
-            let (w, b) = rhs.limbs[i].borrowing_sub(lhs.limbs[i], borrow);
-            diff = diff.bitor(w);
-            borrow = b;
-            i += 1;
-        }
-        let sgn = ((borrow.0 & 2) as i8) - 1;
-        (diff.is_nonzero().to_u8_vartime() as i8) * sgn
+    pub(crate) const fn cmp(lhs: &Self, rhs: &Self) -> Ordering {
+        UintRef::cmp(lhs.as_uint_ref(), rhs.as_uint_ref())
     }
 
     /// Returns the Ordering between `self` and `rhs` in variable time.
     #[must_use]
     pub const fn cmp_vartime(&self, rhs: &Self) -> Ordering {
-        let mut i = LIMBS - 1;
-        loop {
-            let (val, borrow) = self.limbs[i].borrowing_sub(rhs.limbs[i], Limb::ZERO);
-            if val.0 != 0 {
-                return if borrow.0 != 0 {
-                    Ordering::Less
-                } else {
-                    Ordering::Greater
-                };
-            }
-            if i == 0 {
-                return Ordering::Equal;
-            }
-            i -= 1;
-        }
+        UintRef::cmp_vartime(self.as_uint_ref(), rhs.as_uint_ref())
     }
 }
 
@@ -109,12 +79,7 @@ impl<const LIMBS: usize> Eq for Uint<LIMBS> {}
 
 impl<const LIMBS: usize> Ord for Uint<LIMBS> {
     fn cmp(&self, other: &Self) -> Ordering {
-        let c = Self::cmp(self, other);
-        match c {
-            -1 => Ordering::Less,
-            0 => Ordering::Equal,
-            _ => Ordering::Greater,
-        }
+        Self::cmp(self, other)
     }
 }
 

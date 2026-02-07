@@ -5,30 +5,13 @@
 pub(super) use core::cmp::{Ordering, max};
 
 use super::BoxedUint;
-use crate::{CtAssign, CtEq, CtGt, CtLt, Limb, Uint};
+use crate::{CtEq, UintRef};
 
 impl BoxedUint {
     /// Returns the Ordering between `self` and `rhs` in variable time.
     #[must_use]
-    pub fn cmp_vartime(&self, rhs: &Self) -> Ordering {
-        debug_assert_eq!(self.limbs.len(), rhs.limbs.len());
-        let mut i = self.limbs.len() - 1;
-        loop {
-            // TODO: investigate if directly comparing limbs is faster than performing a
-            // subtraction between limbs
-            let (val, borrow) = self.limbs[i].borrowing_sub(rhs.limbs[i], Limb::ZERO);
-            if val.0 != 0 {
-                return if borrow.0 != 0 {
-                    Ordering::Less
-                } else {
-                    Ordering::Greater
-                };
-            }
-            if i == 0 {
-                return Ordering::Equal;
-            }
-            i -= 1;
-        }
+    pub fn cmp_vartime(&self, rhs: impl AsRef<UintRef>) -> Ordering {
+        self.as_uint_ref().cmp_vartime(rhs.as_ref())
     }
 
     /// Determine in variable time whether the `self` is zero.
@@ -38,42 +21,22 @@ impl BoxedUint {
 }
 
 impl Eq for BoxedUint {}
-impl PartialEq for BoxedUint {
-    fn eq(&self, other: &Self) -> bool {
-        self.ct_eq(other).into()
-    }
-}
 
-impl<const LIMBS: usize> PartialEq<Uint<LIMBS>> for BoxedUint {
-    fn eq(&self, other: &Uint<LIMBS>) -> bool {
-        self.eq(&Self::from(other))
+impl<Rhs: AsRef<UintRef> + ?Sized> PartialEq<Rhs> for BoxedUint {
+    fn eq(&self, other: &Rhs) -> bool {
+        self.ct_eq(other).into()
     }
 }
 
 impl Ord for BoxedUint {
     fn cmp(&self, other: &Self) -> Ordering {
-        let mut ret = Ordering::Equal;
-        ret.ct_assign(&Ordering::Greater, self.ct_gt(other));
-        ret.ct_assign(&Ordering::Less, self.ct_lt(other));
-
-        #[cfg(debug_assertions)]
-        if ret == Ordering::Equal {
-            debug_assert_eq!(self, other);
-        }
-
-        ret
+        UintRef::cmp(self.as_uint_ref(), other.as_ref())
     }
 }
 
-impl PartialOrd for BoxedUint {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl<const LIMBS: usize> PartialOrd<Uint<LIMBS>> for BoxedUint {
-    fn partial_cmp(&self, other: &Uint<LIMBS>) -> Option<Ordering> {
-        self.partial_cmp(&Self::from(other))
+impl<Rhs: AsRef<UintRef> + ?Sized> PartialOrd<Rhs> for BoxedUint {
+    fn partial_cmp(&self, other: &Rhs) -> Option<Ordering> {
+        Some(UintRef::cmp(self.as_uint_ref(), other.as_ref()))
     }
 }
 
@@ -86,7 +49,7 @@ mod tests {
     fn cmp() {
         let a = BoxedUint::zero();
         let b = BoxedUint::one();
-        let c = BoxedUint::max(64);
+        let c = BoxedUint::max(128);
 
         assert_eq!(a.cmp(&b), Ordering::Less);
         assert_eq!(a.cmp(&c), Ordering::Less);
@@ -99,5 +62,24 @@ mod tests {
         assert_eq!(b.cmp(&a), Ordering::Greater);
         assert_eq!(c.cmp(&a), Ordering::Greater);
         assert_eq!(c.cmp(&b), Ordering::Greater);
+    }
+
+    #[test]
+    fn cmp_uintref() {
+        let a = BoxedUint::zero();
+        let b = BoxedUint::one();
+        let c = BoxedUint::max(128);
+
+        assert_eq!(a.partial_cmp(b.as_uint_ref()), Some(Ordering::Less));
+        assert_eq!(a.partial_cmp(c.as_uint_ref()), Some(Ordering::Less));
+        assert_eq!(b.partial_cmp(c.as_uint_ref()), Some(Ordering::Less));
+
+        assert_eq!(a.partial_cmp(a.as_uint_ref()), Some(Ordering::Equal));
+        assert_eq!(b.partial_cmp(b.as_uint_ref()), Some(Ordering::Equal));
+        assert_eq!(c.partial_cmp(c.as_uint_ref()), Some(Ordering::Equal));
+
+        assert_eq!(b.partial_cmp(a.as_uint_ref()), Some(Ordering::Greater));
+        assert_eq!(c.partial_cmp(a.as_uint_ref()), Some(Ordering::Greater));
+        assert_eq!(c.partial_cmp(b.as_uint_ref()), Some(Ordering::Greater));
     }
 }
