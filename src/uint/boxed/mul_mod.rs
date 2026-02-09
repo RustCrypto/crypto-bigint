@@ -134,7 +134,7 @@ mod tests {
                     let b = BoxedUint::random_mod_vartime(&mut rng, &p);
 
                     let c = a.mul_mod_special(&b, *special.as_ref());
-                    assert!(&c < p.as_ref(), "not reduced: {} >= {} ", c, p);
+                    assert!(c < p.as_ref(), "not reduced: {} >= {} ", c, p);
 
                     let expected = {
                         let prod = a.mul(&b);
