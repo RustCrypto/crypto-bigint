@@ -1345,13 +1345,19 @@ pub(crate) mod tests {
 
         // CtAssign, CtSelect
         for (a, b) in pairs {
-            assert_eq!(&CtSelect::ct_select(a, b, Choice::FALSE), a);
-            assert_eq!(&CtSelect::ct_select(a, b, Choice::TRUE), b);
             let mut c = a.clone();
             c.ct_assign(b, Choice::FALSE);
             assert_eq!(&c, a);
             c.ct_assign(b, Choice::TRUE);
             assert_eq!(&c, b);
+
+            assert_eq!(&CtSelect::ct_select(a, b, Choice::FALSE), a);
+            assert_eq!(&CtSelect::ct_select(a, b, Choice::TRUE), b);
+            let (mut c, mut d) = (a.clone(), b.clone());
+            CtSelect::ct_swap(&mut c, &mut d, Choice::FALSE);
+            assert_eq!((&c, &d), (a, b));
+            CtSelect::ct_swap(&mut c, &mut d, Choice::TRUE);
+            assert_eq!((&c, &d), (b, a));
         }
 
         // BitAnd
