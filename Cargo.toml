@@ -33,7 +33,7 @@ subtle = { version = "2.6", optional = true, default-features = false }
 zeroize = { version = "1", optional = true, default-features = false }
 
 [dev-dependencies]
-chacha20 = { version = "0.10.0-rc.12", default-features = false, features = ["rng"] }
+chacha20 = { version = "0.10.0", default-features = false, features = ["rng"] }
 hex-literal = "1"
 num-bigint = "0.4"
 num-integer = "0.1"
