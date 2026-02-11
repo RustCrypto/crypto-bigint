@@ -329,7 +329,7 @@ mod tests {
 
     #[test]
     fn split_mixed() {
-        let lo_hi: (U64, _) = (&U128::ONE).into();
+        let lo_hi: (U64, _) = U128::ONE.into();
         assert_eq!(lo_hi, (U64::ONE, U64::ZERO));
 
         let lo_hi: (U64, _) = (&U128::MAX).into();
