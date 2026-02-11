@@ -710,6 +710,12 @@ pub trait Encoding: Sized {
     fn to_le_bytes(&self) -> Self::Repr;
 }
 
+/// A trait mapping between encoded representations of integers.
+pub trait EncodedSize {
+    /// The equivalent encoded representation.
+    type Target;
+}
+
 /// Possible errors in variable-time integer decoding methods.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DecodeError {

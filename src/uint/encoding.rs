@@ -6,7 +6,7 @@ mod der;
 mod rlp;
 
 use super::Uint;
-use crate::{DecodeError, Encoding, Limb, Word};
+use crate::{DecodeError, EncodedSize, Encoding, Limb, Word};
 use core::{fmt, ops::Deref};
 
 #[cfg(feature = "alloc")]
@@ -340,6 +340,50 @@ impl<const LIMBS: usize> Deref for EncodedUint<LIMBS> {
     type Target = [u8];
     fn deref(&self) -> &Self::Target {
         self.as_ref()
+    }
+}
+
+impl<const BYTES: usize, const LIMBS: usize> From<EncodedUint<LIMBS>> for [u8; BYTES]
+where
+    EncodedUint<LIMBS>: EncodedSize<Target = [u8; BYTES]>,
+{
+    #[inline]
+    fn from(input: EncodedUint<LIMBS>) -> Self {
+        Self::from(&input)
+    }
+}
+
+impl<const BYTES: usize, const LIMBS: usize> From<&EncodedUint<LIMBS>> for [u8; BYTES]
+where
+    EncodedUint<LIMBS>: EncodedSize<Target = [u8; BYTES]>,
+{
+    #[inline]
+    fn from(input: &EncodedUint<LIMBS>) -> Self {
+        let mut output = [0u8; BYTES];
+        output.as_mut_slice().copy_from_slice(input.as_ref());
+        output
+    }
+}
+
+impl<const BYTES: usize, const LIMBS: usize> From<[u8; BYTES]> for EncodedUint<LIMBS>
+where
+    [u8; BYTES]: EncodedSize<Target = EncodedUint<LIMBS>>,
+{
+    #[inline]
+    fn from(input: [u8; BYTES]) -> Self {
+        Self::from(&input)
+    }
+}
+
+impl<const BYTES: usize, const LIMBS: usize> From<&[u8; BYTES]> for EncodedUint<LIMBS>
+where
+    [u8; BYTES]: EncodedSize<Target = EncodedUint<LIMBS>>,
+{
+    #[inline]
+    fn from(input: &[u8; BYTES]) -> Self {
+        let mut output = Self::default();
+        output.as_mut().copy_from_slice(input.as_ref());
+        output
     }
 }
 
@@ -907,17 +951,17 @@ impl RadixDivisionParams {
 /// largest power of `radix` that can fit within a limb.
 #[cfg(feature = "alloc")]
 #[allow(trivial_numeric_casts)]
-const fn radix_large_divisor(
+const fn radix_large_divisor<const LIMBS: usize>(
     radix: u32,
     div_limb: NonZero<Limb>,
     digits_limb: usize,
-) -> ([Limb; RADIX_ENCODING_LIMBS_LARGE], usize, u32) {
-    let mut out = [Limb::ZERO; RADIX_ENCODING_LIMBS_LARGE];
+) -> ([Limb; LIMBS], usize, u32) {
+    let mut out = [Limb::ZERO; LIMBS];
     let mut digits_large = digits_limb;
     let mut top = 1;
     out[0] = div_limb.0;
     // Calculate largest power of div_limb (itself a power of radix)
-    while top < RADIX_ENCODING_LIMBS_LARGE {
+    while top < LIMBS {
         let mut carry = Limb::ZERO;
         let mut j = 0;
         while j < top {
@@ -935,7 +979,7 @@ const fn radix_large_divisor(
     loop {
         let mut carry = Limb::ZERO;
         let mut j = 0;
-        while j < RADIX_ENCODING_LIMBS_LARGE {
+        while j < LIMBS {
             (out_test[j], carry) = out[j].carrying_mul_add(Limb(radix as Word), carry, Limb::ZERO);
             j += 1;
         }
@@ -955,11 +999,15 @@ const fn radix_large_divisor(
 
 #[cfg(test)]
 mod tests {
-    use crate::{DecodeError, Limb, U64, U128};
+    use crate::{DecodeError, EncodedUint, Limb, U64, U128};
     use hex_literal::hex;
 
     #[cfg(feature = "alloc")]
-    use {super::radix_encode_limbs_to_string, alloc::format};
+    use {
+        super::{radix_encode_limbs_to_string, radix_large_divisor},
+        crate::{NonZero, Uint, Word},
+        alloc::format,
+    };
 
     cpubits::cpubits! {
         32 => {
@@ -1224,5 +1272,40 @@ mod tests {
                 assert_eq!(super::der::count_der_be_bytes(&n.limbs), 15);
             }
         }
+    }
+
+    #[test]
+    fn infer_sizes() {
+        let bytes = b"0011223344556677";
+
+        let n = EncodedUint::from(bytes);
+        assert_eq!(n.as_slice(), bytes);
+
+        let n = EncodedUint::from(*bytes);
+        assert_eq!(n.as_slice(), bytes);
+
+        let n: [u8; 16] = EncodedUint::from(bytes).into();
+        assert_eq!(n.as_slice(), bytes);
+
+        let n: [u8; 16] = (&EncodedUint::from(bytes)).into();
+        assert_eq!(n.as_slice(), bytes);
+    }
+
+    #[allow(clippy::cast_lossless)]
+    #[allow(trivial_numeric_casts)]
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn test_radix_large_divisor() {
+        let radix = 5u32;
+        let digits_limb = Word::MAX.ilog(radix as Word);
+        let div_limb = NonZero(Limb((radix as Word).pow(digits_limb)));
+        let (div_large, _digits_large, _shift_large) =
+            radix_large_divisor::<4>(radix, div_limb, digits_limb as usize);
+        assert!(
+            Uint::new(div_large)
+                .checked_mul(&Uint::<1>::from_u32(radix))
+                .is_none()
+                .to_bool()
+        );
     }
 }
