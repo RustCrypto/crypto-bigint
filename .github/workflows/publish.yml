@@ -21,7 +21,7 @@ jobs:
 
       - name: Check crate version
         run: |
-          CRATE_TOML_VERSION=$(grep "^version =" Cargo.toml | cut -d'"' -f2)
+          CRATE_TOML_VERSION=v$(grep "^version =" Cargo.toml | cut -d'"' -f2)
           echo $CRATE_TOML_VERSION
           [[ $CRATE_TOML_VERSION == $TAG_NAME ]]
 
