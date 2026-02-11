@@ -1,8 +1,8 @@
 //! [`Uint`] multiplication operations.
 
 use crate::{
-    Checked, CheckedMul, Choice, Concat, ConcatMixed, ConcatenatingMul, CtOption, Limb, Mul,
-    MulAssign, Uint, Wrapping, WrappingMul,
+    Checked, CheckedMul, Choice, Concat, ConcatenatingMul, CtOption, Limb, Mul, MulAssign, Uint,
+    Wrapping, WrappingMul,
 };
 
 pub(crate) mod karatsuba;
@@ -16,7 +16,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         rhs: &Uint<RHS_LIMBS>,
     ) -> Uint<WIDE_LIMBS>
     where
-        Self: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+        Self: Concat<RHS_LIMBS, Output = Uint<WIDE_LIMBS>>,
     {
         let (lo, hi) = self.widening_mul(rhs);
         Uint::concat_mixed(&lo, &hi)
@@ -113,7 +113,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[must_use]
     pub const fn widening_square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS>
     where
-        Self: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+        Self: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
     {
         let (lo, hi) = self.square_wide();
         Uint::concat_mixed(&lo, &hi)
@@ -152,7 +152,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
 impl<const LIMBS: usize, const WIDE_LIMBS: usize> Uint<LIMBS>
 where
-    Self: Concat<Output = Uint<WIDE_LIMBS>>,
+    Self: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
 {
     /// Square self, returning a concatenated "wide" result.
     #[must_use]
@@ -240,9 +240,9 @@ impl<const LIMBS: usize> MulAssign<&Checked<Uint<LIMBS>>> for Checked<Uint<LIMBS
 impl<const LIMBS: usize, const RHS_LIMBS: usize, const WIDE_LIMBS: usize>
     ConcatenatingMul<Uint<RHS_LIMBS>> for Uint<LIMBS>
 where
-    Self: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+    Self: Concat<RHS_LIMBS, Output = Uint<WIDE_LIMBS>>,
 {
-    type Output = <Self as ConcatMixed<Uint<RHS_LIMBS>>>::MixedOutput;
+    type Output = Uint<WIDE_LIMBS>;
 
     #[inline]
     fn concatenating_mul(&self, rhs: Uint<RHS_LIMBS>) -> Self::Output {
@@ -253,9 +253,9 @@ where
 impl<const LIMBS: usize, const RHS_LIMBS: usize, const WIDE_LIMBS: usize>
     ConcatenatingMul<&Uint<RHS_LIMBS>> for Uint<LIMBS>
 where
-    Self: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+    Self: Concat<RHS_LIMBS, Output = Uint<WIDE_LIMBS>>,
 {
-    type Output = <Self as ConcatMixed<Uint<RHS_LIMBS>>>::MixedOutput;
+    type Output = Uint<WIDE_LIMBS>;
 
     #[inline]
     fn concatenating_mul(&self, rhs: &Uint<RHS_LIMBS>) -> Self::Output {

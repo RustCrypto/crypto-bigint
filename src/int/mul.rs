@@ -1,7 +1,7 @@
 //! [`Int`] multiplication operations.
 
 use crate::{
-    Checked, CheckedMul, Choice, ConcatMixed, CtOption, Int, Mul, MulAssign, Uint, WrappingMul,
+    Checked, CheckedMul, Choice, Concat, CtOption, Int, Mul, MulAssign, Uint, WrappingMul,
 };
 
 impl<const LIMBS: usize> Int<LIMBS> {
@@ -54,7 +54,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         rhs: &Int<RHS_LIMBS>,
     ) -> Int<WIDE_LIMBS>
     where
-        Uint<LIMBS>: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+        Uint<LIMBS>: Concat<RHS_LIMBS, Output = Uint<WIDE_LIMBS>>,
     {
         let (lhs_abs, lhs_sign) = self.abs_sign();
         let (rhs_abs, rhs_sign) = rhs.abs_sign();
@@ -112,7 +112,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     #[must_use]
     pub fn widening_square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS>
     where
-        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+        Uint<LIMBS>: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
     {
         self.abs().widening_square()
     }

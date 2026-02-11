@@ -1,13 +1,13 @@
 //! This module implements Least common multiple (LCM) for [`Uint`].
 
-use crate::{ConcatMixed, NonZero, Uint};
+use crate::{Concat, NonZero, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute the least common multiple of `self` and `rhs`.
     #[must_use]
     pub const fn lcm<const WIDE_LIMBS: usize>(&self, rhs: &Self) -> Uint<WIDE_LIMBS>
     where
-        Self: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+        Self: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
     {
         let self_is_nz = self.is_nonzero();
         let rhs_is_nz = rhs.is_nonzero();
@@ -23,21 +23,21 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 #[cfg(test)]
 mod tests {
     mod lcm {
-        use crate::{ConcatMixed, U64, U128, U256, U512, U1024, U2048, U4096, U8192, Uint};
+        use crate::{Concat, U64, U128, U256, U512, U1024, U2048, U4096, U8192, Uint};
 
         fn test<const LIMBS: usize, const WIDE_LIMBS: usize>(
             lhs: Uint<LIMBS>,
             rhs: Uint<LIMBS>,
             target: Uint<WIDE_LIMBS>,
         ) where
-            Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+            Uint<LIMBS>: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
         {
             assert_eq!(lhs.lcm(&rhs), target);
         }
 
         fn run_tests<const LIMBS: usize, const WIDE_LIMBS: usize>()
         where
-            Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+            Uint<LIMBS>: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
         {
             test(Uint::<LIMBS>::ZERO, Uint::ZERO, Uint::<WIDE_LIMBS>::ZERO);
             test(Uint::<LIMBS>::ZERO, Uint::ONE, Uint::<WIDE_LIMBS>::ZERO);
