@@ -204,7 +204,7 @@ pub trait Unsigned:
 }
 
 /// [`Unsigned`] integers with an associated [`MontyForm`].
-pub trait UnsignedMontyForm: Unsigned {
+pub trait UnsignedWithMontyForm: Unsigned {
     /// The corresponding Montgomery representation,
     /// optimized for the performance of modular operations at the price of a conversion overhead.
     type MontyForm: MontyForm<Integer = Self>;
@@ -1157,7 +1157,7 @@ pub trait MontyForm:
     + SquareAssign
 {
     /// The original integer type.
-    type Integer: UnsignedMontyForm<MontyForm = Self>;
+    type Integer: UnsignedWithMontyForm<MontyForm = Self>;
 
     /// Prepared Montgomery multiplier for tight loops.
     type Multiplier<'a>: Debug + Clone + MontyMultiplier<'a, Monty = Self>;
