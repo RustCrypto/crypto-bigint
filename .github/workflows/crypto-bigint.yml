@@ -168,7 +168,9 @@ jobs:
           - s390x-unknown-linux-gnu
     steps:
       - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly-2026-02-11 # pinned due to https://github.com/rust-lang/miri/issues/4855
       - run: rustup component add miri && cargo miri setup
       - run: cargo miri test --target ${{ matrix.target }} --no-default-features --lib
 
