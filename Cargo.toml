@@ -23,7 +23,7 @@ ctutils = "0.4"
 num-traits = { version = "0.2.19", default-features = false }
 
 # optional dependencies
-der = { version = "0.8.0-rc.10", optional = true, default-features = false }
+der = { version = "0.8.0-rc.12", optional = true, default-features = false }
 hybrid-array = { version = "0.4.7", optional = true }
 getrandom = { version = "0.4", optional = true, features = ["sys_rng"] }
 rand_core = { version = "0.10", optional = true, default-features = false }
