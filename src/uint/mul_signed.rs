@@ -1,4 +1,4 @@
-use crate::{Choice, ConcatMixed, CtOption, Int, Uint};
+use crate::{Choice, Concat, CtOption, Int, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute "wide" multiplication between an [`Uint`] and [`Int`] as 3-tuple `(lo, hi, negate)`.
@@ -24,7 +24,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         rhs: &Int<RHS_LIMBS>,
     ) -> Int<WIDE_LIMBS>
     where
-        Uint<LIMBS>: ConcatMixed<Uint<RHS_LIMBS>, MixedOutput = Uint<WIDE_LIMBS>>,
+        Uint<LIMBS>: Concat<RHS_LIMBS, Output = Uint<WIDE_LIMBS>>,
     {
         let (rhs_abs, rhs_sign) = rhs.abs_sign();
         let product_abs = self.concatenating_mul(&rhs_abs);

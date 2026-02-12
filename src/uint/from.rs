@@ -1,6 +1,6 @@
 //! `From`-like conversions for [`Uint`].
 
-use crate::{ConcatMixed, Limb, SplitMixed, U64, U128, Uint, WideWord, Word};
+use crate::{Concat, Limb, Split, U64, U128, Uint, WideWord, Word};
 
 macro_rules! check_limbs {
     ($limbs:expr) => {
@@ -233,32 +233,46 @@ impl<const LIMBS: usize> From<Limb> for Uint<LIMBS> {
     }
 }
 
-impl<const L: usize, const H: usize, const LIMBS: usize> From<(Uint<L>, Uint<H>)> for Uint<LIMBS>
+impl<const LO_LIMBS: usize, const HI_LIMBS: usize, const WIDE_LIMBS: usize>
+    From<(Uint<LO_LIMBS>, Uint<HI_LIMBS>)> for Uint<WIDE_LIMBS>
 where
-    Uint<L>: ConcatMixed<Uint<H>, MixedOutput = Uint<LIMBS>>,
+    Uint<LO_LIMBS>: Concat<HI_LIMBS, Output = Uint<WIDE_LIMBS>>,
 {
     #[inline]
-    fn from(nums: (Uint<L>, Uint<H>)) -> Uint<LIMBS> {
+    fn from(nums: (Uint<LO_LIMBS>, Uint<HI_LIMBS>)) -> Uint<WIDE_LIMBS> {
         nums.0.concat_mixed(&nums.1)
     }
 }
 
-impl<const L: usize, const H: usize, const LIMBS: usize> From<&(Uint<L>, Uint<H>)> for Uint<LIMBS>
+impl<const LO_LIMBS: usize, const HI_LIMBS: usize, const WIDE_LIMBS: usize>
+    From<&(Uint<LO_LIMBS>, Uint<HI_LIMBS>)> for Uint<WIDE_LIMBS>
 where
-    Uint<L>: ConcatMixed<Uint<H>, MixedOutput = Uint<LIMBS>>,
+    Uint<LO_LIMBS>: Concat<HI_LIMBS, Output = Uint<WIDE_LIMBS>>,
 {
     #[inline]
-    fn from(nums: &(Uint<L>, Uint<H>)) -> Uint<LIMBS> {
+    fn from(nums: &(Uint<LO_LIMBS>, Uint<HI_LIMBS>)) -> Uint<WIDE_LIMBS> {
         nums.0.concat_mixed(&nums.1)
     }
 }
 
-impl<const L: usize, const H: usize, const LIMBS: usize> From<Uint<LIMBS>> for (Uint<L>, Uint<H>)
+impl<const LO_LIMBS: usize, const HI_LIMBS: usize, const WIDE_LIMBS: usize> From<Uint<WIDE_LIMBS>>
+    for (Uint<LO_LIMBS>, Uint<HI_LIMBS>)
 where
-    Uint<LIMBS>: SplitMixed<Uint<L>, Uint<H>>,
+    Uint<WIDE_LIMBS>: Split<LO_LIMBS, Output = Uint<HI_LIMBS>>,
 {
     #[inline]
-    fn from(num: Uint<LIMBS>) -> (Uint<L>, Uint<H>) {
+    fn from(num: Uint<WIDE_LIMBS>) -> (Uint<LO_LIMBS>, Uint<HI_LIMBS>) {
+        num.split_mixed()
+    }
+}
+
+impl<const LO_LIMBS: usize, const HI_LIMBS: usize, const WIDE_LIMBS: usize> From<&Uint<WIDE_LIMBS>>
+    for (Uint<LO_LIMBS>, Uint<HI_LIMBS>)
+where
+    Uint<WIDE_LIMBS>: Split<LO_LIMBS, Output = Uint<HI_LIMBS>>,
+{
+    #[inline]
+    fn from(num: &Uint<WIDE_LIMBS>) -> (Uint<LO_LIMBS>, Uint<HI_LIMBS>) {
         num.split_mixed()
     }
 }
@@ -272,7 +286,7 @@ impl<const LIMBS: usize, const LIMBS2: usize> From<&Uint<LIMBS>> for Uint<LIMBS2
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, U128, Word};
+    use crate::{Limb, U64, U128, Word};
 
     cpubits::cpubits! {
         32 => { use crate::U64 as UintEx; }
@@ -302,6 +316,24 @@ mod tests {
         let n = U128::from(42u128);
         assert_eq!(&n.as_limbs()[..2], &[Limb(42), Limb(0)]);
         assert_eq!(u128::from(n), 42u128);
+    }
+
+    #[test]
+    fn concat_mixed() {
+        let wide: U128 = (U64::ONE, U64::ZERO).into();
+        assert_eq!(wide, U128::ONE);
+
+        let wide: U128 = (&(U64::MAX, U64::MAX)).into();
+        assert_eq!(wide, U128::MAX);
+    }
+
+    #[test]
+    fn split_mixed() {
+        let lo_hi: (U64, _) = U128::ONE.into();
+        assert_eq!(lo_hi, (U64::ONE, U64::ZERO));
+
+        let lo_hi: (U64, _) = (&U128::MAX).into();
+        assert_eq!(lo_hi, (U64::MAX, U64::MAX));
     }
 
     #[test]

@@ -323,7 +323,7 @@ impl<const LIMBS: usize> Xgcd for OddInt<LIMBS> {
 #[cfg(all(test, not(miri)))]
 mod tests {
     use crate::int::gcd::{IntXgcdOutput, NonZeroIntXgcdOutput, OddIntXgcdOutput};
-    use crate::{ConcatMixed, Gcd, Int, Uint};
+    use crate::{Concat, Gcd, Int, Uint};
 
     impl<const LIMBS: usize> From<NonZeroIntXgcdOutput<LIMBS>> for IntXgcdOutput<LIMBS> {
         fn from(value: NonZeroIntXgcdOutput<LIMBS>) -> Self {
@@ -419,7 +419,7 @@ mod tests {
         rhs: Int<LIMBS>,
         output: IntXgcdOutput<LIMBS>,
     ) where
-        Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+        Uint<LIMBS>: Concat<LIMBS, Output = Uint<DOUBLE>>,
     {
         let gcd = lhs.gcd(&rhs);
         assert_eq!(gcd, output.gcd);
@@ -455,13 +455,13 @@ mod tests {
     mod test_int_xgcd {
         use crate::int::gcd::tests::xgcd_test;
         use crate::{
-            ConcatMixed, Gcd, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096,
-            U8192, Uint,
+            Concat, Gcd, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096, U8192,
+            Uint,
         };
 
         fn test<const LIMBS: usize, const DOUBLE: usize>(lhs: Int<LIMBS>, rhs: Int<LIMBS>)
         where
-            Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+            Uint<LIMBS>: Concat<LIMBS, Output = Uint<DOUBLE>>,
             Int<LIMBS>: Gcd<Output = Uint<LIMBS>>,
         {
             xgcd_test(lhs, rhs, lhs.xgcd(&rhs));
@@ -469,7 +469,7 @@ mod tests {
 
         fn run_tests<const LIMBS: usize, const DOUBLE: usize>()
         where
-            Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+            Uint<LIMBS>: Concat<LIMBS, Output = Uint<DOUBLE>>,
             Int<LIMBS>: Gcd<Output = Uint<LIMBS>>,
         {
             test(Int::MIN, Int::MIN);
@@ -516,13 +516,12 @@ mod tests {
     mod test_nonzero_int_xgcd {
         use crate::int::gcd::tests::xgcd_test;
         use crate::{
-            ConcatMixed, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096, U8192,
-            Uint,
+            Concat, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096, U8192, Uint,
         };
 
         fn test<const LIMBS: usize, const DOUBLE: usize>(lhs: Int<LIMBS>, rhs: Int<LIMBS>)
         where
-            Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+            Uint<LIMBS>: Concat<LIMBS, Output = Uint<DOUBLE>>,
         {
             let output = lhs.to_nz().unwrap().xgcd(&rhs.to_nz().unwrap());
             xgcd_test(lhs, rhs, output.into());
@@ -530,7 +529,7 @@ mod tests {
 
         fn run_tests<const LIMBS: usize, const DOUBLE: usize>()
         where
-            Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+            Uint<LIMBS>: Concat<LIMBS, Output = Uint<DOUBLE>>,
         {
             test(Int::MIN, Int::MIN);
             test(Int::MIN, Int::MINUS_ONE);
@@ -567,13 +566,12 @@ mod tests {
     mod test_odd_int_xgcd {
         use crate::int::gcd::tests::xgcd_test;
         use crate::{
-            ConcatMixed, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096, U8192,
-            Uint,
+            Concat, Int, U64, U128, U192, U256, U384, U512, U768, U1024, U2048, U4096, U8192, Uint,
         };
 
         fn test<const LIMBS: usize, const DOUBLE: usize>(lhs: Int<LIMBS>, rhs: Int<LIMBS>)
         where
-            Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+            Uint<LIMBS>: Concat<LIMBS, Output = Uint<DOUBLE>>,
         {
             let output = lhs.to_odd().unwrap().xgcd(&rhs.to_nz().unwrap());
             xgcd_test(lhs, rhs, output.into());
@@ -581,7 +579,7 @@ mod tests {
 
         fn run_tests<const LIMBS: usize, const DOUBLE: usize>()
         where
-            Uint<LIMBS>: ConcatMixed<Uint<LIMBS>, MixedOutput = Uint<DOUBLE>>,
+            Uint<LIMBS>: Concat<LIMBS, Output = Uint<DOUBLE>>,
         {
             let neg_max = Int::MAX.wrapping_neg();
             test(neg_max, neg_max);

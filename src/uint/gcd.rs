@@ -466,7 +466,7 @@ mod tests {
 
         fn test<const LIMBS: usize, const DOUBLE: usize>(lhs: Uint<LIMBS>, rhs: Uint<LIMBS>)
         where
-            Uint<LIMBS>: Concat<Output = Uint<DOUBLE>>,
+            Uint<LIMBS>: Concat<LIMBS, Output = Uint<DOUBLE>>,
         {
             let output = lhs.xgcd(&rhs);
             assert_eq!(output.gcd, lhs.gcd(&rhs));
@@ -485,7 +485,7 @@ mod tests {
 
         fn run_tests<const LIMBS: usize, const DOUBLE: usize>()
         where
-            Uint<LIMBS>: Concat<Output = Uint<DOUBLE>>,
+            Uint<LIMBS>: Concat<LIMBS, Output = Uint<DOUBLE>>,
         {
             let min = Int::MIN.abs();
             test(Uint::ZERO, Uint::ZERO);

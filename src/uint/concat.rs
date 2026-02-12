@@ -1,52 +1,38 @@
-use crate::{Concat, ConcatMixed, Limb, Uint};
+use crate::{Concat, Uint};
 
-impl<const L: usize> Uint<L> {
+impl<const LIMBS: usize> Uint<LIMBS> {
     /// Concatenate the two values, with `self` as least significant and `hi` as the most
-    /// significant.
+    /// significant, with both values having the same size.
     #[must_use]
-    pub const fn concat<const O: usize>(&self, hi: &Self) -> Uint<O>
+    pub const fn concat<const WIDE_LIMBS: usize>(&self, hi: &Self) -> Uint<WIDE_LIMBS>
     where
-        Self: Concat<Output = Uint<O>>,
+        Self: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
     {
         Uint::concat_mixed(self, hi)
     }
 
-    /// Concatenate the two values, with `lo` as least significant and `hi`
+    /// Concatenate the two values, with `self` as least significant and `hi`
     /// as the most significant.
     #[inline]
     #[must_use]
-    pub const fn concat_mixed<const H: usize, const O: usize>(lo: &Uint<L>, hi: &Uint<H>) -> Uint<O>
+    pub const fn concat_mixed<const HI_LIMBS: usize, const WIDE_LIMBS: usize>(
+        &self,
+        hi: &Uint<HI_LIMBS>,
+    ) -> Uint<WIDE_LIMBS>
     where
-        Self: ConcatMixed<Uint<H>, MixedOutput = Uint<O>>,
+        Self: Concat<HI_LIMBS, Output = Uint<WIDE_LIMBS>>,
     {
-        let top = L + H;
-        let top = if top < O { top } else { O };
-        let mut limbs = [Limb::ZERO; O];
-        let mut i = 0;
-
-        while i < top {
-            if i < L {
-                limbs[i] = lo.limbs[i];
-            } else {
-                limbs[i] = hi.limbs[i - L];
-            }
-            i += 1;
-        }
-
-        Uint { limbs }
+        let mut res = Uint::ZERO;
+        let (res_lo, res_hi) = res.as_mut_uint_ref().split_at_mut(LIMBS);
+        res_lo.copy_from(self.as_uint_ref());
+        res_hi.copy_from(hi.as_uint_ref());
+        res
     }
-}
-
-impl<T> Concat for T
-where
-    T: ConcatMixed<T>,
-{
-    type Output = Self::MixedOutput;
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{ConcatMixed, U64, U128, U192};
+    use crate::{BitOps, U64, U128, U192, Uint};
 
     #[test]
     fn concat() {
@@ -79,5 +65,16 @@ mod tests {
 
         let res: U128 = U64::ONE.square_wide().into();
         assert_eq!(res, U128::ONE);
+    }
+
+    #[test]
+    fn infer_sizes() {
+        let wide = U64::ONE.concat(&Uint::ZERO);
+        assert_eq!(wide.bits_precision(), 128);
+        assert_eq!(wide, Uint::ONE);
+
+        let wide = U64::ONE.concat_mixed(&U128::ZERO);
+        assert_eq!(wide.bits_precision(), 192);
+        assert_eq!(wide, Uint::ONE);
     }
 }
