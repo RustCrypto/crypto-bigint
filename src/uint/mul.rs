@@ -1,8 +1,8 @@
 //! [`Uint`] multiplication operations.
 
 use crate::{
-    Checked, CheckedMul, Choice, Concat, ConcatenatingMul, CtOption, Limb, Mul, MulAssign, Uint,
-    Wrapping, WrappingMul,
+    Checked, CheckedMul, Choice, Concat, ConcatenatingMul, ConcatenatingSquare, CtOption, Limb,
+    Mul, MulAssign, Uint, Wrapping, WrappingMul,
 };
 
 pub(crate) mod karatsuba;
@@ -269,6 +269,18 @@ where
     #[inline]
     fn concatenating_mul(&self, rhs: &Uint<RHS_LIMBS>) -> Self::Output {
         self.concatenating_mul(rhs)
+    }
+}
+
+impl<const LIMBS: usize, const WIDE_LIMBS: usize> ConcatenatingSquare for Uint<LIMBS>
+where
+    Self: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
+{
+    type Output = Uint<WIDE_LIMBS>;
+
+    #[inline]
+    fn concatenating_square(&self) -> Self::Output {
+        self.concatenating_square()
     }
 }
 
