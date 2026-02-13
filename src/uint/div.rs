@@ -3,7 +3,7 @@
 use super::div_limb::Reciprocal;
 use crate::{
     CheckedDiv, CtOption, Div, DivAssign, DivRemLimb, DivVartime, Limb, NonZero, Rem, RemAssign,
-    RemLimb, Uint, UintRef, Wrapping,
+    RemLimb, RemMixed, Uint, UintRef, Unsigned, Wrapping,
 };
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -88,10 +88,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[must_use]
     pub const fn rem_vartime(&self, rhs: &NonZero<Self>) -> Self {
         let (mut x, mut y) = (*self, *rhs.as_ref());
-        UintRef::rem_wide_vartime(
-            (UintRef::new_mut(&mut []), x.as_mut_uint_ref()),
-            y.as_mut_uint_ref(),
-        );
+        UintRef::div_rem_vartime(x.as_mut_uint_ref(), y.as_mut_uint_ref());
         y
     }
 
@@ -187,10 +184,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// ```
     #[must_use]
     pub fn checked_div<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
-        NonZero::new(*rhs).map(|rhs| {
-            let (q, _r) = self.div_rem(&rhs);
-            q
-        })
+        NonZero::new(*rhs).map(|rhs| self.div_rem(&rhs).0)
     }
 
     /// This function exists, so that all operations are accounted for in the wrapping operations.
@@ -237,11 +231,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         &self,
         rhs: &Uint<RHS_LIMBS>,
     ) -> CtOption<Uint<RHS_LIMBS>> {
-        // TODO(tarcieri): proper constant-time operation
-        if rhs.is_zero().to_bool() {
-            return CtOption::none();
-        }
-
         NonZero::new(*rhs).map(|rhs| self.rem(&rhs))
     }
 }
@@ -686,6 +675,14 @@ impl<const LIMBS: usize> DivRemLimb for Uint<LIMBS> {
 impl<const LIMBS: usize> RemLimb for Uint<LIMBS> {
     fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb {
         Self::rem_limb_with_reciprocal(self, reciprocal)
+    }
+}
+
+impl<const LIMBS: usize, Rhs: Unsigned> RemMixed<Rhs> for Uint<LIMBS> {
+    fn rem_mixed(&self, reductor: &NonZero<Rhs>) -> Rhs {
+        let (mut quo, mut rem) = (*self, reductor.as_ref().clone());
+        quo.as_mut_uint_ref().div_rem(rem.as_mut_uint_ref());
+        rem
     }
 }
 

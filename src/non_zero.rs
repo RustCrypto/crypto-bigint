@@ -2,7 +2,7 @@
 
 use crate::{
     Bounded, Choice, ConstOne, Constants, CtAssign, CtEq, CtOption, CtSelect, Encoding, Int, Limb,
-    Mul, Odd, One, Uint, UintRef, Zero,
+    Mul, Odd, One, ToUnsigned, Uint, UintRef, Zero,
 };
 use core::{
     fmt,
@@ -348,17 +348,32 @@ impl NonZeroBoxedUint {
     pub fn as_uint_ref(&self) -> &NonZeroUintRef {
         self.0.as_uint_ref().as_nz_unchecked()
     }
-
-    /// Get the least significant limb as a [`NonZeroLimb`].
-    pub(crate) fn lower_limb(&self) -> NonZeroLimb {
-        NonZero(self.0.limbs[0])
-    }
 }
 
 #[cfg(feature = "alloc")]
 impl AsRef<NonZeroUintRef> for NonZeroBoxedUint {
     fn as_ref(&self) -> &NonZeroUintRef {
         self.as_uint_ref()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl<T: AsRef<UintRef> + ?Sized> NonZero<T> {
+    /// Get the least significant limb as a [`NonZeroLimb`].
+    pub(crate) fn lower_limb(&self) -> NonZeroLimb {
+        NonZero(self.0.as_ref().limbs[0])
+    }
+
+    /// Convert to a [`NonZeroBoxedUint`].
+    pub(crate) fn to_boxed(&self) -> NonZeroBoxedUint {
+        NonZero(BoxedUint::from(self.0.as_ref()))
+    }
+}
+
+impl<T: ToUnsigned + ?Sized> NonZero<T> {
+    /// Convert from a reference into an owned `NonZero<T: Unsigned>`.
+    pub fn to_unsigned(&self) -> NonZero<T::Unsigned> {
+        NonZero(self.0.to_unsigned())
     }
 }
 
