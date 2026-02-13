@@ -126,16 +126,19 @@ impl<Rhs: AsRef<UintRef>> CheckedMul<Rhs> for BoxedUint {
 impl<Rhs: AsRef<UintRef>> Mul<Rhs> for BoxedUint {
     type Output = BoxedUint;
 
+    #[track_caller]
     fn mul(self, rhs: Rhs) -> Self {
-        BoxedUint::concatenating_mul(&self, &rhs)
+        Mul::mul(&self, rhs)
     }
 }
 
 impl<Rhs: AsRef<UintRef>> Mul<Rhs> for &BoxedUint {
     type Output = BoxedUint;
 
+    #[track_caller]
     fn mul(self, rhs: Rhs) -> Self::Output {
-        BoxedUint::concatenating_mul(self, rhs)
+        self.checked_mul(rhs)
+            .expect("attempted to multiply with overflow")
     }
 }
 
@@ -221,6 +224,18 @@ mod tests {
         }
     }
 
+    #[test]
+    fn mul_trait() {
+        let expect = BoxedUint::one() * BoxedUint::from(2u8);
+        assert_eq!(expect, BoxedUint::one() * &BoxedUint::from(2u8));
+    }
+
+    #[should_panic]
+    #[test]
+    fn mul_trait_panic() {
+        let _ = BoxedUint::max(64) * BoxedUint::max(64);
+    }
+
     #[cfg(feature = "rand_core")]
     #[test]
     fn mul_cmp() {
@@ -244,8 +259,7 @@ mod tests {
         for i in 0..rounds {
             let a = BoxedUint::random_bits(&mut rng, bits);
             let b = BoxedUint::random_bits(&mut rng, bits + 64);
-            let expect = &a * &b;
-            assert_eq!(&b * a.clone(), expect, "a={a}, b={b}, i={i}");
+            let expect = a.concatenating_mul(&b);
             assert_eq!(
                 ConcatenatingMul::concatenating_mul(&b, &a),
                 expect,
