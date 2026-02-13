@@ -57,14 +57,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self * self mod p`.
     #[must_use]
     pub const fn square_mod(&self, p: &NonZero<Uint<LIMBS>>) -> Self {
-        let lo_hi = self.square_wide();
+        let lo_hi = self.widening_square();
         Self::rem_wide(lo_hi, p)
     }
 
     /// Computes `self * self mod p` in variable time with respect to `p`.
     #[must_use]
     pub const fn square_mod_vartime(&self, p: &NonZero<Uint<LIMBS>>) -> Self {
-        let lo_hi = self.square_wide();
+        let lo_hi = self.widening_square();
         Self::rem_wide_vartime(lo_hi, p)
     }
 }

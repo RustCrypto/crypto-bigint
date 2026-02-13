@@ -154,7 +154,7 @@ pub(crate) const fn square_montgomery_form<const LIMBS: usize>(
 ) -> Uint<LIMBS> {
     // One case in which it appears to be more efficient to perform a wide squaring and reduction.
     if LIMBS == 4 {
-        let lower_upper = a.square_wide();
+        let lower_upper = a.widening_square();
         return montgomery_reduction(&lower_upper, modulus, mod_neg_inv);
     }
 

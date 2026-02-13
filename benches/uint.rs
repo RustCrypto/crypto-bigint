@@ -258,18 +258,18 @@ fn bench_mul(c: &mut Criterion) {
         );
     });
 
-    group.bench_function("square_wide, U256", |b| {
+    group.bench_function("widening_square, U256", |b| {
         b.iter_batched(
             || U256::random_from_rng(&mut rng),
-            |x| black_box(x.square_wide()),
+            |x| black_box(x.widening_square()),
             BatchSize::SmallInput,
         );
     });
 
-    group.bench_function("square_wide, U4096", |b| {
+    group.bench_function("widening_square, U4096", |b| {
         b.iter_batched(
             || U4096::random_from_rng(&mut rng),
-            |x| black_box(x.square_wide()),
+            |x| black_box(x.widening_square()),
             BatchSize::SmallInput,
         );
     });
