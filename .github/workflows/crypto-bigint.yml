@@ -54,7 +54,7 @@ jobs:
     strategy:
       matrix:
         include:
-          # `x86` Linux
+          # `x86` Linux (32-bit)
           - target: i686-unknown-linux-gnu
             rust: 1.85.0 # MSRV
             deps: sudo apt update && sudo apt install gcc-multilib
