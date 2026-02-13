@@ -110,11 +110,11 @@ impl<const LIMBS: usize> Int<LIMBS> {
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Square self, returning a concatenated "wide" result.
     #[must_use]
-    pub fn widening_square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS>
+    pub fn concatenating_square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS>
     where
         Uint<LIMBS>: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
     {
-        self.abs().widening_square()
+        self.abs().concatenating_square()
     }
 
     /// Square self, checking that the result fits in the original [`Uint`] size.
@@ -515,15 +515,15 @@ mod tests {
     }
 
     #[test]
-    fn test_widening_square() {
-        let res = I128::from_i64(i64::MIN).widening_square();
+    fn test_concatenating_square() {
+        let res = I128::from_i64(i64::MIN).concatenating_square();
         assert_eq!(
             res,
             U256::from_be_hex("0000000000000000000000000000000040000000000000000000000000000000")
         );
 
         let x: I128 = I128::MINUS_ONE << 64;
-        let res = x.widening_square();
+        let res = x.concatenating_square();
         assert_eq!(
             res,
             U256::from_be_hex("0000000000000000000000000000000100000000000000000000000000000000")

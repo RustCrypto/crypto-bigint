@@ -125,7 +125,7 @@ mod tests {
     #[test]
     fn test_reducing_r2_wide() {
         // Divide the value ONE^2 by R, which should equal ONE
-        let (lo, hi) = Modulus256::PARAMS.one.square().split();
+        let (lo, hi) = Modulus256::PARAMS.one.widening_square();
         assert_eq!(
             montgomery_reduction::<{ Modulus256::LIMBS }>(
                 &(lo, hi),

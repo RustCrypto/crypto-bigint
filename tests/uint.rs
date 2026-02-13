@@ -294,7 +294,7 @@ proptest! {
         let a_bi = to_biguint(&a);
 
         let expected = to_uint_xlarge(&a_bi * &a_bi);
-        let actual = a.square();
+        let actual = a.concatenating_square();
 
         assert_eq!(expected, actual);
     }

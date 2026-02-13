@@ -105,17 +105,25 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Square self, returning a "wide" result in two parts as (lo, hi).
     #[inline(always)]
     #[must_use]
+    #[deprecated(since = "0.7.0", note = "please use `widening_square` instead")]
     pub const fn square_wide(&self) -> (Self, Self) {
+        self.widening_square()
+    }
+
+    /// Square self, returning a "wide" result in two parts as `(lo, hi)`.
+    #[inline(always)]
+    #[must_use]
+    pub const fn widening_square(&self) -> (Self, Self) {
         karatsuba::widening_square_fixed(self.as_uint_ref())
     }
 
     /// Square self, returning a concatenated "wide" result.
     #[must_use]
-    pub const fn widening_square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS>
+    pub const fn concatenating_square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS>
     where
         Self: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
     {
-        let (lo, hi) = self.square_wide();
+        let (lo, hi) = self.widening_square();
         Uint::concat_mixed(&lo, &hi)
     }
 
@@ -156,8 +164,9 @@ where
 {
     /// Square self, returning a concatenated "wide" result.
     #[must_use]
+    #[deprecated(since = "0.7.0", note = "please use `concatenating_square` instead")]
     pub const fn square(&self) -> Uint<WIDE_LIMBS> {
-        let (lo, hi) = self.square_wide();
+        let (lo, hi) = self.widening_square();
         lo.concat(&hi)
     }
 }
@@ -366,17 +375,17 @@ mod tests {
     }
 
     #[test]
-    fn square() {
+    fn concatenating_square() {
         let n = U64::from_u64(0xffff_ffff_ffff_ffff);
-        let (lo, hi) = n.square().split();
+        let (lo, hi) = n.concatenating_square().split();
         assert_eq!(lo, U64::from_u64(1));
         assert_eq!(hi, U64::from_u64(0xffff_ffff_ffff_fffe));
     }
 
     #[test]
-    fn square_larger() {
+    fn concatenating_square_larger() {
         let n = U256::MAX;
-        let (lo, hi) = n.square().split();
+        let (lo, hi) = n.concatenating_square().split();
         assert_eq!(lo, U256::ONE);
         assert_eq!(hi, U256::MAX.wrapping_sub(&U256::ONE));
     }
@@ -422,7 +431,7 @@ mod tests {
         let rounds = if cfg!(miri) { 10 } else { 50 };
         for _ in 0..rounds {
             let a = U4096::random_from_rng(&mut rng);
-            assert_eq!(a.widening_mul(&a), a.square_wide(), "a = {a}");
+            assert_eq!(a.widening_mul(&a), a.widening_square(), "a = {a}");
             assert_eq!(a.wrapping_mul(&a), a.wrapping_square(), "a = {a}");
             assert_eq!(a.saturating_mul(&a), a.saturating_square(), "a = {a}");
         }
@@ -461,7 +470,7 @@ mod tests {
             let mut a = Uint::<SIZE>::ZERO;
             a = a.set_bit_vartime(n, true);
 
-            let res = a.square_wide();
+            let res = a.widening_square();
             let res_overflow = res.1.is_nonzero();
             let checked = a.checked_square();
             assert_eq!(checked.is_some().to_bool(), res_overflow.not().to_bool());

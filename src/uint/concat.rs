@@ -63,7 +63,7 @@ mod tests {
         let res: U128 = U64::ONE.widening_mul(&U64::ONE).into();
         assert_eq!(res, U128::ONE);
 
-        let res: U128 = U64::ONE.square_wide().into();
+        let res: U128 = U64::ONE.widening_square().into();
         assert_eq!(res, U128::ONE);
     }
 
