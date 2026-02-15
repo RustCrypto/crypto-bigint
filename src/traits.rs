@@ -1044,6 +1044,16 @@ pub trait ConcatenatingMul<Rhs = Self>: Sized {
     fn concatenating_mul(&self, rhs: Rhs) -> Self::Output;
 }
 
+/// Widening square: returns a value with a number of limbs equal to double the sum of the input.
+pub trait ConcatenatingSquare: Sized {
+    /// Output of the widening multiplication.
+    type Output: Integer;
+
+    /// Perform widening squaring.
+    #[must_use]
+    fn concatenating_square(&self) -> Self::Output;
+}
+
 /// Widening multiply: returns a value with a number of limbs equal to the sum of the inputs.
 #[deprecated(since = "0.7.0", note = "please use `ConcatenatingMul` instead")]
 pub trait WideningMul<Rhs = Self>: Sized {
