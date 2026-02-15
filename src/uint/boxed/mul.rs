@@ -144,7 +144,9 @@ impl<Rhs: AsRef<UintRef>> Mul<Rhs> for &BoxedUint {
 
 impl<Rhs: AsRef<UintRef>> MulAssign<Rhs> for BoxedUint {
     fn mul_assign(&mut self, rhs: Rhs) {
-        *self = BoxedUint::concatenating_mul(self, rhs);
+        *self = self
+            .checked_mul(rhs)
+            .expect("attempted to multiply with overflow");
     }
 }
 
