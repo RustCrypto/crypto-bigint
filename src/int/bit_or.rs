@@ -7,7 +7,7 @@ use crate::{CtOption, Uint, Wrapping};
 use super::Int;
 
 impl<const LIMBS: usize> Int<LIMBS> {
-    /// Computes bitwise `a & b`.
+    /// Computes bitwise `a | b`.
     #[inline(always)]
     #[must_use]
     pub const fn bitor(&self, rhs: &Self) -> Self {
