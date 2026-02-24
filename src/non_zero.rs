@@ -387,9 +387,9 @@ where
         Self::new(T::from_be_byte_array(bytes))
     }
 
-    /// Decode a non-zero integer from big endian bytes.
+    /// Decode a non-zero integer from little endian bytes.
     pub fn from_le_byte_array(bytes: ByteArray<T>) -> CtOption<Self> {
-        Self::new(T::from_be_byte_array(bytes))
+        Self::new(T::from_le_byte_array(bytes))
     }
 }
 
@@ -719,6 +719,16 @@ mod tests {
             NonZero::<U128>::from_le_bytes(hex!("01000000000000000000000000000000").into())
                 .unwrap(),
             NonZero::<U128>::one()
+        );
+    }
+
+    #[cfg(feature = "hybrid-array")]
+    #[test]
+    fn from_le_byte_array() {
+        assert_eq!(
+            NonZero::<U128>::from_le_byte_array(hex!("01000000000000000000000000000000").into())
+                .unwrap(),
+            NonZero::<U128>::ONE
         );
     }
 }
