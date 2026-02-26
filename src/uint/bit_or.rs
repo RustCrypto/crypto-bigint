@@ -4,7 +4,7 @@ use super::Uint;
 use crate::{BitOr, BitOrAssign, CtOption, Limb, Wrapping};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Computes bitwise `a & b`.
+    /// Computes bitwise `a | b`.
     #[inline(always)]
     #[must_use]
     pub const fn bitor(&self, rhs: &Self) -> Self {

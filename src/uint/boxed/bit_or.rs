@@ -3,7 +3,7 @@
 use crate::{BitOr, BitOrAssign, BoxedUint, CtOption, Wrapping};
 
 impl BoxedUint {
-    /// Computes bitwise `a & b`.
+    /// Computes bitwise `a | b`.
     #[inline(always)]
     #[must_use]
     pub fn bitor(&self, rhs: &Self) -> Self {
