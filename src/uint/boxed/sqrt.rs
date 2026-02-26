@@ -349,7 +349,7 @@ mod tests {
     #[cfg(feature = "rand_core")]
     #[test]
     fn fuzz() {
-        use crate::CheckedSquareRoot;
+        use crate::{CheckedSquareRoot, ConcatenatingSquare};
 
         let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
         let rounds = if cfg!(miri) { 10 } else { 50 };
@@ -367,8 +367,8 @@ mod tests {
             let s = BoxedUint::random_bits(&mut rng, 512);
             let mut s2 = BoxedUint::zero_with_precision(512);
             s2.limbs[..s.limbs.len()].copy_from_slice(&s.limbs);
-            assert_eq!(s.square().floor_sqrt(), s2);
-            assert_eq!(s.square().floor_sqrt_vartime(), s2);
+            assert_eq!(s.concatenating_square().floor_sqrt(), s2);
+            assert_eq!(s.concatenating_square().floor_sqrt_vartime(), s2);
         }
     }
 }

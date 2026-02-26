@@ -1,12 +1,15 @@
 //! [`BoxedUint`] modular multiplication operations.
 
-use crate::{BoxedUint, Limb, MulMod, NonZero, SquareMod, UintRef, div_limb::mul_rem};
+use crate::{
+    BoxedUint, ConcatenatingMul, ConcatenatingSquare, Limb, MulMod, NonZero, SquareMod, UintRef,
+    div_limb::mul_rem,
+};
 
 impl BoxedUint {
     /// Computes `self * rhs mod p` for non-zero `p`.
     #[must_use]
     pub fn mul_mod(&self, rhs: &BoxedUint, p: &NonZero<BoxedUint>) -> BoxedUint {
-        self.mul(rhs).rem(p)
+        self.concatenating_mul(rhs).rem(p)
     }
 
     /// Computes `self * rhs mod p` for the special modulus
@@ -28,7 +31,7 @@ impl BoxedUint {
             return Self::from(reduced);
         }
 
-        let product = self.mul(rhs);
+        let product = self.concatenating_mul(rhs);
         let (lo, hi) = product.as_uint_ref().split_at(self.nlimbs());
 
         // Now use Algorithm 14.47 for the reduction
@@ -50,13 +53,13 @@ impl BoxedUint {
     /// Computes `self * self mod p`.
     #[must_use]
     pub fn square_mod(&self, p: &NonZero<BoxedUint>) -> Self {
-        self.square().rem(p)
+        self.concatenating_square().rem(p)
     }
 
     /// Computes `self * self mod p` in variable time with respect to `p`.
     #[must_use]
     pub fn square_mod_vartime(&self, p: &NonZero<BoxedUint>) -> Self {
-        self.square().rem_vartime(p)
+        self.concatenating_square().rem_vartime(p)
     }
 }
 
@@ -90,7 +93,7 @@ fn mac_by_limb(a: &UintRef, b: &UintRef, c: Limb, carry: Limb) -> (BoxedUint, Li
 
 #[cfg(all(test, feature = "rand_core"))]
 mod tests {
-    use crate::{BoxedUint, Limb, NonZero, Random, RandomMod};
+    use crate::{BoxedUint, ConcatenatingMul, Limb, NonZero, Random, RandomMod};
     use rand_core::SeedableRng;
 
     #[test]
@@ -137,7 +140,7 @@ mod tests {
                     assert!(c < p.as_ref(), "not reduced: {} >= {} ", c, p);
 
                     let expected = {
-                        let prod = a.mul(&b);
+                        let prod = a.concatenating_mul(&b);
                         prod.rem_vartime(&p)
                     };
                     assert_eq!(c, expected, "incorrect result");

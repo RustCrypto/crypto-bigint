@@ -1,8 +1,8 @@
 //! [`BoxedUint`] multiplication operations.
 
 use crate::{
-    BoxedUint, CheckedMul, Choice, ConcatenatingMul, CtOption, Limb, Mul, MulAssign, UintRef,
-    Wrapping, WrappingMul,
+    BoxedUint, CheckedMul, Choice, ConcatenatingMul, ConcatenatingSquare, CtOption, Limb, Mul,
+    MulAssign, UintRef, Wrapping, WrappingMul,
 };
 
 mod helper;
@@ -13,9 +13,9 @@ impl BoxedUint {
     ///
     /// Returns a widened output with a limb count equal to the sums of the input limb counts.
     #[must_use]
+    #[deprecated(since = "0.7.0", note = "please use `concatenating_mul`")]
     pub fn mul(&self, rhs: impl AsRef<UintRef>) -> Self {
-        let rhs = rhs.as_ref();
-        self.wrapping_mul_carry(rhs, self.nlimbs() + rhs.nlimbs()).0
+        self.concatenating_mul(rhs)
     }
 
     /// Perform wrapping multiplication, wrapping to the width of `self`.
@@ -65,8 +65,9 @@ impl BoxedUint {
 
     /// Multiply `self` by itself.
     #[must_use]
+    #[deprecated(since = "0.7.0", note = "please use `concatenating_square`")]
     pub fn square(&self) -> Self {
-        self.wrapping_square_carry(self.nlimbs() * 2).0
+        self.concatenating_square()
     }
 
     /// Multiply `self` by itself, wrapping to the width of `self`.
@@ -125,22 +126,27 @@ impl<Rhs: AsRef<UintRef>> CheckedMul<Rhs> for BoxedUint {
 impl<Rhs: AsRef<UintRef>> Mul<Rhs> for BoxedUint {
     type Output = BoxedUint;
 
+    #[track_caller]
     fn mul(self, rhs: Rhs) -> Self {
-        BoxedUint::mul(&self, &rhs)
+        Mul::mul(&self, rhs)
     }
 }
 
 impl<Rhs: AsRef<UintRef>> Mul<Rhs> for &BoxedUint {
     type Output = BoxedUint;
 
+    #[track_caller]
     fn mul(self, rhs: Rhs) -> Self::Output {
-        BoxedUint::mul(self, rhs)
+        self.checked_mul(rhs)
+            .expect("attempted to multiply with overflow")
     }
 }
 
 impl<Rhs: AsRef<UintRef>> MulAssign<Rhs> for BoxedUint {
     fn mul_assign(&mut self, rhs: Rhs) {
-        *self = BoxedUint::mul(self, rhs);
+        *self = self
+            .checked_mul(rhs)
+            .expect("attempted to multiply with overflow");
     }
 }
 
@@ -155,7 +161,17 @@ impl<Rhs: AsRef<UintRef>> ConcatenatingMul<Rhs> for BoxedUint {
 
     #[inline]
     fn concatenating_mul(&self, rhs: Rhs) -> Self {
-        self.mul(&rhs)
+        let rhs = rhs.as_ref();
+        self.wrapping_mul_carry(rhs, self.nlimbs() + rhs.nlimbs()).0
+    }
+}
+
+impl ConcatenatingSquare for BoxedUint {
+    type Output = Self;
+
+    #[inline]
+    fn concatenating_square(&self) -> Self {
+        self.wrapping_square_carry(self.nlimbs() * 2).0
     }
 }
 
@@ -167,20 +183,34 @@ impl WrappingMul for BoxedUint {
 
 #[cfg(test)]
 mod tests {
-    use crate::{BoxedUint, CheckedMul, ConcatenatingMul, Limb, Resize, UintRef, WrappingMul};
+    use crate::{
+        BoxedUint, CheckedMul, ConcatenatingMul, ConcatenatingSquare, Limb, Resize, UintRef,
+        WrappingMul,
+    };
 
     #[test]
     fn mul_zero_and_one() {
         assert!(bool::from(
-            BoxedUint::zero().mul(BoxedUint::zero()).is_zero()
+            BoxedUint::zero()
+                .concatenating_mul(BoxedUint::zero())
+                .is_zero()
         ));
         assert!(bool::from(
-            BoxedUint::zero().mul(BoxedUint::one()).is_zero()
+            BoxedUint::zero()
+                .concatenating_mul(BoxedUint::one())
+                .is_zero()
         ));
         assert!(bool::from(
-            BoxedUint::one().mul(BoxedUint::zero()).is_zero()
+            BoxedUint::one()
+                .concatenating_mul(BoxedUint::zero())
+                .is_zero()
         ));
-        assert_eq!(BoxedUint::one().mul(BoxedUint::one()), BoxedUint::one());
+        assert_eq!(
+            BoxedUint::one().concatenating_mul(BoxedUint::one()),
+            BoxedUint::one()
+        );
+        assert_eq!(BoxedUint::zero().concatenating_square(), BoxedUint::zero());
+        assert_eq!(BoxedUint::one().concatenating_square(), BoxedUint::one());
     }
 
     #[test]
@@ -189,11 +219,23 @@ mod tests {
 
         for &a_int in primes {
             for &b_int in primes {
-                let actual = BoxedUint::from(a_int).mul(BoxedUint::from(b_int));
+                let actual = BoxedUint::from(a_int).concatenating_mul(BoxedUint::from(b_int));
                 let expected = BoxedUint::from(u64::from(a_int) * u64::from(b_int));
                 assert_eq!(actual, expected);
             }
         }
+    }
+
+    #[test]
+    fn mul_trait() {
+        let expect = BoxedUint::one() * BoxedUint::from(2u8);
+        assert_eq!(expect, BoxedUint::one() * &BoxedUint::from(2u8));
+    }
+
+    #[should_panic]
+    #[test]
+    fn mul_trait_panic() {
+        let _ = BoxedUint::max(64) * BoxedUint::max(64);
     }
 
     #[cfg(feature = "rand_core")]
@@ -207,7 +249,11 @@ mod tests {
 
         for i in 0..rounds {
             let a = BoxedUint::random_bits(&mut rng, bits);
-            assert_eq!(a.mul(&a), a.square(), "a={a}, i={i}");
+            assert_eq!(
+                a.concatenating_mul(&a),
+                a.concatenating_square(),
+                "a={a}, i={i}"
+            );
             assert_eq!(a.wrapping_mul(&a), a.wrapping_square(), "a={a}, i={i}");
             assert_eq!(a.saturating_mul(&a), a.saturating_square(), "a={a}, i={i}");
         }
@@ -215,8 +261,7 @@ mod tests {
         for i in 0..rounds {
             let a = BoxedUint::random_bits(&mut rng, bits);
             let b = BoxedUint::random_bits(&mut rng, bits + 64);
-            let expect = &a * &b;
-            assert_eq!(&b * a.clone(), expect, "a={a}, b={b}, i={i}");
+            let expect = a.concatenating_mul(&b);
             assert_eq!(
                 ConcatenatingMul::concatenating_mul(&b, &a),
                 expect,

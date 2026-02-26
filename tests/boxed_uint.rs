@@ -7,7 +7,8 @@ mod common;
 
 use common::to_biguint;
 use crypto_bigint::{
-    BitOps, BoxedUint, CheckedAdd, Choice, Gcd, Integer, Limb, NonZero, Odd, Resize,
+    BitOps, BoxedUint, CheckedAdd, Choice, ConcatenatingMul, ConcatenatingSquare, Gcd, Integer,
+    Limb, NonZero, Odd, Resize,
 };
 use num_bigint::BigUint;
 use num_integer::Integer as _;
@@ -245,7 +246,7 @@ proptest! {
         let b_bi = to_biguint(&b);
 
         let expected = a_bi * b_bi;
-        let actual = a.mul(&b);
+        let actual = a.concatenating_mul(&b);
 
         prop_assert_eq!(expected, to_biguint(&actual));
     }
@@ -255,7 +256,7 @@ proptest! {
         let a_bi = to_biguint(&a);
 
         let expected = a_bi.pow(2);
-        let actual = a.square();
+        let actual = a.concatenating_square();
 
         prop_assert_eq!(expected, to_biguint(&actual));
     }

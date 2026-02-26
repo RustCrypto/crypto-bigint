@@ -6,7 +6,9 @@
 use chacha20::ChaCha8Rng;
 use core::hint::black_box;
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
-use crypto_bigint::{BoxedUint, Gcd, Integer, Limb, NonZero, RandomBits};
+use crypto_bigint::{
+    BoxedUint, ConcatenatingMul, ConcatenatingSquare, Gcd, Integer, Limb, NonZero, RandomBits,
+};
 use num_bigint::BigUint;
 use rand_core::SeedableRng;
 
@@ -64,7 +66,7 @@ fn bench_mul(c: &mut Criterion) {
                     BoxedUint::random_bits(&mut rng, UINT_BITS),
                 )
             },
-            |(x, y)| black_box(x.mul(&y)),
+            |(x, y)| black_box(x.concatenating_mul(&y)),
             BatchSize::SmallInput,
         );
     });
@@ -98,7 +100,7 @@ fn bench_mul(c: &mut Criterion) {
     group.bench_function("boxed_square", |b| {
         b.iter_batched(
             || BoxedUint::random_bits(&mut rng, UINT_BITS),
-            |x| black_box(x.square()),
+            |x| black_box(x.concatenating_square()),
             BatchSize::SmallInput,
         );
     });

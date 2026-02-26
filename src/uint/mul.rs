@@ -1,8 +1,8 @@
 //! [`Uint`] multiplication operations.
 
 use crate::{
-    Checked, CheckedMul, Choice, Concat, ConcatenatingMul, CtOption, Limb, Mul, MulAssign, Uint,
-    Wrapping, WrappingMul,
+    Checked, CheckedMul, Choice, Concat, ConcatenatingMul, ConcatenatingSquare, CtOption, Limb,
+    Mul, MulAssign, Uint, Wrapping, WrappingMul,
 };
 
 pub(crate) mod karatsuba;
@@ -272,6 +272,18 @@ where
     }
 }
 
+impl<const LIMBS: usize, const WIDE_LIMBS: usize> ConcatenatingSquare for Uint<LIMBS>
+where
+    Self: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
+{
+    type Output = Uint<WIDE_LIMBS>;
+
+    #[inline]
+    fn concatenating_square(&self) -> Self::Output {
+        self.concatenating_square()
+    }
+}
+
 impl<const LIMBS: usize> WrappingMul for Uint<LIMBS> {
     fn wrapping_mul(&self, v: &Self) -> Self {
         self.wrapping_mul(v)
@@ -280,7 +292,7 @@ impl<const LIMBS: usize> WrappingMul for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, U64, U128, U192, U256, Uint};
+    use crate::{ConcatenatingMul, ConcatenatingSquare, Limb, U64, U128, U192, U256, Uint};
 
     #[test]
     fn widening_mul_zero_and_one() {
@@ -325,7 +337,9 @@ mod tests {
         let b = U128::from_u128(0x8899aabbccddeeff_8899aabbccddeeff);
         let expected = U192::from(&b).saturating_mul(&a);
         assert_eq!(a.concatenating_mul(&b), expected);
+        assert_eq!(ConcatenatingMul::concatenating_mul(&a, &b), expected);
         assert_eq!(b.concatenating_mul(&a), expected);
+        assert_eq!(ConcatenatingMul::concatenating_mul(&b, &a), expected);
     }
 
     #[test]
@@ -380,6 +394,8 @@ mod tests {
         let (lo, hi) = n.concatenating_square().split();
         assert_eq!(lo, U64::from_u64(1));
         assert_eq!(hi, U64::from_u64(0xffff_ffff_ffff_fffe));
+        let check = ConcatenatingSquare::concatenating_square(&n).split();
+        assert_eq!(check, (lo, hi));
     }
 
     #[test]
@@ -431,6 +447,7 @@ mod tests {
         let rounds = if cfg!(miri) { 10 } else { 50 };
         for _ in 0..rounds {
             let a = U4096::random_from_rng(&mut rng);
+            assert_eq!(a.concatenating_mul(&a), a.concatenating_square(), "a = {a}");
             assert_eq!(a.widening_mul(&a), a.widening_square(), "a = {a}");
             assert_eq!(a.wrapping_mul(&a), a.wrapping_square(), "a = {a}");
             assert_eq!(a.saturating_mul(&a), a.saturating_square(), "a = {a}");
