@@ -42,6 +42,14 @@ proptest! {
     }
 
     #[test]
+    fn unbounded_shr_vartime_vs_ct(val in int(), shift in 0u32..=512) {
+        prop_assert_eq!(
+            val.unbounded_shr_vartime(shift),
+            val.unbounded_shr(shift),
+        );
+    }
+
+    #[test]
     fn jacobi_symbol(f in odd_uint(), g in int()) {
         let f_bi = to_biguint(&f).to_bigint().unwrap();
         let g_bi = to_bigint(&g);

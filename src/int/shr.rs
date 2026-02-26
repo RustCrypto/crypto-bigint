@@ -99,7 +99,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     pub const fn unbounded_shr_vartime(&self, shift: u32) -> Self {
         let sign_bits = Self::select(&Self::ZERO, &Self::MINUS_ONE, self.is_negative());
         if let Some(res) = self.0.overflowing_shr_vartime(shift) {
-            Self::from_bits(res.bitor(&sign_bits.0.shl(Self::BITS - shift)))
+            Self::from_bits(res.bitor(&sign_bits.0.unbounded_shl(Self::BITS - shift)))
         } else {
             sign_bits
         }
@@ -242,6 +242,42 @@ mod tests {
     #[should_panic(expected = "`shift` exceeds upper bound")]
     fn shr_bounds_panic() {
         let _ = N >> 256;
+    }
+
+    #[test]
+    fn unbounded_shr_vartime_zero_shift() {
+        assert_eq!(I256::MAX.unbounded_shr_vartime(0), I256::MAX);
+        assert_eq!(I256::MIN.unbounded_shr_vartime(0), I256::MIN);
+        assert_eq!(I256::ONE.unbounded_shr_vartime(0), I256::ONE);
+        assert_eq!(I256::MINUS_ONE.unbounded_shr_vartime(0), I256::MINUS_ONE);
+        assert_eq!(I256::ZERO.unbounded_shr_vartime(0), I256::ZERO);
+    }
+
+    #[test]
+    fn overflowing_shr_vartime_zero_shift() {
+        let values = [I256::MAX, I256::MIN, I256::ONE, I256::MINUS_ONE, I256::ZERO];
+        for &val in &values {
+            assert_eq!(val.overflowing_shr_vartime(0), Some(val));
+        }
+    }
+
+    #[test]
+    fn shr_vartime_zero_shift() {
+        let values = [I256::MAX, I256::MIN, I256::ONE, I256::MINUS_ONE, I256::ZERO];
+        for &val in &values {
+            assert_eq!(val.shr_vartime(0), val);
+        }
+    }
+
+    #[test]
+    fn wrapping_shr_vartime_multiple_of_bits_is_identity() {
+        let values = [I256::MAX, I256::MIN, I256::ONE, I256::MINUS_ONE, I256::ZERO];
+        for &val in &values {
+            // Shift by 0 and multiples of the bit size should be identity.
+            for i in 0..4 {
+                assert_eq!(val.wrapping_shr_vartime(i * I256::BITS), val);
+            }
+        }
     }
 
     #[test]
