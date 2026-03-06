@@ -9,7 +9,10 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// indicates whether `self` is quadratic residue modulo `rhs`.
     #[must_use]
     #[allow(clippy::cast_possible_truncation)]
-    pub const fn jacobi_symbol(&self, rhs: &Odd<Uint<LIMBS>>) -> JacobiSymbol {
+    pub const fn jacobi_symbol<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Odd<Uint<RHS_LIMBS>>,
+    ) -> JacobiSymbol {
         let (abs, sign) = self.abs_sign();
         let jacobi = abs.jacobi_symbol(rhs) as i64;
         // (-self|rhs) = -(self|rhs) iff rhs = 3 mod 4
@@ -24,7 +27,10 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// This method executes in variable-time for the value of `self`.
     #[must_use]
-    pub const fn jacobi_symbol_vartime(&self, rhs: &Odd<Uint<LIMBS>>) -> JacobiSymbol {
+    pub const fn jacobi_symbol_vartime<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &Odd<Uint<RHS_LIMBS>>,
+    ) -> JacobiSymbol {
         let (abs, sign) = self.abs_sign();
         let jacobi = abs.jacobi_symbol_vartime(rhs);
         JacobiSymbol::from_i8(
@@ -39,7 +45,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{I256, JacobiSymbol, U256};
+    use crate::{I64, I256, JacobiSymbol, U64, U256};
 
     #[test]
     fn jacobi_quad_residue() {
@@ -81,18 +87,46 @@ mod tests {
             I256::ZERO.jacobi_symbol(&U256::ONE.to_odd().unwrap()),
             JacobiSymbol::One
         );
+        assert_eq!(
+            I256::ZERO.jacobi_symbol_vartime(&U256::ONE.to_odd().unwrap()),
+            JacobiSymbol::One
+        );
+        assert_eq!(
+            I64::ZERO.jacobi_symbol_vartime(&U256::ONE.to_odd().unwrap()),
+            JacobiSymbol::One
+        );
+        assert_eq!(
+            I256::ZERO.jacobi_symbol_vartime(&U64::ONE.to_odd().unwrap()),
+            JacobiSymbol::One
+        );
     }
 
     #[test]
     fn jacobi_neg_one() {
-        let f = I256::ONE;
+        let f = I256::MINUS_ONE;
         assert_eq!(
             f.jacobi_symbol(&U256::ONE.to_odd().unwrap()),
             JacobiSymbol::One
         );
         assert_eq!(
-            f.jacobi_symbol(&U256::from(3u8).to_odd().unwrap()),
+            f.jacobi_symbol_vartime(&U256::ONE.to_odd().unwrap()),
             JacobiSymbol::One
+        );
+        assert_eq!(
+            I64::MINUS_ONE.jacobi_symbol_vartime(&U256::ONE.to_odd().unwrap()),
+            JacobiSymbol::One
+        );
+        assert_eq!(
+            f.jacobi_symbol(&U256::from(3u8).to_odd().unwrap()),
+            JacobiSymbol::MinusOne
+        );
+        assert_eq!(
+            f.jacobi_symbol_vartime(&U256::from(3u8).to_odd().unwrap()),
+            JacobiSymbol::MinusOne
+        );
+        assert_eq!(
+            I64::MINUS_ONE.jacobi_symbol_vartime(&U256::from(3u8).to_odd().unwrap()),
+            JacobiSymbol::MinusOne
         );
     }
 

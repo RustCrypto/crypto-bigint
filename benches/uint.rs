@@ -734,6 +734,40 @@ fn bench_mod_symbols(c: &mut Criterion) {
     mod_symbols_bench(&mut group, Uint::<4>::ZERO);
     mod_symbols_bench(&mut group, Uint::<64>::ZERO);
 
+    let mut rng = make_rng();
+
+    group.bench_function(
+        BenchmarkId::new("jacobi_symbol_vartime", "mixed (1,4)"),
+        |b| {
+            b.iter_batched(
+                || {
+                    (
+                        OddUint::<4>::random_from_rng(&mut rng),
+                        Uint::<1>::random_from_rng(&mut rng),
+                    )
+                },
+                |(f, g)| black_box(g.jacobi_symbol_vartime(&f)),
+                BatchSize::SmallInput,
+            );
+        },
+    );
+
+    group.bench_function(
+        BenchmarkId::new("jacobi_symbol_vartime", "mixed (4,1)"),
+        |b| {
+            b.iter_batched(
+                || {
+                    (
+                        OddUint::<1>::random_from_rng(&mut rng),
+                        Uint::<4>::random_from_rng(&mut rng),
+                    )
+                },
+                |(f, g)| black_box(g.jacobi_symbol_vartime(&f)),
+                BatchSize::SmallInput,
+            );
+        },
+    );
+
     group.finish();
 }
 
