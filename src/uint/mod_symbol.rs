@@ -61,13 +61,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
                 let mut jacobi_neg = 0;
 
                 let tail = self.trailing_zeros_vartime();
-                if tail > 0 {
-                    if tail & 1 == 1 {
-                        // (2a|b) = -(a|b) iff b = ±3 mod 8
-                        // b is always odd, so we ignore the lower bit and check that bits 2 and 3 are '01' or '10'
-                        let b_lo = rhs.as_ref().limbs[0].0;
-                        jacobi_neg ^= ((b_lo >> 1) ^ (b_lo >> 2)) & 1;
-                    }
+                if tail & 1 == 1 {
+                    // (2a|b) = -(a|b) iff b = ±3 mod 8
+                    // b is always odd, so we ignore the lower bit and check that bits 2 and 3 are '01' or '10'
+                    let b_lo = rhs.as_ref().limbs[0].0;
+                    jacobi_neg ^= ((b_lo >> 1) ^ (b_lo >> 2)) & 1;
                 }
 
                 // (b|a) = -(a|b) iff a = b = 3 mod 4 (quadratic reciprocity)
