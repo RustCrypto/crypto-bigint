@@ -86,7 +86,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// to `self`.
     #[inline]
     #[must_use]
-    pub const fn rem_vartime(&self, rhs: &NonZero<Self>) -> Self {
+    pub const fn rem_vartime<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &NonZero<Uint<RHS_LIMBS>>,
+    ) -> Uint<RHS_LIMBS> {
         let (mut x, mut y) = (*self, *rhs.as_ref());
         UintRef::div_rem_vartime(x.as_mut_uint_ref(), y.as_mut_uint_ref());
         y
