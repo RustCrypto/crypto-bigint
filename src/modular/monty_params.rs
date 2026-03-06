@@ -182,7 +182,7 @@ impl<const LIMBS: usize> FixedMontyParams<LIMBS> {
     pub const fn new_vartime(modulus: Odd<Uint<LIMBS>>) -> Self {
         // `R mod modulus` where `R = 2^BITS`.
         // Represents 1 in Montgomery form.
-        let one = Uint::MAX
+        let one = Uint::<LIMBS>::MAX
             .rem_vartime(modulus.as_nz_ref())
             .wrapping_add(&Uint::ONE);
 
