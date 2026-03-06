@@ -37,7 +37,7 @@ impl<const LIMBS: usize> PrimeParams<LIMBS> {
         let p_minus_one = p.as_ref().set_bit_vartime(0, false);
         let s = NonZeroU32::new(p_minus_one.trailing_zeros_vartime()).expect("ensured non-zero");
 
-        let Some((generator, gen_uint)) = find_primitive_root(p) else {
+        let Some(generator) = find_primitive_root(p) else {
             return None;
         };
 
@@ -53,7 +53,8 @@ impl<const LIMBS: usize> PrimeParams<LIMBS> {
             // exp = (t-1)/2
             let exp = t.shr_vartime(1);
             // the s'th root of unity is calculated as `generator^t`
-            let root = FixedMontyForm::new(&gen_uint, params).pow_vartime(&t);
+            let root =
+                FixedMontyForm::new(&Uint::from_u32(generator.get()), params).pow_vartime(&t);
             // root^(2^(s-1)) must be equal to -1
             let check = root.square_repeat_vartime(s.get() - 1);
             if !Uint::eq(&check.retrieve(), &p_minus_one).to_bool_vartime() {
@@ -128,30 +129,36 @@ impl<const LIMBS: usize> subtle::ConditionallySelectable for PrimeParams<LIMBS> 
 }
 
 #[allow(clippy::unwrap_in_result)]
-const fn find_primitive_root<const LIMBS: usize>(
-    p: &Odd<Uint<LIMBS>>,
-) -> Option<(NonZeroU32, Uint<LIMBS>)> {
+const fn find_primitive_root<const LIMBS: usize>(p: &Odd<Uint<LIMBS>>) -> Option<NonZeroU32> {
     // A primitive root exists iff p is 1, 2, 4, q^k or 2q^k, k > 0, q is an odd prime.
     // Find a quadratic non-residue (primitive roots are non-residue for powers of a prime)
     let mut g = NonZeroU32::new(2u32).expect("ensured non-zero");
+    let (mut skip_root, mut skip_square) = (2u32, 4u32);
     loop {
         // Either the modulus is prime and g is quadratic non-residue, or
         // the modulus is composite.
-        let g_uint = Uint::from_u32(g.get());
+        let g_uint = Uint::<1>::from_u32(g.get());
         match g_uint.jacobi_symbol_vartime(p) as i8 {
             -1 => {
-                break Some((g, g_uint));
+                break Some(g);
             }
             0 => {
                 // Modulus is composite
                 return None;
             }
-            _ => {
+            _ => loop {
                 let Some(g2) = g.checked_add(1) else {
                     return None;
                 };
-                g = g2;
-            }
+                if g2.get() == skip_square {
+                    // Skip obviously square values (4, 9, 16..)
+                    skip_root += 1;
+                    skip_square = skip_root.saturating_pow(2);
+                } else {
+                    g = g2;
+                    break;
+                }
+            },
         }
     }
 }
