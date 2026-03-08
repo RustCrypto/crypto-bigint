@@ -29,14 +29,23 @@ using const generics.
 
 This crate has been [audited by NCC Group] with no significant
 findings. We would like to thank [Entropy] for funding the audit.
+Note that the implementation has diverged significantly since the last audit.
 
 All functions contained in the crate are designed to execute in constant
 time unless explicitly specified otherwise (via a `*_vartime` name suffix).
 
-This library is not suitable for use on processors with a variable-time
+This library is NOT suitable for use on processors with a variable-time
 multiplication operation (e.g. short circuit on multiply-by-zero /
 multiply-by-one, such as certain 32-bit PowerPC CPUs and some non-ARM
 microcontrollers).
+
+## Minimum Supported Rust Version (MSRV) Policy
+
+MSRV increases are not considered breaking changes and can happen in patch
+releases.
+
+The crate MSRV accounts for all supported targets and crate feature
+combinations, excluding explicitly unstable features.
 
 ## License
 
