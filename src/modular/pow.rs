@@ -7,6 +7,7 @@ use core::{array, mem};
 use alloc::vec::Vec;
 
 const WINDOW: u32 = 4;
+const WINDOW_COUNT: usize = 1 << WINDOW;
 const WINDOW_MASK: Word = (1 << WINDOW) - 1;
 #[allow(clippy::integer_division_remainder_used, reason = "constant")]
 const BITS_PER_WINDOW: u32 = Limb::BITS / WINDOW;
@@ -59,10 +60,10 @@ where
     let mut power = x.clone();
 
     // powers[i] contains x^i
-    let powers: [U; 1 << WINDOW] = array::from_fn(|n| {
+    let powers: [U; WINDOW_COUNT] = array::from_fn(|n| {
         if n == 0 {
             one.clone()
-        } else if n == (1 << WINDOW) - 1 {
+        } else if n == WINDOW_COUNT - 1 {
             power.clone()
         } else {
             let mut new_power = power.clone();
@@ -102,7 +103,7 @@ where
 
             // Constant-time lookup in the array of powers
             power.as_mut_limbs().copy_from_slice(powers[0].as_limbs());
-            for i in 1..(1 << WINDOW) {
+            for i in 1..WINDOW_COUNT {
                 power.ct_assign(&powers[i], (i as Word).ct_eq(&idx));
             }
 
@@ -129,7 +130,7 @@ pub const fn multi_exponentiate_montgomery_form_array<
     }
 
     let mut powers_and_exponents =
-        [([Uint::<LIMBS>::ZERO; 1 << WINDOW], Uint::<RHS_LIMBS>::ZERO); N];
+        [([Uint::<LIMBS>::ZERO; WINDOW_COUNT], Uint::<RHS_LIMBS>::ZERO); N];
 
     let mut i = 0;
     while i < N {
@@ -165,7 +166,7 @@ pub fn multi_exponentiate_montgomery_form_slice<
         return *params.one(); // 1 in Montgomery form
     }
 
-    let powers_and_exponents: Vec<([Uint<LIMBS>; 1 << WINDOW], Uint<RHS_LIMBS>)> =
+    let powers_and_exponents: Vec<([Uint<LIMBS>; WINDOW_COUNT], Uint<RHS_LIMBS>)> =
         bases_and_exponents
             .iter()
             .map(|(base, exponent)| (compute_powers(base, params), *exponent))
@@ -181,9 +182,9 @@ pub fn multi_exponentiate_montgomery_form_slice<
 const fn compute_powers<const LIMBS: usize>(
     x: &Uint<LIMBS>,
     params: &FixedMontyParams<LIMBS>,
-) -> [Uint<LIMBS>; 1 << WINDOW] {
+) -> [Uint<LIMBS>; WINDOW_COUNT] {
     // powers[i] contains x^i
-    let mut powers = [*params.one(); 1 << WINDOW];
+    let mut powers = [*params.one(); WINDOW_COUNT];
     powers[1] = *x;
 
     let mut i = 2;
@@ -201,7 +202,7 @@ const fn multi_exponentiate_montgomery_form_internal<
     const RHS_LIMBS: usize,
     const VARTIME: bool,
 >(
-    powers_and_exponents: &[([Uint<LIMBS>; 1 << WINDOW], Uint<RHS_LIMBS>)],
+    powers_and_exponents: &[([Uint<LIMBS>; WINDOW_COUNT], Uint<RHS_LIMBS>)],
     exponent_bits: u32,
     params: &FixedMontyParams<LIMBS>,
 ) -> Uint<LIMBS> {
@@ -232,7 +233,7 @@ const fn multi_exponentiate_montgomery_form_internal<
 
             let mut i = 0;
             while i < powers_and_exponents.len() {
-                let (powers, exponent) = powers_and_exponents[i];
+                let (powers, exponent) = &powers_and_exponents[i];
                 let w = exponent.as_limbs()[limb_num].0;
                 let mut idx = (w >> (window_num * WINDOW)) & WINDOW_MASK;
 
@@ -253,9 +254,9 @@ const fn multi_exponentiate_montgomery_form_internal<
                     // Constant-time lookup in the array of powers
                     let mut power = powers[0];
                     let mut j = 1;
-                    while j < 1 << WINDOW {
-                        let choice = word::choice_from_eq(j, idx);
-                        power = Uint::<LIMBS>::select(&power, &powers[j as usize], choice);
+                    while j < WINDOW_COUNT {
+                        let choice = word::choice_from_eq(j as Word, idx);
+                        power = Uint::<LIMBS>::select(&power, &powers[j], choice);
                         j += 1;
                     }
                     z = mul_montgomery_form(&z, &power, params.modulus(), params.mod_neg_inv());
