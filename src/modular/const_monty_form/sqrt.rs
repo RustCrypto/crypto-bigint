@@ -39,7 +39,8 @@ mod tests {
         const_prime_monty_params!(
             P256Field,
             U256,
-            "ffffffff00000001000000000000000000000000ffffffffffffffffffffffff"
+            "ffffffff00000001000000000000000000000000ffffffffffffffffffffffff",
+            6
         );
         assert_eq!(P256Field::PRIME_PARAMS.s().get(), 1);
         type ConstForm = ConstMontyForm<P256Field, { U256::LIMBS }>;

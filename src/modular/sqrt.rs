@@ -71,21 +71,21 @@ pub const fn sqrt_montgomery_form<const LIMBS: usize>(
             let neg_zeta_b = monty_eq(&neg_zeta, &ru_2);
             let zeta_d = monty_eq(&zeta, &ru_6);
 
-            // m = B if -zeta in (B, C), else 1
+            // m = B if -zeta in {B, C}, else 1
             let mut m = monty_select(
                 &FixedMontyForm::one(ru.params()),
                 &ru_2,
                 neg_zeta_b.or(monty_eq(&neg_zeta, &ru_4)),
             );
-            // m = C if zeta in (-1, D)
+            // m = C if zeta in {-1, D}
             m = monty_select(
                 &m,
                 &ru_4,
                 Uint::eq(neg_zeta.as_montgomery(), monty_params.one()).or(zeta_d),
             );
-            // m = D if zeta in (B, C)
+            // m = D if zeta in {B, C}
             m = monty_select(&m, &ru_6, zeta_b.or(monty_eq(&zeta, &ru_4)));
-            // m = m•ru if zeta or -zeta in (B, D)
+            // m = m•ru if zeta or -zeta in {B, D}
             m = monty_select(
                 &m,
                 &m.mul(&ru),
@@ -208,9 +208,9 @@ mod tests {
         let monty_params = FixedMontyParams::new_vartime(Odd::<U256>::from_be_hex(
             "ffffffff00000001000000000000000000000000ffffffffffffffffffffffff",
         ));
-        let prime_params = PrimeParams::new_vartime(&monty_params).expect("failed creating params");
+        let prime_params = PrimeParams::new_vartime(&monty_params, 6);
         assert_eq!(prime_params.s.get(), 1);
-        assert_eq!(prime_params.generator.get(), 3);
+        assert_eq!(prime_params.generator.get(), 6);
         assert_eq!(
             root_of_unity(&monty_params, &prime_params),
             U256::from_be_hex("FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFE")
@@ -226,7 +226,7 @@ mod tests {
         let monty_params = FixedMontyParams::new_vartime(Odd::<U256>::from_be_hex(
             "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed",
         ));
-        let prime_params = PrimeParams::new_vartime(&monty_params).expect("failed creating params");
+        let prime_params = PrimeParams::new_vartime(&monty_params, 2);
         assert_eq!(prime_params.s.get(), 2);
         assert_eq!(prime_params.generator.get(), 2);
         assert_eq!(
@@ -244,7 +244,7 @@ mod tests {
         let monty_params = FixedMontyParams::new_vartime(Odd::<U576>::from_be_hex(
             "00000000000001fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa51868783bf2f966b7fcc0148f709a5d03bb5c9b8899c47aebb6fb71e91386409",
         ));
-        let prime_params = PrimeParams::new_vartime(&monty_params).expect("failed creating params");
+        let prime_params = PrimeParams::new_vartime(&monty_params, 3);
         assert_eq!(prime_params.s.get(), 3);
         assert_eq!(prime_params.generator.get(), 3);
         assert_eq!(
@@ -264,7 +264,7 @@ mod tests {
         let monty_params = FixedMontyParams::new_vartime(Odd::<U256>::from_be_hex(
             "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551",
         ));
-        let prime_params = PrimeParams::new_vartime(&monty_params).expect("failed creating params");
+        let prime_params = PrimeParams::new_vartime(&monty_params, 7);
         assert_eq!(prime_params.s.get(), 4);
         assert_eq!(prime_params.generator.get(), 7);
         assert_eq!(
@@ -282,12 +282,12 @@ mod tests {
         let monty_params = FixedMontyParams::new_vartime(Odd::<U256>::from_be_hex(
             "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141",
         ));
-        let prime_params = PrimeParams::new_vartime(&monty_params).expect("failed creating params");
+        let prime_params = PrimeParams::new_vartime(&monty_params, 7);
         assert_eq!(prime_params.s.get(), 6);
-        assert_eq!(prime_params.generator.get(), 5);
+        assert_eq!(prime_params.generator.get(), 7);
         assert_eq!(
             root_of_unity(&monty_params, &prime_params),
-            U256::from_be_hex("0D1F8EAB98DCD1ACA7DC810E065710CBB96E9ABEBBE451FA15B4F83D2D2AD232")
+            U256::from_be_hex("0C1DC060E7A91986DF9879A3FBC483A898BDEAB680756045992F4B5402B052F2")
         );
 
         test_monty_sqrt(monty_params, prime_params);

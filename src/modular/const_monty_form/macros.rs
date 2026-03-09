@@ -46,8 +46,8 @@ macro_rules! const_monty_params {
 }
 
 /// Create a type representing a prime modulus which impls the [`ConstPrimeMontyParams`]
-/// trait with the given name, type, value (in big endian hex), and optional documentation
-/// string.
+/// trait with the given name, type, value (in big endian hex), multiplicative generator,
+/// and optional documentation string.
 ///
 /// # Usage
 ///
@@ -58,6 +58,7 @@ macro_rules! const_monty_params {
 ///     MyModulus,
 ///     U256,
 ///     "73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001",
+///     7,
 ///     "Docs for my modulus"
 /// );
 /// ```
@@ -65,28 +66,24 @@ macro_rules! const_monty_params {
 /// The modulus _must_ be odd and prime, or this will panic.
 #[macro_export]
 macro_rules! const_prime_monty_params {
-    ($name:ident, $uint_type:ty, $value:expr) => {
+    ($name:ident, $uint_type:ty, $value:expr, $generator:literal) => {
         $crate::const_prime_monty_params!(
             $name,
             $uint_type,
             $value,
+            $generator,
             "Modulus which impls `ConstPrimeMontyParams`"
         );
     };
-    ($name:ident, $uint_type:ty, $value:expr, $doc:expr) => {
-        $crate::const_monty_params!(
-            $name,
-            $uint_type,
-            $value,
-            "Modulus which impls `ConstPrimeMontyParams`"
-        );
+    ($name:ident, $uint_type:ty, $value:expr, $generator:literal, $doc:expr) => {
+        $crate::const_monty_params!($name, $uint_type, $value, $doc);
 
         impl $crate::modular::ConstPrimeMontyParams<{ <$uint_type>::LIMBS }> for $name {
             const PRIME_PARAMS: $crate::modular::PrimeParams<{ <$uint_type>::LIMBS }> =
                 $crate::modular::PrimeParams::new_vartime(
                     &<$name as $crate::modular::ConstMontyParams<{ <$uint_type>::LIMBS }>>::PARAMS,
-                )
-                .expect("cannot derive prime parameters");
+                    $generator,
+                );
         }
     };
 }
