@@ -4,7 +4,7 @@ use core::num::NonZeroU32;
 use ctutils::{CtAssignSlice, CtEqSlice, CtSelectUsingCtAssign};
 
 use super::{FixedMontyForm, FixedMontyParams};
-use crate::{Choice, CtAssign, CtEq, Odd, Uint};
+use crate::{Choice, CtAssign, CtEq, OddUint, Uint};
 
 #[cfg(feature = "subtle")]
 use crate::CtSelect;
@@ -13,8 +13,10 @@ use crate::CtSelect;
 /// with a prime modulus.
 #[derive(Debug, Copy, Clone)]
 pub struct PrimeParams<const LIMBS: usize> {
-    /// A constant such that the modulus `p = t•2^s+1` for `s > 0` and some odd `t`.
+    /// The largest power of two that divides `(modulus - 1)`.
     pub(super) s: NonZeroU32,
+    /// The result of dividing `modulus - 1` by `2^s`.
+    pub(super) t: OddUint<LIMBS>,
     /// The smallest primitive root of the modulus.
     pub(super) generator: NonZeroU32,
     /// The exponent to use in computing a modular square root.
@@ -28,18 +30,21 @@ pub struct PrimeParams<const LIMBS: usize> {
 impl<const LIMBS: usize> PrimeParams<LIMBS> {
     /// Instantiates a new set of [`PrimeParams`] given [`FixedMontyParams`] for a prime modulus.
     ///
-    /// This method will return `None` if the modulus is determined to be non-prime, however
-    /// this is not an exhaustive check and non-prime values can be accepted.
+    /// The value `generator` must be a multiplicative generator (ie. primitive element) of the
+    /// finite field, having order `modulus-1`. Its powers generate all nonzero elements of the
+    /// field: `generator^0, generator^1, ..., generator^(modulus-2)` enumerate `[1, modulus-1]`.
     #[must_use]
     #[allow(clippy::unwrap_in_result, clippy::missing_panics_doc)]
-    pub const fn new_vartime(params: &FixedMontyParams<LIMBS>) -> Option<Self> {
+    pub const fn new_vartime(params: &FixedMontyParams<LIMBS>, generator: u32) -> Self {
         let p = params.modulus();
         let p_minus_one = p.as_ref().set_bit_vartime(0, false);
+        let generator = NonZeroU32::new(generator).expect("invalid generator");
         let s = NonZeroU32::new(p_minus_one.trailing_zeros_vartime()).expect("ensured non-zero");
-
-        let Some(generator) = find_primitive_root(p) else {
-            return None;
-        };
+        let t = p
+            .as_ref()
+            .shr(s.get())
+            .to_odd()
+            .expect_copied("ensured odd");
 
         // if s=1 and p is a power of a prime then -1 is always a root of unity
         let (exp, root) = if s.get() == 1 {
@@ -57,19 +62,21 @@ impl<const LIMBS: usize> PrimeParams<LIMBS> {
                 FixedMontyForm::new(&Uint::from_u32(generator.get()), params).pow_vartime(&t);
             // root^(2^(s-1)) must be equal to -1
             let check = root.square_repeat_vartime(s.get() - 1);
-            if !Uint::eq(&check.retrieve(), &p_minus_one).to_bool_vartime() {
-                return None;
-            }
+            assert!(
+                Uint::eq(&check.retrieve(), &p_minus_one).to_bool_vartime(),
+                "error calculating root of unity: invalid generator"
+            );
             (exp, root)
         };
 
-        Some(Self {
+        Self {
             s,
+            t,
             generator,
             sqrt_exp: exp,
             monty_root_unity: root.to_montgomery(),
             monty_root_unity_p2: root.square().to_montgomery(),
-        })
+        }
     }
 
     /// Get the constant 'generator' used in modular square root calculation.
@@ -82,6 +89,12 @@ impl<const LIMBS: usize> PrimeParams<LIMBS> {
     #[must_use]
     pub const fn s(&self) -> NonZeroU32 {
         self.s
+    }
+
+    /// Get the constant 't' used in modular square root calculation.
+    #[must_use]
+    pub const fn t(&self) -> OddUint<LIMBS> {
+        self.t
     }
 }
 
@@ -128,41 +141,6 @@ impl<const LIMBS: usize> subtle::ConditionallySelectable for PrimeParams<LIMBS> 
     }
 }
 
-#[allow(clippy::unwrap_in_result)]
-const fn find_primitive_root<const LIMBS: usize>(p: &Odd<Uint<LIMBS>>) -> Option<NonZeroU32> {
-    // A primitive root exists iff p is 1, 2, 4, q^k or 2q^k, k > 0, q is an odd prime.
-    // Find a quadratic non-residue (primitive roots are non-residue for powers of a prime)
-    let mut g = NonZeroU32::new(2u32).expect("ensured non-zero");
-    let (mut skip_root, mut skip_square) = (2u32, 4u32);
-    loop {
-        // Either the modulus is prime and g is quadratic non-residue, or
-        // the modulus is composite.
-        let g_uint = Uint::<1>::from_u32(g.get());
-        match g_uint.jacobi_symbol_vartime(p) as i8 {
-            -1 => {
-                break Some(g);
-            }
-            0 => {
-                // Modulus is composite
-                return None;
-            }
-            _ => loop {
-                let Some(g2) = g.checked_add(1) else {
-                    return None;
-                };
-                g = g2;
-                if g.get() == skip_square {
-                    // Skip obviously square values (4, 9, 16..)
-                    skip_root += 1;
-                    skip_square = skip_root.saturating_pow(2);
-                } else {
-                    break;
-                }
-            },
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::PrimeParams;
@@ -172,29 +150,36 @@ mod tests {
     fn check_expected() {
         let monty_params =
             MontyParams::new_vartime(Odd::<U128>::from_be_hex("e38af050d74b8567f73c8713cbc7bc47"));
-        let prime_params = PrimeParams::new_vartime(&monty_params).expect("failed creating params");
+        let prime_params = PrimeParams::new_vartime(&monty_params, 5);
         assert_eq!(prime_params.s.get(), 1);
         assert_eq!(prime_params.generator.get(), 5);
     }
 
+    #[should_panic]
+    #[test]
+    fn check_invalid_generator() {
+        let monty_params =
+            MontyParams::new_vartime(Odd::<U128>::from_be_hex("e38af050d74b8567f73c8713cbc7bc47"));
+        let _ = PrimeParams::new_vartime(&monty_params, 0);
+    }
+
+    #[should_panic]
     #[test]
     fn check_non_prime() {
         let monty_params =
             MontyParams::new_vartime(Odd::<U128>::from_be_hex("e38af050d74b8567f73c8713cbc7bc01"));
-        assert!(PrimeParams::new_vartime(&monty_params).is_none());
+        let _ = PrimeParams::new_vartime(&monty_params, 5);
     }
 
     #[test]
     fn check_equality() {
         let monty_params_1 =
             MontyParams::new_vartime(Odd::<U128>::from_be_hex("e38af050d74b8567f73c8713cbc7bc47"));
-        let prime_params_1 =
-            PrimeParams::new_vartime(&monty_params_1).expect("failed creating params");
+        let prime_params_1 = PrimeParams::new_vartime(&monty_params_1, 5);
 
         let monty_params_2 =
             MontyParams::new_vartime(Odd::<U128>::from_be_hex("f2799d643ab7ff983437c3a86cdb1beb"));
-        let prime_params_2 =
-            PrimeParams::new_vartime(&monty_params_2).expect("failed creating params");
+        let prime_params_2 = PrimeParams::new_vartime(&monty_params_2, 5);
 
         assert!(CtEq::ct_eq(&prime_params_1, &prime_params_1).to_bool_vartime());
         #[cfg(feature = "subtle")]

@@ -202,7 +202,8 @@ fn bench_montgomery_sqrt<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         const_prime_monty_params!(
             P256Field,
             U256,
-            "ffffffff00000001000000000000000000000000ffffffffffffffffffffffff"
+            "ffffffff00000001000000000000000000000000ffffffffffffffffffffffff",
+            6
         );
         assert_eq!(P256Field::PRIME_PARAMS.s().get(), 1);
         type ConstForm = crypto_bigint::modular::ConstMontyForm<P256Field, { U256::LIMBS }>;
@@ -227,7 +228,8 @@ fn bench_montgomery_sqrt<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         const_prime_monty_params!(
             P256Scalar,
             U256,
-            "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551"
+            "ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551",
+            7
         );
         assert_eq!(P256Scalar::PRIME_PARAMS.s().get(), 4);
         type ConstForm = crypto_bigint::modular::ConstMontyForm<P256Scalar, { U256::LIMBS }>;
@@ -254,7 +256,8 @@ fn bench_montgomery_sqrt<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
         const_prime_monty_params!(
             K256Scalar,
             U256,
-            "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141"
+            "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141",
+            7
         );
         assert_eq!(K256Scalar::PRIME_PARAMS.s().get(), 6);
         type ConstForm = crypto_bigint::modular::ConstMontyForm<K256Scalar, { U256::LIMBS }>;
