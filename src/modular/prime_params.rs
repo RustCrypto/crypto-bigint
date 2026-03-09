@@ -150,12 +150,12 @@ const fn find_primitive_root<const LIMBS: usize>(p: &Odd<Uint<LIMBS>>) -> Option
                 let Some(g2) = g.checked_add(1) else {
                     return None;
                 };
-                if g2.get() == skip_square {
+                g = g2;
+                if g.get() == skip_square {
                     // Skip obviously square values (4, 9, 16..)
                     skip_root += 1;
                     skip_square = skip_root.saturating_pow(2);
                 } else {
-                    g = g2;
                     break;
                 }
             },
