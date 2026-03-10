@@ -4,7 +4,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.7.0 (2026-03-08)
+## 0.7.1 (2026-03-10)
+### Added
+- `Uint::{concat_resize, concat_checked, split_resize, split_checked}` methods ([#1223])
+
+### Changed
+- `PrimeParams` now requires a multiplicative generator value ([#1221])
+- Improve performance of Monty `pow`/`pow_vartime` ([#1222])
+
+[#1221]: https://github.com/RustCrypto/crypto-bigint/pull/1221
+[#1222]: https://github.com/RustCrypto/crypto-bigint/pull/1222
+[#1223]: https://github.com/RustCrypto/crypto-bigint/pull/1223
+
+## 0.7.0 (2026-03-08) [YANKED]
+
+NOTE: this release was yanked due to some last minute breaking-changes introduced in v0.7.1,
+namely an additional parameter added to `const_prime_monty_params!` / `PrimeParams`.
+
 ### Added
 - Binary GCD algorithm ([#755])
 - Provide `RandomMod::try_random_mod` and `Random::try_random` methods ([#770])
