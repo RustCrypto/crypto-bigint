@@ -91,7 +91,7 @@ impl<const LIMBS: usize> FixedMontyParams<LIMBS> {
 #[cfg(test)]
 mod tests {
     use super::{FixedMontyForm, FixedMontyParams};
-    use crate::{Odd, U256};
+    use crate::{Invert, Odd, U256};
 
     fn params() -> FixedMontyParams<{ U256::LIMBS }> {
         FixedMontyParams::new_vartime(Odd::<U256>::from_be_hex(
@@ -110,5 +110,8 @@ mod tests {
         let res = x_monty * inv;
 
         assert_eq!(res.retrieve(), U256::ONE);
+
+        let inv_trait = Invert::invert(&x_monty).unwrap();
+        assert_eq!(inv_trait, inv);
     }
 }

@@ -1154,6 +1154,7 @@ pub trait MontyForm:
     + CtSelect
     + Debug
     + Eq
+    + Invert<Output = CtOption<Self>>
     + Sized
     + Send
     + Sync
