@@ -95,7 +95,7 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> Invert for ConstMontyForm
 #[cfg(test)]
 mod tests {
     use super::ConstMontyParams;
-    use crate::{U256, const_monty_form, const_monty_params};
+    use crate::{Invert, U256, const_monty_form, const_monty_params};
 
     const_monty_params!(
         Modulus,
@@ -115,5 +115,8 @@ mod tests {
         let res = x_mod * inv;
 
         assert_eq!(res.retrieve(), U256::ONE);
+
+        let inv_trait = Invert::invert(&x_mod).unwrap();
+        assert_eq!(inv_trait, inv);
     }
 }

@@ -64,7 +64,7 @@ impl BoxedMontyParams {
 #[cfg(test)]
 mod tests {
     use crate::{
-        BoxedUint,
+        BoxedUint, Invert,
         modular::{BoxedMontyForm, BoxedMontyParams},
     };
     use hex_literal::hex;
@@ -92,8 +92,11 @@ mod tests {
         let x_mod = BoxedMontyForm::new(x, &params);
 
         let inv = x_mod.invert().unwrap();
-        let res = x_mod * inv;
+        let res = &x_mod * &inv;
 
         assert!(bool::from(res.retrieve().is_one()));
+
+        let inv_trait = Invert::invert(&x_mod).unwrap();
+        assert_eq!(inv_trait, inv);
     }
 }
