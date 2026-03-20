@@ -1,16 +1,5 @@
 //! Stack-allocated big signed integers.
 
-use crate::{
-    Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, FixedInteger, Integer, Limb,
-    NonZero, Odd, One, Signed, Uint, Word, Zero,
-};
-use core::fmt;
-
-#[cfg(feature = "serde")]
-use crate::Encoding;
-#[cfg(feature = "serde")]
-use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
-
 mod add;
 mod bit_and;
 mod bit_not;
@@ -38,6 +27,17 @@ pub(crate) mod types;
 
 #[cfg(feature = "rand_core")]
 mod rand;
+
+use crate::{
+    Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, FixedInteger, Integer, Limb,
+    NonZero, Odd, One, Signed, Uint, Word, Zero, sealed::Sealed,
+};
+use core::fmt;
+
+#[cfg(feature = "serde")]
+use crate::Encoding;
+#[cfg(feature = "serde")]
+use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 /// Stack-allocated big _signed_ integer.
 /// See [`Uint`] for _unsigned_ integers.
@@ -263,6 +263,8 @@ impl<const LIMBS: usize> Integer for Int<LIMBS> {
         self.0.nlimbs()
     }
 }
+
+impl<const LIMBS: usize> Sealed for Int<LIMBS> {}
 
 impl<const LIMBS: usize> Signed for Int<LIMBS> {
     type Unsigned = Uint<LIMBS>;

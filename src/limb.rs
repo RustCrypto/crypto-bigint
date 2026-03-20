@@ -24,7 +24,7 @@ mod rand;
 
 use crate::{
     Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, Integer, NonZero, One,
-    UintRef, Unsigned, WideWord, Word, Zero, primitives::u32_bits, word,
+    UintRef, Unsigned, WideWord, Word, Zero, primitives::u32_bits, traits::sealed::Sealed, word,
 };
 use core::{fmt, ptr, slice};
 
@@ -259,6 +259,8 @@ impl Integer for Limb {
         (*self).is_odd()
     }
 }
+
+impl Sealed for Limb {}
 
 impl Unsigned for Limb {
     #[inline]
