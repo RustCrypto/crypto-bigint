@@ -4,7 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.7.1 (2026-03-10)
+## 0.7.2 (2026-03-20)
+### Added
+- `Invert` to `MontyForm` supertraits ([#1226])
+
+### Changed
+- BREAKING: seal the `Integer` trait ([#1227])
+
+[#1226]: https://github.com/RustCrypto/crypto-bigint/pull/1226
+[#1227]: https://github.com/RustCrypto/crypto-bigint/pull/1227
+
+## 0.7.1 (2026-03-10) [YANKED]
+
+NOTE: this release, like v0.7.0, was yanked due to last-minute breaking changes, namely sealing the
+`Integer` trait ([#1227]), which is technically a breaking change but one we do not expect will
+have any user-facing impact. 
+
 ### Added
 - `Uint::{concat_resize, concat_checked, split_resize, split_checked}` methods ([#1223])
 
