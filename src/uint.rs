@@ -8,7 +8,7 @@ pub(crate) use ref_type::UintRef;
 use crate::{
     Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, EncodedUint, FixedInteger,
     Int, Integer, Limb, NonZero, Odd, One, Unsigned, UnsignedWithMontyForm, Word, Zero,
-    limb::nlimbs, modular::FixedMontyForm, primitives::u32_bits,
+    limb::nlimbs, modular::FixedMontyForm, primitives::u32_bits, traits::sealed::Sealed,
 };
 use core::fmt;
 
@@ -343,6 +343,8 @@ impl<const LIMBS: usize> Integer for Uint<LIMBS> {
         Self::LIMBS
     }
 }
+
+impl<const LIMBS: usize> Sealed for Uint<LIMBS> {}
 
 impl<const LIMBS: usize> Unsigned for Uint<LIMBS> {
     fn as_uint_ref(&self) -> &UintRef {

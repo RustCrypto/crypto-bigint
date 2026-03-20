@@ -32,6 +32,7 @@ pub trait Bounded {
 /// Integer trait: represents common functionality of integer types provided by this crate.
 pub trait Integer:
     'static
+    + sealed::Sealed
     + Add<Output = Self>
     + for<'a> Add<&'a Self, Output = Self>
     + AddAssign<Self>
@@ -1284,6 +1285,12 @@ pub(crate) trait AmmMultiplier<'a>: MontyMultiplier<'a> {
 
     /// Perform a squaring using "Almost Montgomery Multiplication", assigning the result to `a`.
     fn square_amm_assign(&mut self, a: &mut <Self::Monty as MontyForm>::Integer);
+}
+
+/// Support for sealing traits defined in this module.
+pub(crate) mod sealed {
+    /// Sealed trait.
+    pub trait Sealed {}
 }
 
 #[cfg(test)]
