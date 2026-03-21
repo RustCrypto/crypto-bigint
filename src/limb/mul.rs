@@ -40,12 +40,14 @@ impl Limb {
     }
 
     /// Compute "wide" multiplication, with a product twice the size of the input.
+    #[inline]
     pub(crate) const fn widening_mul(self, rhs: Self) -> (Self, Self) {
         let (lo, hi) = widening_mul(self.0, rhs.0);
         (Limb(lo), Limb(hi))
     }
 
     /// Compute "wide" squaring, with a product twice the size of the input.
+    #[inline]
     pub(crate) const fn widening_square(self) -> (Self, Self) {
         let (lo, hi) = widening_mul(self.0, self.0);
         (Limb(lo), Limb(hi))

@@ -37,12 +37,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform wrapping addition, discarding overflow.
+    #[inline]
     #[must_use]
     pub const fn wrapping_add(&self, rhs: &Self) -> Self {
         self.carrying_add(rhs, Limb::ZERO).0
     }
 
     /// Computes `self + rhs + carry`, returning the result along with the new carry.
+    #[inline]
     pub(crate) const fn overflowing_add_limb(&self, mut carry: Limb) -> (Self, Limb) {
         let mut limbs = [Limb::ZERO; LIMBS];
         let mut i = 0;
@@ -56,6 +58,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Computes `self + rhs`, discarding overflow.
+    #[inline]
     pub(crate) const fn wrapping_add_limb(&self, rhs: Limb) -> Self {
         self.overflowing_add_limb(rhs).0
     }

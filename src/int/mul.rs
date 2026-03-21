@@ -26,6 +26,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// negated when converted from [`Uint`] to [`Int`].
     ///
     /// Note: even if `negate` is truthy, the magnitude might be zero!
+    #[inline]
     #[must_use]
     pub const fn widening_mul<const RHS_LIMBS: usize>(
         &self,
@@ -95,6 +96,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
 
     /// Multiply `self` by `rhs`, wrapping the result in case of overflow.
     /// This is equivalent to `(self * rhs) % (Uint::<LIMBS>::MAX + 1)`.
+    #[inline]
     #[must_use]
     pub const fn wrapping_mul<const RHS_LIMBS: usize>(&self, rhs: &Int<RHS_LIMBS>) -> Self {
         if RHS_LIMBS >= LIMBS {

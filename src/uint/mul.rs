@@ -45,6 +45,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform wrapping multiplication, discarding overflow.
+    #[inline]
     #[must_use]
     pub const fn wrapping_mul<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> Self {
         karatsuba::wrapping_mul_fixed::<LIMBS>(self.as_uint_ref(), rhs.as_uint_ref()).0
@@ -83,6 +84,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform multiplication by a Limb, returning the wrapped result and a Limb overflow.
+    #[inline]
     pub(crate) const fn overflowing_mul_limb(&self, rhs: Limb) -> (Self, Limb) {
         let mut ret = [Limb::ZERO; LIMBS];
         let mut i = 0;
@@ -95,6 +97,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform wrapping multiplication by a Limb, discarding overflow.
+    #[inline]
     pub(crate) const fn wrapping_mul_limb(&self, rhs: Limb) -> Self {
         self.overflowing_mul_limb(rhs).0
     }
@@ -135,6 +138,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform wrapping square, discarding overflow.
+    #[inline]
     #[must_use]
     pub const fn wrapping_square(&self) -> Uint<LIMBS> {
         karatsuba::wrapping_square_fixed(self.as_uint_ref()).0
