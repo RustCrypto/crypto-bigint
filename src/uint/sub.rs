@@ -32,6 +32,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Perform wrapping subtraction, returning the truthy value as the second element of
     /// the tuple if an underflow has occurred.
+    #[inline]
     #[must_use]
     pub(crate) const fn conditional_borrowing_sub(
         &self,
@@ -61,6 +62,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Perform wrapping subtraction, discarding underflow and wrapping around
     /// the boundary of the type.
+    #[inline]
     #[must_use]
     pub const fn wrapping_sub(&self, rhs: &Self) -> Self {
         self.borrowing_sub(rhs, Limb::ZERO).0

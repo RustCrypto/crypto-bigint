@@ -107,6 +107,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// # Panics
     /// - if the shift exceeds the upper bound.
+    #[inline]
     #[must_use]
     #[track_caller]
     pub(crate) const fn bounded_shr_by_limbs(&self, shift: u32, shift_upper_bound: u32) -> Self {

@@ -110,6 +110,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// If the shift exceeds the precision, returns
     /// - `0` when `self` is non-negative, and
     /// - `-1` when `self` is negative.
+    #[inline]
     #[must_use]
     pub const fn wrapping_shr(&self, shift: u32) -> Self {
         self.shr(u32_rem(shift, Self::BITS))
@@ -124,6 +125,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// NOTE: this operation is variable time with respect to `shift` *ONLY*.
     ///
     /// When used with a fixed `shift`, this function is constant-time with respect to `self`.
+    #[inline]
     #[must_use]
     #[allow(clippy::integer_division_remainder_used, reason = "needs triage")]
     pub const fn wrapping_shr_vartime(&self, shift: u32) -> Self {

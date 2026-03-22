@@ -8,6 +8,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// # Panics
     /// - if `shift >= Self::BITS`.
+    #[inline]
     #[must_use]
     #[track_caller]
     pub const fn shl(&self, shift: u32) -> Self {

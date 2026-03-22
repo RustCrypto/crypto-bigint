@@ -11,6 +11,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Perform addition, raising the `overflow` flag on overflow.
+    #[inline]
     #[must_use]
     pub const fn overflowing_add(&self, rhs: &Self) -> (Self, Choice) {
         // Step 1. add operands
@@ -32,6 +33,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Perform wrapping addition, discarding overflow.
+    #[inline]
     #[must_use]
     pub const fn wrapping_add(&self, rhs: &Self) -> Self {
         Self(self.0.wrapping_add(&rhs.0))
