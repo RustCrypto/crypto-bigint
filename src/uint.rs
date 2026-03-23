@@ -727,4 +727,9 @@ mod tests {
     fn test_unsigned() {
         crate::traits::tests::test_unsigned(U128::ZERO, U128::MAX);
     }
+
+    #[test]
+    fn test_unsigned_monty_form() {
+        crate::traits::tests::test_unsigned_monty_form::<U128>();
+    }
 }
