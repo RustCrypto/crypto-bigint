@@ -1207,9 +1207,29 @@ pub trait MontyForm:
     #[must_use]
     fn zero(params: &Self::Params) -> Self;
 
+    /// Determine if this value is equal to zero.
+    ///
+    /// # Returns
+    ///
+    /// If zero, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
+    #[must_use]
+    fn is_zero(&self) -> Choice {
+        self.as_montgomery().is_zero()
+    }
+
     /// Returns one in this representation.
     #[must_use]
     fn one(params: &Self::Params) -> Self;
+
+    /// Determine if this value is equal to one.
+    ///
+    /// # Returns
+    ///
+    /// If one, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
+    #[must_use]
+    fn is_one(&self) -> Choice {
+        self.as_montgomery().ct_eq(self.params().as_ref().one())
+    }
 
     /// Returns the parameter struct used to initialize this object.
     #[must_use]
@@ -1222,6 +1242,10 @@ pub trait MontyForm:
     /// Copy the Montgomery representation from `other` into `self`.
     /// NOTE: the parameters remain unchanged.
     fn copy_montgomery_from(&mut self, other: &Self);
+
+    /// Create a new Montgomery representation from an integer in Montgomery form.
+    #[must_use]
+    fn from_montgomery(integer: Self::Integer, params: &Self::Params) -> Self;
 
     /// Move the Montgomery form result out of `self` and return it.
     #[must_use]
