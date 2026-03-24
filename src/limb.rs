@@ -12,6 +12,7 @@ mod ct;
 mod div;
 mod encoding;
 mod from;
+mod gcd;
 mod mul;
 mod neg;
 mod shl;

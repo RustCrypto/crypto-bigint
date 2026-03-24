@@ -1,6 +1,6 @@
 //! `From`-like conversions for [`Uint`].
 
-use crate::{Concat, Limb, Split, U64, U128, Uint, WideWord, Word};
+use crate::{Concat, Limb, NonZero, Odd, Split, U64, U128, Uint, WideWord, Word};
 
 macro_rules! check_limbs {
     ($limbs:expr) => {
@@ -230,6 +230,20 @@ impl<const LIMBS: usize> From<Limb> for Uint<LIMBS> {
     #[inline]
     fn from(limb: Limb) -> Self {
         limb.0.into()
+    }
+}
+
+impl<const LIMBS: usize> From<NonZero<Limb>> for NonZero<Uint<LIMBS>> {
+    #[inline]
+    fn from(limb: NonZero<Limb>) -> Self {
+        NonZero(limb.0.into())
+    }
+}
+
+impl<const LIMBS: usize> From<Odd<Limb>> for Odd<Uint<LIMBS>> {
+    #[inline]
+    fn from(limb: Odd<Limb>) -> Self {
+        Odd(limb.0.into())
     }
 }
 
