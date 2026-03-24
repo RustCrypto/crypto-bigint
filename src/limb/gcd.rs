@@ -42,3 +42,25 @@ impl Gcd<Limb> for Odd<Limb> {
             .limbs[0]
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{Gcd, Limb, Odd};
+
+    #[test]
+    fn gcd_expected() {
+        let f = Odd::<Limb>::new(Limb::from(61u32 * 71)).expect("ensured odd");
+        let g = Limb::from(59u32 * 61);
+
+        assert_eq!(Limb::from(61u32), f.gcd(&g));
+        assert_eq!(Limb::from(61u32), f.gcd_vartime(&g));
+
+        let f = f.as_nz_ref();
+        assert_eq!(Limb::from(61u32), f.gcd(&g));
+        assert_eq!(Limb::from(61u32), f.gcd_vartime(&g));
+
+        let f = f.get();
+        assert_eq!(Limb::from(61u32), f.gcd(&g));
+        assert_eq!(Limb::from(61u32), f.gcd_vartime(&g));
+    }
+}
