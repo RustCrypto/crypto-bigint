@@ -150,6 +150,10 @@ impl<const LIMBS: usize> MontyForm for FixedMontyForm<LIMBS> {
         self.montgomery_form
     }
 
+    fn from_montgomery(integer: Self::Integer, params: &Self::Params) -> Self {
+        FixedMontyForm::from_montgomery(integer, params)
+    }
+
     fn copy_montgomery_from(&mut self, other: &Self) {
         debug_assert_eq!(self.params, other.params);
         self.montgomery_form = other.montgomery_form;

@@ -199,6 +199,10 @@ impl MontyForm for BoxedMontyForm {
             .copy_from_slice(&other.montgomery_form.limbs);
     }
 
+    fn from_montgomery(integer: Self::Integer, params: &Self::Params) -> Self {
+        BoxedMontyForm::from_montgomery(integer, params)
+    }
+
     fn into_montgomery(self) -> Self::Integer {
         self.montgomery_form
     }

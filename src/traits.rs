@@ -1209,9 +1209,29 @@ pub trait MontyForm:
     #[must_use]
     fn zero(params: &Self::Params) -> Self;
 
+    /// Determine if this value is equal to zero.
+    ///
+    /// # Returns
+    ///
+    /// If zero, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
+    #[must_use]
+    fn is_zero(&self) -> Choice {
+        self.as_montgomery().is_zero()
+    }
+
     /// Returns one in this representation.
     #[must_use]
     fn one(params: &Self::Params) -> Self;
+
+    /// Determine if this value is equal to one.
+    ///
+    /// # Returns
+    ///
+    /// If one, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
+    #[must_use]
+    fn is_one(&self) -> Choice {
+        self.as_montgomery().ct_eq(self.params().as_ref().one())
+    }
 
     /// Returns the parameter struct used to initialize this object.
     #[must_use]
@@ -1224,6 +1244,10 @@ pub trait MontyForm:
     /// Copy the Montgomery representation from `other` into `self`.
     /// NOTE: the parameters remain unchanged.
     fn copy_montgomery_from(&mut self, other: &Self);
+
+    /// Create a new Montgomery representation from an integer in Montgomery form.
+    #[must_use]
+    fn from_montgomery(integer: Self::Integer, params: &Self::Params) -> Self;
 
     /// Move the Montgomery form result out of `self` and return it.
     #[must_use]
@@ -1298,8 +1322,11 @@ pub(crate) mod sealed {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::{Integer, Signed, ToUnsigned, Unsigned};
-    use crate::{Choice, CtEq, CtSelect, Limb, NonZero, One, Zero};
+    use super::{
+        Integer, Invert, MontyForm, Retrieve, Signed, Square, SquareAssign, ToUnsigned, Unsigned,
+        UnsignedWithMontyForm,
+    };
+    use crate::{Choice, CtEq, CtSelect, Limb, NonZero, Odd, One, Zero};
 
     /// Apply a suite of tests against a type implementing Integer.
     pub fn test_integer<T: Integer>(min: T, max: T) {
@@ -1866,5 +1893,135 @@ pub(crate) mod tests {
             one.clone().div(nz_two.clone()).into_option(),
             Some(zero.clone())
         );
+    }
+
+    pub fn test_unsigned_monty_form<T: UnsignedWithMontyForm>() {
+        let modulus = Odd::new(T::from(17863u32)).unwrap();
+        let params = T::MontyForm::new_params_vartime(modulus);
+
+        // test AsRef, From for Params
+        assert_eq!(
+            <T::MontyForm as MontyForm>::Params::from(params.as_ref().clone()),
+            params,
+        );
+        // test Clone for Params
+        assert_eq!(params, params.clone());
+
+        // test zero
+        let zero = T::MontyForm::zero(&params);
+        assert!(zero.is_zero().to_bool_vartime());
+        assert!(!zero.is_one().to_bool_vartime());
+
+        // test one
+        let one = T::MontyForm::one(&params);
+        assert!(!one.is_zero().to_bool_vartime());
+        assert!(one.is_one().to_bool_vartime());
+
+        // test as_montgomery()
+        assert_eq!(zero.as_montgomery(), &T::zero());
+        assert_eq!(one.as_montgomery(), params.as_ref().one());
+
+        // test copy_montgomery_from()
+        let mut z2 = one.clone();
+        z2.copy_montgomery_from(&zero);
+        assert_eq!(z2, zero);
+
+        // test from_montgomery()
+        let one2 =
+            <T::MontyForm as MontyForm>::from_montgomery(params.as_ref().one().clone(), &params);
+        assert_eq!(one2, one);
+
+        // test into_montgomery()
+        assert_eq!(&one2.into_montgomery(), params.as_ref().one());
+
+        // test double(), div_by_2()
+        assert_eq!(zero.double(), zero);
+        assert_ne!(one.double(), one);
+        assert_eq!(one.double().div_by_2(), one);
+        let mut half = one.clone();
+        half.div_by_2_assign();
+        assert_ne!(half, one);
+        assert_eq!(half.double(), one);
+
+        // test lincomb_vartime()
+        assert_eq!(
+            <T::MontyForm as MontyForm>::lincomb_vartime(&[(&zero, &zero)]),
+            zero
+        );
+        assert_eq!(
+            <T::MontyForm as MontyForm>::lincomb_vartime(&[(&one, &one)]),
+            one
+        );
+        assert_eq!(
+            <T::MontyForm as MontyForm>::lincomb_vartime(&[(&one, &one), (&one, &one)]),
+            one.double()
+        );
+
+        // test CtSelect
+        assert_eq!(zero.ct_select(&one, Choice::FALSE), zero);
+        assert_eq!(zero.ct_select(&one, Choice::TRUE), one);
+
+        // test Invert
+        assert!(zero.invert().is_none().to_bool_vartime());
+        assert!(zero.invert_vartime().is_none().to_bool_vartime());
+        assert!(
+            one.invert()
+                .expect("inversion error")
+                .is_one()
+                .to_bool_vartime()
+        );
+        assert!(
+            one.invert_vartime()
+                .expect("inversion error")
+                .is_one()
+                .to_bool_vartime()
+        );
+
+        // test Add, AddAssign
+        assert_eq!(one.clone() + one.clone(), one.double());
+        assert_eq!(one.clone() + &one, one.double());
+        let mut two = one.clone();
+        two += one.clone();
+        assert_eq!(two, one.double());
+        let mut two = one.clone();
+        two += &one;
+        assert_eq!(two, one.double());
+
+        // test Sub, SubAssign
+        assert_eq!(one.clone() - one.clone(), zero);
+        assert_eq!(one.clone() - &one, zero);
+        let mut check = one.double();
+        check -= one.clone();
+        assert_eq!(check, one);
+        let mut check = one.double();
+        check -= &one;
+        assert_eq!(check, one);
+
+        // test Mul, MulAssign
+        assert_eq!(zero.clone() * &zero, zero);
+        assert_eq!(zero.clone() * &one, zero);
+        assert_eq!(one.clone() * one.clone(), one);
+        let mut check = one.clone();
+        check *= one.clone();
+        assert_eq!(check, one);
+        let mut check = one.clone();
+        check *= &zero;
+        assert_eq!(check, zero);
+
+        // test Neg
+        assert_eq!(-zero.clone(), zero);
+        assert_ne!(-one.clone(), one);
+        assert_eq!(-(-one.clone()), one);
+
+        // test Retrieve
+        assert_eq!(zero.retrieve(), T::zero());
+        assert_eq!(one.retrieve(), T::one());
+
+        // test Square, SquareAssign
+        assert_eq!(zero.square(), zero);
+        assert_eq!(one.square(), one);
+        let mut check = one.double();
+        check.square_assign();
+        assert_eq!(check, one.double().double());
     }
 }

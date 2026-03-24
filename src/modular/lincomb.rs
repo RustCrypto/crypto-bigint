@@ -1,4 +1,4 @@
-use crate::{Limb, Odd, Uint, modular::FixedMontyForm};
+use crate::{Limb, Odd, Uint, modular::FixedMontyForm, primitives::u32_min};
 
 use super::{ConstMontyForm, ConstMontyParams};
 
@@ -76,7 +76,7 @@ pub const fn lincomb_const_monty_form<MOD: ConstMontyParams<LIMBS>, const LIMBS:
     modulus: &Odd<Uint<LIMBS>>,
     mod_neg_inv: Limb,
 ) -> Uint<LIMBS> {
-    let max_accum = 1 << (MOD::PARAMS.mod_leading_zeros as usize);
+    let max_accum = 1 << u32_min(MOD::PARAMS.mod_leading_zeros, usize::BITS - 1);
     let mut ret = Uint::ZERO;
     let mut remain = products.len();
     if remain <= max_accum {
@@ -108,7 +108,7 @@ pub const fn lincomb_monty_form<const LIMBS: usize>(
     mod_neg_inv: Limb,
     mod_leading_zeros: u32,
 ) -> Uint<LIMBS> {
-    let max_accum = 1 << (mod_leading_zeros as usize);
+    let max_accum = 1 << u32_min(mod_leading_zeros, usize::BITS - 1);
     let mut ret = Uint::ZERO;
     let mut remain = products.len();
     if remain <= max_accum {
@@ -141,7 +141,7 @@ pub fn lincomb_boxed_monty_form(
     mod_neg_inv: Limb,
     mod_leading_zeros: u32,
 ) -> BoxedUint {
-    let max_accum = 1 << (mod_leading_zeros as usize);
+    let max_accum = 1 << u32_min(mod_leading_zeros, usize::BITS - 1);
     let nlimbs = modulus.0.nlimbs();
     let mut ret = BoxedUint::zero_with_precision(modulus.0.bits_precision());
     let mut remain = products.len();

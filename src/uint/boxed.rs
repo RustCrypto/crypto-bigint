@@ -628,4 +628,9 @@ mod tests {
             BoxedUint::max(128),
         );
     }
+
+    #[test]
+    fn test_unsigned_monty_form() {
+        crate::traits::tests::test_unsigned_monty_form::<BoxedUint>();
+    }
 }
