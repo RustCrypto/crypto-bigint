@@ -3,7 +3,7 @@
 use super::div_limb::Reciprocal;
 use crate::{
     CheckedDiv, CtOption, Div, DivAssign, DivRemLimb, DivVartime, Limb, NonZero, Rem, RemAssign,
-    RemLimb, RemMixed, Uint, UintRef, Unsigned, Wrapping,
+    RemLimb, RemMixed, ToUnsigned, Uint, UintRef, Unsigned, Wrapping,
 };
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -67,6 +67,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let (mut x, mut y) = (*self, *rhs.as_ref());
         UintRef::div_rem_vartime(x.as_mut_uint_ref(), y.as_mut_uint_ref());
         (x, y)
+    }
+
+    /// Computes self / rhs, assigning the quotient to `self` and returning the remainder.
+    #[must_use]
+    pub(crate) fn div_rem_assign<Rhs: Unsigned>(&mut self, rhs: NonZero<Rhs>) -> Rhs {
+        let mut rem = rhs.get();
+        self.as_mut_uint_ref().div_rem(rem.as_mut_uint_ref());
+        rem
     }
 
     /// Computes `self` % `rhs`.
@@ -238,314 +246,123 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 }
 
-//
-// Division by a single limb
-//
-
-impl<const LIMBS: usize> Div<&NonZero<Limb>> for &Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    fn div(self, rhs: &NonZero<Limb>) -> Self::Output {
-        *self / *rhs
-    }
-}
-
-impl<const LIMBS: usize> Div<&NonZero<Limb>> for Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    fn div(self, rhs: &NonZero<Limb>) -> Self::Output {
-        self / *rhs
-    }
-}
-
-impl<const LIMBS: usize> Div<NonZero<Limb>> for &Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    fn div(self, rhs: NonZero<Limb>) -> Self::Output {
-        *self / rhs
-    }
-}
-
-impl<const LIMBS: usize> Div<NonZero<Limb>> for Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    fn div(self, rhs: NonZero<Limb>) -> Self::Output {
-        let (q, _) = self.div_rem_limb(rhs);
-        q
-    }
-}
-
-impl<const LIMBS: usize> DivAssign<&NonZero<Limb>> for Uint<LIMBS> {
-    fn div_assign(&mut self, rhs: &NonZero<Limb>) {
-        *self /= *rhs;
-    }
-}
-
-impl<const LIMBS: usize> DivAssign<NonZero<Limb>> for Uint<LIMBS> {
-    fn div_assign(&mut self, rhs: NonZero<Limb>) {
-        *self = *self / rhs;
-    }
-}
-
-impl<const LIMBS: usize> Div<NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn div(self, rhs: NonZero<Limb>) -> Self::Output {
-        Wrapping(self.0 / rhs)
-    }
-}
-
-impl<const LIMBS: usize> Div<NonZero<Limb>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn div(self, rhs: NonZero<Limb>) -> Self::Output {
-        *self / rhs
-    }
-}
-
-impl<const LIMBS: usize> Div<&NonZero<Limb>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn div(self, rhs: &NonZero<Limb>) -> Self::Output {
-        *self / *rhs
-    }
-}
-
-impl<const LIMBS: usize> Div<&NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn div(self, rhs: &NonZero<Limb>) -> Self::Output {
-        self / *rhs
-    }
-}
-
-impl<const LIMBS: usize> DivAssign<&NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
-    fn div_assign(&mut self, rhs: &NonZero<Limb>) {
-        *self = Wrapping(self.0 / rhs);
-    }
-}
-
-impl<const LIMBS: usize> DivAssign<NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
-    fn div_assign(&mut self, rhs: NonZero<Limb>) {
-        *self /= &rhs;
-    }
-}
-
-impl<const LIMBS: usize> Rem<&NonZero<Limb>> for &Uint<LIMBS> {
-    type Output = Limb;
-
-    fn rem(self, rhs: &NonZero<Limb>) -> Self::Output {
-        *self % *rhs
-    }
-}
-
-impl<const LIMBS: usize> Rem<&NonZero<Limb>> for Uint<LIMBS> {
-    type Output = Limb;
-
-    fn rem(self, rhs: &NonZero<Limb>) -> Self::Output {
-        self % *rhs
-    }
-}
-
-impl<const LIMBS: usize> Rem<NonZero<Limb>> for &Uint<LIMBS> {
-    type Output = Limb;
-
-    fn rem(self, rhs: NonZero<Limb>) -> Self::Output {
-        *self % rhs
-    }
-}
-
-impl<const LIMBS: usize> Rem<NonZero<Limb>> for Uint<LIMBS> {
-    type Output = Limb;
-
-    fn rem(self, rhs: NonZero<Limb>) -> Self::Output {
-        let (_, r) = self.div_rem_limb(rhs);
-        r
-    }
-}
-
-impl<const LIMBS: usize> RemAssign<&NonZero<Limb>> for Uint<LIMBS> {
-    fn rem_assign(&mut self, rhs: &NonZero<Limb>) {
-        *self = (*self % rhs).into();
-    }
-}
-
-impl<const LIMBS: usize> RemAssign<NonZero<Limb>> for Uint<LIMBS> {
-    fn rem_assign(&mut self, rhs: NonZero<Limb>) {
-        *self %= &rhs;
-    }
-}
-
-impl<const LIMBS: usize> Rem<NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Limb>;
-
-    fn rem(self, rhs: NonZero<Limb>) -> Self::Output {
-        Wrapping(self.0 % rhs)
-    }
-}
-
-impl<const LIMBS: usize> Rem<NonZero<Limb>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Limb>;
-
-    fn rem(self, rhs: NonZero<Limb>) -> Self::Output {
-        *self % rhs
-    }
-}
-
-impl<const LIMBS: usize> Rem<&NonZero<Limb>> for &Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Limb>;
-
-    fn rem(self, rhs: &NonZero<Limb>) -> Self::Output {
-        *self % *rhs
-    }
-}
-
-impl<const LIMBS: usize> Rem<&NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
-    type Output = Wrapping<Limb>;
-
-    fn rem(self, rhs: &NonZero<Limb>) -> Self::Output {
-        self % *rhs
-    }
-}
-
-impl<const LIMBS: usize> RemAssign<NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
-    fn rem_assign(&mut self, rhs: NonZero<Limb>) {
-        *self %= &rhs;
-    }
-}
-
-impl<const LIMBS: usize> RemAssign<&NonZero<Limb>> for Wrapping<Uint<LIMBS>> {
-    fn rem_assign(&mut self, rhs: &NonZero<Limb>) {
-        *self = Wrapping((self.0 % rhs).into());
-    }
-}
-
-//
-// Division by an Uint
-//
-
 impl<const LIMBS: usize, const RHS_LIMBS: usize> CheckedDiv<Uint<RHS_LIMBS>> for Uint<LIMBS> {
     fn checked_div(&self, rhs: &Uint<RHS_LIMBS>) -> CtOption<Self> {
         self.checked_div(rhs)
     }
 }
 
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Uint<RHS_LIMBS>>> for &Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    fn div(self, rhs: &NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
-        *self / *rhs
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Uint<RHS_LIMBS>>> for Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    fn div(self, rhs: &NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
-        self / *rhs
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Uint<RHS_LIMBS>>> for &Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    fn div(self, rhs: NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
-        *self / rhs
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Uint<RHS_LIMBS>>> for Uint<LIMBS> {
-    type Output = Uint<LIMBS>;
-
-    fn div(self, rhs: NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
-        let (q, _) = self.div_rem(&rhs);
-        q
-    }
-}
-
-impl<const LIMBS: usize> DivAssign<&NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
-    fn div_assign(&mut self, rhs: &NonZero<Uint<LIMBS>>) {
-        *self /= *rhs;
-    }
-}
-
-impl<const LIMBS: usize> DivAssign<NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
-    fn div_assign(&mut self, rhs: NonZero<Uint<LIMBS>>) {
-        *self = *self / rhs;
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Uint<RHS_LIMBS>>>
-    for Wrapping<Uint<LIMBS>>
-{
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn div(self, rhs: NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
-        Wrapping(self.0 / rhs)
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<NonZero<Uint<RHS_LIMBS>>>
-    for &Wrapping<Uint<LIMBS>>
-{
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn div(self, rhs: NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
-        *self / rhs
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Uint<RHS_LIMBS>>>
-    for &Wrapping<Uint<LIMBS>>
-{
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn div(self, rhs: &NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
-        *self / *rhs
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<&NonZero<Uint<RHS_LIMBS>>>
-    for Wrapping<Uint<LIMBS>>
-{
-    type Output = Wrapping<Uint<LIMBS>>;
-
-    fn div(self, rhs: &NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
-        self / *rhs
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<Uint<RHS_LIMBS>> for &Uint<LIMBS> {
+impl<const LIMBS: usize, Rhs: Unsigned> Div<Rhs> for &Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
     #[inline]
-    fn div(self, rhs: Uint<RHS_LIMBS>) -> Self::Output {
+    fn div(self, rhs: Rhs) -> Self::Output {
+        *self / rhs
+    }
+}
+
+impl<const LIMBS: usize, Rhs: Unsigned> Div<Rhs> for Uint<LIMBS> {
+    type Output = Uint<LIMBS>;
+
+    #[inline]
+    fn div(self, rhs: Rhs) -> Self::Output {
         self / NonZero::new(rhs).expect("attempt to divide with a divisor of zero")
     }
 }
 
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Div<Uint<RHS_LIMBS>> for Uint<LIMBS> {
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> Div<&NonZero<Rhs>> for &Uint<LIMBS> {
     type Output = Uint<LIMBS>;
 
-    #[inline]
-    fn div(self, rhs: Uint<RHS_LIMBS>) -> Self::Output {
-        &self / rhs
+    fn div(self, rhs: &NonZero<Rhs>) -> Self::Output {
+        let mut quo = *self;
+        let _rem = quo.div_rem_assign(rhs.to_unsigned());
+        quo
     }
 }
 
-impl<const LIMBS: usize, const RHS_LIMBS: usize> DivAssign<&NonZero<Uint<RHS_LIMBS>>>
-    for Wrapping<Uint<LIMBS>>
-{
-    fn div_assign(&mut self, rhs: &NonZero<Uint<RHS_LIMBS>>) {
-        *self = Wrapping(self.0 / rhs);
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> Div<&NonZero<Rhs>> for Uint<LIMBS> {
+    type Output = Self;
+
+    fn div(mut self, rhs: &NonZero<Rhs>) -> Self::Output {
+        let _rem = self.div_rem_assign(rhs.to_unsigned());
+        self
     }
 }
 
-impl<const LIMBS: usize, const RHS_LIMBS: usize> DivAssign<NonZero<Uint<RHS_LIMBS>>>
+impl<const LIMBS: usize, Rhs: Unsigned> Div<NonZero<Rhs>> for &Uint<LIMBS> {
+    type Output = Uint<LIMBS>;
+
+    fn div(self, rhs: NonZero<Rhs>) -> Self::Output {
+        let mut quo = *self;
+        let _rem = quo.div_rem_assign(rhs);
+        quo
+    }
+}
+
+impl<const LIMBS: usize, Rhs: Unsigned> Div<NonZero<Rhs>> for Uint<LIMBS> {
+    type Output = Self;
+
+    fn div(mut self, rhs: NonZero<Rhs>) -> Self::Output {
+        let _rem = self.div_rem_assign(rhs);
+        self
+    }
+}
+
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> DivAssign<&NonZero<Rhs>> for Uint<LIMBS> {
+    fn div_assign(&mut self, rhs: &NonZero<Rhs>) {
+        let _rem = self.div_rem_assign(rhs.to_unsigned());
+    }
+}
+
+impl<const LIMBS: usize, Rhs: Unsigned> DivAssign<NonZero<Rhs>> for Uint<LIMBS> {
+    fn div_assign(&mut self, rhs: NonZero<Rhs>) {
+        let _rem = self.div_rem_assign(rhs);
+    }
+}
+
+impl<const LIMBS: usize, Rhs: Unsigned> Div<NonZero<Rhs>> for Wrapping<Uint<LIMBS>> {
+    type Output = Self;
+
+    fn div(self, rhs: NonZero<Rhs>) -> Self::Output {
+        Wrapping(self.0 / rhs)
+    }
+}
+
+impl<const LIMBS: usize, Rhs: Unsigned> Div<NonZero<Rhs>> for &Wrapping<Uint<LIMBS>> {
+    type Output = Wrapping<Uint<LIMBS>>;
+
+    fn div(self, rhs: NonZero<Rhs>) -> Self::Output {
+        Wrapping(self.0 / rhs)
+    }
+}
+
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> Div<&NonZero<Rhs>> for &Wrapping<Uint<LIMBS>> {
+    type Output = Wrapping<Uint<LIMBS>>;
+
+    fn div(self, rhs: &NonZero<Rhs>) -> Self::Output {
+        Wrapping(self.0 / rhs)
+    }
+}
+
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> Div<&NonZero<Rhs>> for Wrapping<Uint<LIMBS>> {
+    type Output = Self;
+
+    fn div(self, rhs: &NonZero<Rhs>) -> Self::Output {
+        Wrapping(self.0 / rhs)
+    }
+}
+
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> DivAssign<&NonZero<Rhs>>
     for Wrapping<Uint<LIMBS>>
 {
-    fn div_assign(&mut self, rhs: NonZero<Uint<RHS_LIMBS>>) {
-        *self /= &rhs;
+    fn div_assign(&mut self, rhs: &NonZero<Rhs>) {
+        self.0 /= rhs;
+    }
+}
+
+impl<const LIMBS: usize, Rhs: Unsigned> DivAssign<NonZero<Rhs>> for Wrapping<Uint<LIMBS>> {
+    fn div_assign(&mut self, rhs: NonZero<Rhs>) {
+        self.0 /= rhs;
     }
 }
 
@@ -555,117 +372,116 @@ impl<const LIMBS: usize> DivVartime for Uint<LIMBS> {
     }
 }
 
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<&NonZero<Uint<RHS_LIMBS>>> for &Uint<LIMBS> {
-    type Output = Uint<RHS_LIMBS>;
+impl<const LIMBS: usize, Rhs: Unsigned> Rem<Rhs> for &Uint<LIMBS> {
+    type Output = Rhs;
 
-    fn rem(self, rhs: &NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
-        *self % *rhs
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<&NonZero<Uint<RHS_LIMBS>>> for Uint<LIMBS> {
-    type Output = Uint<RHS_LIMBS>;
-
-    fn rem(self, rhs: &NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
-        self % *rhs
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<NonZero<Uint<RHS_LIMBS>>> for &Uint<LIMBS> {
-    type Output = Uint<RHS_LIMBS>;
-
-    fn rem(self, rhs: NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
+    #[inline]
+    fn rem(self, rhs: Rhs) -> Self::Output {
         *self % rhs
     }
 }
 
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<NonZero<Uint<RHS_LIMBS>>> for Uint<LIMBS> {
-    type Output = Uint<RHS_LIMBS>;
-
-    fn rem(self, rhs: NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
-        Self::rem(&self, &rhs)
-    }
-}
-
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<Uint<RHS_LIMBS>> for &Uint<LIMBS> {
-    type Output = Uint<RHS_LIMBS>;
+impl<const LIMBS: usize, Rhs: Unsigned> Rem<Rhs> for Uint<LIMBS> {
+    type Output = Rhs;
 
     #[inline]
-    fn rem(self, rhs: Uint<RHS_LIMBS>) -> Self::Output {
+    fn rem(self, rhs: Rhs) -> Self::Output {
         self % NonZero::new(rhs).expect("attempt to calculate the remainder with a divisor of zero")
     }
 }
 
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<Uint<RHS_LIMBS>> for Uint<LIMBS> {
-    type Output = Uint<RHS_LIMBS>;
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> Rem<&NonZero<Rhs>> for &Uint<LIMBS> {
+    type Output = Rhs::Unsigned;
 
     #[inline]
-    fn rem(self, rhs: Uint<RHS_LIMBS>) -> Self::Output {
-        &self % rhs
+    fn rem(self, rhs: &NonZero<Rhs>) -> Self::Output {
+        (*self).rem(rhs)
     }
 }
 
-impl<const LIMBS: usize> RemAssign<&NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
-    fn rem_assign(&mut self, rhs: &NonZero<Uint<LIMBS>>) {
-        *self %= *rhs;
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> Rem<&NonZero<Rhs>> for Uint<LIMBS> {
+    type Output = Rhs::Unsigned;
+
+    #[inline]
+    fn rem(mut self, rhs: &NonZero<Rhs>) -> Self::Output {
+        self.div_rem_assign(rhs.to_unsigned())
     }
 }
 
-impl<const LIMBS: usize> RemAssign<NonZero<Uint<LIMBS>>> for Uint<LIMBS> {
-    fn rem_assign(&mut self, rhs: NonZero<Uint<LIMBS>>) {
-        *self = *self % rhs;
+impl<const LIMBS: usize, Rhs: Unsigned> Rem<NonZero<Rhs>> for &Uint<LIMBS> {
+    type Output = Rhs;
+
+    #[inline]
+    fn rem(self, rhs: NonZero<Rhs>) -> Self::Output {
+        (*self).rem(rhs)
     }
 }
 
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<NonZero<Uint<RHS_LIMBS>>>
-    for Wrapping<Uint<LIMBS>>
-{
-    type Output = Wrapping<Uint<RHS_LIMBS>>;
+impl<const LIMBS: usize, Rhs: Unsigned> Rem<NonZero<Rhs>> for Uint<LIMBS> {
+    type Output = Rhs;
 
-    fn rem(self, rhs: NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
+    #[inline]
+    fn rem(mut self, rhs: NonZero<Rhs>) -> Self::Output {
+        self.div_rem_assign(rhs)
+    }
+}
+
+impl<const LIMBS: usize, Rhs: Unsigned> Rem<NonZero<Rhs>> for Wrapping<Uint<LIMBS>> {
+    type Output = Wrapping<Rhs>;
+
+    fn rem(self, rhs: NonZero<Rhs>) -> Self::Output {
         Wrapping(self.0 % rhs)
     }
 }
 
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<NonZero<Uint<RHS_LIMBS>>>
-    for &Wrapping<Uint<LIMBS>>
-{
-    type Output = Wrapping<Uint<RHS_LIMBS>>;
+impl<const LIMBS: usize, Rhs: Unsigned> Rem<NonZero<Rhs>> for &Wrapping<Uint<LIMBS>> {
+    type Output = Wrapping<Rhs>;
 
-    fn rem(self, rhs: NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
+    fn rem(self, rhs: NonZero<Rhs>) -> Self::Output {
         *self % rhs
     }
 }
 
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<&NonZero<Uint<RHS_LIMBS>>>
-    for &Wrapping<Uint<LIMBS>>
-{
-    type Output = Wrapping<Uint<RHS_LIMBS>>;
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> Rem<&NonZero<Rhs>> for &Wrapping<Uint<LIMBS>> {
+    type Output = Wrapping<Rhs::Unsigned>;
 
-    fn rem(self, rhs: &NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
-        *self % *rhs
+    fn rem(self, rhs: &NonZero<Rhs>) -> Self::Output {
+        *self % rhs.to_unsigned()
     }
 }
 
-impl<const LIMBS: usize, const RHS_LIMBS: usize> Rem<&NonZero<Uint<RHS_LIMBS>>>
-    for Wrapping<Uint<LIMBS>>
-{
-    type Output = Wrapping<Uint<RHS_LIMBS>>;
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> Rem<&NonZero<Rhs>> for Wrapping<Uint<LIMBS>> {
+    type Output = Wrapping<Rhs::Unsigned>;
 
-    fn rem(self, rhs: &NonZero<Uint<RHS_LIMBS>>) -> Self::Output {
-        self % *rhs
+    fn rem(self, rhs: &NonZero<Rhs>) -> Self::Output {
+        self % rhs.to_unsigned()
     }
 }
 
-impl<const LIMBS: usize> RemAssign<NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    fn rem_assign(&mut self, rhs: NonZero<Uint<LIMBS>>) {
+impl<const LIMBS: usize, Rhs: Unsigned> RemAssign<NonZero<Rhs>> for Uint<LIMBS> {
+    fn rem_assign(&mut self, rhs: NonZero<Rhs>) {
+        let rem = *self % rhs;
+        *self = rem.as_uint_ref().to_uint_resize();
+    }
+}
+
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> RemAssign<&NonZero<Rhs>> for Uint<LIMBS> {
+    fn rem_assign(&mut self, rhs: &NonZero<Rhs>) {
+        *self %= rhs.to_unsigned();
+    }
+}
+
+impl<const LIMBS: usize, Rhs: Unsigned> RemAssign<NonZero<Rhs>> for Wrapping<Uint<LIMBS>> {
+    fn rem_assign(&mut self, rhs: NonZero<Rhs>) {
         *self %= &rhs;
     }
 }
 
-impl<const LIMBS: usize> RemAssign<&NonZero<Uint<LIMBS>>> for Wrapping<Uint<LIMBS>> {
-    fn rem_assign(&mut self, rhs: &NonZero<Uint<LIMBS>>) {
-        *self = Wrapping(self.0 % rhs);
+impl<const LIMBS: usize, Rhs: ToUnsigned + ?Sized> RemAssign<&NonZero<Rhs>>
+    for Wrapping<Uint<LIMBS>>
+{
+    fn rem_assign(&mut self, rhs: &NonZero<Rhs>) {
+        self.0 %= rhs;
     }
 }
 
@@ -694,7 +510,7 @@ impl<const LIMBS: usize, Rhs: Unsigned> RemMixed<Rhs> for Uint<LIMBS> {
 mod tests {
     use crate::{
         CtAssign, DivVartime, Limb, NonZero, One, RemMixed, U64, U128, U256, U512, U896, U1024,
-        Uint, Word, Zero,
+        Uint, Word, Wrapping, Zero,
     };
 
     #[cfg(feature = "rand_core")]
@@ -851,6 +667,58 @@ mod tests {
         assert_eq!(full_r.resize(), r);
     }
 
+    #[allow(clippy::op_ref)]
+    #[test]
+    fn div_trait() {
+        let a = U256::from(10u64);
+        let b = NonZero::new(U256::from(2u64)).unwrap();
+        let c = U256::from(5u64);
+
+        assert_eq!(a / b, c);
+        assert_eq!(a / &b, c);
+        assert_eq!(&a / b, c);
+        assert_eq!(&a / &b, c);
+        assert_eq!(Wrapping(a) / b, Wrapping(c));
+        assert_eq!(Wrapping(a) / &b, Wrapping(c));
+        assert_eq!(&Wrapping(a) / b, Wrapping(c));
+        assert_eq!(&Wrapping(a) / &b, Wrapping(c));
+    }
+
+    #[allow(clippy::op_ref)]
+    #[test]
+    fn div_assign_trait() {
+        let a = U256::from(10u64);
+        let b = NonZero::new(U256::from(2u64)).unwrap();
+        let c = U256::from(5u64);
+
+        let mut res = a;
+        res /= b;
+        assert_eq!(res, c);
+        let mut res = a;
+        res /= &b;
+        assert_eq!(res, c);
+
+        let mut res = Wrapping(a);
+        res /= b;
+        assert_eq!(res, Wrapping(c));
+        let mut res = Wrapping(a);
+        res /= &b;
+        assert_eq!(res, Wrapping(c));
+    }
+
+    #[should_panic]
+    #[test]
+    fn div_zero() {
+        let _ = U256::ONE / U256::ZERO;
+    }
+
+    #[should_panic]
+    #[test]
+    #[allow(clippy::op_ref)]
+    fn div_ref_zero() {
+        let _ = &U256::ONE / U256::ZERO;
+    }
+
     #[test]
     fn reduce_one() {
         let r = U256::from(10u8).rem_vartime(&NonZero::new(U256::ONE).unwrap());
@@ -959,6 +827,45 @@ mod tests {
         assert_eq!(a % &b, c);
         assert_eq!(&a % b, c);
         assert_eq!(&a % &b, c);
+        assert_eq!(Wrapping(a) % b, Wrapping(c));
+        assert_eq!(Wrapping(a) % &b, Wrapping(c));
+        assert_eq!(&Wrapping(a) % b, Wrapping(c));
+        assert_eq!(&Wrapping(a) % &b, Wrapping(c));
+    }
+
+    #[allow(clippy::op_ref)]
+    #[test]
+    fn rem_assign_trait() {
+        let a = U256::from(10u64);
+        let b = NonZero::new(U256::from(3u64)).unwrap();
+        let c = U256::from(1u64);
+
+        let mut res = a;
+        res %= b;
+        assert_eq!(res, c);
+        let mut res = a;
+        res %= &b;
+        assert_eq!(res, c);
+
+        let mut res = Wrapping(a);
+        res %= b;
+        assert_eq!(res, Wrapping(c));
+        let mut res = Wrapping(a);
+        res %= &b;
+        assert_eq!(res, Wrapping(c));
+    }
+
+    #[should_panic]
+    #[test]
+    fn rem_zero() {
+        let _ = U256::ONE % U256::ZERO;
+    }
+
+    #[should_panic]
+    #[test]
+    #[allow(clippy::op_ref)]
+    fn rem_ref_zero() {
+        let _ = &U256::ONE % U256::ZERO;
     }
 
     #[test]
