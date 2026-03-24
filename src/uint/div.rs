@@ -684,6 +684,28 @@ mod tests {
         assert_eq!(&Wrapping(a) / &b, Wrapping(c));
     }
 
+    #[allow(clippy::op_ref)]
+    #[test]
+    fn div_assign_trait() {
+        let a = U256::from(10u64);
+        let b = NonZero::new(U256::from(2u64)).unwrap();
+        let c = U256::from(5u64);
+
+        let mut res = a;
+        res /= b;
+        assert_eq!(res, c);
+        let mut res = a;
+        res /= &b;
+        assert_eq!(res, c);
+
+        let mut res = Wrapping(a);
+        res /= b;
+        assert_eq!(res, Wrapping(c));
+        let mut res = Wrapping(a);
+        res /= &b;
+        assert_eq!(res, Wrapping(c));
+    }
+
     #[should_panic]
     #[test]
     fn div_zero() {
@@ -692,6 +714,7 @@ mod tests {
 
     #[should_panic]
     #[test]
+    #[allow(clippy::op_ref)]
     fn div_ref_zero() {
         let _ = &U256::ONE / U256::ZERO;
     }
@@ -840,6 +863,7 @@ mod tests {
 
     #[should_panic]
     #[test]
+    #[allow(clippy::op_ref)]
     fn rem_ref_zero() {
         let _ = &U256::ONE % U256::ZERO;
     }
