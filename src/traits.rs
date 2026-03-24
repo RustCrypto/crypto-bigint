@@ -146,6 +146,7 @@ pub trait Signed:
     + From<i16>
     + From<i32>
     + From<i64>
+    + Gcd<Output = Self::Unsigned>
     + Integer // + CtNeg TODO(tarcieri)
 {
     /// Corresponding unsigned integer type.
@@ -185,6 +186,7 @@ pub trait Unsigned:
     + From<u32>
     + From<u64>
     + From<Limb>
+    + Gcd<Output = Self>
     + Integer
     + MulMod<Output = Self>
     + NegMod<Output = Self>
@@ -1675,6 +1677,14 @@ pub(crate) mod tests {
         assert_eq!(two.floor_sqrt(), one);
         assert_eq!(two.floor_sqrt_vartime(), one);
 
+        // Gcd
+        assert_eq!(zero.gcd(&zero), zero);
+        assert_eq!(zero.gcd_vartime(&zero), zero);
+        assert_eq!(one.gcd(&one), one);
+        assert_eq!(one.gcd_vartime(&one), one);
+        assert_eq!(two.gcd(&one), one);
+        assert_eq!(two.gcd_vartime(&one), one);
+
         // Div by ref
         assert_eq!(zero.clone().div(&nz_one), zero);
         assert_eq!(zero.clone().div(&nz_two), zero);
@@ -1807,6 +1817,16 @@ pub(crate) mod tests {
         assert_eq!(T::from(1i32), T::one());
         assert_eq!(T::from(1i64), T::one());
         assert_eq!(T::from(-1i64), T::zero() - T::one());
+
+        // Gcd
+        assert_eq!(zero.gcd(&zero), T::Unsigned::zero());
+        assert_eq!(zero.gcd_vartime(&zero), T::Unsigned::zero());
+        assert_eq!(one.gcd(&one), T::Unsigned::one());
+        assert_eq!(one.gcd_vartime(&one), T::Unsigned::one());
+        assert_eq!(two.gcd(&one), T::Unsigned::one());
+        assert_eq!(two.gcd_vartime(&one), T::Unsigned::one());
+        assert_eq!(minus_one.gcd(&one), T::Unsigned::one());
+        assert_eq!(minus_one.gcd_vartime(&one), T::Unsigned::one());
 
         // Div by ref
         assert_eq!(zero.clone().div(&nz_one).into_option(), Some(zero.clone()));
