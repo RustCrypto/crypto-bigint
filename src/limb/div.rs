@@ -275,6 +275,7 @@ impl RemAssign<&NonZero<Limb>> for Limb {
 }
 
 #[cfg(test)]
+#[allow(clippy::op_ref)]
 mod tests {
     use super::{CheckedDiv, Limb};
     use crate::NonZero;
@@ -308,7 +309,6 @@ mod tests {
     }
 
     #[test]
-    #[allow(clippy::op_ref)]
     fn div_trait() {
         let a = Limb::from(10u64);
         let b = NonZero::new(Limb::from(2u64)).unwrap();
@@ -322,7 +322,6 @@ mod tests {
         assert_eq!(&a / b.0, c);
     }
 
-    #[allow(clippy::op_ref)]
     #[test]
     fn div_assign_trait() {
         let a = Limb::from(10u64);
@@ -351,12 +350,10 @@ mod tests {
 
     #[should_panic]
     #[test]
-    #[allow(clippy::op_ref)]
     fn div_ref_zero() {
         let _ = &Limb::ONE / Limb::ZERO;
     }
 
-    #[allow(clippy::op_ref)]
     #[test]
     fn rem_trait() {
         let a = Limb::from(10u64);
@@ -371,7 +368,6 @@ mod tests {
         assert_eq!(&a % b.0, c);
     }
 
-    #[allow(clippy::op_ref)]
     #[test]
     fn rem_assign_trait() {
         let a = Limb::from(10u64);
@@ -400,7 +396,6 @@ mod tests {
 
     #[should_panic]
     #[test]
-    #[allow(clippy::op_ref)]
     fn rem_ref_zero() {
         let _ = &Limb::ONE % Limb::ZERO;
     }
