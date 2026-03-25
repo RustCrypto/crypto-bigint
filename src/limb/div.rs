@@ -318,6 +318,8 @@ mod tests {
         assert_eq!(a / &b, c);
         assert_eq!(&a / b, c);
         assert_eq!(&a / &b, c);
+        assert_eq!(a / &b.0, c);
+        assert_eq!(&a / b.0, c);
     }
 
     #[allow(clippy::op_ref)]
@@ -332,6 +334,12 @@ mod tests {
         assert_eq!(res, c);
         let mut res = a;
         res /= &b;
+        assert_eq!(res, c);
+        let mut res = a;
+        res /= b.0;
+        assert_eq!(res, c);
+        let mut res = a;
+        res /= &b.0;
         assert_eq!(res, c);
     }
 
@@ -359,6 +367,8 @@ mod tests {
         assert_eq!(a % &b, c);
         assert_eq!(&a % b, c);
         assert_eq!(&a % &b, c);
+        assert_eq!(a % &b.0, c);
+        assert_eq!(&a % b.0, c);
     }
 
     #[allow(clippy::op_ref)]
@@ -373,6 +383,12 @@ mod tests {
         assert_eq!(res, c);
         let mut res = a;
         res %= &b;
+        assert_eq!(res, c);
+        let mut res = a;
+        res %= b.0;
+        assert_eq!(res, c);
+        let mut res = a;
+        res %= &b.0;
         assert_eq!(res, c);
     }
 
