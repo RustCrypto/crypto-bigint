@@ -1746,6 +1746,18 @@ pub(crate) mod tests {
         assert_eq!(zero.rem_limb(nz_limb_two), Limb::ZERO);
         assert_eq!(one.rem_limb(nz_limb_one), Limb::ZERO);
         assert_eq!(one.rem_limb(nz_limb_two), Limb::ONE);
+        assert_eq!(
+            zero.rem_limb_with_reciprocal(&Reciprocal::new(nz_limb_one)),
+            Limb::ZERO
+        );
+        assert_eq!(
+            one.rem_limb_with_reciprocal(&Reciprocal::new(nz_limb_one)),
+            Limb::ZERO
+        );
+        assert_eq!(
+            one.rem_limb_with_reciprocal(&Reciprocal::new(nz_limb_two)),
+            Limb::ONE
+        );
 
         // BitOps
         assert_eq!(zero.bits(), 0);
