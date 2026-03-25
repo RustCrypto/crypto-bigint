@@ -1,6 +1,6 @@
 //! [`BoxedUint`] bitwise OR operations.
 
-use crate::{BitOr, BitOrAssign, BoxedUint, CtOption, Wrapping};
+use crate::{BitOr, BitOrAssign, BoxedUint, CtOption};
 
 impl BoxedUint {
     /// Computes bitwise `a | b`.
@@ -70,49 +70,5 @@ impl BitOrAssign<&BoxedUint> for BoxedUint {
         for (a, b) in self.limbs.iter_mut().zip(other.limbs.iter()) {
             *a |= *b;
         }
-    }
-}
-
-impl BitOr for Wrapping<BoxedUint> {
-    type Output = Self;
-
-    fn bitor(self, rhs: Self) -> Wrapping<BoxedUint> {
-        Wrapping(self.0.bitor(&rhs.0))
-    }
-}
-
-impl BitOr<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
-    type Output = Wrapping<BoxedUint>;
-
-    fn bitor(self, rhs: &Wrapping<BoxedUint>) -> Wrapping<BoxedUint> {
-        Wrapping(self.0.bitor(&rhs.0))
-    }
-}
-
-impl BitOr<Wrapping<BoxedUint>> for &Wrapping<BoxedUint> {
-    type Output = Wrapping<BoxedUint>;
-
-    fn bitor(self, rhs: Wrapping<BoxedUint>) -> Wrapping<BoxedUint> {
-        Wrapping(BoxedUint::bitor(&self.0, &rhs.0))
-    }
-}
-
-impl BitOr<&Wrapping<BoxedUint>> for &Wrapping<BoxedUint> {
-    type Output = Wrapping<BoxedUint>;
-
-    fn bitor(self, rhs: &Wrapping<BoxedUint>) -> Wrapping<BoxedUint> {
-        Wrapping(BoxedUint::bitor(&self.0, &rhs.0))
-    }
-}
-
-impl BitOrAssign for Wrapping<BoxedUint> {
-    fn bitor_assign(&mut self, other: Self) {
-        self.0.bitor_assign(&other.0);
-    }
-}
-
-impl BitOrAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
-    fn bitor_assign(&mut self, other: &Self) {
-        self.0.bitor_assign(&other.0);
     }
 }

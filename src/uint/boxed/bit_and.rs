@@ -1,7 +1,7 @@
 //! [`BoxedUint`] bitwise AND operations.
 
 use super::BoxedUint;
-use crate::{BitAnd, BitAndAssign, CtOption, Limb, Wrapping};
+use crate::{BitAnd, BitAndAssign, CtOption, Limb};
 
 impl BoxedUint {
     /// Computes bitwise `a & b`.
@@ -80,52 +80,6 @@ impl BitAndAssign<&BoxedUint> for BoxedUint {
     #[allow(clippy::assign_op_pattern)]
     fn bitand_assign(&mut self, other: &Self) {
         *self = BoxedUint::bitand(self, other);
-    }
-}
-
-impl BitAnd for Wrapping<BoxedUint> {
-    type Output = Self;
-
-    fn bitand(self, rhs: Self) -> Wrapping<BoxedUint> {
-        Wrapping(self.0.bitand(&rhs.0))
-    }
-}
-
-impl BitAnd<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
-    type Output = Wrapping<BoxedUint>;
-
-    fn bitand(self, rhs: &Wrapping<BoxedUint>) -> Wrapping<BoxedUint> {
-        Wrapping(self.0.bitand(&rhs.0))
-    }
-}
-
-impl BitAnd<Wrapping<BoxedUint>> for &Wrapping<BoxedUint> {
-    type Output = Wrapping<BoxedUint>;
-
-    fn bitand(self, rhs: Wrapping<BoxedUint>) -> Wrapping<BoxedUint> {
-        Wrapping(BoxedUint::bitand(&self.0, &rhs.0))
-    }
-}
-
-impl BitAnd<&Wrapping<BoxedUint>> for &Wrapping<BoxedUint> {
-    type Output = Wrapping<BoxedUint>;
-
-    fn bitand(self, rhs: &Wrapping<BoxedUint>) -> Wrapping<BoxedUint> {
-        Wrapping(BoxedUint::bitand(&self.0, &rhs.0))
-    }
-}
-
-impl BitAndAssign for Wrapping<BoxedUint> {
-    #[allow(clippy::assign_op_pattern)]
-    fn bitand_assign(&mut self, other: Self) {
-        *self = Wrapping(BoxedUint::bitand(&self.0, &other.0));
-    }
-}
-
-impl BitAndAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
-    #[allow(clippy::assign_op_pattern)]
-    fn bitand_assign(&mut self, other: &Self) {
-        *self = Wrapping(BoxedUint::bitand(&self.0, &other.0));
     }
 }
 

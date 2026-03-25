@@ -2,7 +2,7 @@
 
 use core::ops::{BitOr, BitOrAssign};
 
-use crate::{CtOption, Uint, Wrapping};
+use crate::{CtOption, Uint};
 
 use super::Int;
 
@@ -70,50 +70,6 @@ impl<const LIMBS: usize> BitOrAssign for Int<LIMBS> {
 }
 
 impl<const LIMBS: usize> BitOrAssign<&Int<LIMBS>> for Int<LIMBS> {
-    fn bitor_assign(&mut self, other: &Self) {
-        *self = *self | other;
-    }
-}
-
-impl<const LIMBS: usize> BitOr for Wrapping<Int<LIMBS>> {
-    type Output = Self;
-
-    fn bitor(self, rhs: Self) -> Wrapping<Int<LIMBS>> {
-        Wrapping(self.0.bitor(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> BitOr<&Wrapping<Int<LIMBS>>> for Wrapping<Int<LIMBS>> {
-    type Output = Wrapping<Int<LIMBS>>;
-
-    fn bitor(self, rhs: &Wrapping<Int<LIMBS>>) -> Wrapping<Int<LIMBS>> {
-        Wrapping(self.0.bitor(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> BitOr<Wrapping<Int<LIMBS>>> for &Wrapping<Int<LIMBS>> {
-    type Output = Wrapping<Int<LIMBS>>;
-
-    fn bitor(self, rhs: Wrapping<Int<LIMBS>>) -> Wrapping<Int<LIMBS>> {
-        Wrapping(self.0.bitor(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> BitOr<&Wrapping<Int<LIMBS>>> for &Wrapping<Int<LIMBS>> {
-    type Output = Wrapping<Int<LIMBS>>;
-
-    fn bitor(self, rhs: &Wrapping<Int<LIMBS>>) -> Wrapping<Int<LIMBS>> {
-        Wrapping(self.0.bitor(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> BitOrAssign for Wrapping<Int<LIMBS>> {
-    fn bitor_assign(&mut self, other: Self) {
-        *self = *self | other;
-    }
-}
-
-impl<const LIMBS: usize> BitOrAssign<&Wrapping<Int<LIMBS>>> for Wrapping<Int<LIMBS>> {
     fn bitor_assign(&mut self, other: &Self) {
         *self = *self | other;
     }
