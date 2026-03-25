@@ -626,6 +626,12 @@ mod tests {
             assert_eq!((&Wrapping(*a) & Wrapping(*b)).0, expect);
             assert_eq!((Wrapping(*a) & &Wrapping(*b)).0, expect);
             assert_eq!((&Wrapping(*a) & &Wrapping(*b)).0, expect);
+            let mut c = Wrapping(*a);
+            c &= Wrapping(*b);
+            assert_eq!(c.0, expect);
+            let mut c = Wrapping(*a);
+            c &= &Wrapping(*b);
+            assert_eq!(c.0, expect);
         }
     }
 
@@ -637,6 +643,12 @@ mod tests {
             assert_eq!((&Wrapping(*a) | Wrapping(*b)).0, expect);
             assert_eq!((Wrapping(*a) | &Wrapping(*b)).0, expect);
             assert_eq!((&Wrapping(*a) | &Wrapping(*b)).0, expect);
+            let mut c = Wrapping(*a);
+            c |= Wrapping(*b);
+            assert_eq!(c.0, expect);
+            let mut c = Wrapping(*a);
+            c |= &Wrapping(*b);
+            assert_eq!(c.0, expect);
         }
     }
 
@@ -648,6 +660,12 @@ mod tests {
             assert_eq!((&Wrapping(*a) ^ Wrapping(*b)).0, expect);
             assert_eq!((Wrapping(*a) ^ &Wrapping(*b)).0, expect);
             assert_eq!((&Wrapping(*a) ^ &Wrapping(*b)).0, expect);
+            let mut c = Wrapping(*a);
+            c ^= Wrapping(*b);
+            assert_eq!(c.0, expect);
+            let mut c = Wrapping(*a);
+            c ^= &Wrapping(*b);
+            assert_eq!(c.0, expect);
         }
     }
 
@@ -655,8 +673,8 @@ mod tests {
     fn wrapping_bitnot() {
         for a in [Limb::ZERO, Limb::ONE, Limb::MAX] {
             let expect = !a;
-            assert_eq!(!Wrapping(a).0, expect);
-            assert_eq!((!&Wrapping(a)).0, expect);
+            assert_eq!((!Wrapping(a)).0, expect);
+            assert_eq!((!(&Wrapping(a))).0, expect);
         }
     }
 }
