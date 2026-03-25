@@ -1326,7 +1326,7 @@ pub(crate) mod tests {
         Integer, Invert, MontyForm, Retrieve, Signed, Square, SquareAssign, ToUnsigned, Unsigned,
         UnsignedWithMontyForm,
     };
-    use crate::{Choice, CtEq, CtSelect, Limb, NonZero, Odd, One, Zero};
+    use crate::{Choice, CtEq, CtSelect, Limb, NonZero, Odd, One, Reciprocal, Zero};
 
     /// Apply a suite of tests against a type implementing Integer.
     pub fn test_integer<T: Integer>(min: T, max: T) {
@@ -1728,6 +1728,18 @@ pub(crate) mod tests {
         assert_eq!(zero.div_rem_limb(nz_limb_two), (zero.clone(), Limb::ZERO));
         assert_eq!(one.div_rem_limb(nz_limb_one), (one.clone(), Limb::ZERO));
         assert_eq!(one.div_rem_limb(nz_limb_two), (zero.clone(), Limb::ONE));
+        assert_eq!(
+            zero.div_rem_limb_with_reciprocal(&Reciprocal::new(nz_limb_one)),
+            (zero.clone(), Limb::ZERO)
+        );
+        assert_eq!(
+            one.div_rem_limb_with_reciprocal(&Reciprocal::new(nz_limb_one)),
+            (one.clone(), Limb::ZERO)
+        );
+        assert_eq!(
+            one.div_rem_limb_with_reciprocal(&Reciprocal::new(nz_limb_two)),
+            (zero.clone(), Limb::ONE)
+        );
 
         // RemLimb
         assert_eq!(zero.rem_limb(nz_limb_one), Limb::ZERO);
