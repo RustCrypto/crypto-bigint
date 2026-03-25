@@ -57,6 +57,7 @@ impl DivRemLimb for Limb {
         self.div_rem(rhs)
     }
 
+    #[inline]
     fn div_rem_limb_with_reciprocal(&self, rhs: &Reciprocal) -> (Self, Limb) {
         self.div_rem_with_reciprocal(rhs)
     }
@@ -274,6 +275,7 @@ impl RemAssign<&NonZero<Limb>> for Limb {
 }
 
 #[cfg(test)]
+#[allow(clippy::op_ref)]
 mod tests {
     use super::{CheckedDiv, Limb};
     use crate::NonZero;
@@ -304,5 +306,97 @@ mod tests {
             Some(Limb::ZERO)
         );
         assert_eq!(Limb::MAX.checked_rem(Limb::ZERO).into_option(), None);
+    }
+
+    #[test]
+    fn div_trait() {
+        let a = Limb::from(10u64);
+        let b = NonZero::new(Limb::from(2u64)).unwrap();
+        let c = Limb::from(5u64);
+
+        assert_eq!(a / b, c);
+        assert_eq!(a / &b, c);
+        assert_eq!(&a / b, c);
+        assert_eq!(&a / &b, c);
+        assert_eq!(a / &b.0, c);
+        assert_eq!(&a / b.0, c);
+    }
+
+    #[test]
+    fn div_assign_trait() {
+        let a = Limb::from(10u64);
+        let b = NonZero::new(Limb::from(2u64)).unwrap();
+        let c = Limb::from(5u64);
+
+        let mut res = a;
+        res /= b;
+        assert_eq!(res, c);
+        let mut res = a;
+        res /= &b;
+        assert_eq!(res, c);
+        let mut res = a;
+        res /= b.0;
+        assert_eq!(res, c);
+        let mut res = a;
+        res /= &b.0;
+        assert_eq!(res, c);
+    }
+
+    #[should_panic]
+    #[test]
+    fn div_zero() {
+        let _ = Limb::ONE / Limb::ZERO;
+    }
+
+    #[should_panic]
+    #[test]
+    fn div_ref_zero() {
+        let _ = &Limb::ONE / Limb::ZERO;
+    }
+
+    #[test]
+    fn rem_trait() {
+        let a = Limb::from(10u64);
+        let b = NonZero::new(Limb::from(3u64)).unwrap();
+        let c = Limb::from(1u64);
+
+        assert_eq!(a % b, c);
+        assert_eq!(a % &b, c);
+        assert_eq!(&a % b, c);
+        assert_eq!(&a % &b, c);
+        assert_eq!(a % &b.0, c);
+        assert_eq!(&a % b.0, c);
+    }
+
+    #[test]
+    fn rem_assign_trait() {
+        let a = Limb::from(10u64);
+        let b = NonZero::new(Limb::from(3u64)).unwrap();
+        let c = Limb::from(1u64);
+
+        let mut res = a;
+        res %= b;
+        assert_eq!(res, c);
+        let mut res = a;
+        res %= &b;
+        assert_eq!(res, c);
+        let mut res = a;
+        res %= b.0;
+        assert_eq!(res, c);
+        let mut res = a;
+        res %= &b.0;
+        assert_eq!(res, c);
+    }
+
+    #[should_panic]
+    #[test]
+    fn rem_zero() {
+        let _ = Limb::ONE % Limb::ZERO;
+    }
+
+    #[should_panic]
+    #[test]
+    fn rem_ref_zero() {
+        let _ = &Limb::ONE % Limb::ZERO;
     }
 }
