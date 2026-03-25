@@ -1152,6 +1152,7 @@ pub trait Resize: Sized {
 /// A representation of an integer optimized for the performance of modular operations.
 pub trait MontyForm:
     'static
+    + sealed::Sealed
     + Clone
     + CtEq
     + CtSelect

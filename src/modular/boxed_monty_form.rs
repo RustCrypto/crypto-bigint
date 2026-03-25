@@ -14,7 +14,7 @@ use super::{
     BoxedMontyParams, Retrieve, div_by_2, monty_params::MontyParams,
     reduction::montgomery_retrieve_inner,
 };
-use crate::{BoxedUint, Choice, MontyForm, Odd};
+use crate::{BoxedUint, Choice, MontyForm, Odd, sealed::Sealed};
 use mul::BoxedMontyMultiplier;
 
 #[cfg(feature = "zeroize")]
@@ -223,6 +223,8 @@ impl MontyForm for BoxedMontyForm {
         BoxedMontyForm::lincomb_vartime(products)
     }
 }
+
+impl Sealed for BoxedMontyForm {}
 
 /// NOTE: This zeroizes the value, but _not_ the associated parameters!
 #[cfg(feature = "zeroize")]

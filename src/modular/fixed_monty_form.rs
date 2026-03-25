@@ -17,7 +17,7 @@ use super::{
     mul::mul_montgomery_form,
     reduction::montgomery_retrieve,
 };
-use crate::{MontyForm, Odd, Uint};
+use crate::{MontyForm, Odd, Uint, sealed::Sealed};
 use mul::FixedMontyMultiplier;
 
 /// An integer in Montgomery form represented using `LIMBS` limbs.
@@ -171,6 +171,8 @@ impl<const LIMBS: usize> MontyForm for FixedMontyForm<LIMBS> {
         FixedMontyForm::lincomb_vartime(products)
     }
 }
+
+impl<const LIMBS: usize> Sealed for FixedMontyForm<LIMBS> {}
 
 impl<const LIMBS: usize, P: ConstMontyParams<LIMBS>> From<&ConstMontyForm<P, LIMBS>>
     for FixedMontyForm<LIMBS>
