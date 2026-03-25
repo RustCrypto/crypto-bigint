@@ -2,7 +2,7 @@
 
 use core::ops::{BitAnd, BitAndAssign};
 
-use crate::{CtOption, Int, Limb, Uint, Wrapping};
+use crate::{CtOption, Int, Limb, Uint};
 
 impl<const LIMBS: usize> Int<LIMBS> {
     /// Computes bitwise `a & b`.
@@ -76,52 +76,6 @@ impl<const LIMBS: usize> BitAndAssign for Int<LIMBS> {
 }
 
 impl<const LIMBS: usize> BitAndAssign<&Int<LIMBS>> for Int<LIMBS> {
-    #[allow(clippy::assign_op_pattern)]
-    fn bitand_assign(&mut self, other: &Self) {
-        *self = *self & other;
-    }
-}
-
-impl<const LIMBS: usize> BitAnd for Wrapping<Int<LIMBS>> {
-    type Output = Self;
-
-    fn bitand(self, rhs: Self) -> Wrapping<Int<LIMBS>> {
-        Wrapping(self.0.bitand(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> BitAnd<&Wrapping<Int<LIMBS>>> for Wrapping<Int<LIMBS>> {
-    type Output = Wrapping<Int<LIMBS>>;
-
-    fn bitand(self, rhs: &Wrapping<Int<LIMBS>>) -> Wrapping<Int<LIMBS>> {
-        Wrapping(self.0.bitand(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> BitAnd<Wrapping<Int<LIMBS>>> for &Wrapping<Int<LIMBS>> {
-    type Output = Wrapping<Int<LIMBS>>;
-
-    fn bitand(self, rhs: Wrapping<Int<LIMBS>>) -> Wrapping<Int<LIMBS>> {
-        Wrapping(self.0.bitand(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> BitAnd<&Wrapping<Int<LIMBS>>> for &Wrapping<Int<LIMBS>> {
-    type Output = Wrapping<Int<LIMBS>>;
-
-    fn bitand(self, rhs: &Wrapping<Int<LIMBS>>) -> Wrapping<Int<LIMBS>> {
-        Wrapping(self.0.bitand(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> BitAndAssign for Wrapping<Int<LIMBS>> {
-    #[allow(clippy::assign_op_pattern)]
-    fn bitand_assign(&mut self, other: Self) {
-        *self = *self & other;
-    }
-}
-
-impl<const LIMBS: usize> BitAndAssign<&Wrapping<Int<LIMBS>>> for Wrapping<Int<LIMBS>> {
     #[allow(clippy::assign_op_pattern)]
     fn bitand_assign(&mut self, other: &Self) {
         *self = *self & other;

@@ -1,7 +1,7 @@
 //! [`BoxedUint`] bitwise XOR operations.
 
 use super::BoxedUint;
-use crate::{BitXor, BitXorAssign, CtOption, Wrapping};
+use crate::{BitXor, BitXorAssign, CtOption};
 
 impl BoxedUint {
     /// Computes bitwise `a ^ b`.
@@ -68,50 +68,6 @@ impl BitXorAssign for BoxedUint {
 impl BitXorAssign<&BoxedUint> for BoxedUint {
     fn bitxor_assign(&mut self, other: &Self) {
         *self = Self::bitxor(self, other);
-    }
-}
-
-impl BitXor for Wrapping<BoxedUint> {
-    type Output = Self;
-
-    fn bitxor(self, rhs: Self) -> Wrapping<BoxedUint> {
-        Wrapping(self.0.bitxor(&rhs.0))
-    }
-}
-
-impl BitXor<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
-    type Output = Wrapping<BoxedUint>;
-
-    fn bitxor(self, rhs: &Wrapping<BoxedUint>) -> Wrapping<BoxedUint> {
-        Wrapping(self.0.bitxor(&rhs.0))
-    }
-}
-
-impl BitXor<Wrapping<BoxedUint>> for &Wrapping<BoxedUint> {
-    type Output = Wrapping<BoxedUint>;
-
-    fn bitxor(self, rhs: Wrapping<BoxedUint>) -> Wrapping<BoxedUint> {
-        Wrapping(BoxedUint::bitxor(&self.0, &rhs.0))
-    }
-}
-
-impl BitXor<&Wrapping<BoxedUint>> for &Wrapping<BoxedUint> {
-    type Output = Wrapping<BoxedUint>;
-
-    fn bitxor(self, rhs: &Wrapping<BoxedUint>) -> Wrapping<BoxedUint> {
-        Wrapping(BoxedUint::bitxor(&self.0, &rhs.0))
-    }
-}
-
-impl BitXorAssign for Wrapping<BoxedUint> {
-    fn bitxor_assign(&mut self, other: Self) {
-        *self = Wrapping(BoxedUint::bitxor(&self.0, &other.0));
-    }
-}
-
-impl BitXorAssign<&Wrapping<BoxedUint>> for Wrapping<BoxedUint> {
-    fn bitxor_assign(&mut self, other: &Self) {
-        *self = Wrapping(BoxedUint::bitxor(&self.0, &other.0));
     }
 }
 

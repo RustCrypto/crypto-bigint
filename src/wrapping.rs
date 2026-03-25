@@ -1,12 +1,15 @@
 //! Wrapping arithmetic.
 
 use crate::{
-    Choice, CtEq, CtSelect, One, UintRef, WrappingAdd, WrappingMul, WrappingNeg, WrappingShl,
-    WrappingShr, WrappingSub, Zero,
+    Choice, CtEq, CtSelect, Integer, One, UintRef, WrappingAdd, WrappingMul, WrappingNeg,
+    WrappingShl, WrappingShr, WrappingSub, Zero,
 };
 use core::{
     fmt,
-    ops::{Add, Mul, Neg, Shl, Shr, Sub},
+    ops::{
+        Add, BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Mul, Neg, Not, Shl,
+        Shr, Sub,
+    },
 };
 
 #[cfg(feature = "rand_core")]
@@ -196,6 +199,154 @@ impl<T: WrappingShr> Shr<u32> for &Wrapping<T> {
     }
 }
 
+impl<T: Integer> BitAnd for Wrapping<T> {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> Wrapping<T> {
+        Wrapping(self.0.bitand(&rhs.0))
+    }
+}
+
+impl<T: Integer> BitAnd<&Wrapping<T>> for Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    fn bitand(self, rhs: &Wrapping<T>) -> Wrapping<T> {
+        Wrapping(self.0.bitand(&rhs.0))
+    }
+}
+
+impl<T: Integer> BitAnd<Wrapping<T>> for &Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    fn bitand(self, rhs: Wrapping<T>) -> Wrapping<T> {
+        Wrapping(rhs.0.bitand(&self.0))
+    }
+}
+
+impl<T: Integer> BitAnd<&Wrapping<T>> for &Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    fn bitand(self, rhs: &Wrapping<T>) -> Wrapping<T> {
+        Wrapping(self.0.clone().bitand(&rhs.0))
+    }
+}
+
+impl<T: Integer> BitAndAssign for Wrapping<T> {
+    fn bitand_assign(&mut self, other: Self) {
+        self.0 &= other.0;
+    }
+}
+
+impl<T: Integer> BitAndAssign<&Wrapping<T>> for Wrapping<T> {
+    fn bitand_assign(&mut self, other: &Self) {
+        self.0 &= &other.0;
+    }
+}
+
+impl<T: Integer> BitOr for Wrapping<T> {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Wrapping<T> {
+        Wrapping(self.0.bitor(&rhs.0))
+    }
+}
+
+impl<T: Integer> BitOr<&Wrapping<T>> for Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    fn bitor(self, rhs: &Wrapping<T>) -> Wrapping<T> {
+        Wrapping(self.0.bitor(&rhs.0))
+    }
+}
+
+impl<T: Integer> BitOr<Wrapping<T>> for &Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    fn bitor(self, rhs: Wrapping<T>) -> Wrapping<T> {
+        Wrapping(rhs.0.bitor(&self.0))
+    }
+}
+
+impl<T: Integer> BitOr<&Wrapping<T>> for &Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    fn bitor(self, rhs: &Wrapping<T>) -> Wrapping<T> {
+        Wrapping(self.0.clone().bitor(&rhs.0))
+    }
+}
+
+impl<T: Integer> BitOrAssign for Wrapping<T> {
+    fn bitor_assign(&mut self, other: Self) {
+        self.0 |= other.0;
+    }
+}
+
+impl<T: Integer> BitOrAssign<&Wrapping<T>> for Wrapping<T> {
+    fn bitor_assign(&mut self, other: &Self) {
+        self.0 |= &other.0;
+    }
+}
+
+impl<T: Integer> BitXor for Wrapping<T> {
+    type Output = Self;
+
+    fn bitxor(self, rhs: Self) -> Wrapping<T> {
+        Wrapping(self.0.bitxor(&rhs.0))
+    }
+}
+
+impl<T: Integer> BitXor<&Wrapping<T>> for Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    fn bitxor(self, rhs: &Wrapping<T>) -> Wrapping<T> {
+        Wrapping(self.0.bitxor(&rhs.0))
+    }
+}
+
+impl<T: Integer> BitXor<Wrapping<T>> for &Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    fn bitxor(self, rhs: Wrapping<T>) -> Wrapping<T> {
+        Wrapping(rhs.0.bitxor(&self.0))
+    }
+}
+
+impl<T: Integer> BitXor<&Wrapping<T>> for &Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    fn bitxor(self, rhs: &Wrapping<T>) -> Wrapping<T> {
+        Wrapping(self.0.clone().bitxor(&rhs.0))
+    }
+}
+
+impl<T: Integer> BitXorAssign for Wrapping<T> {
+    fn bitxor_assign(&mut self, other: Self) {
+        self.0 ^= other.0;
+    }
+}
+
+impl<T: Integer> BitXorAssign<&Wrapping<T>> for Wrapping<T> {
+    fn bitxor_assign(&mut self, other: &Self) {
+        self.0 ^= &other.0;
+    }
+}
+
+impl<T: Integer> Not for Wrapping<T> {
+    type Output = Self;
+
+    fn not(self) -> <Self as Not>::Output {
+        Wrapping(self.0.not())
+    }
+}
+
+impl<T: Integer> Not for &Wrapping<T> {
+    type Output = Wrapping<T>;
+
+    fn not(self) -> <Self as Not>::Output {
+        Wrapping(self.0.clone().not())
+    }
+}
+
 impl<T> CtEq for Wrapping<T>
 where
     T: CtEq,
@@ -335,6 +486,7 @@ where
 }
 
 #[cfg(test)]
+#[allow(clippy::op_ref)]
 mod tests {
     use super::Wrapping;
     use crate::{
@@ -376,6 +528,7 @@ mod tests {
             assert_eq!(format!("{:X}", Wrapping(a)), format!("{:X}", a));
         }
     }
+
     #[test]
     fn wrapping_eq_select() {
         let pairs: &[(Limb, Limb, bool)] = &[
@@ -414,7 +567,6 @@ mod tests {
         }
     }
 
-    #[allow(clippy::op_ref)]
     #[test]
     fn wrapping_add() {
         for (a, b) in INPUTS {
@@ -426,7 +578,6 @@ mod tests {
         }
     }
 
-    #[allow(clippy::op_ref)]
     #[test]
     fn wrapping_sub() {
         for (a, b) in INPUTS {
@@ -438,7 +589,6 @@ mod tests {
         }
     }
 
-    #[allow(clippy::op_ref)]
     #[test]
     fn wrapping_mul() {
         for (a, b) in INPUTS {
@@ -450,24 +600,14 @@ mod tests {
         }
     }
 
-    #[allow(clippy::op_ref)]
     #[test]
     fn wrapping_neg() {
-        assert_eq!(
-            (-Wrapping(Limb::ZERO)).0,
-            WrappingNeg::wrapping_neg(&Limb::ZERO)
-        );
-        assert_eq!(
-            (-&Wrapping(Limb::ONE)).0,
-            WrappingNeg::wrapping_neg(&Limb::ONE)
-        );
-        assert_eq!(
-            (-Wrapping(Limb::MAX)).0,
-            WrappingNeg::wrapping_neg(&Limb::MAX)
-        );
+        for a in [Limb::ZERO, Limb::ONE, Limb::MAX] {
+            let expect = WrappingNeg::wrapping_neg(&a);
+            assert_eq!((-Wrapping(a)).0, expect);
+        }
     }
 
-    #[allow(clippy::op_ref)]
     #[test]
     fn wrapping_shift() {
         for a in [Limb::ZERO, Limb::ONE, Limb::MAX] {
@@ -475,6 +615,66 @@ mod tests {
             assert_eq!((&Wrapping(a) << 2).0, WrappingShl::wrapping_shl(&a, 2));
             assert_eq!((Wrapping(a) >> 1).0, WrappingShr::wrapping_shr(&a, 1));
             assert_eq!((&Wrapping(a) >> 2).0, WrappingShr::wrapping_shr(&a, 2));
+        }
+    }
+
+    #[test]
+    fn wrapping_bitand() {
+        for (a, b) in INPUTS {
+            let expect = *a & b;
+            assert_eq!((Wrapping(*a) & Wrapping(*b)).0, expect);
+            assert_eq!((&Wrapping(*a) & Wrapping(*b)).0, expect);
+            assert_eq!((Wrapping(*a) & &Wrapping(*b)).0, expect);
+            assert_eq!((&Wrapping(*a) & &Wrapping(*b)).0, expect);
+            let mut c = Wrapping(*a);
+            c &= Wrapping(*b);
+            assert_eq!(c.0, expect);
+            let mut c = Wrapping(*a);
+            c &= &Wrapping(*b);
+            assert_eq!(c.0, expect);
+        }
+    }
+
+    #[test]
+    fn wrapping_bitor() {
+        for (a, b) in INPUTS {
+            let expect = *a | b;
+            assert_eq!((Wrapping(*a) | Wrapping(*b)).0, expect);
+            assert_eq!((&Wrapping(*a) | Wrapping(*b)).0, expect);
+            assert_eq!((Wrapping(*a) | &Wrapping(*b)).0, expect);
+            assert_eq!((&Wrapping(*a) | &Wrapping(*b)).0, expect);
+            let mut c = Wrapping(*a);
+            c |= Wrapping(*b);
+            assert_eq!(c.0, expect);
+            let mut c = Wrapping(*a);
+            c |= &Wrapping(*b);
+            assert_eq!(c.0, expect);
+        }
+    }
+
+    #[test]
+    fn wrapping_bitxor() {
+        for (a, b) in INPUTS {
+            let expect = *a ^ b;
+            assert_eq!((Wrapping(*a) ^ Wrapping(*b)).0, expect);
+            assert_eq!((&Wrapping(*a) ^ Wrapping(*b)).0, expect);
+            assert_eq!((Wrapping(*a) ^ &Wrapping(*b)).0, expect);
+            assert_eq!((&Wrapping(*a) ^ &Wrapping(*b)).0, expect);
+            let mut c = Wrapping(*a);
+            c ^= Wrapping(*b);
+            assert_eq!(c.0, expect);
+            let mut c = Wrapping(*a);
+            c ^= &Wrapping(*b);
+            assert_eq!(c.0, expect);
+        }
+    }
+
+    #[test]
+    fn wrapping_bitnot() {
+        for a in [Limb::ZERO, Limb::ONE, Limb::MAX] {
+            let expect = !a;
+            assert_eq!((!Wrapping(a)).0, expect);
+            assert_eq!((!(&Wrapping(a))).0, expect);
         }
     }
 }

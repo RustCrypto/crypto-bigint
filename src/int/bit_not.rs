@@ -2,7 +2,7 @@
 
 use core::ops::Not;
 
-use crate::{Uint, Wrapping};
+use crate::Uint;
 
 use super::Int;
 
@@ -20,14 +20,6 @@ impl<const LIMBS: usize> Not for Int<LIMBS> {
 
     fn not(self) -> Self {
         Self::not(&self)
-    }
-}
-
-impl<const LIMBS: usize> Not for Wrapping<Int<LIMBS>> {
-    type Output = Self;
-
-    fn not(self) -> <Self as Not>::Output {
-        Wrapping(self.0.not())
     }
 }
 

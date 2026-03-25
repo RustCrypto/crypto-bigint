@@ -2,7 +2,7 @@
 
 use core::ops::{BitXor, BitXorAssign};
 
-use crate::{CtOption, Uint, Wrapping};
+use crate::{CtOption, Uint};
 
 use super::Int;
 
@@ -70,50 +70,6 @@ impl<const LIMBS: usize> BitXorAssign for Int<LIMBS> {
 }
 
 impl<const LIMBS: usize> BitXorAssign<&Int<LIMBS>> for Int<LIMBS> {
-    fn bitxor_assign(&mut self, other: &Self) {
-        *self = *self ^ other;
-    }
-}
-
-impl<const LIMBS: usize> BitXor for Wrapping<Int<LIMBS>> {
-    type Output = Self;
-
-    fn bitxor(self, rhs: Self) -> Wrapping<Int<LIMBS>> {
-        Wrapping(self.0.bitxor(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> BitXor<&Wrapping<Int<LIMBS>>> for Wrapping<Int<LIMBS>> {
-    type Output = Wrapping<Int<LIMBS>>;
-
-    fn bitxor(self, rhs: &Wrapping<Int<LIMBS>>) -> Wrapping<Int<LIMBS>> {
-        Wrapping(self.0.bitxor(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> BitXor<Wrapping<Int<LIMBS>>> for &Wrapping<Int<LIMBS>> {
-    type Output = Wrapping<Int<LIMBS>>;
-
-    fn bitxor(self, rhs: Wrapping<Int<LIMBS>>) -> Wrapping<Int<LIMBS>> {
-        Wrapping(self.0.bitxor(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> BitXor<&Wrapping<Int<LIMBS>>> for &Wrapping<Int<LIMBS>> {
-    type Output = Wrapping<Int<LIMBS>>;
-
-    fn bitxor(self, rhs: &Wrapping<Int<LIMBS>>) -> Wrapping<Int<LIMBS>> {
-        Wrapping(self.0.bitxor(&rhs.0))
-    }
-}
-
-impl<const LIMBS: usize> BitXorAssign for Wrapping<Int<LIMBS>> {
-    fn bitxor_assign(&mut self, other: Self) {
-        *self = *self ^ other;
-    }
-}
-
-impl<const LIMBS: usize> BitXorAssign<&Wrapping<Int<LIMBS>>> for Wrapping<Int<LIMBS>> {
     fn bitxor_assign(&mut self, other: &Self) {
         *self = *self ^ other;
     }

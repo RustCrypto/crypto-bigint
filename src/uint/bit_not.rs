@@ -1,7 +1,7 @@
 //! [`Uint`] bitwise NOT operations.
 
 use super::Uint;
-use crate::{Limb, Wrapping};
+use crate::Limb;
 use core::ops::Not;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
@@ -26,14 +26,6 @@ impl<const LIMBS: usize> Not for Uint<LIMBS> {
 
     fn not(self) -> Self {
         Self::not(&self)
-    }
-}
-
-impl<const LIMBS: usize> Not for Wrapping<Uint<LIMBS>> {
-    type Output = Self;
-
-    fn not(self) -> <Self as Not>::Output {
-        Wrapping(self.0.not())
     }
 }
 

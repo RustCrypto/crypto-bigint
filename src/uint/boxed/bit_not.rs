@@ -1,7 +1,7 @@
 //! [`BoxedUint`] bitwise NOT operations.
 
 use super::BoxedUint;
-use crate::{Limb, Wrapping};
+use crate::Limb;
 use core::ops::Not;
 
 impl BoxedUint {
@@ -23,14 +23,6 @@ impl Not for BoxedUint {
 
     fn not(self) -> Self {
         BoxedUint::not(&self)
-    }
-}
-
-impl Not for Wrapping<BoxedUint> {
-    type Output = Self;
-
-    fn not(self) -> <Self as Not>::Output {
-        Wrapping(self.0.not())
     }
 }
 
