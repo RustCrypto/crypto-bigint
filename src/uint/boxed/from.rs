@@ -98,28 +98,28 @@ impl<const LIMBS: usize> From<&Uint<LIMBS>> for BoxedUint {
 impl<const LIMBS: usize> From<Odd<Uint<LIMBS>>> for BoxedUint {
     #[inline]
     fn from(uint: Odd<Uint<LIMBS>>) -> BoxedUint {
-        Self::from(&uint.0)
+        Self::from(uint.as_ref())
     }
 }
 
 impl<const LIMBS: usize> From<&Odd<Uint<LIMBS>>> for BoxedUint {
     #[inline]
     fn from(uint: &Odd<Uint<LIMBS>>) -> BoxedUint {
-        Self::from(&uint.0)
+        Self::from(uint.as_ref())
     }
 }
 
 impl<const LIMBS: usize> From<Odd<Uint<LIMBS>>> for Odd<BoxedUint> {
     #[inline]
     fn from(uint: Odd<Uint<LIMBS>>) -> Odd<BoxedUint> {
-        Odd(BoxedUint::from(&uint.0))
+        Odd::new_unchecked(BoxedUint::from(uint.as_ref()))
     }
 }
 
 impl<const LIMBS: usize> From<&Odd<Uint<LIMBS>>> for Odd<BoxedUint> {
     #[inline]
     fn from(uint: &Odd<Uint<LIMBS>>) -> Odd<BoxedUint> {
-        Odd(BoxedUint::from(&uint.0))
+        Odd::new_unchecked(BoxedUint::from(uint.as_ref()))
     }
 }
 

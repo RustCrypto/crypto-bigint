@@ -236,14 +236,14 @@ impl<const LIMBS: usize> From<Limb> for Uint<LIMBS> {
 impl<const LIMBS: usize> From<NonZero<Limb>> for NonZero<Uint<LIMBS>> {
     #[inline]
     fn from(limb: NonZero<Limb>) -> Self {
-        NonZero(limb.0.into())
+        NonZero::new_unchecked(limb.0.into())
     }
 }
 
 impl<const LIMBS: usize> From<Odd<Limb>> for Odd<Uint<LIMBS>> {
     #[inline]
     fn from(limb: Odd<Limb>) -> Self {
-        Odd(limb.0.into())
+        Odd::new_unchecked(limb.0.into())
     }
 }
 

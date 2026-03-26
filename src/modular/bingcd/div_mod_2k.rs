@@ -15,7 +15,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         k_upper_bound: u32,
         q: &Odd<Self>,
     ) -> Self {
-        let one_half_mod_q = OddUint::half_mod(q).0;
+        let one_half_mod_q = OddUint::half_mod(q);
 
         // Invariant: x = self / 2^e mod q.
         let (mut x, mut e) = (self, 0);
@@ -30,7 +30,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             let f = u32_min(k - e, f_upper_bound);
 
             // Find `s` s.t. qs + x = 0 mod 2^f
-            let (_, s) = x.limbs[0].bounded_div2k_mod_q(f, f_upper_bound, one_half_mod_q.limbs[0]);
+            let (_, s) =
+                x.limbs[0].bounded_div2k_mod_q(f, f_upper_bound, one_half_mod_q.as_ref().limbs[0]);
 
             // Set x <- (x + qs) / 2^f
             x = q.mul_add_div2k(s, &x, f);
@@ -98,7 +99,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
         // = (q + 1) / 2      mod q
         // = (q - 1) / 2  + 1 mod q
         // = floor(q / 2) + 1 mod q, since q is odd.
-        Odd(q.as_ref().shr1().wrapping_add(&Uint::ONE))
+        Odd::new_unchecked(q.as_ref().shr1().wrapping_add(&Uint::ONE))
     }
 
     /// Compute `((self * b) + addend) / 2^k`

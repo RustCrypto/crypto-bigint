@@ -42,7 +42,7 @@ pub type OddBoxedUint = Odd<BoxedUint>;
 /// These are frequently used in cryptography, e.g. as a modulus.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 #[repr(transparent)]
-pub struct Odd<T: ?Sized>(pub(crate) T);
+pub struct Odd<T: ?Sized>(T);
 
 impl<T> Odd<T> {
     /// Create a new odd integer.
@@ -95,12 +95,14 @@ impl<T> Odd<T> {
 
 impl<T: ?Sized> Odd<T> {
     /// Provides access to the contents of [`Odd`] in a `const` context.
+    #[inline]
     pub const fn as_ref(&self) -> &T {
         &self.0
     }
 
     /// All odd integers are definitionally non-zero, so we can also obtain a reference to
     /// the equivalent [`NonZero`] type.
+    #[inline]
     pub const fn as_nz_ref(&self) -> &NonZero<T> {
         // All `Odd` numbers are definitionally non-zero because zero is an even number
         NonZero::new_ref_unchecked(&self.0)

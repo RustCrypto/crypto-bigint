@@ -51,7 +51,7 @@ impl BoxedUint {
             (Self::zero_with_precision(bits), Choice::FALSE)
         } else {
             let is_some = self.is_odd();
-            let inv = Odd(Self::ct_select(
+            let inv = Odd::new_unchecked(Self::ct_select(
                 &Self::one_with_precision(bits),
                 self,
                 is_some,
@@ -79,7 +79,7 @@ impl BoxedUint {
     pub fn invert_mod2k(&self, k: u32) -> (Self, Choice) {
         let bits = self.bits_precision();
         let is_some = k.ct_lt(&(bits + 1)) & (k.ct_eq(&0) | self.is_odd());
-        let mut inv = Odd(Self::ct_select(
+        let mut inv = Odd::new_unchecked(Self::ct_select(
             &Self::one_with_precision(bits),
             self,
             is_some,
@@ -98,7 +98,7 @@ impl BoxedUint {
     #[must_use]
     pub fn inv_mod(&self, modulus: &Self) -> CtOption<Self> {
         let is_nz = modulus.is_nonzero();
-        let m = NonZero(Self::ct_select(
+        let m = NonZero::new_unchecked(Self::ct_select(
             &Self::one_with_precision(self.bits_precision()),
             modulus,
             is_nz,
@@ -119,7 +119,7 @@ impl BoxedUint {
     pub fn invert_mod(&self, modulus: &NonZero<Self>) -> CtOption<Self> {
         debug_assert_eq!(self.bits_precision(), modulus.bits_precision());
         let k = modulus.trailing_zeros();
-        let s = Odd(modulus.shr(k));
+        let s = Odd::new_unchecked(modulus.shr(k));
 
         let inv_mod_s = self.invert_odd_mod(&s);
         let invertible_mod_s = inv_mod_s.is_some();
@@ -380,7 +380,7 @@ mod tests {
         const PRECISION: u32 = 8 * Limb::BITS;
 
         for limbs in 1..10 {
-            let a = Odd(BoxedUint::max(PRECISION).resize_unchecked(limbs));
+            let a = Odd::new_unchecked(BoxedUint::max(PRECISION).resize_unchecked(limbs));
             let a_inv = a.invert_mod_precision();
             assert_eq!(a.as_ref().wrapping_mul(&a_inv), BoxedUint::one());
         }

@@ -46,7 +46,7 @@ pub type NonZeroBoxedUint = NonZero<BoxedUint>;
 /// Wrapper type for non-zero integers.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 #[repr(transparent)]
-pub struct NonZero<T: ?Sized>(pub(crate) T);
+pub struct NonZero<T: ?Sized>(T);
 
 impl<T> NonZero<T> {
     /// Create a new non-zero integer.
@@ -99,6 +99,7 @@ impl<T> NonZero<T> {
 
 impl<T: ?Sized> NonZero<T> {
     /// Provides access to the contents of `NonZero` in a `const` context.
+    #[inline]
     pub const fn as_ref(&self) -> &T {
         &self.0
     }

@@ -12,7 +12,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn gcd(&self, rhs: &Self) -> Self {
         let self_is_nz = self.is_nonzero();
         // Note: is non-zero by construction
-        let self_nz = NonZero(Uint::select(&Uint::ONE, self, self_is_nz));
+        let self_nz = NonZero::new_unchecked(Uint::select(&Uint::ONE, self, self_is_nz));
         Uint::select(rhs, self_nz.gcd_unsigned(rhs).as_ref(), self_is_nz)
     }
 
@@ -24,7 +24,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         if self.is_zero_vartime() {
             return *rhs;
         }
-        NonZero(*self).gcd_unsigned_vartime(rhs).0
+        NonZero::new_unchecked(*self)
+            .gcd_unsigned_vartime(rhs)
+            .get_copy()
     }
 
     /// Executes the Extended GCD algorithm.
@@ -34,9 +36,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn xgcd(&self, rhs: &Self) -> UintXgcdOutput<LIMBS> {
         // Make sure `self` and `rhs` are nonzero.
         let self_is_zero = self.is_nonzero().not();
-        let self_nz = NonZero(Uint::select(self, &Uint::ONE, self_is_zero));
+        let self_nz = NonZero::new_unchecked(Uint::select(self, &Uint::ONE, self_is_zero));
         let rhs_is_zero = rhs.is_nonzero().not();
-        let rhs_nz = NonZero(Uint::select(rhs, &Uint::ONE, rhs_is_zero));
+        let rhs_nz = NonZero::new_unchecked(Uint::select(rhs, &Uint::ONE, rhs_is_zero));
 
         let NonZeroUintXgcdOutput {
             gcd,
@@ -93,9 +95,9 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
         let j = rhs.trailing_zeros();
         let k = u32_min(i, j);
 
-        let odd_lhs = Odd(lhs.shr(i));
+        let odd_lhs = Odd::new_unchecked(lhs.shr(i));
         let gcd_div_2k = odd_lhs.gcd_unsigned(rhs);
-        NonZero(gcd_div_2k.as_ref().shl(k))
+        NonZero::new_unchecked(gcd_div_2k.as_ref().shl(k))
     }
 
     /// Compute the greatest common divisor of `self` and `rhs`.
@@ -109,9 +111,9 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
         let j = rhs.trailing_zeros_vartime();
         let k = u32_min(i, j);
 
-        let odd_lhs = Odd(lhs.shr_vartime(i));
+        let odd_lhs = Odd::new_unchecked(lhs.shr_vartime(i));
         let gcd_div_2k = odd_lhs.gcd_unsigned_vartime(rhs);
-        NonZero(gcd_div_2k.as_ref().shl_vartime(k))
+        NonZero::new_unchecked(gcd_div_2k.as_ref().shl_vartime(k))
     }
 
     /// Execute the Extended GCD algorithm.

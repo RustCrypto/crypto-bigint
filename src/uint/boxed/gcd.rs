@@ -50,7 +50,7 @@ mod tests {
         let f = BoxedUint::from(59u32 * 67).to_odd().unwrap();
         let g = BoxedUint::from(61u32 * 71);
         let gcd = f.gcd(&g);
-        assert_eq!(gcd.0, BoxedUint::one());
+        assert_eq!(gcd.get(), BoxedUint::one());
     }
 
     #[test]
@@ -58,7 +58,7 @@ mod tests {
         let f = BoxedUint::from(4391633u32).to_odd().unwrap();
         let g = BoxedUint::from(2022161u32);
         let gcd = f.gcd(&g);
-        assert_eq!(gcd.0, BoxedUint::from(1763u32));
+        assert_eq!(gcd.get(), BoxedUint::from(1763u32));
     }
 
     #[test]
@@ -94,7 +94,7 @@ mod tests {
         let f = BoxedUint::from(4391633u32).resize(128).to_odd().unwrap();
         let g = BoxedUint::from(2022161u32);
         let gcd = f.gcd(&g);
-        assert_eq!(gcd.0, BoxedUint::from(1763u32));
+        assert_eq!(gcd.get(), BoxedUint::from(1763u32));
     }
 
     #[test]
@@ -103,6 +103,6 @@ mod tests {
         let f = BoxedUint::from(4391633u32).resize(128).to_odd().unwrap();
         let g = BoxedUint::from(2022161u32);
         let gcd = f.gcd_vartime(&g);
-        assert_eq!(gcd.0, BoxedUint::from(1763u32));
+        assert_eq!(gcd.get(), BoxedUint::from(1763u32));
     }
 }

@@ -193,7 +193,7 @@ impl Reciprocal {
     /// to be used in the single-limb division later.
     #[must_use]
     pub const fn new(divisor: NonZero<Limb>) -> Self {
-        let divisor = divisor.0;
+        let divisor = divisor.get_copy();
 
         // Assuming this is constant-time for primitive types.
         let shift = divisor.0.leading_zeros();

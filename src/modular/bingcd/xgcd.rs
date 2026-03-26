@@ -174,7 +174,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
         // `rhs` is even.
         let rhs_is_even = rhs_.is_odd().not();
         let (abs_diff, rhs_gt_lhs) = lhs_.abs_diff(rhs_);
-        let odd_rhs = Odd(Uint::select(rhs_, &abs_diff, rhs_is_even));
+        let odd_rhs = Odd::new_unchecked(Uint::select(rhs_, &abs_diff, rhs_is_even));
 
         let mut output = self.binxgcd_odd(&odd_rhs);
         let matrix = &mut output.matrix;

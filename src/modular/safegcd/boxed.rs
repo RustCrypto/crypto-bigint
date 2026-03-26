@@ -131,14 +131,14 @@ pub fn gcd<const VARTIME: bool>(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
     let f_is_zero = f.is_zero();
 
     // Note: is non-zero by construction
-    let f_nz = NonZero(BoxedUint::ct_select(
+    let f_nz = NonZero::new_unchecked(BoxedUint::ct_select(
         f,
         &BoxedUint::one_with_precision(f.bits_precision()),
         f_is_zero,
     ));
 
     // gcd of (0, g) is g
-    let mut r = gcd_nz::<VARTIME>(&f_nz, g).0;
+    let mut r = gcd_nz::<VARTIME>(&f_nz, g).get();
     r.ct_assign(g, f_is_zero);
     r
 }
@@ -158,10 +158,10 @@ pub fn gcd_nz<const VARTIME: bool>(f: &NonZero<BoxedUint>, g: &BoxedUint) -> Non
     let i = f.as_ref().trailing_zeros();
     let k = u32_min(i, g.trailing_zeros());
 
-    let f_odd = Odd(f.as_ref().shr(i));
-    let mut r = gcd_odd::<VARTIME>(&f_odd, g).0;
+    let f_odd = Odd::new_unchecked(f.as_ref().shr(i));
+    let mut r = gcd_odd::<VARTIME>(&f_odd, g).get();
     r.shl_assign(k);
-    NonZero(r)
+    NonZero::new_unchecked(r)
 }
 
 /// Calculate the greatest common denominator of odd `f`, and `g`.

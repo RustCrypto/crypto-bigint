@@ -139,7 +139,7 @@ pub(crate) const fn mul_montgomery_form<const LIMBS: usize>(
         &a.limbs,
         &b.limbs,
         &mut out.limbs,
-        &modulus.0.limbs,
+        &modulus.as_ref().limbs,
         mod_neg_inv,
     );
     out.try_sub_with_carry(carry, modulus.as_ref()).0
@@ -163,7 +163,7 @@ pub(crate) const fn square_montgomery_form<const LIMBS: usize>(
         &a.limbs,
         &a.limbs,
         &mut out.limbs,
-        &modulus.0.limbs,
+        &modulus.as_ref().limbs,
         mod_neg_inv,
     );
     out.try_sub_with_carry(carry, modulus.as_ref()).0
@@ -198,7 +198,7 @@ pub(crate) const fn square_repeat_montgomery_form<const LIMBS: usize>(
             &base.limbs,
             &base.limbs,
             &mut out.limbs,
-            &modulus.0.limbs,
+            &modulus.as_ref().limbs,
             mod_neg_inv,
         );
         i += 1;
