@@ -249,6 +249,16 @@ impl BoxedUint {
         self.clone().into_nz()
     }
 
+    /// Construct an [`Odd`] reference, returning [`None`] in the event `self` is even.
+    #[must_use]
+    pub fn as_odd_vartime(&self) -> Option<&Odd<Self>> {
+        if !self.is_odd().to_bool_vartime() {
+            None
+        } else {
+            Some(Odd::new_ref_unchecked(self))
+        }
+    }
+
     /// Convert to an [`Odd<BoxedUint>`].
     ///
     /// Returns some if the original value is odd, and none otherwise.

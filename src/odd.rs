@@ -91,6 +91,12 @@ impl<T> Odd<T> {
     {
         self.0
     }
+
+    /// All odd integers are definitionally non-zero, so we can convert into
+    /// the equivalent [`NonZero`] type.
+    pub fn into_nz(self) -> NonZero<T> {
+        NonZero::new_unchecked(self.0)
+    }
 }
 
 impl<T: ?Sized> Odd<T> {

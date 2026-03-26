@@ -128,23 +128,37 @@ fn invert_odd_mod_precomp<const VARTIME: bool>(
 
 /// Calculate the greatest common denominator of `f` and `g`.
 pub fn gcd<const VARTIME: bool>(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
-    let f_is_zero = f.is_zero();
+    if VARTIME {
+        if let Some(f_nz) = f.as_nz_vartime() {
+            gcd_nz::<VARTIME>(f_nz, g).get()
+        } else {
+            g.clone()
+        }
+    } else {
+        let f_is_zero = f.is_zero();
 
-    // Note: is non-zero by construction
-    let f_nz = NonZero::new_unchecked(BoxedUint::ct_select(
-        f,
-        &BoxedUint::one_with_precision(f.bits_precision()),
-        f_is_zero,
-    ));
+        // Note: is non-zero by construction
+        let f_nz = NonZero::new_unchecked(BoxedUint::ct_select(
+            f,
+            &BoxedUint::one_with_precision(f.bits_precision()),
+            f_is_zero,
+        ));
 
-    // gcd of (0, g) is g
-    let mut r = gcd_nz::<VARTIME>(&f_nz, g).get();
-    r.ct_assign(g, f_is_zero);
-    r
+        // gcd of (0, g) is g
+        let mut r = gcd_nz::<VARTIME>(&f_nz, g).get();
+        r.ct_assign(g, f_is_zero);
+        r
+    }
 }
 
 /// Calculate the greatest common denominator of nonzero `f`, and `g`.
 pub fn gcd_nz<const VARTIME: bool>(f: &NonZero<BoxedUint>, g: &BoxedUint) -> NonZero<BoxedUint> {
+    if VARTIME {
+        if let Some(f_odd) = f.as_odd_vartime() {
+            return gcd_odd::<VARTIME>(f_odd, g).into_nz();
+        }
+    }
+
     // Note the following two GCD identity rules:
     // 1) gcd(2f, 2g) = 2•gcd(f, g), and
     // 2) gcd(a, 2g) = gcd(f, g) if f is odd.
