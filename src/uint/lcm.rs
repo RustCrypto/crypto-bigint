@@ -1,17 +1,47 @@
 //! This module implements Least common multiple (LCM) for [`Uint`].
 
-use crate::{Concat, Uint};
+use crate::{Concat, Lcm, Uint};
 
-impl<const LIMBS: usize> Uint<LIMBS> {
+impl<const LIMBS: usize, const WIDE_LIMBS: usize> Uint<LIMBS>
+where
+    Self: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
+{
     /// Compute the least common multiple of `self` and `rhs`.
     #[must_use]
-    pub const fn lcm<const WIDE_LIMBS: usize>(&self, rhs: &Self) -> Uint<WIDE_LIMBS>
+    pub const fn lcm(&self, rhs: &Self) -> Uint<WIDE_LIMBS>
     where
         Self: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
     {
         let (lhs_nz, _) = self.to_nz_or_one();
         let gcd_nz = lhs_nz.gcd_unsigned(rhs);
         self.wrapping_div(&gcd_nz).concatenating_mul(rhs)
+    }
+
+    /// Compute the least common multiple of `self` and `rhs`.
+    ///
+    /// This method is variable time with respect to `self` and `rhs`.
+    #[must_use]
+    pub const fn lcm_vartime(&self, rhs: &Self) -> Uint<WIDE_LIMBS> {
+        let (Some(lhs_nz), false) = (self.as_nz_vartime(), rhs.is_zero_vartime()) else {
+            return Uint::ZERO;
+        };
+        let gcd_nz = lhs_nz.gcd_unsigned_vartime(rhs);
+        self.wrapping_div_vartime(&gcd_nz).concatenating_mul(rhs)
+    }
+}
+
+impl<const LIMBS: usize, const WIDE_LIMBS: usize> Lcm for Uint<LIMBS>
+where
+    Self: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
+{
+    type Output = Uint<WIDE_LIMBS>;
+
+    fn lcm(&self, rhs: &Self) -> Self::Output {
+        self.lcm(rhs)
+    }
+
+    fn lcm_vartime(&self, rhs: &Self) -> Self::Output {
+        self.lcm_vartime(rhs)
     }
 }
 
@@ -28,6 +58,7 @@ mod tests {
             Uint<LIMBS>: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
         {
             assert_eq!(lhs.lcm(&rhs), target);
+            assert_eq!(lhs.lcm_vartime(&rhs), target);
         }
 
         fn run_tests<const LIMBS: usize, const WIDE_LIMBS: usize>()
