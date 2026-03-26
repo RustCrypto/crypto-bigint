@@ -165,23 +165,7 @@ impl UintRef {
         if self.is_zero_vartime() {
             return None;
         }
-        Some(self.as_nz_unchecked())
-    }
-
-    /// Cast to [`NonZero`] without first checking that the contained value is non-zero.
-    ///
-    /// Use with care! This method bypasses [`NonZero`] invariant checks.
-    ///
-    /// # Warning: Panics
-    /// We don't explicitly flag this function as `unsafe` because it doesn't have a memory safety
-    /// impact, however functions called with `NonZero` arguments assume this value is non-zero
-    /// and may panic if given a zero value.
-    #[inline]
-    #[must_use]
-    #[allow(unsafe_code)]
-    pub(crate) const fn as_nz_unchecked(&self) -> &NonZero<Self> {
-        // SAFETY: `NonZero` is a `repr(transparent)` newtype
-        unsafe { &*(ptr::from_ref(self) as *const NonZero<Self>) }
+        Some(NonZero::new_ref_unchecked(self))
     }
 
     /// Construct a [`Odd`] reference, returning [`None`] in the event `self` is even.
@@ -191,23 +175,7 @@ impl UintRef {
         if !self.is_odd().to_bool_vartime() {
             return None;
         }
-        Some(self.as_odd_unchecked())
-    }
-
-    /// Cast to [`Odd`] without first checking that the contained value is actually odd.
-    ///
-    /// Use with care! This method bypasses [`Odd`] invariant checks.
-    ///
-    /// # Panics
-    /// We don't explicitly flag this function as `unsafe` because it doesn't have a memory safety
-    /// impact, however functions called with `Odd` arguments assume this value is actually odd
-    /// and may panic if given an even value.
-    #[inline]
-    #[must_use]
-    #[allow(unsafe_code)]
-    pub(crate) const fn as_odd_unchecked(&self) -> &Odd<Self> {
-        // SAFETY: `Odd` is a `repr(transparent)` newtype
-        unsafe { &*(ptr::from_ref(self) as *const Odd<Self>) }
+        Some(Odd::new_ref_unchecked(self))
     }
 
     cpubits::cpubits! {
