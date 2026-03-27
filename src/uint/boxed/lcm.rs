@@ -26,8 +26,8 @@ mod tests {
         use crate::{BoxedUint, Lcm};
 
         fn test(lhs: &BoxedUint, rhs: &BoxedUint, target: &BoxedUint) {
-            assert_eq!(lhs.lcm(&rhs), target);
-            assert_eq!(lhs.lcm_vartime(&rhs), target);
+            assert_eq!(lhs.lcm(rhs), target);
+            assert_eq!(lhs.lcm_vartime(rhs), target);
         }
 
         #[test]
