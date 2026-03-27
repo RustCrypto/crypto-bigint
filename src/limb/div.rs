@@ -29,8 +29,8 @@ impl Limb {
     /// if the divisor is non-zero, and `CtOption::none()` otherwise.
     #[must_use]
     pub const fn checked_div(self, rhs: Self) -> CtOption<Limb> {
-        let is_nz = rhs.is_nonzero();
-        let quo = self.div_rem(NonZero(Self::select(Limb::ONE, rhs, is_nz))).0;
+        let (rhs_nz, is_nz) = rhs.to_nz_or_one();
+        let quo = self.div_rem(rhs_nz).0;
         CtOption::new(quo, is_nz)
     }
 
@@ -38,8 +38,8 @@ impl Limb {
     /// if the divisor is non-zero, and `CtOption::none()` otherwise.
     #[must_use]
     pub const fn checked_rem(self, rhs: Self) -> CtOption<Limb> {
-        let is_nz = rhs.is_nonzero();
-        let rem = self.div_rem(NonZero(Self::select(Limb::ONE, rhs, is_nz))).1;
+        let (rhs_nz, is_nz) = rhs.to_nz_or_one();
+        let rem = self.div_rem(rhs_nz).1;
         CtOption::new(rem, is_nz)
     }
 }
@@ -318,8 +318,8 @@ mod tests {
         assert_eq!(a / &b, c);
         assert_eq!(&a / b, c);
         assert_eq!(&a / &b, c);
-        assert_eq!(a / &b.0, c);
-        assert_eq!(&a / b.0, c);
+        assert_eq!(a / b.as_ref(), c);
+        assert_eq!(&a / b.get(), c);
     }
 
     #[test]
@@ -335,10 +335,10 @@ mod tests {
         res /= &b;
         assert_eq!(res, c);
         let mut res = a;
-        res /= b.0;
+        res /= b.get();
         assert_eq!(res, c);
         let mut res = a;
-        res /= &b.0;
+        res /= b.as_ref();
         assert_eq!(res, c);
     }
 
@@ -364,8 +364,8 @@ mod tests {
         assert_eq!(a % &b, c);
         assert_eq!(&a % b, c);
         assert_eq!(&a % &b, c);
-        assert_eq!(a % &b.0, c);
-        assert_eq!(&a % b.0, c);
+        assert_eq!(a % b.as_ref(), c);
+        assert_eq!(&a % b.get(), c);
     }
 
     #[test]
@@ -381,10 +381,10 @@ mod tests {
         res %= &b;
         assert_eq!(res, c);
         let mut res = a;
-        res %= b.0;
+        res %= b.get();
         assert_eq!(res, c);
         let mut res = a;
-        res %= &b.0;
+        res %= b.as_ref();
         assert_eq!(res, c);
     }
 

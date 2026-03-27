@@ -231,17 +231,37 @@ impl BoxedUint {
         self.limbs.len()
     }
 
+    /// Construct a [`NonZero`] reference, returning [`None`] in the event `self` is `0`.
+    #[must_use]
+    pub fn as_nz_vartime(&self) -> Option<&NonZero<Self>> {
+        if self.is_zero_vartime() {
+            None
+        } else {
+            Some(NonZero::new_ref_unchecked(self))
+        }
+    }
+
     /// Convert to a [`NonZero<BoxedUint>`].
     ///
-    /// Returns some if the original value is non-zero, and false otherwise.
+    /// Returns some if the original value is non-zero, and none otherwise.
     #[must_use]
     pub fn to_nz(&self) -> CtOption<NonZero<Self>> {
         self.clone().into_nz()
     }
 
+    /// Construct an [`Odd`] reference, returning [`None`] in the event `self` is even.
+    #[must_use]
+    pub fn as_odd_vartime(&self) -> Option<&Odd<Self>> {
+        if !self.is_odd().to_bool_vartime() {
+            None
+        } else {
+            Some(Odd::new_ref_unchecked(self))
+        }
+    }
+
     /// Convert to an [`Odd<BoxedUint>`].
     ///
-    /// Returns some if the original value is odd, and false otherwise.
+    /// Returns some if the original value is odd, and none otherwise.
     #[must_use]
     pub fn to_odd(&self) -> CtOption<Odd<Self>> {
         self.clone().into_odd()
@@ -249,26 +269,26 @@ impl BoxedUint {
 
     /// Convert to a [`NonZero<BoxedUint>`].
     ///
-    /// Returns some if the original value is non-zero, and false otherwise.
+    /// Returns some if the original value is non-zero, and none otherwise.
     #[must_use]
     pub fn into_nz(mut self) -> CtOption<NonZero<Self>> {
         let is_nz = self.is_nonzero();
 
         // Ensure the `NonZero` we construct is actually non-zero, even if the `CtOption` is none
         self.limbs[0].ct_assign(&Limb::ONE, !is_nz);
-        CtOption::new(NonZero(self), is_nz)
+        CtOption::new(NonZero::new_unchecked(self), is_nz)
     }
 
     /// Convert to an [`Odd<BoxedUint>`].
     ///
-    /// Returns some if the original value is odd, and false otherwise.
+    /// Returns some if the original value is odd, and none otherwise.
     #[must_use]
     pub fn into_odd(mut self) -> CtOption<Odd<Self>> {
         let is_odd = self.is_odd();
 
         // Ensure the `Odd` we construct is actually odd, even if the `CtOption` is none
         self.limbs[0].ct_assign(&Limb::ONE, !is_odd);
-        CtOption::new(Odd(self.clone()), is_odd)
+        CtOption::new(Odd::new_unchecked(self.clone()), is_odd)
     }
 
     /// Widen this type's precision to the given number of bits.
@@ -370,11 +390,13 @@ impl Resize for NonZero<BoxedUint> {
     type Output = Self;
 
     fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output {
-        NonZero(self.0.resize_unchecked(at_least_bits_precision))
+        NonZero::new_unchecked(self.get().resize_unchecked(at_least_bits_precision))
     }
 
     fn try_resize(self, at_least_bits_precision: u32) -> Option<Self::Output> {
-        self.0.try_resize(at_least_bits_precision).map(NonZero)
+        self.get()
+            .try_resize(at_least_bits_precision)
+            .map(NonZero::new_unchecked)
     }
 }
 
@@ -382,11 +404,13 @@ impl Resize for &NonZero<BoxedUint> {
     type Output = NonZero<BoxedUint>;
 
     fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output {
-        NonZero((&self.0).resize_unchecked(at_least_bits_precision))
+        NonZero::new_unchecked(self.as_ref().resize_unchecked(at_least_bits_precision))
     }
 
     fn try_resize(self, at_least_bits_precision: u32) -> Option<Self::Output> {
-        (&self.0).try_resize(at_least_bits_precision).map(NonZero)
+        self.as_ref()
+            .try_resize(at_least_bits_precision)
+            .map(NonZero::new_unchecked)
     }
 }
 

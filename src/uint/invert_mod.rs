@@ -112,8 +112,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         } else if k > Self::BITS {
             CtOption::new(Self::ZERO, Choice::FALSE)
         } else {
-            let is_some = self.is_odd();
-            let inv = Odd(Uint::select(&Uint::ONE, self, is_some)).invert_mod2k_vartime(k);
+            let (self_odd, is_some) = self.to_odd_or_one();
+            let inv = self_odd.invert_mod2k_vartime(k);
             CtOption::new(inv, is_some)
         }
     }
@@ -134,9 +134,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// returns `CtOption::none`, otherwise returns `CtOption::some`.
     #[must_use]
     pub const fn invert_mod2k(&self, k: u32) -> CtOption<Self> {
+        let (odd, is_odd) = self.to_odd_or_one();
         let is_some =
-            Choice::from_u32_le(k, Self::BITS).and(Choice::from_u32_nz(k).not().or(self.is_odd()));
-        let inv = Odd(Uint::select(&Uint::ONE, self, is_some)).invert_mod_precision();
+            Choice::from_u32_le(k, Self::BITS).and(Choice::from_u32_nz(k).not().or(is_odd));
+        let inv = odd.invert_mod_precision();
         CtOption::new(inv.restrict_bits(k), is_some)
     }
 
@@ -167,8 +168,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[deprecated(since = "0.7.0", note = "please use `invert_mod` instead")]
     #[must_use]
     pub const fn inv_mod(&self, modulus: &Self) -> CtOption<Self> {
-        let is_nz = modulus.is_nonzero();
-        let m = NonZero(Uint::select(&Uint::ONE, modulus, is_nz));
+        let (m, is_nz) = modulus.to_nz_or_one();
         self.invert_mod(&m).filter_by(is_nz)
     }
 
@@ -179,7 +179,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub const fn invert_mod(&self, modulus: &NonZero<Self>) -> CtOption<Self> {
         // Decompose `modulus = s * 2^k` where `s` is odd
         let k = modulus.as_ref().trailing_zeros();
-        let s = Odd(modulus.as_ref().shr(k));
+        let s = Odd::new_unchecked(modulus.as_ref().shr(k));
 
         // Decompose `self` into RNS with moduli `2^k` and `s` and calculate the inverses.
         // Using the fact that `(z^{-1} mod (m1 * m2)) mod m1 == z^{-1} mod m1`
@@ -440,7 +440,7 @@ mod tests {
 
     #[test]
     fn invert_mod_precision() {
-        const BIG: Odd<Uint<8>> = Odd(Uint::MAX);
+        const BIG: Odd<Uint<8>> = Odd::new_unchecked(Uint::MAX);
 
         fn test_invert_size<const LIMBS: usize>() {
             let a = BIG.resize::<LIMBS>();

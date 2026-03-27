@@ -98,28 +98,28 @@ impl<const LIMBS: usize> From<&Uint<LIMBS>> for BoxedUint {
 impl<const LIMBS: usize> From<Odd<Uint<LIMBS>>> for BoxedUint {
     #[inline]
     fn from(uint: Odd<Uint<LIMBS>>) -> BoxedUint {
-        Self::from(&uint.0)
+        Self::from(uint.as_ref())
     }
 }
 
 impl<const LIMBS: usize> From<&Odd<Uint<LIMBS>>> for BoxedUint {
     #[inline]
     fn from(uint: &Odd<Uint<LIMBS>>) -> BoxedUint {
-        Self::from(&uint.0)
+        Self::from(uint.as_ref())
     }
 }
 
 impl<const LIMBS: usize> From<Odd<Uint<LIMBS>>> for Odd<BoxedUint> {
     #[inline]
     fn from(uint: Odd<Uint<LIMBS>>) -> Odd<BoxedUint> {
-        Odd(BoxedUint::from(&uint.0))
+        Odd::new_unchecked(BoxedUint::from(uint.as_ref()))
     }
 }
 
 impl<const LIMBS: usize> From<&Odd<Uint<LIMBS>>> for Odd<BoxedUint> {
     #[inline]
     fn from(uint: &Odd<Uint<LIMBS>>) -> Odd<BoxedUint> {
-        Odd(BoxedUint::from(&uint.0))
+        Odd::new_unchecked(BoxedUint::from(uint.as_ref()))
     }
 }
 
@@ -129,5 +129,49 @@ impl From<&UintRef> for BoxedUint {
         BoxedUint {
             limbs: uint_ref.as_limbs().into(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::vec::Vec;
+
+    use crate::{BoxedUint, Limb, Odd, U256};
+
+    #[test]
+    fn from_limb_slice() {
+        let n = BoxedUint::from(&[Limb(42), Limb::MAX][..]);
+        assert_eq!(n.as_limbs(), &[Limb(42), Limb::MAX]);
+    }
+
+    #[test]
+    fn from_boxed_limb_slice() {
+        let n = BoxedUint::from(Vec::<Limb>::new().into_boxed_slice());
+        assert_eq!(n.as_limbs(), &[Limb::ZERO]);
+
+        let n = BoxedUint::from(vec![Limb(42), Limb::MAX].into_boxed_slice());
+        assert_eq!(n.as_limbs(), &[Limb(42), Limb::MAX]);
+    }
+
+    #[test]
+    fn from_vec() {
+        let n = BoxedUint::from(Vec::<Limb>::new());
+        assert_eq!(n.as_limbs(), &[Limb::ZERO]);
+
+        let n = BoxedUint::from(vec![Limb(42), Limb::MAX]);
+        assert_eq!(n.as_limbs(), &[Limb(42), Limb::MAX]);
+    }
+
+    #[test]
+    fn from_odd_uint() {
+        let odd_u = U256::MAX.to_odd().unwrap();
+        let n = BoxedUint::from(&odd_u);
+        assert_eq!(n.as_limbs(), odd_u.as_ref().as_limbs());
+        let n = BoxedUint::from(odd_u);
+        assert_eq!(n.as_limbs(), odd_u.as_ref().as_limbs());
+        let n = Odd::<BoxedUint>::from(&odd_u);
+        assert_eq!(n.as_ref().as_limbs(), odd_u.as_ref().as_limbs());
+        let n = Odd::<BoxedUint>::from(odd_u);
+        assert_eq!(n.as_ref().as_limbs(), odd_u.as_ref().as_limbs());
     }
 }

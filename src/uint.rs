@@ -211,16 +211,24 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         UintRef::new_mut(&mut self.limbs)
     }
 
+    /// Construct a [`NonZero`] reference, returning [`None`] in the event `self` is `0`.
+    #[inline]
+    #[must_use]
+    pub const fn as_nz_vartime(&self) -> Option<&NonZero<Self>> {
+        if self.is_zero_vartime() {
+            None
+        } else {
+            Some(NonZero::new_ref_unchecked(self))
+        }
+    }
+
     /// Convert to a [`NonZeroUint<LIMBS>`].
     ///
     /// Returns some if the original value is non-zero, and none otherwise.
     #[must_use]
     pub const fn to_nz(&self) -> CtOption<NonZero<Self>> {
-        let is_nz = self.is_nonzero();
-
-        // Use `1` as a placeholder in the event this value is `0`
-        let ret = Self::select(&Self::ONE, self, is_nz);
-        CtOption::new(NonZero(ret), is_nz)
+        let (nz, self_nz) = self.to_nz_or_one();
+        CtOption::new(nz, self_nz)
     }
 
     /// Convert to a [`NonZeroUint<LIMBS>`].
@@ -228,23 +236,48 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Returns Some if the original value is non-zero, and none otherwise.
     #[must_use]
     pub const fn to_nz_vartime(&self) -> Option<NonZero<Self>> {
-        if !self.is_zero_vartime() {
-            Some(NonZero(*self))
-        } else {
+        if self.is_zero_vartime() {
             None
+        } else {
+            Some(NonZero::new_unchecked(*self))
         }
+    }
+
+    /// Convert to a [`NonZeroUint<LIMBS>`], defaulting to `Self::ONE`.
+    ///
+    /// Returns a pair consisting of a [`NonZeroUint<LIMBS>`], and a [`Choice`]
+    /// indicating whether the original value was non-zero (and preserved).
+    #[inline(always)]
+    #[must_use]
+    pub(crate) const fn to_nz_or_one(self) -> (NonZero<Self>, Choice) {
+        let is_nz = self.is_nonzero();
+        (
+            NonZero::new_unchecked(Self::select(&Self::ONE, &self, is_nz)),
+            is_nz,
+        )
     }
 
     /// Convert to a [`OddUint<LIMBS>`].
     ///
-    /// Returns some if the original value is odd, and false otherwise.
+    /// Returns some if the original value is odd, and none otherwise.
     #[must_use]
     pub const fn to_odd(&self) -> CtOption<Odd<Self>> {
-        let is_odd = self.is_odd();
+        let (odd, self_odd) = self.to_odd_or_one();
+        CtOption::new(odd, self_odd)
+    }
 
-        // Use `1` as a placeholder in the event this value is even
-        let ret = Self::select(&Self::ONE, self, is_odd);
-        CtOption::new(Odd(ret), is_odd)
+    /// Convert to a [`OddUint<LIMBS>`], defaulting to `Self::ONE`.
+    ///
+    /// Returns a pair consisting of a [`OddUint<LIMBS>`], and a [`Choice`]
+    /// indicating whether the original value was non-zero (and preserved).
+    #[inline(always)]
+    #[must_use]
+    pub(crate) const fn to_odd_or_one(self) -> (Odd<Self>, Choice) {
+        let is_odd = self.is_odd();
+        (
+            Odd::new_unchecked(Self::select(&Self::ONE, &self, is_odd)),
+            is_odd,
+        )
     }
 
     /// Interpret this object as an [`Int`] instead.

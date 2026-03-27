@@ -181,7 +181,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let quotient = Uint::select(&quotient, &quotient_plus_one, modify);
 
         // Invert the remainder.
-        let inv_remainder = rhs_mag.0.wrapping_sub(&remainder);
+        let inv_remainder = rhs_mag.as_ref().wrapping_sub(&remainder);
         let remainder = Uint::select(&remainder, &inv_remainder, modify);
 
         // Negate output when lhs and rhs have opposing signs.
@@ -291,7 +291,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let quotient = Uint::select(&quotient, &quotient_plus_one, modify);
 
         // Invert the remainder.
-        let inv_remainder = rhs_mag.0.wrapping_sub(&remainder);
+        let inv_remainder = rhs_mag.as_ref().wrapping_sub(&remainder);
         let remainder = Uint::select(&remainder, &inv_remainder, modify);
 
         // Negate output when lhs and rhs have opposing signs.

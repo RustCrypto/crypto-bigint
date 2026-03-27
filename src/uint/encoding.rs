@@ -818,8 +818,8 @@ impl RadixDivisionParams {
                 continue;
             }
             let digits_limb = Word::MAX.ilog(radix as Word);
-            let div_limb = NonZero(Limb((radix as Word).pow(digits_limb)));
-            let bits_limb = Limb::BITS - div_limb.0.leading_zeros() - 1;
+            let div_limb = NonZero::new_unchecked(Limb((radix as Word).pow(digits_limb)));
+            let bits_limb = Limb::BITS - div_limb.as_ref().leading_zeros() - 1;
             let (div_large, digits_large, shift_large) =
                 radix_large_divisor(radix, div_limb, digits_limb as usize);
             let recip_large = Reciprocal::new(
@@ -959,13 +959,13 @@ const fn radix_large_divisor<const LIMBS: usize>(
     let mut out = [Limb::ZERO; LIMBS];
     let mut digits_large = digits_limb;
     let mut top = 1;
-    out[0] = div_limb.0;
+    out[0] = div_limb.get_copy();
     // Calculate largest power of div_limb (itself a power of radix)
     while top < LIMBS {
         let mut carry = Limb::ZERO;
         let mut j = 0;
         while j < top {
-            (out[j], carry) = out[j].carrying_mul_add(div_limb.0, carry, Limb::ZERO);
+            (out[j], carry) = out[j].carrying_mul_add(div_limb.get_copy(), carry, Limb::ZERO);
             j += 1;
         }
         if carry.0 != 0 {
@@ -1298,7 +1298,7 @@ mod tests {
     fn test_radix_large_divisor() {
         let radix = 5u32;
         let digits_limb = Word::MAX.ilog(radix as Word);
-        let div_limb = NonZero(Limb((radix as Word).pow(digits_limb)));
+        let div_limb = NonZero::new_unchecked(Limb((radix as Word).pow(digits_limb)));
         let (div_large, _digits_large, _shift_large) =
             radix_large_divisor::<4>(radix, div_limb, digits_limb as usize);
         assert!(

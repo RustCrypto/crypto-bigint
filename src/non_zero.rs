@@ -8,6 +8,7 @@ use core::{
     fmt,
     num::{NonZeroU8, NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128},
     ops::Deref,
+    ptr,
 };
 use ctutils::{CtAssignSlice, CtEqSlice};
 
@@ -45,7 +46,7 @@ pub type NonZeroBoxedUint = NonZero<BoxedUint>;
 /// Wrapper type for non-zero integers.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 #[repr(transparent)]
-pub struct NonZero<T: ?Sized>(pub(crate) T);
+pub struct NonZero<T: ?Sized>(T);
 
 impl<T> NonZero<T> {
     /// Create a new non-zero integer.
@@ -61,6 +62,20 @@ impl<T> NonZero<T> {
         // `CtOption::is_some` is false.
         n.ct_assign(&T::one_like(&n), is_zero);
         CtOption::new(Self(n), !is_zero)
+    }
+
+    /// Create a new [`NonZero<T>`] without first checking that the contained value is non-zero.
+    ///
+    /// Use with care! This method bypasses invariant checks.
+    ///
+    /// # Warning: Panics
+    /// We don't explicitly flag this function as `unsafe` because it doesn't have a memory safety
+    /// impact, however functions called with `NonZero` arguments assume this value is non-zero
+    /// and may panic if given a zero value.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn new_unchecked(n: T) -> NonZero<T> {
+        Self(n)
     }
 
     /// Returns the inner value.
@@ -84,8 +99,25 @@ impl<T> NonZero<T> {
 
 impl<T: ?Sized> NonZero<T> {
     /// Provides access to the contents of `NonZero` in a `const` context.
+    #[inline]
     pub const fn as_ref(&self) -> &T {
         &self.0
+    }
+
+    /// Cast a reference to [`NonZero`] without first checking that the referenced value is non-zero.
+    ///
+    /// Use with care! This method bypasses invariant checks.
+    ///
+    /// # Warning: Panics
+    /// We don't explicitly flag this function as `unsafe` because it doesn't have a memory safety
+    /// impact, however functions called with `NonZero` arguments assume this value is non-zero
+    /// and may panic if given a zero value.
+    #[inline]
+    #[must_use]
+    #[allow(unsafe_code)]
+    pub(crate) const fn new_ref_unchecked(refval: &T) -> &NonZero<T> {
+        // SAFETY: `NonZero` is a `repr(transparent)` newtype
+        unsafe { &*(ptr::from_ref(refval) as *const NonZero<T>) }
     }
 }
 
@@ -297,7 +329,7 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
     #[inline]
     #[must_use]
     pub const fn as_uint_ref(&self) -> &NonZeroUintRef {
-        self.0.as_uint_ref().as_nz_unchecked()
+        NonZero::new_ref_unchecked(self.0.as_uint_ref())
     }
 }
 
@@ -345,8 +377,8 @@ impl NonZeroBoxedUint {
     /// Borrow this `NonZeroBoxedUint` as a `&NonZeroUintRef`.
     #[inline]
     #[must_use]
-    pub fn as_uint_ref(&self) -> &NonZeroUintRef {
-        self.0.as_uint_ref().as_nz_unchecked()
+    pub const fn as_uint_ref(&self) -> &NonZeroUintRef {
+        NonZero::new_ref_unchecked(self.0.as_uint_ref())
     }
 }
 

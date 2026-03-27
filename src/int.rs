@@ -152,7 +152,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Returns some if the original value is non-zero, and false otherwise.
     #[must_use]
     pub const fn to_nz(self) -> CtOption<NonZero<Self>> {
-        CtOption::new(NonZero(self), self.0.is_nonzero())
+        CtOption::new(NonZero::new_unchecked(self), self.0.is_nonzero())
     }
 
     /// Convert to a [`Odd<Int<LIMBS>>`].
@@ -160,7 +160,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Returns some if the original value is odd, and false otherwise.
     #[must_use]
     pub const fn to_odd(self) -> CtOption<Odd<Self>> {
-        CtOption::new(Odd(self), self.0.is_odd())
+        CtOption::new(Odd::new_unchecked(self), self.0.is_odd())
     }
 
     /// Interpret the data in this object as a [`Uint`] instead.

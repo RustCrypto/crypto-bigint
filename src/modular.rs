@@ -165,8 +165,9 @@ mod tests {
         // Computing xR mod modulus without Montgomery reduction
         let (lo, hi) = x.widening_mul(&Modulus256::PARAMS.one);
         let c = lo.concat(&hi);
-        let red =
-            c.rem_vartime(&NonZero::new(Modulus256::PARAMS.modulus.0.concat(&U256::ZERO)).unwrap());
+        let red = c.rem_vartime(
+            &NonZero::new(Modulus256::PARAMS.modulus.as_ref().concat(&U256::ZERO)).unwrap(),
+        );
         let (lo, hi) = red.split();
         assert_eq!(hi, Uint::ZERO);
 
@@ -294,8 +295,9 @@ mod tests {
         // Computing xR mod modulus without Montgomery reduction
         let (lo, hi) = x.widening_mul(&Modulus256::PARAMS.one);
         let c = lo.concat(&hi);
-        let red =
-            c.rem_vartime(&NonZero::new(Modulus256::PARAMS.modulus.0.concat(&U256::ZERO)).unwrap());
+        let red = c.rem_vartime(
+            &NonZero::new(Modulus256::PARAMS.modulus.as_ref().concat(&U256::ZERO)).unwrap(),
+        );
         let (lo, hi) = red.split();
         assert_eq!(hi, Uint::ZERO);
 

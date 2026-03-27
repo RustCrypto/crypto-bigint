@@ -17,11 +17,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Callers can check if `self` is a square by squaring the result.
     #[must_use]
     pub const fn floor_sqrt(&self) -> Self {
-        let self_is_nz = self.is_nonzero();
-        let root_nz = NonZero(Self::select(&Self::ONE, self, self_is_nz))
-            .floor_sqrt()
-            .get_copy();
-        Self::select(&Self::ZERO, &root_nz, self_is_nz)
+        let (self_nz, self_is_nz) = self.to_nz_or_one();
+        let root_nz = self_nz.floor_sqrt();
+        Self::select(&Self::ZERO, root_nz.as_ref(), self_is_nz)
     }
 
     /// Computes `floor(√(self))`.
@@ -42,10 +40,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Variable time with respect to `self`.
     #[must_use]
     pub const fn floor_sqrt_vartime(&self) -> Self {
-        if self.is_zero_vartime() {
-            Self::ZERO
+        if let Some(self_nz) = self.as_nz_vartime() {
+            self_nz.floor_sqrt_vartime().get_copy()
         } else {
-            NonZero(*self).floor_sqrt_vartime().get_copy()
+            Self::ZERO
         }
     }
 
@@ -71,8 +69,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// only if the square root is exact.
     #[must_use]
     pub fn checked_sqrt(&self) -> CtOption<Self> {
-        let self_is_nz = self.is_nonzero();
-        NonZero(Self::select(&Self::ONE, self, self_is_nz))
+        let (self_nz, self_is_nz) = self.to_nz_or_one();
+        self_nz
             .checked_sqrt()
             .map(|nz| Self::select(&Self::ZERO, nz.as_ref(), self_is_nz))
     }
@@ -82,10 +80,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// Variable time with respect to `self`.
     pub fn checked_sqrt_vartime(&self) -> Option<Self> {
-        if self.is_zero_vartime() {
-            Some(Self::ZERO)
+        if let Some(self_nz) = self.as_nz_vartime() {
+            self_nz.checked_sqrt_vartime().map(NonZero::get)
         } else {
-            NonZero(*self).checked_sqrt_vartime().map(NonZero::get)
+            Some(Self::ZERO)
         }
     }
 }
@@ -102,12 +100,12 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
         // for the proof of the sufficiency of the bound on iterations.
         // https://github.com/RustCrypto/crypto-bigint/files/12600669/ct_sqrt.pdf
 
-        let rt_bits = self.0.bits().div_ceil(2);
+        let rt_bits = self.as_ref().bits().div_ceil(2);
         // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < 2^b`.
         // Will not overflow since `b <= BITS`.
         let mut x = Uint::<LIMBS>::ZERO.set_bit_vartime(rt_bits, true);
         // Compute `self.0 / x_0` by shifting.
-        let mut q = self.0.shr(rt_bits);
+        let mut q = self.as_ref().shr(rt_bits);
         // The first division has been performed.
         let mut i = 1;
 
@@ -123,7 +121,9 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
                 return x.to_nz().expect_copied("ensured non-zero");
             }
 
-            (q, _) = self.0.div_rem(x.to_nz().expect_ref("ensured non-zero"));
+            (q, _) = self
+                .as_ref()
+                .div_rem(x.to_nz().expect_ref("ensured non-zero"));
         }
     }
 
@@ -136,9 +136,9 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     pub const fn floor_sqrt_vartime(&self) -> Self {
         // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13
 
-        let bits = self.0.bits_vartime();
+        let bits = self.as_ref().bits_vartime();
         if bits <= Limb::BITS {
-            let rt = self.0.limbs[0].0.isqrt();
+            let rt = self.as_ref().limbs[0].0.isqrt();
             return Uint::from_word(rt)
                 .to_nz()
                 .expect_copied("ensured non-zero");
@@ -149,7 +149,7 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
         // Will not overflow since `b <= BITS`.
         let mut x = Uint::ZERO.set_bit_vartime(rt_bits, true);
         // Compute `self / x_0` by shifting.
-        let mut q = self.0.shr_vartime(rt_bits);
+        let mut q = self.as_ref().shr_vartime(rt_bits);
 
         loop {
             // Terminate if `x_{i+1}` >= `x`.
@@ -159,7 +159,7 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
             // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
             x = x.wrapping_add(&q).shr_vartime(1);
             q = self
-                .0
+                .as_ref()
                 .wrapping_div_vartime(x.to_nz().expect_ref("ensured non-zero"));
         }
     }
@@ -170,7 +170,7 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     pub fn checked_sqrt(&self) -> CtOption<Self> {
         let r = self.floor_sqrt();
         let s = r.wrapping_square();
-        CtOption::new(r, self.0.ct_eq(&s))
+        CtOption::new(r, self.as_ref().ct_eq(&s))
     }
 
     /// Perform checked sqrt, returning an [`Option`] which `is_some`
@@ -179,7 +179,7 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     pub fn checked_sqrt_vartime(&self) -> Option<Self> {
         let r = self.floor_sqrt_vartime();
         let s = r.wrapping_square();
-        if self.0.cmp_vartime(&s).is_eq() {
+        if self.as_ref().cmp_vartime(&s).is_eq() {
             Some(r)
         } else {
             None

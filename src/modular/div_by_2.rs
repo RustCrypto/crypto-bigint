@@ -17,7 +17,7 @@ pub(crate) const fn div_by_2<const LIMBS: usize>(
     // whose Montgomery representation is `b`.
 
     let is_odd = a.is_odd();
-    let (if_odd, carry) = a.carrying_add(&modulus.0, Limb::ZERO);
+    let (if_odd, carry) = a.carrying_add(modulus.as_ref(), Limb::ZERO);
     let carry = Limb::select(Limb::ZERO, carry, is_odd);
     Uint::<LIMBS>::select(a, &if_odd, is_odd)
         .shr1()

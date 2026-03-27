@@ -94,14 +94,25 @@ impl Limb {
 
     /// Convert to a [`NonZero<Limb>`].
     ///
-    /// Returns some if the original value is non-zero, and false otherwise.
+    /// Returns some if the original value is non-zero, and none otherwise.
     #[must_use]
     pub const fn to_nz(self) -> CtOption<NonZero<Self>> {
-        let is_nz = self.is_nonzero();
+        let (nz, self_nz) = self.to_nz_or_one();
+        CtOption::new(nz, self_nz)
+    }
 
-        // Use `1` as a placeholder in the event that `self` is `Limb(0)`
-        let nz_word = word::select(1, self.0, is_nz);
-        CtOption::new(NonZero(Self(nz_word)), is_nz)
+    /// Convert to a [`NonZero<Limb>`], defaulting to `Self::ONE`.
+    ///
+    /// Returns a pair consisting of a [`NonZero<Limb>`], and a [`Choice`]
+    /// indicating whether the original value was non-zero (and preserved).
+    #[inline(always)]
+    #[must_use]
+    pub(crate) const fn to_nz_or_one(self) -> (NonZero<Self>, Choice) {
+        let is_nz = self.is_nonzero();
+        (
+            NonZero::new_unchecked(Self::select(Self::ONE, self, is_nz)),
+            is_nz,
+        )
     }
 
     /// Convert the least significant bit of this [`Limb`] to a [`Choice`].

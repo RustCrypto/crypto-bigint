@@ -1,6 +1,6 @@
 //! This module implements Least common multiple (LCM) for [`Uint`].
 
-use crate::{Concat, NonZero, Uint};
+use crate::{Concat, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute the least common multiple of `self` and `rhs`.
@@ -9,14 +9,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     where
         Self: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
     {
-        let self_is_nz = self.is_nonzero();
-        let rhs_is_nz = rhs.is_nonzero();
-
-        let gcd_nz = NonZero(self.gcd(&Uint::select(&Uint::ONE, rhs, rhs_is_nz)));
-
-        let lcm = self.wrapping_div(&gcd_nz).concatenating_mul(rhs);
-
-        Uint::select(&Uint::ZERO, &lcm, self_is_nz.and(rhs_is_nz))
+        let (lhs_nz, _) = self.to_nz_or_one();
+        let gcd_nz = lhs_nz.gcd_unsigned(rhs);
+        self.wrapping_div(&gcd_nz).concatenating_mul(rhs)
     }
 }
 

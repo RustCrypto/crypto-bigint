@@ -4,7 +4,7 @@ use crate::{
     Bounded, Choice, ConstOne, CtAssign, CtEq, CtOption, CtSelect, Int, Integer, Limb, Mul,
     NonZero, One, Uint, UintRef,
 };
-use core::{cmp::Ordering, fmt, ops::Deref};
+use core::{cmp::Ordering, fmt, ops::Deref, ptr};
 use ctutils::{CtAssignSlice, CtEqSlice};
 
 #[cfg(feature = "alloc")]
@@ -42,7 +42,7 @@ pub type OddBoxedUint = Odd<BoxedUint>;
 /// These are frequently used in cryptography, e.g. as a modulus.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 #[repr(transparent)]
-pub struct Odd<T: ?Sized>(pub(crate) T);
+pub struct Odd<T: ?Sized>(T);
 
 impl<T> Odd<T> {
     /// Create a new odd integer.
@@ -58,6 +58,20 @@ impl<T> Odd<T> {
         // case `CtOption::is_some` is false.
         n.ct_assign(&T::one_like(&n), !is_odd);
         CtOption::new(Self(n), is_odd)
+    }
+
+    /// Create a new [`Odd<T>`] without first checking that the contained value is odd.
+    ///
+    /// Use with care! This method bypasses invariant checks.
+    ///
+    /// # Warning: Panics
+    /// We don't explicitly flag this function as `unsafe` because it doesn't have a memory safety
+    /// impact, however functions called with `Odd` arguments assume this value is odd
+    /// and may panic if given an even value.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn new_unchecked(n: T) -> Odd<T> {
+        Self(n)
     }
 
     /// Returns the inner value.
@@ -77,24 +91,43 @@ impl<T> Odd<T> {
     {
         self.0
     }
+
+    /// All odd integers are definitionally non-zero, so we can convert into
+    /// the equivalent [`NonZero`] type.
+    pub fn into_nz(self) -> NonZero<T> {
+        NonZero::new_unchecked(self.0)
+    }
 }
 
 impl<T: ?Sized> Odd<T> {
     /// Provides access to the contents of [`Odd`] in a `const` context.
+    #[inline]
     pub const fn as_ref(&self) -> &T {
         &self.0
     }
 
     /// All odd integers are definitionally non-zero, so we can also obtain a reference to
     /// the equivalent [`NonZero`] type.
+    #[inline]
     pub const fn as_nz_ref(&self) -> &NonZero<T> {
-        // SAFETY: `NonZero` and `Odd` are both `repr(transparent)` newtypes of `T` and therefore
-        // have the same layout. All `Odd` numbers are definitionally non-zero because zero is an
-        // even number
-        #[allow(unsafe_code)]
-        unsafe {
-            &*(&raw const self.0 as *const NonZero<T>)
-        }
+        // All `Odd` numbers are definitionally non-zero because zero is an even number
+        NonZero::new_ref_unchecked(&self.0)
+    }
+
+    /// Cast a reference to [`Odd`] without first checking that the referenced value is odd.
+    ///
+    /// Use with care! This method bypasses invariant checks.
+    ///
+    /// # Warning: Panics
+    /// We don't explicitly flag this function as `unsafe` because it doesn't have a memory safety
+    /// impact, however functions called with `Odd` arguments assume this value is odd
+    /// and may panic if given an even value.
+    #[inline]
+    #[must_use]
+    #[allow(unsafe_code)]
+    pub(crate) const fn new_ref_unchecked(refval: &T) -> &Odd<T> {
+        // SAFETY: `Odd` is a `repr(transparent)` newtype
+        unsafe { &*(ptr::from_ref(refval) as *const Odd<T>) }
     }
 }
 
@@ -140,7 +173,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
     #[inline]
     #[must_use]
     pub const fn as_uint_ref(&self) -> &OddUintRef {
-        self.0.as_uint_ref().as_odd_unchecked()
+        Odd::new_ref_unchecked(self.0.as_uint_ref())
     }
 
     /// Construct an [`Odd<Uint<T>>`] from the unsigned integer value,
@@ -316,7 +349,7 @@ impl OddBoxedUint {
     #[inline]
     #[must_use]
     pub const fn as_uint_ref(&self) -> &OddUintRef {
-        self.0.as_uint_ref().as_odd_unchecked()
+        Odd::new_ref_unchecked(self.0.as_uint_ref())
     }
 
     /// Generate a random `Odd<Uint<T>>`.

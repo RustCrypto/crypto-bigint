@@ -236,7 +236,7 @@ where
         D: Deserializer<'de>,
     {
         Uint::<LIMBS>::deserialize(deserializer).and_then(|montgomery_form| {
-            if montgomery_form < MOD::PARAMS.modulus.0 {
+            if montgomery_form < *MOD::PARAMS.modulus.as_ref() {
                 Ok(Self {
                     montgomery_form,
                     phantom: PhantomData,

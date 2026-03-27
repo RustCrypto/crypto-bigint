@@ -12,10 +12,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// This method is variable time in `self` and in the exponent.
     #[must_use]
     pub const fn floor_root_vartime(&self, exp: NonZeroU32) -> Self {
-        if self.is_zero_vartime() {
-            Self::ZERO
+        if let Some(self_nz) = self.as_nz_vartime() {
+            self_nz.floor_root_vartime(exp).get_copy()
         } else {
-            NonZero(*self).floor_root_vartime(exp).get_copy()
+            Self::ZERO
         }
     }
 
@@ -24,10 +24,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// This method is variable time in `self` and in the exponent.
     pub fn checked_root_vartime(&self, exp: NonZeroU32) -> Option<Self> {
-        if self.is_zero_vartime() {
-            Some(Self::ZERO)
+        if let Some(self_nz) = self.as_nz_vartime() {
+            self_nz.checked_root_vartime(exp).map(NonZero::get)
         } else {
-            NonZero(*self).checked_root_vartime(exp).map(NonZero::get)
+            Some(Self::ZERO)
         }
     }
 }
@@ -49,12 +49,12 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
         let exp_m1_limb = Limb::from_u32(exp_m1);
         let exp_recip = Reciprocal::new(NonZero::<Limb>::from_u32(exp));
 
-        let rt_bits = self.0.bits().div_ceil(exp.get());
+        let rt_bits = self.as_ref().bits().div_ceil(exp.get());
         // The initial guess: `x_0 = 2^ceil(b/exp)`, where `exp^(b-1) <= self < exp^b`.
         // Will not overflow since `b <= BITS`.
         let mut x = Uint::<LIMBS>::ZERO.set_bit_vartime(rt_bits, true);
         // Compute `self.0 / x_0^(exp-1)` by shifting.
-        let mut q = self.0.shr(rt_bits * exp_m1);
+        let mut q = self.as_ref().shr(rt_bits * exp_m1);
 
         loop {
             // Calculate `x_{i+1} = floor((x_i*(exp-1) + self / x_i^(1/(exp-1))) / exp)`, leaving `x` unmodified
@@ -71,7 +71,7 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
             }
             x = x2;
 
-            (q, _) = self.0.div_rem_vartime(
+            (q, _) = self.as_ref().div_rem_vartime(
                 x.wrapping_pow_vartime(&U64::from_u32(exp_m1))
                     .to_nz()
                     .expect_ref("ensured non-zero"),

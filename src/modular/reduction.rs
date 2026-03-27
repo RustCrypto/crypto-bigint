@@ -55,14 +55,14 @@ pub(crate) const fn montgomery_reduction<const LIMBS: usize>(
     let meta_carry = montgomery_reduction_inner(
         &mut upper.limbs,
         &mut lower.limbs,
-        &modulus.0.limbs,
+        &modulus.as_ref().limbs,
         mod_neg_inv,
     );
 
     // Division is simply taking the upper half of the limbs
     // Final reduction (at this point, the value is at most 2 * modulus,
     // so `meta_carry` is either 0 or 1)
-    upper.try_sub_with_carry(meta_carry, &modulus.0).0
+    upper.try_sub_with_carry(meta_carry, modulus.as_ref()).0
 }
 
 /// This algorithm corresponds to a Montgomery reduction of the wide input `(x, 0)`,
@@ -109,7 +109,7 @@ pub const fn montgomery_retrieve<const LIMBS: usize>(
     montgomery_retrieve_inner(
         montgomery_form.as_limbs(),
         res.as_mut_limbs(),
-        modulus.0.as_limbs(),
+        modulus.as_ref().as_limbs(),
         mod_neg_inv,
     );
     res
