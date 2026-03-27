@@ -132,21 +132,14 @@ pub fn gcd<const VARTIME: bool>(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
         if let Some(f_nz) = f.as_nz_vartime() {
             gcd_nz::<VARTIME>(f_nz, g).get()
         } else {
+            // gcd of (0, g) is g
             g.clone()
         }
     } else {
-        let f_is_zero = f.is_zero();
-
-        // Note: is non-zero by construction
-        let f_nz = NonZero::new_unchecked(BoxedUint::ct_select(
-            f,
-            &BoxedUint::one_with_precision(f.bits_precision()),
-            f_is_zero,
-        ));
-
+        let (f_nz, f_is_nonzero) = f.to_nz_or_one();
         // gcd of (0, g) is g
         let mut r = gcd_nz::<VARTIME>(&f_nz, g).get();
-        r.ct_assign(g, f_is_zero);
+        r.ct_assign(g, !f_is_nonzero);
         r
     }
 }

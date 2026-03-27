@@ -14,6 +14,7 @@ pub(crate) mod encoding;
 mod from;
 mod gcd;
 mod invert_mod;
+mod lcm;
 mod mul;
 mod mul_mod;
 mod neg;
@@ -247,6 +248,19 @@ impl BoxedUint {
     #[must_use]
     pub fn to_nz(&self) -> CtOption<NonZero<Self>> {
         self.clone().into_nz()
+    }
+
+    /// Convert to a [`NonZero<BoxedUint>`], defaulting to one.
+    ///
+    /// Returns a pair consisting of a [`NonZero<BoxedUint>`], and a [`Choice`]
+    /// indicating whether the original value was non-zero (and preserved).
+    #[inline(always)]
+    #[must_use]
+    pub(crate) fn to_nz_or_one(&self) -> (NonZero<Self>, Choice) {
+        let is_zero = self.is_zero();
+        let mut nz = self.clone();
+        nz.as_mut_uint_ref().conditional_set_one(is_zero);
+        (NonZero::new_unchecked(nz), !is_zero)
     }
 
     /// Construct an [`Odd`] reference, returning [`None`] in the event `self` is even.

@@ -346,6 +346,20 @@ pub trait Xgcd<Rhs = Self>: Sized {
     fn xgcd_vartime(&self, rhs: &Rhs) -> Self::Output;
 }
 
+/// Compute the least common multiple of two integers.
+pub trait Lcm<Rhs = Self>: Sized {
+    /// Output type.
+    type Output;
+
+    /// Compute the least common multiple of `self` and `rhs`.
+    #[must_use]
+    fn lcm(&self, rhs: &Rhs) -> Self::Output;
+
+    /// Compute the least common multiple of `self` and `rhs` in variable time.
+    #[must_use]
+    fn lcm_vartime(&self, rhs: &Rhs) -> Self::Output;
+}
+
 /// Random number generation support.
 #[cfg(feature = "rand_core")]
 pub trait Random: Sized {

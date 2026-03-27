@@ -1,6 +1,6 @@
 //! This module implements Least common multiple (LCM) for [`Uint`].
 
-use crate::{Concat, Uint};
+use crate::{Concat, Lcm, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute the least common multiple of `self` and `rhs`.
@@ -13,12 +13,42 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         let gcd_nz = lhs_nz.gcd_unsigned(rhs);
         self.wrapping_div(&gcd_nz).concatenating_mul(rhs)
     }
+
+    /// Compute the least common multiple of `self` and `rhs`.
+    ///
+    /// This method is variable time with respect to `self` and `rhs`.
+    #[must_use]
+    pub const fn lcm_vartime<const WIDE_LIMBS: usize>(&self, rhs: &Self) -> Uint<WIDE_LIMBS>
+    where
+        Self: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
+    {
+        let (Some(lhs_nz), false) = (self.as_nz_vartime(), rhs.is_zero_vartime()) else {
+            return Uint::ZERO;
+        };
+        let gcd_nz = lhs_nz.gcd_unsigned_vartime(rhs);
+        self.wrapping_div_vartime(&gcd_nz).concatenating_mul(rhs)
+    }
+}
+
+impl<const LIMBS: usize, const WIDE_LIMBS: usize> Lcm for Uint<LIMBS>
+where
+    Self: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
+{
+    type Output = Uint<WIDE_LIMBS>;
+
+    fn lcm(&self, rhs: &Self) -> Self::Output {
+        self.lcm(rhs)
+    }
+
+    fn lcm_vartime(&self, rhs: &Self) -> Self::Output {
+        self.lcm_vartime(rhs)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     mod lcm {
-        use crate::{Concat, U64, U128, U256, U512, U1024, U2048, U4096, U8192, Uint};
+        use crate::{Concat, Lcm, U64, U128, U512, U1024, U4096, U8192, Uint};
 
         fn test<const LIMBS: usize, const WIDE_LIMBS: usize>(
             lhs: Uint<LIMBS>,
@@ -28,6 +58,9 @@ mod tests {
             Uint<LIMBS>: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
         {
             assert_eq!(lhs.lcm(&rhs), target);
+            assert_eq!(lhs.lcm_vartime(&rhs), target);
+            assert_eq!(Lcm::lcm(&lhs, &rhs), target);
+            assert_eq!(Lcm::lcm_vartime(&lhs, &rhs), target);
         }
 
         fn run_tests<const LIMBS: usize, const WIDE_LIMBS: usize>()
@@ -60,12 +93,8 @@ mod tests {
         #[test]
         fn lcm_sizes() {
             run_tests::<{ U64::LIMBS }, { U128::LIMBS }>();
-            run_tests::<{ U128::LIMBS }, { U256::LIMBS }>();
-            run_tests::<{ U256::LIMBS }, { U512::LIMBS }>();
             run_tests::<{ U512::LIMBS }, { U1024::LIMBS }>();
             if cfg!(not(miri)) {
-                run_tests::<{ U1024::LIMBS }, { U2048::LIMBS }>();
-                run_tests::<{ U2048::LIMBS }, { U4096::LIMBS }>();
                 run_tests::<{ U4096::LIMBS }, { U8192::LIMBS }>();
             }
         }

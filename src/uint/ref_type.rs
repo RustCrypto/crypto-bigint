@@ -131,6 +131,13 @@ impl UintRef {
         }
     }
 
+    /// Conditionally assign the value to one.
+    #[inline(always)]
+    pub const fn conditional_set_one(&mut self, choice: Choice) {
+        self.limbs[0] = Limb::select(self.limbs[0], Limb::ONE, choice);
+        self.trailing_mut(1).conditional_set_zero(choice);
+    }
+
     /// Conditionally assign all of the limbs to the maximum.
     #[inline]
     pub const fn conditional_set_max(&mut self, choice: Choice) {
