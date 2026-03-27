@@ -2,13 +2,10 @@
 
 use crate::{Concat, Lcm, Uint};
 
-impl<const LIMBS: usize, const WIDE_LIMBS: usize> Uint<LIMBS>
-where
-    Self: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
-{
+impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute the least common multiple of `self` and `rhs`.
     #[must_use]
-    pub const fn lcm(&self, rhs: &Self) -> Uint<WIDE_LIMBS>
+    pub const fn lcm<const WIDE_LIMBS: usize>(&self, rhs: &Self) -> Uint<WIDE_LIMBS>
     where
         Self: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
     {
@@ -21,7 +18,10 @@ where
     ///
     /// This method is variable time with respect to `self` and `rhs`.
     #[must_use]
-    pub const fn lcm_vartime(&self, rhs: &Self) -> Uint<WIDE_LIMBS> {
+    pub const fn lcm_vartime<const WIDE_LIMBS: usize>(&self, rhs: &Self) -> Uint<WIDE_LIMBS>
+    where
+        Self: Concat<LIMBS, Output = Uint<WIDE_LIMBS>>,
+    {
         let (Some(lhs_nz), false) = (self.as_nz_vartime(), rhs.is_zero_vartime()) else {
             return Uint::ZERO;
         };
