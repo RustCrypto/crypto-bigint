@@ -203,7 +203,7 @@ jobs:
       - run: cargo llvm-cov --all-features --lcov --output-path lcov.info
         env:
           CARGO_HUSKY_DONT_INSTALL_HOOKS: true
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           fail_ci_if_error: true
 
