@@ -3,14 +3,14 @@
 //! (DOI: 10.1109/TC.2010.143, <https://gmplib.org/~tege/division-paper.pdf>).
 
 use crate::{
-    Choice, CtSelect, Limb, NonZero, Uint, WideWord, Word,
-    primitives::{addhilo, widening_mul},
-    word,
+    Choice, CtSelect, Limb, NonZero, Uint, WideWord, Word, primitives::widening_mul, word,
 };
 
 cpubits::cpubits! {
     32 => {
         /// Calculates the reciprocal of the given 32-bit divisor with the highmost bit set.
+        ///
+        /// This method corresponds to Algorithm 3
         pub const fn reciprocal(d: Word) -> Word {
             debug_assert!(d >= (1 << (Word::BITS - 1)));
 
@@ -34,7 +34,7 @@ cpubits::cpubits! {
 
             // The paper has `(v2 + 1) * d / 2^32` (there's another 2^32, but it's accounted for later).
             // If `v2 == 2^32-1` this should give `d`, but we can't achieve this in our wrapping arithmetic.
-            // Hence the `ct_select()`.
+            // Hence the `word::select()`.
             let x = v2.wrapping_add(1);
             let (_lo, hi) = widening_mul(x, d);
             let hi = word::select(d, hi, Choice::from_u32_nz(x));
@@ -44,6 +44,8 @@ cpubits::cpubits! {
     }
     64 => {
         /// Calculates the reciprocal of the given 64-bit divisor with the highmost bit set.
+        ///
+        /// This method corresponds to Algorithm 2
         pub const fn reciprocal(d: Word) -> Word {
             debug_assert!(d >= (1 << (Word::BITS - 1)));
 
@@ -64,7 +66,7 @@ cpubits::cpubits! {
 
             // The paper has `(v3 + 1) * d / 2^64` (there's another 2^64, but it's accounted for later).
             // If `v3 == 2^64-1` this should give `d`, but we can't achieve this in our wrapping arithmetic.
-            // Hence the `ct_select()`.
+            // Hence the `word::select()`.
             let x = v3.wrapping_add(1);
             let (_lo, hi) = widening_mul(x, d);
             let hi = word::select(d, hi, word::choice_from_nz(x));
@@ -104,15 +106,18 @@ const fn short_div(mut dividend: u32, dividend_bits: u32, divisor: u32, divisor_
 
 /// Calculate the quotient and the remainder of the division of a wide word
 /// (supplied as high and low words) by `d`, with a precalculated reciprocal `v`.
+///
+/// This method corresponds to Algorithm 4
 #[inline(always)]
-pub(crate) const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Word, Word) {
+pub(crate) const fn div2by1(u0: Word, u1: Word, reciprocal: &Reciprocal) -> (Word, Word) {
     let d = reciprocal.divisor_normalized;
+    let v = reciprocal.reciprocal;
 
-    debug_assert!(d >= (1 << (Word::BITS - 1)));
-    debug_assert!(u1 < d);
+    debug_assert!(d >= (1 << (Word::BITS - 1)), "divisor top bit unset");
+    debug_assert!(u1 < d, "dividend >= divisor");
 
-    let (q0, q1) = widening_mul(reciprocal.reciprocal, u1);
-    let (q0, q1) = addhilo(q0, q1, u0, u1);
+    let q = (v as WideWord * u1 as WideWord) + word::join(u0, u1);
+    let (q0, q1) = word::split_wide(q);
     let q1 = q1.wrapping_add(1);
     let r = u0.wrapping_sub(q1.wrapping_mul(d));
 
@@ -136,48 +141,36 @@ pub(crate) const fn div2by1(u1: Word, u0: Word, reciprocal: &Reciprocal) -> (Wor
 /// calculates `q` such that `q - 1 <= floor(u / v) <= q`.
 /// In place of `v1` takes its reciprocal, and assumes that `v` was already pre-shifted
 /// so that v1 has its most significant bit set (that is, the reciprocal's `shift` is 0).
+///
+// This method corresponds to Algorithm 5
 #[inline(always)]
+#[allow(clippy::cast_possible_truncation)]
 pub(crate) const fn div3by2(
-    u2: Word,
-    u1: Word,
-    u0: Word,
-    v1_reciprocal: &Reciprocal,
-    v0: Word,
-) -> Word {
-    debug_assert!(v1_reciprocal.shift == 0);
-    debug_assert!(u2 <= v1_reciprocal.divisor_normalized);
+    (u0, u1, u2): (Word, Word, Word),
+    (d0, d1): (Word, Word),
+    v: Word,
+) -> (Word, WideWord) {
+    let d = word::join(d0, d1);
 
-    // This method corresponds to Algorithm Q:
-    // https://janmr.com/blog/2014/04/basic-multiple-precision-long-division/
+    debug_assert!(d >= (1 << (WideWord::BITS - 1)), "divisor top bit unset");
+    debug_assert!(word::join(u1, u2) < d, "dividend >= divisor");
 
-    let q_maxed = word::choice_from_eq(u2, v1_reciprocal.divisor_normalized);
-    let (mut quo, rem) = div2by1(word::select(u2, 0, q_maxed), u1, v1_reciprocal);
-    // When the leading dividend word equals the leading divisor word, cap the quotient
-    // at Word::MAX and set the remainder to the sum of the top dividend words.
-    quo = word::select(quo, Word::MAX, q_maxed);
-    let mut rem = word::select_wide(
-        rem as WideWord,
-        (u2 as WideWord) + (u1 as WideWord),
-        q_maxed,
-    );
+    let q = (v as WideWord * u2 as WideWord) + word::join(u1, u2);
+    let q1w = q >> Word::BITS;
+    let r1 = u1.wrapping_sub((q1w as Word).wrapping_mul(d1));
+    let t = d0 as WideWord * q1w;
+    let r = word::join(u0, r1).wrapping_sub(t).wrapping_sub(d);
 
-    let mut i = 0;
-    while i < 2 {
-        let qy = (quo as WideWord) * (v0 as WideWord);
-        let rx = (rem << Word::BITS) | (u0 as WideWord);
-        // If r < b and q*y[-2] > r*x[-1], then set q = q - 1 and r = r + v1
-        let done =
-            word::choice_from_nz((rem >> Word::BITS) as Word).or(word::choice_from_wide_le(qy, rx));
-        quo = word::select(quo.wrapping_sub(1), quo, done);
-        rem = word::select_wide(
-            rem + (v1_reciprocal.divisor_normalized as WideWord),
-            rem,
-            done,
-        );
-        i += 1;
-    }
+    let r1_ge_q0 = word::choice_from_le(q as Word, (r >> Word::BITS) as Word);
+    let q1 = q1w as Word;
+    let q1 = word::select(q1.wrapping_add(1), q1, r1_ge_q0);
+    let r = word::select_wide(r, r.wrapping_add(d), r1_ge_q0);
 
-    quo
+    let r_ge_d = word::choice_from_wide_le(d, r);
+    let q1 = word::select(q1, q1.wrapping_add(1), r_ge_d);
+    let r = word::select_wide(r, r.wrapping_sub(d), r_ge_d);
+
+    (q1, r)
 }
 
 /// A pre-calculated reciprocal for division by a single limb.
@@ -229,6 +222,35 @@ impl Reciprocal {
     pub const fn shift(&self) -> u32 {
         self.shift
     }
+
+    /// Adjusted reciprocal for 3x2 division
+    ///
+    /// This method corresponds to Algorithm 6
+    #[must_use]
+    pub const fn reciprocal_3by2(&self, d0: Word, d1: Word) -> Word {
+        debug_assert!(self.shift == 0 && d1 == self.divisor_normalized);
+
+        let v = self.reciprocal;
+        let p = d1.wrapping_mul(v).wrapping_add(d0);
+
+        let p_lt_d0 = word::choice_from_lt(p, d0);
+        let v = word::select(v, v.wrapping_sub(1), p_lt_d0);
+
+        let p_ge_d1 = word::choice_from_le(d1, p).and(p_lt_d0);
+        let v = word::select(v, v.wrapping_sub(1), p_ge_d1);
+        let p = word::select(p, p.wrapping_sub(d1), p_ge_d1);
+        let p = word::select(p, p.wrapping_sub(d1), p_lt_d0);
+
+        let (t0, t1) = widening_mul(v, d0);
+        let p = p.wrapping_add(t1);
+
+        let p_lt_t1 = word::choice_from_lt(p, t1);
+        let v = word::select(v, v.wrapping_sub(1), p_lt_t1);
+        let d = word::join(d0, d1);
+        let t0p = word::join(t0, p);
+        let t0p_ge_d = word::choice_from_wide_le(d, t0p).and(p_lt_t1);
+        word::select(v, v.wrapping_sub(1), t0p_ge_d)
+    }
 }
 
 impl CtSelect for Reciprocal {
@@ -265,7 +287,7 @@ pub(crate) const fn rem_limb_with_reciprocal<const L: usize>(
     let mut j = L;
     while j > 0 {
         j -= 1;
-        let (_, rj) = div2by1(r, u_shifted.as_limbs()[j].0, reciprocal);
+        let (_, rj) = div2by1(u_shifted.as_limbs()[j].0, r, reciprocal);
         r = rj;
     }
     Limb(r >> reciprocal.shift)
@@ -281,8 +303,49 @@ pub(crate) const fn mul_rem(a: Limb, b: Limb, d: NonZero<Limb>) -> Limb {
 
 #[cfg(test)]
 mod tests {
-    use super::{Reciprocal, div2by1};
-    use crate::{Limb, NonZero, Word};
+    use super::{Reciprocal, div2by1, reciprocal};
+    use crate::{Limb, NonZero, Uint, WideWord, Word, word};
+
+    #[test]
+    fn reciprocal_valid() {
+        fn test(d: Word) {
+            let v = reciprocal(d);
+
+            // the reciprocal must be equal to floor((β^2 - 1) / d) - β
+            // v = floor((β^2 - 1) / d) - β = floor((β - 1 - d)*β + β - 1>/d)
+            let expected = WideWord::MAX / (d as WideWord) - Word::MAX as WideWord - 1;
+            assert_eq!(v as WideWord, expected);
+        }
+
+        test(Word::MAX);
+        test(1 << (Word::BITS - 1));
+        test((1 << (Word::BITS - 1)) | 1);
+    }
+
+    #[test]
+    fn reciprocal_3by2_valid() {
+        fn test(d: WideWord) {
+            let (d0, d1) = word::split_wide(d);
+            let v0 = Reciprocal::new(NonZero::<Limb>::new_unwrap(Limb(d1)));
+            let v = v0.reciprocal_3by2(d0, d1);
+
+            // the reciprocal must be equal to v = floor((β^3 − 1)/d) − β
+            // (β^3 − βd - 1)/d - 1 < v <= (β^3 − βd - 1)/d
+            // β^3 − βd - 1 - d < v*d <= β^3 − βd - 1
+            // β^3-1 - d < (v+β)d <= β^3-1
+            let actual = (Uint::<3>::from_word(v)
+                + Uint::<3>::ZERO.set_bit_vartime(Word::BITS, true))
+            .checked_mul(&Uint::<3>::from_wide_word(d))
+            .expect("overflow");
+            let min = Uint::<3>::MAX - Uint::<3>::from_wide_word(d);
+            assert!(actual > min, "{actual} <= {min}");
+        }
+
+        test(WideWord::MAX);
+        test(1 << (WideWord::BITS - 1));
+        test((1 << (WideWord::BITS - 1)) | 1);
+    }
+
     #[test]
     fn div2by1_overflow() {
         // A regression test for a situation when in div2by1() an operation (`q1 + 1`)
@@ -290,7 +353,7 @@ mod tests {
         // still overflows because we're calculating the results for both branches.
         let r = Reciprocal::new(NonZero::new(Limb(Word::MAX - 1)).unwrap());
         assert_eq!(
-            div2by1(Word::MAX - 2, Word::MAX - 63, &r),
+            div2by1(Word::MAX - 63, Word::MAX - 2, &r),
             (Word::MAX, Word::MAX - 65)
         );
     }

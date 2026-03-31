@@ -54,6 +54,7 @@ cpubits::cpubits! {
         pub(crate) const fn choice_from_wide_le(x: WideWord, y: WideWord) -> Choice {
             Choice::from_u128_le(x, y)
         }
+
     }
 }
 
@@ -126,6 +127,17 @@ pub(crate) const fn choice_to_wide_mask(choice: Choice) -> WideWord {
     (choice.to_u8_vartime() as WideWord).wrapping_neg()
 }
 
+#[inline(always)]
+pub(crate) const fn join(lo: Word, hi: Word) -> WideWord {
+    ((hi as WideWord) << Word::BITS) | (lo as WideWord)
+}
+
+#[inline(always)]
+#[allow(clippy::cast_possible_truncation)]
+pub(crate) const fn split_wide(wide: WideWord) -> (Word, Word) {
+    (wide as Word, (wide >> Word::BITS) as Word)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{Choice, WideWord, Word};
@@ -149,6 +161,14 @@ mod tests {
         assert!(super::choice_from_wide_le(4, 5).to_bool());
         assert!(super::choice_from_wide_le(5, 5).to_bool());
         assert!(!super::choice_from_wide_le(6, 5).to_bool());
+    }
+
+    #[test]
+    fn join_split_wide() {
+        let a: Word = 1;
+        let b: Word = 2;
+        assert_eq!(super::split_wide(super::join(a, b)), (a, b));
+        assert_eq!(super::split_wide(super::join(b, a)), (b, a));
     }
 
     #[test]
