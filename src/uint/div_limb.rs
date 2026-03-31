@@ -151,11 +151,12 @@ pub(crate) const fn div3by2(
     v: Word,
 ) -> (Word, WideWord) {
     let d = word::join(d0, d1);
+    let u_hi = word::join(u1, u2);
 
     debug_assert!(d >= (1 << (WideWord::BITS - 1)), "divisor top bit unset");
-    debug_assert!(word::join(u1, u2) < d, "dividend >= divisor");
+    debug_assert!(u_hi <= d, "dividend > divisor");
 
-    let q = (v as WideWord * u2 as WideWord) + word::join(u1, u2);
+    let q = (v as WideWord * u2 as WideWord) + u_hi;
     let q1w = q >> Word::BITS;
     let r1 = u1.wrapping_sub((q1w as Word).wrapping_mul(d1));
     let t = d0 as WideWord * q1w;
@@ -169,6 +170,13 @@ pub(crate) const fn div3by2(
     let r_ge_d = word::choice_from_wide_le(d, r);
     let q1 = word::select(q1, q1.wrapping_add(1), r_ge_d);
     let r = word::select_wide(r, r.wrapping_sub(d), r_ge_d);
+
+    // When the leading dividend word equals the leading divisor word, cap the quotient
+    // at WideWord::MAX and update the remainder. This differs from the original algorithm
+    // but is required for multi-word division.
+    let maxed = word::choice_from_wide_eq(u_hi, d);
+    let q1 = word::select(q1, Word::MAX, maxed);
+    let r = word::select_wide(r, d.saturating_add(u0 as WideWord), maxed);
 
     (q1, r)
 }
