@@ -308,13 +308,14 @@ mod tests {
 
     #[test]
     fn reciprocal_valid() {
+        #![allow(clippy::integer_division_remainder_used, reason = "test")]
         fn test(d: Word) {
             let v = reciprocal(d);
 
             // the reciprocal must be equal to floor((β^2 - 1) / d) - β
             // v = floor((β^2 - 1) / d) - β = floor((β - 1 - d)*β + β - 1>/d)
-            let expected = WideWord::MAX / (d as WideWord) - Word::MAX as WideWord - 1;
-            assert_eq!(v as WideWord, expected);
+            let expected = WideWord::MAX / WideWord::from(d) - WideWord::from(Word::MAX) - 1;
+            assert_eq!(WideWord::from(v), expected);
         }
 
         test(Word::MAX);
