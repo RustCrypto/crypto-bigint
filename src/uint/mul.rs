@@ -10,6 +10,7 @@ pub(crate) mod schoolbook;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
+    #[inline]
     #[must_use]
     pub const fn concatenating_mul<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
@@ -45,6 +46,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform wrapping multiplication, discarding overflow.
+    #[inline]
     #[must_use]
     pub const fn wrapping_mul<const RHS_LIMBS: usize>(&self, rhs: &Uint<RHS_LIMBS>) -> Self {
         karatsuba::wrapping_mul_fixed::<LIMBS>(self.as_uint_ref(), rhs.as_uint_ref()).0
@@ -118,6 +120,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Square self, returning a concatenated "wide" result.
+    #[inline]
     #[must_use]
     pub const fn concatenating_square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS>
     where
@@ -135,6 +138,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Perform wrapping square, discarding overflow.
+    #[inline]
     #[must_use]
     pub const fn wrapping_square(&self) -> Uint<LIMBS> {
         karatsuba::wrapping_square_fixed(self.as_uint_ref()).0

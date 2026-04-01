@@ -26,6 +26,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// negated when converted from [`Uint`] to [`Int`].
     ///
     /// Note: even if `negate` is truthy, the magnitude might be zero!
+    #[inline]
     #[must_use]
     pub const fn widening_mul<const RHS_LIMBS: usize>(
         &self,
@@ -48,6 +49,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
+    #[inline]
     #[must_use]
     pub const fn concatenating_mul<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,

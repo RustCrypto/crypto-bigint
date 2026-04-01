@@ -105,6 +105,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// If the inverse does not exist (`k > 0` and `self` is even, or `k > Self::BITS`),
     /// returns `CtOption::none`, otherwise returns `CtOption::some`.
+    #[inline]
     #[must_use]
     pub const fn invert_mod2k_vartime(&self, k: u32) -> CtOption<Self> {
         if k == 0 {
@@ -132,6 +133,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// If the inverse does not exist (`k > 0` and `self` is even, or `k > Self::BITS`),
     /// returns `CtOption::none`, otherwise returns `CtOption::some`.
+    #[inline]
     #[must_use]
     pub const fn invert_mod2k(&self, k: u32) -> CtOption<Self> {
         let is_some =
