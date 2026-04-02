@@ -2,7 +2,7 @@
 
 use super::{ConstMontyForm, ConstMontyParams};
 use crate::{Choice, CtAssign, CtEq};
-use ctutils::{CtAssignSlice, CtEqSlice, CtSelectUsingCtAssign};
+use ctutils::{CtAssignSlice, CtEqSlice, CtGt, CtLt, CtSelectUsingCtAssign};
 
 #[cfg(feature = "subtle")]
 use crate::CtSelect;
@@ -34,6 +34,24 @@ impl<MOD, const LIMBS: usize> CtEqSlice for ConstMontyForm<MOD, LIMBS> where
 {
 }
 
+impl<MOD, const LIMBS: usize> CtGt for ConstMontyForm<MOD, LIMBS>
+where
+    MOD: ConstMontyParams<LIMBS>,
+{
+    fn ct_gt(&self, other: &Self) -> Choice {
+        self.montgomery_form.ct_gt(&other.montgomery_form)
+    }
+}
+
+impl<MOD, const LIMBS: usize> CtLt for ConstMontyForm<MOD, LIMBS>
+where
+    MOD: ConstMontyParams<LIMBS>,
+{
+    fn ct_lt(&self, other: &Self) -> Choice {
+        self.montgomery_form.ct_lt(&other.montgomery_form)
+    }
+}
+
 impl<MOD, const LIMBS: usize> CtSelectUsingCtAssign for ConstMontyForm<MOD, LIMBS> where
     MOD: ConstMontyParams<LIMBS>
 {
@@ -56,5 +74,25 @@ where
 {
     fn conditional_select(a: &Self, b: &Self, choice: subtle::Choice) -> Self {
         CtSelect::ct_select(a, b, choice.into())
+    }
+}
+
+#[cfg(feature = "subtle")]
+impl<MOD, const LIMBS: usize> subtle::ConstantTimeGreater for ConstMontyForm<MOD, LIMBS>
+where
+    MOD: ConstMontyParams<LIMBS>,
+{
+    fn ct_gt(&self, other: &Self) -> subtle::Choice {
+        CtGt::ct_gt(self, other).into()
+    }
+}
+
+#[cfg(feature = "subtle")]
+impl<MOD, const LIMBS: usize> subtle::ConstantTimeLess for ConstMontyForm<MOD, LIMBS>
+where
+    MOD: ConstMontyParams<LIMBS>,
+{
+    fn ct_lt(&self, other: &Self) -> subtle::Choice {
+        CtLt::ct_lt(self, other).into()
     }
 }
