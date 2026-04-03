@@ -221,6 +221,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
     /// Execute the Extended GCD algorithm.
     ///
     /// Given `(self, rhs)`, computes `(g, x, y)` s.t. `self * x + rhs * y = g = gcd(self, rhs)`.
+    #[inline]
     #[must_use]
     pub const fn xgcd(&self, rhs: &Self) -> OddUintXgcdOutput<LIMBS> {
         OddUintXgcdOutput::from_pattern_output(self.binxgcd_odd(rhs))

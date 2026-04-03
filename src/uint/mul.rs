@@ -10,6 +10,7 @@ pub(crate) mod schoolbook;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
+    #[inline]
     #[must_use]
     pub const fn concatenating_mul<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
@@ -121,6 +122,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Square self, returning a concatenated "wide" result.
+    #[inline]
     #[must_use]
     pub const fn concatenating_square<const WIDE_LIMBS: usize>(&self) -> Uint<WIDE_LIMBS>
     where

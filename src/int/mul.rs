@@ -49,6 +49,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     }
 
     /// Multiply `self` by `rhs`, returning a concatenated "wide" result.
+    #[inline]
     #[must_use]
     pub const fn concatenating_mul<const RHS_LIMBS: usize, const WIDE_LIMBS: usize>(
         &self,
