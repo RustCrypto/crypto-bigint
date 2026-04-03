@@ -39,7 +39,7 @@ where
     MOD: ConstMontyParams<LIMBS>,
 {
     fn ct_gt(&self, other: &Self) -> Choice {
-        self.montgomery_form.ct_gt(&other.montgomery_form)
+        self.retrieve().ct_gt(&other.retrieve())
     }
 }
 
@@ -48,7 +48,7 @@ where
     MOD: ConstMontyParams<LIMBS>,
 {
     fn ct_lt(&self, other: &Self) -> Choice {
-        self.montgomery_form.ct_lt(&other.montgomery_form)
+        self.retrieve().ct_lt(&other.retrieve())
     }
 }
 
