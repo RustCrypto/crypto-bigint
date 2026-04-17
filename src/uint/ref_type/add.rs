@@ -4,7 +4,6 @@ use crate::{Choice, Limb};
 impl UintRef {
     /// Perform an in-place carrying add of a limb, returning the carried limb value.
     #[inline]
-    #[track_caller]
     pub const fn add_assign_limb(&mut self, mut rhs: Limb) -> Limb {
         let mut i = 0;
         while i < self.limbs.len() {
@@ -15,6 +14,9 @@ impl UintRef {
     }
 
     /// Perform an in-place carrying add of another [`UintRef`], returning the carried limb value.
+    ///
+    /// # Panics
+    /// If `self` is shorter than `rhs`.
     #[inline]
     #[track_caller]
     pub const fn carrying_add_assign(&mut self, rhs: &Self, carry: Limb) -> Limb {
@@ -24,23 +26,30 @@ impl UintRef {
     /// Perform an in-place carrying add of another limb slice, returning the carried limb value.
     ///
     /// # Panics
-    /// If `self` and `rhs` have different lengths.
+    /// If `self` is shorter than `rhs`.
     #[inline]
     #[track_caller]
     pub const fn carrying_add_assign_slice(&mut self, rhs: &[Limb], mut carry: Limb) -> Limb {
         assert!(
-            self.limbs.len() == rhs.len(),
+            self.limbs.len() >= rhs.len(),
             "length mismatch in carrying_add_assign_slice"
         );
         let mut i = 0;
-        while i < self.limbs.len() {
+        while i < rhs.len() {
             (self.limbs[i], carry) = self.limbs[i].carrying_add(rhs[i], carry);
+            i += 1;
+        }
+        while i < self.limbs.len() {
+            (self.limbs[i], carry) = self.limbs[i].overflowing_add(carry);
             i += 1;
         }
         carry
     }
 
     /// Perform an in-place carrying add of another limb slice, returning the carried limb value.
+    ///
+    /// # Panics
+    /// If `self` is shorter than `rhs`.
     #[inline]
     #[track_caller]
     pub const fn conditional_add_assign(
@@ -55,7 +64,7 @@ impl UintRef {
     /// Perform an in-place carrying add of another limb slice, returning the carried limb value.
     ///
     /// # Panics
-    /// If `self` and `rhs` have different lengths.
+    /// If `self` is shorter than `rhs`.
     #[inline]
     #[track_caller]
     pub const fn conditional_add_assign_slice(
@@ -65,15 +74,44 @@ impl UintRef {
         choice: Choice,
     ) -> Limb {
         assert!(
-            self.limbs.len() == rhs.len(),
+            self.limbs.len() >= rhs.len(),
             "length mismatch in conditional_add_assign_slice"
         );
         let mut i = 0;
-        while i < self.limbs.len() {
+        while i < rhs.len() {
             (self.limbs[i], carry) =
                 self.limbs[i].carrying_add(Limb::select(Limb::ZERO, rhs[i], choice), carry);
             i += 1;
         }
+        while i < self.limbs.len() {
+            (self.limbs[i], carry) = self.limbs[i].overflowing_add(carry);
+            i += 1;
+        }
         carry
+    }
+
+    /// Perform an in-place carrying add of another [`UintRef`] multiplied by
+    /// a limb, returning the carried limb value.
+    ///
+    /// # Panics
+    /// If `self` is shorter than `rhs`.
+    #[inline]
+    #[track_caller]
+    pub const fn carrying_add_assign_mul_limb(
+        &mut self,
+        rhs: &Self,
+        rhs_mul: Limb,
+        mut carry: Limb,
+    ) -> Limb {
+        assert!(
+            self.limbs.len() >= rhs.limbs.len(),
+            "length mismatch in carrying_add_assign_mul_limb"
+        );
+        let mut i = 0;
+        while i < rhs.limbs.len() {
+            (self.limbs[i], carry) = rhs.limbs[i].carrying_mul_add(rhs_mul, self.limbs[i], carry);
+            i += 1;
+        }
+        self.trailing_mut(i).add_assign_limb(carry)
     }
 }
