@@ -14,7 +14,8 @@ impl BoxedUint {
 
     /// Computes √(`self`) in constant time.
     ///
-    /// Callers can check if `self` is a square by squaring the result.
+    /// Callers can check if `self` is a square by squaring the result, or use
+    /// `checked_sqrt`.
     #[must_use]
     pub fn floor_sqrt(&self) -> Self {
         let mut root = self.clone();
@@ -35,7 +36,8 @@ impl BoxedUint {
 
     /// Computes √(`self`).
     ///
-    /// Callers can check if `self` is a square by squaring the result.
+    /// Callers can check if `self` is a square by squaring the result, or use
+    /// `checked_sqrt_vartime`.
     ///
     /// Variable time with respect to `self`.
     #[must_use]
@@ -86,9 +88,8 @@ impl BoxedUint {
         }
     }
 
-    /// Computes √(`self`) in constant time.
-    ///
-    /// Callers can check if `self` is a square by squaring the result.
+    /// Assigns `floor(√(self))` to `self` in constant time, and returns a [`Choice`]
+    /// indicating whether the square root is exact.
     fn floor_sqrt_assign(&mut self) -> Choice {
         let size = self.nlimbs();
         let mut buf = Self::zero_with_precision(self.bits_precision() * 2);
@@ -96,9 +97,8 @@ impl BoxedUint {
             .sqrt_assign(buf.as_mut_uint_ref().split_at_mut(size))
     }
 
-    /// Computes √(`self`).
-    ///
-    /// Callers can check if `self` is a square by squaring the result.
+    /// Assigns `floor(√(self))` to `self`, and returns a [`bool`]
+    /// indicating whether the square root is exact.
     ///
     /// Variable time with respect to `self`.
     pub fn floor_sqrt_assign_vartime(&mut self) -> bool {

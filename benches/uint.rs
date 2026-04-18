@@ -982,6 +982,14 @@ fn bench_sqrt(c: &mut Criterion) {
         );
     });
 
+    group.bench_function("floor_sqrt, one Limb", |b| {
+        b.iter_batched(
+            || Uint::new([Limb::random_from_rng(&mut rng)]),
+            |x| x.floor_sqrt(),
+            BatchSize::SmallInput,
+        );
+    });
+
     group.bench_function("floor_sqrt_vartime, U256 one Limb", |b| {
         b.iter_batched(
             || U256::from_word(Limb::random_from_rng(&mut rng).0),

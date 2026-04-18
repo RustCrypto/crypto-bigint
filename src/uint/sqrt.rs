@@ -16,7 +16,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes `floor(√(self))` in constant time.
     ///
-    /// Callers can check if `self` is a square by squaring the result.
+    /// Callers can check if `self` is a square by squaring the result, or use
+    /// `checked_sqrt`.
     #[must_use]
     pub const fn floor_sqrt(&self) -> Self {
         let mut root = *self;
@@ -88,18 +89,18 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
     }
 
-    /// Computes `floor(√(self))`
-    ///
-    /// Callers can check if `self` is a square by squaring the result.
+    /// Assigns `floor(√(self))` to `self` and returns a [`Choice`] indicating
+    /// whether the square root is exact.
     const fn floor_sqrt_assign(&mut self) -> Choice {
         let mut buf = (Uint::<LIMBS>::ZERO, Uint::<LIMBS>::ZERO);
         self.as_mut_uint_ref()
             .sqrt_assign((buf.0.as_mut_uint_ref(), buf.1.as_mut_uint_ref()))
     }
 
-    /// Computes `floor(√(self))`
+    /// Assigns `floor(√(self))` to `self` and returns a [`bool`] indicating
+    /// whether the square root is exact.
     ///
-    /// Callers can check if `self` is a square by squaring the result.
+    /// Variable time with respect to `self`.
     const fn floor_sqrt_assign_vartime(&mut self) -> bool {
         let mut buf = (Uint::<LIMBS>::ZERO, Uint::<LIMBS>::ZERO);
         self.as_mut_uint_ref()
@@ -110,7 +111,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     /// Computes `floor(√(self))` in constant time.
     ///
-    /// Callers can check if `self` is a square by squaring the result.
+    /// Callers can check if `self` is a square by squaring the result, or
+    /// use `checked_sqrt`.
     #[must_use]
     pub const fn floor_sqrt(&self) -> Self {
         NonZero::new_unchecked(self.as_ref().floor_sqrt())
@@ -118,7 +120,8 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
 
     /// Computes `floor(√(self))`.
     ///
-    /// Callers can check if `self` is a square by squaring the result.
+    /// Callers can check if `self` is a square by squaring the result, or
+    /// use `checked_sqrt_vartime`.
     ///
     /// Variable time with respect to `self`.
     #[must_use]
@@ -194,9 +197,9 @@ mod tests {
 
     #[cfg(feature = "rand_core")]
     use {
-        crate::{Random, U512},
+        crate::{CheckedAdd, CheckedSquareRoot, FloorSquareRoot, Random, RandomBits, U512},
         chacha20::ChaCha8Rng,
-        rand_core::{Rng, SeedableRng},
+        rand_core::SeedableRng,
     };
 
     #[test]
@@ -301,12 +304,9 @@ mod tests {
     #[cfg(feature = "rand_core")]
     #[test]
     fn fuzz() {
-        use crate::{CheckedSquareRoot, FloorSquareRoot};
-
         let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
         for _ in 0..50 {
-            let t = u64::from(rng.next_u32());
-            let s = U256::from(t);
+            let s = U256::random_bits(&mut rng, 128);
             let s2 = s.checked_square().unwrap();
             assert_eq!(FloorSquareRoot::floor_sqrt(&s2), s);
             assert_eq!(FloorSquareRoot::floor_sqrt_vartime(&s2), s);
@@ -318,6 +318,13 @@ mod tests {
                 assert_eq!(FloorSquareRoot::floor_sqrt_vartime(&nz).get(), s);
                 assert!(CheckedSquareRoot::checked_sqrt(&nz).is_some().to_bool());
                 assert!(CheckedSquareRoot::checked_sqrt_vartime(&nz).is_some());
+            }
+
+            if let Some(sx) = s2.checked_add(&U256::ONE).into_option() {
+                assert_eq!(FloorSquareRoot::floor_sqrt(&sx), s);
+                assert_eq!(FloorSquareRoot::floor_sqrt_vartime(&sx), s);
+                assert!(CheckedSquareRoot::checked_sqrt(&sx).is_none().to_bool());
+                assert!(CheckedSquareRoot::checked_sqrt_vartime(&sx).is_none());
             }
         }
 
