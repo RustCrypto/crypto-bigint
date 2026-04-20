@@ -24,7 +24,7 @@ cpubits::cpubits! {
 
             // Checks that the expression for `e` can be simplified in the way we did below.
             debug_assert!(widening_mul(v1, d31).1 == (1 << 16) - 1);
-            let e = Word::MAX - v1.wrapping_mul(d31) + 1 + (v1 >> 1) * d0;
+            let e = v1.wrapping_mul(d31).wrapping_neg() + (v1 >> 1) * d0;
 
             let (_lo, hi) = widening_mul(v1, e);
             // Note: the paper does not mention a wrapping add here,
@@ -59,7 +59,7 @@ cpubits::cpubits! {
 
             // Checks that the expression for `e` can be simplified in the way we did below.
             debug_assert!(widening_mul(v2, d63).1 == (1 << 32) - 1);
-            let e = Word::MAX - v2.wrapping_mul(d63) + 1 + (v2 >> 1) * d0;
+            let e = v2.wrapping_mul(d63).wrapping_neg() + (v2 >> 1) * d0;
 
             let (_lo, hi) = widening_mul(v2, e);
             let v3 = (v2 << 31).wrapping_add(hi >> 1);
@@ -121,17 +121,17 @@ pub(crate) const fn div2by1(u0: Word, u1: Word, reciprocal: &Reciprocal) -> (Wor
     let q1 = q1.wrapping_add(1);
     let r = u0.wrapping_sub(q1.wrapping_mul(d));
 
-    let r_gt_q0 = word::choice_from_lt(q0, r);
-    let q1 = word::select(q1, q1.wrapping_sub(1), r_gt_q0);
-    let r = word::select(r, r.wrapping_add(d), r_gt_q0);
+    let r_gt_q0 = word::choice_to_mask(word::choice_from_lt(q0, r));
+    let q1 = q1.wrapping_sub(r_gt_q0 & 1);
+    let r = r.wrapping_add(r_gt_q0 & d);
 
     // If this was a normal `if`, we wouldn't need wrapping ops, because there would be no overflow.
     // But since we calculate both results either way, we have to wrap.
     // Added an assert to still check the lack of overflow in debug mode.
     debug_assert!(r < d || q1 < Word::MAX);
-    let r_ge_d = word::choice_from_le(d, r);
-    let q1 = word::select(q1, q1.wrapping_add(1), r_ge_d);
-    let r = word::select(r, r.wrapping_sub(d), r_ge_d);
+    let r_ge_d = word::choice_to_mask(word::choice_from_le(d, r));
+    let q1 = q1.wrapping_add(r_ge_d & 1);
+    let r = r.wrapping_sub(r_ge_d & d);
 
     (q1, r)
 }
@@ -157,25 +157,24 @@ pub(crate) const fn div3by2(
     debug_assert!(u_hi <= d, "dividend > divisor");
 
     let q = (v as WideWord * u2 as WideWord) + u_hi;
-    let q1w = q >> Word::BITS;
-    let r1 = u1.wrapping_sub((q1w as Word).wrapping_mul(d1));
-    let t = d0 as WideWord * q1w;
+    let (q0, q1) = word::split_wide(q);
+    let r1 = u1.wrapping_sub(q1.wrapping_mul(d1));
+    let t = d0 as WideWord * q1 as WideWord;
     let r = word::join(u0, r1).wrapping_sub(t).wrapping_sub(d);
 
-    let r1_ge_q0 = word::choice_from_le(q as Word, (r >> Word::BITS) as Word);
-    let q1 = q1w as Word;
-    let q1 = word::select(q1.wrapping_add(1), q1, r1_ge_q0);
-    let r = word::select_wide(r, r.wrapping_add(d), r1_ge_q0);
+    let r1_ge_q0 = word::choice_to_wide_mask(word::choice_from_le(q0, (r >> Word::BITS) as Word));
+    let q1 = q1.wrapping_add(!(r1_ge_q0 as Word) & 1);
+    let r = r.wrapping_add(r1_ge_q0 & d);
 
-    let r_ge_d = word::choice_from_wide_le(d, r);
-    let q1 = word::select(q1, q1.wrapping_add(1), r_ge_d);
-    let r = word::select_wide(r, r.wrapping_sub(d), r_ge_d);
+    let r_ge_d = word::choice_to_wide_mask(word::choice_from_wide_le(d, r));
+    let q1 = q1.wrapping_add(r_ge_d as Word & 1);
+    let r = r.wrapping_sub(r_ge_d & d);
 
     // When the leading dividend word equals the leading divisor word, cap the quotient
-    // at WideWord::MAX and update the remainder. This differs from the original algorithm
+    // at Word::MAX and update the remainder. This differs from the original algorithm
     // but is required for multi-word division.
     let maxed = word::choice_from_wide_eq(u_hi, d);
-    let q1 = word::select(q1, Word::MAX, maxed);
+    let q1 = q1 | word::choice_to_mask(maxed);
     let r = word::select_wide(r, d.saturating_add(u0 as WideWord), maxed);
 
     (q1, r)
