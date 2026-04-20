@@ -234,7 +234,7 @@ impl UintRef {
         // but this can only be the case if `limb_div` is falsy, in which case we discard
         // the result anyway, so we conditionally set `x_hi` to zero for this branch.
         let x_hi_adjusted = Limb::select(Limb::ZERO, x_hi, limb_div);
-        let (quo2, rem2) = div2by1(x_hi_adjusted.0, x.limbs[0].0, &reciprocal);
+        let (quo2, rem2) = div2by1(x.limbs[0].0, x_hi_adjusted.0, &reciprocal);
 
         // Adjust the quotient for single limb division
         x.limbs[0] = Limb::select(x.limbs[0], Limb(quo2), limb_div);
@@ -293,14 +293,15 @@ impl UintRef {
         let mut i;
         let mut carry;
 
+        // Compute the adjusted reciprocal
+        let v = reciprocal.reciprocal_3by2(y.limbs[ysize - 2].0, y.limbs[ysize - 1].0);
+
         while xi > 0 {
             // Divide high dividend words by the high divisor word to estimate the quotient word
-            let mut quo = div3by2(
-                x_hi.0,
-                x_xi.0,
-                x.limbs[xi - 1].0,
-                &reciprocal,
-                y.limbs[ysize - 2].0,
+            let (mut quo, _) = div3by2(
+                (x.limbs[xi - 1].0, x_xi.0, x_hi.0),
+                (y.limbs[ysize - 2].0, y.limbs[ysize - 1].0),
+                v,
             );
 
             // This loop is a no-op once xi is smaller than the number of words in the divisor
@@ -329,17 +330,14 @@ impl UintRef {
             // If the subtraction borrowed, then decrement quo and add back the divisor
             // The probability of this being needed is very low, about 2/(Limb::MAX+1)
             quo = {
-                let ct_borrow = word::choice_from_mask(borrow.0);
                 carry = Limb::ZERO;
                 i = (xi + 1).saturating_sub(ysize);
                 while i <= xi {
-                    (x.limbs[i], carry) = x.limbs[i].carrying_add(
-                        Limb::select(Limb::ZERO, y.limbs[ysize + i - xi - 1], ct_borrow),
-                        carry,
-                    );
+                    (x.limbs[i], carry) =
+                        x.limbs[i].carrying_add(y.limbs[ysize + i - xi - 1].bitand(borrow), carry);
                     i += 1;
                 }
-                word::select(quo, quo.saturating_sub(1), ct_borrow)
+                quo.saturating_sub(borrow.0 & 1)
             };
 
             // Store the quotient within dividend and set x_hi to the current highest word
@@ -415,7 +413,7 @@ impl UintRef {
         // but this can only be the case if `limb_div` is falsy, in which case we discard
         // the result anyway, so we conditionally set `x_hi` to zero for this branch.
         let x_hi_adjusted = Limb::select(Limb::ZERO, x_hi, limb_div);
-        let (_, rem2) = div2by1(x_hi_adjusted.0, x.limbs[0].0, &reciprocal);
+        let (_, rem2) = div2by1(x.limbs[0].0, x_hi_adjusted.0, &reciprocal);
 
         // Copy out the low limb of the remainder
         y.limbs[0] = Limb::select(x.limbs[0], Limb(rem2), limb_div);
@@ -465,17 +463,18 @@ impl UintRef {
         let mut i;
         let mut carry;
 
+        // Compute the adjusted reciprocal
+        let v = reciprocal.reciprocal_3by2(y.limbs[ysize - 2].0, y.limbs[ysize - 1].0);
+
         // We proceed similarly to `div_rem_large_shifted()` applied to the high half of
         // the dividend, fetching the limbs from the lower part as we go.
 
         while xi > 0 {
             // Divide high dividend words by the high divisor word to estimate the quotient word
-            let mut quo = div3by2(
-                x_hi.0,
-                x_xi.0,
-                x.limbs[xi - 1].0,
-                &reciprocal,
-                y.limbs[ysize - 2].0,
+            let (mut quo, _) = div3by2(
+                (x.limbs[xi - 1].0, x_xi.0, x_hi.0),
+                (y.limbs[ysize - 2].0, y.limbs[ysize - 1].0),
+                v,
             );
 
             // This loop is a no-op once xi is smaller than the number of words in the divisor
@@ -504,14 +503,11 @@ impl UintRef {
             // If the subtraction borrowed, then add back the divisor
             // The probability of this being needed is very low, about 2/(Limb::MAX+1)
             {
-                let ct_borrow = word::choice_from_mask(borrow.0);
                 carry = Limb::ZERO;
                 i = (xi + 1).saturating_sub(ysize);
                 while i <= xi {
-                    (x.limbs[i], carry) = x.limbs[i].carrying_add(
-                        Limb::select(Limb::ZERO, y.limbs[ysize + i - xi - 1], ct_borrow),
-                        carry,
-                    );
+                    (x.limbs[i], carry) =
+                        x.limbs[i].carrying_add(y.limbs[ysize + i - xi - 1].bitand(borrow), carry);
                     i += 1;
                 }
             }
@@ -563,7 +559,7 @@ impl UintRef {
         let mut j = self.limbs.len();
         while j > 0 {
             j -= 1;
-            (self.limbs[j].0, hi.0) = div2by1(hi.0, self.limbs[j].0, reciprocal);
+            (self.limbs[j].0, hi.0) = div2by1(self.limbs[j].0, hi.0, reciprocal);
         }
         hi.shr(reciprocal.shift())
     }
@@ -585,18 +581,22 @@ impl UintRef {
             return carry;
         }
         let lshift = reciprocal.shift();
-        let nz = Choice::from_u32_nz(lshift);
-        let rshift = nz.select_u32(0, Limb::BITS - lshift);
-        let mut hi = (carry.0 << lshift) | word::select(0, self.limbs[nlimbs - 1].0 >> rshift, nz);
+        let lshift_nz = Choice::from_u32_nz(lshift);
+        let lo_mask = Limb(word::choice_to_mask(lshift_nz));
+        let rshift = lshift_nz.select_u32(0, Limb::BITS - lshift);
+        let mut hi = carry
+            .shl(lshift)
+            .bitor(self.limbs[nlimbs - 1].bitand(lo_mask).shr(rshift));
         let mut lo;
         let mut j = nlimbs;
         while j > 1 {
             j -= 1;
-            lo = self.limbs[j].0 << lshift;
-            lo |= word::select(0, self.limbs[j - 1].0 >> rshift, nz);
-            (_, hi) = div2by1(hi, lo, reciprocal);
+            lo = self.limbs[j]
+                .shl(lshift)
+                .bitor(self.limbs[j - 1].bitand(lo_mask).shr(rshift));
+            (_, hi.0) = div2by1(lo.0, hi.0, reciprocal);
         }
-        (_, hi) = div2by1(hi, self.limbs[0].0 << lshift, reciprocal);
-        Limb(hi >> lshift)
+        (_, hi.0) = div2by1(self.limbs[0].shl(lshift).0, hi.0, reciprocal);
+        hi.shr(lshift)
     }
 }

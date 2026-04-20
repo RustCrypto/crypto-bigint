@@ -1,15 +1,5 @@
 use crate::{Choice, WideWord, Word};
 
-/// Adds wide numbers represented by pairs of (least significant word, most significant word)
-/// and returns the result in the same format `(lo, hi)`.
-#[inline(always)]
-#[allow(clippy::cast_possible_truncation)]
-pub(crate) const fn addhilo(x_lo: Word, x_hi: Word, y_lo: Word, y_hi: Word) -> (Word, Word) {
-    let res = (((x_hi as WideWord) << Word::BITS) | (x_lo as WideWord))
-        + (((y_hi as WideWord) << Word::BITS) | (y_lo as WideWord));
-    (res as Word, (res >> Word::BITS) as Word)
-}
-
 /// Computes `lhs + rhs + carry`, returning the result along with the new carry (0, 1, or 2).
 #[inline(always)]
 #[allow(clippy::cast_possible_truncation)]
