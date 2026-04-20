@@ -330,17 +330,14 @@ impl UintRef {
             // If the subtraction borrowed, then decrement quo and add back the divisor
             // The probability of this being needed is very low, about 2/(Limb::MAX+1)
             quo = {
-                let ct_borrow = word::choice_from_mask(borrow.0);
                 carry = Limb::ZERO;
                 i = (xi + 1).saturating_sub(ysize);
                 while i <= xi {
-                    (x.limbs[i], carry) = x.limbs[i].carrying_add(
-                        Limb::select(Limb::ZERO, y.limbs[ysize + i - xi - 1], ct_borrow),
-                        carry,
-                    );
+                    (x.limbs[i], carry) =
+                        x.limbs[i].carrying_add(y.limbs[ysize + i - xi - 1].bitand(borrow), carry);
                     i += 1;
                 }
-                word::select(quo, quo.saturating_sub(1), ct_borrow)
+                quo.saturating_sub(borrow.0 & 1)
             };
 
             // Store the quotient within dividend and set x_hi to the current highest word
@@ -506,14 +503,11 @@ impl UintRef {
             // If the subtraction borrowed, then add back the divisor
             // The probability of this being needed is very low, about 2/(Limb::MAX+1)
             {
-                let ct_borrow = word::choice_from_mask(borrow.0);
                 carry = Limb::ZERO;
                 i = (xi + 1).saturating_sub(ysize);
                 while i <= xi {
-                    (x.limbs[i], carry) = x.limbs[i].carrying_add(
-                        Limb::select(Limb::ZERO, y.limbs[ysize + i - xi - 1], ct_borrow),
-                        carry,
-                    );
+                    (x.limbs[i], carry) =
+                        x.limbs[i].carrying_add(y.limbs[ysize + i - xi - 1].bitand(borrow), carry);
                     i += 1;
                 }
             }
