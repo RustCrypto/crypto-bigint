@@ -587,18 +587,22 @@ impl UintRef {
             return carry;
         }
         let lshift = reciprocal.shift();
-        let nz = Choice::from_u32_nz(lshift);
-        let rshift = nz.select_u32(0, Limb::BITS - lshift);
-        let mut hi = (carry.0 << lshift) | word::select(0, self.limbs[nlimbs - 1].0 >> rshift, nz);
+        let lshift_nz = Choice::from_u32_nz(lshift);
+        let lo_mask = Limb(word::choice_to_mask(lshift_nz));
+        let rshift = lshift_nz.select_u32(0, Limb::BITS - lshift);
+        let mut hi = carry
+            .shl(lshift)
+            .bitor(self.limbs[nlimbs - 1].bitand(lo_mask).shr(rshift));
         let mut lo;
         let mut j = nlimbs;
         while j > 1 {
             j -= 1;
-            lo = self.limbs[j].0 << lshift;
-            lo |= word::select(0, self.limbs[j - 1].0 >> rshift, nz);
-            (_, hi) = div2by1(lo, hi, reciprocal);
+            lo = self.limbs[j]
+                .shl(lshift)
+                .bitor(self.limbs[j - 1].bitand(lo_mask).shr(rshift));
+            (_, hi.0) = div2by1(lo.0, hi.0, reciprocal);
         }
-        (_, hi) = div2by1(self.limbs[0].0 << lshift, hi, reciprocal);
-        Limb(hi >> lshift)
+        (_, hi.0) = div2by1(self.limbs[0].shl(lshift).0, hi.0, reciprocal);
+        hi.shr(lshift)
     }
 }
