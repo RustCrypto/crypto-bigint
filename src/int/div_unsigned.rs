@@ -40,7 +40,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let (quotient, remainder, lhs_sgn) = self.div_rem_base_unsigned(rhs);
         (
             Self(quotient).wrapping_neg_if(lhs_sgn),
-            Int::new_from_abs_sign(remainder, lhs_sgn).expect_copied("no overflow; always fits"),
+            remainder.as_int().wrapping_neg_if(lhs_sgn),
         )
     }
 
@@ -478,7 +478,26 @@ mod tests {
         rand_core::SeedableRng,
     };
 
-    use crate::{I128, U128};
+    use crate::{I128, I256, U128};
+
+    // Regression test for https://github.com/RustCrypto/crypto-bigint/issues/847
+    #[test]
+    fn test_div_rem_unsigned_large_remainder() {
+        let num =
+            I256::from_be_hex("eed8f6c7a5b1a65031ebc9b7a93492e89f282d49e75d25607a5693b3d8ae2e87");
+        let denom = U128::from_be_hex("de157f812521c55eccf9a903b31e4a34")
+            .to_nz()
+            .unwrap();
+        let (q, r) = num.div_rem_unsigned(&denom);
+        let (q_vt, r_vt) = num.div_rem_unsigned_vartime(&denom);
+        assert_eq!(q, q_vt);
+        assert_eq!(r, r_vt);
+
+        let (q2, r2) = I128::MIN.div_rem_unsigned(&U128::MAX.to_nz().unwrap());
+        let (q2_vt, r2_vt) = I128::MIN.div_rem_unsigned_vartime(&U128::MAX.to_nz().unwrap());
+        assert_eq!(q2, q2_vt);
+        assert_eq!(r2, r2_vt);
+    }
 
     #[test]
     fn test_div_unsigned() {
