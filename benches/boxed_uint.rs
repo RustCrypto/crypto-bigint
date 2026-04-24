@@ -232,6 +232,42 @@ fn bench_division(c: &mut Criterion) {
         );
     });
 
+    group.bench_function("boxed_div_exact", |b| {
+        b.iter_batched(
+            || {
+                (
+                    BoxedUint::max(UINT_BITS),
+                    NonZero::new(BoxedUint::random_bits_with_precision(
+                        &mut rng,
+                        UINT_BITS / 2,
+                        UINT_BITS,
+                    ))
+                    .unwrap(),
+                )
+            },
+            |(x, y)| black_box(x.div_exact(&y)),
+            BatchSize::SmallInput,
+        );
+    });
+
+    group.bench_function("boxed_div_exact_vartime", |b| {
+        b.iter_batched(
+            || {
+                (
+                    BoxedUint::max(UINT_BITS),
+                    NonZero::new(BoxedUint::random_bits_with_precision(
+                        &mut rng,
+                        UINT_BITS / 2,
+                        UINT_BITS,
+                    ))
+                    .unwrap(),
+                )
+            },
+            |(x, y)| black_box(x.div_exact_vartime(&y)),
+            BatchSize::SmallInput,
+        );
+    });
+
     group.finish();
 }
 

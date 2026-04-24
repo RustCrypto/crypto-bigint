@@ -393,6 +393,44 @@ fn bench_division(c: &mut Criterion) {
         );
     });
 
+    group.bench_function("div exact, U256/U128", |b| {
+        b.iter_batched(
+            || {
+                (
+                    U256::random_from_rng(&mut rng),
+                    NonZero::<U128>::random_from_rng(&mut rng),
+                )
+            },
+            |(x, y)| x.div_exact(&y),
+            BatchSize::SmallInput,
+        );
+    });
+
+    group.bench_function("div exact, U256/U128 (in U256)", |b| {
+        b.iter_batched(
+            || {
+                let x = U256::random_from_rng(&mut rng);
+                let y_half = U128::random_from_rng(&mut rng);
+                let y: U256 = (y_half, U128::ZERO).into();
+                (x, NonZero::new(y).unwrap())
+            },
+            |(x, y)| x.div_exact(&y),
+            BatchSize::SmallInput,
+        );
+    });
+
+    group.bench_function("div exact, U256/U128 (in U512)", |b| {
+        b.iter_batched(
+            || {
+                let x = U256::random_from_rng(&mut rng);
+                let y: U512 = U128::random_from_rng(&mut rng).resize();
+                (x, NonZero::new(y).unwrap())
+            },
+            |(x, y)| x.div_exact(&y),
+            BatchSize::SmallInput,
+        );
+    });
+
     group.bench_function("div/rem_vartime, U256/U128, full size", |b| {
         b.iter_batched(
             || {
@@ -401,6 +439,18 @@ fn bench_division(c: &mut Criterion) {
                 (x, NonZero::new(y).unwrap())
             },
             |(x, y)| x.div_rem_vartime(&y),
+            BatchSize::SmallInput,
+        );
+    });
+
+    group.bench_function("div exact vartime, U256/U128, full size", |b| {
+        b.iter_batched(
+            || {
+                let x = U256::random_from_rng(&mut rng);
+                let y = U256::from((NonZero::<U128>::random_from_rng(&mut rng).get(), U128::ZERO));
+                (x, NonZero::new(y).unwrap())
+            },
+            |(x, y)| x.div_exact_vartime(&y),
             BatchSize::SmallInput,
         );
     });
@@ -506,6 +556,19 @@ fn bench_division(c: &mut Criterion) {
                 (x, NonZero::new(y).unwrap())
             },
             |(x, y)| x.div_rem_vartime(&y),
+            BatchSize::SmallInput,
+        );
+    });
+
+    group.bench_function("div exact vartime, U256/Limb, full size", |b| {
+        b.iter_batched(
+            || {
+                let x = U256::random_from_rng(&mut rng);
+                let y_small = Limb::random_from_rng(&mut rng);
+                let y = U256::from_word(y_small.0);
+                (x, NonZero::new(y).unwrap())
+            },
+            |(x, y)| x.div_exact_vartime(&y),
             BatchSize::SmallInput,
         );
     });
