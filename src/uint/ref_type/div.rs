@@ -610,24 +610,35 @@ impl UintRef {
         let x_prec = self.bits_precision();
         let y_bits = rhs.bits();
         assert!(y_bits > 0, "zero divisor");
+
         let tz = rhs.trailing_zeros();
+        // Track whether there are more zeros in the divisor than bits in the dividend
         let excess_z = Choice::from_u32_lt(x_prec, tz);
         let tz = excess_z.select_u32(tz, x_prec);
+
+        // Shift the divisor such that it is odd
         rhs.shr_assign(tz);
 
+        // Check that the dividend evenly divides by 2^tz, and shift it to match the divisor
         let div2s_exact = self.ensure_trailing_zeros(tz).and(excess_z.not());
         self.shr_assign(tz);
 
         let y = Odd::new_ref_unchecked(rhs);
         let y_inv = Limb(y.invert_mod_u64());
         let ywords = (y_bits - tz).div_ceil(Limb::BITS);
-        Self::div_exact_odd_with_inverse(self, y, y_inv, ywords, Choice::FALSE).and(div2s_exact)
+        let is_exact = Self::div_exact_odd_with_inverse(self, y, y_inv, ywords, Choice::FALSE)
+            .and(div2s_exact);
+
+        // Restore the divisor
+        rhs.shl_assign(tz);
+
+        is_exact
     }
 
     /// Exactly divides `self` by `rhs`, returning `Choice::FALSE` if `self` is not divisible by `rhs`.
     ///
-    /// If the division is not exact then `self` is left in an indeterminate state.
-    /// The divisor `rhs` is right-shifted to produce an odd integer.
+    /// The quotient is left in `self`, but is not guaranteed to be in a usable state unless
+    /// the return value is `Choice::TRUE`.
     ///
     /// # Panics
     /// If the divisor is zero.
@@ -636,27 +647,47 @@ impl UintRef {
         let x_prec = self.bits_precision();
         let y_bits = rhs.bits_vartime();
         assert!(y_bits > 0, "zero divisor");
+
         let tz = rhs.trailing_zeros_vartime();
         if tz > x_prec {
-            // Divisor exceeds dividend precision
+            // The divisor exceeds the dividend precision. Short circuit based on public
+            // information (the divisor and the input size in limbs)
             return Choice::FALSE;
         }
+        // Reduce the divisor to its populated limbs and shift it such that it is odd
         let rhs = rhs.leading_mut(y_bits.div_ceil(Limb::BITS) as usize);
         rhs.unbounded_shr_assign_vartime(tz);
 
+        // Check that the dividend evenly divides by 2^tz, and shift it to match the divisor
         let div2s_exact = self.ensure_trailing_zeros(tz);
         self.unbounded_shr_assign_vartime(tz);
 
         let ywords = (y_bits - tz).div_ceil(Limb::BITS);
         let y = Odd::new_ref_unchecked(rhs.leading(ywords as usize));
         let y_inv = Limb(y.invert_mod_u64());
-        Self::div_exact_odd_with_inverse(self, y, y_inv, ywords, Choice::TRUE).and(div2s_exact)
+        let is_exact =
+            Self::div_exact_odd_with_inverse(self, y, y_inv, ywords, Choice::TRUE).and(div2s_exact);
+
+        // Restore the divisor
+        rhs.shl_assign(tz);
+
+        is_exact
     }
 
     /// Exactly divides `x` by `y`, returning `Choice::FALSE` if `x` is not divisible by `y`.
     ///
+    /// The quotient is left in `self`, but is not guaranteed to be in a usable state unless
+    /// the return value is `Choice::TRUE`.
+    ///
     /// This method performs a Hensel division, subtracting from the least significant bits
-    /// and calculating `q,r s.t. x = qy + r•2^N`.
+    /// and calculating an LSB quotient and remainder `(q,r) s.t. x = qy + r•2^N`. When the remainder
+    /// is zero, the calculated quotient corresponds to the traditional division quotient.
+    ///
+    /// For constant-time operation, this acts as if the divisor `y` is as small as one limb,
+    /// performing loops without updates to the quotient for larger divisors when vartime operation
+    /// is not specified.
+    #[allow(clippy::cast_possible_truncation)]
+    #[inline(always)]
     const fn div_exact_odd_with_inverse(
         x: &mut UintRef,
         y: &Odd<UintRef>,
@@ -666,7 +697,7 @@ impl UintRef {
     ) -> Choice {
         let xc = x.nlimbs();
         let y = y.as_ref();
-        let mut is_exact = Choice::TRUE;
+        let mut meta_carry = Limb::ZERO;
         let mut xi = 0;
 
         while xi < xc {
@@ -674,41 +705,43 @@ impl UintRef {
             // This loop is a no-op once there are fewer words remaining than the size of the divisor
             let done = Choice::from_u32_lt(y_remain, ywords);
             if vartime.and(done).to_bool_vartime() {
+                // Set the upper limbs to zero
+                x.trailing_mut(xi).fill(Limb::ZERO);
                 break;
             }
 
+            // Compute the quotient limb that will clear the low dividend limb
             let quo = Limb::select(x.limbs[xi].wrapping_mul(y_inv), Limb::ZERO, done);
             x.limbs[xi] = quo;
 
-            let (_adj, mut carry) = quo.widening_mul(y.limbs[0]);
+            let (_, mut carry) = quo.widening_mul(y.limbs[0]);
             let mut sub;
             let mut borrow = Limb::ZERO;
-
             let mut yi = 1;
+
             while yi < y_remain as usize {
                 (sub, carry) = quo.carrying_mul_add(y.limbs[yi], Limb::ZERO, carry);
                 (x.limbs[xi + yi], borrow) = x.limbs[xi + yi].borrowing_sub(sub, borrow);
                 yi += 1;
             }
 
-            let mut i = xi + yi;
-            while i < xc {
-                (x.limbs[i], borrow) = x.limbs[i].borrowing_sub(carry, borrow);
-                carry = Limb::ZERO;
-                i += 1;
+            meta_carry = meta_carry.wrapping_add(carry);
+
+            if xi + yi < xc {
+                (x.limbs[xi + yi], borrow) = x.limbs[xi + yi].borrowing_sub(meta_carry, borrow);
+                meta_carry = borrow.wrapping_neg();
+            } else {
+                meta_carry = meta_carry.wrapping_sub(borrow);
             }
-            is_exact = is_exact.and(carry.wrapping_sub(borrow).is_zero());
 
             xi += 1;
         }
 
-        // Set the upper limbs to zero if vartime
-        x.trailing_mut(xi).fill(Limb::ZERO);
-
-        is_exact
+        meta_carry.is_zero()
     }
 
     // Check that `self` can be cleanly divided by 2^zs: the bottom zs bits are zero.
+    #[inline(always)]
     const fn ensure_trailing_zeros(&self, zs: u32) -> Choice {
         let z_words = (zs >> Limb::LOG2_BITS) as usize;
         let z_bits = zs & (Limb::BITS - 1);
