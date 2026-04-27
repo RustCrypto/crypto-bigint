@@ -52,18 +52,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         (x, y)
     }
 
-    /// Exactly divides `self` by `rhs`, returning `CtOption::none()` if `self` is not divisible by `rhs`.
-    #[must_use]
-    pub const fn div_exact<const RHS_LIMBS: usize>(
-        &self,
-        rhs: &NonZero<Uint<RHS_LIMBS>>,
-    ) -> CtOption<Self> {
-        let mut quo = *self;
-        let mut div = rhs.get_copy();
-        let exact = quo.as_mut_uint_ref().div_exact(div.as_mut_uint_ref());
-        CtOption::new(quo, exact)
-    }
-
     /// Computes `self` / `rhs`, returning the quotient and the remainder.
     ///
     /// This is variable-time only with respect to `rhs`.
@@ -82,11 +70,22 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Exactly divides `self` by `rhs`, returning `CtOption::none()` if `self` is not divisible by `rhs`.
+    #[must_use]
+    pub const fn div_exact<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &NonZero<Uint<RHS_LIMBS>>,
+    ) -> CtOption<Self> {
+        let mut quo = *self;
+        let mut div = rhs.get_copy();
+        let exact = quo.as_mut_uint_ref().div_exact(div.as_mut_uint_ref());
+        CtOption::new(quo, exact)
+    }
+
+    /// Exactly divides `self` by `rhs`, returning `CtOption::none()` if `self` is not divisible by `rhs`.
     ///
     /// This is variable-time only with respect to `rhs`.
     ///
-    /// When used with a fixed `rhs`, this function is constant-time with respect
-    /// to `self`.
+    /// When used with a fixed `rhs`, this function is constant-time with respect to `self`.
     #[must_use]
     pub const fn div_exact_vartime<const RHS_LIMBS: usize>(
         &self,
