@@ -121,7 +121,7 @@ proptest! {
         let b_bi = to_biguint(&b);
         let (expected_quotient, expected_remainder) = a_bi.div_rem(&b_bi);
 
-        let div = &NonZero::new(b).unwrap();
+        let div = NonZero::new(b).unwrap();
         let (actual_quotient, actual_remainder) = a.div_rem(&div);
         prop_assert_eq!(expected_quotient, to_biguint(&actual_quotient));
         prop_assert_eq!(expected_remainder, to_biguint(&actual_remainder));
