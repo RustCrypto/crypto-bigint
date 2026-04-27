@@ -263,6 +263,19 @@ impl BoxedUint {
         (NonZero::new_unchecked(nz), !is_zero)
     }
 
+    /// Convert to an [`Odd<BoxedUint>`], defaulting to one.
+    ///
+    /// Returns a pair consisting of an [`Odd<BoxedUint>`], and a [`Choice`]
+    /// indicating whether the original value was odd (and preserved).
+    #[inline(always)]
+    #[must_use]
+    pub(crate) fn to_odd_or_one(&self) -> (Odd<Self>, Choice) {
+        let is_odd = self.is_odd();
+        let mut odd = self.clone();
+        odd.as_mut_uint_ref().conditional_set_one(is_odd.not());
+        (Odd::new_unchecked(odd), is_odd)
+    }
+
     /// Construct an [`Odd`] reference, returning [`None`] in the event `self` is even.
     #[must_use]
     pub fn as_odd_vartime(&self) -> Option<&Odd<Self>> {
