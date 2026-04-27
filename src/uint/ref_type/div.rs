@@ -624,7 +624,7 @@ impl UintRef {
         self.shr_assign(tz);
 
         let y = Odd::new_ref_unchecked(rhs);
-        let y_inv = Limb(y.invert_mod_u64());
+        let y_inv = y.invert_mod_limb();
         let ywords = (y_bits - tz).div_ceil(Limb::BITS);
         let is_exact = Self::div_exact_odd_with_inverse(self, y, y_inv, ywords, Choice::FALSE)
             .and(div2s_exact);
@@ -664,7 +664,7 @@ impl UintRef {
 
         let ywords = (y_bits - tz).div_ceil(Limb::BITS);
         let y = Odd::new_ref_unchecked(rhs.leading(ywords as usize));
-        let y_inv = Limb(y.invert_mod_u64());
+        let y_inv = y.invert_mod_limb();
         let is_exact =
             Self::div_exact_odd_with_inverse(self, y, y_inv, ywords, Choice::TRUE).and(div2s_exact);
 
