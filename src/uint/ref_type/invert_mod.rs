@@ -1,25 +1,19 @@
 use super::UintRef;
-use crate::Odd;
+use crate::{Limb, Odd, primitives};
 
 impl Odd<UintRef> {
-    /// Returns the multiplicative inverse of the argument modulo 2^64. The implementation is based
-    /// on the Hurchalla's method for computing the multiplicative inverse modulo a power of two.
-    ///
-    /// For better understanding the implementation, the following paper is recommended:
-    /// J. Hurchalla, "An Improved Integer Multiplicative Inverse (modulo 2^w)",
-    /// <https://arxiv.org/pdf/2204.limbs4342.pdf>
-    ///
-    /// Variable time with respect to the number of words in `value`, however that number will be
-    /// fixed for a given integer size.
+    /// Returns the multiplicative inverse of the argument modulo 2^N, where 2^N
+    /// is the capacity of a [`Limb`].
+    #[must_use]
+    pub(crate) const fn invert_mod_limb(&self) -> Limb {
+        Odd::new_unchecked(self.as_ref().limbs[0]).multiplicative_inverse()
+    }
+
+    /// Returns the multiplicative inverse of the argument modulo 2^64.
     #[must_use]
     pub const fn invert_mod_u64(&self) -> u64 {
         let value = self.as_ref().lowest_u64();
-        let x = value.wrapping_mul(3) ^ 2;
-        let y = 1u64.wrapping_sub(x.wrapping_mul(value));
-        let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
-        let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
-        let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
-        x.wrapping_mul(y.wrapping_add(1))
+        primitives::u64_invert_odd(value)
     }
 }
 

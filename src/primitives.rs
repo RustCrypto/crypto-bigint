@@ -94,6 +94,43 @@ pub(crate) const fn u32_bits(n: u32) -> u32 {
     u32::BITS - n.leading_zeros()
 }
 
+cpubits::cpubits! {
+    32 => {
+        /// Returns the multiplicative inverse of the argument modulo 2^32.
+        ///
+        /// For correct results, the input `value` must be odd.
+        #[must_use]
+        pub(crate) const fn u32_invert_odd(value: u32) -> u32 {
+            debug_assert!(value & 1 == 1, "value must be odd");
+            let x = value.wrapping_mul(3) ^ 2;
+            let y = 1u32.wrapping_sub(x.wrapping_mul(value));
+            let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
+            let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
+            x.wrapping_mul(y.wrapping_add(1))
+        }
+    }
+}
+
+/// Returns the multiplicative inverse of the argument modulo 2^64. The implementation is based
+/// on the Hurchalla's method for computing the multiplicative inverse modulo a power of two, and
+/// is essentially an optimized Newton iteration.
+///
+/// For correct results, the input `value` must be odd.
+///
+/// For better understanding the implementation, the following paper is recommended:
+/// J. Hurchalla, "An Improved Integer Multiplicative Inverse (modulo 2^w)",
+/// <https://arxiv.org/pdf/2204.limbs4342.pdf>
+#[must_use]
+pub(crate) const fn u64_invert_odd(value: u64) -> u64 {
+    debug_assert!(value & 1 == 1, "value must be odd");
+    let x = value.wrapping_mul(3) ^ 2;
+    let y = 1u64.wrapping_sub(x.wrapping_mul(value));
+    let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
+    let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
+    let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
+    x.wrapping_mul(y.wrapping_add(1))
+}
+
 #[cfg(test)]
 mod tests {
     use super::{u32_max, u32_min, u32_rem};
@@ -132,5 +169,18 @@ mod tests {
         assert_eq!(u32_rem(4, 5), 4);
         assert_eq!(u32_rem(7, 5), 2);
         assert_eq!(u32_rem(101, 5), 1);
+    }
+
+    cpubits::cpubits! {
+        32 => {
+            #[test]
+            fn test_u32_invert_odd() {
+                use super::u32_invert_odd;
+
+                assert_eq!(u32_invert_odd(1), 1);
+                assert_eq!(u32_invert_odd(5).wrapping_mul(5), 1);
+                assert_eq!(u32_invert_odd(u32::MAX).wrapping_mul(u32::MAX), 1);
+            }
+        }
     }
 }
