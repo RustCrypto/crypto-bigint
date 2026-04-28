@@ -218,7 +218,7 @@ const fn sqrt_rem_expand_by_word(s1: Word, r1: WideWord, next: Word) -> (WideWor
 }
 
 /// Compute the square root and remainder for a 1 to 3 limb input, which must be normalized.
-/// This is the base case square root calcuation.
+/// This is the base case square root calculation.
 #[allow(clippy::cast_possible_truncation)]
 #[inline]
 const fn sqrt_rem_small<const VARTIME: bool>(value: &[Limb], s: &mut [Limb], r: &mut [Limb]) {
