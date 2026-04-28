@@ -115,3 +115,45 @@ impl UintRef {
         self.trailing_mut(i).add_assign_limb(carry)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{Choice, Limb, UintRef, Unsigned};
+
+    #[test]
+    fn carrying_add_assign_mixed() {
+        let mut a = [Limb::MAX];
+        let carry =
+            UintRef::new_mut(&mut a).carrying_add_assign(Limb::ONE.as_uint_ref(), Limb::ZERO);
+        assert_eq!((a, carry), ([Limb::ZERO], Limb::ONE));
+
+        let mut a = [Limb::MAX];
+        let carry = UintRef::new_mut(&mut a).conditional_add_assign(
+            Limb::ONE.as_uint_ref(),
+            Limb::ZERO,
+            Choice::FALSE,
+        );
+        assert_eq!((a, carry), ([Limb::MAX], Limb::ZERO));
+
+        let mut a = [Limb::MAX];
+        let carry = UintRef::new_mut(&mut a).conditional_add_assign(
+            Limb::ONE.as_uint_ref(),
+            Limb::ZERO,
+            Choice::TRUE,
+        );
+        assert_eq!((a, carry), ([Limb::ZERO], Limb::ONE));
+
+        let mut a = [Limb::MAX, Limb::MAX];
+        let carry =
+            UintRef::new_mut(&mut a).carrying_add_assign(Limb::ZERO.as_uint_ref(), Limb::ONE);
+        assert_eq!((a, carry), ([Limb::ZERO, Limb::ZERO], Limb::ONE));
+
+        let mut a = [Limb::MAX, Limb::MAX];
+        let carry = UintRef::new_mut(&mut a).conditional_add_assign(
+            Limb::MAX.as_uint_ref(),
+            Limb::ONE,
+            Choice::TRUE,
+        );
+        assert_eq!((a, carry), ([Limb::MAX, Limb::ZERO], Limb::ONE));
+    }
+}

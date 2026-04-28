@@ -82,3 +82,46 @@ impl UintRef {
         borrow.lsb_to_choice()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{Choice, Limb, UintRef, Unsigned};
+
+    #[test]
+    fn borrowing_sub_assign_mixed() {
+        let mut a = [Limb::MAX];
+        let borrow =
+            UintRef::new_mut(&mut a).borrowing_sub_assign(Limb::MAX.as_uint_ref(), Limb::MAX);
+        assert_eq!((a, borrow), ([Limb::MAX], Limb::MAX));
+
+        let mut a = [Limb::MAX];
+        let borrow = UintRef::new_mut(&mut a)
+            .conditional_borrowing_sub_assign(Limb::MAX.as_uint_ref(), Choice::FALSE);
+        assert_eq!((a, borrow.to_bool()), ([Limb::MAX], false));
+
+        let mut a = [Limb::MAX - Limb::ONE];
+        let borrow = UintRef::new_mut(&mut a)
+            .conditional_borrowing_sub_assign(Limb::MAX.as_uint_ref(), Choice::TRUE);
+        assert_eq!((a, borrow.to_bool()), ([Limb::MAX], true));
+
+        let mut a = [Limb::MAX - Limb::ONE, Limb::ONE];
+        let borrow =
+            UintRef::new_mut(&mut a).borrowing_sub_assign(Limb::MAX.as_uint_ref(), Limb::ZERO);
+        assert_eq!((a, borrow), ([Limb::MAX, Limb::ZERO], Limb::ZERO));
+
+        let mut a = [Limb::MAX - Limb::ONE, Limb::ZERO];
+        let borrow =
+            UintRef::new_mut(&mut a).borrowing_sub_assign(Limb::MAX.as_uint_ref(), Limb::ZERO);
+        assert_eq!((a, borrow), ([Limb::MAX, Limb::MAX], Limb::MAX));
+
+        let mut a = [Limb::MAX - Limb::ONE, Limb::ONE];
+        let borrow = UintRef::new_mut(&mut a)
+            .conditional_borrowing_sub_assign(Limb::MAX.as_uint_ref(), Choice::TRUE);
+        assert_eq!((a, borrow.to_bool()), ([Limb::MAX, Limb::ZERO], false));
+
+        let mut a = [Limb::MAX - Limb::ONE, Limb::ZERO];
+        let borrow = UintRef::new_mut(&mut a)
+            .conditional_borrowing_sub_assign(Limb::MAX.as_uint_ref(), Choice::TRUE);
+        assert_eq!((a, borrow.to_bool()), ([Limb::MAX, Limb::MAX], true));
+    }
+}
