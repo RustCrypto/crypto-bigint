@@ -158,7 +158,7 @@ impl FloorSquareRoot for NonZero<BoxedUint> {
 #[cfg(test)]
 #[allow(clippy::integer_division_remainder_used, reason = "test")]
 mod tests {
-    use crate::{BoxedUint, CheckedSquareRoot, Limb};
+    use crate::{BoxedUint, CheckedSquareRoot, FloorSquareRoot, Limb};
 
     #[cfg(feature = "rand_core")]
     use {
@@ -279,14 +279,16 @@ mod tests {
                 Some(&r)
             );
             let nz_l = l.as_nz_vartime().unwrap();
-            let nz_r = r.as_nz_vartime().unwrap();
+            let nz_r = r.to_nz().unwrap();
+            assert_eq!(FloorSquareRoot::floor_sqrt(nz_l), nz_r);
+            assert_eq!(FloorSquareRoot::floor_sqrt_vartime(nz_l), nz_r);
             assert_eq!(
                 CheckedSquareRoot::checked_sqrt(nz_l).into_option().as_ref(),
-                Some(nz_r)
+                Some(&nz_r)
             );
             assert_eq!(
                 CheckedSquareRoot::checked_sqrt_vartime(nz_l).as_ref(),
-                Some(nz_r)
+                Some(&nz_r)
             );
         }
     }
