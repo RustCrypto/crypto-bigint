@@ -158,7 +158,7 @@ impl FloorSquareRoot for NonZero<BoxedUint> {
 #[cfg(test)]
 #[allow(clippy::integer_division_remainder_used, reason = "test")]
 mod tests {
-    use crate::{BoxedUint, Limb};
+    use crate::{BoxedUint, CheckedSquareRoot, Limb};
 
     #[cfg(feature = "rand_core")]
     use {
@@ -270,8 +270,24 @@ mod tests {
             let r = BoxedUint::from(*e);
             assert_eq!(l.floor_sqrt(), r);
             assert_eq!(l.floor_sqrt_vartime(), r);
-            assert!(l.checked_sqrt().is_some().to_bool());
-            assert!(l.checked_sqrt_vartime().is_some());
+            assert_eq!(
+                CheckedSquareRoot::checked_sqrt(&l).into_option().as_ref(),
+                Some(&r)
+            );
+            assert_eq!(
+                CheckedSquareRoot::checked_sqrt_vartime(&l).as_ref(),
+                Some(&r)
+            );
+            let nz_l = l.as_nz_vartime().unwrap();
+            let nz_r = r.as_nz_vartime().unwrap();
+            assert_eq!(
+                CheckedSquareRoot::checked_sqrt(nz_l).into_option().as_ref(),
+                Some(nz_r)
+            );
+            assert_eq!(
+                CheckedSquareRoot::checked_sqrt_vartime(nz_l).as_ref(),
+                Some(nz_r)
+            );
         }
     }
 
@@ -325,7 +341,7 @@ mod tests {
     #[cfg(feature = "rand_core")]
     #[test]
     fn fuzz() {
-        use crate::{CheckedSquareRoot, ConcatenatingSquare};
+        use crate::ConcatenatingSquare;
 
         let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
         let rounds = if cfg!(miri) { 10 } else { 50 };
