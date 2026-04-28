@@ -288,7 +288,7 @@ mod tests {
         fn check(val: WideWord) {
             let (lo, hi) = word::split_wide(val);
             let s1 = hi.isqrt();
-            let r1 = (hi - s1.pow(2)) as WideWord;
+            let r1 = WideWord::from(hi - s1.pow(2));
             let (s, r) = sqrt_rem_expand_by_word(s1, r1, lo);
             assert_eq!(s, val.isqrt());
             assert_eq!(r, val - s.pow(2));
