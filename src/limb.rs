@@ -13,6 +13,7 @@ mod div;
 mod encoding;
 mod from;
 mod gcd;
+mod invert_mod;
 mod mul;
 mod neg;
 mod shl;

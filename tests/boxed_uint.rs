@@ -13,7 +13,7 @@ use crypto_bigint::{
 use num_bigint::BigUint;
 use num_integer::Integer as _;
 use num_modular::ModularUnaryOps;
-use num_traits::identities::One;
+use num_traits::{Zero, identities::One};
 use proptest::prelude::*;
 
 #[allow(clippy::cast_possible_truncation)]
@@ -119,28 +119,34 @@ proptest! {
 
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
-        let expected_quotient = &a_bi / &b_bi;
-        let expected_remainder = a_bi % b_bi;
+        let (expected_quotient, expected_remainder) = a_bi.div_rem(&b_bi);
 
-        let (actual_quotient, actual_remainder) = a.div_rem(&NonZero::new(b).unwrap());
+        let div = NonZero::new(b).unwrap();
+        let (actual_quotient, actual_remainder) = a.div_rem(&div);
         prop_assert_eq!(expected_quotient, to_biguint(&actual_quotient));
         prop_assert_eq!(expected_remainder, to_biguint(&actual_remainder));
+
+        let (quotient_vartime, remainder_vartime) = a.div_rem_vartime(&div);
+        prop_assert_eq!(actual_quotient, quotient_vartime);
+        prop_assert_eq!(actual_remainder, remainder_vartime);
     }
 
     #[test]
-    fn div_rem_vartime((a, mut b) in uint_pair()) {
+    fn div_exact((a, mut b) in uint_pair()) {
         if b.is_zero().into() {
             b = b.wrapping_add(Limb::ONE);
         }
 
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
-        let expected_quotient = &a_bi / &b_bi;
-        let expected_remainder = a_bi % b_bi;
+        let (expected_quotient, expected_remainder) = a_bi.div_rem(&b_bi);
+        let expected = if expected_remainder.is_zero() { Some(expected_quotient) } else { None };
 
-        let (actual_quotient, actual_remainder) = a.div_rem_vartime(&NonZero::new(b).unwrap());
-        prop_assert_eq!(expected_quotient, to_biguint(&actual_quotient));
-        prop_assert_eq!(expected_remainder, to_biguint(&actual_remainder));
+        let div = NonZero::new(b).unwrap();
+        let actual = a.div_exact(&div).into_option();
+        prop_assert_eq!(&expected, &actual.as_ref().map(to_biguint));
+        let actual_vartime = a.div_exact_vartime(&div).into_option();
+        prop_assert_eq!(expected, actual_vartime.as_ref().map(to_biguint));
     }
 
     #[test]
