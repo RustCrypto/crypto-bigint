@@ -1,7 +1,7 @@
 //! [`BoxedUint`] modular inverse (i.e. reciprocal) operations.
 
 use crate::{
-    BoxedUint, Choice, CtEq, CtLt, CtOption, CtSelect, Integer, InvertMod, Limb, NonZero, Odd, U64,
+    BoxedUint, Choice, CtEq, CtLt, CtOption, CtSelect, InvertMod, Limb, NonZero, Odd, U64,
     modular::safegcd, uint::invert_mod::expand_invert_mod2k,
 };
 
@@ -50,13 +50,8 @@ impl BoxedUint {
         } else if k > bits {
             (Self::zero_with_precision(bits), Choice::FALSE)
         } else {
-            let is_some = self.is_odd();
-            let inv = Odd::new_unchecked(Self::ct_select(
-                &Self::one_with_precision(bits),
-                self,
-                is_some,
-            ))
-            .invert_mod2k_vartime(k);
+            let (odd, is_some) = self.to_odd_or_one();
+            let inv = odd.invert_mod2k_vartime(k);
             (inv, is_some)
         }
     }
@@ -78,13 +73,9 @@ impl BoxedUint {
     #[must_use]
     pub fn invert_mod2k(&self, k: u32) -> (Self, Choice) {
         let bits = self.bits_precision();
-        let is_some = k.ct_lt(&(bits + 1)) & (k.ct_eq(&0) | self.is_odd());
-        let mut inv = Odd::new_unchecked(Self::ct_select(
-            &Self::one_with_precision(bits),
-            self,
-            is_some,
-        ))
-        .invert_mod_precision();
+        let (odd, is_odd) = self.to_odd_or_one();
+        let is_some = k.ct_lt(&(bits + 1)) & (k.ct_eq(&0) | is_odd);
+        let mut inv = odd.invert_mod_precision();
         inv.restrict_bits(k);
         (inv, is_some)
     }
