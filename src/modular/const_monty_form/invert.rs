@@ -42,6 +42,8 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
     /// Computes `self^-1` representing the multiplicative inverse of `self`,
     /// i.e. `self * self^-1 = 1`.
     ///
+    /// Returns `None` if the number is not invertible.
+    ///
     /// This version is variable-time with respect to the value of `self`, but constant-time with
     /// respect to `MOD`.
     #[deprecated(since = "0.7.0", note = "please use `invert_vartime` instead")]
@@ -52,6 +54,8 @@ impl<MOD: ConstMontyParams<LIMBS>, const LIMBS: usize> ConstMontyForm<MOD, LIMBS
 
     /// Computes `self^-1` representing the multiplicative inverse of `self`,
     /// i.e. `self * self^-1 = 1`.
+    ///
+    /// Returns `None` if the number is not invertible.
     ///
     /// This version is variable-time with respect to the value of `self`, but constant-time with
     /// respect to `MOD`.

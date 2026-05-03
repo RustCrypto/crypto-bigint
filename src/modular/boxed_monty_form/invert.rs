@@ -22,6 +22,8 @@ impl BoxedMontyForm {
     /// Computes `self^-1` representing the multiplicative inverse of `self`,
     /// i.e. `self * self^-1 = 1`.
     ///
+    /// Returns `None` if the number is not invertible.
+    ///
     /// This version is variable-time with respect to the value of `self`, but constant-time with
     /// respect to `self`'s `params`.
     #[must_use]
