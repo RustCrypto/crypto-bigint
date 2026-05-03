@@ -91,8 +91,9 @@ impl<const LIMBS: usize> SafeGcdInverter<LIMBS> {
     /// depending on invertibility of the argument, i.e. its coprimality with the modulus.
     ///
     /// This version is variable-time with respect to `value`.
-    pub const fn invert_vartime(&self, value: &Uint<LIMBS>) -> CtOption<Uint<LIMBS>> {
+    pub const fn invert_vartime(&self, value: &Uint<LIMBS>) -> Option<Uint<LIMBS>> {
         invert_odd_mod_precomp::<LIMBS, true>(value, &self.modulus, self.inverse, &self.adjuster)
+            .into_option_copied()
     }
 }
 

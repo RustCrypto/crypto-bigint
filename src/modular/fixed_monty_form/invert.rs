@@ -1,7 +1,7 @@
 //! Multiplicative inverses of integers in Montgomery form with a modulus set at runtime.
 
 use super::{FixedMontyForm, FixedMontyParams};
-use crate::{CtOption, modular::SafeGcdInverter, traits::Invert};
+use crate::{Choice, CtOption, modular::SafeGcdInverter, traits::Invert};
 
 impl<const LIMBS: usize> FixedMontyForm<LIMBS> {
     /// Computes `self^-1` representing the multiplicative inverse of `self`.
@@ -36,36 +36,29 @@ impl<const LIMBS: usize> FixedMontyForm<LIMBS> {
     /// Computes `self^-1` representing the multiplicative inverse of `self`.
     /// i.e. `self * self^-1 = 1`.
     ///
-    /// If the number was invertible, the second element of the tuple is the truthy value,
-    /// otherwise it is the falsy value (in which case the first element's value is unspecified).
-    ///
     /// This version is variable-time with respect to the value of `self`, but constant-time with
     /// respect to `self`'s `params`.
     #[deprecated(since = "0.7.0", note = "please use `invert_vartime` instead")]
     #[must_use]
-    pub const fn inv_vartime(&self) -> CtOption<Self> {
+    pub const fn inv_vartime(&self) -> Option<Self> {
         self.invert_vartime()
     }
 
     /// Computes `self^-1` representing the multiplicative inverse of `self`.
     /// i.e. `self * self^-1 = 1`.
     ///
-    /// If the number was invertible, the second element of the tuple is the truthy value,
-    /// otherwise it is the falsy value (in which case the first element's value is unspecified).
-    ///
     /// This version is variable-time with respect to the value of `self`, but constant-time with
     /// respect to `self`'s `params`.
     #[must_use]
-    pub const fn invert_vartime(&self) -> CtOption<Self> {
+    pub const fn invert_vartime(&self) -> Option<Self> {
         let inverter = self.params.inverter();
-        let maybe_inverse = inverter.invert_vartime(&self.montgomery_form);
-
-        let ret = Self {
-            montgomery_form: maybe_inverse.to_inner_unchecked(),
-            params: self.params,
-        };
-
-        CtOption::new(ret, maybe_inverse.is_some())
+        match inverter.invert_vartime(&self.montgomery_form) {
+            Some(montgomery_form) => Some(Self {
+                montgomery_form,
+                params: self.params,
+            }),
+            None => None,
+        }
     }
 }
 
@@ -77,7 +70,10 @@ impl<const LIMBS: usize> Invert for FixedMontyForm<LIMBS> {
     }
 
     fn invert_vartime(&self) -> Self::Output {
-        self.invert_vartime()
+        match self.invert_vartime() {
+            Some(value) => CtOption::some(value),
+            None => CtOption::new(*self, Choice::FALSE),
+        }
     }
 }
 

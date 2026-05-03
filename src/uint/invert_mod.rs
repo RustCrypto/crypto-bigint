@@ -92,11 +92,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// This method is constant-time w.r.t. `self` but not `k`.
     ///
     /// If the inverse does not exist (`k > 0` and `self` is even),
-    /// returns `Choice::FALSE` as the second element of the tuple,
-    /// otherwise returns `Choice::TRUE`.
+    /// returns `None`, otherwise returns `Some`.
     #[deprecated(since = "0.7.0", note = "please use `invert_mod2k_vartime` instead")]
     #[must_use]
-    pub const fn inv_mod2k_vartime(&self, k: u32) -> CtOption<Self> {
+    pub const fn inv_mod2k_vartime(&self, k: u32) -> Option<Self> {
         self.invert_mod2k_vartime(k)
     }
 
@@ -104,18 +103,22 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// This method is constant-time w.r.t. `self` but not `k`.
     ///
     /// If the inverse does not exist (`k > 0` and `self` is even, or `k > Self::BITS`),
-    /// returns `CtOption::none`, otherwise returns `CtOption::some`.
+    /// returns `None`.
     #[inline]
     #[must_use]
-    pub const fn invert_mod2k_vartime(&self, k: u32) -> CtOption<Self> {
+    pub const fn invert_mod2k_vartime(&self, k: u32) -> Option<Self> {
         if k == 0 {
-            CtOption::some(Self::ZERO)
+            Some(Self::ZERO)
         } else if k > Self::BITS {
-            CtOption::new(Self::ZERO, Choice::FALSE)
+            None
         } else {
             let (self_odd, is_some) = self.to_odd_or_one();
             let inv = self_odd.invert_mod2k_vartime(k);
-            CtOption::new(inv, is_some)
+            if is_some.to_bool_vartime() {
+                Some(inv)
+            } else {
+                None
+            }
         }
     }
 
@@ -160,8 +163,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     ///
     /// This method is variable-time with respect to `self`.
     #[must_use]
-    pub const fn invert_odd_mod_vartime(&self, modulus: &Odd<Self>) -> CtOption<Self> {
-        safegcd::invert_odd_mod::<LIMBS, true>(self, modulus)
+    pub const fn invert_odd_mod_vartime(&self, modulus: &Odd<Self>) -> Option<Self> {
+        safegcd::invert_odd_mod::<LIMBS, true>(self, modulus).into_option_copied()
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`.
@@ -306,7 +309,7 @@ mod tests {
         assert!(a.is_none().to_bool_vartime());
 
         let a = U256::from(10u64).invert_mod2k_vartime(4);
-        assert!(a.is_none().to_bool_vartime());
+        assert!(a.is_none());
 
         // A degenerate case. An inverse mod 2^0 == 1 always exists even for even numbers.
 
