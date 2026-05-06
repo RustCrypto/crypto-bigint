@@ -6,7 +6,7 @@ impl UintRef {
     /// Compute the wrapping product of `self` and `rhs`, placing the result into `out`
     /// and returning a `Choice` indicating whether overflow occurred.
     #[inline(always)]
-    pub fn overflowing_mul(&self, rhs: &UintRef, out: &mut UintRef) -> Choice {
+    pub const fn overflowing_mul(&self, rhs: &UintRef, out: &mut UintRef) -> Choice {
         let carry = self.wrapping_mul(rhs, out);
         self.check_mul_overflow(rhs, carry.is_nonzero())
     }
@@ -14,7 +14,7 @@ impl UintRef {
     /// Compute the wrapping squaring of `self`, placing the result into `out`
     /// and returning a `Choice` indicating whether overflow occurred.
     #[inline(always)]
-    pub fn overflowing_square(&self, out: &mut UintRef) -> Choice {
+    pub const fn overflowing_square(&self, out: &mut UintRef) -> Choice {
         let carry = self.wrapping_square(out);
         self.check_square_overflow(carry.is_nonzero())
     }
@@ -22,14 +22,14 @@ impl UintRef {
     /// Compute the wrapping product of `self` and `rhs`, placing the result into `out`
     /// and returning a carry Limb.
     #[inline(always)]
-    pub fn wrapping_mul(&self, rhs: &UintRef, out: &mut UintRef) -> Limb {
+    pub const fn wrapping_mul(&self, rhs: &UintRef, out: &mut UintRef) -> Limb {
         karatsuba::wrapping_mul(self, rhs, out, false)
     }
 
     /// Compute the wrapping squaring of `self`, placing the result into `out` and returning
     /// a carry Limb.
     #[inline(always)]
-    pub fn wrapping_square(&self, out: &mut UintRef) -> Limb {
+    pub const fn wrapping_square(&self, out: &mut UintRef) -> Limb {
         karatsuba::wrapping_square(self, out)
     }
 
