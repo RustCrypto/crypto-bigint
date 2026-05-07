@@ -316,6 +316,22 @@ proptest! {
     }
 
     #[test]
+    fn div_exact(a in uint(), b in uint()) {
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(&b);
+
+        if !b_bi.is_zero() {
+            let (q, r) = a_bi.div_rem(&b_bi);
+            let expected = if r.is_zero() { Some(to_uint(q)) } else { None };
+            let b_nz = NonZero::new(b).unwrap();
+            let actual = a.div_exact(&b_nz).into_option();
+            prop_assert_eq!(expected, actual);
+            let actual_vartime = a.div_exact_vartime(&b_nz).into_option();
+            prop_assert_eq!(expected, actual_vartime);
+        }
+    }
+
+    #[test]
     fn rem_wide(a in uint(), b in uint(), c in uint()) {
         let ab_bi = to_biguint(&a) * to_biguint(&b);
         let c_bi = to_biguint(&c);
