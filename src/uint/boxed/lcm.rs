@@ -8,7 +8,9 @@ impl Lcm for BoxedUint {
     fn lcm(&self, rhs: &Self) -> Self {
         let (lhs_nz, _) = self.to_nz_or_one();
         let gcd_nz = lhs_nz.gcd(rhs);
-        self.wrapping_div(&gcd_nz).concatenating_mul(rhs)
+        self.div_exact(&gcd_nz)
+            .expect("invalid gcd")
+            .concatenating_mul(rhs)
     }
 
     fn lcm_vartime(&self, rhs: &Self) -> Self {
@@ -16,7 +18,9 @@ impl Lcm for BoxedUint {
             return BoxedUint::zero_with_precision(self.bits_precision() + rhs.bits_precision());
         };
         let gcd_nz = lhs_nz.gcd_vartime(rhs);
-        self.wrapping_div_vartime(&gcd_nz).concatenating_mul(rhs)
+        self.div_exact_vartime(&gcd_nz)
+            .expect("invalid gcd")
+            .concatenating_mul(rhs)
     }
 }
 

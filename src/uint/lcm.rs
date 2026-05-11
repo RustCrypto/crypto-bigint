@@ -11,7 +11,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     {
         let (lhs_nz, _) = self.to_nz_or_one();
         let gcd_nz = lhs_nz.gcd_unsigned(rhs);
-        self.wrapping_div(&gcd_nz).concatenating_mul(rhs)
+        self.div_exact(&gcd_nz)
+            .expect_copied("invalid gcd")
+            .concatenating_mul(rhs)
     }
 
     /// Compute the least common multiple of `self` and `rhs`.
@@ -26,7 +28,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             return Uint::ZERO;
         };
         let gcd_nz = lhs_nz.gcd_unsigned_vartime(rhs);
-        self.wrapping_div_vartime(&gcd_nz).concatenating_mul(rhs)
+        self.div_exact_vartime(&gcd_nz)
+            .expect_copied("invalid gcd")
+            .concatenating_mul(rhs)
     }
 }
 
