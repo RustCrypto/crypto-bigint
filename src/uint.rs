@@ -8,7 +8,7 @@ pub(crate) use ref_type::UintRef;
 use crate::{
     Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, EncodedUint, FixedInteger,
     Int, Integer, Limb, NonZero, Odd, One, Unsigned, UnsignedWithMontyForm, Word, Zero,
-    limb::nlimbs, modular::FixedMontyForm, primitives::u32_bits, traits::sealed::Sealed,
+    limb::nlimbs, modular::FixedMontyForm, traits::sealed::Sealed,
 };
 use core::fmt;
 
@@ -108,10 +108,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Total size of the represented integer in bits.
     #[allow(clippy::cast_possible_truncation)]
     pub const BITS: u32 = LIMBS as u32 * Limb::BITS;
-
-    /// `floor(log2(Self::BITS))`.
-    // Note: assumes the type of `BITS` is `u32`. Any way to assert that?
-    pub(crate) const LOG2_BITS: u32 = u32_bits(Self::BITS) - 1;
 
     /// Total size of the represented integer in bytes.
     pub const BYTES: usize = LIMBS * Limb::BYTES;

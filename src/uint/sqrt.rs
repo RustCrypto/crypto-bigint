@@ -1,6 +1,8 @@
 //! [`Uint`] square root operations.
 
-use crate::{CheckedSquareRoot, CtEq, CtOption, FloorSquareRoot, Limb, NonZero, Uint};
+use ctutils::Choice;
+
+use crate::{CheckedSquareRoot, CtOption, FloorSquareRoot, NonZero, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `floor(√(self))` in constant time.
@@ -14,12 +16,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 
     /// Computes `floor(√(self))` in constant time.
     ///
-    /// Callers can check if `self` is a square by squaring the result.
+    /// Callers can check if `self` is a square by squaring the result, or use
+    /// `checked_sqrt`.
     #[must_use]
     pub const fn floor_sqrt(&self) -> Self {
-        let (self_nz, self_is_nz) = self.to_nz_or_one();
-        let root_nz = self_nz.floor_sqrt();
-        Self::select(&Self::ZERO, root_nz.as_ref(), self_is_nz)
+        let mut root = *self;
+        root.floor_sqrt_assign();
+        root
     }
 
     /// Computes `floor(√(self))`.
@@ -40,11 +43,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Variable time with respect to `self`.
     #[must_use]
     pub const fn floor_sqrt_vartime(&self) -> Self {
-        if let Some(self_nz) = self.as_nz_vartime() {
-            self_nz.floor_sqrt_vartime().get_copy()
-        } else {
-            Self::ZERO
-        }
+        let mut root = *self;
+        root.floor_sqrt_assign_vartime();
+        root
     }
 
     /// Wrapped sqrt is just `floor(√(self))`.
@@ -69,121 +70,79 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// only if the square root is exact.
     #[must_use]
     pub fn checked_sqrt(&self) -> CtOption<Self> {
-        let (self_nz, self_is_nz) = self.to_nz_or_one();
-        self_nz
-            .checked_sqrt()
-            .map(|nz| Self::select(&Self::ZERO, nz.as_ref(), self_is_nz))
+        let mut root = *self;
+        let exact = root.floor_sqrt_assign();
+        CtOption::new(root, exact)
     }
 
     /// Perform checked sqrt, returning an [`Option`] which `is_some`
     /// only if the square root is exact.
     ///
     /// Variable time with respect to `self`.
+    #[must_use]
     pub fn checked_sqrt_vartime(&self) -> Option<Self> {
-        if let Some(self_nz) = self.as_nz_vartime() {
-            self_nz.checked_sqrt_vartime().map(NonZero::get)
+        let mut root = *self;
+        if root.floor_sqrt_assign_vartime() {
+            Some(root)
         } else {
-            Some(Self::ZERO)
+            None
         }
+    }
+
+    /// Assigns `floor(√(self))` to `self` and returns a [`Choice`] indicating
+    /// whether the square root is exact.
+    const fn floor_sqrt_assign(&mut self) -> Choice {
+        let mut buf = (Uint::<LIMBS>::ZERO, Uint::<LIMBS>::ZERO);
+        self.as_mut_uint_ref()
+            .sqrt_assign((buf.0.as_mut_uint_ref(), buf.1.as_mut_uint_ref()))
+    }
+
+    /// Assigns `floor(√(self))` to `self` and returns a [`bool`] indicating
+    /// whether the square root is exact.
+    ///
+    /// Variable time with respect to `self`.
+    const fn floor_sqrt_assign_vartime(&mut self) -> bool {
+        let mut buf = (Uint::<LIMBS>::ZERO, Uint::<LIMBS>::ZERO);
+        self.as_mut_uint_ref()
+            .sqrt_assign_vartime((buf.0.as_mut_uint_ref(), buf.1.as_mut_uint_ref()))
     }
 }
 
 impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
     /// Computes `floor(√(self))` in constant time.
     ///
-    /// Callers can check if `self` is a square by squaring the result.
+    /// Callers can check if `self` is a square by squaring the result, or
+    /// use `checked_sqrt`.
     #[must_use]
     pub const fn floor_sqrt(&self) -> Self {
-        // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13.
-        //
-        // See Hast, "Note on computation of integer square roots"
-        // for the proof of the sufficiency of the bound on iterations.
-        // https://github.com/RustCrypto/crypto-bigint/files/12600669/ct_sqrt.pdf
-
-        let rt_bits = self.as_ref().bits().div_ceil(2);
-        // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < 2^b`.
-        // Will not overflow since `b <= BITS`.
-        let mut x = Uint::<LIMBS>::ZERO.set_bit_vartime(rt_bits, true);
-        // Compute `self.0 / x_0` by shifting.
-        let mut q = self.as_ref().shr(rt_bits);
-        // The first division has been performed.
-        let mut i = 1;
-
-        loop {
-            // Calculate `x_{i+1} = floor((x_i + self_nz / x_i) / 2)`, leaving `x` unmodified
-            // if it would increase.
-            x = Uint::select(&x.wrapping_add(&q).shr1(), &x, Uint::lt(&x, &q));
-
-            // We repeat enough times to guarantee the result has stabilized.
-            // TODO (#378): the tests indicate that just `Self::LOG2_BITS` may be enough.
-            i += 1;
-            if i >= Uint::<LIMBS>::LOG2_BITS + 2 {
-                return x.to_nz().expect_copied("ensured non-zero");
-            }
-
-            (q, _) = self
-                .as_ref()
-                .div_rem(x.to_nz().expect_ref("ensured non-zero"));
-        }
+        NonZero::new_unchecked(self.as_ref().floor_sqrt())
     }
 
     /// Computes `floor(√(self))`.
     ///
-    /// Callers can check if `self` is a square by squaring the result.
+    /// Callers can check if `self` is a square by squaring the result, or
+    /// use `checked_sqrt_vartime`.
     ///
     /// Variable time with respect to `self`.
     #[must_use]
     pub const fn floor_sqrt_vartime(&self) -> Self {
-        // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13
-
-        let bits = self.as_ref().bits_vartime();
-        if bits <= Limb::BITS {
-            let rt = self.as_ref().limbs[0].0.isqrt();
-            return Uint::from_word(rt)
-                .to_nz()
-                .expect_copied("ensured non-zero");
-        }
-        let rt_bits = bits.div_ceil(2);
-
-        // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < b`.
-        // Will not overflow since `b <= BITS`.
-        let mut x = Uint::ZERO.set_bit_vartime(rt_bits, true);
-        // Compute `self / x_0` by shifting.
-        let mut q = self.as_ref().shr_vartime(rt_bits);
-
-        loop {
-            // Terminate if `x_{i+1}` >= `x`.
-            if q.cmp_vartime(&x).is_ge() {
-                return x.to_nz().expect_copied("ensured non-zero");
-            }
-            // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
-            x = x.wrapping_add(&q).shr_vartime(1);
-            q = self
-                .as_ref()
-                .wrapping_div_vartime(x.to_nz().expect_ref("ensured non-zero"));
-        }
+        NonZero::new_unchecked(self.as_ref().floor_sqrt_vartime())
     }
 
     /// Perform checked sqrt, returning a [`CtOption`] which `is_some`
     /// only if the square root is exact.
     #[must_use]
     pub fn checked_sqrt(&self) -> CtOption<Self> {
-        let r = self.floor_sqrt();
-        let s = r.wrapping_square();
-        CtOption::new(r, self.as_ref().ct_eq(&s))
+        self.as_ref().checked_sqrt().map(NonZero::new_unchecked)
     }
 
     /// Perform checked sqrt, returning an [`Option`] which `is_some`
     /// only if the square root is exact.
     #[must_use]
     pub fn checked_sqrt_vartime(&self) -> Option<Self> {
-        let r = self.floor_sqrt_vartime();
-        let s = r.wrapping_square();
-        if self.as_ref().cmp_vartime(&s).is_eq() {
-            Some(r)
-        } else {
-            None
-        }
+        self.as_ref()
+            .checked_sqrt_vartime()
+            .map(NonZero::new_unchecked)
     }
 }
 
@@ -238,9 +197,9 @@ mod tests {
 
     #[cfg(feature = "rand_core")]
     use {
-        crate::{Random, U512},
+        crate::{CheckedAdd, CheckedSquareRoot, FloorSquareRoot, Random, RandomBits, U512},
         chacha20::ChaCha8Rng,
-        rand_core::{Rng, SeedableRng},
+        rand_core::SeedableRng,
     };
 
     #[test]
@@ -345,12 +304,9 @@ mod tests {
     #[cfg(feature = "rand_core")]
     #[test]
     fn fuzz() {
-        use crate::{CheckedSquareRoot, FloorSquareRoot};
-
         let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
         for _ in 0..50 {
-            let t = u64::from(rng.next_u32());
-            let s = U256::from(t);
+            let s = U256::random_bits(&mut rng, 128);
             let s2 = s.checked_square().unwrap();
             assert_eq!(FloorSquareRoot::floor_sqrt(&s2), s);
             assert_eq!(FloorSquareRoot::floor_sqrt_vartime(&s2), s);
@@ -362,6 +318,13 @@ mod tests {
                 assert_eq!(FloorSquareRoot::floor_sqrt_vartime(&nz).get(), s);
                 assert!(CheckedSquareRoot::checked_sqrt(&nz).is_some().to_bool());
                 assert!(CheckedSquareRoot::checked_sqrt_vartime(&nz).is_some());
+            }
+
+            if let Some(sx) = s2.checked_add(&U256::ONE).into_option() {
+                assert_eq!(FloorSquareRoot::floor_sqrt(&sx), s);
+                assert_eq!(FloorSquareRoot::floor_sqrt_vartime(&sx), s);
+                assert!(CheckedSquareRoot::checked_sqrt(&sx).is_none().to_bool());
+                assert!(CheckedSquareRoot::checked_sqrt_vartime(&sx).is_none());
             }
         }
 
