@@ -3,7 +3,7 @@
 use crate::{
     BoxedUint, CheckedDiv, CtAssign, CtOption, Div, DivAssign, DivRemLimb, DivVartime, Integer,
     Limb, NonZero, Reciprocal, Rem, RemAssign, RemLimb, RemMixed, ToUnsigned, UintRef, Unsigned,
-    Wrapping,
+    Wrapping, bitlen,
 };
 
 impl BoxedUint {
@@ -82,7 +82,7 @@ impl BoxedUint {
     #[must_use]
     pub fn rem_vartime<Rhs: ToUnsigned + ?Sized>(&self, rhs: &NonZero<Rhs>) -> Rhs::Unsigned {
         let xc = self.limbs.len();
-        let yc = rhs.as_ref().as_ref().bits_vartime().div_ceil(Limb::BITS) as usize;
+        let yc = bitlen::to_limbs(rhs.as_ref().as_ref().bits_vartime());
 
         match yc {
             0 => unreachable!("zero divisor"),

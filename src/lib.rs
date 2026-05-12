@@ -196,6 +196,7 @@ pub mod modular;
 
 #[cfg(feature = "hybrid-array")]
 mod array;
+mod bitlen;
 mod checked;
 mod int;
 mod jacobi;

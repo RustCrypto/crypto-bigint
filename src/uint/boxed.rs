@@ -32,7 +32,7 @@ mod rand;
 
 use crate::{
     Choice, CtAssign, CtEq, CtOption, Integer, Limb, NonZero, Odd, One, Resize, UintRef, Unsigned,
-    UnsignedWithMontyForm, Word, Zero, modular::BoxedMontyForm, traits::sealed::Sealed,
+    UnsignedWithMontyForm, Word, Zero, bitlen, modular::BoxedMontyForm, traits::sealed::Sealed,
 };
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{
@@ -61,10 +61,6 @@ pub struct BoxedUint {
 }
 
 impl BoxedUint {
-    fn limbs_for_precision(at_least_bits_precision: u32) -> usize {
-        at_least_bits_precision.div_ceil(Limb::BITS) as usize
-    }
-
     /// Get the value `0` represented as succinctly as possible.
     #[must_use]
     pub fn zero() -> Self {
@@ -78,7 +74,7 @@ impl BoxedUint {
     /// `at_least_bits_precision` is rounded up to a multiple of [`Limb::BITS`].
     #[must_use]
     pub fn zero_with_precision(at_least_bits_precision: u32) -> Self {
-        vec![Limb::ZERO; Self::limbs_for_precision(at_least_bits_precision)].into()
+        vec![Limb::ZERO; bitlen::to_limbs(at_least_bits_precision)].into()
     }
 
     /// Get the value `1`, represented as succinctly as possible.
@@ -128,7 +124,7 @@ impl BoxedUint {
     /// That is, returns the value `2^self.bits_precision() - 1`.
     #[must_use]
     pub fn max(at_least_bits_precision: u32) -> Self {
-        vec![Limb::MAX; Self::limbs_for_precision(at_least_bits_precision)].into()
+        vec![Limb::MAX; bitlen::to_limbs(at_least_bits_precision)].into()
     }
 
     /// Create a [`BoxedUint`] from an array of [`Word`]s (i.e. word-sized unsigned
@@ -148,7 +144,7 @@ impl BoxedUint {
         words: impl IntoIterator<Item = Word>,
         at_least_bits_precision: u32,
     ) -> Self {
-        let size = Self::limbs_for_precision(at_least_bits_precision);
+        let size = bitlen::to_limbs(at_least_bits_precision);
         Self {
             limbs: words
                 .into_iter()
@@ -362,7 +358,7 @@ impl Resize for BoxedUint {
     type Output = BoxedUint;
 
     fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output {
-        let new_len = Self::limbs_for_precision(at_least_bits_precision);
+        let new_len = bitlen::to_limbs(at_least_bits_precision);
         if new_len == self.limbs.len() {
             self
         } else {

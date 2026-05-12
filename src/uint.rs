@@ -7,7 +7,7 @@ pub(crate) use ref_type::UintRef;
 
 use crate::{
     Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, EncodedUint, FixedInteger,
-    Int, Integer, Limb, NonZero, Odd, One, Unsigned, UnsignedWithMontyForm, Word, Zero,
+    Int, Integer, Limb, NonZero, Odd, One, Unsigned, UnsignedWithMontyForm, Word, Zero, bitlen,
     limb::nlimbs, modular::FixedMontyForm, traits::sealed::Sealed,
 };
 use core::fmt;
@@ -106,8 +106,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     };
 
     /// Total size of the represented integer in bits.
-    #[allow(clippy::cast_possible_truncation)]
-    pub const BITS: u32 = LIMBS as u32 * Limb::BITS;
+    pub const BITS: u32 = bitlen::from_limbs(LIMBS);
 
     /// Total size of the represented integer in bytes.
     pub const BYTES: usize = LIMBS * Limb::BYTES;

@@ -2,7 +2,7 @@
 
 use crate::{
     BoxedUint, Choice, CtEq, CtLt, CtOption, CtSelect, Integer, InvertMod, Limb, NonZero, Odd, U64,
-    modular::safegcd, uint::invert_mod::expand_invert_mod2k,
+    bitlen, modular::safegcd, uint::invert_mod::expand_invert_mod2k,
 };
 
 impl BoxedUint {
@@ -149,12 +149,11 @@ impl Odd<BoxedUint> {
     /// Compute a quadratic inversion, `self^-1 mod 2^k` where `k <= bits_precision()`.
     ///
     /// This method is variable-time in `k` only.
-    #[allow(clippy::integer_division_remainder_used, reason = "vartime")]
     pub(crate) fn invert_mod2k_vartime(&self, k: u32) -> BoxedUint {
         let bits = self.bits_precision();
         assert!(k <= bits);
 
-        let k_limbs = k.div_ceil(Limb::BITS) as usize;
+        let k_limbs = bitlen::to_limbs(k);
         let inv_64 = U64::from_u64(self.as_uint_ref().invert_mod_u64());
         let mut inv = BoxedUint::from_words_with_precision(*inv_64.as_words(), bits);
 
@@ -162,9 +161,8 @@ impl Odd<BoxedUint> {
             // trim to k_limbs
             inv.as_mut_uint_ref().trailing_mut(k_limbs).fill(Limb::ZERO);
         } else {
-            // expand to k_limbs
-            #[allow(clippy::cast_possible_truncation)]
-            let mut scratch = BoxedUint::zero_with_precision(k_limbs as u32 * 2 * Limb::BITS);
+            // expand to k_limbss
+            let mut scratch = BoxedUint::zero_with_precision(2 * bitlen::from_limbs(k_limbs));
 
             expand_invert_mod2k(
                 self.as_uint_ref(),
@@ -175,10 +173,12 @@ impl Odd<BoxedUint> {
         }
 
         // clear bits in the high limb if necessary
-        let k_bits = k % Limb::BITS;
+        let k_bits = k & (Limb::BITS - 1);
+
         if k_bits > 0 {
             inv.limbs[k_limbs - 1] = inv.limbs[k_limbs - 1].restrict_bits(k_bits);
         }
+
         inv
     }
 }

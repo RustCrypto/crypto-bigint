@@ -12,9 +12,8 @@
 #[cfg(feature = "alloc")]
 pub(crate) mod boxed;
 
+use crate::{Choice, CtOption, I64, Int, Limb, Odd, U64, Uint, bitlen, primitives::u32_min};
 use core::fmt;
-
-use crate::{Choice, CtOption, I64, Int, Limb, Odd, U64, Uint, primitives::u32_min};
 
 const GCD_BATCH_SIZE: u32 = 62;
 
@@ -331,7 +330,7 @@ const fn shr_in_place_wide<const L: usize, const H: usize>(
     let copy = hi.shl_vartime(Uint::<H>::BITS - shift);
     *hi = hi.shr_vartime(shift);
     *lo = lo.shr_vartime(shift);
-    let mut offs = shift.div_ceil(Limb::BITS) as usize;
+    let mut offs = bitlen::to_limbs(shift);
     lo.limbs[L - offs] = lo.limbs[L - offs].bitor(copy.limbs[H - offs]);
     loop {
         offs -= 1;

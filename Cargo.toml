@@ -48,6 +48,7 @@ proptest = "1.11"
 default = ["rand_core"]
 alloc = ["serdect?/alloc"]
 
+der = ["dep:der", "hybrid-array"]
 extra-sizes = []
 getrandom = ["dep:getrandom", "rand_core"]
 rand_core = ["dep:rand_core"]

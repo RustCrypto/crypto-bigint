@@ -1,6 +1,6 @@
 //! Bit manipulation functions.
 
-use crate::{BitOps, BoxedUint, Choice, Limb};
+use crate::{BitOps, BoxedUint, Choice, Limb, bitlen};
 
 impl BoxedUint {
     /// Get the value of the bit at position `index`, as a truthy or falsy `Choice`.
@@ -45,9 +45,8 @@ impl BoxedUint {
     /// Get the precision of this [`BoxedUint`] in bits.
     #[inline(always)]
     #[must_use]
-    #[allow(clippy::cast_possible_truncation)]
     pub fn bits_precision(&self) -> u32 {
-        self.limbs.len() as u32 * Limb::BITS
+        bitlen::from_limbs(self.limbs.len())
     }
 
     /// Calculate the number of trailing zeros in the binary representation of this number.

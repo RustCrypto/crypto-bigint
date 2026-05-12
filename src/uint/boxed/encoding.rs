@@ -1,7 +1,7 @@
 //! Const-friendly decoding operations for [`BoxedUint`].
 
 use super::BoxedUint;
-use crate::{CtEq, CtOption, DecodeError, Encoding, Limb, Word, uint::encoding};
+use crate::{CtEq, CtOption, DecodeError, Encoding, Limb, Word, bitlen, uint::encoding};
 use alloc::{boxed::Box, string::String, vec::Vec};
 
 #[cfg(feature = "serde")]
@@ -22,11 +22,7 @@ impl BoxedUint {
     /// - Returns [`DecodeError::Precision`] if the size of the decoded integer is larger than
     ///   `bits_precision`.
     pub fn from_be_slice(bytes: &[u8], bits_precision: u32) -> Result<Self, DecodeError> {
-        if bytes.is_empty() && bits_precision == 0 {
-            return Ok(Self::zero());
-        }
-
-        if bytes.len() > (bits_precision as usize).div_ceil(8) {
+        if bytes.len() > bitlen::to_bytes(bits_precision) {
             return Err(DecodeError::InputSize);
         }
 
@@ -53,7 +49,7 @@ impl BoxedUint {
     #[must_use]
     #[allow(clippy::cast_possible_truncation, clippy::missing_panics_doc)]
     pub fn from_be_slice_vartime(bytes: &[u8]) -> Self {
-        let bits_precision = (bytes.len() as u32).saturating_mul(8);
+        let bits_precision = bitlen::from_bytes(bytes.len());
 
         // TODO(tarcieri): avoid panic
         Self::from_be_slice(bytes, bits_precision).expect("precision should be large enough")
@@ -73,11 +69,7 @@ impl BoxedUint {
     /// - Returns [`DecodeError::Precision`] if the size of the decoded integer is larger than
     ///   `bits_precision`.
     pub fn from_le_slice(bytes: &[u8], bits_precision: u32) -> Result<Self, DecodeError> {
-        if bytes.is_empty() && bits_precision == 0 {
-            return Ok(Self::zero());
-        }
-
-        if bytes.len() > (bits_precision as usize).div_ceil(8) {
+        if bytes.len() > bitlen::to_bytes(bits_precision) {
             return Err(DecodeError::InputSize);
         }
 
@@ -104,7 +96,7 @@ impl BoxedUint {
     #[must_use]
     #[allow(clippy::cast_possible_truncation, clippy::missing_panics_doc)]
     pub fn from_le_slice_vartime(bytes: &[u8]) -> Self {
-        let bits_precision = (bytes.len() as u32).saturating_mul(8);
+        let bits_precision = bitlen::from_bytes(bytes.len());
 
         // TODO(tarcieri): avoid panic
         Self::from_le_slice(bytes, bits_precision).expect("precision should be large enough")
@@ -283,13 +275,11 @@ impl Encoding for BoxedUint {
     }
 
     fn from_be_bytes(bytes: Self::Repr) -> Self {
-        BoxedUint::from_be_slice(&bytes, (bytes.len() * 8).try_into().expect("overflow"))
-            .expect("decode error")
+        BoxedUint::from_be_slice_vartime(&bytes)
     }
 
     fn from_le_bytes(bytes: Self::Repr) -> Self {
-        BoxedUint::from_le_slice(&bytes, (bytes.len() * 8).try_into().expect("overflow"))
-            .expect("decode error")
+        BoxedUint::from_le_slice_vartime(&bytes)
     }
 }
 
