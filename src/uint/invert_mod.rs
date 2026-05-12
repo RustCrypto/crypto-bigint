@@ -1,6 +1,7 @@
 use super::Uint;
 use crate::{
-    Choice, CtOption, InvertMod, Limb, NonZero, Odd, U64, UintRef, modular::safegcd, mul::karatsuba,
+    Choice, CtOption, InvertMod, Limb, NonZero, Odd, U64, UintRef, bitlen, modular::safegcd,
+    mul::karatsuba,
 };
 
 /// Perform a modified recursive Hensel quadratic modular inversion to calculate
@@ -223,11 +224,10 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     /// Compute a quadratic inversion, `self^-1 mod 2^k` where `k <= Self::BITS`.
     ///
     /// This method is variable-time in `k` only.
-    #[allow(clippy::integer_division_remainder_used, reason = "vartime")]
     pub(crate) const fn invert_mod2k_vartime(&self, k: u32) -> Uint<LIMBS> {
         assert!(k <= Self::BITS);
 
-        let k_limbs = k.div_ceil(Limb::BITS) as usize;
+        let k_limbs = bitlen::to_limbs(k);
         let mut inv = U64::from_u64(self.as_uint_ref().invert_mod_u64()).resize::<LIMBS>();
 
         if k_limbs <= U64::LIMBS {
@@ -245,6 +245,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         }
 
         // clear bits in the high limb if necessary
+        #[allow(clippy::integer_division_remainder_used, reason = "TODO")]
         let k_bits = k % Limb::BITS;
         if k_bits > 0 {
             inv.limbs[k_limbs - 1] = inv.limbs[k_limbs - 1].restrict_bits(k_bits);

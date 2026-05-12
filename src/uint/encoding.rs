@@ -1,6 +1,6 @@
 //! Const-friendly decoding/encoding operations for [`Uint`].
 
-#[cfg(all(feature = "der", feature = "hybrid-array"))]
+#[cfg(feature = "der")]
 mod der;
 #[cfg(feature = "rlp")]
 mod rlp;
@@ -10,7 +10,7 @@ use crate::{DecodeError, EncodedSize, Encoding, Limb, Word};
 use core::{fmt, ops::Deref};
 
 #[cfg(feature = "alloc")]
-use crate::{Choice, NonZero, Reciprocal, UintRef, WideWord};
+use crate::{Choice, NonZero, Reciprocal, UintRef, WideWord, bitlen};
 #[cfg(feature = "alloc")]
 use alloc::{string::String, vec::Vec};
 
@@ -723,8 +723,7 @@ pub(crate) fn radix_encode_limbs_mut_to_string(radix: u32, limbs: &mut UintRef) 
 
     let mut out;
     if radix.is_power_of_two() {
-        let bits = radix.trailing_zeros() as usize;
-        let size = (limbs.nlimbs() * Limb::BITS as usize).div_ceil(bits);
+        let size = bitlen::from_limbs(limbs.nlimbs()).div_ceil(radix.trailing_zeros()) as usize;
         out = vec![0u8; size];
         radix_encode_limbs_by_shifting(radix, limbs, &mut out[..]);
     } else {

@@ -5,7 +5,7 @@
 
 use super::UintRef;
 use crate::{
-    Choice, Limb, NonZero,
+    Choice, Limb, NonZero, bitlen,
     div_limb::{Reciprocal, div2by1, div3by2},
     primitives::u32_min,
     word,
@@ -54,11 +54,10 @@ impl UintRef {
     ///
     /// # Panics
     /// If the divisor is zero.
-    #[allow(clippy::cast_possible_truncation)]
     pub(crate) const fn div_rem_vartime(&mut self, rhs: &mut Self) {
         let (x, y) = (self, rhs);
         let xsize = x.nlimbs();
-        let ywords = y.bits_vartime().div_ceil(Limb::BITS) as usize;
+        let ywords = bitlen::to_limbs(y.bits_vartime());
 
         match (xsize, ywords) {
             (_, 0) => panic!("zero divisor"),
@@ -88,6 +87,7 @@ impl UintRef {
         x.div_rem_large_vartime(y.leading_mut(ywords));
 
         // Shift the quotient to the low limbs within dividend
+        #[allow(clippy::cast_possible_truncation, reason = "TODO")]
         x.unbounded_shr_assign_by_limbs_vartime((ywords - 1) as u32);
     }
 
@@ -145,11 +145,10 @@ impl UintRef {
     /// # Panics
     /// If the divisor is zero.
     #[inline(always)]
-    #[allow(clippy::cast_possible_truncation)]
     pub(crate) const fn rem_wide_vartime(x_lower_upper: (&mut Self, &mut Self), rhs: &mut Self) {
         let (x_lo, x) = x_lower_upper;
         let xsize = x.nlimbs();
-        let ysize = rhs.bits_vartime().div_ceil(Limb::BITS) as usize;
+        let ysize = bitlen::to_limbs(rhs.bits_vartime());
         let y = rhs.leading_mut(ysize);
 
         match (xsize, ysize) {
@@ -192,7 +191,10 @@ impl UintRef {
             (x_lo, x),
             x_hi,
             y,
-            ysize as u32,
+            #[allow(clippy::cast_possible_truncation, reason = "TODO")]
+            {
+                ysize as u32
+            },
             reciprocal,
             Choice::TRUE,
         );

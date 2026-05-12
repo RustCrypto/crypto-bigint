@@ -1,7 +1,9 @@
 //! Random number generator support
 
 use super::Uint;
-use crate::{CtLt, Encoding, Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod};
+use crate::{
+    CtLt, Encoding, Limb, NonZero, Random, RandomBits, RandomBitsError, RandomMod, bitlen,
+};
 use rand_core::{Rng, TryRng};
 
 impl<const LIMBS: usize> Random for Uint<LIMBS> {
@@ -38,7 +40,7 @@ where
         return Ok(());
     }
 
-    let n_bytes = n_bits.div_ceil(u8::BITS) as usize;
+    let n_bytes = bitlen::to_bytes(n_bits);
     let hi_mask = u8::MAX >> ((u8::BITS - (n_bits % u8::BITS)) % u8::BITS);
 
     let mut buffer = x.to_le_bytes();

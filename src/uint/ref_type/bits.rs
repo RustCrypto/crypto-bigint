@@ -1,12 +1,11 @@
 use super::UintRef;
-use crate::{Choice, Limb, traits::BitOps, word};
+use crate::{Choice, Limb, bitlen, traits::BitOps, word};
 
 impl UintRef {
     /// Get the precision of this number in bits.
-    #[allow(clippy::cast_possible_truncation)]
     #[must_use]
     pub const fn bits_precision(&self) -> u32 {
-        self.limbs.len() as u32 * Limb::BITS
+        bitlen::from_limbs(self.limbs.len())
     }
 
     /// Get the value of the bit at position `index`, as a truthy or falsy [`Choice`].

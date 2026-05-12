@@ -85,8 +85,10 @@ pub(crate) fn count_der_be_bytes(limbs: &[Limb]) -> u32 {
     let needs_leading_zero = first_nonzero_byte >= 0x80;
 
     // Number of bytes in all limbs
-    #[allow(clippy::cast_possible_truncation)]
-    let max_len = (Limb::BYTES * limbs.len()) as u32;
+    let max_len = Limb::BYTES
+        .checked_mul(limbs.len())
+        .and_then(|bytes| u32::try_from(bytes).ok())
+        .expect("u32 overflow"); // TODO(tarcieri): don't panic
 
     // If all bytes are zeros:
     if leading_zero_bytes == max_len {
@@ -101,9 +103,8 @@ pub(crate) fn count_der_be_bytes(limbs: &[Limb]) -> u32 {
 
 #[cfg(feature = "alloc")]
 pub mod allocating {
+    use crate::{BoxedUint, bitlen, encoding::der::count_der_be_bytes};
     use der::{DecodeValue, EncodeValue, FixedTag, Length, Tag, asn1::UintRef as Asn1UintRef};
-
-    use crate::{BoxedUint, encoding::der::count_der_be_bytes};
 
     impl EncodeValue for BoxedUint {
         fn value_len(&self) -> der::Result<Length> {
@@ -124,9 +125,7 @@ pub mod allocating {
             header: der::Header,
         ) -> der::Result<Self> {
             let value = Asn1UintRef::decode_value(reader, header)?;
-
-            #[allow(clippy::cast_possible_truncation)]
-            let bits_precision = value.as_bytes().len() as u32 * 8;
+            let bits_precision = bitlen::from_bytes(value.as_bytes().len());
 
             let value = BoxedUint::from_be_slice(value.as_bytes(), bits_precision)
                 .map_err(|_| Asn1UintRef::TAG.value_error())?;
@@ -141,8 +140,11 @@ pub mod allocating {
 
 #[cfg(test)]
 pub mod test {
-    use crate::{ArrayEncoding, BoxedUint, U128, Uint};
+    use crate::{ArrayEncoding, U128, Uint};
     use der::{DecodeValue, EncodeValue, Header, Tag};
+
+    #[cfg(feature = "alloc")]
+    use crate::BoxedUint;
 
     #[allow(clippy::cast_possible_truncation, clippy::panic_in_result_fn)]
     fn assert_valid_uint_value_len<const LIMBS: usize>(n: &Uint<LIMBS>) -> der::Result<()>
