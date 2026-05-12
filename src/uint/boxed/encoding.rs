@@ -13,8 +13,8 @@ impl BoxedUint {
     /// The `bits_precision` argument represents the precision of the resulting integer, which is
     /// fixed as this type is not arbitrary-precision.
     ///
-    /// The new [`BoxedUint`] will be created with `bits_precision`
-    /// rounded up to a multiple of [`Limb::BITS`].
+    /// The new [`BoxedUint`] will be created with `bits_precision` rounded up to a multiple of
+    /// [`Limb::BITS`].
     ///
     /// # Errors
     /// - Returns [`DecodeError::InputSize`] if the length of `bytes` is larger than
@@ -26,17 +26,34 @@ impl BoxedUint {
             return Err(DecodeError::InputSize);
         }
 
-        let mut ret = Self::zero_with_precision(bits_precision);
-
-        for (chunk, limb) in bytes.rchunks(Limb::BYTES).zip(ret.limbs.iter_mut()) {
-            *limb = Limb::from_be_slice(chunk);
-        }
+        let ret = Self::from_be_slice_truncated(bytes, bits_precision);
 
         if bits_precision < ret.bits() {
             return Err(DecodeError::Precision);
         }
 
         Ok(ret)
+    }
+
+    /// Create a new [`BoxedUint`] from the provided big endian bytes, zero padding if necessary,
+    /// and truncating to the least significant bytes in the event the given amount of data exceeds
+    /// `bits_precision`.
+    #[must_use]
+    pub fn from_be_slice_truncated(mut bytes: &[u8], bits_precision: u32) -> Self {
+        let bytes_precision = bitlen::to_bytes(bits_precision);
+
+        // TODO(tarcieri): mask bits in the most significant byte if necessary
+        if bytes.len() > bytes_precision {
+            bytes = &bytes[..bytes_precision];
+        }
+
+        let mut ret = Self::zero_with_precision(bits_precision);
+
+        for (chunk, limb) in bytes.rchunks(Limb::BYTES).zip(ret.limbs.iter_mut()) {
+            *limb = Limb::from_be_slice(chunk);
+        }
+
+        ret
     }
 
     /// Create a new [`BoxedUint`] from the provided big endian bytes, automatically selecting its
@@ -47,12 +64,8 @@ impl BoxedUint {
     ///
     /// When working with secret values, use [`BoxedUint::from_be_slice`].
     #[must_use]
-    #[allow(clippy::cast_possible_truncation, clippy::missing_panics_doc)]
     pub fn from_be_slice_vartime(bytes: &[u8]) -> Self {
-        let bits_precision = bitlen::from_bytes(bytes.len());
-
-        // TODO(tarcieri): avoid panic
-        Self::from_be_slice(bytes, bits_precision).expect("precision should be large enough")
+        Self::from_be_slice_truncated(bytes, bitlen::from_bytes(bytes.len()))
     }
 
     /// Create a new [`BoxedUint`] from the provided little endian bytes.
@@ -73,17 +86,32 @@ impl BoxedUint {
             return Err(DecodeError::InputSize);
         }
 
-        let mut ret = Self::zero_with_precision(bits_precision);
-
-        for (chunk, limb) in bytes.chunks(Limb::BYTES).zip(ret.limbs.iter_mut()) {
-            *limb = Limb::from_le_slice(chunk);
-        }
+        let ret = Self::from_le_slice_truncated(bytes, bits_precision);
 
         if bits_precision < ret.bits() {
             return Err(DecodeError::Precision);
         }
 
         Ok(ret)
+    }
+
+    /// Create a new [`BoxedUint`] from the provided little endian bytes, zero padding if necessary,
+    /// and truncating to the least significant bytes in the event the given amount of data exceeds
+    /// `bits_precision`.
+    #[must_use]
+    pub fn from_le_slice_truncated(mut bytes: &[u8], bits_precision: u32) -> Self {
+        let offset = bytes.len().saturating_sub(bitlen::to_bytes(bits_precision));
+
+        // TODO(tarcieri): mask bits in the most significant byte if necessary
+        bytes = &bytes[offset..];
+
+        let mut ret = Self::zero_with_precision(bits_precision);
+
+        for (chunk, limb) in bytes.chunks(Limb::BYTES).zip(ret.limbs.iter_mut()) {
+            *limb = Limb::from_le_slice(chunk);
+        }
+
+        ret
     }
 
     /// Create a new [`BoxedUint`] from the provided little endian bytes, automatically selecting
@@ -94,12 +122,8 @@ impl BoxedUint {
     ///
     /// When working with secret values, use [`BoxedUint::from_le_slice`].
     #[must_use]
-    #[allow(clippy::cast_possible_truncation, clippy::missing_panics_doc)]
     pub fn from_le_slice_vartime(bytes: &[u8]) -> Self {
-        let bits_precision = bitlen::from_bytes(bytes.len());
-
-        // TODO(tarcieri): avoid panic
-        Self::from_le_slice(bytes, bits_precision).expect("precision should be large enough")
+        Self::from_le_slice_truncated(bytes, bitlen::from_bytes(bytes.len()))
     }
 
     /// Serialize this [`BoxedUint`] as big-endian.
@@ -163,9 +187,8 @@ impl BoxedUint {
     /// # Panics
     /// - if hex string is not the expected size
     #[must_use]
-    #[allow(clippy::integer_division_remainder_used, reason = "public parameter")]
     pub fn from_be_hex(hex: &str, bits_precision: u32) -> CtOption<Self> {
-        let nlimbs = (bits_precision / Limb::BITS) as usize;
+        let nlimbs = bitlen::to_limbs(bits_precision);
         let bytes = hex.as_bytes();
 
         assert_eq!(
