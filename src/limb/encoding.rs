@@ -29,7 +29,7 @@ impl Encoding for Limb {
 
 #[cfg(feature = "alloc")]
 impl Limb {
-    /// Decode limb from a big endian byte slice.
+    /// Decode limb from a big endian byte slice, which may be shorter than [`Limb::BYTES`].
     ///
     /// # Panics
     /// - if the slice is larger than [`Limb::Repr`].
@@ -43,7 +43,7 @@ impl Limb {
         Self::from_be_bytes(repr)
     }
 
-    /// Decode limb from a little endian byte slice.
+    /// Decode limb from a little endian byte slice, which may be shorter than [`Limb::BYTES`].
     ///
     /// # Panics
     /// - if the slice is not the same size as [`Limb::Repr`].
