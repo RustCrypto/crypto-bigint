@@ -63,6 +63,15 @@ impl BoxedUint {
         rem
     }
 
+    /// Exactly divides `self` by `rhs`, returning `CtOption::none()` if `self` is not divisible by `rhs`.
+    #[must_use]
+    pub fn div_exact<Rhs: ToUnsigned + ?Sized>(&self, rhs: &NonZero<Rhs>) -> CtOption<Self> {
+        let mut quo = self.clone();
+        let mut div = rhs.to_unsigned().get();
+        let exact = quo.as_mut_uint_ref().div_exact(div.as_mut_uint_ref());
+        CtOption::new(quo, exact)
+    }
+
     /// Computes self / rhs, returns the quotient and remainder.
     ///
     /// Variable-time with respect to `rhs`
@@ -119,6 +128,20 @@ impl BoxedUint {
         let mut rem = rhs.get();
         self.as_mut_uint_ref().div_rem_vartime(rem.as_mut());
         rem
+    }
+
+    /// Exactly divides `self` by `rhs`, returning `CtOption::none()` if `self` is not divisible by `rhs`.
+    #[must_use]
+    pub fn div_exact_vartime<Rhs: ToUnsigned + ?Sized>(
+        &self,
+        rhs: &NonZero<Rhs>,
+    ) -> CtOption<Self> {
+        let mut quo = self.clone();
+        let mut div = rhs.to_unsigned().get();
+        let exact = quo
+            .as_mut_uint_ref()
+            .div_exact_vartime(div.as_mut_uint_ref());
+        CtOption::new(quo, exact)
     }
 
     /// Wrapped division is just normal division i.e. `self` / `rhs`

@@ -94,9 +94,62 @@ pub(crate) const fn u32_bits(n: u32) -> u32 {
     u32::BITS - n.leading_zeros()
 }
 
+/// Return a `Choice` representing whether `a < b`.
+#[allow(clippy::cast_possible_truncation)]
+#[cfg(target_pointer_width = "32")]
+#[inline]
+pub(crate) const fn usize_lt(a: usize, b: usize) -> Choice {
+    Choice::from_u32_lt(a as u32, b as u32)
+}
+
+/// Return a `Choice` representing whether `a < b`.
+#[allow(clippy::cast_possible_truncation)]
+#[cfg(target_pointer_width = "64")]
+#[inline]
+pub(crate) const fn usize_lt(a: usize, b: usize) -> Choice {
+    Choice::from_u64_lt(a as u64, b as u64)
+}
+
+cpubits::cpubits! {
+    32 => {
+        /// Returns the multiplicative inverse of the argument modulo 2^32.
+        ///
+        /// For correct results, the input `value` must be odd.
+        #[must_use]
+        pub(crate) const fn u32_invert_odd(value: u32) -> u32 {
+            debug_assert!(value & 1 == 1, "value must be odd");
+            let x = value.wrapping_mul(3) ^ 2;
+            let y = 1u32.wrapping_sub(x.wrapping_mul(value));
+            let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
+            let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
+            x.wrapping_mul(y.wrapping_add(1))
+        }
+    }
+}
+
+/// Returns the multiplicative inverse of the argument modulo 2^64. The implementation is based
+/// on Hurchalla's method for computing the multiplicative inverse modulo a power of two, and
+/// is essentially an optimized Newton iteration.
+///
+/// For correct results, the input `value` must be odd.
+///
+/// For better understanding the implementation, the following paper is recommended:
+/// J. Hurchalla, "An Improved Integer Multiplicative Inverse (modulo 2^w)",
+/// <https://arxiv.org/abs/2204.04342>
+#[must_use]
+pub(crate) const fn u64_invert_odd(value: u64) -> u64 {
+    debug_assert!(value & 1 == 1, "value must be odd");
+    let x = value.wrapping_mul(3) ^ 2;
+    let y = 1u64.wrapping_sub(x.wrapping_mul(value));
+    let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
+    let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
+    let (x, y) = (x.wrapping_mul(y.wrapping_add(1)), y.wrapping_mul(y));
+    x.wrapping_mul(y.wrapping_add(1))
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{u32_max, u32_min, u32_rem};
+    use super::{u32_max, u32_min, u32_rem, usize_lt};
     use crate::Word;
 
     #[test]
@@ -132,5 +185,26 @@ mod tests {
         assert_eq!(u32_rem(4, 5), 4);
         assert_eq!(u32_rem(7, 5), 2);
         assert_eq!(u32_rem(101, 5), 1);
+    }
+
+    #[test]
+    fn test_usize_const_lt() {
+        assert!(usize_lt(0, 5).to_bool_vartime());
+        assert!(!usize_lt(7, 0).to_bool_vartime());
+        assert!(!usize_lt(7, 5).to_bool_vartime());
+        assert!(!usize_lt(7, 7).to_bool_vartime());
+    }
+
+    cpubits::cpubits! {
+        32 => {
+            #[test]
+            fn test_u32_invert_odd() {
+                use super::u32_invert_odd;
+
+                assert_eq!(u32_invert_odd(1), 1);
+                assert_eq!(u32_invert_odd(5).wrapping_mul(5), 1);
+                assert_eq!(u32_invert_odd(u32::MAX).wrapping_mul(u32::MAX), 1);
+            }
+        }
     }
 }

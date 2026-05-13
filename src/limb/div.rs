@@ -42,6 +42,30 @@ impl Limb {
         let rem = self.div_rem(rhs_nz).1;
         CtOption::new(rem, is_nz)
     }
+
+    /// Exactly divides `self` by `rhs`, returning `CtOption::none()` if `self` is not divisible by `rhs`.
+    #[must_use]
+    pub const fn div_exact(&self, rhs: NonZero<Limb>) -> CtOption<Self> {
+        let mut quo = *self;
+        let mut div = rhs.get_copy();
+        let exact = UintRef::new_mut(slice::from_mut(&mut quo))
+            .div_exact(UintRef::new_mut(slice::from_mut(&mut div)));
+        CtOption::new(quo, exact)
+    }
+
+    /// Exactly divides `self` by `rhs`, returning `CtOption::none()` if `self` is not divisible by `rhs`.
+    ///
+    /// This is variable-time only with respect to `rhs`.
+    ///
+    /// When used with a fixed `rhs`, this function is constant-time with respect to `self`.
+    #[must_use]
+    pub const fn div_exact_vartime(&self, rhs: NonZero<Limb>) -> CtOption<Self> {
+        let mut quo = *self;
+        let mut div = rhs.get_copy();
+        let exact = UintRef::new_mut(slice::from_mut(&mut quo))
+            .div_exact_vartime(UintRef::new_mut(slice::from_mut(&mut div)));
+        CtOption::new(quo, exact)
+    }
 }
 
 impl CheckedDiv for Limb {
@@ -285,6 +309,17 @@ mod tests {
         let n = Limb::from_u32(0xffff_ffff);
         let d = NonZero::new(Limb::from_u32(0xfffe)).expect("ensured non-zero");
         assert_eq!(n.div_rem(d), (Limb::from_u32(0x10002), Limb::from_u32(0x3)));
+
+        assert_eq!(n.div_exact(d).into_option(), None);
+        assert_eq!(n.div_exact_vartime(d).into_option(), None);
+
+        let d = NonZero::new(Limb::from_u32(0xffff)).expect("ensured non-zero");
+        assert_eq!(n.div_rem(d), (Limb::from_u32(0x10001), Limb::from_u32(0)));
+        assert_eq!(n.div_exact(d).into_option(), Some(Limb::from_u32(0x10001)));
+        assert_eq!(
+            n.div_exact_vartime(d).into_option(),
+            Some(Limb::from_u32(0x10001))
+        );
     }
 
     #[test]

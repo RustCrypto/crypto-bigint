@@ -69,6 +69,36 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         (x, y)
     }
 
+    /// Exactly divides `self` by `rhs`, returning `CtOption::none()` if `self` is not divisible by `rhs`.
+    #[must_use]
+    pub const fn div_exact<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &NonZero<Uint<RHS_LIMBS>>,
+    ) -> CtOption<Self> {
+        let mut quo = *self;
+        let mut div = rhs.get_copy();
+        let exact = quo.as_mut_uint_ref().div_exact(div.as_mut_uint_ref());
+        CtOption::new(quo, exact)
+    }
+
+    /// Exactly divides `self` by `rhs`, returning `CtOption::none()` if `self` is not divisible by `rhs`.
+    ///
+    /// This is variable-time only with respect to `rhs`.
+    ///
+    /// When used with a fixed `rhs`, this function is constant-time with respect to `self`.
+    #[must_use]
+    pub const fn div_exact_vartime<const RHS_LIMBS: usize>(
+        &self,
+        rhs: &NonZero<Uint<RHS_LIMBS>>,
+    ) -> CtOption<Self> {
+        let mut quo = *self;
+        let mut div = rhs.get_copy();
+        let exact = quo
+            .as_mut_uint_ref()
+            .div_exact_vartime(div.as_mut_uint_ref());
+        CtOption::new(quo, exact)
+    }
+
     /// Computes self / rhs, assigning the quotient to `self` and returning the remainder.
     #[must_use]
     pub(crate) fn div_rem_assign<Rhs: Unsigned>(&mut self, rhs: NonZero<Rhs>) -> Rhs {
@@ -538,6 +568,10 @@ mod tests {
             let (q, r) = lhs.div_rem_vartime(&rhs);
             assert_eq!(U256::from(*e), q);
             assert_eq!(U256::from(*ee), r);
+            let q = lhs.div_exact(&rhs).into_option();
+            assert_eq!(if *ee == 0 { Some(U256::from(*e)) } else { None }, q);
+            let q = lhs.div_exact_vartime(&rhs).into_option();
+            assert_eq!(if *ee == 0 { Some(U256::from(*e)) } else { None }, q);
         }
     }
 
@@ -562,6 +596,10 @@ mod tests {
                 assert_eq!(q, num);
                 let (q, _) = n.div_rem_vartime(&den);
                 assert_eq!(q, num);
+                let q = n.div_exact(&den).into_option();
+                assert_eq!(q, Some(num));
+                let q = n.div_exact_vartime(&den).into_option();
+                assert_eq!(q, Some(num));
             }
         }
     }
