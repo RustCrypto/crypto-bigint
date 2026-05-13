@@ -7,7 +7,7 @@ use super::UintRef;
 use crate::{
     Choice, Limb, NonZero, Odd, bitlen,
     div_limb::{Reciprocal, div2by1, div3by2},
-    primitives::u32_min,
+    primitives::{u32_min, usize_lt},
     word,
 };
 
@@ -624,7 +624,7 @@ impl UintRef {
 
         let y = Odd::new_ref_unchecked(rhs);
         let y_inv = y.invert_mod_limb();
-        let ywords = (y_bits - tz).div_ceil(Limb::BITS);
+        let ywords = bitlen::to_limbs(y_bits - tz);
         let is_exact =
             Self::div_exact_odd_with_inverse::<false>(self, y, y_inv, ywords).and(div2s_exact);
 
@@ -654,21 +654,21 @@ impl UintRef {
             return Choice::FALSE;
         }
         // Reduce the divisor to its populated limbs and shift it such that it is odd
-        let rhs = rhs.leading_mut(y_bits.div_ceil(Limb::BITS) as usize);
+        let rhs = rhs.leading_mut(bitlen::to_limbs(y_bits));
         rhs.unbounded_shr_assign_vartime(tz);
 
         // Check that the dividend evenly divides by 2^tz, and shift it to match the divisor
         let div2s_exact = self.ensure_trailing_zeros(tz);
         self.unbounded_shr_assign_vartime(tz);
 
-        let ywords = (y_bits - tz).div_ceil(Limb::BITS);
-        let y = Odd::new_ref_unchecked(rhs.leading(ywords as usize));
+        let ywords = bitlen::to_limbs(y_bits - tz);
+        let y = Odd::new_ref_unchecked(rhs.leading(ywords));
         let y_inv = y.invert_mod_limb();
         let is_exact =
             Self::div_exact_odd_with_inverse::<true>(self, y, y_inv, ywords).and(div2s_exact);
 
         // Restore the divisor
-        rhs.shl_assign(tz);
+        rhs.unbounded_shl_assign_vartime(tz);
 
         is_exact
     }
@@ -685,23 +685,23 @@ impl UintRef {
     /// For constant-time operation, this acts as if the divisor `y` is as small as one limb,
     /// performing loops without updates to the quotient for larger divisors when vartime operation
     /// is not specified.
-    #[allow(clippy::cast_possible_truncation)]
     #[inline(always)]
     const fn div_exact_odd_with_inverse<const VARTIME: bool>(
         x: &mut UintRef,
         y: &Odd<UintRef>,
         y_inv: Limb,
-        ywords: u32,
+        ywords: usize,
     ) -> Choice {
         let xc = x.nlimbs();
         let y = y.as_ref();
+        let yc = y.nlimbs();
         let mut meta_carry = Limb::ZERO;
         let mut xi = 0;
 
         while xi < xc {
-            let y_remain = u32_min((xc - xi) as u32, y.nlimbs() as u32);
+            let y_remain = if yc < (xc - xi) { yc } else { xc - xi };
             // This loop is a no-op once there are fewer words remaining than the size of the divisor
-            let done = Choice::from_u32_lt(y_remain, ywords);
+            let done = usize_lt(y_remain, ywords);
             if VARTIME && done.to_bool_vartime() {
                 // Set the upper limbs to zero
                 x.trailing_mut(xi).fill(Limb::ZERO);
@@ -717,7 +717,7 @@ impl UintRef {
             let mut borrow = Limb::ZERO;
             let mut yi = 1;
 
-            while yi < y_remain as usize {
+            while yi < y_remain {
                 (sub, carry) = quo.carrying_mul_add(y.limbs[yi], Limb::ZERO, carry);
                 (x.limbs[xi + yi], borrow) = x.limbs[xi + yi].borrowing_sub(sub, borrow);
                 yi += 1;
