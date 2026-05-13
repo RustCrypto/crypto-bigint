@@ -185,7 +185,7 @@ impl UintRef {
         let reciprocal = Reciprocal::new(y.limbs[ysize - 1].to_nz().expect_copied("zero divisor"));
 
         // Perform the core division algorithm
-        x_hi = Self::rem_wide_large_shifted(
+        x_hi = Self::rem_wide_large_shifted::<true>(
             (x_lo, x),
             x_hi,
             y,
@@ -194,7 +194,6 @@ impl UintRef {
                 ysize as u32
             },
             reciprocal,
-            Choice::TRUE,
         );
 
         // Copy the remainder to the divisor
@@ -226,7 +225,7 @@ impl UintRef {
         debug_assert!(reciprocal.shift() == 0);
 
         // Perform the core division algorithm
-        x_hi = Self::div_rem_large_shifted(x, x_hi, y, ywords, reciprocal, Choice::FALSE);
+        x_hi = Self::div_rem_large_shifted::<false>(x, x_hi, y, ywords, reciprocal);
 
         // Calculate quotient and remainder for the case where the divisor is a single word.
         let limb_div = Choice::from_u32_eq(1, ywords);
@@ -276,13 +275,12 @@ impl UintRef {
     /// is set, and `x_hi` holds the top bits of the dividend.
     #[inline(always)]
     #[allow(clippy::cast_possible_truncation)]
-    pub(crate) const fn div_rem_large_shifted(
+    pub(crate) const fn div_rem_large_shifted<const VARTIME: bool>(
         &mut self,
         mut x_hi: Limb,
         y: &Self,
         ywords: u32,
         reciprocal: Reciprocal,
-        vartime: Choice,
     ) -> Limb {
         let x = self;
         let xsize = x.nlimbs();
@@ -306,7 +304,7 @@ impl UintRef {
 
             // This loop is a no-op once xi is smaller than the number of words in the divisor
             let done = Choice::from_u32_lt(xi as u32, ywords - 1);
-            if vartime.and(done).to_bool_vartime() {
+            if VARTIME && done.to_bool_vartime() {
                 break;
             }
             quo = word::select(quo, 0, done);
@@ -371,7 +369,7 @@ impl UintRef {
         let reciprocal = Reciprocal::new(y.limbs[ysize - 1].to_nz().expect_copied("zero divisor"));
 
         // Perform the core division algorithm
-        x_hi = Self::div_rem_large_shifted(x, x_hi, y, ysize as u32, reciprocal, Choice::TRUE);
+        x_hi = Self::div_rem_large_shifted::<true>(x, x_hi, y, ysize as u32, reciprocal);
 
         // Copy the remainder to divisor
         y.leading_mut(ysize - 1).copy_from(x.leading(ysize - 1));
@@ -405,7 +403,7 @@ impl UintRef {
         debug_assert!(reciprocal.shift() == 0);
 
         // Perform the core division algorithm
-        x_hi = Self::rem_wide_large_shifted((x_lo, x), x_hi, y, ywords, reciprocal, Choice::FALSE);
+        x_hi = Self::rem_wide_large_shifted::<false>((x_lo, x), x_hi, y, ywords, reciprocal);
 
         // Calculate remainder for the case where the divisor is a single word.
         let limb_div = Choice::from_u32_eq(1, ywords);
@@ -440,13 +438,12 @@ impl UintRef {
     /// is set, and `x_hi` holds the top bits of the dividend.
     #[inline(always)]
     #[allow(clippy::cast_possible_truncation)]
-    const fn rem_wide_large_shifted(
+    const fn rem_wide_large_shifted<const VARTIME: bool>(
         x: (&Self, &mut Self),
         mut x_hi: Limb,
         y: &Self,
         ywords: u32,
         reciprocal: Reciprocal,
-        vartime: Choice,
     ) -> Limb {
         assert!(
             y.nlimbs() <= x.1.nlimbs(),
@@ -479,7 +476,7 @@ impl UintRef {
 
             // This loop is a no-op once xi is smaller than the number of words in the divisor
             let done = Choice::from_u32_lt(xi as u32, ywords - 1);
-            if vartime.and(done).to_bool_vartime() {
+            if VARTIME && done.to_bool_vartime() {
                 break;
             }
             quo = word::select(quo, 0, done);
@@ -628,8 +625,8 @@ impl UintRef {
         let y = Odd::new_ref_unchecked(rhs);
         let y_inv = y.invert_mod_limb();
         let ywords = (y_bits - tz).div_ceil(Limb::BITS);
-        let is_exact = Self::div_exact_odd_with_inverse(self, y, y_inv, ywords, Choice::FALSE)
-            .and(div2s_exact);
+        let is_exact =
+            Self::div_exact_odd_with_inverse::<false>(self, y, y_inv, ywords).and(div2s_exact);
 
         // Restore the divisor
         rhs.shl_assign(tz);
@@ -668,7 +665,7 @@ impl UintRef {
         let y = Odd::new_ref_unchecked(rhs.leading(ywords as usize));
         let y_inv = y.invert_mod_limb();
         let is_exact =
-            Self::div_exact_odd_with_inverse(self, y, y_inv, ywords, Choice::TRUE).and(div2s_exact);
+            Self::div_exact_odd_with_inverse::<true>(self, y, y_inv, ywords).and(div2s_exact);
 
         // Restore the divisor
         rhs.shl_assign(tz);
@@ -690,12 +687,11 @@ impl UintRef {
     /// is not specified.
     #[allow(clippy::cast_possible_truncation)]
     #[inline(always)]
-    const fn div_exact_odd_with_inverse(
+    const fn div_exact_odd_with_inverse<const VARTIME: bool>(
         x: &mut UintRef,
         y: &Odd<UintRef>,
         y_inv: Limb,
         ywords: u32,
-        vartime: Choice,
     ) -> Choice {
         let xc = x.nlimbs();
         let y = y.as_ref();
@@ -706,7 +702,7 @@ impl UintRef {
             let y_remain = u32_min((xc - xi) as u32, y.nlimbs() as u32);
             // This loop is a no-op once there are fewer words remaining than the size of the divisor
             let done = Choice::from_u32_lt(y_remain, ywords);
-            if vartime.and(done).to_bool_vartime() {
+            if VARTIME && done.to_bool_vartime() {
                 // Set the upper limbs to zero
                 x.trailing_mut(xi).fill(Limb::ZERO);
                 break;

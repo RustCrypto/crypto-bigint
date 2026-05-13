@@ -10,7 +10,7 @@ use crate::{DecodeError, EncodedSize, Encoding, Limb, Word};
 use core::{fmt, ops::Deref};
 
 #[cfg(feature = "alloc")]
-use crate::{Choice, NonZero, Reciprocal, UintRef, WideWord, bitlen};
+use crate::{NonZero, Reciprocal, UintRef, WideWord, bitlen};
 #[cfg(feature = "alloc")]
 use alloc::{string::String, vec::Vec};
 
@@ -874,12 +874,11 @@ impl RadixDivisionParams {
 
                 // Divide by the large divisor
                 let limbs_hi = limbs.shl_assign_limb_vartime(self.shift_large);
-                let rem_high = limbs.div_rem_large_shifted(
+                let rem_high = limbs.div_rem_large_shifted::<true>(
                     limbs_hi,
                     div_large,
                     RADIX_ENCODING_LIMBS_LARGE as u32,
                     self.recip_large,
-                    Choice::TRUE,
                 );
                 let limbs_rem;
                 // At this point, the limbs at and above RADIX_ENCODING_LIMBS_LARGE represent
