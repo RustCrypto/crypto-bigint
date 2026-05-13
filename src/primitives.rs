@@ -112,14 +112,14 @@ cpubits::cpubits! {
 }
 
 /// Returns the multiplicative inverse of the argument modulo 2^64. The implementation is based
-/// on the Hurchalla's method for computing the multiplicative inverse modulo a power of two, and
+/// on Hurchalla's method for computing the multiplicative inverse modulo a power of two, and
 /// is essentially an optimized Newton iteration.
 ///
 /// For correct results, the input `value` must be odd.
 ///
 /// For better understanding the implementation, the following paper is recommended:
 /// J. Hurchalla, "An Improved Integer Multiplicative Inverse (modulo 2^w)",
-/// <https://arxiv.org/pdf/2204.limbs4342.pdf>
+/// <https://arxiv.org/abs/2204.04342>
 #[must_use]
 pub(crate) const fn u64_invert_odd(value: u64) -> u64 {
     debug_assert!(value & 1 == 1, "value must be odd");
