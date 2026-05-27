@@ -39,8 +39,8 @@ use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 #[must_use]
 pub const fn nlimbs(bits: u32) -> usize {
     match cpubits::CPUBITS {
-        32 => ((bits + 31) >> 5) as usize,
-        64 => ((bits + 63) >> 6) as usize,
+        32 => (((bits as u64) + 31) >> 5) as usize,
+        64 => (((bits as u64) + 63) >> 6) as usize,
         _ => unreachable!(),
     }
 }
@@ -406,6 +406,12 @@ mod tests {
                 assert_eq!(super::nlimbs(256), 4);
             }
         }
+    }
+
+    #[test]
+    fn nlimbs_handles_max_bit_count() {
+        let expected = u64::from(u32::MAX).div_ceil(u64::from(Limb::BITS)) as usize;
+        assert_eq!(super::nlimbs(u32::MAX), expected);
     }
 
     #[cfg(feature = "alloc")]
