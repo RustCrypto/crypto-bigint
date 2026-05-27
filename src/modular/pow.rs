@@ -50,6 +50,8 @@ where
     U: UnsignedWithMontyForm,
     <U::MontyForm as MontyForm>::Multiplier<'a>: AmmMultiplier<'a>,
 {
+    let exponent_bits = exponent_bits.min(exponent.bits_precision());
+
     let one = params.as_ref().one().clone();
 
     if exponent_bits == 0 {
@@ -125,6 +127,12 @@ pub const fn multi_exponentiate_montgomery_form_array<
     exponent_bits: u32,
     params: &FixedMontyParams<LIMBS>,
 ) -> Uint<LIMBS> {
+    let exponent_bits = if exponent_bits > Uint::<RHS_LIMBS>::BITS {
+        Uint::<RHS_LIMBS>::BITS
+    } else {
+        exponent_bits
+    };
+
     if exponent_bits == 0 {
         return *params.one(); // 1 in Montgomery form
     }
@@ -162,6 +170,8 @@ pub fn multi_exponentiate_montgomery_form_slice<
     exponent_bits: u32,
     params: &FixedMontyParams<LIMBS>,
 ) -> Uint<LIMBS> {
+    let exponent_bits = exponent_bits.min(Uint::<RHS_LIMBS>::BITS);
+
     if exponent_bits == 0 {
         return *params.one(); // 1 in Montgomery form
     }
@@ -280,4 +290,89 @@ const fn pow_init(exponent_bits: u32) -> (usize, u32, Word) {
     let starting_window = starting_bit_in_limb / WINDOW;
     let starting_window_mask = (1 << (starting_bit_in_limb % WINDOW + 1)) - 1;
     (starting_limb, starting_window, starting_window_mask)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        multi_exponentiate_montgomery_form_array, pow_montgomery_form, pow_montgomery_form_amm,
+    };
+    use crate::{Odd, U128, modular::FixedMontyParams};
+
+    #[cfg(feature = "alloc")]
+    use super::multi_exponentiate_montgomery_form_slice;
+
+    const PARAMS: FixedMontyParams<{ U128::LIMBS }> =
+        FixedMontyParams::new_vartime(Odd::new_unchecked(U128::from_u8(101)));
+
+    #[test]
+    fn pow_montgomery_form_clamps_oversized_exponent_bits() {
+        let base = U128::from_u8(7);
+        let exponent = U128::from_u8(3);
+
+        let expected = pow_montgomery_form::<{ U128::LIMBS }, { U128::LIMBS }, false>(
+            &base,
+            &exponent,
+            U128::BITS,
+            &PARAMS,
+        );
+        let actual = pow_montgomery_form::<{ U128::LIMBS }, { U128::LIMBS }, false>(
+            &base,
+            &exponent,
+            U128::BITS + 1,
+            &PARAMS,
+        );
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn pow_montgomery_form_amm_clamps_oversized_exponent_bits() {
+        let base = U128::from_u8(7);
+        let exponent = U128::from_u8(3);
+
+        let expected = pow_montgomery_form_amm(&base, &exponent, U128::BITS, &PARAMS);
+        let actual = pow_montgomery_form_amm(&base, &exponent, U128::BITS + 1, &PARAMS);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn multi_exponentiate_montgomery_form_array_clamps_oversized_exponent_bits() {
+        let bases_and_exponents = [(U128::from_u8(7), U128::from_u8(3))];
+
+        let expected = multi_exponentiate_montgomery_form_array::<
+            { U128::LIMBS },
+            { U128::LIMBS },
+            1,
+            false,
+        >(&bases_and_exponents, U128::BITS, &PARAMS);
+        let actual = multi_exponentiate_montgomery_form_array::<
+            { U128::LIMBS },
+            { U128::LIMBS },
+            1,
+            false,
+        >(&bases_and_exponents, U128::BITS + 1, &PARAMS);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn multi_exponentiate_montgomery_form_slice_clamps_oversized_exponent_bits() {
+        let bases_and_exponents = [(U128::from_u8(7), U128::from_u8(3))];
+
+        let expected = multi_exponentiate_montgomery_form_slice::<
+            { U128::LIMBS },
+            { U128::LIMBS },
+            false,
+        >(&bases_and_exponents, U128::BITS, &PARAMS);
+        let actual = multi_exponentiate_montgomery_form_slice::<
+            { U128::LIMBS },
+            { U128::LIMBS },
+            false,
+        >(&bases_and_exponents, U128::BITS + 1, &PARAMS);
+
+        assert_eq!(actual, expected);
+    }
 }
