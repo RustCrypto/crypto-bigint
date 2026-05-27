@@ -25,7 +25,12 @@ where
 
     fn try_from(bytes: Asn1UintRef<'a>) -> der::Result<Uint<LIMBS>> {
         let mut array = Array::default();
-        let offset = array.len().saturating_sub(bytes.len().try_into()?);
+        let len: usize = bytes.len().try_into()?;
+        if len > array.len() {
+            return Err(Tag::Integer.length_error().into());
+        }
+
+        let offset = array.len() - len;
         array[offset..].copy_from_slice(bytes.as_bytes());
         Ok(Uint::from_be_byte_array(array))
     }
@@ -142,6 +147,7 @@ pub mod allocating {
 pub mod test {
     use crate::{ArrayEncoding, U128, Uint};
     use der::{DecodeValue, EncodeValue, Header, Tag};
+    extern crate std;
 
     #[cfg(feature = "alloc")]
     use crate::BoxedUint;
@@ -225,5 +231,15 @@ pub mod test {
         assert_valid_value_len_hex("0fdcba9876543210fedcba9876543210");
         assert_valid_value_len_hex("7fdcba9876543210fedcba9876543210");
         assert_valid_value_len_hex("fedcba9876543210fedcba9876543210");
+    }
+
+    #[test]
+    fn fixed_uint_rejects_oversized_integer_without_panic() {
+        use der::Decode;
+
+        let mut der = vec![0x02, 17, 0x01];
+        der.extend_from_slice(&[0u8; 16]);
+
+        assert!(U128::from_der(&der).is_err());
     }
 }
