@@ -30,7 +30,7 @@ impl UintRef {
     #[track_caller]
     pub const fn copy_from_slice(&mut self, limbs: &[Limb]) {
         // TODO core::slice::copy_from_slice should eventually be const
-        debug_assert!(self.limbs.len() == limbs.len(), "length mismatch");
+        assert!(self.limbs.len() == limbs.len(), "length mismatch");
         let mut i = 0;
         while i < self.limbs.len() {
             self.limbs[i] = limbs[i];
@@ -45,7 +45,7 @@ impl UintRef {
     #[inline(always)]
     #[track_caller]
     pub const fn conditional_copy_from_slice(&mut self, limbs: &[Limb], copy: Choice) {
-        debug_assert!(self.limbs.len() == limbs.len(), "length mismatch");
+        assert!(self.limbs.len() == limbs.len(), "length mismatch");
         let mut i = 0;
         while i < self.limbs.len() {
             self.limbs[i] = Limb::select(self.limbs[i], limbs[i], copy);
@@ -118,5 +118,25 @@ impl UintRef {
     #[must_use]
     pub const fn is_empty(&self) -> bool {
         self.limbs.is_empty()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::UintRef;
+    use crate::{Choice, Limb};
+
+    #[test]
+    #[should_panic(expected = "length mismatch")]
+    fn copy_from_slice_rejects_mismatched_lengths() {
+        let mut dst = [Limb::ZERO];
+        UintRef::new_mut(&mut dst).copy_from_slice(&[Limb::ONE, Limb(2)]);
+    }
+
+    #[test]
+    #[should_panic(expected = "length mismatch")]
+    fn conditional_copy_from_slice_rejects_mismatched_lengths() {
+        let mut dst = [Limb::ZERO];
+        UintRef::new_mut(&mut dst).conditional_copy_from_slice(&[Limb::ONE, Limb(2)], Choice::TRUE);
     }
 }
