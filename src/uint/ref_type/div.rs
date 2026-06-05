@@ -620,7 +620,7 @@ impl UintRef {
 
         // Check that the dividend evenly divides by 2^tz, and shift it to match the divisor
         let div2s_exact = self.ensure_trailing_zeros(tz).and(excess_z.not());
-        self.shr_assign(tz);
+        self.unbounded_shr_assign(tz);
 
         let y = Odd::new_ref_unchecked(rhs);
         let y_inv = y.invert_mod_limb();
@@ -743,8 +743,12 @@ impl UintRef {
     const fn ensure_trailing_zeros(&self, zs: u32) -> Choice {
         let z_words = (zs >> Limb::LOG2_BITS) as usize;
         let z_bits = zs & (Limb::BITS - 1);
-        self.leading(z_words)
-            .is_zero()
-            .and(self.limbs[z_words].restrict_bits(z_bits).is_zero())
+        if z_words >= self.nlimbs() {
+            self.is_zero()
+        } else {
+            self.leading(z_words)
+                .is_zero()
+                .and(self.limbs[z_words].restrict_bits(z_bits).is_zero())
+        }
     }
 }
