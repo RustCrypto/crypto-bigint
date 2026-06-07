@@ -361,6 +361,21 @@ impl BoxedUint {
         limbs.into()
     }
 
+    /// Resize this value in place without checking whether the current value fits.
+    ///
+    /// If `at_least_bits_precision` is below the current precision, high limbs
+    /// are truncated. If it is above the current precision, new high limbs are
+    /// zero.
+    pub(crate) fn resize_in_place_unchecked(&mut self, at_least_bits_precision: u32) {
+        let new_len = bitlen::to_limbs(at_least_bits_precision);
+
+        if new_len != self.limbs.len() {
+            let mut limbs = core::mem::take(&mut self.limbs).into_vec();
+            limbs.resize(new_len, Limb::ZERO);
+            *self = Self::from(limbs);
+        }
+    }
+
     /// Returns `true` if the integer's bit size is smaller or equal to `bits`.
     pub(crate) fn is_within_bits(&self, bits: u32) -> bool {
         bits >= self.bits_precision() || bits >= self.bits()
@@ -370,15 +385,9 @@ impl BoxedUint {
 impl Resize for BoxedUint {
     type Output = BoxedUint;
 
-    fn resize_unchecked(self, at_least_bits_precision: u32) -> Self::Output {
-        let new_len = bitlen::to_limbs(at_least_bits_precision);
-        if new_len == self.limbs.len() {
-            self
-        } else {
-            let mut limbs = self.limbs.into_vec();
-            limbs.resize(new_len, Limb::ZERO);
-            Self::from(limbs)
-        }
+    fn resize_unchecked(mut self, at_least_bits_precision: u32) -> Self::Output {
+        self.resize_in_place_unchecked(at_least_bits_precision);
+        self
     }
 
     fn try_resize(self, at_least_bits_precision: u32) -> Option<BoxedUint> {

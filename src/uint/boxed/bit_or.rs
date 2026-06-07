@@ -68,9 +68,7 @@ impl BitOrAssign for BoxedUint {
 impl BitOrAssign<&BoxedUint> for BoxedUint {
     fn bitor_assign(&mut self, other: &Self) {
         if other.limbs.len() > self.limbs.len() {
-            let mut limbs = core::mem::take(&mut self.limbs).into_vec();
-            limbs.resize(other.limbs.len(), Limb::ZERO);
-            self.limbs = limbs.into_boxed_slice();
+            self.resize_in_place_unchecked(other.bits_precision());
         }
 
         for (a, b) in self.limbs.iter_mut().zip(other.limbs.iter()) {
