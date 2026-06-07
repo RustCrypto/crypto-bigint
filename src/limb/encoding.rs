@@ -4,10 +4,7 @@ use super::{Limb, Word};
 use crate::Encoding;
 
 impl Encoding for Limb {
-    cpubits::cpubits! {
-        32 => { type Repr = [u8; 4]; }
-        64 => { type Repr = [u8; 8]; }
-    }
+    type Repr = [u8; Self::BYTES];
 
     #[inline]
     fn from_be_bytes(bytes: Self::Repr) -> Self {
@@ -37,13 +34,12 @@ impl Limb {
     /// # Panics
     /// - if the slice is larger than [`Limb::Repr`].
     pub(crate) fn from_be_slice(bytes: &[u8]) -> Self {
+        let offset = Limb::BYTES
+            .checked_sub(bytes.len())
+            .expect("The given slice is larger than Limb::BYTES");
+
         let mut repr = Self::ZERO.to_be_bytes();
-        let repr_len = repr.len();
-        assert!(
-            bytes.len() <= repr_len,
-            "The given slice is larger than the limb size"
-        );
-        repr[(repr_len - bytes.len())..].copy_from_slice(bytes);
+        repr[offset..].copy_from_slice(bytes);
         Self::from_be_bytes(repr)
     }
 
@@ -52,12 +48,12 @@ impl Limb {
     /// # Panics
     /// - if the slice is not the same size as [`Limb::Repr`].
     pub(crate) fn from_le_slice(bytes: &[u8]) -> Self {
-        let mut repr = Self::ZERO.to_le_bytes();
-        let repr_len = repr.len();
         assert!(
-            bytes.len() <= repr_len,
-            "The given slice is larger than the limb size"
+            bytes.len() <= Limb::BYTES,
+            "The given slice is larger than Limb::BYTES"
         );
+
+        let mut repr = Self::ZERO.to_be_bytes();
         repr[..bytes.len()].copy_from_slice(bytes);
         Self::from_le_bytes(repr)
     }
