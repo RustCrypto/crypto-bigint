@@ -163,9 +163,8 @@ impl BoxedUint {
     /// # Panics
     /// - if hex string is not the expected size
     #[must_use]
-    #[allow(clippy::integer_division_remainder_used, reason = "public parameter")]
     pub fn from_be_hex(hex: &str, bits_precision: u32) -> CtOption<Self> {
-        let nlimbs = (bits_precision / Limb::BITS) as usize;
+        let nlimbs = bitlen::to_limbs(bits_precision);
         let bytes = hex.as_bytes();
 
         assert_eq!(
@@ -173,6 +172,7 @@ impl BoxedUint {
             Limb::BYTES * nlimbs * 2,
             "hex string is not the expected size"
         );
+
         let mut res = vec![Limb::ZERO; nlimbs];
         let mut buf = [0u8; Limb::BYTES];
         let mut i = 0;
@@ -378,19 +378,16 @@ mod tests {
         }
         64 => {
             #[test]
-            fn from_be_slice_eq() {
-                let bytes = hex!("00112233445566778899aabbccddeeff");
-                let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
-                assert_eq!(
-                    n.as_limbs(),
-                    &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
-                );
+            #[should_panic]
+            fn from_be_hex_short() {
+                let hex = "00112233445566778899aabbccddee";
+                let _ = BoxedUint::from_be_hex(hex, 128).unwrap();
             }
 
             #[test]
-            fn from_be_hex_eq() {
-                let hex = "00112233445566778899aabbccddeeff";
-                let n = BoxedUint::from_be_hex(hex, 128).unwrap();
+            fn from_be_slice_eq() {
+                let bytes = hex!("00112233445566778899aabbccddeeff");
+                let n = BoxedUint::from_be_slice(&bytes, 128).unwrap();
                 assert_eq!(
                     n.as_limbs(),
                     &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
