@@ -4,8 +4,7 @@
 
 use crypto_bigint::{
     Checked, I64, I128, I256, I512, Limb, NonZero, Odd, U64, U128, U256, U512, Wrapping,
-    const_monty_params,
-    modular::ConstMontyForm,
+    const_monty_params, modular::ConstMontyForm,
 };
 use serdect::serde::{
     Deserialize, Serialize,
@@ -82,9 +81,7 @@ fn int_serde_deserialization_uses_serdect_encoding() {
     );
 
     let zero = "00".repeat(I256::BYTES);
-    assert!(
-        NonZero::<I256>::deserialize(StrDeserializer::<Error>::new(&zero)).is_err()
-    );
+    assert!(NonZero::<I256>::deserialize(StrDeserializer::<Error>::new(&zero)).is_err());
 
     let two = format!("02{}", "00".repeat(I256::BYTES - 1));
     assert!(Odd::<I256>::deserialize(StrDeserializer::<Error>::new(&two)).is_err());
