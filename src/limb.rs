@@ -410,7 +410,8 @@ mod tests {
 
     #[test]
     fn nlimbs_handles_max_bit_count() {
-        let expected = u64::from(u32::MAX).div_ceil(u64::from(Limb::BITS)) as usize;
+        let expected = usize::try_from(u64::from(u32::MAX).div_ceil(u64::from(Limb::BITS)))
+            .expect("limb count fits in usize");
         assert_eq!(super::nlimbs(u32::MAX), expected);
     }
 
