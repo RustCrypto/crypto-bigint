@@ -9,13 +9,12 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let (abs, sgn) = self.abs_sign();
         let maybe_inv = abs.invert_odd_mod(modulus);
         let abs_inv = maybe_inv.as_inner_unchecked();
+        let neg_inv = modulus.wrapping_sub(abs_inv);
+        let neg_inv = Uint::select(&neg_inv, abs_inv, abs_inv.is_nonzero().not());
 
         // Note: when `self` is negative and modulus is non-zero, then
         // self^{-1} % modulus = modulus - |self|^{-1} % modulus
-        CtOption::new(
-            Uint::select(abs_inv, &modulus.wrapping_sub(abs_inv), sgn),
-            maybe_inv.is_some(),
-        )
+        CtOption::new(Uint::select(abs_inv, &neg_inv, sgn), maybe_inv.is_some())
     }
 
     /// Computes the multiplicative inverse of `self` mod `modulus`.
@@ -26,13 +25,12 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let (abs, sgn) = self.abs_sign();
         let maybe_inv = abs.invert_mod(modulus);
         let abs_inv = maybe_inv.as_inner_unchecked();
+        let neg_inv = modulus.as_ref().wrapping_sub(abs_inv);
+        let neg_inv = Uint::select(&neg_inv, abs_inv, abs_inv.is_nonzero().not());
 
         // Note: when `self` is negative and modulus is non-zero, then
         // self^{-1} % modulus = modulus - |self|^{-1} % modulus
-        CtOption::new(
-            Uint::select(abs_inv, &modulus.as_ref().wrapping_sub(abs_inv), sgn),
-            maybe_inv.is_some(),
-        )
+        CtOption::new(Uint::select(abs_inv, &neg_inv, sgn), maybe_inv.is_some())
     }
 }
 
@@ -49,7 +47,23 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{I1024, U1024};
+    use crate::{I256, I1024, U256, U1024};
+
+    #[test]
+    fn negative_inverse_modulus_one_is_canonical_zero() {
+        let odd_modulus = U256::ONE.to_odd().unwrap();
+        let modulus = U256::ONE.to_nz().unwrap();
+
+        assert_eq!(
+            Option::<U256>::from(I256::MINUS_ONE.invert_odd_mod(&odd_modulus)),
+            Some(U256::ZERO)
+        );
+        assert_eq!(
+            Option::<U256>::from(I256::MINUS_ONE.invert_mod(&modulus)),
+            Some(U256::ZERO)
+        );
+        assert_eq!(Option::<U256>::from(I256::ZERO.invert_mod(&modulus)), None);
+    }
 
     #[test]
     fn test_invert_odd() {
