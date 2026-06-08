@@ -25,13 +25,16 @@ where
 
     fn try_from(bytes: Asn1UintRef<'a>) -> der::Result<Uint<LIMBS>> {
         let mut array = Array::default();
-        let len: usize = bytes.len().try_into()?;
-        if len > array.len() {
-            return Err(Tag::Integer.length_error().into());
-        }
+        let len = usize::try_from(bytes.len())?;
+        let offset = array
+            .len()
+            .checked_sub(len)
+            .ok_or_else(|| Tag::Integer.length_error())?;
+        let out = array
+            .get_mut(offset..)
+            .ok_or_else(|| Tag::Integer.length_error())?;
 
-        let offset = array.len() - len;
-        array[offset..].copy_from_slice(bytes.as_bytes());
+        out.copy_from_slice(bytes.as_bytes());
         Ok(Uint::from_be_byte_array(array))
     }
 }
