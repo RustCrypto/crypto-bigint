@@ -35,6 +35,7 @@ impl CtEq for BoxedMontyParams {
             & self.one().ct_eq(other.one())
             & self.r2().ct_eq(other.r2())
             & self.mod_inv().ct_eq(&other.mod_inv())
+            & self.mod_leading_zeros().ct_eq(&other.mod_leading_zeros())
     }
 }
 impl CtEqSlice for BoxedMontyParams {}
