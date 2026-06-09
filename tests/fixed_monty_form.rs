@@ -29,6 +29,22 @@ fn reduce(n: &U256, p: MontyParams256) -> MontyForm256 {
     MontyForm256::new(&n_reduced, &p)
 }
 
+#[test]
+fn one_modulus_one_is_canonical_zero() {
+    let modulus = Odd::new(U128::ONE).unwrap();
+    let params = FixedMontyParams::new(modulus);
+    let form = FixedMontyForm::one(&params);
+
+    assert_eq!(params.one(), &U128::ZERO);
+    assert_eq!(form.retrieve(), U128::ZERO);
+
+    let params = FixedMontyParams::new_vartime(modulus);
+    let form = FixedMontyForm::one(&params);
+
+    assert_eq!(params.one(), &U128::ZERO);
+    assert_eq!(form.retrieve(), U128::ZERO);
+}
+
 prop_compose! {
     fn uint()(bytes in any::<[u8; 32]>()) -> U256 {
         U256::from_le_slice(&bytes)

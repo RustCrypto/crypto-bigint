@@ -155,6 +155,7 @@ impl<const LIMBS: usize> FixedMontyParams<LIMBS> {
         let one = Uint::<LIMBS>::MAX
             .rem(modulus.as_nz_ref())
             .wrapping_add(&Uint::ONE);
+        let one = Uint::select(&one, &Uint::ZERO, Uint::eq(&one, modulus.as_ref()));
 
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
         let r2 = one.square_mod(modulus.as_nz_ref());
@@ -185,6 +186,7 @@ impl<const LIMBS: usize> FixedMontyParams<LIMBS> {
         let one = Uint::<LIMBS>::MAX
             .rem_vartime(modulus.as_nz_ref())
             .wrapping_add(&Uint::ONE);
+        let one = Uint::select(&one, &Uint::ZERO, Uint::eq(&one, modulus.as_ref()));
 
         // `R^2 mod modulus`, used to convert integers to Montgomery form.
         let r2 = one.square_mod_vartime(modulus.as_nz_ref());
@@ -231,9 +233,12 @@ pub(crate) mod boxed {
 
             // `R mod modulus` where `R = 2^BITS`.
             // Represents 1 in Montgomery form.
-            let one = crate::uint::boxed::BoxedUint::max(bits_precision)
+            let mut one = crate::uint::boxed::BoxedUint::max(bits_precision)
                 .rem(modulus.as_nz_ref())
                 .wrapping_add(Limb::ONE);
+            if one == *modulus.as_ref() {
+                one = crate::uint::boxed::BoxedUint::zero_with_precision(bits_precision);
+            }
 
             // `R^2 mod modulus`, used to convert integers to Montgomery form.
             let r2 = one.square_mod(modulus.as_nz_ref());
@@ -265,9 +270,12 @@ pub(crate) mod boxed {
 
             // `R mod modulus` where `R = 2^BITS`.
             // Represents 1 in Montgomery form.
-            let one = crate::uint::boxed::BoxedUint::max(bits_precision)
+            let mut one = crate::uint::boxed::BoxedUint::max(bits_precision)
                 .rem_vartime(modulus.as_nz_ref())
                 .wrapping_add(Limb::ONE);
+            if one == *modulus.as_ref() {
+                one = crate::uint::boxed::BoxedUint::zero_with_precision(bits_precision);
+            }
 
             // `R^2 mod modulus`, used to convert integers to Montgomery form.
             let r2 = one.square_mod_vartime(modulus.as_nz_ref());

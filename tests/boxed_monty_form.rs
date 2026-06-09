@@ -24,6 +24,22 @@ fn reduce(n: &BoxedUint, p: BoxedMontyParams) -> BoxedMontyForm {
     BoxedMontyForm::new(n_reduced, &p)
 }
 
+#[test]
+fn one_modulus_one_is_canonical_zero() {
+    let modulus = Odd::new(BoxedUint::one_with_precision(128)).unwrap();
+    let params = BoxedMontyParams::new(modulus.clone());
+    assert_eq!(
+        BoxedMontyForm::one(&params).retrieve(),
+        BoxedUint::zero_with_precision(128)
+    );
+
+    let params = BoxedMontyParams::new_vartime(modulus);
+    assert_eq!(
+        BoxedMontyForm::one(&params).retrieve(),
+        BoxedUint::zero_with_precision(128)
+    );
+}
+
 prop_compose! {
     /// Generate a random `BoxedUint`.
     fn uint()(mut bytes in any::<Vec<u8>>()) -> BoxedUint {
