@@ -229,7 +229,7 @@ impl BitOps for UintRef {
 
     #[inline(always)]
     fn bytes_precision(&self) -> usize {
-        self.limbs.len()
+        self.limbs.len() * Limb::BYTES
     }
 
     fn leading_zeros(&self) -> u32 {
@@ -270,5 +270,17 @@ impl BitOps for UintRef {
 
     fn trailing_ones_vartime(&self) -> u32 {
         self.trailing_ones_vartime()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::UintRef;
+    use crate::{BitOps, Limb};
+
+    #[test]
+    fn bitops_bytes_precision_counts_bytes_not_limbs() {
+        let limbs = [Limb::ZERO; 2];
+        assert_eq!(UintRef::new(&limbs).bytes_precision(), 2 * Limb::BYTES);
     }
 }
