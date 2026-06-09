@@ -104,6 +104,7 @@ impl<U: Unsigned> CtEq for MontyParams<U> {
             & self.one.ct_eq(&other.one)
             & self.r2.ct_eq(&other.r2)
             & self.mod_inv.ct_eq(&other.mod_inv)
+            & self.mod_leading_zeros.ct_eq(&other.mod_leading_zeros)
     }
 }
 impl<U: Unsigned> CtEqSlice for MontyParams<U> {}
@@ -346,5 +347,39 @@ pub(crate) mod boxed {
         fn from(params: MontyParams<crate::uint::boxed::BoxedUint>) -> Self {
             Self(params.into())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::FixedMontyParams;
+    use crate::{CtEq, Odd, U128};
+
+    #[cfg(feature = "alloc")]
+    use super::boxed::BoxedMontyParams;
+    #[cfg(feature = "alloc")]
+    use crate::{BoxedUint, Resize};
+
+    #[test]
+    fn ct_eq_matches_partial_eq_for_mod_leading_zeros() {
+        let params = FixedMontyParams::new_vartime(Odd::new(U128::from(3u8)).unwrap());
+        let mut other = params;
+        other.mod_leading_zeros = 0;
+
+        assert_ne!(params, other);
+        assert!(!CtEq::ct_eq(&params, &other).to_bool_vartime());
+    }
+
+    #[cfg(feature = "alloc")]
+    #[test]
+    fn boxed_ct_eq_matches_partial_eq_for_mod_leading_zeros() {
+        let modulus = Odd::new(BoxedUint::from(3u8).resize(128)).unwrap();
+        let params = BoxedMontyParams::new_vartime(modulus);
+        let mut other = params.as_ref().clone();
+        other.mod_leading_zeros = 0;
+        let other = BoxedMontyParams::from(other);
+
+        assert_ne!(params, other);
+        assert!(!CtEq::ct_eq(&params, &other).to_bool_vartime());
     }
 }
