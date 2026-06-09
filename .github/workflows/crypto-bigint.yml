@@ -57,18 +57,18 @@ jobs:
           # `x86` Linux (32-bit)
           - target: i686-unknown-linux-gnu
             rust: 1.85.0 # MSRV
-            deps: sudo apt update && sudo apt install gcc-multilib
+            deps: sudo apt update && sudo apt-get install gcc-multilib
           - target: i686-unknown-linux-gnu
             rust: 1.85.0 # MSRV
             args: --release
-            deps: sudo apt update && sudo apt install gcc-multilib
+            deps: sudo apt update && sudo apt-get install gcc-multilib
           - target: i686-unknown-linux-gnu
             rust: stable
-            deps: sudo apt update && sudo apt install gcc-multilib
+            deps: sudo apt update && sudo apt-get install gcc-multilib
           - target: i686-unknown-linux-gnu
             rust: stable
             args: --release
-            deps: sudo apt update && sudo apt install gcc-multilib
+            deps: sudo apt update && sudo apt-get install gcc-multilib
 
           # `x86_64` Linux
           - target: x86_64-unknown-linux-gnu
@@ -191,20 +191,22 @@ jobs:
       - run: cargo test --target wasm32-wasip1 --all-features
       - run: cargo test --target wasm32-wasip1 --all-features --release
 
-  # Generate code coverage and report to codecov.io
+  # Generate both 32-bit and 64-bit code coverage and report to codecov.io
   coverage:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - run: sudo apt update && sudo apt-get install gcc-multilib
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: llvm-tools
+          targets: i686-unknown-linux-gnu,x86_64-unknown-linux-gnu
       - uses: taiki-e/install-action@cargo-llvm-cov
-      - run: cargo llvm-cov --all-features --lcov --output-path lcov.info
-        env:
-          CARGO_HUSKY_DONT_INSTALL_HOOKS: true
+      - run: cargo llvm-cov --target i686-unknown-linux-gnu --all-features --lcov --output-path lcov-32.info
+      - run: cargo llvm-cov --target x86_64-unknown-linux-gnu --all-features --lcov --output-path lcov-64.info
       - uses: codecov/codecov-action@v7
         with:
+          files: lcov-32.info,lcov-64.info
           fail_ci_if_error: true
 
   minimal-versions:
