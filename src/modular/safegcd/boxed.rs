@@ -129,17 +129,23 @@ fn invert_odd_mod_precomp<const VARTIME: bool>(
 /// Calculate the greatest common denominator of `f` and `g`.
 pub fn gcd<const VARTIME: bool>(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
     if VARTIME {
-        if let Some(f_nz) = f.as_nz_vartime() {
-            gcd_nz::<VARTIME>(f_nz, g).get()
-        } else {
-            // gcd of (0, g) is g
-            g.clone()
+        match (f.as_nz_vartime(), g.as_nz_vartime()) {
+            (Some(f_nz), Some(_)) => gcd_nz::<VARTIME>(f_nz, g).get(),
+            (Some(_), None) => f.clone(),
+            (None, Some(_)) => g.clone(),
+            (None, None) => {
+                BoxedUint::zero_with_precision(u32_max(f.bits_precision(), g.bits_precision()))
+            }
         }
     } else {
         let (f_nz, f_is_nonzero) = f.to_nz_or_one();
-        // gcd of (0, g) is g
-        let mut r = gcd_nz::<VARTIME>(&f_nz, g).get();
-        r.ct_assign(g, !f_is_nonzero);
+        let (g_nz, g_is_nonzero) = g.to_nz_or_one();
+        let mut r = gcd_nz::<VARTIME>(&f_nz, g_nz.as_ref()).get();
+        let bits_precision = r.bits_precision();
+        let f = f.clone().resize_unchecked(bits_precision);
+        let g = g.clone().resize_unchecked(bits_precision);
+        r.ct_assign(&g, !f_is_nonzero);
+        r.ct_assign(&f, !g_is_nonzero);
         r
     }
 }

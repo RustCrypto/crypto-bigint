@@ -42,7 +42,7 @@ impl Gcd<BoxedUint> for Odd<BoxedUint> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{BoxedUint, Gcd, Resize};
+    use crate::{BoxedUint, Gcd, Limb, Resize};
 
     #[test]
     fn gcd_relatively_prime() {
@@ -69,6 +69,105 @@ mod tests {
         assert_eq!(zero.gcd(&zero), zero);
         assert_eq!(zero.gcd(&one), one);
         assert_eq!(one.gcd(&zero), one);
+    }
+
+    #[test]
+    fn gcd_zero_lhs_wider_than_rhs() {
+        let zero = BoxedUint::zero_with_precision(2 * Limb::BITS);
+        let one = BoxedUint::one();
+
+        let gcd = zero.gcd(&one);
+        assert_eq!(gcd, one);
+        assert_eq!(gcd.bits_precision(), zero.bits_precision());
+    }
+
+    #[test]
+    fn gcd_zero_rhs_wider_than_lhs() {
+        let one = BoxedUint::one();
+        let zero = BoxedUint::zero_with_precision(2 * Limb::BITS);
+
+        let gcd = one.gcd(&zero);
+        assert_eq!(gcd, one);
+    }
+
+    #[test]
+    fn gcd_zero_rhs_narrower_than_power_of_two_lhs() {
+        let x = BoxedUint::one_with_precision(3 * Limb::BITS).wrapping_shl_vartime(Limb::BITS + 1);
+        let zero = BoxedUint::zero_with_precision(Limb::BITS);
+
+        let gcd = x.gcd(&zero);
+        assert_eq!(gcd, x);
+    }
+
+    #[test]
+    fn gcd_vartime_zero_rhs_narrower_than_power_of_two_lhs() {
+        let x = BoxedUint::one_with_precision(3 * Limb::BITS).wrapping_shl_vartime(Limb::BITS + 1);
+        let zero = BoxedUint::zero_with_precision(Limb::BITS);
+
+        let gcd = x.gcd_vartime(&zero);
+        assert_eq!(gcd, x);
+    }
+
+    #[test]
+    fn gcd_nonzero_lhs_wider_than_rhs_precision() {
+        let wide = BoxedUint::from(6u8).resize(2 * Limb::BITS);
+        let narrow = BoxedUint::from(4u8);
+
+        let gcd = wide.gcd(&narrow);
+        assert_eq!(gcd, BoxedUint::from(2u8));
+        assert_eq!(gcd.bits_precision(), wide.bits_precision());
+    }
+
+    #[test]
+    fn gcd_nonzero_rhs_wider_than_lhs_precision() {
+        let narrow = BoxedUint::from(4u8);
+        let wide = BoxedUint::from(6u8).resize(2 * Limb::BITS);
+
+        let gcd = narrow.gcd(&wide);
+        assert_eq!(gcd, BoxedUint::from(2u8));
+        assert_eq!(gcd.bits_precision(), wide.bits_precision());
+    }
+
+    #[test]
+    fn gcd_vartime_zero_lhs_wider_than_rhs() {
+        let zero = BoxedUint::zero_with_precision(2 * Limb::BITS);
+        let one = BoxedUint::one();
+
+        let gcd = zero.gcd_vartime(&one);
+        assert_eq!(gcd, one);
+        assert_eq!(gcd.bits_precision(), one.bits_precision());
+    }
+
+    #[test]
+    fn gcd_vartime_zero_rhs_wider_than_lhs() {
+        let one = BoxedUint::one();
+        let zero = BoxedUint::zero_with_precision(2 * Limb::BITS);
+
+        let gcd = one.gcd_vartime(&zero);
+        assert_eq!(gcd, one);
+        assert_eq!(gcd.bits_precision(), one.bits_precision());
+    }
+
+    #[test]
+    fn gcd_zero_zero_mixed_precision() {
+        let narrow = BoxedUint::zero_with_precision(Limb::BITS);
+        let wide = BoxedUint::zero_with_precision(2 * Limb::BITS);
+
+        let gcd = narrow.gcd(&wide);
+        assert_eq!(gcd, narrow);
+        assert_eq!(gcd.bits_precision(), wide.bits_precision());
+        assert_eq!(gcd, wide.gcd(&narrow));
+    }
+
+    #[test]
+    fn gcd_vartime_zero_zero_mixed_precision() {
+        let narrow = BoxedUint::zero_with_precision(Limb::BITS);
+        let wide = BoxedUint::zero_with_precision(2 * Limb::BITS);
+
+        let gcd = narrow.gcd_vartime(&wide);
+        assert_eq!(gcd, narrow);
+        assert_eq!(gcd.bits_precision(), wide.bits_precision());
+        assert_eq!(gcd, wide.gcd_vartime(&narrow));
     }
 
     #[test]
