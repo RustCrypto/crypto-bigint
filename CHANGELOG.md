@@ -4,6 +4,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.7.4 (2026-06-16)
+### Added
+- Extend LCM support to `BoxedUint` and add a supporting trait ([#1240])
+- Impl `ConstantTimeGreater`/`ConstantTimeLess` for `ConstMontyForm` ([#1247])
+- Support for exact division ([#1256], [#1271])
+- Implement `Encoding` trait for `Int` serde support ([#1286])
+- `ByteOrder` enum ([#1293])
+
+### Changed
+- Update multiword division to better match GMP paper ([#1244])
+- Faster `checked_sqrt`/`floor_sqrt` ([#1258])
+
+### Fixed
+- Panic in `Int::div_rem_unsigned` with large divisors ([#1250])
+- Avoid incorrect creation of an `Odd<BoxedUint>` in `invert_mod2k` ([#1257])
+- `BoxedUint` bitor-assign with wider `rhs` ([#1270])
+- Enforce `UintRef` slice length checks in release builds ([#1272])
+- Clamp Montgomery exponent bit bounds ([#1273])
+- Reject oversized fixed-width DER integers ([#1274])
+- Update `CtEq` impl for `MontyParams` to match `PartialEq` ([#1278])
+- Canonicalize modulus-one residues ([#1280])
+- `nlimbs` overflow near `u32::MAX` ([#1283])
+- `UintRef` byte precision ([#1290])
+
+[#1240]: https://github.com/RustCrypto/crypto-bigint/pull/1240
+[#1244]: https://github.com/RustCrypto/crypto-bigint/pull/1244
+[#1247]: https://github.com/RustCrypto/crypto-bigint/pull/1247
+[#1250]: https://github.com/RustCrypto/crypto-bigint/pull/1250
+[#1256]: https://github.com/RustCrypto/crypto-bigint/pull/1256
+[#1257]: https://github.com/RustCrypto/crypto-bigint/pull/1257
+[#1258]: https://github.com/RustCrypto/crypto-bigint/pull/1258
+[#1270]: https://github.com/RustCrypto/crypto-bigint/pull/1270
+[#1271]: https://github.com/RustCrypto/crypto-bigint/pull/1271
+[#1272]: https://github.com/RustCrypto/crypto-bigint/pull/1272
+[#1273]: https://github.com/RustCrypto/crypto-bigint/pull/1273
+[#1274]: https://github.com/RustCrypto/crypto-bigint/pull/1274
+[#1278]: https://github.com/RustCrypto/crypto-bigint/pull/1278
+[#1280]: https://github.com/RustCrypto/crypto-bigint/pull/1280
+[#1283]: https://github.com/RustCrypto/crypto-bigint/pull/1283
+[#1286]: https://github.com/RustCrypto/crypto-bigint/pull/1286
+[#1290]: https://github.com/RustCrypto/crypto-bigint/pull/1290
+[#1293]: https://github.com/RustCrypto/crypto-bigint/pull/1293
+
 ## 0.7.3 (2026-03-25)
 ### Added
 - `#[inline]` attributes for shift and wrapping arithmetic ops ([#1229])
