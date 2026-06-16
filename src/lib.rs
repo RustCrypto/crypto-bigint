@@ -158,6 +158,7 @@ extern crate alloc;
 
 pub use crate::{
     checked::Checked,
+    encoding::ByteOrder,
     int::{types::*, *},
     jacobi::JacobiSymbol,
     limb::{Limb, nlimbs},
@@ -198,6 +199,7 @@ pub mod modular;
 mod array;
 mod bitlen;
 mod checked;
+mod encoding;
 mod int;
 mod jacobi;
 mod limb;

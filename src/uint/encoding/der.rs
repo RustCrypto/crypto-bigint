@@ -103,7 +103,8 @@ pub(crate) fn count_der_be_bytes(limbs: &[Limb]) -> u32 {
 
 #[cfg(feature = "alloc")]
 pub mod allocating {
-    use crate::{BoxedUint, bitlen, encoding::der::count_der_be_bytes};
+    use super::count_der_be_bytes;
+    use crate::{BoxedUint, bitlen};
     use der::{DecodeValue, EncodeValue, FixedTag, Length, Tag, asn1::UintRef as Asn1UintRef};
 
     impl EncodeValue for BoxedUint {
