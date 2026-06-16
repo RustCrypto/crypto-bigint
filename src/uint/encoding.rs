@@ -6,7 +6,7 @@ mod der;
 mod rlp;
 
 use super::Uint;
-use crate::{DecodeError, EncodedSize, Encoding, Limb, Word};
+use crate::{ByteOrder, DecodeError, EncodedSize, Encoding, Limb, Word};
 use core::{fmt, ops::Deref};
 
 #[cfg(feature = "alloc")]
@@ -51,6 +51,47 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Uint::new(res)
     }
 
+    /// Create a new [`Uint`] from the provided little endian bytes.
+    ///
+    /// # Panics
+    /// - If the supplied byte slice is the incorrect size
+    #[must_use]
+    pub const fn from_le_slice(bytes: &[u8]) -> Self {
+        assert!(
+            bytes.len() == Limb::BYTES * LIMBS,
+            "bytes are not the expected size"
+        );
+
+        let mut res = [Limb::ZERO; LIMBS];
+        let mut buf = [0u8; Limb::BYTES];
+        let mut i = 0;
+
+        while i < LIMBS {
+            let mut j = 0;
+            while j < Limb::BYTES {
+                buf[j] = bytes[i * Limb::BYTES + j];
+                j += 1;
+            }
+            res[i] = Limb(Word::from_le_bytes(buf));
+            i += 1;
+        }
+
+        Uint::new(res)
+    }
+
+    /// Create a new [`Uint`] from the provided slice, using the supplied [`ByteOrder`] to
+    /// determine the endianness.
+    ///
+    /// # Panics
+    /// - If the supplied byte slice is the incorrect size
+    #[must_use]
+    pub const fn from_slice(bytes: &[u8], byte_order: ByteOrder) -> Self {
+        match byte_order {
+            ByteOrder::BigEndian => Self::from_be_slice(bytes),
+            ByteOrder::LittleEndian => Self::from_le_slice(bytes),
+        }
+    }
+
     /// Create a new [`Uint`] from the provided big endian hex string.
     ///
     /// # Panics
@@ -83,34 +124,6 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
 
         assert!(err == 0, "invalid hex byte");
-
-        Uint::new(res)
-    }
-
-    /// Create a new [`Uint`] from the provided little endian bytes.
-    ///
-    /// # Panics
-    /// - If the supplied byte slice is the incorrect size
-    #[must_use]
-    pub const fn from_le_slice(bytes: &[u8]) -> Self {
-        assert!(
-            bytes.len() == Limb::BYTES * LIMBS,
-            "bytes are not the expected size"
-        );
-
-        let mut res = [Limb::ZERO; LIMBS];
-        let mut buf = [0u8; Limb::BYTES];
-        let mut i = 0;
-
-        while i < LIMBS {
-            let mut j = 0;
-            while j < Limb::BYTES {
-                buf[j] = bytes[i * Limb::BYTES + j];
-                j += 1;
-            }
-            res[i] = Limb(Word::from_le_bytes(buf));
-            i += 1;
-        }
 
         Uint::new(res)
     }
@@ -149,6 +162,19 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         assert!(err == 0, "invalid hex byte");
 
         Uint::new(res)
+    }
+
+    /// Create a new [`Uint`] from the provided hex string, using the supplied [`ByteOrder`] to
+    /// determine the endianness.
+    ///
+    /// # Panics
+    /// - if the hex is malformed or not zero-padded accordingly for the size.
+    #[must_use]
+    pub const fn from_hex(hex: &str, byte_order: ByteOrder) -> Self {
+        match byte_order {
+            ByteOrder::BigEndian => Self::from_be_hex(hex),
+            ByteOrder::LittleEndian => Self::from_le_hex(hex),
+        }
     }
 
     /// Serialize this [`Uint`] as big-endian, writing it into the provided
