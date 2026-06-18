@@ -13,8 +13,8 @@ impl BoxedUint {
     /// The `bits_precision` argument represents the precision of the resulting integer, which is
     /// fixed as this type is not arbitrary-precision.
     ///
-    /// The new [`BoxedUint`] will be created with `bits_precision`
-    /// rounded up to a multiple of [`Limb::BITS`].
+    /// The new [`BoxedUint`] will be created with `bits_precision` rounded up to a multiple of
+    /// [`Limb::BITS`].
     ///
     /// # Errors
     /// - Returns [`DecodeError::InputSize`] if the length of `bytes` is larger than
@@ -26,17 +26,34 @@ impl BoxedUint {
             return Err(DecodeError::InputSize);
         }
 
+        Ok(Self::from_be_slice_truncated(bytes, bits_precision))
+    }
+
+    /// Create a new [`BoxedUint`] from the provided big endian bytes, zero padding if necessary,
+    /// and truncating to the least significant bytes in the event the given amount of data exceeds
+    /// `bits_precision`.
+    #[must_use]
+    pub fn from_be_slice_truncated(mut bytes: &[u8], bits_precision: u32) -> Self {
+        let bytes_precision = bitlen::to_bytes(bits_precision);
+        if bytes.len() > bytes_precision {
+            bytes = &bytes[bytes.len().saturating_sub(bytes_precision)..];
+        }
+
         let mut ret = Self::zero_with_precision(bits_precision);
 
         for (chunk, limb) in bytes.rchunks(Limb::BYTES).zip(ret.limbs.iter_mut()) {
             *limb = Limb::from_be_slice(chunk);
         }
 
-        if bits_precision < ret.bits() {
-            return Err(DecodeError::Precision);
+        // Mask the high limb so we have the desired precision
+        let unaligned_bits = bits_precision & (Limb::BITS - 1);
+        if unaligned_bits != 0 {
+            if let Some(limb) = ret.limbs.last_mut() {
+                limb.0 &= Word::MAX >> (Limb::BITS.saturating_sub(unaligned_bits));
+            }
         }
 
-        Ok(ret)
+        ret
     }
 
     /// Create a new [`BoxedUint`] from the provided big endian bytes, automatically selecting its
@@ -47,12 +64,8 @@ impl BoxedUint {
     ///
     /// When working with secret values, use [`BoxedUint::from_be_slice`].
     #[must_use]
-    #[allow(clippy::cast_possible_truncation, clippy::missing_panics_doc)]
     pub fn from_be_slice_vartime(bytes: &[u8]) -> Self {
-        let bits_precision = bitlen::from_bytes(bytes.len());
-
-        // TODO(tarcieri): avoid panic
-        Self::from_be_slice(bytes, bits_precision).expect("precision should be large enough")
+        Self::from_be_slice_truncated(bytes, bitlen::from_bytes(bytes.len()))
     }
 
     /// Create a new [`BoxedUint`] from the provided little endian bytes.
@@ -73,17 +86,35 @@ impl BoxedUint {
             return Err(DecodeError::InputSize);
         }
 
+        Ok(Self::from_le_slice_truncated(bytes, bits_precision))
+    }
+
+    /// Create a new [`BoxedUint`] from the provided little endian bytes, zero padding if necessary,
+    /// and truncating to the least significant bytes in the event the given amount of data exceeds
+    /// `bits_precision`.
+    #[must_use]
+    pub fn from_le_slice_truncated(mut bytes: &[u8], bits_precision: u32) -> Self {
+        let bytes_precision = bitlen::to_bytes(bits_precision);
+
+        if bytes.len() > bytes_precision {
+            bytes = &bytes[..bytes_precision];
+        }
+
         let mut ret = Self::zero_with_precision(bits_precision);
 
         for (chunk, limb) in bytes.chunks(Limb::BYTES).zip(ret.limbs.iter_mut()) {
             *limb = Limb::from_le_slice(chunk);
         }
 
-        if bits_precision < ret.bits() {
-            return Err(DecodeError::Precision);
+        // Mask the high limb so we have the desired precision
+        let unaligned_bits = bits_precision & (Limb::BITS - 1);
+        if unaligned_bits != 0 {
+            if let Some(limb) = ret.limbs.last_mut() {
+                limb.0 &= Word::MAX >> (Limb::BITS.saturating_sub(unaligned_bits));
+            }
         }
 
-        Ok(ret)
+        ret
     }
 
     /// Create a new [`BoxedUint`] from the provided little endian bytes, automatically selecting
@@ -94,12 +125,8 @@ impl BoxedUint {
     ///
     /// When working with secret values, use [`BoxedUint::from_le_slice`].
     #[must_use]
-    #[allow(clippy::cast_possible_truncation, clippy::missing_panics_doc)]
     pub fn from_le_slice_vartime(bytes: &[u8]) -> Self {
-        let bits_precision = bitlen::from_bytes(bytes.len());
-
-        // TODO(tarcieri): avoid panic
-        Self::from_le_slice(bytes, bits_precision).expect("precision should be large enough")
+        Self::from_le_slice_truncated(bytes, bitlen::from_bytes(bytes.len()))
     }
 
     /// Serialize this [`BoxedUint`] as big-endian.
@@ -470,10 +497,62 @@ mod tests {
     #[test]
     fn from_be_slice_non_multiple_precision() {
         let bytes = hex!("0f112233445566778899aabbccddeeff");
+        let n = BoxedUint::from_be_slice(&bytes, 121).unwrap();
+        assert_eq!(n.bits(), 121);
+    }
+
+    #[test]
+    fn from_be_slice_rejects_value_exceeding_precision() {
         assert_eq!(
-            BoxedUint::from_be_slice(&bytes, 121),
-            Err(DecodeError::Precision)
+            BoxedUint::from_be_slice(&[0x01, 0x00], 8),
+            Err(DecodeError::InputSize)
         );
+    }
+
+    #[test]
+    fn from_be_slice_truncated_exact_fit() {
+        let bytes = [0u8; 32];
+        let n = BoxedUint::from_be_slice_truncated(&bytes, 256);
+        assert_eq!(&*n.to_be_bytes(), &bytes);
+    }
+
+    #[test]
+    fn from_be_slice_truncated_truncates_to_lsb() {
+        let n = BoxedUint::from_be_slice_truncated(&[0xDE, 0xAD, 0xBE, 0xEF], 16);
+        let out = n.to_be_bytes();
+        assert_eq!(&out[(out.len() - 2)..], &[0xBE, 0xEF]);
+    }
+
+    #[test]
+    fn from_be_slice_truncated_zero_pads_short_input() {
+        let n = BoxedUint::from_be_slice_truncated(&[0x42], 32);
+        assert_eq!(n.to_be_bytes().last(), Some(&0x42));
+        assert!(n.to_be_bytes().iter().rev().skip(1).all(|&b| b == 0));
+    }
+
+    #[test]
+    fn from_be_slice_truncated_top_byte_masked() {
+        let n = BoxedUint::from_be_slice_truncated(&[0xFF, 0xFF], 12);
+        assert!(n.bits() <= 12);
+    }
+
+    #[test]
+    fn from_le_slice_truncated_exact_fit() {
+        let bytes = [0u8; 32];
+        let n = BoxedUint::from_le_slice_truncated(&bytes, 256);
+        assert_eq!(&*n.to_le_bytes(), &bytes);
+    }
+
+    #[test]
+    fn from_le_slice_truncated_truncates_to_lsb() {
+        let n = BoxedUint::from_le_slice_truncated(&[0xEF, 0xBE, 0xAD, 0xDE], 16);
+        assert_eq!(&n.to_le_bytes()[..2], &[0xEF, 0xBE]);
+    }
+
+    #[test]
+    fn from_le_slice_truncated_top_byte_masked() {
+        let n = BoxedUint::from_le_slice_truncated(&[0xFF, 0xFF], 12);
+        assert!(n.bits() <= 12,);
     }
 
     #[test]
@@ -496,11 +575,9 @@ mod tests {
 
     #[test]
     fn from_le_slice_non_multiple_precision() {
-        let bytes = hex!("ffeeddccbbaa998877665544332211f0");
-        assert_eq!(
-            BoxedUint::from_le_slice(&bytes, 121),
-            Err(DecodeError::Precision)
-        );
+        let bytes = hex!("ffeeddccbbaa998877665544332211ff");
+        let n = BoxedUint::from_le_slice(&bytes, 121).unwrap();
+        assert_eq!(n.bits(), 121);
     }
 
     #[test]
