@@ -3,6 +3,7 @@ use crate::{Choice, Limb, bitlen, traits::BitOps, word};
 
 impl UintRef {
     /// Get the precision of this number in bits.
+    #[inline(always)]
     #[must_use]
     pub const fn bits_precision(&self) -> u32 {
         bitlen::from_limbs(self.limbs.len())
