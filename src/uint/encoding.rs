@@ -23,7 +23,7 @@ const RADIX_ENCODING_MIN: u32 = 2;
 const RADIX_ENCODING_MAX: u32 = 36;
 
 impl<const LIMBS: usize> Uint<LIMBS> {
-    /// Create a new [`Uint`] from the provided big endian bytes.
+    /// Decode [`Uint`] from the provided big endian bytes.
     ///
     /// # Panics
     /// If the supplied byte slice is not equal to the byte length of this [`Uint`], i.e.
@@ -53,26 +53,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Uint::new(res)
     }
 
-    /// Create a new [`Uint`] from the provided big endian bytes, zero padding if necessary,
-    /// and truncating to the least significant bytes in the event the given amount of data exceeds
-    /// `bits_precision`.
-    ///
-    /// # Panics
-    /// If `bits_precision > Self::BITS`.
-    #[must_use]
-    #[track_caller]
-    pub fn from_be_slice_truncated(bytes: &[u8], bits_precision: u32) -> Self {
-        let mut ret = Self::ZERO;
-        assert!(
-            fill_limbs_from_be_slice_truncated(bytes, &mut ret.limbs, bits_precision).is_ok(),
-            "U{} is too small to store requested {} bits",
-            Self::BITS,
-            bits_precision
-        );
-        ret
-    }
-
-    /// Create a new [`Uint`] from the provided little endian bytes.
+    /// Decode [`Uint`] from the provided little endian bytes.
     ///
     /// # Panics
     /// If the supplied byte slice is not equal to the byte length of this [`Uint`], i.e.
@@ -102,8 +83,27 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Uint::new(res)
     }
 
-    /// Create a new [`Uint`] from the provided little endian bytes, zero padding if necessary,
-    /// and truncating to the least significant bytes in the event the given amount of data exceeds
+    /// Decode [`Uint`] from the provided big endian bytes, zero padding if necessary, and
+    /// truncating to the least significant bytes in the event the given amount of data exceeds
+    /// `bits_precision`.
+    ///
+    /// # Panics
+    /// If `bits_precision > Self::BITS`.
+    #[must_use]
+    #[track_caller]
+    pub fn from_be_slice_truncated(bytes: &[u8], bits_precision: u32) -> Self {
+        let mut ret = Self::ZERO;
+        assert!(
+            fill_limbs_from_be_slice_truncated(bytes, &mut ret.limbs, bits_precision).is_ok(),
+            "U{} is too small to store requested {} bits",
+            Self::BITS,
+            bits_precision
+        );
+        ret
+    }
+
+    /// Decode [`Uint`] from the provided little endian bytes, zero padding if necessary, and
+    /// truncating to the least significant bytes in the event the given amount of data exceeds
     /// `bits_precision`.
     ///
     /// # Panics
@@ -121,8 +121,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         ret
     }
 
-    /// Create a new [`Uint`] from the provided slice, using the supplied [`ByteOrder`] to
-    /// determine the endianness.
+    /// Decode [`Uint`] from the provided slice, using the supplied [`ByteOrder`] to determine the
+    /// endianness.
     ///
     /// # Panics
     /// If the supplied byte slice is not equal to the byte length of this [`Uint`], i.e.
@@ -136,8 +136,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
     }
 
-    /// Create a new [`Uint`] from the provided bytes, using the supplied [`ByteOrder`] to
-    /// determine the endianness.
+    /// Decode [`Uint`] from the provided bytes, using the supplied [`ByteOrder`] to determine the
+    /// endianness.
     ///
     /// Zero pads if necessary, and truncates to the least significant bytes in the event the given
     /// amount of data exceeds `bits_precision`.
@@ -372,12 +372,12 @@ pub(crate) fn fill_limbs_from_le_slice_truncated(
 }
 
 /// Handle masking for the case that `bits_precision` is not aligned to `Limb::BITS`.
+#[inline(always)]
 fn mask_high_limb(limbs: &mut [Limb], bits_precision: u32) {
     debug_assert!(bitlen::from_limbs(limbs.len()) >= bits_precision);
     let unaligned_bits = bits_precision & (Limb::BITS - 1);
     if unaligned_bits != 0 {
-        let high_limb = bitlen::to_limbs(bits_precision) - 1;
-        limbs[high_limb].0 &= Word::MAX >> (Limb::BITS.saturating_sub(unaligned_bits));
+        limbs[bitlen::to_limbs(bits_precision) - 1].mask_to_precision(unaligned_bits);
     }
 }
 

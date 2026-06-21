@@ -1,6 +1,6 @@
 //! Support for decoding/encoding [`Uint`] as an ASN.1 DER `INTEGER`.
 
-use crate::{ArrayEncoding, Encoding, Limb, Uint, UintRef, hybrid_array::Array};
+use crate::{ArrayEncoding, Limb, Uint, UintRef, hybrid_array::Array};
 use ::der::{
     DecodeValue, EncodeValue, FixedTag, Length, Tag,
     asn1::{AnyRef, UintRef as Asn1UintRef},
