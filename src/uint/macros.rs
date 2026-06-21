@@ -1,4 +1,4 @@
-//! Macros used to define traits on aliases of `Uint`.
+//! Macros used to define trait impls on aliases of `Uint`.
 
 // TODO(tarcieri): use `generic_const_exprs` when stable to make generic around bits.
 macro_rules! impl_uint_aliases {
@@ -8,11 +8,11 @@ macro_rules! impl_uint_aliases {
             #[doc="unsigned big integer."]
             pub type $name = Uint<{ nlimbs($bits) }>;
 
-            impl $crate::traits::EncodedSize for [u8; { nlimbs($bits) * Limb::BYTES }] {
+            impl $crate::EncodedSize for [u8; { nlimbs($bits) * Limb::BYTES }] {
                 type Target = EncodedUint<{ nlimbs($bits) }>;
             }
 
-            impl $crate::traits::EncodedSize for EncodedUint<{ nlimbs($bits) }> {
+            impl $crate::EncodedSize for EncodedUint<{ nlimbs($bits) }> {
                 type Target = [u8; { nlimbs($bits) * Limb::BYTES }];
             }
         )+

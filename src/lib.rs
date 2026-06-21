@@ -159,6 +159,7 @@ extern crate alloc;
 pub use crate::{
     checked::Checked,
     encoding::ByteOrder,
+    encoding::*,
     int::{types::*, *},
     jacobi::JacobiSymbol,
     limb::{Limb, nlimbs},
@@ -176,27 +177,21 @@ pub use crate::{
 };
 
 pub use cpubits::cpubits;
-pub use ctutils;
-pub use ctutils::{Choice, CtOption};
+pub use ctutils::{self, Choice, CtOption};
 
 #[cfg(feature = "alloc")]
 pub use crate::uint::boxed::BoxedUint;
+#[cfg(feature = "hybrid-array")]
+pub use hybrid_array::{self, typenum::consts};
 #[cfg(feature = "rand_core")]
 pub use rand_core;
 #[cfg(feature = "rlp")]
 pub use rlp;
 #[cfg(feature = "zeroize")]
 pub use zeroize;
-#[cfg(feature = "hybrid-array")]
-pub use {
-    crate::array::{ArrayDecoding, ArrayEncoding, ByteArray},
-    hybrid_array::{self, typenum::consts},
-};
 
 pub mod modular;
 
-#[cfg(feature = "hybrid-array")]
-mod array;
 mod bitlen;
 mod checked;
 mod encoding;
@@ -213,9 +208,7 @@ mod wrapping;
 
 /// Import prelude for this crate: includes important traits.
 pub mod prelude {
-    #[cfg(feature = "hybrid-array")]
-    pub use crate::array::{ArrayDecoding, ArrayEncoding};
-    pub use crate::traits::*;
+    pub use crate::{encoding::*, traits::*};
 }
 
 /// DEPRECATED: legacy type alias for [`Choice`].

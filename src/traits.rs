@@ -20,6 +20,87 @@ use core::fmt::{self, Debug};
 #[cfg(feature = "rand_core")]
 use rand_core::{Rng, TryRng};
 
+/// Bit counting and bit operations.
+pub trait BitOps {
+    /// Precision of this integer in bits.
+    #[must_use]
+    fn bits_precision(&self) -> u32;
+
+    /// `floor(log2(self.bits_precision()))`.
+    #[must_use]
+    fn log2_bits(&self) -> u32 {
+        u32_bits(self.bits_precision()) - 1
+    }
+
+    /// Precision of this integer in bytes.
+    #[must_use]
+    fn bytes_precision(&self) -> usize;
+
+    /// Get the value of the bit at position `index`, as a truthy or falsy `Choice`.
+    /// Returns the falsy value for indices out of range.
+    #[must_use]
+    fn bit(&self, index: u32) -> Choice;
+
+    /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
+    fn set_bit(&mut self, index: u32, bit_value: Choice);
+
+    /// Calculate the number of bits required to represent a given number.
+    #[must_use]
+    fn bits(&self) -> u32 {
+        self.bits_precision() - self.leading_zeros()
+    }
+
+    /// Calculate the number of trailing zeros in the binary representation of this number.
+    #[must_use]
+    fn trailing_zeros(&self) -> u32;
+
+    /// Calculate the number of trailing ones in the binary representation of this number.
+    #[must_use]
+    fn trailing_ones(&self) -> u32;
+
+    /// Calculate the number of leading zeros in the binary representation of this number.
+    #[must_use]
+    fn leading_zeros(&self) -> u32;
+
+    /// Returns `true` if the bit at position `index` is set, `false` otherwise.
+    ///
+    /// # Remarks
+    /// This operation is variable time with respect to `index` only.
+    #[must_use]
+    fn bit_vartime(&self, index: u32) -> bool;
+
+    /// Calculate the number of bits required to represent a given number in variable-time with
+    /// respect to `self`.
+    #[must_use]
+    fn bits_vartime(&self) -> u32 {
+        self.bits()
+    }
+
+    /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`,
+    /// variable time in `self`.
+    fn set_bit_vartime(&mut self, index: u32, bit_value: bool);
+
+    /// Calculate the number of leading zeros in the binary representation of this number.
+    #[must_use]
+    fn leading_zeros_vartime(&self) -> u32 {
+        self.bits_precision() - self.bits_vartime()
+    }
+
+    /// Calculate the number of trailing zeros in the binary representation of this number in
+    /// variable-time with respect to `self`.
+    #[must_use]
+    fn trailing_zeros_vartime(&self) -> u32 {
+        self.trailing_zeros()
+    }
+
+    /// Calculate the number of trailing ones in the binary representation of this number,
+    /// variable time in `self`.
+    #[must_use]
+    fn trailing_ones_vartime(&self) -> u32 {
+        self.trailing_ones()
+    }
+}
+
 /// Integers whose representation takes a bounded amount of space.
 pub trait Bounded {
     /// Size of this integer in bits.
@@ -729,72 +810,6 @@ pub trait SplitEven {
     type Output: Integer;
 }
 
-/// Encoding support.
-pub trait Encoding: Sized {
-    /// Byte array representation.
-    type Repr: AsRef<[u8]>
-        + AsMut<[u8]>
-        + Clone
-        + Sized
-        + for<'a> TryFrom<&'a [u8], Error: core::error::Error>;
-
-    /// Decode from big endian bytes.
-    #[must_use]
-    fn from_be_bytes(bytes: Self::Repr) -> Self;
-
-    /// Decode from little endian bytes.
-    #[must_use]
-    fn from_le_bytes(bytes: Self::Repr) -> Self;
-
-    /// Encode to big endian bytes.
-    #[must_use]
-    fn to_be_bytes(&self) -> Self::Repr;
-
-    /// Encode to little endian bytes.
-    #[must_use]
-    fn to_le_bytes(&self) -> Self::Repr;
-}
-
-/// A trait mapping between encoded representations of integers.
-pub trait EncodedSize {
-    /// The equivalent encoded representation.
-    type Target;
-}
-
-/// Possible errors in variable-time integer decoding methods.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum DecodeError {
-    /// The input value was empty.
-    Empty,
-
-    /// The input was not consistent with the format restrictions.
-    InvalidDigit,
-
-    /// Input size is too small to fit in the given precision.
-    InputSize,
-
-    /// The deserialized number is larger than the given precision.
-    Precision,
-}
-
-impl fmt::Display for DecodeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Empty => write!(f, "empty value provided"),
-            Self::InvalidDigit => {
-                write!(f, "invalid digit character")
-            }
-            Self::InputSize => write!(f, "input size is too small to fit in the given precision"),
-            Self::Precision => write!(
-                f,
-                "the deserialized number is larger than the given precision"
-            ),
-        }
-    }
-}
-
-impl core::error::Error for DecodeError {}
-
 /// Support for optimized squaring
 pub trait Square {
     /// Computes the same as `self * self`, but may be more efficient.
@@ -889,87 +904,6 @@ pub trait RemLimb: Sized {
     /// Computes `self % rhs`.
     #[must_use]
     fn rem_limb_with_reciprocal(&self, reciprocal: &Reciprocal) -> Limb;
-}
-
-/// Bit counting and bit operations.
-pub trait BitOps {
-    /// Precision of this integer in bits.
-    #[must_use]
-    fn bits_precision(&self) -> u32;
-
-    /// `floor(log2(self.bits_precision()))`.
-    #[must_use]
-    fn log2_bits(&self) -> u32 {
-        u32_bits(self.bits_precision()) - 1
-    }
-
-    /// Precision of this integer in bytes.
-    #[must_use]
-    fn bytes_precision(&self) -> usize;
-
-    /// Get the value of the bit at position `index`, as a truthy or falsy `Choice`.
-    /// Returns the falsy value for indices out of range.
-    #[must_use]
-    fn bit(&self, index: u32) -> Choice;
-
-    /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
-    fn set_bit(&mut self, index: u32, bit_value: Choice);
-
-    /// Calculate the number of bits required to represent a given number.
-    #[must_use]
-    fn bits(&self) -> u32 {
-        self.bits_precision() - self.leading_zeros()
-    }
-
-    /// Calculate the number of trailing zeros in the binary representation of this number.
-    #[must_use]
-    fn trailing_zeros(&self) -> u32;
-
-    /// Calculate the number of trailing ones in the binary representation of this number.
-    #[must_use]
-    fn trailing_ones(&self) -> u32;
-
-    /// Calculate the number of leading zeros in the binary representation of this number.
-    #[must_use]
-    fn leading_zeros(&self) -> u32;
-
-    /// Returns `true` if the bit at position `index` is set, `false` otherwise.
-    ///
-    /// # Remarks
-    /// This operation is variable time with respect to `index` only.
-    #[must_use]
-    fn bit_vartime(&self, index: u32) -> bool;
-
-    /// Calculate the number of bits required to represent a given number in variable-time with
-    /// respect to `self`.
-    #[must_use]
-    fn bits_vartime(&self) -> u32 {
-        self.bits()
-    }
-
-    /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`,
-    /// variable time in `self`.
-    fn set_bit_vartime(&mut self, index: u32, bit_value: bool);
-
-    /// Calculate the number of leading zeros in the binary representation of this number.
-    #[must_use]
-    fn leading_zeros_vartime(&self) -> u32 {
-        self.bits_precision() - self.bits_vartime()
-    }
-
-    /// Calculate the number of trailing zeros in the binary representation of this number in
-    /// variable-time with respect to `self`.
-    #[must_use]
-    fn trailing_zeros_vartime(&self) -> u32 {
-        self.trailing_zeros()
-    }
-
-    /// Calculate the number of trailing ones in the binary representation of this number,
-    /// variable time in `self`.
-    #[must_use]
-    fn trailing_ones_vartime(&self) -> u32 {
-        self.trailing_ones()
-    }
 }
 
 /// Constant-time exponentiation.
