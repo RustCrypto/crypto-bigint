@@ -33,26 +33,11 @@ impl BoxedUint {
     /// and truncating to the least significant bytes in the event the given amount of data exceeds
     /// `bits_precision`.
     #[must_use]
-    pub fn from_be_slice_truncated(mut bytes: &[u8], bits_precision: u32) -> Self {
-        let bytes_precision = bitlen::to_bytes(bits_precision);
-        if bytes.len() > bytes_precision {
-            bytes = &bytes[bytes.len().saturating_sub(bytes_precision)..];
-        }
-
+    #[allow(clippy::missing_panics_doc, reason = "should not panic in practice")]
+    pub fn from_be_slice_truncated(bytes: &[u8], bits_precision: u32) -> Self {
         let mut ret = Self::zero_with_precision(bits_precision);
-
-        for (chunk, limb) in bytes.rchunks(Limb::BYTES).zip(ret.limbs.iter_mut()) {
-            *limb = Limb::from_be_slice(chunk);
-        }
-
-        // Mask the high limb so we have the desired precision
-        let unaligned_bits = bits_precision & (Limb::BITS - 1);
-        if unaligned_bits != 0 {
-            if let Some(limb) = ret.limbs.last_mut() {
-                limb.0 &= Word::MAX >> (Limb::BITS.saturating_sub(unaligned_bits));
-            }
-        }
-
+        encoding::fill_limbs_from_be_slice_truncated(bytes, &mut ret.limbs, bits_precision)
+            .expect("should fit in requested precision");
         ret
     }
 
@@ -93,27 +78,11 @@ impl BoxedUint {
     /// and truncating to the least significant bytes in the event the given amount of data exceeds
     /// `bits_precision`.
     #[must_use]
-    pub fn from_le_slice_truncated(mut bytes: &[u8], bits_precision: u32) -> Self {
-        let bytes_precision = bitlen::to_bytes(bits_precision);
-
-        if bytes.len() > bytes_precision {
-            bytes = &bytes[..bytes_precision];
-        }
-
+    #[allow(clippy::missing_panics_doc, reason = "should not panic in practice")]
+    pub fn from_le_slice_truncated(bytes: &[u8], bits_precision: u32) -> Self {
         let mut ret = Self::zero_with_precision(bits_precision);
-
-        for (chunk, limb) in bytes.chunks(Limb::BYTES).zip(ret.limbs.iter_mut()) {
-            *limb = Limb::from_le_slice(chunk);
-        }
-
-        // Mask the high limb so we have the desired precision
-        let unaligned_bits = bits_precision & (Limb::BITS - 1);
-        if unaligned_bits != 0 {
-            if let Some(limb) = ret.limbs.last_mut() {
-                limb.0 &= Word::MAX >> (Limb::BITS.saturating_sub(unaligned_bits));
-            }
-        }
-
+        encoding::fill_limbs_from_le_slice_truncated(bytes, &mut ret.limbs, bits_precision)
+            .expect("should fit in requested precision");
         ret
     }
 

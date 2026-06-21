@@ -6,11 +6,11 @@ mod der;
 mod rlp;
 
 use super::Uint;
-use crate::{ByteOrder, DecodeError, EncodedSize, Encoding, Limb, Word};
+use crate::{ByteOrder, DecodeError, EncodedSize, Encoding, Limb, Word, bitlen};
 use core::{fmt, ops::Deref};
 
 #[cfg(feature = "alloc")]
-use crate::{NonZero, Reciprocal, UintRef, WideWord, bitlen};
+use crate::{NonZero, Reciprocal, UintRef, WideWord};
 #[cfg(feature = "alloc")]
 use alloc::{string::String, vec::Vec};
 
@@ -26,8 +26,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a new [`Uint`] from the provided big endian bytes.
     ///
     /// # Panics
-    /// - If the supplied byte slice is the incorrect size
+    /// If the supplied byte slice is not equal to the byte length of this [`Uint`], i.e.
+    /// [`Limb::BYTES`] * `LIMBS`.
     #[must_use]
+    #[track_caller]
     pub const fn from_be_slice(bytes: &[u8]) -> Self {
         assert!(
             bytes.len() == Limb::BYTES * LIMBS,
@@ -51,11 +53,32 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Uint::new(res)
     }
 
+    /// Create a new [`Uint`] from the provided big endian bytes, zero padding if necessary,
+    /// and truncating to the least significant bytes in the event the given amount of data exceeds
+    /// `bits_precision`.
+    ///
+    /// # Panics
+    /// If `bits_precision > Self::BITS`.
+    #[must_use]
+    #[track_caller]
+    pub fn from_be_slice_truncated(bytes: &[u8], bits_precision: u32) -> Self {
+        let mut ret = Self::ZERO;
+        assert!(
+            fill_limbs_from_be_slice_truncated(bytes, &mut ret.limbs, bits_precision).is_ok(),
+            "U{} is too small to store requested {} bits",
+            Self::BITS,
+            bits_precision
+        );
+        ret
+    }
+
     /// Create a new [`Uint`] from the provided little endian bytes.
     ///
     /// # Panics
-    /// - If the supplied byte slice is the incorrect size
+    /// If the supplied byte slice is not equal to the byte length of this [`Uint`], i.e.
+    /// [`Limb::BYTES`] * `LIMBS`.
     #[must_use]
+    #[track_caller]
     pub const fn from_le_slice(bytes: &[u8]) -> Self {
         assert!(
             bytes.len() == Limb::BYTES * LIMBS,
@@ -79,12 +102,33 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         Uint::new(res)
     }
 
+    /// Create a new [`Uint`] from the provided little endian bytes, zero padding if necessary,
+    /// and truncating to the least significant bytes in the event the given amount of data exceeds
+    /// `bits_precision`.
+    ///
+    /// # Panics
+    /// If `bits_precision > Self::BITS`.
+    #[must_use]
+    #[track_caller]
+    pub fn from_le_slice_truncated(bytes: &[u8], bits_precision: u32) -> Self {
+        let mut ret = Self::ZERO;
+        assert!(
+            fill_limbs_from_le_slice_truncated(bytes, &mut ret.limbs, bits_precision).is_ok(),
+            "U{} is too small to store requested {} bits",
+            Self::BITS,
+            bits_precision
+        );
+        ret
+    }
+
     /// Create a new [`Uint`] from the provided slice, using the supplied [`ByteOrder`] to
     /// determine the endianness.
     ///
     /// # Panics
-    /// - If the supplied byte slice is the incorrect size
+    /// If the supplied byte slice is not equal to the byte length of this [`Uint`], i.e.
+    /// [`Limb::BYTES`] * `LIMBS`.
     #[must_use]
+    #[track_caller]
     pub const fn from_slice(bytes: &[u8], byte_order: ByteOrder) -> Self {
         match byte_order {
             ByteOrder::BigEndian => Self::from_be_slice(bytes),
@@ -92,11 +136,29 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         }
     }
 
+    /// Create a new [`Uint`] from the provided bytes, using the supplied [`ByteOrder`] to
+    /// determine the endianness.
+    ///
+    /// Zero pads if necessary, and truncates to the least significant bytes in the event the given
+    /// amount of data exceeds `bits_precision`.
+    ///
+    /// # Panics
+    /// If `bits_precision > Self::BITS`.
+    #[must_use]
+    #[track_caller]
+    pub fn from_slice_truncated(bytes: &[u8], bits_precision: u32, byte_order: ByteOrder) -> Self {
+        match byte_order {
+            ByteOrder::BigEndian => Self::from_be_slice_truncated(bytes, bits_precision),
+            ByteOrder::LittleEndian => Self::from_le_slice_truncated(bytes, bits_precision),
+        }
+    }
+
     /// Create a new [`Uint`] from the provided big endian hex string.
     ///
     /// # Panics
-    /// - if the hex is malformed or not zero-padded accordingly for the size.
+    /// If the hex is malformed or not zero-padded accordingly for the size.
     #[must_use]
+    #[track_caller]
     pub const fn from_be_hex(hex: &str) -> Self {
         let bytes = hex.as_bytes();
 
@@ -131,8 +193,9 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Create a new [`Uint`] from the provided little endian hex string.
     ///
     /// # Panics
-    /// - if the hex is malformed or not zero-padded accordingly for the size.
+    /// If the hex is malformed or not zero-padded accordingly for the size.
     #[must_use]
+    #[track_caller]
     pub const fn from_le_hex(hex: &str) -> Self {
         let bytes = hex.as_bytes();
 
@@ -170,6 +233,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// # Panics
     /// - if the hex is malformed or not zero-padded accordingly for the size.
     #[must_use]
+    #[track_caller]
     pub const fn from_hex(hex: &str, byte_order: ByteOrder) -> Self {
         match byte_order {
             ByteOrder::BigEndian => Self::from_be_hex(hex),
@@ -252,6 +316,68 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     #[must_use]
     pub const fn to_le_bytes(&self) -> EncodedUint<LIMBS> {
         EncodedUint::new_le(self)
+    }
+}
+
+/// Common implementation of a truncating big endian decoder which supports partial inputs and
+/// truncates inputs larger than the provided `bits_precision`.
+///
+/// Fills the supplied `limbs` with the decoded `bytes` after truncating to `bits_precision`.
+pub(crate) fn fill_limbs_from_be_slice_truncated(
+    mut bytes: &[u8],
+    limbs: &mut [Limb],
+    bits_precision: u32,
+) -> Result<(), DecodeError> {
+    if bitlen::from_limbs(limbs.len()) < bits_precision {
+        return Err(DecodeError::Precision);
+    }
+
+    let bytes_precision = bitlen::to_bytes(bits_precision);
+    if bytes.len() > bytes_precision {
+        bytes = &bytes[bytes.len().saturating_sub(bytes_precision)..];
+    }
+
+    for (chunk, limb) in bytes.rchunks(Limb::BYTES).zip(limbs.iter_mut()) {
+        *limb = Limb::from_be_slice(chunk);
+    }
+
+    mask_high_limb(limbs, bits_precision);
+    Ok(())
+}
+
+/// Common implementation of a truncating little endian decoder which supports partial inputs and
+/// truncates inputs larger than the provided `bits_precision`.
+///
+/// Fills the supplied `limbs` with the decoded `bytes` after truncating to `bits_precision`.
+pub(crate) fn fill_limbs_from_le_slice_truncated(
+    mut bytes: &[u8],
+    limbs: &mut [Limb],
+    bits_precision: u32,
+) -> Result<(), DecodeError> {
+    if bitlen::from_limbs(limbs.len()) < bits_precision {
+        return Err(DecodeError::Precision);
+    }
+
+    let bytes_precision = bitlen::to_bytes(bits_precision);
+    if bytes.len() > bytes_precision {
+        bytes = &bytes[..bytes_precision];
+    }
+
+    for (chunk, limb) in bytes.chunks(Limb::BYTES).zip(limbs.iter_mut()) {
+        *limb = Limb::from_le_slice(chunk);
+    }
+
+    mask_high_limb(limbs, bits_precision);
+    Ok(())
+}
+
+/// Handle masking for the case that `bits_precision` is not aligned to `Limb::BITS`.
+fn mask_high_limb(limbs: &mut [Limb], bits_precision: u32) {
+    debug_assert!(bitlen::from_limbs(limbs.len()) >= bits_precision);
+    let unaligned_bits = bits_precision & (Limb::BITS - 1);
+    if unaligned_bits != 0 {
+        let high_limb = bitlen::to_limbs(bits_precision) - 1;
+        limbs[high_limb].0 &= Word::MAX >> (Limb::BITS.saturating_sub(unaligned_bits));
     }
 }
 
@@ -1052,6 +1178,20 @@ mod tests {
             }
 
             #[test]
+            fn from_be_slice_truncated() {
+                let bytes = hex!("0011223344556677");
+                let n = UintEx::from_be_slice_truncated(&bytes, 64);
+                assert_eq!(n.as_limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
+            }
+
+            #[test]
+            fn from_le_slice_truncated() {
+                let bytes = hex!("7766554433221100");
+                let n = UintEx::from_le_slice_truncated(&bytes, 64);
+                assert_eq!(n.as_limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
+            }
+
+            #[test]
             fn from_be_hex() {
                 let n = UintEx::from_be_hex("0011223344556677");
                 assert_eq!(n.as_limbs(), &[Limb(0x44556677), Limb(0x00112233)]);
@@ -1087,6 +1227,26 @@ mod tests {
             }
 
             #[test]
+            fn from_be_slice_truncated() {
+                let bytes = hex!("112233445566778899aabbccddeeff");
+                let n = UintEx::from_be_slice_truncated(&bytes, 128);
+                assert_eq!(
+                    n.as_limbs(),
+                    &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
+                );
+            }
+
+            #[test]
+            fn from_le_slice_truncated() {
+                let bytes = hex!("ffeeddccbbaa998877665544332211");
+                let n = UintEx::from_le_slice_truncated(&bytes, 128);
+                assert_eq!(
+                    n.as_limbs(),
+                    &[Limb(0x8899aabbccddeeff), Limb(0x0011223344556677)]
+                );
+            }
+
+            #[test]
             fn from_be_hex() {
                 let n = UintEx::from_be_hex("00112233445566778899aabbccddeeff");
                 assert_eq!(
@@ -1104,6 +1264,26 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn fill_limbs_from_be_slice_truncated_empty() {
+        let mut limbs = [];
+        assert!(super::fill_limbs_from_be_slice_truncated(b"", &mut limbs, 0).is_ok());
+        assert_eq!(
+            super::fill_limbs_from_be_slice_truncated(b"", &mut limbs, 1),
+            Err(DecodeError::Precision)
+        );
+    }
+
+    #[test]
+    fn fill_limbs_from_le_slice_truncated_empty() {
+        let mut limbs = [];
+        assert!(super::fill_limbs_from_le_slice_truncated(b"", &mut limbs, 0).is_ok());
+        assert_eq!(
+            super::fill_limbs_from_le_slice_truncated(b"", &mut limbs, 1),
+            Err(DecodeError::Precision)
+        );
     }
 
     #[cfg(feature = "alloc")]

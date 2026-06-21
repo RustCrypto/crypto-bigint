@@ -3,31 +3,6 @@
 use super::{Limb, Word};
 use crate::Encoding;
 
-impl Encoding for Limb {
-    type Repr = [u8; Self::BYTES];
-
-    #[inline]
-    fn from_be_bytes(bytes: Self::Repr) -> Self {
-        Limb(Word::from_be_bytes(bytes))
-    }
-
-    #[inline]
-    fn from_le_bytes(bytes: Self::Repr) -> Self {
-        Limb(Word::from_le_bytes(bytes))
-    }
-
-    #[inline]
-    fn to_be_bytes(&self) -> Self::Repr {
-        self.0.to_be_bytes()
-    }
-
-    #[inline]
-    fn to_le_bytes(&self) -> Self::Repr {
-        self.0.to_le_bytes()
-    }
-}
-
-#[cfg(feature = "alloc")]
 impl Limb {
     /// Decode limb from a big endian byte slice, which may be shorter than [`Limb::BYTES`].
     ///
@@ -56,6 +31,30 @@ impl Limb {
         let mut repr = Self::ZERO.to_be_bytes();
         repr[..bytes.len()].copy_from_slice(bytes);
         Self::from_le_bytes(repr)
+    }
+}
+
+impl Encoding for Limb {
+    type Repr = [u8; Self::BYTES];
+
+    #[inline]
+    fn from_be_bytes(bytes: Self::Repr) -> Self {
+        Limb(Word::from_be_bytes(bytes))
+    }
+
+    #[inline]
+    fn from_le_bytes(bytes: Self::Repr) -> Self {
+        Limb(Word::from_le_bytes(bytes))
+    }
+
+    #[inline]
+    fn to_be_bytes(&self) -> Self::Repr {
+        self.0.to_be_bytes()
+    }
+
+    #[inline]
+    fn to_le_bytes(&self) -> Self::Repr {
+        self.0.to_le_bytes()
     }
 }
 
