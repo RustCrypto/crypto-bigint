@@ -262,20 +262,28 @@ impl BoxedUint {
 impl Encoding for BoxedUint {
     type Repr = Box<[u8]>;
 
-    fn to_be_bytes(&self) -> Self::Repr {
-        BoxedUint::to_be_bytes(self)
-    }
-
-    fn to_le_bytes(&self) -> Self::Repr {
-        BoxedUint::to_le_bytes(self)
-    }
-
     fn from_be_bytes(bytes: Self::Repr) -> Self {
-        BoxedUint::from_be_slice_vartime(&bytes)
+        Self::from_be_slice_vartime(&bytes)
     }
 
     fn from_le_bytes(bytes: Self::Repr) -> Self {
-        BoxedUint::from_le_slice_vartime(&bytes)
+        Self::from_le_slice_vartime(&bytes)
+    }
+
+    fn from_be_slice_truncated(bytes: &[u8], bits_precision: u32) -> Self {
+        Self::from_be_slice_truncated(bytes, bits_precision)
+    }
+
+    fn from_le_slice_truncated(bytes: &[u8], bits_precision: u32) -> Self {
+        Self::from_le_slice_truncated(bytes, bits_precision)
+    }
+
+    fn to_be_bytes(&self) -> Self::Repr {
+        Self::to_be_bytes(self)
+    }
+
+    fn to_le_bytes(&self) -> Self::Repr {
+        Self::to_le_bytes(self)
     }
 }
 

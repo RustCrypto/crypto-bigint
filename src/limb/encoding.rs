@@ -139,6 +139,16 @@ impl Encoding for Limb {
     }
 
     #[inline]
+    fn from_be_slice_truncated(bytes: &[u8], bits_precision: u32) -> Self {
+        Self::from_be_slice_truncated(bytes, bits_precision)
+    }
+
+    #[inline]
+    fn from_le_slice_truncated(bytes: &[u8], bits_precision: u32) -> Self {
+        Self::from_le_slice_truncated(bytes, bits_precision)
+    }
+
+    #[inline]
     fn to_be_bytes(&self) -> Self::Repr {
         self.to_be_bytes()
     }

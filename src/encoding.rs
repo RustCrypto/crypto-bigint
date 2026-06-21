@@ -1,5 +1,6 @@
 //! Shared encoding support.
 
+use crate::bitlen;
 use core::fmt;
 
 #[cfg(feature = "hybrid-array")]
@@ -56,6 +57,7 @@ pub trait ArrayDecoding {
 }
 
 /// Encoding support.
+// TODO(tarcieri): seal this trait in the next breaking release.
 pub trait Encoding: Sized {
     /// Byte array representation.
     type Repr: AsRef<[u8]>
@@ -78,6 +80,41 @@ pub trait Encoding: Sized {
         match byte_order {
             ByteOrder::BigEndian => Self::from_be_bytes(bytes),
             ByteOrder::LittleEndian => Self::from_le_bytes(bytes),
+        }
+    }
+
+    /// Decode from the provided big endian bytes, truncating to the least significant bits in the
+    /// event the given amount of data exceeds `bits_precision`.
+    ///
+    /// Implementations may panic if `bits_precision` exceeds their underlying size.
+    #[must_use]
+    fn from_be_slice_truncated(bytes: &[u8], bits_precision: u32) -> Self {
+        assert_eq!(bits_precision, bitlen::from_bytes(size_of::<Self::Repr>()));
+        let bytes = truncate_be(bytes, bits_precision);
+        Self::from_be_bytes(bytes.try_into().expect("input too short"))
+    }
+
+    /// Decode from the provided little endian bytes, truncating to the least significant bits in
+    /// the event the given amount of data exceeds `bits_precision`.
+    ///
+    /// Implementations may panic if `bits_precision` exceeds their underlying size.
+    #[must_use]
+    fn from_le_slice_truncated(bytes: &[u8], bits_precision: u32) -> Self {
+        assert_eq!(bits_precision, bitlen::from_bytes(size_of::<Self::Repr>()));
+        let bytes = truncate_le(bytes, bits_precision);
+        Self::from_le_bytes(bytes.try_into().expect("input too short"))
+    }
+
+    /// Decode from the provided bytes, interpreting them using the specified [`ByteOrder`],
+    /// truncating to the least significant bits in the event the given amount of data exceeds
+    /// `bits_precision`.
+    ///
+    /// Implementations may panic if `bits_precision` exceeds their underlying size.
+    #[must_use]
+    fn from_slice_truncated(bytes: &[u8], bits_precision: u32, byte_order: ByteOrder) -> Self {
+        match byte_order {
+            ByteOrder::BigEndian => Self::from_be_slice_truncated(bytes, bits_precision),
+            ByteOrder::LittleEndian => Self::from_le_slice_truncated(bytes, bits_precision),
         }
     }
 
@@ -138,3 +175,25 @@ impl fmt::Display for DecodeError {
 }
 
 impl core::error::Error for DecodeError {}
+
+/// Interpret `bytes` as a big endian integer and extract `bits_precision` number of least
+/// significant bits, returning a truncated input if it exceeds the requested precision.
+pub(crate) fn truncate_be(bytes: &[u8], bits_precision: u32) -> &[u8] {
+    let bytes_precision = bitlen::to_bytes(bits_precision);
+    if bytes.len() > bytes_precision {
+        &bytes[bytes.len().saturating_sub(bytes_precision)..]
+    } else {
+        bytes
+    }
+}
+
+/// Interpret `bytes` as a little endian integer and extract `bits_precision` number of least
+/// significant bits, returning a truncated input if it exceeds the requested precision.
+pub(crate) fn truncate_le(bytes: &[u8], bits_precision: u32) -> &[u8] {
+    let bytes_precision = bitlen::to_bytes(bits_precision);
+    if bytes.len() > bytes_precision {
+        &bytes[..bytes_precision]
+    } else {
+        bytes
+    }
+}
