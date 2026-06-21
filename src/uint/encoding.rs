@@ -6,7 +6,10 @@ mod der;
 mod rlp;
 
 use super::Uint;
-use crate::{ByteOrder, DecodeError, EncodedSize, Encoding, Limb, Word, bitlen};
+use crate::{
+    ByteOrder, DecodeError, EncodedSize, Encoding, Limb, Word, bitlen,
+    encoding::{truncate_be, truncate_le},
+};
 use core::{fmt, ops::Deref};
 
 #[cfg(feature = "alloc")]
@@ -324,7 +327,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 ///
 /// Fills the supplied `limbs` with the decoded `bytes` after truncating to `bits_precision`.
 pub(crate) fn fill_limbs_from_be_slice_truncated(
-    mut bytes: &[u8],
+    bytes: &[u8],
     limbs: &mut [Limb],
     bits_precision: u32,
 ) -> Result<(), DecodeError> {
@@ -332,11 +335,7 @@ pub(crate) fn fill_limbs_from_be_slice_truncated(
         return Err(DecodeError::Precision);
     }
 
-    let bytes_precision = bitlen::to_bytes(bits_precision);
-    if bytes.len() > bytes_precision {
-        bytes = &bytes[bytes.len().saturating_sub(bytes_precision)..];
-    }
-
+    let bytes = truncate_be(bytes, bits_precision);
     for (chunk, limb) in bytes.rchunks(Limb::BYTES).zip(limbs.iter_mut()) {
         *limb = Limb::from_be_slice(chunk);
     }
@@ -350,7 +349,7 @@ pub(crate) fn fill_limbs_from_be_slice_truncated(
 ///
 /// Fills the supplied `limbs` with the decoded `bytes` after truncating to `bits_precision`.
 pub(crate) fn fill_limbs_from_le_slice_truncated(
-    mut bytes: &[u8],
+    bytes: &[u8],
     limbs: &mut [Limb],
     bits_precision: u32,
 ) -> Result<(), DecodeError> {
@@ -358,11 +357,7 @@ pub(crate) fn fill_limbs_from_le_slice_truncated(
         return Err(DecodeError::Precision);
     }
 
-    let bytes_precision = bitlen::to_bytes(bits_precision);
-    if bytes.len() > bytes_precision {
-        bytes = &bytes[..bytes_precision];
-    }
-
+    let bytes = truncate_le(bytes, bits_precision);
     for (chunk, limb) in bytes.chunks(Limb::BYTES).zip(limbs.iter_mut()) {
         *limb = Limb::from_le_slice(chunk);
     }
@@ -575,6 +570,16 @@ impl<const LIMBS: usize> Encoding for Uint<LIMBS> {
     #[inline]
     fn from_le_bytes(bytes: Self::Repr) -> Self {
         Self::from_le_slice(bytes.as_ref())
+    }
+
+    #[inline]
+    fn from_be_slice_truncated(bytes: &[u8], bits_precision: u32) -> Self {
+        Self::from_be_slice_truncated(bytes, bits_precision)
+    }
+
+    #[inline]
+    fn from_le_slice_truncated(bytes: &[u8], bits_precision: u32) -> Self {
+        Self::from_le_slice_truncated(bytes, bits_precision)
     }
 
     #[inline]
