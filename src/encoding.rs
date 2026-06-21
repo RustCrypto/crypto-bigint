@@ -36,11 +36,29 @@ pub trait ArrayEncoding: Encoding {
     /// Deserialize from a little-endian byte array.
     fn from_le_byte_array(bytes: ByteArray<Self>) -> Self;
 
+    /// Deserialize from a byte array with the specified [`ByteOrder`].
+    #[inline]
+    fn from_byte_array(bytes: ByteArray<Self>, byte_order: ByteOrder) -> Self {
+        match byte_order {
+            ByteOrder::BigEndian => Self::from_be_byte_array(bytes),
+            ByteOrder::LittleEndian => Self::from_le_byte_array(bytes),
+        }
+    }
+
     /// Serialize to a big-endian byte array.
     fn to_be_byte_array(&self) -> ByteArray<Self>;
 
     /// Serialize to a little-endian byte array.
     fn to_le_byte_array(&self) -> ByteArray<Self>;
+
+    /// Serialize to a byte array with the specified [`ByteOrder`].
+    #[inline]
+    fn to_byte_array(&self, byte_order: ByteOrder) -> ByteArray<Self> {
+        match byte_order {
+            ByteOrder::BigEndian => self.to_be_byte_array(),
+            ByteOrder::LittleEndian => self.to_le_byte_array(),
+        }
+    }
 }
 
 /// Support for decoding a `Array` as a big integer.
@@ -75,6 +93,7 @@ pub trait Encoding: Sized {
     fn from_le_bytes(bytes: Self::Repr) -> Self;
 
     /// Decode from bytes using the specified [`ByteOrder`].
+    #[inline]
     #[must_use]
     fn from_bytes(bytes: Self::Repr, byte_order: ByteOrder) -> Self {
         match byte_order {
@@ -110,6 +129,7 @@ pub trait Encoding: Sized {
     /// `bits_precision`.
     ///
     /// Implementations may panic if `bits_precision` exceeds their underlying size.
+    #[inline]
     #[must_use]
     fn from_slice_truncated(bytes: &[u8], bits_precision: u32, byte_order: ByteOrder) -> Self {
         match byte_order {
@@ -127,6 +147,7 @@ pub trait Encoding: Sized {
     fn to_le_bytes(&self) -> Self::Repr;
 
     /// Encode to bytes using the specified [`ByteOrder`].
+    #[inline]
     #[must_use]
     fn to_bytes(&self, byte_order: ByteOrder) -> Self::Repr {
         match byte_order {
