@@ -510,9 +510,10 @@ where
 }
 
 #[cfg(feature = "zeroize")]
-impl<T: zeroize::Zeroize> zeroize::Zeroize for Odd<T> {
+impl<T: zeroize::Zeroize + One> zeroize::Zeroize for Odd<T> {
     fn zeroize(&mut self) {
         self.0.zeroize();
+        self.0 = T::one_like(&self.0);
     }
 }
 
@@ -523,6 +524,9 @@ mod tests {
 
     #[cfg(feature = "alloc")]
     use crate::BoxedUint;
+
+    #[cfg(feature = "zeroize")]
+    use zeroize::Zeroize;
 
     #[test]
     fn default() {
@@ -572,5 +576,25 @@ mod tests {
         assert!(bool::from(zero.is_none()));
         let two = Odd::new(BoxedUint::from(2u8));
         assert!(bool::from(two.is_none()));
+    }
+    #[cfg(feature = "zeroize")]
+    #[test]
+    fn zeroize_preserves_invariant() {
+        let mut value = Odd::new(U128::from(0x1235u64)).unwrap();
+
+        value.zeroize();
+
+        assert_eq!(*value.as_ref(), U128::ONE);
+    }
+
+    #[cfg(all(feature = "alloc", feature = "zeroize"))]
+    #[test]
+    fn boxed_zeroize_preserves_invariant_and_precision() {
+        let mut value = Odd::new(BoxedUint::from_be_slice(&[0x12, 0x35], 128).unwrap()).unwrap();
+
+        value.zeroize();
+
+        assert_eq!(value.as_ref(), &BoxedUint::one_with_precision(128));
+        assert_eq!(value.bits_precision(), 128);
     }
 }

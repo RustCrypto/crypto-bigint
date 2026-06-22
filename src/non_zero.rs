@@ -662,9 +662,10 @@ where
 }
 
 #[cfg(feature = "zeroize")]
-impl<T: zeroize::Zeroize + Zero> zeroize::Zeroize for NonZero<T> {
+impl<T: zeroize::Zeroize + One> zeroize::Zeroize for NonZero<T> {
     fn zeroize(&mut self) {
         self.0.zeroize();
+        self.0 = T::one_like(&self.0);
     }
 }
 
@@ -673,6 +674,12 @@ mod tests {
     use super::NonZero;
     use crate::{I128, One, U128};
     use hex_literal::hex;
+
+    #[cfg(all(feature = "alloc", feature = "zeroize"))]
+    use crate::BoxedUint;
+
+    #[cfg(feature = "zeroize")]
+    use zeroize::Zeroize;
 
     #[test]
     fn default() {
@@ -707,6 +714,28 @@ mod tests {
                 .into_option(),
             None
         );
+    }
+
+    #[cfg(feature = "zeroize")]
+    #[test]
+    fn zeroize_preserves_invariant() {
+        let mut value = NonZero::new(U128::from(0x1234u64)).unwrap();
+
+        value.zeroize();
+
+        assert_eq!(*value.as_ref(), U128::ONE);
+    }
+
+    #[cfg(all(feature = "alloc", feature = "zeroize"))]
+    #[test]
+    fn boxed_zeroize_preserves_invariant_and_precision() {
+        let mut value =
+            NonZero::new(BoxedUint::from_be_slice(&[0x12, 0x34], 128).unwrap()).unwrap();
+
+        value.zeroize();
+
+        assert_eq!(value.as_ref(), &BoxedUint::one_with_precision(128));
+        assert_eq!(value.bits_precision(), 128);
     }
 
     #[test]
