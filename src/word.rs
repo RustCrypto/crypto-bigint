@@ -29,12 +29,6 @@ cpubits::cpubits! {
         pub(crate) const fn choice_from_wide_le(x: WideWord, y: WideWord) -> Choice {
             Choice::from_u64_le(x, y)
         }
-
-        /// Returns the truthy value if `x < y` and the falsy value otherwise.
-        #[inline]
-        pub(crate) const fn choice_from_wide_lt(x: WideWord, y: WideWord) -> Choice {
-            Choice::from_u64_lt(x, y)
-        }
     }
     64 => {
         /// Unsigned integer type that the [`Limb`][`crate::Limb`] newtype wraps.
@@ -61,11 +55,6 @@ cpubits::cpubits! {
             Choice::from_u128_le(x, y)
         }
 
-        /// Returns the truthy value if `x < y` and the falsy value otherwise.
-        #[inline]
-        pub(crate) const fn choice_from_wide_lt(x: WideWord, y: WideWord) -> Choice {
-            Choice::from_u128_lt(x, y)
-        }
     }
 }
 
