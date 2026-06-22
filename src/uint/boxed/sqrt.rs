@@ -1,6 +1,10 @@
 //! [`BoxedUint`] square root operations.
 
-use crate::{BoxedUint, CheckedSquareRoot, Choice, CtOption, FloorSquareRoot, NonZero};
+use crate::{
+    BitOps, BoxedUint, CheckedSquareRoot, ConcatenatingSquare, CtAssign, CtEq, CtGt, CtOption,
+    FloorSquareRoot, Limb,
+};
+use core::mem;
 
 impl BoxedUint {
     /// Computes `floor(√(self))` in constant time.
@@ -14,13 +18,46 @@ impl BoxedUint {
 
     /// Computes √(`self`) in constant time.
     ///
-    /// Callers can check if `self` is a square by squaring the result, or use
-    /// `checked_sqrt`.
+    /// Callers can check if `self` is a square by squaring the result.
     #[must_use]
     pub fn floor_sqrt(&self) -> Self {
-        let mut root = self.clone();
-        root.floor_sqrt_assign();
-        root
+        // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13.
+        //
+        // See Hast, "Note on computation of integer square roots"
+        // for the proof of the sufficiency of the bound on iterations.
+        // https://github.com/RustCrypto/crypto-bigint/files/12600669/ct_sqrt.pdf
+
+        // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < b`.
+        // Will not overflow since `b <= BITS`.
+        let mut x = Self::one_with_precision(self.bits_precision());
+        x.unbounded_shl_assign_vartime((self.bits() + 1) >> 1); // ≥ √(`self`)
+
+        let mut nz_x = x.clone();
+        let mut quo = Self::zero_with_precision(self.bits_precision());
+        let mut rem = Self::zero_with_precision(self.bits_precision());
+        let mut i = 0;
+
+        // Repeat enough times to guarantee result has stabilized.
+        // TODO (#378): the tests indicate that just `Self::LOG2_BITS` may be enough.
+        while i < self.log2_bits() + 2 {
+            let x_nonzero = x.is_nonzero();
+            nz_x.ct_assign(&x, x_nonzero);
+
+            // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
+            quo.limbs.copy_from_slice(&self.limbs);
+            rem.limbs.copy_from_slice(&nz_x.limbs);
+            quo.as_mut_uint_ref().div_rem(rem.as_mut_uint_ref());
+            x.conditional_carrying_add_assign(&quo, x_nonzero);
+            x.shr1_assign();
+
+            i += 1;
+        }
+
+        // At this point `x_prev == x_{n}` and `x == x_{n+1}`
+        // where `n == i - 1 == LOG2_BITS + 1 == floor(log2(BITS)) + 1`.
+        // Thus, according to Hast, `sqrt(self) = min(x_n, x_{n+1})`.
+        x.ct_assign(&nz_x, x.ct_gt(&nz_x));
+        x
     }
 
     /// Computes `floor(√(self))`.
@@ -36,15 +73,47 @@ impl BoxedUint {
 
     /// Computes √(`self`).
     ///
-    /// Callers can check if `self` is a square by squaring the result, or use
-    /// `checked_sqrt_vartime`.
+    /// Callers can check if `self` is a square by squaring the result.
     ///
     /// Variable time with respect to `self`.
     #[must_use]
     pub fn floor_sqrt_vartime(&self) -> Self {
-        let mut root = self.clone();
-        root.floor_sqrt_assign_vartime();
-        root
+        // Uses Brent & Zimmermann, Modern Computer Arithmetic, v0.5.9, Algorithm 1.13
+
+        if self.is_zero_vartime() {
+            return Self::zero_with_precision(self.bits_precision());
+        }
+
+        // The initial guess: `x_0 = 2^ceil(b/2)`, where `2^(b-1) <= self < b`.
+        // Will not overflow since `b <= BITS`.
+        // The initial value of `x` is always greater than zero.
+        let mut x = Self::one_with_precision(self.bits_precision());
+        x.unbounded_shl_assign_vartime((self.bits() + 1) >> 1); // ≥ √(`self`)
+
+        let mut quo = Self::zero_with_precision(self.bits_precision());
+        let mut rem = Self::zero_with_precision(self.bits_precision());
+
+        loop {
+            // Calculate `x_{i+1} = floor((x_i + self / x_i) / 2)`
+            quo.limbs.copy_from_slice(&self.limbs);
+            rem.limbs.copy_from_slice(&x.limbs);
+            quo.as_mut_uint_ref().div_rem_vartime(rem.as_mut_uint_ref());
+            quo.carrying_add_assign(&x, Limb::ZERO);
+            quo.shr1_assign();
+
+            // If `quo` is the same as `x` or greater, we reached convergence
+            // (`x` is guaranteed to either go down or oscillate between
+            // `sqrt(self)` and `sqrt(self) + 1`)
+            if !x.cmp_vartime(&quo).is_gt() {
+                break;
+            }
+            x.limbs.copy_from_slice(&quo.limbs);
+            if x.is_zero_vartime() {
+                break;
+            }
+        }
+
+        x
     }
 
     /// Wrapped sqrt is just `floor(√(self))`.
@@ -69,9 +138,9 @@ impl BoxedUint {
     /// only if the square root is exact.
     #[must_use]
     pub fn checked_sqrt(&self) -> CtOption<Self> {
-        let mut root = self.clone();
-        let exact = root.floor_sqrt_assign();
-        CtOption::new(root, exact)
+        let r = self.floor_sqrt();
+        let s = r.wrapping_square();
+        CtOption::new(r, self.ct_eq(&s))
     }
 
     /// Perform checked sqrt, returning an [`Option`] which `is_some`
@@ -80,21 +149,13 @@ impl BoxedUint {
     /// Variable time with respect to `self`.
     #[must_use]
     pub fn checked_sqrt_vartime(&self) -> Option<Self> {
-        let mut root = self.clone();
-        if root.floor_sqrt_assign_vartime() {
-            Some(root)
+        let r = self.floor_sqrt_vartime();
+        let s = r.wrapping_square();
+        if self.cmp_vartime(&s).is_eq() {
+            Some(r)
         } else {
             None
         }
-    }
-
-    /// Assigns `floor(√(self))` to `self` in constant time, and returns a [`Choice`]
-    /// indicating whether the square root is exact.
-    fn floor_sqrt_assign(&mut self) -> Choice {
-        let size = self.nlimbs();
-        let mut buf = Self::zero_with_precision(self.bits_precision() * 2);
-        self.as_mut_uint_ref()
-            .sqrt_assign(buf.as_mut_uint_ref().split_at_mut(size))
     }
 
     /// Assigns `floor(√(self))` to `self`, and returns a [`bool`]
@@ -102,10 +163,10 @@ impl BoxedUint {
     ///
     /// Variable time with respect to `self`.
     pub fn floor_sqrt_assign_vartime(&mut self) -> bool {
-        let size = self.nlimbs();
-        let mut buf = Self::zero_with_precision(self.bits_precision() * 2);
-        self.as_mut_uint_ref()
-            .sqrt_assign_vartime(buf.as_mut_uint_ref().split_at_mut(size))
+        // TODO(tarcieri): more optimized implementation
+        let mut ret = self.floor_sqrt_vartime();
+        mem::swap(&mut ret, self);
+        self.concatenating_square() == ret
     }
 }
 
@@ -131,34 +192,10 @@ impl FloorSquareRoot for BoxedUint {
     }
 }
 
-impl CheckedSquareRoot for NonZero<BoxedUint> {
-    type Output = Self;
-
-    fn checked_sqrt(&self) -> CtOption<Self> {
-        self.as_ref().checked_sqrt().map(NonZero::new_unchecked)
-    }
-
-    fn checked_sqrt_vartime(&self) -> Option<Self> {
-        self.as_ref()
-            .checked_sqrt_vartime()
-            .map(NonZero::new_unchecked)
-    }
-}
-
-impl FloorSquareRoot for NonZero<BoxedUint> {
-    fn floor_sqrt(&self) -> Self {
-        NonZero::new_unchecked(self.as_ref().floor_sqrt())
-    }
-
-    fn floor_sqrt_vartime(&self) -> Self {
-        NonZero::new_unchecked(self.as_ref().floor_sqrt_vartime())
-    }
-}
-
 #[cfg(test)]
 #[allow(clippy::integer_division_remainder_used, reason = "test")]
 mod tests {
-    use crate::{BoxedUint, CheckedSquareRoot, FloorSquareRoot, Limb};
+    use crate::{BoxedUint, Limb};
 
     #[cfg(feature = "rand_core")]
     use {
@@ -181,7 +218,7 @@ mod tests {
         for i in 0..half.limbs.len() / 2 {
             half.limbs[i] = Limb::MAX;
         }
-        let u256_max = BoxedUint::max(256);
+        let u256_max = !BoxedUint::zero_with_precision(256);
         assert_eq!(u256_max.floor_sqrt(), half);
 
         // Test edge cases that use up the maximum number of iterations.
@@ -270,26 +307,8 @@ mod tests {
             let r = BoxedUint::from(*e);
             assert_eq!(l.floor_sqrt(), r);
             assert_eq!(l.floor_sqrt_vartime(), r);
-            assert_eq!(
-                CheckedSquareRoot::checked_sqrt(&l).into_option().as_ref(),
-                Some(&r)
-            );
-            assert_eq!(
-                CheckedSquareRoot::checked_sqrt_vartime(&l).as_ref(),
-                Some(&r)
-            );
-            let nz_l = l.as_nz_vartime().unwrap();
-            let nz_r = r.to_nz().unwrap();
-            assert_eq!(FloorSquareRoot::floor_sqrt(nz_l), nz_r);
-            assert_eq!(FloorSquareRoot::floor_sqrt_vartime(nz_l), nz_r);
-            assert_eq!(
-                CheckedSquareRoot::checked_sqrt(nz_l).into_option().as_ref(),
-                Some(&nz_r)
-            );
-            assert_eq!(
-                CheckedSquareRoot::checked_sqrt_vartime(nz_l).as_ref(),
-                Some(&nz_r)
-            );
+            assert!(l.checked_sqrt().is_some().to_bool());
+            assert!(l.checked_sqrt_vartime().is_some());
         }
     }
 
@@ -343,7 +362,7 @@ mod tests {
     #[cfg(feature = "rand_core")]
     #[test]
     fn fuzz() {
-        use crate::ConcatenatingSquare;
+        use crate::{CheckedSquareRoot, ConcatenatingSquare};
 
         let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
         let rounds = if cfg!(miri) { 10 } else { 50 };
