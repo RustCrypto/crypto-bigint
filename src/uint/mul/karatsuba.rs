@@ -365,21 +365,29 @@ pub const fn wrapping_mul(lhs: &UintRef, rhs: &UintRef, out: &mut UintRef, add: 
             };
             let (y0, y1) = y.leading(y_len).split_at(LIMBS);
 
-            let z0 = widening_mul_fixed::<LIMBS, LIMBS>(x0, y0);
             let (assign, tail) = out.split_at_mut(if out.nlimbs() < LIMBS * 2 {
                 out.nlimbs()
             } else {
                 LIMBS * 2
             });
-            let (lo, hi) = assign.split_at_mut(LIMBS);
-            let mut carry = if add {
-                let mut carry = lo.carrying_add_assign(z0.0.as_uint_ref(), Limb::ZERO);
-                carry = hi.carrying_add_assign(z0.1.as_uint_ref().leading(hi.nlimbs()), carry);
-                tail.add_assign_limb(carry)
+
+            let mut carry = if assign.nlimbs() < LIMBS * 2 {
+                if !add {
+                    assign.fill(Limb::ZERO);
+                }
+                schoolbook::wrapping_mul_add(x0.as_limbs(), y0.as_limbs(), assign.as_mut_limbs())
             } else {
-                lo.copy_from(z0.0.as_uint_ref());
-                hi.copy_from(z0.1.as_uint_ref().leading(hi.nlimbs()));
-                Limb::ZERO
+                let z0 = widening_mul_fixed::<LIMBS, LIMBS>(x0, y0);
+                let (lo, hi) = assign.split_at_mut(LIMBS);
+                if add {
+                    let mut carry = lo.carrying_add_assign(z0.0.as_uint_ref(), Limb::ZERO);
+                    carry = hi.carrying_add_assign(z0.1.as_uint_ref().leading(hi.nlimbs()), carry);
+                    tail.add_assign_limb(carry)
+                } else {
+                    lo.copy_from(z0.0.as_uint_ref());
+                    hi.copy_from(z0.1.as_uint_ref().leading(hi.nlimbs()));
+                    Limb::ZERO
+                }
             };
 
             // Add x1y•b if necessary.
@@ -555,8 +563,42 @@ const fn previous_power_of_2(value: usize) -> usize {
 mod tests {
     use super::*;
     use crate::Random;
-    use crate::{Limb, Uint};
+    use crate::{Limb, Uint, UintRef};
     use rand_core::{Rng, SeedableRng};
+
+    fn assert_sparse_truncated_wide_split16_matches_schoolbook(add: bool) {
+        let mut lhs = [Limb::ZERO; 16];
+        let mut rhs = [Limb::ZERO; 17];
+        lhs[15] = Limb::MAX;
+        rhs[1] = Limb::MAX;
+        let mut karatsuba_out = [Limb::from(0x5au8); 17];
+        let mut schoolbook_out = karatsuba_out;
+
+        if !add {
+            schoolbook_out.fill(Limb::ZERO);
+        }
+
+        let karatsuba_carry = wrapping_mul(
+            UintRef::new(&lhs),
+            UintRef::new(&rhs),
+            UintRef::new_mut(&mut karatsuba_out),
+            add,
+        );
+        let schoolbook_carry = schoolbook::wrapping_mul_add(&lhs, &rhs, &mut schoolbook_out);
+
+        assert_eq!(karatsuba_out, schoolbook_out);
+        assert_eq!(karatsuba_carry, schoolbook_carry);
+    }
+
+    #[test]
+    fn truncated_wide_split16_carry_matches_schoolbook_when_overwriting() {
+        assert_sparse_truncated_wide_split16_matches_schoolbook(false);
+    }
+
+    #[test]
+    fn truncated_wide_split16_carry_matches_schoolbook_when_adding() {
+        assert_sparse_truncated_wide_split16_matches_schoolbook(true);
+    }
 
     #[test]
     fn wrapping_mul_sizes() {
