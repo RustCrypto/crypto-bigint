@@ -4,7 +4,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.7.4 (2026-06-16)
+## 0.7.5 (2026-06-22)
+### Added
+- `BoxedUint::{from_be_slice_truncated, from_le_slice_truncated}` ([#1266])
+- `Encoding::{from_bytes, to_bytes}` ([#1297])
+- `Uint::{from_be_slice_truncated, from_le_slice_truncated}` ([#1299])
+- `Limb::{from_*_bytes, from_*_slice_truncated, to_*_bytes}` as `const fn`s ([#1300])
+- `Encoding::{from_be_slice_truncated, from_le_slice_truncated}` trait methods ([#1301])
+- `ArrayEncoding::{from_byte_array, to_byte_array}` ([#1302])
+
+### Fixed
+- Preserve `NonZero` and `Odd` invariants in `Zeroize` impls ([#1287])
+- `bitlen` performance ([#1298])
+- `floor_sqrt` regression ([#1304])
+- Truncated Karatsuba carry ([#1305])
+
+[#1266]: https://github.com/RustCrypto/crypto-bigint/pull/1266
+[#1287]: https://github.com/RustCrypto/crypto-bigint/pull/1287
+[#1297]: https://github.com/RustCrypto/crypto-bigint/pull/1297
+[#1298]: https://github.com/RustCrypto/crypto-bigint/pull/1298
+[#1299]: https://github.com/RustCrypto/crypto-bigint/pull/1299
+[#1300]: https://github.com/RustCrypto/crypto-bigint/pull/1300
+[#1301]: https://github.com/RustCrypto/crypto-bigint/pull/1301
+[#1302]: https://github.com/RustCrypto/crypto-bigint/pull/1302
+[#1304]: https://github.com/RustCrypto/crypto-bigint/pull/1304
+[#1305]: https://github.com/RustCrypto/crypto-bigint/pull/1305
+
+## 0.7.4 (2026-06-16) [YANKED]
+
+NOTE: yanked due to Karatsuba carry truncation bug fixed in [#1305].
+
 ### Added
 - Extend LCM support to `BoxedUint` and add a supporting trait ([#1240])
 - Impl `ConstantTimeGreater`/`ConstantTimeLess` for `ConstMontyForm` ([#1247])
@@ -47,7 +76,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#1290]: https://github.com/RustCrypto/crypto-bigint/pull/1290
 [#1293]: https://github.com/RustCrypto/crypto-bigint/pull/1293
 
-## 0.7.3 (2026-03-25)
+## 0.7.3 (2026-03-25) [YANKED]
+
+NOTE: yanked due to Karatsuba carry truncation bug fixed in [#1305].
+
 ### Added
 - `#[inline]` attributes for shift and wrapping arithmetic ops ([#1229])
 - `MontyForm::{is_zero, is_one}` methods ([#1230])
@@ -65,7 +97,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [#1235]: https://github.com/RustCrypto/crypto-bigint/pull/1235
 [#1237]: https://github.com/RustCrypto/crypto-bigint/pull/1237
 
-## 0.7.2 (2026-03-20)
+## 0.7.2 (2026-03-20) [YANKED]
+
+NOTE: yanked due to Karatsuba carry truncation bug fixed in [#1305].
+
 ### Added
 - `Invert` to `MontyForm` supertraits ([#1226])
 
