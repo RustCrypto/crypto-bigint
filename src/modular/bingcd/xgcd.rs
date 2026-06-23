@@ -2,7 +2,7 @@
 use super::gcd::bingcd_step;
 use crate::modular::bingcd::matrix::{DividedIntMatrix, DividedPatternMatrix, PatternMatrix, Unit};
 use crate::primitives::u32_max;
-use crate::{Choice, Int, Limb, NonZeroUint, Odd, OddUint, U64, U128, Uint, Word};
+use crate::{Choice, Int, Limb, NonZeroUint, Odd, OddUint, U64, U128, Uint};
 
 /// Binary XGCD update step.
 ///
@@ -34,8 +34,8 @@ const fn binxgcd_step<const LIMBS: usize, const MATRIX_LIMBS: usize>(
     b: &mut Uint<LIMBS>,
     matrix: &mut DividedPatternMatrix<MATRIX_LIMBS>,
     halt_at_zero: Choice,
-) -> Word {
-    let (a_odd, swap, j) = bingcd_step(a, b);
+) {
+    let (a_odd, swap, _) = bingcd_step(a, b);
 
     // swap if a odd and a < b
     matrix.conditional_swap_rows(swap);
@@ -45,8 +45,6 @@ const fn binxgcd_step<const LIMBS: usize, const MATRIX_LIMBS: usize>(
 
     // Double the bottom row of the matrix when a was ≠ 0 and when not halting.
     matrix.conditional_double_bottom_row(a.is_nonzero().or(halt_at_zero.not()));
-
-    j
 }
 
 /// Container for the raw output of the Binary XGCD algorithm.
@@ -209,7 +207,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
     /// Ref: Pornin, Optimized Binary GCD for Modular Inversion, Algorithm 1.
     /// <https://eprint.iacr.org/2020/972.pdf>.
     pub(crate) const fn classic_binxgcd(&self, rhs: &Self) -> DividedPatternXgcdOutput<LIMBS> {
-        let (gcd, _, matrix, _) =
+        let (gcd, _, matrix) =
             self.partial_binxgcd::<LIMBS>(rhs.as_ref(), Self::MIN_BINXGCD_ITERATIONS, Choice::TRUE);
         DividedPatternXgcdOutput { gcd, matrix }
     }
@@ -278,7 +276,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
                 Choice::from_u32_le(b_bits, K - 1).or(Choice::from_u32_eq(n, 2 * K));
 
             // Compute the K-1 iteration update matrix from a_ and b_
-            let (.., update_matrix, _) = compact_a
+            let (.., update_matrix) = compact_a
                 .to_odd()
                 .expect_copied("a is always odd")
                 .partial_binxgcd::<LIMBS_K>(&compact_b, K - 1, b_eq_compact_b);
@@ -322,7 +320,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
         rhs: &Uint<LIMBS>,
         iterations: u32,
         halt_at_zero: Choice,
-    ) -> (Self, Uint<LIMBS>, DividedPatternMatrix<UPDATE_LIMBS>, Word) {
+    ) -> (Self, Uint<LIMBS>, DividedPatternMatrix<UPDATE_LIMBS>) {
         let (mut a, mut b) = (*self.as_ref(), *rhs);
         // This matrix corresponds with (f0, g0, f1, g1) in the paper.
         let mut matrix = DividedPatternMatrix::UNIT;
@@ -334,12 +332,10 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
         Uint::swap(&mut a, &mut b);
         matrix.swap_rows();
 
-        let mut jacobi_neg = 0;
         let mut i = 0;
 
         while i < iterations {
-            jacobi_neg ^=
-                binxgcd_step::<LIMBS, UPDATE_LIMBS>(&mut a, &mut b, &mut matrix, halt_at_zero);
+            binxgcd_step::<LIMBS, UPDATE_LIMBS>(&mut a, &mut b, &mut matrix, halt_at_zero);
             i += 1;
         }
 
@@ -348,7 +344,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
         matrix.swap_rows();
 
         let a = a.to_odd().expect_copied("a is always odd");
-        (a, b, matrix, jacobi_neg)
+        (a, b, matrix)
     }
 }
 
@@ -514,7 +510,7 @@ mod tests {
 
         #[test]
         fn test_partial_binxgcd() {
-            let (.., matrix, _) = A.partial_binxgcd::<{ U64::LIMBS }>(&B, 5, Choice::TRUE);
+            let (.., matrix) = A.partial_binxgcd::<{ U64::LIMBS }>(&B, 5, Choice::TRUE);
             assert_eq!(matrix.k, 5);
             assert_eq!(
                 matrix,
@@ -527,8 +523,7 @@ mod tests {
             let target_a = U64::from_be_hex("1CB3FB3FA1218FDB").to_odd().unwrap();
             let target_b = U64::from_be_hex("0EA028AF0F8966B6");
 
-            let (new_a, new_b, matrix, _) =
-                A.partial_binxgcd::<{ U64::LIMBS }>(&B, 5, Choice::TRUE);
+            let (new_a, new_b, matrix) = A.partial_binxgcd::<{ U64::LIMBS }>(&B, 5, Choice::TRUE);
 
             assert_eq!(new_a, target_a);
             assert_eq!(new_b, target_b);
@@ -547,7 +542,7 @@ mod tests {
 
         #[test]
         fn test_partial_binxgcd_halts() {
-            let (gcd, _, matrix, _) =
+            let (gcd, _, matrix) =
                 SMALL_A.partial_binxgcd::<{ U64::LIMBS }>(&SMALL_B, 60, Choice::TRUE);
             assert_eq!(matrix.k, 35);
             assert_eq!(matrix.k_upper_bound, 60);
@@ -556,7 +551,7 @@ mod tests {
 
         #[test]
         fn test_partial_binxgcd_does_not_halt() {
-            let (gcd, .., matrix, _) =
+            let (gcd, .., matrix) =
                 SMALL_A.partial_binxgcd::<{ U64::LIMBS }>(&SMALL_B, 60, Choice::FALSE);
             assert_eq!(matrix.k, 60);
             assert_eq!(matrix.k_upper_bound, 60);

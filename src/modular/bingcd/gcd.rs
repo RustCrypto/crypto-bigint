@@ -124,7 +124,6 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
     #[inline(always)]
     pub(crate) const fn optimized_bingcd(&self, rhs: &Uint<LIMBS>) -> Self {
         self.optimized_bingcd_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(rhs, U64::BITS - 1)
-            .0
     }
 
     /// Computes `gcd(self, rhs)`, leveraging the optimized Binary GCD algorithm.
@@ -154,9 +153,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         &self,
         rhs: &Uint<LIMBS>,
         batch_max: u32,
-    ) -> (Self, Word) {
+    ) -> Self {
         let (mut a, mut b) = (*self.as_ref(), *rhs);
-        let mut jacobi_neg = 0;
 
         let mut iterations = Self::MINIMAL_BINGCD_ITERATIONS;
         while iterations > 0 {
@@ -169,11 +167,10 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             let b_ = b.compact::<K, LIMBS_2K>(n);
 
             // Compute the batch update matrix from a_ and b_.
-            let (.., matrix, j_neg) = a_
+            let (.., matrix) = a_
                 .to_odd()
                 .expect_copied("a_ is always odd")
                 .partial_binxgcd::<LIMBS_K>(&b_, batch, Choice::FALSE);
-            jacobi_neg ^= j_neg;
 
             // Update `a` and `b` using the update matrix.
             // Safe to use vartime: the number of doublings is the same as the batch size.
@@ -182,11 +179,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             (b, _) = updated_b.dropped_abs_sign();
         }
 
-        (
-            a.to_odd()
-                .expect_copied("gcd of an odd value is always odd"),
-            jacobi_neg,
-        )
+        a.to_odd()
+            .expect_copied("gcd of an odd value is always odd")
     }
 
     /// Variable time equivalent of [`Self::optimized_bingcd`].
@@ -196,7 +190,6 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             rhs,
             U64::BITS - 1,
         )
-        .0
     }
 
     /// Variable time equivalent of [`Self::optimized_bingcd_`].
@@ -209,9 +202,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
         &self,
         rhs: &Uint<LIMBS>,
         batch_max: u32,
-    ) -> (Self, Word) {
+    ) -> Self {
         let (mut a, mut b) = (*self.as_ref(), *rhs);
-        let mut jacobi_neg = 0;
 
         while !b.is_zero_vartime() {
             // Construct a_ and b_ as the summary of a and b, respectively.
@@ -221,7 +213,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
             if n <= Uint::<LIMBS_2K>::BITS {
                 loop {
-                    jacobi_neg ^= bingcd_step(&mut b_, &mut a_).2;
+                    bingcd_step(&mut b_, &mut a_);
                     if b_.is_zero_vartime() {
                         break;
                     }
@@ -231,11 +223,10 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             }
 
             // Compute the batch update matrix from a_ and b_.
-            let (.., matrix, j_neg) = a_
+            let (.., matrix) = a_
                 .to_odd()
                 .expect_copied("a_ is always odd")
                 .partial_binxgcd::<LIMBS_K>(&b_, batch_max, Choice::FALSE);
-            jacobi_neg ^= j_neg;
 
             // Update `a` and `b` using the update matrix.
             let (updated_a, updated_b) = matrix.extended_apply_to_vartime((a, b));
@@ -243,11 +234,8 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             (b, _) = updated_b.dropped_abs_sign();
         }
 
-        (
-            a.to_odd()
-                .expect_copied("gcd of an odd value with something else is always odd"),
-            jacobi_neg,
-        )
+        a.to_odd()
+            .expect_copied("gcd of an odd value with something else is always odd")
     }
 }
 
