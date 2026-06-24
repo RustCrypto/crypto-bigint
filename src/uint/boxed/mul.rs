@@ -313,4 +313,19 @@ mod tests {
         let b = UintRef::new(&[Limb(456), Limb(0)]);
         assert_eq!(a * b, BoxedUint::from(562962957840u64));
     }
+
+    #[test]
+    fn overflow_check() {
+        for bits in (64..4096).step_by(2 * Limb::BITS as usize) {
+            let mut b = BoxedUint::max(bits);
+            b.restrict_bits(bits >> 1);
+            assert!(b.checked_mul(&b).is_some().to_bool_vartime());
+            assert!(b.checked_square().is_some().to_bool_vartime());
+            b.wrapping_add_assign(Limb::ONE);
+            assert!(b.checked_mul(&b).is_none().to_bool_vartime());
+            assert!(b.checked_square().is_none().to_bool_vartime());
+            assert!(b.saturating_mul(&b) == BoxedUint::max(bits));
+            assert!(b.saturating_square() == BoxedUint::max(bits));
+        }
+    }
 }
