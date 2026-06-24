@@ -469,7 +469,7 @@ pub(crate) const fn wrapping_square(uint: &UintRef, out: &mut UintRef) -> Limb {
         } else {
             let (z01, z2) = hi.split_at_mut(LIMBS);
             z01.copy_from(z0.1.as_uint_ref());
-            wrapping_square(x1, z2);
+            let z2_carry = wrapping_square(x1, z2);
             let mut dx0 = Uint::<LIMBS>::ZERO;
             dx0.as_mut_uint_ref().copy_from(x0);
             let (dx0, dx0_hi) = dx0.shl1_with_carry(Limb::ZERO);
@@ -483,10 +483,10 @@ pub(crate) const fn wrapping_square(uint: &UintRef, out: &mut UintRef) -> Limb {
                 Limb::ZERO,
                 dx0_hi.is_nonzero(),
             );
-            let (z1, z1tail) = hi.split_at_mut(LIMBS + z2_len);
+            let (z1, z1_tail) = hi.split_at_mut(LIMBS + z2_len);
             let c = wrapping_mul(dx0.as_uint_ref(), x1, z1, true);
             carry = carry.wrapping_add(c);
-            z1tail.add_assign_limb(carry)
+            z1_tail.add_assign_limb(carry).wrapping_add(z2_carry)
         }
     }
 
@@ -508,7 +508,7 @@ pub(crate) const fn wrapping_square(uint: &UintRef, out: &mut UintRef) -> Limb {
     // input size or more than MIN_STARTING_LIMBS limbs would be truncated.
     let mut split = previous_power_of_2(out.nlimbs());
     if split > x.nlimbs() || 2 * split >= out.nlimbs() + MIN_STARTING_LIMBS {
-        split /= 2;
+        split >>= 1;
     }
 
     // Select an optimized implementation for a fixed number of limbs
