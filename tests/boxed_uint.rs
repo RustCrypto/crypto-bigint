@@ -8,8 +8,8 @@ mod common;
 use common::to_biguint;
 use core::ops::Range;
 use crypto_bigint::{
-    BitOps, BoxedUint, CheckedAdd, Choice, ConcatenatingMul, ConcatenatingSquare, Gcd, Integer,
-    Limb, NonZero, Odd, Resize, Word,
+    BitOps, BoxedUint, CheckedAdd, ConcatenatingMul, ConcatenatingSquare, Gcd, Integer, Limb,
+    NonZero, Odd, Resize, Word,
 };
 use num_bigint::BigUint;
 use num_integer::Integer as _;
@@ -78,20 +78,26 @@ fn uint_limbs(limbs_range: Range<usize>) -> impl Strategy<Value = BoxedUint> {
 }
 
 prop_compose! {
-    /// Generate a pair of random `BoxedUint`s with the same precision.
-    fn uint_pair()(a in uint(), b in uint()) -> (BoxedUint, BoxedUint) {
-        let bits_precision = core::cmp::max(a.bits_precision(), b.bits_precision());
-        (a.resize(bits_precision), b.resize(bits_precision))
+    fn nonzero_uint()(mut val in uint()) -> NonZero<BoxedUint> {
+        if val.is_zero().to_bool_vartime() {
+            val.set_one();
+        }
+        val.into_nz().unwrap()
     }
 }
 
 prop_compose! {
-    /// Generate a random odd modulus.
-    fn modulus()(mut n in uint()) -> Odd<BoxedUint> {
-        if n.is_even().into() {
-            n.wrapping_add_assign(Limb::ONE);
-        }
-        n.to_odd().expect("odd by construction")
+    fn odd_uint()(mut val in uint()) -> Odd<BoxedUint> {
+        val.set_bit_vartime(0, true);
+        val.into_odd().unwrap()
+    }
+}
+
+prop_compose! {
+    /// Generate a pair of random `BoxedUint`s with the same precision.
+    fn uint_pair()(a in uint(), b in uint()) -> (BoxedUint, BoxedUint) {
+        let bits_precision = core::cmp::max(a.bits_precision(), b.bits_precision());
+        (a.resize(bits_precision), b.resize(bits_precision))
     }
 }
 
@@ -150,40 +156,30 @@ proptest! {
     }
 
     #[test]
-    fn div_rem(a in uint(), mut b in uint()) {
-        if b.is_zero().into() {
-            b = b.wrapping_add(Limb::ONE);
-        }
-
+    fn div_rem(a in uint(), b in nonzero_uint()) {
         let a_bi = to_biguint(&a);
-        let b_bi = to_biguint(&b);
+        let b_bi = to_biguint(b.as_ref());
         let (expected_quotient, expected_remainder) = a_bi.div_rem(&b_bi);
 
-        let div = NonZero::new(b).unwrap();
-        let (actual_quotient, actual_remainder) = a.div_rem(&div);
+        let (actual_quotient, actual_remainder) = a.div_rem(&b);
         prop_assert_eq!(expected_quotient, to_biguint(&actual_quotient));
         prop_assert_eq!(expected_remainder, to_biguint(&actual_remainder));
 
-        let (quotient_vartime, remainder_vartime) = a.div_rem_vartime(&div);
+        let (quotient_vartime, remainder_vartime) = a.div_rem_vartime(&b);
         prop_assert_eq!(actual_quotient, quotient_vartime);
         prop_assert_eq!(actual_remainder, remainder_vartime);
     }
 
     #[test]
-    fn div_exact(a in uint(), mut b in uint()) {
-        if b.is_zero().into() {
-            b = b.wrapping_add(Limb::ONE);
-        }
-
+    fn div_exact(a in uint(), b in nonzero_uint()) {
         let a_bi = to_biguint(&a);
-        let b_bi = to_biguint(&b);
+        let b_bi = to_biguint(b.as_ref());
         let (expected_quotient, expected_remainder) = a_bi.div_rem(&b_bi);
         let expected = if expected_remainder.is_zero() { Some(expected_quotient) } else { None };
 
-        let div = NonZero::new(b).unwrap();
-        let actual = a.div_exact(&div).into_option();
+        let actual = a.div_exact(&b).into_option();
         prop_assert_eq!(&expected, &actual.as_ref().map(to_biguint));
-        let actual_vartime = a.div_exact_vartime(&div).into_option();
+        let actual_vartime = a.div_exact_vartime(&b).into_option();
         prop_assert_eq!(expected, actual_vartime.as_ref().map(to_biguint));
     }
 
@@ -199,8 +195,7 @@ proptest! {
     }
 
     #[test]
-    fn invert_mod2k(mut a in uint(), k in any::<u32>()) {
-        a.set_bit(0, Choice::TRUE); // make odd
+    fn invert_mod2k(a in odd_uint(), k in any::<u32>()) {
         let k = k % (a.bits() + 1);
         let a_bi = to_biguint(&a);
         let m_bi = BigUint::one() << k as usize;
@@ -245,7 +240,7 @@ proptest! {
     }
 
     #[test]
-    fn mul_mod(a in uint(), b in uint(), n in modulus()) {
+    fn mul_mod(a in uint(), b in uint(), n in odd_uint()) {
         let a = reduce(&a, n.as_nz_ref());
         let b = reduce(&b, n.as_nz_ref());
 
@@ -272,7 +267,7 @@ proptest! {
     }
 
     #[test]
-    fn pow_mod(a in uint(), b in uint_bits(1..1024), n in modulus()) {
+    fn pow_mod(a in uint(), b in uint_bits(1..1024), n in odd_uint()) {
         let a = reduce(&a, n.as_nz_ref());
 
         let a_bi = to_biguint(&a);
@@ -329,27 +324,25 @@ proptest! {
     }
 
     #[test]
-    fn rem(a in uint(), b in uint()) {
-        prop_assume!(b.is_nonzero().to_bool_vartime());
-
+    fn rem(a in uint(), b in nonzero_uint()) {
         let a_bi = to_biguint(&a);
-        let b_bi = to_biguint(&b);
+        let b_bi = to_biguint(b.as_ref());
 
         let expected = a_bi % b_bi;
-        let actual = a.rem(&NonZero::new(b).unwrap());
+        let actual = a.rem(&b);
 
         prop_assert_eq!(expected, to_biguint(&actual));
     }
 
     #[test]
-    fn rem_vartime(a in uint(), b in uint()) {
+    fn rem_vartime(a in uint(), b in nonzero_uint()) {
         prop_assume!(b.is_nonzero().to_bool_vartime());
 
         let a_bi = to_biguint(&a);
-        let b_bi = to_biguint(&b);
+        let b_bi = to_biguint(b.as_ref());
 
         let expected = a_bi % b_bi;
-        let actual = a.rem_vartime(&NonZero::new(b).unwrap());
+        let actual = a.rem_vartime(&b);
 
         prop_assert_eq!(expected, to_biguint(&actual));
     }
