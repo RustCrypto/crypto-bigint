@@ -1,0 +1,10 @@
+[package]
+name = "driver"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[dependencies]
+rand_core = "0.6.4"
+checkct_macros = { path = "../../cargo-checkct/checkct_macros" }
+crypto-bigint = { path = "../.." }
