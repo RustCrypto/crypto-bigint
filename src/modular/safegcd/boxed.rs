@@ -63,13 +63,14 @@ impl BoxedSafeGcdInverter {
     }
 
     /// Perform variable-time modular inversion.
-    pub(crate) fn invert_vartime(&self, value: &BoxedUint) -> CtOption<BoxedUint> {
+    pub(crate) fn invert_vartime(&self, value: &BoxedUint) -> Option<BoxedUint> {
         invert_odd_mod_precomp::<true>(
             value,
             &self.modulus,
             self.inverse,
             Some(self.adjuster.clone()),
         )
+        .into_option()
     }
 }
 
