@@ -32,19 +32,29 @@ fn reduce(x: &BoxedUint, n: &NonZero<BoxedUint>) -> BoxedUint {
 }
 
 fn uint() -> impl Strategy<Value = BoxedUint> {
-    sizeduint(1..8192)
+    prop_oneof![
+        9 => uint_bits(1..1024),
+        1 => uint_bits(1024..8192),
+    ]
 }
 
-fn sizeduint(bits_range: Range<u32>) -> impl Strategy<Value = BoxedUint> {
+fn uint_bits(bits_range: Range<u32>) -> impl Strategy<Value = BoxedUint> {
     let min_limbs = bits_range.start.max(1).div_ceil(Limb::BITS) as usize;
     let max_limbs = bits_range.end.div_ceil(Limb::BITS) as usize;
-    let random_words = || propvec(any::<Word>(), min_limbs..max_limbs);
+    uint_limbs(min_limbs..max_limbs)
+}
+
+#[allow(clippy::cast_possible_truncation)]
+fn uint_limbs(limbs_range: Range<usize>) -> impl Strategy<Value = BoxedUint> {
+    let random_words = || propvec(any::<Word>(), limbs_range.clone());
 
     let random = random_words().prop_map(BoxedUint::from_words);
-    let zero = bits_range.clone().prop_map(BoxedUint::zero_with_precision);
-    let single_bit = (bits_range.clone(), any::<u32>()).prop_map(|(bits, bit)| {
-        let mut uint = BoxedUint::zero_with_precision(bits);
-        uint.set_bit_vartime(bit % bits, true);
+    let zero = limbs_range
+        .clone()
+        .prop_map(|l| BoxedUint::zero_with_precision(l as u32 * Limb::BITS));
+    let single_bit = (limbs_range.clone(), any::<u32>()).prop_map(|(l, bit)| {
+        let mut uint = BoxedUint::zero_with_precision(l as u32 * Limb::BITS);
+        uint.set_bit_vartime(bit % uint.bits_precision(), true);
         uint
     });
     let low_bits = (random_words(), any::<u32>()).prop_map(|(words, bit)| {
@@ -249,7 +259,7 @@ proptest! {
     }
 
     #[test]
-    fn wrapping_pow(a in uint(), b in sizeduint(1..1024)) {
+    fn wrapping_pow(a in uint(), b in uint_bits(1..1024)) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
         let p_bi = to_biguint(&BoxedUint::max(a.bits_precision())) + 1u32;
@@ -262,7 +272,7 @@ proptest! {
     }
 
     #[test]
-    fn pow_mod(a in uint(), b in sizeduint(1..1024), n in modulus()) {
+    fn pow_mod(a in uint(), b in uint_bits(1..1024), n in modulus()) {
         let a = reduce(&a, n.as_nz_ref());
 
         let a_bi = to_biguint(&a);
