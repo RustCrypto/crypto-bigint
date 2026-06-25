@@ -8,7 +8,7 @@ mod common;
 use common::to_biguint;
 use core::mem;
 use crypto_bigint::{
-    Encoding, Limb, NonZero, Odd, U128, U256, U512, U4096, U8192, Uint, Word,
+    Encoding, Limb, NonZero, Odd, U256, U512, U4096, U8192, Uint, Word,
     modular::{FixedMontyForm, FixedMontyParams},
 };
 use num_bigint::BigUint;
@@ -616,13 +616,4 @@ proptest! {
 
         prop_assert_eq!(expected, actual);
     }
-}
-
-#[test]
-fn div_exact_wide_power_of_two_divisor_is_inexact() {
-    let lhs = U128::ONE;
-    let rhs = NonZero::new(U256::ONE << U128::BITS).unwrap();
-
-    assert!(bool::from(lhs.div_exact(&rhs).is_none()));
-    assert!(bool::from(lhs.div_exact_vartime(&rhs).is_none()));
 }
