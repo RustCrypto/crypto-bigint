@@ -135,7 +135,7 @@ mod tests {
 
         let gcd = zero.gcd_vartime(&one);
         assert_eq!(gcd, one);
-        assert_eq!(gcd.bits_precision(), one.bits_precision());
+        assert_eq!(gcd.bits_precision(), zero.bits_precision());
     }
 
     #[test]
@@ -145,7 +145,7 @@ mod tests {
 
         let gcd = one.gcd_vartime(&zero);
         assert_eq!(gcd, one);
-        assert_eq!(gcd.bits_precision(), one.bits_precision());
+        assert_eq!(gcd.bits_precision(), zero.bits_precision());
     }
 
     #[test]
