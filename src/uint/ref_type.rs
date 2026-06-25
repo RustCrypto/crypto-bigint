@@ -30,7 +30,6 @@ use {
 /// This type contains a limb slice which can be borrowed from either a [`Uint`] or [`BoxedUint`] and
 /// thus provides an abstraction for writing shared implementations.
 #[repr(transparent)]
-#[derive(PartialEq, Eq)]
 pub struct UintRef {
     /// Inner limb array. Stored from least significant to most significant.
     // TODO(tarcieri): maintain an invariant of at least one limb?
