@@ -193,11 +193,11 @@ impl<const LIMBS: usize> FloorSquareRoot for NonZero<Uint<LIMBS>> {
 #[cfg(test)]
 #[allow(clippy::integer_division_remainder_used, reason = "test")]
 mod tests {
-    use crate::{Limb, U192, U256, Uint};
+    use crate::{Limb, U192, U256};
 
     #[cfg(feature = "rand_core")]
     use {
-        crate::{CheckedAdd, CheckedSquareRoot, Concat, FloorSquareRoot, Random, RandomBits},
+        crate::{CheckedAdd, CheckedSquareRoot, Concat, FloorSquareRoot, Random, RandomBits, Uint},
         chacha20::ChaCha8Rng,
         rand_core::SeedableRng,
     };
@@ -343,7 +343,11 @@ mod tests {
 
         check_size::<1, _>();
         check_size::<2, _>();
-        check_size::<3, _>();
+        cpubits::cpubits! {
+            64 => {
+                check_size::<3, _>();
+            }
+        }
         check_size::<4, _>();
         check_size::<12, _>();
     }
