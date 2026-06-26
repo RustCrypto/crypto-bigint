@@ -133,11 +133,10 @@ pub fn gcd<const VARTIME: bool>(f: &BoxedUint, g: &BoxedUint) -> BoxedUint {
             gcd_nz::<VARTIME>(f_nz, g).get()
         } else {
             // gcd of (0, g) is g
-            g.clone()
+            g.resize(u32_max(f.bits_precision(), g.bits_precision()))
         }
     } else {
         let (f_nz, f_is_nonzero) = f.to_nz_or_one();
-        // gcd of (0, g) is g
         let mut r = gcd_nz::<VARTIME>(&f_nz, g).get();
         r.ct_assign(g, !f_is_nonzero);
         r
@@ -163,7 +162,10 @@ pub fn gcd_nz<const VARTIME: bool>(f: &NonZero<BoxedUint>, g: &BoxedUint) -> Non
     // 4) 2^k•gcd(f, g) = 2^k•gcd(a, 2^j•b)
 
     let i = f.as_ref().trailing_zeros();
-    let k = u32_min(i, g.trailing_zeros());
+    let j = g
+        .is_nonzero()
+        .select_u32(f.bits_precision(), g.trailing_zeros());
+    let k = u32_min(i, j);
 
     let f_odd = Odd::new_unchecked(f.as_ref().shr(i));
     let mut r = gcd_odd::<VARTIME>(&f_odd, g).get();

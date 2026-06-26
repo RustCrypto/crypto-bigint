@@ -7,8 +7,8 @@ use ctutils::{CtAssignSlice, CtEqSlice};
 impl CtAssign for BoxedUint {
     #[inline]
     fn ct_assign(&mut self, other: &Self, choice: Choice) {
-        assert_eq!(self.bits_precision(), other.bits_precision());
-        self.limbs.ct_assign(&other.limbs, choice);
+        self.as_mut_uint_ref()
+            .ct_assign(other.as_uint_ref(), choice);
     }
 }
 impl CtAssignSlice for BoxedUint {}

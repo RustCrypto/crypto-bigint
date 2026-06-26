@@ -6,8 +6,10 @@ use crate::{Choice, CtAssign, CtEq, CtLt};
 impl CtAssign for UintRef {
     #[inline]
     fn ct_assign(&mut self, other: &Self, choice: Choice) {
-        debug_assert_eq!(self.bits_precision(), other.bits_precision());
-        self.limbs.ct_assign(&other.limbs, choice);
+        assert!(self.bits_precision() >= other.bits_precision());
+        let (lo, hi) = self.split_at_mut(other.nlimbs());
+        lo.limbs.ct_assign(&other.limbs, choice);
+        hi.conditional_set_zero(choice);
     }
 }
 
