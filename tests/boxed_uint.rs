@@ -6,14 +6,16 @@
 mod common;
 
 use common::to_biguint;
+use core::ops::Range;
 use crypto_bigint::{
-    BitOps, BoxedUint, CheckedAdd, Choice, ConcatenatingMul, ConcatenatingSquare, Gcd, Integer,
-    Limb, NonZero, Odd, Resize,
+    BitOps, BoxedUint, CheckedAdd, ConcatenatingMul, ConcatenatingSquare, Gcd, Integer, Limb,
+    NonZero, Odd, Resize, Word,
 };
 use num_bigint::BigUint;
 use num_integer::Integer as _;
 use num_modular::ModularUnaryOps;
 use num_traits::{Zero, identities::One};
+use proptest::collection::vec as propvec;
 use proptest::prelude::*;
 
 #[allow(clippy::cast_possible_truncation)]
@@ -29,31 +31,73 @@ fn reduce(x: &BoxedUint, n: &NonZero<BoxedUint>) -> BoxedUint {
     x.rem_vartime(n)
 }
 
+fn uint() -> impl Strategy<Value = BoxedUint> {
+    prop_oneof![
+        9 => uint_bits(1..1024),
+        1 => uint_bits(1024..8192),
+    ]
+}
+
+fn uint_bits(bits_range: Range<u32>) -> impl Strategy<Value = BoxedUint> {
+    let min_limbs = bits_range.start.max(1).div_ceil(Limb::BITS) as usize;
+    let max_limbs = bits_range.end.div_ceil(Limb::BITS) as usize;
+    uint_limbs(min_limbs..max_limbs)
+}
+
+#[allow(clippy::cast_possible_truncation)]
+fn uint_limbs(limbs_range: Range<usize>) -> impl Strategy<Value = BoxedUint> {
+    let random_words = || propvec(any::<Word>(), limbs_range.clone());
+
+    let random = random_words().prop_map(BoxedUint::from_words);
+    let zero = limbs_range
+        .clone()
+        .prop_map(|l| BoxedUint::zero_with_precision(l as u32 * Limb::BITS));
+    let single_bit = (limbs_range.clone(), any::<u32>()).prop_map(|(l, bit)| {
+        let mut uint = BoxedUint::zero_with_precision(l as u32 * Limb::BITS);
+        uint.set_bit_vartime(bit % uint.bits_precision(), true);
+        uint
+    });
+    let low_bits = (random_words(), any::<u32>()).prop_map(|(words, bit)| {
+        let mut uint = BoxedUint::from_words(words);
+        uint.wrapping_shr_assign(bit);
+        uint
+    });
+    let high_bits = (random_words(), any::<u32>()).prop_map(|(words, bit)| {
+        let mut uint = BoxedUint::from_words(words);
+        uint.wrapping_shl_assign(bit);
+        uint
+    });
+
+    prop_oneof![
+        6 => random,
+        1 => zero,
+        2 => single_bit,
+        2 => low_bits,
+        2 => high_bits,
+    ]
+}
+
 prop_compose! {
-    /// Generate a random `BoxedUint`.
-    fn uint()(mut bytes in any::<Vec<u8>>()) -> BoxedUint {
-        let extra = bytes.len() % Limb::BYTES;
-        let bytes_precision = bytes.len() - extra;
-        bytes.truncate(bytes_precision);
-        #[allow(clippy::cast_possible_truncation)]
-        BoxedUint::from_be_slice(&bytes, bytes_precision as u32 * 8).unwrap()
+    fn nonzero_uint()(mut val in uint()) -> NonZero<BoxedUint> {
+        if val.is_zero().to_bool_vartime() {
+            val.set_one();
+        }
+        val.into_nz().unwrap()
     }
 }
+
+prop_compose! {
+    fn odd_uint()(mut val in uint()) -> Odd<BoxedUint> {
+        val.set_bit_vartime(0, true);
+        val.into_odd().unwrap()
+    }
+}
+
 prop_compose! {
     /// Generate a pair of random `BoxedUint`s with the same precision.
     fn uint_pair()(a in uint(), b in uint()) -> (BoxedUint, BoxedUint) {
         let bits_precision = core::cmp::max(a.bits_precision(), b.bits_precision());
         (a.resize(bits_precision), b.resize(bits_precision))
-    }
-}
-prop_compose! {
-    /// Generate a random odd modulus.
-    fn modulus()(n in uint()) -> Odd<BoxedUint> {
-        if n.is_even().into() {
-            n.wrapping_add(Limb::ONE)
-        } else {
-            n
-        }.to_odd().expect("odd by construction")
     }
 }
 
@@ -87,7 +131,7 @@ proptest! {
     }
 
     #[test]
-    fn checked_div((a, b) in uint_pair()) {
+    fn checked_div(a in uint(), b in uint()) {
         let actual = a.checked_div(&b);
 
         if b.is_zero().into() {
@@ -112,44 +156,35 @@ proptest! {
     }
 
     #[test]
-    fn div_rem(a in uint(), mut b in uint()) {
-        if b.is_zero().into() {
-            b = b.wrapping_add(Limb::ONE);
-        }
-
+    fn div_rem(a in uint(), b in nonzero_uint()) {
         let a_bi = to_biguint(&a);
-        let b_bi = to_biguint(&b);
+        let b_bi = to_biguint(b.as_ref());
         let (expected_quotient, expected_remainder) = a_bi.div_rem(&b_bi);
 
-        let div = NonZero::new(b).unwrap();
-        let (actual_quotient, actual_remainder) = a.div_rem(&div);
+        let (actual_quotient, actual_remainder) = a.div_rem(&b);
         prop_assert_eq!(expected_quotient, to_biguint(&actual_quotient));
         prop_assert_eq!(expected_remainder, to_biguint(&actual_remainder));
 
-        let (quotient_vartime, remainder_vartime) = a.div_rem_vartime(&div);
+        let (quotient_vartime, remainder_vartime) = a.div_rem_vartime(&b);
         prop_assert_eq!(actual_quotient, quotient_vartime);
         prop_assert_eq!(actual_remainder, remainder_vartime);
     }
 
     #[test]
-    fn div_exact((a, mut b) in uint_pair()) {
-        if b.is_zero().into() {
-            b = b.wrapping_add(Limb::ONE);
-        }
-
+    fn div_exact(a in uint(), b in nonzero_uint()) {
         let a_bi = to_biguint(&a);
-        let b_bi = to_biguint(&b);
+        let b_bi = to_biguint(b.as_ref());
         let (expected_quotient, expected_remainder) = a_bi.div_rem(&b_bi);
         let expected = if expected_remainder.is_zero() { Some(expected_quotient) } else { None };
 
-        let div = NonZero::new(b).unwrap();
-        let actual = a.div_exact(&div).into_option();
+        let actual = a.div_exact(&b).into_option();
         prop_assert_eq!(&expected, &actual.as_ref().map(to_biguint));
-        let actual_vartime = a.div_exact_vartime(&div).into_option();
+        let actual_vartime = a.div_exact_vartime(&b).into_option();
         prop_assert_eq!(expected, actual_vartime.as_ref().map(to_biguint));
     }
 
     #[test]
+    // TODO: expand to f in uint(), g in uint()
     fn gcd((f, g) in uint_pair()) {
         let f_bi = to_biguint(&f);
         let g_bi = to_biguint(&g);
@@ -160,8 +195,7 @@ proptest! {
     }
 
     #[test]
-    fn invert_mod2k(mut a in uint(), k in any::<u32>()) {
-        a.set_bit(0, Choice::TRUE); // make odd
+    fn invert_mod2k(a in odd_uint(), k in any::<u32>()) {
         let k = k % (a.bits() + 1);
         let a_bi = to_biguint(&a);
         let m_bi = BigUint::one() << k as usize;
@@ -206,7 +240,7 @@ proptest! {
     }
 
     #[test]
-    fn mul_mod(a in uint(), b in uint(), n in modulus()) {
+    fn mul_mod(a in uint(), b in uint(), n in odd_uint()) {
         let a = reduce(&a, n.as_nz_ref());
         let b = reduce(&b, n.as_nz_ref());
 
@@ -220,11 +254,10 @@ proptest! {
     }
 
     #[test]
-    fn wrapping_pow(a in uint(), b in uint()) {
+    fn wrapping_pow(a in uint(), b in uint_bits(1..1024)) {
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(&b);
         let p_bi = to_biguint(&BoxedUint::max(a.bits_precision())) + 1u32;
-        println!("a: {a}, b: {b}, p: {p_bi}");
 
         let expected = to_uint(a_bi.modpow(&b_bi, &p_bi));
 
@@ -234,7 +267,7 @@ proptest! {
     }
 
     #[test]
-    fn pow_mod(a in uint(), b in uint(), n in modulus()) {
+    fn pow_mod(a in uint(), b in uint_bits(1..1024), n in odd_uint()) {
         let a = reduce(&a, n.as_nz_ref());
 
         let a_bi = to_biguint(&a);
@@ -291,29 +324,27 @@ proptest! {
     }
 
     #[test]
-    fn rem((a, b) in uint_pair()) {
-        if bool::from(!b.is_zero()) {
-            let a_bi = to_biguint(&a);
-            let b_bi = to_biguint(&b);
+    fn rem(a in uint(), b in nonzero_uint()) {
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(b.as_ref());
 
-            let expected = a_bi % b_bi;
-            let actual = a.rem(&NonZero::new(b).unwrap());
+        let expected = a_bi % b_bi;
+        let actual = a.rem(&b);
 
-            prop_assert_eq!(expected, to_biguint(&actual));
-        }
+        prop_assert_eq!(expected, to_biguint(&actual));
     }
 
     #[test]
-    fn rem_vartime((a, b) in uint_pair()) {
-        if bool::from(!b.is_zero()) {
-            let a_bi = to_biguint(&a);
-            let b_bi = to_biguint(&b);
+    fn rem_vartime(a in uint(), b in nonzero_uint()) {
+        prop_assume!(b.is_nonzero().to_bool_vartime());
 
-            let expected = a_bi % b_bi;
-            let actual = a.rem_vartime(&NonZero::new(b).unwrap());
+        let a_bi = to_biguint(&a);
+        let b_bi = to_biguint(b.as_ref());
 
-            prop_assert_eq!(expected, to_biguint(&actual));
-        }
+        let expected = a_bi % b_bi;
+        let actual = a.rem_vartime(&b);
+
+        prop_assert_eq!(expected, to_biguint(&actual));
     }
 
     #[test]
@@ -408,5 +439,16 @@ proptest! {
         let a_bytes = a.to_le_bytes_trimmed_vartime();
         let b = BoxedUint::from_le_slice_vartime(&a_bytes);
         prop_assert_eq!(a, b);
+    }
+
+    #[test]
+    fn floor_sqrt(a in uint()) {
+        let root = a.floor_sqrt();
+        prop_assert_eq!(&root, &a.floor_sqrt_vartime());
+        let checked_square = root.checked_square().into_option();
+        prop_assert!(checked_square.is_some());
+        prop_assert!(checked_square.unwrap() <= a);
+        let rtp = (root + Limb::ONE).saturating_square();
+        prop_assert!(rtp > a || a.wrapping_add(Limb::ONE).is_zero().to_bool_vartime());
     }
 }

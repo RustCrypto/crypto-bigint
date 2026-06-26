@@ -606,30 +606,28 @@ impl UintRef {
     /// If the divisor is zero.
     #[inline(always)]
     pub(crate) const fn div_exact(&mut self, rhs: &mut UintRef) -> Choice {
-        let x_prec = self.bits_precision();
         let y_bits = rhs.bits();
         assert!(y_bits > 0, "zero divisor");
 
-        let tz = rhs.trailing_zeros();
-        // Track whether there are more zeros in the divisor than bits in the dividend
-        let excess_z = Choice::from_u32_lt(x_prec, tz);
-        let tz = excess_z.select_u32(tz, x_prec);
+        let x_tz = self.trailing_zeros();
+        let x_zero = Choice::from_u32_eq(x_tz, self.bits_precision());
+        let y_tz = rhs.trailing_zeros();
 
         // Shift the divisor such that it is odd
-        rhs.shr_assign(tz);
+        rhs.shr_assign(y_tz);
 
-        // Check that the dividend evenly divides by 2^tz, and shift it to match the divisor
-        let div2s_exact = self.ensure_trailing_zeros(tz).and(excess_z.not());
-        self.unbounded_shr_assign(tz);
+        // Check that the dividend evenly divides by 2^y+tz, and shift it to match the divisor
+        let div2s_exact = Choice::from_u32_le(y_tz, x_tz).or(x_zero);
+        self.unbounded_shr_assign(y_tz);
 
         let y = Odd::new_ref_unchecked(rhs);
         let y_inv = y.invert_mod_limb();
-        let ywords = bitlen::to_limbs(y_bits - tz);
+        let ywords = bitlen::to_limbs(y_bits - y_tz);
         let is_exact =
             Self::div_exact_odd_with_inverse::<false>(self, y, y_inv, ywords).and(div2s_exact);
 
         // Restore the divisor
-        rhs.shl_assign(tz);
+        rhs.shl_assign(y_tz);
 
         is_exact
     }
@@ -643,32 +641,28 @@ impl UintRef {
     /// If the divisor is zero.
     #[inline(always)]
     pub(crate) const fn div_exact_vartime(&mut self, rhs: &mut UintRef) -> Choice {
-        let x_prec = self.bits_precision();
         let y_bits = rhs.bits_vartime();
         assert!(y_bits > 0, "zero divisor");
 
-        let tz = rhs.trailing_zeros_vartime();
-        if tz > x_prec {
-            // The divisor exceeds the dividend precision. Short circuit based on public
-            // information (the divisor and the input size in limbs)
-            return Choice::FALSE;
-        }
-        // Reduce the divisor to its populated limbs and shift it such that it is odd
-        let rhs = rhs.leading_mut(bitlen::to_limbs(y_bits));
-        rhs.unbounded_shr_assign_vartime(tz);
+        let x_tz = self.trailing_zeros();
+        let x_zero = Choice::from_u32_eq(x_tz, self.bits_precision());
+        let y_tz = rhs.trailing_zeros_vartime();
 
-        // Check that the dividend evenly divides by 2^tz, and shift it to match the divisor
-        let div2s_exact = self.ensure_trailing_zeros(tz);
-        self.unbounded_shr_assign_vartime(tz);
+        // Shift the divisor to be odd
+        rhs.unbounded_shr_assign_vartime(y_tz);
 
-        let ywords = bitlen::to_limbs(y_bits - tz);
-        let y = Odd::new_ref_unchecked(rhs.leading(ywords));
+        // Check that the dividend evenly divides by 2^y_tz, and shift it to match the divisor
+        let div2s_exact = Choice::from_u32_le(y_tz, x_tz).or(x_zero);
+        self.unbounded_shr_assign_vartime(y_tz);
+
+        let ywords = bitlen::to_limbs(y_bits - y_tz);
+        let y = Odd::new_ref_unchecked(rhs.leading_mut(ywords));
         let y_inv = y.invert_mod_limb();
         let is_exact =
             Self::div_exact_odd_with_inverse::<true>(self, y, y_inv, ywords).and(div2s_exact);
 
         // Restore the divisor
-        rhs.unbounded_shl_assign_vartime(tz);
+        rhs.unbounded_shl_assign_vartime(y_tz);
 
         is_exact
     }
@@ -696,6 +690,7 @@ impl UintRef {
         let y = y.as_ref();
         let yc = y.nlimbs();
         let mut meta_carry = Limb::ZERO;
+        let mut zero_hi = Choice::TRUE;
         let mut xi = 0;
 
         while xi < xc {
@@ -703,14 +698,17 @@ impl UintRef {
             // This loop is a no-op once there are fewer words remaining than the size of the divisor
             let done = usize_lt(y_remain, ywords);
             if VARTIME && done.to_bool_vartime() {
-                // Set the upper limbs to zero
-                x.trailing_mut(xi).fill(Limb::ZERO);
+                zero_hi = x.trailing(xi).is_zero();
                 break;
             }
 
             // Compute the quotient limb that will clear the low dividend limb
-            let quo = Limb::select(x.limbs[xi].wrapping_mul(y_inv), Limb::ZERO, done);
+            let quo = Limb::select(x.limbs[xi].wrapping_mul(y_inv), x.limbs[xi], done);
             x.limbs[xi] = quo;
+
+            if !VARTIME {
+                zero_hi = zero_hi.and(Limb::select(Limb::ZERO, quo, done).is_zero());
+            }
 
             let (_, mut carry) = quo.widening_mul(y.limbs[0]);
             let mut sub;
@@ -735,20 +733,60 @@ impl UintRef {
             xi += 1;
         }
 
-        meta_carry.is_zero()
+        meta_carry.is_zero().and(zero_hi)
     }
+}
 
-    // Check that `self` can be cleanly divided by 2^zs: the bottom zs bits are zero.
-    #[inline(always)]
-    const fn ensure_trailing_zeros(&self, zs: u32) -> Choice {
-        let z_words = (zs >> Limb::LOG2_BITS) as usize;
-        let z_bits = zs & (Limb::BITS - 1);
-        if z_words >= self.nlimbs() {
-            self.is_zero()
-        } else {
-            self.leading(z_words)
-                .is_zero()
-                .and(self.limbs[z_words].restrict_bits(z_bits).is_zero())
+#[cfg(test)]
+mod tests {
+    use crate::{U64, U128, U192, Uint};
+
+    #[test]
+    fn div_exact_inexact() {
+        fn check<const L: usize, const R: usize>(lhs: Uint<L>, rhs: Uint<R>, exact: bool) {
+            let (mut q, mut r) = (lhs, rhs);
+            let actual = q
+                .as_mut_uint_ref()
+                .div_exact(r.as_mut_uint_ref())
+                .to_bool_vartime();
+            assert_eq!(actual, exact, "{lhs} / {rhs}: exact={actual}");
+            let (mut q, mut r) = (lhs, rhs);
+            let actual = q
+                .as_mut_uint_ref()
+                .div_exact_vartime(r.as_mut_uint_ref())
+                .to_bool_vartime();
+            assert_eq!(actual, exact, "{lhs} / {rhs}: exact={actual}");
         }
+
+        check(
+            U64::from_be_hex("0000000000000010"),
+            U64::from_be_hex("0000000000000010"),
+            true,
+        );
+        check(
+            U64::from_be_hex("0000000000000010"),
+            U128::from_be_hex("00000000000000000000000000000001"),
+            true,
+        );
+        check(
+            U64::from_be_hex("0000000000000000"),
+            U128::from_be_hex("10000000000000000000000000000000"),
+            true,
+        );
+        check(
+            U64::from_be_hex("0000000000000001"),
+            U64::from_be_hex("0000000000000010"),
+            false,
+        );
+        check(
+            U64::from_be_hex("0000000000000001"),
+            U128::from_be_hex("00000000000000100000000000000000"),
+            false,
+        );
+        check(
+            U192::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0000000000000000"),
+            U192::from_be_hex("000000000000000100000000000000003ACEDC010F13471D"),
+            false,
+        );
     }
 }
