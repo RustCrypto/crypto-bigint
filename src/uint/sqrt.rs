@@ -341,14 +341,14 @@ mod tests {
             }
         }
 
-        check_size::<1, _>();
-        check_size::<2, _>();
+        check_size::<1, 2>();
+        check_size::<2, 4>();
         cpubits::cpubits! {
             64 => {
-                check_size::<3, _>();
+                check_size::<3, 6>();
             }
         }
-        check_size::<4, _>();
-        check_size::<12, _>();
+        check_size::<4, 8>();
+        check_size::<12, 24>();
     }
 }
