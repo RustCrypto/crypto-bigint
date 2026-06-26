@@ -1,6 +1,6 @@
 //! Support for computing modular symbols.
 
-use crate::{JacobiSymbol, Odd, U64, U128, Uint};
+use crate::{JacobiSymbol, Odd, Uint};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Compute the Jacobi symbol `(self|rhs)`.
@@ -19,14 +19,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             return a.jacobi_symbol(rhs);
         }
 
-        let (gcd, jacobi_neg) = if LIMBS < 4 {
-            rhs.classic_bingcd_(&self.resize())
-        } else {
-            rhs.optimized_bingcd_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(
-                &self.resize(),
-                U64::BITS - 2,
-            )
-        };
+        let (gcd, jacobi_neg) = rhs.classic_bingcd_(&self.resize());
+
         // The sign of the Jacobi symbol is represented by jacobi_neg. We select 0 as the
         // symbol when the GCD is not one, otherwise 1 or -1.
         let jacobi = (jacobi_neg as i8 * -2 + 1) as i64;
@@ -87,14 +81,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
             }
         }
 
-        let (gcd, jacobi_neg) = if LIMBS < 4 {
-            rhs.classic_bingcd_vartime_(&self.resize())
-        } else {
-            rhs.optimized_bingcd_vartime_::<{ U64::BITS }, { U64::LIMBS }, { U128::LIMBS }>(
-                &self.resize(),
-                U64::BITS - 2,
-            )
-        };
+        let (gcd, jacobi_neg) = rhs.classic_bingcd_vartime_(&self.resize());
         JacobiSymbol::from_i8(if gcd.as_ref().cmp_vartime(&Uint::ONE).is_eq() {
             jacobi_neg as i8 * -2 + 1
         } else {
@@ -199,5 +186,19 @@ mod tests {
         assert_eq!(res, res_vartime);
         assert_eq!(res, res_vartime_small);
         assert_eq!(res, res_vartime_large);
+    }
+
+    #[test]
+    // test from issue #1295 - variations in only the middle bits can trip up optimized binary GCD method
+    fn jacobi_edge() {
+        use crate::{Odd, U256};
+
+        assert_eq!(
+            U256::from_be_hex("0000000000000002108DEAFCB180F023912BEED0186CEEAD593A8507B7DA4E9B")
+                .jacobi_symbol(&Odd::<U256>::from_be_hex(
+                    "0000000000000002108DEAFCB180F023912BEED0186CEEED593A8507B7DA4E9B",
+                )),
+            JacobiSymbol::MinusOne
+        );
     }
 }
