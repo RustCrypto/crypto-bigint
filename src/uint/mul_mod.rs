@@ -25,6 +25,10 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// and S. Vanstone, CRC Press, 1996.
     #[must_use]
     pub const fn mul_mod_special(&self, rhs: &Self, c: Limb) -> Self {
+        if c.is_zero().to_bool_vartime() {
+            return self.wrapping_mul(rhs);
+        }
+
         // We implicitly assume `LIMBS > 0`, because `Uint<0>` doesn't compile.
         // Still the case `LIMBS == 1` needs special handling.
         if LIMBS == 1 {
@@ -162,5 +166,26 @@ mod tests {
             test_size::<8>();
             test_size::<16>();
         }
+    }
+
+    #[test]
+    fn mul_mod_special_zero_c_is_wrapping_multiplication() {
+        let a = Uint::<1>::from_u32(0x1234_5678);
+        let b = Uint::<1>::from_u32(0xfedc_ba91);
+
+        assert_eq!(
+            a.mul_mod_special(&b, Limb::ZERO),
+            a.wrapping_mul(&b),
+            "c = 0 represents the power-of-two modulus"
+        );
+
+        let a = Uint::<2>::from_u32(0x1234_5678);
+        let b = Uint::<2>::from_u32(0xfedc_ba91);
+
+        assert_eq!(
+            a.mul_mod_special(&b, Limb::ZERO),
+            a.wrapping_mul(&b),
+            "c = 0 represents the power-of-two modulus"
+        );
     }
 }
