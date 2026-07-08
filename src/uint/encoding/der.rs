@@ -237,6 +237,7 @@ pub mod test {
         assert_valid_value_len_hex("fedcba9876543210fedcba9876543210");
     }
 
+    #[cfg(feature = "alloc")]
     #[test]
     fn fixed_uint_rejects_oversized_integer_without_panic() {
         use der::Decode;
