@@ -57,18 +57,14 @@ jobs:
           # `x86` Linux (32-bit)
           - target: i686-unknown-linux-gnu
             rust: 1.85.0 # MSRV
-            deps: gcc-multilib
           - target: i686-unknown-linux-gnu
             rust: 1.85.0 # MSRV
             args: --release
-            deps: gcc-multilib
           - target: i686-unknown-linux-gnu
             rust: stable
-            deps: gcc-multilib
           - target: i686-unknown-linux-gnu
             rust: stable
             args: --release
-            deps: gcc-multilib
 
           # `x86_64` Linux
           - target: x86_64-unknown-linux-gnu
@@ -116,10 +112,8 @@ jobs:
     runs-on: ${{ matrix.runner != '' && matrix.runner || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v7
-      - uses: RustCrypto/actions/apt-install@master
-        if: ${{ matrix.deps != '' }}
-        with:
-          packages: ${{ matrix.deps }}
+      - uses: RustCrypto/actions/setup-i686-gcc@master
+        if: ${{ matrix.target == 'i686-unknown-linux-gnu' }}
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
