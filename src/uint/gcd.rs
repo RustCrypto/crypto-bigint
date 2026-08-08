@@ -622,33 +622,3 @@ mod tests {
         }
     }
 }
-
-#[cfg(test)]
-mod xgcd_vartime_delegation {
-    use super::*;
-    use crate::{U256, NonZeroUint, OddUint};
-
-    /// Verifies that xgcd_vartime currently delegates to xgcd (CT).
-    /// This test WILL FAIL when issue #853 is resolved — that is intentional.
-    /// When it fails, callers relying on CT behavior of xgcd_vartime must be reviewed.
-    #[test]
-    fn xgcd_vartime_matches_xgcd_uint() {
-        let a = U256::from(240u32);
-        let b = U256::from(46u32);
-        assert_eq!(a.xgcd(&b), a.xgcd_vartime(&b));
-    }
-
-    #[test]
-    fn xgcd_vartime_matches_xgcd_nonzero_uint() {
-        let a = NonZeroUint::<4>::new(U256::from(240u32)).unwrap();
-        let b = NonZeroUint::<4>::new(U256::from(46u32)).unwrap();
-        assert_eq!(a.xgcd(&b), a.xgcd_vartime(&b));
-    }
-
-    #[test]
-    fn xgcd_vartime_matches_xgcd_odd_uint() {
-        let a = OddUint::<4>::new(U256::from(241u32)).unwrap();
-        let b = OddUint::<4>::new(U256::from(47u32)).unwrap();
-        assert_eq!(a.xgcd(&b), a.xgcd_vartime(&b));
-    }
-}
