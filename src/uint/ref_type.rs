@@ -10,6 +10,7 @@ mod mul;
 mod shl;
 mod shr;
 mod slice;
+mod sqrt;
 mod sub;
 
 use crate::{Choice, Limb, NonZero, Odd, Uint, Word};
