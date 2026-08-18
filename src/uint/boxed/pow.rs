@@ -27,13 +27,17 @@ impl BoxedUint {
         CtOption::new(lo, overflow.not())
     }
 
-    /// Computes `self^exp`, returning a `CtOption` which is none in the case of overflow.
+    /// Computes `self^exp`, returning `None` in the case of overflow.
     ///
     /// This method is variable time in the exponent `exp` only.
     #[must_use]
-    pub fn checked_pow_vartime(&self, exp: impl AsRef<UintRef>) -> CtOption<Self> {
+    pub fn checked_pow_vartime(&self, exp: impl AsRef<UintRef>) -> Option<Self> {
         let (lo, overflow) = self.overflowing_pow_vartime(exp);
-        CtOption::new(lo, overflow.not())
+        if overflow.to_bool_vartime() {
+            None
+        } else {
+            Some(lo)
+        }
     }
 
     /// Computes `self^exp`, returning a `Self::MAX` in the case of overflow.
@@ -249,7 +253,7 @@ mod tests {
                 expect.map(BoxedUint::from),
             );
             assert_eq!(base.checked_pow(&pow).into_option(), expect);
-            assert_eq!(base.checked_pow_vartime(&pow).into_option(), expect);
+            assert_eq!(base.checked_pow_vartime(&pow), expect);
             assert_eq!(
                 Checked(CtOption::some(base)).pow(&pow).0.into_option(),
                 expect

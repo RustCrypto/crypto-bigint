@@ -146,7 +146,7 @@ mod tests {
                     .expect("overflow, {s} exp={exp}, root={rt}");
                 assert!(s2 <= s.get(), "overflow, {s} exp={exp}, root={root}");
                 let rt_p1 = root.wrapping_add_limb(Limb::ONE);
-                let s3 = rt_p1.checked_pow_vartime(&exp_uint).into_option();
+                let s3 = rt_p1.checked_pow_vartime(&exp_uint);
                 assert!(
                     s3.is_none_or(|s3| s3 > s2),
                     "underflow, {s} exp={exp}, root={root}"
