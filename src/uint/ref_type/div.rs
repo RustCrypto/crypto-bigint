@@ -204,6 +204,370 @@ impl UintRef {
         y.shr_assign_limb_vartime(lshift);
     }
 
+    /// Computes `x_lower_upper` / `rhs`, returning the wrapped quotient in `quo` and the
+    /// remainder in `rhs`. Returns a [`Choice`] that is truthy when the quotient fit in `quo`
+    /// without truncation.
+    ///
+    /// The `x_lower_upper` tuple represents a wide (double-width) dividend `x_lo + x_hi * B`,
+    /// where `B = 2^(x_lo.bits_precision())`. The size of `x_lower_upper.1` and of `quo` must each
+    /// be at least as large as `rhs`. `x_lower_upper` is left in an indeterminate state.
+    ///
+    /// The true quotient may be up to twice the width of `rhs`; only its low `quo.nlimbs()` limbs
+    /// are retained (i.e. the quotient is reduced modulo `2^(quo.nlimbs() * Limb::BITS)`). This is
+    /// the quotient-tracking counterpart of [`UintRef::rem_wide`].
+    ///
+    /// # Panics
+    /// If the divisor is zero.
+    #[inline(always)]
+    pub(crate) const fn wrapping_div_rem_wide(
+        x_lower_upper: (&mut Self, &mut Self),
+        rhs: &mut Self,
+        quo: &mut Self,
+    ) -> Choice {
+        let (x_lo, x) = x_lower_upper;
+        let y = rhs;
+
+        // The retained low half of the quotient is the whole quotient exactly when the true
+        // quotient is below `B`, which happens iff the high half of the dividend is `< rhs`.
+        let fits = UintRef::lt(x, y);
+
+        // Short circuit for single-word divisor (only reachable when the operands are one limb
+        // wide, since `div3by2` in the main path requires a two-limb divisor).
+        if y.nlimbs() == 1 {
+            let reciprocal = Reciprocal::new(y.limbs[0].to_nz().expect_copied("zero divisor"));
+            let sh = reciprocal.shift();
+
+            // Left-shift the wide dividend so that the divisor is normalized (high bit set).
+            let lo_carry = x_lo.shl_assign_limb(sh);
+            let mut hi = x.shl_assign_limb(sh);
+            x.limbs[0] = x.limbs[0].bitor(lo_carry);
+
+            // Long division by a single limb, most-significant limb first. The high quotient limb
+            // overflows the wrapped result and is discarded; the low limb is the wrapped quotient.
+            (x.limbs[0].0, hi.0) = div2by1(x.limbs[0].0, hi.0, &reciprocal);
+            (x_lo.limbs[0].0, hi.0) = div2by1(x_lo.limbs[0].0, hi.0, &reciprocal);
+
+            quo.limbs[0] = x_lo.limbs[0];
+            y.limbs[0] = hi.shr(sh);
+            return fits;
+        }
+
+        // Compute the size of the divisor
+        let ybits = y.bits();
+        assert!(ybits > 0, "zero divisor");
+        let ywords = ybits.div_ceil(Limb::BITS);
+
+        // Shift the entire divisor such that the high bit is set
+        let yz = y.bits_precision() - ybits;
+        y.unbounded_shl_assign(yz);
+
+        // Shift the dividend to align the words
+        let lshift = yz & (Limb::BITS - 1);
+        let x_lo_carry = x_lo.shl_assign_limb(lshift);
+        let x_hi = x.shl_assign_limb(lshift);
+        x.limbs[0] = x.limbs[0].bitor(x_lo_carry);
+
+        // Perform the core division algorithm
+        Self::wrapping_div_rem_wide_shifted((x_lo, x), x_hi, y, ywords, quo);
+
+        // Unshift the remainder from the earlier adjustment
+        y.shr_assign_limb(lshift);
+
+        fits
+    }
+
+    /// Computes `x_lower_upper` / `rhs`, returning the wrapped quotient in `quo` and the
+    /// remainder in `rhs`.
+    ///
+    /// This function operates in variable-time with respect to `rhs`. For a fixed divisor, it
+    /// operates in constant-time.
+    ///
+    /// The `x_lower_upper` tuple represents a wide (double-width) dividend. The size of
+    /// `x_lower_upper.1` and of `quo` must each be at least as large as `rhs`. `x_lower_upper` is
+    /// left in an indeterminate state. See [`UintRef::wrapping_div_rem_wide`] for the wrapping
+    /// semantics and the returned [`Choice`].
+    ///
+    /// # Panics
+    /// If the divisor is zero.
+    #[inline(always)]
+    pub(crate) const fn wrapping_div_rem_wide_vartime(
+        x_lower_upper: (&mut Self, &mut Self),
+        rhs: &mut Self,
+        quo: &mut Self,
+    ) -> Choice {
+        let (x_lo, x) = x_lower_upper;
+        let xsize = x.nlimbs();
+
+        // The retained low half of the quotient is the whole quotient exactly when the high half
+        // of the dividend is `< rhs` (see `wrapping_div_rem_wide`).
+        let fits = UintRef::lt(x, rhs);
+
+        let ysize = bitlen::to_limbs(rhs.bits_vartime());
+        let y = rhs.leading_mut(ysize);
+
+        match (xsize, ysize) {
+            (_, 0) => panic!("zero divisor"),
+            (0, _) => {
+                // Empty dividend: both quotient and remainder are zero.
+                y.fill(Limb::ZERO);
+                quo.fill(Limb::ZERO);
+                return fits;
+            }
+            (_, 1) => {
+                // Single-word divisor: long division by one limb, most-significant limb first,
+                // keeping the quotient. The high half's quotient overflows the wrapped result and
+                // is discarded; the low half's quotient is what we keep.
+                let reciprocal = Reciprocal::new(y.limbs[0].to_nz().expect_copied("zero divisor"));
+                let sh = reciprocal.shift();
+
+                // Left-shift the wide dividend so the divisor is normalized (high bit set).
+                let lo_carry = x_lo.shl_assign_limb_vartime(sh);
+                let mut hi = x.shl_assign_limb_vartime(sh);
+                x.limbs[0] = x.limbs[0].bitor(lo_carry);
+
+                let mut j = xsize;
+                while j > 0 {
+                    j -= 1;
+                    (x.limbs[j].0, hi.0) = div2by1(x.limbs[j].0, hi.0, &reciprocal);
+                }
+                let mut j = x_lo.nlimbs();
+                while j > 0 {
+                    j -= 1;
+                    (x_lo.limbs[j].0, hi.0) = div2by1(x_lo.limbs[j].0, hi.0, &reciprocal);
+                }
+
+                quo.copy_from(x_lo);
+                y.fill(Limb::ZERO);
+                y.limbs[0] = hi.shr(sh);
+                return fits;
+            }
+            _ if ysize > xsize => {
+                panic!("divisor too large");
+            }
+            _ => (),
+        }
+
+        let lshift = y.limbs[ysize - 1].leading_zeros();
+
+        // Shift divisor such that it has no leading zeros
+        // This means that div2by1 requires no extra shifts, and ensures that the high word >= b/2
+        y.shl_assign_limb_vartime(lshift);
+
+        // Shift the dividend to align the words
+        let x_lo_carry = x_lo.shl_assign_limb_vartime(lshift);
+        let mut x_hi = x.shl_assign_limb_vartime(lshift);
+        x.limbs[0] = x.limbs[0].bitor(x_lo_carry);
+
+        // Calculate a reciprocal from the highest word of the divisor
+        let reciprocal = Reciprocal::new(y.limbs[ysize - 1].to_nz().expect_copied("zero divisor"));
+
+        // Perform the core division algorithm
+        x_hi = Self::wrapping_div_rem_wide_large_shifted::<true>(
+            (x_lo, x),
+            x_hi,
+            y,
+            #[allow(clippy::cast_possible_truncation, reason = "TODO")]
+            {
+                ysize as u32
+            },
+            reciprocal,
+            quo,
+        );
+
+        // Copy the remainder to the divisor
+        y.leading_mut(ysize - 1).copy_from(x.leading(ysize - 1));
+        y.limbs[ysize - 1] = x_hi;
+
+        // Unshift the remainder from the earlier adjustment
+        y.shr_assign_limb_vartime(lshift);
+
+        fits
+    }
+
+    /// Conditionally shift the limbs one position toward the most-significant end, dropping the
+    /// top limb and inserting `limb` at the least-significant position. A no-op when `shift` is
+    /// falsy.
+    ///
+    /// Used as a quotient accumulator: feeding quotient limbs most-significant first retains the
+    /// low `self.nlimbs()` limbs of the full-width quotient.
+    #[inline(always)]
+    const fn shift_in_limb(&mut self, limb: Limb, shift: Choice) {
+        // Shift the limbs up by one, inserting a zero at the bottom, then overwrite it with `limb`.
+        self.conditional_shl_assign_by_limbs_vartime(1, shift);
+        if self.nlimbs() > 0 {
+            self.limbs[0] = Limb::select(self.limbs[0], limb, shift);
+        }
+    }
+
+    /// Perform in-place wide division for a pre-shifted dividend and divisor, tracking both the
+    /// quotient and the remainder.
+    ///
+    /// The dividend and divisor must be left-shifted such that the high bit of the divisor is set,
+    /// and `x_hi` holds the top bits of the (high half of the) dividend.
+    ///
+    /// The wrapped quotient is written to `quo` and the shifted remainder to `y` (the latter must
+    /// be unshifted by the caller). `x` is left in an indeterminate state.
+    #[inline(always)]
+    #[allow(clippy::cast_possible_truncation)]
+    const fn wrapping_div_rem_wide_shifted(
+        x: (&mut Self, &mut Self),
+        mut x_hi: Limb,
+        y: &mut Self,
+        ywords: u32,
+        quo: &mut Self,
+    ) {
+        let (x_lo, x) = x;
+        let ysize = y.nlimbs();
+
+        // Calculate a reciprocal from the highest word of the divisor
+        let reciprocal = Reciprocal::new(y.limbs[ysize - 1].to_nz().expect_copied("zero divisor"));
+        debug_assert!(reciprocal.shift() == 0);
+
+        // Perform the core division algorithm
+        x_hi = Self::wrapping_div_rem_wide_large_shifted::<false>(
+            (x_lo, x),
+            x_hi,
+            y,
+            ywords,
+            reciprocal,
+            quo,
+        );
+
+        // Calculate quotient and remainder for the case where the divisor is a single word.
+        let limb_div = Choice::from_u32_eq(1, ywords);
+        // Note that `div2by1()` will panic if `x_hi >= reciprocal.divisor_normalized`,
+        // but this can only be the case if `limb_div` is falsy, in which case we discard
+        // the result anyway, so we conditionally set `x_hi` to zero for this branch.
+        let x_hi_adjusted = Limb::select(Limb::ZERO, x_hi, limb_div);
+        let (quo2, rem2) = div2by1(x.limbs[0].0, x_hi_adjusted.0, &reciprocal);
+
+        // For a single-word divisor the main loop never computes the least-significant quotient
+        // limb; inject it here by shifting the quotient up one limb and storing `quo2`.
+        quo.shift_in_limb(Limb(quo2), limb_div);
+
+        // Copy out the low limb of the remainder
+        y.limbs[0] = Limb::select(x.limbs[0], Limb(rem2), limb_div);
+
+        // Copy the remainder to divisor
+        let mut i = 1;
+        while i < ysize {
+            y.limbs[i] = Limb::select(
+                Limb::ZERO,
+                x.limbs[i],
+                Choice::from_u32_lt(i as u32, ywords),
+            );
+            y.limbs[i] = Limb::select(y.limbs[i], x_hi, Choice::from_u32_eq(i as u32, ywords - 1));
+            i += 1;
+        }
+    }
+
+    /// Computes `x` / `y` for a "large" divisor (>1 limbs), returning the shifted remainder in
+    /// `x.1` and the wrapped quotient in `quo`.
+    ///
+    /// Mirrors [`UintRef::rem_wide_large_shifted`], additionally capturing the (borrow-corrected)
+    /// quotient word at each step. The dividend and divisor must be left-shifted such that the
+    /// high bit of the divisor is set, and `x_hi` holds the top bits of the dividend.
+    #[inline(always)]
+    #[allow(clippy::cast_possible_truncation)]
+    const fn wrapping_div_rem_wide_large_shifted<const VARTIME: bool>(
+        x: (&Self, &mut Self),
+        mut x_hi: Limb,
+        y: &Self,
+        ywords: u32,
+        reciprocal: Reciprocal,
+        quo: &mut Self,
+    ) -> Limb {
+        assert!(
+            y.nlimbs() <= x.1.nlimbs(),
+            "invalid input sizes for wrapping_div_rem_wide_large_shifted"
+        );
+
+        let (x_lo, x) = x;
+        let xsize = x.nlimbs();
+        let ysize = y.nlimbs();
+        let mut extra_limbs = x_lo.nlimbs();
+
+        let mut xi = xsize - 1;
+        let mut x_xi = x.limbs[xi];
+        let mut i;
+        let mut carry;
+
+        // Compute the adjusted reciprocal
+        let v = reciprocal.reciprocal_3by2(y.limbs[ysize - 2].0, y.limbs[ysize - 1].0);
+
+        while xi > 0 {
+            // Divide high dividend words by the high divisor word to estimate the quotient word
+            let (mut quotient_word, _) = div3by2(
+                (x.limbs[xi - 1].0, x_xi.0, x_hi.0),
+                (y.limbs[ysize - 2].0, y.limbs[ysize - 1].0),
+                v,
+            );
+
+            // This loop is a no-op once xi is smaller than the number of words in the divisor.
+            // In variable-time mode we can stop as soon as that happens.
+            let done = Choice::from_u32_lt(xi as u32, ywords - 1);
+            if VARTIME && done.to_bool_vartime() {
+                break;
+            }
+            quotient_word = word::select(quotient_word, 0, done);
+
+            // Subtract q*divisor from the dividend
+            let borrow = {
+                carry = Limb::ZERO;
+                let mut borrow = Limb::ZERO;
+                let mut tmp;
+                i = (xi + 1).saturating_sub(ysize);
+                while i <= xi {
+                    (tmp, carry) = y.limbs[ysize + i - xi - 1].carrying_mul_add(
+                        Limb(quotient_word),
+                        carry,
+                        Limb::ZERO,
+                    );
+                    (x.limbs[i], borrow) = x.limbs[i].borrowing_sub(tmp, borrow);
+                    i += 1;
+                }
+                (_, borrow) = x_hi.borrowing_sub(carry, borrow);
+                borrow
+            };
+
+            // If the subtraction borrowed, then decrement quo and add back the divisor.
+            // The probability of this being needed is very low, about 2/(Limb::MAX+1)
+            quotient_word = {
+                carry = Limb::ZERO;
+                i = (xi + 1).saturating_sub(ysize);
+                while i <= xi {
+                    (x.limbs[i], carry) =
+                        x.limbs[i].carrying_add(y.limbs[ysize + i - xi - 1].bitand(borrow), carry);
+                    i += 1;
+                }
+                quotient_word.saturating_sub(borrow.0 & 1)
+            };
+
+            // Capture the corrected quotient word (most-significant first). The `done` iterations
+            // at the tail contribute no quotient word and must not shift the accumulator.
+            quo.shift_in_limb(Limb(quotient_word), done.not());
+
+            // If we have lower limbs remaining, shift the dividend words one word left
+            if extra_limbs > 0 {
+                x_hi = x.limbs[xi];
+                x_xi = x.limbs[xi - 1];
+                extra_limbs -= 1;
+                i = xi;
+                while i > 0 {
+                    x.limbs[i] = x.limbs[i - 1];
+                    i -= 1;
+                }
+                x.limbs[0] = x_lo.limbs[extra_limbs];
+            } else {
+                x_hi = Limb::select(x.limbs[xi], x_hi, done);
+                x_xi = Limb::select(x.limbs[xi - 1], x_xi, done);
+                xi -= 1;
+            }
+        }
+
+        x_hi
+    }
+
     /// Perform in-place division (`self` / `y`) for a pre-shifted dividend and divisor.
     ///
     /// The dividend and divisor must be left-shifted such that the high bit of the divisor
