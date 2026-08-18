@@ -1,0 +1,5 @@
+[toolchain]
+channel = "nightly"
+targets = ["thumbv7em-none-eabihf", "riscv32imac-unknown-none-elf", "x86_64-unknown-linux-gnu"]
+profile = "minimal"
+components = ["rustfmt", "rust-src"]
