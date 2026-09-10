@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Added
+- Implement `Zeroize` for `EncodedUint` ([#1342])
+
+[#1342]: https://github.com/RustCrypto/crypto-bigint/pull/1342
+
 ## 0.7.5 (2026-06-22)
 ### Added
 - `BoxedUint::{from_be_slice_truncated, from_le_slice_truncated}` ([#1266])
