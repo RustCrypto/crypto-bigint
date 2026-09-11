@@ -384,6 +384,13 @@ fn mask_high_limb(limbs: &mut [Limb], bits_precision: u32) {
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct EncodedUint<const LIMBS: usize>([Word; LIMBS]);
 
+#[cfg(feature = "zeroize")]
+impl<const LIMBS: usize> zeroize::Zeroize for EncodedUint<LIMBS> {
+    fn zeroize(&mut self) {
+        self.0.zeroize();
+    }
+}
+
 #[allow(unsafe_code)]
 const fn cast_slice(limbs: &[Word]) -> &[u8] {
     let new_len = size_of_val(limbs);
