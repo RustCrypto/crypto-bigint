@@ -241,7 +241,7 @@ mod tests {
         let ct = x.pow(&exponent);
         let vt = x.pow_vartime(&exponent);
 
-        assert_eq!(ct, vt); // Fails: Montgomery representations differ by modulus.
+        assert_eq!(ct, vt);
     }
 
     #[test]
