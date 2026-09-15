@@ -17,11 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Cache cargo bin
-        uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/.cargo/bin
           key: ${{ runner.os }}-cargo-audit-v0.22.0
-      - uses: rustsec/audit-check@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: rustsec/actions/cargo-audit-install@main
+      - run: cargo audit
