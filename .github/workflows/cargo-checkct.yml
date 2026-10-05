@@ -1,0 +1,28 @@
+name: cargo-checkct
+
+on:
+  pull_request:
+    paths-ignore:
+      - README.md
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - README.md
+
+env:
+  CARGO_INCREMENTAL: 0
+  RUSTFLAGS: "-Dwarnings"
+  RUSTDOCFLAGS: "-Dwarnings"
+
+jobs:
+  checkct:
+    name: Run cargo-checkct
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: Ledger-Donjon/action-cargo-checkct@v1
+        with:
+          directory: .
