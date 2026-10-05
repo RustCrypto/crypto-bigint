@@ -485,7 +485,7 @@ impl<const LIMBS: usize> SignedInt<LIMBS> {
         // Shift the result, eliminating the trailing zeros.
         shr_in_place_wide(&mut x, &mut x_hi, shift);
         debug_assert!(
-            x_hi.shr1().is_nonzero().not().to_bool_vartime(),
+            x_hi.shr1().is_nonzero().not().to_bool(),
             "overflow was larger than one bit"
         );
 
@@ -512,11 +512,7 @@ impl<const LIMBS: usize> fmt::Debug for SignedInt<LIMBS> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_fmt(format_args!(
             "{}0x{}",
-            if self.sign.to_bool_vartime() {
-                "-"
-            } else {
-                "+"
-            },
+            if self.sign.to_bool() { "-" } else { "+" },
             &self.magnitude
         ))
     }
@@ -524,7 +520,7 @@ impl<const LIMBS: usize> fmt::Debug for SignedInt<LIMBS> {
 
 impl<const LIMBS: usize> PartialEq for SignedInt<LIMBS> {
     fn eq(&self, other: &Self) -> bool {
-        Self::eq(self, other).to_bool_vartime()
+        Self::eq(self, other).to_bool()
     }
 }
 

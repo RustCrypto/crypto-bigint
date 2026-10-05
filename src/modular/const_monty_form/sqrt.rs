@@ -55,6 +55,6 @@ mod tests {
         // generator must be non-residue
         let generator = U256::from_u32(P256Field::PRIME_PARAMS.generator().get());
         let gen_monty = ConstForm::new(&generator);
-        assert!(gen_monty.sqrt().is_none().to_bool_vartime());
+        assert!(gen_monty.sqrt().is_none().to_bool());
     }
 }

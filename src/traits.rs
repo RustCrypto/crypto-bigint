@@ -1882,13 +1882,13 @@ pub(crate) mod tests {
 
         // test zero
         let zero = T::MontyForm::zero(&params);
-        assert!(zero.is_zero().to_bool_vartime());
-        assert!(!zero.is_one().to_bool_vartime());
+        assert!(zero.is_zero().to_bool());
+        assert!(!zero.is_one().to_bool());
 
         // test one
         let one = T::MontyForm::one(&params);
-        assert!(!one.is_zero().to_bool_vartime());
-        assert!(one.is_one().to_bool_vartime());
+        assert!(!one.is_zero().to_bool());
+        assert!(one.is_one().to_bool());
 
         // test as_montgomery()
         assert_eq!(zero.as_montgomery(), &T::zero());
@@ -1935,19 +1935,14 @@ pub(crate) mod tests {
         assert_eq!(zero.ct_select(&one, Choice::TRUE), one);
 
         // test Invert
-        assert!(zero.invert().is_none().to_bool_vartime());
-        assert!(zero.invert_vartime().is_none().to_bool_vartime());
-        assert!(
-            one.invert()
-                .expect("inversion error")
-                .is_one()
-                .to_bool_vartime()
-        );
+        assert!(zero.invert().is_none().to_bool());
+        assert!(zero.invert_vartime().is_none().to_bool());
+        assert!(one.invert().expect("inversion error").is_one().to_bool());
         assert!(
             one.invert_vartime()
                 .expect("inversion error")
                 .is_one()
-                .to_bool_vartime()
+                .to_bool()
         );
 
         // test Add, AddAssign

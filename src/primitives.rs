@@ -189,10 +189,10 @@ mod tests {
 
     #[test]
     fn test_usize_const_lt() {
-        assert!(usize_lt(0, 5).to_bool_vartime());
-        assert!(!usize_lt(7, 0).to_bool_vartime());
-        assert!(!usize_lt(7, 5).to_bool_vartime());
-        assert!(!usize_lt(7, 7).to_bool_vartime());
+        assert!(usize_lt(0, 5).to_bool());
+        assert!(!usize_lt(7, 0).to_bool());
+        assert!(!usize_lt(7, 5).to_bool());
+        assert!(!usize_lt(7, 7).to_bool());
     }
 
     cpubits::cpubits! {

@@ -203,7 +203,7 @@ mod tests {
 
     #[test]
     fn shl256_const() {
-        assert!(N.overflowing_shl(256).is_none().to_bool_vartime());
+        assert!(N.overflowing_shl(256).is_none().to_bool());
         assert!(ShlVartime::overflowing_shl_vartime(&N, 256).is_none());
     }
 

@@ -154,13 +154,13 @@ mod tests {
     #[test]
     fn bit() {
         let u = limb_with_bits_at(&[2, 4, 8, 15]);
-        assert!(!BitOps::bit(&u, 0).to_bool_vartime());
-        assert!(!BitOps::bit(&u, 1).to_bool_vartime());
-        assert!(BitOps::bit(&u, 2).to_bool_vartime());
-        assert!(BitOps::bit(&u, 4).to_bool_vartime());
-        assert!(BitOps::bit(&u, 8).to_bool_vartime());
-        assert!(!BitOps::bit(&u, Limb::BITS).to_bool_vartime());
-        assert!(!BitOps::bit(&u, 300).to_bool_vartime());
+        assert!(!BitOps::bit(&u, 0).to_bool());
+        assert!(!BitOps::bit(&u, 1).to_bool());
+        assert!(BitOps::bit(&u, 2).to_bool());
+        assert!(BitOps::bit(&u, 4).to_bool());
+        assert!(BitOps::bit(&u, 8).to_bool());
+        assert!(!BitOps::bit(&u, Limb::BITS).to_bool());
+        assert!(!BitOps::bit(&u, 300).to_bool());
     }
 
     #[test]
