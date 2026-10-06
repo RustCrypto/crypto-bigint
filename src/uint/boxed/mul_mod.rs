@@ -15,6 +15,8 @@ impl BoxedUint {
     /// Computes `self * rhs mod p` for the special modulus
     /// `p = MAX+1-c` where `c` is small enough to fit in a single [`Limb`].
     ///
+    /// When `c` is zero, `p = MAX+1` and the result is wrapping multiplication.
+    ///
     /// For the modulus reduction, this function implements Algorithm 14.47 from
     /// the "Handbook of Applied Cryptography", by A. Menezes, P. van Oorschot,
     /// and S. Vanstone, CRC Press, 1996.
@@ -23,11 +25,14 @@ impl BoxedUint {
         debug_assert_eq!(self.bits_precision(), rhs.bits_precision());
 
         if self.nlimbs() == 1 {
-            let reduced = mul_rem(
-                self.limbs[0],
-                rhs.limbs[0],
-                NonZero::<Limb>::new_unwrap(Limb::ZERO.wrapping_sub(c)),
-            );
+            let a = self.limbs[0];
+            let b = rhs.limbs[0];
+
+            // For c = 0, use a nonzero placeholder divisor and select the
+            // wrapping product in constant time.
+            let (p, c_is_nonzero) = Limb::ZERO.wrapping_sub(c).to_nz_or_one();
+            let reduced = mul_rem(a, b, p);
+            let reduced = Limb::select(a.wrapping_mul(b), reduced, c_is_nonzero);
             return Self::from(reduced);
         }
 
@@ -93,7 +98,7 @@ fn mac_by_limb(a: &UintRef, b: &UintRef, c: Limb, carry: Limb) -> (BoxedUint, Li
 
 #[cfg(all(test, feature = "rand_core"))]
 mod tests {
-    use crate::{BoxedUint, ConcatenatingMul, Limb, NonZero, Random, RandomMod};
+    use crate::{BoxedUint, ConcatenatingMul, Limb, NonZero, Random, RandomMod, Resize};
     use rand_core::SeedableRng;
 
     #[test]
@@ -146,6 +151,20 @@ mod tests {
                     assert_eq!(c, expected, "incorrect result");
                 }
             }
+        }
+    }
+
+    #[test]
+    fn mul_mod_special_zero_c_is_wrapping_multiplication() {
+        for bits in [Limb::BITS, 2 * Limb::BITS, 4 * Limb::BITS] {
+            let a = BoxedUint::from(0x1234_5678u32).resize(bits);
+            let b = BoxedUint::from(0xfedc_ba91u32).resize(bits);
+
+            assert_eq!(
+                a.mul_mod_special(&b, Limb::ZERO),
+                a.wrapping_mul(&b),
+                "c = 0 represents the power-of-two modulus"
+            );
         }
     }
 }
