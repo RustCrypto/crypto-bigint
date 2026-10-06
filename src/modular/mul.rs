@@ -173,6 +173,8 @@ pub(crate) const fn square_montgomery_form<const LIMBS: usize>(
 /// `a` is in Montgomery form.
 ///
 /// This method is variable time in `n`.
+///
+/// Assumes `a` is fully reduced, i.e. `a < modulus`.
 #[inline(always)]
 pub(crate) const fn square_repeat_montgomery_form<const LIMBS: usize>(
     a: &Uint<LIMBS>,
@@ -190,29 +192,21 @@ pub(crate) const fn square_repeat_montgomery_form<const LIMBS: usize>(
     let mut i = 0;
     let mut out = *a;
     let mut base;
-    let mut carry;
 
-    loop {
+    while i != n {
         (base, out) = (out, Uint::ZERO);
-        carry = montgomery_multiply_inner(
+        let carry = montgomery_multiply_inner(
             &base.limbs,
             &base.limbs,
             &mut out.limbs,
             &modulus.as_ref().limbs,
             mod_neg_inv,
         );
+        // Because `base < modulus` here, the raw product is below `2 * modulus` and a single
+        // conditional subtraction suffices.
+        out = out.try_sub_with_carry(carry, modulus.as_ref()).0;
         i += 1;
-        if i == n {
-            break;
-        }
-        // intermediate results are in "Almost Montgomery form", which is <= Uint::MAX
-        // but may require the modulus to be subtracted twice.
-        out = out
-            .conditional_borrowing_sub(modulus.as_ref(), carry.is_nonzero())
-            .0;
     }
 
-    // correct for "Almost Montygomery form"
-    (out, carry) = out.try_sub_with_carry(carry, modulus.as_ref());
-    out.try_sub_with_carry(carry, modulus.as_ref()).0
+    out
 }

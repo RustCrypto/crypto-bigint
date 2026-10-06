@@ -154,10 +154,10 @@ impl<const LIMBS: usize, const RHS_LIMBS: usize>
 
 #[cfg(test)]
 mod tests {
-    use crate::traits::MultiExponentiate;
     use crate::{
-        U256,
+        U64, U256,
         modular::{FixedMontyForm, FixedMontyParams},
+        traits::MultiExponentiate,
     };
 
     const PARAMS: FixedMontyParams<{ U256::LIMBS }> = FixedMontyParams::new_vartime(
@@ -228,6 +228,20 @@ mod tests {
             U256::from_be_hex("3681BC0FEA2E5D394EB178155A127B0FD2EF405486D354251C385BDD51B9D421");
         assert_eq!(res.retrieve(), expected);
         assert_eq!(res_vartime.retrieve(), expected);
+    }
+
+    #[test]
+    fn issue_1343_regression_test() {
+        let modulus = U64::from_u64(0x7241_9be3_5d7d_03fb).to_odd().unwrap();
+
+        let params = FixedMontyParams::new_vartime(modulus);
+        let x = FixedMontyForm::new(&U64::from_u64(13480), &params);
+        let exponent = U64::from_u64(16);
+
+        let ct = x.pow(&exponent);
+        let vt = x.pow_vartime(&exponent);
+
+        assert_eq!(ct, vt);
     }
 
     #[test]
