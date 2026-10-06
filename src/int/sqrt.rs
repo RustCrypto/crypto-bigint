@@ -20,7 +20,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     /// Variable time with respect to `self`.
     #[must_use]
     pub fn checked_sqrt_vartime(&self) -> Option<Self> {
-        if self.is_negative().not().to_bool_vartime() {
+        if self.is_negative().not().to_bool() {
             self.as_uint()
                 .checked_sqrt_vartime()
                 .map(|rt| Self::new(rt.limbs))

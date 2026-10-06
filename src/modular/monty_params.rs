@@ -367,7 +367,7 @@ mod tests {
         other.mod_leading_zeros = 0;
 
         assert_ne!(params, other);
-        assert!(!CtEq::ct_eq(&params, &other).to_bool_vartime());
+        assert!(!CtEq::ct_eq(&params, &other).to_bool());
     }
 
     #[cfg(feature = "alloc")]
@@ -380,6 +380,6 @@ mod tests {
         let other = BoxedMontyParams::from(other);
 
         assert_ne!(params, other);
-        assert!(!CtEq::ct_eq(&params, &other).to_bool_vartime());
+        assert!(!CtEq::ct_eq(&params, &other).to_bool());
     }
 }

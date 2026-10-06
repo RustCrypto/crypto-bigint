@@ -160,21 +160,21 @@ mod tests {
     fn conditional_borrowing_sub_no_sub() {
         let (res, borrow) = U128::ONE.conditional_borrowing_sub(&U128::ONE, Choice::FALSE);
         assert_eq!(res, U128::ONE);
-        assert!(!borrow.to_bool_vartime());
+        assert!(!borrow.to_bool());
     }
 
     #[test]
     fn conditional_borrowing_sub_no_borrow() {
         let (res, borrow) = U128::ONE.conditional_borrowing_sub(&U128::ZERO, Choice::TRUE);
         assert_eq!(res, U128::ONE);
-        assert!(!borrow.to_bool_vartime());
+        assert!(!borrow.to_bool());
     }
 
     #[test]
     fn conditional_borrowing_sub_borrow() {
         let (res, borrow) = U128::ZERO.conditional_borrowing_sub(&U128::ONE, Choice::TRUE);
         assert_eq!(res, U128::MAX);
-        assert!(borrow.to_bool_vartime());
+        assert!(borrow.to_bool());
     }
 
     #[test]

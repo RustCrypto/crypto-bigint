@@ -261,7 +261,7 @@ mod tests {
                 .pow(&U128::ONE)
                 .0
                 .is_none()
-                .to_bool_vartime()
+                .to_bool()
         );
     }
 

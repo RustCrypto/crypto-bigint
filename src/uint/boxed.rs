@@ -275,7 +275,7 @@ impl BoxedUint {
     /// Construct an [`Odd`] reference, returning [`None`] in the event `self` is even.
     #[must_use]
     pub fn as_odd_vartime(&self) -> Option<&Odd<Self>> {
-        if !self.is_odd().to_bool_vartime() {
+        if !self.is_odd().to_bool() {
             None
         } else {
             Some(Odd::new_ref_unchecked(self))

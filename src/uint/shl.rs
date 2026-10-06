@@ -343,7 +343,7 @@ mod tests {
 
     #[test]
     fn shl_bounds() {
-        assert!(N.overflowing_shl(256).is_none().to_bool_vartime());
+        assert!(N.overflowing_shl(256).is_none().to_bool());
         assert!(N.overflowing_shl_vartime(256).is_none());
         assert_eq!(N.unbounded_shl(256), Uint::ZERO);
         assert_eq!(N.unbounded_shl_vartime(256), Uint::ZERO);

@@ -236,7 +236,7 @@ mod tests {
 
     #[test]
     fn shr256_const() {
-        assert!(N.overflowing_shr(256).is_none().to_bool_vartime());
+        assert!(N.overflowing_shr(256).is_none().to_bool());
         assert!(ShrVartime::overflowing_shr_vartime(&N, 256).is_none());
     }
 

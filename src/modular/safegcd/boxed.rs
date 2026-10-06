@@ -429,11 +429,7 @@ impl fmt::Debug for SignedBoxedInt {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_fmt(format_args!(
             "{}0x{}",
-            if self.sign.to_bool_vartime() {
-                "-"
-            } else {
-                "+"
-            },
+            if self.sign.to_bool() { "-" } else { "+" },
             &self.magnitude
         ))
     }

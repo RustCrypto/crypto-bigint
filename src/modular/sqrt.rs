@@ -187,7 +187,7 @@ mod tests {
             assert!(
                 Uint::eq(&rt, &i)
                     .or(Uint::eq(&rt, &modulus.wrapping_sub(&i)))
-                    .to_bool_vartime()
+                    .to_bool()
             );
         }
 
@@ -197,7 +197,7 @@ mod tests {
         assert!(
             sqrt_montgomery_form(gen_monty.as_montgomery(), &monty_params, &prime_params)
                 .is_none()
-                .to_bool_vartime()
+                .to_bool()
         );
     }
 
