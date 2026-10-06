@@ -398,7 +398,15 @@ impl<const LIMBS: usize> Xgcd for Uint<LIMBS> {
     }
 
     fn xgcd_vartime(&self, rhs: &Uint<LIMBS>) -> Self::Output {
-        // TODO(#853): implement vartime
+        // TODO(#853): implement variable-time version.
+        //
+        // NOTE: this currently delegates to the constant-time `xgcd` implementation.
+        // Callers expecting variable-time performance should be aware that this runs
+        // in constant time and may be significantly slower than a true vartime algorithm.
+        //
+        // WARNING: when issue #853 is resolved, this will switch to a variable-time
+        // implementation. Callers that currently rely on constant-time behavior for
+        // security properties MUST NOT use `xgcd_vartime`.
         self.xgcd(rhs)
     }
 }
@@ -411,7 +419,15 @@ impl<const LIMBS: usize> Xgcd for NonZeroUint<LIMBS> {
     }
 
     fn xgcd_vartime(&self, rhs: &NonZeroUint<LIMBS>) -> Self::Output {
-        // TODO(#853): implement vartime
+        // TODO(#853): implement variable-time version.
+        //
+        // NOTE: this currently delegates to the constant-time `xgcd` implementation.
+        // Callers expecting variable-time performance should be aware that this runs
+        // in constant time and may be significantly slower than a true vartime algorithm.
+        //
+        // WARNING: when issue #853 is resolved, this will switch to a variable-time
+        // implementation. Callers that currently rely on constant-time behavior for
+        // security properties MUST NOT use `xgcd_vartime`.
         self.xgcd(rhs)
     }
 }
@@ -424,7 +440,15 @@ impl<const LIMBS: usize> Xgcd for OddUint<LIMBS> {
     }
 
     fn xgcd_vartime(&self, rhs: &OddUint<LIMBS>) -> Self::Output {
-        // TODO(#853): implement vartime
+        // TODO(#853): implement variable-time version.
+        //
+        // NOTE: this currently delegates to the constant-time `xgcd` implementation.
+        // Callers expecting variable-time performance should be aware that this runs
+        // in constant time and may be significantly slower than a true vartime algorithm.
+        //
+        // WARNING: when issue #853 is resolved, this will switch to a variable-time
+        // implementation. Callers that currently rely on constant-time behavior for
+        // security properties MUST NOT use `xgcd_vartime`.
         self.xgcd(rhs)
     }
 }
