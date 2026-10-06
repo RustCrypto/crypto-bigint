@@ -168,4 +168,25 @@ mod tests {
             test_size::<16>();
         }
     }
+
+    #[test]
+    fn mul_mod_special_zero_c_is_wrapping_multiplication() {
+        let a = Uint::<1>::from_u32(0x1234_5678);
+        let b = Uint::<1>::from_u32(0xfedc_ba91);
+
+        assert_eq!(
+            a.mul_mod_special(&b, Limb::ZERO),
+            a.wrapping_mul(&b),
+            "c = 0 represents the power-of-two modulus"
+        );
+
+        let a = Uint::<2>::from_u32(0x1234_5678);
+        let b = Uint::<2>::from_u32(0xfedc_ba91);
+
+        assert_eq!(
+            a.mul_mod_special(&b, Limb::ZERO),
+            a.wrapping_mul(&b),
+            "c = 0 represents the power-of-two modulus"
+        );
+    }
 }
