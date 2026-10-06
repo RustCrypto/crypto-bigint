@@ -184,10 +184,40 @@ impl InvertMod for BoxedUint {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Limb, Odd, Resize, U256};
+    use crate::{Limb, NonZero, Odd, Resize, U256};
 
     use super::BoxedUint;
     use hex_literal::hex;
+    use num_bigint::BigUint;
+    use num_integer::Integer;
+
+    /// `invert_mod` at a precision where the safegcd iteration count overflowed `u32`
+    /// (`45907 * bits + 30179 > u32::MAX` from 93558 bits), with an even modulus so that
+    /// both the odd-modulus and the `2^k` paths are exercised.
+    #[test]
+    fn invert_mod_large_precision_even_modulus() {
+        const BITS: u32 = 93_568;
+        let mut bytes: alloc::vec::Vec<u8> = (0..BITS >> 3)
+            .map(|i| {
+                let h = (i ^ 0xDA94_2042).wrapping_mul(0x85EB_CA6B);
+                let h = (h ^ (h >> 13)).wrapping_mul(0xC2B2_AE35);
+                (h ^ (h >> 16)).to_le_bytes()[0]
+            })
+            .collect();
+        bytes[0] |= 0x80;
+        *bytes.last_mut().unwrap() &= !1;
+        let m = BoxedUint::from_be_slice(&bytes, BITS).unwrap();
+        let a = BoxedUint::from(65537u32).resize(BITS);
+
+        let to_big = |x: &BoxedUint| BigUint::from_bytes_be(&x.to_be_bytes());
+        assert_eq!(to_big(&a).gcd(&to_big(&m)), BigUint::from(1u32));
+
+        let inv = a.invert_mod(&NonZero::new(m.clone()).unwrap()).unwrap();
+        assert_eq!(
+            (to_big(&a) * to_big(&inv)) % to_big(&m),
+            BigUint::from(1u32)
+        );
+    }
 
     #[test]
     fn invert_mod2k() {

@@ -437,8 +437,62 @@ impl fmt::Debug for SignedBoxedInt {
 
 #[cfg(test)]
 mod tests {
-    use super::BoxedSafeGcdInverter;
-    use crate::BoxedUint;
+    use super::{BoxedSafeGcdInverter, gcd_odd, invert_odd_mod};
+    use crate::{BoxedUint, Odd, Resize};
+    use num_bigint::BigUint;
+    use num_integer::Integer;
+
+    /// The smallest precision at which `45907 * bits + 30179` no longer fits in `u32`.
+    const LARGE_BITS: u32 = 93_568;
+
+    /// A deterministic, odd, full-width `BoxedUint` of `bits` bits; different seeds give
+    /// unrelated values.
+    fn large_odd(bits: u32, seed: u32) -> BoxedUint {
+        let mut bytes: alloc::vec::Vec<u8> = (0..bits >> 3)
+            .map(|i| {
+                let h = (i ^ seed.wrapping_mul(0x9E37_79B9)).wrapping_mul(0x85EB_CA6B);
+                let h = (h ^ (h >> 13)).wrapping_mul(0xC2B2_AE35);
+                (h ^ (h >> 16)).to_le_bytes()[0]
+            })
+            .collect();
+        bytes[0] |= 0x80;
+        *bytes.last_mut().unwrap() |= 1;
+        BoxedUint::from_be_slice(&bytes, bits).unwrap()
+    }
+
+    fn to_big(x: &BoxedUint) -> BigUint {
+        BigUint::from_bytes_be(&x.to_be_bytes())
+    }
+
+    #[test]
+    fn invert_odd_mod_large_precision() {
+        let m = large_odd(LARGE_BITS, 1);
+        let a = BoxedUint::from(65537u32).resize(LARGE_BITS);
+        assert_eq!(to_big(&a).gcd(&to_big(&m)), BigUint::from(1u32));
+        let m = Odd::new(m).unwrap();
+
+        for inv in [
+            invert_odd_mod::<false>(&a, &m).unwrap(),
+            invert_odd_mod::<true>(&a, &m).unwrap(),
+        ] {
+            assert_eq!(
+                (to_big(&a) * to_big(&inv)) % to_big(m.as_ref()),
+                BigUint::from(1u32)
+            );
+        }
+    }
+
+    #[test]
+    fn gcd_odd_large_precision() {
+        // Two unrelated full-width values: the reduction needs the whole iteration budget,
+        // unlike a pair with a large common factor and small cofactors.
+        let f = Odd::new(large_odd(LARGE_BITS, 2)).unwrap();
+        let g = large_odd(LARGE_BITS, 4);
+        let expected = to_big(f.as_ref()).gcd(&to_big(&g));
+
+        assert_eq!(to_big(gcd_odd::<false>(&f, &g).as_ref()), expected);
+        assert_eq!(to_big(gcd_odd::<true>(&f, &g).as_ref()), expected);
+    }
 
     #[test]
     fn invert() {
