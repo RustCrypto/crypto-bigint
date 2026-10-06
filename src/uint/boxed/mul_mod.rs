@@ -15,6 +15,8 @@ impl BoxedUint {
     /// Computes `self * rhs mod p` for the special modulus
     /// `p = MAX+1-c` where `c` is small enough to fit in a single [`Limb`].
     ///
+    /// When `c` is zero, `p = MAX+1` and the result is wrapping multiplication.
+    ///
     /// For the modulus reduction, this function implements Algorithm 14.47 from
     /// the "Handbook of Applied Cryptography", by A. Menezes, P. van Oorschot,
     /// and S. Vanstone, CRC Press, 1996.
@@ -23,11 +25,14 @@ impl BoxedUint {
         debug_assert_eq!(self.bits_precision(), rhs.bits_precision());
 
         if self.nlimbs() == 1 {
-            let reduced = mul_rem(
-                self.limbs[0],
-                rhs.limbs[0],
-                NonZero::<Limb>::new_unwrap(Limb::ZERO.wrapping_sub(c)),
-            );
+            let a = self.limbs[0];
+            let b = rhs.limbs[0];
+
+            // For c = 0, use a nonzero placeholder divisor and select the
+            // wrapping product in constant time.
+            let (p, c_is_nonzero) = Limb::ZERO.wrapping_sub(c).to_nz_or_one();
+            let reduced = mul_rem(a, b, p);
+            let reduced = Limb::select(a.wrapping_mul(b), reduced, c_is_nonzero);
             return Self::from(reduced);
         }
 
