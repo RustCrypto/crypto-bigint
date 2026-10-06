@@ -78,7 +78,7 @@ impl UintRef {
             .and(lesser.not())
             .or(greater)
             .select_u8(255, 1) as i8;
-        let ord = (diff.is_nonzero().or(lesser).or(greater).to_u8_vartime() as i8) * sgn;
+        let ord = (diff.is_nonzero().or(lesser).or(greater).to_u8() as i8) * sgn;
 
         #[allow(unsafe_code)]
         // SAFETY: Ordering is repr(i8)
@@ -198,8 +198,8 @@ mod tests {
     #[test]
     fn lt() {
         fn check(a: &UintRef, b: &UintRef) {
-            assert!(UintRef::lt(a, b).to_bool_vartime());
-            assert!(!UintRef::lt(b, a).to_bool_vartime());
+            assert!(UintRef::lt(a, b).to_bool());
+            assert!(!UintRef::lt(b, a).to_bool());
             assert!(a < b);
             assert!(b > a);
         }

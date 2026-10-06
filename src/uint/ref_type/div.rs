@@ -304,7 +304,7 @@ impl UintRef {
 
             // This loop is a no-op once xi is smaller than the number of words in the divisor
             let done = Choice::from_u32_lt(xi as u32, ywords - 1);
-            if VARTIME && done.to_bool_vartime() {
+            if VARTIME && done.to_bool() {
                 break;
             }
             quo = word::select(quo, 0, done);
@@ -476,7 +476,7 @@ impl UintRef {
 
             // This loop is a no-op once xi is smaller than the number of words in the divisor
             let done = Choice::from_u32_lt(xi as u32, ywords - 1);
-            if VARTIME && done.to_bool_vartime() {
+            if VARTIME && done.to_bool() {
                 break;
             }
             quo = word::select(quo, 0, done);
@@ -697,7 +697,7 @@ impl UintRef {
             let y_remain = if yc < (xc - xi) { yc } else { xc - xi };
             // This loop is a no-op once there are fewer words remaining than the size of the divisor
             let done = usize_lt(y_remain, ywords);
-            if VARTIME && done.to_bool_vartime() {
+            if VARTIME && done.to_bool() {
                 zero_hi = x.trailing(xi).is_zero();
                 break;
             }
@@ -745,16 +745,13 @@ mod tests {
     fn div_exact_inexact() {
         fn check<const L: usize, const R: usize>(lhs: Uint<L>, rhs: Uint<R>, exact: bool) {
             let (mut q, mut r) = (lhs, rhs);
-            let actual = q
-                .as_mut_uint_ref()
-                .div_exact(r.as_mut_uint_ref())
-                .to_bool_vartime();
+            let actual = q.as_mut_uint_ref().div_exact(r.as_mut_uint_ref()).to_bool();
             assert_eq!(actual, exact, "{lhs} / {rhs}: exact={actual}");
             let (mut q, mut r) = (lhs, rhs);
             let actual = q
                 .as_mut_uint_ref()
                 .div_exact_vartime(r.as_mut_uint_ref())
-                .to_bool_vartime();
+                .to_bool();
             assert_eq!(actual, exact, "{lhs} / {rhs}: exact={actual}");
         }
 

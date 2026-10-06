@@ -216,7 +216,7 @@ impl NonZero<Limb> {
     #[must_use]
     #[track_caller]
     pub const fn new_unwrap(n: Limb) -> Self {
-        assert!(n.is_nonzero().to_bool_vartime(), "invalid value: zero");
+        assert!(n.is_nonzero().to_bool(), "invalid value: zero");
         Self(n)
     }
 
@@ -266,7 +266,7 @@ impl<const LIMBS: usize> NonZeroUint<LIMBS> {
     #[track_caller]
     #[must_use]
     pub const fn new_unwrap(n: Uint<LIMBS>) -> Self {
-        assert!(n.is_nonzero().to_bool_vartime(), "invalid value: zero");
+        assert!(n.is_nonzero().to_bool(), "invalid value: zero");
         Self(n)
     }
 
@@ -353,7 +353,7 @@ impl<const LIMBS: usize> NonZeroInt<LIMBS> {
     #[must_use]
     #[track_caller]
     pub const fn new_unwrap(n: Int<LIMBS>) -> Self {
-        assert!(n.is_nonzero().to_bool_vartime(), "invalid value: zero");
+        assert!(n.is_nonzero().to_bool(), "invalid value: zero");
         Self(n)
     }
 

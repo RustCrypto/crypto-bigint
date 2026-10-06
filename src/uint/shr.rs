@@ -275,7 +275,7 @@ mod tests {
 
     #[test]
     fn shr_bounds() {
-        assert!(N.overflowing_shr(192).is_none().to_bool_vartime());
+        assert!(N.overflowing_shr(192).is_none().to_bool());
         assert!(N.overflowing_shr_vartime(192).is_none());
         assert_eq!(N.unbounded_shr(192), Uint::ZERO);
         assert_eq!(N.unbounded_shr_vartime(192), Uint::ZERO);

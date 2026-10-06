@@ -152,7 +152,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
     #[track_caller]
     pub const fn from_be_hex(hex: &str) -> Self {
         let uint = Uint::<LIMBS>::from_be_hex(hex);
-        assert!(uint.is_odd().to_bool_vartime(), "number must be odd");
+        assert!(uint.is_odd().to_bool(), "number must be odd");
         Odd(uint)
     }
 
@@ -165,7 +165,7 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
     #[track_caller]
     pub const fn from_le_hex(hex: &str) -> Self {
         let uint = Uint::<LIMBS>::from_le_hex(hex);
-        assert!(uint.is_odd().to_bool_vartime(), "number must be odd");
+        assert!(uint.is_odd().to_bool(), "number must be odd");
         Odd(uint)
     }
 

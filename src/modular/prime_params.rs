@@ -63,7 +63,7 @@ impl<const LIMBS: usize> PrimeParams<LIMBS> {
             // root^(2^(s-1)) must be equal to -1
             let check = root.square_repeat_vartime(s.get() - 1);
             assert!(
-                Uint::eq(&check.retrieve(), &p_minus_one).to_bool_vartime(),
+                Uint::eq(&check.retrieve(), &p_minus_one).to_bool(),
                 "error calculating root of unity: invalid generator"
             );
             (exp, root)
@@ -181,14 +181,14 @@ mod tests {
             MontyParams::new_vartime(Odd::<U128>::from_be_hex("f2799d643ab7ff983437c3a86cdb1beb"));
         let prime_params_2 = PrimeParams::new_vartime(&monty_params_2, 5);
 
-        assert!(CtEq::ct_eq(&prime_params_1, &prime_params_1).to_bool_vartime());
+        assert!(CtEq::ct_eq(&prime_params_1, &prime_params_1).to_bool());
         #[cfg(feature = "subtle")]
         assert!(bool::from(subtle::ConstantTimeEq::ct_eq(
             &prime_params_1,
             &prime_params_1
         )));
 
-        assert!(CtEq::ct_ne(&prime_params_1, &prime_params_2).to_bool_vartime());
+        assert!(CtEq::ct_ne(&prime_params_1, &prime_params_2).to_bool());
         #[cfg(feature = "subtle")]
         assert!(bool::from(subtle::ConstantTimeEq::ct_ne(
             &prime_params_1,
@@ -200,7 +200,7 @@ mod tests {
                 &CtSelect::ct_select(&prime_params_1, &prime_params_2, Choice::FALSE),
                 &prime_params_1,
             )
-            .to_bool_vartime()
+            .to_bool()
         );
         #[cfg(feature = "subtle")]
         assert!(
@@ -212,7 +212,7 @@ mod tests {
                 ),
                 &prime_params_1,
             )
-            .to_bool_vartime()
+            .to_bool()
         );
 
         assert!(
@@ -220,7 +220,7 @@ mod tests {
                 &CtSelect::ct_select(&prime_params_1, &prime_params_2, Choice::TRUE),
                 &prime_params_2,
             )
-            .to_bool_vartime()
+            .to_bool()
         );
         #[cfg(feature = "subtle")]
         assert!(
@@ -232,7 +232,7 @@ mod tests {
                 ),
                 &prime_params_2,
             )
-            .to_bool_vartime()
+            .to_bool()
         );
     }
 }

@@ -178,7 +178,7 @@ impl UintRef {
     #[inline]
     #[must_use]
     pub const fn as_odd_vartime(&self) -> Option<&Odd<Self>> {
-        if !self.is_odd().to_bool_vartime() {
+        if !self.is_odd().to_bool() {
             return None;
         }
         Some(Odd::new_ref_unchecked(self))

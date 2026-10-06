@@ -79,7 +79,7 @@ fn uint_limbs(limbs_range: Range<usize>) -> impl Strategy<Value = BoxedUint> {
 
 prop_compose! {
     fn nonzero_uint()(mut val in uint()) -> NonZero<BoxedUint> {
-        if val.is_zero().to_bool_vartime() {
+        if val.is_zero().to_bool() {
             val.set_one();
         }
         val.into_nz().unwrap()
@@ -336,7 +336,7 @@ proptest! {
 
     #[test]
     fn rem_vartime(a in uint(), b in nonzero_uint()) {
-        prop_assume!(b.is_nonzero().to_bool_vartime());
+        prop_assume!(b.is_nonzero().to_bool());
 
         let a_bi = to_biguint(&a);
         let b_bi = to_biguint(b.as_ref());
@@ -449,6 +449,6 @@ proptest! {
         prop_assert!(checked_square.is_some());
         prop_assert!(checked_square.unwrap() <= a);
         let rtp = (root + Limb::ONE).saturating_square();
-        prop_assert!(rtp > a || a.wrapping_add(Limb::ONE).is_zero().to_bool_vartime());
+        prop_assert!(rtp > a || a.wrapping_add(Limb::ONE).is_zero().to_bool());
     }
 }
