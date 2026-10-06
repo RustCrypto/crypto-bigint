@@ -35,7 +35,7 @@ zeroize = { version = "1", optional = true, default-features = false }
 [dev-dependencies]
 chacha20 = { version = "0.10", default-features = false, features = ["rng"] }
 hex-literal = "1"
-num-bigint = "0.4"
+num-bigint = "0.5"
 num-integer = "0.1"
 num-modular = { version = "0.6", features = ["num-bigint", "num-integer", "num-traits"] }
 rand_core = "0.10"
