@@ -21,7 +21,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     pub(crate) const fn try_sub_with_carry(&self, mut carry: Limb, rhs: &Self) -> (Self, Limb) {
         let (out, borrow) = self.borrowing_sub(rhs, Limb::ZERO);
         let revert = borrow.lsb_to_choice().and(carry.is_zero());
-        (_, carry) = carry.borrowing_sub(Limb::ZERO, Limb::select(borrow, Limb::ZERO, revert));
+        (carry, _) = carry.borrowing_sub(Limb::ZERO, Limb::select(borrow, Limb::ZERO, revert));
         (Uint::select(&out, self, revert), carry)
     }
 
@@ -53,10 +53,10 @@ impl<const LIMBS: usize> SubMod for Uint<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use crate::U256;
+    use crate::{Limb, U128, U256};
 
     #[cfg(feature = "rand_core")]
-    use crate::{Limb, NonZero, Random, RandomMod, Uint};
+    use crate::{NonZero, Random, RandomMod, Uint};
     #[cfg(feature = "rand_core")]
     use rand_core::SeedableRng;
 
@@ -76,6 +76,33 @@ mod tests {
             U256::from_be_hex("44acf6b7e36c1342c2c5897204fe09504e1e2efb1a900377dbc4e7a6a133ec56");
 
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn try_sub_with_carry() {
+        let three = U128::from_u8(3);
+        let five = U128::from_u8(5);
+
+        // carry = 0, self >= rhs: subtract.
+        assert_eq!(
+            five.try_sub_with_carry(Limb::ZERO, &three),
+            (U128::from_u8(2), Limb::ZERO)
+        );
+        // carry = 0, self < rhs: unchanged.
+        assert_eq!(
+            three.try_sub_with_carry(Limb::ZERO, &five),
+            (three, Limb::ZERO)
+        );
+        // carry = 1, self < rhs: 2^128 + 3 - 5 = 2^128 - 2.
+        assert_eq!(
+            three.try_sub_with_carry(Limb::ONE, &five),
+            (U128::MAX.wrapping_sub(&U128::ONE), Limb::ZERO)
+        );
+        // carry = 1, self >= rhs: 2^129 - 1 - (2^127 - 1) = 2^128 + 2^127.
+        assert_eq!(
+            U128::MAX.try_sub_with_carry(Limb::ONE, &U128::MAX.shr1()),
+            (U128::ONE.shl_vartime(127), Limb::ONE)
+        );
     }
 
     #[test]
