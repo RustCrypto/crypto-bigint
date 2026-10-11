@@ -12,7 +12,7 @@ impl BoxedMontyForm {
         let is_some = montgomery_form.is_some();
         let montgomery_form2 = self.montgomery_form.clone();
         let ret = BoxedMontyForm {
-            montgomery_form: Option::from(montgomery_form).unwrap_or(montgomery_form2),
+            montgomery_form: montgomery_form.unwrap_or(montgomery_form2),
             params: self.params.clone(),
         };
 
@@ -30,7 +30,7 @@ impl BoxedMontyForm {
         let is_some = montgomery_form.is_some();
         let montgomery_form2 = self.montgomery_form.clone();
         let ret = BoxedMontyForm {
-            montgomery_form: Option::from(montgomery_form).unwrap_or(montgomery_form2),
+            montgomery_form: montgomery_form.unwrap_or(montgomery_form2),
             params: self.params.clone(),
         };
 
@@ -98,5 +98,14 @@ mod tests {
 
         let inv_trait = Invert::invert(&x_mod).unwrap();
         assert_eq!(inv_trait, inv);
+    }
+
+    #[test]
+    fn test_invert_zero() {
+        let params = monty_params();
+        let zero = BoxedMontyForm::zero(&params);
+
+        assert!(bool::from(zero.invert().is_none()));
+        assert!(bool::from(zero.invert_vartime().is_none()));
     }
 }
