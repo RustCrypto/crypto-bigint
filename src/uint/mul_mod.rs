@@ -1,6 +1,6 @@
 //! [`Uint`] modular multiplication operations.
 
-use crate::{Limb, MulMod, NonZero, SquareMod, Uint, WideWord, Word, div_limb::mul_rem};
+use crate::{Limb, MulMod, NonZero, SquareMod, Uint, WideWord, div_limb::mul_rem};
 
 impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self * rhs mod p`.
@@ -20,6 +20,8 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// Computes `self * rhs mod p` for the special modulus
     /// `p = MAX+1-c` where `c` is small enough to fit in a single [`Limb`].
     ///
+    /// When `c` is zero, `p = MAX+1` and the result is wrapping multiplication.
+    ///
     /// For the modulus reduction, this function implements Algorithm 14.47 from
     /// the "Handbook of Applied Cryptography", by A. Menezes, P. van Oorschot,
     /// and S. Vanstone, CRC Press, 1996.
@@ -28,11 +30,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         // We implicitly assume `LIMBS > 0`, because `Uint<0>` doesn't compile.
         // Still the case `LIMBS == 1` needs special handling.
         if LIMBS == 1 {
-            let reduced = mul_rem(
-                self.limbs[0],
-                rhs.limbs[0],
-                NonZero::<Limb>::new_unwrap(Limb(Word::MIN.wrapping_sub(c.0))),
-            );
+            let a = self.limbs[0];
+            let b = rhs.limbs[0];
+
+            // For c = 0, use a nonzero placeholder divisor and select the
+            // wrapping product in constant time.
+            let (p, c_is_nonzero) = Limb::ZERO.wrapping_sub(c).to_nz_or_one();
+            let reduced = mul_rem(a, b, p);
+            let reduced = Limb::select(a.wrapping_mul(b), reduced, c_is_nonzero);
             return Self::from_word(reduced.0);
         }
 
@@ -162,5 +167,26 @@ mod tests {
             test_size::<8>();
             test_size::<16>();
         }
+    }
+
+    #[test]
+    fn mul_mod_special_zero_c_is_wrapping_multiplication() {
+        let a = Uint::<1>::from_u32(0x1234_5678);
+        let b = Uint::<1>::from_u32(0xfedc_ba91);
+
+        assert_eq!(
+            a.mul_mod_special(&b, Limb::ZERO),
+            a.wrapping_mul(&b),
+            "c = 0 represents the power-of-two modulus"
+        );
+
+        let a = Uint::<2>::from_u32(0x1234_5678);
+        let b = Uint::<2>::from_u32(0xfedc_ba91);
+
+        assert_eq!(
+            a.mul_mod_special(&b, Limb::ZERO),
+            a.wrapping_mul(&b),
+            "c = 0 represents the power-of-two modulus"
+        );
     }
 }
