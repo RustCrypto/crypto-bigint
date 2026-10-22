@@ -59,6 +59,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "driver-opt0"
+version = "0.0.0"
+dependencies = [
+ "checkct_macros",
+ "crypto-bigint",
+ "rand_core 0.10.1",
+ "rand_core 0.6.4",
+ "rand_core 0.9.5",
+]
+
+[[package]]
 name = "num-traits"
 version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"

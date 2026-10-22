@@ -20,6 +20,17 @@ pub(crate) const fn overflowing_add(lhs: Word, rhs: Word) -> (Word, Word) {
     (res, carry as Word)
 }
 
+/// Computes `lhs + rhs`, returning the result along with the carry (0 or 1).
+///
+/// This avoids `WideWord::overflowing_add`, which LLVM can lower to a
+/// secret-dependent branch on targets without native double-width arithmetic.
+#[inline(always)]
+pub(crate) const fn overflowing_add_wide(lhs: WideWord, rhs: WideWord) -> (WideWord, WideWord) {
+    let result = lhs.wrapping_add(rhs);
+    let carry = ((lhs & rhs) | ((lhs | rhs) & !result)) >> (WideWord::BITS - 1);
+    (result, carry)
+}
+
 /// Computes `lhs - (rhs + borrow)`, returning the result along with the new borrow.
 #[inline(always)]
 pub(crate) const fn borrowing_sub(lhs: Word, rhs: Word, borrow: Word) -> (Word, Word) {
@@ -32,8 +43,17 @@ pub(crate) const fn borrowing_sub(lhs: Word, rhs: Word, borrow: Word) -> (Word, 
     // For `ret = lhs - rhs - borrow`, the most significant bit of this expression is the borrow bit
     // which we can compute using boolean arithmetic rather than `overflowing_sub`.
     // LLVM can otherwise replace the resulting select with a secret-dependent branch.
-    let borrow = ((!lhs & rhs) | (!(lhs ^ rhs) & ret)) >> (Word::BITS - 1);
+    // Keep the bit opaque so it also cannot fold a caller's masked add-back into a branch.
+    let borrow = core::hint::black_box(((!lhs & rhs) | (!(lhs ^ rhs) & ret)) >> (Word::BITS - 1));
     (ret, borrow.wrapping_neg())
+}
+
+/// Computes `value.saturating_sub(bit & 1)` without lowering to conditional control flow.
+#[inline(never)]
+pub(crate) const fn saturating_sub_one(value: Word, bit: Word) -> Word {
+    let nonzero = (value | value.wrapping_neg()) >> (Word::BITS - 1);
+    let mask = core::hint::black_box(nonzero).wrapping_neg();
+    value.wrapping_sub(bit & 1) & mask
 }
 
 /// Computes `lhs * rhs`, returning the low and the high words of the result.
@@ -71,13 +91,13 @@ pub(crate) const fn carrying_mul_add(
 }
 
 /// `const fn` equivalent of `u32::max(a, b)`.
-#[inline]
+#[inline(never)]
 pub(crate) const fn u32_max(a: u32, b: u32) -> u32 {
     Choice::from_u32_lt(a, b).select_u32(a, b)
 }
 
 /// `const` equivalent of `u32::min(a, b)`.
-#[inline]
+#[inline(never)]
 pub(crate) const fn u32_min(a: u32, b: u32) -> u32 {
     Choice::from_u32_lt(a, b).select_u32(b, a)
 }
@@ -155,8 +175,11 @@ pub(crate) const fn u64_invert_odd(value: u64) -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use super::{borrowing_sub, u32_max, u32_min, u32_rem, usize_lt};
-    use crate::Word;
+    use super::{
+        borrowing_sub, overflowing_add_wide, saturating_sub_one, u32_max, u32_min, u32_rem,
+        usize_lt,
+    };
+    use crate::{WideWord, Word};
 
     #[test]
     fn carrying_mul_add_cannot_overflow() {
@@ -167,6 +190,31 @@ mod tests {
         let (result, carry_out) = super::carrying_mul_add(lhs, rhs, addend, carry_in);
         assert_eq!(result, Word::MAX);
         assert_eq!(carry_out, Word::MAX);
+    }
+
+    #[test]
+    fn test_overflowing_add_wide() {
+        let msb = 1 << (WideWord::BITS - 1);
+        let values = [
+            0,
+            1,
+            2,
+            msb - 1,
+            msb,
+            msb + 1,
+            WideWord::MAX - 1,
+            WideWord::MAX,
+        ];
+
+        for lhs in values {
+            for rhs in values {
+                let (expected, carry) = lhs.overflowing_add(rhs);
+                assert_eq!(
+                    overflowing_add_wide(lhs, rhs),
+                    (expected, WideWord::from(carry))
+                );
+            }
+        }
     }
 
     #[test]
@@ -188,6 +236,18 @@ mod tests {
                         "lhs={lhs:#x}, rhs={rhs:#x}, borrow={borrow:#x}"
                     );
                 }
+            }
+        }
+    }
+
+    #[test]
+    fn test_saturating_sub_one() {
+        for value in [0, 1, 2, Word::MAX - 1, Word::MAX] {
+            for bit in [0, 1, Word::MAX] {
+                assert_eq!(
+                    saturating_sub_one(value, bit),
+                    value.saturating_sub(bit & 1)
+                );
             }
         }
     }

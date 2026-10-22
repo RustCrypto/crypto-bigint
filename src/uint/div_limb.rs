@@ -195,8 +195,7 @@ impl Reciprocal {
     pub const fn new(divisor: NonZero<Limb>) -> Self {
         let divisor = divisor.get_copy();
 
-        // Assuming this is constant-time for primitive types.
-        let shift = divisor.0.leading_zeros();
+        let shift = divisor.leading_zeros();
 
         // Will not panic since divisor is non-zero
         let divisor_normalized = divisor.0 << shift;

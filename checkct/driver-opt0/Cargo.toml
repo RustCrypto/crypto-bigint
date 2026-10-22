@@ -1,0 +1,12 @@
+[package]
+name = "driver-opt0"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[dependencies]
+checkct_macros = { path = "../checkct_macros" }
+crypto-bigint = { path = "../..", default-features = false }
+rand_core.workspace = true
+rand_core_09.workspace = true
+rand_core_06.workspace = true

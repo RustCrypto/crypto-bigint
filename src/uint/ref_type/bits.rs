@@ -111,14 +111,13 @@ impl UintRef {
     pub const fn leading_zeros(&self) -> u32 {
         let mut count = 0;
         let mut i = self.limbs.len();
-        let mut nonzero_limb_not_encountered = Choice::TRUE;
+        let mut leading_zero_limb_mask = u32::MAX;
         while i > 0 {
             i -= 1;
             let l = self.limbs[i];
             let z = l.leading_zeros();
-            count += nonzero_limb_not_encountered.select_u32(0, z);
-            nonzero_limb_not_encountered =
-                nonzero_limb_not_encountered.and(word::choice_from_nz(l.0).not());
+            count += leading_zero_limb_mask & z;
+            leading_zero_limb_mask &= word::choice_from_nz(l.0).not().to_u32_mask();
         }
 
         count
@@ -130,13 +129,12 @@ impl UintRef {
     pub const fn trailing_zeros(&self) -> u32 {
         let mut count = 0;
         let mut i = 0;
-        let mut nonzero_limb_not_encountered = Choice::TRUE;
+        let mut trailing_zero_limb_mask = u32::MAX;
         while i < self.limbs.len() {
             let l = self.limbs[i];
             let z = l.trailing_zeros();
-            count += nonzero_limb_not_encountered.select_u32(0, z);
-            nonzero_limb_not_encountered =
-                nonzero_limb_not_encountered.and(word::choice_from_nz(l.0).not());
+            count += trailing_zero_limb_mask & z;
+            trailing_zero_limb_mask &= word::choice_from_nz(l.0).not().to_u32_mask();
             i += 1;
         }
 
@@ -169,13 +167,12 @@ impl UintRef {
     pub const fn trailing_ones(&self) -> u32 {
         let mut count = 0;
         let mut i = 0;
-        let mut nonmax_limb_not_encountered = Choice::TRUE;
+        let mut trailing_one_limb_mask = u32::MAX;
         while i < self.limbs.len() {
             let l = self.limbs[i];
             let z = l.trailing_ones();
-            count += nonmax_limb_not_encountered.select_u32(0, z);
-            nonmax_limb_not_encountered =
-                nonmax_limb_not_encountered.and(word::choice_from_eq(l.0, Limb::MAX.0));
+            count += trailing_one_limb_mask & z;
+            trailing_one_limb_mask &= word::choice_from_eq(l.0, Limb::MAX.0).to_u32_mask();
             i += 1;
         }
 

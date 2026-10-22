@@ -118,6 +118,74 @@ pub(crate) const fn choice_from_wide_nz(value: WideWord) -> Choice {
     choice_from_lsb(((value | value.wrapping_neg()) >> (WideWord::BITS - 1)) as Word)
 }
 
+/// Count leading zero bits without relying on target-specific lowering of
+/// [`Word::leading_zeros`].
+#[inline(always)]
+pub(crate) const fn leading_zeros(mut value: Word) -> u32 {
+    let mut count = 0;
+
+    cpubits::cpubits! {
+        32 => {}
+        64 => { (value, count) = leading_zeros_step(value, count, 32); }
+    }
+
+    (value, count) = leading_zeros_step(value, count, 16);
+    (value, count) = leading_zeros_step(value, count, 8);
+    (value, count) = leading_zeros_step(value, count, 4);
+    (value, count) = leading_zeros_step(value, count, 2);
+    (value, count) = leading_zeros_step(value, count, 1);
+
+    count.wrapping_add(word_mask_to_u32(choice_to_mask(choice_from_nz(value).not())) & 1)
+}
+
+#[inline(always)]
+const fn leading_zeros_step(value: Word, count: u32, shift: u32) -> (Word, u32) {
+    let upper_is_zero = choice_from_nz(value >> (Word::BITS - shift)).not();
+    let mask = choice_to_mask(upper_is_zero);
+    (
+        value ^ (mask & (value ^ (value << shift))),
+        count.wrapping_add(word_mask_to_u32(mask) & shift),
+    )
+}
+
+/// Count trailing zero bits without relying on target-specific lowering of
+/// [`Word::trailing_zeros`].
+#[inline(always)]
+pub(crate) const fn trailing_zeros(mut value: Word) -> u32 {
+    let mut count = 0;
+
+    cpubits::cpubits! {
+        32 => {}
+        64 => { (value, count) = trailing_zeros_step(value, count, 32); }
+    }
+
+    (value, count) = trailing_zeros_step(value, count, 16);
+    (value, count) = trailing_zeros_step(value, count, 8);
+    (value, count) = trailing_zeros_step(value, count, 4);
+    (value, count) = trailing_zeros_step(value, count, 2);
+    (value, count) = trailing_zeros_step(value, count, 1);
+
+    count.wrapping_add(word_mask_to_u32(choice_to_mask(choice_from_nz(value).not())) & 1)
+}
+
+#[inline(always)]
+const fn trailing_zeros_step(value: Word, count: u32, shift: u32) -> (Word, u32) {
+    let mask = Word::MAX >> (Word::BITS - shift);
+    let lower_is_zero = choice_from_nz(value & mask).not();
+    let select_mask = choice_to_mask(lower_is_zero);
+    (
+        value ^ (select_mask & (value ^ (value >> shift))),
+        count.wrapping_add(word_mask_to_u32(select_mask) & shift),
+    )
+}
+
+/// Truncate a `Word`-sized mask to a `u32` mask.
+#[inline(always)]
+#[allow(trivial_numeric_casts, clippy::cast_possible_truncation)]
+const fn word_mask_to_u32(mask: Word) -> u32 {
+    mask as u32
+}
+
 /// Return `b` if `self` is truthy, otherwise return `a`.
 #[inline]
 pub(crate) const fn select(a: Word, b: Word, choice: Choice) -> Word {
@@ -184,6 +252,22 @@ mod tests {
         assert!(super::choice_from_wide_le(4, 5).to_bool());
         assert!(super::choice_from_wide_le(5, 5).to_bool());
         assert!(!super::choice_from_wide_le(6, 5).to_bool());
+    }
+
+    #[test]
+    fn zero_counts() {
+        let mut values = [0, 1, 2, 3, Word::MAX, Word::MAX - 1, 1 << (Word::BITS - 1)];
+
+        for value in &mut values {
+            for _ in 0..32 {
+                assert_eq!(super::leading_zeros(*value), value.leading_zeros());
+                assert_eq!(super::trailing_zeros(*value), value.trailing_zeros());
+
+                *value ^= value.wrapping_shl(13);
+                *value ^= value.wrapping_shr(17);
+                *value ^= value.wrapping_shl(5);
+            }
+        }
     }
 
     #[test]

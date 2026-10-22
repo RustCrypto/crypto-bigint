@@ -23,14 +23,27 @@ pub(crate) const fn from_limbs(nlimbs: usize) -> u32 {
 #[cfg_attr(not(feature = "alloc"), allow(dead_code))]
 #[inline(always)]
 pub(crate) const fn to_bytes(nbits: u32) -> usize {
-    u32_to_usize(nbits.div_ceil(8))
+    u32_to_usize(div_ceil_pow2(nbits, 3))
 }
 
 /// Calculate a `usize` representing the number of limbs required to store the given number of bits
 /// represented as a `u32` (i.e. rounding up).
 #[inline(always)]
 pub(crate) const fn to_limbs(nbits: u32) -> usize {
-    u32_to_usize(nbits.div_ceil(Limb::BITS))
+    u32_to_usize(to_limbs_u32(nbits))
+}
+
+/// Calculate the number of limbs required to store the given number of bits as a `u32`.
+#[inline(always)]
+pub(crate) const fn to_limbs_u32(nbits: u32) -> u32 {
+    div_ceil_pow2(nbits, Limb::LOG2_BITS)
+}
+
+/// Divide by a power of two, rounding up, without a remainder-dependent branch.
+#[inline(always)]
+const fn div_ceil_pow2(n: u32, log2: u32) -> u32 {
+    let mask = (1 << log2) - 1;
+    (n >> log2).wrapping_add(((n & mask).wrapping_add(mask)) >> log2)
 }
 
 #[inline(always)]
@@ -79,5 +92,19 @@ mod tests {
         assert_eq!(super::to_bytes(9), 2);
         assert_eq!(super::to_bytes(16), 2);
         assert_eq!(super::to_bytes(17), 3);
+    }
+
+    #[test]
+    fn to_limbs() {
+        use crate::Limb;
+
+        assert_eq!(super::to_limbs(0), 0);
+        assert_eq!(super::to_limbs(1), 1);
+        assert_eq!(super::to_limbs(Limb::BITS), 1);
+        assert_eq!(super::to_limbs(Limb::BITS + 1), 2);
+        assert_eq!(
+            super::to_limbs(u32::MAX),
+            u32::MAX.div_ceil(Limb::BITS) as usize
+        );
     }
 }

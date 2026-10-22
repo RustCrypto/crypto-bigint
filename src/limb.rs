@@ -26,7 +26,8 @@ mod rand;
 
 use crate::{
     Bounded, Choice, ConstOne, ConstZero, Constants, CtEq, CtOption, Integer, NonZero, One,
-    UintRef, Unsigned, WideWord, Word, Zero, primitives::u32_bits, traits::sealed::Sealed, word,
+    UintRef, Unsigned, WideWord, Word, Zero, bitlen, primitives::u32_bits, traits::sealed::Sealed,
+    word,
 };
 use core::{fmt, ptr, slice};
 
@@ -38,11 +39,7 @@ use serdect::serde::{Deserialize, Deserializer, Serialize, Serializer};
 #[inline(always)]
 #[must_use]
 pub const fn nlimbs(bits: u32) -> usize {
-    match cpubits::CPUBITS {
-        32 => (((bits as u64) + 31) >> 5) as usize,
-        64 => (((bits as u64) + 63) >> 6) as usize,
-        _ => unreachable!(),
-    }
+    bitlen::to_limbs(bits)
 }
 
 /// Big integers are represented as an array/vector of smaller CPU word-size integers called
