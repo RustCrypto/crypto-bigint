@@ -23,11 +23,17 @@ pub(crate) const fn overflowing_add(lhs: Word, rhs: Word) -> (Word, Word) {
 /// Computes `lhs - (rhs + borrow)`, returning the result along with the new borrow.
 #[inline(always)]
 pub(crate) const fn borrowing_sub(lhs: Word, rhs: Word, borrow: Word) -> (Word, Word) {
+    let borrow = borrow >> (Word::BITS - 1);
+    let ret = lhs.wrapping_sub(rhs).wrapping_sub(borrow);
+
     // XXX we cannot use WideWord casts here: https://github.com/rust-lang/rust/issues/149522
     // rustc 1.87 through 1.91 incorrectly optimize some WideWord bit arithmetic.
-    let (ret, b2) = lhs.overflowing_sub(borrow >> (Word::BITS - 1));
-    let (ret, b1) = ret.overflowing_sub(rhs);
-    (ret, Word::MIN.wrapping_sub((b1 | b2) as Word))
+    //
+    // For `ret = lhs - rhs - borrow`, the most significant bit of this expression is the borrow bit
+    // which we can compute using boolean arithmetic rather than `overflowing_sub`.
+    // LLVM can otherwise replace the resulting select with a secret-dependent branch.
+    let borrow = ((!lhs & rhs) | (!(lhs ^ rhs) & ret)) >> (Word::BITS - 1);
+    (ret, borrow.wrapping_neg())
 }
 
 /// Computes `lhs * rhs`, returning the low and the high words of the result.
@@ -149,7 +155,7 @@ pub(crate) const fn u64_invert_odd(value: u64) -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use super::{u32_max, u32_min, u32_rem, usize_lt};
+    use super::{borrowing_sub, u32_max, u32_min, u32_rem, usize_lt};
     use crate::Word;
 
     #[test]
@@ -161,6 +167,29 @@ mod tests {
         let (result, carry_out) = super::carrying_mul_add(lhs, rhs, addend, carry_in);
         assert_eq!(result, Word::MAX);
         assert_eq!(carry_out, Word::MAX);
+    }
+
+    #[test]
+    fn test_borrowing_sub() {
+        let msb = 1 << (Word::BITS - 1);
+        let values = [0, 1, 2, msb - 1, msb, msb + 1, Word::MAX - 1, Word::MAX];
+        let borrows = [0, 1, msb, Word::MAX];
+
+        for &lhs in &values {
+            for &rhs in &values {
+                for &borrow in &borrows {
+                    let (ret, borrow1) = lhs.overflowing_sub(borrow >> (Word::BITS - 1));
+                    let (expected, borrow2) = ret.overflowing_sub(rhs);
+                    let expected_borrow = Word::MIN.wrapping_sub(Word::from(borrow1 | borrow2));
+
+                    assert_eq!(
+                        borrowing_sub(lhs, rhs, borrow),
+                        (expected, expected_borrow),
+                        "lhs={lhs:#x}, rhs={rhs:#x}, borrow={borrow:#x}"
+                    );
+                }
+            }
+        }
     }
 
     #[test]
