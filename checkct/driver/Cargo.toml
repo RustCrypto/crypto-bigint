@@ -1,0 +1,14 @@
+[package]
+name = "driver"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[dependencies]
+checkct_macros = { path = "../checkct_macros" }
+crypto-bigint = { path = "../..", default-features = false }
+# PrivateRng and PublicRng implement the traits of all these rand_core versions,
+# so that they can be passed to libraries depending on any of them.
+rand_core = "0.10"
+rand_core_09 = { package = "rand_core", version = "0.9" }
+rand_core_06 = { package = "rand_core", version = "0.6" }
