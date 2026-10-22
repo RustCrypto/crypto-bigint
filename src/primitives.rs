@@ -155,7 +155,7 @@ pub(crate) const fn u64_invert_odd(value: u64) -> u64 {
 
 #[cfg(test)]
 mod tests {
-    use super::{u32_max, u32_min, u32_rem, usize_lt};
+    use super::{borrowing_sub, u32_max, u32_min, u32_rem, usize_lt};
     use crate::Word;
 
     #[test]
@@ -167,6 +167,29 @@ mod tests {
         let (result, carry_out) = super::carrying_mul_add(lhs, rhs, addend, carry_in);
         assert_eq!(result, Word::MAX);
         assert_eq!(carry_out, Word::MAX);
+    }
+
+    #[test]
+    fn test_borrowing_sub() {
+        let msb = 1 << (Word::BITS - 1);
+        let values = [0, 1, 2, msb - 1, msb, msb + 1, Word::MAX - 1, Word::MAX];
+        let borrows = [0, 1, msb, Word::MAX];
+
+        for &lhs in &values {
+            for &rhs in &values {
+                for &borrow in &borrows {
+                    let (ret, borrow1) = lhs.overflowing_sub(borrow >> (Word::BITS - 1));
+                    let (expected, borrow2) = ret.overflowing_sub(rhs);
+                    let expected_borrow = Word::MIN.wrapping_sub(Word::from(borrow1 | borrow2));
+
+                    assert_eq!(
+                        borrowing_sub(lhs, rhs, borrow),
+                        (expected, expected_borrow),
+                        "lhs={lhs:#x}, rhs={rhs:#x}, borrow={borrow:#x}"
+                    );
+                }
+            }
+        }
     }
 
     #[test]
