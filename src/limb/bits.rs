@@ -1,4 +1,4 @@
-use crate::{BitOps, Choice, Word};
+use crate::{BitOps, Choice, Word, word};
 
 use super::Limb;
 
@@ -50,28 +50,28 @@ impl Limb {
     #[inline(always)]
     #[must_use]
     pub const fn bits(self) -> u32 {
-        Limb::BITS - self.0.leading_zeros()
+        Limb::BITS - self.leading_zeros()
     }
 
     /// Calculate the number of leading zeros in the binary representation of this number.
     #[inline(always)]
     #[must_use]
     pub const fn leading_zeros(self) -> u32 {
-        self.0.leading_zeros()
+        word::leading_zeros(self.0)
     }
 
     /// Calculate the number of trailing zeros in the binary representation of this number.
     #[inline(always)]
     #[must_use]
     pub const fn trailing_zeros(self) -> u32 {
-        self.0.trailing_zeros()
+        word::trailing_zeros(self.0)
     }
 
     /// Calculate the number of trailing ones the binary representation of this number.
     #[inline(always)]
     #[must_use]
     pub const fn trailing_ones(self) -> u32 {
-        self.0.trailing_ones()
+        word::trailing_zeros(!self.0)
     }
 
     /// Clear bits at or above the given bit position.
@@ -100,7 +100,7 @@ impl BitOps for Limb {
 
     #[inline(always)]
     fn bits(&self) -> u32 {
-        Limb::BITS - self.0.leading_zeros()
+        Limb::bits(*self)
     }
 
     #[inline(always)]
@@ -110,7 +110,7 @@ impl BitOps for Limb {
 
     #[inline(always)]
     fn leading_zeros(&self) -> u32 {
-        self.0.leading_zeros()
+        Limb::leading_zeros(*self)
     }
 
     #[inline(always)]
@@ -130,12 +130,12 @@ impl BitOps for Limb {
 
     #[inline(always)]
     fn trailing_ones(&self) -> u32 {
-        self.0.trailing_ones()
+        Limb::trailing_ones(*self)
     }
 
     #[inline(always)]
     fn trailing_zeros(&self) -> u32 {
-        self.0.trailing_zeros()
+        Limb::trailing_zeros(*self)
     }
 }
 

@@ -30,7 +30,7 @@ impl UintRef {
         // Compute the size of the divisor
         let ybits = y.bits();
         assert!(ybits > 0, "zero divisor");
-        let ywords = ybits.div_ceil(Limb::BITS);
+        let ywords = bitlen::to_limbs_u32(ybits);
 
         // Shift the entire divisor such that the high bit is set
         let yz = y.bits_precision() - ybits;
@@ -113,7 +113,7 @@ impl UintRef {
         // Compute the size of the divisor
         let ybits = y.bits();
         assert!(ybits > 0, "zero divisor");
-        let ywords = ybits.div_ceil(Limb::BITS);
+        let ywords = bitlen::to_limbs_u32(ybits);
 
         // Shift the entire divisor such that the high bit is set
         let yz = y.bits_precision() - ybits;
@@ -335,7 +335,7 @@ impl UintRef {
                         x.limbs[i].carrying_add(y.limbs[ysize + i - xi - 1].bitand(borrow), carry);
                     i += 1;
                 }
-                quo.saturating_sub(borrow.0 & 1)
+                quo.wrapping_sub(borrow.0 & word::choice_to_mask(word::choice_from_nz(quo)) & 1)
             };
 
             // Store the quotient within dividend and set x_hi to the current highest word

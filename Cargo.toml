@@ -19,7 +19,7 @@ exclude = [".clippy.toml", ".codecov.yml", ".github", ".gitignore"]
 
 [dependencies]
 cpubits = "0.1"
-ctutils = "0.4.4"
+ctutils = "0.4.5"
 num-traits = { version = "0.2.19", default-features = false }
 
 # optional dependencies

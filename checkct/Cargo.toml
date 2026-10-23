@@ -1,9 +1,17 @@
 cargo-features = ["panic-immediate-abort"]
 
 [workspace]
-members = ["driver"]
+members = ["driver", "driver-opt0"]
 resolver = "2"
+
+[workspace.dependencies]
+rand_core = "0.10"
+rand_core_09 = { package = "rand_core", version = "0.9" }
+rand_core_06 = { package = "rand_core", version = "0.6" }
 
 [profile.release]
 debug = true
 panic = "immediate-abort"
+
+[profile.release.package.driver-opt0]
+opt-level = 0

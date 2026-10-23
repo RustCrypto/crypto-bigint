@@ -40,15 +40,26 @@ dependencies = [
 
 [[package]]
 name = "ctutils"
-version = "0.4.4"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12218662ccac37d9714f2191252553d67585b97df8c839cbe49e0bde278dc865"
+checksum = "38d28fb6aa7dd680b3ffd1a3e64e115c177bdba63c0ae7f9cd48129ff05c4fa0"
 dependencies = [
  "cmov",
 ]
 
 [[package]]
 name = "driver"
+version = "0.0.0"
+dependencies = [
+ "checkct_macros",
+ "crypto-bigint",
+ "rand_core 0.10.1",
+ "rand_core 0.6.4",
+ "rand_core 0.9.5",
+]
+
+[[package]]
+name = "driver-opt0"
 version = "0.0.0"
 dependencies = [
  "checkct_macros",
