@@ -1,8 +1,7 @@
 //! Limb subtraction
 
 use crate::{
-    Checked, CheckedSub, CtOption, Limb, Sub, SubAssign, SubMod, Wrapping, WrappingSub,
-    primitives::borrowing_sub,
+    Checked, CheckedSub, CtOption, Limb, Sub, SubAssign, SubMod, Wrapping, WrappingSub, word,
 };
 
 impl Limb {
@@ -17,8 +16,8 @@ impl Limb {
     #[inline(always)]
     #[must_use]
     pub const fn borrowing_sub(self, rhs: Limb, borrow: Limb) -> (Limb, Limb) {
-        let (res, borrow) = borrowing_sub(self.0, rhs.0, borrow.0);
-        (Limb(res), Limb(borrow))
+        let (res, borrow) = word::borrowing_sub(self.0, rhs.0, word::choice_from_msb(borrow.0));
+        (Limb(res), Limb(word::choice_to_mask(borrow)))
     }
 
     /// Perform saturating subtraction.
@@ -125,6 +124,31 @@ impl SubMod for Limb {
 #[cfg(test)]
 mod tests {
     use crate::{CheckedSub, Limb};
+
+    #[test]
+    fn borrowing_sub_boundary_values() {
+        use crate::{Limb, Word};
+
+        let msb = 1 << (Word::BITS - 1);
+        let values = [0, 1, 2, msb - 1, msb, msb + 1, Word::MAX - 1, Word::MAX];
+        let borrows = [0, 1, msb, Word::MAX];
+
+        for lhs in values {
+            for rhs in values {
+                for borrow in borrows {
+                    let (ret, borrow1) = lhs.overflowing_sub(borrow >> (Word::BITS - 1));
+                    let (expected, borrow2) = ret.overflowing_sub(rhs);
+                    let expected_borrow = Word::from(borrow1 | borrow2).wrapping_neg();
+
+                    assert_eq!(
+                        Limb(lhs).borrowing_sub(Limb(rhs), Limb(borrow)),
+                        (Limb(expected), Limb(expected_borrow)),
+                        "lhs={lhs:#x}, rhs={rhs:#x}, borrow={borrow:#x}"
+                    );
+                }
+            }
+        }
+    }
 
     #[test]
     fn borrowing_sub_no_borrow() {
