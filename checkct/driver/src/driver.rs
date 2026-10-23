@@ -100,3 +100,41 @@ pub fn montgomery_form_p384() {
 fn to_montgomery_p384(value: &U384) -> ConstMontyForm<P384Order, { U384::LIMBS }> {
     ConstMontyForm::new(value)
 }
+
+/// Exercise exact division with a secret divisor whose trailing zeros are not fixed.
+#[checkct]
+pub fn div_exact_u64() {
+    let mut bytes = [0u8; 8];
+    let mut private = PrivateRng::new();
+    private.fill_bytes(&mut bytes);
+    let dividend = U64::from_be_slice(&bytes);
+    private.fill_bytes(&mut bytes);
+    bytes[0] |= 1; // Keep the divisor nonzero while allowing an even divisor.
+    let divisor = U64::from_be_slice(&bytes).to_nz().unwrap();
+    black_box(div_exact(&dividend, &divisor));
+}
+
+#[inline(never)]
+fn div_exact(dividend: &U64, divisor: &NonZero<U64>) -> crypto_bigint::CtOption<U64> {
+    dividend.div_exact(divisor)
+}
+
+/// Exercise the separate double-width remainder path with secret operands.
+#[checkct]
+pub fn rem_wide_u64() {
+    let mut bytes = [0u8; 8];
+    let mut private = PrivateRng::new();
+    private.fill_bytes(&mut bytes);
+    let lower = U64::from_be_slice(&bytes);
+    private.fill_bytes(&mut bytes);
+    let upper = U64::from_be_slice(&bytes);
+    private.fill_bytes(&mut bytes);
+    bytes[7] |= 1;
+    let divisor = U64::from_be_slice(&bytes).to_nz().unwrap();
+    black_box(rem_wide((lower, upper), &divisor));
+}
+
+#[inline(never)]
+fn rem_wide(value: (U64, U64), divisor: &NonZero<U64>) -> U64 {
+    U64::rem_wide(value, divisor)
+}

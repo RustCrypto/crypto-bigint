@@ -1,7 +1,5 @@
 use super::reduction::montgomery_reduction;
-use crate::{
-    CtLt, Limb, Odd, Uint, UintRef, WideWord, Word, primitives::overflowing_add_wide, word,
-};
+use crate::{CtLt, Limb, Odd, Uint, UintRef, WideWord, Word, word};
 
 /// Computes an "almost" Montgomery multiplication of `x` and `y` into `out`, that is
 /// `out = x * y * 2^(-n*W) mod m + am` assuming `k = -1/m mod 2^W`,
@@ -102,9 +100,9 @@ pub const fn montgomery_multiply_inner(
 
         let mut carry;
         // A[0] + x[i]y[0] + um[0] <= (2^128 - 1) + (2^128 - 2^64) = 2^129 - 2^64 - 1
-        let (a, c) = overflowing_add_wide((u as WideWord) * (modulus[0].0 as WideWord), axy);
+        let (a, c) = word::overflowing_add_wide((u as WideWord) * (modulus[0].0 as WideWord), axy);
         // carry <= (2^129 - 2^64 - 1) / 2^64 <= 2^65 - 2
-        carry = (c << Word::BITS) | (a >> Word::BITS);
+        carry = ((word::choice_to_wide_mask(c) & 1) << Word::BITS) | (a >> Word::BITS);
 
         let mut j = 1;
         while j < nlimbs {
@@ -112,10 +110,10 @@ pub const fn montgomery_multiply_inner(
             let axy = (xi.0 as WideWord) * (y[j].0 as WideWord) + out[j].0 as WideWord;
             // um[j] + carry <= (2^64 - 1)^2 + (2^65 - 2) = 2^128 - 1
             let umc = (u as WideWord) * (modulus[j].0 as WideWord) + carry;
-            let (ab, c) = overflowing_add_wide(axy, umc);
+            let (ab, c) = word::overflowing_add_wide(axy, umc);
             out[j - 1] = Limb(ab as Word);
             // carry <= (2^129 - 2^64 - 1) / 2^64 <= 2^65 - 2
-            carry = (c << Word::BITS) | (ab >> Word::BITS);
+            carry = ((word::choice_to_wide_mask(c) & 1) << Word::BITS) | (ab >> Word::BITS);
             j += 1;
         }
 

@@ -7,39 +7,9 @@ use super::UintRef;
 use crate::{
     Choice, Limb, NonZero, Odd, bitlen,
     div_limb::{Reciprocal, div2by1, div3by2},
-    primitives::{saturating_sub_one, u32_min, usize_lt},
+    primitives::{u32_min, usize_lt},
     word,
 };
-
-#[inline(never)]
-const fn select_limb(a: Limb, b: Limb, choice: Choice) -> Limb {
-    Limb::select(a, b, choice)
-}
-
-#[inline(never)]
-const fn u32_eq(x: u32, y: u32) -> Choice {
-    let diff = x ^ y;
-    let nonzero = (diff | diff.wrapping_neg()) >> (u32::BITS - 1);
-    Choice::from_u32_lsb(core::hint::black_box(nonzero) ^ 1)
-}
-
-#[inline(never)]
-const fn u32_lt(x: u32, y: u32) -> Choice {
-    let bit = ((!x & y) | ((!x | y) & x.wrapping_sub(y))) >> (u32::BITS - 1);
-    Choice::from_u32_lsb(core::hint::black_box(bit))
-}
-
-#[inline(never)]
-const fn u32_le(x: u32, y: u32) -> Choice {
-    let bit = ((!x | y) & ((x ^ y) | !y.wrapping_sub(x))) >> (u32::BITS - 1);
-    Choice::from_u32_lsb(core::hint::black_box(bit))
-}
-
-#[inline(never)]
-const fn u32_nz(value: u32) -> Choice {
-    let bit = (value | value.wrapping_neg()) >> (u32::BITS - 1);
-    Choice::from_u32_lsb(core::hint::black_box(bit))
-}
 
 // TODO(tarcieri): make `rhs` into `NonZeroUintRef` then make currently panicking functions `pub`
 impl UintRef {
@@ -241,7 +211,17 @@ impl UintRef {
     ///
     /// The quotient is returned in `self` and the remainder in `y`, but these values require
     /// additional correction. This is left to the caller for performance reasons.
-    #[inline(always)]
+    // Prevent Thumb-1 from specializing comparisons into conditional branches.
+    // ARM targets without pointer-width atomics cover Thumb-1, including on Rust 1.87,
+    // which does not expose `thumb2` in `cfg(target_feature)`.
+    #[cfg_attr(
+        all(target_arch = "arm", not(target_has_atomic = "ptr")),
+        inline(never)
+    )]
+    #[cfg_attr(
+        not(all(target_arch = "arm", not(target_has_atomic = "ptr"))),
+        inline(always)
+    )]
     #[allow(clippy::cast_possible_truncation)]
     pub(crate) const fn div_rem_shifted(&mut self, mut x_hi: Limb, y: &mut Self, ywords: u32) {
         let x = self;
@@ -258,17 +238,17 @@ impl UintRef {
         x_hi = Self::div_rem_large_shifted::<false>(x, x_hi, y, ywords, reciprocal);
 
         // Calculate quotient and remainder for the case where the divisor is a single word.
-        let limb_div = u32_eq(1, ywords);
+        let limb_div = Choice::from_u32_eq(1, ywords);
         // Note that `div2by1()` will panic if `x_hi >= reciprocal.divisor_normalized`,
         // but this can only be the case if `limb_div` is falsy, in which case we discard
         // the result anyway, so we conditionally set `x_hi` to zero for this branch.
-        let x_hi_adjusted = select_limb(Limb::ZERO, x_hi, limb_div);
+        let x_hi_adjusted = Limb::select(Limb::ZERO, x_hi, limb_div);
         let (quo2, rem2) = div2by1(x.limbs[0].0, x_hi_adjusted.0, &reciprocal);
 
         // Adjust the quotient for single limb division
-        x.limbs[0] = select_limb(x.limbs[0], Limb(quo2), limb_div);
+        x.limbs[0] = Limb::select(x.limbs[0], Limb(quo2), limb_div);
         // Copy out the low limb of the remainder
-        y.limbs[0] = select_limb(x.limbs[0], Limb(rem2), limb_div);
+        y.limbs[0] = Limb::select(x.limbs[0], Limb(rem2), limb_div);
 
         // Adjust the remainder, copying `x_hi` to the appropriate position and clearing
         // any extra limbs.
@@ -281,12 +261,16 @@ impl UintRef {
         let hi_pos = u32_min(x.nlimbs() as u32, ywords - 1);
         let mut i = 1;
         while i < min {
-            y.limbs[i] = select_limb(Limb::ZERO, x.limbs[i], u32_lt(i as u32, ywords));
-            y.limbs[i] = select_limb(y.limbs[i], x_hi, u32_eq(i as u32, hi_pos));
+            y.limbs[i] = Limb::select(
+                Limb::ZERO,
+                x.limbs[i],
+                Choice::from_u32_lt(i as u32, ywords),
+            );
+            y.limbs[i] = Limb::select(y.limbs[i], x_hi, Choice::from_u32_eq(i as u32, hi_pos));
             i += 1;
         }
         while i < y.nlimbs() {
-            y.limbs[i] = select_limb(Limb::ZERO, x_hi, u32_eq(i as u32, hi_pos));
+            y.limbs[i] = Limb::select(Limb::ZERO, x_hi, Choice::from_u32_eq(i as u32, hi_pos));
             i += 1;
         }
     }
@@ -329,7 +313,7 @@ impl UintRef {
             );
 
             // This loop is a no-op once xi is smaller than the number of words in the divisor
-            let done = u32_lt(xi as u32, ywords - 1);
+            let done = Choice::from_u32_lt(xi as u32, ywords - 1);
             if VARTIME && done.to_bool() {
                 break;
             }
@@ -361,13 +345,13 @@ impl UintRef {
                         x.limbs[i].carrying_add(y.limbs[ysize + i - xi - 1].bitand(borrow), carry);
                     i += 1;
                 }
-                saturating_sub_one(quo, borrow.0)
+                quo.wrapping_sub(borrow.0 & word::choice_to_mask(word::choice_from_nz(quo)) & 1)
             };
 
             // Store the quotient within dividend and set x_hi to the current highest word
-            x_hi = select_limb(x.limbs[xi], x_hi, done);
-            x.limbs[xi] = select_limb(Limb(quo), x.limbs[xi], done);
-            x_xi = select_limb(x.limbs[xi - 1], x_xi, done);
+            x_hi = Limb::select(x.limbs[xi], x_hi, done);
+            x.limbs[xi] = Limb::select(Limb(quo), x.limbs[xi], done);
+            x_xi = Limb::select(x.limbs[xi - 1], x_xi, done);
             xi -= 1;
         }
 
@@ -413,7 +397,15 @@ impl UintRef {
     ///
     /// The shifted remainder is returned in `y`, and must be unshifted by the caller.
     /// `x` is left in an indeterminate state.
-    #[inline(always)]
+    // Keep Thumb-1 comparisons from being specialized into conditional branches.
+    #[cfg_attr(
+        all(target_arch = "arm", not(target_has_atomic = "ptr")),
+        inline(never)
+    )]
+    #[cfg_attr(
+        not(all(target_arch = "arm", not(target_has_atomic = "ptr"))),
+        inline(always)
+    )]
     #[allow(clippy::cast_possible_truncation)]
     const fn rem_wide_shifted(
         x: (&mut Self, &mut Self),
@@ -432,21 +424,25 @@ impl UintRef {
         x_hi = Self::rem_wide_large_shifted::<false>((x_lo, x), x_hi, y, ywords, reciprocal);
 
         // Calculate remainder for the case where the divisor is a single word.
-        let limb_div = u32_eq(1, ywords);
+        let limb_div = Choice::from_u32_eq(1, ywords);
         // Note that `div2by1()` will panic if `x_hi >= reciprocal.divisor_normalized`,
         // but this can only be the case if `limb_div` is falsy, in which case we discard
         // the result anyway, so we conditionally set `x_hi` to zero for this branch.
-        let x_hi_adjusted = select_limb(Limb::ZERO, x_hi, limb_div);
+        let x_hi_adjusted = Limb::select(Limb::ZERO, x_hi, limb_div);
         let (_, rem2) = div2by1(x.limbs[0].0, x_hi_adjusted.0, &reciprocal);
 
         // Copy out the low limb of the remainder
-        y.limbs[0] = select_limb(x.limbs[0], Limb(rem2), limb_div);
+        y.limbs[0] = Limb::select(x.limbs[0], Limb(rem2), limb_div);
 
         // Copy the remainder to divisor
         let mut i = 1;
         while i < ysize {
-            y.limbs[i] = select_limb(Limb::ZERO, x.limbs[i], u32_lt(i as u32, ywords));
-            y.limbs[i] = select_limb(y.limbs[i], x_hi, u32_eq(i as u32, ywords - 1));
+            y.limbs[i] = Limb::select(
+                Limb::ZERO,
+                x.limbs[i],
+                Choice::from_u32_lt(i as u32, ywords),
+            );
+            y.limbs[i] = Limb::select(y.limbs[i], x_hi, Choice::from_u32_eq(i as u32, ywords - 1));
             i += 1;
         }
     }
@@ -497,7 +493,7 @@ impl UintRef {
             );
 
             // This loop is a no-op once xi is smaller than the number of words in the divisor
-            let done = u32_lt(xi as u32, ywords - 1);
+            let done = Choice::from_u32_lt(xi as u32, ywords - 1);
             if VARTIME && done.to_bool() {
                 break;
             }
@@ -543,8 +539,8 @@ impl UintRef {
                 }
                 x.limbs[0] = x_lo.limbs[extra_limbs];
             } else {
-                x_hi = select_limb(x.limbs[xi], x_hi, done);
-                x_xi = select_limb(x.limbs[xi - 1], x_xi, done);
+                x_hi = Limb::select(x.limbs[xi], x_hi, done);
+                x_xi = Limb::select(x.limbs[xi - 1], x_xi, done);
                 xi -= 1;
             }
         }
@@ -600,7 +596,7 @@ impl UintRef {
             return carry;
         }
         let lshift = reciprocal.shift();
-        let lshift_nz = u32_nz(lshift);
+        let lshift_nz = Choice::from_u32_nz(lshift);
         let lo_mask = Limb(word::choice_to_mask(lshift_nz));
         let rshift = lshift_nz.select_u32(0, Limb::BITS - lshift);
         let mut hi = carry
@@ -632,14 +628,14 @@ impl UintRef {
         assert!(y_bits > 0, "zero divisor");
 
         let x_tz = self.trailing_zeros();
-        let x_zero = u32_eq(x_tz, self.bits_precision());
+        let x_zero = Choice::from_u32_eq(x_tz, self.bits_precision());
         let y_tz = rhs.trailing_zeros();
 
         // Shift the divisor such that it is odd
         rhs.shr_assign(y_tz);
 
         // Check that the dividend evenly divides by 2^y+tz, and shift it to match the divisor
-        let div2s_exact = u32_le(y_tz, x_tz).or(x_zero);
+        let div2s_exact = Choice::from_u32_le(y_tz, x_tz).or(x_zero);
         self.unbounded_shr_assign(y_tz);
 
         let y = Odd::new_ref_unchecked(rhs);
@@ -667,14 +663,14 @@ impl UintRef {
         assert!(y_bits > 0, "zero divisor");
 
         let x_tz = self.trailing_zeros();
-        let x_zero = u32_eq(x_tz, self.bits_precision());
+        let x_zero = Choice::from_u32_eq(x_tz, self.bits_precision());
         let y_tz = rhs.trailing_zeros_vartime();
 
         // Shift the divisor to be odd
         rhs.unbounded_shr_assign_vartime(y_tz);
 
         // Check that the dividend evenly divides by 2^y_tz, and shift it to match the divisor
-        let div2s_exact = u32_le(y_tz, x_tz).or(x_zero);
+        let div2s_exact = Choice::from_u32_le(y_tz, x_tz).or(x_zero);
         self.unbounded_shr_assign_vartime(y_tz);
 
         let ywords = bitlen::to_limbs(y_bits - y_tz);
@@ -701,7 +697,15 @@ impl UintRef {
     /// For constant-time operation, this acts as if the divisor `y` is as small as one limb,
     /// performing loops without updates to the quotient for larger divisors when vartime operation
     /// is not specified.
-    #[inline(always)]
+    // Keep Thumb-1 comparisons from being specialized into conditional branches.
+    #[cfg_attr(
+        all(target_arch = "arm", not(target_has_atomic = "ptr")),
+        inline(never)
+    )]
+    #[cfg_attr(
+        not(all(target_arch = "arm", not(target_has_atomic = "ptr"))),
+        inline(always)
+    )]
     const fn div_exact_odd_with_inverse<const VARTIME: bool>(
         x: &mut UintRef,
         y: &Odd<UintRef>,
@@ -712,7 +716,7 @@ impl UintRef {
         let y = y.as_ref();
         let yc = y.nlimbs();
         let mut meta_carry = Limb::ZERO;
-        let mut zero_hi = Choice::TRUE;
+        let mut zero_hi_mask = u32::MAX;
         let mut xi = 0;
 
         while xi < xc {
@@ -720,16 +724,16 @@ impl UintRef {
             // This loop is a no-op once there are fewer words remaining than the size of the divisor
             let done = usize_lt(y_remain, ywords);
             if VARTIME && done.to_bool() {
-                zero_hi = x.trailing(xi).is_zero();
+                zero_hi_mask = x.trailing(xi).is_zero().to_u32_mask();
                 break;
             }
 
             // Compute the quotient limb that will clear the low dividend limb
-            let quo = select_limb(x.limbs[xi].wrapping_mul(y_inv), x.limbs[xi], done);
+            let quo = Limb::select(x.limbs[xi].wrapping_mul(y_inv), x.limbs[xi], done);
             x.limbs[xi] = quo;
 
             if !VARTIME {
-                zero_hi = zero_hi.and(select_limb(Limb::ZERO, quo, done).is_zero());
+                zero_hi_mask &= Limb::select(Limb::ZERO, quo, done).is_zero().to_u32_mask();
             }
 
             let (_, mut carry) = quo.widening_mul(y.limbs[0]);
@@ -755,7 +759,7 @@ impl UintRef {
             xi += 1;
         }
 
-        meta_carry.is_zero().and(zero_hi)
+        meta_carry.is_zero().and(Choice::from_u32_lsb(zero_hi_mask))
     }
 }
 
