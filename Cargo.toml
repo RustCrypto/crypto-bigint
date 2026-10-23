@@ -1,10 +1,10 @@
 [package]
 name = "crypto-bigint"
-version = "0.7.5"
+version = "0.7.6"
 description = """
-Pure Rust implementation of a big integer library which has been designed from
-the ground-up for use in cryptographic applications. Provides constant-time,
-no_std-friendly implementations of modern formulas using const generics.
+Pure Rust implementation of a big integer library which has been designed from the ground-up for use
+in cryptographic applications. Provides constant-time, `no_std`/`no_alloc`-friendly implementations
+of modern formulas using const generics. Also includes optional support for heap-backed integers.
 """
 authors = ["RustCrypto Developers"]
 license = "Apache-2.0 OR MIT"
