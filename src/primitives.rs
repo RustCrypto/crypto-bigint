@@ -1,4 +1,4 @@
-use crate::{Choice, WideWord, Word};
+use crate::{Choice, WideWord, Word, word};
 
 /// Computes `lhs + rhs + carry`, returning the result along with the new carry (0, 1, or 2).
 #[inline(always)]
@@ -23,18 +23,8 @@ pub(crate) const fn overflowing_add(lhs: Word, rhs: Word) -> (Word, Word) {
 /// Computes `lhs - (rhs + borrow)`, returning the result along with the new borrow.
 #[inline(always)]
 pub(crate) const fn borrowing_sub(lhs: Word, rhs: Word, borrow: Word) -> (Word, Word) {
-    let borrow = borrow >> (Word::BITS - 1);
-    let ret = lhs.wrapping_sub(rhs).wrapping_sub(borrow);
-
-    // XXX we cannot use WideWord casts here: https://github.com/rust-lang/rust/issues/149522
-    // rustc 1.87 through 1.91 incorrectly optimize some WideWord bit arithmetic.
-    //
-    // For `ret = lhs - rhs - borrow`, the most significant bit of this expression is the borrow bit
-    // which we can compute using boolean arithmetic rather than `overflowing_sub`.
-    // LLVM can otherwise replace the resulting select with a secret-dependent branch.
-    // Keep the bit opaque so it also cannot fold a caller's masked add-back into a branch.
-    let borrow = core::hint::black_box(((!lhs & rhs) | (!(lhs ^ rhs) & ret)) >> (Word::BITS - 1));
-    (ret, borrow.wrapping_neg())
+    let (difference, borrow) = word::borrowing_sub(lhs, rhs, word::choice_from_msb(borrow));
+    (difference, word::choice_to_mask(borrow))
 }
 
 /// Computes `lhs * rhs`, returning the low and the high words of the result.

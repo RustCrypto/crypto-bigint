@@ -255,7 +255,7 @@ dependencies = [
 [[package]]
 name = "ctutils"
 version = "0.4.4"
-source = "git+https://github.com/RustCrypto/utils#6ff66d14c880dc0528e6cf3f7583c969f3fad34d"
+source = "git+https://github.com/RustCrypto/utils#ee6f60a75e27c17b88183c61b11cc7207a0d1406"
 dependencies = [
  "cmov",
  "subtle",
