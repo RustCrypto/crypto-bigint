@@ -211,17 +211,7 @@ impl UintRef {
     ///
     /// The quotient is returned in `self` and the remainder in `y`, but these values require
     /// additional correction. This is left to the caller for performance reasons.
-    // Prevent Thumb-1 from specializing comparisons into conditional branches.
-    // ARM targets without pointer-width atomics cover Thumb-1, including on Rust 1.87,
-    // which does not expose `thumb2` in `cfg(target_feature)`.
-    #[cfg_attr(
-        all(target_arch = "arm", not(target_has_atomic = "ptr")),
-        inline(never)
-    )]
-    #[cfg_attr(
-        not(all(target_arch = "arm", not(target_has_atomic = "ptr"))),
-        inline(always)
-    )]
+    #[inline(always)]
     #[allow(clippy::cast_possible_truncation)]
     pub(crate) const fn div_rem_shifted(&mut self, mut x_hi: Limb, y: &mut Self, ywords: u32) {
         let x = self;
@@ -397,15 +387,7 @@ impl UintRef {
     ///
     /// The shifted remainder is returned in `y`, and must be unshifted by the caller.
     /// `x` is left in an indeterminate state.
-    // Keep Thumb-1 comparisons from being specialized into conditional branches.
-    #[cfg_attr(
-        all(target_arch = "arm", not(target_has_atomic = "ptr")),
-        inline(never)
-    )]
-    #[cfg_attr(
-        not(all(target_arch = "arm", not(target_has_atomic = "ptr"))),
-        inline(always)
-    )]
+    #[inline(always)]
     #[allow(clippy::cast_possible_truncation)]
     const fn rem_wide_shifted(
         x: (&mut Self, &mut Self),
@@ -697,15 +679,7 @@ impl UintRef {
     /// For constant-time operation, this acts as if the divisor `y` is as small as one limb,
     /// performing loops without updates to the quotient for larger divisors when vartime operation
     /// is not specified.
-    // Keep Thumb-1 comparisons from being specialized into conditional branches.
-    #[cfg_attr(
-        all(target_arch = "arm", not(target_has_atomic = "ptr")),
-        inline(never)
-    )]
-    #[cfg_attr(
-        not(all(target_arch = "arm", not(target_has_atomic = "ptr"))),
-        inline(always)
-    )]
+    #[inline(always)]
     const fn div_exact_odd_with_inverse<const VARTIME: bool>(
         x: &mut UintRef,
         y: &Odd<UintRef>,
@@ -716,7 +690,7 @@ impl UintRef {
         let y = y.as_ref();
         let yc = y.nlimbs();
         let mut meta_carry = Limb::ZERO;
-        let mut zero_hi_mask = u32::MAX;
+        let mut zero_hi = Choice::TRUE;
         let mut xi = 0;
 
         while xi < xc {
@@ -724,7 +698,7 @@ impl UintRef {
             // This loop is a no-op once there are fewer words remaining than the size of the divisor
             let done = usize_lt(y_remain, ywords);
             if VARTIME && done.to_bool() {
-                zero_hi_mask = x.trailing(xi).is_zero().to_u32_mask();
+                zero_hi = x.trailing(xi).is_zero();
                 break;
             }
 
@@ -733,7 +707,7 @@ impl UintRef {
             x.limbs[xi] = quo;
 
             if !VARTIME {
-                zero_hi_mask &= Limb::select(Limb::ZERO, quo, done).is_zero().to_u32_mask();
+                zero_hi = zero_hi.and(Limb::select(Limb::ZERO, quo, done).is_zero());
             }
 
             let (_, mut carry) = quo.widening_mul(y.limbs[0]);
@@ -759,7 +733,7 @@ impl UintRef {
             xi += 1;
         }
 
-        meta_carry.is_zero().and(Choice::from_u32_lsb(zero_hi_mask))
+        meta_carry.is_zero().and(zero_hi)
     }
 }
 
