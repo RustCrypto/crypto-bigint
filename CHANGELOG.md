@@ -4,16 +4,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 0.7.6 (2026-10-23)
 ### Added
 - Implement `Zeroize` for `EncodedUint` ([#1342])
 
-### Fixed
-- `u32` overflow of the safegcd iteration count at precisions of 93558 bits and above, which made
-  `invert_mod`/`invert_odd_mod` spuriously report no inverse and `gcd` return wrong results ([#1346])
+### Changed
+- Faster `floor_sqrt`, `checked_sqrt` implementation ([#1312])
+- Bump `ctutils` to v0.4.4; MSRV 1.87 ([#1350], [#1359])
 
+### Fixed
+- `BoxedUint` GCD with mixed-precision zero operands ([#1291])
+- Carry result from Karatsuba `wrapping_square` for larger integers ([#1309])
+- Exact division edge cases ([#1310])
+- Only use classic binary GCD in Jacobi symbol calculation ([#1313])
+- Montgomery reduction in repeated squaring ([#1344])
+- safegcd iteration count overflow at precisions of 93558 bits and above ([#1346])
+- Carry returned by `Uint::try_sub_with_carry` ([#1354])
+
+### Security
+- Make `UintRef::PartialEq` constant-time and implement `PartialOrd`/`Ord` ([#1311])
+- Avoid branching on invertibility in `BoxedMontyForm::invert` ([#1355])
+- `borrowing_sub` constant-timeness; use `cargo checkct` ([#1358])
+- CT leaks in CTZ, `div_rem`, `nlimbs`, and Montgomery mul ([#1360])
+
+[#1291]: https://github.com/RustCrypto/crypto-bigint/pull/1291
+[#1309]: https://github.com/RustCrypto/crypto-bigint/pull/1309
+[#1310]: https://github.com/RustCrypto/crypto-bigint/pull/1310
+[#1311]: https://github.com/RustCrypto/crypto-bigint/pull/1311
+[#1312]: https://github.com/RustCrypto/crypto-bigint/pull/1312
+[#1313]: https://github.com/RustCrypto/crypto-bigint/pull/1313
 [#1342]: https://github.com/RustCrypto/crypto-bigint/pull/1342
+[#1344]: https://github.com/RustCrypto/crypto-bigint/pull/1344
 [#1346]: https://github.com/RustCrypto/crypto-bigint/pull/1346
+[#1350]: https://github.com/RustCrypto/crypto-bigint/pull/1350
+[#1354]: https://github.com/RustCrypto/crypto-bigint/pull/1354
+[#1355]: https://github.com/RustCrypto/crypto-bigint/pull/1355
+[#1358]: https://github.com/RustCrypto/crypto-bigint/pull/1358
+[#1359]: https://github.com/RustCrypto/crypto-bigint/pull/1359
+[#1360]: https://github.com/RustCrypto/crypto-bigint/pull/1360
 
 ## 0.7.5 (2026-06-22)
 ### Added
