@@ -78,7 +78,6 @@ cast_precision_loss = "warn"
 cast_sign_loss = "warn"
 checked_conversions = "warn"
 doc_markdown = "warn"
-from_iter_instead_of_collect = "warn"
 implicit_saturating_sub = "warn"
 integer_division_remainder_used = "warn" # not constant time (see Kyberslash)
 manual_assert = "warn"

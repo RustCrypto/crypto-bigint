@@ -256,8 +256,7 @@ mod tests {
             *val = U256::random_mod_vartime(&mut rng, &modulus);
         }
         let expected = [55, 3378, 2172, 1657, 5323];
-        for (want, got) in expected.into_iter().zip(vals.into_iter()) {
-            // assert_eq!(got.as_words()[0], want);
+        for (want, got) in expected.into_iter().zip(vals) {
             assert_eq!(got, U256::from_u32(want));
         }
 

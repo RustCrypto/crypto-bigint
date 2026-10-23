@@ -102,7 +102,6 @@ impl UintRef {
 
     /// Get an iterator over the inner limbs.
     #[inline]
-    #[must_use]
     pub fn iter(&self) -> impl DoubleEndedIterator<Item = &Limb> {
         self.limbs.iter()
     }
