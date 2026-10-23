@@ -90,7 +90,10 @@ pub(crate) const fn choice_from_eq(x: Word, y: Word) -> Choice {
 /// Returns the truthy value if `x == y`, and the falsy value otherwise.
 #[inline]
 pub(crate) const fn choice_from_wide_eq(x: WideWord, y: WideWord) -> Choice {
-    choice_from_wide_nz(x ^ y).not()
+    cpubits::cpubits! {
+        32 => { Choice::from_u64_eq(x, y) }
+        64 => { Choice::from_u128_eq(x, y) }
+    }
 }
 
 /// Returns the truthy value if `x > y`, and the falsy value otherwise.
@@ -121,13 +124,10 @@ pub(crate) const fn choice_from_msb(value: Word) -> Choice {
 /// Returns the truthy value if `value != 0`, and the falsy value otherwise.
 #[inline]
 pub(crate) const fn choice_from_nz(value: Word) -> Choice {
-    choice_from_lsb((value | value.wrapping_neg()) >> (Word::BITS - 1))
-}
-
-/// Returns the truthy value if `value != 0`, and the falsy value otherwise.
-#[inline]
-pub(crate) const fn choice_from_wide_nz(value: WideWord) -> Choice {
-    choice_from_lsb(((value | value.wrapping_neg()) >> (WideWord::BITS - 1)) as Word)
+    cpubits::cpubits! {
+        32 => { Choice::from_u32_nz(value) }
+        64 => { Choice::from_u64_nz(value) }
+    }
 }
 
 /// Return `b` if `self` is truthy, otherwise return `a`.
