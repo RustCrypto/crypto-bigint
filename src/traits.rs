@@ -199,7 +199,7 @@ pub trait Integer:
     ///
     /// # Returns
     ///
-    /// If odd, returns `Choice::FALSE`. Otherwise, returns `Choice::TRUE`.
+    /// If odd, returns `Choice(1)`. Otherwise, returns `Choice(0)`.
     #[must_use]
     fn is_odd(&self) -> Choice {
         self.as_ref()
