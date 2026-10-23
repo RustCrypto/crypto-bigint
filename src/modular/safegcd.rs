@@ -524,7 +524,7 @@ impl<const LIMBS: usize> fmt::Debug for SignedInt<LIMBS> {
         f.write_fmt(format_args!(
             "{}0x{}",
             if self.sign.to_bool() { "-" } else { "+" },
-            &self.magnitude
+            self.magnitude
         ))
     }
 }
