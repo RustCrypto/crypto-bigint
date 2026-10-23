@@ -1,7 +1,10 @@
 use crate::rng::{PrivateRng, PublicRng};
 use checkct_macros::checkct;
 use core::hint::black_box;
-use crypto_bigint::{NonZero, U64, U256, U384, U512, const_monty_params, modular::ConstMontyForm};
+use crypto_bigint::{
+    NonZero, U64, U128, U256, U384, U512, const_monty_params,
+    modular::{ConstMontyForm, FixedMontyForm, FixedMontyParams},
+};
 
 const_monty_params!(
     P384Order,
@@ -137,4 +140,33 @@ pub fn rem_wide_u64() {
 #[inline(never)]
 fn rem_wide(value: (U64, U64), divisor: &NonZero<U64>) -> U64 {
     U64::rem_wide(value, divisor)
+}
+
+/// Exercise the AMM exponentiation algorithm also used by `BoxedMontyForm::pow`.
+/// The base and exponent are secret; the modulus and exponent bound are public.
+#[checkct]
+pub fn pow_amm_u128() {
+    let mut private = PrivateRng::new();
+    let mut bytes = [0u8; 16];
+    private.fill_bytes(&mut bytes);
+    let base = U128::from_be_slice(&bytes);
+    private.fill_bytes(&mut bytes);
+    let exponent = U128::from_be_slice(&bytes);
+    black_box(pow_amm(&base, &exponent));
+}
+
+#[inline(never)]
+fn pow_amm(base: &U128, exponent: &U128) -> U128 {
+    const PARAMS: FixedMontyParams<{ U128::LIMBS }> = FixedMontyParams::new_vartime(
+        U128::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC5")
+            .to_odd()
+            .expect_copied("modulus is odd"),
+    );
+
+    // U128 is multi-limb on every target. A fixed 65-bit bound crosses an exponent
+    // limb boundary on both 32- and 64-bit targets and exercises a partial first
+    // window followed by full windows, including when the exponent is zero.
+    FixedMontyForm::new(base, &PARAMS)
+        .pow_amm_bounded_exp(exponent, 65)
+        .retrieve()
 }
