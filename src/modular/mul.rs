@@ -102,7 +102,7 @@ pub const fn montgomery_multiply_inner(
         // A[0] + x[i]y[0] + um[0] <= (2^128 - 1) + (2^128 - 2^64) = 2^129 - 2^64 - 1
         let (a, c) = word::overflowing_add_wide((u as WideWord) * (modulus[0].0 as WideWord), axy);
         // carry <= (2^129 - 2^64 - 1) / 2^64 <= 2^65 - 2
-        carry = ((word::choice_to_wide_mask(c) & 1) << Word::BITS) | (a >> Word::BITS);
+        carry = ((c.to_u8() as WideWord) << Word::BITS) | (a >> Word::BITS);
 
         let mut j = 1;
         while j < nlimbs {
@@ -113,7 +113,7 @@ pub const fn montgomery_multiply_inner(
             let (ab, c) = word::overflowing_add_wide(axy, umc);
             out[j - 1] = Limb(ab as Word);
             // carry <= (2^129 - 2^64 - 1) / 2^64 <= 2^65 - 2
-            carry = ((word::choice_to_wide_mask(c) & 1) << Word::BITS) | (ab >> Word::BITS);
+            carry = ((c.to_u8() as WideWord) << Word::BITS) | (ab >> Word::BITS);
             j += 1;
         }
 
