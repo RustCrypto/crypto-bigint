@@ -2,7 +2,7 @@ use crate::rng::{PrivateRng, PublicRng};
 use checkct_macros::checkct;
 use core::hint::black_box;
 use crypto_bigint::{
-    NonZero, U64, U128, U256, U384, U512, const_monty_params,
+    Limb, NonZero, U64, U128, U256, U384, U512, const_monty_params,
     modular::{ConstMontyForm, FixedMontyForm, FixedMontyParams},
 };
 
@@ -37,6 +37,43 @@ fn inputs() -> (U256, U256, NonZero<U256>) {
 pub fn sub_mod_u256() {
     let (a, b, p) = inputs();
     black_box(a.sub_mod(&b, &p));
+}
+
+/// Exercise a secret incoming borrow and its propagation across multiple limbs.
+#[checkct]
+pub fn borrowing_sub_u128() {
+    let mut private = PrivateRng::new();
+    let mut bytes = [0u8; 16];
+    private.fill_bytes(&mut bytes);
+    let a = U128::from_be_slice(&bytes);
+    private.fill_bytes(&mut bytes);
+    let b = U128::from_be_slice(&bytes);
+    private.fill_bytes(&mut bytes);
+    let borrow = U128::from_be_slice(&bytes).as_limbs()[0];
+
+    black_box(borrowing_sub(&a, &b, borrow));
+}
+
+#[inline(never)]
+fn borrowing_sub(a: &U128, b: &U128, borrow: Limb) -> (U128, Limb) {
+    a.borrowing_sub(b, borrow)
+}
+
+/// Exercise a borrow chain whose final borrow is discarded.
+#[checkct]
+pub fn wrapping_sub_u128() {
+    let mut private = PrivateRng::new();
+    let mut bytes = [0u8; 16];
+    private.fill_bytes(&mut bytes);
+    let a = U128::from_be_slice(&bytes);
+    private.fill_bytes(&mut bytes);
+    let b = U128::from_be_slice(&bytes);
+    black_box(wrapping_sub(&a, &b));
+}
+
+#[inline(never)]
+fn wrapping_sub(a: &U128, b: &U128) -> U128 {
+    a.wrapping_sub(b)
 }
 
 /// Exercise the shared limb scan used by `Uint` and `BoxedUint` modular inversion.

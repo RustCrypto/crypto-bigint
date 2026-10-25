@@ -130,6 +130,43 @@ mod tests {
     }
 
     #[test]
+    fn borrowing_sub_matches_u128() {
+        use crate::Word;
+
+        // Cross both 32-bit and 64-bit limb boundaries, including propagation through zero limbs.
+        let values = [
+            0,
+            1,
+            2,
+            (1 << 32) - 1,
+            1 << 32,
+            (1 << 64) - 1,
+            1 << 64,
+            (1 << 127) - 1,
+            1 << 127,
+            u128::MAX - 1,
+            u128::MAX,
+        ];
+
+        for lhs in values {
+            for rhs in values {
+                for borrow in [0, 1, 1 << (Word::BITS - 1), Word::MAX] {
+                    let (expected, b1) = lhs.overflowing_sub(rhs);
+                    let (expected, b2) =
+                        expected.overflowing_sub(u128::from(borrow >> (Word::BITS - 1)));
+                    let expected_borrow = Limb(Word::from(b1 | b2).wrapping_neg());
+
+                    assert_eq!(
+                        U128::from(lhs).borrowing_sub(&U128::from(rhs), Limb(borrow)),
+                        (U128::from(expected), expected_borrow),
+                        "lhs={lhs:#x}, rhs={rhs:#x}, borrow={borrow:#x}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
     fn saturating_sub_no_borrow() {
         assert_eq!(
             U128::from(5u64).saturating_sub(&U128::ONE),
