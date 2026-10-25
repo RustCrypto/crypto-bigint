@@ -31,7 +31,7 @@ checksum = "15b85f9c39137c3a891689859392b1bd49812121d0d61c9caf00d46ed5ce06ae"
 
 [[package]]
 name = "crypto-bigint"
-version = "0.7.7"
+version = "0.7.8"
 dependencies = [
  "cpubits",
  "ctutils",
