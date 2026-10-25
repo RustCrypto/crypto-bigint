@@ -31,7 +31,7 @@ checksum = "15b85f9c39137c3a891689859392b1bd49812121d0d61c9caf00d46ed5ce06ae"
 
 [[package]]
 name = "crypto-bigint"
-version = "0.7.8"
+version = "0.7.9"
 dependencies = [
  "cpubits",
  "ctutils",
@@ -41,8 +41,7 @@ dependencies = [
 [[package]]
 name = "ctutils"
 version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38d28fb6aa7dd680b3ffd1a3e64e115c177bdba63c0ae7f9cd48129ff05c4fa0"
+source = "git+https://github.com/RustCrypto/utils#cdc7142fa06f26bee22ae902cc36a76297041c86"
 dependencies = [
  "cmov",
 ]
