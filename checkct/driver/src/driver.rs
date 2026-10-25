@@ -127,7 +127,7 @@ fn div_rem(dividend: &U64, divisor: &NonZero<U64>) -> (U64, U64) {
     dividend.div_rem(divisor)
 }
 
-/// Exercise wide overflowing addition while converting a P-384 scalar.
+/// Exercise Montgomery carry propagation while converting a P-384 scalar.
 #[checkct]
 pub fn montgomery_form_p384() {
     let mut bytes = [0u8; 48];
@@ -139,6 +139,42 @@ pub fn montgomery_form_p384() {
 #[inline(never)]
 fn to_montgomery_p384(value: &U384) -> ConstMontyForm<P384Order, { U384::LIMBS }> {
     ConstMontyForm::new(value)
+}
+
+/// Exercise Montgomery multiplication with two independent secret operands.
+#[checkct]
+pub fn montgomery_mul_u128() {
+    let mut private = PrivateRng::new();
+    let mut bytes = [0u8; 16];
+    private.fill_bytes(&mut bytes);
+    let a = U128::from_be_slice(&bytes);
+    private.fill_bytes(&mut bytes);
+    let b = U128::from_be_slice(&bytes);
+    black_box(montgomery_mul(&a, &b));
+}
+
+#[inline(never)]
+fn montgomery_mul(a: &U128, b: &U128) -> FixedMontyForm<{ U128::LIMBS }> {
+    const PARAMS: FixedMontyParams<{ U128::LIMBS }> = FixedMontyParams::new_vartime(
+        U128::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC5")
+            .to_odd()
+            .expect_copied("modulus is odd"),
+    );
+    FixedMontyForm::new(a, &PARAMS).mul(&FixedMontyForm::new(b, &PARAMS))
+}
+
+/// Exercise the shared multiplier with identical secret operands. U384 avoids
+/// the four-limb wide-squaring shortcut on both 32-bit and 64-bit targets.
+#[checkct]
+pub fn montgomery_square_p384() {
+    let mut bytes = [0u8; 48];
+    PrivateRng::new().fill_bytes(&mut bytes);
+    black_box(montgomery_square(&U384::from_be_slice(&bytes)));
+}
+
+#[inline(never)]
+fn montgomery_square(value: &U384) -> ConstMontyForm<P384Order, { U384::LIMBS }> {
+    ConstMontyForm::new(value).square()
 }
 
 /// Exercise exact division with a secret divisor whose trailing zeros are not fixed.
