@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.7.10 (2026-10-26)
+### Fixed
+- Optimize Montgomery multiplication carry propagation ([#1376])
+- Replace `ctutils` primitives with faster internal primitives ([#1377])
+
+[#1376]: https://github.com/RustCrypto/crypto-bigint/pull/1376
+[#1377]: https://github.com/RustCrypto/crypto-bigint/pull/1377
+
 ## 0.7.9 (2026-10-25)
 ### Changed
 - Use `shr_vartime` in `PrimeParams::new_vartime` ([#1372])
