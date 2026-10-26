@@ -9,7 +9,6 @@ cpubits::cpubits! {
         pub(crate) use ctutils::primitives::{
             borrowing_sub_mask_u32 as borrowing_sub_mask,
             leading_zeros_u32 as leading_zeros,
-            overflowing_add_u64 as overflowing_add_wide,
             trailing_zeros_u32 as trailing_zeros,
         };
 
@@ -47,7 +46,6 @@ cpubits::cpubits! {
         pub(crate) use ctutils::primitives::{
             borrowing_sub_mask_u64 as borrowing_sub_mask,
             leading_zeros_u64 as leading_zeros,
-            overflowing_add_u128 as overflowing_add_wide,
             trailing_zeros_u64 as trailing_zeros,
         };
 
