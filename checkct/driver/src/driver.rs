@@ -39,6 +39,60 @@ pub fn sub_mod_u256() {
     black_box(a.sub_mod(&b, &p));
 }
 
+// Use the public, always-inlined Limb methods to exercise the private primitives.
+// Leave every input bit unconstrained, including noncanonical incoming borrow masks.
+fn private_limb() -> Limb {
+    let mut bytes = [0u8; Limb::BYTES];
+    PrivateRng::new().fill_bytes(&mut bytes);
+    Limb::from_le_bytes(bytes)
+}
+
+/// Exercise the difference and outgoing mask with a secret incoming borrow.
+#[checkct]
+pub fn limb_borrowing_sub() {
+    black_box(private_limb().borrowing_sub(private_limb(), private_limb()));
+}
+
+/// Exercise the borrow mask in a conditional add-back of a public modulus.
+#[checkct]
+pub fn limb_borrowing_sub_add_back() {
+    let mut bytes = [0u8; Limb::BYTES];
+    PublicRng::new().fill_bytes(&mut bytes);
+    let modulus = Limb::from_le_bytes(bytes);
+    black_box(limb_sub_add_back(
+        private_limb(),
+        private_limb(),
+        private_limb(),
+        modulus,
+    ));
+}
+
+#[inline(never)]
+fn limb_sub_add_back(lhs: Limb, rhs: Limb, borrow: Limb, modulus: Limb) -> Limb {
+    let (difference, borrow) = lhs.borrowing_sub(rhs, borrow);
+    // Consume the mask directly: another Choice conversion or black_box here could hide
+    // a regression in the primitive's optimization barrier.
+    difference.wrapping_add(Limb(modulus.0 & borrow.0))
+}
+
+/// Exercise native and software leading-zero counts, including a secret zero input.
+#[checkct]
+pub fn limb_leading_zeros() {
+    black_box(private_limb().leading_zeros());
+}
+
+/// Exercise native and software trailing-zero counts without constraining the input to be odd.
+#[checkct]
+pub fn limb_trailing_zeros() {
+    black_box(private_limb().trailing_zeros());
+}
+
+/// Exercise trailing-zero counting of a complemented secret input, including all ones.
+#[checkct]
+pub fn limb_trailing_ones() {
+    black_box(private_limb().trailing_ones());
+}
+
 /// Exercise a secret incoming borrow and its propagation across multiple limbs.
 #[checkct]
 pub fn borrowing_sub_u128() {

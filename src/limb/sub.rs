@@ -1,7 +1,8 @@
 //! Limb subtraction
 
 use crate::{
-    Checked, CheckedSub, CtOption, Limb, Sub, SubAssign, SubMod, Wrapping, WrappingSub, word,
+    Checked, CheckedSub, CtOption, Limb, Sub, SubAssign, SubMod, Wrapping, WrappingSub,
+    primitives::borrowing_sub,
 };
 
 impl Limb {
@@ -19,7 +20,7 @@ impl Limb {
     #[inline(always)]
     #[must_use]
     pub const fn borrowing_sub(self, rhs: Limb, borrow: Limb) -> (Limb, Limb) {
-        let (res, borrow) = word::borrowing_sub_mask(self.0, rhs.0, borrow.0);
+        let (res, borrow) = borrowing_sub(self.0, rhs.0, borrow.0);
         (Limb(res), Limb(borrow))
     }
 
