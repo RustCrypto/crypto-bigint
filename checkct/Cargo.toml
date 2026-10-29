@@ -15,3 +15,6 @@ panic = "immediate-abort"
 
 [profile.release.package.driver-opt0]
 opt-level = 0
+
+[patch.crates-io.ctutils]
+git = "https://github.com/RustCrypto/utils"

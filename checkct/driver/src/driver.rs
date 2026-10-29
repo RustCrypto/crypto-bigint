@@ -2,7 +2,7 @@ use crate::rng::{PrivateRng, PublicRng};
 use checkct_macros::checkct;
 use core::hint::black_box;
 use crypto_bigint::{
-    Limb, NonZero, U64, U128, U256, U384, U512, const_monty_params,
+    CtOption, Limb, NonZero, Odd, U64, U128, U256, U384, U512, const_monty_params,
     modular::{ConstMontyForm, FixedMontyForm, FixedMontyParams},
 };
 
@@ -179,6 +179,58 @@ pub fn div_rem_u64() {
 #[inline(never)]
 fn div_rem(dividend: &U64, divisor: &NonZero<U64>) -> (U64, U64) {
     dividend.div_rem(divisor)
+}
+
+fn private_u128() -> U128 {
+    let mut bytes = [0u8; 16];
+    PrivateRng::new().fill_bytes(&mut bytes);
+    U128::from_be_slice(&bytes)
+}
+
+/// Exercise safegcd with a public odd composite modulus and an unrestricted secret input.
+/// U128 is multi-limb on every target; zero and noninvertible inputs remain possible.
+#[checkct]
+pub fn invert_odd_mod_u128() {
+    let modulus = U128::MAX.to_odd().unwrap();
+    black_box(invert_odd_mod(&private_u128(), &modulus));
+}
+
+/// Exercise safegcd setup and inversion with independent secret operands.
+#[checkct]
+pub fn invert_odd_mod_secret_modulus_u128() {
+    let value = private_u128();
+    let modulus = private_u128().bitor(&U128::ONE).to_odd().unwrap();
+    black_box(invert_odd_mod(&value, &modulus));
+}
+
+#[inline(never)]
+fn invert_odd_mod(value: &U128, modulus: &Odd<U128>) -> CtOption<U128> {
+    value.invert_odd_mod(modulus)
+}
+
+/// Exercise both inversions and CRT recombination with a public even composite modulus.
+/// Its 65 trailing zeros cross a limb boundary on both 32-bit and 64-bit targets.
+#[checkct]
+pub fn invert_mod_u128() {
+    let modulus = U128::from_be_hex("FFFFFFFFFFFFFFFE0000000000000000")
+        .to_nz()
+        .unwrap();
+    black_box(invert_mod(&private_u128(), &modulus));
+}
+
+/// Keep the modulus, its trailing-zero count, and invertibility secret.
+#[checkct]
+pub fn invert_mod_secret_modulus_u128() {
+    let value = private_u128();
+    // Map zero to one without branching, retaining every valid nonzero modulus,
+    // including one, powers of two, and odd and even composites.
+    let modulus = private_u128().to_nz().unwrap_or(NonZero::ONE);
+    black_box(invert_mod(&value, &modulus));
+}
+
+#[inline(never)]
+fn invert_mod(value: &U128, modulus: &NonZero<U128>) -> CtOption<U128> {
+    value.invert_mod(modulus)
 }
 
 /// Exercise Montgomery carry propagation while converting a P-384 scalar.

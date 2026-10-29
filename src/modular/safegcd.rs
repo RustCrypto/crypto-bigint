@@ -188,7 +188,7 @@ const fn jump_step(
     mut delta: i64,
     mut t: Matrix,
 ) -> (i64, i64, i64, Matrix) {
-    let d_gtz = Choice::from_u64_nz((delta & !(delta >> 63)) as u64);
+    let d_gtz = Choice::from_u64_lt(1 << 63, (delta as u64) ^ (1 << 63));
     let g_odd = Choice::from_u64_lsb((g & 1) as u64);
     let g_adj = g_odd.select_i64(0, f);
     let swap = d_gtz.and(g_odd);
@@ -537,7 +537,7 @@ impl<const LIMBS: usize> PartialEq for SignedInt<LIMBS> {
 
 #[cfg(test)]
 mod tests {
-    use super::{SafeGcdInverter, iterations};
+    use super::{SafeGcdInverter, iterations, jump_step, jump_step_vartime};
     use crate::{U128, U256, modular::safegcd::shr_in_place_wide};
 
     #[test]
@@ -554,6 +554,23 @@ mod tests {
             U256::from_be_hex("FB668F8F509790BC549B077098918604283D42901C92981062EB48BC723F617B"),
             result
         );
+    }
+
+    #[test]
+    fn jump_step_signed_delta() {
+        // Include zero and both signs, as well as the signed comparison's endpoints.
+        for delta in [i64::MIN, -1, 0, 1, i64::MAX] {
+            for f in [-7, -1, 1, 7] {
+                for g in [-8, -7, -1, 0, 1, 7, 8] {
+                    let t = [[1, 0], [0, 1]];
+                    assert_eq!(
+                        jump_step(f, g, delta, t),
+                        jump_step_vartime(f, g, delta, t),
+                        "f={f}, g={g}, delta={delta}",
+                    );
+                }
+            }
+        }
     }
 
     #[test]
