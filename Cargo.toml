@@ -140,3 +140,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 
 [package.metadata.typos.default]
 extend-ignore-re = ["([0-9A-Fa-f]{16,})"]
+
+[patch.crates-io.ctutils]
+git = "https://github.com/RustCrypto/utils"
+
