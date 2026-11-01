@@ -205,6 +205,10 @@ impl BoxedUint {
     pub fn from_str_radix_vartime(src: &str, radix: u32) -> Result<Self, DecodeError> {
         let mut dec = VecDecodeByLimb::default();
         encoding::radix_decode_str(src, radix, &mut dec)?;
+        if dec.limbs.is_empty() {
+            // The input was zero: all of its digits were stripped as leading zeros
+            return Ok(Self::zero());
+        }
         Ok(Self {
             limbs: dec.limbs.into(),
         })
@@ -663,6 +667,18 @@ mod tests {
         let hex = "fedcba9876543210fedcba9876543210";
         let res = BoxedUint::from_str_radix_vartime(hex, 16).expect("error decoding");
         assert_eq!(hex, format!("{res:x}"));
+    }
+
+    #[test]
+    fn from_str_radix_zero() {
+        for radix in [2, 10, 16, 36] {
+            for src in ["0", "00", "+0", "0_0"] {
+                let res = BoxedUint::from_str_radix_vartime(src, radix).expect("error decoding");
+                assert_eq!(res, BoxedUint::zero());
+                assert_eq!(res.bits_vartime(), 0);
+                assert_eq!(res.to_string_radix_vartime(radix), "0");
+            }
+        }
     }
 
     #[test]
