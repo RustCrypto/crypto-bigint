@@ -92,6 +92,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "checkct_macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "ciborium"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -267,6 +276,29 @@ name = "der"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a878c850e9e421b20262e9b41f9c860e4785fa07541c266b62ff9d1ef998a80a"
+
+[[package]]
+name = "driver"
+version = "0.0.0"
+dependencies = [
+ "checkct_macros",
+ "crypto-bigint",
+ "driver-opt0",
+ "rand_core 0.10.1",
+ "rand_core 0.6.4",
+ "rand_core 0.9.5",
+]
+
+[[package]]
+name = "driver-opt0"
+version = "0.0.0"
+dependencies = [
+ "checkct_macros",
+ "crypto-bigint",
+ "rand_core 0.10.1",
+ "rand_core 0.6.4",
+ "rand_core 0.9.5",
+]
 
 [[package]]
 name = "either"
@@ -583,6 +615,12 @@ dependencies = [
  "ppv-lite86",
  "rand_core 0.9.5",
 ]
+
+[[package]]
+name = "rand_core"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec0be4795e2f6a28069bec0b5ff3e2ac9bafc99e6a9a7dc3547996c5c816922c"
 
 [[package]]
 name = "rand_core"

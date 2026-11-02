@@ -1,17 +1,26 @@
-cargo-features = ["panic-immediate-abort"]
+[package]
+name = "driver"
+version = "0.0.0"
+publish = false
+edition = "2024"
 
-[workspace]
-members = ["driver", "driver-opt0"]
-resolver = "2"
+[[bin]]
+name = "driver"
+path = "driver/src/main.rs"
+test = false
+bench = false
 
-[workspace.dependencies]
-rand_core = "0.10"
+[[bin]]
+name = "driver-opt0"
+path = "driver-opt0/src/main.rs"
+test = false
+bench = false
+
+[dependencies]
+checkct_macros = { path = "checkct_macros" }
+crypto-bigint = { path = "..", default-features = false }
+driver-opt0 = { path = "driver-opt0" }
+# RNG traits supplied by cargo-checkct's generated rng.rs.
+rand_core = { workspace = true, default-features = true }
 rand_core_09 = { package = "rand_core", version = "0.9" }
 rand_core_06 = { package = "rand_core", version = "0.6" }
-
-[profile.release]
-debug = true
-panic = "immediate-abort"
-
-[profile.release.package.driver-opt0]
-opt-level = 0

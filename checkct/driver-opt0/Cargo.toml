@@ -3,10 +3,16 @@ name = "driver-opt0"
 version = "0.0.0"
 publish = false
 edition = "2024"
+autobins = false
+
+[lib]
+test = false
+bench = false
+doctest = false
 
 [dependencies]
 checkct_macros = { path = "../checkct_macros" }
 crypto-bigint = { path = "../..", default-features = false }
-rand_core.workspace = true
-rand_core_09.workspace = true
-rand_core_06.workspace = true
+rand_core = { workspace = true, default-features = true }
+rand_core_09 = { package = "rand_core", version = "0.9" }
+rand_core_06 = { package = "rand_core", version = "0.6" }
