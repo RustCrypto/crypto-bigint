@@ -254,8 +254,9 @@ dependencies = [
 
 [[package]]
 name = "ctutils"
-version = "0.4.7"
-source = "git+https://github.com/RustCrypto/utils#5d666b6eb95c684d14ed46de1b9019b2afcc9c2e"
+version = "0.4.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "261af4dc7a06ea8a527a8717d8cbba3417530d6ea14e1edb3de6b67806be474f"
 dependencies = [
  "cmov",
  "subtle",
