@@ -5,7 +5,7 @@
 mod common;
 
 use common::to_biguint;
-use crypto_bigint::{U256, const_monty_params, modular::ConstMontyParams};
+use crypto_bigint::{Invert, U256, const_monty_params, modular::ConstMontyParams};
 use num_bigint::BigUint;
 use num_modular::ModularUnaryOps;
 use proptest::prelude::*;
@@ -34,22 +34,23 @@ prop_compose! {
 
 proptest! {
     #[test]
-    fn invert(x in uint()) {
+    fn invert(x in prop_oneof![Just(U256::ZERO), uint()]) {
         let x = reduce(&x);
-        let actual = Option::<ConstMontyForm>::from(x.invert());
 
         let x_bi = retrieve_biguint(&x);
         let n_bi = to_biguint(&Modulus::PARAMS.modulus());
         let expected = x_bi.invm(&n_bi);
 
-        match (expected, actual) {
-            (Some(exp), Some(act)) => {
-                let res = x * act;
-                prop_assert_eq!(res.retrieve(), U256::ONE);
-                prop_assert_eq!(exp, retrieve_biguint(&act));
+        for actual in [x.invert(), x.invert_vartime(), Invert::invert_vartime(&x)] {
+            match (&expected, Option::<ConstMontyForm>::from(actual)) {
+                (Some(exp), Some(act)) => {
+                    let res = x * act;
+                    prop_assert_eq!(res.retrieve(), U256::ONE);
+                    prop_assert_eq!(exp, &retrieve_biguint(&act));
+                }
+                (None, None) => (),
+                (_, _) => panic!("disagreement on if modular inverse exists")
             }
-            (None, None) => (),
-            (_, _) => panic!("disagreement on if modular inverse exists")
         }
     }
 
