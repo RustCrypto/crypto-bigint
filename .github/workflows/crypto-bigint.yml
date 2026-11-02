@@ -220,7 +220,7 @@ jobs:
         with:
           toolchain: stable
       - uses: RustCrypto/actions/cargo-hack-install@master
-      - run: cargo hack check --release --feature-powerset --no-dev-deps
+      - run: cargo hack check -p crypto-bigint --release --feature-powerset --no-dev-deps
 
   clippy:
     runs-on: ubuntu-latest
@@ -249,7 +249,7 @@ jobs:
         with:
           toolchain: stable
           components: rustfmt
-      - run: cargo fmt --all -- --check
+      - run: cargo fmt -p crypto-bigint -- --check
 
   semver-checks:
     runs-on: ubuntu-latest

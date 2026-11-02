@@ -15,5 +15,14 @@ rustflags = [
 
 [unstable]
 unstable-options = true
+panic-immediate-abort = true
 build-std = ["core", "panic_abort"]
 build-std-features = ["compiler-builtins-mem"]
+
+# Apply these only to builds invoked from checkct/.
+[profile.release]
+debug = true
+panic = "immediate-abort"
+
+[profile.release.package.driver-opt0]
+opt-level = 0
