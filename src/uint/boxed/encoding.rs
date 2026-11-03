@@ -205,13 +205,7 @@ impl BoxedUint {
     pub fn from_str_radix_vartime(src: &str, radix: u32) -> Result<Self, DecodeError> {
         let mut dec = VecDecodeByLimb::default();
         encoding::radix_decode_str(src, radix, &mut dec)?;
-        if dec.limbs.is_empty() {
-            // The input was zero: all of its digits were stripped as leading zeros
-            return Ok(Self::zero());
-        }
-        Ok(Self {
-            limbs: dec.limbs.into(),
-        })
+        Ok(Self::from(dec.limbs))
     }
 
     /// Create a new [`BoxedUint`] from a big-endian string in a given base,
