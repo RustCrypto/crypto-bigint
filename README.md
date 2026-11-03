@@ -25,6 +25,28 @@ using const generics.
   values at compile-time.
 - Optional heap-allocated `Boxed*` types gated under an `alloc` feature.
 
+## Supported CPU architectures
+
+We focus on delivering constant-time operation on the following CPU architectures:
+
+- `aarch64`
+- `riscv32` ✅
+- `riscv64`
+- `thumbv6` ✅
+- `thumbv7` (with checks for `thumbv7em` ✅)
+- `x86`
+- `x86_64` ✅
+- `wasm32`
+
+✅: indicates architectures where we use [`cargo checkct`] / [BINSEC] in CI to
+ensure that, for functions with `checkct` assertions, changes do not introduce
+variable-time operations.
+
+We do not make assurances of constant-time operation on other CPUs.
+Notably this library is NOT suitable for use on processors with a variable-time
+multiplication operation, e.g. short circuit on multiply-by-zero /
+multiply-by-one, such as certain 32-bit PowerPC CPUs and microcontrollers.
+
 ## Security Notes
 
 This crate has been [audited by NCC Group] with no significant
@@ -33,11 +55,6 @@ Note that the implementation has diverged significantly since the last audit.
 
 All functions contained in the crate are designed to execute in constant
 time unless explicitly specified otherwise (via a `*_vartime` name suffix).
-
-This library is NOT suitable for use on processors with a variable-time
-multiplication operation (e.g. short circuit on multiply-by-zero /
-multiply-by-one, such as certain 32-bit PowerPC CPUs and some non-ARM
-microcontrollers).
 
 ## Minimum Supported Rust Version (MSRV) Policy
 
@@ -80,5 +97,7 @@ dual licensed as above, without any additional terms or conditions.
 [//]: # (links)
 
 [RustCrypto]: https://github.com/rustcrypto
+[`cargo checkct`]: https://github.com/Ledger-Donjon/cargo-checkct
+[BINSEC]: https://binsec.github.io/
 [audited by NCC Group]: https://www.nccgroup.com/us/research-blog/public-report-entropyrust-cryptography-review/
 [Entropy]: https://entropy.xyz/
