@@ -6,6 +6,8 @@ use crypto_bigint::{
     modular::{ConstMontyForm, FixedMontyForm, FixedMontyParams},
 };
 
+mod mul_mod_special;
+
 const_monty_params!(
     P384Order,
     U384,
