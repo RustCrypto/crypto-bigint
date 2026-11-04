@@ -49,6 +49,13 @@ impl BoxedUint {
         };
 
         {
+            // Prevent LLVM from turning the carry mask into a secret-dependent branch on Thumb-1.
+            #[cfg(all(
+                target_arch = "arm",
+                target_feature = "thumb-mode",
+                not(target_feature = "thumb2")
+            ))]
+            let carry = Limb(core::hint::black_box(carry.0));
             let rhs = carry.wrapping_sub(Limb::ONE) & c;
             lo.borrowing_sub_assign(rhs, Limb::ZERO);
         }

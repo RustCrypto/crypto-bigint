@@ -53,6 +53,13 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         };
 
         let (lo, _) = {
+            // Prevent LLVM from turning the carry mask into a secret-dependent branch on Thumb-1.
+            #[cfg(all(
+                target_arch = "arm",
+                target_feature = "thumb-mode",
+                not(target_feature = "thumb2")
+            ))]
+            let carry = Limb(core::hint::black_box(carry.0));
             let rhs = carry.0.wrapping_sub(1) & c.0;
             lo.borrowing_sub(&Self::from_word(rhs), Limb::ZERO)
         };
