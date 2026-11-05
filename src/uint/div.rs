@@ -920,7 +920,7 @@ mod tests {
         let y2: U1024 = U128::concat_mixed(&y, &U896::ZERO);
         let rem_control = x.rem(&NonZero::new(y2).unwrap());
 
-        assert_eq!(rem.bits(), rem_control.bits());
+        assert_eq!(rem.bit_width(), rem_control.bit_width());
         assert_eq!(rem.as_words(), &rem_control.as_words()[0..U128::LIMBS]);
         assert!(
             rem_control.as_words()[U128::LIMBS..]
@@ -943,7 +943,7 @@ mod tests {
         let y_wide = U512::concat_mixed(&y, &U512::ZERO);
         let rem_control: U1024 = x.rem(&NonZero::new(y_wide).unwrap());
 
-        assert_eq!(rem.bits(), rem_control.bits());
+        assert_eq!(rem.bit_width(), rem_control.bit_width());
         assert_eq!(rem.as_words(), &rem_control.as_words()[0..U512::LIMBS]);
         assert!(
             rem_control.as_words()[U512::LIMBS..]

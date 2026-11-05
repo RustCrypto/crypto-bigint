@@ -162,7 +162,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
             iterations -= batch;
 
             // Construct a_ and b_ as the summary of a and b, respectively.
-            let n = u32_max(2 * K, a.bitor(&b).bits());
+            let n = u32_max(2 * K, a.bitor(&b).bit_width());
             let a_ = a.compact::<K, LIMBS_2K>(n);
             let b_ = b.compact::<K, LIMBS_2K>(n);
 
@@ -207,7 +207,7 @@ impl<const LIMBS: usize> Odd<Uint<LIMBS>> {
 
         while !b.is_zero_vartime() {
             // Construct a_ and b_ as the summary of a and b, respectively.
-            let n = u32_max(2 * K, u32_max(a.bits_vartime(), b.bits_vartime()));
+            let n = u32_max(2 * K, u32_max(a.bit_width_vartime(), b.bit_width_vartime()));
             let mut a_ = a.compact_vartime::<K, LIMBS_2K>(n);
             let mut b_ = b.compact_vartime::<K, LIMBS_2K>(n);
 

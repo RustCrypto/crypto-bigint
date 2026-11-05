@@ -91,7 +91,7 @@ impl BoxedUint {
     #[must_use]
     pub fn rem_vartime<Rhs: ToUnsigned + ?Sized>(&self, rhs: &NonZero<Rhs>) -> Rhs::Unsigned {
         let xc = self.limbs.len();
-        let yc = bitlen::to_limbs(rhs.as_ref().as_ref().bits_vartime());
+        let yc = bitlen::to_limbs(rhs.as_ref().as_ref().bit_width_vartime());
 
         match yc {
             0 => unreachable!("zero divisor"),

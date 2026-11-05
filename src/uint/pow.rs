@@ -120,7 +120,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         &self,
         exp: &Uint<RHS_LIMBS>,
     ) -> Self {
-        let mut exp_bits = exp.bits_vartime();
+        let mut exp_bits = exp.bit_width_vartime();
         if exp_bits == 0 {
             return Self::ONE;
         }
@@ -187,7 +187,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         &self,
         exp: &Uint<RHS_LIMBS>,
     ) -> (Self, Choice) {
-        let mut exp_bits = exp.bits_vartime();
+        let mut exp_bits = exp.bit_width_vartime();
         if exp_bits == 0 {
             return (Self::ONE, Choice::FALSE);
         }

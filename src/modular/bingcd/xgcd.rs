@@ -262,14 +262,14 @@ impl<const LIMBS: usize> OddUint<LIMBS> {
         let mut i = 0;
         while i < Self::MIN_BINXGCD_ITERATIONS.div_ceil(K - 1) {
             // Loop invariants:
-            //  i) each iteration of this loop, `a.bits() + b.bits()` shrinks by at least K-1,
+            //  i) each iteration of this loop, `a.bit_width() + b.bit_width()` shrinks by at least K-1,
             //     until `b = 0`.
             // ii) `a` is odd.
             i += 1;
 
             // Construct compact_a and compact_b as the summary of a and b, respectively.
-            let b_bits = b.bits();
-            let n = u32_max(2 * K, u32_max(a.bits(), b_bits));
+            let b_bits = b.bit_width();
+            let n = u32_max(2 * K, u32_max(a.bit_width(), b_bits));
             let compact_a = a.compact::<K, LIMBS_2K>(n);
             let compact_b = b.compact::<K, LIMBS_2K>(n);
             let b_eq_compact_b =

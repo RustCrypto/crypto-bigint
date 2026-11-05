@@ -46,11 +46,21 @@ impl Limb {
         }
     }
 
-    /// Calculate the number of bits needed to represent this number.
+    /// Returns the minimum number of bits required to represent `self`.
+    ///
+    /// Returns zero if `self` is zero.
     #[inline(always)]
     #[must_use]
-    pub const fn bits(self) -> u32 {
+    pub const fn bit_width(self) -> u32 {
         Limb::BITS - self.leading_zeros()
+    }
+
+    /// Deprecated alias for [`Self::bit_width`].
+    #[deprecated(since = "0.7.11", note = "please use `bit_width` instead")]
+    #[inline]
+    #[must_use]
+    pub const fn bits(self) -> u32 {
+        self.bit_width()
     }
 
     /// Calculate the number of leading zeros in the binary representation of this number.
@@ -100,7 +110,7 @@ impl BitOps for Limb {
 
     #[inline(always)]
     fn bits(&self) -> u32 {
-        Limb::bits(*self)
+        Limb::bit_width(*self)
     }
 
     #[inline(always)]

@@ -49,7 +49,7 @@ impl<const LIMBS: usize> NonZero<Uint<LIMBS>> {
         let exp_m1_limb = Limb::from_u32(exp_m1);
         let exp_recip = Reciprocal::new(NonZero::<Limb>::from_u32(exp));
 
-        let rt_bits = self.as_ref().bits().div_ceil(exp.get());
+        let rt_bits = self.as_ref().bit_width().div_ceil(exp.get());
         // The initial guess: `x_0 = 2^ceil(b/exp)`, where `exp^(b-1) <= self < exp^b`.
         // Will not overflow since `b <= BITS`.
         let mut x = Uint::<LIMBS>::ZERO.set_bit_vartime(rt_bits, true);

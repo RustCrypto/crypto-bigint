@@ -241,7 +241,7 @@ impl BoxedUint {
             radix,
             &mut encoding::SliceDecodeByLimb::new(&mut ret.limbs),
         )?;
-        if bits_precision < ret.bits() {
+        if bits_precision < ret.bit_width() {
             return Err(DecodeError::Precision);
         }
         Ok(ret)
@@ -473,7 +473,7 @@ mod tests {
     fn from_be_slice_non_multiple_precision() {
         let bytes = hex!("0f112233445566778899aabbccddeeff");
         let n = BoxedUint::from_be_slice(&bytes, 121).unwrap();
-        assert_eq!(n.bits(), 121);
+        assert_eq!(n.bit_width(), 121);
     }
 
     #[test]
@@ -508,7 +508,7 @@ mod tests {
     #[test]
     fn from_be_slice_truncated_top_byte_masked() {
         let n = BoxedUint::from_be_slice_truncated(&[0xFF, 0xFF], 12);
-        assert!(n.bits() <= 12);
+        assert!(n.bit_width() <= 12);
     }
 
     #[test]
@@ -527,7 +527,7 @@ mod tests {
     #[test]
     fn from_le_slice_truncated_top_byte_masked() {
         let n = BoxedUint::from_le_slice_truncated(&[0xFF, 0xFF], 12);
-        assert!(n.bits() <= 12,);
+        assert!(n.bit_width() <= 12,);
     }
 
     #[test]
@@ -552,7 +552,7 @@ mod tests {
     fn from_le_slice_non_multiple_precision() {
         let bytes = hex!("ffeeddccbbaa998877665544332211ff");
         let n = BoxedUint::from_le_slice(&bytes, 121).unwrap();
-        assert_eq!(n.bits(), 121);
+        assert_eq!(n.bit_width(), 121);
     }
 
     #[test]
@@ -669,7 +669,7 @@ mod tests {
             for src in ["0", "00", "+0", "0_0"] {
                 let res = BoxedUint::from_str_radix_vartime(src, radix).expect("error decoding");
                 assert_eq!(res, BoxedUint::zero());
-                assert_eq!(res.bits_vartime(), 0);
+                assert_eq!(res.bit_width_vartime(), 0);
                 assert_eq!(res.to_string_radix_vartime(radix), "0");
             }
         }

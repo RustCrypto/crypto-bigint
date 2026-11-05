@@ -31,7 +31,7 @@ fn bench_random(c: &mut Criterion) {
     let mut rng = make_rng();
     group.bench_function("random_bits, U1024", |b| {
         let bound = U1024::random_from_rng(&mut rng);
-        let bound_bits = bound.bits_vartime();
+        let bound_bits = bound.bit_width_vartime();
         b.iter(|| {
             let mut r = U1024::random_bits(&mut rng, bound_bits);
             while r >= bound {
@@ -51,7 +51,7 @@ fn bench_random(c: &mut Criterion) {
     let mut rng = make_rng();
     group.bench_function("random_bits, U1024, small bound", |b| {
         let bound = U1024::from_u64(rng.next_u64());
-        let bound_bits = bound.bits_vartime();
+        let bound_bits = bound.bit_width_vartime();
         b.iter(|| {
             let mut r = U1024::random_bits(&mut rng, bound_bits);
             while r >= bound {
@@ -73,7 +73,7 @@ fn bench_random(c: &mut Criterion) {
     group.bench_function("random_bits, U1024, 512 bit bound low", |b| {
         let bound = U512::random_from_rng(&mut rng);
         let bound = U1024::from((bound, U512::ZERO));
-        let bound_bits = bound.bits_vartime();
+        let bound_bits = bound.bit_width_vartime();
         b.iter(|| {
             let mut r = U1024::random_bits(&mut rng, bound_bits);
             while r >= bound {
@@ -95,7 +95,7 @@ fn bench_random(c: &mut Criterion) {
     group.bench_function("random_bits, U1024, 512 bit bound hi", |b| {
         let bound = U512::random_from_rng(&mut rng);
         let bound = U1024::from((U512::ZERO, bound));
-        let bound_bits = bound.bits_vartime();
+        let bound_bits = bound.bit_width_vartime();
         b.iter(|| {
             let mut r = U1024::random_bits(&mut rng, bound_bits);
             while r >= bound {
@@ -119,7 +119,7 @@ fn bench_random(c: &mut Criterion) {
     group.bench_function("random_bits, U1024, tiny high limb", |b| {
         let hex_1024 = "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000291A6B42D1C7D2A7184D13E36F65773BBEFB4FA7996101300D49F09962A361F00";
         let bound = U1024::from_be_hex(hex_1024);
-        let bound_bits = bound.bits_vartime();
+        let bound_bits = bound.bit_width_vartime();
         b.iter(|| {
             let mut r = U1024::random_bits(&mut rng, bound_bits);
             while r >= bound {

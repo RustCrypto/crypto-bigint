@@ -17,7 +17,7 @@ impl UintRef {
                 Limb(rem).is_zero()
             }
             _ => {
-                let mut bits = self.bits();
+                let mut bits = self.bit_width();
                 let is_zero = Choice::from_u32_nz(bits).not();
                 // Set first limb to 1 if the input is zero
                 self.limbs[0] = Limb::select(self.limbs[0], Limb::ONE, is_zero);
@@ -45,7 +45,7 @@ impl UintRef {
 
     #[inline]
     pub(crate) const fn sqrt_assign_vartime(&mut self, buf: (&mut UintRef, &mut UintRef)) -> bool {
-        let bits = self.bits_vartime();
+        let bits = self.bit_width_vartime();
         if bits == 0 {
             return true;
         }

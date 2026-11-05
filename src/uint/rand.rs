@@ -86,7 +86,7 @@ impl<const LIMBS: usize> RandomBits for Uint<LIMBS> {
 impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
     fn random_mod_vartime<R: Rng + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
         let mut x = Self::ZERO;
-        let Ok(()) = random_mod_vartime_core(rng, &mut x, modulus, modulus.bits_vartime());
+        let Ok(()) = random_mod_vartime_core(rng, &mut x, modulus, modulus.bit_width_vartime());
         x
     }
 
@@ -95,7 +95,7 @@ impl<const LIMBS: usize> RandomMod for Uint<LIMBS> {
         modulus: &NonZero<Self>,
     ) -> Result<Self, R::Error> {
         let mut x = Self::ZERO;
-        random_mod_vartime_core(rng, &mut x, modulus, modulus.bits_vartime())?;
+        random_mod_vartime_core(rng, &mut x, modulus, modulus.bit_width_vartime())?;
         Ok(x)
     }
 }

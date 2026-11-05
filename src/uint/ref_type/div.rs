@@ -28,7 +28,7 @@ impl UintRef {
         }
 
         // Compute the size of the divisor
-        let ybits = y.bits();
+        let ybits = y.bit_width();
         assert!(ybits > 0, "zero divisor");
         let ywords = bitlen::to_limbs_u32(ybits);
 
@@ -56,7 +56,7 @@ impl UintRef {
     pub(crate) const fn div_rem_vartime(&mut self, rhs: &mut Self) {
         let (x, y) = (self, rhs);
         let xsize = x.nlimbs();
-        let ywords = bitlen::to_limbs(y.bits_vartime());
+        let ywords = bitlen::to_limbs(y.bit_width_vartime());
 
         match (xsize, ywords) {
             (_, 0) => panic!("zero divisor"),
@@ -111,7 +111,7 @@ impl UintRef {
         }
 
         // Compute the size of the divisor
-        let ybits = y.bits();
+        let ybits = y.bit_width();
         assert!(ybits > 0, "zero divisor");
         let ywords = bitlen::to_limbs_u32(ybits);
 
@@ -146,7 +146,7 @@ impl UintRef {
     pub(crate) const fn rem_wide_vartime(x_lower_upper: (&mut Self, &mut Self), rhs: &mut Self) {
         let (x_lo, x) = x_lower_upper;
         let xsize = x.nlimbs();
-        let ysize = bitlen::to_limbs(rhs.bits_vartime());
+        let ysize = bitlen::to_limbs(rhs.bit_width_vartime());
         let y = rhs.leading_mut(ysize);
 
         match (xsize, ysize) {
@@ -606,7 +606,7 @@ impl UintRef {
     /// If the divisor is zero.
     #[inline(always)]
     pub(crate) const fn div_exact(&mut self, rhs: &mut UintRef) -> Choice {
-        let y_bits = rhs.bits();
+        let y_bits = rhs.bit_width();
         assert!(y_bits > 0, "zero divisor");
 
         let x_tz = self.trailing_zeros();
@@ -641,7 +641,7 @@ impl UintRef {
     /// If the divisor is zero.
     #[inline(always)]
     pub(crate) const fn div_exact_vartime(&mut self, rhs: &mut UintRef) -> Choice {
-        let y_bits = rhs.bits_vartime();
+        let y_bits = rhs.bit_width_vartime();
         assert!(y_bits > 0, "zero divisor");
 
         let x_tz = self.trailing_zeros();
