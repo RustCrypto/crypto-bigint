@@ -25,6 +25,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// For the modulus reduction, this function implements Algorithm 14.47 from
     /// the "Handbook of Applied Cryptography", by A. Menezes, P. van Oorschot,
     /// and S. Vanstone, CRC Press, 1996.
+    #[cfg_attr(target_arch = "arm", inline)]
     #[must_use]
     pub const fn mul_mod_special(&self, rhs: &Self, c: Limb) -> Self {
         // We implicitly assume `LIMBS > 0`, because `Uint<0>` doesn't compile.
@@ -53,13 +54,11 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         };
 
         let (lo, _) = {
-            // Prevent LLVM from turning the carry mask into a secret-dependent branch on Thumb-1.
-            #[cfg(all(
-                target_arch = "arm",
-                target_feature = "thumb-mode",
-                not(target_feature = "thumb2")
-            ))]
-            let carry = Limb(core::hint::black_box(carry.0));
+            // LLVM can turn the carry mask into a secret-dependent branch on Thumb.
+            // Use a hardened selection on 32-bit ARM.
+            #[cfg(target_arch = "arm")]
+            let rhs = Limb::select(c, Limb::ZERO, carry.is_nonzero()).0;
+            #[cfg(not(target_arch = "arm"))]
             let rhs = carry.0.wrapping_sub(1) & c.0;
             lo.borrowing_sub(&Self::from_word(rhs), Limb::ZERO)
         };
