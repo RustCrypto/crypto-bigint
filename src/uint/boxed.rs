@@ -378,7 +378,7 @@ impl BoxedUint {
 
     /// Returns `true` if the integer's bit size is smaller or equal to `bits`.
     pub(crate) fn is_within_bits(&self, bits: u32) -> bool {
-        bits >= self.bits_precision() || bits >= self.bits()
+        bits >= self.bits_precision() || bits >= self.bit_width()
     }
 }
 

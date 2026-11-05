@@ -92,10 +92,10 @@ proptest! {
 
     #[test]
     #[allow(clippy::cast_possible_truncation)]
-    fn bits(a in uint()) {
+    fn bit_width(a in uint()) {
         let expected = to_biguint(&a).bits() as u32;
-        prop_assert_eq!(expected, a.bits());
-        prop_assert_eq!(expected, a.bits_vartime());
+        prop_assert_eq!(expected, a.bit_width());
+        prop_assert_eq!(expected, a.bit_width_vartime());
     }
 
     #[test]

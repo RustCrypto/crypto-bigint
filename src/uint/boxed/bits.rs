@@ -20,20 +20,39 @@ impl BoxedUint {
         self.as_uint_ref().bit_vartime(index)
     }
 
-    /// Calculate the number of bits needed to represent this number, i.e. the index of the highest
-    /// set bit.
+    /// Deprecated alias for [`Self::bit_width`].
+    #[deprecated(since = "0.7.11", note = "please use `bit_width` instead")]
+    #[inline]
+    #[must_use]
+    pub fn bits(&self) -> u32 {
+        self.bit_width()
+    }
+
+    /// Returns the minimum number of bits required to represent `self`.
+    ///
+    /// Returns zero if `self` is zero.
     ///
     /// Use [`BoxedUint::bits_precision`] to get the total capacity of this integer.
     #[must_use]
-    pub fn bits(&self) -> u32 {
+    pub fn bit_width(&self) -> u32 {
         self.bits_precision() - self.leading_zeros()
     }
 
-    /// Calculate the number of bits needed to represent this number in variable-time with respect
-    /// to `self`.
+    /// Deprecated alias for [`Self::bit_width_vartime`].
+    #[deprecated(since = "0.7.11", note = "please use `bit_width_vartime` instead")]
+    #[inline]
     #[must_use]
     pub fn bits_vartime(&self) -> u32 {
-        self.as_uint_ref().bits_vartime()
+        self.bit_width_vartime()
+    }
+
+    /// Returns the minimum number of bits required to represent `self`, in variable time
+    /// with respect to `self`.
+    ///
+    /// Returns zero if `self` is zero.
+    #[must_use]
+    pub fn bit_width_vartime(&self) -> u32 {
+        self.as_uint_ref().bit_width_vartime()
     }
 
     /// Calculate the number of leading zeros in the binary representation of this number.
@@ -104,7 +123,7 @@ impl BitOps for BoxedUint {
     }
 
     fn bits(&self) -> u32 {
-        self.bits()
+        self.bit_width()
     }
 
     fn bit(&self, index: u32) -> Choice {
@@ -128,7 +147,7 @@ impl BitOps for BoxedUint {
     }
 
     fn bits_vartime(&self) -> u32 {
-        self.bits_vartime()
+        self.bit_width_vartime()
     }
 
     fn set_bit_vartime(&mut self, index: u32, bit_value: bool) {
@@ -171,15 +190,15 @@ mod tests {
     }
 
     #[test]
-    fn bits() {
-        assert_eq!(0, BoxedUint::zero().bits());
-        assert_eq!(128, BoxedUint::max(128).bits());
+    fn bit_width() {
+        assert_eq!(0, BoxedUint::zero().bit_width());
+        assert_eq!(128, BoxedUint::max(128).bit_width());
 
         let n1 = BoxedUint::from_be_slice(&hex!("000000000029ffffffffffffffffffff"), 128).unwrap();
-        assert_eq!(86, n1.bits());
+        assert_eq!(86, n1.bit_width());
 
         let n2 = BoxedUint::from_be_slice(&hex!("00000000004000000000000000000000"), 128).unwrap();
-        assert_eq!(87, n2.bits());
+        assert_eq!(87, n2.bit_width());
     }
 
     #[test]

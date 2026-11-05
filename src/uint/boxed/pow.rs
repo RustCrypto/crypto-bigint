@@ -109,7 +109,7 @@ impl BoxedUint {
     #[must_use]
     pub fn wrapping_pow_vartime(&self, exp: impl AsRef<UintRef>) -> Self {
         let exp = exp.as_ref();
-        let mut exp_bits = exp.bits_vartime();
+        let mut exp_bits = exp.bit_width_vartime();
         if exp_bits == 0 {
             return Self::one_with_precision(self.bits_precision());
         }
@@ -177,7 +177,7 @@ impl BoxedUint {
     #[must_use]
     pub(crate) fn overflowing_pow_vartime(&self, exp: impl AsRef<UintRef>) -> (Self, Choice) {
         let exp = exp.as_ref();
-        let mut exp_bits = exp.bits_vartime();
+        let mut exp_bits = exp.bit_width_vartime();
         if exp_bits == 0 {
             return (
                 Self::one_with_precision(self.bits_precision()),

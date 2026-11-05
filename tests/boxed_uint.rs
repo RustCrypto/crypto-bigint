@@ -108,11 +108,11 @@ proptest! {
     }
 
     #[test]
-    fn bits(a in uint()) {
+    fn bit_width(a in uint()) {
         #[allow(clippy::cast_possible_truncation)]
         let expected = to_biguint(&a).bits() as u32;
-        prop_assert_eq!(expected, a.bits());
-        prop_assert_eq!(expected, a.bits_vartime());
+        prop_assert_eq!(expected, a.bit_width());
+        prop_assert_eq!(expected, a.bit_width_vartime());
     }
 
     #[test]
@@ -196,7 +196,7 @@ proptest! {
 
     #[test]
     fn invert_mod2k(a in odd_uint(), k in any::<u32>()) {
-        let k = k % (a.bits() + 1);
+        let k = k % (a.bit_width() + 1);
         let a_bi = to_biguint(&a);
         let m_bi = BigUint::one() << k as usize;
 

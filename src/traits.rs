@@ -44,7 +44,18 @@ pub trait BitOps {
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`.
     fn set_bit(&mut self, index: u32, bit_value: Choice);
 
-    /// Calculate the number of bits required to represent a given number.
+    /// Returns the minimum number of bits required to represent `self`.
+    ///
+    /// Returns zero if `self` is zero.
+    #[must_use]
+    #[allow(deprecated)]
+    fn bit_width(&self) -> u32 {
+        // Preserve overrides in existing implementations of this trait.
+        self.bits()
+    }
+
+    /// Deprecated alias for [`Self::bit_width`].
+    #[deprecated(since = "0.7.11", note = "please use `bit_width` instead")]
     #[must_use]
     fn bits(&self) -> u32 {
         self.bits_precision() - self.leading_zeros()
@@ -69,11 +80,22 @@ pub trait BitOps {
     #[must_use]
     fn bit_vartime(&self, index: u32) -> bool;
 
-    /// Calculate the number of bits required to represent a given number in variable-time with
-    /// respect to `self`.
+    /// Returns the minimum number of bits required to represent `self`, in variable time
+    /// with respect to `self`.
+    ///
+    /// Returns zero if `self` is zero.
+    #[must_use]
+    #[allow(deprecated)]
+    fn bit_width_vartime(&self) -> u32 {
+        // Preserve overrides in existing implementations of this trait.
+        self.bits_vartime()
+    }
+
+    /// Deprecated alias for [`Self::bit_width_vartime`].
+    #[deprecated(since = "0.7.11", note = "please use `bit_width_vartime` instead")]
     #[must_use]
     fn bits_vartime(&self) -> u32 {
-        self.bits()
+        self.bit_width()
     }
 
     /// Sets the bit at `index` to 0 or 1 depending on the value of `bit_value`,
@@ -83,7 +105,7 @@ pub trait BitOps {
     /// Calculate the number of leading zeros in the binary representation of this number.
     #[must_use]
     fn leading_zeros_vartime(&self) -> u32 {
-        self.bits_precision() - self.bits_vartime()
+        self.bits_precision() - self.bit_width_vartime()
     }
 
     /// Calculate the number of trailing zeros in the binary representation of this number in
@@ -1709,9 +1731,9 @@ pub(crate) mod tests {
         );
 
         // BitOps
-        assert_eq!(zero.bits(), 0);
-        assert_eq!(one.bits(), 1);
-        assert_eq!(one.bits_vartime(), 1);
+        assert_eq!(zero.bit_width(), 0);
+        assert_eq!(one.bit_width(), 1);
+        assert_eq!(one.bit_width_vartime(), 1);
         assert_eq!(one.bits_precision() as usize, one.bytes_precision() * 8);
         assert_eq!(one.bits_precision(), 1 << one.log2_bits());
         // Leading/trailing zeros and ones

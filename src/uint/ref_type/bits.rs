@@ -48,22 +48,41 @@ impl UintRef {
         }
     }
 
-    /// Calculate the number of bits needed to represent this number, i.e. the index of the highest
-    /// set bit.
+    /// Deprecated alias for [`Self::bit_width`].
+    #[deprecated(since = "0.7.11", note = "please use `bit_width` instead")]
+    #[inline]
+    #[must_use]
+    pub const fn bits(&self) -> u32 {
+        self.bit_width()
+    }
+
+    /// Returns the minimum number of bits required to represent `self`.
+    ///
+    /// Returns zero if `self` is zero.
     ///
     /// Use [`UintRef::bits_precision`] to get the total capacity of this integer.
     #[inline(always)]
     #[must_use]
-    pub const fn bits(&self) -> u32 {
+    pub const fn bit_width(&self) -> u32 {
         self.bits_precision() - self.leading_zeros()
     }
 
-    /// Calculate the number of bits needed to represent this number in variable-time with respect
-    /// to `self`.
+    /// Deprecated alias for [`Self::bit_width_vartime`].
+    #[deprecated(since = "0.7.11", note = "please use `bit_width_vartime` instead")]
+    #[inline]
+    #[must_use]
+    pub const fn bits_vartime(&self) -> u32 {
+        self.bit_width_vartime()
+    }
+
+    /// Returns the minimum number of bits required to represent `self`, in variable time
+    /// with respect to `self`.
+    ///
+    /// Returns zero if `self` is zero.
     #[inline(always)]
     #[allow(clippy::cast_possible_truncation)]
     #[must_use]
-    pub const fn bits_vartime(&self) -> u32 {
+    pub const fn bit_width_vartime(&self) -> u32 {
         let mut i = self.limbs.len() - 1;
         while i > 0 && self.limbs[i].0 == 0 {
             i -= 1;
@@ -258,7 +277,7 @@ impl BitOps for UintRef {
     }
 
     fn bits_vartime(&self) -> u32 {
-        self.bits_vartime()
+        self.bit_width_vartime()
     }
 
     fn set_bit_vartime(&mut self, index: u32, bit_value: bool) {

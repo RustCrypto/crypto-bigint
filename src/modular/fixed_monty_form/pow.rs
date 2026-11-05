@@ -45,7 +45,7 @@ impl<const LIMBS: usize> FixedMontyForm<LIMBS> {
     /// This method is variable time in `exponent`.
     #[must_use]
     pub const fn pow_vartime<const RHS_LIMBS: usize>(&self, exponent: &Uint<RHS_LIMBS>) -> Self {
-        let exponent_bits = exponent.bits_vartime();
+        let exponent_bits = exponent.bit_width_vartime();
         Self {
             montgomery_form: pow_montgomery_form::<LIMBS, RHS_LIMBS, true>(
                 &self.montgomery_form,

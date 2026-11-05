@@ -36,7 +36,7 @@ impl RandomBits for BoxedUint {
 impl RandomMod for BoxedUint {
     fn random_mod_vartime<R: Rng + ?Sized>(rng: &mut R, modulus: &NonZero<Self>) -> Self {
         let mut n = BoxedUint::zero_with_precision(modulus.bits_precision());
-        let Ok(()) = random_mod_vartime_core(rng, &mut n, modulus, modulus.bits());
+        let Ok(()) = random_mod_vartime_core(rng, &mut n, modulus, modulus.bit_width());
         n
     }
 
@@ -45,7 +45,7 @@ impl RandomMod for BoxedUint {
         modulus: &NonZero<Self>,
     ) -> Result<Self, R::Error> {
         let mut n = BoxedUint::zero_with_precision(modulus.bits_precision());
-        random_mod_vartime_core(rng, &mut n, modulus, modulus.bits())?;
+        random_mod_vartime_core(rng, &mut n, modulus, modulus.bit_width())?;
         Ok(n)
     }
 }

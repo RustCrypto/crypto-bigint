@@ -20,7 +20,7 @@ impl RandomMod for Limb {
     ) -> Result<Self, R::Error> {
         let mut bytes = <Self as Encoding>::Repr::default();
 
-        let n_bits = modulus.bits() as usize;
+        let n_bits = modulus.bit_width() as usize;
         let n_bytes = n_bits.div_ceil(8);
         let mask = 0xffu8 >> (8 * n_bytes - n_bits);
 

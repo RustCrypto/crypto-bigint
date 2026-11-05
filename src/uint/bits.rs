@@ -18,18 +18,38 @@ impl<const LIMBS: usize> Uint<LIMBS> {
         self.as_uint_ref().bit_vartime(index)
     }
 
-    /// Calculate the number of bits needed to represent this number.
+    /// Returns the minimum number of bits required to represent `self`.
+    ///
+    /// Returns zero if `self` is zero.
     #[inline]
     #[must_use]
-    pub const fn bits(&self) -> u32 {
+    pub const fn bit_width(&self) -> u32 {
         Self::BITS - self.leading_zeros()
     }
 
-    /// Calculate the number of bits needed to represent this number in variable-time with respect
-    /// to `self`.
+    /// Deprecated alias for [`Self::bit_width`].
+    #[deprecated(since = "0.7.11", note = "please use `bit_width` instead")]
+    #[inline]
+    #[must_use]
+    pub const fn bits(&self) -> u32 {
+        self.bit_width()
+    }
+
+    /// Deprecated alias for [`Self::bit_width_vartime`].
+    #[deprecated(since = "0.7.11", note = "please use `bit_width_vartime` instead")]
+    #[inline]
     #[must_use]
     pub const fn bits_vartime(&self) -> u32 {
-        self.as_uint_ref().bits_vartime()
+        self.bit_width_vartime()
+    }
+
+    /// Returns the minimum number of bits required to represent `self`, in variable time
+    /// with respect to `self`.
+    ///
+    /// Returns zero if `self` is zero.
+    #[must_use]
+    pub const fn bit_width_vartime(&self) -> u32 {
+        self.as_uint_ref().bit_width_vartime()
     }
 
     /// Calculate the number of leading zeros in the binary representation of this number.
@@ -42,7 +62,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     /// variable-time with respect to `self`.
     #[must_use]
     pub const fn leading_zeros_vartime(&self) -> u32 {
-        Self::BITS - self.bits_vartime()
+        Self::BITS - self.bit_width_vartime()
     }
 
     /// Calculate the number of trailing zeros in the binary representation of this number.
@@ -127,7 +147,7 @@ impl<const LIMBS: usize> BitOps for Uint<LIMBS> {
     }
 
     fn bits_vartime(&self) -> u32 {
-        self.bits_vartime()
+        self.bit_width_vartime()
     }
 
     fn set_bit_vartime(&mut self, index: u32, bit_value: bool) {
