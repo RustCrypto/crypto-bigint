@@ -3,8 +3,11 @@ use checkct_macros::checkct;
 use core::hint::black_box;
 use crypto_bigint::{
     CtOption, Limb, NonZero, Odd, U64, U128, U256, U384, U512, const_monty_params,
-    modular::{ConstMontyForm, FixedMontyForm, FixedMontyParams},
+    modular::ConstMontyForm,
 };
+
+#[cfg(not(target_arch = "aarch64"))]
+use crypto_bigint::modular::{FixedMontyForm, FixedMontyParams};
 
 mod mul_mod_special;
 
@@ -250,8 +253,19 @@ fn to_montgomery_p384(value: &U384) -> ConstMontyForm<P384Order, { U384::LIMBS }
 }
 
 /// Exercise Montgomery multiplication with two independent secret operands.
+#[cfg(not(target_arch = "aarch64"))] // TODO(tarcieri): BINSEC can't decode `MRS` instruction
 #[checkct]
 pub fn montgomery_mul_u128() {
+    #[inline(never)]
+    fn montgomery_mul(a: &U128, b: &U128) -> FixedMontyForm<{ U128::LIMBS }> {
+        const PARAMS: FixedMontyParams<{ U128::LIMBS }> = FixedMontyParams::new_vartime(
+            U128::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC5")
+                .to_odd()
+                .expect_copied("modulus is odd"),
+        );
+        FixedMontyForm::new(a, &PARAMS).mul(&FixedMontyForm::new(b, &PARAMS))
+    }
+
     let mut private = PrivateRng::new();
     let mut bytes = [0u8; 16];
     private.fill_bytes(&mut bytes);
@@ -259,16 +273,6 @@ pub fn montgomery_mul_u128() {
     private.fill_bytes(&mut bytes);
     let b = U128::from_be_slice(&bytes);
     black_box(montgomery_mul(&a, &b));
-}
-
-#[inline(never)]
-fn montgomery_mul(a: &U128, b: &U128) -> FixedMontyForm<{ U128::LIMBS }> {
-    const PARAMS: FixedMontyParams<{ U128::LIMBS }> = FixedMontyParams::new_vartime(
-        U128::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC5")
-            .to_odd()
-            .expect_copied("modulus is odd"),
-    );
-    FixedMontyForm::new(a, &PARAMS).mul(&FixedMontyForm::new(b, &PARAMS))
 }
 
 /// Exercise the shared multiplier with identical secret operands. U384 avoids
@@ -325,8 +329,25 @@ fn rem_wide(value: (U64, U64), divisor: &NonZero<U64>) -> U64 {
 
 /// Exercise the AMM exponentiation algorithm also used by `BoxedMontyForm::pow`.
 /// The base and exponent are secret; the modulus and exponent bound are public.
+#[cfg(not(target_arch = "aarch64"))] // TODO(tarcieri): BINSEC can't decode `MRS` instruction
 #[checkct]
 pub fn pow_amm_u128() {
+    #[inline(never)]
+    fn pow_amm(base: &U128, exponent: &U128) -> U128 {
+        const PARAMS: FixedMontyParams<{ U128::LIMBS }> = FixedMontyParams::new_vartime(
+            U128::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC5")
+                .to_odd()
+                .expect_copied("modulus is odd"),
+        );
+
+        // U128 is multi-limb on every target. A fixed 65-bit bound crosses an exponent
+        // limb boundary on both 32- and 64-bit targets and exercises a partial first
+        // window followed by full windows, including when the exponent is zero.
+        FixedMontyForm::new(base, &PARAMS)
+            .pow_amm_bounded_exp(exponent, 65)
+            .retrieve()
+    }
+
     let mut private = PrivateRng::new();
     let mut bytes = [0u8; 16];
     private.fill_bytes(&mut bytes);
@@ -334,20 +355,4 @@ pub fn pow_amm_u128() {
     private.fill_bytes(&mut bytes);
     let exponent = U128::from_be_slice(&bytes);
     black_box(pow_amm(&base, &exponent));
-}
-
-#[inline(never)]
-fn pow_amm(base: &U128, exponent: &U128) -> U128 {
-    const PARAMS: FixedMontyParams<{ U128::LIMBS }> = FixedMontyParams::new_vartime(
-        U128::from_be_hex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC5")
-            .to_odd()
-            .expect_copied("modulus is odd"),
-    );
-
-    // U128 is multi-limb on every target. A fixed 65-bit bound crosses an exponent
-    // limb boundary on both 32- and 64-bit targets and exercises a partial first
-    // window followed by full windows, including when the exponent is zero.
-    FixedMontyForm::new(base, &PARAMS)
-        .pow_amm_bounded_exp(exponent, 65)
-        .retrieve()
 }

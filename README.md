@@ -30,7 +30,7 @@ using const generics.
 This crate is designed to operate in constant-time on the following CPU architectures:
 
 - `arm` (32-bit)
-- `aarch64`
+- `aarch64` ✅
 - `riscv32` ✅
 - `riscv64`
 - `thumbv6` ✅
