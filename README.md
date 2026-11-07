@@ -27,8 +27,9 @@ using const generics.
 
 ## Supported CPU architectures
 
-We focus on delivering constant-time operation on the following CPU architectures:
+This crate is designed to operate in constant-time on the following CPU architectures:
 
+- `arm` (32-bit)
 - `aarch64`
 - `riscv32` ✅
 - `riscv64`
@@ -42,7 +43,13 @@ We focus on delivering constant-time operation on the following CPU architecture
 ensure that, for functions with `checkct` assertions, changes do not introduce
 variable-time operations.
 
-We do not make assurances of constant-time operation on other CPUs.
+Other architectures are officially unsupported, however a use-at-your-own-risk
+portable fallback implementation based on bitwise arithmetic and `black_box` is
+provided without constant-time codegen guarantees. Please do not open issues
+about codegen problems on unsupported CPU architectures: they will be closed
+noting they're unsupported. If you would like such problems addressed, please
+open a pull request that addresses the issue instead.
+
 Notably this library is NOT suitable for use on processors with a variable-time
 multiplication operation, e.g. short circuit on multiply-by-zero /
 multiply-by-one, such as certain 32-bit PowerPC CPUs and microcontrollers.
