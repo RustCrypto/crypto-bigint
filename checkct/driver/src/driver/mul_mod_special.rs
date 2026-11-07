@@ -34,6 +34,7 @@ check_mul_mod_special!(two_limbs_secret_c, 2, private_limb());
 check_mul_mod_special!(one_limb_c0, 1, Limb::ZERO);
 check_mul_mod_special!(two_limbs_c0, 2, Limb::ZERO);
 check_mul_mod_special!(one_limb_c1, 1, Limb::ONE);
+#[cfg(not(target_arch = "aarch64"))] // TODO(tarcieri): BINSEC can't decode `MRS` instruction
 check_mul_mod_special!(two_limbs_c1, 2, Limb::ONE);
 check_mul_mod_special!(one_limb_c19, 1, Limb(19));
 check_mul_mod_special!(two_limbs_c19, 2, Limb(19));
@@ -41,5 +42,7 @@ check_mul_mod_special!(one_limb_max_c, 1, Limb::MAX);
 check_mul_mod_special!(two_limbs_max_c, 2, Limb::MAX);
 
 // Three limbs also permit the first reduction's carry to reach Limb::MAX.
+#[cfg(not(target_arch = "aarch64"))] // TODO(tarcieri): BINSEC can't decode `MRS` instruction
 check_mul_mod_special!(three_limbs_secret_c, 3, private_limb());
+#[cfg(not(target_arch = "aarch64"))] // TODO(tarcieri): BINSEC can't decode `MRS` instruction
 check_mul_mod_special!(three_limbs_max_c, 3, Limb::MAX);
