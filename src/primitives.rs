@@ -7,20 +7,40 @@ use core::hint::black_box;
 #[inline(always)]
 #[allow(clippy::cast_possible_truncation)]
 pub(crate) const fn carrying_add(lhs: Word, rhs: Word, carry: Word) -> (Word, Word) {
-    // We could use `Word::overflowing_add()` here analogous to `overflowing_add()`,
-    // but this version seems to produce a slightly better assembly.
-    let a = lhs as WideWord;
-    let b = rhs as WideWord;
-    let carry = carry as WideWord;
-    let ret = a + b + carry;
-    (ret as Word, (ret >> Word::BITS) as Word)
+    if cfg!(all(target_arch = "arm", not(target_feature = "thumb2"))) {
+        // Widened addition can introduce secret-dependent branches when extracting carries
+        // on Thumb-1. Use the hardened word-sized primitive for both additions instead.
+        let (sum, carry1) = overflowing_add(lhs, rhs);
+        let (sum, carry2) = overflowing_add(sum, carry);
+
+        // The incoming carry is a full Word, so both additions can overflow.
+        (sum, carry1.wrapping_add(carry2))
+    } else {
+        // We could use `Word::overflowing_add()` here analogous to `overflowing_add()`,
+        // but this version seems to produce a slightly better assembly.
+        let a = lhs as WideWord;
+        let b = rhs as WideWord;
+        let carry = carry as WideWord;
+        let ret = a + b + carry;
+        (ret as Word, (ret >> Word::BITS) as Word)
+    }
 }
 
 /// Computes `lhs + rhs`, returning the result along with the carry (0 or 1).
 #[inline(always)]
 pub(crate) const fn overflowing_add(lhs: Word, rhs: Word) -> (Word, Word) {
-    let (res, carry) = lhs.overflowing_add(rhs);
-    (res, carry as Word)
+    if cfg!(all(target_arch = "arm", not(target_feature = "thumb2"))) {
+        let sum = lhs.wrapping_add(rhs);
+
+        // See "Hacker's Delight", 2nd edition, section 2-13 (Overflow detection).
+        // Avoid a boolean overflow result, which can become a branch on Thumb-1.
+        // TODO(tarcieri): export `ctutils::bitborrow!` macro and use that
+        let carry = ((lhs & rhs) | ((lhs | rhs) & !sum)) >> (Word::BITS - 1);
+        (sum, black_box(carry))
+    } else {
+        let (res, carry) = lhs.overflowing_add(rhs);
+        (res, carry as Word)
+    }
 }
 
 /// Computes `lhs - rhs - borrow`, using word-sized borrow masks.
@@ -252,10 +272,14 @@ pub(crate) const fn u64_invert_odd(value: u64) -> u64 {
 #[cfg(test)]
 mod tests {
     use super::{u32_max, u32_min, u32_rem, usize_lt};
-    use crate::Word;
+    use crate::{WideWord, Word};
 
     // These primitives must remain usable by const callers.
     const _: () = {
+        assert!(super::carrying_add(Word::MAX, Word::MAX, Word::MAX).0 == Word::MAX - 2);
+        assert!(super::carrying_add(Word::MAX, Word::MAX, Word::MAX).1 == 2);
+        assert!(super::overflowing_add(Word::MAX, 1).0 == 0);
+        assert!(super::overflowing_add(Word::MAX, 1).1 == 1);
         assert!(super::borrowing_sub(0, 0, Word::MAX).0 == Word::MAX);
         assert!(super::borrowing_sub(0, 0, Word::MAX).1 == Word::MAX);
         assert!(super::borrowing_sub(1, 0, Word::MAX).1 == 0);
@@ -263,6 +287,42 @@ mod tests {
         assert!(super::trailing_zeros(0) == Word::BITS);
         assert!(super::leading_zeros_u32_soft(0) == u32::BITS);
     };
+
+    #[test]
+    #[allow(clippy::cast_possible_truncation, reason = "tests")]
+    fn addition_boundary_values() {
+        let high_bit = 1 << (Word::BITS - 1);
+        let values = [
+            0,
+            1,
+            2,
+            high_bit - 1,
+            high_bit,
+            high_bit + 1,
+            Word::MAX - 1,
+            Word::MAX,
+        ];
+
+        for lhs in values {
+            for rhs in values {
+                let expected = WideWord::from(lhs) + WideWord::from(rhs);
+                assert_eq!(
+                    super::overflowing_add(lhs, rhs),
+                    (expected as Word, (expected >> Word::BITS) as Word)
+                );
+
+                // The incoming carry is not restricted to a bit, and the outgoing carry can be 2.
+                // In particular, combining the two overflows with OR is wrong.
+                for carry in values {
+                    let expected = expected + WideWord::from(carry);
+                    assert_eq!(
+                        super::carrying_add(lhs, rhs, carry),
+                        (expected as Word, (expected >> Word::BITS) as Word)
+                    );
+                }
+            }
+        }
+    }
 
     #[test]
     fn zero_counts() {
