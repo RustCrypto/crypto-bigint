@@ -39,6 +39,12 @@ impl BoxedMontyForm {
     /// Computes the (reduced) square.
     #[must_use]
     pub fn square(&self) -> Self {
+        if BoxedMontyMultiplier::has_dedicated_square(self.montgomery_form.nlimbs()) {
+            let mut out = self.clone();
+            BoxedMontyMultiplier::from(&self.params).square_assign(&mut out.montgomery_form);
+            return out;
+        }
+
         let mut out = BoxedUint::zero_with_precision(self.bits_precision());
         montgomery_mul(
             &self.montgomery_form,
@@ -153,11 +159,16 @@ impl<'a> AmmMultiplier<'a> for BoxedMontyMultiplier<'a> {
 }
 
 impl<'a> BoxedMontyMultiplier<'a> {
+    /// Sizes supported by the dedicated squaring kernel.
+    const fn has_dedicated_square(nlimbs: usize) -> bool {
+        Limb::BITS == 64 && matches!(nlimbs, 24 | 27 | 32 | 35)
+    }
+
     /// Create a new Montgomery multiplier.
     pub(super) fn new(modulus: &'a BoxedUint, mod_neg_inv: Limb) -> Self {
         Self {
             product: BoxedUint::zero_with_precision(modulus.bits_precision()),
-            square: if Limb::BITS == 64 && matches!(modulus.nlimbs(), 24 | 27 | 32 | 35) {
+            square: if Self::has_dedicated_square(modulus.nlimbs()) {
                 vec![Limb::ZERO; modulus.nlimbs() * 2].into_boxed_slice()
             } else {
                 Box::default()
