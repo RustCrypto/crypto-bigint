@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.7.11 (2026-11-08)
+### Security
+- Fixed Thumb-1 constant-time issues ([#1391], [#1399])
+
+### Changed
+- Bump `ctutils` to v0.4.8 ([#1384])
+- Revise supported CPU architectures policy ([#1389], [#1394])
+- Rename `bits(_vartime)` => `bit_width(_vartime)` ([#1393])
+- Optimize `BoxedMontyForm` squaring for RSA CRT widths ([#1397], [#1398])
+
+### Deprecated
+- `bits` functions for bit-counting: use `bit_width` instead ([#1393])
+
+### Fixed
+- BoxedUint: parse `0` as a one-limb zero ([#1382])
+
+[#1382]: https://github.com/RustCrypto/crypto-bigint/pull/1382
+[#1384]: https://github.com/RustCrypto/crypto-bigint/pull/1384
+[#1389]: https://github.com/RustCrypto/crypto-bigint/pull/1389
+[#1391]: https://github.com/RustCrypto/crypto-bigint/pull/1391
+[#1393]: https://github.com/RustCrypto/crypto-bigint/pull/1393
+[#1394]: https://github.com/RustCrypto/crypto-bigint/pull/1394
+[#1397]: https://github.com/RustCrypto/crypto-bigint/pull/1397
+[#1398]: https://github.com/RustCrypto/crypto-bigint/pull/1398
+[#1399]: https://github.com/RustCrypto/crypto-bigint/pull/1399
+
 ## 0.7.10 (2026-10-26)
 ### Fixed
 - Optimize Montgomery multiplication carry propagation ([#1376])
