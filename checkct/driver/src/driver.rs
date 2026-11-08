@@ -9,6 +9,7 @@ use crypto_bigint::{
 #[cfg(not(target_arch = "aarch64"))]
 use crypto_bigint::modular::{FixedMontyForm, FixedMontyParams};
 
+mod carry;
 mod mul_mod_special;
 
 const_monty_params!(
