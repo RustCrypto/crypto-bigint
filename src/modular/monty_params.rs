@@ -215,7 +215,7 @@ impl<const LIMBS: usize> FixedMontyParams<LIMBS> {
 #[cfg(feature = "alloc")]
 pub(crate) mod boxed {
     use super::MontyParams;
-    use crate::{Limb, Odd, U64, Word};
+    use crate::{Choice, CtEq, Limb, Odd, U64, Word};
     use alloc::sync::Arc;
     use core::fmt::{self, Debug};
 
@@ -226,8 +226,7 @@ pub(crate) mod boxed {
 
     impl BoxedMontyParams {
         /// Instantiates a new set of [`BoxedMontyParams`] representing the given `modulus`.
-        ///
-        /// TODO(tarcieri): DRY out with `MontyParams::new`?
+        // TODO(tarcieri): DRY out with `MontyParams::new`?
         #[must_use]
         pub fn new(modulus: Odd<crate::uint::boxed::BoxedUint>) -> Self {
             let bits_precision = modulus.bits_precision();
@@ -237,9 +236,9 @@ pub(crate) mod boxed {
             let mut one = crate::uint::boxed::BoxedUint::max(bits_precision)
                 .rem(modulus.as_nz_ref())
                 .wrapping_add(Limb::ONE);
-            if one == *modulus.as_ref() {
-                one = crate::uint::boxed::BoxedUint::zero_with_precision(bits_precision);
-            }
+
+            let modulus_is_one = modulus.as_ref().ct_eq(&one);
+            one.as_mut_uint_ref().conditional_set_zero(modulus_is_one);
 
             // `R^2 mod modulus`, used to convert integers to Montgomery form.
             let r2 = one.square_mod(modulus.as_nz_ref());
@@ -247,7 +246,9 @@ pub(crate) mod boxed {
             // The inverse of the modulus modulo 2**64
             let mod_inv = U64::from_u64(modulus.as_uint_ref().invert_mod_u64());
 
-            let mod_leading_zeros = modulus.as_ref().leading_zeros().min(Word::BITS - 1);
+            let mod_leading_zeros = modulus.as_ref().leading_zeros();
+            let mod_leading_zeros = Choice::from_u32_lt(mod_leading_zeros, Word::BITS - 1)
+                .select_u32(Word::BITS - 1, mod_leading_zeros);
 
             Self(
                 MontyParams {
