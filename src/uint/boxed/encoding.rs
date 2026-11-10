@@ -16,11 +16,12 @@ impl BoxedUint {
     /// The new [`BoxedUint`] will be created with `bits_precision` rounded up to a multiple of
     /// [`Limb::BITS`].
     ///
+    /// If `bits_precision` is not a multiple of 8, any bits of the most significant byte above
+    /// `bits_precision` are discarded, as in [`BoxedUint::from_be_slice_truncated`].
+    ///
     /// # Errors
-    /// - Returns [`DecodeError::InputSize`] if the length of `bytes` is larger than
-    ///   `bits_precision` (rounded up to a multiple of 8).
-    /// - Returns [`DecodeError::Precision`] if the size of the decoded integer is larger than
-    ///   `bits_precision`.
+    /// Returns [`DecodeError::InputSize`] if the length of `bytes` is larger than
+    /// `bits_precision` (rounded up to a multiple of 8).
     pub fn from_be_slice(bytes: &[u8], bits_precision: u32) -> Result<Self, DecodeError> {
         if bytes.len() > bitlen::to_bytes(bits_precision) {
             return Err(DecodeError::InputSize);
@@ -61,11 +62,12 @@ impl BoxedUint {
     /// The new [`BoxedUint`] will be created with `bits_precision`
     /// rounded up to a multiple of [`Limb::BITS`].
     ///
+    /// If `bits_precision` is not a multiple of 8, any bits of the most significant byte above
+    /// `bits_precision` are discarded, as in [`BoxedUint::from_le_slice_truncated`].
+    ///
     /// # Errors
-    /// - Returns [`DecodeError::InputSize`] if the length of `bytes` is larger than
-    ///   `bits_precision` (rounded up to a multiple of 8).
-    /// - Returns [`DecodeError::Precision`] if the size of the decoded integer is larger than
-    ///   `bits_precision`.
+    /// Returns [`DecodeError::InputSize`] if the length of `bytes` is larger than
+    /// `bits_precision` (rounded up to a multiple of 8).
     pub fn from_le_slice(bytes: &[u8], bits_precision: u32) -> Result<Self, DecodeError> {
         if bytes.len() > bitlen::to_bytes(bits_precision) {
             return Err(DecodeError::InputSize);
