@@ -93,22 +93,6 @@ jobs:
             rust: stable
             runner: ubuntu-24.04-arm
             args: --release
-
-          # `aarch64` macOS
-          - target: aarch64-apple-darwin
-            rust: 1.87.0 # MSRV
-            runner: macos-latest
-          - target: aarch64-apple-darwin
-            rust: 1.87.0 # MSRV
-            runner: macos-latest
-            args: --release
-          - target: aarch64-apple-darwin
-            rust: stable
-            runner: macos-latest
-          - target: aarch64-apple-darwin
-            rust: stable
-            runner: macos-latest
-            args: --release
     runs-on: ${{ matrix.runner != '' && matrix.runner || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v7
