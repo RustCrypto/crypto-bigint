@@ -6,7 +6,10 @@ use core::hint::black_box;
 use criterion::{
     BatchSize, BenchmarkGroup, Criterion, criterion_group, criterion_main, measurement::Measurement,
 };
-use crypto_bigint::{Random, RandomMod, U256, const_monty_params, modular::ConstMontyParams};
+use crypto_bigint::{
+    Choice, CtAssign, CtSelect, Random, RandomMod, U256, const_monty_params,
+    modular::ConstMontyParams,
+};
 use rand_core::SeedableRng;
 
 #[cfg(feature = "alloc")]
@@ -34,6 +37,37 @@ fn bench_montgomery_conversion<M: Measurement>(group: &mut BenchmarkGroup<'_, M>
         b.iter_batched(
             || ConstMontyForm::random_from_rng(&mut rng),
             |x| black_box(x.retrieve()),
+            BatchSize::SmallInput,
+        );
+    });
+}
+
+fn bench_montgomery_ct<M: Measurement>(group: &mut BenchmarkGroup<'_, M>) {
+    let mut rng = ChaCha8Rng::from_seed([7u8; 32]);
+
+    group.bench_function("ct_select, U256", |b| {
+        b.iter_batched(
+            || {
+                let a = ConstMontyForm::random_from_rng(&mut rng);
+                let b = ConstMontyForm::random_from_rng(&mut rng);
+                (a, b)
+            },
+            |(a, b)| black_box(a).ct_select(&black_box(b), black_box(Choice::TRUE)),
+            BatchSize::SmallInput,
+        );
+    });
+
+    group.bench_function("ct_assign, U256", |b| {
+        b.iter_batched(
+            || {
+                let a = ConstMontyForm::random_from_rng(&mut rng);
+                let b = ConstMontyForm::random_from_rng(&mut rng);
+                (a, b)
+            },
+            |(mut a, b)| {
+                a.ct_assign(&black_box(b), black_box(Choice::TRUE));
+                a
+            },
             BatchSize::SmallInput,
         );
     });
@@ -283,6 +317,7 @@ fn bench_montgomery(c: &mut Criterion) {
     let mut group = c.benchmark_group("Const Montgomery arithmetic");
     bench_montgomery_conversion(&mut group);
     bench_montgomery_ops(&mut group);
+    bench_montgomery_ct(&mut group);
     bench_montgomery_sqrt(&mut group);
     group.finish();
 }
