@@ -153,12 +153,14 @@ impl<const LIMBS: usize> Uint<LIMBS> {
     }
 
     /// Borrow the inner limbs as an array of [`Word`]s.
+    #[inline]
     #[must_use]
     pub const fn as_words(&self) -> &[Word; LIMBS] {
         Limb::array_as_words(&self.limbs)
     }
 
     /// Borrow the inner limbs as a mutable array of [`Word`]s.
+    #[inline]
     pub const fn as_mut_words(&mut self) -> &mut [Word; LIMBS] {
         Limb::array_as_mut_words(&mut self.limbs)
     }

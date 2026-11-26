@@ -40,7 +40,7 @@ impl<const LIMBS: usize> Uint<LIMBS> {
 impl<const LIMBS: usize> CtAssign for Uint<LIMBS> {
     #[inline]
     fn ct_assign(&mut self, other: &Self, choice: Choice) {
-        self.limbs.ct_assign(&other.limbs, choice);
+        self.as_mut_words().ct_assign(other.as_words(), choice);
     }
 }
 impl<const LIMBS: usize> CtAssignSlice for Uint<LIMBS> {}
