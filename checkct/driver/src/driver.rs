@@ -2,8 +2,8 @@ use crate::rng::{PrivateRng, PublicRng};
 use checkct_macros::checkct;
 use core::hint::black_box;
 use crypto_bigint::{
-    CtOption, Limb, NonZero, Odd, U64, U128, U256, U384, U512, const_monty_params,
-    modular::ConstMontyForm,
+    Choice, CtAssign, CtOption, CtSelect, Limb, NonZero, Odd, U64, U128, U256, U384, U512,
+    const_monty_params, modular::ConstMontyForm,
 };
 
 #[cfg(not(target_arch = "aarch64"))]
@@ -356,4 +356,25 @@ pub fn pow_amm_u128() {
     private.fill_bytes(&mut bytes);
     let exponent = U128::from_be_slice(&bytes);
     black_box(pow_amm(&base, &exponent));
+}
+
+/// The operands and the choice are secret.
+#[checkct]
+pub fn ct_assign_select_u384() {
+    let mut private = PrivateRng::new();
+    let mut bytes = [0u8; 48];
+    private.fill_bytes(&mut bytes);
+    let a = U384::from_be_slice(&bytes);
+    private.fill_bytes(&mut bytes);
+    let b = U384::from_be_slice(&bytes);
+    private.fill_bytes(&mut bytes[..1]);
+    let choice = Choice::from_u8_lsb(bytes[0]);
+
+    let mut x = a;
+    x.ct_assign(&b, choice);
+    black_box(x);
+
+    let a = ConstMontyForm::<P384Order, { U384::LIMBS }>::from_montgomery(a);
+    let b = ConstMontyForm::<P384Order, { U384::LIMBS }>::from_montgomery(b);
+    black_box(a.ct_select(&b, choice));
 }
