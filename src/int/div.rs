@@ -184,9 +184,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let inv_remainder = rhs_mag.as_ref().wrapping_sub(&remainder);
         let remainder = Uint::select(&remainder, &inv_remainder, modify);
 
-        // Negate output when lhs and rhs have opposing signs.
+        // Negate quotient when lhs and rhs have opposing signs; remainder has the sign of rhs.
         let quotient = Int::new_from_abs_sign(quotient, opposing_signs);
-        let remainder = remainder.as_int().wrapping_neg_if(opposing_signs); // rem always small enough for safe as_int conversion
+        let remainder = remainder.as_int().wrapping_neg_if(rhs_sgn); // rem always small enough for safe as_int conversion
 
         (quotient, remainder)
     }
@@ -261,7 +261,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// let (quotient, remainder) = I128::from(-8).checked_div_rem_floor(&three);
     /// assert_eq!(quotient.unwrap(), I128::from(-3));
-    /// assert_eq!(remainder, I128::from(-1));
+    /// assert_eq!(remainder, I128::from(1));
     ///
     /// let minus_three = I128::from(-3).to_nz().unwrap();
     /// let (quotient, remainder) = I128::from(8).checked_div_rem_floor(&minus_three);
@@ -270,7 +270,7 @@ impl<const LIMBS: usize> Int<LIMBS> {
     ///
     /// let (quotient, remainder) = I128::from(-8).checked_div_rem_floor(&minus_three);
     /// assert_eq!(quotient.unwrap(), I128::from(2));
-    /// assert_eq!(remainder, I128::from(2));
+    /// assert_eq!(remainder, I128::from(-2));
     /// ```
     #[must_use]
     pub const fn checked_div_rem_floor<const RHS_LIMBS: usize>(
@@ -294,9 +294,9 @@ impl<const LIMBS: usize> Int<LIMBS> {
         let inv_remainder = rhs_mag.as_ref().wrapping_sub(&remainder);
         let remainder = Uint::select(&remainder, &inv_remainder, modify);
 
-        // Negate output when lhs and rhs have opposing signs.
+        // Negate quotient when lhs and rhs have opposing signs; remainder has the sign of rhs.
         let quotient = Int::new_from_abs_sign(quotient, opposing_signs);
-        let remainder = remainder.as_int().wrapping_neg_if(opposing_signs); // rem always small enough for safe as_int conversion
+        let remainder = remainder.as_int().wrapping_neg_if(rhs_sgn); // rem always small enough for safe as_int conversion
 
         (quotient, remainder)
     }
@@ -634,6 +634,19 @@ mod tests {
             I128::MIN.checked_div_rem_floor(&I128::MINUS_ONE.to_nz().unwrap());
         assert!(!quotient.is_some().to_bool());
         assert_eq!(remainder, I128::ZERO);
+    }
+
+    #[test]
+    fn test_checked_div_mod_floor_vartime() {
+        let (quotient, remainder) =
+            I128::from(-8).checked_div_rem_floor_vartime(&I128::from(3).to_nz().unwrap());
+        assert_eq!(quotient.unwrap(), I128::from(-3));
+        assert_eq!(remainder, I128::ONE);
+
+        let (quotient, remainder) =
+            I128::from(-8).checked_div_rem_floor_vartime(&I128::from(-3).to_nz().unwrap());
+        assert_eq!(quotient.unwrap(), I128::from(2));
+        assert_eq!(remainder, I128::from(-2));
     }
 
     #[test]
